@@ -11,7 +11,7 @@ type ConfigAdd struct {
 	ConfigModify
 }
 
-func configAddFactory(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.ConfigUpdater {
+func configAddFactory(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater {
 
 	switch fieldType {
 	case config.FieldTypeStringSlice:

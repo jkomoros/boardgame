@@ -75,10 +75,10 @@ func (c *Config) AddOverride(o OptionOverrider) {
 //Update modifies the config in a specified way. typ and secret select the
 //RawConfigMode to modify (creating one if necessary) and then updater applies
 //the update. See Set* functions in this package for factories for common
-//ConfigUpdaters. After the update, the Config has all of its values rederived
-//to reflect the change. If you want changes that will not be persisted, see
+//Updater. After the update, the Config has all of its values rederived to
+//reflect the change. If you want changes that will not be persisted, see
 //AddOverride.
-func (c *Config) Update(typ ModeType, secret bool, updater ConfigUpdater) error {
+func (c *Config) Update(typ ModeType, secret bool, updater Updater) error {
 
 	if updater == nil {
 		return errors.New("No updater provided. Perhaps the config to the factory was invalid?")

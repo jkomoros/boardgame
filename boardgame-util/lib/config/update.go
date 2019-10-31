@@ -6,15 +6,15 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
-//ConfigUpdater is a function that takes a rawConfig and makes a modifcation
+//Updater is a function that takes a rawConfig and makes a modifcation
 //in place on that object. It should return a non-nil error if it wasn't able
 //to do the modification for some reason. These are one of the primary objects
 //to config.Update(). This package defines a number of factories for these.
-type ConfigUpdater func(r *RawConfigMode, typ ModeType) error
+type Updater func(r *RawConfigMode, typ ModeType) error
 
 //SetString returns a function to set the given rawconfig string property to
 //the given value. field must be of FieldTypeString.
-func SetString(field ModeField, val string) ConfigUpdater {
+func SetString(field ModeField, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
 		switch field {
@@ -41,13 +41,13 @@ func SetString(field ModeField, val string) ConfigUpdater {
 
 //DeleteString returns a function to unset the given config string
 //propert, as long as field is of type FieldTypeString.
-func DeleteString(field ModeField) ConfigUpdater {
+func DeleteString(field ModeField) Updater {
 	return SetString(field, "")
 }
 
 //AddString adds the given string, if it doesn't exist, to the []string type
 //ModeField. Field must be of FieldTypeStringSlice.
-func AddString(field ModeField, val string) ConfigUpdater {
+func AddString(field ModeField, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
 		if field != FieldAdminUserIds {
@@ -70,7 +70,7 @@ func AddString(field ModeField, val string) ConfigUpdater {
 //RemoveString removes the given string, if it exists, from the []string type
 //ModeField. If it was the last item to remove, sets that field to nil.
 //Field must be of FieldTypeStringSlice.
-func RemoveString(field ModeField, val string) ConfigUpdater {
+func RemoveString(field ModeField, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
 		if field != FieldAdminUserIds {
@@ -95,7 +95,7 @@ func RemoveString(field ModeField, val string) ConfigUpdater {
 //AddGame adds the given value to the Games node. Val can be a path or import;
 //in either case it's looked up via gamepkg, and its Import() is used if the
 //package is valid. Returns an error if the package isn't valid.
-func AddGame(val string) ConfigUpdater {
+func AddGame(val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
 
@@ -114,7 +114,7 @@ func AddGame(val string) ConfigUpdater {
 }
 
 //RemoveGame removes the given value from the Games node.
-func RemoveGame(val string) ConfigUpdater {
+func RemoveGame(val string) Updater {
 	return func(r *RawConfigMode, typ ModeType) error {
 		r.Games = r.Games.RemoveGame(val)
 		return nil
@@ -125,7 +125,7 @@ func RemoveGame(val string) ConfigUpdater {
 //denoted by field. If that key is already set, it updates it to the new
 //value. If the map is nil, creates one. Field must be of FieldTypeStringMap.
 //If val is "" then the key will be deleted.
-func SetStringKey(field ModeField, key, val string) ConfigUpdater {
+func SetStringKey(field ModeField, key, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
 		if field != FieldStorage {
@@ -150,7 +150,7 @@ func SetStringKey(field ModeField, key, val string) ConfigUpdater {
 
 //SetBool sets the field denoted by field to the val. Field must be of type
 //FieldTypeBool.
-func SetBool(field ModeField, val bool) ConfigUpdater {
+func SetBool(field ModeField, val bool) Updater {
 	return func(r *RawConfigMode, typ ModeType) error {
 		fieldType := FieldTypes[field]
 		if fieldType != FieldTypeBool {
@@ -184,7 +184,7 @@ func SetBool(field ModeField, val bool) ConfigUpdater {
 
 //SetFirebaseKey sets the key denoted by FirebaseKey to val. Implicitly
 //operates only on the FieldFirebase field. If Firebase is nil, initalizes it.
-func SetFirebaseKey(key FirebaseKey, val string) ConfigUpdater {
+func SetFirebaseKey(key FirebaseKey, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
 

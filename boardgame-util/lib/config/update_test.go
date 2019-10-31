@@ -14,7 +14,7 @@ func TestUpdate(t *testing.T) {
 		inSecret       *RawConfig
 		inType         ModeType
 		inIsSecret     bool
-		inUpdater      ConfigUpdater
+		inUpdater      Updater
 		errExpected    bool
 		expectedPublic *RawConfig
 		expectedSecret *RawConfig

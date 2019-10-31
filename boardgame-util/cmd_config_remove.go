@@ -11,7 +11,7 @@ type ConfigRemove struct {
 	ConfigModify
 }
 
-func configRemoveFactory(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.ConfigUpdater {
+func configRemoveFactory(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater {
 
 	switch fieldType {
 	case config.FieldTypeStringSlice:
