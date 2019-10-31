@@ -4,11 +4,11 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-type CodegenAll struct {
+type codegenAll struct {
 	baseSubCommand
 }
 
-func (c *CodegenAll) Run(p writ.Path, positional []string) {
+func (c *codegenAll) Run(p writ.Path, positional []string) {
 
 	parent := c.Parent().(*Codegen)
 
@@ -17,15 +17,15 @@ func (c *CodegenAll) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *CodegenAll) Name() string {
+func (c *codegenAll) Name() string {
 	return "all"
 }
 
-func (c *CodegenAll) Description() string {
+func (c *codegenAll) Description() string {
 	return "Automatically generates PropertyReader and enum boilerplate for a package"
 }
 
-func (c *CodegenAll) HelpText() string {
+func (c *codegenAll) HelpText() string {
 	return c.Name() +
 
 		` generates both PropertyReader and enum output for the given package.

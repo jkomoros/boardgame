@@ -7,7 +7,7 @@ import (
 type Codegen struct {
 	baseSubCommand
 
-	CodegenAll    CodegenAll
+	CodegenAll    codegenAll
 	CodegenEnum   CodegenEnum
 	CodegenReader CodegenReader
 
