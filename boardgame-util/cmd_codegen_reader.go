@@ -1,19 +1,20 @@
 package main
 
 import (
-	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 )
 
-type CodegenReader struct {
+type codegenReader struct {
 	baseSubCommand
 
 	DontOutputReaderTest bool
 }
 
-func (c *CodegenReader) Run(p writ.Path, positional []string) {
+func (c *codegenReader) Run(p writ.Path, positional []string) {
 
 	pkgDirectory := dirPositionalOrDefault(c.Base(), positional, true)
 
@@ -41,19 +42,19 @@ func (c *CodegenReader) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *CodegenReader) Name() string {
+func (c *codegenReader) Name() string {
 	return "reader"
 }
 
-func (c *CodegenReader) Description() string {
+func (c *codegenReader) Description() string {
 	return "Automatically generates PropertyReader boilerplate for a package"
 }
 
-func (c *CodegenReader) Usage() string {
+func (c *codegenReader) Usage() string {
 	return "PKGNAME"
 }
 
-func (c *CodegenReader) HelpText() string {
+func (c *codegenReader) HelpText() string {
 	return c.Name() +
 
 		` generates PropertyReader and friends for a given package.
@@ -89,7 +90,7 @@ It is a thin wrapper around 'boardgame- util/lib/codegen.ProcessReaders'. `
 
 }
 
-func (c *CodegenReader) WritOptions() []*writ.Option {
+func (c *codegenReader) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"no-test"},

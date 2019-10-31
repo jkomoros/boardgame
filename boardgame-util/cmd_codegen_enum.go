@@ -1,17 +1,18 @@
 package main
 
 import (
-	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 )
 
-type CodegenEnum struct {
+type codegenEnum struct {
 	baseSubCommand
 }
 
-func (c *CodegenEnum) Run(p writ.Path, positional []string) {
+func (c *codegenEnum) Run(p writ.Path, positional []string) {
 
 	packageDir := dirPositionalOrDefault(c.Base(), positional, true)
 
@@ -31,19 +32,19 @@ func (c *CodegenEnum) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *CodegenEnum) Usage() string {
+func (c *codegenEnum) Usage() string {
 	return "PKGNAME"
 }
 
-func (c *CodegenEnum) Name() string {
+func (c *codegenEnum) Name() string {
 	return "enum"
 }
 
-func (c *CodegenEnum) Description() string {
+func (c *codegenEnum) Description() string {
 	return "Automatically generates enum boilerplate for a package"
 }
 
-func (c *CodegenEnum) HelpText() string {
+func (c *codegenEnum) HelpText() string {
 	return c.Name() +
 
 		` processes the given package and outputs the contents of a file

@@ -8,8 +8,8 @@ type Codegen struct {
 	baseSubCommand
 
 	CodegenAll    codegenAll
-	CodegenEnum   CodegenEnum
-	CodegenReader CodegenReader
+	CodegenEnum   codegenEnum
+	CodegenReader codegenReader
 
 	OutputFile     string
 	OutputFileTest string
