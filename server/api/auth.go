@@ -27,7 +27,7 @@ func randomString(length int) string {
 	return result
 }
 
-func (s *Server) unsetCookie(r *Renderer, cookie string, message string) {
+func (s *Server) unsetCookie(r *renderer, cookie string, message string) {
 	//We must have an old cookie set. Clear it out.
 	if err := s.storage.ConnectCookieToUser(cookie, nil); err != nil {
 
@@ -53,7 +53,7 @@ func (s *Server) unsetCookie(r *Renderer, cookie string, message string) {
 //Set-Cookie's it back.
 func (s *Server) authCookieHandler(c *gin.Context) {
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
 		r.Error(errors.New("this method only supports post"))
@@ -72,7 +72,7 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 }
 
-func (s *Server) authSuccess(r *Renderer, user *users.StorageRecord, message string) {
+func (s *Server) authSuccess(r *renderer, user *users.StorageRecord, message string) {
 
 	if user != nil {
 		//Make a copy so tha twe don't overwrite the user storage record and
@@ -98,7 +98,7 @@ func (s *Server) authSuccess(r *Renderer, user *users.StorageRecord, message str
 
 }
 
-func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoURL, displayName string) {
+func (s *Server) doAuthCookie(r *renderer, uid, token, cookie, email, photoURL, displayName string) {
 	//If the user is already associated with that cookie it's a success, nothing more to do.
 
 	if cookie != "" && uid != "" {

@@ -21,6 +21,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
+//Server is the main server object.
 type Server struct {
 	managers managerMap
 
@@ -38,7 +39,7 @@ type Server struct {
 	logger   *logrus.Logger
 }
 
-type Renderer struct {
+type renderer struct {
 	s            *Server
 	c            *gin.Context
 	rendered     bool
@@ -136,8 +137,8 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 }
 
-func (s *Server) NewRenderer(c *gin.Context) *Renderer {
-	return &Renderer{
+func (s *Server) newRenderer(c *gin.Context) *renderer {
+	return &renderer{
 		s,
 		c,
 		false,
@@ -146,7 +147,7 @@ func (s *Server) NewRenderer(c *gin.Context) *Renderer {
 	}
 }
 
-func (r *Renderer) Error(f *errors.Friendly) {
+func (r *renderer) Error(f *errors.Friendly) {
 	if r.rendered {
 		r.s.logger.Errorln("Error called on already-rendered renderer")
 	}
@@ -178,7 +179,7 @@ func (r *Renderer) Error(f *errors.Friendly) {
 	r.rendered = true
 }
 
-func (r *Renderer) Success(keys gin.H) {
+func (r *renderer) Success(keys gin.H) {
 
 	if r.rendered {
 		panic("Success called on alread-rendered renderer")
@@ -203,7 +204,7 @@ func (r *Renderer) Success(keys gin.H) {
 	r.rendered = true
 }
 
-func (r *Renderer) writeCookie() {
+func (r *renderer) writeCookie() {
 	if r.rendered {
 		return
 	}
@@ -225,7 +226,7 @@ func (r *Renderer) writeCookie() {
 //SetAuthCookie will set the auth cookie to the specified value. If called
 //multiple times for a single request will only actually write headers for the
 //last one.
-func (r *Renderer) SetAuthCookie(value string) {
+func (r *renderer) SetAuthCookie(value string) {
 
 	//We don't write the cookies to the response yet because we might get
 	//multiple SetAuthCookie calls in one response.
@@ -340,7 +341,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 //Checks to make sure the user is logged in, fails if not.
 func (s *Server) requireLoggedIn(c *gin.Context) {
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	user := s.getUser(c)
 
@@ -354,7 +355,7 @@ func (s *Server) requireLoggedIn(c *gin.Context) {
 }
 
 func (s *Server) joinGameHandler(c *gin.Context) {
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	game := s.getGame(c)
 
@@ -373,7 +374,7 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 
 }
 
-func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
+func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
 
 	if user == nil {
 		r.Error(errors.New("No user provided."))
@@ -415,7 +416,7 @@ func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer b
 
 func (s *Server) newGameHandler(c *gin.Context) {
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	managerId := s.getRequestManager(c)
 
@@ -445,7 +446,7 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 }
 
-func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, variant map[string]string) {
+func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, variant map[string]string) {
 
 	if manager == nil {
 		r.Error(errors.New("No manager provided"))
@@ -495,7 +496,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 
 func (s *Server) listGamesHandler(c *gin.Context) {
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	user := s.getUser(c)
 
@@ -509,7 +510,7 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 	s.doListGames(r, user, gameName, isAdmin)
 }
 
-func (s *Server) doListGames(r *Renderer, user *users.StorageRecord, gameName string, isAdmin bool) {
+func (s *Server) doListGames(r *renderer, user *users.StorageRecord, gameName string, isAdmin bool) {
 	var userId string
 	if user != nil {
 		userId = user.ID
@@ -559,11 +560,11 @@ func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, g
 }
 
 func (s *Server) listManagerHandler(c *gin.Context) {
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 	s.doListManager(r)
 }
 
-func (s *Server) doListManager(r *Renderer) {
+func (s *Server) doListManager(r *renderer) {
 	var managers []map[string]interface{}
 	for name, manager := range s.managers {
 		agents := make([]map[string]interface{}, len(manager.Agents()))
@@ -666,7 +667,7 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 	autoCurrentPlayer := s.effectiveAutoCurrentPlayer(c)
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	s.doGameVersion(r, game, version, fromVersion, playerIndex, autoCurrentPlayer)
 
@@ -712,7 +713,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 	return bundles
 }
 
-func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromVersion int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
+func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromVersion int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
 	if game == nil {
 		r.Error(errors.NewFriendly("Couldn't find game"))
 		return
@@ -772,13 +773,13 @@ func (s *Server) configureGameHandler(c *gin.Context) {
 	open := s.getRequestOpen(c)
 	visible := s.getRequestVisible(c)
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	s.doConfigureGame(r, user, isAdmin, game, gameInfo, open, visible)
 
 }
 
-func (s *Server) doConfigureGame(r *Renderer, user *users.StorageRecord, isAdmin bool, game *boardgame.Game, gameInfo *extendedgame.StorageRecord, open, visible bool) {
+func (s *Server) doConfigureGame(r *renderer, user *users.StorageRecord, isAdmin bool, game *boardgame.Game, gameInfo *extendedgame.StorageRecord, open, visible bool) {
 
 	if user == nil {
 		r.Error(errors.New("No user provided"))
@@ -835,7 +836,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	user := s.getUser(c)
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion)
 
@@ -908,7 +909,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 	return result
 }
 
-func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
+func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
 		return
@@ -970,7 +971,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 
 func (s *Server) moveHandler(c *gin.Context) {
 
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
 		r.Error(errors.New("This method only supports post."))
@@ -1006,7 +1007,7 @@ func (s *Server) moveHandler(c *gin.Context) {
 
 }
 
-func (s *Server) doMakeMove(r *Renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) {
+func (s *Server) doMakeMove(r *renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) {
 
 	if err := <-game.ProposeMove(move, proposer); err != nil {
 
@@ -1075,7 +1076,7 @@ func formFields(move boardgame.Move) []*MoveFormField {
 //genericHandler doesn't do much. We just register it so we automatically get
 //CORS handlers triggered with the middelware.
 func (s *Server) genericHandler(c *gin.Context) {
-	r := s.NewRenderer(c)
+	r := s.newRenderer(c)
 	r.Success(gin.H{
 		"Message": "Nothing to see here.",
 	})

@@ -55,7 +55,7 @@ func (s *Server) socketHandler(c *gin.Context) {
 
 	game := s.getGame(c)
 
-	renderer := s.NewRenderer(c)
+	renderer := s.newRenderer(c)
 
 	if game == nil {
 		renderer.Error(errors.New("No such game"))
