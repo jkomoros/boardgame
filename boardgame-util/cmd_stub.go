@@ -3,20 +3,23 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/stub"
 	"os"
 	"os/exec"
+
+	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/stub"
 )
 
-type Stub struct {
+//stubCmd is named that instead of stub to avoid conflicting with the stub
+//package.
+type stubCmd struct {
 	baseSubCommand
 
 	Dir  string
 	Fast bool
 }
 
-func (s *Stub) Run(p writ.Path, positional []string) {
+func (s *stubCmd) Run(p writ.Path, positional []string) {
 
 	b := s.Base()
 
@@ -61,19 +64,19 @@ func (s *Stub) Run(p writ.Path, positional []string) {
 
 }
 
-func (s *Stub) Name() string {
+func (s *stubCmd) Name() string {
 	return "stub"
 }
 
-func (s *Stub) Description() string {
+func (s *stubCmd) Description() string {
 	return "Generate starter game with reasonable boilerplate"
 }
 
-func (s *Stub) Usage() string {
+func (s *stubCmd) Usage() string {
 	return "GAMENAME"
 }
 
-func (s *Stub) HelpText() string {
+func (s *stubCmd) HelpText() string {
 	return s.Name() +
 
 		` generates a starter game stub based on options provided interactively at the command prompt.
@@ -82,7 +85,7 @@ GAMENAME is the base name of the game. It should be short, unique, and be a vali
 
 }
 
-func (s *Stub) WritOptions() []*writ.Option {
+func (s *stubCmd) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"dir", "d"},

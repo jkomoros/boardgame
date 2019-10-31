@@ -20,7 +20,7 @@ type boardgameUtil struct {
 	Clean   clean
 	Serve   serve
 	Config  configCmd
-	Stub    Stub
+	Stub    stubCmd
 	Golden  goldenCmd
 
 	ConfigPath            string
