@@ -1,23 +1,24 @@
 /*
 
-pig is a very simple game involving dice rolls.
+Package pig is a very simple game involving dice rolls.
 
 */
 package pig
 
 import (
+	"reflect"
+	"strconv"
+	"strings"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
-	"reflect"
-	"strconv"
-	"strings"
 )
 
 //go:generate boardgame-util codegen
 
-const DefaultTargetScore = 100
+const defaultTargetScore = 100
 const diceDeckName = "dice"
 
 type gameDelegate struct {
@@ -69,7 +70,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	startingPlayer := boardgame.PlayerIndex(state.Rand().Intn(len(state.PlayerStates())))
 
 	game.CurrentPlayer = startingPlayer
-	game.TargetScore = DefaultTargetScore
+	game.TargetScore = defaultTargetScore
 
 	return nil
 
@@ -112,7 +113,7 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return &gameState{
 		CurrentPlayer: 0,
-		TargetScore:   DefaultTargetScore,
+		TargetScore:   defaultTargetScore,
 	}
 }
 
@@ -137,15 +138,15 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	return moves.Add(
 		auto.MustConfig(
-			new(MoveRollDice),
+			new(moveRollDice),
 			moves.WithHelpText("Rolls the dice for the current player"),
 		),
 		auto.MustConfig(
-			new(MoveDoneTurn),
+			new(moveDoneTurn),
 			moves.WithHelpText("Played when a player is done with their turn and wants to keep their score."),
 		),
 		auto.MustConfig(
-			new(MoveCountDie),
+			new(moveCountDie),
 			moves.WithHelpText("After a die has been rolled, tabulating its impact"),
 			moves.WithIsFixUp(true),
 		),
@@ -166,6 +167,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
+//NewDelegate is the primary entrypoint of the package. It returns a delegate
+//that configures a game of pig.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

@@ -2,33 +2,34 @@ package pig
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
-type MoveRollDice struct {
+type moveRollDice struct {
 	moves.CurrentPlayer
 }
 
 //boardgame:codegen
-type MoveDoneTurn struct {
+type moveDoneTurn struct {
 	moves.CurrentPlayer
 }
 
 //boardgame:codegen
-type MoveCountDie struct {
+type moveCountDie struct {
 	moves.CurrentPlayer
 }
 
 /**************************************************
  *
- * MoveRollDice Implementation
+ * moveRollDice Implementation
  *
  **************************************************/
 
-func (m *MoveRollDice) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveRollDice) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return nil
@@ -45,7 +46,7 @@ func (m *MoveRollDice) Legal(state boardgame.ImmutableState, proposer boardgame.
 	return nil
 }
 
-func (m *MoveRollDice) Apply(state boardgame.State) error {
+func (m *moveRollDice) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -61,11 +62,11 @@ func (m *MoveRollDice) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * MoveDoneTurn Implementation
+ * moveDoneTurn Implementation
  *
  **************************************************/
 
-func (m *MoveDoneTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveDoneTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -76,17 +77,17 @@ func (m *MoveDoneTurn) Legal(state boardgame.ImmutableState, proposer boardgame.
 	p := players[game.CurrentPlayer]
 
 	if !p.DieCounted {
-		return errors.New("Your most recent roll has not yet been counted")
+		return errors.New("your most recent roll has not yet been counted")
 	}
 
 	if p.Done {
-		return errors.New("You already signaled that you are done!")
+		return errors.New("you already signaled that you are done")
 	}
 
 	return nil
 }
 
-func (m *MoveDoneTurn) Apply(state boardgame.State) error {
+func (m *moveDoneTurn) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -98,11 +99,11 @@ func (m *MoveDoneTurn) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * MoveCountDie Implementation
+ * moveCountDie Implementation
  *
  **************************************************/
 
-func (m *MoveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -113,13 +114,13 @@ func (m *MoveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.
 	p := players[game.CurrentPlayer]
 
 	if p.DieCounted {
-		return errors.New("The most recent die roll has already been counted.")
+		return errors.New("the most recent die roll has already been counted")
 	}
 
 	return nil
 }
 
-func (m *MoveCountDie) Apply(state boardgame.State) error {
+func (m *moveCountDie) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
