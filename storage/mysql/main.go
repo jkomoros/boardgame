@@ -1,8 +1,8 @@
 /*
 
-mysql provides a mysql-backed database that implements both
-boardgame.StorageManager and boardgame/server.StorageManager. See the
-README.md for more information on how to configure and use it.
+Package mysql provides a mysql-backed database that implements both
+boardgame.StorageManager and boardgame/server.StorageManager. See the README.md
+for more information on how to configure and use it.
 
 */
 package mysql
@@ -21,20 +21,20 @@ import (
 )
 
 const (
-	TableGames         = "games"
-	TableExtendedGames = "extendedgames"
-	TableMoves         = "moves"
-	TableUsers         = "users"
-	TableStates        = "states"
-	TableCookies       = "cookies"
-	TablePlayers       = "players"
-	TableAgentStates   = "agentstates"
+	tableGames         = "games"
+	tableExtendedGames = "extendedgames"
+	tableMoves         = "moves"
+	tableUsers         = "users"
+	tableStates        = "states"
+	tableCookies       = "cookies"
+	tablePlayers       = "players"
+	tableAgentStates   = "agentstates"
 )
 
 const baseCombinedSelectQuery = "select g.Name, g.Id, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
 	"g.Created, g.Modified, e.Open, e.Visible, e.Owner"
 
-const baseCombinedFromQuery = "from " + TableGames + " g, " + TableExtendedGames + " e"
+const baseCombinedFromQuery = "from " + tableGames + " g, " + tableExtendedGames + " e"
 
 const baseCombinedWhereQuery = "where g.Id = e.Id"
 
@@ -60,6 +60,7 @@ const combinedNotPlayerOpenSlotsQuery = combinedNotPlayerFilterQuery + " and " +
 
 const combinedNotPlayerNoOpenSlotsQuery = combinedNotPlayerFilterQuery + " and (not " + emptySlotsQuery + " or e.Open = 0)"
 
+//StorageManager is the primary type in this package.
 type StorageManager struct {
 	db       *sql.DB
 	dbMap    *gorp.DbMap
@@ -82,6 +83,7 @@ func NewStorageManager(testMode bool) *StorageManager {
 
 }
 
+//Connect connects to the database using the given DSN config string.
 func (s *StorageManager) Connect(config string) error {
 
 	db, err := connect.Db(config, s.testMode, s.testMode)
@@ -103,16 +105,16 @@ func (s *StorageManager) Connect(config string) error {
 		},
 	}
 
-	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(GameStorageRecord{}, TableGames).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(ExtendedGameStorageRecord{}, TableExtendedGames).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(StateStorageRecord{}, TableStates).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
-	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, TableAgentStates).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(MoveStorageRecord{}, TableMoves).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(UserStorageRecord{}, tableUsers).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(GameStorageRecord{}, tableGames).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(ExtendedGameStorageRecord{}, tableExtendedGames).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(StateStorageRecord{}, tableStates).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(CookieStorageRecord{}, tableCookies).SetKeys(false, "Cookie")
+	s.dbMap.AddTableWithName(PlayerStorageRecord{}, tablePlayers).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, tableAgentStates).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(MoveStorageRecord{}, tableMoves).SetKeys(true, "Id")
 
-	_, err = s.dbMap.SelectInt("select count(*) from " + TableGames)
+	_, err = s.dbMap.SelectInt("select count(*) from " + tableGames)
 
 	if err != nil {
 		return errors.New("Sanity check failed for db. Have you used the admin tool to migrate it up? " + err.Error())
@@ -124,6 +126,7 @@ func (s *StorageManager) Connect(config string) error {
 
 }
 
+//Close closes out the connection to the database.
 func (s *StorageManager) Close() {
 	if s.db == nil {
 		return
@@ -134,6 +137,7 @@ func (s *StorageManager) Close() {
 	s.connected = false
 }
 
+//CleanUp drops the test DB, but only if it was created in TestMode.
 func (s *StorageManager) CleanUp() {
 	if !s.testMode {
 		return
@@ -142,11 +146,13 @@ func (s *StorageManager) CleanUp() {
 	connect.DropTestDb(s.config)
 }
 
+//Name returns 'mysql'
 func (s *StorageManager) Name() string {
 	return "mysql"
 }
 
-func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
+//State returns the given state
+func (s *StorageManager) State(gameID string, version int) (boardgame.StateStorageRecord, error) {
 
 	if !s.connected {
 		return nil, errors.New("Database not connected yet")
@@ -154,7 +160,7 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 
 	var state StateStorageRecord
 
-	err := s.dbMap.SelectOne(&state, "select * from "+TableStates+" where GameId=? and Version=?", gameId, version)
+	err := s.dbMap.SelectOne(&state, "select * from "+tableStates+" where GameId=? and Version=?", gameID, version)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No such state")
@@ -167,7 +173,8 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 	return (&state).ToStorageRecord(), nil
 }
 
-func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
+//Moves returns the given moves
+func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
 
 	if !s.connected {
 		return nil, errors.New("Database not connected yet")
@@ -179,7 +186,7 @@ func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*bo
 		fromVersion = fromVersion - 1
 	}
 
-	_, err := s.dbMap.Select(&moves, "select * from "+TableMoves+" where GameId=? and Version>? and Version<=? order by Version", gameId, fromVersion, toVersion)
+	_, err := s.dbMap.Select(&moves, "select * from "+tableMoves+" where GameId=? and Version>? and Version<=? order by Version", gameID, fromVersion, toVersion)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No moves returned")
@@ -199,14 +206,15 @@ func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*bo
 
 }
 
-func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
+//Move returns the given Move
+func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorageRecord, error) {
 	if !s.connected {
 		return nil, errors.New("Database not connected yet")
 	}
 
 	var move MoveStorageRecord
 
-	err := s.dbMap.SelectOne(&move, "select * from "+TableMoves+" where GameId=? and Version=?", gameId, version)
+	err := s.dbMap.SelectOne(&move, "select * from "+tableMoves+" where GameId=? and Version=?", gameID, version)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No such state")
@@ -219,6 +227,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 	return (&move).ToStorageRecord(), nil
 }
 
+//Game returns the given Game
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	if !s.connected {
@@ -227,7 +236,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	var game GameStorageRecord
 
-	err := s.dbMap.SelectOne(&game, "select * from "+TableGames+" where Id=?", id)
+	err := s.dbMap.SelectOne(&game, "select * from "+tableGames+" where Id=?", id)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No such game")
@@ -240,6 +249,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return (&game).ToStorageRecord(), nil
 }
 
+//ExtendedGame returns the given ExtendedGame
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
 	if !s.connected {
 		return nil, errors.New("Database not connected yet")
@@ -247,7 +257,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 
 	var record ExtendedGameStorageRecord
 
-	err := s.dbMap.SelectOne(&record, "select * from "+TableExtendedGames+" where Id=?", id)
+	err := s.dbMap.SelectOne(&record, "select * from "+tableExtendedGames+" where Id=?", id)
 
 	if err != nil {
 		return nil, err
@@ -256,6 +266,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 	return (&record).ToStorageRecord(), nil
 }
 
+//CombinedGame returns the given CombinedGame
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 
 	if !s.connected {
@@ -273,6 +284,7 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	return (&record).ToStorageRecord(), nil
 }
 
+//SaveGameAndCurrentState saves the given game and current state.
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	if !s.connected {
@@ -290,7 +302,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		moveRecord = NewMoveStorageRecord(game.ID, version, move)
 	}
 
-	count, _ := s.dbMap.SelectInt("select count(*) from "+TableGames+" where Id=?", game.ID)
+	count, _ := s.dbMap.SelectInt("select count(*) from "+tableGames+" where Id=?", game.ID)
 
 	if count < 1 {
 		//Need to insert
@@ -337,7 +349,8 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	return nil
 }
 
-func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
+//AgentState returns the given AgentState
+func (s *StorageManager) AgentState(gameID string, player boardgame.PlayerIndex) ([]byte, error) {
 
 	if !s.connected {
 		return nil, errors.New("Database not connected yet")
@@ -345,7 +358,7 @@ func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex)
 
 	var agent AgentStateStorageRecord
 
-	err := s.dbMap.SelectOne(&agent, "select * from "+TableAgentStates+" where GameId=? and PlayerIndex=? order by Id desc limit 1", gameId, int64(player))
+	err := s.dbMap.SelectOne(&agent, "select * from "+tableAgentStates+" where GameId=? and PlayerIndex=? order by Id desc limit 1", gameID, int64(player))
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -359,12 +372,13 @@ func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex)
 
 }
 
-func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
+//SaveAgentState saves the given agent state
+func (s *StorageManager) SaveAgentState(gameID string, player boardgame.PlayerIndex, state []byte) error {
 	if !s.connected {
 		return errors.New("Database not connected yet")
 	}
 
-	record := NewAgentStateStorageRecord(gameId, player, state)
+	record := NewAgentStateStorageRecord(gameID, player, state)
 
 	err := s.dbMap.Insert(record)
 
@@ -375,6 +389,7 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 	return nil
 }
 
+//UpdateExtendedGame updates the given extended game properties
 func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
 
 	if !s.connected {
@@ -389,7 +404,8 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 	return err
 }
 
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
+//ListGames lists the given games
+func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 
 	if !s.connected {
 		return nil
@@ -401,7 +417,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string, ga
 		max = 100
 	}
 
-	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userId == "" {
+	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userID == "" {
 		//If we're filtering to only participating games and there's no userId, then there can't be any games,
 		//because the non-user can't be participating in any games.
 		return nil
@@ -421,7 +437,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string, ga
 		default:
 			query = combinedPlayerFilterQuery
 		}
-		args = append(args, userId)
+		args = append(args, userID)
 	}
 
 	switch list {
@@ -458,13 +474,14 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string, ga
 	return result
 }
 
-func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
+//SetPlayerForGame affiliates the given user in the given game to the given player
+func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
 
 	if !s.connected {
 		return errors.New("Database not connected yet")
 	}
 
-	game, err := s.Game(gameId)
+	game, err := s.Game(gameID)
 
 	if err != nil {
 		return errors.New("Couldn't get game: " + err.Error())
@@ -482,7 +499,7 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 
 	var player PlayerStorageRecord
 
-	err = s.dbMap.SelectOne(&player, "select * from "+TablePlayers+" where GameId=? and PlayerIndex=?", game.ID, int(playerIndex))
+	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameId=? and PlayerIndex=?", game.ID, int(playerIndex))
 
 	if err == sql.ErrNoRows {
 		// Insert the row
@@ -490,7 +507,7 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 		player = PlayerStorageRecord{
 			GameId:      game.ID,
 			PlayerIndex: int64(playerIndex),
-			UserId:      userId,
+			UserId:      userID,
 		}
 
 		err = s.dbMap.Insert(&player)
@@ -508,7 +525,7 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 		return errors.New("Failed to retrieve existing Player line: " + err.Error())
 	}
 
-	player.UserId = userId
+	player.UserId = userID
 
 	_, err = s.dbMap.Update(player)
 
@@ -520,13 +537,14 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 
 }
 
-func (s *StorageManager) UserIDsForGame(gameId string) []string {
+//UserIDsForGame returns the given UserIds
+func (s *StorageManager) UserIDsForGame(gameID string) []string {
 
 	if !s.connected {
 		return nil
 	}
 
-	game, err := s.Game(gameId)
+	game, err := s.Game(gameID)
 
 	if err != nil {
 		log.Println("Couldn't get game: " + err.Error())
@@ -540,7 +558,7 @@ func (s *StorageManager) UserIDsForGame(gameId string) []string {
 
 	var players []PlayerStorageRecord
 
-	_, err = s.dbMap.Select(&players, "select * from "+TablePlayers+" where GameId=? order by PlayerIndex desc", game.ID)
+	_, err = s.dbMap.Select(&players, "select * from "+tablePlayers+" where GameId=? order by PlayerIndex desc", game.ID)
 
 	result := make([]string, game.NumPlayers)
 
@@ -568,10 +586,11 @@ func (s *StorageManager) UserIDsForGame(gameId string) []string {
 
 }
 
+//UpdateUser updates the given user
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	userRecord := NewUserStorageRecord(user)
 
-	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+TableUsers+" where Id=?", user.ID)
+	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+tableUsers+" where Id=?", user.ID)
 
 	if existingRecord < 1 {
 		//Need to insert
@@ -589,13 +608,14 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 		}
 
 		if count < 1 {
-			return errors.New("Row could not be updated.")
+			return errors.New("row could not be updated")
 		}
 	}
 
 	return nil
 }
 
+//GetUserByID gets the given user
 func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 	if !s.connected {
 		return nil
@@ -603,7 +623,7 @@ func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 
 	var user UserStorageRecord
 
-	err := s.dbMap.SelectOne(&user, "select * from "+TableUsers+" where Id=?", uid)
+	err := s.dbMap.SelectOne(&user, "select * from "+tableUsers+" where Id=?", uid)
 
 	if err == sql.ErrNoRows {
 		//Normal
@@ -618,6 +638,7 @@ func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 	return (&user).ToStorageRecord()
 }
 
+//GetUserByCookie gets the given user
 func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 	if !s.connected {
@@ -626,7 +647,7 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 	var cookieRecord CookieStorageRecord
 
-	err := s.dbMap.SelectOne(&cookieRecord, "select * from "+TableCookies+" where Cookie=?", cookie)
+	err := s.dbMap.SelectOne(&cookieRecord, "select * from "+tableCookies+" where Cookie=?", cookie)
 
 	if err == sql.ErrNoRows {
 		//No user
@@ -642,6 +663,7 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 }
 
+//ConnectCookieToUser affiliates the given cookie to the given user
 func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
 
 	if !s.connected {
@@ -653,7 +675,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 
 		var cookieRecord CookieStorageRecord
 
-		err := s.dbMap.SelectOne(&cookieRecord, "select * from "+TableCookies+" where Cookie=?", cookie)
+		err := s.dbMap.SelectOne(&cookieRecord, "select * from "+tableCookies+" where Cookie=?", cookie)
 
 		if err == sql.ErrNoRows {
 			//We're fine, because it wasn't in the table any way!
@@ -699,11 +721,13 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	return nil
 }
 
+//PlayerMoveApplied does nothing
 func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
 	return nil
 }
 
+//WithManagers does nothing
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing
 }
