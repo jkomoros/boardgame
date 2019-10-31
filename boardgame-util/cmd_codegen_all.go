@@ -10,7 +10,7 @@ type codegenAll struct {
 
 func (c *codegenAll) Run(p writ.Path, positional []string) {
 
-	parent := c.Parent().(*Codegen)
+	parent := c.Parent().(*codegen)
 
 	parent.CodegenReader.Run(p, positional)
 	parent.CodegenEnum.Run(p, positional)

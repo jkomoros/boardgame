@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
+	codegenPkg "github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 )
 
 type codegenEnum struct {
@@ -16,9 +16,9 @@ func (c *codegenEnum) Run(p writ.Path, positional []string) {
 
 	packageDir := dirPositionalOrDefault(c.Base(), positional, true)
 
-	parent := c.Parent().(*Codegen)
+	parent := c.Parent().(*codegen)
 
-	enumOutput, err := codegen.ProcessEnums(packageDir)
+	enumOutput, err := codegenPkg.ProcessEnums(packageDir)
 
 	if err != nil {
 		c.Base().errAndQuit("Couldn't process enums: " + err.Error())

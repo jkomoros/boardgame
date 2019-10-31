@@ -4,7 +4,7 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-type Codegen struct {
+type codegen struct {
 	baseSubCommand
 
 	CodegenAll    codegenAll
@@ -16,11 +16,11 @@ type Codegen struct {
 	EnumOutputFile string
 }
 
-func (c *Codegen) Run(p writ.Path, positional []string) {
+func (c *codegen) Run(p writ.Path, positional []string) {
 	c.CodegenAll.Run(p, positional)
 }
 
-func (c *Codegen) Name() string {
+func (c *codegen) Name() string {
 	return "codegen"
 }
 
@@ -41,11 +41,11 @@ func dirPositionalOrDefault(base *boardgameUtil, positional []string, isPkg bool
 	return positional[0]
 }
 
-func (c *Codegen) Description() string {
+func (c *codegen) Description() string {
 	return "Automatically generates code to satisfy PropertyReader and generate Enum boilerplate"
 }
 
-func (c *Codegen) HelpText() string {
+func (c *codegen) HelpText() string {
 	return c.Name() +
 
 		` automatically generates boilerplate PropertyReader and enums based
@@ -65,7 +65,7 @@ See examplepkg/ for a very simple example.`
 
 }
 
-func (c *Codegen) SubcommandObjects() []SubcommandObject {
+func (c *codegen) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&c.CodegenAll,
 		&c.CodegenReader,
@@ -73,11 +73,11 @@ func (c *Codegen) SubcommandObjects() []SubcommandObject {
 	}
 }
 
-func (c *Codegen) Usage() string {
+func (c *codegen) Usage() string {
 	return "PKGNAME"
 }
 
-func (c *Codegen) WritOptions() []*writ.Option {
+func (c *codegen) WritOptions() []*writ.Option {
 
 	return []*writ.Option{
 		{

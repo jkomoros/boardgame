@@ -15,7 +15,7 @@ type boardgameUtil struct {
 	baseSubCommand
 	Help    Help
 	Db      Db
-	Codegen Codegen
+	Codegen codegen
 	Build   build
 	Clean   clean
 	Serve   Serve

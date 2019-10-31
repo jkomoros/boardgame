@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
+	codegenPkg "github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 )
 
 type codegenReader struct {
@@ -18,9 +18,9 @@ func (c *codegenReader) Run(p writ.Path, positional []string) {
 
 	pkgDirectory := dirPositionalOrDefault(c.Base(), positional, true)
 
-	parent := c.Parent().(*Codegen)
+	parent := c.Parent().(*codegen)
 
-	readerOutput, testReaderOutput, err := codegen.ProcessReaders(pkgDirectory)
+	readerOutput, testReaderOutput, err := codegenPkg.ProcessReaders(pkgDirectory)
 
 	if err != nil {
 		c.Base().errAndQuit("Couldn't process readers: " + err.Error())
