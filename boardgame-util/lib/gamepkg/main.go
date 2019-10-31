@@ -159,7 +159,7 @@ func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 	if info, err := os.Stat(absPath); err != nil {
 		return nil, true, errors.New("Path doesn't point to valid location on disk: " + err.Error())
 	} else if !info.IsDir() {
-		return nil, true, errors.New("Path points to an object but it's not a directory.")
+		return nil, true, errors.New("path points to an object but it's not a directory")
 	}
 
 	if !result.goPkg() {
@@ -257,6 +257,8 @@ func (p *Pkg) WriteFile(relPath string, contents []byte, overwrite bool) error {
 
 }
 
+//RemoveFile removes the given path, relative to the base of the package, from
+//the package if possible.
 func (p *Pkg) RemoveFile(relPath string) error {
 	if p.ReadOnly() {
 		return errors.New("Package is readonly")
@@ -317,9 +319,9 @@ func (p *Pkg) Has(relPath string) bool {
 
 //goPkg validates that the absolutePath denotes a package with at least one go
 //file. If there's an error will default to false.
-func (g *Pkg) goPkg() bool {
+func (p *Pkg) goPkg() bool {
 
-	infos, _ := ioutil.ReadDir(g.AbsolutePath())
+	infos, _ := ioutil.ReadDir(p.AbsolutePath())
 
 	for _, info := range infos {
 		if filepath.Ext(info.Name()) == ".go" {
@@ -374,7 +376,7 @@ func (p *Pkg) calculateUnsafeRandUse() error {
 	}
 
 	if len(pkgs) > 1 {
-		return errors.New("More than one package in that directory.")
+		return errors.New("more than one package in that directory")
 	}
 
 	var pkg *ast.Package
@@ -416,15 +418,15 @@ func (p *Pkg) calculateUnsafeRandUse() error {
 
 //isPkg verifies that the package appears to be a valid game package.
 //Specifically it checks for
-func (g *Pkg) isGamePkg() (bool, error) {
-	if !g.calculatedIsGamePkg {
-		g.memoizedIsGamePkg, g.memoizedIsGamePkgErr = g.calculateIsGamePkg()
+func (p *Pkg) isGamePkg() (bool, error) {
+	if !p.calculatedIsGamePkg {
+		p.memoizedIsGamePkg, p.memoizedIsGamePkgErr = p.calculateIsGamePkg()
 	}
-	return g.memoizedIsGamePkg, g.memoizedIsGamePkgErr
+	return p.memoizedIsGamePkg, p.memoizedIsGamePkgErr
 }
 
-func (g *Pkg) calculateIsGamePkg() (bool, error) {
-	pkgs, err := parser.ParseDir(token.NewFileSet(), g.AbsolutePath(), nil, 0)
+func (p *Pkg) calculateIsGamePkg() (bool, error) {
+	pkgs, err := parser.ParseDir(token.NewFileSet(), p.AbsolutePath(), nil, 0)
 
 	if err != nil {
 		return false, errors.New("Couldn't parse folder: " + err.Error())
