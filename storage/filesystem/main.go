@@ -1,20 +1,19 @@
 /*
 
-	filesystem is a storage layer that stores information about games as JSON
-	files within a given folder, (or somewhere nested in a folder within base
-	folder) one per game. It's extremely inefficient and doesn't even persist
-	extended game information to disk. It's most useful for cases where having
-	an easy-to-read, diffable representation for games makes sense, for
-	example to create golden tester games for use in testing.
+Package filesystem is a storage layer that stores information about games as
+JSON files within a given folder, (or somewhere nested in a folder within base
+folder) one per game. It's extremely inefficient and doesn't even persist
+extended game information to disk. It's most useful for cases where having an
+easy-to-read, diffable representation for games makes sense, for example to
+create golden tester games for use in testing.
 
-	filesystem stores files in the given base folder. If a sub-folder exists
-	with the name of the gameType, then the game will be stored in that folder
-	instead. For example if the gametype is "checkers" and the checkers subdir
-	exists, will store at  'checkers/a22ffcdef.json'. Folders may be soft-
-	linked from within the base folder; often when using the filesystem
-	storage layer to help generate test cases you set up soft- links from a
-	central location to a folder for test files in each game's sub-directory,
-	so the test files can be in the same place.
+filesystem stores files in the given base folder. If a sub-folder exists with
+the name of the gameType, then the game will be stored in that folder instead.
+For example if the gametype is "checkers" and the checkers subdir exists, will
+store at  'checkers/a22ffcdef.json'. Folders may be soft- linked from within the
+base folder; often when using the filesystem storage layer to help generate test
+cases you set up soft- links from a central location to a folder for test files
+in each game's sub-directory, so the test files can be in the same place.
 
 */
 package filesystem
@@ -33,6 +32,7 @@ import (
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 )
 
+//StorageManager is the primary type for this package.
 type StorageManager struct {
 	//Fall back on those methods
 	*helpers.ExtendedMemoryStorageManager
@@ -63,10 +63,12 @@ func NewStorageManager(basePath string) *StorageManager {
 	return result
 }
 
+//Name returns 'filesystem'
 func (s *StorageManager) Name() string {
 	return "filesystem"
 }
 
+//Connect verifies the given basePath exists.
 func (s *StorageManager) Connect(config string) error {
 
 	if _, err := os.Stat(s.basePath); os.IsNotExist(err) {
@@ -78,19 +80,21 @@ func (s *StorageManager) Connect(config string) error {
 	return nil
 }
 
+//WithManagers sets the managers
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	s.managers = managers
 }
 
+//CleanUp cleans up evertyhing in basePath.
 func (s *StorageManager) CleanUp() {
 	os.RemoveAll(s.basePath)
 }
 
-//pathForId will look through each sub-folder and look for a file named
+//pathForID will look through each sub-folder and look for a file named
 //gameId.json, returning its relative path if it is found, "" otherwise.
-func pathForId(basePath, gameId string) string {
+func pathForID(basePath, gameID string) string {
 
-	if path, ok := idToPath[gameId]; ok {
+	if path, ok := idToPath[gameID]; ok {
 		return path
 	}
 
@@ -100,38 +104,38 @@ func pathForId(basePath, gameId string) string {
 	}
 	for _, item := range items {
 		if item.IsDir() {
-			if recursiveResult := pathForId(filepath.Join(basePath, item.Name()), gameId); recursiveResult != "" {
+			if recursiveResult := pathForID(filepath.Join(basePath, item.Name()), gameID); recursiveResult != "" {
 				return recursiveResult
 			}
 			continue
 		}
 
-		if item.Name() == gameId+".json" {
+		if item.Name() == gameID+".json" {
 			result := filepath.Join(basePath, item.Name())
-			idToPath[gameId] = result
+			idToPath[gameID] = result
 			return result
 		}
 	}
 	return ""
 }
 
-func (s *StorageManager) recordForId(gameId string) (*record.Record, error) {
+func (s *StorageManager) recordForID(gameID string) (*record.Record, error) {
 	if s.basePath == "" {
 		return nil, errors.New("No base path provided")
 	}
 
-	gameId = strings.ToLower(gameId)
+	gameID = strings.ToLower(gameID)
 
-	path := pathForId(s.basePath, gameId)
+	path := pathForID(s.basePath, gameID)
 
 	if path == "" {
-		return nil, errors.New("Couldn't find file matching: " + gameId)
+		return nil, errors.New("Couldn't find file matching: " + gameID)
 	}
 
 	return record.New(path)
 }
 
-func (s *StorageManager) saveRecordForId(gameId string, rec *record.Record) error {
+func (s *StorageManager) saveRecordForID(gameID string, rec *record.Record) error {
 	if s.basePath == "" {
 		return errors.New("Invalid base path")
 	}
@@ -140,7 +144,7 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record.Record) erro
 		return errors.New("Game record in rec was nil")
 	}
 
-	gameId = strings.ToLower(gameId)
+	gameID = strings.ToLower(gameID)
 
 	//If a sub directory for that game type exists, save there. If not, save in the root of basePath.
 	gameTypeSubDir := filepath.Join(s.basePath, rec.Game().Name)
@@ -148,22 +152,23 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record.Record) erro
 	var path string
 
 	if _, err := os.Stat(gameTypeSubDir); err == nil {
-		path = filepath.Join(gameTypeSubDir, gameId+".json")
+		path = filepath.Join(gameTypeSubDir, gameID+".json")
 	} else {
-		path = filepath.Join(s.basePath, gameId+".json")
+		path = filepath.Join(s.basePath, gameID+".json")
 	}
 
 	if err := rec.Save(path, false); err != nil {
 		return err
 	}
 
-	idToPath[gameId] = path
+	idToPath[gameID] = path
 
 	return nil
 }
 
-func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
-	rec, err := s.recordForId(gameId)
+//State returns the state for that gameID and version.
+func (s *StorageManager) State(gameID string, version int) (boardgame.StateStorageRecord, error) {
+	rec, err := s.recordForID(gameID)
 
 	if err != nil {
 		return nil, err
@@ -179,8 +184,9 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 
 }
 
-func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
-	rec, err := s.recordForId(gameId)
+//Move returns the move for that gameID and version
+func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorageRecord, error) {
+	rec, err := s.recordForID(gameID)
 
 	if err != nil {
 		return nil, err
@@ -189,13 +195,15 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 	return rec.Move(version)
 }
 
-func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
-	return helpers.MovesHelper(s, gameId, fromVersion, toVersion)
+//Moves returns all of the moves
+func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
+	return helpers.MovesHelper(s, gameID, fromVersion, toVersion)
 }
 
+//Game returns the game storage record for that game.
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
-	rec, err := s.recordForId(id)
+	rec, err := s.recordForID(id)
 
 	if err != nil {
 		return nil, err
@@ -204,8 +212,9 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return rec.Game(), nil
 }
 
+//SaveGameAndCurrentState saves the game and current state.
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
-	rec, err := s.recordForId(game.ID)
+	rec, err := s.recordForID(game.ID)
 
 	if err != nil {
 		//Must be the first save.
@@ -220,12 +229,13 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't add state: " + err.Error())
 	}
 
-	return s.saveRecordForId(game.ID, rec)
+	return s.saveRecordForID(game.ID, rec)
 
 }
 
+//CombinedGame returns the combined game
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
-	rec, err := s.recordForId(id)
+	rec, err := s.recordForID(id)
 
 	if err != nil {
 		return nil, err
@@ -268,7 +278,7 @@ func (s *StorageManager) recursiveAllGames(basePath string) []*boardgame.GameSto
 		if ext != ".json" {
 			continue
 		}
-		rec, err := s.recordForId(idFromPath(file.Name()))
+		rec, err := s.recordForID(idFromPath(file.Name()))
 		if err != nil {
 			return nil
 		}
@@ -277,10 +287,12 @@ func (s *StorageManager) recursiveAllGames(basePath string) []*boardgame.GameSto
 	return result
 }
 
+//AllGames returns all games
 func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	return s.recursiveAllGames(s.basePath)
 }
 
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
-	return helpers.ListGamesHelper(s, max, list, userId, gameType)
+//ListGames returns all of the games
+func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
+	return helpers.ListGamesHelper(s, max, list, userID, gameType)
 }
