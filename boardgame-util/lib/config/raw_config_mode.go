@@ -55,17 +55,17 @@ func (c *RawConfigMode) Derive(parentConfig *Config, prodMode bool) *Mode {
 		result.AllowedOrigins = "*"
 	}
 
-	if result.ApiHost == "" {
+	if result.APIHost == "" {
 		if prodMode {
 			if result.Firebase != nil {
-				result.ApiHost = "https://" + result.Firebase.StorageBucket
+				result.APIHost = "https://" + result.Firebase.StorageBucket
 			}
 		} else {
-			result.ApiHost = "http://localhost"
+			result.APIHost = "http://localhost"
 		}
-		if result.ApiHost != "" {
+		if result.APIHost != "" {
 			if result.DefaultPort != "80" && result.DefaultPort != "" {
-				result.ApiHost += ":" + result.DefaultPort
+				result.APIHost += ":" + result.DefaultPort
 			}
 		}
 	}
@@ -199,8 +199,8 @@ func (c *RawConfigMode) Extend(other *RawConfigMode) *RawConfigMode {
 		result.GoogleAnalytics = other.GoogleAnalytics
 	}
 
-	if other.ApiHost != "" {
-		result.ApiHost = other.ApiHost
+	if other.APIHost != "" {
+		result.APIHost = other.APIHost
 	}
 
 	result.AdminUserIds = mergedStrList(c.AdminUserIds, other.AdminUserIds)

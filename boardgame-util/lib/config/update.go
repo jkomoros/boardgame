@@ -28,8 +28,8 @@ func SetString(field ModeField, val string) Updater {
 			r.DefaultStorageType = val
 		case FieldGoogleAnalytics:
 			r.GoogleAnalytics = val
-		case FieldApiHost:
-			r.ApiHost = val
+		case FieldAPIHost:
+			r.APIHost = val
 		default:
 			return errors.New(string(field) + " is not a valid string property")
 		}

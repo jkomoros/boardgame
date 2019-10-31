@@ -22,11 +22,11 @@ func (c *Config) Client(prodMode bool) *ClientConfig {
 	var devHost string
 
 	if c.Dev != nil {
-		devHost = c.Dev.ApiHost
+		devHost = c.Dev.APIHost
 	}
 
 	if c.Prod != nil {
-		host = c.Prod.ApiHost
+		host = c.Prod.APIHost
 	}
 
 	mode := c.Dev

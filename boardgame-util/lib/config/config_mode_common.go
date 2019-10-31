@@ -31,8 +31,8 @@ const (
 	FieldGoogleAnalytics = "GoogleAnalytics"
 	//FieldFirebase denotes that field of the output
 	FieldFirebase = "Firebase"
-	//FieldApiHost denotes that field of the output
-	FieldApiHost = "ApiHost"
+	//FieldAPIHost denotes that field of the output
+	FieldAPIHost = "ApiHost"
 	//FieldGames denotes that field of the output
 	FieldGames = "Games"
 )
@@ -71,7 +71,7 @@ var FieldTypes = map[ModeField]ModeFieldType{
 	FieldDefaultStorageType:   FieldTypeString,
 	FieldGoogleAnalytics:      FieldTypeString,
 	FieldFirebase:             FieldTypeFirebase,
-	FieldApiHost:              FieldTypeString,
+	FieldAPIHost:              FieldTypeString,
 	FieldGames:                FieldTypeGameNode,
 }
 
@@ -98,7 +98,7 @@ type ModeCommon struct {
 	Firebase        *FirebaseConfig `json:"firebase,omitempty"`
 	//The host name the client should connect to in that mode. Something like
 	//"http://localhost:8888"
-	ApiHost string `json:"apiHost,omitempty"`
+	APIHost string `json:"apiHost,omitempty"`
 }
 
 //FieldFromString returns a ModeField by doing fuzzing matching.

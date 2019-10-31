@@ -219,14 +219,14 @@ func TestApiHostDerivation(t *testing.T) {
 			false,
 			&RawConfigMode{
 				ModeCommon{
-					ApiHost:     "provided",
+					APIHost:     "provided",
 					DefaultPort: "8888",
 				},
 				nil,
 			},
 			&Mode{
 				ModeCommon{
-					ApiHost:           "provided",
+					APIHost:           "provided",
 					DefaultPort:       "8888",
 					DefaultStaticPort: "8080",
 					AllowedOrigins:    "*",
@@ -247,7 +247,7 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&Mode{
 				ModeCommon{
-					ApiHost:           "http://localhost:8888",
+					APIHost:           "http://localhost:8888",
 					DefaultPort:       "8888",
 					DefaultStaticPort: "8080",
 					AllowedOrigins:    "*",
@@ -262,7 +262,7 @@ func TestApiHostDerivation(t *testing.T) {
 			true,
 			&RawConfigMode{
 				ModeCommon{
-					ApiHost:     "",
+					APIHost:     "",
 					DefaultPort: "8080",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
@@ -272,7 +272,7 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&Mode{
 				ModeCommon{
-					ApiHost:           "https://example-boardgame.appspot.com:8080",
+					APIHost:           "https://example-boardgame.appspot.com:8080",
 					DefaultPort:       "8080",
 					DefaultStaticPort: "80",
 					Firebase: &FirebaseConfig{
@@ -290,7 +290,7 @@ func TestApiHostDerivation(t *testing.T) {
 			true,
 			&RawConfigMode{
 				ModeCommon{
-					ApiHost: "",
+					APIHost: "",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
@@ -300,7 +300,7 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&Mode{
 				ModeCommon{
-					ApiHost: "https://example-boardgame.appspot.com",
+					APIHost: "https://example-boardgame.appspot.com",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
@@ -318,7 +318,7 @@ func TestApiHostDerivation(t *testing.T) {
 			true,
 			&RawConfigMode{
 				ModeCommon{
-					ApiHost:     "",
+					APIHost:     "",
 					DefaultPort: "80",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
@@ -328,7 +328,7 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&Mode{
 				ModeCommon{
-					ApiHost:           "https://example-boardgame.appspot.com",
+					APIHost:           "https://example-boardgame.appspot.com",
 					DefaultPort:       "80",
 					DefaultStaticPort: "80",
 					Firebase: &FirebaseConfig{
