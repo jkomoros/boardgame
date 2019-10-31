@@ -10,13 +10,13 @@ import (
 //in place on that object. It should return a non-nil error if it wasn't able
 //to do the modification for some reason. These are one of the primary objects
 //to config.Update(). This package defines a number of factories for these.
-type ConfigUpdater func(r *RawConfigMode, typ ConfigModeType) error
+type ConfigUpdater func(r *RawConfigMode, typ ModeType) error
 
 //SetString returns a function to set the given rawconfig string property to
 //the given value. field must be of FieldTypeString.
 func SetString(field ModeField, val string) ConfigUpdater {
 
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 		switch field {
 		case FieldAllowedOrigins:
 			r.AllowedOrigins = val
@@ -49,7 +49,7 @@ func DeleteString(field ModeField) ConfigUpdater {
 //ModeField. Field must be of FieldTypeStringSlice.
 func AddString(field ModeField, val string) ConfigUpdater {
 
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 		if field != FieldAdminUserIds {
 			return errors.New(string(field) + " is not a []string field")
 		}
@@ -72,7 +72,7 @@ func AddString(field ModeField, val string) ConfigUpdater {
 //Field must be of FieldTypeStringSlice.
 func RemoveString(field ModeField, val string) ConfigUpdater {
 
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 		if field != FieldAdminUserIds {
 			return errors.New(string(field) + " is not a []string field")
 		}
@@ -97,7 +97,7 @@ func RemoveString(field ModeField, val string) ConfigUpdater {
 //package is valid. Returns an error if the package isn't valid.
 func AddGame(val string) ConfigUpdater {
 
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 
 		//We don't pass the path of the config, because the usage is often
 		//from a CLI, where relative-path tab completion is relative to CWD.
@@ -115,7 +115,7 @@ func AddGame(val string) ConfigUpdater {
 
 //RemoveGame removes the given value from the Games node.
 func RemoveGame(val string) ConfigUpdater {
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 		r.Games = r.Games.RemoveGame(val)
 		return nil
 	}
@@ -127,7 +127,7 @@ func RemoveGame(val string) ConfigUpdater {
 //If val is "" then the key will be deleted.
 func SetStringKey(field ModeField, key, val string) ConfigUpdater {
 
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 		if field != FieldStorage {
 			return errors.New(string(field) + " is not a map[string]string")
 		}
@@ -151,7 +151,7 @@ func SetStringKey(field ModeField, key, val string) ConfigUpdater {
 //SetBool sets the field denoted by field to the val. Field must be of type
 //FieldTypeBool.
 func SetBool(field ModeField, val bool) ConfigUpdater {
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 		fieldType := FieldTypes[field]
 		if fieldType != FieldTypeBool {
 			return errors.New(string(field) + " is not a bool")
@@ -186,7 +186,7 @@ func SetBool(field ModeField, val bool) ConfigUpdater {
 //operates only on the FieldFirebase field. If Firebase is nil, initalizes it.
 func SetFirebaseKey(key FirebaseKey, val string) ConfigUpdater {
 
-	return func(r *RawConfigMode, typ ConfigModeType) error {
+	return func(r *RawConfigMode, typ ModeType) error {
 
 		config := r.Firebase
 

@@ -12,7 +12,7 @@ func TestUpdate(t *testing.T) {
 		description    string
 		inPublic       *RawConfig
 		inSecret       *RawConfig
-		inType         ConfigModeType
+		inType         ModeType
 		inIsSecret     bool
 		inUpdater      ConfigUpdater
 		errExpected    bool

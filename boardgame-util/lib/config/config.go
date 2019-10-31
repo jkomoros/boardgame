@@ -6,11 +6,15 @@ import (
 	"strconv"
 )
 
-type ConfigModeType int
+//ModeType defines which sub-mode (Base, Dev, or Prod) we're referring to.
+type ModeType int
 
 const (
-	TypeBase ConfigModeType = iota
+	//TypeBase referrs to the Base sub-mode that underlies both Dev and Prod.
+	TypeBase ModeType = iota
+	//TypeDev referrs to the Dev sub-mode that builds on top of Base.
 	TypeDev
+	//TypeProd referrs to the Prod sub-mode that builds on top of Base.
 	TypeProd
 )
 
@@ -74,7 +78,7 @@ func (c *Config) AddOverride(o OptionOverrider) {
 //ConfigUpdaters. After the update, the Config has all of its values rederived
 //to reflect the change. If you want changes that will not be persisted, see
 //AddOverride.
-func (c *Config) Update(typ ConfigModeType, secret bool, updater ConfigUpdater) error {
+func (c *Config) Update(typ ModeType, secret bool, updater ConfigUpdater) error {
 
 	if updater == nil {
 		return errors.New("No updater provided. Perhaps the config to the factory was invalid?")

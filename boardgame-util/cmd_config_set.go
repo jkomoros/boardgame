@@ -28,7 +28,7 @@ func strToBool(in string) (bool, error) {
 
 }
 
-func deriveMode(dev, prod bool) config.ConfigModeType {
+func deriveMode(dev, prod bool) config.ModeType {
 
 	//If one of dev or prod is set, return that
 	if dev || prod {

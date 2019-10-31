@@ -77,9 +77,11 @@ func (c *Mode) ParentConfig() *Config {
 	return c.parentConfig
 }
 
+//OriginAllowed returns whether the given orgiin is allowed, based on the
+//configuration of AllowedOrigins, which treats "" and "*" specially.
 func (c *Mode) OriginAllowed(origin string) bool {
 
-	originUrl, err := url.Parse(origin)
+	originURL, err := url.Parse(origin)
 
 	if err != nil {
 		return false
@@ -99,7 +101,7 @@ func (c *Mode) OriginAllowed(origin string) bool {
 			continue
 		}
 
-		if u.Scheme == originUrl.Scheme && u.Host == originUrl.Host {
+		if u.Scheme == originURL.Scheme && u.Host == originURL.Host {
 			return true
 		}
 	}
