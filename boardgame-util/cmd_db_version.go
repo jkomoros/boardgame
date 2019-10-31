@@ -2,23 +2,24 @@ package main
 
 import (
 	"fmt"
-	"github.com/bobziuchkovski/writ"
 	"strconv"
+
+	"github.com/bobziuchkovski/writ"
 )
 
-type DbVersion struct {
+type dbVersion struct {
 	baseSubCommand
 }
 
-func (d *DbVersion) Name() string {
+func (d *dbVersion) Name() string {
 	return "version"
 }
 
-func (d *DbVersion) Description() string {
+func (d *dbVersion) Description() string {
 	return "Print what version of the migrations have been applied to db so far and quit"
 }
 
-func (d *DbVersion) Run(p writ.Path, positonal []string) {
+func (d *dbVersion) Run(p writ.Path, positonal []string) {
 	parent := d.Parent().(*Db)
 
 	m := parent.GetMigrate(false)

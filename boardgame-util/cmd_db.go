@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"github.com/mattes/migrate"
@@ -10,10 +11,10 @@ import (
 
 type Db struct {
 	baseSubCommand
-	Up      DbUp
-	Down    DbDown
-	Setup   DbSetup
-	Version DbVersion
+	Up      dbUp
+	Down    dbDown
+	Setup   dbSetup
+	Version dbVersion
 	Prod    bool
 }
 

@@ -2,23 +2,24 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/mattes/migrate"
 )
 
-type DbSetup struct {
+type dbSetup struct {
 	baseSubCommand
 }
 
-func (d *DbSetup) Name() string {
+func (d *dbSetup) Name() string {
 	return "setup"
 }
 
-func (d *DbSetup) Description() string {
+func (d *dbSetup) Description() string {
 	return "Create the 'boardgame' database and apply all migrations forward"
 }
 
-func (d *DbSetup) Run(p writ.Path, positonal []string) {
+func (d *dbSetup) Run(p writ.Path, positonal []string) {
 	parent := d.Parent().(*Db)
 
 	m := parent.GetMigrate(true)

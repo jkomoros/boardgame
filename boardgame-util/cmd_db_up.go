@@ -2,23 +2,24 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/mattes/migrate"
 )
 
-type DbUp struct {
+type dbUp struct {
 	baseSubCommand
 }
 
-func (d *DbUp) Name() string {
+func (d *dbUp) Name() string {
 	return "up"
 }
 
-func (d *DbUp) Description() string {
+func (d *dbUp) Description() string {
 	return "Apply all migrations forward (run on an existing db to make sure it's up to date)"
 }
 
-func (d *DbUp) Run(p writ.Path, positonal []string) {
+func (d *dbUp) Run(p writ.Path, positonal []string) {
 
 	parent := d.Parent().(*Db)
 

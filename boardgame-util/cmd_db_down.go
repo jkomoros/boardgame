@@ -2,23 +2,24 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/mattes/migrate"
 )
 
-type DbDown struct {
+type dbDown struct {
 	baseSubCommand
 }
 
-func (d *DbDown) Name() string {
+func (d *dbDown) Name() string {
 	return "down"
 }
 
-func (d *DbDown) Description() string {
+func (d *dbDown) Description() string {
 	return "Apply all migrations downward"
 }
 
-func (d *DbDown) Run(p writ.Path, positonal []string) {
+func (d *dbDown) Run(p writ.Path, positonal []string) {
 	parent := d.Parent().(*Db)
 
 	m := parent.GetMigrate(false)
