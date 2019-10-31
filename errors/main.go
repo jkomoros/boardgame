@@ -1,25 +1,31 @@
 /*
 
-errors is a package that implements FriendlyError. FriendlyError implements
-the error interface, but also has a FriendlyError() method that returns a
-message that is reasonable to show to end-users.
+Package errors is a package that implements FriendlyError. FriendlyError
+implements the error interface, but also has a FriendlyError() method that
+returns a message that is reasonable to show to end-users.
 
-Every method that returns a FriendlyError also accepts 0 to n Fields objects
-may be provided and they will be combined into a single Fields, with later
-values overwriting newer ones.
+Every method that returns a FriendlyError also accepts 0 to n Fields objects may
+be provided and they will be combined into a single Fields, with later values
+overwriting newer ones.
 
-FriendlyErrors also have With* methods that return a copy of the error with
-the given changes. This allows a pattern where a method defines a default
+FriendlyErrors also have With* methods that return a copy of the error with the
+given changes. This allows a pattern where a method defines a default
 FriendlyError with the friendly error message to use and then when it needs to
 return an error uses WithError() to add the specific error message.
 
 */
 package errors
 
+//DefaultFriendlyError is the message that will be shown by default unless a
+//more specific friendly value is returned.
 const DefaultFriendlyError = "An error occurred"
 
+//Fields is the place we store extra field/value information on an error.
 type Fields map[string]interface{}
 
+//Friendly is the core type of the error, representing an error that knows how
+//to render a default string and a "friendly" string, appropriate for showing to
+//end users.
 type Friendly struct {
 	msg         string
 	friendlyMsg string
