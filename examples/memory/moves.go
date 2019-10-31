@@ -2,26 +2,27 @@ package memory
 
 import (
 	"errors"
+	"time"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"time"
 )
 
-const HideCardsDuration = 4 * time.Second
+const hideCardsDuration = 4 * time.Second
 
 /**************************************************
  *
- * MoveRevealCard Implementation
+ * moveRevealCard Implementation
  *
  **************************************************/
 
 //boardgame:codegen
-type MoveRevealCard struct {
+type moveRevealCard struct {
 	moves.CurrentPlayer
 	CardIndex int
 }
 
-func (m *MoveRevealCard) DefaultsForState(state boardgame.ImmutableState) {
+func (m *moveRevealCard) DefaultsForState(state boardgame.ImmutableState) {
 
 	m.CurrentPlayer.DefaultsForState(state)
 
@@ -35,7 +36,7 @@ func (m *MoveRevealCard) DefaultsForState(state boardgame.ImmutableState) {
 	}
 }
 
-func (m *MoveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -50,21 +51,20 @@ func (m *MoveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgam
 	}
 
 	if m.CardIndex < 0 || m.CardIndex >= game.HiddenCards.Len() {
-		return errors.New("Illegal card index.")
+		return errors.New("illegal card index")
 	}
 
 	if game.HiddenCards.ComponentAt(m.CardIndex) == nil {
 		if game.VisibleCards.ComponentAt(m.CardIndex) == nil {
-			return errors.New("There is no card at that index.")
-		} else {
-			return errors.New("That card has already been revealed.")
+			return errors.New("there is no card at that index")
 		}
+		return errors.New("that card has already been revealed")
 	}
 
 	return nil
 }
 
-func (m *MoveRevealCard) Apply(state boardgame.State) error {
+func (m *moveRevealCard) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -79,16 +79,16 @@ func (m *MoveRevealCard) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * MoveStartHideCardsTimer Implementation
+ * moveStartHideCardsTimer Implementation
  *
  **************************************************/
 
 //boardgame:codegen
-type MoveStartHideCardsTimer struct {
+type moveStartHideCardsTimer struct {
 	moves.FixUp
 }
 
-func (m *MoveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.FixUp.Legal(state, proposer); err != nil {
 		return err
@@ -97,11 +97,11 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer
 	game, _ := concreteStates(state)
 
 	if game.VisibleCards.NumComponents() != 2 {
-		return errors.New("There aren't two cards showing!")
+		return errors.New("there aren't two cards showing")
 	}
 
 	if game.HideCardsTimer.Active() {
-		return errors.New("The timer is already active.")
+		return errors.New("the timer is already active")
 	}
 
 	var revealedCards []boardgame.Component
@@ -122,28 +122,28 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer
 	return nil
 }
 
-func (m *MoveStartHideCardsTimer) Apply(state boardgame.State) error {
+func (m *moveStartHideCardsTimer) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	move := state.Game().MoveByName(hideCardMoveName)
 
-	game.HideCardsTimer.Start(HideCardsDuration, move)
+	game.HideCardsTimer.Start(hideCardsDuration, move)
 
 	return nil
 }
 
 /**************************************************
  *
- * MoveCaptureCards Implementation
+ * moveCaptureCards Implementation
  *
  **************************************************/
 
 //boardgame:codegen
-type MoveCaptureCards struct {
+type moveCaptureCards struct {
 	moves.FixUp
 }
 
-func (m *MoveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := m.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (m *MoveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardg
 	game, _ := concreteStates(state)
 
 	if game.VisibleCards.NumComponents() != 2 {
-		return errors.New("There aren't two cards showing!")
+		return errors.New("there aren't two cards showing")
 	}
 
 	var revealedCards []boardgame.Component
@@ -172,7 +172,7 @@ func (m *MoveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardg
 	return nil
 }
 
-func (m *MoveCaptureCards) Apply(state boardgame.State) error {
+func (m *moveCaptureCards) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -188,16 +188,16 @@ func (m *MoveCaptureCards) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * MoveHideCards Implementation
+ * moveHideCards Implementation
  *
  **************************************************/
 
 //boardgame:codegen
-type MoveHideCards struct {
+type moveHideCards struct {
 	moves.CurrentPlayer
 }
 
-func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -212,13 +212,13 @@ func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame
 	}
 
 	if game.VisibleCards.NumComponents() < 1 {
-		return errors.New("No cards left to hide!")
+		return errors.New("no cards left to hide")
 	}
 
 	return nil
 }
 
-func (m *MoveHideCards) Apply(state boardgame.State) error {
+func (m *moveHideCards) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	//Cancel a timer in case it was still going.

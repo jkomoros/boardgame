@@ -5,7 +5,7 @@ import (
 	"github.com/jkomoros/boardgame/base"
 )
 
-var generalCards []string = []string{
+var generalCards = []string{
 	"🚴",
 	"✋",
 	"💘",
@@ -28,7 +28,7 @@ var generalCards []string = []string{
 	"🎳",
 }
 
-var foodCards []string = []string{
+var foodCards = []string{
 	"🍒",
 	"🍔",
 	"🍭",
@@ -51,7 +51,7 @@ var foodCards []string = []string{
 	"🥐",
 }
 
-var animalCards []string = []string{
+var animalCards = []string{
 	"🐕",
 	"🐄",
 	"🐘",

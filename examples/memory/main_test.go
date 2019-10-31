@@ -1,10 +1,11 @@
 package memory
 
 import (
+	"testing"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/workfit/tester/assert"
-	"testing"
 )
 
 func BenchmarkMoves(b *testing.B) {
@@ -94,7 +95,7 @@ func TestMain(t *testing.T) {
 
 	move = game.MoveByName("Reveal Card")
 
-	move.(*MoveRevealCard).CardIndex = cardToFlip
+	move.(*moveRevealCard).CardIndex = cardToFlip
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -124,7 +125,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	move.(*MoveRevealCard).CardIndex = revealedIndex
+	move.(*moveRevealCard).CardIndex = revealedIndex
 
 	err = <-game.ProposeMove(move, boardgame.AdminPlayerIndex)
 
@@ -151,7 +152,7 @@ func TestMain(t *testing.T) {
 
 	move = game.MoveByName("Reveal Card")
 
-	move.(*MoveRevealCard).CardIndex = cardToFlip
+	move.(*moveRevealCard).CardIndex = cardToFlip
 
 	assert.For(t).ThatActual(move).IsNotNil()
 

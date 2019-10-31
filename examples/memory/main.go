@@ -1,6 +1,6 @@
 /*
 
-memory is a simple example game based on memory--where players take turn
+Package memory is a simple example game based on memory--where players take turn
 flipping over two cards, and keeping them if they match.
 
 */
@@ -9,12 +9,13 @@ package memory
 import (
 	"errors"
 	"fmt"
-	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/base"
-	"github.com/jkomoros/boardgame/moves"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //go:generate boardgame-util codegen
@@ -207,7 +208,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 		if pairCardIndex == 0 {
 			//Uh oh, couldn't find the pair...
 
-			return errors.New("Unexpectedly unable to find the pair when sorting cards to include.")
+			return errors.New("unexpectedly unable to find the pair when sorting cards to include")
 		}
 
 		useCard := false
@@ -310,12 +311,12 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	revealCardConfig := auto.MustConfig(
-		new(MoveRevealCard),
+		new(moveRevealCard),
 		moves.WithHelpText("Reveals the card at the specified location"),
 	)
 
 	hideCardConfig := auto.MustConfig(
-		new(MoveHideCards),
+		new(moveHideCards),
 		moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
 	)
 
@@ -331,11 +332,11 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			new(moves.FinishTurn),
 		),
 		auto.MustConfig(
-			new(MoveCaptureCards),
+			new(moveCaptureCards),
 			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
 		),
 		auto.MustConfig(
-			new(MoveStartHideCardsTimer),
+			new(moveStartHideCardsTimer),
 			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
 		),
 	)
@@ -347,6 +348,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
+//NewDelegate is the primary entrypoint to this package. It returns a
+//GameDelegate that configures a memory game.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

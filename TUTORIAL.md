@@ -553,12 +553,12 @@ Many Player moves can only be made by the CurrentPlayer. This move encodes which
 
 In typical use you embed this struct, and then check its Legal method at the top of your own Legal method, as in this example from memory:
 ```
-type MoveRevealCard struct {
+type moveRevealCard struct {
     moves.CurrentPlayer
     CardIndex int
 }
 
-func (m *MoveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
     if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
         return err
@@ -660,7 +660,7 @@ Let's look at a fully-worked example of defining a specific move from memory:
 
 ```
 //boardgame:codegen readsetter
-type MoveHideCards struct {
+type moveHideCards struct {
     moves.CurrentPlayer
 }
 ```
@@ -673,7 +673,7 @@ MoveHideCards is decorated by the magic codegen comment, which means its ReadSet
 var moveHideCardsConfig = boardgame.MoveConfig{
     Name:     "Hide Cards",
     Constructor: func() boardgame.Move {
-        return new(MoveHideCards)
+        return new(moveHideCards)
     },
     //We don't include CustomConfiguration, which is optional.
 }
@@ -686,7 +686,7 @@ The `Name` property is a unique-within-this-game-package, human-readable name fo
 The most important aspect is the `Constructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
 
 ```
-func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
     if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
         return err
@@ -711,7 +711,7 @@ func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame
 This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Default includes important logic in its Legal implementation.
 
 ```
-func (m *MoveHideCards) Apply(state boardgame.State) error {
+func (m *moveHideCards) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	//Cancel a timer in case it was still going.
@@ -762,7 +762,7 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-var generalCards []string = []string{
+var generalCards = []string{
 	"🚴",
 	"✋",
 	"💘",
@@ -856,18 +856,18 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	return moves.Add(
 		//... one move type configuration elided ...
 		auto.MustConfig(
-			new(MoveHideCards),
+			new(moveHideCards),
 			moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
 		),
 		auto.MustConfig(
-			new(MoveCaptureCards),
+			new(moveCaptureCards),
 			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
 		),
 		auto.MustConfig(
-			new(MoveStartHideCardsTimer),
+			new(moveStartHideCardsTimer),
 			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
 		),
 	)

@@ -2,17 +2,24 @@ package memory
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame"
 	"log"
+
+	"github.com/jkomoros/boardgame"
+
 	//boardgame:assert(rand_use_deterministic)
 	"math/rand"
 )
 
+//DefaultMemoryLength is how much the default agent should be able to remember.
 const DefaultMemoryLength = 6
+
+//DefaultMemoryFuzziness is how likely the agent is to forget each thing it
+//remembers.
 const DefaultMemoryFuzziness = 0.03
 
 const debugMode = false
 
+//Agent represents an agent capable of playing memory.
 type Agent struct{}
 
 type agentCardInfo struct {
@@ -29,14 +36,17 @@ type agentState struct {
 	MemoryFuzziness float32
 }
 
+//Name returns "ai"
 func (a *Agent) Name() string {
 	return "ai"
 }
 
+//DisplayName returns "Robby the Robot"
 func (a *Agent) DisplayName() string {
 	return "Robby the Robot"
 }
 
+//SetUpForGame configures a default agent.
 func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex) []byte {
 	agent := &agentState{
 		MemoryLength:    DefaultMemoryLength,
@@ -57,6 +67,7 @@ func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex)
 	return blob
 }
 
+//ProposeMove is the primary logic of the memory Agent.
 func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, aState []byte) (move boardgame.Move, newState []byte) {
 
 	agent := &agentState{}
@@ -106,7 +117,7 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 			//First card to reveal
 
 			move = game.MoveByName(revealCardMoveName)
-			revealMove := move.(*MoveRevealCard)
+			revealMove := move.(*moveRevealCard)
 			revealMove.CardIndex = agent.FirstCardToFlip(gameState)
 			doSave = true
 		}
@@ -116,7 +127,7 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 			//One more card to reveal
 
 			move = game.MoveByName(revealCardMoveName)
-			revealMove := move.(*MoveRevealCard)
+			revealMove := move.(*moveRevealCard)
 			revealMove.CardIndex = agent.SecondCardToFlip(gameState)
 			doSave = true
 
