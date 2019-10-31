@@ -128,7 +128,7 @@ func (b *baseSubCommand) WritHelp() writ.Help {
 		}
 	}
 
-	result.Usage = "Usage: " + FullName(obj) + " " + obj.Usage()
+	result.Usage = "Usage: " + fullName(obj) + " " + obj.Usage()
 
 	return result
 }
@@ -241,11 +241,11 @@ func setupParents(cmd SubcommandObject, parent SubcommandObject, base *boardgame
 
 }
 
-func FullName(cmd SubcommandObject) string {
+func fullName(cmd SubcommandObject) string {
 	if cmd.Parent() == nil {
 		return cmd.Name()
 	}
-	return FullName(cmd.Parent()) + " " + cmd.Name()
+	return fullName(cmd.Parent()) + " " + cmd.Name()
 }
 
 func strMatchesObject(str string, s SubcommandObject) bool {
