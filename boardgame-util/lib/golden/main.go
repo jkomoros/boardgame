@@ -1,8 +1,8 @@
 /*
 
-	golden is a package designed to make it possible to compare a game to a
-	golden run for testing purposes. It takes a record saved in
-	storage/filesystem format and compares it.
+Package golden is a package designed to make it possible to compare a game to a
+golden run for testing purposes. It takes a record saved in storage/filesystem
+format and compares it.
 
 */
 package golden
@@ -12,16 +12,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"reflect"
+	"strconv"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/yudai/gojsondiff"
 	"github.com/yudai/gojsondiff/formatter"
-	"io/ioutil"
-	"path/filepath"
-	"reflect"
-	"strconv"
 )
 
 //Compare is the primary method in the package. It takes a game delegate and a
@@ -187,7 +188,7 @@ func compare(manager *boardgame.GameManager, rec *record.Record) (result error) 
 				}
 			}
 
-			if err := compareJsonBlobs(storageRec, stateToCompare); err != nil {
+			if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
 				return errors.New("State " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
 			}
 
@@ -237,7 +238,7 @@ func compare(manager *boardgame.GameManager, rec *record.Record) (result error) 
 
 var differ = gojsondiff.New()
 
-func compareJsonBlobs(one, two []byte) error {
+func compareJSONBlobs(one, two []byte) error {
 
 	diff, err := differ.Compare(one, two)
 
@@ -247,13 +248,13 @@ func compareJsonBlobs(one, two []byte) error {
 
 	if diff.Modified() {
 
-		var oneJson map[string]interface{}
+		var oneJSON map[string]interface{}
 
-		if err := json.Unmarshal(one, &oneJson); err != nil {
+		if err := json.Unmarshal(one, &oneJSON); err != nil {
 			return errors.New("Couldn't unmarshal left")
 		}
 
-		diffformatter := formatter.NewAsciiFormatter(oneJson, formatter.AsciiFormatterConfig{
+		diffformatter := formatter.NewAsciiFormatter(oneJSON, formatter.AsciiFormatterConfig{
 			Coloring: true,
 		})
 
@@ -294,6 +295,6 @@ func compareMoveStorageRecords(one, two *boardgame.MoveStorageRecord) error {
 		return errors.New("Move storage records differed in base fields")
 	}
 
-	return compareJsonBlobs(oneBlob, twoBlob)
+	return compareJSONBlobs(oneBlob, twoBlob)
 
 }

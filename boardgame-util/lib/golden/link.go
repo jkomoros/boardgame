@@ -3,16 +3,18 @@ package golden
 import (
 	"bytes"
 	"errors"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"text/template"
+
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
 const testdataFolder = "testdata"
 
-//Path relative to package root where goldens should be stored
+//GameRecordsFolder is the Path relative to package root where goldens should be
+//stored
 const GameRecordsFolder = "testdata/golden"
 
-//The name of the test file to create
+//GoldenTestFile is the name of the test file to create
 const GoldenTestFile = "golden_test.go"
 
 var goldenTestTemplate *template.Template
