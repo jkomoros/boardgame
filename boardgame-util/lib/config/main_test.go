@@ -43,7 +43,7 @@ func TestBaseExtend(t *testing.T) {
 				"",
 			},
 			&Config{
-				&ConfigMode{
+				&Mode{
 					ModeCommon{
 						"AllowedOriginsDev",
 						"DefaultPortDev",
@@ -66,7 +66,7 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 					nil,
 				},
-				&ConfigMode{
+				&Mode{
 					ModeCommon{
 						AllowedOrigins:    "*",
 						DefaultPort:       "8080",
@@ -131,7 +131,7 @@ func TestBaseExtend(t *testing.T) {
 				"",
 			},
 			&Config{
-				&ConfigMode{
+				&Mode{
 					ModeCommon{
 						"AllowedOriginsDev",
 						"DefaultPortBase",
@@ -156,7 +156,7 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 					nil,
 				},
-				&ConfigMode{
+				&Mode{
 					ModeCommon{
 						"AllowedOriginsBase",
 						"DefaultPortBase",
@@ -212,7 +212,7 @@ func TestApiHostDerivation(t *testing.T) {
 		description string
 		prodMode    bool
 		in          *RawConfigMode
-		out         *ConfigMode
+		out         *Mode
 	}{
 		{
 			"No op",
@@ -224,7 +224,7 @@ func TestApiHostDerivation(t *testing.T) {
 				},
 				nil,
 			},
-			&ConfigMode{
+			&Mode{
 				ModeCommon{
 					ApiHost:           "provided",
 					DefaultPort:       "8888",
@@ -245,7 +245,7 @@ func TestApiHostDerivation(t *testing.T) {
 				},
 				nil,
 			},
-			&ConfigMode{
+			&Mode{
 				ModeCommon{
 					ApiHost:           "http://localhost:8888",
 					DefaultPort:       "8888",
@@ -270,7 +270,7 @@ func TestApiHostDerivation(t *testing.T) {
 				},
 				nil,
 			},
-			&ConfigMode{
+			&Mode{
 				ModeCommon{
 					ApiHost:           "https://example-boardgame.appspot.com:8080",
 					DefaultPort:       "8080",
@@ -298,7 +298,7 @@ func TestApiHostDerivation(t *testing.T) {
 				},
 				nil,
 			},
-			&ConfigMode{
+			&Mode{
 				ModeCommon{
 					ApiHost: "https://example-boardgame.appspot.com",
 					Firebase: &FirebaseConfig{
@@ -326,7 +326,7 @@ func TestApiHostDerivation(t *testing.T) {
 				},
 				nil,
 			},
-			&ConfigMode{
+			&Mode{
 				ModeCommon{
 					ApiHost:           "https://example-boardgame.appspot.com",
 					DefaultPort:       "80",

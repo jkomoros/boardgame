@@ -17,8 +17,8 @@ const (
 //Config represents the derived config values. It is based on RawConfigs. This
 //is the object you generally use directly in your application.
 type Config struct {
-	Dev             *ConfigMode
-	Prod            *ConfigMode
+	Dev             *Mode
+	Prod            *Mode
 	rawPublicConfig *RawConfig
 	rawSecretConfig *RawConfig
 	overriders      []OptionOverrider
@@ -41,14 +41,14 @@ func NewConfig(raw, rawSecret *RawConfig) *Config {
 //take a configmode and modify some number of properties. prodMode is true if
 //it's being called on the prod option, false if on dev. A few are defined as
 //conveniences in this package.
-type OptionOverrider func(prodMode bool, c *ConfigMode)
+type OptionOverrider func(prodMode bool, c *Mode)
 
 //EnableOfflineDevMode returns an OptionOverrider that can be passed to
 //config.AddOverride. It simply sets OfflineDevMode to true. It will not
 //modify ProdMode, since that value is unsafe in prod mode.
 func EnableOfflineDevMode() OptionOverrider {
 	//Return a closure mainly just so that EnableOfflineDevMode nests under OptionOverrider in godoc.
-	return func(prodMode bool, c *ConfigMode) {
+	return func(prodMode bool, c *Mode) {
 		//OfflineDevMode should never be enabled on prod mode.
 		if prodMode {
 			return

@@ -9,9 +9,8 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
-//ConfigMode is the final, derived struct holding all of the leaf values in
-//config.
-type ConfigMode struct {
+//Mode is the final, derived struct holding all of the leaf values in config.
+type Mode struct {
 	//ConfigMode is primarily just the common config mode values
 	ModeCommon
 	//Games is not intended to be inflated from JSON, but rather is derived
@@ -22,7 +21,7 @@ type ConfigMode struct {
 	parentConfig *Config
 }
 
-func (c *ConfigMode) String() string {
+func (c *Mode) String() string {
 	blob, err := json.MarshalIndent(c, "", "\t")
 	if err != nil {
 		return "ERROR, couldn't unmarshal: " + err.Error()
@@ -36,7 +35,7 @@ func (c *ConfigMode) String() string {
 //so that relative paths in games listed in config are interpreted as relative
 //to the config.json, not whatever working directory boardgame-util is being
 //run in.
-func (c *ConfigMode) GamePackages() ([]*gamepkg.Pkg, map[string]error) {
+func (c *Mode) GamePackages() ([]*gamepkg.Pkg, map[string]error) {
 
 	return gamepkg.Packages(c.Games, c.basePath())
 
@@ -47,12 +46,12 @@ func (c *ConfigMode) GamePackages() ([]*gamepkg.Pkg, map[string]error) {
 //passes the path of the config as optionalBasePath, so that relative paths in
 //games listed in config are interpreted as relative to the config.json, not
 //whatever working directory boardgame-util is being run in.
-func (c *ConfigMode) AllGamePackages() ([]*gamepkg.Pkg, error) {
+func (c *Mode) AllGamePackages() ([]*gamepkg.Pkg, error) {
 	return gamepkg.AllPackages(c.Games, c.basePath())
 }
 
 //basePath returns the base path to pass to gamepkg.Packages and friends.
-func (c *ConfigMode) basePath() string {
+func (c *Mode) basePath() string {
 	if c.parentConfig == nil {
 		return ""
 	}
@@ -74,11 +73,11 @@ func (c *ConfigMode) basePath() string {
 //ParentConfig returns the Config that this ConfigMode is part of.
 //Specifically, returns the config that was passed as ParentConfig to
 //RawConfigMode.Derive().
-func (c *ConfigMode) ParentConfig() *Config {
+func (c *Mode) ParentConfig() *Config {
 	return c.parentConfig
 }
 
-func (c *ConfigMode) OriginAllowed(origin string) bool {
+func (c *Mode) OriginAllowed(origin string) bool {
 
 	originUrl, err := url.Parse(origin)
 

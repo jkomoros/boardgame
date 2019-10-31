@@ -28,7 +28,7 @@ type Server struct {
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
-	config           *config.ConfigMode
+	config           *config.Mode
 
 	overriders []config.OptionOverrider
 

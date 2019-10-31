@@ -19,14 +19,14 @@ type RawConfigMode struct {
 //in Config. Will always return a reasonably defaulted ConfigMode even if the
 //RawcConfigMode itself is nil. Generally you don't call this, but use
 //NewConfig() instead.
-func (c *RawConfigMode) Derive(parentConfig *Config, prodMode bool) *ConfigMode {
+func (c *RawConfigMode) Derive(parentConfig *Config, prodMode bool) *Mode {
 
-	var result *ConfigMode
+	var result *Mode
 
 	if c == nil {
-		result = &ConfigMode{}
+		result = &Mode{}
 	} else {
-		result = &ConfigMode{
+		result = &Mode{
 			ModeCommon: c.ModeCommon,
 			Games:      c.Games.List(),
 		}
