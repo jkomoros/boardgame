@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 )
 
-type CleanStatic struct {
+type cleanStatic struct {
 	baseSubCommand
 }
 
-func (c *CleanStatic) Run(p writ.Path, positional []string) {
+func (c *cleanStatic) Run(p writ.Path, positional []string) {
 
 	dir := dirPositionalOrDefault(c.Base(), positional, false)
 
@@ -24,19 +25,19 @@ func (c *CleanStatic) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *CleanStatic) Name() string {
+func (c *cleanStatic) Name() string {
 	return "static"
 }
 
-func (c *CleanStatic) Description() string {
+func (c *cleanStatic) Description() string {
 	return "Cleans up a static server assets folder created by `build static`"
 }
 
-func (c *CleanStatic) Usage() string {
+func (c *cleanStatic) Usage() string {
 	return "DIR"
 }
 
-func (c *CleanStatic) HelpText() string {
+func (c *cleanStatic) HelpText() string {
 
 	return c.Name() + ` removes the static server folder within
 DIR that was created by 'build static'.

@@ -10,7 +10,7 @@ type Clean struct {
 	baseSubCommand
 
 	CleanAPI    cleanAPI
-	CleanStatic CleanStatic
+	CleanStatic cleanStatic
 	CleanCache  cleanCache
 }
 
