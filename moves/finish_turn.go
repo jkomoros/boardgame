@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
@@ -26,6 +27,9 @@ type FinishTurn struct {
 	FixUp
 }
 
+//ValidConfiguration verfies that GameState implements
+//interfaces.CurrentPlayerSetter and the PlayerState implements
+//PlayerTurnFinisher.
 func (f *FinishTurn) ValidConfiguration(exampleState boardgame.State) error {
 
 	if _, ok := exampleState.GameState().(interfaces.CurrentPlayerSetter); !ok {
@@ -72,7 +76,7 @@ func (f *FinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 
 }
 
-//Aoply resets the current player via ResetForTurnEnd, then advances to the
+//Apply resets the current player via ResetForTurnEnd, then advances to the
 //next player (using game.SetCurrentPlayer), then calls ResetForTurnStart on
 //the new player.
 func (f *FinishTurn) Apply(state boardgame.State) error {

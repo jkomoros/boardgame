@@ -1,15 +1,16 @@
 package moves
 
 import (
-	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/base"
-	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/errors"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/errors"
 )
 
 //go:generate boardgame-util codegen
@@ -169,9 +170,9 @@ func titleCaseToWords(in string) string {
 //package, it will fall back on whatever the FallbackName() method returns.
 //Subclasses generally should not override this. If WithMoveNameSuffix() was
 //used, it will then add " - " + suffix to the end of the move name.
-func (b *Default) DeriveName(m *boardgame.GameManager) string {
+func (d *Default) DeriveName(m *boardgame.GameManager) string {
 
-	config := b.CustomConfiguration()
+	config := d.CustomConfiguration()
 
 	suffix := ""
 
@@ -188,13 +189,13 @@ func (b *Default) DeriveName(m *boardgame.GameManager) string {
 		}
 	}
 
-	return b.baseDeriveName(m) + suffix
+	return d.baseDeriveName(m) + suffix
 }
 
 //baseDeriveName does most of the name logic, but not the suffix behavior.
-func (b *Default) baseDeriveName(m *boardgame.GameManager) string {
+func (d *Default) baseDeriveName(m *boardgame.GameManager) string {
 
-	config := b.CustomConfiguration()
+	config := d.CustomConfiguration()
 
 	if config != nil {
 
@@ -209,7 +210,7 @@ func (b *Default) baseDeriveName(m *boardgame.GameManager) string {
 		}
 	}
 
-	move := b.TopLevelStruct()
+	move := d.TopLevelStruct()
 
 	val := reflect.ValueOf(move)
 
@@ -242,15 +243,15 @@ func (b *Default) baseDeriveName(m *boardgame.GameManager) string {
 
 //FallbackName is the name that is returned if other higher-priority
 //methods in MoveTypeName fail. For moves.Default returns "Base Move".
-func (b *Default) FallbackName(m *boardgame.GameManager) string {
+func (d *Default) FallbackName(m *boardgame.GameManager) string {
 	return "Default Move"
 }
 
 //HelpText will return the value passed via the WithHelpText config option, if
 //it was passed. Otherwise it will fall back on the move's HelpTextFallback
 //method.
-func (b *Default) HelpText() string {
-	config := b.CustomConfiguration()
+func (d *Default) HelpText() string {
+	config := d.CustomConfiguration()
 
 	overrideHelpText, hasOverrideHelpText := config[configPropHelpText]
 
@@ -262,7 +263,7 @@ func (b *Default) HelpText() string {
 		return strOverrideHelpText
 	}
 
-	move := b.TopLevelStruct()
+	move := d.TopLevelStruct()
 
 	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
@@ -278,14 +279,14 @@ func (b *Default) HelpText() string {
 //FallbackHelpText is the help text that will be used by HelpText if nothing
 //was passed via WithHelpText to auto.Config. By default it returns "A default
 //move that does nothing on its own"
-func (b *Default) FallbackHelpText() string {
+func (d *Default) FallbackHelpText() string {
 	return "A default move that does nothing on its own"
 }
 
 //IsFixUp will return the value passed with WithFixUp, falling back on
 //returning false.
-func (b *Default) IsFixUp() bool {
-	config := b.CustomConfiguration()
+func (d *Default) IsFixUp() bool {
+	config := d.CustomConfiguration()
 	return overrideIsFixUp(config, false)
 }
 

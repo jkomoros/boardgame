@@ -2,8 +2,9 @@ package moves
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame"
 	"strconv"
+
+	"github.com/jkomoros/boardgame"
 )
 
 //Increment is a simple move that modifies the specified int property by
@@ -195,7 +196,8 @@ func (i *Increment) helpTextSuffix() string {
 	return propType + " Property " + propName + " By " + strconv.Itoa(amount)
 }
 
-//FallbackName returns "Increments {Game|Player} Property PROPNAME By Amount"
+//FallbackHelpText returns "Increments {Game|Player} Property PROPNAME By
+//Amount"
 func (i *Increment) FallbackHelpText() string {
 	return "Increments " + i.helpTextSuffix()
 }

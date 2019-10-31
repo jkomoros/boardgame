@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
@@ -30,6 +31,8 @@ type MoveCountComponents struct {
 	ApplyCountTimes
 }
 
+//ValidConfiguration checks to make sure that SourceStack and DestinationStack
+//both exist and return non-nil stacks.
 func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) error {
 	if err := m.ApplyCountTimes.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -38,7 +41,7 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) e
 	theSourceDestinationStacker, ok := m.TopLevelStruct().(sourceDestinationStacker)
 
 	if !ok {
-		return errors.New("EmbeddingMove doesn't have Source/Destination stacker.")
+		return errors.New("embeddingMove doesn't have Source/Destination stacker")
 	}
 
 	if theSourceDestinationStacker.DestinationStack(exampleState) == nil {
@@ -134,6 +137,8 @@ func (m *MoveCountComponents) stackNames(state boardgame.ImmutableState) (starte
 	return stackName(m, configPropSourceProperty, sourceStack, state), stackName(m, configPropDestinationProperty, destinationStack, state)
 }
 
+//Legal checks that source and destiantion stacks exist, that enough components
+//to move exist.
 func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := m.ApplyCountTimes.Legal(state, proposer); err != nil {
 		return err
@@ -150,11 +155,11 @@ func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 	}
 
 	if source.NumComponents() < 1 {
-		return errors.New("The stack to draw from doesn't have any components to move!")
+		return errors.New("the stack to draw from doesn't have any components to move")
 	}
 
 	if destination.SlotsRemaining() < 1 {
-		return errors.New("The destination stack doesn't have any slots to move the component to!")
+		return errors.New("the destination stack doesn't have any slots to move the component to")
 	}
 
 	return nil
@@ -178,7 +183,7 @@ func (m *MoveCountComponents) Apply(state boardgame.State) error {
 	first := source.First()
 
 	if first == nil {
-		return errors.New("Unexpected error: no first object to move!")
+		return errors.New("unexpected error: no first object to move")
 	}
 
 	return first.MoveToNextSlot(destination)
