@@ -4,42 +4,62 @@ import (
 	"strings"
 )
 
-//ConfigModeField denotes the field in a RawConfigMode. Used to pass to the
+//ModeField denotes the field in a RawConfigMode. Used to pass to the
 //UpdateConfig family of function factories.
-type ConfigModeField string
+type ModeField string
 
 const (
-	FieldInvalid              ConfigModeField = "<INVALID>"
-	FieldAllowedOrigins                       = "AllowedOrigins"
-	FieldDefaultPort                          = "DefaultPort"
-	FieldDefaultStaticPort                    = "DefaultStaticPort"
-	FieldAdminUserIds                         = "AdminUserIds"
-	FieldDisableAdminChecking                 = "DisableAdminChecking"
-	FieldOfflineDevMode                       = "OfflineDevMode"
-	FieldStorage                              = "Storage"
-	FieldDefaultStorageType                   = "DefaultStorageType"
-	FieldGoogleAnalytics                      = "GoogleAnalytics"
-	FieldFirebase                             = "Firebase"
-	FieldApiHost                              = "ApiHost"
-	FieldGames                                = "Games"
+	//FieldInvalid is an invalid default value
+	FieldInvalid ModeField = "<INVALID>"
+	//FieldAllowedOrigins denotes that field of the output
+	FieldAllowedOrigins = "AllowedOrigins"
+	//FieldDefaultPort denotes that field of the output
+	FieldDefaultPort = "DefaultPort"
+	//FieldDefaultStaticPort denotes that field of the output
+	FieldDefaultStaticPort = "DefaultStaticPort"
+	//FieldAdminUserIds denotes that field of the output
+	FieldAdminUserIds = "AdminUserIds"
+	//FieldDisableAdminChecking denotes that field of the output
+	FieldDisableAdminChecking = "DisableAdminChecking"
+	//FieldOfflineDevMode denotes that field of the output
+	FieldOfflineDevMode = "OfflineDevMode"
+	//FieldStorage denotes that field of the output
+	FieldStorage = "Storage"
+	//FieldDefaultStorageType denotes that field of the output
+	FieldDefaultStorageType = "DefaultStorageType"
+	//FieldGoogleAnalytics denotes that field of the output
+	FieldGoogleAnalytics = "GoogleAnalytics"
+	//FieldFirebase denotes that field of the output
+	FieldFirebase = "Firebase"
+	//FieldApiHost denotes that field of the output
+	FieldApiHost = "ApiHost"
+	//FieldGames denotes that field of the output
+	FieldGames = "Games"
 )
 
-//ConfigModeFieldType is the type of field in RawConfigMode. Different
-//UpdateConfig function factories only work on certain types of fields.
-type ConfigModeFieldType int
+//ModeFieldType is the type of field in RawConfigMode. Different UpdateConfig
+//function factories only work on certain types of fields.
+type ModeFieldType int
 
 const (
-	FieldTypeInvalid ConfigModeFieldType = iota
+	//FieldTypeInvalid is an invalid default value
+	FieldTypeInvalid ModeFieldType = iota
+	//FieldTypeString denotes a field with type string
 	FieldTypeString
+	//FieldTypeStringSlice denotes a field with type []string
 	FieldTypeStringSlice
+	//FieldTypeStringMap denotes a field with type map[string]string
 	FieldTypeStringMap
+	//FieldTypeBool denotes a field with type bool
 	FieldTypeBool
+	//FieldTypeFirebase denotes a field with type firebase
 	FieldTypeFirebase
+	//FieldTypeGameNode denotes a field with type GameNode
 	FieldTypeGameNode
 )
 
 //FieldTypes maps each ConfigModeField to its ConfigModeFieldType.
-var FieldTypes = map[ConfigModeField]ConfigModeFieldType{
+var FieldTypes = map[ModeField]ModeFieldType{
 	FieldInvalid:              FieldTypeInvalid,
 	FieldAllowedOrigins:       FieldTypeString,
 	FieldDefaultPort:          FieldTypeString,
@@ -55,10 +75,10 @@ var FieldTypes = map[ConfigModeField]ConfigModeFieldType{
 	FieldGames:                FieldTypeGameNode,
 }
 
-//ConfigModeCommon is the values that both ConfigMode and RawConfigMode share
-//directly, factored out for convenience so they can be anonymously embedded
-//in ConfigMdoe and RawConfigMode.
-type ConfigModeCommon struct {
+//ModeCommon is the values that both ConfigMode and RawConfigMode share
+//directly, factored out for convenience so they can be anonymously embedded in
+//ConfigMdoe and RawConfigMode.
+type ModeCommon struct {
 	AllowedOrigins    string   `json:"allowedOrigins,omitempty"`
 	DefaultPort       string   `json:"defaultPort,omitempty"`
 	DefaultStaticPort string   `json:"defaultStaticPort,omitempty"`
@@ -81,8 +101,8 @@ type ConfigModeCommon struct {
 	ApiHost string `json:"apiHost,omitempty"`
 }
 
-//FieldFromString returns a ConfigModeField by doing fuzzing matching.
-func FieldFromString(s string) ConfigModeField {
+//FieldFromString returns a ModeField by doing fuzzing matching.
+func FieldFromString(s string) ModeField {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)
 

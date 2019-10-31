@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
@@ -13,7 +14,7 @@ type ConfigUpdater func(r *RawConfigMode, typ ConfigModeType) error
 
 //SetString returns a function to set the given rawconfig string property to
 //the given value. field must be of FieldTypeString.
-func SetString(field ConfigModeField, val string) ConfigUpdater {
+func SetString(field ModeField, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode, typ ConfigModeType) error {
 		switch field {
@@ -40,13 +41,13 @@ func SetString(field ConfigModeField, val string) ConfigUpdater {
 
 //DeleteString returns a function to unset the given config string
 //propert, as long as field is of type FieldTypeString.
-func DeleteString(field ConfigModeField) ConfigUpdater {
+func DeleteString(field ModeField) ConfigUpdater {
 	return SetString(field, "")
 }
 
 //AddString adds the given string, if it doesn't exist, to the []string type
-//ConfigModeField. Field must be of FieldTypeStringSlice.
-func AddString(field ConfigModeField, val string) ConfigUpdater {
+//ModeField. Field must be of FieldTypeStringSlice.
+func AddString(field ModeField, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode, typ ConfigModeType) error {
 		if field != FieldAdminUserIds {
@@ -67,9 +68,9 @@ func AddString(field ConfigModeField, val string) ConfigUpdater {
 }
 
 //RemoveString removes the given string, if it exists, from the []string type
-//ConfigModeField. If it was the last item to remove, sets that field to nil.
+//ModeField. If it was the last item to remove, sets that field to nil.
 //Field must be of FieldTypeStringSlice.
-func RemoveString(field ConfigModeField, val string) ConfigUpdater {
+func RemoveString(field ModeField, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode, typ ConfigModeType) error {
 		if field != FieldAdminUserIds {
@@ -124,7 +125,7 @@ func RemoveGame(val string) ConfigUpdater {
 //denoted by field. If that key is already set, it updates it to the new
 //value. If the map is nil, creates one. Field must be of FieldTypeStringMap.
 //If val is "" then the key will be deleted.
-func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
+func SetStringKey(field ModeField, key, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode, typ ConfigModeType) error {
 		if field != FieldStorage {
@@ -149,7 +150,7 @@ func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
 
 //SetBool sets the field denoted by field to the val. Field must be of type
 //FieldTypeBool.
-func SetBool(field ConfigModeField, val bool) ConfigUpdater {
+func SetBool(field ModeField, val bool) ConfigUpdater {
 	return func(r *RawConfigMode, typ ConfigModeType) error {
 		fieldType := FieldTypes[field]
 		if fieldType != FieldTypeBool {
@@ -158,7 +159,7 @@ func SetBool(field ConfigModeField, val bool) ConfigUpdater {
 
 		if typ != TypeDev {
 			if val {
-				sensitiveTypes := map[ConfigModeField]bool{
+				sensitiveTypes := map[ModeField]bool{
 					FieldDisableAdminChecking: true,
 					FieldOfflineDevMode:       true,
 				}

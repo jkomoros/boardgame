@@ -8,7 +8,7 @@ import (
 //stored.
 type RawConfigMode struct {
 	//ConfigMode is primarily just the common config mode values
-	ConfigModeCommon
+	ModeCommon
 	Games *GameNode `json:"games,omitempty"`
 }
 
@@ -27,8 +27,8 @@ func (c *RawConfigMode) Derive(parentConfig *Config, prodMode bool) *ConfigMode 
 		result = &ConfigMode{}
 	} else {
 		result = &ConfigMode{
-			ConfigModeCommon: c.ConfigModeCommon,
-			Games:            c.Games.List(),
+			ModeCommon: c.ModeCommon,
+			Games:      c.Games.List(),
 		}
 	}
 

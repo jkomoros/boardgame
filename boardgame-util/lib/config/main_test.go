@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/workfit/tester/assert"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
 func TestBaseExtend(t *testing.T) {
@@ -17,7 +18,7 @@ func TestBaseExtend(t *testing.T) {
 			&RawConfig{
 				nil,
 				&RawConfigMode{
-					ConfigModeCommon{
+					ModeCommon{
 						"AllowedOriginsDev",
 						"DefaultPortDev",
 						"DefaultStaticPortDev",
@@ -43,7 +44,7 @@ func TestBaseExtend(t *testing.T) {
 			},
 			&Config{
 				&ConfigMode{
-					ConfigModeCommon{
+					ModeCommon{
 						"AllowedOriginsDev",
 						"DefaultPortDev",
 						"DefaultStaticPortDev",
@@ -66,7 +67,7 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				&ConfigMode{
-					ConfigModeCommon{
+					ModeCommon{
 						AllowedOrigins:    "*",
 						DefaultPort:       "8080",
 						DefaultStaticPort: "80",
@@ -84,7 +85,7 @@ func TestBaseExtend(t *testing.T) {
 			"Simple derive",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon{
+					ModeCommon{
 						"AllowedOriginsBase",
 						"DefaultPortBase",
 						"DefaultStaticPortBase",
@@ -107,7 +108,7 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				&RawConfigMode{
-					ConfigModeCommon{
+					ModeCommon{
 						"AllowedOriginsDev",
 						"",
 						"",
@@ -131,7 +132,7 @@ func TestBaseExtend(t *testing.T) {
 			},
 			&Config{
 				&ConfigMode{
-					ConfigModeCommon{
+					ModeCommon{
 						"AllowedOriginsDev",
 						"DefaultPortBase",
 						"DefaultStaticPortBase",
@@ -156,7 +157,7 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				&ConfigMode{
-					ConfigModeCommon{
+					ModeCommon{
 						"AllowedOriginsBase",
 						"DefaultPortBase",
 						"DefaultStaticPortBase",
@@ -217,14 +218,14 @@ func TestApiHostDerivation(t *testing.T) {
 			"No op",
 			false,
 			&RawConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost:     "provided",
 					DefaultPort: "8888",
 				},
 				nil,
 			},
 			&ConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost:           "provided",
 					DefaultPort:       "8888",
 					DefaultStaticPort: "8080",
@@ -239,13 +240,13 @@ func TestApiHostDerivation(t *testing.T) {
 			"dev",
 			false,
 			&RawConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					DefaultPort: "8888",
 				},
 				nil,
 			},
 			&ConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost:           "http://localhost:8888",
 					DefaultPort:       "8888",
 					DefaultStaticPort: "8080",
@@ -260,7 +261,7 @@ func TestApiHostDerivation(t *testing.T) {
 			"prod non default port",
 			true,
 			&RawConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost:     "",
 					DefaultPort: "8080",
 					Firebase: &FirebaseConfig{
@@ -270,7 +271,7 @@ func TestApiHostDerivation(t *testing.T) {
 				nil,
 			},
 			&ConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost:           "https://example-boardgame.appspot.com:8080",
 					DefaultPort:       "8080",
 					DefaultStaticPort: "80",
@@ -288,7 +289,7 @@ func TestApiHostDerivation(t *testing.T) {
 			"prod no default port",
 			true,
 			&RawConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost: "",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
@@ -298,7 +299,7 @@ func TestApiHostDerivation(t *testing.T) {
 				nil,
 			},
 			&ConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost: "https://example-boardgame.appspot.com",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
@@ -316,7 +317,7 @@ func TestApiHostDerivation(t *testing.T) {
 			"prod default port 80",
 			true,
 			&RawConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost:     "",
 					DefaultPort: "80",
 					Firebase: &FirebaseConfig{
@@ -326,7 +327,7 @@ func TestApiHostDerivation(t *testing.T) {
 				nil,
 			},
 			&ConfigMode{
-				ConfigModeCommon{
+				ModeCommon{
 					ApiHost:           "https://example-boardgame.appspot.com",
 					DefaultPort:       "80",
 					DefaultStaticPort: "80",

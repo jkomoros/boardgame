@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
@@ -21,7 +22,7 @@ type ConfigModify struct {
 //If fieldType is one this responds to, should either teturn an updater or
 //errAndQuit. Otherwise, OK to return nil to signal it's not a valid tyep.
 //fieldType won't be TypeInvalid; that will already be screened out.
-type updateFactory func(base *BoardgameUtil, field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater
+type updateFactory func(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.ConfigUpdater
 
 func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, factory updateFactory) {
 
@@ -61,7 +62,7 @@ func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, fa
 
 }
 
-func (c *ConfigModify) ConfirmField(field config.ConfigModeField) bool {
+func (c *ConfigModify) ConfirmField(field config.ModeField) bool {
 
 	//We only warn for secret fields on prod.
 	if !c.Prod {
@@ -77,7 +78,7 @@ func (c *ConfigModify) ConfirmField(field config.ConfigModeField) bool {
 		return true
 	}
 
-	sensitiveFields := map[config.ConfigModeField]bool{
+	sensitiveFields := map[config.ModeField]bool{
 		config.FieldAdminUserIds: true,
 		config.FieldStorage:      true,
 	}

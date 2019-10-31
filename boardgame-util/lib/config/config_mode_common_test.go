@@ -1,14 +1,15 @@
 package config
 
 import (
-	"github.com/workfit/tester/assert"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
 func TestFieldFromString(t *testing.T) {
 	tests := []struct {
 		in  string
-		out ConfigModeField
+		out ModeField
 	}{
 		{
 			"Firebase",

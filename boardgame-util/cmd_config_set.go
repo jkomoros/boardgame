@@ -2,9 +2,10 @@ package main
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
-	"strings"
 )
 
 type ConfigSet struct {
@@ -43,7 +44,7 @@ func deriveMode(dev, prod bool) config.ConfigModeType {
 	return config.TypeBase
 }
 
-func configSetFactory(base *BoardgameUtil, field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
+func configSetFactory(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.ConfigUpdater {
 	switch fieldType {
 	case config.FieldTypeString:
 		if len(positional) != 2 {
@@ -102,7 +103,7 @@ func (c *ConfigSet) Description() string {
 	return "Sets the given field to the given value"
 }
 
-func keyNamesForConfigType(typ config.ConfigModeFieldType) []string {
+func keyNamesForConfigType(typ config.ModeFieldType) []string {
 
 	var result []string
 

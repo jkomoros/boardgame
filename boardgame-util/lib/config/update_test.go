@@ -1,9 +1,10 @@
 package config
 
 import (
-	"github.com/workfit/tester/assert"
 	"path/filepath"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
 func TestUpdate(t *testing.T) {
@@ -22,7 +23,7 @@ func TestUpdate(t *testing.T) {
 			"Simple public",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -38,7 +39,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "after",
 						DefaultPort:    "before",
 					},
@@ -54,7 +55,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -70,7 +71,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "after",
 						DefaultPort:    "before",
 					},
@@ -84,7 +85,7 @@ func TestUpdate(t *testing.T) {
 			"Set on nil mode",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -100,13 +101,13 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
 				},
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "after",
 					},
 				},
@@ -119,7 +120,7 @@ func TestUpdate(t *testing.T) {
 			"Nil updater",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -146,7 +147,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "after",
 					},
 				},
@@ -160,7 +161,7 @@ func TestUpdate(t *testing.T) {
 			"Set on nil secret with non-nil public",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -176,7 +177,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -187,7 +188,7 @@ func TestUpdate(t *testing.T) {
 			},
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "after",
 					},
 				},
@@ -201,7 +202,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -216,7 +217,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "after",
 					},
 				},
@@ -226,7 +227,7 @@ func TestUpdate(t *testing.T) {
 			},
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AllowedOrigins: "before",
 						DefaultPort:    "before",
 					},
@@ -240,7 +241,7 @@ func TestUpdate(t *testing.T) {
 			"Simple AddString",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 						},
@@ -257,7 +258,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 							"bar",
@@ -274,7 +275,7 @@ func TestUpdate(t *testing.T) {
 			"Simple AddString already exists",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 						},
@@ -291,7 +292,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 						},
@@ -307,7 +308,7 @@ func TestUpdate(t *testing.T) {
 			"Simple RemoveString",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 							"bar",
@@ -325,7 +326,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 						},
@@ -341,7 +342,7 @@ func TestUpdate(t *testing.T) {
 			"Simple RemoveString last item",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"bar",
 						},
@@ -358,7 +359,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: nil,
 					},
 				},
@@ -372,7 +373,7 @@ func TestUpdate(t *testing.T) {
 			"Simple RemoveString key not in list",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 							"bar",
@@ -390,7 +391,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						AdminUserIds: []string{
 							"foo",
 							"bar",
@@ -407,7 +408,7 @@ func TestUpdate(t *testing.T) {
 			"Simple SetStingKey",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 						},
@@ -424,7 +425,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "bar",
@@ -441,7 +442,7 @@ func TestUpdate(t *testing.T) {
 			"Simple SetStingKey on existing key",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "foo",
@@ -459,7 +460,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "bar",
@@ -487,7 +488,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"foo": "bar",
 						},
@@ -503,7 +504,7 @@ func TestUpdate(t *testing.T) {
 			"Simple DeleteStringKey",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "foo",
@@ -521,7 +522,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 						},
@@ -537,7 +538,7 @@ func TestUpdate(t *testing.T) {
 			"Simple DeleteStringKey nonexistent key",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 						},
@@ -554,7 +555,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"mysql": "foo",
 						},
@@ -570,7 +571,7 @@ func TestUpdate(t *testing.T) {
 			"Simple DeleteStringKey last key",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{
 							"foo": "foo",
 						},
@@ -587,7 +588,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Storage: map[string]string{},
 					},
 				},
@@ -601,7 +602,7 @@ func TestUpdate(t *testing.T) {
 			"Simple Firebase key",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Firebase: &FirebaseConfig{
 							StorageBucket: "foo",
 						},
@@ -618,7 +619,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Firebase: &FirebaseConfig{
 							StorageBucket: "foo",
 							ProjectID:     "foo",
@@ -646,7 +647,7 @@ func TestUpdate(t *testing.T) {
 			false,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Firebase: &FirebaseConfig{
 							ProjectID: "foo",
 						},
@@ -662,7 +663,7 @@ func TestUpdate(t *testing.T) {
 			"Simple Firebase key invalid key",
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Firebase: &FirebaseConfig{
 							StorageBucket: "foo",
 						},
@@ -679,7 +680,7 @@ func TestUpdate(t *testing.T) {
 			true,
 			&RawConfig{
 				&RawConfigMode{
-					ConfigModeCommon: ConfigModeCommon{
+					ModeCommon: ModeCommon{
 						Firebase: &FirebaseConfig{
 							StorageBucket: "foo",
 						},

@@ -41,7 +41,7 @@ func defaultGamesNode() *GameNode {
 func DefaultStarterConfig(dirOrFile string) *Config {
 
 	base := &RawConfigMode{
-		ConfigModeCommon: ConfigModeCommon{
+		ModeCommon: ModeCommon{
 			DefaultStorageType: "mysql",
 			Firebase:           defaultFirebase.copy(),
 		},
@@ -49,7 +49,7 @@ func DefaultStarterConfig(dirOrFile string) *Config {
 	}
 
 	dev := &RawConfigMode{
-		ConfigModeCommon: ConfigModeCommon{
+		ModeCommon: ModeCommon{
 			AllowedOrigins:       "http://localhost:8080",
 			DisableAdminChecking: true,
 			Storage: map[string]string{
@@ -67,7 +67,7 @@ func DefaultStarterConfig(dirOrFile string) *Config {
 func SampleStarterConfig(dirOrFile string) *Config {
 
 	base := &RawConfigMode{
-		ConfigModeCommon: ConfigModeCommon{
+		ModeCommon: ModeCommon{
 			DefaultStorageType: "bolt",
 			GoogleAnalytics:    "UA-321674-10",
 			Firebase:           defaultFirebase.copy(),
@@ -76,7 +76,7 @@ func SampleStarterConfig(dirOrFile string) *Config {
 	}
 
 	dev := &RawConfigMode{
-		ConfigModeCommon: ConfigModeCommon{
+		ModeCommon: ModeCommon{
 			AllowedOrigins:       "http://localhost:8080",
 			DisableAdminChecking: true,
 			Storage: map[string]string{
@@ -86,7 +86,7 @@ func SampleStarterConfig(dirOrFile string) *Config {
 	}
 
 	prod := &RawConfigMode{
-		ConfigModeCommon: ConfigModeCommon{
+		ModeCommon: ModeCommon{
 			AllowedOrigins: "https://www.mygame.com",
 			AdminUserIds: []string{
 				"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
@@ -107,14 +107,14 @@ func SampleStarterConfig(dirOrFile string) *Config {
 //name, using DefaultFileNames. Leave "" for default.
 func MinimalStarterConfig(dirOrFile string) *Config {
 	base := &RawConfigMode{
-		ConfigModeCommon: ConfigModeCommon{
+		ModeCommon: ModeCommon{
 			DefaultStorageType: "mysql",
 		},
 		Games: defaultGamesNode(),
 	}
 
 	dev := &RawConfigMode{
-		ConfigModeCommon: ConfigModeCommon{
+		ModeCommon: ModeCommon{
 			AllowedOrigins:       "http://localhost:8080",
 			DisableAdminChecking: true,
 			Storage: map[string]string{

@@ -1,16 +1,17 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
-	"strings"
 )
 
 type ConfigAdd struct {
 	ConfigModify
 }
 
-func configAddFactory(base *BoardgameUtil, field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
+func configAddFactory(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.ConfigUpdater {
 
 	switch fieldType {
 	case config.FieldTypeStringSlice:

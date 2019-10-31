@@ -2,17 +2,18 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"net/url"
 	"path/filepath"
 	"strings"
+
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
 //ConfigMode is the final, derived struct holding all of the leaf values in
 //config.
 type ConfigMode struct {
 	//ConfigMode is primarily just the common config mode values
-	ConfigModeCommon
+	ModeCommon
 	//Games is not intended to be inflated from JSON, but rather is derived
 	//based on the contents of Games. It is OK to use literally as Games in
 	//RawConfig, though, because its serialization is a legal GamesNode.
