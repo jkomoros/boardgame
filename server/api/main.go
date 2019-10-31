@@ -47,15 +47,15 @@ type renderer struct {
 	cookieValue  string
 }
 
-type MoveForm struct {
+type moveForm struct {
 	Name     string
 	HelpText string
-	Fields   []*MoveFormField
+	Fields   []*moveFormField
 }
 
-type MoveFormFieldType int
+type moveFormFieldType int
 
-type MoveFormField struct {
+type moveFormField struct {
 	Name         string
 	Type         boardgame.PropertyType
 	EnumName     string `json:",omitempty"`
@@ -1024,9 +1024,9 @@ func (s *Server) doMakeMove(r *renderer, game *boardgame.Game, proposer boardgam
 	r.Success(nil)
 }
 
-func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
+func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 
-	var result []*MoveForm
+	var result []*moveForm
 
 	for _, move := range game.Moves() {
 
@@ -1034,7 +1034,7 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 			continue
 		}
 
-		moveItem := &MoveForm{
+		moveItem := &moveForm{
 			Name:     move.Info().Name(),
 			HelpText: move.HelpText(),
 			Fields:   formFields(move),
@@ -1045,15 +1045,15 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 	return result
 }
 
-func formFields(move boardgame.Move) []*MoveFormField {
+func formFields(move boardgame.Move) []*moveFormField {
 
-	var result []*MoveFormField
+	var result []*moveFormField
 
 	for fieldName, fieldType := range move.ReadSetter().Props() {
 
 		val, _ := move.ReadSetter().Prop(fieldName)
 
-		info := &MoveFormField{
+		info := &moveFormField{
 			Name:         fieldName,
 			Type:         fieldType,
 			DefaultValue: val,
