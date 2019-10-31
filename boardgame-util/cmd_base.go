@@ -17,7 +17,7 @@ type boardgameUtil struct {
 	Db      Db
 	Codegen Codegen
 	Build   build
-	Clean   Clean
+	Clean   clean
 	Serve   Serve
 	Config  Config
 	Stub    Stub

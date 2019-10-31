@@ -6,7 +6,7 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-type Clean struct {
+type clean struct {
 	baseSubCommand
 
 	CleanAPI    cleanAPI
@@ -14,19 +14,19 @@ type Clean struct {
 	CleanCache  cleanCache
 }
 
-func (c *Clean) Run(p writ.Path, positional []string) {
+func (c *clean) Run(p writ.Path, positional []string) {
 	p.Last().ExitHelp(errors.New(c.Name() + " cannot be run by itself"))
 }
 
-func (c *Clean) Name() string {
+func (c *clean) Name() string {
 	return "clean"
 }
 
-func (c *Clean) Description() string {
+func (c *clean) Description() string {
 	return "Cleans up files created by the build command"
 }
 
-func (c *Clean) SubcommandObjects() []SubcommandObject {
+func (c *clean) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&c.CleanAPI,
 		&c.CleanStatic,
