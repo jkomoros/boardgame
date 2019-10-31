@@ -2,6 +2,7 @@ package tictactoe
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
 )
@@ -9,13 +10,13 @@ import (
 //TODO: test this!!
 
 //boardgame:codegen
-type MovePlaceToken struct {
+type movePlaceToken struct {
 	moves.CurrentPlayer
 	//Which token to place the token
 	Slot int
 }
 
-func (m *MovePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
+func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 	game, _ := concreteStates(state)
 
 	m.CurrentPlayer.DefaultsForState(state)
@@ -29,7 +30,7 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 	}
 }
 
-func (m *MovePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -38,22 +39,22 @@ func (m *MovePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 	game, players := concreteStates(state)
 
 	if players[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
-		return errors.New("There aren't any remaining tokens for the current player to place.")
+		return errors.New("there aren't any remaining tokens for the current player to place")
 	}
 
 	if m.Slot < 0 || m.Slot >= game.Slots.Len() {
-		return errors.New("The specified slot is not legal.")
+		return errors.New("the specified slot is not legal")
 	}
 
 	if game.Slots.ComponentAt(m.Slot) != nil {
-		return errors.New("The specified slot is already taken.")
+		return errors.New("the specified slot is already taken")
 	}
 
 	return nil
 
 }
 
-func (m *MovePlaceToken) Apply(state boardgame.State) error {
+func (m *movePlaceToken) Apply(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 

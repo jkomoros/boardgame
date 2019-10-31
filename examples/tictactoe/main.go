@@ -9,17 +9,18 @@ package tictactoe
 
 import (
 	"errors"
+	"reflect"
+	"strings"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
-	"reflect"
-	"strings"
 )
 
 //go:generate boardgame-util codegen
 
-const DIM = 3
-const TOTAL_DIM = DIM * DIM
+const dim = 3
+const totalDim = dim * dim
 
 type gameDelegate struct {
 	base.GameDelegate
@@ -98,9 +99,9 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 
 	game, players := concreteStates(state)
 
-	tokens := make([]string, DIM*DIM)
+	tokens := make([]string, totalDim)
 
-	for i := 0; i < DIM*DIM; i++ {
+	for i := 0; i < totalDim; i++ {
 		tokens[i] = game.tokenValueAtIndex(i)
 	}
 
@@ -140,7 +141,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	return moves.Add(
 		auto.MustConfig(
-			new(MovePlaceToken),
+			new(movePlaceToken),
 			moves.WithHelpText("Place a player's token in a specific space."),
 		),
 		auto.MustConfig(
@@ -151,7 +152,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {
 	return boardgame.PropertyCollection{
-		"TOTAL_DIM": TOTAL_DIM,
+		"TOTAL_DIM": totalDim,
 	}
 }
 
@@ -200,15 +201,15 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 
 	 */
 
-	if len(state) != DIM*DIM {
+	if len(state) != totalDim {
 		return false, Empty
 	}
 
 	//Check condition 1 (rows)
 
-	for r := 0; r < DIM; r++ {
+	for r := 0; r < dim; r++ {
 		var run []string
-		for c := 0; c < DIM; c++ {
+		for c := 0; c < dim; c++ {
 			run = append(run, state[rowColToIndex(r, c)])
 		}
 		result := checkRunWon(run)
@@ -219,9 +220,9 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 
 	//Check condition 2 (cols)
 
-	for c := 0; c < DIM; c++ {
+	for c := 0; c < dim; c++ {
 		var run []string
-		for r := 0; r < DIM; r++ {
+		for r := 0; r < dim; r++ {
 			run = append(run, state[rowColToIndex(r, c)])
 		}
 		result := checkRunWon(run)
@@ -235,9 +236,9 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 	var diagonalDown []string
 	var diagonalUp []string
 
-	for i := 0; i < DIM; i++ {
+	for i := 0; i < dim; i++ {
 		diagonalDown = append(diagonalDown, state[rowColToIndex(i, i)])
-		diagonalUp = append(diagonalUp, state[rowColToIndex(DIM-i-1, i)])
+		diagonalUp = append(diagonalUp, state[rowColToIndex(dim-i-1, i)])
 	}
 
 	result := checkRunWon(diagonalDown)
@@ -268,7 +269,7 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 //be "X", "O", or "" if no winner in this run.
 func checkRunWon(runState []string) string {
 
-	if len(runState) != DIM {
+	if len(runState) != dim {
 		return Empty
 	}
 
@@ -310,6 +311,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
+//NewDelegate is the primary entrypoint for this package. It returns a
+//GameDelegate that configures a game of pig.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

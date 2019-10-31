@@ -151,22 +151,22 @@ func (p *playerToken) Reader() boardgame.PropertyReader {
 	return &__playerTokenReader{p}
 }
 
-// Implementation for MovePlaceToken
+// Implementation for movePlaceToken
 
-var __MovePlaceTokenReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+var __movePlaceTokenReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"Slot":              boardgame.TypeInt,
 	"TargetPlayerIndex": boardgame.TypePlayerIndex,
 }
 
-type __MovePlaceTokenReader struct {
-	data *MovePlaceToken
+type __movePlaceTokenReader struct {
+	data *movePlaceToken
 }
 
-func (m *__MovePlaceTokenReader) Props() map[string]boardgame.PropertyType {
-	return __MovePlaceTokenReaderProps
+func (m *__movePlaceTokenReader) Props() map[string]boardgame.PropertyType {
+	return __movePlaceTokenReaderProps
 }
 
-func (m *__MovePlaceTokenReader) Prop(name string) (interface{}, error) {
+func (m *__movePlaceTokenReader) Prop(name string) (interface{}, error) {
 	props := m.Props()
 	propType, ok := props[name]
 
@@ -205,7 +205,7 @@ func (m *__MovePlaceTokenReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
-func (m *__MovePlaceTokenReader) PropMutable(name string) bool {
+func (m *__movePlaceTokenReader) PropMutable(name string) bool {
 	switch name {
 	case "Slot":
 		return true
@@ -216,7 +216,7 @@ func (m *__MovePlaceTokenReader) PropMutable(name string) bool {
 	return false
 }
 
-func (m *__MovePlaceTokenReader) SetProp(name string, value interface{}) error {
+func (m *__movePlaceTokenReader) SetProp(name string, value interface{}) error {
 	props := m.Props()
 	propType, ok := props[name]
 
@@ -287,7 +287,7 @@ func (m *__MovePlaceTokenReader) SetProp(name string, value interface{}) error {
 	return errors.New("Unexpected property type: " + propType.String())
 }
 
-func (m *__MovePlaceTokenReader) ConfigureProp(name string, value interface{}) error {
+func (m *__movePlaceTokenReader) ConfigureProp(name string, value interface{}) error {
 	props := m.Props()
 	propType, ok := props[name]
 
@@ -414,79 +414,79 @@ func (m *__MovePlaceTokenReader) ConfigureProp(name string, value interface{}) e
 	return errors.New("Unexpected property type: " + propType.String())
 }
 
-func (m *__MovePlaceTokenReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
+func (m *__movePlaceTokenReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
 
 	return nil, errors.New("No such Board prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+func (m *__movePlaceTokenReader) ConfigureBoardProp(name string, value boardgame.Board) error {
 
 	return errors.New("No such Board prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
+func (m *__movePlaceTokenReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
 
 	return errors.New("No such ImmutableBoard prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) BoardProp(name string) (boardgame.Board, error) {
+func (m *__movePlaceTokenReader) BoardProp(name string) (boardgame.Board, error) {
 
 	return nil, errors.New("No such Board prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) BoolProp(name string) (bool, error) {
+func (m *__movePlaceTokenReader) BoolProp(name string) (bool, error) {
 
 	return false, errors.New("No such Bool prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetBoolProp(name string, value bool) error {
+func (m *__movePlaceTokenReader) SetBoolProp(name string, value bool) error {
 
 	return errors.New("No such Bool prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) BoolSliceProp(name string) ([]bool, error) {
+func (m *__movePlaceTokenReader) BoolSliceProp(name string) ([]bool, error) {
 
 	return []bool{}, errors.New("No such BoolSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetBoolSliceProp(name string, value []bool) error {
+func (m *__movePlaceTokenReader) SetBoolSliceProp(name string, value []bool) error {
 
 	return errors.New("No such BoolSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
+func (m *__movePlaceTokenReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
 
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureEnumProp(name string, value enum.Val) error {
+func (m *__movePlaceTokenReader) ConfigureEnumProp(name string, value enum.Val) error {
 
 	return errors.New("No such Enum prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
+func (m *__movePlaceTokenReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
 
 	return errors.New("No such ImmutableEnum prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) EnumProp(name string) (enum.Val, error) {
+func (m *__movePlaceTokenReader) EnumProp(name string) (enum.Val, error) {
 
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) IntProp(name string) (int, error) {
+func (m *__movePlaceTokenReader) IntProp(name string) (int, error) {
 
 	switch name {
 	case "Slot":
@@ -498,7 +498,7 @@ func (m *__MovePlaceTokenReader) IntProp(name string) (int, error) {
 
 }
 
-func (m *__MovePlaceTokenReader) SetIntProp(name string, value int) error {
+func (m *__movePlaceTokenReader) SetIntProp(name string, value int) error {
 
 	switch name {
 	case "Slot":
@@ -511,19 +511,19 @@ func (m *__MovePlaceTokenReader) SetIntProp(name string, value int) error {
 
 }
 
-func (m *__MovePlaceTokenReader) IntSliceProp(name string) ([]int, error) {
+func (m *__movePlaceTokenReader) IntSliceProp(name string) ([]int, error) {
 
 	return []int{}, errors.New("No such IntSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetIntSliceProp(name string, value []int) error {
+func (m *__movePlaceTokenReader) SetIntSliceProp(name string, value []int) error {
 
 	return errors.New("No such IntSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+func (m *__movePlaceTokenReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
 
 	switch name {
 	case "TargetPlayerIndex":
@@ -535,7 +535,7 @@ func (m *__MovePlaceTokenReader) PlayerIndexProp(name string) (boardgame.PlayerI
 
 }
 
-func (m *__MovePlaceTokenReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+func (m *__movePlaceTokenReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
 
 	switch name {
 	case "TargetPlayerIndex":
@@ -548,100 +548,100 @@ func (m *__MovePlaceTokenReader) SetPlayerIndexProp(name string, value boardgame
 
 }
 
-func (m *__MovePlaceTokenReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+func (m *__movePlaceTokenReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
 
 	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+func (m *__movePlaceTokenReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
 
 	return errors.New("No such PlayerIndexSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
+func (m *__movePlaceTokenReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
 
 	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureStackProp(name string, value boardgame.Stack) error {
+func (m *__movePlaceTokenReader) ConfigureStackProp(name string, value boardgame.Stack) error {
 
 	return errors.New("No such Stack prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
+func (m *__movePlaceTokenReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
 
 	return errors.New("No such ImmutableStack prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) StackProp(name string) (boardgame.Stack, error) {
+func (m *__movePlaceTokenReader) StackProp(name string) (boardgame.Stack, error) {
 
 	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) StringProp(name string) (string, error) {
+func (m *__movePlaceTokenReader) StringProp(name string) (string, error) {
 
 	return "", errors.New("No such String prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetStringProp(name string, value string) error {
+func (m *__movePlaceTokenReader) SetStringProp(name string, value string) error {
 
 	return errors.New("No such String prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) StringSliceProp(name string) ([]string, error) {
+func (m *__movePlaceTokenReader) StringSliceProp(name string) ([]string, error) {
 
 	return []string{}, errors.New("No such StringSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetStringSliceProp(name string, value []string) error {
+func (m *__movePlaceTokenReader) SetStringSliceProp(name string, value []string) error {
 
 	return errors.New("No such StringSlice prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
+func (m *__movePlaceTokenReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
+func (m *__movePlaceTokenReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
+func (m *__movePlaceTokenReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
 
 	return errors.New("No such ImmutableTimer prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) TimerProp(name string) (boardgame.Timer, error) {
+func (m *__movePlaceTokenReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *MovePlaceToken) Reader() boardgame.PropertyReader {
-	return &__MovePlaceTokenReader{m}
+func (m *movePlaceToken) Reader() boardgame.PropertyReader {
+	return &__movePlaceTokenReader{m}
 }
 
-func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
-	return &__MovePlaceTokenReader{m}
+func (m *movePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
+	return &__movePlaceTokenReader{m}
 }
 
-func (m *MovePlaceToken) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
-	return &__MovePlaceTokenReader{m}
+func (m *movePlaceToken) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &__movePlaceTokenReader{m}
 }
 
 // Implementation for gameState

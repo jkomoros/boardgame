@@ -2,6 +2,7 @@ package tictactoe
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
@@ -42,7 +43,7 @@ func (g *gameState) tokenValueAtIndex(index int) string {
 }
 
 func rowColToIndex(row, col int) int {
-	return row*DIM + col
+	return row*dim + col
 }
 
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {

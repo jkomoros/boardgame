@@ -11,8 +11,11 @@ const (
 )
 
 const (
-	X     = "X"
-	O     = "O"
+	//X represents the x player
+	X = "X"
+	//O represents the o player
+	O = "O"
+	//Empty represents an unfilled cell
 	Empty = ""
 )
 
