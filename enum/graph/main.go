@@ -1,23 +1,26 @@
 /*
 
-	graph is a simple package that provides facilities for creating simple
-	graphs where each Node is a particular value in an enum.
+Package graph is a simple package that provides facilities for creating simple
+graphs where each Node is a particular value in an enum.
 
-	graph is useful for modeling adjacency of spaces in a gameboard.
+graph is useful for modeling adjacency of spaces in a gameboard.
 
-	NewGridConnectedness is a graph creator that connects all spaces in a grid
-	that are neighbors, with the ability to filter to only include some types
-	of neighbors.
+NewGridConnectedness is a graph creator that connects all spaces in a grid that
+are neighbors, with the ability to filter to only include some types of
+neighbors.
 
 */
 package graph
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame/enum"
 	"strconv"
+
+	"github.com/jkomoros/boardgame/enum"
 )
 
+//Graph is the primary type of this package. It represents a directed graph
+//where the nodes are all values in an enum.
 type Graph interface {
 	//AddEdge adds the edge to the graph if it doesn't exist, and if the graph
 	//isn't finished yet. Will error if from or to aren't in the given enum.
@@ -116,7 +119,7 @@ func (g *graph) Neighbors(start int) []int {
 	}
 	result := make([]int, len(edgeMap))
 	counter := 0
-	for key, _ := range edgeMap {
+	for key := range edgeMap {
 		result[counter] = key
 		counter++
 	}
