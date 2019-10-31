@@ -1,16 +1,17 @@
 package record
 
 import (
-	"github.com/workfit/tester/assert"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
-const fullJsonFilename = "testdata/full.json"
-const diffJsonFilename = "testdata/diff.json"
+const fullJSONFilename = "testdata/full.json"
+const diffJSONFilename = "testdata/diff.json"
 
 func TestEncoding(t *testing.T) {
 
-	canonicalRec, err := New(fullJsonFilename)
+	canonicalRec, err := New(fullJSONFilename)
 
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(canonicalRec.FullStateEncoding()).IsTrue()
@@ -45,11 +46,11 @@ func TestEncoding(t *testing.T) {
 
 func TestCompress(t *testing.T) {
 
-	canonicalRec, err := New(fullJsonFilename)
+	canonicalRec, err := New(fullJSONFilename)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	rec, err := New(fullJsonFilename)
+	rec, err := New(fullJSONFilename)
 	assert.For(t).ThatActual(err).IsNil()
 
 	err = rec.Compress()
@@ -63,7 +64,7 @@ func TestCompress(t *testing.T) {
 
 func TestExpand(t *testing.T) {
 
-	canonicalRec, err := New(fullJsonFilename)
+	canonicalRec, err := New(fullJSONFilename)
 
 	assert.For(t).ThatActual(err).IsNil()
 

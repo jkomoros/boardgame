@@ -1,21 +1,21 @@
 /*
 
-	record is a package to open, read, and save game records stored in
-	filesystem's format.
+Package record is a package to open, read, and save game records stored in
+filesystem's format.
 
-	We encode states as diffs by default, but if that's not possible (for
-	example, the diff the diffing library gave did not give us a valid diff
-	because applying it to the left input does not provide the right input)
-	then we convert to a full encoding mode, which encodes the entirerty of
-	the blobs. Every time we save we try to revert to a diffed encoding if
-	possible. This allows these files to be relatively resilient to errors in
-	the undelrying diff library and heal as that library improves.
+We encode states as diffs by default, but if that's not possible (for example,
+the diff the diffing library gave did not give us a valid diff because applying
+it to the left input does not provide the right input) then we convert to a full
+encoding mode, which encodes the entirerty of the blobs. Every time we save we
+try to revert to a diffed encoding if possible. This allows these files to be
+relatively resilient to errors in the undelrying diff library and heal as that
+library improves.
 
-	Note that because reading the files from disk is expensive, this library
-	maintains a cache of records by filename that it returns, for a
-	considerable performance boost. This means that changes in the filesystem
-	while the storage layer is running that aren't mediated by this controller
-	will cause undefined behavior.
+Note that because reading the files from disk is expensive, this library
+maintains a cache of records by filename that it returns, for a considerable
+performance boost. This means that changes in the filesystem while the storage
+layer is running that aren't mediated by this controller will cause undefined
+behavior.
 
 */
 package record
@@ -182,7 +182,7 @@ func (r *Record) Expand() error {
 func (r *Record) reencode(targetEncoder encoder) error {
 
 	if r.data == nil {
-		return errors.New("No data!")
+		return errors.New("no data")
 	}
 
 	if targetEncoder == nil {
@@ -281,6 +281,7 @@ func (r *Record) compare(other *Record) error {
 
 }
 
+//Game returns the GameStorageRecord in that record.
 func (r *Record) Game() *boardgame.GameStorageRecord {
 	if r.data == nil {
 		return nil
@@ -298,12 +299,13 @@ func (r *Record) Description() string {
 	return r.data.Description
 }
 
+//Move returns the move for that version from that record.
 func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 	if r.data == nil {
 		return nil, errors.New("No data")
 	}
 
-	version -= 1
+	version--
 	//version is effectively 1-indexed, since we don't store a move for the
 	//first version, but we store them in 0-indexed since we use the array
 	//index. So convert to that.
