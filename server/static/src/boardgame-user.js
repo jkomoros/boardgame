@@ -94,7 +94,7 @@ class BoardgameUser extends PolymerElement {
     <div class\$="{{_classForVerifyingAuth(verifyingAuth, offlineDevMode)}}">
       <div id="offline"></div>
       <div class="horizontal layout">
-        <boardgame-player-chip photo-url="{{_string(user.PhotoUrl)}}" display-name="{{_string(user.DisplayName)}}"></boardgame-player-chip>
+        <boardgame-player-chip photo-url="{{_string(user.PhotoURL)}}" display-name="{{_string(user.DisplayName)}}"></boardgame-player-chip>
         <div class="vertical layout">
           <template is="dom-if" if="{{user}}">
               <div>{{user.DisplayName}}</div>
