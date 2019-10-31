@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 )
 
-type CleanCache struct {
+type cleanCache struct {
 	baseSubCommand
 }
 
-func (c *CleanCache) Run(p writ.Path, positional []string) {
+func (c *cleanCache) Run(p writ.Path, positional []string) {
 
 	if len(positional) > 0 {
 		c.Base().errAndQuit("This command accepts no parameters")
@@ -26,15 +27,15 @@ func (c *CleanCache) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *CleanCache) Name() string {
+func (c *cleanCache) Name() string {
 	return "cache"
 }
 
-func (c *CleanCache) Description() string {
+func (c *cleanCache) Description() string {
 	return "Cleans up the central caches created by `build static`"
 }
 
-func (c *CleanCache) HelpText() string {
+func (c *cleanCache) HelpText() string {
 
 	return c.Name() + ` removes the caches created implicitly by "build static", specifically the central node_modules cache.`
 

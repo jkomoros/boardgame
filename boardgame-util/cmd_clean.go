@@ -11,7 +11,7 @@ type Clean struct {
 
 	CleanAPI    cleanAPI
 	CleanStatic CleanStatic
-	CleanCache  CleanCache
+	CleanCache  cleanCache
 }
 
 func (c *Clean) Run(p writ.Path, positional []string) {
