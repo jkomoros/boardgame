@@ -83,7 +83,7 @@ func (p parallelCount) MoveConfigs() []boardgame.MoveConfig {
 	return result
 }
 
-func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
+func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
 	tapeHead := tape
 
 	//Keep track of items that have matched, by index into self.
@@ -110,7 +110,7 @@ func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupH
 				continue
 			}
 
-			err, rest := group.Satisfied(tapeHead)
+			rest, err := group.Satisfied(tapeHead)
 
 			if err != nil {
 				//That one didn't work
@@ -130,7 +130,7 @@ func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupH
 
 		if len(matches) == 0 {
 			//Didn't find any matches
-			return errors.New("no more items match, but tape still left and count not yet reached"), nil
+			return nil, errors.New("no more items match, but tape still left and count not yet reached")
 		}
 
 		//Select the match to use, based on the length
@@ -147,5 +147,5 @@ func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupH
 
 	}
 
-	return nil, tapeHead
+	return tapeHead, nil
 }

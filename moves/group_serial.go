@@ -25,7 +25,7 @@ func (s serial) MoveConfigs() []boardgame.MoveConfig {
 	return result
 }
 
-func (s serial) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
+func (s serial) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
 
 	tapeHead := tape
 
@@ -35,15 +35,15 @@ func (s serial) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryI
 			return nil, nil
 		}
 
-		err, rest := group.Satisfied(tapeHead)
+		rest, err := group.Satisfied(tapeHead)
 		if err != nil {
-			return err, tape
+			return tape, err
 		}
 
 		tapeHead = rest
 
 	}
 
-	return nil, tapeHead
+	return tapeHead, nil
 
 }

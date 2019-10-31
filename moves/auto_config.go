@@ -43,7 +43,7 @@ func (d *defaultMoveConfig) MoveConfigs() []boardgame.MoveConfig {
 
 //Satisfied checks to see if the move allows multiple. If it does, then it's OK
 //if multiple are in a row. If not, verifies that only 0 or 1 are in a row.
-func (d *defaultMoveConfig) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
+func (d *defaultMoveConfig) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
 
 	if tape == nil {
 		return nil, nil
@@ -64,22 +64,22 @@ func (d *defaultMoveConfig) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveG
 	return d.singleItemSatisified(tape)
 }
 
-func (d *defaultMoveConfig) singleItemSatisified(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
+func (d *defaultMoveConfig) singleItemSatisified(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
 	//If there's one, and the next item either doesn't exist or has a different name, OK.
 
 	if tape.MoveName != d.Name() {
-		return errors.New("Move name does not match: " + tape.MoveName + " is not " + d.Name()), tape
+		return tape, errors.New("Move name does not match: " + tape.MoveName + " is not " + d.Name())
 	}
 
-	return nil, tape.Rest
+	return tape.Rest, nil
 
 }
 
-func (d *defaultMoveConfig) multipleItemSatisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
+func (d *defaultMoveConfig) multipleItemSatisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
 	//Must have at least one; consume as many as you can
 
 	if tape.MoveName != d.Name() {
-		return errors.New("Move name does not match: " + tape.MoveName + " is not " + d.Name()), tape
+		return tape, errors.New("Move name does not match: " + tape.MoveName + " is not " + d.Name())
 	}
 
 	tape = tape.Rest
@@ -89,7 +89,7 @@ func (d *defaultMoveConfig) multipleItemSatisfied(tape *MoveGroupHistoryItem) (e
 
 		if tape.MoveName != d.Name() {
 			//Found the first one that wasn't us; return
-			return nil, tape
+			return tape, nil
 		}
 
 		//Keep consuming

@@ -30,5 +30,5 @@ type MoveProgressionGroup interface {
 	//consume. If passed a nil tape, it should immediately return nil, nil. If
 	//the top-level MoveProgressionGroup consumes the entire tape and doesn't
 	//return an error then the progression is considered valid.
-	Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem)
+	Satisfied(tape *MoveGroupHistoryItem) (rest *MoveGroupHistoryItem, err error)
 }

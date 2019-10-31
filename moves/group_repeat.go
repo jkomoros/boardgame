@@ -34,7 +34,7 @@ func (r repeat) MoveConfigs() []boardgame.MoveConfig {
 	return r.Child.MoveConfigs()
 }
 
-func (r repeat) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
+func (r repeat) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
 
 	tapeHead := tape
 
@@ -63,18 +63,18 @@ func (r repeat) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryI
 			return nil, nil
 		}
 
-		err, rest := r.Child.Satisfied(tapeHead)
+		rest, err := r.Child.Satisfied(tapeHead)
 
 		if err != nil {
 			if lowerBoundReached {
 				//We're between the lower and upper bound of legal counts, so
 				//errors are not a big deal, just return the last known good
 				//state.
-				return nil, tapeHead
+				return tapeHead, nil
 			}
 			//Otherwise, we haven't yet gotten the smallest legal amount so we
 			//should stop.
-			return err, nil
+			return nil, err
 		}
 
 		boundErr := r.Count(count, 1)
@@ -98,6 +98,6 @@ func (r repeat) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryI
 
 	}
 
-	return nil, tapeHead
+	return tapeHead, nil
 
 }

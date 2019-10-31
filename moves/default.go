@@ -550,7 +550,7 @@ func matchTape(group MoveProgressionGroup, historicalMoves []string) error {
 
 	tapeStart := makeTape(historicalMoves)
 
-	err, rest := group.Satisfied(tapeStart)
+	rest, err := group.Satisfied(tapeStart)
 
 	defaultErr := errors.NewFriendly("The move was not legal at this phase in the progression")
 
