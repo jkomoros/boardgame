@@ -2,18 +2,19 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 )
 
-type BuildStatic struct {
+type buildStatic struct {
 	baseSubCommand
 
 	CopyFiles bool
 	Prod      bool
 }
 
-func (b *BuildStatic) Run(p writ.Path, positional []string) {
+func (b *buildStatic) Run(p writ.Path, positional []string) {
 
 	dir := dirPositionalOrDefault(b.Base(), positional, false)
 
@@ -42,26 +43,26 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 }
 
-func (b *BuildStatic) Name() string {
+func (b *buildStatic) Name() string {
 	return "static"
 }
 
-func (b *BuildStatic) Description() string {
+func (b *buildStatic) Description() string {
 	return "Generates a folder for all static assets for the games in config"
 }
 
-func (b *BuildStatic) Usage() string {
+func (b *buildStatic) Usage() string {
 	return "DIR"
 }
 
-func (b *BuildStatic) HelpText() string {
+func (b *buildStatic) HelpText() string {
 
 	return b.Name() + ` generates a folder of static server assets based on the config.json in use. It creates the binary in a folder called 'static' within the given DIR.
 
 If DIR is not provided, defaults to "."`
 }
 
-func (b *BuildStatic) WritOptions() []*writ.Option {
+func (b *buildStatic) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"prod", "p"},

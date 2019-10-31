@@ -10,7 +10,7 @@ type Build struct {
 	baseSubCommand
 
 	BuildAPI    buildAPI
-	BuildStatic BuildStatic
+	BuildStatic buildStatic
 }
 
 func (b *Build) Run(p writ.Path, positional []string) {
