@@ -2,6 +2,7 @@ package blackjack
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/playingcards"
@@ -88,7 +89,7 @@ func handValue(components []boardgame.ImmutableComponentInstance) int {
 			numUnconvertedAces++
 			//We count the ace as 1 now. Later we'll check to see if we can
 			//expand any aces.
-			currentValue += 1
+			currentValue++
 		case playingcards.RankJack, playingcards.RankQueen, playingcards.RankKing:
 			currentValue += 10
 		default:

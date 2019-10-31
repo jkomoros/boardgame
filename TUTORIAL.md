@@ -1588,15 +1588,15 @@ You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 		//...
 		moves.AddForPhase(PhaseNormalPlay,
 			auto.MustConfig(
-				new(MoveCurrentPlayerHit),
+				new(moveCurrentPlayerHit),
 				moves.WithHelpText("The current player hits, drawing a card."),
 			),
 			auto.MustConfig(
-				new(MoveCurrentPlayerStand),
+				new(moveCurrentPlayerStand),
 				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
 			),
 			auto.MustConfig(
-				new(MoveRevealHiddenCard),
+				new(moveRevealHiddenCard),
 				moves.WithHelpText("Reveals the hidden card in the user's hand"),
 				moves.WithIsFixUp(true),
 			),
@@ -1614,7 +1614,7 @@ Of course, there are sometimes moves that are legal in *any* mode. For those, it
 	return moves.Combine(
 		moves.Add(
 			auto.MustConfig(
-				new(MoveShuffleDiscardToDraw),
+				new(moveShuffleDiscardToDraw),
 				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
 		),

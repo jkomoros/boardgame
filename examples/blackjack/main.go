@@ -1,19 +1,20 @@
 /*
 
-blackjack implements a simple blackjack game. This example is interesting
-because it has hidden state.
+Package blackjack implements a simple blackjack game. This example is
+interesting because it has hidden state.
 
 */
 package blackjack
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/moves"
-	"reflect"
-	"strings"
 )
 
 //go:generate boardgame-util codegen
@@ -183,21 +184,21 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Combine(
 		moves.Add(
 			auto.MustConfig(
-				new(MoveShuffleDiscardToDraw),
+				new(moveShuffleDiscardToDraw),
 				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
 		),
 		moves.AddForPhase(PhaseNormalPlay,
 			auto.MustConfig(
-				new(MoveCurrentPlayerHit),
+				new(moveCurrentPlayerHit),
 				moves.WithHelpText("The current player hits, drawing a card."),
 			),
 			auto.MustConfig(
-				new(MoveCurrentPlayerStand),
+				new(moveCurrentPlayerStand),
 				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
 			),
 			auto.MustConfig(
-				new(MoveRevealHiddenCard),
+				new(moveRevealHiddenCard),
 				moves.WithHelpText("Reveals the hidden card in the user's hand"),
 				moves.WithIsFixUp(true),
 			),
@@ -236,6 +237,7 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
+//NewDelegate is the primary entry point of the package.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

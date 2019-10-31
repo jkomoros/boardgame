@@ -2,42 +2,43 @@ package blackjack
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
-type MoveShuffleDiscardToDraw struct {
+type moveShuffleDiscardToDraw struct {
 	moves.FixUp
 }
 
 //boardgame:codegen
-type MoveFinishTurn struct {
+type moveFinishTurn struct {
 	moves.FinishTurn
 }
 
 //boardgame:codegen
-type MoveRevealHiddenCard struct {
+type moveRevealHiddenCard struct {
 	moves.CurrentPlayer
 }
 
 //boardgame:codegen
-type MoveCurrentPlayerHit struct {
+type moveCurrentPlayerHit struct {
 	moves.CurrentPlayer
 }
 
 //boardgame:codegen
-type MoveCurrentPlayerStand struct {
+type moveCurrentPlayerStand struct {
 	moves.CurrentPlayer
 }
 
 /**************************************************
  *
- * MoveShuffleDiscardToDraw Implementation
+ * moveShuffleDiscardToDraw Implementation
  *
  **************************************************/
 
-func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveShuffleDiscardToDraw) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.FixUp.Legal(state, proposer); err != nil {
 		return err
@@ -52,7 +53,7 @@ func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.ImmutableState, propose
 	return nil
 }
 
-func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.State) error {
+func (m *moveShuffleDiscardToDraw) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	game.DiscardStack.MoveAllTo(game.DrawStack)
@@ -63,11 +64,11 @@ func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * MoveCurrentPlayerHit Implementation
+ * moveCurrentPlayerHit Implementation
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -88,7 +89,7 @@ func (m *MoveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer bo
 	return nil
 }
 
-func (m *MoveCurrentPlayerHit) Apply(state boardgame.State) error {
+func (m *moveCurrentPlayerHit) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	currentPlayer := players[game.CurrentPlayer]
@@ -110,11 +111,11 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * MoveCurrentPlayerStand Implementation
+ * moveCurrentPlayerStand Implementation
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerStand) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveCurrentPlayerStand) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -125,18 +126,18 @@ func (m *MoveCurrentPlayerStand) Legal(state boardgame.ImmutableState, proposer 
 	currentPlayer := players[game.CurrentPlayer]
 
 	if currentPlayer.Busted {
-		return errors.New("The current player has already busted.")
+		return errors.New("the current player has already busted")
 	}
 
 	if currentPlayer.Stood {
-		return errors.New("The current player already stood.")
+		return errors.New("the current player already stood")
 	}
 
 	return nil
 
 }
 
-func (m *MoveCurrentPlayerStand) Apply(state boardgame.State) error {
+func (m *moveCurrentPlayerStand) Apply(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 
@@ -149,11 +150,11 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * MoveRevealHiddenCard Implementation
+ * moveRevealHiddenCard Implementation
  *
  **************************************************/
 
-func (m *MoveRevealHiddenCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveRevealHiddenCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -170,7 +171,7 @@ func (m *MoveRevealHiddenCard) Legal(state boardgame.ImmutableState, proposer bo
 	return nil
 }
 
-func (m *MoveRevealHiddenCard) Apply(state boardgame.State) error {
+func (m *moveRevealHiddenCard) Apply(state boardgame.State) error {
 	_, players := concreteStates(state)
 
 	p := players[m.TargetPlayerIndex]
