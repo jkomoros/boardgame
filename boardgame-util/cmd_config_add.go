@@ -7,8 +7,8 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
 
-type ConfigAdd struct {
-	ConfigModify
+type configAdd struct {
+	configModify
 }
 
 func configAddFactory(base *boardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater {
@@ -29,23 +29,23 @@ func configAddFactory(base *boardgameUtil, field config.ModeField, fieldType con
 	return nil
 }
 
-func (c *ConfigAdd) Run(p writ.Path, positional []string) {
-	c.ConfigModify.RunWithUpdateFactory(p, positional, configAddFactory)
+func (c *configAdd) Run(p writ.Path, positional []string) {
+	c.configModify.RunWithUpdateFactory(p, positional, configAddFactory)
 }
 
-func (c *ConfigAdd) Name() string {
+func (c *configAdd) Name() string {
 	return "add"
 }
 
-func (c *ConfigAdd) Description() string {
+func (c *configAdd) Description() string {
 	return "Adds the given value to the list for the given field for slice types"
 }
 
-func (c *ConfigAdd) Usage() string {
-	return strings.Replace(c.ConfigModify.Usage(), "[SUB-KEY] ", "", -1)
+func (c *configAdd) Usage() string {
+	return strings.Replace(c.configModify.Usage(), "[SUB-KEY] ", "", -1)
 }
 
-func (c *ConfigAdd) HelpText() string {
+func (c *configAdd) HelpText() string {
 
 	return c.Name() + " adds the given value to the list of the given field in the current config, for fields that are slice types. No op if that value is already in the list. KEY is not case sensitive.\n\n" +
 

@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 )
 
 type Config struct {
 	baseSubCommand
 
-	ConfigNormalize ConfigNormalize
-	ConfigSet       ConfigSet
-	ConfigAdd       ConfigAdd
-	ConfigRemove    ConfigRemove
-	ConfigInit      ConfigInit
+	ConfigNormalize configNormalize
+	ConfigSet       configSet
+	ConfigAdd       configAdd
+	ConfigRemove    configRemove
+	ConfigInit      configInit
 }
 
 func (c *Config) Run(p writ.Path, positional []string) {

@@ -3,14 +3,15 @@ package main
 import (
 	"errors"
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 )
 
-type ConfigInit struct {
+type configInit struct {
 	baseSubCommand
 }
 
-func (c *ConfigInit) Run(p writ.Path, positional []string) {
+func (c *configInit) Run(p writ.Path, positional []string) {
 
 	if len(positional) > 1 {
 		p.Last().ExitHelp(errors.New("Only one positional argument may be provided"))
@@ -36,19 +37,19 @@ func (c *ConfigInit) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *ConfigInit) Name() string {
+func (c *configInit) Name() string {
 	return "init"
 }
 
-func (c *ConfigInit) Usage() string {
+func (c *configInit) Usage() string {
 	return "[default|sample|minimal]"
 }
 
-func (c *ConfigInit) Description() string {
+func (c *configInit) Description() string {
 	return "Creates a starter config object"
 }
 
-func (c *ConfigInit) HelpText() string {
+func (c *configInit) HelpText() string {
 
 	return c.Name() + " creates a starter config object. Uses the location of --config, otherwise defaults to reasonable default in current directory.\n\n" +
 		"TYPE may be one of:\n" +

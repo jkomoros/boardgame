@@ -8,8 +8,8 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
 
-type ConfigSet struct {
-	ConfigModify
+type configSet struct {
+	configModify
 }
 
 func strToBool(in string) (bool, error) {
@@ -91,15 +91,15 @@ func configSetFactory(base *boardgameUtil, field config.ModeField, fieldType con
 	return nil
 }
 
-func (c *ConfigSet) Run(p writ.Path, positional []string) {
-	c.ConfigModify.RunWithUpdateFactory(p, positional, configSetFactory)
+func (c *configSet) Run(p writ.Path, positional []string) {
+	c.configModify.RunWithUpdateFactory(p, positional, configSetFactory)
 }
 
-func (c *ConfigSet) Name() string {
+func (c *configSet) Name() string {
 	return "set"
 }
 
-func (c *ConfigSet) Description() string {
+func (c *configSet) Description() string {
 	return "Sets the given field to the given value"
 }
 
@@ -117,7 +117,7 @@ func keyNamesForConfigType(typ config.ModeFieldType) []string {
 
 }
 
-func (c *ConfigSet) HelpText() string {
+func (c *configSet) HelpText() string {
 
 	var firebaseKeys []string
 

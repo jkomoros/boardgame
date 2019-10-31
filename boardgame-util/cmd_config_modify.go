@@ -7,9 +7,9 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
 
-//ConfigModify isn't used directly but is a super-class for all Config
+//configModify isn't used directly but is a super-class for all Config
 //commands that modify the config.
-type ConfigModify struct {
+type configModify struct {
 	baseSubCommand
 
 	Secret bool
@@ -24,7 +24,7 @@ type ConfigModify struct {
 //fieldType won't be TypeInvalid; that will already be screened out.
 type updateFactory func(base *boardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater
 
-func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, factory updateFactory) {
+func (c *configModify) RunWithUpdateFactory(p writ.Path, positional []string, factory updateFactory) {
 
 	cfg := c.Base().GetConfig(c.Force)
 
@@ -62,7 +62,7 @@ func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, fa
 
 }
 
-func (c *ConfigModify) ConfirmField(field config.ModeField) bool {
+func (c *configModify) ConfirmField(field config.ModeField) bool {
 
 	//We only warn for secret fields on prod.
 	if !c.Prod {
@@ -92,7 +92,7 @@ func (c *ConfigModify) ConfirmField(field config.ModeField) bool {
 
 }
 
-func (c *ConfigModify) WritOptions() []*writ.Option {
+func (c *configModify) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"s", "secret"},
@@ -121,6 +121,6 @@ func (c *ConfigModify) WritOptions() []*writ.Option {
 	}
 }
 
-func (c *ConfigModify) Usage() string {
+func (c *configModify) Usage() string {
 	return "[--secret] [--dev|--prod] KEY [SUB-KEY] VAL"
 }

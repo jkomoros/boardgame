@@ -7,8 +7,8 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
 
-type ConfigRemove struct {
-	ConfigModify
+type configRemove struct {
+	configModify
 }
 
 func configRemoveFactory(base *boardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater {
@@ -29,23 +29,23 @@ func configRemoveFactory(base *boardgameUtil, field config.ModeField, fieldType 
 	return nil
 }
 
-func (c *ConfigRemove) Run(p writ.Path, positional []string) {
-	c.ConfigModify.RunWithUpdateFactory(p, positional, configRemoveFactory)
+func (c *configRemove) Run(p writ.Path, positional []string) {
+	c.configModify.RunWithUpdateFactory(p, positional, configRemoveFactory)
 }
 
-func (c *ConfigRemove) Name() string {
+func (c *configRemove) Name() string {
 	return "remove"
 }
 
-func (c *ConfigRemove) Description() string {
+func (c *configRemove) Description() string {
 	return "Removes the given value to the list for the given field for slice types"
 }
 
-func (c *ConfigRemove) Usage() string {
-	return strings.Replace(c.ConfigModify.Usage(), "[SUB-KEY] ", "", -1)
+func (c *configRemove) Usage() string {
+	return strings.Replace(c.configModify.Usage(), "[SUB-KEY] ", "", -1)
 }
 
-func (c *ConfigRemove) HelpText() string {
+func (c *configRemove) HelpText() string {
 
 	return c.Name() + " removes the given value from the list of the given field in the current config, for fields that are slice types. No op if that value is not in the list. KEY is not case sensitive.\n\n" +
 
