@@ -105,14 +105,14 @@ func (s *StorageManager) Connect(config string) error {
 		},
 	}
 
-	s.dbMap.AddTableWithName(UserStorageRecord{}, tableUsers).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(GameStorageRecord{}, tableGames).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(ExtendedGameStorageRecord{}, tableExtendedGames).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(StateStorageRecord{}, tableStates).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(CookieStorageRecord{}, tableCookies).SetKeys(false, "Cookie")
-	s.dbMap.AddTableWithName(PlayerStorageRecord{}, tablePlayers).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, tableAgentStates).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(MoveStorageRecord{}, tableMoves).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(userStorageRecord{}, tableUsers).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(gameStorageRecord{}, tableGames).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(extendedGameStorageRecord{}, tableExtendedGames).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(stateStorageRecord{}, tableStates).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(cookieStorageRecord{}, tableCookies).SetKeys(false, "Cookie")
+	s.dbMap.AddTableWithName(playerStorageRecord{}, tablePlayers).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(agentStateStorageRecord{}, tableAgentStates).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(moveStorageRecord{}, tableMoves).SetKeys(true, "Id")
 
 	_, err = s.dbMap.SelectInt("select count(*) from " + tableGames)
 
@@ -158,7 +158,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 		return nil, errors.New("Database not connected yet")
 	}
 
-	var state StateStorageRecord
+	var state stateStorageRecord
 
 	err := s.dbMap.SelectOne(&state, "select * from "+tableStates+" where GameId=? and Version=?", gameID, version)
 
@@ -180,7 +180,7 @@ func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*bo
 		return nil, errors.New("Database not connected yet")
 	}
 
-	var moves []*MoveStorageRecord
+	var moves []*moveStorageRecord
 
 	if fromVersion == toVersion {
 		fromVersion = fromVersion - 1
@@ -212,7 +212,7 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 		return nil, errors.New("Database not connected yet")
 	}
 
-	var move MoveStorageRecord
+	var move moveStorageRecord
 
 	err := s.dbMap.SelectOne(&move, "select * from "+tableMoves+" where GameId=? and Version=?", gameID, version)
 
@@ -234,7 +234,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 		return nil, errors.New("Database not connected yet")
 	}
 
-	var game GameStorageRecord
+	var game gameStorageRecord
 
 	err := s.dbMap.SelectOne(&game, "select * from "+tableGames+" where Id=?", id)
 
@@ -255,7 +255,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 		return nil, errors.New("Database not connected yet")
 	}
 
-	var record ExtendedGameStorageRecord
+	var record extendedGameStorageRecord
 
 	err := s.dbMap.SelectOne(&record, "select * from "+tableExtendedGames+" where Id=?", id)
 
@@ -273,7 +273,7 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 		return nil, errors.New("Database not connected yet")
 	}
 
-	var record CombinedGameStorageRecord
+	var record combinedGameStorageRecord
 
 	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery+" and g.Id = ?", id)
 
@@ -296,7 +296,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	gameRecord := NewGameStorageRecord(game)
 	stateRecord := NewStateStorageRecord(game.ID, version, state)
 
-	var moveRecord *MoveStorageRecord
+	var moveRecord *moveStorageRecord
 
 	if move != nil {
 		moveRecord = NewMoveStorageRecord(game.ID, version, move)
@@ -356,7 +356,7 @@ func (s *StorageManager) AgentState(gameID string, player boardgame.PlayerIndex)
 		return nil, errors.New("Database not connected yet")
 	}
 
-	var agent AgentStateStorageRecord
+	var agent agentStateStorageRecord
 
 	err := s.dbMap.SelectOne(&agent, "select * from "+tableAgentStates+" where GameId=? and PlayerIndex=? order by Id desc limit 1", gameID, int64(player))
 
@@ -411,7 +411,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userID string, ga
 		return nil
 	}
 
-	var games []CombinedGameStorageRecord
+	var games []combinedGameStorageRecord
 
 	if max < 1 {
 		max = 100
@@ -497,14 +497,14 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 
 	//TODO: should we validate that this is a real userId?
 
-	var player PlayerStorageRecord
+	var player playerStorageRecord
 
 	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameId=? and PlayerIndex=?", game.ID, int(playerIndex))
 
 	if err == sql.ErrNoRows {
 		// Insert the row
 
-		player = PlayerStorageRecord{
+		player = playerStorageRecord{
 			GameId:      game.ID,
 			PlayerIndex: int64(playerIndex),
 			UserId:      userID,
@@ -556,7 +556,7 @@ func (s *StorageManager) UserIDsForGame(gameID string) []string {
 		return nil
 	}
 
-	var players []PlayerStorageRecord
+	var players []playerStorageRecord
 
 	_, err = s.dbMap.Select(&players, "select * from "+tablePlayers+" where GameId=? order by PlayerIndex desc", game.ID)
 
@@ -621,7 +621,7 @@ func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 		return nil
 	}
 
-	var user UserStorageRecord
+	var user userStorageRecord
 
 	err := s.dbMap.SelectOne(&user, "select * from "+tableUsers+" where Id=?", uid)
 
@@ -645,7 +645,7 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 		return nil
 	}
 
-	var cookieRecord CookieStorageRecord
+	var cookieRecord cookieStorageRecord
 
 	err := s.dbMap.SelectOne(&cookieRecord, "select * from "+tableCookies+" where Cookie=?", cookie)
 
@@ -673,7 +673,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	//If user is nil, then delete any records with that cookie.
 	if user == nil {
 
-		var cookieRecord CookieStorageRecord
+		var cookieRecord cookieStorageRecord
 
 		err := s.dbMap.SelectOne(&cookieRecord, "select * from "+tableCookies+" where Cookie=?", cookie)
 
@@ -710,7 +710,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 		return nil
 	}
 
-	record := &CookieStorageRecord{
+	record := &cookieStorageRecord{
 		Cookie: cookie,
 		UserId: user.ID,
 	}
