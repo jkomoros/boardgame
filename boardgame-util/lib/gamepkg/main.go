@@ -1,14 +1,13 @@
 /*
 
-	gamepkg is a package that helps locate, validate, and modify game package
-	imports.
+Package gamepkg is a package that helps locate, validate, and modify game
+package imports.
 
 */
 package gamepkg
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"go/ast"
 	"go/build"
 	"go/parser"
@@ -17,15 +16,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 )
 
 const clientSubFolder = "client"
 
-//If this comment is included in a source file, then pkg will not error will
-//even if that file does import math.Rand(). This comment asserts that the
-//package is using math/rand for some reason other than game logic, because
-//game logic is supposed to use state.Rand() in order to be predictable.
-const RAND_MAGIC_COMMENT = "boardgame:assert(rand_use_deterministic)"
+//RandMagicComment is the string the tool looks for. If this comment is included
+//in a source file, then pkg will not error will even if that file does import
+//math.Rand(). This comment asserts that the package is using math/rand for some
+//reason other than game logic, because game logic is supposed to use
+//state.Rand() in order to be predictable.
+const RandMagicComment = "boardgame:assert(rand_use_deterministic)"
 
 type Pkg struct {
 	//Every contstructo sets absolutePath to something that at least exists on
@@ -388,21 +390,21 @@ func (p *Pkg) calculateUnsafeRandUse() error {
 			hasMagicComment := false
 			if impt.Doc != nil {
 				for _, comment := range impt.Doc.List {
-					if strings.Contains(comment.Text, RAND_MAGIC_COMMENT) {
+					if strings.Contains(comment.Text, RandMagicComment) {
 						hasMagicComment = true
 					}
 				}
 			}
 			if impt.Comment != nil {
 				for _, comment := range impt.Comment.List {
-					if strings.Contains(comment.Text, RAND_MAGIC_COMMENT) {
+					if strings.Contains(comment.Text, RandMagicComment) {
 						hasMagicComment = true
 					}
 				}
 			}
 
 			if !hasMagicComment {
-				return errors.New("math/rand imported in " + name + ". Your game logic is supposed to use state.Rand() so logic can be deterministic. If this import of math/rand is not used for game logic, you may suppress this error by including a comment above the import with the magic string " + RAND_MAGIC_COMMENT)
+				return errors.New("math/rand imported in " + name + ". Your game logic is supposed to use state.Rand() so logic can be deterministic. If this import of math/rand is not used for game logic, you may suppress this error by including a comment above the import with the magic string " + RandMagicComment)
 			}
 		}
 	}
