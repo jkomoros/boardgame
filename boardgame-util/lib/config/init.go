@@ -5,7 +5,7 @@ import (
 )
 
 var defaultFirebase = &FirebaseConfig{
-	ApiKey:            "AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM",
+	APIKey:            "AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM",
 	AuthDomain:        "example-boardgame.firebaseapp.com",
 	DatabaseURL:       "https://example-boardgame.firebaseio.com",
 	ProjectID:         "example-boardgame",

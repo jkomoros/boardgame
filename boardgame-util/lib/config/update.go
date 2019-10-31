@@ -195,8 +195,8 @@ func SetFirebaseKey(key FirebaseKey, val string) Updater {
 		}
 
 		switch key {
-		case FirebaseApiKey:
-			config.ApiKey = val
+		case FirebaseAPIKey:
+			config.APIKey = val
 		case FirebaseAuthDomain:
 			config.AuthDomain = val
 		case FirebaseDatabaseURL:

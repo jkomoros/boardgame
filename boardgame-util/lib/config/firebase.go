@@ -10,8 +10,8 @@ type FirebaseKey string
 const (
 	//FirebaseInvalid denotes an invalid default key
 	FirebaseInvalid FirebaseKey = "<INVALID>"
-	//FirebaseApiKey denotes the apiKey key in firebase
-	FirebaseApiKey = "apiKey"
+	//FirebaseAPIKey denotes the apiKey key in firebase
+	FirebaseAPIKey = "apiKey"
 	//FirebaseAuthDomain denotes the authDomain key in firebase
 	FirebaseAuthDomain = "authDomain"
 	//FirebaseDatabaseURL denotes the databaseURL key in firebase
@@ -26,7 +26,7 @@ const (
 
 //FirebaseKeys enumerates all firebase keys
 var FirebaseKeys = map[FirebaseKey]bool{
-	FirebaseApiKey:            true,
+	FirebaseAPIKey:            true,
 	FirebaseAuthDomain:        true,
 	FirebaseDatabaseURL:       true,
 	FirebaseProjectID:         true,
@@ -37,7 +37,7 @@ var FirebaseKeys = map[FirebaseKey]bool{
 //FirebaseConfig is a sub-struct within ConfigMode that holds values specific
 //to firebase.
 type FirebaseConfig struct {
-	ApiKey            string `json:"apiKey"`
+	APIKey            string `json:"apiKey"`
 	AuthDomain        string `json:"authDomain"`
 	DatabaseURL       string `json:"databaseURL"`
 	ProjectID         string `json:"projectId"`
@@ -66,8 +66,8 @@ func (f *FirebaseConfig) extend(other *FirebaseConfig) *FirebaseConfig {
 		return result
 	}
 
-	if other.ApiKey != "" {
-		result.ApiKey = other.ApiKey
+	if other.APIKey != "" {
+		result.APIKey = other.APIKey
 	}
 
 	if other.AuthDomain != "" {
