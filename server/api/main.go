@@ -249,17 +249,16 @@ func (s *Server) userSetup(c *gin.Context) {
 	if user == nil {
 		s.logger.Debugln("No user associated with that cookie")
 		return
-	} else {
-		user.LastSeen = time.Now().UnixNano()
-		s.storage.UpdateUser(user)
 	}
+	user.LastSeen = time.Now().UnixNano()
+	s.storage.UpdateUser(user)
 
 	s.setUser(c, user)
 
 	s.setAdminAllowed(c, s.calcAdminAllowed(user))
 }
 
-func (s *Server) gameFromId(gameId, gameName string) *boardgame.Game {
+func (s *Server) gameFromID(gameID, gameName string) *boardgame.Game {
 
 	manager := s.managers[gameName]
 
@@ -268,12 +267,12 @@ func (s *Server) gameFromId(gameId, gameName string) *boardgame.Game {
 		return nil
 	}
 
-	game := manager.Game(gameId)
+	game := manager.Game(gameID)
 
 	//TODO: figure out a way to return a meaningful error
 
 	if game == nil {
-		s.logger.Errorln("Couldn't find game with id", gameId)
+		s.logger.Errorln("Couldn't find game with id", gameID)
 		return nil
 	}
 
@@ -292,7 +291,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	gameName := s.getRequestGameName(c)
 
-	game := s.gameFromId(id, gameName)
+	game := s.gameFromID(id, gameName)
 
 	if game == nil {
 		return
@@ -326,10 +325,9 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		if err := s.storage.SetPlayerForGame(game.Id(), slot, user.ID); err != nil {
 			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
 			return
-		} else {
-			s.setHasEmptySlots(c, false)
-			effectiveViewingAsPlayer = slot
 		}
+		s.setHasEmptySlots(c, false)
+		effectiveViewingAsPlayer = slot
 
 	} else {
 		s.setHasEmptySlots(c, len(emptySlots) != 0)
@@ -377,7 +375,7 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
 
 	if user == nil {
-		r.Error(errors.New("No user provided."))
+		r.Error(errors.New("no user provided"))
 		return
 	}
 
@@ -389,7 +387,7 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 	}
 
 	if !eGame.Open {
-		r.Error(errors.NewFriendly("The game is not open to people joining."))
+		r.Error(errors.NewFriendly("the game is not open to people joining"))
 		return
 	}
 
@@ -418,14 +416,14 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	r := s.newRenderer(c)
 
-	managerId := s.getRequestManager(c)
+	managerID := s.getRequestManager(c)
 
 	numPlayers := s.getRequestNumPlayers(c)
 
-	manager := s.managers[managerId]
+	manager := s.managers[managerID]
 
 	if manager == nil {
-		r.Error(errors.NewFriendly("That is not a legal type of game").WithError(managerId + " is not a legal manager for this server"))
+		r.Error(errors.NewFriendly("That is not a legal type of game").WithError(managerID + " is not a legal manager for this server"))
 		return
 	}
 
@@ -511,15 +509,15 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 }
 
 func (s *Server) doListGames(r *renderer, user *users.StorageRecord, gameName string, isAdmin bool) {
-	var userId string
+	var userID string
 	if user != nil {
-		userId = user.ID
+		userID = user.ID
 	}
 	result := gin.H{
-		"ParticipatingActiveGames":   s.listGamesWithUsers(100, listing.ParticipatingActive, userId, gameName),
-		"ParticipatingFinishedGames": s.listGamesWithUsers(100, listing.ParticipatingFinished, userId, gameName),
-		"VisibleJoinableActiveGames": s.listGamesWithUsers(100, listing.VisibleJoinableActive, userId, gameName),
-		"VisibleActiveGames":         s.listGamesWithUsers(100, listing.VisibleActive, userId, gameName),
+		"ParticipatingActiveGames":   s.listGamesWithUsers(100, listing.ParticipatingActive, userID, gameName),
+		"ParticipatingFinishedGames": s.listGamesWithUsers(100, listing.ParticipatingFinished, userID, gameName),
+		"VisibleJoinableActiveGames": s.listGamesWithUsers(100, listing.VisibleJoinableActive, userID, gameName),
+		"VisibleActiveGames":         s.listGamesWithUsers(100, listing.VisibleActive, userID, gameName),
 	}
 	if isAdmin {
 		result["AllGames"] = s.storage.ListGames(100, listing.All, "", gameName)
@@ -533,8 +531,8 @@ type gameStorageRecordWithUsers struct {
 	ReadableLastActivity string
 }
 
-func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, gameName string) []*gameStorageRecordWithUsers {
-	games := s.storage.ListGames(max, list, userId, gameName)
+func (s *Server) listGamesWithUsers(max int, list listing.Type, userID string, gameName string) []*gameStorageRecordWithUsers {
+	games := s.storage.ListGames(max, list, userID, gameName)
 
 	result := make([]*gameStorageRecordWithUsers, len(games))
 
@@ -755,13 +753,13 @@ func (s *Server) AddOverrides(overrides []config.OptionOverrider) *Server {
 func (s *Server) configureGameHandler(c *gin.Context) {
 	game := s.getGame(c)
 
-	var gameId string
+	var gameID string
 
 	if game != nil {
-		gameId = game.Id()
+		gameID = game.Id()
 	}
 
-	gameInfo, _ := s.storage.ExtendedGame(gameId)
+	gameInfo, _ := s.storage.ExtendedGame(gameID)
 
 	adminAllowed := s.getAdminAllowed(c)
 	requestAdmin := s.getRequestAdmin(c)
@@ -825,14 +823,14 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	fromVersion := s.getRequestFromVersion(c)
 
-	var gameId string
+	var gameID string
 
 	if game != nil {
-		gameId = game.Id()
+		gameID = game.Id()
 	}
 
 	//TODO: should this be done in gameAPISetup?
-	gameInfo, _ := s.storage.ExtendedGame(gameId)
+	gameInfo, _ := s.storage.ExtendedGame(gameID)
 
 	user := s.getUser(c)
 
@@ -877,16 +875,16 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 			continue
 		}
 
-		userId := userIds[i]
+		userID := userIds[i]
 
-		if userId == "" {
+		if userID == "" {
 			player.IsEmpty = true
 			player.IsAgent = false
 			player.DisplayName = ""
 			continue
 		}
 
-		user := s.storage.GetUserById(userId)
+		user := s.storage.GetUserById(userID)
 
 		if user == nil {
 			player.IsAgent = false
@@ -974,7 +972,7 @@ func (s *Server) moveHandler(c *gin.Context) {
 	r := s.newRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
-		r.Error(errors.New("This method only supports post."))
+		r.Error(errors.New("this method only supports post"))
 		return
 	}
 

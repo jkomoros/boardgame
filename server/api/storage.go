@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
@@ -86,6 +87,8 @@ func NewServerStorageManager(manager StorageManager) *ServerStorageManager {
 	}
 }
 
+//PlayerMoveApplied notifies all clients connected vie an active WebSocket for
+//that game that the game has been modified.
 func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 
 	//Do the wrapped manager's PlayerMoveApplied in case it has one.
@@ -96,7 +99,7 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 	server := s.server
 
 	if server == nil {
-		return errors.New("No server configured. The storage manager should be added to a Server before it's used.")
+		return errors.New("no server configured. The storage manager should be added to a Server before it's used")
 	}
 
 	//Notify the web sockets that the game was changed
