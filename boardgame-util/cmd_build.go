@@ -6,26 +6,26 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-type Build struct {
+type build struct {
 	baseSubCommand
 
 	BuildAPI    buildAPI
 	BuildStatic buildStatic
 }
 
-func (b *Build) Run(p writ.Path, positional []string) {
+func (b *build) Run(p writ.Path, positional []string) {
 	p.Last().ExitHelp(errors.New(b.Name() + " cannot be run by itself"))
 }
 
-func (b *Build) Name() string {
+func (b *build) Name() string {
 	return "build"
 }
 
-func (b *Build) Description() string {
+func (b *build) Description() string {
 	return "Builds servers, server static folders, or golden folders"
 }
 
-func (b *Build) SubcommandObjects() []SubcommandObject {
+func (b *build) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&b.BuildAPI,
 		&b.BuildStatic,
