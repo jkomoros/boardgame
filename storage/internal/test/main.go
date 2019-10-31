@@ -27,8 +27,7 @@ import (
 )
 
 //StorageManager is the interface for everything that needs to be connected.
-//It's basically boardgame.StorageManager, server.StorageManager, and one more
-//method.
+//It's just api.StorageManager with one more method.
 type StorageManager interface {
 	api.StorageManager
 
@@ -42,8 +41,12 @@ func (m managerMap) Get(name string) *boardgame.GameManager {
 	return m[name]
 }
 
+//StorageManagerFactory vends a new StorageManager to test. Users of this
+//package provide one.
 type StorageManagerFactory func() StorageManager
 
+//Test is the primary entrypoint for this package, running BasicTest, UsersTest,
+//AgentsTest, and ListingTest.
 func Test(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 
 	BasicTest(factory, testName, connectConfig, t)
@@ -53,6 +56,7 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 
 }
 
+//BasicTest does the basic tests
 func BasicTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 	storage := factory()
 
@@ -225,6 +229,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 }
 
+//UsersTest does the basic tests of Users
 func UsersTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 	storage := factory()
 
@@ -250,23 +255,23 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(ids).Equals([]string{"", ""})
 
-	userId := "THISISAVERYLONGUSERIDTOTESTTHATWEDONTCLIPSHORTUSERIDSTOOAGGRESSIVELY"
+	userID := "THISISAVERYLONGUSERIDTOTESTTHATWEDONTCLIPSHORTUSERIDSTOOAGGRESSIVELY"
 
 	cookie := "MYCOOKIE"
 
-	fetchedUser := storage.GetUserByID(userId)
+	fetchedUser := storage.GetUserByID(userID)
 
 	var nilUser *users.StorageRecord
 
 	assert.For(t).ThatActual(fetchedUser).Equals(nilUser)
 
-	user := &users.StorageRecord{ID: userId}
+	user := &users.StorageRecord{ID: userID}
 
 	err := storage.UpdateUser(user)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	fetchedUser = storage.GetUserByID(userId)
+	fetchedUser = storage.GetUserByID(userID)
 
 	assert.For(t).ThatActual(fetchedUser).Equals(user)
 
@@ -282,19 +287,20 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(fetchedUser).Equals(user)
 
-	err = storage.SetPlayerForGame(game.Id(), 0, userId)
+	err = storage.SetPlayerForGame(game.Id(), 0, userID)
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	ids = storage.UserIDsForGame(game.Id())
 
-	assert.For(t).ThatActual(ids).Equals([]string{userId, ""})
+	assert.For(t).ThatActual(ids).Equals([]string{userID, ""})
 
-	err = storage.SetPlayerForGame(game.Id(), 0, userId)
+	err = storage.SetPlayerForGame(game.Id(), 0, userID)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 }
 
+//AgentsTest does the basic tests of Agents.
 func AgentsTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 
 	storage := factory()
@@ -350,6 +356,7 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 }
 
+//ListingTest does the basic tests of Listing.
 func ListingTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 
 	storage := factory()
