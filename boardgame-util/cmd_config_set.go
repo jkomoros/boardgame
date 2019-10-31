@@ -44,7 +44,7 @@ func deriveMode(dev, prod bool) config.ModeType {
 	return config.TypeBase
 }
 
-func configSetFactory(base *BoardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater {
+func configSetFactory(base *boardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater {
 	switch fieldType {
 	case config.FieldTypeString:
 		if len(positional) != 2 {

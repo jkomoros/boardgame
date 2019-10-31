@@ -38,8 +38,8 @@ type SubcommandObject interface {
 	TopLevelStruct() SubcommandObject
 	SetTopLevelStruct(top SubcommandObject)
 
-	Base() *BoardgameUtil
-	SetBase(base *BoardgameUtil)
+	Base() *boardgameUtil
+	SetBase(base *boardgameUtil)
 
 	Parent() SubcommandObject
 	//SetParent will be called with the command's parent object.
@@ -56,14 +56,14 @@ type baseSubCommand struct {
 	parent         SubcommandObject
 	topLevelStruct SubcommandObject
 	writCommand    *writ.Command
-	base           *BoardgameUtil
+	base           *boardgameUtil
 }
 
-func (b *baseSubCommand) Base() *BoardgameUtil {
+func (b *baseSubCommand) Base() *boardgameUtil {
 	return b.base
 }
 
-func (b *baseSubCommand) SetBase(base *BoardgameUtil) {
+func (b *baseSubCommand) SetBase(base *boardgameUtil) {
 	b.base = base
 }
 
@@ -225,14 +225,14 @@ func (b *baseSubCommand) WritOptions() []*writ.Option {
 	return nil
 }
 
-func setupParents(cmd SubcommandObject, parent SubcommandObject, base *BoardgameUtil) {
+func setupParents(cmd SubcommandObject, parent SubcommandObject, base *boardgameUtil) {
 
 	cmd.SetParent(parent)
 	cmd.SetTopLevelStruct(cmd)
 	cmd.SetBase(base)
 
 	if parent == nil {
-		base = cmd.(*BoardgameUtil)
+		base = cmd.(*boardgameUtil)
 	}
 
 	for _, subCmd := range cmd.SubcommandObjects() {

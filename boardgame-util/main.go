@@ -21,7 +21,7 @@ func main() {
 }
 
 func mainImpl(args []string) {
-	b := &BoardgameUtil{}
+	b := &boardgameUtil{}
 
 	setupParents(b, nil, nil)
 

@@ -3,14 +3,15 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
 
-type BoardgameUtil struct {
+type boardgameUtil struct {
 	baseSubCommand
 	Help    Help
 	Db      Db
@@ -31,15 +32,15 @@ type BoardgameUtil struct {
 	tempDirs []string
 }
 
-func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
+func (b *boardgameUtil) Run(p writ.Path, positional []string) {
 	p.Last().ExitHelp(errors.New("COMMAND is required"))
 }
 
-func (b *BoardgameUtil) Name() string {
+func (b *boardgameUtil) Name() string {
 	return "boardgame-util"
 }
 
-func (b *BoardgameUtil) HelpText() string {
+func (b *boardgameUtil) HelpText() string {
 
 	return b.Name() +
 		` is a comprehensive CLI tool to make working with
@@ -59,11 +60,11 @@ See the individual sub-commands for more on what each one does.`
 
 }
 
-func (b *BoardgameUtil) Usage() string {
+func (b *boardgameUtil) Usage() string {
 	return "COMMAND [OPTION]... [ARG]..."
 }
 
-func (b *BoardgameUtil) WritOptions() []*writ.Option {
+func (b *boardgameUtil) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"config", "c"},
@@ -79,7 +80,7 @@ func (b *BoardgameUtil) WritOptions() []*writ.Option {
 	}
 }
 
-func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
+func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&b.Help,
 		&b.Serve,
@@ -94,7 +95,7 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 }
 
 //Do any cleanup tasks as program exits.
-func (b *BoardgameUtil) Cleanup() {
+func (b *boardgameUtil) Cleanup() {
 
 	for _, dir := range b.tempDirs {
 		os.RemoveAll(dir)
@@ -102,20 +103,20 @@ func (b *BoardgameUtil) Cleanup() {
 
 }
 
-func (b *BoardgameUtil) errAndQuit(message string) {
+func (b *boardgameUtil) errAndQuit(message string) {
 	fmt.Println(message)
 	b.Cleanup()
 	os.Exit(1)
 }
 
-func (b *BoardgameUtil) msgAndQuit(message string) {
+func (b *boardgameUtil) msgAndQuit(message string) {
 	fmt.Println(message)
 	b.Cleanup()
 	os.Exit(0)
 }
 
 //NewTempDir will vend a new temporary dir that will be remove when program exits.
-func (b *BoardgameUtil) NewTempDir(prefix string) string {
+func (b *boardgameUtil) NewTempDir(prefix string) string {
 	dir, err := ioutil.TempDir(".", prefix)
 
 	if err != nil {
@@ -127,7 +128,7 @@ func (b *BoardgameUtil) NewTempDir(prefix string) string {
 	return dir
 }
 
-func (b *BoardgameUtil) starterConfigForType(typ string) (*config.Config, error) {
+func (b *boardgameUtil) starterConfigForType(typ string) (*config.Config, error) {
 
 	if typ == "" {
 		typ = "default"
@@ -153,7 +154,7 @@ func (b *BoardgameUtil) starterConfigForType(typ string) (*config.Config, error)
 //finding the config errors for any reason, program will quit. That is, when
 //you call this method we assume that it's required for operation of that
 //command.
-func (b *BoardgameUtil) GetConfig(createIfNotExist bool) *config.Config {
+func (b *boardgameUtil) GetConfig(createIfNotExist bool) *config.Config {
 	if b.config != nil {
 		return b.config
 	}

@@ -24,7 +24,7 @@ func (c *Codegen) Name() string {
 	return "codegen"
 }
 
-func dirPositionalOrDefault(base *BoardgameUtil, positional []string, isPkg bool) string {
+func dirPositionalOrDefault(base *boardgameUtil, positional []string, isPkg bool) string {
 
 	errString := "More than one positional argument provided, expecting only DIR"
 

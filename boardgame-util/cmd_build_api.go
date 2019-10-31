@@ -17,7 +17,7 @@ type BuildApi struct {
 	Prod bool
 }
 
-func effectiveStorageType(base *BoardgameUtil, m *config.Mode, storageOverride string) api.StorageType {
+func effectiveStorageType(base *boardgameUtil, m *config.Mode, storageOverride string) api.StorageType {
 
 	//Use storage type from command line option, then from DefaultStorageType
 	//in config, then just fallback on defaultStorageType.
