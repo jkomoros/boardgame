@@ -1,5 +1,7 @@
 /*
-	path includes a few simple convenience methods for dealing with paths
+
+Package path includes a few simple convenience methods for dealing with paths
+
 */
 package path
 
