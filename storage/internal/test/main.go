@@ -1,7 +1,7 @@
 /*
 
-	test is a package that is used to run a boardgame/server.StorageManager
-	implementation through its paces and verify it does everything correctly.
+Package test is a package that is used to run a boardgame/server.StorageManager
+implementation through its paces and verify it does everything correctly.
 
 */
 package test
@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jkomoros/boardgame/server/api"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/memory"
@@ -24,37 +26,14 @@ import (
 	"github.com/workfit/tester/assert"
 )
 
+//StorageManager is the interface for everything that needs to be connected.
+//It's basically boardgame.StorageManager, server.StorageManager, and one more
+//method.
 type StorageManager interface {
-	boardgame.StorageManager
+	api.StorageManager
 
 	//CleanUp will be called when a given manager is done and can be dispoed of.
 	CleanUp()
-
-	//The methods past this point are the same ones that are included in Server.StorageManager
-	Name() string
-
-	Connect(config string) error
-
-	ExtendedGame(id string) (*extendedgame.StorageRecord, error)
-
-	CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error)
-
-	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
-
-	Close()
-	ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord
-
-	UserIDsForGame(gameId string) []string
-
-	SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error
-
-	UpdateUser(user *users.StorageRecord) error
-
-	GetUserByID(uid string) *users.StorageRecord
-
-	GetUserByCookie(cookie string) *users.StorageRecord
-
-	ConnectCookieToUser(cookie string, user *users.StorageRecord) error
 }
 
 type managerMap map[string]*boardgame.GameManager
