@@ -20,7 +20,7 @@ const (
 )
 
 type gameVersionChanged struct {
-	Id      string
+	ID      string
 	Version int
 }
 
@@ -34,7 +34,7 @@ type versionNotifier struct {
 }
 
 type socket struct {
-	gameId   string
+	gameID   string
 	notifier *versionNotifier
 	conn     *websocket.Conn
 	send     chan []byte
@@ -79,7 +79,7 @@ func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNoti
 		notifier: notifier,
 		conn:     conn,
 		send:     make(chan []byte, 256),
-		gameId:   game.Id(),
+		gameID:   game.Id(),
 	}
 	go result.readPump()
 	go result.writePump()
@@ -87,7 +87,7 @@ func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNoti
 	//As soon as the socke tis opened, send the current version. That way if
 	//the connection broke right when the version changed, we'll still catch up.
 	result.SendMessage(gameVersionChanged{
-		Id:      game.Id(),
+		ID:      game.Id(),
 		Version: game.Version(),
 	})
 
@@ -112,14 +112,14 @@ func (s *socket) readPump() {
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				s.notifier.server.logger.Errorln("Unexpected socket close error: "+err.Error(), logrus.Fields{
-					"Id": s.gameId,
+					"Id": s.gameID,
 				})
 			}
 			break
 		}
 		s.notifier.server.logger.Warnln("Unexpectedly got a message from client", logrus.Fields{
 			"Message": message,
-			"Id":      s.gameId,
+			"Id":      s.gameID,
 		})
 	}
 
@@ -174,7 +174,7 @@ func newVersionNotifier(s *Server) *versionNotifier {
 
 func (v *versionNotifier) gameChanged(game *boardgame.GameStorageRecord) {
 	v.notifyVersion <- gameVersionChanged{
-		Id:      game.ID,
+		ID:      game.ID,
 		Version: game.Version,
 	}
 }
@@ -192,11 +192,11 @@ func (v *versionNotifier) workLoop() {
 			v.unregisterSocket(s)
 		case rec := <-v.notifyVersion:
 			v.server.logger.Debugln("Sending socket message", logrus.Fields{
-				"Id":      rec.Id,
+				"ID":      rec.ID,
 				"Version": rec.Version,
 			})
 			//Send message
-			bucket, ok := v.sockets[rec.Id]
+			bucket, ok := v.sockets[rec.ID]
 			if ok {
 				//Someone's listening!
 				for socket := range bucket {
@@ -213,14 +213,14 @@ func (v *versionNotifier) registerSocket(s *socket) {
 	//Should only be called by workLoop
 
 	v.server.logger.Debugln("Socket registering", logrus.Fields{
-		"Id": s.gameId,
+		"ID": s.gameID,
 	})
 
-	bucket, ok := v.sockets[s.gameId]
+	bucket, ok := v.sockets[s.gameID]
 
 	if !ok {
 		bucket = make(map[*socket]bool)
-		v.sockets[s.gameId] = bucket
+		v.sockets[s.gameID] = bucket
 	}
 
 	bucket[s] = true
@@ -230,10 +230,10 @@ func (v *versionNotifier) unregisterSocket(s *socket) {
 	//Should only be called by workloop
 
 	v.server.logger.Debugln("Socket unregistering", logrus.Fields{
-		"Id": s.gameId,
+		"ID": s.gameID,
 	})
 
-	bucket, ok := v.sockets[s.gameId]
+	bucket, ok := v.sockets[s.gameID]
 
 	if !ok {
 		return
