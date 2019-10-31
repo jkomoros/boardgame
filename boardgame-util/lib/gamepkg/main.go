@@ -29,6 +29,7 @@ const clientSubFolder = "client"
 //state.Rand() in order to be predictable.
 const RandMagicComment = "boardgame:assert(rand_use_deterministic)"
 
+//Pkg represents a Package that may or may not be a GamePkg.
 type Pkg struct {
 	//Every contstructo sets absolutePath to something that at least exists on
 	//disk.
@@ -89,7 +90,7 @@ func AllPackages(inputs []string, optionalBasePath string) ([]*Pkg, error) {
 //path (rel or absolute), and if that fails, bails. optionalBasePath is what
 //to pass to NewFromPath if that is used.
 func New(importOrPath string, optionalBasePath string) (*Pkg, error) {
-	pkg, err, tryPath := newFromImport(importOrPath)
+	pkg, tryPath, err := newFromImport(importOrPath)
 	if err == nil {
 		return pkg, nil
 	}
@@ -123,7 +124,7 @@ func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 		}
 	}
 
-	p, e, _ := newPkg(path, "")
+	p, _, e := newPkg(path, "")
 	return p, e
 
 }
@@ -132,15 +133,15 @@ func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 //if the given path does not appear to denote a valid game package for any
 //reason.
 func NewFromImport(importPath string) (*Pkg, error) {
-	p, e, _ := newFromImport(importPath)
+	p, _, e := newFromImport(importPath)
 	return p, e
 }
 
-func newFromImport(importPath string) (pack *Pkg, err error, tryPath bool) {
+func newFromImport(importPath string) (pack *Pkg, tryPath bool, err error) {
 	absPath, err := path.AbsoluteGoPkgPath(importPath)
 
 	if err != nil {
-		return nil, errors.New("Absolute path couldn't be found: " + err.Error()), true
+		return nil, true, errors.New("Absolute path couldn't be found: " + err.Error())
 	}
 
 	//If no error, then absPath must point to a valid thing
@@ -148,7 +149,7 @@ func newFromImport(importPath string) (pack *Pkg, err error, tryPath bool) {
 }
 
 //tryPath means, if we fail, should we try using the input as a path?
-func newPkg(absPath, importPath string) (p *Pkg, err error, tryPath bool) {
+func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 
 	result := &Pkg{
 		absolutePath: absPath,
@@ -156,19 +157,19 @@ func newPkg(absPath, importPath string) (p *Pkg, err error, tryPath bool) {
 	}
 
 	if info, err := os.Stat(absPath); err != nil {
-		return nil, errors.New("Path doesn't point to valid location on disk: " + err.Error()), true
+		return nil, true, errors.New("Path doesn't point to valid location on disk: " + err.Error())
 	} else if !info.IsDir() {
-		return nil, errors.New("Path points to an object but it's not a directory."), true
+		return nil, true, errors.New("Path points to an object but it's not a directory.")
 	}
 
 	if !result.goPkg() {
-		return nil, errors.New(absPath + " denotes a folder with no go source files"), true
+		return nil, true, errors.New(absPath + " denotes a folder with no go source files")
 	}
 
 	isGamePkg, err := result.isGamePkg()
 
 	if !isGamePkg {
-		return nil, errors.New(absPath + " was not a valid game package: " + err.Error()), true
+		return nil, true, errors.New(absPath + " was not a valid game package: " + err.Error())
 	}
 
 	//We also ensure we have a good value for importPath now, so that Import()
@@ -177,22 +178,22 @@ func newPkg(absPath, importPath string) (p *Pkg, err error, tryPath bool) {
 	goPkg, err := build.ImportDir(absPath, 0)
 
 	if err != nil {
-		return nil, errors.New("Couldn't read package: " + err.Error()), false
+		return nil, false, errors.New("Couldn't read package: " + err.Error())
 	}
 
 	if err := result.randUseSafe(); err != nil {
-		return nil, err, false
+		return nil, false, err
 	}
 
 	if importPath != "" {
 		if importPath != goPkg.ImportPath {
-			return nil, errors.New("The provided import path does not agree with what go.build thinks the import path is: " + importPath + " : " + goPkg.ImportPath), true
+			return nil, true, errors.New("The provided import path does not agree with what go.build thinks the import path is: " + importPath + " : " + goPkg.ImportPath)
 		}
 	}
 	result.importPath = goPkg.ImportPath
 	result.name = goPkg.Name
 
-	return result, nil, true
+	return result, true, nil
 }
 
 //AbsolutePath returns the absolute path where the package in question resides
