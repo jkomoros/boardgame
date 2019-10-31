@@ -21,7 +21,7 @@ type boardgameUtil struct {
 	Serve   Serve
 	Config  configCmd
 	Stub    Stub
-	Golden  Golden
+	Golden  goldenCmd
 
 	ConfigPath            string
 	OverrideStarterConfig string
