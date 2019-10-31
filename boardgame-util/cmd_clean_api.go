@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
 )
 
-type CleanApi struct {
+type cleanAPI struct {
 	baseSubCommand
 }
 
-func (c *CleanApi) Run(p writ.Path, positional []string) {
+func (c *cleanAPI) Run(p writ.Path, positional []string) {
 
 	if len(positional) > 1 {
 		c.Base().errAndQuit(c.Name() + " called with more than one positional argument")
@@ -28,19 +29,19 @@ func (c *CleanApi) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *CleanApi) Name() string {
+func (c *cleanAPI) Name() string {
 	return "api"
 }
 
-func (c *CleanApi) Description() string {
+func (c *cleanAPI) Description() string {
 	return "Cleans up an api server folder created by `build api`"
 }
 
-func (c *CleanApi) Usage() string {
+func (c *cleanAPI) Usage() string {
 	return "DIR"
 }
 
-func (c *CleanApi) HelpText() string {
+func (c *cleanAPI) HelpText() string {
 
 	return c.Name() + ` removes the api server folder (binary and code) within
 DIR that was created by 'build api'.

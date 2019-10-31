@@ -2,13 +2,14 @@ package main
 
 import (
 	"errors"
+
 	"github.com/bobziuchkovski/writ"
 )
 
 type Clean struct {
 	baseSubCommand
 
-	CleanApi    CleanApi
+	CleanAPI    cleanAPI
 	CleanStatic CleanStatic
 	CleanCache  CleanCache
 }
@@ -27,7 +28,7 @@ func (c *Clean) Description() string {
 
 func (c *Clean) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
-		&c.CleanApi,
+		&c.CleanAPI,
 		&c.CleanStatic,
 		&c.CleanCache,
 	}
