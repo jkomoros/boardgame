@@ -1,92 +1,90 @@
 /*
 
-In a number of cases you have a property that can only have a handful of
-possible values. You want to verify that the value is always one of those
-legal values, and make sure that you can compare it to a known constant so you
-can make sure you don't have a typo at compile time instead of run time. It's
-also nice to have them have an order in many cases, and to be serialized with
-the string value so it's easier to read.
+Package enum allows you to represent enum values.
 
-Enums are useful for this case. An EnumSet contains multiple enums, and you
-can create an EnumValue which can be used as a property on a PropertyReader
-object.
+In a number of cases you have a property that can only have a handful of
+possible values. You want to verify that the value is always one of those legal
+values, and make sure that you can compare it to a known constant so you can
+make sure you don't have a typo at compile time instead of run time. It's also
+nice to have them have an order in many cases, and to be serialized with the
+string value so it's easier to read.
+
+Enums are useful for this case. An EnumSet contains multiple enums, and you can
+create an EnumValue which can be used as a property on a PropertyReader object.
 
 The idiomatic way to create an enum is the following.
 
-In components.go:
-	const (
-		ColorRed = iota
-		ColorBlue
-		ColorGreen
-	)
+In components.go: const (ColorRed = iota ColorBlue ColorGreen
+    )
 
-	const (
-		CardSpade = iota
-		CardHeart
-		CardDiamond
-		CardClub
-	)
+    const (
+        CardSpade = iota
+        CardHeart
+        CardDiamond
+        CardClub
+    )
 
-	var Enums = enum.NewSet()
+    var Enums = enum.NewSet()
 
-	var ColorEnum = Enums.MustAdd("Color", map[int]string{
-		ColorRed: "Red",
-		ColorBlue: "Blue",
-		ColorGreen: "Green",
-	})
+    var ColorEnum = Enums.MustAdd("Color", map[int]string{
+        ColorRed: "Red",
+        ColorBlue: "Blue",
+        ColorGreen: "Green",
+    })
 
-	var CardEnum = Enums.MustAdd("Card", map[int]string{
-		CardSpade: "Spade",
-		CardHeart: "Heart",
-		CardDiamond: "Diamond",
-		CardClub: "Club",
-	})
+    var CardEnum = Enums.MustAdd("Card", map[int]string{
+        CardSpade: "Spade",
+        CardHeart: "Heart",
+        CardDiamond: "Diamond",
+        CardClub: "Club",
+    })
 
 And then in your main.go:
 
-	func (g *GameDelegate) EmptyGameState() boardgame.ConfigurableSubState {
+    func (g *GameDelegate) EmptyGameState() boardgame.ConfigurableSubState {
 
-		//You could also just return a zero-valued struct if you used struct
-		//tags for the enum. See the Constructors section of boardgame package
-		//doc for more.
-		return &gameState{
-			MyIntProp: 0,
-			MyColorEnumProp: ColorEnum.NewVal(),
-		}
-	}
+        //You could also just return a zero-valued struct if you used struct
+        //tags for the enum. See the Constructors section of boardgame package
+        //doc for more.
+        return &gameState{
+            MyIntProp: 0,
+            MyColorEnumProp: ColorEnum.NewVal(),
+        }
+    }
 
-	func (g *GameDelegate) ConfigureEnums() *enum.Set {
-		return Enums
-	}
+    func (g *GameDelegate) ConfigureEnums() *enum.Set {
+        return Enums
+    }
 
 This is a fair bit of boilerplate to inlude in your components.go. You can use
-the `boardgame-util codegen` tool to generate the repetitive boilerplate for you.
+the `boardgame-util codegen` tool to generate the repetitive boilerplate for
+you.
 
 Instead of the above code for components.go, you'd instead only include the
 following:
 
-	//boardgame:codegen
-	const (
-		ColorRed = iota
-		ColorBlue
-		ColorGreen
-	)
+    //boardgame:codegen
+    const (
+        ColorRed = iota
+        ColorBlue
+        ColorGreen
+    )
 
-	//boardgame:codegen
-	const (
-		CardSpade = iota
-		CardHeart
-		CardDiamond
-		CardClub
-	)
+    //boardgame:codegen
+    const (
+        CardSpade = iota
+        CardHeart
+        CardDiamond
+        CardClub
+    )
 
 Then, the rest of the example code shown above in components.go would be
-automatically generated, including the ConfigureEnums definition on the
-structs in your package that appear to be your game delegate, if you don't
-have your own definition of that method. The longest common prefix for each
-name in the constant block would be used as the name of the enum. codegen
-has more options for controlling the precise way the enums are created; see
-codegen's package doc for more information.
+automatically generated, including the ConfigureEnums definition on the structs
+in your package that appear to be your game delegate, if you don't have your own
+definition of that method. The longest common prefix for each name in the
+constant block would be used as the name of the enum. codegen has more options
+for controlling the precise way the enums are created; see codegen's package doc
+for more information.
 
 Ranged Enums
 
@@ -98,8 +96,8 @@ created for you with only minimal configuration.
 
 set.AddRange returns a RangeEnum directly. If you have a normal Enum, you can
 use RangeEnum to get access to the RangeEnum, if valid, or nil otherwise.
-Generally you should store RangeEnumVal directly in your structs if it's a
-range value, so you don't have to up-convert.
+Generally you should store RangeEnumVal directly in your structs if it's a range
+value, so you don't have to up-convert.
 
 Tree Enums
 
@@ -111,124 +109,129 @@ have at the top of their ancestor chain.
 A common use for Tree Enums is for the Phase enum in your game state, allowing
 there to be sets of sub-phases that the game is in.
 
-Tree Enum values can be either branches (has 1 or more children) or leaves
-(have no children). Typically a branch node means "all of the values below
-me," while a leaf node means "precisely this value". In some contexts it only
-makes sense for the value to be set to a leaf node. For example, if the
-PhaseEnum in your game is a TreeEnum, then the state will refuse to be saved
-if the value is not a leaf value. BranchDefaulValue is the best way to get the
-default leaf value within a sub-tree.
+Tree Enum values can be either branches (has 1 or more children) or leaves (have
+no children). Typically a branch node means "all of the values below me," while
+a leaf node means "precisely this value". In some contexts it only makes sense
+for the value to be set to a leaf node. For example, if the PhaseEnum in your
+game is a TreeEnum, then the state will refuse to be saved if the value is not a
+leaf value. BranchDefaulValue is the best way to get the default leaf value
+within a sub-tree.
 
 Creating Tree Enums with boardgame-util codegen
 
 `boardgame-util codegen` is able to make TreeEnums for you automatically.
 
-The signal to create a TreeEnum is that you have an item in your enum whose string value evaluates to "". (Theoretically the int value of that "" node should also be 0, but the actual constant value for constants in Enums is currently ignored due to #631).
+The signal to create a TreeEnum is that you have an item in your enum whose
+string value evaluates to "". (Theoretically the int value of that "" node
+should also be 0, but the actual constant value for constants in Enums is
+currently ignored due to #631).
 
-	//boardgame:codegen
-	const (
-	  //Because the next item's string value is "" (there is no text beyond the shared prefix), this will be a tree enum
-	  Phase = iota
-	  PhaseRed
-	  PhaseBlue
-	)
+    //boardgame:codegen
+    const (
+      //Because the next item's string value is "" (there is no text beyond the shared prefix), this will be a tree enum
+      Phase = iota
+      PhaseRed
+      PhaseBlue
+    )
 
 Creates a TreeEnum shaped like:
 
-	""
-	  Red
-	  Blue
+    ""
+      Red
+      Blue
 
-Branch nodes are created based on the implicit ordering and structure of the final string values, splitting at "> " as the delimeter:
+Branch nodes are created based on the implicit ordering and structure of the
+final string values, splitting at "> " as the delimeter:
 
-	//boardgame:codegen
-	const (
-	  Phase = iota
-	  PhaseRed
-	  //display:"Red > Circle"
-	  PhaseRedCircle
-	  PhaseBlue
-	  //display:"Blue > Circle"
-	  PhaseBlueCircle
-	)
-
-Creates:
-
-	""
-	  Red
-	    Circle
-	  Blue
-	    Circle
-
-Of course, writing the display name is annoying, so if the name of the const has has an underscore `_` then it will be interpreted as " > " when creating the string value:
-
-	//boardgame:codegen
-	const (
-	  Phase = iota
-	  PhaseRed
-	  //Next line's string value is "Red > Circle"
-	  PhaseRed_Circle
-	  PhaseBlue
-	  PhaseBlue_Circle
-	)
+    //boardgame:codegen
+    const (
+      Phase = iota
+      PhaseRed
+      //display:"Red > Circle"
+      PhaseRedCircle
+      PhaseBlue
+      //display:"Blue > Circle"
+      PhaseBlueCircle
+    )
 
 Creates:
 
-	""
-	  Red
-	    Circle
-	  Blue
-	    Circle
+    ""
+      Red
+        Circle
+      Blue
+        Circle
+
+Of course, writing the display name is annoying, so if the name of the const has
+has an underscore `_` then it will be interpreted as " > " when creating the
+string value:
+
+    //boardgame:codegen
+    const (
+      Phase = iota
+      PhaseRed
+      //Next line's string value is "Red > Circle"
+      PhaseRed_Circle
+      PhaseBlue
+      PhaseBlue_Circle
+    )
+
+Creates:
+
+    ""
+      Red
+        Circle
+      Blue
+        Circle
 
 If there are node names that are implied but not explicitly created in your
 code, codegen will define a reasonably-named global constant automatically.
 
-	//boardgame:codegen
-	const (
-		Phase = iota
-		//PhaseRed is not explicitly created, but it is implied by
-		//PhaseRed_Circle; PhaseRed will be created
-		PhaseRed_Circle
-	)
+    //boardgame:codegen
+    const (
+        Phase = iota
+        //PhaseRed is not explicitly created, but it is implied by
+        //PhaseRed_Circle; PhaseRed will be created
+        PhaseRed_Circle
+    )
 Creates:
-	""
-		Red
-			Circle
+    ""
+        Red
+            Circle
 
 Supplying underscores in constant names is ugly and error-prone. codegen will
-automatically create tree breaks at word boundaries, combining multiple words
-in a row into one node if it makes sense. It will continue to create implied
-nodes if necessary. This almost always does what you want and means that you
-can skip including "_" in your constant names. There's one exception: if you
-have a node with a single child (e.g. "Blue" with a single child of "Green"),
-codegen by default will combine those into one multi-word node: "Blue Green".
-If you don't want that to happen, just be explicit about the node break,
-either with a display value that includes the delimiter there, or by using the
-underscore.
+automatically create tree breaks at word boundaries, combining multiple words in
+a row into one node if it makes sense. It will continue to create implied nodes
+if necessary. This almost always does what you want and means that you can skip
+including "_" in your constant names. There's one exception: if you have a node
+with a single child (e.g. "Blue" with a single child of "Green"), codegen by
+default will combine those into one multi-word node: "Blue Green". If you don't
+want that to happen, just be explicit about the node break, either with a
+display value that includes the delimiter there, or by using the underscore.
 
-	//boardgame:codegen
-	const (
-		Phase = iota
-		PhaseBlueGreen
-		//PhaseBlueGreenOne is implied; a constant named PhaseBlueGreenOne
-		//will be created
-		PhaseBlueGreenOneA
-		PhaseBlueGreenOneB
-		//The next item will result in a single child named "Two A"
-		PhaseBlueGreenTwoA
-		//The next item will result in a child of Three followed by a child of
-		//A since there's an explicit tree break.
-		PhaseBlueGreenThree_A
-	)
+    //boardgame:codegen
+    const (
+        Phase = iota
+        PhaseBlueGreen
+        //PhaseBlueGreenOne is implied; a constant named PhaseBlueGreenOne
+        //will be created
+        PhaseBlueGreenOneA
+        PhaseBlueGreenOneB
+        //The next item will result in a single child named "Two A"
+        PhaseBlueGreenTwoA
+        //The next item will result in a child of Three followed by a child of
+        //A since there's an explicit tree break.
+        PhaseBlueGreenThree_A
+    )
 Creates:
-	""
-		Blue Green
-			One
-				A
-				B
-			Two A
-			Three
-				A
+    ""
+        Blue Green
+            One
+                A
+                B
+            Two A
+            Three
+                A
 
 */
 package enum
@@ -246,9 +249,9 @@ const IllegalValue = math.MaxInt64
 
 const rangedValueSeparator = "_"
 
-//EnumSet is a set of enums where each Enum's values are unique. Normally you
-//will create one in your package, add enums to it during initalization, and
-//then use it for all managers you create.
+//Set is a set of enums where each Enum's values are unique. Normally you will
+//create one in your package, add enums to it during initalization, and then use
+//it for all managers you create.
 type Set struct {
 	finished bool
 	enums    map[string]Enum
@@ -344,8 +347,8 @@ type ImmutableVal interface {
 	ImmutableTreeVal() ImmutableTreeVal
 }
 
-//MutableVal is an instantiation of a value that must be set to a value in the
-//given enum. You retrieve one from enum.NewMutableVal().
+//Val is an instantiation of a value that must be set to a value in the given
+//enum. You retrieve one from enum.NewMutableVal().
 type Val interface {
 	ImmutableVal
 	//SetValue changes the value. Returns true if successful. Will fail if the
@@ -407,6 +410,8 @@ func (e *Set) Finish() {
 	e.finished = true
 }
 
+//MarshalJSON marshals the enum set in a form appropriate for being transmitted
+//to the client.
 func (e *Set) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.enums)
 }
@@ -420,8 +425,9 @@ func (e *Set) EnumNames() []string {
 	return result
 }
 
-//Returns the Enum with the given name. In general you keep a reference to the
-//enum yourself, but this is useful for programatically enumerating the enums.
+//Enum returns the Enum with the given name. In general you keep a reference to
+//the enum yourself, but this is useful for programatically enumerating the
+//enums.
 func (e *Set) Enum(name string) Enum {
 	return e.enums[name]
 }

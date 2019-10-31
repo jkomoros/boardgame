@@ -714,7 +714,7 @@ func (e *enum) StringValue(key string) string {
 	prefix := e.Prefix()
 
 	withNoPrefix := strings.Replace(key, prefix, "", -1)
-	expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
+	expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TreeNodeDelimiter, -1)
 
 	displayName = titleCaseToWords(expandedDelimiter)
 
@@ -827,7 +827,7 @@ type delimiterTree struct {
 //addChild with a terminalKey of the passed terminalKey.
 func (t *delimiterTree) addString(names []string, terminalKey string, lastItemWasDelimiter bool) error {
 
-	delimiter := strings.TrimSpace(enumpkg.TREE_NODE_DELIMITER)
+	delimiter := strings.TrimSpace(enumpkg.TreeNodeDelimiter)
 
 	if len(names) == 0 {
 		return errors.New("addString called with no names")
@@ -992,7 +992,7 @@ func (t *delimiterTree) value() string {
 		return nameInParent
 	}
 
-	return parentValue + enumpkg.TREE_NODE_DELIMITER + nameInParent
+	return parentValue + enumpkg.TreeNodeDelimiter + nameInParent
 }
 
 //keyValues returns the key -> value mapping encoded in this tree, recursively
@@ -1065,10 +1065,10 @@ func (e *enum) createMissingParents() error {
 
 	for _, value := range e.ValueMap() {
 
-		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
+		splitValue := strings.Split(value, enumpkg.TreeNodeDelimiter)
 
 		for i := 1; i < len(splitValue); i++ {
-			joinedSubSet := strings.Join(splitValue[0:i], enumpkg.TREE_NODE_DELIMITER)
+			joinedSubSet := strings.Join(splitValue[0:i], enumpkg.TreeNodeDelimiter)
 
 			//Check to make sure that has an entry in the map.
 			if _, ok := index[joinedSubSet]; ok {
@@ -1078,7 +1078,7 @@ func (e *enum) createMissingParents() error {
 
 			//There wasn't one, need to create it.
 			newKey := e.Prefix() + joinedSubSet
-			newKey = strings.Replace(newKey, enumpkg.TREE_NODE_DELIMITER, "_", -1)
+			newKey = strings.Replace(newKey, enumpkg.TreeNodeDelimiter, "_", -1)
 			newKey = strings.Replace(newKey, " ", "", -1)
 			//reduce "_" to "" if that's unambiguous
 			newKey = e.reduceProposedKey(newKey)
@@ -1181,14 +1181,14 @@ func (e *enum) makeParents() error {
 	//Set parents
 	for key, value := range e.ValueMap() {
 
-		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
+		splitValue := strings.Split(value, enumpkg.TreeNodeDelimiter)
 
 		//default to parent being the root node
 		parentNode := index[""]
 
 		if len(splitValue) >= 2 {
 			//Not a node who points to root
-			parentValue := strings.Join(splitValue[0:len(splitValue)-1], enumpkg.TREE_NODE_DELIMITER)
+			parentValue := strings.Join(splitValue[0:len(splitValue)-1], enumpkg.TreeNodeDelimiter)
 			parentNode = index[parentValue]
 		}
 
@@ -1205,7 +1205,7 @@ func (e *enum) reduceNodeStringValues() {
 
 	for key, value := range e.ValueMap() {
 
-		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
+		splitValue := strings.Split(value, enumpkg.TreeNodeDelimiter)
 
 		lastValueComponent := splitValue[len(splitValue)-1]
 

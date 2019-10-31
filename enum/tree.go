@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-//The string used to join the individual node names into one (e.g. "Normal > Deal Cards > Deal To First Player")
-const TREE_NODE_DELIMITER = " > "
+//TreeNodeDelimiter is the string used to join the individual node names into
+//one (e.g. "Normal > Deal Cards > Deal To First Player")
+const TreeNodeDelimiter = " > "
 
 //TreeEnum is a special type of Enum where the list of values also have a tree
 //structure that can be interrogated. TreeEnums always have 0 map to "" as the
@@ -92,8 +93,8 @@ type TreeVal interface {
 //MustAddTree is like AddTree, but instead of an error it will panic if the
 //enum cannot be added. This is useful for defining your enums at the package
 //level outside of an init().
-func (e *Set) MustAddTree(enumName string, values map[int]string, parents map[int]int) TreeEnum {
-	result, err := e.AddTree(enumName, values, parents)
+func (s *Set) MustAddTree(enumName string, values map[int]string, parents map[int]int) TreeEnum {
+	result, err := s.AddTree(enumName, values, parents)
 
 	if err != nil {
 		panic("Couldn't add to enumset: " + err.Error())
@@ -155,7 +156,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 	//Verify that the string values don't contain the delimiter sequence
 	for val, str := range values {
-		if strings.Contains(str, TREE_NODE_DELIMITER) {
+		if strings.Contains(str, TreeNodeDelimiter) {
 			return nil, errors.New("In " + enumName + " the node string value for " + strconv.Itoa(val) + " contains the delimiter expression, which is illegal")
 		}
 	}
@@ -235,7 +236,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 			names[i] = values[val]
 		}
 
-		fullyQualifiedValues[node] = strings.Join(names, TREE_NODE_DELIMITER)
+		fullyQualifiedValues[node] = strings.Join(names, TreeNodeDelimiter)
 	}
 
 	e, err := s.addEnumImpl(enumName, fullyQualifiedValues)
@@ -398,20 +399,20 @@ func (v *variable) NodeString() string {
 	if v.String() == "" {
 		return ""
 	}
-	parts := strings.Split(v.String(), TREE_NODE_DELIMITER)
+	parts := strings.Split(v.String(), TreeNodeDelimiter)
 	return parts[len(parts)-1]
 }
 
-func (e *variable) ImmutableTreeVal() ImmutableTreeVal {
-	if e.enum.TreeEnum() == nil {
+func (v *variable) ImmutableTreeVal() ImmutableTreeVal {
+	if v.enum.TreeEnum() == nil {
 		return nil
 	}
-	return e
+	return v
 }
 
-func (e *variable) TreeVal() TreeVal {
-	if e.enum.TreeEnum() == nil {
+func (v *variable) TreeVal() TreeVal {
+	if v.enum.TreeEnum() == nil {
 		return nil
 	}
-	return e
+	return v
 }
