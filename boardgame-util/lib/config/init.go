@@ -61,9 +61,9 @@ func DefaultStarterConfig(dirOrFile string) *Config {
 	return starterConfig(dirOrFile, base, dev, nil)
 }
 
-//SampleStaterConfig returns a full sample starting config, which is also
-//provided in `boardgame/config.SAMPLE.json`. dirOrFile will be used to give
-//the path name, using DefaultFileNames. Leave "" for default.
+//SampleStarterConfig returns a full sample starting config, which is also
+//provided in `boardgame/config.SAMPLE.json`. dirOrFile will be used to give the
+//path name, using DefaultFileNames. Leave "" for default.
 func SampleStarterConfig(dirOrFile string) *Config {
 
 	base := &RawConfigMode{

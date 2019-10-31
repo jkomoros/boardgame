@@ -41,10 +41,10 @@ func NewConfig(raw, rawSecret *RawConfig) *Config {
 	return result
 }
 
-//OptionOverriders are the primary option that config.AddOverride takes. They
-//take a configmode and modify some number of properties. prodMode is true if
-//it's being called on the prod option, false if on dev. A few are defined as
-//conveniences in this package.
+//OptionOverrider is a class of function that is the primary option that
+//config.AddOverride takes. They take a configmode and modify some number of
+//properties. prodMode is true if it's being called on the prod option, false if
+//on dev. A few are defined as conveniences in this package.
 type OptionOverrider func(prodMode bool, c *Mode)
 
 //EnableOfflineDevMode returns an OptionOverrider that can be passed to

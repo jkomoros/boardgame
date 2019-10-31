@@ -1,12 +1,12 @@
 /*
 
-config is a simple library that manages config set-up for boardgame-util and
-friends, reading from config.json and config.SECRET.json files. See boardgame-
-util/README.md for more on the structure of config.json files.
+Package config is a simple library that manages config set-up for boardgame-util
+and friends, reading from config.json and config.SECRET.json files. See
+boardgame- util/README.md for more on the structure of config.json files.
 
-Although a number of the details are exposed in this package, generally you
-just use Get() and then directly read the values of the returned Config's Dev
-and Prod properties.
+Although a number of the details are exposed in this package, generally you just
+use Get() and then directly read the values of the returned Config's Dev and
+Prod properties.
 
 */
 package config
@@ -105,12 +105,12 @@ func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig s
 //that folder.z
 func fileNamesToUseWithFile(filename string) (publicConfig, privateConfig string, err error) {
 
-	if info, err := os.Stat(filename); err != nil {
+	info, err := os.Stat(filename)
+	if err != nil {
 		return "", "", errors.New("That file does not exist: " + err.Error())
-	} else {
-		if info.IsDir() {
-			return "", "", errors.New(filename + " points to a dir, not a file")
-		}
+	}
+	if info.IsDir() {
+		return "", "", errors.New(filename + " points to a dir, not a file")
 	}
 
 	//Check to see if there's a private config in that folder

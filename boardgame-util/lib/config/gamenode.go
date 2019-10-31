@@ -278,6 +278,7 @@ func (g *GameNode) elideSimpleMids() *GameNode {
 
 }
 
+//UnmarshalJSON unpacks the GameNode JSON payload into a valid GameNode.
 func (g *GameNode) UnmarshalJSON(raw []byte) error {
 	var strs []string
 	var mids map[string]*GameNode
@@ -392,6 +393,7 @@ func (g *GameNode) listRecursive(prior string) []string {
 
 }
 
+//MarshalJSON packs the given GameNode into a JSON payload.
 func (g *GameNode) MarshalJSON() ([]byte, error) {
 	if g.Leafs != nil {
 		return json.Marshal(g.Leafs)

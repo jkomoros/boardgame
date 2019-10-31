@@ -8,13 +8,20 @@ import (
 type FirebaseKey string
 
 const (
-	FirebaseInvalid           FirebaseKey = "<INVALID>"
-	FirebaseApiKey                        = "apiKey"
-	FirebaseAuthDomain                    = "authDomain"
-	FirebaseDatabaseURL                   = "databaseURL"
-	FirebaseProjectID                     = "projectId"
-	FirebaseStorageBucket                 = "storageBucket"
-	FirebaseMessagingSenderID             = "messagingSenderId"
+	//FirebaseInvalid denotes an invalid default key
+	FirebaseInvalid FirebaseKey = "<INVALID>"
+	//FirebaseApiKey denotes the apiKey key in firebase
+	FirebaseApiKey = "apiKey"
+	//FirebaseAuthDomain denotes the authDomain key in firebase
+	FirebaseAuthDomain = "authDomain"
+	//FirebaseDatabaseURL denotes the databaseURL key in firebase
+	FirebaseDatabaseURL = "databaseURL"
+	//FirebaseProjectID denotes the projectId key in firebase
+	FirebaseProjectID = "projectId"
+	//FirebaseStorageBucket denotes the storageBucket key in firebase
+	FirebaseStorageBucket = "storageBucket"
+	//FirebaseMessagingSenderID denotes the messagingSenderId key in firebase
+	FirebaseMessagingSenderID = "messagingSenderId"
 )
 
 //FirebaseKeys enumerates all firebase keys
@@ -93,7 +100,7 @@ func FirebaseKeyFromString(key string) FirebaseKey {
 	key = strings.ToLower(key)
 	key = strings.TrimSpace(key)
 
-	for name, _ := range FirebaseKeys {
+	for name := range FirebaseKeys {
 		normalizedName := strings.ToLower(string(name))
 
 		if normalizedName == key {
