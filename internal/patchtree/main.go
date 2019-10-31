@@ -1,26 +1,26 @@
 /*
 
-	patchtree is a simple library that knows how to interpret a folder
-	structure of jd diffs and apply them on top of a base.
+Package patchtree is a simple library that knows how to interpret a folder
+structure of jd diffs and apply them on top of a base.
 
-		test/
-		  base.json
-		  after_move/
-		    modification.patch
-		  sanitization/
-		    modification.patch
-		    hidden/
-		      modification.patch
-		    nonempty/
-		      modification.patch
+	test/
+		base.json
+		after_move/
+		modification.patch
+		sanitization/
+		modification.patch
+		hidden/
+			modification.patch
+		nonempty/
+			modification.patch
 
-	Given a path relative ot the current binary, it walks backwards up the
-	folder, ensuring that a modification.patch exists in each directory until
-	it finds a base.json. Then it applies forward all of the
-	modification.patches to give you the final composed json blob result.
+Given a path relative ot the current binary, it walks backwards up the
+folder, ensuring that a modification.patch exists in each directory until
+it finds a base.json. Then it applies forward all of the
+modification.patches to give you the final composed json blob result.
 
-	patchtree-helper is a simple cli utility that wraps the functionality in
-	this package.
+patchtree-helper is a simple cli utility that wraps the functionality in
+this package.
 
 */
 package patchtree
@@ -28,25 +28,26 @@ package patchtree
 import (
 	"encoding/json"
 	"errors"
-	jd "github.com/josephburnett/jd/lib"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	jd "github.com/josephburnett/jd/lib"
 )
 
-//BATCH_JSON_NAME is the name of the base json file at the root of the
+//BaseJSONName is the name of the base json file at the root of the
 //directory tree.
-const BASE_JSON_NAME = "base.json"
+const BaseJSONName = "base.json"
 
-//PATCH_NAME is the name of the patch in each sub-folder that modifies the
+//PatchName is the name of the patch in each sub-folder that modifies the
 //json in the tree above it.
-const PATCH_NAME = "modification.patch"
+const PatchName = "modification.patch"
 
-//EXPANDED_JSON_NAME is the name of the file that represents the entire
+//ExpandedJSONName is the name of the file that represents the entire
 //expanded json blob at a given part of the tree, created by `expand`.
-const EXPANDED_JSON_NAME = "node.expanded.json"
+const ExpandedJSONName = "node.expanded.json"
 
 //JSON returns the patched json blob impplied by that directory structure or
 //an error if something doesn't work. See the package doc for more.
@@ -78,13 +79,13 @@ func MustJSON(path string) []byte {
 type directoryFunc func(string, jd.JsonNode) (int, error)
 
 func startDirectoryAndWalk(rootPath string, subFunc directoryFunc) (int, error) {
-	baseJsonPath := filepath.Clean(rootPath + "/" + BASE_JSON_NAME)
+	baseJSONPath := filepath.Clean(rootPath + "/" + BaseJSONName)
 
-	if _, err := os.Stat(baseJsonPath); os.IsNotExist(err) {
+	if _, err := os.Stat(baseJSONPath); os.IsNotExist(err) {
 		return 0, errors.New("Base json file did not exist: " + err.Error())
 	}
 
-	node, err := jd.ReadJsonFile(baseJsonPath)
+	node, err := jd.ReadJsonFile(baseJSONPath)
 
 	if err != nil {
 		return 0, errors.New("Couldn't parse base json file: " + err.Error())
@@ -108,7 +109,7 @@ func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc directory
 		}
 		subDirectory := filepath.Clean(directory + "/" + file.Name())
 
-		subAffectedFiles, err := subFunc(subDirectory, copyJson(expandedNode))
+		subAffectedFiles, err := subFunc(subDirectory, copyJSON(expandedNode))
 		if err != nil {
 			return numAffectedFiles, err
 		}
@@ -118,10 +119,10 @@ func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc directory
 	return numAffectedFiles, nil
 }
 
-//copyJson returns a copy of the given json node. This is necessary because
+//copyJSON returns a copy of the given json node. This is necessary because
 //methods like Patch() actually modify the underlying json node (even though
 //that's unclear!)
-func copyJson(node jd.JsonNode) jd.JsonNode {
+func copyJSON(node jd.JsonNode) jd.JsonNode {
 	result, _ := jd.ReadJsonString(node.Json())
 
 	return result
@@ -137,7 +138,7 @@ func ExpandTree(rootPath string) (affectedFiles int, err error) {
 
 func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
 
-	diffFileName := filepath.Clean(directory + "/" + PATCH_NAME)
+	diffFileName := filepath.Clean(directory + "/" + PatchName)
 
 	if _, err := os.Stat(diffFileName); os.IsNotExist(err) {
 		//TODO: it's weird to print to log when this condition is hit.
@@ -157,17 +158,17 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 		return 0, errors.New(diffFileName + " could not be applied: " + err.Error())
 	}
 
-	expandedNodeFileName := filepath.Clean(directory + "/" + EXPANDED_JSON_NAME)
+	expandedNodeFileName := filepath.Clean(directory + "/" + ExpandedJSONName)
 
 	data := expandedNode.Json()
 
-	indentedJson, err := indentJson(data)
+	indentedJSON, err := indentJSON(data)
 
 	if err != nil {
 		return 0, errors.New("Couldn't indent json: " + err.Error())
 	}
 
-	if err := ioutil.WriteFile(expandedNodeFileName, []byte(indentedJson), 0644); err != nil {
+	if err := ioutil.WriteFile(expandedNodeFileName, []byte(indentedJSON), 0644); err != nil {
 		return 0, errors.New("Couldn't write " + expandedNodeFileName + ": " + err.Error())
 	}
 
@@ -181,7 +182,7 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 
 }
 
-func indentJson(data string) (indented string, err error) {
+func indentJSON(data string) (indented string, err error) {
 	var obj map[string]interface{}
 
 	if err := json.Unmarshal([]byte(data), &obj); err != nil {
@@ -208,7 +209,7 @@ func ContractTree(rootPath string) (numAffectedFiles int, err error) {
 
 func contractTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
 
-	nodeFileName := filepath.Clean(directory + "/" + EXPANDED_JSON_NAME)
+	nodeFileName := filepath.Clean(directory + "/" + ExpandedJSONName)
 
 	expandedNode, err := jd.ReadJsonFile(nodeFileName)
 
@@ -220,7 +221,7 @@ func contractTreeProcessDirectory(directory string, node jd.JsonNode) (int, erro
 
 	data := patch.Render()
 
-	diffFileName := filepath.Clean(directory + "/" + PATCH_NAME)
+	diffFileName := filepath.Clean(directory + "/" + PatchName)
 
 	if err := ioutil.WriteFile(diffFileName, []byte(data), 0644); err != nil {
 		return 0, errors.New("Couldn't write " + diffFileName + ": " + err.Error())
@@ -244,7 +245,7 @@ func CleanTree(rootPath string) (numAffectedFiles int, err error) {
 
 func cleanTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
 
-	nodeFileName := filepath.Clean(directory + "/" + EXPANDED_JSON_NAME)
+	nodeFileName := filepath.Clean(directory + "/" + ExpandedJSONName)
 
 	expandedNode, err := jd.ReadJsonFile(nodeFileName)
 
@@ -252,7 +253,7 @@ func cleanTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) 
 		return 0, errors.New(nodeFileName + " could not be loaded as json file: " + err.Error())
 	}
 
-	patchFileName := filepath.Clean(directory + "/" + PATCH_NAME)
+	patchFileName := filepath.Clean(directory + "/" + PatchName)
 
 	patch, err := jd.ReadDiffFile(patchFileName)
 
@@ -293,23 +294,23 @@ func processDirectory(path string) (jd.JsonNode, error) {
 
 	//TODO: check if the directory exists...
 
-	baseJsonPath := filepath.Clean(path + "/" + BASE_JSON_NAME)
+	baseJSONPath := filepath.Clean(path + "/" + BaseJSONName)
 
-	if _, err := os.Stat(baseJsonPath); err == nil {
+	if _, err := os.Stat(baseJSONPath); err == nil {
 		//Found the directory with base.json!
-		node, err := jd.ReadJsonFile(baseJsonPath)
+		node, err := jd.ReadJsonFile(baseJSONPath)
 		if err != nil {
 			return nil, errors.New(path + " had error reading base.json: " + err.Error())
 		}
 		return node, nil
 	}
 
-	modificationPatchPath := filepath.Clean(path + "/" + PATCH_NAME)
+	modificationPatchPath := filepath.Clean(path + "/" + PatchName)
 
 	if _, err := os.Stat(modificationPatchPath); err == nil {
 
 		//Recurse, with the sub-directory.
-		baseJson, err := processDirectory(filepath.Dir(path))
+		baseJSON, err := processDirectory(filepath.Dir(path))
 
 		if err != nil {
 			return nil, err
@@ -321,7 +322,7 @@ func processDirectory(path string) (jd.JsonNode, error) {
 			return nil, errors.New("Error reading diff file at " + modificationPatchPath + ": " + err.Error())
 		}
 
-		composed, err := baseJson.Patch(diff)
+		composed, err := baseJSON.Patch(diff)
 
 		if err != nil {
 			return nil, errors.New(path + " had error diffing " + err.Error())
@@ -331,6 +332,6 @@ func processDirectory(path string) (jd.JsonNode, error) {
 	}
 
 	//Path had neither base.json or modification.patch, which is an error
-	return nil, errors.New("In " + path + " didn't have either " + BASE_JSON_NAME + " or " + PATCH_NAME)
+	return nil, errors.New("In " + path + " didn't have either " + BaseJSONName + " or " + PatchName)
 
 }
