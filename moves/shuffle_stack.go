@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
@@ -74,6 +75,8 @@ func (s *ShuffleStack) Apply(state boardgame.State) error {
 	return stack.Shuffle()
 }
 
+//ValidConfiguration verifies that the top level move implements
+//interfaces.SourceStacker and returns non-nil stacks.
 func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 	testMove := s.TopLevelStruct()
 

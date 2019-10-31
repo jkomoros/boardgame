@@ -2,9 +2,10 @@ package moves
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"strconv"
 )
 
 //We can keep these private because embedders already will have the interface
@@ -85,7 +86,7 @@ type RoundRobin struct {
 
 //RoundRobinStarterPlayer by default will return delegate.CurrentPlayer.
 //Override this method if you want a different starter.
-func (s *RoundRobin) RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex {
+func (r *RoundRobin) RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex {
 	return state.Game().Manager().Delegate().CurrentPlayerIndex(state)
 }
 
@@ -246,6 +247,9 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boa
 
 }
 
+//ValidConfiguration verifies that GameState implements
+//interfaces.RoundRobinProperties, and that move implements PlayerConditionMet,
+//as well as RoundRobinActioner.
 func (r *RoundRobin) ValidConfiguration(exampleState boardgame.State) error {
 
 	if err := r.ApplyUntil.ValidConfiguration(exampleState); err != nil {
@@ -302,7 +306,7 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		//in them).
 
 		if r.TopLevelStruct().Info().Name() == r.lastMoveName(state) {
-			return errors.New("Can't start this round robin move because the last move was also part of this round robin.")
+			return errors.New("can't start this round robin move because the last move was also part of this round robin")
 		}
 
 		return nil
@@ -338,7 +342,7 @@ func (r *RoundRobin) Apply(state boardgame.State) error {
 	}
 
 	if conditionMetter.ConditionMet(state) == nil {
-		return errors.New("The round robin was found to be finished in our Apply, but it should have been marked finished before!")
+		return errors.New("the round robin was found to be finished in our Apply, but it should have been marked finished before")
 	}
 
 	nextPlayer, _ := r.nextPlayerIndex(state)
@@ -404,6 +408,8 @@ type RoundRobinNumRounds struct {
 	RoundRobin
 }
 
+//ValidConfiguration verifies that NumRound exists and does not return a
+//negative value.
 func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) error {
 	if err := r.RoundRobin.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -412,7 +418,7 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) e
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 
 	if !ok {
-		return errors.New("EmbeddingMove unexpectedly did not implement NumRounds!")
+		return errors.New("embeddingMove unexpectedly did not implement NumRounds")
 	}
 
 	if numRounds.NumRounds() < 0 {
