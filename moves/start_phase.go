@@ -2,10 +2,11 @@ package moves
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"strconv"
 )
 
 //phaseToStarter should be implemented by moves that embed moves.StartPhase to
@@ -27,6 +28,10 @@ type StartPhase struct {
 	FixUp
 }
 
+//ValidConfiguration checks that the embedding move implements PhaseToStart
+//which returns a non-negative value, and that GameState implements
+//interfaces.CurrentPhaseStarter, and that PhaseEnum exists and if it's a
+//TreeEnum, that the phaseToStart is a leaf enum value.
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 
 	if err := s.FixUp.ValidConfiguration(exampleState); err != nil {
@@ -66,7 +71,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 	}
 
 	if !treeEnum.IsLeaf(phaseToStart) {
-		return errors.New("PhaseEnum() returns a TreeEnum, and the phase to start is not a Leaf node.")
+		return errors.New("phaseEnum() returns a TreeEnum, and the phase to start is not a Leaf node")
 	}
 
 	return nil
