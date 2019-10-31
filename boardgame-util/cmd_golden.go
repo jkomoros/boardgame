@@ -55,7 +55,7 @@ This is useful for saving runs of games that are known good so that you can ensu
 `
 }
 
-func (s *goldenCmd) WritOptions() []*writ.Option {
+func (g *goldenCmd) WritOptions() []*writ.Option {
 	//Skip the first two, which are not valid for us.
-	return s.Serve.WritOptions()[2:]
+	return g.Serve.WritOptions()[2:]
 }
