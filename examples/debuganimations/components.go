@@ -10,7 +10,7 @@ const (
 	PhaseNormal
 )
 
-var cardNames []string = []string{
+var cardNames = []string{
 	"🏇",
 	"🚴",
 	"✋",

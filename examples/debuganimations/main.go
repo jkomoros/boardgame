@@ -1,18 +1,19 @@
 /*
 
-	debuganimations is a very simple debug "game" designed to allow us to
-	exercise component animations very directly and purely, in order to build
-	and debug that system.
+Package debuganimations is a very simple debug "game" designed to allow us to
+exercise component animations very directly and purely, in order to build and
+debug that system.
 
 */
 package debuganimations
 
 import (
+	"reflect"
+	"strings"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
-	"reflect"
-	"strings"
 )
 
 //go:generate boardgame-util codegen
@@ -241,6 +242,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
+//NewDelegate is the primary entrypoint of this package. It returns a new
+//delegate that configures a game of debuganimations.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

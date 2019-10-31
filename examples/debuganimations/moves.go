@@ -2,6 +2,7 @@ package debuganimations
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
 )
@@ -202,7 +203,7 @@ func (m *moveFlipHiddenCard) Legal(state boardgame.ImmutableState, proposer boar
 	}
 
 	if game.HiddenCard.NumComponents() > 0 && game.VisibleCard.NumComponents() > 0 {
-		return errors.New("Both hidden and revealed are full!")
+		return errors.New("both hidden and revealed are full")
 	}
 
 	return nil
