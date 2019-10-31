@@ -1,6 +1,6 @@
 /*
 
-	stub is a library that helps generate stub code for new games
+Package stub is a library that helps generate stub code for new games
 
 */
 package stub
@@ -105,7 +105,7 @@ func (o *Options) Validate() error {
 	}
 
 	if !nameLegal(o.Name) {
-		return errors.New("Illegal characters in gamename. Must be a valid go package name.")
+		return errors.New("illegal characters in gamename. Must be a valid go package name")
 	}
 
 	if o.MinNumPlayers != 0 && o.MaxNumPlayers != 0 {

@@ -144,12 +144,13 @@ func getBool(out, in *os.File, message string, defaultVal bool) bool {
 			}
 		}
 		return true
-	} else {
-		for _, responseToTest := range yesResponses {
-			if response == responseToTest {
-				return true
-			}
+	}
+
+	for _, responseToTest := range yesResponses {
+		if response == responseToTest {
+			return true
 		}
 	}
+
 	return false
 }
