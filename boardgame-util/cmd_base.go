@@ -14,7 +14,7 @@ import (
 type boardgameUtil struct {
 	baseSubCommand
 	Help    Help
-	Db      Db
+	Db      db
 	Codegen codegen
 	Build   build
 	Clean   clean

@@ -9,7 +9,7 @@ import (
 	"github.com/mattes/migrate"
 )
 
-type Db struct {
+type db struct {
 	baseSubCommand
 	Up      dbUp
 	Down    dbDown
@@ -18,25 +18,25 @@ type Db struct {
 	Prod    bool
 }
 
-func (d *Db) Run(p writ.Path, positional []string) {
+func (d *db) Run(p writ.Path, positional []string) {
 	p.Last().ExitHelp(errors.New("SUBCOMMAND is required"))
 }
 
-func (d *Db) Name() string {
+func (d *db) Name() string {
 	return "db"
 }
 
-func (d *Db) Aliases() []string {
+func (d *db) Aliases() []string {
 	return []string{
 		"mysql",
 	}
 }
 
-func (d *Db) Description() string {
+func (d *db) Description() string {
 	return "Configures a mysql database"
 }
 
-func (d *Db) HelpText() string {
+func (d *db) HelpText() string {
 	return d.Name() +
 
 		` helps set up and administer mysql databases for use with boardgame, both
@@ -50,11 +50,11 @@ README.md for more about configuring that file.
 
 }
 
-func (d *Db) Usage() string {
+func (d *db) Usage() string {
 	return "SUBCOMMAND"
 }
 
-func (d *Db) WritOptions() []*writ.Option {
+func (d *db) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"prod", "p"},
@@ -65,7 +65,7 @@ func (d *Db) WritOptions() []*writ.Option {
 	}
 }
 
-func (d *Db) SubcommandObjects() []SubcommandObject {
+func (d *db) SubcommandObjects() []SubcommandObject {
 
 	return []SubcommandObject{
 		&d.Up,
@@ -89,14 +89,14 @@ func baseConfirm(message string) bool {
 	return false
 }
 
-func (d *Db) prodConfirm() bool {
+func (d *db) prodConfirm() bool {
 	if !d.Prod {
 		return true
 	}
 	return baseConfirm("You have selected a destructive action on prod.")
 }
 
-func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
+func (d *db) GetMigrate(createDb bool) *migrate.Migrate {
 
 	config := d.Base().GetConfig(false)
 

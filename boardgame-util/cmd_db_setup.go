@@ -20,7 +20,7 @@ func (d *dbSetup) Description() string {
 }
 
 func (d *dbSetup) Run(p writ.Path, positonal []string) {
-	parent := d.Parent().(*Db)
+	parent := d.Parent().(*db)
 
 	m := parent.GetMigrate(true)
 

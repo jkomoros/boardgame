@@ -21,7 +21,7 @@ func (d *dbUp) Description() string {
 
 func (d *dbUp) Run(p writ.Path, positonal []string) {
 
-	parent := d.Parent().(*Db)
+	parent := d.Parent().(*db)
 
 	m := parent.GetMigrate(false)
 
