@@ -19,7 +19,7 @@ type boardgameUtil struct {
 	Build   build
 	Clean   clean
 	Serve   Serve
-	Config  Config
+	Config  configCmd
 	Stub    Stub
 	Golden  Golden
 

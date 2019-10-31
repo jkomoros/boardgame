@@ -8,7 +8,9 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-type Config struct {
+//configCmd is named that instead of config to avoid colliding with the config
+//package name.
+type configCmd struct {
 	baseSubCommand
 
 	ConfigNormalize configNormalize
@@ -18,7 +20,7 @@ type Config struct {
 	ConfigInit      configInit
 }
 
-func (c *Config) Run(p writ.Path, positional []string) {
+func (c *configCmd) Run(p writ.Path, positional []string) {
 
 	if len(positional) > 0 {
 		p.Last().ExitHelp(errors.New(c.Name() + " doesn't take any positional parameters"))
@@ -61,15 +63,15 @@ func (c *Config) Run(p writ.Path, positional []string) {
 
 }
 
-func (c *Config) Name() string {
+func (c *configCmd) Name() string {
 	return "config"
 }
 
-func (c *Config) Description() string {
+func (c *configCmd) Description() string {
 	return "Allows viewing and modifying configuration files"
 }
 
-func (c *Config) HelpText() string {
+func (c *configCmd) HelpText() string {
 	return c.Name() + ` run without arguments prints the derived config in use and the path that is being used. It's a good way to debug config issues.
 
 GENERAL INFORMATION ON CONFIG
@@ -90,7 +92,7 @@ If you use any of the "boardgame-util config set" commands on a configuration fi
 
 }
 
-func (c *Config) SubcommandObjects() []SubcommandObject {
+func (c *configCmd) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&c.ConfigSet,
 		&c.ConfigAdd,
