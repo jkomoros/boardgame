@@ -11,7 +11,7 @@ import (
 //goldenCmd is named that instead of golden to avoid conflicting with the golden
 //package.
 type goldenCmd struct {
-	Serve
+	serve
 }
 
 func (g *goldenCmd) Run(p writ.Path, positional []string) {
@@ -57,5 +57,5 @@ This is useful for saving runs of games that are known good so that you can ensu
 
 func (g *goldenCmd) WritOptions() []*writ.Option {
 	//Skip the first two, which are not valid for us.
-	return g.Serve.WritOptions()[2:]
+	return g.serve.WritOptions()[2:]
 }

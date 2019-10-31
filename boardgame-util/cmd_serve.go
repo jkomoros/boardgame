@@ -2,18 +2,19 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"time"
+
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
-	"os"
-	"os/exec"
-	"strings"
-	"time"
 )
 
-type Serve struct {
+type serve struct {
 	baseSubCommand
 
 	Storage string
@@ -26,7 +27,7 @@ type Serve struct {
 }
 
 //if pkgs == nil, will use the game packages from the selected mode.
-func (s *Serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, storageLiteralArgs string) {
+func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, storageLiteralArgs string) {
 
 	c := s.Base().GetConfig(false)
 
@@ -147,19 +148,19 @@ func (s *Serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 	}
 }
 
-func (s *Serve) Run(p writ.Path, positional []string) {
+func (s *serve) Run(p writ.Path, positional []string) {
 	s.doServe(p, positional, nil, "")
 }
 
-func (s *Serve) Name() string {
+func (s *serve) Name() string {
 	return "serve"
 }
 
-func (s *Serve) Description() string {
+func (s *serve) Description() string {
 	return "Creates and runs a local development server based on config.json"
 }
 
-func (s *Serve) WritOptions() []*writ.Option {
+func (s *serve) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"storage", "s"},

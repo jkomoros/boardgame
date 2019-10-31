@@ -18,7 +18,7 @@ type boardgameUtil struct {
 	Codegen codegen
 	Build   build
 	Clean   clean
-	Serve   Serve
+	Serve   serve
 	Config  configCmd
 	Stub    Stub
 	Golden  goldenCmd
