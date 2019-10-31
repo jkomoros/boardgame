@@ -287,7 +287,7 @@ func (s *Server) gameFromId(gameId, gameName string) *boardgame.Game {
 //gameAPISetup fetches the game configured in the URL and puts it in context.
 func (s *Server) gameAPISetup(c *gin.Context) {
 
-	id := s.getRequestGameId(c)
+	id := s.getRequestGameID(c)
 
 	gameName := s.getRequestGameName(c)
 

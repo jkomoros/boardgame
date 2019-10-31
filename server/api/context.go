@@ -24,7 +24,7 @@ const (
 	qryAdminKey             = "admin"
 	qryPlayerKey            = "player"
 	qryAutoCurrentPlayerKey = "current"
-	qryGameIdKey            = "id"
+	qryGameIDKey            = "id"
 	qryGameNameKey          = "name"
 	qryManagerKey           = "manager"
 	qryNumPlayersKey        = "numplayers"
@@ -153,8 +153,8 @@ func (s *Server) getRequestVisible(c *gin.Context) bool {
 	return visibleInt > 0
 }
 
-func (s *Server) getRequestGameId(c *gin.Context) string {
-	return c.Param(qryGameIdKey)
+func (s *Server) getRequestGameID(c *gin.Context) string {
+	return c.Param(qryGameIDKey)
 }
 
 func (s *Server) getRequestGameName(c *gin.Context) string {
@@ -264,11 +264,11 @@ func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.
 		panic("Agents and UserIds were different sizes")
 	}
 
-	for i, userId := range userIds {
-		if userId == "" && agents[i] == "" {
+	for i, userID := range userIds {
+		if userID == "" && agents[i] == "" {
 			emptySlots = append(emptySlots, boardgame.PlayerIndex(i))
 		}
-		if user != nil && userId == user.ID {
+		if user != nil && userID == user.ID {
 			//We're here!
 			result = boardgame.PlayerIndex(i)
 		}
@@ -351,8 +351,8 @@ func (s *Server) calcAdminAllowed(user *users.StorageRecord) bool {
 
 		matchedAdmin := false
 
-		for _, userId := range s.config.AdminUserIds {
-			if user.ID == userId {
+		for _, userID := range s.config.AdminUserIds {
+			if user.ID == userID {
 				matchedAdmin = true
 				break
 			}
@@ -429,7 +429,7 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 	}
 
 	if base.IsFixUp(move) {
-		return nil, errors.New("Players cannot make fixup moves.")
+		return nil, errors.New("players cannot make fixup moves")
 	}
 
 	//TODO: should we use gin's Binding to do this instead?

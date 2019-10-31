@@ -56,19 +56,19 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 	r := s.NewRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
-		r.Error(errors.New("This method only supports post."))
+		r.Error(errors.New("this method only supports post"))
 		return
 	}
 
 	uid := c.PostForm("uid")
 	token := c.PostForm("token")
 	email := c.PostForm("email")
-	photoUrl := c.PostForm("photo")
+	photoURL := c.PostForm("photo")
 	displayName := c.PostForm("displayname")
 
 	cookie, _ := c.Cookie(cookieName)
 
-	s.doAuthCookie(r, uid, token, cookie, email, photoUrl, displayName)
+	s.doAuthCookie(r, uid, token, cookie, email, photoURL, displayName)
 
 }
 
@@ -98,7 +98,7 @@ func (s *Server) authSuccess(r *Renderer, user *users.StorageRecord, message str
 
 }
 
-func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, displayName string) {
+func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoURL, displayName string) {
 	//If the user is already associated with that cookie it's a success, nothing more to do.
 
 	if cookie != "" && uid != "" {
@@ -123,8 +123,8 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 		} else {
 			if userRecord.ID == uid {
 
-				if userRecord.PhotoURL == "" && photoUrl != "" {
-					userRecord.PhotoURL = photoUrl
+				if userRecord.PhotoURL == "" && photoURL != "" {
+					userRecord.PhotoURL = photoURL
 				}
 
 				if userRecord.DisplayName == "" && displayName != "" {
@@ -141,10 +141,10 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 				s.authSuccess(r, userRecord, "Cookie and uid already matched.")
 				return
-			} else {
-				s.unsetCookie(r, cookie, "Cookie pointed to the wrong uid. Unsetting")
-				return
 			}
+			s.unsetCookie(r, cookie, "Cookie pointed to the wrong uid. Unsetting")
+			return
+
 		}
 	}
 
@@ -161,16 +161,16 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 		} else {
 
-			verifiedUid, err := firebase.VerifyIDToken(token, s.config.Firebase.ProjectID)
+			verifiedUID, err := firebase.VerifyIDToken(token, s.config.Firebase.ProjectID)
 
 			if err != nil {
 				r.Error(errors.New("Failed to verify jwt token: " + err.Error()))
 				return
 			}
 
-			if verifiedUid != uid {
+			if verifiedUID != uid {
 
-				r.Error(errors.New("The decoded jwt token doesn not match with the provided uid."))
+				r.Error(errors.New("the decoded jwt token doesn not match with the provided uid"))
 				return
 			}
 		}
@@ -183,7 +183,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 			user = &users.StorageRecord{
 				ID:          uid,
 				Email:       email,
-				PhotoURL:    photoUrl,
+				PhotoURL:    photoURL,
 				DisplayName: displayName,
 				Created:     time.Now().UnixNano(),
 				LastSeen:    time.Now().UnixNano(),
