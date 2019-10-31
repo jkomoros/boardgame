@@ -512,7 +512,7 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 //SetPlayerForGame implements that method from the server api storagemanager interface
 func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
 
-	ids := s.UserIdsForGame(gameID)
+	ids := s.UserIDsForGame(gameID)
 
 	if ids == nil {
 		return errors.New("Couldn't fetch original player indexes for that game")
@@ -526,7 +526,7 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
 	}
 
-	user := s.GetUserById(userID)
+	user := s.GetUserByID(userID)
 
 	if user == nil {
 		return errors.New("That userId does not describe an existing user")
@@ -558,9 +558,9 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 
 }
 
-//UserIdsForGame implements that method from the server api storagemanager
+//UserIDsForGame implements that method from the server api storagemanager
 //interface
-func (s *StorageManager) UserIdsForGame(gameID string) []string {
+func (s *StorageManager) UserIDsForGame(gameID string) []string {
 
 	noRecordErr := errors.New("No such record")
 
@@ -632,8 +632,8 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	return err
 }
 
-//GetUserById implements that method from the server api storagemanager interface
-func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
+//GetUserByID implements that method from the server api storagemanager interface
+func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 	var result users.StorageRecord
 
 	err := s.db.View(func(tx *bolt.Tx) error {

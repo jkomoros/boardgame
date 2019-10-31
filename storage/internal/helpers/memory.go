@@ -130,8 +130,8 @@ func (s *ExtendedMemoryStorageManager) UpdateExtendedGame(id string, eGame *exte
 	return nil
 }
 
-//UserIdsForGame implements that part of the server storage interface.
-func (s *ExtendedMemoryStorageManager) UserIdsForGame(gameID string) []string {
+//UserIDsForGame implements that part of the server storage interface.
+func (s *ExtendedMemoryStorageManager) UserIDsForGame(gameID string) []string {
 	s.usersForGamesLock.RLock()
 	ids := s.usersForGames[gameID]
 	s.usersForGamesLock.RUnlock()
@@ -149,7 +149,7 @@ func (s *ExtendedMemoryStorageManager) UserIdsForGame(gameID string) []string {
 
 //SetPlayerForGame implemnts that part of the server storage interface.
 func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
-	ids := s.UserIdsForGame(gameID)
+	ids := s.UserIDsForGame(gameID)
 
 	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
 		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game.")
@@ -159,7 +159,7 @@ func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameID string, playerInd
 		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken.")
 	}
 
-	user := s.GetUserById(userID)
+	user := s.GetUserByID(userID)
 
 	if user == nil {
 		return errors.New("That uid does not describe an existing user")
@@ -185,8 +185,8 @@ func (s *ExtendedMemoryStorageManager) UpdateUser(user *users.StorageRecord) err
 
 }
 
-//GetUserById implements that part of the server storage interface.
-func (s *ExtendedMemoryStorageManager) GetUserById(uid string) *users.StorageRecord {
+//GetUserByID implements that part of the server storage interface.
+func (s *ExtendedMemoryStorageManager) GetUserByID(uid string) *users.StorageRecord {
 	s.usersLock.RLock()
 	user := s.usersByID[uid]
 	s.usersLock.RUnlock()
@@ -214,7 +214,7 @@ func (s *ExtendedMemoryStorageManager) ConnectCookieToUser(cookie string, user *
 		return nil
 	}
 
-	otherUser := s.GetUserById(user.ID)
+	otherUser := s.GetUserByID(user.ID)
 
 	if otherUser == nil {
 		s.UpdateUser(user)

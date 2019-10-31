@@ -175,7 +175,7 @@ func (s *Server) doAuthCookie(r *renderer, uid, token, cookie, email, photoURL, 
 			}
 		}
 
-		user := s.storage.GetUserById(uid)
+		user := s.storage.GetUserByID(uid)
 
 		//If we've never seen this Uid before, store it.
 		if user == nil {

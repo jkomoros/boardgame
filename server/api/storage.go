@@ -48,19 +48,19 @@ type StorageManager interface {
 	//ListGames should list up to max games, in descending order based on the
 	//LastActivity. If gameType is not "", only returns games that are that
 	//gameType. If gameType is "", all gametypes are fine.
-	ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord
+	ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord
 
-	//UserIdsForGame returns an array whose length equals game.NumPlayers.
+	//UserIDsForGame returns an array whose length equals game.NumPlayers.
 	//Each one is either empty if there is no user in that slot yet, or the
 	//uid representing the user.
-	UserIdsForGame(gameId string) []string
+	UserIDsForGame(gameID string) []string
 
-	SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error
+	SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error
 
 	//Store or update all fields
 	UpdateUser(user *users.StorageRecord) error
 
-	GetUserById(uid string) *users.StorageRecord
+	GetUserByID(uid string) *users.StorageRecord
 
 	GetUserByCookie(cookie string) *users.StorageRecord
 

@@ -69,7 +69,7 @@ func ListGamesHelper(s AllGamesStorageManager, max int, list listing.Type, userI
 
 		eGame, _ := s.ExtendedGame(game.ID)
 
-		usersForGame := s.UserIdsForGame(game.ID)
+		usersForGame := s.UserIDsForGame(game.ID)
 
 		hasUser := false
 		numUsers := 0

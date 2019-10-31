@@ -44,13 +44,13 @@ type StorageManager interface {
 	Close()
 	ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord
 
-	UserIdsForGame(gameId string) []string
+	UserIDsForGame(gameId string) []string
 
 	SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error
 
 	UpdateUser(user *users.StorageRecord) error
 
-	GetUserById(uid string) *users.StorageRecord
+	GetUserByID(uid string) *users.StorageRecord
 
 	GetUserByCookie(cookie string) *users.StorageRecord
 
@@ -263,11 +263,11 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	var nilIds []string
 
-	ids := storage.UserIdsForGame("DEADBEEF")
+	ids := storage.UserIDsForGame("DEADBEEF")
 
 	assert.For(t).ThatActual(ids).Equals(nilIds)
 
-	ids = storage.UserIdsForGame(game.Id())
+	ids = storage.UserIDsForGame(game.Id())
 
 	assert.For(t).ThatActual(ids).Equals([]string{"", ""})
 
@@ -275,7 +275,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	cookie := "MYCOOKIE"
 
-	fetchedUser := storage.GetUserById(userId)
+	fetchedUser := storage.GetUserByID(userId)
 
 	var nilUser *users.StorageRecord
 
@@ -287,7 +287,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	fetchedUser = storage.GetUserById(userId)
+	fetchedUser = storage.GetUserByID(userId)
 
 	assert.For(t).ThatActual(fetchedUser).Equals(user)
 
@@ -307,7 +307,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	ids = storage.UserIdsForGame(game.Id())
+	ids = storage.UserIDsForGame(game.Id())
 
 	assert.For(t).ThatActual(ids).Equals([]string{userId, ""})
 
@@ -728,11 +728,11 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			//The Diff for when they aren't the same isn't very good, so do our own.
 			log.Println("Games")
 			for i, item := range games {
-				log.Println(i, item, storage.UserIdsForGame(item.ID))
+				log.Println(i, item, storage.UserIDsForGame(item.ID))
 			}
 			log.Println("Golden")
 			for i, item := range golden {
-				log.Println(i, item, storage.UserIdsForGame(item.ID))
+				log.Println(i, item, storage.UserIDsForGame(item.ID))
 			}
 
 		}

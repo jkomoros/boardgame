@@ -299,7 +299,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	s.setGame(c, game)
 
-	userIds := s.storage.UserIdsForGame(id)
+	userIds := s.storage.UserIDsForGame(id)
 
 	if userIds == nil {
 		s.logger.Errorln("No userIds associated with game", logrus.Fields{
@@ -364,7 +364,7 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 
 	user := s.getUser(c)
 
-	userIds := s.storage.UserIdsForGame(game.Id())
+	userIds := s.storage.UserIDsForGame(game.Id())
 
 	viewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents())
 
@@ -855,7 +855,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 
 	result := make([]*playerBoardInfo, game.NumPlayers)
 
-	userIds := s.storage.UserIdsForGame(game.ID)
+	userIds := s.storage.UserIDsForGame(game.ID)
 	agentNames := game.Agents
 
 	for i := range result {
@@ -884,7 +884,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 			continue
 		}
 
-		user := s.storage.GetUserById(userID)
+		user := s.storage.GetUserByID(userID)
 
 		if user == nil {
 			player.IsAgent = false

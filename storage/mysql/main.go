@@ -520,7 +520,7 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 
 }
 
-func (s *StorageManager) UserIdsForGame(gameId string) []string {
+func (s *StorageManager) UserIDsForGame(gameId string) []string {
 
 	if !s.connected {
 		return nil
@@ -596,7 +596,7 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	return nil
 }
 
-func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
+func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 	if !s.connected {
 		return nil
 	}
@@ -638,7 +638,7 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 		return nil
 	}
 
-	return s.GetUserById(cookieRecord.UserId)
+	return s.GetUserByID(cookieRecord.UserId)
 
 }
 
@@ -676,7 +676,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	}
 
 	//If user does not yet exist in database, put them in.
-	otherUser := s.GetUserById(user.ID)
+	otherUser := s.GetUserByID(user.ID)
 
 	if otherUser == nil {
 
