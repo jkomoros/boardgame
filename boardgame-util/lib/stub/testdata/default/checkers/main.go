@@ -50,12 +50,12 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	return moves.Combine(
 		moves.AddOrderedForPhase(
-			PhaseSetUp,
+			phaseSetUp,
 
 			//Because we used AddOrderedForPhase, this next move won't apply
 			//until the move before it is done applying.
 			auto.MustConfig(new(moves.StartPhase),
-				moves.WithPhaseToStart(PhaseNormal, PhaseEnum),
+				moves.WithPhaseToStart(phaseNormal, phaseEnum),
 				moves.WithHelpText("Move to the normal play phase."),
 			),
 		),

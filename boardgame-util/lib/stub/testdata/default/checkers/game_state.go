@@ -15,7 +15,7 @@ type gameState struct {
 	//base.GameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
 	//base.GameDelegate will automatically return this from PhaseEnum, CurrentPhase.
-	Phase enum.Val `enum:"Phase"`
+	Phase enum.Val `enum:"phase"`
 }
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {

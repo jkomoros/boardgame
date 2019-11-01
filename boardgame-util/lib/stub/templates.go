@@ -245,7 +245,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 		{{ else -}}
 		moves.AddOrderedForPhase(
-			PhaseSetUp,
+			phaseSetUp,
 			{{if .EnableExampleDeck -}}
 			//This move will keep on applying itself in round robin fashion
 			//until all of the cards are dealt.
@@ -258,13 +258,13 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//Because we used AddOrderedForPhase, this next move won't apply
 			//until the move before it is done applying.
 			auto.MustConfig(new(moves.StartPhase),
-				moves.WithPhaseToStart(PhaseNormal, PhaseEnum),
+				moves.WithPhaseToStart(phaseNormal, phaseEnum),
 				moves.WithHelpText("Move to the normal play phase."),
 			),
 		),
 		{{if .EnableExampleMoves }}
 		moves.AddForPhase(
-			PhaseNormal,
+			phaseNormal,
 			auto.MustConfig(new(moveDrawCard),
 				moves.WithHelpText("Draw a card from the deck when it's your turn"),
 			),
@@ -470,9 +470,9 @@ const templateContentsEnumGo = `package {{.Name}}
 //boardgame:codegen
 const(
 	//Because the naked Phase exists, this will be a TreeEnum. See package doc for "boardgame/enum" for more.
-	Phase = iota
-	PhaseSetUp
-	PhaseNormal
+	phase = iota
+	phaseSetUp
+	phaseNormal
 )
 
 `
@@ -571,7 +571,7 @@ type gameState struct {
 	{{- end}}
 	{{if not .SuppressPhase -}}
 	//base.GameDelegate will automatically return this from PhaseEnum, CurrentPhase.
-	Phase enum.Val ` + "`enum:\"Phase\"`" + `
+	Phase enum.Val ` + "`enum:\"phase\"`" + `
 	{{- end}}
 	{{if .EnableExampleDeck -}}
 	DrawStack boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `

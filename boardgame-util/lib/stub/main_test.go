@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
 //If true, will save out the files generated. Useful for generating new golden

@@ -46,7 +46,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	return moves.Combine(
 		moves.AddOrderedForPhase(
-			PhaseSetUp,
+			phaseSetUp,
 			//This move will keep on applying itself in round robin fashion
 			//until all of the cards are dealt.
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
@@ -57,13 +57,13 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//Because we used AddOrderedForPhase, this next move won't apply
 			//until the move before it is done applying.
 			auto.MustConfig(new(moves.StartPhase),
-				moves.WithPhaseToStart(PhaseNormal, PhaseEnum),
+				moves.WithPhaseToStart(phaseNormal, phaseEnum),
 				moves.WithHelpText("Move to the normal play phase."),
 			),
 		),
 
 		moves.AddForPhase(
-			PhaseNormal,
+			phaseNormal,
 			auto.MustConfig(new(moveDrawCard),
 				moves.WithHelpText("Draw a card from the deck when it's your turn"),
 			),

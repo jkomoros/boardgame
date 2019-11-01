@@ -15,7 +15,7 @@ type gameState struct {
 	//base.GameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
 	//base.GameDelegate will automatically return this from PhaseEnum, CurrentPhase.
-	Phase     enum.Val        `enum:"Phase"`
+	Phase     enum.Val        `enum:"phase"`
 	DrawStack boardgame.Stack `stack:"examplecards" sanitize:"len"`
 	//This is where the example config is stored in BeginSetup. We use it in
 	//gameState.CardsDone().
