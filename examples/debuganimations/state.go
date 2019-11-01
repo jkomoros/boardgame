@@ -21,7 +21,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	Phase               enum.Val              `enum:"Phase"`
+	Phase               enum.Val              `enum:"phase"`
 	DiscardStack        boardgame.Stack       `stack:"cards"`
 	DrawStack           boardgame.Stack       `stack:"cards" sanitize:"order"`
 	FirstShortStack     boardgame.Stack       `stack:"cards" sanitize:"order"`

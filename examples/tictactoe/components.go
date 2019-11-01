@@ -6,8 +6,8 @@ import (
 
 //boardgame:codegen
 const (
-	PhaseBeforeFirstMove = iota
-	PhaseAfterFirstMove
+	phaseBeforeFirstMove = iota
+	phaseAfterFirstMove
 )
 
 const (

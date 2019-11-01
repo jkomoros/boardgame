@@ -59,17 +59,17 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
-		moves.AddOrderedForPhase(PhaseSetup,
+		moves.AddOrderedForPhase(phaseSetup,
 			auto.MustConfig(
 				new(movePlaceToken),
 				moves.WithHelpText("Places one token at a time on the board."),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
-				moves.WithPhaseToStart(PhasePlaying, PhaseEnum),
+				moves.WithPhaseToStart(phasePlaying, phaseEnum),
 			),
 		),
-		moves.AddForPhase(PhasePlaying,
+		moves.AddForPhase(phasePlaying,
 			auto.MustConfig(
 				new(moveCrownToken),
 				moves.WithHelpText("Crowns tokens that make it to the other end of the board."),

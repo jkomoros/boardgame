@@ -11,14 +11,14 @@ import (
 
 //boardgame:codegen
 const (
-	PhaseSetup = iota
-	PhasePlaying
+	phaseSetup = iota
+	phasePlaying
 )
 
 //boardgame:codegen
 const (
-	ColorBlack = iota
-	ColorRed
+	colorBlack = iota
+	colorRed
 )
 
 //boardgame:codegen reader
@@ -38,7 +38,7 @@ const numTokens = 12
 const boardWidth = 8
 const boardSize = boardWidth * boardWidth
 
-var spacesEnum = enums.MustAddRange("Spaces", boardWidth, boardWidth)
+var spacesEnum = enums.MustAddRange("spaces", boardWidth, boardWidth)
 
 var graphDownward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionDown, graph.DirectionDiagonal)
 var graphUpward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionUp, graph.DirectionDiagonal)
@@ -58,13 +58,13 @@ func newTokenDeck() *boardgame.Deck {
 
 	for i := 0; i < numTokens; i++ {
 		deck.AddComponent(&token{
-			Color: ColorEnum.MustNewVal(ColorBlack),
+			Color: colorEnum.MustNewVal(colorBlack),
 		})
 	}
 
 	for i := 0; i < numTokens; i++ {
 		deck.AddComponent(&token{
-			Color: ColorEnum.MustNewVal(ColorRed),
+			Color: colorEnum.MustNewVal(colorRed),
 		})
 	}
 
@@ -79,7 +79,7 @@ func (t *token) Legal(state boardgame.ImmutableState, legalType int) error {
 	//Red starts at top, moves towards bottom
 	targetRow := boardWidth - 1
 
-	if t.Color.Value() == ColorBlack {
+	if t.Color.Value() == colorBlack {
 		//Black starts at top, moves towards bottom
 		targetRow = 0
 	}
@@ -129,7 +129,7 @@ func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int
 	//Red starts from top
 	fromBottom := false
 
-	if t.Color.Value() == ColorBlack {
+	if t.Color.Value() == colorBlack {
 		fromBottom = true
 	}
 

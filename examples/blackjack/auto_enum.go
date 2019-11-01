@@ -23,7 +23,7 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 	return enums
 }
 
-var PhaseEnum = enums.MustAdd("Phase", map[int]string{
-	PhaseInitialDeal: "Initial Deal",
-	PhaseNormalPlay:  "Normal Play",
+var phaseEnum = enums.MustAdd("phase", map[int]string{
+	phaseInitialDeal: "Initial Deal",
+	phaseNormalPlay:  "Normal Play",
 })

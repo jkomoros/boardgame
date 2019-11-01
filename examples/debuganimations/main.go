@@ -169,7 +169,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(new(moveMoveToken)),
 			auto.MustConfig(new(moveMoveTokenSanitized)),
 		),
-		moves.AddOrderedForPhase(PhaseNormal,
+		moves.AddOrderedForPhase(phaseNormal,
 			//Signaling if the button should move to or from visible (for
 			//example with a moves.MoveAllCompoennts wrapped in a struct that
 			//auto-selects the Source/Destination stack) is non-trivial since

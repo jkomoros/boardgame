@@ -11,7 +11,7 @@ import (
 //boardgame:codegen
 type movePlaceToken struct {
 	moves.FixUpMulti
-	TargetIndex enum.RangeVal `enum:"Spaces"`
+	TargetIndex enum.RangeVal `enum:"spaces"`
 }
 
 func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
@@ -29,7 +29,7 @@ func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 	//Red starts at top
 	fromBottom := false
 
-	if nextTokenVals.Color.Value() == ColorBlack {
+	if nextTokenVals.Color.Value() == colorBlack {
 		fromBottom = true
 	}
 
@@ -86,8 +86,8 @@ func (m *movePlaceToken) Apply(state boardgame.State) error {
 //boardgame:codegen
 type moveMoveToken struct {
 	moves.CurrentPlayer
-	TokenIndexToMove enum.RangeVal `enum:"Spaces"`
-	SpaceIndex       enum.RangeVal `enum:"Spaces"`
+	TokenIndexToMove enum.RangeVal `enum:"spaces"`
+	SpaceIndex       enum.RangeVal `enum:"spaces"`
 }
 
 func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {

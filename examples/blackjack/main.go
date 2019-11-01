@@ -188,7 +188,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
 		),
-		moves.AddForPhase(PhaseNormalPlay,
+		moves.AddForPhase(phaseNormalPlay,
 			auto.MustConfig(
 				new(moveCurrentPlayerHit),
 				moves.WithHelpText("The current player hits, drawing a card."),
@@ -207,7 +207,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
 			),
 		),
-		moves.AddOrderedForPhase(PhaseInitialDeal,
+		moves.AddOrderedForPhase(phaseInitialDeal,
 			auto.MustConfig(
 				new(moves.DealCountComponents),
 				moves.WithMoveName("Deal Initial Hidden Card"),
@@ -224,7 +224,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
-				moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
+				moves.WithPhaseToStart(phaseNormalPlay, phaseEnum),
 			),
 		),
 	)

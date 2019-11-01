@@ -12,8 +12,8 @@ import (
 
 //boardgame:codegen
 const (
-	PhaseInitialDeal = iota
-	PhaseNormalPlay
+	phaseInitialDeal = iota
+	phaseNormalPlay
 )
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -32,7 +32,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 type gameState struct {
 	base.SubState
 	moves.RoundRobinGameStateProperties
-	Phase         enum.Val        `enum:"Phase"`
+	Phase         enum.Val        `enum:"phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`

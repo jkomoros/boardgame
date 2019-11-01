@@ -11,7 +11,7 @@ import (
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	Phase         enum.Val `enum:"Phase"`
+	Phase         enum.Val `enum:"phase"`
 	CurrentPlayer boardgame.PlayerIndex
 	Spaces        boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
 	UnusedTokens  boardgame.Stack      `stack:"Tokens"`
@@ -21,7 +21,7 @@ type gameState struct {
 type playerState struct {
 	base.SubState
 	playerIndex boardgame.PlayerIndex
-	Color       enum.Val `enum:"Color"`
+	Color       enum.Val `enum:"color"`
 	//The tokens of the OTHER player that we've captured.
 	CapturedTokens boardgame.Stack `stack:"Tokens"`
 	FinishedTurn   bool

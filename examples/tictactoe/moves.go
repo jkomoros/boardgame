@@ -66,7 +66,7 @@ func (m *movePlaceToken) Apply(state boardgame.State) error {
 
 	u.TokensToPlaceThisTurn--
 
-	game.Phase.SetValue(PhaseAfterFirstMove)
+	game.Phase.SetValue(phaseAfterFirstMove)
 
 	return nil
 }

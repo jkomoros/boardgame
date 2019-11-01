@@ -6,8 +6,8 @@ import (
 
 //boardgame:codegen
 const (
-	Phase = iota
-	PhaseNormal
+	phase = iota
+	phaseNormal
 )
 
 var cardNames = []string{

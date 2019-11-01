@@ -27,7 +27,7 @@ type gameState struct {
 	Slots         boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
 	//We don't actually need this; we mainly do it because the storage manager
 	//tests use tictactoe as an example and need to test a phase transition.
-	Phase enum.Val `enum:"Phase"`
+	Phase enum.Val `enum:"phase"`
 }
 
 func (g *gameState) tokenValue(row, col int) string {

@@ -23,7 +23,7 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 	return enums
 }
 
-var PhaseEnum = enums.MustAdd("Phase", map[int]string{
-	PhaseAfterFirstMove:  "After First Move",
-	PhaseBeforeFirstMove: "Before First Move",
+var phaseEnum = enums.MustAdd("phase", map[int]string{
+	phaseAfterFirstMove:  "After First Move",
+	phaseBeforeFirstMove: "Before First Move",
 })

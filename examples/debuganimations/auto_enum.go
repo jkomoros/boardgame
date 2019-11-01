@@ -23,10 +23,10 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 	return enums
 }
 
-var PhaseEnum = enums.MustAddTree("Phase", map[int]string{
-	Phase:       "",
-	PhaseNormal: "Normal",
+var phaseEnum = enums.MustAddTree("phase", map[int]string{
+	phase:       "",
+	phaseNormal: "Normal",
 }, map[int]int{
-	Phase:       Phase,
-	PhaseNormal: Phase,
+	phase:       phase,
+	phaseNormal: phase,
 })
