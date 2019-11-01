@@ -138,10 +138,14 @@ func (g *GameDelegate) CurrentPhase(state boardgame.ImmutableState) int {
 
 }
 
-//PhaseEnum defaults to the enum named "Phase" which is the convention for the
-//name of the Phase enum. moves.Default will handle cases where that isn't a
-//valid enum gracefully.
+//PhaseEnum defaults to the enum named "phase" (or "Phase", if that doesn't
+//exist) which is the convention for the name of the Phase enum. moves.Default
+//will handle cases where that isn't a valid enum gracefully.
 func (g *GameDelegate) PhaseEnum() enum.Enum {
+	result := g.Manager().Chest().Enums().Enum("phase")
+	if result != nil {
+		return result
+	}
 	return g.Manager().Chest().Enums().Enum("Phase")
 }
 
