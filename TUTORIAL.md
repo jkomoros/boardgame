@@ -998,7 +998,7 @@ That's not a *particularly* interesting example. Here's the states for blackjack
 type gameState struct {
 	base.SubState
 	moves.RoundRobinGameStateProperties
-	Phase         enum.Val        `enum:"Phase"`
+	Phase         enum.Val        `enum:"phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
@@ -1435,7 +1435,7 @@ Given an enum, you can create an `enum.Val`, which is a container for a value fr
 //boardgame:codegen
 type gameState struct {
 	moveinterfaces.RoundRobinBaseGameState
-	Phase         enum.Val        `enum:"Phase"`
+	Phase         enum.Val        `enum:"phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
@@ -1450,12 +1450,15 @@ The `boardgame-util codegen` command can also help automate this, as you can see
 ```
 //boardgame:codegen
 const (
-	PhaseInitialDeal = iota
-	PhaseNormalPlay
+	phaseInitialDeal = iota
+	phaseNormalPlay
 )
 ```
 
-This will automatically create a global `Enums` EnumSet, and a global `PhaseEnum` that contains the two values, configured with the string values of "Initial Deal" and "Normal Play". You can find much more details on the conventions and how to configure `boardgame-util codegen` in the enums package doc.
+This will automatically create a global `enums` EnumSet, and a global `phaseEnum` that contains the two values, configured with the string values of "Initial Deal" and "Normal Play". You can find much more details on the conventions and how to configure `boardgame-util codegen` in the enums package doc.
+
+Note that the convention is to have your enum constants be package-private (that
+is, start with a lowercase letter), although the codegen tool will work either way.
 
 ### RangedEnum and Enum Graphs
 
@@ -1538,7 +1541,7 @@ If you're going to support the notion of phases, you'll need to store the curren
 type gameState struct {
 	base.SubState
 	moves.RoundRobinGameStateProperties
-	Phase         enum.Val        `enum:"Phase"`
+	Phase         enum.Val        `enum:"phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
@@ -1551,15 +1554,15 @@ We also need to define the values of the enum. In `examples/blackjack/components
 ```
 //boardgame:codegen
 const (
-	PhaseSetUp = iota
-	PhaseNormalPlay
-	PhaseScoring
+	phaseSetUp = iota
+	phaseNormalPlay
+	phaseScoring
 )
 ```
 
 In general it's easiest to use `boardgame-util codegen`'s enum-generation tool, which we do here.
 
-It's convention to name your phase enum as "Phase", and `moves.Default` will rely on that in some cases to create meaningful error messages. If you want to name it something different, override `GameDelegate.PhaseEnum`.
+It's convention to name your phase enum as "phase", and `moves.Default` will rely on that in some cases to create meaningful error messages. If you want to name it something different, override `GameDelegate.PhaseEnum`.
 
 Now we have to tell the engine what the current phase is. We do this by overriding a method on our gamedelegate, much like we do for CurrentPlayerIndex:
 ```
@@ -1627,7 +1630,7 @@ it's more legible when you have AddForPhase in the same block.
 
 #### Ordered Moves
 
-This machinery works great for moves that legal at any point within a phase, like in blackjack's `PhaseNormalPlay`.
+This machinery works great for moves that legal at any point within a phase, like in blackjack's `phaseNormalPlay`.
 
 However in many cases, like setting up a new round of a game, there are a series of moves that should be applied in a precise order, one after the other. Writing bespoke `Legal` methods that did complicated signaling to each other about when it was their turn would be very error prone.
 
@@ -1643,7 +1646,7 @@ You can see it in action in Blackjack:
 
 ```
 	//...
-		moves.AddOrderedForPhase(PhaseInitialDeal,
+		moves.AddOrderedForPhase(phaseInitialDeal,
 			auto.MustConfig(
 				new(moves.DealCountComponents),
 				moves.WithMoveName("Deal Initial Hidden Card"),
@@ -1660,7 +1663,7 @@ You can see it in action in Blackjack:
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
-				moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
+				moves.WithPhaseToStart(phaseNormalPlay, phaseEnum),
 			),
 		),
 	)
@@ -1714,7 +1717,7 @@ notion of a TreeEnum. A TreeEnum is like a normal Enum, except that it also
 encodes information about how the various values parent into one another to
 form a tree. You can learn more about how a TreeEnum works in the package doc for the enum package.
 
-The whole library (including the moves sub-package) will interpret PhaseEnums
+The whole library (including the moves sub-package) will interpret phaseEnums
 that also happen to be TreeEnums specially. They'll make sure, for example,
 that the delegate.CurrentPhase() is never in a non-leaf node phase. Also,
 moves.Default().Legal() will interpret a move that applies in a certain phase to
