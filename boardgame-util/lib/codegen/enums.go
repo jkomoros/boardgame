@@ -714,7 +714,7 @@ func (e *enum) StringValue(key string) string {
 
 	prefix := e.Prefix()
 
-	withNoPrefix := strings.Replace(key, prefix, "", -1)
+	withNoPrefix := strings.Replace(key, prefix, "", 1)
 	expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TreeNodeDelimiter, -1)
 
 	displayName = titleCaseToWords(expandedDelimiter)

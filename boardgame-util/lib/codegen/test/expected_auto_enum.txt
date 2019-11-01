@@ -148,3 +148,8 @@ var skipNodeEnum = enums.MustAddTree("skipNode", map[int]string{
 	skipNodeRed:        skipNode,
 	skipNodeRed_Circle: skipNodeRed,
 })
+
+var prefixBugEnum = enums.MustAdd("prefixBug", map[int]string{
+	prefixBugGreenprefixBug: "Greenprefix Bug",
+	prefixBugWhite:          "White",
+})

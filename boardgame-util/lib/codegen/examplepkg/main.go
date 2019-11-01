@@ -174,6 +174,15 @@ const (
 	skipNodeRed_Circle
 )
 
+//boardgame:codegen
+const (
+	prefixBugWhite = iota
+	//This case captures an earlier bug where an extra occurance of the prefix
+	//was wiped out for the string value. The desired string value is
+	//"Greenprefix Bug"
+	prefixBugGreenprefixBug
+)
+
 //boardgame:codegen all
 type myStruct struct {
 	base.SubState
