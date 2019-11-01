@@ -13,9 +13,9 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-var Enums = enum.NewSet()
+var enums = enum.NewSet()
 
-var SuitEnum = Enums.MustAdd("Suit", map[int]string{
+var SuitEnum = enums.MustAdd("Suit", map[int]string{
 	SuitClubs:    "\u2663",
 	SuitDiamonds: "\u2666",
 	SuitHearts:   "\u2665",
@@ -24,7 +24,7 @@ var SuitEnum = Enums.MustAdd("Suit", map[int]string{
 	SuitUnknown:  "\uFFFD",
 })
 
-var RankEnum = Enums.MustAdd("Rank", map[int]string{
+var RankEnum = enums.MustAdd("Rank", map[int]string{
 	Rank10:      "10",
 	Rank2:       "2",
 	Rank3:       "3",

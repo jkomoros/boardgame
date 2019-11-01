@@ -13,17 +13,17 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-var Enums = enum.NewSet()
+var enums = enum.NewSet()
 
-//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+//ConfigureEnums simply returns enums, the auto-generated Enums variable. This
 //is output because gameDelegate appears to be a struct that implements
 //boardgame.GameDelegate, and does not already have a ConfigureEnums
 //explicitly defined.
 func (g *gameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
+	return enums
 }
 
-var PhaseEnum = Enums.MustAdd("Phase", map[int]string{
+var PhaseEnum = enums.MustAdd("Phase", map[int]string{
 	PhaseInitialDeal: "Initial Deal",
 	PhaseNormalPlay:  "Normal Play",
 })

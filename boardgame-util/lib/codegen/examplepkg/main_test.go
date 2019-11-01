@@ -1,19 +1,20 @@
 package examplepkg
 
 import (
+	"testing"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/workfit/tester/assert"
-	"testing"
 )
 
 func TestEnum(t *testing.T) {
-	assert.For(t).ThatActual(Enums).IsNotNil()
-	assert.For(t).ThatActual(ColorEnum).IsNotNil()
+	assert.For(t).ThatActual(enums).IsNotNil()
+	assert.For(t).ThatActual(colorEnum).IsNotNil()
 
-	assert.For(t).ThatActual(ColorEnum.ValueFromString("Unknown")).Equals(ColorUnknown)
-	assert.For(t).ThatActual(ColorEnum.ValueFromString("Red")).Equals(ColorRed)
-	assert.For(t).ThatActual(ColorEnum.ValueFromString("Green")).Equals(ColorGreen)
-	assert.For(t).ThatActual(ColorEnum.ValueFromString("Blue")).Equals(ColorBlue)
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Unknown")).Equals(colorUnknown)
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Red")).Equals(colorRed)
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Green")).Equals(colorGreen)
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Blue")).Equals(colorBlue)
 
 }
 

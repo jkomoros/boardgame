@@ -13,138 +13,138 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-var Enums = enum.NewSet()
+var enums = enum.NewSet()
 
-//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+//ConfigureEnums simply returns enums, the auto-generated Enums variable. This
 //is output because gameDelegate appears to be a struct that implements
 //boardgame.GameDelegate, and does not already have a ConfigureEnums
 //explicitly defined.
 func (g *gameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
+	return enums
 }
 
-//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+//ConfigureEnums simply returns enums, the auto-generated Enums variable. This
 //is output because secondGameDelegate appears to be a struct that implements
 //boardgame.GameDelegate, and does not already have a ConfigureEnums
 //explicitly defined.
 func (s *secondGameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
+	return enums
 }
 
-var ColorEnum = Enums.MustAdd("Color", map[int]string{
-	ColorBlue:    "Blue",
-	ColorGreen:   "Green",
-	ColorRed:     "Red",
-	ColorUnknown: "Unknown",
+var colorEnum = enums.MustAdd("color", map[int]string{
+	colorBlue:    "Blue",
+	colorGreen:   "Green",
+	colorRed:     "Red",
+	colorUnknown: "Unknown",
 })
 
-var PhaseEnum = Enums.MustAdd("Phase", map[int]string{
-	PhaseMultiWord:    "Multi Word",
-	PhaseUnknown:      "Unknown",
-	PhaseVeryLongName: "Very Long Name",
+var phaseEnum = enums.MustAdd("phase", map[int]string{
+	phaseMultiWord:    "Multi Word",
+	phaseUnknown:      "Unknown",
+	phaseVeryLongName: "Very Long Name",
 })
 
-var FooEnum = Enums.MustAdd("Foo", map[int]string{
-	FooBlue:           "Blue",
-	FooOverride:       "Green",
-	FooOverrideBlank:  "",
-	FooOverrideQuoted: "My name is \"Blue\"",
+var fooEnum = enums.MustAdd("foo", map[int]string{
+	fooBlue:           "Blue",
+	fooOverride:       "Green",
+	fooOverrideBlank:  "",
+	fooOverrideQuoted: "My name is \"Blue\"",
 })
 
-var TransformExampleEnum = Enums.MustAdd("TransformExample", map[int]string{
-	TransformExampleLowerCase:                 "lower case",
-	TransformExampleNormalConfiguredTransform: "Normal Configured Transform",
-	TransformExampleNormalTransform:           "Normal Transform",
-	TransformExampleUpperCase:                 "UPPER CASE",
+var transformExampleEnum = enums.MustAdd("transformExample", map[int]string{
+	transformExampleLowerCase:                 "lower case",
+	transformExampleNormalConfiguredTransform: "Normal Configured Transform",
+	transformExampleNormalTransform:           "Normal Transform",
+	transformExampleUpperCase:                 "UPPER CASE",
 })
 
-var DefaultTransformEnum = Enums.MustAdd("DefaultTransform", map[int]string{
-	DefaultTransformBlue:  "BLUE",
-	DefaultTransformGreen: "GREEN",
-	DefaultTransformRed:   "Red",
+var defaultTransformEnum = enums.MustAdd("defaultTransform", map[int]string{
+	defaultTransformBlue:  "BLUE",
+	defaultTransformGreen: "GREEN",
+	defaultTransformRed:   "Red",
 })
 
-var TreeEnum = Enums.MustAddTree("Tree", map[int]string{
-	Tree:      "",
-	TreeBlue:  "Blue",
-	TreeGreen: "Green",
-	TreeRed:   "Red",
+var treeEnum = enums.MustAddTree("tree", map[int]string{
+	tree:      "",
+	treeBlue:  "Blue",
+	treeGreen: "Green",
+	treeRed:   "Red",
 }, map[int]int{
-	Tree:      Tree,
-	TreeBlue:  Tree,
-	TreeGreen: Tree,
-	TreeRed:   Tree,
+	tree:      tree,
+	treeBlue:  tree,
+	treeGreen: tree,
+	treeRed:   tree,
 })
 
-var BlamEnum = Enums.MustAddTree("Blam", map[int]string{
-	Blam:        "",
-	BlamOne:     "One",
-	BlamOne_One: "One",
-	BlamOne_Two: "Two",
-	BlamThree:   "Three",
-	BlamTwo:     "Two",
-	BlamTwo_One: "One",
+var blamEnum = enums.MustAddTree("blam", map[int]string{
+	blam:        "",
+	blamOne:     "One",
+	blamOne_One: "One",
+	blamOne_Two: "Two",
+	blamThree:   "Three",
+	blamTwo:     "Two",
+	blamTwo_One: "One",
 }, map[int]int{
-	Blam:        Blam,
-	BlamOne:     Blam,
-	BlamOne_One: BlamOne,
-	BlamOne_Two: BlamOne,
-	BlamThree:   Blam,
-	BlamTwo:     Blam,
-	BlamTwo_One: BlamTwo,
+	blam:        blam,
+	blamOne:     blam,
+	blamOne_One: blamOne,
+	blamOne_Two: blamOne,
+	blamThree:   blam,
+	blamTwo:     blam,
+	blamTwo_One: blamTwo,
 })
 
-var ExampleEnum = Enums.MustAddTree("Example", map[int]string{
-	Example:        "",
-	ExampleOne:     "One",
-	ExampleOneOne:  "One",
-	ExampleOne_Two: "Two",
-	ExampleTwo:     "Two",
+var exampleEnum = enums.MustAddTree("example", map[int]string{
+	example:        "",
+	exampleOne:     "One",
+	exampleOneOne:  "One",
+	exampleOne_Two: "Two",
+	exampleTwo:     "Two",
 }, map[int]int{
-	Example:        Example,
-	ExampleOne:     Example,
-	ExampleOneOne:  ExampleOne,
-	ExampleOne_Two: ExampleOne,
-	ExampleTwo:     Example,
+	example:        example,
+	exampleOne:     example,
+	exampleOneOne:  exampleOne,
+	exampleOne_Two: exampleOne,
+	exampleTwo:     example,
 })
 
-//Implicitly created constants for MultiWordTree
+//Implicitly created constants for multiWordTree
 const (
-	MultiWordTreeBlueGreenOne = iota - 9223372036854775808
-	MultiWordTreeBlueGreenThree
+	multiWordTreeBlueGreenOne = iota - 9223372036854775808
+	multiWordTreeBlueGreenThree
 )
 
-var MultiWordTreeEnum = Enums.MustAddTree("MultiWordTree", map[int]string{
-	MultiWordTree:                 "",
-	MultiWordTreeBlueGreen:        "Blue Green",
-	MultiWordTreeBlueGreenOne:     "One",
-	MultiWordTreeBlueGreenOneA:    "A",
-	MultiWordTreeBlueGreenOneB:    "B",
-	MultiWordTreeBlueGreenThree:   "Three",
-	MultiWordTreeBlueGreenThree_A: "A",
-	MultiWordTreeBlueGreenTwoA:    "Two A",
+var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[int]string{
+	multiWordTree:                 "",
+	multiWordTreeBlueGreen:        "Blue Green",
+	multiWordTreeBlueGreenOne:     "One",
+	multiWordTreeBlueGreenOneA:    "A",
+	multiWordTreeBlueGreenOneB:    "B",
+	multiWordTreeBlueGreenThree:   "Three",
+	multiWordTreeBlueGreenThree_A: "A",
+	multiWordTreeBlueGreenTwoA:    "Two A",
 }, map[int]int{
-	MultiWordTree:                 MultiWordTree,
-	MultiWordTreeBlueGreen:        MultiWordTree,
-	MultiWordTreeBlueGreenOne:     MultiWordTreeBlueGreen,
-	MultiWordTreeBlueGreenOneA:    MultiWordTreeBlueGreenOne,
-	MultiWordTreeBlueGreenOneB:    MultiWordTreeBlueGreenOne,
-	MultiWordTreeBlueGreenThree:   MultiWordTreeBlueGreen,
-	MultiWordTreeBlueGreenThree_A: MultiWordTreeBlueGreenThree,
-	MultiWordTreeBlueGreenTwoA:    MultiWordTreeBlueGreen,
+	multiWordTree:                 multiWordTree,
+	multiWordTreeBlueGreen:        multiWordTree,
+	multiWordTreeBlueGreenOne:     multiWordTreeBlueGreen,
+	multiWordTreeBlueGreenOneA:    multiWordTreeBlueGreenOne,
+	multiWordTreeBlueGreenOneB:    multiWordTreeBlueGreenOne,
+	multiWordTreeBlueGreenThree:   multiWordTreeBlueGreen,
+	multiWordTreeBlueGreenThree_A: multiWordTreeBlueGreenThree,
+	multiWordTreeBlueGreenTwoA:    multiWordTreeBlueGreen,
 })
 
-//Implicitly created constants for SkipNode
+//Implicitly created constants for skipNode
 const (
-	SkipNodeRed = iota - 9223372036854775808
+	skipNodeRed = iota - 9223372036854775808
 )
 
-var SkipNodeEnum = Enums.MustAddTree("SkipNode", map[int]string{
-	SkipNode:           "",
-	SkipNodeRed:        "Red",
-	SkipNodeRed_Circle: "Circle",
+var skipNodeEnum = enums.MustAddTree("skipNode", map[int]string{
+	skipNode:           "",
+	skipNodeRed:        "Red",
+	skipNodeRed_Circle: "Circle",
 }, map[int]int{
-	SkipNode:           SkipNode,
-	SkipNodeRed:        SkipNode,
-	SkipNodeRed_Circle: SkipNodeRed,
+	skipNode:           skipNode,
+	skipNodeRed:        skipNode,
+	skipNodeRed_Circle: skipNodeRed,
 })

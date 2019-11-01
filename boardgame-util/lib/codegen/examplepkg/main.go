@@ -72,106 +72,106 @@ func (f *fakeGameDelegateWrongReturnType) ConfigureMoves() *base.GameDelegate {
 
 //boardgame:codegen
 const (
-	ColorUnknown = iota
-	ColorBlue
-	ColorGreen
-	ColorRed
+	colorUnknown = iota
+	colorBlue
+	colorGreen
+	colorRed
 )
 
 //boardgame:codegen
 const (
-	PhaseUnknown = iota
-	PhaseMultiWord
-	PhaseVeryLongName
+	phaseUnknown = iota
+	phaseMultiWord
+	phaseVeryLongName
 )
 
 //boardgame:codegen
 const (
 	//display:""
-	FooOverrideBlank = iota
+	fooOverrideBlank = iota
 	//This shouldn't have any weird output
-	FooBlue
+	fooBlue
 	//This should work even though enum instruction is in second line.
 	//display:"Green"
-	FooOverride
+	fooOverride
 	//display:"My name is \"Blue\""
-	FooOverrideQuoted
+	fooOverrideQuoted
 )
 
 //boardgame:codegen
 const (
-	TransformExampleNormalTransform = iota
+	transformExampleNormalTransform = iota
 	//transform: lower
-	TransformExampleLowerCase
+	transformExampleLowerCase
 	//Transform:UPPER
-	TransformExampleUpperCase
+	transformExampleUpperCase
 	//transform:none
-	TransformExampleNormalConfiguredTransform
+	transformExampleNormalConfiguredTransform
 )
 
 //boardgame:codegen
 //transform: upper
 const (
-	DefaultTransformBlue = iota
-	DefaultTransformGreen
+	defaultTransformBlue = iota
+	defaultTransformGreen
 	//transform:none
-	DefaultTransformRed
+	defaultTransformRed
 )
 
 const (
-	DontIncludeBlue = iota
-	DontIncludeGreen
-)
-
-//boardgame:codegen
-const (
-	Tree = iota
-	TreeBlue
-	TreeGreen
-	TreeRed
+	dontIncludeBlue = iota
+	dontIncludeGreen
 )
 
 //boardgame:codegen
 const (
-	Blam = iota
-	BlamOne
-	BlamTwo
-	BlamThree
-	BlamOne_One
-	BlamOne_Two
-	BlamTwo_One
+	tree = iota
+	treeBlue
+	treeGreen
+	treeRed
 )
 
 //boardgame:codegen
 const (
-	Example = iota
-	ExampleOne
-	ExampleTwo
+	blam = iota
+	blamOne
+	blamTwo
+	blamThree
+	blamOne_One
+	blamOne_Two
+	blamTwo_One
+)
+
+//boardgame:codegen
+const (
+	example = iota
+	exampleOne
+	exampleTwo
 	//display:"One > One"
-	ExampleOneOne
-	ExampleOne_Two
+	exampleOneOne
+	exampleOne_Two
 )
 
 //boardgame:codegen
 const (
-	MultiWordTree = iota
-	MultiWordTreeBlueGreen
+	multiWordTree = iota
+	multiWordTreeBlueGreen
 	//MultiWordTreeBlueGreenOne is implied; a consistent int stand-in will be
 	//created.
-	MultiWordTreeBlueGreenOneA
-	MultiWordTreeBlueGreenOneB
+	multiWordTreeBlueGreenOneA
+	multiWordTreeBlueGreenOneB
 	//The next item will result in a single child named "Two A"
-	MultiWordTreeBlueGreenTwoA
+	multiWordTreeBlueGreenTwoA
 	//The next item will result in a child of Three followed by a child of
 	//A since there's an explicit tree break.
-	MultiWordTreeBlueGreenThree_A
+	multiWordTreeBlueGreenThree_A
 )
 
 //boardgame:codegen
 const (
-	SkipNode = iota
+	skipNode = iota
 	//SkipNodeRed is implied but not listed
-	SkipNodeRed_Circle
+	skipNodeRed_Circle
 )
 
 //boardgame:codegen all

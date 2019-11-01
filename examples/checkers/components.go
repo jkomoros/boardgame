@@ -38,7 +38,7 @@ const numTokens = 12
 const boardWidth = 8
 const boardSize = boardWidth * boardWidth
 
-var spacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
+var spacesEnum = enums.MustAddRange("Spaces", boardWidth, boardWidth)
 
 var graphDownward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionDown, graph.DirectionDiagonal)
 var graphUpward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionUp, graph.DirectionDiagonal)

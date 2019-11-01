@@ -1248,16 +1248,16 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-var Enums = enum.NewSet()
+var enums = enum.NewSet()
 
 `
 
-const enumDelegateTemplateText = `//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+const enumDelegateTemplateText = `//ConfigureEnums simply returns enums, the auto-generated Enums variable. This
 //is output because {{.delegateName}} appears to be a struct that implements
 //boardgame.GameDelegate, and does not already have a ConfigureEnums
 //explicitly defined.
 func ({{firstLetter .delegateName}} *{{.delegateName}}) ConfigureEnums() *enum.Set {
-	return Enums
+	return enums
 }
 
 `
@@ -1272,7 +1272,7 @@ const (
 )
 
 {{ end -}}
-var {{.prefix}}Enum = Enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[int]string{
+var {{.prefix}}Enum = enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[int]string{
 	{{ $prefix := .prefix -}}
 	{{range $name, $value := .values -}}
 	{{$name}}: "{{$value}}",
