@@ -14,29 +14,33 @@ create an EnumValue which can be used as a property on a PropertyReader object.
 
 The idiomatic way to create an enum is the following.
 
-In components.go: const (ColorRed = iota ColorBlue ColorGreen
+In components.go:
+	const (
+		colorRed = iota
+		colorBlue
+		colorGreen
     )
 
     const (
-        CardSpade = iota
-        CardHeart
-        CardDiamond
-        CardClub
+        cardSpade = iota
+        cardHeart
+        cardDiamond
+        cardClub
     )
 
-    var Enums = enum.NewSet()
+    var enums = enum.NewSet()
 
-    var ColorEnum = Enums.MustAdd("Color", map[int]string{
-        ColorRed: "Red",
-        ColorBlue: "Blue",
-        ColorGreen: "Green",
+    var colorEnum = enums.MustAdd("color", map[int]string{
+        colorRed: "Red",
+        colorBlue: "Blue",
+        colorGreen: "Green",
     })
 
-    var CardEnum = Enums.MustAdd("Card", map[int]string{
-        CardSpade: "Spade",
-        CardHeart: "Heart",
-        CardDiamond: "Diamond",
-        CardClub: "Club",
+    var cardEnum = enums.MustAdd("card", map[int]string{
+        cardSpade: "Spade",
+        cardHeart: "Heart",
+        cardDiamond: "Diamond",
+        cardClub: "Club",
     })
 
 And then in your main.go:
@@ -48,12 +52,12 @@ And then in your main.go:
         //doc for more.
         return &gameState{
             MyIntProp: 0,
-            MyColorEnumProp: ColorEnum.NewVal(),
+            MyColorEnumProp: colorEnum.NewVal(),
         }
     }
 
     func (g *GameDelegate) ConfigureEnums() *enum.Set {
-        return Enums
+        return enums
     }
 
 This is a fair bit of boilerplate to inlude in your components.go. You can use
@@ -65,17 +69,17 @@ following:
 
     //boardgame:codegen
     const (
-        ColorRed = iota
-        ColorBlue
-        ColorGreen
+        colorRed = iota
+        colorBlue
+        colorGreen
     )
 
     //boardgame:codegen
     const (
-        CardSpade = iota
-        CardHeart
-        CardDiamond
-        CardClub
+        cardSpade = iota
+        cardHeart
+        cardDiamond
+        cardClub
     )
 
 Then, the rest of the example code shown above in components.go would be
@@ -129,9 +133,9 @@ currently ignored due to #631).
     //boardgame:codegen
     const (
       //Because the next item's string value is "" (there is no text beyond the shared prefix), this will be a tree enum
-      Phase = iota
-      PhaseRed
-      PhaseBlue
+      phase = iota
+      phaseRed
+      phaseBlue
     )
 
 Creates a TreeEnum shaped like:
@@ -145,13 +149,13 @@ final string values, splitting at "> " as the delimeter:
 
     //boardgame:codegen
     const (
-      Phase = iota
-      PhaseRed
+      phase = iota
+      phaseRed
       //display:"Red > Circle"
-      PhaseRedCircle
-      PhaseBlue
+      phaseRedCircle
+      phaseBlue
       //display:"Blue > Circle"
-      PhaseBlueCircle
+      phaseBlueCircle
     )
 
 Creates:
@@ -168,12 +172,12 @@ string value:
 
     //boardgame:codegen
     const (
-      Phase = iota
-      PhaseRed
+      phase = iota
+      phaseRed
       //Next line's string value is "Red > Circle"
-      PhaseRed_Circle
-      PhaseBlue
-      PhaseBlue_Circle
+      phaseRed_Circle
+      phaseBlue
+      phaseBlue_Circle
     )
 
 Creates:
@@ -189,10 +193,10 @@ code, codegen will define a reasonably-named global constant automatically.
 
     //boardgame:codegen
     const (
-        Phase = iota
-        //PhaseRed is not explicitly created, but it is implied by
-        //PhaseRed_Circle; PhaseRed will be created
-        PhaseRed_Circle
+        phase = iota
+        //phaseRed is not explicitly created, but it is implied by
+        //phaseRed_Circle; PhaseRed will be created
+        phaseRed_Circle
     )
 Creates:
     ""
@@ -211,17 +215,17 @@ display value that includes the delimiter there, or by using the underscore.
 
     //boardgame:codegen
     const (
-        Phase = iota
-        PhaseBlueGreen
-        //PhaseBlueGreenOne is implied; a constant named PhaseBlueGreenOne
+        phase = iota
+        phaseBlueGreen
+        //phaseBlueGreenOne is implied; a constant named phaseBlueGreenOne
         //will be created
-        PhaseBlueGreenOneA
-        PhaseBlueGreenOneB
+        phaseBlueGreenOneA
+        phaseBlueGreenOneB
         //The next item will result in a single child named "Two A"
-        PhaseBlueGreenTwoA
+        phaseBlueGreenTwoA
         //The next item will result in a child of Three followed by a child of
         //A since there's an explicit tree break.
-        PhaseBlueGreenThree_A
+        phaseBlueGreenThree_A
     )
 Creates:
     ""
