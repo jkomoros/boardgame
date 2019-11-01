@@ -322,7 +322,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 		slot := emptySlots[0]
 
-		if err := s.storage.SetPlayerForGame(game.Id(), slot, user.ID); err != nil {
+		if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
 			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
 			return
 		}
@@ -364,7 +364,7 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 
 	user := s.getUser(c)
 
-	userIds := s.storage.UserIDsForGame(game.Id())
+	userIds := s.storage.UserIDsForGame(game.ID())
 
 	viewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents())
 
@@ -379,7 +379,7 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 		return
 	}
 
-	eGame, err := s.storage.ExtendedGame(game.Id())
+	eGame, err := s.storage.ExtendedGame(game.ID())
 
 	if err != nil {
 		r.Error(errors.New("Couldn't get extended information about game: " + err.Error()))
@@ -403,7 +403,7 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 
 	slot := emptySlots[0]
 
-	if err := s.storage.SetPlayerForGame(game.Id(), slot, user.ID); err != nil {
+	if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
 		r.Error(errors.New("Tried to set the user as player " + slot.String() + " but failed: " + err.Error()))
 		return
 	}
@@ -468,7 +468,7 @@ func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	eGame, err := s.storage.ExtendedGame(game.Id())
+	eGame, err := s.storage.ExtendedGame(game.ID())
 
 	if err != nil {
 		r.Error(errors.New("Couldn't retrieve saved game: " + err.Error()))
@@ -481,13 +481,13 @@ func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boa
 
 	//TODO: set Open, Visible based on query params.
 
-	if err := s.storage.UpdateExtendedGame(game.Id(), eGame); err != nil {
+	if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
 		r.Error(errors.New("Couldn't save extended game metadata: " + err.Error()))
 		return
 	}
 
 	r.Success(gin.H{
-		"GameId":   game.Id(),
+		"GameId":   game.ID(),
 		"GameName": game.Name(),
 	})
 }
@@ -722,7 +722,7 @@ func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromV
 		return
 	}
 
-	moves, err := s.storage.Moves(game.Id(), fromVersion, version)
+	moves, err := s.storage.Moves(game.ID(), fromVersion, version)
 
 	//if there aren't any moves, that's only legal if it's the first version,
 	//which happens sometimes when the player requests to view the game as a
@@ -756,7 +756,7 @@ func (s *Server) configureGameHandler(c *gin.Context) {
 	var gameID string
 
 	if game != nil {
-		gameID = game.Id()
+		gameID = game.ID()
 	}
 
 	gameInfo, _ := s.storage.ExtendedGame(gameID)
@@ -802,7 +802,7 @@ func (s *Server) doConfigureGame(r *renderer, user *users.StorageRecord, isAdmin
 	gameInfo.Open = open
 	gameInfo.Visible = visible
 
-	if err := s.storage.UpdateExtendedGame(game.Id(), gameInfo); err != nil {
+	if err := s.storage.UpdateExtendedGame(game.ID(), gameInfo); err != nil {
 		r.Error(errors.New("Error updating the extended game: " + err.Error()))
 		return
 	}
@@ -826,7 +826,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 	var gameID string
 
 	if game != nil {
-		gameID = game.Id()
+		gameID = game.ID()
 	}
 
 	//TODO: should this be done in gameAPISetup?

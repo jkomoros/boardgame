@@ -208,7 +208,7 @@ func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move M
 
 	record := &timerRecord{
 		id:       randomString(timerIDLength, state.Rand()),
-		gameID:   state.Game().Id(),
+		gameID:   state.Game().ID(),
 		index:    -1,
 		duration: duration,
 		//fireTime will be set when StartTimer is called. For now, set it to

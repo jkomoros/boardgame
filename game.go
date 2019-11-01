@@ -191,12 +191,12 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface
 		"CurrentState":       state,
 		"CurrentPlayerIndex": g.manager.delegate.CurrentPlayerIndex(state),
 		"Diagram":            state.Diagram(),
-		"Id":                 g.Id(),
+		"Id":                 g.ID(),
 		"NumPlayers":         g.NumPlayers(),
 		"Agents":             g.Agents(),
 		"Variant":            g.Variant(),
 		"Version":            g.Version(),
-		"ActiveTimers":       g.manager.timers.ActiveTimersForGame(g.Id()),
+		"ActiveTimers":       g.manager.timers.ActiveTimersForGame(g.ID()),
 	}
 }
 
@@ -218,7 +218,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		Finished:   g.Finished(),
 		Created:    g.Created(),
 		Modified:   g.Modified(),
-		ID:         g.Id(),
+		ID:         g.ID(),
 		SecretSalt: g.secretSalt,
 		NumPlayers: g.NumPlayers(),
 		Agents:     g.Agents(),
@@ -232,9 +232,9 @@ func (g *Game) Name() string {
 	return g.manager.Delegate().Name()
 }
 
-//Id returns the unique id string that corresponds to this particular game.
+//ID returns the unique id string that corresponds to this particular game.
 //The ID is used in URLs and to retrieve this particular game from storage.
-func (g *Game) Id() string {
+func (g *Game) ID() string {
 	return g.id
 }
 
@@ -266,7 +266,7 @@ func (g *Game) State(version int) ImmutableState {
 		return nil
 	}
 
-	record, err := g.manager.Storage().State(g.Id(), version)
+	record, err := g.manager.Storage().State(g.ID(), version)
 
 	if err != nil {
 		g.manager.Logger().WithField("version", version).Error("State retrieval failed" + err.Error())
@@ -296,7 +296,7 @@ func (g *Game) Move(version int) (Move, error) {
 		return nil, errors.New("Invalid version")
 	}
 
-	record, err := g.manager.Storage().Move(g.Id(), version)
+	record, err := g.manager.Storage().Move(g.ID(), version)
 
 	if err != nil {
 		return nil, errors.New("State retrieval failed" + err.Error() + strconv.Itoa(version))
@@ -332,7 +332,7 @@ func (g *Game) MoveRecords(upToVersion int) []*MoveStorageRecord {
 	if g.cachedHistoricalMoves == nil {
 
 		//Our cache is of ALL moves.
-		moves, err := g.manager.Storage().Moves(g.Id(), 0, g.Version())
+		moves, err := g.manager.Storage().Moves(g.ID(), 0, g.Version())
 
 		if err != nil {
 			g.Manager().Logger().Errorln("Fetching moves failed: " + err.Error())
@@ -506,7 +506,7 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 			continue
 		}
 
-		if err := g.Manager().storage.SaveAgentState(g.Id(), PlayerIndex(i), agentState); err != nil {
+		if err := g.Manager().storage.SaveAgentState(g.ID(), PlayerIndex(i), agentState); err != nil {
 			return baseErr.WithError("Couldn't save state for agent " + strconv.Itoa(i) + ": " + err.Error())
 		}
 	}
@@ -621,7 +621,7 @@ func (g *Game) MoveByName(name string) Move {
 //call this.
 func (g *Game) Refresh() {
 
-	freshGame := g.manager.Game(g.Id())
+	freshGame := g.manager.Game(g.ID())
 
 	g.cachedCurrentState = nil
 	g.cachedHistoricalMoves = nil
@@ -689,7 +689,7 @@ func (g *Game) triggerAgents() error {
 			return errors.New("Couldn't find agent for #" + strconv.Itoa(i) + ": " + name)
 		}
 
-		agentState, err := g.Manager().Storage().AgentState(g.Id(), PlayerIndex(i))
+		agentState, err := g.Manager().Storage().AgentState(g.ID(), PlayerIndex(i))
 
 		if err != nil {
 			return errors.New("Couldn't load state for agent #" + strconv.Itoa(i) + ": " + err.Error())
@@ -698,7 +698,7 @@ func (g *Game) triggerAgents() error {
 		move, newState := agent.ProposeMove(g, PlayerIndex(i), agentState)
 
 		if newState != nil {
-			if err := g.Manager().Storage().SaveAgentState(g.Id(), PlayerIndex(i), newState); err != nil {
+			if err := g.Manager().Storage().SaveAgentState(g.ID(), PlayerIndex(i), newState); err != nil {
 				return errors.New("Failed to store new state for agent #" + strconv.Itoa(i) + ": " + err.Error())
 			}
 		}

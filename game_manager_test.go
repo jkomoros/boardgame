@@ -2,10 +2,11 @@ package boardgame
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame/enum"
-	"github.com/workfit/tester/assert"
 	"strings"
 	"testing"
+
+	"github.com/jkomoros/boardgame/enum"
+	"github.com/workfit/tester/assert"
 )
 
 const (
@@ -185,7 +186,7 @@ func TestGameManagerModifiableGame(t *testing.T) {
 	manager := game.Manager()
 
 	//use ToLower to verify that ID comparison is not case sensitive.
-	otherGame := manager.ModifiableGame(strings.ToLower(game.Id()))
+	otherGame := manager.ModifiableGame(strings.ToLower(game.ID()))
 
 	if game != otherGame {
 		t.Error("ModifiableGame didn't give back the same game that already existed")
@@ -194,7 +195,7 @@ func TestGameManagerModifiableGame(t *testing.T) {
 	//OK, forget about the real game to test us making a new one.
 	manager.modifiableGames = make(map[string]*Game)
 
-	otherGame = manager.ModifiableGame(game.Id())
+	otherGame = manager.ModifiableGame(game.ID())
 
 	if otherGame == nil {
 		t.Error("Other game didn't return anything even though it was in storage!")

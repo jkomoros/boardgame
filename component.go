@@ -333,7 +333,7 @@ func (c componentInstance) ID() string {
 	input := "insecuredefaultinput"
 
 	game := c.statePtr.game
-	input = game.Id() + game.secretSalt
+	input = game.ID() + game.secretSalt
 
 	input += c.Deck().Name() + strconv.Itoa(c.DeckIndex())
 

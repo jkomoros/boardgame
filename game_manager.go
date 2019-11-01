@@ -525,14 +525,14 @@ func (g *GameManager) modifiableGameCreated(game *Game) error {
 	}
 
 	g.modifiableGamesLock.RLock()
-	_, ok := g.modifiableGames[game.Id()]
+	_, ok := g.modifiableGames[game.ID()]
 	g.modifiableGamesLock.RUnlock()
 
 	if ok {
 		return errors.New("modifiableGameCreated collided with existing game")
 	}
 
-	id := strings.ToUpper(game.Id())
+	id := strings.ToUpper(game.ID())
 
 	g.modifiableGamesLock.Lock()
 	g.modifiableGames[id] = game
@@ -801,7 +801,7 @@ func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, prop
 	//DelayedError anyway.
 
 	go func() {
-		game := g.ModifiableGame(nonModifiableGame.Id())
+		game := g.ModifiableGame(nonModifiableGame.ID())
 
 		if game == nil {
 			errChan <- errors.New("There was no game with that ID")

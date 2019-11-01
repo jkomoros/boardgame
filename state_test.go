@@ -198,7 +198,7 @@ func TestSecretMoveCount(t *testing.T) {
 
 	//Read back in the game and verify that the secretMoveCount round-tripped.
 
-	refriedGame := game.manager.Game(game.Id())
+	refriedGame := game.manager.Game(game.ID())
 
 	refriedGameState, _ := concreteStates(refriedGame.CurrentState())
 
@@ -284,7 +284,7 @@ func TestState(t *testing.T) {
 
 	testSubStatesHaveStateSet(t, theStateCopy.(*state))
 
-	record, err := game.Manager().Storage().State(game.Id(), game.Version())
+	record, err := game.Manager().Storage().State(game.ID(), game.Version())
 
 	if err != nil {
 		t.Error("Unexpected error", err)

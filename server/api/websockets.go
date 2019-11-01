@@ -79,7 +79,7 @@ func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNoti
 		notifier: notifier,
 		conn:     conn,
 		send:     make(chan []byte, 256),
-		gameID:   game.Id(),
+		gameID:   game.ID(),
 	}
 	go result.readPump()
 	go result.writePump()
@@ -87,7 +87,7 @@ func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNoti
 	//As soon as the socke tis opened, send the current version. That way if
 	//the connection broke right when the version changed, we'll still catch up.
 	result.SendMessage(gameVersionChanged{
-		ID:      game.Id(),
+		ID:      game.ID(),
 		Version: game.Version(),
 	})
 

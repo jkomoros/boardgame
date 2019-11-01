@@ -156,7 +156,7 @@ func compare(manager *boardgame.GameManager, rec *record.Record) (result error) 
 			//doesn't guarantee that it's the same as
 			//manager.Storage().State() because it relies on state in
 			//timerManager. This is unexpected and needs its own issue.
-			storageRec, err := manager.Storage().State(game.Id(), lastVerifiedVersion)
+			storageRec, err := manager.Storage().State(game.ID(), lastVerifiedVersion)
 
 			if err != nil {
 				return errors.New("Couldn't get state storage rec from game: " + err.Error())

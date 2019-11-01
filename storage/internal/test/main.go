@@ -84,7 +84,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	eGame, err := storage.ExtendedGame(tictactoeGame.Id())
+	eGame, err := storage.ExtendedGame(tictactoeGame.ID())
 
 	if err != nil {
 		t.Error("Error getting eGame: " + err.Error())
@@ -100,11 +100,11 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	lastSeenTimestamp := tictactoeGame.Modified()
 
-	err = storage.UpdateExtendedGame(tictactoeGame.Id(), eGame)
+	err = storage.UpdateExtendedGame(tictactoeGame.ID(), eGame)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	newEGame, err := storage.ExtendedGame(tictactoeGame.Id())
+	newEGame, err := storage.ExtendedGame(tictactoeGame.ID())
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -120,7 +120,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 		t.Fatal(testName, "Couldn't make move", err)
 	}
 
-	eGame, err = storage.ExtendedGame(tictactoeGame.Id())
+	eGame, err = storage.ExtendedGame(tictactoeGame.ID())
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -144,7 +144,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(refriedMove).Equals(move)
 
-	refriedMoves, err := storage.Moves(tictactoeGame.Id(), 0, 2)
+	refriedMoves, err := storage.Moves(tictactoeGame.ID(), 0, 2)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -163,7 +163,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	//OK, now test that the manager and SetUp and everyone did the right thing.
 
-	localGame, err := storage.Game(tictactoeGame.Id())
+	localGame, err := storage.Game(tictactoeGame.ID())
 
 	if err != nil {
 		t.Error(testName, "Unexpected error", err)
@@ -200,7 +200,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(variant).Equals(memoryGame.Variant())
 
-	refriedMemoryGame := memoryManager.Game(memoryGame.Id())
+	refriedMemoryGame := memoryManager.Game(memoryGame.ID())
 
 	assert.For(t).ThatActual(refriedMemoryGame).IsNotNil()
 
@@ -251,7 +251,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(ids).Equals(nilIds)
 
-	ids = storage.UserIDsForGame(game.Id())
+	ids = storage.UserIDsForGame(game.ID())
 
 	assert.For(t).ThatActual(ids).Equals([]string{"", ""})
 
@@ -287,15 +287,15 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(fetchedUser).Equals(user)
 
-	err = storage.SetPlayerForGame(game.Id(), 0, userID)
+	err = storage.SetPlayerForGame(game.ID(), 0, userID)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	ids = storage.UserIDsForGame(game.Id())
+	ids = storage.UserIDsForGame(game.ID())
 
 	assert.For(t).ThatActual(ids).Equals([]string{userID, ""})
 
-	err = storage.SetPlayerForGame(game.Id(), 0, userID)
+	err = storage.SetPlayerForGame(game.ID(), 0, userID)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 }
@@ -318,11 +318,11 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	refriedGame := manager.Game(game.Id())
+	refriedGame := manager.Game(game.ID())
 
 	assert.For(t).ThatActual(refriedGame.Agents()).Equals(game.Agents())
 
-	refriedBlob, err := storage.AgentState(game.Id(), 0)
+	refriedBlob, err := storage.AgentState(game.ID(), 0)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -332,11 +332,11 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	blob := []byte("ThisIsABlob")
 
-	err = storage.SaveAgentState(game.Id(), 0, blob)
+	err = storage.SaveAgentState(game.ID(), 0, blob)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	refriedBlob, err = storage.AgentState(game.Id(), 0)
+	refriedBlob, err = storage.AgentState(game.ID(), 0)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -344,11 +344,11 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	newBlob := []byte("ThisIsANewBlob")
 
-	err = storage.SaveAgentState(game.Id(), 0, newBlob)
+	err = storage.SaveAgentState(game.ID(), 0, newBlob)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	refriedBlob, err = storage.AgentState(game.Id(), 0)
+	refriedBlob, err = storage.AgentState(game.ID(), 0)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -586,24 +586,24 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			t.Fatal("Couldn't create game: " + err.Error())
 		}
 		if config.UserZero != "" {
-			if err := storage.SetPlayerForGame(game.Id(), 0, config.UserZero); err != nil {
+			if err := storage.SetPlayerForGame(game.ID(), 0, config.UserZero); err != nil {
 				t.Error("Couldn't store user: " + err.Error())
 			}
 		}
 		if config.UserOne != "" {
-			if err := storage.SetPlayerForGame(game.Id(), 1, config.UserOne); err != nil {
+			if err := storage.SetPlayerForGame(game.ID(), 1, config.UserOne); err != nil {
 				t.Error("Couldn't store user: " + err.Error())
 			}
 		}
-		eGame, err := storage.ExtendedGame(game.Id())
+		eGame, err := storage.ExtendedGame(game.ID())
 		if err != nil {
 			t.Fatal("Couldn't get extended game info: " + err.Error())
 		}
 		eGame.Open = config.Open
 		eGame.Visible = config.Visible
-		storage.UpdateExtendedGame(game.Id(), eGame)
+		storage.UpdateExtendedGame(game.ID(), eGame)
 		if config.Finished {
-			gameRec, err := storage.Game(game.Id())
+			gameRec, err := storage.Game(game.ID())
 			if err != nil {
 				t.Fatal("Couldn't get gameass: " + err.Error())
 			}
@@ -615,7 +615,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			}
 		}
 
-		goldenRecords[i], err = storage.CombinedGame(game.Id())
+		goldenRecords[i], err = storage.CombinedGame(game.ID())
 
 		if err != nil {
 			t.Fatal("Couldn't get combined record: ", err.Error())

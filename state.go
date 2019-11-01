@@ -419,7 +419,7 @@ func (s *state) Rand() *rand.Rand {
 		if game := s.game; game != nil {
 			//Sometimes, like exampleState, we don't have the game reference.
 			//But those are rare and it's OK to have deterministic behavior.
-			input = game.Id() + game.secretSalt
+			input = game.ID() + game.secretSalt
 		}
 
 		input += strconv.Itoa(s.version)

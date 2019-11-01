@@ -127,7 +127,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 
 	manager := game.Manager()
 
-	id := game.Id()
+	id := game.ID()
 
 	//At this point, the game has stored state in storage.
 
@@ -168,7 +168,7 @@ func TestGameSetUp(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	id := game.Id()
+	id := game.ID()
 
 	if len(id) != gameIDLength {
 		t.Error("Game didn't have an ID of correct length. Wanted", gameIDLength, "got", id)
@@ -223,7 +223,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
-	if wrapper, err := game.Manager().Storage().State(game.Id(), 0); wrapper == nil {
+	if wrapper, err := game.Manager().Storage().State(game.ID(), 0); wrapper == nil {
 		t.Error("State 0 was not saved in storage when game set up")
 	} else if err != nil {
 		t.Error("Storing state 0 failed: " + err.Error())
@@ -325,7 +325,7 @@ func TestApplyMove(t *testing.T) {
 	//FixUp move, this is also testing that not just the main move, but also
 	//the fixup move was made.
 
-	record, err := game.Manager().Storage().State(game.Id(), game.Version())
+	record, err := game.Manager().Storage().State(game.ID(), game.Version())
 
 	if err != nil {
 		t.Error("Unexpected error", err)
@@ -357,7 +357,7 @@ func TestApplyMove(t *testing.T) {
 		t.Error("Game didn't allow a move to be made even though it was legal: ", err)
 	}
 
-	if wrapper, _ := game.Manager().Storage().State(game.Id(), 1); wrapper == nil {
+	if wrapper, _ := game.Manager().Storage().State(game.ID(), 1); wrapper == nil {
 		t.Error("We didn't get back state for state 1; game must not be persisting states to DB.")
 	}
 
@@ -518,7 +518,7 @@ func TestGameSalt(t *testing.T) {
 
 	assert.For(t).ThatActual(game.secretSalt).DoesNotEqual("")
 
-	refriedGame := game.Manager().Game(game.Id())
+	refriedGame := game.Manager().Game(game.ID())
 
 	if !assert.For(t).ThatActual(refriedGame).IsNotNil().Passed() {
 		t.FailNow()

@@ -70,7 +70,7 @@ func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgam
 
 	if isDebug {
 		logEntry = g.Manager().Logger().WithFields(logrus.Fields{
-			"game":    state.Game().Id(),
+			"game":    state.Game().ID(),
 			"version": state.Version(),
 		})
 		logEntry.Debug("***** ProposeFixUpMove called *****")
