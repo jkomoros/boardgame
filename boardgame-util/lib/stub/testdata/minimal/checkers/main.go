@@ -68,6 +68,8 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 }
 
+//NewDelegate is the primary entrypoint to the package. It implements a
+//boardgame.GameDelegate that configures a game of checkers
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

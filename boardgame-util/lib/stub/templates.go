@@ -167,7 +167,7 @@ var templateMap = map[string]string{
 const templateContentsMainGo = `{{if .Description -}}
 /*
 
-	{{.Name}} is {{lowercaseFirst .Description}}
+Package {{.Name}} implements a game that is {{lowercaseFirst .Description}}
 
 */
 {{- end}}
@@ -459,6 +459,8 @@ func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayer
 }
 
 {{end}}
+//NewDelegate is the primary entrypoint to the package. It implements a
+//boardgame.GameDelegate that configures a game of {{if .DisplayName -}}{{.DisplayName}}{{- else -}}{{.Name}}{{- end}}
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }
