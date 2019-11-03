@@ -252,7 +252,7 @@ func TestConcatenatedStack(t *testing.T) {
 		"667bc729077137a8932a2cffc5ca4b0cec905956",
 	}
 
-	assert.For(t).ThatActual(merged.Ids()).Equals(expectedIds)
+	assert.For(t).ThatActual(merged.IDs()).Equals(expectedIds)
 
 	//TODO: test other aspects are what are expected
 
@@ -296,7 +296,7 @@ func TestOverlappedStack(t *testing.T) {
 		"",
 	}
 
-	assert.For(t).ThatActual(merged.Ids()).Equals(expectedIds)
+	assert.For(t).ThatActual(merged.IDs()).Equals(expectedIds)
 
 	//TODO: test other aspects are what are expected
 
@@ -751,17 +751,17 @@ func TestSecretMoveComponentSized(t *testing.T) {
 }
 
 func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string) {
-	lastIds := from.Ids()
+	lastIds := from.IDs()
 	lastIdsSeen := from.IdsLastSeen()
 
-	toLastIds := to.Ids()
+	toLastIds := to.IDs()
 	toLastIdsSeen := to.IdsLastSeen()
 
 	err := from.ComponentAt(from.firstComponentIndex()).SecretMoveTo(to, to.firstSlot())
 
 	assert.For(t, description).ThatActual(err).IsNil()
 
-	assert.For(t, description).ThatActual(from.Ids()).DoesNotEqual(lastIds)
+	assert.For(t, description).ThatActual(from.IDs()).DoesNotEqual(lastIds)
 
 	actualNumIdsBefore := 0
 
@@ -774,7 +774,7 @@ func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string
 
 	actualNumIds := 0
 
-	for _, id := range from.Ids() {
+	for _, id := range from.IDs() {
 		if id == "" {
 			continue
 		}
@@ -783,10 +783,10 @@ func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string
 
 	assert.For(t, description).ThatActual(actualNumIds).Equals(actualNumIdsBefore - 1)
 
-	assert.For(t, description).ThatActual(to.Ids()).DoesNotEqual(toLastIds)
+	assert.For(t, description).ThatActual(to.IDs()).DoesNotEqual(toLastIds)
 
 	//Make sure all of hte Ids have changed
-	for _, id := range to.Ids() {
+	for _, id := range to.IDs() {
 		if id == "" {
 			continue
 		}
@@ -1290,7 +1290,7 @@ func TestShuffle(t *testing.T) {
 
 	lastStackState := fmt.Sprint(stack.indexes)
 
-	lastIds := stack.Ids()
+	lastIds := stack.IDs()
 	assert.For(t).ThatActual(len(stack.IdsLastSeen())).Equals(len(lastIds))
 
 	for i := 0; i < numShuffles; i++ {
@@ -1306,7 +1306,7 @@ func TestShuffle(t *testing.T) {
 				assert.For(t, j, id).ThatActual(ok).IsTrue()
 				assert.For(t, j, id).ThatActual(version).Equals(0)
 			}
-			for j, id := range stack.Ids() {
+			for j, id := range stack.IDs() {
 				version, ok := stack.IdsLastSeen()[id]
 				assert.For(t, j, id).ThatActual(ok).IsTrue()
 				assert.For(t, j, id).ThatActual(version).Equals(0)
@@ -1340,7 +1340,7 @@ func TestShuffle(t *testing.T) {
 
 	//Reset lastIds to be for sStack but skip empty ones.
 	lastIds = nil
-	for _, id := range sStack.Ids() {
+	for _, id := range sStack.IDs() {
 		if id == "" {
 			continue
 		}
@@ -1367,7 +1367,7 @@ func TestShuffle(t *testing.T) {
 				assert.For(t, j, id).ThatActual(ok).IsTrue()
 				assert.For(t, j, id).ThatActual(version).Equals(0)
 			}
-			for j, id := range sStack.Ids() {
+			for j, id := range sStack.IDs() {
 				if id == "" {
 					continue
 				}

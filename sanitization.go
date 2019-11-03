@@ -696,7 +696,7 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 }
 
 func overrideIDsForLen(stack Stack) []string {
-	ids := stack.Ids()
+	ids := stack.IDs()
 	sort.Strings(ids)
 	return ids
 }

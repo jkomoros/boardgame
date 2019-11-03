@@ -61,12 +61,12 @@ type ImmutableStack interface {
 	//SizedStacks however will use the result of LastComponentIndex().
 	ImmutableLast() ImmutableComponentInstance
 
-	//Ids returns a slice of strings representing the Ids of each component at
+	//IDs returns a slice of strings representing the IDs of each component at
 	//each index. Under normal circumstances this will be the results of
-	//calling c.Id() on each component in order. This information will be
+	//calling c.ID() on each component in order. This information will be
 	//elided or modified if the state has been sanitized. See documentation
 	//for Policy for more on when and how these might be changed.
-	Ids() []string
+	IDs() []string
 
 	//LastSeen represents an unordered list of the last version number at
 	//which the given ID was seen in this stack. A component is "seen" at
@@ -1104,21 +1104,21 @@ func (m *mergedStack) ImmutableComponentAt(index int) ImmutableComponentInstance
 	return nil
 }
 
-func (g *growableStack) Ids() []string {
+func (g *growableStack) IDs() []string {
 	if g.overrideIds != nil {
 		return g.overrideIds
 	}
 	return stackIdsImpl(g)
 }
 
-func (s *sizedStack) Ids() []string {
+func (s *sizedStack) IDs() []string {
 	if s.overrideIds != nil {
 		return s.overrideIds
 	}
 	return stackIdsImpl(s)
 }
 
-func (m *mergedStack) Ids() []string {
+func (m *mergedStack) IDs() []string {
 
 	if len(m.stacks) == 0 {
 		return []string{}
@@ -1126,7 +1126,7 @@ func (m *mergedStack) Ids() []string {
 
 	cachedIds := make([][]string, len(m.stacks))
 	for i, stack := range m.stacks {
-		cachedIds[i] = stack.Ids()
+		cachedIds[i] = stack.IDs()
 	}
 
 	if m.overlap {
@@ -2005,7 +2005,7 @@ func (g *growableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:         g.deckName,
 		Indexes:      g.indexes,
-		Ids:          g.Ids(),
+		Ids:          g.IDs(),
 		IdsLastSeen:  g.idsLastSeen,
 		ShuffleCount: g.shuffleCount,
 		MaxSize:      g.maxSize,
@@ -2018,7 +2018,7 @@ func (s *sizedStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:         s.deckName,
 		Indexes:      s.indexes,
-		Ids:          s.Ids(),
+		Ids:          s.IDs(),
 		IdsLastSeen:  s.idsLastSeen,
 		ShuffleCount: s.shuffleCount,
 		Size:         s.size,
@@ -2043,7 +2043,7 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:         m.Deck().Name(),
 		Indexes:      indexes,
-		Ids:          m.Ids(),
+		Ids:          m.IDs(),
 		IdsLastSeen:  m.IdsLastSeen(),
 		ShuffleCount: m.ShuffleCount(),
 	}
