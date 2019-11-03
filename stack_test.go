@@ -752,10 +752,10 @@ func TestSecretMoveComponentSized(t *testing.T) {
 
 func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string) {
 	lastIds := from.IDs()
-	lastIdsSeen := from.IdsLastSeen()
+	lastIdsSeen := from.IDsLastSeen()
 
 	toLastIds := to.IDs()
-	toLastIdsSeen := to.IdsLastSeen()
+	toLastIdsSeen := to.IDsLastSeen()
 
 	err := from.ComponentAt(from.firstComponentIndex()).SecretMoveTo(to, to.firstSlot())
 
@@ -798,9 +798,9 @@ func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string
 		}
 	}
 
-	assert.For(t, description).ThatActual(len(from.IdsLastSeen())).Equals(len(lastIdsSeen))
+	assert.For(t, description).ThatActual(len(from.IDsLastSeen())).Equals(len(lastIdsSeen))
 
-	assert.For(t, description).ThatActual(len(to.IdsLastSeen())).Equals(len(toLastIdsSeen)*2 + 2)
+	assert.For(t, description).ThatActual(len(to.IDsLastSeen())).Equals(len(toLastIdsSeen)*2 + 2)
 }
 
 func TestMoveComponent(t *testing.T) {
@@ -1291,7 +1291,7 @@ func TestShuffle(t *testing.T) {
 	lastStackState := fmt.Sprint(stack.indexes)
 
 	lastIds := stack.IDs()
-	assert.For(t).ThatActual(len(stack.IdsLastSeen())).Equals(len(lastIds))
+	assert.For(t).ThatActual(len(stack.IDsLastSeen())).Equals(len(lastIds))
 
 	for i := 0; i < numShuffles; i++ {
 		if err := stack.Shuffle(); err != nil {
@@ -1300,14 +1300,14 @@ func TestShuffle(t *testing.T) {
 
 		if i == 0 {
 			//First time through, check that ids are scrambled correctly
-			assert.For(t).ThatActual(len(stack.IdsLastSeen())).Equals(len(lastIds) * 2)
+			assert.For(t).ThatActual(len(stack.IDsLastSeen())).Equals(len(lastIds) * 2)
 			for j, id := range lastIds {
-				version, ok := stack.IdsLastSeen()[id]
+				version, ok := stack.IDsLastSeen()[id]
 				assert.For(t, j, id).ThatActual(ok).IsTrue()
 				assert.For(t, j, id).ThatActual(version).Equals(0)
 			}
 			for j, id := range stack.IDs() {
-				version, ok := stack.IdsLastSeen()[id]
+				version, ok := stack.IDsLastSeen()[id]
 				assert.For(t, j, id).ThatActual(ok).IsTrue()
 				assert.For(t, j, id).ThatActual(version).Equals(0)
 			}
@@ -1347,7 +1347,7 @@ func TestShuffle(t *testing.T) {
 		lastIds = append(lastIds, id)
 	}
 
-	assert.For(t).ThatActual(len(sStack.IdsLastSeen())).Equals(len(lastIds))
+	assert.For(t).ThatActual(len(sStack.IDsLastSeen())).Equals(len(lastIds))
 
 	lastStackState = fmt.Sprint(sStack.indexes)
 
@@ -1358,12 +1358,12 @@ func TestShuffle(t *testing.T) {
 
 		if i == 0 {
 			//First time through, check that ids are scrambled correctly
-			assert.For(t).ThatActual(len(sStack.IdsLastSeen())).Equals(len(lastIds) * 2)
+			assert.For(t).ThatActual(len(sStack.IDsLastSeen())).Equals(len(lastIds) * 2)
 			for j, id := range lastIds {
 				if id == "" {
 					continue
 				}
-				version, ok := sStack.IdsLastSeen()[id]
+				version, ok := sStack.IDsLastSeen()[id]
 				assert.For(t, j, id).ThatActual(ok).IsTrue()
 				assert.For(t, j, id).ThatActual(version).Equals(0)
 			}
@@ -1371,7 +1371,7 @@ func TestShuffle(t *testing.T) {
 				if id == "" {
 					continue
 				}
-				version, ok := sStack.IdsLastSeen()[id]
+				version, ok := sStack.IDsLastSeen()[id]
 				assert.For(t, j, id).ThatActual(ok).IsTrue()
 				assert.For(t, j, id).ThatActual(version).Equals(0)
 			}

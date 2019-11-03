@@ -71,13 +71,13 @@ type ImmutableStack interface {
 	//LastSeen represents an unordered list of the last version number at
 	//which the given ID was seen in this stack. A component is "seen" at
 	//three moments: 1) when it is moved to this stack, 2) immediately before
-	//its Id is scrambled, and 3) immediately after its Id is scrambled.
+	//its ID is scrambled, and 3) immediately after its ID is scrambled.
 	//LastSeen thus represents the last time that we knew for sure it was in
 	//this stack --although it may have been in this stack after that, and may
 	//no longer be in this stack. This information may be elided if the stack
 	//has been sanitized. See the documentation for Policy for more about when
 	//this might be elided.
-	IdsLastSeen() map[string]int
+	IDsLastSeen() map[string]int
 
 	//ShuffleCount is the number of times during this game that Shuffle (or
 	//PublicShuffle) have been called on this stack. Not visible in some
@@ -1168,7 +1168,7 @@ func stackIdsImpl(s Stack) []string {
 	return result
 }
 
-func (g *growableStack) IdsLastSeen() map[string]int {
+func (g *growableStack) IDsLastSeen() map[string]int {
 	//return a copy because this is important state to preserve, just in case
 	//someone messes with it.
 	result := make(map[string]int, len(g.idsLastSeen))
@@ -1178,7 +1178,7 @@ func (g *growableStack) IdsLastSeen() map[string]int {
 	return result
 }
 
-func (s *sizedStack) IdsLastSeen() map[string]int {
+func (s *sizedStack) IDsLastSeen() map[string]int {
 	//return a copy because this is important state to preserve, just in case
 	//someone messes with it.
 	result := make(map[string]int, len(s.idsLastSeen))
@@ -1188,11 +1188,11 @@ func (s *sizedStack) IdsLastSeen() map[string]int {
 	return result
 }
 
-func (m *mergedStack) IdsLastSeen() map[string]int {
+func (m *mergedStack) IDsLastSeen() map[string]int {
 	result := make(map[string]int)
 
 	for _, stack := range m.stacks {
-		for key, val := range stack.IdsLastSeen() {
+		for key, val := range stack.IDsLastSeen() {
 			//If there is a conflict, always prefer the highest last version
 			//number seen, because that's the semantic expectation of
 			//IdsLastSeen.
@@ -2044,7 +2044,7 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 		Deck:         m.Deck().Name(),
 		Indexes:      indexes,
 		Ids:          m.IDs(),
-		IdsLastSeen:  m.IdsLastSeen(),
+		IdsLastSeen:  m.IDsLastSeen(),
 		ShuffleCount: m.ShuffleCount(),
 	}
 	if m.ImmutableSizedStack() != nil {
