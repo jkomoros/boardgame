@@ -1,6 +1,7 @@
 /*
 
-dice is a simple package that defines die components with variable numbers of sides.
+Package dice is a simple package that defines die components with variable
+numbers of sides.
 
 */
 package dice
@@ -14,12 +15,17 @@ import (
 
 //go:generate boardgame-util codegen
 
+//Value is the value component of a dice, encoding what the allowable values
+//are.
+//
 //boardgame:codegen
 type Value struct {
 	base.ComponentValues
 	Faces []int
 }
 
+//DynamicValue encodes which face is currently selected.
+//
 //boardgame:codegen
 type DynamicValue struct {
 	base.SubState
@@ -28,10 +34,12 @@ type DynamicValue struct {
 	SelectedFace int
 }
 
+//DefaultDie returns a die configured as as a typical six-sided die.
 func DefaultDie() *Value {
 	return BasicDie(1, 6)
 }
 
+//BasicDie returns a die with a face each for min through max, inclusive.
 func BasicDie(min, max int) *Value {
 
 	if min >= max {
@@ -47,6 +55,7 @@ func BasicDie(min, max int) *Value {
 	}
 }
 
+//Min returns the lowest value face for this die
 func (v *Value) Min() int {
 	min := math.MaxInt64
 	for _, face := range v.Faces {
@@ -57,6 +66,7 @@ func (v *Value) Min() int {
 	return min
 }
 
+//Max returns the maximum value face for this die
 func (v *Value) Max() int {
 	max := math.MinInt64
 	for _, face := range v.Faces {
