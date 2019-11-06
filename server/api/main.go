@@ -487,7 +487,7 @@ func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boa
 	}
 
 	r.Success(gin.H{
-		"GameId":   game.ID(),
+		"GameID":   game.ID(),
 		"GameName": game.Name(),
 	})
 }
