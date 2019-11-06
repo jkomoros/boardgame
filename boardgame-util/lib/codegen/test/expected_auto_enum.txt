@@ -77,35 +77,35 @@ var treeEnum = enums.MustAddTree("tree", map[int]string{
 })
 
 var blamEnum = enums.MustAddTree("blam", map[int]string{
-	blam:        "",
-	blamOne:     "One",
-	blamOne_One: "One",
-	blamOne_Two: "Two",
-	blamThree:   "Three",
-	blamTwo:     "Two",
-	blamTwo_One: "One",
+	blam:          "",
+	blamOne:       "One",
+	blamOne010One: "One",
+	blamOne010Two: "Two",
+	blamThree:     "Three",
+	blamTwo:       "Two",
+	blamTwo010One: "One",
 }, map[int]int{
-	blam:        blam,
-	blamOne:     blam,
-	blamOne_One: blamOne,
-	blamOne_Two: blamOne,
-	blamThree:   blam,
-	blamTwo:     blam,
-	blamTwo_One: blamTwo,
+	blam:          blam,
+	blamOne:       blam,
+	blamOne010One: blamOne,
+	blamOne010Two: blamOne,
+	blamThree:     blam,
+	blamTwo:       blam,
+	blamTwo010One: blamTwo,
 })
 
 var exampleEnum = enums.MustAddTree("example", map[int]string{
-	example:        "",
-	exampleOne:     "One",
-	exampleOneOne:  "One",
-	exampleOne_Two: "Two",
-	exampleTwo:     "Two",
+	example:          "",
+	exampleOne:       "One",
+	exampleOne010Two: "Two",
+	exampleOneOne:    "One",
+	exampleTwo:       "Two",
 }, map[int]int{
-	example:        example,
-	exampleOne:     example,
-	exampleOneOne:  exampleOne,
-	exampleOne_Two: exampleOne,
-	exampleTwo:     example,
+	example:          example,
+	exampleOne:       example,
+	exampleOne010Two: exampleOne,
+	exampleOneOne:    exampleOne,
+	exampleTwo:       example,
 })
 
 //Implicitly created constants for multiWordTree
@@ -115,23 +115,23 @@ const (
 )
 
 var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[int]string{
-	multiWordTree:                 "",
-	multiWordTreeBlueGreen:        "Blue Green",
-	multiWordTreeBlueGreenOne:     "One",
-	multiWordTreeBlueGreenOneA:    "A",
-	multiWordTreeBlueGreenOneB:    "B",
-	multiWordTreeBlueGreenThree:   "Three",
-	multiWordTreeBlueGreenThree_A: "A",
-	multiWordTreeBlueGreenTwoA:    "Two A",
+	multiWordTree:                   "",
+	multiWordTreeBlueGreen:          "Blue Green",
+	multiWordTreeBlueGreenOne:       "One",
+	multiWordTreeBlueGreenOneA:      "A",
+	multiWordTreeBlueGreenOneB:      "B",
+	multiWordTreeBlueGreenThree:     "Three",
+	multiWordTreeBlueGreenThree010A: "A",
+	multiWordTreeBlueGreenTwoA:      "Two A",
 }, map[int]int{
-	multiWordTree:                 multiWordTree,
-	multiWordTreeBlueGreen:        multiWordTree,
-	multiWordTreeBlueGreenOne:     multiWordTreeBlueGreen,
-	multiWordTreeBlueGreenOneA:    multiWordTreeBlueGreenOne,
-	multiWordTreeBlueGreenOneB:    multiWordTreeBlueGreenOne,
-	multiWordTreeBlueGreenThree:   multiWordTreeBlueGreen,
-	multiWordTreeBlueGreenThree_A: multiWordTreeBlueGreenThree,
-	multiWordTreeBlueGreenTwoA:    multiWordTreeBlueGreen,
+	multiWordTree:                   multiWordTree,
+	multiWordTreeBlueGreen:          multiWordTree,
+	multiWordTreeBlueGreenOne:       multiWordTreeBlueGreen,
+	multiWordTreeBlueGreenOneA:      multiWordTreeBlueGreenOne,
+	multiWordTreeBlueGreenOneB:      multiWordTreeBlueGreenOne,
+	multiWordTreeBlueGreenThree:     multiWordTreeBlueGreen,
+	multiWordTreeBlueGreenThree010A: multiWordTreeBlueGreenThree,
+	multiWordTreeBlueGreenTwoA:      multiWordTreeBlueGreen,
 })
 
 //Implicitly created constants for skipNode
@@ -140,13 +140,13 @@ const (
 )
 
 var skipNodeEnum = enums.MustAddTree("skipNode", map[int]string{
-	skipNode:           "",
-	skipNodeRed:        "Red",
-	skipNodeRed_Circle: "Circle",
+	skipNode:             "",
+	skipNodeRed:          "Red",
+	skipNodeRed010Circle: "Circle",
 }, map[int]int{
-	skipNode:           skipNode,
-	skipNodeRed:        skipNode,
-	skipNodeRed_Circle: skipNodeRed,
+	skipNode:             skipNode,
+	skipNodeRed:          skipNode,
+	skipNodeRed010Circle: skipNodeRed,
 })
 
 var prefixBugEnum = enums.MustAdd("prefixBug", map[int]string{

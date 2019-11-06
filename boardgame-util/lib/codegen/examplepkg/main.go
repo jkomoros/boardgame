@@ -137,9 +137,9 @@ const (
 	blamOne
 	blamTwo
 	blamThree
-	blamOne_One
-	blamOne_Two
-	blamTwo_One
+	blamOne010One
+	blamOne010Two
+	blamTwo010One
 )
 
 //boardgame:codegen
@@ -149,7 +149,7 @@ const (
 	exampleTwo
 	//display:"One > One"
 	exampleOneOne
-	exampleOne_Two
+	exampleOne010Two
 )
 
 //boardgame:codegen
@@ -164,14 +164,14 @@ const (
 	multiWordTreeBlueGreenTwoA
 	//The next item will result in a child of Three followed by a child of
 	//A since there's an explicit tree break.
-	multiWordTreeBlueGreenThree_A
+	multiWordTreeBlueGreenThree010A
 )
 
 //boardgame:codegen
 const (
 	skipNode = iota
 	//SkipNodeRed is implied but not listed
-	skipNodeRed_Circle
+	skipNodeRed010Circle
 )
 
 //boardgame:codegen

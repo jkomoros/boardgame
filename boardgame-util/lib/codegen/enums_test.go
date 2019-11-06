@@ -1,9 +1,29 @@
 package codegen
 
 import (
-	"github.com/workfit/tester/assert"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
+
+func TestOldDelimiterFails(t *testing.T) {
+
+	values := map[string]string{
+		"OldEnum_Key":    "Key",
+		"OldEnum010KeyA": "KeyA",
+	}
+
+	e := newEnum("test", transformNone)
+
+	for key, val := range values {
+		e.AddTransformKey(key, true, val, transformNone)
+	}
+
+	err := e.Process()
+
+	//Make sure that enumsw ith old string delimiters will error
+	assert.For(t).ThatActual(err).IsNotNil()
+}
 
 func TestEnumParent(t *testing.T) {
 	tests := []struct {
@@ -43,74 +63,74 @@ func TestEnumParent(t *testing.T) {
 		{
 			"Two layers",
 			map[string]string{
-				"Color":          "",
-				"ColorBlue":      "Blue",
-				"ColorBlue_One":  "Blue > One",
-				"ColorBlue_Two":  "Blue > Two",
-				"ColorGreen":     "Green",
-				"ColorGreen_One": "Green > One",
+				"Color":            "",
+				"ColorBlue":        "Blue",
+				"ColorBlue010One":  "Blue > One",
+				"ColorBlue010Two":  "Blue > Two",
+				"ColorGreen":       "Green",
+				"ColorGreen010One": "Green > One",
 			},
 			map[string]string{
-				"Color":          "",
-				"ColorBlue":      "Blue",
-				"ColorBlue_One":  "One",
-				"ColorBlue_Two":  "Two",
-				"ColorGreen":     "Green",
-				"ColorGreen_One": "One",
+				"Color":            "",
+				"ColorBlue":        "Blue",
+				"ColorBlue010One":  "One",
+				"ColorBlue010Two":  "Two",
+				"ColorGreen":       "Green",
+				"ColorGreen010One": "One",
 			},
 			map[string]string{
-				"Color":          "Color",
-				"ColorBlue":      "Color",
-				"ColorBlue_One":  "ColorBlue",
-				"ColorBlue_Two":  "ColorBlue",
-				"ColorGreen":     "Color",
-				"ColorGreen_One": "ColorGreen",
+				"Color":            "Color",
+				"ColorBlue":        "Color",
+				"ColorBlue010One":  "ColorBlue",
+				"ColorBlue010Two":  "ColorBlue",
+				"ColorGreen":       "Color",
+				"ColorGreen010One": "ColorGreen",
 			},
 			nil,
 		},
 		{
 			"Three layers",
 			map[string]string{
-				"Color":             "",
-				"ColorBlue":         "Blue",
-				"ColorBlue_One":     "Blue > One",
-				"ColorBlue_Two":     "Blue > Two",
-				"ColorBlue_One_One": "Blue > One > One",
-				"ColorBlue_One_Two": "Blue > One > Two",
+				"Color":                 "",
+				"ColorBlue":             "Blue",
+				"ColorBlue010One":       "Blue > One",
+				"ColorBlue010Two":       "Blue > Two",
+				"ColorBlue010One010One": "Blue > One > One",
+				"ColorBlue010One010Two": "Blue > One > Two",
 			},
 			map[string]string{
-				"Color":             "",
-				"ColorBlue":         "Blue",
-				"ColorBlue_One":     "One",
-				"ColorBlue_Two":     "Two",
-				"ColorBlue_One_One": "One",
-				"ColorBlue_One_Two": "Two",
+				"Color":                 "",
+				"ColorBlue":             "Blue",
+				"ColorBlue010One":       "One",
+				"ColorBlue010Two":       "Two",
+				"ColorBlue010One010One": "One",
+				"ColorBlue010One010Two": "Two",
 			},
 			map[string]string{
-				"Color":             "Color",
-				"ColorBlue":         "Color",
-				"ColorBlue_One":     "ColorBlue",
-				"ColorBlue_Two":     "ColorBlue",
-				"ColorBlue_One_One": "ColorBlue_One",
-				"ColorBlue_One_Two": "ColorBlue_One",
+				"Color":                 "Color",
+				"ColorBlue":             "Color",
+				"ColorBlue010One":       "ColorBlue",
+				"ColorBlue010Two":       "ColorBlue",
+				"ColorBlue010One010One": "ColorBlue010One",
+				"ColorBlue010One010Two": "ColorBlue010One",
 			},
 			nil,
 		},
 		{
 			"Single implied layer",
 			map[string]string{
-				"Color":         "",
-				"ColorBlue_One": "Blue > One",
+				"Color":           "",
+				"ColorBlue010One": "Blue > One",
 			},
 			map[string]string{
-				"Color":         "",
-				"ColorBlue":     "Blue",
-				"ColorBlue_One": "One",
+				"Color":           "",
+				"ColorBlue":       "Blue",
+				"ColorBlue010One": "One",
 			},
 			map[string]string{
-				"Color":         "Color",
-				"ColorBlue":     "Color",
-				"ColorBlue_One": "ColorBlue",
+				"Color":           "Color",
+				"ColorBlue":       "Color",
+				"ColorBlue010One": "ColorBlue",
 			},
 			[]string{
 				"ColorBlue",
@@ -119,24 +139,24 @@ func TestEnumParent(t *testing.T) {
 		{
 			"Two implied layers",
 			map[string]string{
-				"Color":            "",
-				"ColorGreen_One_A": "Green > One > A",
+				"Color":                "",
+				"ColorGreen010One010A": "Green > One > A",
 			},
 			map[string]string{
-				"Color":            "",
-				"ColorGreen":       "Green",
-				"ColorGreen_One":   "One",
-				"ColorGreen_One_A": "A",
+				"Color":                "",
+				"ColorGreen":           "Green",
+				"ColorGreen010One":     "One",
+				"ColorGreen010One010A": "A",
 			},
 			map[string]string{
-				"Color":            "Color",
-				"ColorGreen":       "Color",
-				"ColorGreen_One":   "ColorGreen",
-				"ColorGreen_One_A": "ColorGreen_One",
+				"Color":                "Color",
+				"ColorGreen":           "Color",
+				"ColorGreen010One":     "ColorGreen",
+				"ColorGreen010One010A": "ColorGreen010One",
 			},
 			[]string{
 				"ColorGreen",
-				"ColorGreen_One",
+				"ColorGreen010One",
 			},
 		},
 		{
@@ -266,28 +286,28 @@ func TestEnumParent(t *testing.T) {
 		{
 			"Mix implicit and explicit layers",
 			map[string]string{
-				"Color":               "",
-				"ColorBlueGreen":      "Blue Green",
-				"ColorBlueGreenOne":   "Blue Green One",
-				"ColorBlueGreenOne_A": "Blue Green One > A",
-				"ColorBlueGreenOne_B": "Blue Green One > B",
-				"ColorBlueGreenTwo":   "Blue Green Two",
+				"Color":                 "",
+				"ColorBlueGreen":        "Blue Green",
+				"ColorBlueGreenOne":     "Blue Green One",
+				"ColorBlueGreenOne010A": "Blue Green One > A",
+				"ColorBlueGreenOne010B": "Blue Green One > B",
+				"ColorBlueGreenTwo":     "Blue Green Two",
 			},
 			map[string]string{
-				"Color":               "",
-				"ColorBlueGreen":      "Blue Green",
-				"ColorBlueGreenOne":   "One",
-				"ColorBlueGreenOne_A": "A",
-				"ColorBlueGreenOne_B": "B",
-				"ColorBlueGreenTwo":   "Two",
+				"Color":                 "",
+				"ColorBlueGreen":        "Blue Green",
+				"ColorBlueGreenOne":     "One",
+				"ColorBlueGreenOne010A": "A",
+				"ColorBlueGreenOne010B": "B",
+				"ColorBlueGreenTwo":     "Two",
 			},
 			map[string]string{
-				"Color":               "Color",
-				"ColorBlueGreen":      "Color",
-				"ColorBlueGreenOne":   "ColorBlueGreen",
-				"ColorBlueGreenOne_A": "ColorBlueGreenOne",
-				"ColorBlueGreenOne_B": "ColorBlueGreenOne",
-				"ColorBlueGreenTwo":   "ColorBlueGreen",
+				"Color":                 "Color",
+				"ColorBlueGreen":        "Color",
+				"ColorBlueGreenOne":     "ColorBlueGreen",
+				"ColorBlueGreenOne010A": "ColorBlueGreenOne",
+				"ColorBlueGreenOne010B": "ColorBlueGreenOne",
+				"ColorBlueGreenTwo":     "ColorBlueGreen",
 			},
 			nil,
 		},
@@ -387,7 +407,7 @@ func TestReduceProposedKey(t *testing.T) {
 			"PhaseBlueGreen",
 		},
 		{
-			"PhaseBlueGreen_One",
+			"PhaseBlueGreen010One",
 			[]string{
 				"Phase",
 				"PhaseBlueGreen",
@@ -396,16 +416,16 @@ func TestReduceProposedKey(t *testing.T) {
 			"PhaseBlueGreenOne",
 		},
 		{
-			"PhaseBlueGreen_One",
+			"PhaseBlueGreen010One",
 			[]string{
 				"Phase",
 				"PhaseBlueGreen",
-				"PhaseBlueGreen_OneA",
+				"PhaseBlueGreen010OneA",
 			},
-			"PhaseBlueGreen_One",
+			"PhaseBlueGreen010One",
 		},
 		{
-			"PhaseBlueGreen_One_A",
+			"PhaseBlueGreen010One010A",
 			[]string{
 				"Phase",
 				"PhaseBlueGreen",
@@ -414,13 +434,13 @@ func TestReduceProposedKey(t *testing.T) {
 			"PhaseBlueGreenOneA",
 		},
 		{
-			"PhaseBlueGreen_One_A",
+			"PhaseBlueGreen010One010A",
 			[]string{
 				"Phase",
 				"PhaseBlueGreen",
-				"PhaseBlueGreenOne_AOne",
+				"PhaseBlueGreenOne010AOne",
 			},
-			"PhaseBlueGreenOne_A",
+			"PhaseBlueGreenOne010A",
 		},
 	}
 

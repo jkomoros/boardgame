@@ -49,6 +49,14 @@ func init() {
 
 type transform int
 
+//This used to be "_" which was clearer, but then the constant names would have
+//"_" in them, which golint doesn't like. It was going to be "0" but that
+//legitimately shows up in some cases, like in components/playingcards/Rank10.
+//So instead use "010" which, because of the leading "0" is way less likely to
+//show up.
+const explicitTreeCharacter = "010"
+const oldExplicitTreeCharacter = "_"
+
 const (
 	transformNone transform = iota
 	transformUpper
@@ -715,7 +723,7 @@ func (e *enum) StringValue(key string) string {
 	prefix := e.Prefix()
 
 	withNoPrefix := strings.Replace(key, prefix, "", 1)
-	expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TreeNodeDelimiter, -1)
+	expandedDelimiter := strings.Replace(withNoPrefix, explicitTreeCharacter, enumpkg.TreeNodeDelimiter, -1)
 
 	displayName = titleCaseToWords(expandedDelimiter)
 
@@ -779,6 +787,12 @@ func (e *enum) Legal() error {
 		return errors.New("No public keys")
 	}
 
+	for _, key := range e.Keys() {
+		if strings.Contains(key, oldExplicitTreeCharacter) {
+			return errors.New("Key " + key + " had a '" + oldExplicitTreeCharacter + "' as an explicit delimiter, but that should be changed to '" + explicitTreeCharacter + "'")
+		}
+	}
+
 	if e.Prefix() == "" {
 		return errors.New("Enum didn't have a shared prefix")
 	}
@@ -812,7 +826,7 @@ PhaseOneOne -> "One One" -> "One > One"
 PhaseOneTwo -> "One Two" -> "One > Two"
 PhaseNextOneOne -> "Next One One" -> "Next One > One"
 PhaseNextOneTwo -> "Next One Two" -> "Next One > Two"
-PhaseTwo_One -> "Two > One" -> "Two > One"
+PhaseTwo010One -> "Two > One" -> "Two > One"
 */
 
 type delimiterTree struct {
@@ -1079,9 +1093,9 @@ func (e *enum) createMissingParents() error {
 
 			//There wasn't one, need to create it.
 			newKey := e.Prefix() + joinedSubSet
-			newKey = strings.Replace(newKey, enumpkg.TreeNodeDelimiter, "_", -1)
+			newKey = strings.Replace(newKey, enumpkg.TreeNodeDelimiter, explicitTreeCharacter, -1)
 			newKey = strings.Replace(newKey, " ", "", -1)
-			//reduce "_" to "" if that's unambiguous
+			//reduce "010" to "" if that's unambiguous
 			newKey = e.reduceProposedKey(newKey)
 			newValue := joinedSubSet
 
@@ -1098,8 +1112,8 @@ func (e *enum) createMissingParents() error {
 
 }
 
-//reduceNewKey is given a proposed key, like "PhaseBlueGreen_One". It returns
-//a string that has as many of the "_" elided as makes sense. Currently this
+//reduceNewKey is given a proposed key, like "PhaseBlueGreen0One". It returns
+//a string that has as many of the "010" elided as makes sense. Currently this
 //is done by just mimicking whatever the explicit constants do.
 func (e *enum) reduceProposedKey(proposedKey string) string {
 
@@ -1116,11 +1130,11 @@ func (e *enum) reduceProposedKey(proposedKey string) string {
 }
 
 //reducedKeypermutations returns all possible versions of this key with 0 to n
-//of the "_" replaced with "" (but does not return the proposedKey itself).
+//of the "010" replaced with "" (but does not return the proposedKey itself).
 func reducedKeyPermutations(proposedKey string) []string {
-	pieces := strings.Split(proposedKey, "_")
+	pieces := strings.Split(proposedKey, explicitTreeCharacter)
 	if len(pieces) == 1 {
-		//No "_", so no options to return
+		//No "010", so no options to return
 		return nil
 	}
 	var result []string
@@ -1129,7 +1143,7 @@ func reducedKeyPermutations(proposedKey string) []string {
 		str := pieces[0]
 		for i, b := range mask {
 			if b {
-				str += "_"
+				str += explicitTreeCharacter
 			}
 			str += pieces[i+1]
 		}

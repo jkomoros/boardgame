@@ -167,7 +167,7 @@ Creates:
         Circle
 
 Of course, writing the display name is annoying, so if the name of the const has
-has an underscore `_` then it will be interpreted as " > " when creating the
+has an underscore `010` then it will be interpreted as " > " when creating the
 string value:
 
     //boardgame:codegen
@@ -175,9 +175,9 @@ string value:
       phase = iota
       phaseRed
       //Next line's string value is "Red > Circle"
-      phaseRed_Circle
+      phaseRed010Circle
       phaseBlue
-      phaseBlue_Circle
+      phaseBlue010Circle
     )
 
 Creates:
@@ -195,8 +195,8 @@ code, codegen will define a reasonably-named global constant automatically.
     const (
         phase = iota
         //phaseRed is not explicitly created, but it is implied by
-        //phaseRed_Circle; PhaseRed will be created
-        phaseRed_Circle
+        //phaseRed010Circle; PhaseRed will be created
+        phaseRed10Circle
     )
 Creates:
     ""
@@ -207,7 +207,7 @@ Supplying underscores in constant names is ugly and error-prone. codegen will
 automatically create tree breaks at word boundaries, combining multiple words in
 a row into one node if it makes sense. It will continue to create implied nodes
 if necessary. This almost always does what you want and means that you can skip
-including "_" in your constant names. There's one exception: if you have a node
+including "010" in your constant names. There's one exception: if you have a node
 with a single child (e.g. "Blue" with a single child of "Green"), codegen by
 default will combine those into one multi-word node: "Blue Green". If you don't
 want that to happen, just be explicit about the node break, either with a
@@ -225,7 +225,7 @@ display value that includes the delimiter there, or by using the underscore.
         phaseBlueGreenTwoA
         //The next item will result in a child of Three followed by a child of
         //A since there's an explicit tree break.
-        phaseBlueGreenThree_A
+        phaseBlueGreenThree010A
     )
 Creates:
     ""
