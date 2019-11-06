@@ -2,7 +2,7 @@
 	"Description": "Two-player Normal complete game",
 	"Game": {
 		"Name": "pig",
-		"Id": "67672DDC7E8A71AD",
+		"ID": "67672DDC7E8A71AD",
 		"SecretSalt": "F8CF9E8B7073E460",
 		"Version": 227,
 		"Winners": [
@@ -2452,10 +2452,10 @@
 					"CurrentPlayer": 0,
 					"Die": {
 						"Deck": "dice",
-						"Ids": [
+						"IDs": [
 							"7ec91aa61303e2f42add684d5e70f0d4588c3a98"
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"7ec91aa61303e2f42add684d5e70f0d4588c3a98": 0
 						},
 						"Indexes": [

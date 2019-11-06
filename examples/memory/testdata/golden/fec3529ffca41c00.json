@@ -1,7 +1,7 @@
 {
 	"Game": {
 		"Name": "memory",
-		"Id": "FEC3529FFCA41C00",
+		"ID": "FEC3529FFCA41C00",
 		"SecretSalt": "46026CC924867DFD",
 		"Version": 5,
 		"Winners": null,
@@ -83,7 +83,7 @@
 					"CardSet": "all",
 					"Cards": {
 						"Deck": "cards",
-						"Ids": [
+						"IDs": [
 							"2571d0cbc5faa8654a23d35e2ce0247b98046071",
 							"92324bbf0577e8ba9f43545adfab703ff1e91d86",
 							"29e2715869172cf5743e61766a1de5265bddad3a",
@@ -95,7 +95,7 @@
 							"0c982c588858e71d4f44679e1aa2319091cfcdef",
 							"8bc3813c4b5cd0c87c5a1f65701e994cbf862f2a"
 						],
-						"IdsLastSeen": {},
+						"IDsLastSeen": {},
 						"Indexes": [
 							73,
 							15,
@@ -114,7 +114,7 @@
 					"CurrentPlayer": 0,
 					"HiddenCards": {
 						"Deck": "cards",
-						"Ids": [
+						"IDs": [
 							"2571d0cbc5faa8654a23d35e2ce0247b98046071",
 							"92324bbf0577e8ba9f43545adfab703ff1e91d86",
 							"29e2715869172cf5743e61766a1de5265bddad3a",
@@ -126,7 +126,7 @@
 							"0c982c588858e71d4f44679e1aa2319091cfcdef",
 							"8bc3813c4b5cd0c87c5a1f65701e994cbf862f2a"
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"0c982c588858e71d4f44679e1aa2319091cfcdef": 0,
 							"0ca5b0f717e4d9df5dfba770d6b29070207fabc7": 0,
 							"0d1c56a25da69771e93542c31f976cf992a478ba": 0,
@@ -164,13 +164,13 @@
 						"ShuffleCount": 1
 					},
 					"HideCardsTimer": {
-						"Id": "",
+						"ID": "",
 						"IsTimer": true
 					},
 					"NumCards": 10,
 					"UnusedCards": {
 						"Deck": "cards",
-						"Ids": [
+						"IDs": [
 							"649fe62963db013621987fbf6279e55cd6a8fe0b",
 							"d25ed1c75e5887bfbc2f3c05f6ab411f2b161ac3",
 							"77ea9e3d84d24f3258fc6d9e8951d7724f5ab692",
@@ -282,7 +282,7 @@
 							"99ded13654fb02542b4809a0f16117cfaa0411d6",
 							"10ea9b84477e578569cc37f91f1748d6d66e6f2d"
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"00615de6addeb098310c447d9cd76da7682fe4b2": 0,
 							"01e958e5872bf8209c48ea709d02f5947e755114": 0,
 							"04043721180560482536fae11327b82360bae394": 0,
@@ -640,7 +640,7 @@
 					},
 					"VisibleCards": {
 						"Deck": "cards",
-						"Ids": [
+						"IDs": [
 							"",
 							"",
 							"",
@@ -652,7 +652,7 @@
 							"",
 							""
 						],
-						"IdsLastSeen": {},
+						"IDsLastSeen": {},
 						"Indexes": [
 							-1,
 							-1,
@@ -676,8 +676,8 @@
 						"CardsLeftToReveal": 2,
 						"WonCards": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"ShuffleCount": 0
 						}
@@ -686,8 +686,8 @@
 						"CardsLeftToReveal": 0,
 						"WonCards": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"ShuffleCount": 0
 						}
@@ -827,14 +827,14 @@
 		{
 			"Game": {
 				"Cards": {
-					"IdsLastSeen": {
+					"IDsLastSeen": {
 						"29e2715869172cf5743e61766a1de5265bddad3a": [
 							1
 						]
 					}
 				},
 				"HiddenCards": {
-					"Ids": {
+					"IDs": {
 						"2": [
 							"@@ -1,40 +0,0 @@\n-29e2715869172cf5743e61766a1de5265bddad3a\n",
 							0,
@@ -851,14 +851,14 @@
 					}
 				},
 				"VisibleCards": {
-					"Ids": {
+					"IDs": {
 						"2": [
 							"",
 							"29e2715869172cf5743e61766a1de5265bddad3a"
 						],
 						"_t": "a"
 					},
-					"IdsLastSeen": {
+					"IDsLastSeen": {
 						"29e2715869172cf5743e61766a1de5265bddad3a": [
 							1
 						]
@@ -889,14 +889,14 @@
 		{
 			"Game": {
 				"Cards": {
-					"IdsLastSeen": {
+					"IDsLastSeen": {
 						"4edc6b4f6c335ec64f39334f0afaf6b7a33bb8cd": [
 							2
 						]
 					}
 				},
 				"HiddenCards": {
-					"Ids": {
+					"IDs": {
 						"7": [
 							"@@ -1,40 +0,0 @@\n-4edc6b4f6c335ec64f39334f0afaf6b7a33bb8cd\n",
 							0,
@@ -913,14 +913,14 @@
 					}
 				},
 				"VisibleCards": {
-					"Ids": {
+					"IDs": {
 						"7": [
 							"",
 							"4edc6b4f6c335ec64f39334f0afaf6b7a33bb8cd"
 						],
 						"_t": "a"
 					},
-					"IdsLastSeen": {
+					"IDsLastSeen": {
 						"4edc6b4f6c335ec64f39334f0afaf6b7a33bb8cd": [
 							2
 						]
@@ -951,7 +951,7 @@
 		{
 			"Game": {
 				"HideCardsTimer": {
-					"Id": [
+					"ID": [
 						"",
 						"F4CC96527194DBCC"
 					]
@@ -965,7 +965,7 @@
 		{
 			"Game": {
 				"Cards": {
-					"IdsLastSeen": {
+					"IDsLastSeen": {
 						"29e2715869172cf5743e61766a1de5265bddad3a": [
 							1,
 							4
@@ -977,7 +977,7 @@
 					}
 				},
 				"HiddenCards": {
-					"Ids": {
+					"IDs": {
 						"2": [
 							"",
 							"29e2715869172cf5743e61766a1de5265bddad3a"
@@ -988,7 +988,7 @@
 						],
 						"_t": "a"
 					},
-					"IdsLastSeen": {
+					"IDsLastSeen": {
 						"29e2715869172cf5743e61766a1de5265bddad3a": [
 							0,
 							4
@@ -1011,13 +1011,13 @@
 					}
 				},
 				"HideCardsTimer": {
-					"Id": [
+					"ID": [
 						"F4CC96527194DBCC",
 						""
 					]
 				},
 				"VisibleCards": {
-					"Ids": {
+					"IDs": {
 						"0": [
 							""
 						],

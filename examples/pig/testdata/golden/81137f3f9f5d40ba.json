@@ -2,7 +2,7 @@
 	"Description": "Two play incomplete game",
 	"Game": {
 		"Name": "pig",
-		"Id": "81137F3F9F5D40BA",
+		"ID": "81137F3F9F5D40BA",
 		"SecretSalt": "FBB49C983100331F",
 		"Version": 27,
 		"Winners": null,
@@ -322,10 +322,10 @@
 					"CurrentPlayer": 0,
 					"Die": {
 						"Deck": "dice",
-						"Ids": [
+						"IDs": [
 							"c67dbe03c38a60856d655d76e7dd4826fe0deb18"
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"c67dbe03c38a60856d655d76e7dd4826fe0deb18": 0
 						},
 						"Indexes": [

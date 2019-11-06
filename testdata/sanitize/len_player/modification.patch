@@ -4,10 +4,10 @@
 @ ["Components","test",1,"IntVar"]
 - 1
 + 0
-@ ["Players",1,"Hand","Ids",0]
+@ ["Players",1,"Hand","IDs",0]
 - "26367debb9c2ce3d0a24de425c5797f43ac43909"
 + ""
-@ ["Players",1,"Hand","Ids",1]
+@ ["Players",1,"Hand","IDs",1]
 - ""
 + "26367debb9c2ce3d0a24de425c5797f43ac43909"
 @ ["SecretMoveCount"]

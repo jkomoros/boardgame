@@ -373,8 +373,8 @@ class BoardgameGameStateManager extends PolymerElement {
         components[i] = this._componentForDeckAndIndex(stack.Deck, index, wholeState);
       }
       
-      if (stack.Ids) {
-        components[i].Id = stack.Ids[i];
+      if (stack.IDs) {
+        components[i].ID = stack.IDs[i];
       }
       components[i].Deck = stack.Deck;
       components[i].GameName = gameName;
@@ -394,7 +394,7 @@ class BoardgameGameStateManager extends PolymerElement {
 
     if (!timerInfo) return;
 
-    let info = timerInfo[timer.Id];
+    let info = timerInfo[timer.ID];
 
     if (!info) return;
     timer.TimeLeft = info.TimeLeft;

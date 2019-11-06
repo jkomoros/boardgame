@@ -444,7 +444,7 @@ BoardgameComponentStack = class extends PolymerElement {
       if (newValue.GameName) {
         this.gameName = newValue.GameName;
       }
-      this.idsLastSeen = newValue.IdsLastSeen || {};
+      this.idsLastSeen = newValue.IDsLastSeen || {};
     } else {
       this.deckName = "";
       this.gameName = "";

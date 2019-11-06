@@ -505,8 +505,8 @@ type mergedStack struct {
 type stackJSONObj struct {
 	Deck         string
 	Indexes      []int
-	Ids          []string
-	IdsLastSeen  map[string]int
+	IDs          []string
+	IDsLastSeen  map[string]int
 	ShuffleCount int
 	Size         int `json:",omitempty"`
 	MaxSize      int `json:",omitempty"`
@@ -2005,8 +2005,8 @@ func (g *growableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:         g.deckName,
 		Indexes:      g.indexes,
-		Ids:          g.IDs(),
-		IdsLastSeen:  g.idsLastSeen,
+		IDs:          g.IDs(),
+		IDsLastSeen:  g.idsLastSeen,
 		ShuffleCount: g.shuffleCount,
 		MaxSize:      g.maxSize,
 	}
@@ -2018,8 +2018,8 @@ func (s *sizedStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:         s.deckName,
 		Indexes:      s.indexes,
-		Ids:          s.IDs(),
-		IdsLastSeen:  s.idsLastSeen,
+		IDs:          s.IDs(),
+		IDsLastSeen:  s.idsLastSeen,
 		ShuffleCount: s.shuffleCount,
 		Size:         s.size,
 	}
@@ -2043,8 +2043,8 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:         m.Deck().Name(),
 		Indexes:      indexes,
-		Ids:          m.IDs(),
-		IdsLastSeen:  m.IDsLastSeen(),
+		IDs:          m.IDs(),
+		IDsLastSeen:  m.IDsLastSeen(),
 		ShuffleCount: m.ShuffleCount(),
 	}
 	if m.ImmutableSizedStack() != nil {
@@ -2070,7 +2070,7 @@ func (g *growableStack) UnmarshalJSON(blob []byte) error {
 	//error?
 	g.deckName = obj.Deck
 	g.indexes = obj.Indexes
-	g.idsLastSeen = obj.IdsLastSeen
+	g.idsLastSeen = obj.IDsLastSeen
 	g.maxSize = obj.MaxSize
 	g.shuffleCount = obj.ShuffleCount
 	return nil
@@ -2088,7 +2088,7 @@ func (s *sizedStack) UnmarshalJSON(blob []byte) error {
 	}
 	s.deckName = obj.Deck
 	s.indexes = obj.Indexes
-	s.idsLastSeen = obj.IdsLastSeen
+	s.idsLastSeen = obj.IDsLastSeen
 	s.size = obj.Size
 	s.shuffleCount = obj.ShuffleCount
 	return nil

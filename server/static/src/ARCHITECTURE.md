@@ -144,7 +144,7 @@ The hardest case is when there is a component who either before or after is
 not known to be in a specific location in a stack. This happens, for exmaple,
 when a component moves from a normal stack to one that's sanitized with
 PolicyLen. That means that the actual list of component IDs is elided, and all
-that's left is stack.IdsLastSeen. This captures that the last time the given
+that's left is stack.IDsLastSeen. This captures that the last time the given
 ID was seen was in this particular stack, but not _where_ in the stack it was
 seen. In this case `boardgame-component-animator` does a behavior like the one
 immediatley above. It creates a faux animating element. It positions the

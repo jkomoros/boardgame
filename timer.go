@@ -73,7 +73,7 @@ func (t *timer) setState(state *state) {
 
 func (t *timer) MarshalJSON() ([]byte, error) {
 	obj := map[string]interface{}{
-		"Id": t.ID,
+		"ID": t.ID,
 		//TODO: this is a hack so client can find it easily
 		"IsTimer": true,
 	}

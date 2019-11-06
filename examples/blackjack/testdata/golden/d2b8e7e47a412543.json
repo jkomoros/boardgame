@@ -1,7 +1,7 @@
 {
 	"Game": {
 		"Name": "blackjack",
-		"Id": "D2B8E7E47A412543",
+		"ID": "D2B8E7E47A412543",
 		"SecretSalt": "747E37273A9AF287",
 		"Version": 17,
 		"Winners": null,
@@ -194,14 +194,14 @@
 					"CurrentPlayer": 0,
 					"DiscardStack": {
 						"Deck": "cards",
-						"Ids": [],
-						"IdsLastSeen": {},
+						"IDs": [],
+						"IDsLastSeen": {},
 						"Indexes": [],
 						"ShuffleCount": 0
 					},
 					"DrawStack": {
 						"Deck": "cards",
-						"Ids": [
+						"IDs": [
 							"c69bb5f16e897bf89ddcc0f95c1d22a823116477",
 							"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11",
 							"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6",
@@ -255,7 +255,7 @@
 							"ab9622ac597c1b51bf4082f7ac05ef3436674439",
 							"8618e1a43225733eb04a26a2afb819cf2c84b094"
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"018000ca16c26d93b913b8842ff26efeb6e074de": 0,
 							"02e7135757ed5729af0522720439ec981ba39f10": 0,
 							"076546538a483195510e2805019ce1ca5205e53b": 0,
@@ -424,8 +424,8 @@
 					"RRStarterPlayer": 0,
 					"UnusedCards": {
 						"Deck": "cards",
-						"Ids": [],
-						"IdsLastSeen": {},
+						"IDs": [],
+						"IDsLastSeen": {},
 						"Indexes": [],
 						"ShuffleCount": 0
 					}
@@ -437,16 +437,16 @@
 						"Busted": false,
 						"Hand": {
 							"Deck": "cards",
-							"Ids": null,
-							"IdsLastSeen": {},
+							"IDs": null,
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
@@ -454,8 +454,8 @@
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"ShuffleCount": 0
 						}
@@ -464,16 +464,16 @@
 						"Busted": false,
 						"Hand": {
 							"Deck": "cards",
-							"Ids": null,
-							"IdsLastSeen": {},
+							"IDs": null,
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
@@ -481,8 +481,8 @@
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"ShuffleCount": 0
 						}
@@ -491,16 +491,16 @@
 						"Busted": false,
 						"Hand": {
 							"Deck": "cards",
-							"Ids": null,
-							"IdsLastSeen": {},
+							"IDs": null,
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
@@ -508,8 +508,8 @@
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"ShuffleCount": 0
 						}
@@ -518,16 +518,16 @@
 						"Busted": false,
 						"Hand": {
 							"Deck": "cards",
-							"Ids": null,
-							"IdsLastSeen": {},
+							"IDs": null,
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"MaxSize": 1,
 							"ShuffleCount": 0
@@ -535,8 +535,8 @@
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
-							"Ids": [],
-							"IdsLastSeen": {},
+							"IDs": [],
+							"IDsLastSeen": {},
 							"Indexes": [],
 							"ShuffleCount": 0
 						}
@@ -608,7 +608,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"c69bb5f16e897bf89ddcc0f95c1d22a823116477",
 							0,
@@ -633,13 +633,13 @@
 			"Players": {
 				"0": {
 					"Hand": {
-						"Ids": [
+						"IDs": [
 							null,
 							[
 								"c69bb5f16e897bf89ddcc0f95c1d22a823116477"
 							]
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"c69bb5f16e897bf89ddcc0f95c1d22a823116477": [
 								1
 							]
@@ -652,13 +652,13 @@
 						}
 					},
 					"HiddenHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"c69bb5f16e897bf89ddcc0f95c1d22a823116477"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"c69bb5f16e897bf89ddcc0f95c1d22a823116477": [
 								1
 							]
@@ -681,7 +681,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11",
 							0,
@@ -706,13 +706,13 @@
 			"Players": {
 				"1": {
 					"Hand": {
-						"Ids": [
+						"IDs": [
 							null,
 							[
 								"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11"
 							]
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11": [
 								2
 							]
@@ -725,13 +725,13 @@
 						}
 					},
 					"HiddenHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11": [
 								2
 							]
@@ -754,7 +754,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6",
 							0,
@@ -779,13 +779,13 @@
 			"Players": {
 				"2": {
 					"Hand": {
-						"Ids": [
+						"IDs": [
 							null,
 							[
 								"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6"
 							]
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6": [
 								3
 							]
@@ -798,13 +798,13 @@
 						}
 					},
 					"HiddenHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6": [
 								3
 							]
@@ -827,7 +827,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"f4f09d8ae4e184970fbb618c7943bfbcba376c10",
 							0,
@@ -860,13 +860,13 @@
 			"Players": {
 				"3": {
 					"Hand": {
-						"Ids": [
+						"IDs": [
 							null,
 							[
 								"f4f09d8ae4e184970fbb618c7943bfbcba376c10"
 							]
 						],
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"f4f09d8ae4e184970fbb618c7943bfbcba376c10": [
 								4
 							]
@@ -879,13 +879,13 @@
 						}
 					},
 					"HiddenHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"f4f09d8ae4e184970fbb618c7943bfbcba376c10"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"f4f09d8ae4e184970fbb618c7943bfbcba376c10": [
 								4
 							]
@@ -908,7 +908,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"2b7ccbbe9fa4a53088f44307324d95c7343ed735",
 							0,
@@ -941,13 +941,13 @@
 			"Players": {
 				"0": {
 					"Hand": {
-						"Ids": {
+						"IDs": {
 							"1": [
 								"2b7ccbbe9fa4a53088f44307324d95c7343ed735"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"2b7ccbbe9fa4a53088f44307324d95c7343ed735": [
 								5
 							]
@@ -960,13 +960,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"2b7ccbbe9fa4a53088f44307324d95c7343ed735"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"2b7ccbbe9fa4a53088f44307324d95c7343ed735": [
 								5
 							]
@@ -989,7 +989,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"d56cc1993ea208efb4a1846d88544dd899ed17a2",
 							0,
@@ -1014,13 +1014,13 @@
 			"Players": {
 				"1": {
 					"Hand": {
-						"Ids": {
+						"IDs": {
 							"1": [
 								"d56cc1993ea208efb4a1846d88544dd899ed17a2"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"d56cc1993ea208efb4a1846d88544dd899ed17a2": [
 								6
 							]
@@ -1033,13 +1033,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"d56cc1993ea208efb4a1846d88544dd899ed17a2"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"d56cc1993ea208efb4a1846d88544dd899ed17a2": [
 								6
 							]
@@ -1062,7 +1062,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"ec2fb63cbd6682911ecd9f3ed577e6027ef3fac5",
 							0,
@@ -1087,13 +1087,13 @@
 			"Players": {
 				"2": {
 					"Hand": {
-						"Ids": {
+						"IDs": {
 							"1": [
 								"ec2fb63cbd6682911ecd9f3ed577e6027ef3fac5"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"ec2fb63cbd6682911ecd9f3ed577e6027ef3fac5": [
 								7
 							]
@@ -1106,13 +1106,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"ec2fb63cbd6682911ecd9f3ed577e6027ef3fac5"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"ec2fb63cbd6682911ecd9f3ed577e6027ef3fac5": [
 								7
 							]
@@ -1135,7 +1135,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"9018b4fd311c0d4cfbcd47621a66eb822312838b",
 							0,
@@ -1168,13 +1168,13 @@
 			"Players": {
 				"3": {
 					"Hand": {
-						"Ids": {
+						"IDs": {
 							"1": [
 								"9018b4fd311c0d4cfbcd47621a66eb822312838b"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"9018b4fd311c0d4cfbcd47621a66eb822312838b": [
 								8
 							]
@@ -1187,13 +1187,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"9018b4fd311c0d4cfbcd47621a66eb822312838b"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"9018b4fd311c0d4cfbcd47621a66eb822312838b": [
 								8
 							]
@@ -1229,7 +1229,7 @@
 			"Players": {
 				"0": {
 					"Hand": {
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"c69bb5f16e897bf89ddcc0f95c1d22a823116477": [
 								1,
 								10
@@ -1237,7 +1237,7 @@
 						}
 					},
 					"HiddenHand": {
-						"Ids": {
+						"IDs": {
 							"_0": [
 								"c69bb5f16e897bf89ddcc0f95c1d22a823116477",
 								0,
@@ -1255,13 +1255,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"c69bb5f16e897bf89ddcc0f95c1d22a823116477"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"c69bb5f16e897bf89ddcc0f95c1d22a823116477": [
 								10
 							]
@@ -1284,7 +1284,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"f17b8e460a7b446d8a294ac489f3f1e4f5d998b6",
 							0,
@@ -1309,13 +1309,13 @@
 						true
 					],
 					"Hand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"f17b8e460a7b446d8a294ac489f3f1e4f5d998b6"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"f17b8e460a7b446d8a294ac489f3f1e4f5d998b6": [
 								11
 							]
@@ -1328,13 +1328,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"f17b8e460a7b446d8a294ac489f3f1e4f5d998b6"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"f17b8e460a7b446d8a294ac489f3f1e4f5d998b6": [
 								11
 							]
@@ -1370,7 +1370,7 @@
 			"Players": {
 				"1": {
 					"Hand": {
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11": [
 								2,
 								13
@@ -1378,7 +1378,7 @@
 						}
 					},
 					"HiddenHand": {
-						"Ids": {
+						"IDs": {
 							"_0": [
 								"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11",
 								0,
@@ -1396,13 +1396,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a4c4eb19ffb5a17e7190bdede70e4b4aecf91d11": [
 								13
 							]
@@ -1453,7 +1453,7 @@
 			"Players": {
 				"2": {
 					"Hand": {
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6": [
 								3,
 								16
@@ -1461,7 +1461,7 @@
 						}
 					},
 					"HiddenHand": {
-						"Ids": {
+						"IDs": {
 							"_0": [
 								"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6",
 								0,
@@ -1479,13 +1479,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"a0c4e2b57a1a8c106fd7e53307f646a96cdc27f6": [
 								16
 							]
@@ -1508,7 +1508,7 @@
 		{
 			"Game": {
 				"DrawStack": {
-					"Ids": {
+					"IDs": {
 						"_0": [
 							"e24af3a11d88b777533d55abf1b7ddf1e401a227",
 							0,
@@ -1529,13 +1529,13 @@
 			"Players": {
 				"2": {
 					"Hand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"e24af3a11d88b777533d55abf1b7ddf1e401a227"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"e24af3a11d88b777533d55abf1b7ddf1e401a227": [
 								17
 							]
@@ -1548,13 +1548,13 @@
 						}
 					},
 					"VisibleHand": {
-						"Ids": {
+						"IDs": {
 							"0": [
 								"e24af3a11d88b777533d55abf1b7ddf1e401a227"
 							],
 							"_t": "a"
 						},
-						"IdsLastSeen": {
+						"IDsLastSeen": {
 							"e24af3a11d88b777533d55abf1b7ddf1e401a227": [
 								17
 							]
