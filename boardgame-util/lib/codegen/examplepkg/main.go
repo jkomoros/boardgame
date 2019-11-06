@@ -1,8 +1,8 @@
 /*
 
-	This is just an example package for testing. Note that some of the uses of
-	codegen use somewhat odd spacing or capitalization; this is primarily
-	just to test how resilient the package is to unexpected input.
+Package examplepkg  is just an example package for testing. Note that some of
+the uses of codegen use somewhat odd spacing or capitalization; this is
+primarily just to test how resilient the package is to unexpected input.
 
 */
 package examplepkg
