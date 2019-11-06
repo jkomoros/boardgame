@@ -23,11 +23,13 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 	return enums
 }
 
+//phaseEnum is the enum.Enum for phase
 var phaseEnum = enums.MustAdd("phase", map[int]string{
 	phasePlaying: "Playing",
 	phaseSetup:   "Setup",
 })
 
+//colorEnum is the enum.Enum for color
 var colorEnum = enums.MustAdd("color", map[int]string{
 	colorBlack: "Black",
 	colorRed:   "Red",

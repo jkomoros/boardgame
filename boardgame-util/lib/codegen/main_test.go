@@ -1,12 +1,13 @@
 package codegen
 
 import (
-	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"log"
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
 func TestOutput(t *testing.T) {

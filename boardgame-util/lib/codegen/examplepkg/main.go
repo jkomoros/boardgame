@@ -144,6 +144,12 @@ const (
 
 //boardgame:codegen
 const (
+	PublicGreen = iota
+	PublicBlue
+)
+
+//boardgame:codegen
+const (
 	example = iota
 	exampleOne
 	exampleTwo

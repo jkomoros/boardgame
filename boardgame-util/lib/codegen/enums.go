@@ -1287,6 +1287,7 @@ const (
 )
 
 {{ end -}}
+//{{.prefix}}Enum is the enum.Enum for {{.prefix}}
 var {{.prefix}}Enum = enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[int]string{
 	{{ $prefix := .prefix -}}
 	{{range $name, $value := .values -}}

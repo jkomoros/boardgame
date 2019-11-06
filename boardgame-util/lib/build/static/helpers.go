@@ -2,10 +2,11 @@ package static
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 )
 
 //The main import for the main library
