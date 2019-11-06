@@ -211,7 +211,7 @@ func (g *gameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 	}
 }
 
-func NewGameStorageRecord(game *boardgame.GameStorageRecord) *gameStorageRecord {
+func newGameStorageRecord(game *boardgame.GameStorageRecord) *gameStorageRecord {
 	if game == nil {
 		return nil
 	}
@@ -273,7 +273,7 @@ func (c *combinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 
 }
 
-func NewCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) *combinedGameStorageRecord {
+func newCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) *combinedGameStorageRecord {
 
 	if combined == nil {
 		return nil
@@ -309,7 +309,7 @@ func (e *extendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecor
 	}
 }
 
-func NewExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *extendedGameStorageRecord {
+func newExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *extendedGameStorageRecord {
 	if eGame == nil {
 		return nil
 	}
@@ -333,9 +333,9 @@ func (m *moveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
 	}
 }
 
-func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStorageRecord) *moveStorageRecord {
+func newMoveStorageRecord(gameID string, version int, record *boardgame.MoveStorageRecord) *moveStorageRecord {
 	return &moveStorageRecord{
-		GameID:    gameId,
+		GameID:    gameID,
 		Version:   int64(version),
 		Initiator: int64(record.Initiator),
 		Timestamp: record.Timestamp.UnixNano(),
@@ -357,7 +357,7 @@ func (s *userStorageRecord) ToStorageRecord() *users.StorageRecord {
 	}
 }
 
-func NewUserStorageRecord(user *users.StorageRecord) *userStorageRecord {
+func newUserStorageRecord(user *users.StorageRecord) *userStorageRecord {
 	return &userStorageRecord{
 		ID:          user.ID,
 		DisplayName: user.DisplayName,
@@ -375,9 +375,9 @@ func (s *stateStorageRecord) ToStorageRecord() boardgame.StateStorageRecord {
 	return []byte(s.Blob)
 }
 
-func NewStateStorageRecord(gameId string, version int, record boardgame.StateStorageRecord) *stateStorageRecord {
+func newStateStorageRecord(gameID string, version int, record boardgame.StateStorageRecord) *stateStorageRecord {
 	return &stateStorageRecord{
-		GameID:  gameId,
+		GameID:  gameID,
 		Version: int64(version),
 		Blob:    string(record),
 	}
@@ -390,9 +390,9 @@ func (a *agentStateStorageRecord) ToStorageRecord() []byte {
 	return []byte(a.Blob)
 }
 
-func NewAgentStateStorageRecord(gameId string, player boardgame.PlayerIndex, state []byte) *agentStateStorageRecord {
+func newAgentStateStorageRecord(gameID string, player boardgame.PlayerIndex, state []byte) *agentStateStorageRecord {
 	return &agentStateStorageRecord{
-		GameID:      gameId,
+		GameID:      gameID,
 		PlayerIndex: int64(player),
 		Blob:        string(state),
 	}

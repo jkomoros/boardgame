@@ -293,13 +293,13 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	version := game.Version
 
-	gameRecord := NewGameStorageRecord(game)
-	stateRecord := NewStateStorageRecord(game.ID, version, state)
+	gameRecord := newGameStorageRecord(game)
+	stateRecord := newStateStorageRecord(game.ID, version, state)
 
 	var moveRecord *moveStorageRecord
 
 	if move != nil {
-		moveRecord = NewMoveStorageRecord(game.ID, version, move)
+		moveRecord = newMoveStorageRecord(game.ID, version, move)
 	}
 
 	count, _ := s.dbMap.SelectInt("select count(*) from "+tableGames+" where ID=?", game.ID)
@@ -312,7 +312,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 			return errors.New("Couldn't update game: " + err.Error())
 		}
 
-		extendedRecord := NewExtendedGameStorageRecord(extendedgame.DefaultStorageRecord())
+		extendedRecord := newExtendedGameStorageRecord(extendedgame.DefaultStorageRecord())
 
 		extendedRecord.ID = game.ID
 
@@ -378,7 +378,7 @@ func (s *StorageManager) SaveAgentState(gameID string, player boardgame.PlayerIn
 		return errors.New("Database not connected yet")
 	}
 
-	record := NewAgentStateStorageRecord(gameID, player, state)
+	record := newAgentStateStorageRecord(gameID, player, state)
 
 	err := s.dbMap.Insert(record)
 
@@ -396,7 +396,7 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 		return errors.New("Database not connected yet")
 	}
 
-	record := NewExtendedGameStorageRecord(eGame)
+	record := newExtendedGameStorageRecord(eGame)
 	record.ID = id
 
 	_, err := s.dbMap.Update(record)
@@ -588,7 +588,7 @@ func (s *StorageManager) UserIDsForGame(gameID string) []string {
 
 //UpdateUser updates the given user
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
-	userRecord := NewUserStorageRecord(user)
+	userRecord := newUserStorageRecord(user)
 
 	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+tableUsers+" where ID=?", user.ID)
 
