@@ -18,20 +18,20 @@ import (
 
 // Implementation for testStruct
 
-var __testStructReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+var ȧutoGeneratedTestStructReaderProps = map[string]boardgame.PropertyType{
 	"A": boardgame.TypeInt,
 	"B": boardgame.TypeString,
 }
 
-type __testStructReader struct {
+type ȧutoGeneratedTestStructReader struct {
 	data *testStruct
 }
 
-func (t *__testStructReader) Props() map[string]boardgame.PropertyType {
-	return __testStructReaderProps
+func (t *ȧutoGeneratedTestStructReader) Props() map[string]boardgame.PropertyType {
+	return ȧutoGeneratedTestStructReaderProps
 }
 
-func (t *__testStructReader) Prop(name string) (interface{}, error) {
+func (t *ȧutoGeneratedTestStructReader) Prop(name string) (interface{}, error) {
 	props := t.Props()
 	propType, ok := props[name]
 
@@ -70,7 +70,7 @@ func (t *__testStructReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
-func (t *__testStructReader) PropMutable(name string) bool {
+func (t *ȧutoGeneratedTestStructReader) PropMutable(name string) bool {
 	switch name {
 	case "A":
 		return true
@@ -81,7 +81,7 @@ func (t *__testStructReader) PropMutable(name string) bool {
 	return false
 }
 
-func (t *__testStructReader) SetProp(name string, value interface{}) error {
+func (t *ȧutoGeneratedTestStructReader) SetProp(name string, value interface{}) error {
 	props := t.Props()
 	propType, ok := props[name]
 
@@ -91,7 +91,7 @@ func (t *__testStructReader) SetProp(name string, value interface{}) error {
 
 	switch propType {
 	case boardgame.TypeBoard:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	case boardgame.TypeBool:
 		val, ok := value.(bool)
 		if !ok {
@@ -105,7 +105,7 @@ func (t *__testStructReader) SetProp(name string, value interface{}) error {
 		}
 		return t.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -131,7 +131,7 @@ func (t *__testStructReader) SetProp(name string, value interface{}) error {
 		}
 		return t.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	case boardgame.TypeString:
 		val, ok := value.(string)
 		if !ok {
@@ -145,14 +145,14 @@ func (t *__testStructReader) SetProp(name string, value interface{}) error {
 		}
 		return t.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
 }
 
-func (t *__testStructReader) ConfigureProp(name string, value interface{}) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureProp(name string, value interface{}) error {
 	props := t.Props()
 	propType, ok := props[name]
 
@@ -169,14 +169,13 @@ func (t *__testStructReader) ConfigureProp(name string, value interface{}) error
 				return errors.New("Provided value was not of type boardgame.Board")
 			}
 			return t.ConfigureBoardProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.ImmutableBoard)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.ImmutableBoard")
-			}
-			return t.ConfigureImmutableBoardProp(name, val)
 		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableBoard)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableBoard")
+		}
+		return t.ConfigureImmutableBoardProp(name, val)
 	case boardgame.TypeBool:
 		val, ok := value.(bool)
 		if !ok {
@@ -197,14 +196,13 @@ func (t *__testStructReader) ConfigureProp(name string, value interface{}) error
 				return errors.New("Provided value was not of type enum.Val")
 			}
 			return t.ConfigureEnumProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(enum.ImmutableVal)
-			if !ok {
-				return errors.New("Provided value was not of type enum.ImmutableVal")
-			}
-			return t.ConfigureImmutableEnumProp(name, val)
 		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableVal)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableVal")
+		}
+		return t.ConfigureImmutableEnumProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -237,14 +235,13 @@ func (t *__testStructReader) ConfigureProp(name string, value interface{}) error
 				return errors.New("Provided value was not of type boardgame.Stack")
 			}
 			return t.ConfigureStackProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.ImmutableStack)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.ImmutableStack")
-			}
-			return t.ConfigureImmutableStackProp(name, val)
 		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableStack)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableStack")
+		}
+		return t.ConfigureImmutableStackProp(name, val)
 	case boardgame.TypeString:
 		val, ok := value.(string)
 		if !ok {
@@ -265,93 +262,92 @@ func (t *__testStructReader) ConfigureProp(name string, value interface{}) error
 				return errors.New("Provided value was not of type boardgame.Timer")
 			}
 			return t.ConfigureTimerProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.ImmutableTimer)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.ImmutableTimer")
-			}
-			return t.ConfigureImmutableTimerProp(name, val)
 		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableTimer)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
+		}
+		return t.ConfigureImmutableTimerProp(name, val)
 
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
 }
 
-func (t *__testStructReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
+func (t *ȧutoGeneratedTestStructReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
 
 	return nil, errors.New("No such Board prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureBoardProp(name string, value boardgame.Board) error {
 
 	return errors.New("No such Board prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
 
 	return errors.New("No such ImmutableBoard prop: " + name)
 
 }
 
-func (t *__testStructReader) BoardProp(name string) (boardgame.Board, error) {
+func (t *ȧutoGeneratedTestStructReader) BoardProp(name string) (boardgame.Board, error) {
 
 	return nil, errors.New("No such Board prop: " + name)
 
 }
 
-func (t *__testStructReader) BoolProp(name string) (bool, error) {
+func (t *ȧutoGeneratedTestStructReader) BoolProp(name string) (bool, error) {
 
 	return false, errors.New("No such Bool prop: " + name)
 
 }
 
-func (t *__testStructReader) SetBoolProp(name string, value bool) error {
+func (t *ȧutoGeneratedTestStructReader) SetBoolProp(name string, value bool) error {
 
 	return errors.New("No such Bool prop: " + name)
 
 }
 
-func (t *__testStructReader) BoolSliceProp(name string) ([]bool, error) {
+func (t *ȧutoGeneratedTestStructReader) BoolSliceProp(name string) ([]bool, error) {
 
 	return []bool{}, errors.New("No such BoolSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) SetBoolSliceProp(name string, value []bool) error {
+func (t *ȧutoGeneratedTestStructReader) SetBoolSliceProp(name string, value []bool) error {
 
 	return errors.New("No such BoolSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
+func (t *ȧutoGeneratedTestStructReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
 
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureEnumProp(name string, value enum.Val) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureEnumProp(name string, value enum.Val) error {
 
 	return errors.New("No such Enum prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
 
 	return errors.New("No such ImmutableEnum prop: " + name)
 
 }
 
-func (t *__testStructReader) EnumProp(name string) (enum.Val, error) {
+func (t *ȧutoGeneratedTestStructReader) EnumProp(name string) (enum.Val, error) {
 
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
-func (t *__testStructReader) IntProp(name string) (int, error) {
+func (t *ȧutoGeneratedTestStructReader) IntProp(name string) (int, error) {
 
 	switch name {
 	case "A":
@@ -363,7 +359,7 @@ func (t *__testStructReader) IntProp(name string) (int, error) {
 
 }
 
-func (t *__testStructReader) SetIntProp(name string, value int) error {
+func (t *ȧutoGeneratedTestStructReader) SetIntProp(name string, value int) error {
 
 	switch name {
 	case "A":
@@ -376,67 +372,67 @@ func (t *__testStructReader) SetIntProp(name string, value int) error {
 
 }
 
-func (t *__testStructReader) IntSliceProp(name string) ([]int, error) {
+func (t *ȧutoGeneratedTestStructReader) IntSliceProp(name string) ([]int, error) {
 
 	return []int{}, errors.New("No such IntSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) SetIntSliceProp(name string, value []int) error {
+func (t *ȧutoGeneratedTestStructReader) SetIntSliceProp(name string, value []int) error {
 
 	return errors.New("No such IntSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+func (t *ȧutoGeneratedTestStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
 
 	return 0, errors.New("No such PlayerIndex prop: " + name)
 
 }
 
-func (t *__testStructReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+func (t *ȧutoGeneratedTestStructReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
 
 	return errors.New("No such PlayerIndex prop: " + name)
 
 }
 
-func (t *__testStructReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+func (t *ȧutoGeneratedTestStructReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
 
 	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+func (t *ȧutoGeneratedTestStructReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
 
 	return errors.New("No such PlayerIndexSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
+func (t *ȧutoGeneratedTestStructReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
 
 	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureStackProp(name string, value boardgame.Stack) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureStackProp(name string, value boardgame.Stack) error {
 
 	return errors.New("No such Stack prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
 
 	return errors.New("No such ImmutableStack prop: " + name)
 
 }
 
-func (t *__testStructReader) StackProp(name string) (boardgame.Stack, error) {
+func (t *ȧutoGeneratedTestStructReader) StackProp(name string) (boardgame.Stack, error) {
 
 	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (t *__testStructReader) StringProp(name string) (string, error) {
+func (t *ȧutoGeneratedTestStructReader) StringProp(name string) (string, error) {
 
 	switch name {
 	case "B":
@@ -448,7 +444,7 @@ func (t *__testStructReader) StringProp(name string) (string, error) {
 
 }
 
-func (t *__testStructReader) SetStringProp(name string, value string) error {
+func (t *ȧutoGeneratedTestStructReader) SetStringProp(name string, value string) error {
 
 	switch name {
 	case "B":
@@ -461,50 +457,53 @@ func (t *__testStructReader) SetStringProp(name string, value string) error {
 
 }
 
-func (t *__testStructReader) StringSliceProp(name string) ([]string, error) {
+func (t *ȧutoGeneratedTestStructReader) StringSliceProp(name string) ([]string, error) {
 
 	return []string{}, errors.New("No such StringSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) SetStringSliceProp(name string, value []string) error {
+func (t *ȧutoGeneratedTestStructReader) SetStringSliceProp(name string, value []string) error {
 
 	return errors.New("No such StringSlice prop: " + name)
 
 }
 
-func (t *__testStructReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
+func (t *ȧutoGeneratedTestStructReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
 }
 
-func (t *__testStructReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
+func (t *ȧutoGeneratedTestStructReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
 
 	return errors.New("No such ImmutableTimer prop: " + name)
 
 }
 
-func (t *__testStructReader) TimerProp(name string) (boardgame.Timer, error) {
+func (t *ȧutoGeneratedTestStructReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
+//Reader returns an autp-generated boardgame.PropertyReader for testStruct
 func (t *testStruct) Reader() boardgame.PropertyReader {
-	return &__testStructReader{t}
+	return &ȧutoGeneratedTestStructReader{t}
 }
 
+//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for testStruct
 func (t *testStruct) ReadSetter() boardgame.PropertyReadSetter {
-	return &__testStructReader{t}
+	return &ȧutoGeneratedTestStructReader{t}
 }
 
+//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for testStruct
 func (t *testStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
-	return &__testStructReader{t}
+	return &ȧutoGeneratedTestStructReader{t}
 }

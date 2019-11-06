@@ -2,9 +2,6 @@ package codegen
 
 import (
 	"errors"
-	"github.com/MarcGrol/golangAnnotations/model"
-	"github.com/MarcGrol/golangAnnotations/parser"
-	"github.com/jkomoros/boardgame"
 	"go/build"
 	"go/format"
 	"log"
@@ -12,6 +9,10 @@ import (
 	"strings"
 	"text/template"
 	"unicode"
+
+	"github.com/MarcGrol/golangAnnotations/model"
+	"github.com/MarcGrol/golangAnnotations/parser"
+	"github.com/jkomoros/boardgame"
 )
 
 var headerTemplate *template.Template
@@ -485,6 +486,15 @@ type nameForTypeInfo struct {
 	UpConverter string
 }
 
+//readerStructName returns the name of the auto-generated reader struct for the
+//given struct.
+func readerStructName(structName string) string {
+	//The prefix used to be "__" but that didn't lint correctly, so instead use
+	//a non-latin prefix character that is like an a but with a dot (to make it
+	//less likely to show up in autocompletes in IDEs)
+	return "ȧutoGenerated" + strings.Title(structName) + "Reader"
+}
+
 func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, outputReadSetConfigurer bool) string {
 
 	//TODO: memoize propertyTypes/setterPropertyTypes because they don't
@@ -560,7 +570,7 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 	output := templateOutput(structHeaderTemplate, map[string]interface{}{
 		"structName":              structName,
 		"firstLetter":             strings.ToLower(structName[:1]),
-		"readerName":              "__" + structName + "Reader",
+		"readerName":              readerStructName(structName),
 		"propertyTypes":           propertyTypes,
 		"setterPropertyTypes":     setterPropertyTypes,
 		"types":                   types,
@@ -643,7 +653,7 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
 			"structName":              structName,
 			"firstLetter":             strings.ToLower(structName[:1]),
-			"readerName":              "__" + structName + "Reader",
+			"readerName":              readerStructName(structName),
 			"propType":                propType,
 			"setterPropType":          setterPropType,
 			"namesForType":            namesForType,
@@ -665,7 +675,7 @@ func readerForStruct(structName string) string {
 	return templateOutput(readerTemplate, map[string]string{
 		"firstLetter": strings.ToLower(structName[:1]),
 		"structName":  structName,
-		"readerName":  "__" + structName + "Reader",
+		"readerName":  readerStructName(structName),
 	})
 
 }
@@ -675,7 +685,7 @@ func readSetterForStruct(structName string) string {
 	return templateOutput(readSetterTemplate, map[string]string{
 		"firstLetter": strings.ToLower(structName[:1]),
 		"structName":  structName,
-		"readerName":  "__" + structName + "Reader",
+		"readerName":  readerStructName(structName),
 	})
 
 }
@@ -685,7 +695,7 @@ func readSetConfigurerForStruct(structName string) string {
 	return templateOutput(readSetConfigurerTemplate, map[string]string{
 		"firstLetter": strings.ToLower(structName[:1]),
 		"structName":  structName,
-		"readerName":  "__" + structName + "Reader",
+		"readerName":  readerStructName(structName),
 	})
 
 }
@@ -713,7 +723,7 @@ const importText = `import (
 
 const structHeaderTemplateText = `// Implementation for {{.structName}}
 
-var __{{.structName}}ReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+var {{.readerName}}Props = map[string]boardgame.PropertyType{
 	{{range $key, $value := .types.Types -}}
 		"{{$key}}": boardgame.{{$value.String}},
 	{{end}}
@@ -724,7 +734,7 @@ type {{.readerName}} struct {
 }
 
 func ({{.firstLetter}} *{{.readerName}}) Props() map[string]boardgame.PropertyType {
-	return __{{.structName}}ReaderProps
+	return {{.readerName}}Props
 }
 
 func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) {
@@ -772,7 +782,7 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 	{{range $type, $goLangType := .setterPropertyTypes -}}
 	{{if ismutable $type -}}
 	case boardgame.Type{{$type}}:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	{{- else -}}
 	case boardgame.Type{{$type}}:
 		val, ok := value.({{$goLangType}})
@@ -809,14 +819,13 @@ func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interf
 				return errors.New("Provided value was not of type {{$goLangType}}")
 			}
 			return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.({{withimmutable $goLangType}})
-			if !ok {
-				return errors.New("Provided value was not of type {{withimmutable $goLangType}}")
-			}
-			return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type}}Prop(name, val)
 		}
+		//Immutable variant
+		val, ok := value.({{withimmutable $goLangType}})
+		if !ok {
+			return errors.New("Provided value was not of type {{withimmutable $goLangType}}")
+		}
+		return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type}}Prop(name, val)
 		{{- else -}}
 			val, ok := value.({{$goLangType}})
 			if !ok {
@@ -859,7 +868,7 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 				{{if .UpConverter -}}
 				slotValue := value.{{.UpConverter}}()
 				if slotValue == nil {
-					return errors.New("{{.Name}} couldn't be upconverted, returned nil.")
+					return errors.New("{{.Name}} couldn't be upconverted, returned nil")
 				}
 				{{$firstLetter}}.data.{{.Name}} = slotValue
 				{{- else -}}
@@ -888,7 +897,7 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{withimmutable .setterPropTyp
 				{{if .UpConverter -}}
 				slotValue := value.{{.UpConverter}}()
 				if slotValue == nil {
-					return errors.New("{{.Name}} couldn't be upconverted, returned nil.")
+					return errors.New("{{.Name}} couldn't be upconverted, returned nil")
 				}
 				{{$firstLetter}}.data.{{.Name}} = slotValue
 				{{- else -}}
@@ -949,19 +958,22 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string,
 {{end}}
 `
 
-const readerTemplateText = `func ({{.firstLetter}} *{{.structName}}) Reader() boardgame.PropertyReader {
+const readerTemplateText = `//Reader returns an autp-generated boardgame.PropertyReader for {{.structName}}
+func ({{.firstLetter}} *{{.structName}}) Reader() boardgame.PropertyReader {
 	return &{{.readerName}}{ {{.firstLetter}} }
 }
 
 `
 
-const readSetterTemplateText = `func ({{.firstLetter}} *{{.structName}}) ReadSetter() boardgame.PropertyReadSetter {
+const readSetterTemplateText = `//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for {{.structName}}
+func ({{.firstLetter}} *{{.structName}}) ReadSetter() boardgame.PropertyReadSetter {
 	return &{{.readerName}}{ {{.firstLetter}} }
 }
 
 `
 
-const readSetConfigurerTemplateText = `func ({{.firstLetter}} *{{.structName}}) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+const readSetConfigurerTemplateText = `//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for {{.structName}}
+func ({{.firstLetter}} *{{.structName}}) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &{{.readerName}}{ {{.firstLetter}} }
 }
 
