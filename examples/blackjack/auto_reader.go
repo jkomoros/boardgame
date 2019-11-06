@@ -12,6 +12,7 @@ package blackjack
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )

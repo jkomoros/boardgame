@@ -12,6 +12,7 @@ package memory
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )
