@@ -17,22 +17,22 @@ import (
 //way we actually want to store in DB.
 
 type userStorageRecord struct {
-	Id          string `db:",size:128"`
+	ID          string `db:",size:128"`
 	Created     int64
 	LastSeen    int64
 	DisplayName string `db:",size:64"`
-	PhotoUrl    string `db:",size:1024"`
+	PhotoURL    string `db:",size:1024"`
 	Email       string `db:",size:128"`
 }
 
 type cookieStorageRecord struct {
 	Cookie string `db:",size:64"`
-	UserId string `db:",size:128"`
+	UserID string `db:",size:128"`
 }
 
 type gameStorageRecord struct {
 	Name       string `db:",size:64"`
-	Id         string `db:",size:16"`
+	ID         string `db:",size:16"`
 	SecretSalt string `db:",size:16"`
 	Version    int64
 	Winners    string `db:",size:128"`
@@ -50,7 +50,7 @@ type gameStorageRecord struct {
 }
 
 type extendedGameStorageRecord struct {
-	Id      string `db:",size:16"`
+	ID      string `db:",size:16"`
 	Open    bool
 	Visible bool
 	Owner   string `db:",size:128"`
@@ -59,7 +59,7 @@ type extendedGameStorageRecord struct {
 //Used for pulling out of a db with a join
 type combinedGameStorageRecord struct {
 	Name       string
-	Id         string
+	ID         string
 	SecretSalt string
 	Version    int64
 	Winners    string
@@ -74,15 +74,15 @@ type combinedGameStorageRecord struct {
 }
 
 type stateStorageRecord struct {
-	Id      int64
-	GameId  string `db:",size:16"`
+	ID      int64
+	GameID  string `db:",size:16"`
 	Version int64
 	Blob    string `db:",size:10000000"`
 }
 
 type moveStorageRecord struct {
-	Id        int64
-	GameId    string `db:",size:16"`
+	ID        int64
+	GameID    string `db:",size:16"`
 	Version   int64
 	Initiator int64
 	Timestamp int64
@@ -93,15 +93,15 @@ type moveStorageRecord struct {
 }
 
 type playerStorageRecord struct {
-	Id          int64
-	GameId      string `db:",size:16"`
+	ID          int64
+	GameID      string `db:",size:16"`
 	PlayerIndex int64
-	UserId      string `db:",size:128"`
+	UserID      string `db:",size:128"`
 }
 
 type agentStateStorageRecord struct {
-	Id          int64
-	GameId      string `db:",size:16"`
+	ID          int64
+	GameID      string `db:",size:16"`
 	PlayerIndex int64
 	Blob        string `db:",size:1000000"`
 }
@@ -198,7 +198,7 @@ func (g *gameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 
 	return &boardgame.GameStorageRecord{
 		Name:       g.Name,
-		ID:         g.Id,
+		ID:         g.ID,
 		SecretSalt: g.SecretSalt,
 		Version:    int(g.Version),
 		Winners:    winners,
@@ -226,7 +226,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *gameStorageRecord 
 
 	return &gameStorageRecord{
 		Name:       game.Name,
-		Id:         game.ID,
+		ID:         game.ID,
 		SecretSalt: game.SecretSalt,
 		Version:    int64(game.Version),
 		Winners:    winnersToString(game.Winners),
@@ -254,7 +254,7 @@ func (c *combinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 	return &extendedgame.CombinedStorageRecord{
 		GameStorageRecord: boardgame.GameStorageRecord{
 			Name:       c.Name,
-			ID:         c.Id,
+			ID:         c.ID,
 			SecretSalt: c.SecretSalt,
 			Version:    int(c.Version),
 			Winners:    winners,
@@ -281,7 +281,7 @@ func NewCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 
 	return &combinedGameStorageRecord{
 		Name:       combined.Name,
-		Id:         combined.ID,
+		ID:         combined.ID,
 		SecretSalt: combined.SecretSalt,
 		Version:    int64(combined.Version),
 		Winners:    winnersToString(combined.Winners),
@@ -335,7 +335,7 @@ func (m *moveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
 
 func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStorageRecord) *moveStorageRecord {
 	return &moveStorageRecord{
-		GameId:    gameId,
+		GameID:    gameId,
 		Version:   int64(version),
 		Initiator: int64(record.Initiator),
 		Timestamp: record.Timestamp.UnixNano(),
@@ -348,22 +348,22 @@ func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStor
 
 func (s *userStorageRecord) ToStorageRecord() *users.StorageRecord {
 	return &users.StorageRecord{
-		ID:          s.Id,
+		ID:          s.ID,
 		DisplayName: s.DisplayName,
 		Created:     s.Created,
 		LastSeen:    s.LastSeen,
-		PhotoURL:    s.PhotoUrl,
+		PhotoURL:    s.PhotoURL,
 		Email:       s.Email,
 	}
 }
 
 func NewUserStorageRecord(user *users.StorageRecord) *userStorageRecord {
 	return &userStorageRecord{
-		Id:          user.ID,
+		ID:          user.ID,
 		DisplayName: user.DisplayName,
 		Created:     user.Created,
 		LastSeen:    user.LastSeen,
-		PhotoUrl:    user.PhotoURL,
+		PhotoURL:    user.PhotoURL,
 		Email:       user.Email,
 	}
 }
@@ -377,7 +377,7 @@ func (s *stateStorageRecord) ToStorageRecord() boardgame.StateStorageRecord {
 
 func NewStateStorageRecord(gameId string, version int, record boardgame.StateStorageRecord) *stateStorageRecord {
 	return &stateStorageRecord{
-		GameId:  gameId,
+		GameID:  gameId,
 		Version: int64(version),
 		Blob:    string(record),
 	}
@@ -392,7 +392,7 @@ func (a *agentStateStorageRecord) ToStorageRecord() []byte {
 
 func NewAgentStateStorageRecord(gameId string, player boardgame.PlayerIndex, state []byte) *agentStateStorageRecord {
 	return &agentStateStorageRecord{
-		GameId:      gameId,
+		GameID:      gameId,
 		PlayerIndex: int64(player),
 		Blob:        string(state),
 	}

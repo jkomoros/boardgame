@@ -31,25 +31,25 @@ const (
 	tableAgentStates   = "agentstates"
 )
 
-const baseCombinedSelectQuery = "select g.Name, g.Id, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
+const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
 	"g.Created, g.Modified, e.Open, e.Visible, e.Owner"
 
 const baseCombinedFromQuery = "from " + tableGames + " g, " + tableExtendedGames + " e"
 
-const baseCombinedWhereQuery = "where g.Id = e.Id"
+const baseCombinedWhereQuery = "where g.ID = e.ID"
 
 const combinedPlayerFilterQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + ", players p " + baseCombinedWhereQuery +
-	" and p.GameId = g.Id and p.UserId = ?"
+	" and p.GameID = g.ID and p.UserID = ?"
 
 const combinedGameStorageRecordQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + " " + baseCombinedWhereQuery
 
-const userNotInQuery = "not exists (select * from players where GameId = g.Id and UserId = ?)"
+const userNotInQuery = "not exists (select * from players where GameID = g.ID and UserID = ?)"
 
 const emptySlotsQuery = "(g.NumPlayers > coalesce(c.NumActivePlayers, 0) + g.NumAgents)"
 
 const combinedHasSlots = baseCombinedSelectQuery + ` from games as g
 left join extendedgames as e
-	left join (select GameId as Id, count(*) as NumActivePlayers from players group by GameId) as c
+	left join (select GameID as ID, count(*) as NumActivePlayers from players group by GameID) as c
 	on e.Id = c.Id
 on g.Id = e.Id
 where`
@@ -105,14 +105,14 @@ func (s *StorageManager) Connect(config string) error {
 		},
 	}
 
-	s.dbMap.AddTableWithName(userStorageRecord{}, tableUsers).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(gameStorageRecord{}, tableGames).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(extendedGameStorageRecord{}, tableExtendedGames).SetKeys(false, "Id")
-	s.dbMap.AddTableWithName(stateStorageRecord{}, tableStates).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(userStorageRecord{}, tableUsers).SetKeys(false, "ID")
+	s.dbMap.AddTableWithName(gameStorageRecord{}, tableGames).SetKeys(false, "ID")
+	s.dbMap.AddTableWithName(extendedGameStorageRecord{}, tableExtendedGames).SetKeys(false, "ID")
+	s.dbMap.AddTableWithName(stateStorageRecord{}, tableStates).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(cookieStorageRecord{}, tableCookies).SetKeys(false, "Cookie")
-	s.dbMap.AddTableWithName(playerStorageRecord{}, tablePlayers).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(agentStateStorageRecord{}, tableAgentStates).SetKeys(true, "Id")
-	s.dbMap.AddTableWithName(moveStorageRecord{}, tableMoves).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(playerStorageRecord{}, tablePlayers).SetKeys(true, "ID")
+	s.dbMap.AddTableWithName(agentStateStorageRecord{}, tableAgentStates).SetKeys(true, "ID")
+	s.dbMap.AddTableWithName(moveStorageRecord{}, tableMoves).SetKeys(true, "ID")
 
 	_, err = s.dbMap.SelectInt("select count(*) from " + tableGames)
 
@@ -160,7 +160,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 
 	var state stateStorageRecord
 
-	err := s.dbMap.SelectOne(&state, "select * from "+tableStates+" where GameId=? and Version=?", gameID, version)
+	err := s.dbMap.SelectOne(&state, "select * from "+tableStates+" where GameID=? and Version=?", gameID, version)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No such state")
@@ -186,7 +186,7 @@ func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*bo
 		fromVersion = fromVersion - 1
 	}
 
-	_, err := s.dbMap.Select(&moves, "select * from "+tableMoves+" where GameId=? and Version>? and Version<=? order by Version", gameID, fromVersion, toVersion)
+	_, err := s.dbMap.Select(&moves, "select * from "+tableMoves+" where GameID=? and Version>? and Version<=? order by Version", gameID, fromVersion, toVersion)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No moves returned")
@@ -214,7 +214,7 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 
 	var move moveStorageRecord
 
-	err := s.dbMap.SelectOne(&move, "select * from "+tableMoves+" where GameId=? and Version=?", gameID, version)
+	err := s.dbMap.SelectOne(&move, "select * from "+tableMoves+" where GameID=? and Version=?", gameID, version)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No such state")
@@ -236,7 +236,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	var game gameStorageRecord
 
-	err := s.dbMap.SelectOne(&game, "select * from "+tableGames+" where Id=?", id)
+	err := s.dbMap.SelectOne(&game, "select * from "+tableGames+" where ID=?", id)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No such game")
@@ -257,7 +257,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 
 	var record extendedGameStorageRecord
 
-	err := s.dbMap.SelectOne(&record, "select * from "+tableExtendedGames+" where Id=?", id)
+	err := s.dbMap.SelectOne(&record, "select * from "+tableExtendedGames+" where ID=?", id)
 
 	if err != nil {
 		return nil, err
@@ -275,7 +275,7 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 
 	var record combinedGameStorageRecord
 
-	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery+" and g.Id = ?", id)
+	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery+" and g.ID = ?", id)
 
 	if err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		moveRecord = NewMoveStorageRecord(game.ID, version, move)
 	}
 
-	count, _ := s.dbMap.SelectInt("select count(*) from "+tableGames+" where Id=?", game.ID)
+	count, _ := s.dbMap.SelectInt("select count(*) from "+tableGames+" where ID=?", game.ID)
 
 	if count < 1 {
 		//Need to insert
@@ -314,7 +314,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 		extendedRecord := NewExtendedGameStorageRecord(extendedgame.DefaultStorageRecord())
 
-		extendedRecord.Id = game.ID
+		extendedRecord.ID = game.ID
 
 		err = s.dbMap.Insert(extendedRecord)
 
@@ -358,7 +358,7 @@ func (s *StorageManager) AgentState(gameID string, player boardgame.PlayerIndex)
 
 	var agent agentStateStorageRecord
 
-	err := s.dbMap.SelectOne(&agent, "select * from "+tableAgentStates+" where GameId=? and PlayerIndex=? order by Id desc limit 1", gameID, int64(player))
+	err := s.dbMap.SelectOne(&agent, "select * from "+tableAgentStates+" where GameID=? and PlayerIndex=? order by ID desc limit 1", gameID, int64(player))
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -397,7 +397,7 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 	}
 
 	record := NewExtendedGameStorageRecord(eGame)
-	record.Id = id
+	record.ID = id
 
 	_, err := s.dbMap.Update(record)
 
@@ -499,15 +499,15 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 
 	var player playerStorageRecord
 
-	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameId=? and PlayerIndex=?", game.ID, int(playerIndex))
+	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameID=? and PlayerIndex=?", game.ID, int(playerIndex))
 
 	if err == sql.ErrNoRows {
 		// Insert the row
 
 		player = playerStorageRecord{
-			GameId:      game.ID,
+			GameID:      game.ID,
 			PlayerIndex: int64(playerIndex),
-			UserId:      userID,
+			UserID:      userID,
 		}
 
 		err = s.dbMap.Insert(&player)
@@ -525,7 +525,7 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 		return errors.New("Failed to retrieve existing Player line: " + err.Error())
 	}
 
-	player.UserId = userID
+	player.UserID = userID
 
 	_, err = s.dbMap.Update(player)
 
@@ -558,7 +558,7 @@ func (s *StorageManager) UserIDsForGame(gameID string) []string {
 
 	var players []playerStorageRecord
 
-	_, err = s.dbMap.Select(&players, "select * from "+tablePlayers+" where GameId=? order by PlayerIndex desc", game.ID)
+	_, err = s.dbMap.Select(&players, "select * from "+tablePlayers+" where GameID=? order by PlayerIndex desc", game.ID)
 
 	result := make([]string, game.NumPlayers)
 
@@ -579,7 +579,7 @@ func (s *StorageManager) UserIDsForGame(gameID string) []string {
 			continue
 		}
 
-		result[index] = rec.UserId
+		result[index] = rec.UserID
 	}
 
 	return result
@@ -590,7 +590,7 @@ func (s *StorageManager) UserIDsForGame(gameID string) []string {
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	userRecord := NewUserStorageRecord(user)
 
-	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+tableUsers+" where Id=?", user.ID)
+	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+tableUsers+" where ID=?", user.ID)
 
 	if existingRecord < 1 {
 		//Need to insert
@@ -623,7 +623,7 @@ func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 
 	var user userStorageRecord
 
-	err := s.dbMap.SelectOne(&user, "select * from "+tableUsers+" where Id=?", uid)
+	err := s.dbMap.SelectOne(&user, "select * from "+tableUsers+" where ID=?", uid)
 
 	if err == sql.ErrNoRows {
 		//Normal
@@ -659,7 +659,7 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 		return nil
 	}
 
-	return s.GetUserByID(cookieRecord.UserId)
+	return s.GetUserByID(cookieRecord.UserID)
 
 }
 
@@ -712,7 +712,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 
 	record := &cookieStorageRecord{
 		Cookie: cookie,
-		UserId: user.ID,
+		UserID: user.ID,
 	}
 
 	if err := s.dbMap.Insert(record); err != nil {

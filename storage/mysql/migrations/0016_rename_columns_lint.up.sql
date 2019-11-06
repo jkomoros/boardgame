@@ -1,0 +1,14 @@
+alter table `games` change Id ID varchar(16) not null;
+alter table `extendedgames` change Id ID varchar(16) not null;
+alter table `states` change Id ID bigint not null auto_increment;
+alter table `states` change GameId GameID varchar(16) not null;
+alter table `moves` change Id ID bigint not null auto_increment;
+alter table `moves` change GameId GameID varchar(16) not null;
+alter table `players` change Id ID bigint not null auto_increment;
+alter table `players` change GameId GameID varchar(16) not null;
+alter table `players` change UserId UserID varchar(128);
+alter table `agentstates` change Id ID bigint not null auto_increment;
+alter table `agentstates` change GameId GameID varchar(16) not null;
+alter table `users` change Id ID varchar(128) not null;
+alter table `users` change PhotoUrl PhotoURL text;
+alter table `cookies` change UserId UserID varchar(128) not null;
