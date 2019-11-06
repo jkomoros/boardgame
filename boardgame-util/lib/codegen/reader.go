@@ -715,6 +715,7 @@ package {{.packageName}}
 
 const importText = `import (
 	"errors"
+	
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )
