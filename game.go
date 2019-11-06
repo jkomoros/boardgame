@@ -191,7 +191,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface
 		"CurrentState":       state,
 		"CurrentPlayerIndex": g.manager.delegate.CurrentPlayerIndex(state),
 		"Diagram":            state.Diagram(),
-		"Id":                 g.ID(),
+		"ID":                 g.ID(),
 		"NumPlayers":         g.NumPlayers(),
 		"Agents":             g.Agents(),
 		"Variant":            g.Variant(),
