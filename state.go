@@ -155,6 +155,9 @@ type StatePropertyRef struct {
 	DynamicComponentIndex int
 }
 
+//statePrpertyREfDefaultIndex is the dinex that denotes "no index selected"
+const statePropertyRefDefaultIndex = -1
+
 //NewStatePropertyRef returns an initalized StatePropertyRef with all fields
 //set to reasonable defaults. In particular, all of the Index properties are
 //set to -1. It is rare for users of the library to need to create their own
@@ -163,12 +166,155 @@ func NewStatePropertyRef() StatePropertyRef {
 	return StatePropertyRef{
 		StateGroupGame,
 		"",
-		-1,
+		statePropertyRefDefaultIndex,
 		"",
-		-1,
-		-1,
-		-1,
+		statePropertyRefDefaultIndex,
+		statePropertyRefDefaultIndex,
+		statePropertyRefDefaultIndex,
 	}
+}
+
+//Validate checks to ensure that the StatePropertyRef is configured in a legal
+//way, for example that PlayerIndex is only set to a non-default value when
+//Group is StateGroupPlayer. exampleState is optional--if it is provided, then
+//additional checks are done, for example ensuring that the actual named
+//property exists, and if Index properties are non-default, that they denote a
+//valid index.
+func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
+	if r.Group != StateGroupGame && r.Group != StateGroupPlayer && r.Group != StateGroupDynamicComponentValues {
+		return errors.New("group is set to an invalid value, must be one of Game, Player, DynamicComponentValues")
+	}
+
+	if r.PropName == "" {
+		return errors.New("propName is not set")
+	}
+
+	//Check PlayerIndex is valid
+	if r.Group == StateGroupPlayer {
+		if r.PlayerIndex != statePropertyRefDefaultIndex {
+			if r.PlayerIndex < 0 {
+				return errors.New("PlayerIndex was set to a negative value")
+			}
+			if exampleState != nil {
+				if r.PlayerIndex >= len(exampleState.ImmutablePlayerStates()) {
+					return errors.New("PlayerIndex was higher than the number of players")
+				}
+			}
+		}
+	} else {
+		if r.PlayerIndex != statePropertyRefDefaultIndex {
+			return errors.New("PlayerIndex was a non-defaut value for a Group that wasn't Player")
+		}
+	}
+
+	//Check DeckName is valid
+	if r.Group == StateGroupDynamicComponentValues {
+		if r.DeckName == "" {
+			return errors.New("No DeckName provided for GroupDynamicComponentValues, but it's required")
+		}
+		if exampleState != nil {
+			if _, ok := exampleState.ImmutableDynamicComponentValues()[r.DeckName]; !ok {
+				return errors.New("DeckName selected a deck that doesn't exist")
+			}
+		}
+	} else {
+		if r.DeckName != "" {
+			return errors.New("DeckName provided for a Group that was not DynamicComponentValues")
+		}
+	}
+
+	if exampleState == nil {
+		return nil
+	}
+
+	var reader PropertyReader
+
+	switch r.Group {
+	case StateGroupGame:
+		st := exampleState.ImmutableGameState()
+		if st == nil {
+			return errors.New("exampleState returned nil for GameState")
+		}
+		reader = st.Reader()
+	case StateGroupPlayer:
+		states := exampleState.ImmutablePlayerStates()
+		if len(states) == 0 {
+			return errors.New("No playerStates returned")
+		}
+		st := states[0]
+		if st == nil {
+			return errors.New("PlayerState was nil")
+		}
+		reader = st.Reader()
+	case StateGroupDynamicComponentValues:
+		states := exampleState.ImmutableDynamicComponentValues()[r.DeckName]
+		if len(states) == 0 {
+			return errors.New("No DynamicComponentValues for deck " + r.DeckName)
+		}
+		if r.DynamicComponentIndex != statePropertyRefDefaultIndex {
+			if r.DynamicComponentIndex < 0 {
+				return errors.New("Invalid low DynamicComponentIndex")
+			}
+			if r.DynamicComponentIndex >= len(states) {
+				return errors.New("DynamicComponentIndex too high")
+			}
+		}
+		st := states[0]
+		if st == nil {
+			return errors.New("No state in DynamicComponentValues")
+		}
+		reader = st.Reader()
+	}
+
+	if _, ok := reader.Props()[r.PropName]; !ok {
+		return errors.New("The PropName provided did not denote a valid property on the selected group type")
+	}
+
+	typ := reader.Props()[r.PropName]
+
+	if typ == TypeStack {
+		if r.StackIndex != statePropertyRefDefaultIndex {
+			if r.StackIndex < 0 {
+				return errors.New("StackIndex is not valid")
+			}
+			stack, err := reader.ImmutableStackProp(r.PropName)
+			if err != nil {
+				return errors.New("Could not fetch stack property")
+			}
+			if r.StackIndex >= stack.Len() {
+				return errors.New("StackIndex is greater than the size of the stack")
+			}
+		}
+	}
+
+	if typ == TypeBoard {
+		if r.BoardIndex != statePropertyRefDefaultIndex {
+			if r.BoardIndex < 0 {
+				return errors.New("BoardIndex is not valid")
+			}
+			board, err := reader.ImmutableBoardProp(r.PropName)
+			if err != nil {
+				return errors.New("Could not fetch borad property")
+			}
+			if r.BoardIndex >= board.Len() {
+				return errors.New("BoardIndex is too high")
+			}
+			if r.StackIndex != statePropertyRefDefaultIndex {
+				if r.StackIndex < 0 {
+					return errors.New("StackIndex is not valid")
+				}
+				stack := board.ImmutableSpaceAt(r.BoardIndex)
+				if stack == nil {
+					return errors.New("Could not fetch stack property")
+				}
+				if r.StackIndex >= stack.Len() {
+					return errors.New("StackIndex is greater than the size of the stack")
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 //getReader returns the reader associated with the StatePropertyRef in the
