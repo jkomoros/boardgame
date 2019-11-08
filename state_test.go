@@ -9,6 +9,223 @@ import (
 	"github.com/workfit/tester/assert"
 )
 
+func TestStatePropertyRefValidate(t *testing.T) {
+	game := testDefaultGame(t, false)
+
+	state := game.CurrentState()
+
+	tests := []struct {
+		description string
+		ref         StatePropertyRef
+		errExpected bool
+	}{
+		{
+			"No prop name",
+			StatePropertyRef{
+				StateGroupGame,
+				"",
+				statePropertyRefDefaultIndex,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Basic existing game property",
+			StatePropertyRef{
+				StateGroupGame,
+				"MyIntSlice",
+				statePropertyRefDefaultIndex,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			false,
+		},
+		{
+			"Basic existing player property",
+			StatePropertyRef{
+				StateGroupPlayer,
+				"IsFoo",
+				statePropertyRefDefaultIndex,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			false,
+		},
+		{
+			"Basic existing dynamic component values property",
+			StatePropertyRef{
+				StateGroupDynamicComponentValues,
+				"IntVar",
+				statePropertyRefDefaultIndex,
+				"test",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			false,
+		},
+		{
+			"Basic existing game property that doesn't exist",
+			StatePropertyRef{
+				StateGroupGame,
+				"NonExistent",
+				statePropertyRefDefaultIndex,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Basic existing player property that doesn't exist",
+			StatePropertyRef{
+				StateGroupPlayer,
+				"Nonexistent",
+				statePropertyRefDefaultIndex,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Basic existing dynamic component values property that doesn't exist",
+			StatePropertyRef{
+				StateGroupDynamicComponentValues,
+				"Nonexistent	",
+				statePropertyRefDefaultIndex,
+				"test",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Basic existing dynamic component values property missing deck",
+			StatePropertyRef{
+				StateGroupDynamicComponentValues,
+				"IntVar",
+				statePropertyRefDefaultIndex,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Basic existing dynamic component values property invalid deck",
+			StatePropertyRef{
+				StateGroupDynamicComponentValues,
+				"IntVar",
+				statePropertyRefDefaultIndex,
+				"invaliddeckname",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Basic existing player property negative player index",
+			StatePropertyRef{
+				StateGroupPlayer,
+				"IsFoo",
+				-2,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Basic existing player property too-high player index",
+			StatePropertyRef{
+				StateGroupPlayer,
+				"IsFoo",
+				10,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Game property with player index set",
+			StatePropertyRef{
+				StateGroupGame,
+				"DrawDeck",
+				2,
+				"",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Game property with dynamic component deck set",
+			StatePropertyRef{
+				StateGroupGame,
+				"DrawDeck",
+				statePropertyRefDefaultIndex,
+				"nonempty",
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Game property with stack and too-low stack index",
+			StatePropertyRef{
+				StateGroupGame,
+				"DrawDeck",
+				statePropertyRefDefaultIndex,
+				"",
+				-10,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Game property with stack and too-high stack index",
+			StatePropertyRef{
+				StateGroupGame,
+				"DrawDeck",
+				statePropertyRefDefaultIndex,
+				"",
+				1000,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+	}
+
+	for i, test := range tests {
+		err := test.ref.Validate(state)
+		if test.errExpected {
+			assert.For(t, i).ThatActual(err).IsNotNil()
+		} else {
+			assert.For(t, i).ThatActual(err).IsNil()
+		}
+	}
+}
+
 func TestPlayerIndexNextPrevious(t *testing.T) {
 
 	game := testGame(t, false, 3, nil, nil)
