@@ -214,6 +214,32 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"Game property with non-stack property with StackIndex",
+			StatePropertyRef{
+				StateGroupGame,
+				"CurrentPlayer",
+				statePropertyRefDefaultIndex,
+				"",
+				1,
+				statePropertyRefDefaultIndex,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
+		{
+			"Game property with non-stack property with BoardIndex",
+			StatePropertyRef{
+				StateGroupGame,
+				"CurrentPlayer",
+				statePropertyRefDefaultIndex,
+				"",
+				statePropertyRefDefaultIndex,
+				1,
+				statePropertyRefDefaultIndex,
+			},
+			true,
+		},
 	}
 
 	for i, test := range tests {

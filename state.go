@@ -270,9 +270,8 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 		return errors.New("The PropName provided did not denote a valid property on the selected group type")
 	}
 
-	typ := reader.Props()[r.PropName]
-
-	if typ == TypeStack {
+	switch reader.Props()[r.PropName] {
+	case TypeStack:
 		if r.StackIndex != statePropertyRefDefaultIndex {
 			if r.StackIndex < 0 {
 				return errors.New("StackIndex is not valid")
@@ -285,9 +284,7 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 				return errors.New("StackIndex is greater than the size of the stack")
 			}
 		}
-	}
-
-	if typ == TypeBoard {
+	case TypeBoard:
 		if r.BoardIndex != statePropertyRefDefaultIndex {
 			if r.BoardIndex < 0 {
 				return errors.New("BoardIndex is not valid")
@@ -311,6 +308,13 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 					return errors.New("StackIndex is greater than the size of the stack")
 				}
 			}
+		}
+	default:
+		if r.StackIndex != statePropertyRefDefaultIndex {
+			return errors.New("StackIndex was not the default value for a non-stack property")
+		}
+		if r.BoardIndex != statePropertyRefDefaultIndex {
+			return errors.New("BoardIndex was not the default value for a non-stack property")
 		}
 	}
 
