@@ -227,13 +227,13 @@ type GameDelegate interface {
 	PhaseEnum() enum.Enum
 
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
-	//each prop in the state, including the set of groups that this player is
-	//a mamber of. In practice the default behavior of base.GameDelegate,
-	//which uses struct tags to figure out the policy, is sufficient and you
-	//do not need to override this. For more on how sanitization works, see
-	//the documenation for Policy. The statePropetyRef passed will always have
-	//the Index properties set to -1, signifying that the returned policy
-	//applies to all items in the Stack/Board.
+	//each prop in the state, including the set of groups that this player is a
+	//mamber of. In practice the default behavior of base.GameDelegate, which
+	//uses struct tags to figure out the policy, is sufficient and you do not
+	//need to override this. For more on how sanitization works, see the
+	//documenation for Policy. The statePropetyRef passed will always have the
+	//Index properties set to 0, but remember that the returned Policy will be
+	//applied to all Indexes.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
 	//If you have computed properties that you want to be included in your

@@ -124,10 +124,9 @@ const (
 )
 
 //A StatePropertyRef is a reference to a particular property or item in a
-//Property in a State, in a structured way. Currently used primarily as an
-//input to your GameDelegate's SanitizationPolicy method. Get a new generic
-//one, with all properties set to reasonable defaults, from
-//NewStatePropertyRef.
+//Property in a State, in a structured way. Currently used primarily as an input
+//to your GameDelegate's SanitizationPolicy method. The zero-value is suitably
+//generic.
 type StatePropertyRef struct {
 	//Group is which of Game, Player, or DynamicComponentValues this is a
 	//reference to.
@@ -142,36 +141,13 @@ type StatePropertyRef struct {
 	DeckName string
 
 	//StackIndex specifies the index of the component within the stack (if it
-	//is a stack) that is intended. Negative values signify "all components in
-	//stack"
+	//is a stack) that is intended.
 	StackIndex int
 	//BoardIndex specifies the index of the Stack within the Board (if it is a
-	//board) that is intended. Negative values signify "all stacks within the
-	//board".
+	//board) that is intended.
 	BoardIndex int
-	//DeckIndex is used only when the Group is
-	//StateGroupDynamicComponentValues. Negative values mean "all values in
-	//deck".
+	//DeckIndex is used only when the Group is StateGroupDynamicComponentValues.
 	DynamicComponentIndex int
-}
-
-//statePrpertyREfDefaultIndex is the dinex that denotes "no index selected"
-const statePropertyRefDefaultIndex = -1
-
-//NewStatePropertyRef returns an initalized StatePropertyRef with all fields
-//set to reasonable defaults. In particular, all of the Index properties are
-//set to -1. It is rare for users of the library to need to create their own
-//StatePropertyRefs.
-func NewStatePropertyRef() StatePropertyRef {
-	return StatePropertyRef{
-		StateGroupGame,
-		"",
-		statePropertyRefDefaultIndex,
-		"",
-		statePropertyRefDefaultIndex,
-		statePropertyRefDefaultIndex,
-		statePropertyRefDefaultIndex,
-	}
 }
 
 //Validate checks to ensure that the StatePropertyRef is configured in a legal
@@ -191,19 +167,17 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 
 	//Check PlayerIndex is valid
 	if r.Group == StateGroupPlayer {
-		if r.PlayerIndex != statePropertyRefDefaultIndex {
-			if r.PlayerIndex < 0 {
-				return errors.New("PlayerIndex was set to a negative value")
-			}
-			if exampleState != nil {
-				if r.PlayerIndex >= len(exampleState.ImmutablePlayerStates()) {
-					return errors.New("PlayerIndex was higher than the number of players")
-				}
+		if r.PlayerIndex < 0 {
+			return errors.New("PlayerIndex was set to a negative value")
+		}
+		if exampleState != nil {
+			if r.PlayerIndex >= len(exampleState.ImmutablePlayerStates()) {
+				return errors.New("PlayerIndex was higher than the number of players")
 			}
 		}
 	} else {
-		if r.PlayerIndex != statePropertyRefDefaultIndex {
-			return errors.New("PlayerIndex was a non-defaut value for a Group that wasn't Player")
+		if r.PlayerIndex != 0 {
+			return errors.New("PlayerIndex was not the default value for a non-player group")
 		}
 	}
 
@@ -251,13 +225,11 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 		if len(states) == 0 {
 			return errors.New("No DynamicComponentValues for deck " + r.DeckName)
 		}
-		if r.DynamicComponentIndex != statePropertyRefDefaultIndex {
-			if r.DynamicComponentIndex < 0 {
-				return errors.New("Invalid low DynamicComponentIndex")
-			}
-			if r.DynamicComponentIndex >= len(states) {
-				return errors.New("DynamicComponentIndex too high")
-			}
+		if r.DynamicComponentIndex < 0 {
+			return errors.New("Invalid low DynamicComponentIndex")
+		}
+		if r.DynamicComponentIndex >= len(states) {
+			return errors.New("DynamicComponentIndex too high")
 		}
 		st := states[0]
 		if st == nil {
@@ -272,106 +244,48 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 
 	switch reader.Props()[r.PropName] {
 	case TypeStack:
-		if r.StackIndex != statePropertyRefDefaultIndex {
-			if r.StackIndex < 0 {
-				return errors.New("StackIndex is not valid")
-			}
-			stack, err := reader.ImmutableStackProp(r.PropName)
-			if err != nil {
-				return errors.New("Could not fetch stack property")
-			}
-			if r.StackIndex >= stack.Len() {
-				return errors.New("StackIndex is greater than the size of the stack")
-			}
+		if r.StackIndex < 0 {
+			return errors.New("StackIndex is not valid")
+		}
+		stack, err := reader.ImmutableStackProp(r.PropName)
+		if err != nil {
+			return errors.New("Could not fetch stack property")
+		}
+		if r.StackIndex >= stack.Len() {
+			return errors.New("StackIndex is greater than the size of the stack")
 		}
 	case TypeBoard:
-		if r.BoardIndex != statePropertyRefDefaultIndex {
-			if r.BoardIndex < 0 {
-				return errors.New("BoardIndex is not valid")
-			}
-			board, err := reader.ImmutableBoardProp(r.PropName)
-			if err != nil {
-				return errors.New("Could not fetch borad property")
-			}
-			if r.BoardIndex >= board.Len() {
-				return errors.New("BoardIndex is too high")
-			}
-			if r.StackIndex != statePropertyRefDefaultIndex {
-				if r.StackIndex < 0 {
-					return errors.New("StackIndex is not valid")
-				}
-				stack := board.ImmutableSpaceAt(r.BoardIndex)
-				if stack == nil {
-					return errors.New("Could not fetch stack property")
-				}
-				if r.StackIndex >= stack.Len() {
-					return errors.New("StackIndex is greater than the size of the stack")
-				}
-			}
+		if r.BoardIndex < 0 {
+			return errors.New("BoardIndex is not valid")
 		}
+		board, err := reader.ImmutableBoardProp(r.PropName)
+		if err != nil {
+			return errors.New("Could not fetch borad property")
+		}
+		if r.BoardIndex >= board.Len() {
+			return errors.New("BoardIndex is too high")
+		}
+		if r.StackIndex < 0 {
+			return errors.New("StackIndex is not valid")
+		}
+		stack := board.ImmutableSpaceAt(r.BoardIndex)
+		if stack == nil {
+			return errors.New("Could not fetch stack property")
+		}
+		if r.StackIndex >= stack.Len() {
+			return errors.New("StackIndex is greater than the size of the stack")
+		}
+
 	default:
-		if r.StackIndex != statePropertyRefDefaultIndex {
+		if r.StackIndex != 0 {
 			return errors.New("StackIndex was not the default value for a non-stack property")
 		}
-		if r.BoardIndex != statePropertyRefDefaultIndex {
+		if r.BoardIndex != 0 {
 			return errors.New("BoardIndex was not the default value for a non-stack property")
 		}
 	}
 
 	return nil
-}
-
-//getReader returns the reader associated with the StatePropertyRef in the
-//given state, or errors if the StatePropertyRef does not refer to a valid
-//reader.
-func (r StatePropertyRef) associatedReadSetter(st State) (PropertyReadSetter, error) {
-	switch r.Group {
-	case StateGroupGame:
-		gameState := st.GameState()
-		if gameState == nil {
-			return nil, errors.New("GameState selected, but was nil")
-		}
-		return gameState.ReadSetter(), nil
-	case StateGroupPlayer:
-
-		players := st.PlayerStates()
-		if len(players) == 0 {
-			return nil, errors.New("PlayerState selected, but no players in state")
-		}
-
-		if r.PlayerIndex < 0 {
-			return nil, errors.New("PlayerState selected, but negative value for PlayerIndex")
-		}
-
-		if r.PlayerIndex >= len(players) {
-			return nil, errors.New("PlayerState selected, but with a non-existent PlayerIndex")
-		}
-
-		player := players[r.PlayerIndex]
-
-		return player.ReadSetter(), nil
-	case StateGroupDynamicComponentValues:
-
-		allDecks := st.DynamicComponentValues()
-
-		if allDecks == nil {
-			return nil, errors.New("DynamicComponentValues selected, but was nil")
-		}
-
-		values, ok := allDecks[r.DeckName]
-
-		if !ok {
-			return nil, errors.New("DeckName did not refer to any component values: " + r.DeckName)
-		}
-
-		if r.DynamicComponentIndex < 0 || r.DynamicComponentIndex >= len(values) {
-			return nil, errors.New("DynamicComponentIndex referred to a component that didn't exist")
-		}
-
-		return values[r.DynamicComponentIndex].ReadSetter(), nil
-
-	}
-	return nil, errors.New("Invalid Group type")
 }
 
 //PlayerIndex is an int that represents the index of a given player in a game.

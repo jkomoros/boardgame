@@ -215,8 +215,9 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 
 	result := &sanitizationTransformation{}
 
-	ref := NewStatePropertyRef()
-	ref.Group = StateGroupGame
+	ref := StatePropertyRef{
+		Group: StateGroupGame,
+	}
 
 	result.Game = generateSubStateSanitizationTransformation(s.GameState(),
 		ref, delegate, player, -1)
@@ -224,8 +225,9 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 	result.Players = make([]subStateSanitizationTransformation, len(s.PlayerStates()))
 
 	for i, playerState := range s.PlayerStates() {
-		ref := NewStatePropertyRef()
-		ref.Group = StateGroupPlayer
+		ref := StatePropertyRef{
+			Group: StateGroupPlayer,
+		}
 		result.Players[i] = generateSubStateSanitizationTransformation(playerState, ref, delegate, player, PlayerIndex(i))
 	}
 
@@ -235,9 +237,10 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 		if len(deckValues) == 0 {
 			return nil
 		}
-		ref := NewStatePropertyRef()
-		ref.Group = StateGroupDynamicComponentValues
-		ref.DeckName = deckName
+		ref := StatePropertyRef{
+			Group:    StateGroupDynamicComponentValues,
+			DeckName: deckName,
+		}
 		result.DynamicComponentValues[deckName] = generateSubStateSanitizationTransformation(deckValues[0], ref, delegate, player, -1)
 	}
 
