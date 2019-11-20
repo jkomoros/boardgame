@@ -134,11 +134,17 @@ type StatePropertyRef struct {
 	//PropName is the specific property on the given SubStateObject specified
 	//by the rest of the StatePropertyRef.
 	PropName string
-
-	//PlayerIndex is the index of the player, if Group is StateGroupPlayer.
-	PlayerIndex int
 	//DeckName is only used when Group is StateGroupDynamicComponentValues
 	DeckName string
+
+	//PlayerIndex is the index of the player, if Group is StateGroupPlayer and
+	//the intent of the StatePropertyRef is to select a specific player's state.
+	//0 is always legal.
+	PlayerIndex int
+	//DeckIndex is used only when the Group is StateGroupDynamicComponentValues
+	//and the intent of the StatePropertyRef is to select a specific
+	//DynamicComponentValues. 0 is always legal.
+	DynamicComponentIndex int
 
 	//StackIndex specifies the index of the component within the stack (if it
 	//is a stack) that is intended.
@@ -146,8 +152,6 @@ type StatePropertyRef struct {
 	//BoardIndex specifies the index of the Stack within the Board (if it is a
 	//board) that is intended.
 	BoardIndex int
-	//DeckIndex is used only when the Group is StateGroupDynamicComponentValues.
-	DynamicComponentIndex int
 }
 
 //Validate checks to ensure that the StatePropertyRef is configured in a legal
