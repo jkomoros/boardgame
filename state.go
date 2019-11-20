@@ -145,13 +145,6 @@ type StatePropertyRef struct {
 	//and the intent of the StatePropertyRef is to select a specific
 	//DynamicComponentValues. 0 is always legal.
 	DynamicComponentIndex int
-
-	//StackIndex specifies the index of the component within the stack (if it
-	//is a stack) that is intended.
-	StackIndex int
-	//BoardIndex specifies the index of the Stack within the Board (if it is a
-	//board) that is intended.
-	BoardIndex int
 }
 
 //Validate checks to ensure that the StatePropertyRef is configured in a legal
@@ -244,49 +237,6 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 
 	if _, ok := reader.Props()[r.PropName]; !ok {
 		return errors.New("The PropName provided did not denote a valid property on the selected group type")
-	}
-
-	switch reader.Props()[r.PropName] {
-	case TypeStack:
-		if r.StackIndex < 0 {
-			return errors.New("StackIndex is not valid")
-		}
-		stack, err := reader.ImmutableStackProp(r.PropName)
-		if err != nil {
-			return errors.New("Could not fetch stack property")
-		}
-		if r.StackIndex >= stack.Len() {
-			return errors.New("StackIndex is greater than the size of the stack")
-		}
-	case TypeBoard:
-		if r.BoardIndex < 0 {
-			return errors.New("BoardIndex is not valid")
-		}
-		board, err := reader.ImmutableBoardProp(r.PropName)
-		if err != nil {
-			return errors.New("Could not fetch borad property")
-		}
-		if r.BoardIndex >= board.Len() {
-			return errors.New("BoardIndex is too high")
-		}
-		if r.StackIndex < 0 {
-			return errors.New("StackIndex is not valid")
-		}
-		stack := board.ImmutableSpaceAt(r.BoardIndex)
-		if stack == nil {
-			return errors.New("Could not fetch stack property")
-		}
-		if r.StackIndex >= stack.Len() {
-			return errors.New("StackIndex is greater than the size of the stack")
-		}
-
-	default:
-		if r.StackIndex != 0 {
-			return errors.New("StackIndex was not the default value for a non-stack property")
-		}
-		if r.BoardIndex != 0 {
-			return errors.New("BoardIndex was not the default value for a non-stack property")
-		}
 	}
 
 	return nil

@@ -129,42 +129,6 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			},
 			true,
 		},
-		{
-			"Game property with stack and too-low stack index",
-			StatePropertyRef{
-				Group:      StateGroupGame,
-				PropName:   "DrawDeck",
-				StackIndex: -10,
-			},
-			true,
-		},
-		{
-			"Game property with stack and too-high stack index",
-			StatePropertyRef{
-				Group:      StateGroupGame,
-				PropName:   "DrawDeck",
-				StackIndex: 1000,
-			},
-			true,
-		},
-		{
-			"Game property with non-stack property with StackIndex",
-			StatePropertyRef{
-				Group:      StateGroupGame,
-				PropName:   "CurrentPlayer",
-				StackIndex: 1,
-			},
-			true,
-		},
-		{
-			"Game property with non-stack property with BoardIndex",
-			StatePropertyRef{
-				Group:      StateGroupGame,
-				PropName:   "CurrentPlayer",
-				BoardIndex: 1,
-			},
-			true,
-		},
 	}
 
 	for i, test := range tests {
