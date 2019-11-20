@@ -171,7 +171,7 @@ func (r StatePropertyRef) TypeOf(state ImmutableState) PropertyType {
 	if err != nil {
 		return TypeIllegal
 	}
-	reader, err := r.reader(state)
+	reader, err := r.Reader(state)
 	if err != nil {
 		return TypeIllegal
 	}
@@ -186,7 +186,7 @@ func (r StatePropertyRef) Fetch(state ImmutableState) interface{} {
 	if err != nil {
 		return nil
 	}
-	reader, err := r.reader(state)
+	reader, err := r.Reader(state)
 	if err != nil {
 		return nil
 	}
@@ -197,8 +197,9 @@ func (r StatePropertyRef) Fetch(state ImmutableState) interface{} {
 	return val
 }
 
-//reader fetches the reader that is selected by this StatePropertyRef
-func (r StatePropertyRef) reader(state ImmutableState) (PropertyReader, error) {
+//Reader fetches the PropertyReader that is selected by this StatePropertyRef,
+//returning an error if it doesn't exist.
+func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
 	var reader PropertyReader
 
 	switch r.Group {
@@ -289,7 +290,7 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 		return nil
 	}
 
-	reader, err := r.reader(exampleState)
+	reader, err := r.Reader(exampleState)
 	if err != nil {
 		return errors.New("The statepropertyref did not refer to a legitimate property: " + err.Error())
 	}
