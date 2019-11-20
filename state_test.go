@@ -94,6 +94,16 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			true,
 		},
 		{
+			"Basic existing dynamic component values property invalid index",
+			StatePropertyRef{
+				Group:     StateGroupDynamicComponentValues,
+				PropName:  "IntVar",
+				DeckName:  "test",
+				DeckIndex: 1000,
+			},
+			true,
+		},
+		{
 			"Basic existing player property negative player index",
 			StatePropertyRef{
 				Group:       StateGroupPlayer,

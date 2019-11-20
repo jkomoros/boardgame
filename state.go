@@ -144,7 +144,7 @@ type StatePropertyRef struct {
 	//DeckIndex is used only when the Group is StateGroupDynamicComponentValues
 	//and the intent of the StatePropertyRef is to select a specific
 	//DynamicComponentValues. 0 is always legal.
-	DynamicComponentIndex int
+	DeckIndex int
 }
 
 //WithPlayerIndex is a convenience method to return a copy of StatePropertyRef,
@@ -155,11 +155,11 @@ func (r StatePropertyRef) WithPlayerIndex(index int) StatePropertyRef {
 	return cp
 }
 
-//WithDynamicComponentIndex is a convenience method to return a copy of
-//StatePropertyRef, just with DynamicComponentIndex set to index.
-func (r StatePropertyRef) WithDynamicComponentIndex(index int) StatePropertyRef {
+//WithDeckIndex is a convenience method to return a copy of StatePropertyRef,
+//just with DeckIndex set to index.
+func (r StatePropertyRef) WithDeckIndex(index int) StatePropertyRef {
 	cp := r
-	r.DynamicComponentIndex = index
+	r.DeckIndex = index
 	return cp
 }
 
@@ -224,10 +224,10 @@ func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
 		if len(states) == 0 {
 			return nil, errors.New("No DynamicComponentValues for deck " + r.DeckName)
 		}
-		if r.DynamicComponentIndex < 0 {
+		if r.DeckIndex < 0 {
 			return nil, errors.New("Invalid low DynamicComponentIndex")
 		}
-		if r.DynamicComponentIndex >= len(states) {
+		if r.DeckIndex >= len(states) {
 			return nil, errors.New("DynamicComponentIndex too high")
 		}
 		st := states[0]
