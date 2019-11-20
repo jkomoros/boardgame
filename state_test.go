@@ -94,11 +94,74 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			true,
 		},
 		{
+			"Basic existing player property negative player index",
+			StatePropertyRef{
+				Group:       StateGroupPlayer,
+				PropName:    "IsFoo",
+				PlayerIndex: -2,
+			},
+			true,
+		},
+		{
+			"Basic existing player property too-high player index",
+			StatePropertyRef{
+				Group:       StateGroupPlayer,
+				PropName:    "IsFoo",
+				PlayerIndex: 10,
+			},
+			true,
+		},
+		{
+			"Game property with player index set",
+			StatePropertyRef{
+				Group:       StateGroupGame,
+				PropName:    "DrawDeck",
+				PlayerIndex: 2,
+			},
+			true,
+		},
+		{
 			"Game property with dynamic component deck set",
 			StatePropertyRef{
 				Group:    StateGroupGame,
 				PropName: "DrawDeck",
 				DeckName: "nonempty",
+			},
+			true,
+		},
+		{
+			"Game property with stack and too-low stack index",
+			StatePropertyRef{
+				Group:      StateGroupGame,
+				PropName:   "DrawDeck",
+				StackIndex: -10,
+			},
+			true,
+		},
+		{
+			"Game property with stack and too-high stack index",
+			StatePropertyRef{
+				Group:      StateGroupGame,
+				PropName:   "DrawDeck",
+				StackIndex: 1000,
+			},
+			true,
+		},
+		{
+			"Game property with non-stack property with StackIndex",
+			StatePropertyRef{
+				Group:      StateGroupGame,
+				PropName:   "CurrentPlayer",
+				StackIndex: 1,
+			},
+			true,
+		},
+		{
+			"Game property with non-stack property with BoardIndex",
+			StatePropertyRef{
+				Group:      StateGroupGame,
+				PropName:   "CurrentPlayer",
+				BoardIndex: 1,
 			},
 			true,
 		},

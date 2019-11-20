@@ -134,15 +134,28 @@ type StatePropertyRef struct {
 	//PropName is the specific property on the given SubStateObject specified
 	//by the rest of the StatePropertyRef.
 	PropName string
+
+	//PlayerIndex is the index of the player, if Group is StateGroupPlayer.
+	PlayerIndex int
 	//DeckName is only used when Group is StateGroupDynamicComponentValues
 	DeckName string
+
+	//StackIndex specifies the index of the component within the stack (if it
+	//is a stack) that is intended.
+	StackIndex int
+	//BoardIndex specifies the index of the Stack within the Board (if it is a
+	//board) that is intended.
+	BoardIndex int
+	//DeckIndex is used only when the Group is StateGroupDynamicComponentValues.
+	DynamicComponentIndex int
 }
 
 //Validate checks to ensure that the StatePropertyRef is configured in a legal
-//way, for example that a DeckName is provided for a DynamicComponentValues.
-//exampleState is optional--if it is provided, then additional checks are done,
-//for example ensuring that the actual named property exists, and if Index
-//properties are non-default, that they denote a valid index.
+//way, for example that PlayerIndex is only set to a non-default value when
+//Group is StateGroupPlayer. exampleState is optional--if it is provided, then
+//additional checks are done, for example ensuring that the actual named
+//property exists, and if Index properties are non-default, that they denote a
+//valid index.
 func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 	if r.Group != StateGroupGame && r.Group != StateGroupPlayer && r.Group != StateGroupDynamicComponentValues {
 		return errors.New("group is set to an invalid value, must be one of Game, Player, DynamicComponentValues")
@@ -150,6 +163,22 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 
 	if r.PropName == "" {
 		return errors.New("propName is not set")
+	}
+
+	//Check PlayerIndex is valid
+	if r.Group == StateGroupPlayer {
+		if r.PlayerIndex < 0 {
+			return errors.New("PlayerIndex was set to a negative value")
+		}
+		if exampleState != nil {
+			if r.PlayerIndex >= len(exampleState.ImmutablePlayerStates()) {
+				return errors.New("PlayerIndex was higher than the number of players")
+			}
+		}
+	} else {
+		if r.PlayerIndex != 0 {
+			return errors.New("PlayerIndex was not the default value for a non-player group")
+		}
 	}
 
 	//Check DeckName is valid
@@ -196,6 +225,12 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 		if len(states) == 0 {
 			return errors.New("No DynamicComponentValues for deck " + r.DeckName)
 		}
+		if r.DynamicComponentIndex < 0 {
+			return errors.New("Invalid low DynamicComponentIndex")
+		}
+		if r.DynamicComponentIndex >= len(states) {
+			return errors.New("DynamicComponentIndex too high")
+		}
 		st := states[0]
 		if st == nil {
 			return errors.New("No state in DynamicComponentValues")
@@ -205,6 +240,49 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 
 	if _, ok := reader.Props()[r.PropName]; !ok {
 		return errors.New("The PropName provided did not denote a valid property on the selected group type")
+	}
+
+	switch reader.Props()[r.PropName] {
+	case TypeStack:
+		if r.StackIndex < 0 {
+			return errors.New("StackIndex is not valid")
+		}
+		stack, err := reader.ImmutableStackProp(r.PropName)
+		if err != nil {
+			return errors.New("Could not fetch stack property")
+		}
+		if r.StackIndex >= stack.Len() {
+			return errors.New("StackIndex is greater than the size of the stack")
+		}
+	case TypeBoard:
+		if r.BoardIndex < 0 {
+			return errors.New("BoardIndex is not valid")
+		}
+		board, err := reader.ImmutableBoardProp(r.PropName)
+		if err != nil {
+			return errors.New("Could not fetch borad property")
+		}
+		if r.BoardIndex >= board.Len() {
+			return errors.New("BoardIndex is too high")
+		}
+		if r.StackIndex < 0 {
+			return errors.New("StackIndex is not valid")
+		}
+		stack := board.ImmutableSpaceAt(r.BoardIndex)
+		if stack == nil {
+			return errors.New("Could not fetch stack property")
+		}
+		if r.StackIndex >= stack.Len() {
+			return errors.New("StackIndex is greater than the size of the stack")
+		}
+
+	default:
+		if r.StackIndex != 0 {
+			return errors.New("StackIndex was not the default value for a non-stack property")
+		}
+		if r.BoardIndex != 0 {
+			return errors.New("BoardIndex was not the default value for a non-stack property")
+		}
 	}
 
 	return nil
