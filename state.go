@@ -147,6 +147,22 @@ type StatePropertyRef struct {
 	DynamicComponentIndex int
 }
 
+//WithPlayerIndex is a convenience method to return a copy of StatePropertyRef,
+//just with PlayerIndex set to index.
+func (r StatePropertyRef) WithPlayerIndex(index int) StatePropertyRef {
+	cp := r
+	r.PlayerIndex = index
+	return cp
+}
+
+//WithDynamicComponentIndex is a convenience method to return a copy of
+//StatePropertyRef, just with DynamicComponentIndex set to index.
+func (r StatePropertyRef) WithDynamicComponentIndex(index int) StatePropertyRef {
+	cp := r
+	r.DynamicComponentIndex = index
+	return cp
+}
+
 //Validate checks to ensure that the StatePropertyRef is configured in a legal
 //way, for example that PlayerIndex is only set to a non-default value when
 //Group is StateGroupPlayer. exampleState is optional--if it is provided, then
