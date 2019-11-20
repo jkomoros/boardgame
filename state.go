@@ -178,6 +178,25 @@ func (r StatePropertyRef) TypeOf(state ImmutableState) PropertyType {
 	return reader.Props()[r.PropName]
 }
 
+//Fetch returns the property value denoted by this StatePropertyRef. You can use
+//TypeOf or the various typed getters to figure out the underlying type. Will
+//return nil if the StatePropertyRef returns an error for Validate.
+func (r StatePropertyRef) Fetch(state ImmutableState) interface{} {
+	err := r.Validate(state)
+	if err != nil {
+		return nil
+	}
+	reader, err := r.reader(state)
+	if err != nil {
+		return nil
+	}
+	val, err := reader.Prop(r.PropName)
+	if err != nil {
+		return nil
+	}
+	return val
+}
+
 //reader fetches the reader that is selected by this StatePropertyRef
 func (r StatePropertyRef) reader(state ImmutableState) (PropertyReader, error) {
 	var reader PropertyReader
