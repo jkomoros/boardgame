@@ -163,6 +163,47 @@ func (r StatePropertyRef) WithDynamicComponentIndex(index int) StatePropertyRef 
 	return cp
 }
 
+//reader fetches the reader that is selected by this StatePropertyRef
+func (r StatePropertyRef) reader(state ImmutableState) (PropertyReader, error) {
+	var reader PropertyReader
+
+	switch r.Group {
+	case StateGroupGame:
+		st := state.ImmutableGameState()
+		if st == nil {
+			return nil, errors.New("exampleState returned nil for GameState")
+		}
+		reader = st.Reader()
+	case StateGroupPlayer:
+		states := state.ImmutablePlayerStates()
+		if len(states) == 0 {
+			return nil, errors.New("No playerStates returned")
+		}
+		st := states[0]
+		if st == nil {
+			return nil, errors.New("PlayerState was nil")
+		}
+		reader = st.Reader()
+	case StateGroupDynamicComponentValues:
+		states := state.ImmutableDynamicComponentValues()[r.DeckName]
+		if len(states) == 0 {
+			return nil, errors.New("No DynamicComponentValues for deck " + r.DeckName)
+		}
+		if r.DynamicComponentIndex < 0 {
+			return nil, errors.New("Invalid low DynamicComponentIndex")
+		}
+		if r.DynamicComponentIndex >= len(states) {
+			return nil, errors.New("DynamicComponentIndex too high")
+		}
+		st := states[0]
+		if st == nil {
+			return nil, errors.New("No state in DynamicComponentValues")
+		}
+		reader = st.Reader()
+	}
+	return reader, nil
+}
+
 //Validate checks to ensure that the StatePropertyRef is configured in a legal
 //way, for example that PlayerIndex is only set to a non-default value when
 //Group is StateGroupPlayer. exampleState is optional--if it is provided, then
@@ -214,41 +255,9 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 		return nil
 	}
 
-	var reader PropertyReader
-
-	switch r.Group {
-	case StateGroupGame:
-		st := exampleState.ImmutableGameState()
-		if st == nil {
-			return errors.New("exampleState returned nil for GameState")
-		}
-		reader = st.Reader()
-	case StateGroupPlayer:
-		states := exampleState.ImmutablePlayerStates()
-		if len(states) == 0 {
-			return errors.New("No playerStates returned")
-		}
-		st := states[0]
-		if st == nil {
-			return errors.New("PlayerState was nil")
-		}
-		reader = st.Reader()
-	case StateGroupDynamicComponentValues:
-		states := exampleState.ImmutableDynamicComponentValues()[r.DeckName]
-		if len(states) == 0 {
-			return errors.New("No DynamicComponentValues for deck " + r.DeckName)
-		}
-		if r.DynamicComponentIndex < 0 {
-			return errors.New("Invalid low DynamicComponentIndex")
-		}
-		if r.DynamicComponentIndex >= len(states) {
-			return errors.New("DynamicComponentIndex too high")
-		}
-		st := states[0]
-		if st == nil {
-			return errors.New("No state in DynamicComponentValues")
-		}
-		reader = st.Reader()
+	reader, err := r.reader(exampleState)
+	if err != nil {
+		return errors.New("The statepropertyref did not refer to a legitimate property: " + err.Error())
 	}
 
 	if _, ok := reader.Props()[r.PropName]; !ok {
