@@ -163,6 +163,21 @@ func (r StatePropertyRef) WithDynamicComponentIndex(index int) StatePropertyRef 
 	return cp
 }
 
+//TypeOf returns the type of the property referred to by this StatePropetyRef.
+//Will return TypeIllegal if the StatePropertyRef returns an error for
+//Validate().
+func (r StatePropertyRef) TypeOf(state ImmutableState) PropertyType {
+	err := r.Validate(state)
+	if err != nil {
+		return TypeIllegal
+	}
+	reader, err := r.reader(state)
+	if err != nil {
+		return TypeIllegal
+	}
+	return reader.Props()[r.PropName]
+}
+
 //reader fetches the reader that is selected by this StatePropertyRef
 func (r StatePropertyRef) reader(state ImmutableState) (PropertyReader, error) {
 	var reader PropertyReader
