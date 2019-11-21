@@ -93,8 +93,15 @@ type ImmutableState interface {
 
 	//Game is the Game that this state is part of. Calling
 	//Game.State(state.Version()) should return a state equivalent to this State
-	//(modulo sanitization, if applied).
+	//(modulo sanitization, if applied). This almost always returns non-nil,
+	//except if you generated the state via GameManager.ExampleState.
 	Game() *Game
+
+	//Manager returns the GameManager associated with this state, and never
+	//returns nil. Typically you can fetch this via Game().Manager(), but in
+	//some cases, like when the State is generated from
+	//GameManager.ExampleState(), Game() will return nil.
+	Manager() *GameManager
 
 	//StorageRecord returns a StateStorageRecord representing the state.
 	StorageRecord() StateStorageRecord
@@ -505,6 +512,7 @@ type state struct {
 	sanitized                     bool
 	version                       int
 	game                          *Game
+	manager                       *GameManager
 
 	memoizedRand *rand.Rand
 
@@ -684,6 +692,10 @@ func (s *state) updateIndexForAllComponents(stack Stack) {
 	for i, c := range stack.Components() {
 		s.componentAdded(c, stack, i)
 	}
+}
+
+func (s *state) Manager() *GameManager {
+	return s.manager
 }
 
 func (s *state) Version() int {

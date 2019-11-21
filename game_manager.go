@@ -840,6 +840,7 @@ func (g *GameManager) ExampleState() ImmutableState {
 //auto-inflation and everything.
 func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 	stateCopy := &state{
+		manager: g,
 		//Other users should set the game to a real thing
 		game:            nil,
 		version:         0,
