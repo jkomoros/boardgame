@@ -87,7 +87,7 @@ type RoundRobin struct {
 //RoundRobinStarterPlayer by default will return delegate.CurrentPlayer.
 //Override this method if you want a different starter.
 func (r *RoundRobin) RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex {
-	return state.Game().Manager().Delegate().CurrentPlayerIndex(state)
+	return state.Manager().Delegate().CurrentPlayerIndex(state)
 }
 
 //ConditionMet  goes around and returns nil if all players have had their

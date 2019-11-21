@@ -111,7 +111,7 @@ func (d *Default) ValidConfiguration(exampleState boardgame.State) error {
 			return errors.New("Legal Phases unexpectedly were not ints")
 		}
 
-		delegate := exampleState.Game().Manager().Delegate()
+		delegate := exampleState.Manager().Delegate()
 
 		phaseEnum := delegate.PhaseEnum()
 
@@ -364,7 +364,7 @@ func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 		return nil
 	}
 
-	delegate := state.Game().Manager().Delegate()
+	delegate := state.Manager().Delegate()
 
 	phaseEnum := delegate.PhaseEnum()
 
@@ -501,7 +501,7 @@ func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, propose
 		return nil
 	}
 
-	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
+	currentPhase := state.Manager().Delegate().CurrentPhase(state)
 
 	historicalMoves := d.historicalMovesSincePhaseTransition(state.Game(), state.Version(), currentPhase)
 

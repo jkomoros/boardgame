@@ -236,7 +236,7 @@ func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
 		}
 		reader = st.Reader()
 	case StateGroupComponentValues:
-		deck := state.Game().Manager().Chest().Deck(r.DeckName)
+		deck := state.Manager().Chest().Deck(r.DeckName)
 		if deck == nil {
 			return nil, errors.New("That deck name is not valid " + r.DeckName)
 		}
@@ -313,7 +313,7 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 		}
 		if exampleState != nil {
 			if r.Group == StateGroupComponentValues {
-				if deck := exampleState.Game().Manager().Chest().Deck(r.DeckName); deck == nil {
+				if deck := exampleState.Manager().Chest().Deck(r.DeckName); deck == nil {
 					return errors.New("DeckName selected a deck that doesn't exist")
 				}
 			} else {
@@ -870,7 +870,7 @@ func (s *state) validateBeforeSave() error {
 
 	//If delegate.PhaseEnum returns a tree, ensure it's in a leaf state.
 
-	delegate := s.Game().Manager().Delegate()
+	delegate := s.Manager().Delegate()
 
 	e := delegate.PhaseEnum()
 

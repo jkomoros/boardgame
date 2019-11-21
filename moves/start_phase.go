@@ -46,7 +46,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 		return errors.New("The embedding move does not have PhaseToStart()")
 	}
 
-	delegate := exampleState.Game().Manager().Delegate()
+	delegate := exampleState.Manager().Delegate()
 
 	phaseToStart := phaseStarter.PhaseToStart(delegate.CurrentPhase(exampleState))
 
@@ -104,7 +104,7 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 		return errors.New("The embedding move does not have PhaseToStart()")
 	}
 
-	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
+	currentPhase := state.Manager().Delegate().CurrentPhase(state)
 
 	phaseToEnter := phaseEnterer.PhaseToStart(currentPhase)
 
