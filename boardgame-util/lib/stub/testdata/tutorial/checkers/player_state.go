@@ -43,7 +43,7 @@ func (p *playerState) TurnDone() error {
 	if p.HasDrawnCardThisTurn {
 		return nil
 	}
-	return errors.New("Player hasn't drawn their card yet.")
+	return errors.New("player hasn't drawn their card yet")
 }
 
 //ResetForTurnStart is called by moves.FinishTurn when the player's turn has

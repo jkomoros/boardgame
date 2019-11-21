@@ -536,7 +536,7 @@ func (p *playerState) TurnDone() error {
 	if p.HasDrawnCardThisTurn {
 		return nil
 	}
-	return errors.New("Player hasn't drawn their card yet.")
+	return errors.New("player hasn't drawn their card yet")
 }
 
 //ResetForTurnStart is called by moves.FinishTurn when the player's turn has
@@ -674,7 +674,7 @@ func (m *moveDrawCard) Legal(state boardgame.ImmutableState, proposer boardgame.
 	game := state.ImmutableGameState().(*gameState)
 
 	if game.DrawStack.Len() < 1 {
-		return errors.New("No cards left to draw!")
+		return errors.New("no cards left to draw")
 	}
 
 	return nil
