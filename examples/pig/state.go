@@ -2,6 +2,7 @@ package pig
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 )
@@ -17,12 +18,11 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex boardgame.PlayerIndex
-	Busted      bool
-	Done        bool
-	DieCounted  bool
-	RoundScore  int
-	TotalScore  int
+	Busted     bool
+	Done       bool
+	DieCounted bool
+	RoundScore int
+	TotalScore int
 }
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -39,10 +39,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 	g.CurrentPlayer = currentPlayer
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 
 func (p *playerState) TurnDone() error {
