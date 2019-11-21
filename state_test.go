@@ -52,6 +52,15 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			false,
 		},
 		{
+			"Basic existing component values property",
+			StatePropertyRef{
+				Group:    StateGroupComponentValues,
+				PropName: "Integer",
+				DeckName: "test",
+			},
+			false,
+		},
+		{
 			"Basic existing game property that doesn't exist",
 			StatePropertyRef{
 				Group:    StateGroupGame,
@@ -77,10 +86,27 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			true,
 		},
 		{
+			"Basic existing component values property that doesn't exist",
+			StatePropertyRef{
+				Group:    StateGroupComponentValues,
+				PropName: "Nonexistent",
+				DeckName: "test",
+			},
+			true,
+		},
+		{
 			"Basic existing dynamic component values property missing deck",
 			StatePropertyRef{
 				Group:    StateGroupDynamicComponentValues,
 				PropName: "IntVar",
+			},
+			true,
+		},
+		{
+			"Basic existing component values property missing deck",
+			StatePropertyRef{
+				Group:    StateGroupComponentValues,
+				PropName: "Integer",
 			},
 			true,
 		},
@@ -94,10 +120,29 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			true,
 		},
 		{
+			"Basic existing component values property invalid deck",
+			StatePropertyRef{
+				Group:    StateGroupComponentValues,
+				PropName: "Integer",
+				DeckName: "invaliddeckname",
+			},
+			true,
+		},
+		{
 			"Basic existing dynamic component values property invalid index",
 			StatePropertyRef{
 				Group:     StateGroupDynamicComponentValues,
 				PropName:  "IntVar",
+				DeckName:  "test",
+				DeckIndex: 1000,
+			},
+			true,
+		},
+		{
+			"Basic existing component values property invalid index",
+			StatePropertyRef{
+				Group:     StateGroupComponentValues,
+				PropName:  "Integer",
 				DeckName:  "test",
 				DeckIndex: 1000,
 			},

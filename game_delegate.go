@@ -231,9 +231,10 @@ type GameDelegate interface {
 	//mamber of. In practice the default behavior of base.GameDelegate, which
 	//uses struct tags to figure out the policy, is sufficient and you do not
 	//need to override this. For more on how sanitization works, see the
-	//documenation for Policy. The statePropetyRef passed will always have the
-	//Index properties set to 0, but remember that the returned Policy will be
-	//applied to all Indexes.
+	//documenation for Policy. The statePropetyRef passed will never be
+	//StateGroupComponentValues, and will always have the Index properties set
+	//to 0, but remember that the returned Policy will be applied to all
+	//Indexes.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
 	//If you have computed properties that you want to be included in your

@@ -118,6 +118,9 @@ const (
 	StateGroupGame StateGroupType = iota
 	//StateGroupPlayer refers to the PlayerState part of State
 	StateGroupPlayer
+	//StateGroupComponentValues referes to the non-dynamic values of the given
+	//component.
+	StateGroupComponentValues
 	//StateGroupDynamicComponentValues refers to the DynamicComponentValues part
 	//of State.
 	StateGroupDynamicComponentValues
@@ -134,16 +137,18 @@ type StatePropertyRef struct {
 	//PropName is the specific property on the given SubStateObject specified
 	//by the rest of the StatePropertyRef.
 	PropName string
-	//DeckName is only used when Group is StateGroupDynamicComponentValues
+	//DeckName is only used when Group is StateGroupComponentValues or
+	//StateGroupDynamicComponentValues
 	DeckName string
 
 	//PlayerIndex is the index of the player, if Group is StateGroupPlayer and
 	//the intent of the StatePropertyRef is to select a specific player's state.
 	//0 is always legal.
 	PlayerIndex int
-	//DeckIndex is used only when the Group is StateGroupDynamicComponentValues
-	//and the intent of the StatePropertyRef is to select a specific
-	//DynamicComponentValues. 0 is always legal.
+	//DeckIndex is used only when the Group is StateGroupComponentValues or
+	//StateGroupDynamicComponentValues and the intent of the StatePropertyRef is
+	//to select a specific ComponentValues or DynamicComponentValues. 0 is
+	//always legal.
 	DeckIndex int
 }
 
@@ -219,6 +224,26 @@ func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
 			return nil, errors.New("PlayerState was nil")
 		}
 		reader = st.Reader()
+	case StateGroupComponentValues:
+		deck := state.Game().Manager().Chest().Deck(r.DeckName)
+		if deck == nil {
+			return nil, errors.New("That deck name is not valid " + r.DeckName)
+		}
+		if deck.Len() == 0 {
+			return nil, errors.New("No components for deck " + r.DeckName)
+		}
+		if r.DeckIndex < 0 {
+			return nil, errors.New("Invalid low DeckIndex")
+		}
+		if r.DeckIndex >= deck.Len() {
+			return nil, errors.New("DeckIndex too high")
+		}
+		component := deck.ComponentAt(r.DeckIndex)
+		st := component.Values()
+		if st == nil {
+			return nil, errors.New("No Values in Component")
+		}
+		reader = st.Reader()
 	case StateGroupDynamicComponentValues:
 		states := state.ImmutableDynamicComponentValues()[r.DeckName]
 		if len(states) == 0 {
@@ -246,7 +271,7 @@ func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
 //property exists, and if Index properties are non-default, that they denote a
 //valid index.
 func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
-	if r.Group != StateGroupGame && r.Group != StateGroupPlayer && r.Group != StateGroupDynamicComponentValues {
+	if r.Group != StateGroupGame && r.Group != StateGroupPlayer && r.Group != StateGroupComponentValues && r.Group != StateGroupDynamicComponentValues {
 		return errors.New("group is set to an invalid value, must be one of Game, Player, DynamicComponentValues")
 	}
 
@@ -271,13 +296,19 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 	}
 
 	//Check DeckName is valid
-	if r.Group == StateGroupDynamicComponentValues {
+	if r.Group == StateGroupComponentValues || r.Group == StateGroupDynamicComponentValues {
 		if r.DeckName == "" {
-			return errors.New("No DeckName provided for GroupDynamicComponentValues, but it's required")
+			return errors.New("No DeckName provided for GroupComponentValues, but it's required")
 		}
 		if exampleState != nil {
-			if _, ok := exampleState.ImmutableDynamicComponentValues()[r.DeckName]; !ok {
-				return errors.New("DeckName selected a deck that doesn't exist")
+			if r.Group == StateGroupComponentValues {
+				if deck := exampleState.Game().Manager().Chest().Deck(r.DeckName); deck == nil {
+					return errors.New("DeckName selected a deck that doesn't exist")
+				}
+			} else {
+				if _, ok := exampleState.ImmutableDynamicComponentValues()[r.DeckName]; !ok {
+					return errors.New("DeckName selected a deck that doesn't exist")
+				}
 			}
 		}
 	} else {
