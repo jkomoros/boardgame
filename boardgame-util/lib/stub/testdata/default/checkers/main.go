@@ -7,11 +7,12 @@ package checkers
 
 import (
 	"errors"
+	"reflect"
+	"strings"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
-	"reflect"
-	"strings"
 )
 
 /*

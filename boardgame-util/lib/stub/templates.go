@@ -174,12 +174,13 @@ Package {{.Name}} implements a game that is {{lowercaseFirst .Description}}
 package {{.Name}}
 
 import (
-	"errors"
-	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/base"{{if not .SuppressReflectedName}}
+	"errors"{{if not .SuppressReflectedName}}
 	"reflect"
 	"strings"{{- end}}
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/base"
 )
 
 /*
@@ -484,6 +485,7 @@ const templateContentsPlayerStateGo = `package {{.Name}}
 import (
 	{{if .EnableExampleMoves}}
 	"errors"
+
 	{{end}}
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
@@ -640,6 +642,7 @@ const templateContentsNormalMovesGo = `package {{.Name}}
 {{if .EnableExampleMoves}}
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
 )
@@ -750,10 +753,11 @@ func newExampleCardDeck() *boardgame.Deck {
 const templateContentsMainTestGo = `package {{.Name}}
 
 import (
+	"testing"
+	
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/workfit/tester/assert"
-	"testing"
 )
 
 func TestNewManager(t *testing.T) {
