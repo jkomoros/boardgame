@@ -778,17 +778,30 @@ func (s *state) setStateForSubStates() {
 
 	s.gameState.SetState(s)
 	s.gameState.SetImmutableState(s)
+	s.gameState.SetStatePropertyRef(StatePropertyRef{
+		Group: StateGroupGame,
+	})
+
+	playerRef := StatePropertyRef{
+		Group: StateGroupPlayer,
+	}
 
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].SetState(s)
 		s.playerStates[i].SetImmutableState(s)
-
+		s.playerStates[i].SetStatePropertyRef(playerRef.WithPlayerIndex(i))
 	}
 
-	for _, dynamicComponents := range s.dynamicComponentValues {
-		for _, component := range dynamicComponents {
+	for deckName, dynamicComponents := range s.dynamicComponentValues {
+
+		componentRef := StatePropertyRef{
+			Group:    StateGroupDynamicComponentValues,
+			DeckName: deckName,
+		}
+		for i, component := range dynamicComponents {
 			component.SetState(s)
 			component.SetImmutableState(s)
+			component.SetStatePropertyRef(componentRef.WithDeckIndex(i))
 		}
 	}
 
@@ -1027,6 +1040,18 @@ type ImmutableStateSetter interface {
 	SetImmutableState(state ImmutableState)
 	//ImmutableState() returns the state that was set via SetState().
 	ImmutableState() ImmutableState
+
+	//SetStatePropertyRef will be called when the State object is being
+	//configured, and will let the SubState know what type of SubState (Game,
+	//Player, DynamicComponentValues) it is, and its PlayerIndex or DeckIndex as
+	//appropriate (PropName will be "" since it refers to the whole SubState).
+	//Your SubState should return this value from StatePropertyRef.
+	SetStatePropertyRef(ref StatePropertyRef)
+
+	//StatePropertyRef should return the value that was set via
+	//SetStatePropetyRef. This is a good way for the substate to understand what
+	//index it has, for example the player index.
+	StatePropertyRef() StatePropertyRef
 }
 
 //StateSetter is included in SubState and ConfigureableSubState as the way to

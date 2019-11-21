@@ -18,6 +18,7 @@ type SubState struct {
 	//references...
 	immutableState boardgame.ImmutableState
 	state          boardgame.State
+	ref            boardgame.StatePropertyRef
 }
 
 //SetState sets the State to the given state.
@@ -38,6 +39,16 @@ func (s *SubState) SetImmutableState(state boardgame.ImmutableState) {
 //ImmutableState returns the immutablestate set via SetImmutableState.
 func (s *SubState) ImmutableState() boardgame.ImmutableState {
 	return s.immutableState
+}
+
+//SetStatePropertyRef sets the ref to return from StatePropertyRef()
+func (s *SubState) SetStatePropertyRef(ref boardgame.StatePropertyRef) {
+	s.ref = ref
+}
+
+//StatePropertyRef returns the ref passed via SetStatePropertyRef()
+func (s *SubState) StatePropertyRef() boardgame.StatePropertyRef {
+	return s.ref
 }
 
 //ComponentValues is an optional convenience struct designed to be embedded

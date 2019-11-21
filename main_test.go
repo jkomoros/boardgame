@@ -64,6 +64,7 @@ func (t *testingComponent) SetContainingComponent(c Component) {
 type testingComponentDynamic struct {
 	state          State
 	immutableState ImmutableState
+	ref            StatePropertyRef
 	c              Component
 	IntVar         int
 	Stack          Stack
@@ -104,6 +105,14 @@ func (t *testingComponentDynamic) ImmutableState() ImmutableState {
 	return t.immutableState
 }
 
+func (t *testingComponentDynamic) SetStatePropertyRef(ref StatePropertyRef) {
+	t.ref = ref
+}
+
+func (t *testingComponentDynamic) StatePropertyRef() StatePropertyRef {
+	return t.ref
+}
+
 func (t *testingComponentDynamic) ContainingComponent() Component {
 	return t.c
 }
@@ -137,6 +146,7 @@ func concreteStates(state ImmutableState) (*testGameState, []*testPlayerState) {
 type testGameState struct {
 	state              State
 	immutableState     ImmutableState
+	ref                StatePropertyRef
 	Phase              enum.TreeVal `enum:"phase"`
 	CurrentPlayer      PlayerIndex
 	DrawDeck           Stack `sanitize:"len"`
@@ -181,9 +191,18 @@ func (t *testGameState) ImmutableState() ImmutableState {
 	return t.immutableState
 }
 
+func (t *testGameState) SetStatePropertyRef(ref StatePropertyRef) {
+	t.ref = ref
+}
+
+func (t *testGameState) StatePropertyRef() StatePropertyRef {
+	return t.ref
+}
+
 type testPlayerState struct {
 	state          State
 	immutableState ImmutableState
+	ref            StatePropertyRef
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
@@ -229,6 +248,14 @@ func (t *testPlayerState) SetImmutableState(state ImmutableState) {
 
 func (t *testPlayerState) ImmutableState() ImmutableState {
 	return t.immutableState
+}
+
+func (t *testPlayerState) SetStatePropertyRef(ref StatePropertyRef) {
+	t.ref = ref
+}
+
+func (t *testPlayerState) StatePropertyRef() StatePropertyRef {
+	return t.ref
 }
 
 type testMoveInvalidPlayerIndex struct {
