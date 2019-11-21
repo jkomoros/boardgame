@@ -17,7 +17,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/memory"

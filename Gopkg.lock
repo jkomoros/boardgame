@@ -13,7 +13,7 @@
 
 [[projects]]
   digest = "1:9e9193aa51197513b3abcb108970d831fbcf40ef96aa845c4f03276e1fa316d2"
-  name = "github.com/Sirupsen/logrus"
+  name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "UT"
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
@@ -273,7 +273,7 @@
   input-imports = [
     "github.com/MarcGrol/golangAnnotations/model",
     "github.com/MarcGrol/golangAnnotations/parser",
-    "github.com/Sirupsen/logrus",
+    "github.com/sirupsen/logrus",
     "github.com/abcum/lcp",
     "github.com/alternaDev/go-firebase-verify",
     "github.com/bobziuchkovski/writ",

@@ -31,7 +31,7 @@
   revision = "25a97767855ac54533b58beec005a086b006eecb"
 
 [[constraint]]
-  name = "github.com/Sirupsen/logrus"
+  name = "github.com/sirupsen/logrus"
   version = "1.0.5"
 
 [[constraint]]

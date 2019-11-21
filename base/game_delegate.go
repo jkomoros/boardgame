@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/sirupsen/logrus"
 )
 
 //GameDelegate is a struct that implements stubs for all of GameDelegate's
