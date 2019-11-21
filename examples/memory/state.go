@@ -2,6 +2,7 @@ package memory
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 )
@@ -23,7 +24,6 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
 	WonCards          boardgame.Stack `stack:"cards"`
 }
@@ -38,10 +38,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	}
 
 	return game, players
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 
 func (p *playerState) TurnDone() error {

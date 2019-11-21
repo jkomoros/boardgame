@@ -132,10 +132,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 }
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
-
-	return &playerState{
-		playerIndex: playerIndex,
-	}
+	return new(playerState)
 }
 
 func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
