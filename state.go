@@ -179,40 +179,6 @@ func (r StatePropertyRef) WithDeckIndex(index int) StatePropertyRef {
 	return cp
 }
 
-//TypeOf returns the type of the property referred to by this StatePropetyRef.
-//Will return TypeIllegal if the StatePropertyRef returns an error for
-//Validate().
-func (r StatePropertyRef) TypeOf(state ImmutableState) PropertyType {
-	err := r.Validate(state)
-	if err != nil {
-		return TypeIllegal
-	}
-	reader, err := r.Reader(state)
-	if err != nil {
-		return TypeIllegal
-	}
-	return reader.Props()[r.PropName]
-}
-
-//Fetch returns the property value denoted by this StatePropertyRef. You can use
-//TypeOf or the various typed getters to figure out the underlying type. Will
-//return nil if the StatePropertyRef returns an error for Validate.
-func (r StatePropertyRef) Fetch(state ImmutableState) interface{} {
-	err := r.Validate(state)
-	if err != nil {
-		return nil
-	}
-	reader, err := r.Reader(state)
-	if err != nil {
-		return nil
-	}
-	val, err := reader.Prop(r.PropName)
-	if err != nil {
-		return nil
-	}
-	return val
-}
-
 //Reader fetches the PropertyReader that is selected by this StatePropertyRef,
 //returning an error if it doesn't exist.
 func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
