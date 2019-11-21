@@ -616,7 +616,7 @@ type refriedState struct {
 
 //playerStateConstructor is a simple wrapper around
 //delegate.PlayerStateConstructor that just verifies that stacks are inflated.
-func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (ConfigurablePlayerState, error) {
+func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (ConfigurableSubState, error) {
 
 	playerState := g.delegate.PlayerStateConstructor(player)
 
@@ -855,7 +855,7 @@ func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 
 	stateCopy.gameState = gameState
 
-	playerStates := make([]ConfigurablePlayerState, numPlayers)
+	playerStates := make([]ConfigurableSubState, numPlayers)
 
 	for i := 0; i < numPlayers; i++ {
 		playerState, err := g.playerStateConstructor(stateCopy, PlayerIndex(i))

@@ -57,7 +57,7 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 
 	p := player.(*playerState)
 
@@ -128,7 +128,7 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	return strings.Join(result, "\n")
 }
 
-func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
+func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	player := pState.(*playerState)
 
 	if player.Busted {
@@ -154,7 +154,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
 
-func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 	return new(playerState)
 }
 

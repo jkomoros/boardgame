@@ -210,7 +210,7 @@ func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 }
 
 //ComputedPlayerProperties returns nil.
-func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
+func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 	return nil
 }
 
@@ -230,7 +230,7 @@ func (g *GameDelegate) FinishSetUp(state boardgame.State) error {
 //DefaultGameFinished implements the methods by default.
 type defaultCheckGameFinishedDelegate interface {
 	GameEndConditionMet(state boardgame.ImmutableState) bool
-	PlayerScore(pState boardgame.ImmutablePlayerState) int
+	PlayerScore(pState boardgame.ImmutableSubState) int
 	LowScoreWins() bool
 }
 
@@ -322,7 +322,7 @@ func (g *GameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 //default; if you override CheckGameFinished you don't need to override this.
 //The default implementation returns pState.GameScore() (if pState implements
 //the PlayerGameScorer interface), or 0 otherwise.
-func (g *GameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
+func (g *GameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	if scorer, ok := pState.(PlayerGameScorer); ok {
 		return scorer.GameScore()
 	}

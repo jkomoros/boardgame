@@ -80,7 +80,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
 
-func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 
 	value := X
 

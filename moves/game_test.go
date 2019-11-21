@@ -102,7 +102,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
 
-func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 	return &playerState{
 		playerIndex: index,
 	}

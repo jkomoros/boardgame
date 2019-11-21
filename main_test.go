@@ -364,7 +364,7 @@ func (t *testMoveIncrementCardInHand) HelpText() string {
 }
 
 func (t *testMoveIncrementCardInHand) DefaultsForState(state ImmutableState) {
-	t.TargetPlayerIndex = state.ImmutableCurrentPlayer().PlayerIndex()
+	t.TargetPlayerIndex = state.ImmutableCurrentPlayer().StatePropertyRef().PlayerIndex
 }
 
 func (t *testMoveIncrementCardInHand) Reader() PropertyReader {
@@ -448,7 +448,7 @@ func (t *testMoveDrawCard) HelpText() string {
 }
 
 func (t *testMoveDrawCard) DefaultsForState(state ImmutableState) {
-	t.TargetPlayerIndex = state.ImmutableCurrentPlayer().PlayerIndex()
+	t.TargetPlayerIndex = state.ImmutableCurrentPlayer().StatePropertyRef().PlayerIndex
 }
 
 func (t *testMoveDrawCard) Reader() PropertyReader {

@@ -40,7 +40,7 @@ type LegalComponent interface {
 //DealComponents. It will be consulted to figure out where the PlayerStack is
 //to deal a component to.
 type PlayerStacker interface {
-	PlayerStack(playerState boardgame.PlayerState) boardgame.Stack
+	PlayerStack(playerState boardgame.SubState) boardgame.Stack
 }
 
 //GameStacker should be implemented by your emedding Move if you embed
@@ -122,7 +122,7 @@ type ConditionMetter interface {
 //next in the round robin.
 type RoundRobinActioner interface {
 	//RoundRobinAction should do the action for the round robin to given player.
-	RoundRobinAction(playerState boardgame.PlayerState) error
+	RoundRobinAction(playerState boardgame.SubState) error
 }
 
 //CurrentPhaseSetter should be implemented by you gameState to set the

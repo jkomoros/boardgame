@@ -16,7 +16,7 @@ type roundRobinStarterPlayer interface {
 type playerConditionMet interface {
 	//PlayerConditionMet should return whether the condition for the round
 	//robin to be over has been met for this player.
-	PlayerConditionMet(playerState boardgame.ImmutablePlayerState) bool
+	PlayerConditionMet(playerState boardgame.ImmutableSubState) bool
 }
 
 /*
@@ -120,7 +120,7 @@ func (r *RoundRobin) ConditionMet(state boardgame.ImmutableState) error {
 //done. By default this will return false. If you will use RoundRobin directly
 //(as opposed to RoundRobinNumRounds) you will want to override this otherwise
 //it will get in an infinite loop.
-func (r *RoundRobin) PlayerConditionMet(playerState boardgame.ImmutablePlayerState) bool {
+func (r *RoundRobin) PlayerConditionMet(playerState boardgame.ImmutableSubState) bool {
 	return false
 }
 

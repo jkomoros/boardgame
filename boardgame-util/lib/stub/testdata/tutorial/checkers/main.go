@@ -97,10 +97,8 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
 
-func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
-	return &playerState{
-		playerIndex: index,
-	}
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurableSubState {
+	return new(playerState)
 }
 
 func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.ConfigurableSubState {
@@ -205,7 +203,7 @@ func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 	}
 }
 
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 
 	//ComputedProperties are mostly useful when a given state object's
 	//computed property is useful clientside, too.

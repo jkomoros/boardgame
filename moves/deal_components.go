@@ -7,7 +7,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.PlayerState) (playerStack boardgame.Stack, gameStack boardgame.Stack, err error) {
+func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.SubState) (playerStack boardgame.Stack, gameStack boardgame.Stack, err error) {
 	playerStacker, ok := topLevelStruct.(interfaces.PlayerStacker)
 
 	if !ok {
@@ -35,7 +35,7 @@ func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.Playe
 	return targetStack, sourceStack, nil
 }
 
-func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playerState boardgame.ImmutablePlayerState) (playerCount, targetCount int, err error) {
+func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playerState boardgame.ImmutableSubState) (playerCount, targetCount int, err error) {
 	playerStacker, ok := topLevelStruct.(interfaces.PlayerStacker)
 
 	if !ok {
@@ -43,7 +43,7 @@ func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playe
 	}
 
 	//Ugly hack. :-/
-	mutablePState := playerState.(boardgame.PlayerState)
+	mutablePState := playerState.(boardgame.SubState)
 
 	playerStack := playerStacker.PlayerStack(mutablePState)
 
@@ -138,7 +138,7 @@ func (d *DealCountComponents) NumRounds() int {
 //PlayerStack by default just returns the property on GameState with the name
 //passed to auto.Config by WithPlayerProperty. If that is not sufficient,
 //override this in your embedding struct.
-func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boardgame.Stack {
+func (d *DealCountComponents) PlayerStack(playerState boardgame.SubState) boardgame.Stack {
 	config := d.CustomConfiguration()
 
 	stackName, ok := config[configPropPlayerProperty]
@@ -250,7 +250,7 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 	immutablePlayerState := state.ImmutablePlayerStates()[nextPlayerIndex]
 
 	//Yes. this is a hack. :-/
-	playerState, ok := immutablePlayerState.(boardgame.PlayerState)
+	playerState, ok := immutablePlayerState.(boardgame.SubState)
 	if !ok {
 		return errors.New("ImmutablePlayerState couldn't be casted to PlayerState")
 	}
@@ -290,7 +290,7 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 
 //RoundRobinAction moves a component from the GameStack to the PlayerStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *DealCountComponents) RoundRobinAction(playerState boardgame.PlayerState) error {
+func (d *DealCountComponents) RoundRobinAction(playerState boardgame.SubState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -316,7 +316,7 @@ func (d *DealCountComponents) moveTypeInfo(exampleState boardgame.ImmutableState
 	if exampleState != nil {
 
 		//Ugly hack to cast these to mutable state :-/
-		playerState := exampleState.ImmutablePlayerStates()[0].(boardgame.PlayerState)
+		playerState := exampleState.ImmutablePlayerStates()[0].(boardgame.SubState)
 
 		playerStack, gameStack, _ = dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -353,7 +353,7 @@ type DealComponentsUntilPlayerCountReached struct {
 
 //PlayerConditionMet is true if the NumComponents in the given player's
 //PlayerStack() is TargetCount or greater.
-func (d *DealComponentsUntilPlayerCountReached) PlayerConditionMet(pState boardgame.ImmutablePlayerState) bool {
+func (d *DealComponentsUntilPlayerCountReached) PlayerConditionMet(pState boardgame.ImmutableSubState) bool {
 	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.TopLevelStruct(), pState)
 
 	if err != nil {

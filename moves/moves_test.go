@@ -1,10 +1,11 @@
 package moves
 
 import (
-	"github.com/jkomoros/boardgame"
-	"github.com/workfit/tester/assert"
 	"strings"
 	"testing"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/workfit/tester/assert"
 )
 
 //boardgame:codegen
@@ -20,7 +21,7 @@ func (m *moveDealCards) GameStack(gState boardgame.SubState) boardgame.Stack {
 	return gState.(*gameState).DrawStack
 }
 
-func (m *moveDealCards) PlayerStack(pState boardgame.PlayerState) boardgame.Stack {
+func (m *moveDealCards) PlayerStack(pState boardgame.SubState) boardgame.Stack {
 	return pState.(*playerState).Hand
 }
 
@@ -37,7 +38,7 @@ func (m *moveDealOtherCards) GameStack(gState boardgame.SubState) boardgame.Stac
 	return gState.(*gameState).DrawStack
 }
 
-func (m *moveDealOtherCards) PlayerStack(pState boardgame.PlayerState) boardgame.Stack {
+func (m *moveDealOtherCards) PlayerStack(pState boardgame.SubState) boardgame.Stack {
 	return pState.(*playerState).OtherHand
 }
 

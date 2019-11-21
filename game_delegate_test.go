@@ -211,7 +211,7 @@ func (d *defaultGameDelegate) ComputedGlobalProperties(state ImmutableState) Pro
 }
 
 //ComputedPlayerProperties returns nil.
-func (d *defaultGameDelegate) ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection {
+func (d *defaultGameDelegate) ComputedPlayerProperties(player ImmutableSubState) PropertyCollection {
 	return nil
 }
 
@@ -231,7 +231,7 @@ func (d *defaultGameDelegate) FinishSetUp(state State) error {
 //DefaultGameFinished implements the methods by default.
 type defaultCheckGameFinishedDelegate interface {
 	GameEndConditionMet(state ImmutableState) bool
-	PlayerScore(pState ImmutablePlayerState) int
+	PlayerScore(pState ImmutableSubState) int
 	LowScoreWins() bool
 }
 
@@ -323,7 +323,7 @@ func (d *defaultGameDelegate) GameEndConditionMet(state ImmutableState) bool {
 //default; if you override CheckGameFinished you don't need to override this.
 //The default implementation returns pState.GameScore() (if pState implements
 //the PlayerGameScorer interface), or 0 otherwise.
-func (d *defaultGameDelegate) PlayerScore(pState ImmutablePlayerState) int {
+func (d *defaultGameDelegate) PlayerScore(pState ImmutableSubState) int {
 	if scorer, ok := pState.(playerGameScorer); ok {
 		return scorer.GameScore()
 	}
@@ -490,7 +490,7 @@ func (t *testGameDelegate) ComputedGlobalProperties(state ImmutableState) Proper
 	}
 }
 
-func (t *testGameDelegate) ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection {
+func (t *testGameDelegate) ComputedPlayerProperties(player ImmutableSubState) PropertyCollection {
 
 	playerState := player.(*testPlayerState)
 
@@ -619,7 +619,7 @@ func (t *testGameDelegate) GameStateConstructor() ConfigurableSubState {
 	}
 }
 
-func (t *testGameDelegate) PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState {
+func (t *testGameDelegate) PlayerStateConstructor(player PlayerIndex) ConfigurableSubState {
 	return &testPlayerState{
 		playerIndex: player,
 	}

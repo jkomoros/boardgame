@@ -26,7 +26,7 @@ func (d *CollectCountComponents) sourceAndDestination(playerStack boardgame.Stac
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.PlayerState) error {
+func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.SubState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -77,7 +77,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) sourceAndDestination(playerStack
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.PlayerState) error {
+func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.SubState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -97,7 +97,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boa
 
 //PlayerConditionMet is true if the NumComponents in the given player's
 //PlayerStack() is TargetCount or less.
-func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardgame.ImmutablePlayerState) bool {
+func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardgame.ImmutableSubState) bool {
 	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.TopLevelStruct(), pState)
 
 	if err != nil {
@@ -140,7 +140,7 @@ func (d *CollectComponentsUntilGameCountReached) sourceAndDestination(playerStac
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.PlayerState) error {
+func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.SubState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 

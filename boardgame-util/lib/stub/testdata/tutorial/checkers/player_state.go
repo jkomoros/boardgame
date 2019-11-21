@@ -10,13 +10,8 @@ import (
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex          boardgame.PlayerIndex
 	Hand                 boardgame.Stack `stack:"examplecards" sanitize:"len"`
 	HasDrawnCardThisTurn bool
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 
 func (p *playerState) GameScore() int {

@@ -86,7 +86,7 @@ type nilStackGameDelegate struct {
 	nilForPlayer bool
 }
 
-func (n *nilStackGameDelegate) PlayerStateConstructor(playe PlayerIndex) ConfigurablePlayerState {
+func (n *nilStackGameDelegate) PlayerStateConstructor(playe PlayerIndex) ConfigurableSubState {
 	return &testPlayerState{}
 }
 

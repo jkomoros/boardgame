@@ -96,7 +96,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
 
-func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 	return new(playerState)
 }
 
@@ -126,7 +126,7 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 	return false
 }
 
-func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
+func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	p := pState.(*playerState)
 	return p.CapturedTokens.NumComponents()
 }

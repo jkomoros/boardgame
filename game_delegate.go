@@ -96,10 +96,10 @@ type GameDelegate interface {
 	//inflate these properties. See the documentation for StructInflater for
 	//more.
 	GameStateConstructor() ConfigurableSubState
-	//PlayerStateConstructor is similar to GameStateConstructor, but
-	//playerIndex is the value that this PlayerState must return when its
-	//PlayerIndex() is called.
-	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
+	//PlayerStateConstructor is similar to GameStateConstructor, but playerIndex
+	//is provided as a convenience if it's useful (your constructor need not do
+	//anything wiht it, typically `return new(playerState)` is sufficient).
+	PlayerStateConstructor(player PlayerIndex) ConfigurableSubState
 
 	//DynamicComponentValuesConstructor returns an empty
 	//DynamicComponentValues for the given deck. DynamicComponentValues are
@@ -241,7 +241,7 @@ type GameDelegate interface {
 	//JSON (for example, for use clientside), export them here by creating a
 	//dictionary with their values.
 	ComputedGlobalProperties(state ImmutableState) PropertyCollection
-	ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection
+	ComputedPlayerProperties(player ImmutableSubState) PropertyCollection
 
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging. State.Diagram() will reach out to this

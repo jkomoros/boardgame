@@ -38,7 +38,7 @@ type ImmutableState interface {
 	//lacks the mutator methods, although when you cast back you'll get access
 	//to the full struct--be careful not to mutate things as they will not be
 	//persisted. See State.PlayerStates for more.
-	ImmutablePlayerStates() []ImmutablePlayerState
+	ImmutablePlayerStates() []ImmutableSubState
 	//Each SubState is a reference to to the underlying object returned from
 	//your GameDelegate.DynamicComponentValuesConstructor() for the deck with
 	//that name, and can be safely cast back to that underlying struct so you
@@ -55,7 +55,7 @@ type ImmutableState interface {
 	//valid. This object is the same underlying struct that you returned from
 	//GameDelegate.PlayerStateConstructor and can be cast back safely to
 	//access the underlying methods. See State.CurrentPlayer for more.
-	ImmutableCurrentPlayer() ImmutablePlayerState
+	ImmutableCurrentPlayer() ImmutableSubState
 	//CurrentPlayerIndex is a simple convenience wrapper around
 	//delegate.CurrentPlayerIndex(state) for this state.
 	CurrentPlayerIndex() PlayerIndex
@@ -352,7 +352,7 @@ type State interface {
 	//from your GameDelegate.PlayerStateConstructor(), and can be safely cast
 	//back to that underlying struct so you can access its methods directly in
 	//a type- checked way.
-	PlayerStates() []PlayerState
+	PlayerStates() []SubState
 	//Each SubState is a reference to to the underlying object returned from
 	//your GameDelegate.DynamicComponentValuesConstructor() for the deck with
 	//that name, and can be safely cast back to that underlying struct so you
@@ -364,7 +364,7 @@ type State interface {
 	//object is the same underlying struct that you returned from
 	//GameDelegate.PlayerStateConstructor and can be cast back safely to
 	//access the underlying methods.
-	CurrentPlayer() PlayerState
+	CurrentPlayer() SubState
 
 	//Rand returns a source of randomness. All game logic should use this rand
 	//source. It is deterministically seeded when it is created for this state
@@ -466,13 +466,13 @@ type componentIndexItem struct {
 //method signature is that it's passed to
 type state struct {
 	gameState              ConfigurableSubState
-	playerStates           []ConfigurablePlayerState
+	playerStates           []ConfigurableSubState
 	computedValues         *computedProperties
 	dynamicComponentValues map[string][]ConfigurableSubState
 	//We hang onto these because otherwise we'd have to create them on the fly
 	//whenever MutablePlayerStates() and MutableDynamicComponentValues are
 	//called. They're populated in setStateForSubStates.
-	mutablePlayerStates           []PlayerState
+	mutablePlayerStates           []SubState
 	mutableDynamicComponentValues map[string][]SubState
 	secretMoveCount               map[string][]int
 	sanitized                     bool
@@ -672,7 +672,7 @@ func (s *state) GameState() SubState {
 	return s.gameState
 }
 
-func (s *state) PlayerStates() []PlayerState {
+func (s *state) PlayerStates() []SubState {
 	return s.mutablePlayerStates
 }
 
@@ -688,19 +688,19 @@ func (s *state) ImmutableGameState() ImmutableSubState {
 	return s.gameState
 }
 
-func (s *state) ImmutablePlayerStates() []ImmutablePlayerState {
-	result := make([]ImmutablePlayerState, len(s.playerStates))
+func (s *state) ImmutablePlayerStates() []ImmutableSubState {
+	result := make([]ImmutableSubState, len(s.playerStates))
 	for i := 0; i < len(s.playerStates); i++ {
 		result[i] = s.playerStates[i]
 	}
 	return result
 }
 
-func (s *state) ImmutableCurrentPlayer() ImmutablePlayerState {
+func (s *state) ImmutableCurrentPlayer() ImmutableSubState {
 	return s.CurrentPlayer()
 }
 
-func (s *state) CurrentPlayer() PlayerState {
+func (s *state) CurrentPlayer() SubState {
 	index := s.CurrentPlayerIndex()
 	if index < 0 || int(index) >= len(s.playerStates) {
 		return nil
@@ -805,7 +805,7 @@ func (s *state) setStateForSubStates() {
 		}
 	}
 
-	mutablePlayerStates := make([]PlayerState, len(s.playerStates))
+	mutablePlayerStates := make([]SubState, len(s.playerStates))
 	for i := 0; i < len(s.playerStates); i++ {
 		mutablePlayerStates[i] = s.playerStates[i]
 	}
@@ -1090,7 +1090,6 @@ ConfigurableSubState is the interface for many types of structs that store
 properties and configuration specific to your game type. The values returned
 from your GameDelegate's GameStateConstructor, PlayerStateConstructor, and
 DynamicComponentValues constructor must all implement this interface.
-(PlayerStateConstructor also adds PlayerIndex())
 
 A ConfigurableSubState is a struct that has a collection of properties all of
 a given small set of legal types, enumerated in PropertyType. These are the
@@ -1139,41 +1138,6 @@ type ConfigurableSubState interface {
 	//and the underlying PropertyReadSetConfigurer it returns--are generated
 	//via `boardgame-util codegen`.
 	ReadSetConfigurer
-}
-
-//PlayerIndexer is implemented by all PlayerStates, which differentiates them
-//from a generic SubState.
-type PlayerIndexer interface {
-	//PlayerIndex encodes the index this user's state is in the containing
-	//state object, allowing the SubState to know how to fetch itself from its
-	//containing State.
-	PlayerIndex() PlayerIndex
-}
-
-//PlayerState represents the state of a game associated with a specific user.
-//It is just a SubState with the addition of a PlayerIndex(). See
-//ConfigurableSubState for more on the SubState type hierarchy.
-type PlayerState interface {
-	PlayerIndexer
-	SubState
-}
-
-//ImmutablePlayerState represents a PlayerState SubState that is not in a
-//context where mutating is legal. It is simply an ImmutableSubState that also
-//has a PlayerIndex method. See more on substates at the documentation for
-//ConfigurableSubState.
-type ImmutablePlayerState interface {
-	PlayerIndexer
-	ImmutableSubState
-}
-
-//A ConfigurablePlayerState is a PlayerState that is allowed to be mutated and
-//configured. It is simply a ConfigurableSubState that also has a
-//PlayerIndex() method. See ConfigurableSubState for more on this hierarchy of
-//objects.
-type ConfigurablePlayerState interface {
-	PlayerIndexer
-	ConfigurableSubState
 }
 
 //DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the

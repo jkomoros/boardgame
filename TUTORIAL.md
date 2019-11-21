@@ -307,28 +307,23 @@ GameDelegates are also where you have "Constructors" for your core concrete type
 type GameDelegate interface {
 	//...
 	GameStateConstructor() ConfigurableSubState
-	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
+	PlayerStateConstructor(player PlayerIndex) ConfigurableSubState
 	//...
 }
 ```
 
-ConfigurableSubState and ConfigurablePlayerState are simple interfaces that primarily define how to get a `PropertyReader`, `PropertyReadSetter`, and `PropertyReadSetConfigurer` from the object. Many other sub-state values that we'll encounter later have the same shape, which is why the name is generic.
+ConfigurableSubState is a simple interface that primarily define how to get a `PropertyReader`, `PropertyReadSetter`, and `PropertyReadSetConfigurer` from the object. Many other sub-state values that we'll encounter later have the same shape, which is why the name is generic.
 
-GameStateConstructor and PlayerStateConstructor should return zero-value objects of your concrete types. The only thing that differentiates GameStates (of type ConfigurableSubState) and PlayerStates (of type ConfigurablePlayerState) is that PlayerStates should come back with a hidden property encoding which PlayerIndex they are.
+GameStateConstructor and PlayerStateConstructor should return zero-value objects of your concrete types.
 
-In many cases they can just be a single line or two, as you can see for the PlayerStateConstructor in main.go:
+In many cases they can just be a single line or two, as you can see for the PlayerStateConstructor and GameStateConstructor in main.go:
 
 ```
-func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 
-	return &playerState{
-		playerIndex: playerIndex,
-	}
+	return new(playerState)
 }
-```
-If you look at the GameState constructor, it is even simpler:
 
-```
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
@@ -439,7 +434,7 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 	return true
 }
 
-func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
+func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	player := pState.(*playerState)
 
 	return player.WonCards.NumComponents()
@@ -1402,7 +1397,7 @@ When sanitizing dynamic component values, each deck has its own policy. Importan
 
 It's common to define methods on your `gameState` and `playerState` objects to modify the states and also to provide getters for values that can be computed entirely based on the values of specific properties. This works great on the server, but sometimes you want to have those same computed values available on the client in order to do view data-binding more easily.
 
-When a JSON representation of your gameState is being prepared for a player, your delegate's `ComputedGlobalProperties(state State)` and `ComputedPlayerProperties(player PlayerState)` are called, allowing you to return a map of strings to `interface{}` to include in the JSON. 
+When a JSON representation of your gameState is being prepared for a player, your delegate's `ComputedGlobalProperties(state State)` and `ComputedPlayerProperties(player SubState)` are called, allowing you to return a map of strings to `interface{}` to include in the JSON. 
 
 Typically this is a simple enumeration of the names of the values and the method calls, like you can see in memory:
 

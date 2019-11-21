@@ -103,8 +103,10 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 	defaultGroup := "all"
 	//If the object apeparst to be a playerState, then the default group is "other", not "all".
-	if _, ok := exampleObj.(PlayerState); ok {
-		defaultGroup = "other"
+	if subState, ok := exampleObj.(SubState); ok {
+		if subState.StatePropertyRef().Group == StateGroupPlayer {
+			defaultGroup = "other"
+		}
 	}
 
 	for propName, propType := range exampleReader.Props() {

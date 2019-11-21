@@ -304,10 +304,8 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
 
-func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
-	return &playerState{
-		playerIndex: index,
-	}
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurableSubState {
+	return new(playerState)
 }
 
 {{if .EnableExampleDynamicComponentValues }}
@@ -447,7 +445,7 @@ func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 	}
 }
 
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 
 	//ComputedProperties are mostly useful when a given state object's
 	//computed property is useful clientside, too.
@@ -487,24 +485,21 @@ import (
 	"errors"
 
 	{{end}}
+	{{if .EnableExampleDeck -}}
 	"github.com/jkomoros/boardgame"
+	{{- end}}
 	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex         boardgame.PlayerIndex
 	{{if .EnableExampleDeck -}}
 	Hand boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `
 	{{- end}}
 	{{if .EnableExampleMoves -}}
 	HasDrawnCardThisTurn bool
 	{{- end}}
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 
 {{if or .EnableExampleEndState .EnableExampleComputedProperties}}
