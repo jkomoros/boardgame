@@ -42,7 +42,6 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex boardgame.PlayerIndex
 	HiddenHand  boardgame.Stack       `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.Stack       `stack:"cards"`
 	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`
@@ -56,10 +55,6 @@ func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 
 func (g *gameState) SetCurrentPhase(phase int) {
 	g.Phase.SetValue(phase)
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 
 func (p *playerState) TurnDone() error {
