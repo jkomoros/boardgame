@@ -155,7 +155,7 @@ type StatePropertyRef struct {
 	//PlayerIndex is the index of the player, if Group is StateGroupPlayer and
 	//the intent of the StatePropertyRef is to select a specific player's state.
 	//0 is always legal.
-	PlayerIndex int
+	PlayerIndex PlayerIndex
 	//DeckIndex is used only when the Group is StateGroupComponentValues or
 	//StateGroupDynamicComponentValues and the intent of the StatePropertyRef is
 	//to select a specific ComponentValues or DynamicComponentValues. 0 is
@@ -165,7 +165,7 @@ type StatePropertyRef struct {
 
 //WithPlayerIndex is a convenience method to return a copy of StatePropertyRef,
 //just with PlayerIndex set to index.
-func (r StatePropertyRef) WithPlayerIndex(index int) StatePropertyRef {
+func (r StatePropertyRef) WithPlayerIndex(index PlayerIndex) StatePropertyRef {
 	cp := r
 	r.PlayerIndex = index
 	return cp
@@ -262,7 +262,7 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 			return errors.New("PlayerIndex was set to a negative value")
 		}
 		if exampleState != nil {
-			if r.PlayerIndex >= len(exampleState.ImmutablePlayerStates()) {
+			if int(r.PlayerIndex) >= len(exampleState.ImmutablePlayerStates()) {
 				return errors.New("PlayerIndex was higher than the number of players")
 			}
 		}
@@ -789,7 +789,7 @@ func (s *state) setStateForSubStates() {
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].SetState(s)
 		s.playerStates[i].SetImmutableState(s)
-		s.playerStates[i].SetStatePropertyRef(playerRef.WithPlayerIndex(i))
+		s.playerStates[i].SetStatePropertyRef(playerRef.WithPlayerIndex(PlayerIndex(i)))
 	}
 
 	for deckName, dynamicComponents := range s.dynamicComponentValues {
