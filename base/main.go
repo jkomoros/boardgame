@@ -51,6 +51,13 @@ func (s *SubState) StatePropertyRef() boardgame.StatePropertyRef {
 	return s.ref
 }
 
+//PlayerIndex is a conveniece warpper that returns
+//StatePropertyRef().PlayerIndex. Only really useful for when the SubState is of
+//type PlayerState.
+func (s *SubState) PlayerIndex() boardgame.PlayerIndex {
+	return s.ref.PlayerIndex
+}
+
 //ComponentValues is an optional convenience struct designed to be embedded
 //anoymously in your component values to implement
 //boardgame.ContainingComponent() and boardgame.SetContainingComponent()
