@@ -20,8 +20,7 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex boardgame.PlayerIndex
-	Color       enum.Val `enum:"color"`
+	Color enum.Val `enum:"color"`
 	//The tokens of the OTHER player that we've captured.
 	CapturedTokens boardgame.Stack `stack:"Tokens"`
 	FinishedTurn   bool
@@ -45,10 +44,6 @@ func (g *gameState) SetCurrentPhase(phase int) {
 
 func (g *gameState) SetCurrentPlayer(player boardgame.PlayerIndex) {
 	g.CurrentPlayer = player
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 
 func (p *playerState) TurnDone() error {

@@ -97,9 +97,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 }
 
 func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
-	return &playerState{
-		playerIndex: index,
-	}
+	return new(playerState)
 }
 
 func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.ConfigurableSubState {
