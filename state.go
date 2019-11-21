@@ -128,8 +128,12 @@ const (
 
 //A StatePropertyRef is a reference to a particular property or item in a
 //Property in a State, in a structured way. Currently used primarily as an input
-//to your GameDelegate's SanitizationPolicy method. The zero-value is suitably
-//generic.
+//to your GameDelegate's SanitizationPolicy method. Another idiomatic use is
+//when you need to fetch a value from one of your SubStates via a string
+//property name, and want to easily test whether that property name is valid. In
+//that case, the idiom is to generate a global variable containing the
+//StatePropertyRef, and call its Validate in GameDelegate.BeginSetUp. The
+//zero-value is suitably generic.
 type StatePropertyRef struct {
 	//Group is which of Game, Player, or DynamicComponentValues this is a
 	//reference to.
