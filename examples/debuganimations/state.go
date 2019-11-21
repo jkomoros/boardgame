@@ -46,10 +46,5 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex boardgame.PlayerIndex
-	Hand        boardgame.Stack `stack:"cards,1"`
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
+	Hand boardgame.Stack `stack:"cards,1"`
 }

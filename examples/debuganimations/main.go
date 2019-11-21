@@ -63,9 +63,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 }
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
-	return &playerState{
-		playerIndex: playerIndex,
-	}
+	return new(playerState)
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
