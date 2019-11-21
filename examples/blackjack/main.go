@@ -21,15 +21,6 @@ import (
 
 const targetScore = 21
 
-//computeHandValue is used in our ComputedPropertyConfig.
-func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
-
-	playerState := state.(*playerState)
-
-	return playerState.HandValue(), nil
-
-}
-
 type gameDelegate struct {
 	base.GameDelegate
 }
