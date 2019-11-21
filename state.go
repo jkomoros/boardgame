@@ -167,7 +167,7 @@ type StatePropertyRef struct {
 //just with PlayerIndex set to index.
 func (r StatePropertyRef) WithPlayerIndex(index PlayerIndex) StatePropertyRef {
 	cp := r
-	r.PlayerIndex = index
+	cp.PlayerIndex = index
 	return cp
 }
 
@@ -175,7 +175,7 @@ func (r StatePropertyRef) WithPlayerIndex(index PlayerIndex) StatePropertyRef {
 //just with DeckIndex set to index.
 func (r StatePropertyRef) WithDeckIndex(index int) StatePropertyRef {
 	cp := r
-	r.DeckIndex = index
+	cp.DeckIndex = index
 	return cp
 }
 

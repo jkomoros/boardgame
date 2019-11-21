@@ -98,6 +98,7 @@ github.com/ugorji/go v1.1.1 h1:gmervu+jDMvXTbcHQ0pd2wee85nEoE0BsVyEuzkfK8w=
 github.com/ugorji/go v1.1.1/go.mod h1:hnLbHMwcvSihnDhEfx2/BzKp2xb0Y+ErdfYcrs9tkJQ=
 github.com/workfit/tester v0.0.0-20180414005449-9a064fa40ac3 h1:KEe6eBZxmJsH1MUJtM10vA/WgprMdFtzpYVaigG/Va8=
 github.com/workfit/tester v0.0.0-20180414005449-9a064fa40ac3/go.mod h1:Gdd0ACeWsA0BgERkpuVrWAjaHN2g+lbKvQCO/oRD9mY=
+github.com/workfit/tester v0.0.0-20190607030106-6b51fb84166e h1:pgoaoZsCVFirgGCjROcvf06n73DGImVbfa2AY9FdCGg=
 github.com/yudai/gojsondiff v0.0.0-20170107030110-7b1b7adf999d h1:yJIizrfO599ot2kQ6Af1enICnwBD3XoxgX3MrMwot2M=
 github.com/yudai/gojsondiff v0.0.0-20170107030110-7b1b7adf999d/go.mod h1:AY32+k2cwILAkW1fbgxQ5mUmMiZFgLIV+FBNExI05xg=
 github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 h1:BHyfKlQyqbsFN5p3IfnEUduWvb9is428/nNb5L3U01M=

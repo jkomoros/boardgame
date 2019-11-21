@@ -9,6 +9,17 @@ import (
 	"github.com/workfit/tester/assert"
 )
 
+func TestPlayerIndex(t *testing.T) {
+	game := testDefaultGame(t, false)
+
+	state := game.CurrentState()
+
+	for i := 0; i < game.NumPlayers(); i++ {
+		pState := state.ImmutablePlayerStates()[i]
+		assert.For(t, i).ThatActual(pState.StatePropertyRef().PlayerIndex).Equals(PlayerIndex(i))
+	}
+}
+
 func TestStatePropertyRefValidate(t *testing.T) {
 	game := testDefaultGame(t, false)
 
