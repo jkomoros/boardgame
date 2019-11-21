@@ -91,7 +91,6 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	return &playerState{
 		TokensToPlaceThisTurn: 1,
 		TokenValue:            value,
-		playerIndex:           playerIndex,
 	}
 }
 

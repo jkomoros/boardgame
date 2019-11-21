@@ -53,15 +53,10 @@ func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
 	UnusedTokens boardgame.Stack `stack:"tokens"`
 	//How many tokens they have left to place this turn.
 	TokensToPlaceThisTurn int
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 
 func (p *playerState) ResetForTurnStart() error {
