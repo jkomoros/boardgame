@@ -12,3 +12,10 @@ func TestRoundRobin(t *testing.T) {
 	_, ok := b.(Interface)
 	assert.For(t).ThatActual(ok).IsTrue()
 }
+
+func TestCurrentPlayer(t *testing.T) {
+	var b interface{}
+	b = &CurrentPlayer{}
+	_, ok := b.(Interface)
+	assert.For(t).ThatActual(ok).IsTrue()
+}
