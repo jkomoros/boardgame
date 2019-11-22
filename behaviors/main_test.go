@@ -34,3 +34,10 @@ func TestPhase(t *testing.T) {
 	_, ok = b.(interfaces.CurrentPhaseSetter)
 	assert.For(t).ThatActual(ok).IsTrue()
 }
+
+func TestColor(t *testing.T) {
+	var b interface{}
+	b = &PlayerColor{}
+	_, ok := b.(Interface)
+	assert.For(t).ThatActual(ok).IsTrue()
+}

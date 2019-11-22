@@ -13,7 +13,7 @@ ConnectBehavior should always be called within the subState's
 FinishStateSetUp, like so:
 
     func (g *gameState) FinishStateSetUp() {
-        g.RoundRobin.ConnectBehavior(g)
+        g.PlayerColor.ConnectBehavior(g)
     }
 
 */
