@@ -1,6 +1,8 @@
 package behaviors
 
 import (
+	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )
@@ -10,12 +12,13 @@ const colorPropertyName = "Color"
 /*
 PlayerColor is a struct that's designed to be anonymously embedded in your
 playerState. It represents the "color" of that player, and its primary use is
-convenience methods it exposes for you to use. It is an error if you use it and
-don't call ConnectBehavior from within your playerState's FinishStateSetUp (see
-the package doc for more).Typically you also embed a ComponentColor in the
-ComponentValues of the components that represent tokens or any other item that
-are tied to a specific player color. PlayerColor expects there to be an enum
-called 'color' that enumerates the valid colors players may be.
+convenience methods it exposes for you to use. It is a Connectable behavior
+which means it's an error if you use it and don't call ConnectBehavior from
+within your playerState's FinishStateSetUp (see the package doc for
+more).Typically you also embed a ComponentColor in the ComponentValues of the
+components that represent tokens or any other item that are tied to a specific
+player color. PlayerColor expects there to be an enum called 'color' that
+enumerates the valid colors players may be.
 */
 type PlayerColor struct {
 	container boardgame.SubState
@@ -26,6 +29,14 @@ type PlayerColor struct {
 //operate.
 func (p *PlayerColor) ConnectBehavior(containgSubState boardgame.SubState) {
 	p.container = containgSubState
+}
+
+//ValidConfiguration returns an error if ConnectBehavior hasn't yet been called.
+func (p *PlayerColor) ValidConfiguration(example boardgame.State) error {
+	if p.container == nil {
+		return errors.New("ConnectBehavior hasn't been called. See the behaviors package doc for more on initializing Connectable behaviors")
+	}
+	return nil
 }
 
 //OwnsToken returns whether this player owns the given token. That is, the given

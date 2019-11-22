@@ -27,11 +27,6 @@ type RoundRobin struct {
 	RRHasStarted    bool
 }
 
-//ConnectBehavior doesn't do anything
-func (r *RoundRobin) ConnectBehavior(containingStruct boardgame.SubState) {
-	//Pass
-}
-
 //RoundRobinLastPlayer returns the value set via SetRoundRobinLastPlayer.
 func (r *RoundRobin) RoundRobinLastPlayer() boardgame.PlayerIndex {
 	return r.RRLastPlayer

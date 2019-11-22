@@ -1,7 +1,6 @@
 package behaviors
 
 import (
-	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )
 
@@ -21,9 +20,4 @@ type PhaseBehavior struct {
 //use moves.StartPhase.
 func (p *PhaseBehavior) SetCurrentPhase(phase int) {
 	p.Phase.SetValue(phase)
-}
-
-//ConnectBehavior doesn't do anything
-func (p *PhaseBehavior) ConnectBehavior(containingStruct boardgame.SubState) {
-	//Pass
 }

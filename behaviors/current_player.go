@@ -21,8 +21,3 @@ type CurrentPlayerBehavior struct {
 func (c *CurrentPlayerBehavior) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 	c.CurrentPlayer = currentPlayer
 }
-
-//ConnectBehavior doesn't do anything
-func (c *CurrentPlayerBehavior) ConnectBehavior(containingStruct boardgame.SubState) {
-	//Pass
-}

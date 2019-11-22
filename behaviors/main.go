@@ -12,22 +12,35 @@ you can add to your game and player states.
 `boardgame-util codegen` will automatically include the state properties of the
 behaviors in the generated PropertyReader.
 
-Behaviors often require access to the struct they're embedded within, so their
-ConnectBehavior should always be called within the subState's
-FinishStateSetUp, like so:
+Behaviors often require access to the struct they're embedded within. These
+types of behaviors are called Connectable, and if they are this type thentheir
+ConnectBehavior should always be called within the subState's FinishStateSetUp,
+like so:
 
     func (g *gameState) FinishStateSetUp() {
         g.PlayerColor.ConnectBehavior(g)
     }
 
+Connectable behaviors that are not connected will error when their
+ValidConfiguration is called, and the main library will notice that while
+NewGameManager is being executed, which will fail with a descriptive error.
 */
 package behaviors
 
 import "github.com/jkomoros/boardgame"
 
-//Interface is the interface that all behaviors must implement
-type Interface interface {
+//Connectable is the interface that behaviors that are Connectable implements.
+//Connectable behaviors are ones that must have their ConnectBehavior called
+//within their SubState cdontainer's FinishStateSetUp method. The
+//ValidConfiguration method will return an error if they weren't connected,
+//which will help diagnose the problem early if you forget.
+type Connectable interface {
 	//ConnectBehavior lets the behavior have a reference to the struct its
 	//embedded in, as some behaviors need access to the broader state.
 	ConnectBehavior(containgSubState boardgame.SubState)
+
+	//Connectable behaviors should implement ValidConfiguration and return an
+	//error if they haven't yet been Connected, which will help the main engine
+	//know to fail NewGameManager, allowing the problem to be fixed more quickly.
+	boardgame.ConfigurationValidator
 }
