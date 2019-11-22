@@ -63,7 +63,7 @@ type DestinationStacker interface {
 }
 
 //CurrentPlayerSetter should be implemented by gameStates that use FinishTurn.
-//behaviors.CurrentPlayer satifies this.
+//behaviors.CurrentPlayerBehavior satifies this.
 type CurrentPlayerSetter interface {
 	SetCurrentPlayer(currentPlayer boardgame.PlayerIndex)
 }

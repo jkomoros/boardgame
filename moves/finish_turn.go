@@ -13,9 +13,9 @@ FinishTurn is designed to be used as a FixUp move that advances the
 CurrentPlayer to the next player when the current player's turn is done. Your
 game's playerStates should implement the PlayerTurnFinisher interface, and your
 gameState should implement CurrentPlayerSetter (which you can implement easily
-by using behaviors.CurrentPlayer). In practice because most of the logic is
-contained on your game and playerStates, you can often use this move directly in
-your game, with no configuration override or embedding, like so:
+by using behaviors.CurrentPlayerBehavior). In practice because most of the logic
+is contained on your game and playerStates, you can often use this move directly
+in your game, with no configuration override or embedding, like so:
 
     auto.MustConfig(
         new(moves.FinishTurn),

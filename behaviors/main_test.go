@@ -19,7 +19,7 @@ func TestRoundRobin(t *testing.T) {
 
 func TestCurrentPlayer(t *testing.T) {
 	var b interface{}
-	b = &CurrentPlayer{}
+	b = &CurrentPlayerBehavior{}
 	_, ok := b.(Interface)
 	assert.For(t).ThatActual(ok).IsTrue()
 	_, ok = b.(interfaces.CurrentPlayerSetter)
