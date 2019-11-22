@@ -5,14 +5,15 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/behaviors"
 )
 
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	CurrentPlayer boardgame.PlayerIndex
-	Die           boardgame.SizedStack `sizedstack:"dice"`
-	TargetScore   int
+	behaviors.CurrentPlayerBehavior
+	Die         boardgame.SizedStack `sizedstack:"dice"`
+	TargetScore int
 }
 
 //boardgame:codegen
@@ -35,10 +36,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	}
 
 	return game, players
-}
-
-func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
-	g.CurrentPlayer = currentPlayer
 }
 
 func (p *playerState) TurnDone() error {

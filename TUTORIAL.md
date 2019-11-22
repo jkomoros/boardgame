@@ -993,11 +993,11 @@ That's not a *particularly* interesting example. Here's the states for blackjack
 type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
-	Phase         enum.Val        `enum:"phase"`
+	behaviors.CurrentPlayerBehavior
+	behaviors.PhaseBehavior
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
-	CurrentPlayer boardgame.PlayerIndex
 }
 
 //boardgame:codegen
@@ -1431,11 +1431,11 @@ Given an enum, you can create an `enum.Val`, which is a container for a value fr
 type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
-	Phase         enum.Val        `enum:"phase"`
+	behaviors.CurrentPlayerBehavior
+	behaviors.PhaseBehavior
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
-	CurrentPlayer boardgame.PlayerIndex
 }
 ```
 
@@ -1537,11 +1537,11 @@ If you're going to support the notion of phases, you'll need to store the curren
 type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
-	Phase         enum.Val        `enum:"phase"`
+	behaviors.CurrentPlayerBehavior
+	behaviors.PhaseBehavior
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
-	CurrentPlayer boardgame.PlayerIndex
 }
 ```
 

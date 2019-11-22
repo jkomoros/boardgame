@@ -5,7 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
-	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/behaviors"
 )
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -23,11 +23,11 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	CurrentPlayer boardgame.PlayerIndex
-	Slots         boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
+	behaviors.CurrentPlayerBehavior
+	Slots boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
 	//We don't actually need this; we mainly do it because the storage manager
 	//tests use tictactoe as an example and need to test a phase transition.
-	Phase enum.Val `enum:"phase"`
+	behaviors.PhaseBehavior
 }
 
 func (g *gameState) tokenValue(row, col int) string {
@@ -44,10 +44,6 @@ func (g *gameState) tokenValueAtIndex(index int) string {
 
 func rowColToIndex(row, col int) int {
 	return row*dim + col
-}
-
-func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
-	g.CurrentPlayer = currentPlayer
 }
 
 //boardgame:codegen

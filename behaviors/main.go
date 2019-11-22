@@ -14,10 +14,10 @@ behaviors in the generated PropertyReader.
 
 Behaviors often require access to the struct they're embedded within, so their
 ConnectBehavior should always be called within the subState's
-ConnectContainingState, like so:
+FinishStateSetUp, like so:
 
     func (g *gameState) FinishStateSetUp() {
-        g.RoundRobin.ConnectBehavior(g)
+        g.PlayerColor.ConnectBehavior(g)
     }
 
 */

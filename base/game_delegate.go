@@ -110,7 +110,8 @@ func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgam
 }
 
 //CurrentPlayerIndex returns gameState.CurrentPlayer, if that is a PlayerIndex
-//property. If not, returns ObserverPlayerIndex.≈
+//property. If not, returns ObserverPlayerIndex. If you use
+//behaviors.CurrentPlayerBehavior it works well with this.
 func (g *GameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
 	index, err := state.ImmutableGameState().Reader().PlayerIndexProp("CurrentPlayer")
 

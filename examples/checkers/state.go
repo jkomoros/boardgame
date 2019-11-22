@@ -5,22 +5,22 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
-	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/behaviors"
 )
 
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	Phase         enum.Val `enum:"phase"`
-	CurrentPlayer boardgame.PlayerIndex
-	Spaces        boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
-	UnusedTokens  boardgame.Stack      `stack:"Tokens"`
+	behaviors.CurrentPlayerBehavior
+	behaviors.PhaseBehavior
+	Spaces       boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
+	UnusedTokens boardgame.Stack      `stack:"Tokens"`
 }
 
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	Color enum.Val `enum:"color"`
+	behaviors.PlayerColor
 	//The tokens of the OTHER player that we've captured.
 	CapturedTokens boardgame.Stack `stack:"Tokens"`
 	FinishedTurn   bool
@@ -36,14 +36,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	}
 
 	return game, players
-}
-
-func (g *gameState) SetCurrentPhase(phase int) {
-	g.Phase.SetValue(phase)
-}
-
-func (g *gameState) SetCurrentPlayer(player boardgame.PlayerIndex) {
-	g.CurrentPlayer = player
 }
 
 func (p *playerState) TurnDone() error {
