@@ -62,13 +62,12 @@ func (t *testingComponent) SetContainingComponent(c Component) {
 }
 
 type testingComponentDynamic struct {
-	state          State
-	immutableState ImmutableState
-	ref            StatePropertyRef
-	c              Component
-	IntVar         int
-	Stack          Stack
-	Enum           enum.Val
+	state  State
+	ref    StatePropertyRef
+	c      Component
+	IntVar int
+	Stack  Stack
+	Enum   enum.Val
 }
 
 const testGameName = "testgame"
@@ -89,24 +88,17 @@ func (t *testingComponentDynamic) ReadSetConfigurer() PropertyReadSetConfigurer 
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testingComponentDynamic) SetState(state State) {
+func (t *testingComponentDynamic) ConnectContainingState(state State, ref StatePropertyRef) {
 	t.state = state
+	t.ref = ref
 }
 
 func (t *testingComponentDynamic) State() State {
 	return t.state
 }
 
-func (t *testingComponentDynamic) SetImmutableState(state ImmutableState) {
-	t.immutableState = state
-}
-
 func (t *testingComponentDynamic) ImmutableState() ImmutableState {
-	return t.immutableState
-}
-
-func (t *testingComponentDynamic) SetStatePropertyRef(ref StatePropertyRef) {
-	t.ref = ref
+	return t.state
 }
 
 func (t *testingComponentDynamic) StatePropertyRef() StatePropertyRef {
@@ -145,7 +137,6 @@ func concreteStates(state ImmutableState) (*testGameState, []*testPlayerState) {
 
 type testGameState struct {
 	state              State
-	immutableState     ImmutableState
 	ref                StatePropertyRef
 	Phase              enum.TreeVal `enum:"phase"`
 	CurrentPlayer      PlayerIndex
@@ -175,24 +166,17 @@ func (t *testGameState) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testGameState) SetState(state State) {
+func (t *testGameState) ConnectContainingState(state State, ref StatePropertyRef) {
 	t.state = state
+	t.ref = ref
 }
 
 func (t *testGameState) State() State {
 	return t.state
 }
 
-func (t *testGameState) SetImmutableState(state ImmutableState) {
-	t.immutableState = state
-}
-
 func (t *testGameState) ImmutableState() ImmutableState {
-	return t.immutableState
-}
-
-func (t *testGameState) SetStatePropertyRef(ref StatePropertyRef) {
-	t.ref = ref
+	return t.state
 }
 
 func (t *testGameState) StatePropertyRef() StatePropertyRef {
@@ -200,9 +184,8 @@ func (t *testGameState) StatePropertyRef() StatePropertyRef {
 }
 
 type testPlayerState struct {
-	state          State
-	immutableState ImmutableState
-	ref            StatePropertyRef
+	state State
+	ref   StatePropertyRef
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
@@ -234,24 +217,17 @@ func (t *testPlayerState) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testPlayerState) SetState(state State) {
+func (t *testPlayerState) ConnectContainingState(state State, ref StatePropertyRef) {
 	t.state = state
+	t.ref = ref
 }
 
 func (t *testPlayerState) State() State {
 	return t.state
 }
 
-func (t *testPlayerState) SetImmutableState(state ImmutableState) {
-	t.immutableState = state
-}
-
 func (t *testPlayerState) ImmutableState() ImmutableState {
-	return t.immutableState
-}
-
-func (t *testPlayerState) SetStatePropertyRef(ref StatePropertyRef) {
-	t.ref = ref
+	return t.state
 }
 
 func (t *testPlayerState) StatePropertyRef() StatePropertyRef {

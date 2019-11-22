@@ -18,9 +18,11 @@ type SubState struct {
 	ref   boardgame.StatePropertyRef
 }
 
-//SetState sets the State to the given state.
-func (s *SubState) SetState(state boardgame.State) {
+//ConnectContainingState sets the State to the given state and the ref to the
+//given ref.
+func (s *SubState) ConnectContainingState(state boardgame.State, ref boardgame.StatePropertyRef) {
 	s.state = state
+	s.ref = ref
 }
 
 //State returns the state set with SetState.
@@ -31,11 +33,6 @@ func (s *SubState) State() boardgame.State {
 //ImmutableState returns the immutablestate set via SetImmutableState.
 func (s *SubState) ImmutableState() boardgame.ImmutableState {
 	return s.state
-}
-
-//SetStatePropertyRef sets the ref to return from StatePropertyRef()
-func (s *SubState) SetStatePropertyRef(ref boardgame.StatePropertyRef) {
-	s.ref = ref
 }
 
 //StatePropertyRef returns the ref passed via SetStatePropertyRef()

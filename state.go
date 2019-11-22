@@ -778,8 +778,7 @@ func (s *state) copy(sanitized bool) (*state, error) {
 //mutable*States once.
 func (s *state) setStateForSubStates() {
 
-	s.gameState.SetState(s)
-	s.gameState.SetStatePropertyRef(StatePropertyRef{
+	s.gameState.ConnectContainingState(s, StatePropertyRef{
 		Group: StateGroupGame,
 	})
 
@@ -788,8 +787,7 @@ func (s *state) setStateForSubStates() {
 	}
 
 	for i := 0; i < len(s.playerStates); i++ {
-		s.playerStates[i].SetState(s)
-		s.playerStates[i].SetStatePropertyRef(playerRef.WithPlayerIndex(PlayerIndex(i)))
+		s.playerStates[i].ConnectContainingState(s, playerRef.WithPlayerIndex(PlayerIndex(i)))
 	}
 
 	for deckName, dynamicComponents := range s.dynamicComponentValues {
@@ -799,8 +797,7 @@ func (s *state) setStateForSubStates() {
 			DeckName: deckName,
 		}
 		for i, component := range dynamicComponents {
-			component.SetState(s)
-			component.SetStatePropertyRef(componentRef.WithDeckIndex(i))
+			component.ConnectContainingState(s, componentRef.WithDeckIndex(i))
 		}
 	}
 
@@ -1032,17 +1029,16 @@ type ReadSetConfigurer interface {
 //from StateGetter and other realted interfaces. Typically you use base.SubState
 //to implement this automatically.
 type StateSetter interface {
-	//SetState sets the State object that should be returned from
-	//ImmutableState() and State(). Although even ImmutableStates will see the
-	//full, mutable State via this method, they should not do anything mutable
-	//with it.
-	SetState(state State)
-	//SetStatePropertyRef will be called when the State object is being
-	//configured, and will let the SubState know what type of SubState (Game,
-	//Player, DynamicComponentValues) it is, and its PlayerIndex or DeckIndex as
-	//appropriate (PropName will be "" since it refers to the whole SubState).
-	//Your SubState should return this value from StatePropertyRef.
-	SetStatePropertyRef(ref StatePropertyRef)
+	//ConnectContainingState is called when the SubState is almost done being
+	//initialized and just needs to be told who its containing State is and what
+	//piece of the containing State this SubState is (i.e if it's a Game,
+	//Player, or DynamicComponentValues, and what its Player or DeckIndex is∑).
+	//The values passed here should be returned from State(), ImmutableState(),
+	//and StatePropertyRef(). Although even ImmutableStates will see the full,
+	//mutable State via this method, they should not do anything mutable with
+	//it. The StatePropertyRef passed will have PropName as "" since it refers
+	//to the entire Reader, not a specific property on it.
+	ConnectContainingState(state State, ref StatePropertyRef)
 }
 
 //ImmutableStateGetter is included in ImmutableSubState, SubState, and
