@@ -86,11 +86,11 @@ type PlayerTurnFinisher interface {
 	ResetForTurnEnd() error
 }
 
-//RoundRobinProperties should be implemented by your GameState if you use any
-//of the RoundRobin moves, including StartRoundRobin. You don't have to do
-//anything we these other than store them to a property in your gameState and
-//then return them via the getters. Generally you simply embed
-//RoundRobinBaseGameState to satisfy this interface for free.
+//RoundRobinProperties should be implemented by your GameState if you use any of
+//the RoundRobin moves, including StartRoundRobin. You don't have to do anything
+//we these other than store them to a property in your gameState and then return
+//them via the getters. Generally you simply embed behaviors.RoundRobin to
+//satisfy this interface for free.
 type RoundRobinProperties interface {
 	//The last successfully applied round robin player
 	RoundRobinLastPlayer() boardgame.PlayerIndex

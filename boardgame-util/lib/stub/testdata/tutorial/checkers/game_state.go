@@ -3,15 +3,15 @@ package checkers
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	//Use RoundRobinGameStateProperties so roundrobin moves can be used without any changes
-	moves.RoundRobinGameStateProperties
+	//Use behaviors.RoundRobin so roundrobin moves can be used without any changes
+	behaviors.RoundRobin
 	//base.GameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
 	//base.GameDelegate will automatically return this from PhaseEnum, CurrentPhase.

@@ -10,6 +10,7 @@ package examplepkg
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
@@ -205,7 +206,7 @@ type myStruct struct {
 
 //boardgame:codegen
 type roundRobinStruct struct {
-	moves.RoundRobinGameStateProperties
+	behaviors.RoundRobin
 	base.SubState
 	MyBool bool
 }

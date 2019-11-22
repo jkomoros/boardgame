@@ -3,6 +3,7 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/storage/memory"
@@ -37,7 +38,7 @@ var phaseEnum = enums.MustAddTree("Phase", map[int]string{
 
 //boardgame:codegen
 type gameState struct {
-	RoundRobinGameStateProperties
+	behaviors.RoundRobin
 	base.SubState
 	Phase         enum.Val `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex

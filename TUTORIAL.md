@@ -992,7 +992,7 @@ That's not a *particularly* interesting example. Here's the states for blackjack
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	moves.RoundRobinGameStateProperties
+	behaviors.RoundRobin
 	Phase         enum.Val        `enum:"phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
@@ -1429,7 +1429,8 @@ Given an enum, you can create an `enum.Val`, which is a container for a value fr
 ```
 //boardgame:codegen
 type gameState struct {
-	moveinterfaces.RoundRobinBaseGameState
+	base.SubState
+	behaviors.RoundRobin
 	Phase         enum.Val        `enum:"phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
@@ -1535,7 +1536,7 @@ If you're going to support the notion of phases, you'll need to store the curren
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	moves.RoundRobinGameStateProperties
+	behaviors.RoundRobin
 	Phase         enum.Val        `enum:"phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
@@ -1684,7 +1685,7 @@ Another more complex type of move is `moves.RoundRobin`. RoundRobin moves are mo
 
 A RoundRobin move defines some end-condition (by default the move has gone around one complete cycle and applied for each player) and an action to apply when each Move is applied. It stores some bookkeeping information in your gameState, and has its DefaultsForState handle advancing to the next target player each time.
 
-RoundRobins are pretty complex under the hood because they can model a number of interesting exit criterion. To use a round robin your gameState must implement `moveinterfaces.RoundRobinProperties`. Alternatively you can anonymously embed `moveinterfaces.RoundRobinBaseGameState` instead of `base.SubState` to implement it for free. 
+RoundRobins are pretty complex under the hood because they can model a number of interesting exit criterion. To use a round robin your gameState must implement `moves/interfaces.RoundRobinProperties`. Typically you just embed `behaviors.RoundRobin` to automatically cover those.
 
 RoundRobin moves are very powerful and general, and the `moves.RoundRobin` documentation goes into
 more depth on how to configure and use them. In practice you almost always use two types of moves

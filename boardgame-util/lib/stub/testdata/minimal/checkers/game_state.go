@@ -3,14 +3,14 @@ package checkers
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
-	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/behaviors"
 )
 
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	//Use RoundRobinGameStateProperties so roundrobin moves can be used without any changes
-	moves.RoundRobinGameStateProperties
+	//Use behaviors.RoundRobin so roundrobin moves can be used without any changes
+	behaviors.RoundRobin
 }
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
