@@ -5,16 +5,17 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
 )
 
 //boardgame:codegen
 type gameState struct {
 	base.SubState
-	Phase         enum.Val `enum:"phase"`
-	CurrentPlayer boardgame.PlayerIndex
-	Spaces        boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
-	UnusedTokens  boardgame.Stack      `stack:"Tokens"`
+	behaviors.CurrentPlayerBehavior
+	Phase        enum.Val             `enum:"phase"`
+	Spaces       boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
+	UnusedTokens boardgame.Stack      `stack:"Tokens"`
 }
 
 //boardgame:codegen
@@ -40,10 +41,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 func (g *gameState) SetCurrentPhase(phase int) {
 	g.Phase.SetValue(phase)
-}
-
-func (g *gameState) SetCurrentPlayer(player boardgame.PlayerIndex) {
-	g.CurrentPlayer = player
 }
 
 func (p *playerState) TurnDone() error {

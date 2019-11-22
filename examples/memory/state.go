@@ -5,14 +5,15 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/behaviors"
 )
 
 //boardgame:codegen
 type gameState struct {
 	base.SubState
+	behaviors.CurrentPlayerBehavior
 	CardSet        string
 	NumCards       int
-	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    boardgame.SizedStack  `sizedstack:"cards,40" sanitize:"order"`
 	VisibleCards   boardgame.SizedStack  `sizedstack:"cards,40"`
 	Cards          boardgame.MergedStack `overlap:"VisibleCards,HiddenCards"`
@@ -61,10 +62,6 @@ func (p *playerState) ResetForTurnStart() error {
 
 func (p *playerState) ResetForTurnEnd() error {
 	return nil
-}
-
-func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
-	g.CurrentPlayer = currentPlayer
 }
 
 func (g *gameState) CurrentPlayerHasCardsToReveal() bool {

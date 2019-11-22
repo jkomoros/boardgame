@@ -112,8 +112,7 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return &gameState{
-		CurrentPlayer: 0,
-		TargetScore:   defaultTargetScore,
+		TargetScore: defaultTargetScore,
 	}
 }
 
