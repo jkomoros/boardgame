@@ -4,7 +4,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
-	"github.com/jkomoros/boardgame/enum"
 )
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -23,7 +22,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 type gameState struct {
 	base.SubState
 	behaviors.CurrentPlayerBehavior
-	Phase               enum.Val              `enum:"phase"`
+	behaviors.PhaseBehavior
 	DiscardStack        boardgame.Stack       `stack:"cards"`
 	DrawStack           boardgame.Stack       `stack:"cards" sanitize:"order"`
 	FirstShortStack     boardgame.Stack       `stack:"cards" sanitize:"order"`

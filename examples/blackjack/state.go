@@ -7,7 +7,6 @@ import (
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/components/playingcards"
-	"github.com/jkomoros/boardgame/enum"
 )
 
 //boardgame:codegen
@@ -33,7 +32,7 @@ type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
 	behaviors.CurrentPlayerBehavior
-	Phase        enum.Val        `enum:"phase"`
+	behaviors.PhaseBehavior
 	DiscardStack boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack    boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards  boardgame.Stack `stack:"cards"`
@@ -47,10 +46,6 @@ type playerState struct {
 	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
-}
-
-func (g *gameState) SetCurrentPhase(phase int) {
-	g.Phase.SetValue(phase)
 }
 
 func (p *playerState) TurnDone() error {

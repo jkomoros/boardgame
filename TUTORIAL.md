@@ -994,7 +994,7 @@ type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
 	behaviors.CurrentPlayerBehavior
-	Phase         enum.Val        `enum:"phase"`
+	behaviors.PhaseBehavior
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
@@ -1432,7 +1432,7 @@ type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
 	behaviors.CurrentPlayerBehavior
-	Phase         enum.Val        `enum:"phase"`
+	behaviors.PhaseBehavior
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`
@@ -1537,8 +1537,8 @@ If you're going to support the notion of phases, you'll need to store the curren
 type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
-	behaviors.CurrentPlayer
-	Phase         enum.Val        `enum:"phase"`
+	behaviors.CurrentPlayerBehavior
+	behaviors.PhaseBehavior
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.Stack `stack:"cards"`

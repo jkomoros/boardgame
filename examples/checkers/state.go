@@ -13,7 +13,7 @@ import (
 type gameState struct {
 	base.SubState
 	behaviors.CurrentPlayerBehavior
-	Phase        enum.Val             `enum:"phase"`
+	behaviors.PhaseBehavior
 	Spaces       boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
 	UnusedTokens boardgame.Stack      `stack:"Tokens"`
 }
@@ -37,10 +37,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	}
 
 	return game, players
-}
-
-func (g *gameState) SetCurrentPhase(phase int) {
-	g.Phase.SetValue(phase)
 }
 
 func (p *playerState) TurnDone() error {

@@ -6,7 +6,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
-	"github.com/jkomoros/boardgame/enum"
 )
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -28,7 +27,7 @@ type gameState struct {
 	Slots boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
 	//We don't actually need this; we mainly do it because the storage manager
 	//tests use tictactoe as an example and need to test a phase transition.
-	Phase enum.Val `enum:"phase"`
+	behaviors.PhaseBehavior
 }
 
 func (g *gameState) tokenValue(row, col int) string {
