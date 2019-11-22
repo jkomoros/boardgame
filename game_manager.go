@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/sirupsen/logrus"
 )
 
 //GameManager defines the logic and machinery for a given game type. It is the
@@ -236,6 +236,10 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		return nil, errors.New("Couldn't get exampleState: " + err.Error())
 	}
 
+	if err := verifySubStatesConnected(exampleState); err != nil {
+		return nil, errors.New("The SubStates didn't return the state that was passed. If you're using a behavior, remember to explicitly call base.SubState.ConnectContainingState in your overriding ConnectContainingState: " + err.Error())
+	}
+
 	for _, moveType := range result.moves {
 		testMove := moveType.NewMove(exampleState)
 
@@ -267,6 +271,25 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	result.initialized = true
 
 	return result, nil
+}
+
+func verifySubStatesConnected(exampleState State) error {
+	if exampleState.GameState().State() != exampleState {
+		return errors.New("GameState returned different state")
+	}
+	for i, pState := range exampleState.PlayerStates() {
+		if pState.State() != exampleState {
+			return errors.New("PlayerState " + strconv.Itoa(i) + " returned different state")
+		}
+	}
+	for deckName, values := range exampleState.DynamicComponentValues() {
+		for i, value := range values {
+			if value.State() != exampleState {
+				return errors.New("DynamicComponentValues " + deckName + " " + strconv.Itoa(i) + " returned different state")
+			}
+		}
+	}
+	return nil
 }
 
 //Variants returns the VariantConfig for this game type. A simple wrapper
