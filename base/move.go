@@ -104,3 +104,10 @@ func (m *Move) HelpText() string {
 func (m *Move) IsFixUp() bool {
 	return false
 }
+
+//ValidConfiguration always returns nil since the base move doesn't require any
+//configuration. Moves in the moves package typcially require more configuration
+//and will override this.
+func (m *Move) ValidConfiguration(exampleState boardgame.State) error {
+	return nil
+}
