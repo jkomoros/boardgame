@@ -779,7 +779,6 @@ func (s *state) copy(sanitized bool) (*state, error) {
 func (s *state) setStateForSubStates() {
 
 	s.gameState.SetState(s)
-	s.gameState.SetImmutableState(s)
 	s.gameState.SetStatePropertyRef(StatePropertyRef{
 		Group: StateGroupGame,
 	})
@@ -790,7 +789,6 @@ func (s *state) setStateForSubStates() {
 
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].SetState(s)
-		s.playerStates[i].SetImmutableState(s)
 		s.playerStates[i].SetStatePropertyRef(playerRef.WithPlayerIndex(PlayerIndex(i)))
 	}
 
@@ -802,7 +800,6 @@ func (s *state) setStateForSubStates() {
 		}
 		for i, component := range dynamicComponents {
 			component.SetState(s)
-			component.SetImmutableState(s)
 			component.SetStatePropertyRef(componentRef.WithDeckIndex(i))
 		}
 	}
@@ -1030,25 +1027,32 @@ type ReadSetConfigurer interface {
 	ReadSetConfigurer() PropertyReadSetConfigurer
 }
 
-//ImmutableStateSetter is included in ImmutableSubState, SubState, and
-//ConfigureableSubState as the way to keep track of which ImmutableState a
-//given SubState is part of. See also StateSetter, which adds getters/setters
-//for mutable States. Typically you use base.SubState to implement this
-//automatically.
-type ImmutableStateSetter interface {
-	//SetImmutableState is called to give the SubState object a pointer back
-	//to the State that contains it. You can implement it yourself, or
-	//anonymously embed base.SubState to get it for free.
-	SetImmutableState(state ImmutableState)
-	//ImmutableState() returns the state that was set via SetState().
-	ImmutableState() ImmutableState
-
+//StateSetter is an interface that is used in SubState and related interfaces.
+//It is the way that the engine will tell the SubState what values to return
+//from StateGetter and other realted interfaces. Typically you use base.SubState
+//to implement this automatically.
+type StateSetter interface {
+	//SetState sets the State object that should be returned from
+	//ImmutableState() and State(). Although even ImmutableStates will see the
+	//full, mutable State via this method, they should not do anything mutable
+	//with it.
+	SetState(state State)
 	//SetStatePropertyRef will be called when the State object is being
 	//configured, and will let the SubState know what type of SubState (Game,
 	//Player, DynamicComponentValues) it is, and its PlayerIndex or DeckIndex as
 	//appropriate (PropName will be "" since it refers to the whole SubState).
 	//Your SubState should return this value from StatePropertyRef.
 	SetStatePropertyRef(ref StatePropertyRef)
+}
+
+//ImmutableStateGetter is included in ImmutableSubState, SubState, and
+//ConfigureableSubState as the way to keep track of which ImmutableState a given
+//SubState is part of. See also StateSetter, which adds getters for mutable
+//States. Typically you use base.SubState to implement this automatically.
+type ImmutableStateGetter interface {
+	//ImmutableState() returns the state that was set via SetState(), but as an
+	//ImmutableState so it has a subset of functionality directly visible.
+	ImmutableState() ImmutableState
 
 	//StatePropertyRef should return the value that was set via
 	//SetStatePropetyRef. This is a good way for the substate to understand what
@@ -1056,13 +1060,13 @@ type ImmutableStateSetter interface {
 	StatePropertyRef() StatePropertyRef
 }
 
-//StateSetter is included in SubState and ConfigureableSubState as the way to
+//StateGetter is included in SubState and ConfigureableSubState as the way to
 //keep track of which State a given SubState is part of. See also
-//ImmutableStateSetter, which adds getters/setters for ImmutableStates.
-//Typically you use base.SubState to implement this automatically.
-type StateSetter interface {
-	ImmutableStateSetter
-	SetState(state State)
+//ImmutableStateGetter, which adds getters for ImmutableStates. Typically you
+//use base.SubState to implement this automatically.
+type StateGetter interface {
+	ImmutableStateGetter
+	//State should return the state that was set via SetState.
 	State() State
 }
 
@@ -1071,7 +1075,8 @@ type StateSetter interface {
 //SubState, but minus any mutator methods. See ConfigurableSubState for more
 //on the SubState type hierarchy.
 type ImmutableSubState interface {
-	ImmutableStateSetter
+	StateSetter
+	ImmutableStateGetter
 	Reader
 }
 
@@ -1083,6 +1088,7 @@ type ImmutableSubState interface {
 //on the SubState type hierarchy.
 type SubState interface {
 	StateSetter
+	StateGetter
 	ReadSetter
 }
 
@@ -1119,10 +1125,6 @@ reason, the interfaces are split into a series of layers, building up from
 only Reader methods up to adding Set proeprties, and then terminating by
 layering on Configure methods.
 
-ConfigurablePlayerSubState is an interface that extends ConfigurableSubState
-with one extra method, PlayerIndex(). There are also player-state versions for
-SubState and ImmutableSubState.
-
 Typically your game's sub-states satisfy this interface by embedding
 base.SubState, and then using `boardgame-util codegen` to generate the
 underlying code for the PropertyReadSetConfigurer for your object type.
@@ -1130,10 +1132,15 @@ underlying code for the PropertyReadSetConfigurer for your object type.
 */
 type ConfigurableSubState interface {
 	//Every SubState should be able to have its containing State set and read
-	//back, so each sub-state knows how to reach up and over into other parts
-	//of the over-arching state. You can implement this interface by emedding
-	//base.SubState in your struct.
+	//back, so each sub-state knows how to reach up and over into other parts of
+	//the over-arching state. You can implement this interface by emedding
+	//base.SubState in your struct. This is how the values returned in
+	//StateGetter methods are installed on your struct.
 	StateSetter
+
+	//This is how the values set via the StateSetter methods are retrieved from
+	//your struct.
+	StateGetter
 
 	//ReadSetConfigurer defines the method to retrieve the
 	//PropertyReadSetConfigurer for this object type. Typically this getter--

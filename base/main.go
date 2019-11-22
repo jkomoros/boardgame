@@ -14,11 +14,8 @@ import (
 //SubState is a simple struct designed to be anonymously embedded in the
 //boardgame.SubStates you create, so you don't have to implement SetState yourself.
 type SubState struct {
-	//Ugh it's really annoying to have to hold onto the same state in two
-	//references...
-	immutableState boardgame.ImmutableState
-	state          boardgame.State
-	ref            boardgame.StatePropertyRef
+	state boardgame.State
+	ref   boardgame.StatePropertyRef
 }
 
 //SetState sets the State to the given state.
@@ -31,14 +28,9 @@ func (s *SubState) State() boardgame.State {
 	return s.state
 }
 
-//SetImmutableState sets the ImmutableState to return.
-func (s *SubState) SetImmutableState(state boardgame.ImmutableState) {
-	s.immutableState = state
-}
-
 //ImmutableState returns the immutablestate set via SetImmutableState.
 func (s *SubState) ImmutableState() boardgame.ImmutableState {
-	return s.immutableState
+	return s.state
 }
 
 //SetStatePropertyRef sets the ref to return from StatePropertyRef()
