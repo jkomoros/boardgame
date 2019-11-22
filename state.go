@@ -252,10 +252,6 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 		return errors.New("group is set to an invalid value, must be one of Game, Player, DynamicComponentValues")
 	}
 
-	if r.PropName == "" {
-		return errors.New("propName is not set")
-	}
-
 	//Check PlayerIndex is valid
 	if r.Group == StateGroupPlayer {
 		if r.PlayerIndex < 0 {
@@ -301,6 +297,11 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 	reader, err := r.Reader(exampleState)
 	if err != nil {
 		return errors.New("The statepropertyref did not refer to a legitimate property: " + err.Error())
+	}
+
+	//This is legal, for example for StatePropertyRefs that are set on SubStates.
+	if r.PropName == "" {
+		return nil
 	}
 
 	if _, ok := reader.Props()[r.PropName]; !ok {

@@ -35,7 +35,7 @@ func TestStatePropertyRefValidate(t *testing.T) {
 			StatePropertyRef{
 				Group: StateGroupGame,
 			},
-			true,
+			false,
 		},
 		{
 			"Basic existing game property",
