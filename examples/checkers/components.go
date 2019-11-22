@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/enum/graph"
 )
@@ -24,7 +25,7 @@ const (
 //boardgame:codegen reader
 type token struct {
 	base.ComponentValues
-	Color enum.Val
+	behaviors.ComponentColor
 }
 
 //boardgame:codegen
@@ -57,15 +58,15 @@ func newTokenDeck() *boardgame.Deck {
 	deck := boardgame.NewDeck()
 
 	for i := 0; i < numTokens; i++ {
-		deck.AddComponent(&token{
-			Color: colorEnum.MustNewVal(colorBlack),
-		})
+		t := &token{}
+		t.Color = colorEnum.MustNewVal(colorBlack)
+		deck.AddComponent(t)
 	}
 
 	for i := 0; i < numTokens; i++ {
-		deck.AddComponent(&token{
-			Color: colorEnum.MustNewVal(colorRed),
-		})
+		t := &token{}
+		t.Color = colorEnum.MustNewVal(colorRed)
+		deck.AddComponent(t)
 	}
 
 	return deck

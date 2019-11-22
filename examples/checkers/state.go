@@ -6,7 +6,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
-	"github.com/jkomoros/boardgame/enum"
 )
 
 //boardgame:codegen
@@ -21,7 +20,7 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	Color enum.Val `enum:"color"`
+	behaviors.PlayerColor
 	//The tokens of the OTHER player that we've captured.
 	CapturedTokens boardgame.Stack `stack:"Tokens"`
 	FinishedTurn   bool
