@@ -32,11 +32,11 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 type gameState struct {
 	base.SubState
 	behaviors.RoundRobin
-	Phase         enum.Val        `enum:"phase"`
-	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
-	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
-	UnusedCards   boardgame.Stack `stack:"cards"`
-	CurrentPlayer boardgame.PlayerIndex
+	behaviors.CurrentPlayerBehavior
+	Phase        enum.Val        `enum:"phase"`
+	DiscardStack boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack    boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards  boardgame.Stack `stack:"cards"`
 }
 
 //boardgame:codegen
@@ -47,10 +47,6 @@ type playerState struct {
 	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
-}
-
-func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
-	g.CurrentPlayer = currentPlayer
 }
 
 func (g *gameState) SetCurrentPhase(phase int) {
