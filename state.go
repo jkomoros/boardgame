@@ -154,7 +154,8 @@ type StatePropertyRef struct {
 
 	//PlayerIndex is the index of the player, if Group is StateGroupPlayer and
 	//the intent of the StatePropertyRef is to select a specific player's state.
-	//0 is always legal.
+	//0 is always legal. Note that AdminPlayerIndex and ObserverPlayerIndex are
+	//never valid.
 	PlayerIndex PlayerIndex
 	//DeckIndex is used only when the Group is StateGroupComponentValues or
 	//StateGroupDynamicComponentValues and the intent of the StatePropertyRef is
