@@ -1030,11 +1030,11 @@ type ReadSetConfigurer interface {
 	ReadSetConfigurer() PropertyReadSetConfigurer
 }
 
-//StateSetter is an interface that is used in SubState and related interfaces.
-//It is the way that the engine will tell the SubState what values to return
-//from StateGetter and other realted interfaces. Typically you use base.SubState
-//to implement this automatically.
-type StateSetter interface {
+//ContainingStateConnector is an interface that is used in SubState and related
+//interfaces. It is the way that the engine will tell the SubState what values
+//to return from StateGetter and other realted interfaces. Typically you use
+//base.SubState to implement this automatically.
+type ContainingStateConnector interface {
 	//ConnectContainingState is called when the SubState is almost done being
 	//initialized and just needs to be told who its containing State is and what
 	//piece of the containing State this SubState is (i.e if it's a Game,
@@ -1083,7 +1083,7 @@ type StateGetter interface {
 //SubState, but minus any mutator methods. See ConfigurableSubState for more
 //on the SubState type hierarchy.
 type ImmutableSubState interface {
-	StateSetter
+	ContainingStateConnector
 	ImmutableStateGetter
 	Reader
 }
@@ -1095,7 +1095,7 @@ type ImmutableSubState interface {
 //mutate them, for example in move.Apply(). See ConfigurableSubState for more
 //on the SubState type hierarchy.
 type SubState interface {
-	StateSetter
+	ContainingStateConnector
 	StateGetter
 	ReadSetter
 }
@@ -1144,7 +1144,7 @@ type ConfigurableSubState interface {
 	//the over-arching state. You can implement this interface by emedding
 	//base.SubState in your struct. This is how the values returned in
 	//StateGetter methods are installed on your struct.
-	StateSetter
+	ContainingStateConnector
 
 	//This is how the values set via the StateSetter methods are retrieved from
 	//your struct.
