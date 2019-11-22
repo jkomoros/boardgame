@@ -128,6 +128,7 @@ type RoundRobinActioner interface {
 
 //CurrentPhaseSetter should be implemented by you gameState to set the
 //CurrentPhase. Must be implemented if you use the StartPhase move type.
+//behaviors.PhaseBehavior implements this.
 type CurrentPhaseSetter interface {
 	SetCurrentPhase(int)
 }

@@ -25,3 +25,12 @@ func TestCurrentPlayer(t *testing.T) {
 	_, ok = b.(interfaces.CurrentPlayerSetter)
 	assert.For(t).ThatActual(ok).IsTrue()
 }
+
+func TestPhase(t *testing.T) {
+	var b interface{}
+	b = &PhaseBehavior{}
+	_, ok := b.(Interface)
+	assert.For(t).ThatActual(ok).IsTrue()
+	_, ok = b.(interfaces.CurrentPhaseSetter)
+	assert.For(t).ThatActual(ok).IsTrue()
+}
