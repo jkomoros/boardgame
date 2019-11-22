@@ -1,12 +1,16 @@
 /*
 
-Package behaviors defines a handful of convenient behaviors that can be embedded
-into your SubState (e.g. gameState and playerState) structs.
+Package behaviors defines a handful of convenient behaviors that can be
+anonymously embedded into your SubState (e.g. gameState and playerState)
+structs.
 
 A behavior is a combination of persistable properties, as well as methods that
 mutate those properties. They encapsulate commonly required behavior, like
 setting current player or round robin properties. Think of them like lego bricks
 you can add to your game and player states.
+
+`boardgame-util codegen` will automatically include the state properties of the
+behaviors in the generated PropertyReader.
 
 Behaviors often require access to the struct they're embedded within, so their
 ConnectBehavior should always be called within the subState's
