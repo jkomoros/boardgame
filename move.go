@@ -257,15 +257,11 @@ type Move interface {
 	//the top-level struct. This should be returned from TopLevelStruct.
 	SetTopLevelStruct(m Move)
 
-	//ValidConfiguration will be checked when the NewGameManager is being set
-	//up, and if it returns an error the manager will fail to be created. Some
-	//Moves, especially sub-classes of moves in the moves package, require set
-	//up that can only be verified at run time (for example, verifying that
-	//the embedder implements a certain inteface). This is a useful way to
-	//detect those misconfigurations at the earliest moment. In most cases you
-	//never need to implement this yourself; moves in the moves package that
-	//need it will implement it.
-	ValidConfiguration(exampleState State) error
+	//Moves alos have a ValidConfiguration, because moves, especially
+	//sub-classes of the moves package, require set-up that can only be verified
+	//at run time (for example, verifying that the embedder implements a certain
+	//inteface)
+	ConfigurationValidator
 
 	//Moves, like ConfigurableSubStates, must only have all of their
 	//important, persistable properties available to be inspected and modified
@@ -274,6 +270,24 @@ type Move interface {
 	//Typically you generate this automatically for your moves with `boargame-
 	//util codegen`.
 	ReadSetConfigurer
+}
+
+//ConfigurationValidator is an interface that certain types must implement.
+//These will be called typically during NewGameManager set up, and are an
+//opportunity for the structs to report configuration errors that can only be
+//discovered at runtime. If an error is reported then NewGameManager will fail,
+//which means that the misconfiguration can be detected early almost
+//guaranteeing it will be detected by the game package author. For example, many
+//moves in the moves package must be embedded in structs that contain particular
+//methods in the embedding struct, and that can only be validated at runtime.
+//Typically you don't need to implement this yourself; the types of structs that
+//have it will have a stub implementation in the base package, and the primary
+//beneficiaries of this are more complex embeddable library structs like those
+//found in the moves package.
+type ConfigurationValidator interface {
+	//ValidConfiguration will be checked when the NewGameManager is being set
+	//up, and if it returns an error the manager will fail to be created.
+	ValidConfiguration(exampleState State) error
 }
 
 //StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
