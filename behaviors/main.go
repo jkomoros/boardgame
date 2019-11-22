@@ -12,8 +12,8 @@ Behaviors often require access to the struct they're embedded within, so their
 ConnectBehavior should always be called within the subState's
 ConnectContainingState, like so:
 
-    func (g *gameState) ConnectContainingState(state boardgame.State, ref boardgame.StatePropertyRef, containingStruct boardgame.SubState) {
-        g.RoundRobinBehavior.ConnectBehavior(containingStruct)
+    func (g *gameState) ConnectContainingState(state boardgame.State, ref boardgame.StatePropertyRef) {
+        g.RoundRobin.ConnectBehavior(g)
 
         //If you didn't have any embedded behaviors, your gameState would use ConnectContainingState
         //on SubState directly. But because we need to override that to connect up RoundRobinBehavior,
@@ -28,5 +28,7 @@ import "github.com/jkomoros/boardgame"
 
 //Interface is the interface that all behaviors must implement
 type Interface interface {
+	//ConnectBehavior lets the behavior have a reference to the struct its
+	//embedded in, as some behaviors need access to the broader state.
 	ConnectBehavior(containgSubState boardgame.SubState)
 }
