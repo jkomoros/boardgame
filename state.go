@@ -776,11 +776,13 @@ func (s *state) copy(sanitized bool) (*state, error) {
 //finish should be called when the state has all of its sub-states set. It
 //goes through each subState on s and calls SetState on it, and also sets the
 //mutable*States once.
-func (s *state) setStateForSubStates() {
+func (s *state) setStateForSubStates() error {
 
 	s.gameState.ConnectContainingState(s, StatePropertyRef{
 		Group: StateGroupGame,
 	})
+
+	s.GameState().FinishStateSetUp()
 
 	playerRef := StatePropertyRef{
 		Group: StateGroupPlayer,
@@ -788,6 +790,7 @@ func (s *state) setStateForSubStates() {
 
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].ConnectContainingState(s, playerRef.WithPlayerIndex(PlayerIndex(i)))
+		s.playerStates[i].FinishStateSetUp()
 	}
 
 	for deckName, dynamicComponents := range s.dynamicComponentValues {
@@ -798,6 +801,7 @@ func (s *state) setStateForSubStates() {
 		}
 		for i, component := range dynamicComponents {
 			component.ConnectContainingState(s, componentRef.WithDeckIndex(i))
+			component.FinishStateSetUp()
 		}
 	}
 
@@ -819,6 +823,8 @@ func (s *state) setStateForSubStates() {
 	}
 
 	s.mutableDynamicComponentValues = dynamicComponentValues
+
+	return nil
 }
 
 //validateBeforeSave insures that for all readers, the playerIndexes are
@@ -1039,6 +1045,12 @@ type StateSetter interface {
 	//it. The StatePropertyRef passed will have PropName as "" since it refers
 	//to the entire Reader, not a specific property on it.
 	ConnectContainingState(state State, ref StatePropertyRef)
+
+	//FinishStateSetUp is called once the SubState is fully initialized and
+	//ConnectContainingStack has been called. The game engine doesn't require
+	//anything to happen here, but this is where behaviors are typically
+	//connected.
+	FinishStateSetUp()
 }
 
 //ImmutableStateGetter is included in ImmutableSubState, SubState, and

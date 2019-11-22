@@ -93,6 +93,10 @@ func (t *testingComponentDynamic) ConnectContainingState(state State, ref StateP
 	t.ref = ref
 }
 
+func (t *testingComponentDynamic) FinishStateSetUp() {
+
+}
+
 func (t *testingComponentDynamic) State() State {
 	return t.state
 }
@@ -171,6 +175,10 @@ func (t *testGameState) ConnectContainingState(state State, ref StatePropertyRef
 	t.ref = ref
 }
 
+func (t *testGameState) FinishStateSetUp() {
+
+}
+
 func (t *testGameState) State() State {
 	return t.state
 }
@@ -220,6 +228,10 @@ func (t *testPlayerState) ReadSetConfigurer() PropertyReadSetConfigurer {
 func (t *testPlayerState) ConnectContainingState(state State, ref StatePropertyRef) {
 	t.state = state
 	t.ref = ref
+}
+
+func (t *testPlayerState) FinishStateSetUp() {
+
 }
 
 func (t *testPlayerState) State() State {

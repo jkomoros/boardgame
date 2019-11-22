@@ -47,6 +47,12 @@ func (s *SubState) PlayerIndex() boardgame.PlayerIndex {
 	return s.ref.PlayerIndex
 }
 
+//FinishStateSetUp doesn't do anything. Typically if you embed a Connectable behavior, you
+//override this and call ConnectBehavior() within it.
+func (s *SubState) FinishStateSetUp() {
+	//pass
+}
+
 //ComponentValues is an optional convenience struct designed to be embedded
 //anoymously in your component values to implement
 //boardgame.ContainingComponent() and boardgame.SetContainingComponent()

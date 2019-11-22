@@ -900,7 +900,9 @@ func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 
 	stateCopy.dynamicComponentValues = dynamic
 
-	stateCopy.setStateForSubStates()
+	if err := stateCopy.setStateForSubStates(); err != nil {
+		return nil, errors.New("error connecting sub states: " + err.Error())
+	}
 
 	return stateCopy, nil
 }
