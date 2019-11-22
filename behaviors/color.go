@@ -28,6 +28,37 @@ func (p *PlayerColor) ConnectBehavior(containgSubState boardgame.SubState) {
 	p.container = containgSubState
 }
 
+//OwnsToken returns whether this player owns the given token. That is, the given
+//component has a property named Color that is the same enum as our Color
+//property and they are set to the same value.
+func (p *PlayerColor) OwnsToken(c boardgame.Component) bool {
+	result, _ := p.ownsTokenImpl(c)
+	return result
+}
+
+//ownsTokenImpl is the main implementation for OwnsToken. It differs in that it
+//also returns whether it is possible for the given player to even conceivably
+//own the given component (i.e. there is a prop named Color that is of the same
+//enum type as ours). If couldOwn is false, then you can safely skip the rest of
+//the components in this deck because it's not possible for any to be owned.
+func (p *PlayerColor) ownsTokenImpl(c boardgame.Component) (owns, couldOwn bool) {
+	color, err := c.Values().Reader().ImmutableEnumProp(colorPropertyName)
+	if err != nil {
+		//This means that the Values does not hav a property of the right
+		//type, so none of them will in this deck, so bail now.
+		return false, false
+	}
+	if color.Enum() != p.Color.Enum() {
+		//If the enums are different for the color property then not only are we
+		//not owned, but no other ones in this deck can be owned.
+		return false, false
+	}
+	if color.Equals(p.Color) {
+		return true, true
+	}
+	return false, true
+}
+
 //TokenSpaceIndex returns the index of the token that it is within its current
 //container. Typically the position of a token within a board has semantic
 //significance, for example in chutes and ladders which other spaces are
@@ -77,14 +108,14 @@ func (p *PlayerColor) TokenFromDeck(deck *boardgame.Deck) boardgame.ComponentIns
 	}
 
 	for _, c := range deck.Components() {
-		color, err := c.Values().Reader().ImmutableEnumProp(colorPropertyName)
-		if err != nil {
-			//This means that the Values does not hav a property of the right
-			//type, so none of them will in this deck, so bail now.
+		//The token is ours if we own it.
+		owns, couldOwn := p.ownsTokenImpl(c)
+		if !couldOwn {
+			//This token is not owned, an it's also not possible for any other
+			//component in this deck to own it so we can bail early
 			return nil
 		}
-		if color.Equals(p.Color) {
-			//Found it!
+		if owns {
 			return c.Instance(p.container.State())
 		}
 	}
