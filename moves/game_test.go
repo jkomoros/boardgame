@@ -77,6 +77,11 @@ func (g *gameState) SetCurrentPhase(phase int) {
 	g.Phase.SetValue(phase)
 }
 
+func (p *playerState) FinishStateSetUp() {
+	//TODO: test that if we don't do this NewGameManager fails.
+	p.PlayerColor.ConnectBehavior(p)
+}
+
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
 	game := state.ImmutableGameState().(*gameState)
 
