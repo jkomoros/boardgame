@@ -237,7 +237,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	}
 
 	if err := verifySubStatesConnectedAndValid(exampleState); err != nil {
-		return nil, errors.New("The SubStates didn't return the state that was passed. If you're using a behavior, remember to explicitly call base.SubState.ConnectContainingState in your overriding ConnectContainingState: " + err.Error())
+		return nil, errors.New("The substates weren't valid: " + err.Error())
 	}
 
 	for _, moveType := range result.moves {
