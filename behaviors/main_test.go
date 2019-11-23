@@ -34,4 +34,8 @@ func TestColor(t *testing.T) {
 	b = &PlayerColor{}
 	_, ok := b.(Connectable)
 	assert.For(t).ThatActual(ok).IsTrue()
+
+	//Note that more substantive testing of PlayerColor is done in
+	//moves/game_test.go, since testing it requires a whole test game and the
+	//moves package has one.
 }

@@ -1997,6 +1997,7 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for playerState
 
 var ȧutoGeneratedPlayerStateReaderProps = map[string]boardgame.PropertyType{
+	"Color":     boardgame.TypeEnum,
 	"Counter":   boardgame.TypeInt,
 	"Hand":      boardgame.TypeStack,
 	"OtherHand": boardgame.TypeStack,
@@ -2051,6 +2052,8 @@ func (p *ȧutoGeneratedPlayerStateReader) Prop(name string) (interface{}, error)
 
 func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 	switch name {
+	case "Color":
+		return true
 	case "Counter":
 		return true
 	case "Hand":
@@ -2306,11 +2309,24 @@ func (p *ȧutoGeneratedPlayerStateReader) SetBoolSliceProp(name string, value []
 
 func (p *ȧutoGeneratedPlayerStateReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
 
+	switch name {
+	case "Color":
+		return p.data.Color, nil
+
+	}
+
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
 func (p *ȧutoGeneratedPlayerStateReader) ConfigureEnumProp(name string, value enum.Val) error {
+
+	switch name {
+	case "Color":
+		p.data.Color = value
+		return nil
+
+	}
 
 	return errors.New("No such Enum prop: " + name)
 
@@ -2318,11 +2334,23 @@ func (p *ȧutoGeneratedPlayerStateReader) ConfigureEnumProp(name string, value e
 
 func (p *ȧutoGeneratedPlayerStateReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
 
+	switch name {
+	case "Color":
+		return boardgame.ErrPropertyImmutable
+
+	}
+
 	return errors.New("No such ImmutableEnum prop: " + name)
 
 }
 
 func (p *ȧutoGeneratedPlayerStateReader) EnumProp(name string) (enum.Val, error) {
+
+	switch name {
+	case "Color":
+		return p.data.Color, nil
+
+	}
 
 	return nil, errors.New("No such Enum prop: " + name)
 

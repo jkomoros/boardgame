@@ -18,6 +18,12 @@ const (
 	phaseDrawAgain
 )
 
+const (
+	colorRed = iota
+	colorGreen
+	colorBlue
+)
+
 var enums = enum.NewSet()
 
 var phaseEnum = enums.MustAddTree("Phase", map[int]string{
@@ -36,6 +42,12 @@ var phaseEnum = enums.MustAddTree("Phase", map[int]string{
 	phaseDrawAgain:              phase,
 })
 
+var colorEnum = enums.MustAdd("color", map[int]string{
+	colorRed:   "Red",
+	colorGreen: "Green",
+	colorBlue:  "Blue",
+})
+
 //boardgame:codegen
 type gameState struct {
 	behaviors.RoundRobin
@@ -51,9 +63,10 @@ type gameState struct {
 type playerState struct {
 	base.SubState
 	playerIndex boardgame.PlayerIndex
-	Hand        boardgame.Stack `stack:"cards"`
-	OtherHand   boardgame.Stack `stack:"cards"`
-	Counter     int
+	behaviors.PlayerColor
+	Hand      boardgame.Stack `stack:"cards"`
+	OtherHand boardgame.Stack `stack:"cards"`
+	Counter   int
 }
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
