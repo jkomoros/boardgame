@@ -296,8 +296,15 @@ func verifyValidConfigurationOnStruct(state State, strct interface{}) error {
 		if !v.Field(i).CanInterface() {
 			continue
 		}
-		//This only works if the field is exported
-		embeddedStruct := v.Field(i).Interface()
+
+		//Often the structs are embedded directly (that is, not a pointer). But
+		//the methods for ValidConfiguration often take a pointer receiver.
+		embeddedStructValue := v.Field(i)
+		if embeddedStructValue.Type().Kind() != reflect.Ptr {
+			embeddedStructValue = embeddedStructValue.Addr()
+		}
+		embeddedStruct := embeddedStructValue.Interface()
+
 		validator, ok := embeddedStruct.(ConfigurationValidator)
 		if !ok {
 			continue
