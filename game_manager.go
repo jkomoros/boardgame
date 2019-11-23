@@ -236,7 +236,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		return nil, errors.New("Couldn't get exampleState: " + err.Error())
 	}
 
-	if err := verifySubStatesConnected(exampleState); err != nil {
+	if err := verifySubStatesConnectedAndValid(exampleState); err != nil {
 		return nil, errors.New("The SubStates didn't return the state that was passed. If you're using a behavior, remember to explicitly call base.SubState.ConnectContainingState in your overriding ConnectContainingState: " + err.Error())
 	}
 
@@ -273,19 +273,71 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	return result, nil
 }
 
-func verifySubStatesConnected(exampleState State) error {
+//verifyValidConfigurationOnStruct verifies that if there are any sub-structs
+//that have been embedded that satisfy ValidConfiguration that they have that
+//checked. This is an expensive method that uses reflection and so should not be
+//called except during NewGameManager.
+func verifyValidConfigurationOnStruct(state State, strct interface{}) error {
+
+	v := reflect.ValueOf(strct).Elem()
+	t := reflect.TypeOf(v.Interface())
+
+	if t.Kind() != reflect.Struct {
+		return errors.New("expected strct to be a struct or a pointer to a struct")
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fieldType := field.Type
+		if fieldType.Kind() != reflect.Struct {
+			continue
+		}
+		//Calling interface on a non-exported field will panic; check if we can.
+		if !v.Field(i).CanInterface() {
+			continue
+		}
+		//This only works if the field is exported
+		embeddedStruct := v.Field(i).Interface()
+		validator, ok := embeddedStruct.(ConfigurationValidator)
+		if !ok {
+			continue
+		}
+		if err := validator.ValidConfiguration(state); err != nil {
+			return errors.New("Struct field " + fieldType.Name() + " had a valid configuration that wasn't valid: " + err.Error())
+		}
+	}
+
+	return nil
+}
+
+func verifySubStatesConnectedAndValid(exampleState State) error {
 	if exampleState.GameState().State() != exampleState {
 		return errors.New("GameState returned different state")
+	}
+	if err := verifyValidConfigurationOnStruct(exampleState, exampleState.GameState()); err != nil {
+		return err
 	}
 	for i, pState := range exampleState.PlayerStates() {
 		if pState.State() != exampleState {
 			return errors.New("PlayerState " + strconv.Itoa(i) + " returned different state")
+		}
+		if i == 0 {
+			//Only need to bother doing the expensive reflection checking on one.
+			if err := verifyValidConfigurationOnStruct(exampleState, pState); err != nil {
+				return err
+			}
 		}
 	}
 	for deckName, values := range exampleState.DynamicComponentValues() {
 		for i, value := range values {
 			if value.State() != exampleState {
 				return errors.New("DynamicComponentValues " + deckName + " " + strconv.Itoa(i) + " returned different state")
+			}
+			if i == 0 {
+				//Only need to bother doing the expensive reflection checking on one.
+				if err := verifyValidConfigurationOnStruct(exampleState, value); err != nil {
+					return err
+				}
 			}
 		}
 	}
