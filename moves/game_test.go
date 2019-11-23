@@ -26,7 +26,7 @@ const (
 
 var enums = enum.NewSet()
 
-var phaseEnum = enums.MustAddTree("Phase", map[int]string{
+var phaseEnum = enums.MustAddTree("phase", map[int]string{
 	phase:                       "",
 	phaseSetUp:                  "Set Up",
 	phaseNormalPlay:             "Normal Play",
@@ -52,29 +52,20 @@ var colorEnum = enums.MustAdd("color", map[int]string{
 type gameState struct {
 	behaviors.RoundRobin
 	base.SubState
-	Phase         enum.Val `enum:"Phase"`
-	CurrentPlayer boardgame.PlayerIndex
-	DrawStack     boardgame.Stack `stack:"cards"`
-	DiscardStack  boardgame.Stack `stack:"cards"`
-	Counter       int
+	behaviors.CurrentPlayerBehavior
+	behaviors.PhaseBehavior
+	DrawStack    boardgame.Stack `stack:"cards"`
+	DiscardStack boardgame.Stack `stack:"cards"`
+	Counter      int
 }
 
 //boardgame:codegen
 type playerState struct {
 	base.SubState
-	playerIndex boardgame.PlayerIndex
 	behaviors.PlayerColor
 	Hand      boardgame.Stack `stack:"cards"`
 	OtherHand boardgame.Stack `stack:"cards"`
 	Counter   int
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
-}
-
-func (g *gameState) SetCurrentPhase(phase int) {
-	g.Phase.SetValue(phase)
 }
 
 func (p *playerState) FinishStateSetUp() {
@@ -122,9 +113,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 }
 
 func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurableSubState {
-	return &playerState{
-		playerIndex: index,
-	}
+	return new(playerState)
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
