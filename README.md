@@ -20,7 +20,7 @@ A comprehensive getting started guide, including a walkthrough of all of the imp
 - **Clean Layering** If you don't like the default behavior, override just a small portion to make it do what you want
 - **Flexible** Powerful enough to model any real-world board or card game
 - **Make Cheaters' Lives Hard** Don't rely on security by obscurity to protect secret game state: sanitize properties before transmitting to the client
-- **Type-Safety** Minimize numbers of "leaps of faith" casts from `interface{}` so you can rely on the type checker in your logic
+- **Identify Errors ASAP** If you've configured something incorrectly, ideally it's found either by the type checker or at the moment the program boots up, not later when someone's playing a game. The library is designed to minimize `interface{}`, allowing you to rely on the type system as much as possible, and many common configuration errors will be detected and reported when you call `NewGameManager`.
 - **Fast** Minimal reliance on features like reflection at runtime
 - **Minimize Javascript** Most client-side views are 10's of lines of templates and databinding, sometimes without any javascript at all
 - **Rich animations and UI** Common operations like cards moving between stacks should make use of flexible, fast animations computed automatically
