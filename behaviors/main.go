@@ -16,10 +16,17 @@ Behaviors often require access to the struct they're embedded within. These
 types of behaviors are called Connectable, and if they are this type thentheir
 ConnectBehavior should always be called within the subState's FinishStateSetUp,
 like so:
-
-    func (g *gameState) FinishStateSetUp() {
-        g.PlayerColor.ConnectBehavior(g)
-    }
+	//FinishStateSetUp is called by the main engine when a State is being created.
+	//ConnectContainingState will have already been called, so State and StatePropertyRef
+	//will be set. The engine doesn't require anything to be done in this method; it's
+	//typically used to connect behaviors.
+	func (g *gameState) FinishStateSetUp() {
+		//PlayerColor is a Connectable, which requires us to call ConnectBehavior
+		//on it, passing a reference to ourselvs (the struct it's embeddded in).
+		g.PlayerColor.ConnectBehavior(g)
+		//If you had ohter Connectable's in this struct, you'd call ConnectBehavior
+		//here, too.
+	}
 
 Connectable behaviors that are not connected will error when their
 ValidConfiguration is called, and the main library will notice that while
