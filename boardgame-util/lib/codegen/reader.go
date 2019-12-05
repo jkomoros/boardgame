@@ -128,7 +128,11 @@ func ProcessReaders(location string) (output string, testOutput string, err erro
 }
 
 func doProcessStructs(sources model.ParsedSources, location string, testFiles bool) (output string, err error) {
-	haveOutputHeader := false
+
+	if len(sources.Structs) == 0 {
+		//If there are no structs at all that's OK, just don't ouput anything.
+		return "", nil
+	}
 
 	for _, theStruct := range sources.Structs {
 
@@ -137,11 +141,6 @@ func doProcessStructs(sources model.ParsedSources, location string, testFiles bo
 
 		if structInTestFile != testFiles {
 			continue
-		}
-
-		if !haveOutputHeader {
-			output += headerForPackage(theStruct.PackageName)
-			haveOutputHeader = true
 		}
 
 		outputReader, outputReadSetter, outputReadSetConfigurer := structConfig(theStruct.DocLines)
@@ -163,6 +162,10 @@ func doProcessStructs(sources model.ParsedSources, location string, testFiles bo
 		if outputReadSetConfigurer {
 			output += readSetConfigurerForStruct(theStruct.Name)
 		}
+	}
+
+	if output != "" {
+		output = headerForPackage(sources.Structs[0].PackageName) + output
 	}
 
 	return output, nil
