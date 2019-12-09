@@ -233,13 +233,14 @@ func (t PropertyType) String() string {
 }
 
 //Interface outputs true if the underlying type is an "interface" type, that is
-//Enum, Stack, Board, or Timer.
+//Enum, Stack, Board, or Timer. Most useful for the codegen package.
 func (t PropertyType) Interface() bool {
 	return t == TypeEnum || t == TypeStack || t == TypeBoard || t == TypeTimer
 }
 
 //ImmutableGoType emitws strings like 'bool', 'boardgame.PlayerIndex'. It
-//represents the type of this property for the immutable/getter contexts.
+//represents the type of this property for the immutable/getter contexts. Most
+//useful for codegen package.
 func (t PropertyType) ImmutableGoType() string {
 
 	switch t {
@@ -273,9 +274,17 @@ func (t PropertyType) ImmutableGoType() string {
 }
 
 //MutableGoType emits a string representing the golang type for the property
-//when in mutable/setter contexts, e.g 'int', 'boardgame.Stack'
+//when in mutable/setter contexts, e.g 'int', 'boardgame.Stack'. Most useful for
+//the codegen package.
 func (t PropertyType) MutableGoType() string {
 	return strings.Replace(t.ImmutableGoType(), "Immutable", "", -1)
+}
+
+//Key returns the part of the PropertyReader method signature for this type. For
+//example, "Bool" for TypeBool, "Timer" for "TypeTimer". Most useful for the
+//codegen package.
+func (t PropertyType) Key() string {
+	return strings.TrimPrefix(t.String(), "Type")
 }
 
 //TODO: protect access to this with a mutex.
