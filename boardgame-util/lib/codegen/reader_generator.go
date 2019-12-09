@@ -79,8 +79,6 @@ func (r *readerGenerator) headerForStruct() string {
 
 		key := strings.TrimPrefix(i.String(), "Type")
 
-		setterKey := ""
-
 		goLangType := key
 		setterGoLangType := ""
 		switch key {
@@ -102,26 +100,18 @@ func (r *readerGenerator) headerForStruct() string {
 			goLangType = "[]boardgame.PlayerIndex"
 		case "Enum":
 			goLangType = "enum.ImmutableVal"
-			setterKey = "Enum"
 			setterGoLangType = "enum.Val"
 		case "Stack":
 			goLangType = "boardgame.ImmutableStack"
-			setterKey = "Stack"
 			setterGoLangType = "boardgame.Stack"
 		case "Board":
 			goLangType = "boardgame.ImmutableBoard"
-			setterKey = "Board"
 			setterGoLangType = "boardgame.Board"
 		case "Timer":
 			goLangType = "boardgame.ImmutableTimer"
-			setterKey = "Timer"
 			setterGoLangType = "boardgame.Timer"
 		default:
 			goLangType = "UNKNOWN"
-		}
-
-		if setterKey == "" {
-			setterKey = key
 		}
 
 		if setterGoLangType == "" {
@@ -129,7 +119,7 @@ func (r *readerGenerator) headerForStruct() string {
 		}
 
 		propertyTypes[key] = goLangType
-		setterPropertyTypes[setterKey] = setterGoLangType
+		setterPropertyTypes[key] = setterGoLangType
 	}
 
 	output := templateOutput(structHeaderTemplate, map[string]interface{}{
