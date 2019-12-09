@@ -238,6 +238,46 @@ func (t PropertyType) Interface() bool {
 	return t == TypeEnum || t == TypeStack || t == TypeBoard || t == TypeTimer
 }
 
+//ImmutableGoType emitws strings like 'bool', 'boardgame.PlayerIndex'. It
+//represents the type of this property for the immutable/getter contexts.
+func (t PropertyType) ImmutableGoType() string {
+
+	switch t {
+	case TypeBool:
+		return "bool"
+	case TypeInt:
+		return "int"
+	case TypeString:
+		return "string"
+	case TypePlayerIndex:
+		return "boardgame.PlayerIndex"
+	case TypeBoolSlice:
+		return "[]bool"
+	case TypeIntSlice:
+		return "[]int"
+	case TypeStringSlice:
+		return "[]string"
+	case TypePlayerIndexSlice:
+		return "[]boardgame.PlayerIndex"
+	case TypeEnum:
+		return "enum.ImmutableVal"
+	case TypeStack:
+		return "boardgame.ImmutableStack"
+	case TypeBoard:
+		return "boardgame.ImmutableBoard"
+	case TypeTimer:
+		return "boardgame.ImmutableTimer"
+	default:
+		return ""
+	}
+}
+
+//MutableGoType emits a string representing the golang type for the property
+//when in mutable/setter contexts, e.g 'int', 'boardgame.Stack'
+func (t PropertyType) MutableGoType() string {
+	return strings.Replace(t.ImmutableGoType(), "Immutable", "", -1)
+}
+
 //TODO: protect access to this with a mutex.
 var defaultReaderCacheLock sync.RWMutex
 var defaultReaderCache map[interface{}]*defaultReader
