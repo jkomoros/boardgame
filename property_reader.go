@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -238,10 +239,41 @@ func (t PropertyType) Interface() bool {
 	return t == TypeEnum || t == TypeStack || t == TypeBoard || t == TypeTimer
 }
 
+//Slice returns true if the type represents a slice. Most useful for the codegen
+//package.
+func (t PropertyType) Slice() bool {
+	return t == TypeBoolSlice || t == TypeIntSlice || t == TypeStringSlice || t == TypePlayerIndexSlice
+}
+
+//BaseType returns the non-slice version for slice types. e.g. TypeInt for
+//TypeIntSlice, and TypeEnum for TypeEnum. Most useful for codegen package.
+func (t PropertyType) BaseType() PropertyType {
+	if !t.Slice() {
+		return t
+	}
+	switch t {
+	case TypeBoolSlice:
+		return TypeBool
+	case TypeIntSlice:
+		return TypeInt
+	case TypeStringSlice:
+		return TypeString
+	case TypePlayerIndexSlice:
+		return TypePlayerIndex
+	default:
+		log.Println("ERROR: BaseType for a non-slice property")
+		return t
+	}
+}
+
 //ImmutableGoType emitws strings like 'bool', 'boardgame.PlayerIndex'. It
 //represents the type of this property for the immutable/getter contexts. Most
 //useful for codegen package.
 func (t PropertyType) ImmutableGoType() string {
+
+	if t.Slice() {
+		return "[]" + t.BaseType().ImmutableGoType()
+	}
 
 	switch t {
 	case TypeBool:
@@ -252,14 +284,6 @@ func (t PropertyType) ImmutableGoType() string {
 		return "string"
 	case TypePlayerIndex:
 		return "boardgame.PlayerIndex"
-	case TypeBoolSlice:
-		return "[]bool"
-	case TypeIntSlice:
-		return "[]int"
-	case TypeStringSlice:
-		return "[]string"
-	case TypePlayerIndexSlice:
-		return "[]boardgame.PlayerIndex"
 	case TypeEnum:
 		return "enum.ImmutableVal"
 	case TypeStack:
@@ -285,6 +309,36 @@ func (t PropertyType) MutableGoType() string {
 //codegen package.
 func (t PropertyType) Key() string {
 	return strings.TrimPrefix(t.String(), "Type")
+}
+
+//ZeroValue returns the string representing the zeroValue for this type, e.g.
+//"0" for TypeInt and "[]boardgame.PlayerIndex{}" for TypePlayerIndexSlice. Most
+//useful for codgen package.
+func (t PropertyType) ZeroValue() string {
+
+	switch t {
+	case TypeBool:
+		return "false"
+	case TypeInt:
+		return "0"
+	case TypeString:
+		return "\"\""
+	case TypePlayerIndex:
+		return "0"
+	case TypeIllegal:
+		return ""
+	}
+
+	if t.Slice() {
+		return t.ImmutableGoType() + "{}"
+	}
+	if t.Interface() {
+		return "nil"
+	}
+
+	log.Println("Unexpected type for ZeroValue")
+	return ""
+
 }
 
 //TODO: protect access to this with a mutex.
