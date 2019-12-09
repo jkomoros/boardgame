@@ -198,6 +198,7 @@ type PropertyReadSetConfigurer interface {
 	ConfigureProp(name string, value interface{}) error
 }
 
+//String outputs things like "TypeInt" for TypeInt.
 func (t PropertyType) String() string {
 	switch t {
 	case TypeIllegal:
@@ -229,6 +230,12 @@ func (t PropertyType) String() string {
 	default:
 		return "TypeIllegal"
 	}
+}
+
+//Interface outputs true if the underlying type is an "interface" type, that is
+//Enum, Stack, Board, or Timer.
+func (t PropertyType) Interface() bool {
+	return t == TypeEnum || t == TypeStack || t == TypeBoard || t == TypeTimer
 }
 
 //TODO: protect access to this with a mutex.
