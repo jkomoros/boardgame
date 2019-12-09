@@ -20,10 +20,23 @@ type memoizedEmbeddedStructKey struct {
 
 var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]*typeInfo
 
+//typeInfo is a collection of information about the specific fields in a given
+//struct, including their boardgame.PropertyType, whether they're the mutable
+//version, and if they're actually a higher type in the hierarchy (e.g.
+//MergedStack instead of just a STack).
 type typeInfo struct {
 	Types       map[string]boardgame.PropertyType
 	Mutable     map[string]bool
 	UpConverter map[string]string
+}
+
+//nameForTypeInfo represents each named struct field of a given
+//boardgame.PropertyType that we'll output, including enough information to know
+//if it needs mutable/upconverter.
+type nameForTypeInfo struct {
+	Name        string
+	Mutable     bool
+	UpConverter string
 }
 
 const magicDocLinePrefix = "boardgame:codegen"
@@ -397,12 +410,6 @@ func headerForPackage(packageName string) string {
 	return templateOutput(headerTemplate, map[string]string{
 		"packageName": packageName,
 	}) + importText
-}
-
-type nameForTypeInfo struct {
-	Name        string
-	Mutable     bool
-	UpConverter string
 }
 
 //readerStructName returns the name of the auto-generated reader struct for the
