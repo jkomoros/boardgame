@@ -236,27 +236,27 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 {{end}}
 `
 
-const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{withimmutable .propType}}Prop(name string) ({{.goLangType}}, error) {
-	{{$firstLetter := .firstLetter}}
-	{{if .namesForType}}
+const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{withimmutable .PropType}}Prop(name string) ({{.GoLangType}}, error) {
+	{{$firstLetter := .FirstLetter}}
+	{{if .NamesForType}}
 	switch name {
-		{{range .namesForType -}}
+		{{range .NamesForType -}}
 			case "{{.Name}}":
 				return {{$firstLetter}}.data.{{.Name}}, nil
 		{{end}}
 	}
 	{{end}}
 
-	return {{.zeroValue}}, errors.New("No such {{.propType}} prop: " + name)
+	return {{.ZeroValue}}, errors.New("No such {{.PropType}} prop: " + name)
 
 }
 
-{{if .outputReadSetConfigurer -}}
-{{if .outputMutableGetter -}}
-func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name string, value {{.setterGoLangType}}) error {
-	{{if .namesForType}}
+{{if .OutputReadSetConfigurer -}}
+{{if .OutputMutableGetter -}}
+func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.SetterPropType}}Prop(name string, value {{.SetterGoLangType}}) error {
+	{{if .NamesForType}}
 	switch name {
-		{{range .namesForType -}}
+		{{range .NamesForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
 				{{if .UpConverter -}}
@@ -276,14 +276,14 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 	}
 	{{end}}
 
-	return errors.New("No such {{.setterPropType}} prop: " + name)
+	return errors.New("No such {{.SetterPropType}} prop: " + name)
 
 }
 
-func ({{.firstLetter}} *{{.readerName}}) Configure{{withimmutable .setterPropType}}Prop(name string, value {{withimmutable .setterGoLangType}}) error {
-	{{if .namesForType}}
+func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .SetterPropType}}Prop(name string, value {{withimmutable .SetterGoLangType}}) error {
+	{{if .NamesForType}}
 	switch name {
-		{{range .namesForType -}}
+		{{range .NamesForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
 				return boardgame.ErrPropertyImmutable
@@ -303,21 +303,21 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{withimmutable .setterPropTyp
 	}
 	{{end}}
 
-	return errors.New("No such {{withimmutable .setterPropType}} prop: " + name)
+	return errors.New("No such {{withimmutable .SetterPropType}} prop: " + name)
 
 }
 
 {{end}}
 {{end}}
 
-{{if .outputReadSetter -}}
-{{if .outputMutableGetter -}}
-func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({{.setterGoLangType}}, error) {
-	{{$firstLetter := .firstLetter}}
-	{{$zeroValue := .zeroValue}}
-	{{if .namesForType}}
+{{if .OutputReadSetter -}}
+{{if .OutputMutableGetter -}}
+func ({{.FirstLetter}} *{{.ReaderName}}) {{.SetterPropType}}Prop(name string) ({{.SetterGoLangType}}, error) {
+	{{$firstLetter := .FirstLetter}}
+	{{$zeroValue := .ZeroValue}}
+	{{if .NamesForType}}
 	switch name {
-		{{range .namesForType -}}
+		{{range .NamesForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
 				return {{$firstLetter}}.data.{{.Name}}, nil
@@ -328,15 +328,15 @@ func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({
 	}
 	{{end}}
 
-	return {{.zeroValue}}, errors.New("No such {{.propType}} prop: " + name)
+	return {{.ZeroValue}}, errors.New("No such {{.PropType}} prop: " + name)
 
 }
 
 {{else}}
-func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string, value {{.setterGoLangType}}) error {
-	{{if .namesForType}}
+func ({{.FirstLetter}} *{{.ReaderName}}) Set{{.SetterPropType}}Prop(name string, value {{.SetterGoLangType}}) error {
+	{{if .NamesForType}}
 	switch name {
-		{{range .namesForType -}}
+		{{range .NamesForType -}}
 			case "{{.Name}}":
 				{{$firstLetter}}.data.{{.Name}} = value
 				return nil
@@ -344,7 +344,7 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string,
 	}
 	{{end}}
 
-	return errors.New("No such {{.setterPropType}} prop: " + name)
+	return errors.New("No such {{.SetterPropType}} prop: " + name)
 
 }
 

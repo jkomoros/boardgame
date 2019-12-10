@@ -228,20 +228,34 @@ func (r *readerGenerator) headerForStruct() string {
 
 		setterGoLangType := setterPropertyTypes[setterPropType]
 
-		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
-			"structName":              structName,
-			"firstLetter":             strings.ToLower(structName[:1]),
-			"readerName":              readerStructName(structName),
-			"propType":                propType,
-			"setterPropType":          setterPropType,
-			"namesForType":            namesForType,
-			"goLangType":              goLangType,
-			"setterGoLangType":        setterGoLangType,
-			"outputMutableGetter":     outputMutableGetter,
-			"zeroValue":               zeroValue,
-			"outputReadSetter":        r.outputReadSetter,
-			"outputReadSetConfigurer": r.outputReadSetConfigurer,
-		})
+		output += templateOutput(typedPropertyTemplate,
+			struct {
+				StructName              string
+				FirstLetter             string
+				ReaderName              string
+				PropType                string
+				SetterPropType          string
+				NamesForType            []nameForTypeInfo
+				GoLangType              string
+				SetterGoLangType        string
+				OutputMutableGetter     bool
+				ZeroValue               string
+				OutputReadSetter        bool
+				OutputReadSetConfigurer bool
+			}{
+				StructName:              structName,
+				FirstLetter:             strings.ToLower(structName[:1]),
+				ReaderName:              readerStructName(structName),
+				PropType:                propType,
+				SetterPropType:          setterPropType,
+				NamesForType:            namesForType,
+				GoLangType:              goLangType,
+				SetterGoLangType:        setterGoLangType,
+				OutputMutableGetter:     outputMutableGetter,
+				ZeroValue:               zeroValue,
+				OutputReadSetter:        r.outputReadSetter,
+				OutputReadSetConfigurer: r.outputReadSetConfigurer,
+			})
 	}
 
 	return output
