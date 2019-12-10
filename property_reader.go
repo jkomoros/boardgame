@@ -77,6 +77,10 @@ const (
 	TypeBoard
 	//TypeTimer is a Timer.
 	TypeTimer
+
+	//NOTE: when adding a new item to the end of this list, also update
+	//boardgame-util/lib/codegen/highestType to ensure codegen enumerates all of
+	//them.
 )
 
 //ErrPropertyImmutable should be returned by PropertyReadSetters'
