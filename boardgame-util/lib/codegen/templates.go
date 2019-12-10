@@ -352,23 +352,23 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Set{{.SetterPropType}}Prop(name string,
 {{end}}
 `
 
-const readerTemplateText = `//Reader returns an autp-generated boardgame.PropertyReader for {{.structName}}
-func ({{.firstLetter}} *{{.structName}}) Reader() boardgame.PropertyReader {
-	return &{{.readerName}}{ {{.firstLetter}} }
+const readerTemplateText = `//Reader returns an autp-generated boardgame.PropertyReader for {{.StructName}}
+func ({{.FirstLetter}} *{{.StructName}}) Reader() boardgame.PropertyReader {
+	return &{{.ReaderName}}{ {{.FirstLetter}} }
 }
 
 `
 
-const readSetterTemplateText = `//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for {{.structName}}
-func ({{.firstLetter}} *{{.structName}}) ReadSetter() boardgame.PropertyReadSetter {
-	return &{{.readerName}}{ {{.firstLetter}} }
+const readSetterTemplateText = `//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for {{.StructName}}
+func ({{.FirstLetter}} *{{.StructName}}) ReadSetter() boardgame.PropertyReadSetter {
+	return &{{.ReaderName}}{ {{.FirstLetter}} }
 }
 
 `
 
-const readSetConfigurerTemplateText = `//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for {{.structName}}
-func ({{.firstLetter}} *{{.structName}}) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
-	return &{{.readerName}}{ {{.firstLetter}} }
+const readSetConfigurerTemplateText = `//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for {{.StructName}}
+func ({{.FirstLetter}} *{{.StructName}}) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &{{.ReaderName}}{ {{.FirstLetter}} }
 }
 
 `

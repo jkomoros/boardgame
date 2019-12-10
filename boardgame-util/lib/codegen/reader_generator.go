@@ -66,13 +66,13 @@ func (r *readerGenerator) Output() string {
 	output += r.headerForStruct()
 
 	if r.outputReader {
-		output += readerForStruct(r.s.Name)
+		output += templateOutput(readerTemplate, r.baseReaderGeneratorTemplateArguments())
 	}
 	if r.outputReadSetter {
-		output += readSetterForStruct(r.s.Name)
+		output += templateOutput(readSetterTemplate, r.baseReaderGeneratorTemplateArguments())
 	}
 	if r.outputReadSetConfigurer {
-		output += readSetConfigurerForStruct(r.s.Name)
+		output += templateOutput(readSetConfigurerTemplate, r.baseReaderGeneratorTemplateArguments())
 	}
 	return output
 }
@@ -90,10 +90,15 @@ type baseReaderGeneratorTemplateArguments struct {
 
 func (r *readerGenerator) baseReaderGeneratorTemplateArguments() baseReaderGeneratorTemplateArguments {
 	structName := r.s.Name
+	//The prefix used to be "__" but that didn't lint correctly, so instead use
+	//a non-latin prefix character that is like an a but with a dot (to make it
+	//less likely to show up in autocompletes in IDEs)
+	readerName := "ȧutoGenerated" + strings.Title(structName) + "Reader"
+
 	return baseReaderGeneratorTemplateArguments{
 		StructName:              structName,
 		FirstLetter:             strings.ToLower(structName[:1]),
-		ReaderName:              readerStructName(structName),
+		ReaderName:              readerName,
 		OutputReadSetter:        r.outputReadSetter,
 		OutputReadSetConfigurer: r.outputReadSetConfigurer,
 	}
