@@ -135,16 +135,26 @@ func (r *readerGenerator) headerForStruct() string {
 		setterPropertyTypes[key] = setterGoLangType
 	}
 
-	output := templateOutput(structHeaderTemplate, map[string]interface{}{
-		"structName":              structName,
-		"firstLetter":             strings.ToLower(structName[:1]),
-		"readerName":              readerStructName(structName),
-		"propertyTypes":           propertyTypes,
-		"setterPropertyTypes":     setterPropertyTypes,
-		"fields":                  r.fields,
-		"outputReadSetter":        r.outputReadSetter,
-		"outputReadSetConfigurer": r.outputReadSetConfigurer,
-	})
+	output := templateOutput(structHeaderTemplate,
+		struct {
+			StructName              string
+			FirstLetter             string
+			ReaderName              string
+			PropertyTypes           map[string]string
+			SetterPropertyTypes     map[string]string
+			Fields                  *typeInfo
+			OutputReadSetter        bool
+			OutputReadSetConfigurer bool
+		}{
+			StructName:              structName,
+			FirstLetter:             strings.ToLower(structName[:1]),
+			ReaderName:              readerStructName(structName),
+			PropertyTypes:           propertyTypes,
+			SetterPropertyTypes:     setterPropertyTypes,
+			Fields:                  r.fields,
+			OutputReadSetter:        r.outputReadSetter,
+			OutputReadSetConfigurer: r.outputReadSetConfigurer,
+		})
 
 	sortedKeys := make([]string, len(propertyTypes))
 	i := 0

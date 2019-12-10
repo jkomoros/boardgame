@@ -115,34 +115,34 @@ const importText = `import (
 
 `
 
-const structHeaderTemplateText = `// Implementation for {{.structName}}
+const structHeaderTemplateText = `// Implementation for {{.StructName}}
 
-var {{.readerName}}Props = map[string]boardgame.PropertyType{
-	{{range $key, $value := .fields.Types -}}
+var {{.ReaderName}}Props = map[string]boardgame.PropertyType{
+	{{range $key, $value := .Fields.Types -}}
 		"{{$key}}": boardgame.{{$value.String}},
 	{{end}}
 }
 
-type {{.readerName}} struct {
-	data *{{.structName}}
+type {{.ReaderName}} struct {
+	data *{{.StructName}}
 }
 
-func ({{.firstLetter}} *{{.readerName}}) Props() map[string]boardgame.PropertyType {
-	return {{.readerName}}Props
+func ({{.FirstLetter}} *{{.ReaderName}}) Props() map[string]boardgame.PropertyType {
+	return {{.ReaderName}}Props
 }
 
-func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) {
-	props := {{.firstLetter}}.Props()
+func ({{.FirstLetter}} *{{.ReaderName}}) Prop(name string) (interface{}, error) {
+	props := {{.FirstLetter}}.Props()
 	propType, ok := props[name]
 
 	if !ok {
 		return nil, errors.New("No such property with that name: " + name)
 	}
 
-	{{$firstLetter := .firstLetter}}
+	{{$firstLetter := .FirstLetter}}
 
 	switch propType {
-	{{range $type, $goLangtype := .propertyTypes -}}
+	{{range $type, $goLangtype := .PropertyTypes -}}
 	case boardgame.Type{{$type}}:
 		return {{$firstLetter}}.{{withimmutable $type}}Prop(name)
 	{{end}}
@@ -151,11 +151,11 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
-{{if .outputReadSetter -}}
+{{if .OutputReadSetter -}}
 
-func ({{.firstLetter}} *{{.readerName}}) PropMutable(name string) bool {
+func ({{.FirstLetter}} *{{.ReaderName}}) PropMutable(name string) bool {
 	switch name {
-		{{range $key, $val := .fields.Mutable -}}
+		{{range $key, $val := .Fields.Mutable -}}
 	case "{{$key}}":
 		return {{$val}}
 		{{end -}}
@@ -164,8 +164,8 @@ func ({{.firstLetter}} *{{.readerName}}) PropMutable(name string) bool {
 	return false
 }
 
-func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{}) error {
-	props := {{.firstLetter}}.Props()
+func ({{.FirstLetter}} *{{.ReaderName}}) SetProp(name string, value interface{}) error {
+	props := {{.FirstLetter}}.Props()
 	propType, ok := props[name]
 
 	if !ok {
@@ -173,7 +173,7 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 	}
 
 	switch propType {
-	{{range $type, $goLangType := .setterPropertyTypes -}}
+	{{range $type, $goLangType := .SetterPropertyTypes -}}
 	{{if ismutable $type -}}
 	case boardgame.Type{{$type}}:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
@@ -193,9 +193,9 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 
 {{end}}
 
-{{if .outputReadSetConfigurer -}}
-func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interface{}) error {
-	props := {{.firstLetter}}.Props()
+{{if .OutputReadSetConfigurer -}}
+func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interface{}) error {
+	props := {{.FirstLetter}}.Props()
 	propType, ok := props[name]
 
 	if !ok {
@@ -203,7 +203,7 @@ func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interf
 	}
 
 	switch propType {
-	{{range $type, $goLangType := .setterPropertyTypes -}}
+	{{range $type, $goLangType := .SetterPropertyTypes -}}
 	case boardgame.Type{{$type}}:
 		{{if ismutable $type -}}
 		if {{$firstLetter}}.PropMutable(name) {
