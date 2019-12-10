@@ -233,22 +233,22 @@ func (t PropertyType) String() string {
 	}
 }
 
-//Interface outputs true if the underlying type is an "interface" type, that is
+//IsInterface outputs true if the underlying type is an "interface" type, that is
 //Enum, Stack, Board, or Timer. Most useful for the codegen package.
-func (t PropertyType) Interface() bool {
+func (t PropertyType) IsInterface() bool {
 	return t == TypeEnum || t == TypeStack || t == TypeBoard || t == TypeTimer
 }
 
-//Slice returns true if the type represents a slice. Most useful for the codegen
-//package.
-func (t PropertyType) Slice() bool {
+//IsSlice returns true if the type represents a slice (e.g. TypeBoolSlice). Most
+//useful for the codegen package.
+func (t PropertyType) IsSlice() bool {
 	return t == TypeBoolSlice || t == TypeIntSlice || t == TypeStringSlice || t == TypePlayerIndexSlice
 }
 
 //BaseType returns the non-slice version for slice types. e.g. TypeInt for
 //TypeIntSlice, and TypeEnum for TypeEnum. Most useful for codegen package.
 func (t PropertyType) BaseType() PropertyType {
-	if !t.Slice() {
+	if !t.IsSlice() {
 		return t
 	}
 	switch t {
@@ -266,12 +266,12 @@ func (t PropertyType) BaseType() PropertyType {
 	}
 }
 
-//ImmutableGoType emitws strings like 'bool', 'boardgame.PlayerIndex'. It
+//ImmutableGoType emits strings like 'bool', 'boardgame.PlayerIndex'. It
 //represents the type of this property for the immutable/getter contexts. Most
 //useful for codegen package.
 func (t PropertyType) ImmutableGoType() string {
 
-	if t.Slice() {
+	if t.IsSlice() {
 		return "[]" + t.BaseType().ImmutableGoType()
 	}
 
@@ -329,10 +329,10 @@ func (t PropertyType) ZeroValue() string {
 		return ""
 	}
 
-	if t.Slice() {
+	if t.IsSlice() {
 		return t.ImmutableGoType() + "{}"
 	}
-	if t.Interface() {
+	if t.IsInterface() {
 		return "nil"
 	}
 
