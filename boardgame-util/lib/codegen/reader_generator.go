@@ -8,16 +8,18 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//allTypes is an enumeration of all types in order.
-var allTypes []boardgame.PropertyType
+//allValidTypes is an enumeration of all types in order.
+var allValidTypes []boardgame.PropertyType
 
 //highestProperty is the highest enum in the PropertyType enum.
 const highestProperty = boardgame.TypeTimer
 
 func init() {
-	allTypes = make([]boardgame.PropertyType, highestProperty+1)
-	for i := 0; i <= int(highestProperty); i++ {
-		allTypes[i] = boardgame.PropertyType(i)
+	//Only need space for highestProperty because we skip TypeIllegal.
+	allValidTypes = make([]boardgame.PropertyType, highestProperty)
+	//We skip TypeIllegal
+	for i := 0; i < int(highestProperty); i++ {
+		allValidTypes[i] = boardgame.PropertyType(i + 1)
 	}
 }
 
