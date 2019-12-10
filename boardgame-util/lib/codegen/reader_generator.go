@@ -29,7 +29,7 @@ type readerGenerator struct {
 	outputReadSetter        bool
 	outputReadSetConfigurer bool
 	//TODO: pop all of this directly into the struct
-	types *typeInfo
+	fields *typeInfo
 }
 
 //newReaderGenerator processes the given struct and then outputs a generator if
@@ -47,14 +47,14 @@ func newReaderGenerator(s model.Struct, location string, allStructs []model.Stru
 		outputReadSetter = true
 	}
 
-	types := structTypes(location, s, allStructs)
+	fields := structFields(location, s, allStructs)
 
 	return &readerGenerator{
 		s:                       s,
 		outputReader:            outputReader,
 		outputReadSetter:        outputReadSetter,
 		outputReadSetConfigurer: outputReadSetConfigurer,
-		types:                   types,
+		fields:                  fields,
 	}
 
 }
@@ -141,7 +141,7 @@ func (r *readerGenerator) headerForStruct() string {
 		"readerName":              readerStructName(structName),
 		"propertyTypes":           propertyTypes,
 		"setterPropertyTypes":     setterPropertyTypes,
-		"types":                   r.types,
+		"fields":                  r.fields,
 		"outputReadSetter":        r.outputReadSetter,
 		"outputReadSetConfigurer": r.outputReadSetConfigurer,
 	})
@@ -183,12 +183,12 @@ func (r *readerGenerator) headerForStruct() string {
 
 		var namesForType []nameForTypeInfo
 
-		for key, val := range r.types.Types {
+		for key, val := range r.fields.Types {
 			if val.String() == "Type"+propType {
 				namesForType = append(namesForType, nameForTypeInfo{
 					Name:        key,
-					Mutable:     r.types.Mutable[key],
-					UpConverter: r.types.UpConverter[key],
+					Mutable:     r.fields.Mutable[key],
+					UpConverter: r.fields.UpConverter[key],
 				})
 			}
 		}

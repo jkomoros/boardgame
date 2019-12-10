@@ -184,7 +184,7 @@ func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 	return false
 }
 
-func structTypes(location string, theStruct model.Struct, allStructs []model.Struct) *typeInfo {
+func structFields(location string, theStruct model.Struct, allStructs []model.Struct) *typeInfo {
 
 	result := &typeInfo{
 		make(map[string]boardgame.PropertyType),
@@ -210,7 +210,7 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			foundStruct := false
 			for _, otherStruct := range allStructs {
 				if otherStruct.Name == field.TypeName {
-					embeddedInfo := structTypes(location, otherStruct, allStructs)
+					embeddedInfo := structFields(location, otherStruct, allStructs)
 					for key, val := range embeddedInfo.Types {
 						result.Types[key] = val
 					}
@@ -368,7 +368,7 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 			continue
 		}
 		//Found it!
-		foundTypes = structTypes(location, theStruct, allStructs)
+		foundTypes = structFields(location, theStruct, allStructs)
 
 		memoizedEmbeddedStructs[key] = foundTypes
 
