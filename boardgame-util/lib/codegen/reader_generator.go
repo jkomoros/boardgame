@@ -77,12 +77,32 @@ func (r *readerGenerator) Output() string {
 	return output
 }
 
+//baseReaderGeneratorTemplateArguments are base arguments that are passed to
+//each template for readergeneratorm that is specific to a struct. Designed to
+//be embedded anonymously in other structs passed to templates.
+type baseReaderGeneratorTemplateArguments struct {
+	StructName              string
+	FirstLetter             string
+	ReaderName              string
+	OutputReadSetter        bool
+	OutputReadSetConfigurer bool
+}
+
+func (r *readerGenerator) baseReaderGeneratorTemplateArguments() baseReaderGeneratorTemplateArguments {
+	structName := r.s.Name
+	return baseReaderGeneratorTemplateArguments{
+		StructName:              structName,
+		FirstLetter:             strings.ToLower(structName[:1]),
+		ReaderName:              readerStructName(structName),
+		OutputReadSetter:        r.outputReadSetter,
+		OutputReadSetConfigurer: r.outputReadSetConfigurer,
+	}
+}
+
 func (r *readerGenerator) headerForStruct() string {
 
 	//TODO: memoize propertyTypes/setterPropertyTypes because they don't
 	//change within a run of this program.
-
-	structName := r.s.Name
 
 	//propertyTypes is short name, golangValue
 	propertyTypes := make(map[string]string)
@@ -137,23 +157,15 @@ func (r *readerGenerator) headerForStruct() string {
 
 	output := templateOutput(structHeaderTemplate,
 		struct {
-			StructName              string
-			FirstLetter             string
-			ReaderName              string
-			PropertyTypes           map[string]string
-			SetterPropertyTypes     map[string]string
-			Fields                  *typeInfo
-			OutputReadSetter        bool
-			OutputReadSetConfigurer bool
+			baseReaderGeneratorTemplateArguments
+			PropertyTypes       map[string]string
+			SetterPropertyTypes map[string]string
+			Fields              *typeInfo
 		}{
-			StructName:              structName,
-			FirstLetter:             strings.ToLower(structName[:1]),
-			ReaderName:              readerStructName(structName),
-			PropertyTypes:           propertyTypes,
-			SetterPropertyTypes:     setterPropertyTypes,
-			Fields:                  r.fields,
-			OutputReadSetter:        r.outputReadSetter,
-			OutputReadSetConfigurer: r.outputReadSetConfigurer,
+			baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),
+			PropertyTypes:                        propertyTypes,
+			SetterPropertyTypes:                  setterPropertyTypes,
+			Fields:                               r.fields,
 		})
 
 	sortedKeys := make([]string, len(propertyTypes))
@@ -230,31 +242,23 @@ func (r *readerGenerator) headerForStruct() string {
 
 		output += templateOutput(typedPropertyTemplate,
 			struct {
-				StructName              string
-				FirstLetter             string
-				ReaderName              string
-				PropType                string
-				SetterPropType          string
-				NamesForType            []nameForTypeInfo
-				GoLangType              string
-				SetterGoLangType        string
-				OutputMutableGetter     bool
-				ZeroValue               string
-				OutputReadSetter        bool
-				OutputReadSetConfigurer bool
+				baseReaderGeneratorTemplateArguments
+				PropType            string
+				SetterPropType      string
+				NamesForType        []nameForTypeInfo
+				GoLangType          string
+				SetterGoLangType    string
+				OutputMutableGetter bool
+				ZeroValue           string
 			}{
-				StructName:              structName,
-				FirstLetter:             strings.ToLower(structName[:1]),
-				ReaderName:              readerStructName(structName),
-				PropType:                propType,
-				SetterPropType:          setterPropType,
-				NamesForType:            namesForType,
-				GoLangType:              goLangType,
-				SetterGoLangType:        setterGoLangType,
-				OutputMutableGetter:     outputMutableGetter,
-				ZeroValue:               zeroValue,
-				OutputReadSetter:        r.outputReadSetter,
-				OutputReadSetConfigurer: r.outputReadSetConfigurer,
+				baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),
+				PropType:                             propType,
+				SetterPropType:                       setterPropType,
+				NamesForType:                         namesForType,
+				GoLangType:                           goLangType,
+				SetterGoLangType:                     setterGoLangType,
+				OutputMutableGetter:                  outputMutableGetter,
+				ZeroValue:                            zeroValue,
 			})
 	}
 
