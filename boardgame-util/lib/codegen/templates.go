@@ -142,9 +142,9 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Prop(name string) (interface{}, error) 
 	{{$firstLetter := .FirstLetter}}
 
 	switch propType {
-	{{range $type, $goLangtype := .PropertyTypes -}}
-	case boardgame.Type{{$type}}:
-		return {{$firstLetter}}.{{withimmutable $type}}Prop(name)
+	{{range $type := .PropertyTypes -}}
+	case boardgame.Type{{$type.Key}}:
+		return {{$firstLetter}}.{{withimmutable $type.Key}}Prop(name)
 	{{end}}
 	}
 
@@ -173,17 +173,17 @@ func ({{.FirstLetter}} *{{.ReaderName}}) SetProp(name string, value interface{})
 	}
 
 	switch propType {
-	{{range $type, $goLangType := .SetterPropertyTypes -}}
-	{{if ismutable $type -}}
-	case boardgame.Type{{$type}}:
+	{{range $type := .PropertyTypes -}}
+	{{if $type.IsInterface -}}
+	case boardgame.Type{{$type.Key}}:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	{{- else -}}
-	case boardgame.Type{{$type}}:
-		val, ok := value.({{$goLangType}})
+	case boardgame.Type{{$type.Key}}:
+		val, ok := value.({{$type.ImmutableGoType}})
 		if !ok {
-			return errors.New("Provided value was not of type {{$goLangType}}")
+			return errors.New("Provided value was not of type {{$type.ImmutableGoType}}")
 		}
-		return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
+		return {{$firstLetter}}.{{verbfortype $type.Key}}{{$type.Key}}Prop(name, val)
 	{{- end}}
 	{{end}}
 	}
@@ -203,29 +203,29 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 	}
 
 	switch propType {
-	{{range $type, $goLangType := .SetterPropertyTypes -}}
-	case boardgame.Type{{$type}}:
-		{{if ismutable $type -}}
+	{{range $type := .PropertyTypes -}}
+	case boardgame.Type{{$type.Key}}:
+		{{if $type.IsInterface -}}
 		if {{$firstLetter}}.PropMutable(name) {
 			//Mutable variant
-			val, ok := value.({{$goLangType}})
+			val, ok := value.({{$type.MutableGoType}})
 			if !ok {
-				return errors.New("Provided value was not of type {{$goLangType}}")
+				return errors.New("Provided value was not of type {{$type.MutableGoType}}")
 			}
-			return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
+			return {{$firstLetter}}.{{verbfortype $type.Key}}{{$type.Key}}Prop(name, val)
 		}
 		//Immutable variant
-		val, ok := value.({{withimmutable $goLangType}})
+		val, ok := value.({{withimmutable $type.ImmutableGoType}})
 		if !ok {
-			return errors.New("Provided value was not of type {{withimmutable $goLangType}}")
+			return errors.New("Provided value was not of type {{withimmutable $type.ImmutableGoType}}")
 		}
-		return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type}}Prop(name, val)
+		return {{$firstLetter}}.{{verbfortype $type.Key}}{{withimmutable $type.Key}}Prop(name, val)
 		{{- else -}}
-			val, ok := value.({{$goLangType}})
+			val, ok := value.({{$type.ImmutableGoType}})
 			if !ok {
-				return errors.New("Provided value was not of type {{$goLangType}}")
+				return errors.New("Provided value was not of type {{$type.ImmutableGoType}}")
 			}
-			return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
+			return {{$firstLetter}}.{{verbfortype $type.Key}}{{$type.Key}}Prop(name, val)
 		{{- end}}
 	{{end}}
 	}

@@ -111,67 +111,14 @@ func (r *readerGenerator) headerForStruct() string {
 	//TODO: memoize propertyTypes/setterPropertyTypes because they don't
 	//change within a run of this program.
 
-	//propertyTypes is short name, golangValue
-	propertyTypes := make(map[string]string)
-	setterPropertyTypes := make(map[string]string)
-
-	for i := boardgame.TypeInt; i <= boardgame.TypeTimer; i++ {
-
-		key := strings.TrimPrefix(i.String(), "Type")
-
-		goLangType := key
-		setterGoLangType := ""
-		switch key {
-		case "Bool":
-			goLangType = "bool"
-		case "Int":
-			goLangType = "int"
-		case "String":
-			goLangType = "string"
-		case "PlayerIndex":
-			goLangType = "boardgame.PlayerIndex"
-		case "IntSlice":
-			goLangType = "[]int"
-		case "BoolSlice":
-			goLangType = "[]bool"
-		case "StringSlice":
-			goLangType = "[]string"
-		case "PlayerIndexSlice":
-			goLangType = "[]boardgame.PlayerIndex"
-		case "Enum":
-			goLangType = "enum.ImmutableVal"
-			setterGoLangType = "enum.Val"
-		case "Stack":
-			goLangType = "boardgame.ImmutableStack"
-			setterGoLangType = "boardgame.Stack"
-		case "Board":
-			goLangType = "boardgame.ImmutableBoard"
-			setterGoLangType = "boardgame.Board"
-		case "Timer":
-			goLangType = "boardgame.ImmutableTimer"
-			setterGoLangType = "boardgame.Timer"
-		default:
-			goLangType = "UNKNOWN"
-		}
-
-		if setterGoLangType == "" {
-			setterGoLangType = goLangType
-		}
-
-		propertyTypes[key] = goLangType
-		setterPropertyTypes[key] = setterGoLangType
-	}
-
 	output := templateOutput(structHeaderTemplate,
 		struct {
 			baseReaderGeneratorTemplateArguments
-			PropertyTypes       map[string]string
-			SetterPropertyTypes map[string]string
-			Fields              *typeInfo
+			PropertyTypes []boardgame.PropertyType
+			Fields        *typeInfo
 		}{
 			baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),
-			PropertyTypes:                        propertyTypes,
-			SetterPropertyTypes:                  setterPropertyTypes,
+			PropertyTypes:                        allValidTypes,
 			Fields:                               r.fields,
 		})
 

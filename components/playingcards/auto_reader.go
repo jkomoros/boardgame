@@ -41,28 +41,28 @@ func (c *ȧutoGeneratedCardReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
-	case boardgame.TypeBoard:
-		return c.ImmutableBoardProp(name)
-	case boardgame.TypeBool:
-		return c.BoolProp(name)
-	case boardgame.TypeBoolSlice:
-		return c.BoolSliceProp(name)
-	case boardgame.TypeEnum:
-		return c.ImmutableEnumProp(name)
 	case boardgame.TypeInt:
 		return c.IntProp(name)
-	case boardgame.TypeIntSlice:
-		return c.IntSliceProp(name)
+	case boardgame.TypeBool:
+		return c.BoolProp(name)
+	case boardgame.TypeString:
+		return c.StringProp(name)
 	case boardgame.TypePlayerIndex:
 		return c.PlayerIndexProp(name)
+	case boardgame.TypeEnum:
+		return c.ImmutableEnumProp(name)
+	case boardgame.TypeIntSlice:
+		return c.IntSliceProp(name)
+	case boardgame.TypeBoolSlice:
+		return c.BoolSliceProp(name)
+	case boardgame.TypeStringSlice:
+		return c.StringSliceProp(name)
 	case boardgame.TypePlayerIndexSlice:
 		return c.PlayerIndexSliceProp(name)
 	case boardgame.TypeStack:
 		return c.ImmutableStackProp(name)
-	case boardgame.TypeString:
-		return c.StringProp(name)
-	case boardgame.TypeStringSlice:
-		return c.StringSliceProp(name)
+	case boardgame.TypeBoard:
+		return c.ImmutableBoardProp(name)
 	case boardgame.TypeTimer:
 		return c.ImmutableTimerProp(name)
 
