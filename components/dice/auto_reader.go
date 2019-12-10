@@ -273,27 +273,15 @@ func (v *ȧutoGeneratedValueReader) ConfigureProp(name string, value interface{}
 	return errors.New("Unexpected property type: " + propType.String())
 }
 
-func (v *ȧutoGeneratedValueReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
+func (v *ȧutoGeneratedValueReader) IntProp(name string) (int, error) {
 
-	return nil, errors.New("No such Board prop: " + name)
-
-}
-
-func (v *ȧutoGeneratedValueReader) ConfigureBoardProp(name string, value boardgame.Board) error {
-
-	return errors.New("No such Board prop: " + name)
+	return 0, errors.New("No such Int prop: " + name)
 
 }
 
-func (v *ȧutoGeneratedValueReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
+func (v *ȧutoGeneratedValueReader) SetIntProp(name string, value int) error {
 
-	return errors.New("No such ImmutableBoard prop: " + name)
-
-}
-
-func (v *ȧutoGeneratedValueReader) BoardProp(name string) (boardgame.Board, error) {
-
-	return nil, errors.New("No such Board prop: " + name)
+	return errors.New("No such Int prop: " + name)
 
 }
 
@@ -309,15 +297,27 @@ func (v *ȧutoGeneratedValueReader) SetBoolProp(name string, value bool) error {
 
 }
 
-func (v *ȧutoGeneratedValueReader) BoolSliceProp(name string) ([]bool, error) {
+func (v *ȧutoGeneratedValueReader) StringProp(name string) (string, error) {
 
-	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+	return "", errors.New("No such String prop: " + name)
 
 }
 
-func (v *ȧutoGeneratedValueReader) SetBoolSliceProp(name string, value []bool) error {
+func (v *ȧutoGeneratedValueReader) SetStringProp(name string, value string) error {
 
-	return errors.New("No such BoolSlice prop: " + name)
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (v *ȧutoGeneratedValueReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (v *ȧutoGeneratedValueReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
 
 }
 
@@ -342,18 +342,6 @@ func (v *ȧutoGeneratedValueReader) ConfigureImmutableEnumProp(name string, valu
 func (v *ȧutoGeneratedValueReader) EnumProp(name string) (enum.Val, error) {
 
 	return nil, errors.New("No such Enum prop: " + name)
-
-}
-
-func (v *ȧutoGeneratedValueReader) IntProp(name string) (int, error) {
-
-	return 0, errors.New("No such Int prop: " + name)
-
-}
-
-func (v *ȧutoGeneratedValueReader) SetIntProp(name string, value int) error {
-
-	return errors.New("No such Int prop: " + name)
 
 }
 
@@ -382,15 +370,27 @@ func (v *ȧutoGeneratedValueReader) SetIntSliceProp(name string, value []int) er
 
 }
 
-func (v *ȧutoGeneratedValueReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+func (v *ȧutoGeneratedValueReader) BoolSliceProp(name string) ([]bool, error) {
 
-	return 0, errors.New("No such PlayerIndex prop: " + name)
+	return []bool{}, errors.New("No such BoolSlice prop: " + name)
 
 }
 
-func (v *ȧutoGeneratedValueReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+func (v *ȧutoGeneratedValueReader) SetBoolSliceProp(name string, value []bool) error {
 
-	return errors.New("No such PlayerIndex prop: " + name)
+	return errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (v *ȧutoGeneratedValueReader) StringSliceProp(name string) ([]string, error) {
+
+	return []string{}, errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (v *ȧutoGeneratedValueReader) SetStringSliceProp(name string, value []string) error {
+
+	return errors.New("No such StringSlice prop: " + name)
 
 }
 
@@ -430,27 +430,27 @@ func (v *ȧutoGeneratedValueReader) StackProp(name string) (boardgame.Stack, err
 
 }
 
-func (v *ȧutoGeneratedValueReader) StringProp(name string) (string, error) {
+func (v *ȧutoGeneratedValueReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
 
-	return "", errors.New("No such String prop: " + name)
-
-}
-
-func (v *ȧutoGeneratedValueReader) SetStringProp(name string, value string) error {
-
-	return errors.New("No such String prop: " + name)
+	return nil, errors.New("No such Board prop: " + name)
 
 }
 
-func (v *ȧutoGeneratedValueReader) StringSliceProp(name string) ([]string, error) {
+func (v *ȧutoGeneratedValueReader) ConfigureBoardProp(name string, value boardgame.Board) error {
 
-	return []string{}, errors.New("No such StringSlice prop: " + name)
+	return errors.New("No such Board prop: " + name)
 
 }
 
-func (v *ȧutoGeneratedValueReader) SetStringSliceProp(name string, value []string) error {
+func (v *ȧutoGeneratedValueReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
 
-	return errors.New("No such StringSlice prop: " + name)
+	return errors.New("No such ImmutableBoard prop: " + name)
+
+}
+
+func (v *ȧutoGeneratedValueReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
 
 }
 
@@ -752,78 +752,6 @@ func (d *ȧutoGeneratedDynamicValueReader) ConfigureProp(name string, value inte
 	return errors.New("Unexpected property type: " + propType.String())
 }
 
-func (d *ȧutoGeneratedDynamicValueReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
-
-	return nil, errors.New("No such Board prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) ConfigureBoardProp(name string, value boardgame.Board) error {
-
-	return errors.New("No such Board prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
-
-	return errors.New("No such ImmutableBoard prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) BoardProp(name string) (boardgame.Board, error) {
-
-	return nil, errors.New("No such Board prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) BoolProp(name string) (bool, error) {
-
-	return false, errors.New("No such Bool prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) SetBoolProp(name string, value bool) error {
-
-	return errors.New("No such Bool prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) BoolSliceProp(name string) ([]bool, error) {
-
-	return []bool{}, errors.New("No such BoolSlice prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) SetBoolSliceProp(name string, value []bool) error {
-
-	return errors.New("No such BoolSlice prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
-
-	return nil, errors.New("No such Enum prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) ConfigureEnumProp(name string, value enum.Val) error {
-
-	return errors.New("No such Enum prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
-
-	return errors.New("No such ImmutableEnum prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) EnumProp(name string) (enum.Val, error) {
-
-	return nil, errors.New("No such Enum prop: " + name)
-
-}
-
 func (d *ȧutoGeneratedDynamicValueReader) IntProp(name string) (int, error) {
 
 	switch name {
@@ -854,15 +782,27 @@ func (d *ȧutoGeneratedDynamicValueReader) SetIntProp(name string, value int) er
 
 }
 
-func (d *ȧutoGeneratedDynamicValueReader) IntSliceProp(name string) ([]int, error) {
+func (d *ȧutoGeneratedDynamicValueReader) BoolProp(name string) (bool, error) {
 
-	return []int{}, errors.New("No such IntSlice prop: " + name)
+	return false, errors.New("No such Bool prop: " + name)
 
 }
 
-func (d *ȧutoGeneratedDynamicValueReader) SetIntSliceProp(name string, value []int) error {
+func (d *ȧutoGeneratedDynamicValueReader) SetBoolProp(name string, value bool) error {
 
-	return errors.New("No such IntSlice prop: " + name)
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
 
 }
 
@@ -875,6 +815,66 @@ func (d *ȧutoGeneratedDynamicValueReader) PlayerIndexProp(name string) (boardga
 func (d *ȧutoGeneratedDynamicValueReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
 
 	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) ConfigureEnumProp(name string, value enum.Val) error {
+
+	return errors.New("No such Enum prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
+
+	return errors.New("No such ImmutableEnum prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) EnumProp(name string) (enum.Val, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) IntSliceProp(name string) ([]int, error) {
+
+	return []int{}, errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) SetIntSliceProp(name string, value []int) error {
+
+	return errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) BoolSliceProp(name string) ([]bool, error) {
+
+	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) SetBoolSliceProp(name string, value []bool) error {
+
+	return errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) StringSliceProp(name string) ([]string, error) {
+
+	return []string{}, errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) SetStringSliceProp(name string, value []string) error {
+
+	return errors.New("No such StringSlice prop: " + name)
 
 }
 
@@ -914,27 +914,27 @@ func (d *ȧutoGeneratedDynamicValueReader) StackProp(name string) (boardgame.Sta
 
 }
 
-func (d *ȧutoGeneratedDynamicValueReader) StringProp(name string) (string, error) {
+func (d *ȧutoGeneratedDynamicValueReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
 
-	return "", errors.New("No such String prop: " + name)
-
-}
-
-func (d *ȧutoGeneratedDynamicValueReader) SetStringProp(name string, value string) error {
-
-	return errors.New("No such String prop: " + name)
+	return nil, errors.New("No such Board prop: " + name)
 
 }
 
-func (d *ȧutoGeneratedDynamicValueReader) StringSliceProp(name string) ([]string, error) {
+func (d *ȧutoGeneratedDynamicValueReader) ConfigureBoardProp(name string, value boardgame.Board) error {
 
-	return []string{}, errors.New("No such StringSlice prop: " + name)
+	return errors.New("No such Board prop: " + name)
 
 }
 
-func (d *ȧutoGeneratedDynamicValueReader) SetStringSliceProp(name string, value []string) error {
+func (d *ȧutoGeneratedDynamicValueReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
 
-	return errors.New("No such StringSlice prop: " + name)
+	return errors.New("No such ImmutableBoard prop: " + name)
+
+}
+
+func (d *ȧutoGeneratedDynamicValueReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
 
 }
 

@@ -236,7 +236,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 {{end}}
 `
 
-const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{withimmutable .PropType}}Prop(name string) ({{.GoLangType}}, error) {
+const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{withimmutable .PropType.Key}}Prop(name string) ({{.PropType.ImmutableGoType}}, error) {
 	{{$firstLetter := .FirstLetter}}
 	{{if .NamesForType}}
 	switch name {
@@ -247,13 +247,13 @@ const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{wi
 	}
 	{{end}}
 
-	return {{.ZeroValue}}, errors.New("No such {{.PropType}} prop: " + name)
+	return {{.PropType.ZeroValue}}, errors.New("No such {{.PropType.Key}} prop: " + name)
 
 }
 
 {{if .OutputReadSetConfigurer -}}
-{{if .OutputMutableGetter -}}
-func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.SetterPropType}}Prop(name string, value {{.SetterGoLangType}}) error {
+{{if .PropType.IsInterface -}}
+func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.PropType.Key}}Prop(name string, value {{.PropType.MutableGoType}}) error {
 	{{if .NamesForType}}
 	switch name {
 		{{range .NamesForType -}}
@@ -276,11 +276,11 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.SetterPropType}}Prop(name s
 	}
 	{{end}}
 
-	return errors.New("No such {{.SetterPropType}} prop: " + name)
+	return errors.New("No such {{.PropType.Key}} prop: " + name)
 
 }
 
-func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .SetterPropType}}Prop(name string, value {{withimmutable .SetterGoLangType}}) error {
+func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .PropType.Key}}Prop(name string, value {{withimmutable .PropType.MutableGoType}}) error {
 	{{if .NamesForType}}
 	switch name {
 		{{range .NamesForType -}}
@@ -303,7 +303,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .SetterPropTyp
 	}
 	{{end}}
 
-	return errors.New("No such {{withimmutable .SetterPropType}} prop: " + name)
+	return errors.New("No such {{withimmutable .PropType.Key}} prop: " + name)
 
 }
 
@@ -311,10 +311,10 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .SetterPropTyp
 {{end}}
 
 {{if .OutputReadSetter -}}
-{{if .OutputMutableGetter -}}
-func ({{.FirstLetter}} *{{.ReaderName}}) {{.SetterPropType}}Prop(name string) ({{.SetterGoLangType}}, error) {
+{{if .PropType.IsInterface -}}
+func ({{.FirstLetter}} *{{.ReaderName}}) {{.PropType.Key}}Prop(name string) ({{.PropType.MutableGoType}}, error) {
 	{{$firstLetter := .FirstLetter}}
-	{{$zeroValue := .ZeroValue}}
+	{{$zeroValue := .PropType.ZeroValue}}
 	{{if .NamesForType}}
 	switch name {
 		{{range .NamesForType -}}
@@ -328,12 +328,12 @@ func ({{.FirstLetter}} *{{.ReaderName}}) {{.SetterPropType}}Prop(name string) ({
 	}
 	{{end}}
 
-	return {{.ZeroValue}}, errors.New("No such {{.PropType}} prop: " + name)
+	return {{.PropType.ZeroValue}}, errors.New("No such {{.PropType.Key}} prop: " + name)
 
 }
 
 {{else}}
-func ({{.FirstLetter}} *{{.ReaderName}}) Set{{.SetterPropType}}Prop(name string, value {{.SetterGoLangType}}) error {
+func ({{.FirstLetter}} *{{.ReaderName}}) Set{{.PropType.Key}}Prop(name string, value {{.PropType.MutableGoType}}) error {
 	{{if .NamesForType}}
 	switch name {
 		{{range .NamesForType -}}
@@ -344,7 +344,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Set{{.SetterPropType}}Prop(name string,
 	}
 	{{end}}
 
-	return errors.New("No such {{.SetterPropType}} prop: " + name)
+	return errors.New("No such {{.PropType.Key}} prop: " + name)
 
 }
 

@@ -175,45 +175,12 @@ func (r *readerGenerator) headerForStruct() string {
 			Fields:                               r.fields,
 		})
 
-	sortedKeys := make([]string, len(propertyTypes))
-	i := 0
-
-	for propType := range propertyTypes {
-		sortedKeys[i] = propType
-		i++
-	}
-
-	sort.Strings(sortedKeys)
-
-	for _, propType := range sortedKeys {
-
-		goLangType := propertyTypes[propType]
-
-		zeroValue := "nil"
-
-		switch propType {
-		case "Bool":
-			zeroValue = "false"
-		case "Int":
-			zeroValue = "0"
-		case "String":
-			zeroValue = "\"\""
-		case "PlayerIndex":
-			zeroValue = "0"
-		case "IntSlice":
-			zeroValue = "[]int{}"
-		case "BoolSlice":
-			zeroValue = "[]bool{}"
-		case "StringSlice":
-			zeroValue = "[]string{}"
-		case "PlayerIndexSlice":
-			zeroValue = "[]boardgame.PlayerIndex{}"
-		}
+	for _, propType := range allValidTypes {
 
 		var namesForType []nameForTypeInfo
 
 		for key, val := range r.fields.Types {
-			if val.String() == "Type"+propType {
+			if val == propType {
 				namesForType = append(namesForType, nameForTypeInfo{
 					Name:        key,
 					Mutable:     r.fields.Mutable[key],
@@ -226,46 +193,15 @@ func (r *readerGenerator) headerForStruct() string {
 			return namesForType[i].Name < namesForType[j].Name
 		})
 
-		setterPropType := propType
-
-		outputMutableGetter := false
-
-		switch propType {
-		case "Enum":
-			setterPropType = "Enum"
-			outputMutableGetter = true
-		case "Stack":
-			setterPropType = "Stack"
-			outputMutableGetter = true
-		case "Board":
-			setterPropType = "Board"
-			outputMutableGetter = true
-		case "Timer":
-			setterPropType = "Timer"
-			outputMutableGetter = true
-		}
-
-		setterGoLangType := setterPropertyTypes[setterPropType]
-
 		output += templateOutput(typedPropertyTemplate,
 			struct {
 				baseReaderGeneratorTemplateArguments
-				PropType            string
-				SetterPropType      string
-				NamesForType        []nameForTypeInfo
-				GoLangType          string
-				SetterGoLangType    string
-				OutputMutableGetter bool
-				ZeroValue           string
+				PropType     boardgame.PropertyType
+				NamesForType []nameForTypeInfo
 			}{
 				baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),
 				PropType:                             propType,
-				SetterPropType:                       setterPropType,
 				NamesForType:                         namesForType,
-				GoLangType:                           goLangType,
-				SetterGoLangType:                     setterGoLangType,
-				OutputMutableGetter:                  outputMutableGetter,
-				ZeroValue:                            zeroValue,
 			})
 	}
 

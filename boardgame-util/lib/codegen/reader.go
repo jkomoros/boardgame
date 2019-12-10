@@ -25,6 +25,7 @@ var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]*typeInfo
 //version, and if they're actually a higher type in the hierarchy (e.g.
 //MergedStack instead of just a STack).
 type typeInfo struct {
+	//Types is the type of the given named field
 	Types       map[string]boardgame.PropertyType
 	Mutable     map[string]bool
 	UpConverter map[string]string
