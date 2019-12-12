@@ -124,11 +124,11 @@ func (r *readerGenerator) headerForStruct() string {
 
 	for _, propType := range allValidTypes {
 
-		var namesForType []nameForTypeInfo
+		var fieldsForType []fieldInfo
 
 		for key, field := range r.fields {
 			if field.Type == propType {
-				namesForType = append(namesForType, nameForTypeInfo{
+				fieldsForType = append(fieldsForType, fieldInfo{
 					Name:    key,
 					Mutable: field.Mutable,
 					SubType: field.SubType,
@@ -136,19 +136,19 @@ func (r *readerGenerator) headerForStruct() string {
 			}
 		}
 
-		sort.Slice(namesForType, func(i, j int) bool {
-			return namesForType[i].Name < namesForType[j].Name
+		sort.Slice(fieldsForType, func(i, j int) bool {
+			return fieldsForType[i].Name < fieldsForType[j].Name
 		})
 
 		output += templateOutput(typedPropertyTemplate,
 			struct {
 				baseReaderGeneratorTemplateArguments
-				PropType     boardgame.PropertyType
-				NamesForType []nameForTypeInfo
+				PropType      boardgame.PropertyType
+				FieldsForType []fieldInfo
 			}{
 				baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),
 				PropType:                             propType,
-				NamesForType:                         namesForType,
+				FieldsForType:                        fieldsForType,
 			})
 	}
 

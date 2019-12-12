@@ -205,9 +205,9 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 
 const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{immutablekey .PropType}}Prop(name string) ({{.PropType.ImmutableGoType}}, error) {
 	{{$firstLetter := .FirstLetter}}
-	{{if .NamesForType}}
+	{{if .FieldsForType}}
 	switch name {
-		{{range .NamesForType -}}
+		{{range .FieldsForType -}}
 			case "{{.Name}}":
 				return {{$firstLetter}}.data.{{.Name}}, nil
 		{{end}}
@@ -221,9 +221,9 @@ const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{im
 {{if .OutputReadSetConfigurer -}}
 {{if .PropType.IsInterface -}}
 func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.PropType.Key}}Prop(name string, value {{.PropType.MutableGoType}}) error {
-	{{if .NamesForType}}
+	{{if .FieldsForType}}
 	switch name {
-		{{range .NamesForType -}}
+		{{range .FieldsForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
 				{{if .SubType -}}
@@ -248,9 +248,9 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.PropType.Key}}Prop(name str
 }
 
 func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{immutablekey .PropType}}Prop(name string, value {{.PropType.ImmutableGoType}}) error {
-	{{if .NamesForType}}
+	{{if .FieldsForType}}
 	switch name {
-		{{range .NamesForType -}}
+		{{range .FieldsForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
 				return boardgame.ErrPropertyImmutable
@@ -282,9 +282,9 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{immutablekey .PropType}}Prop
 func ({{.FirstLetter}} *{{.ReaderName}}) {{.PropType.Key}}Prop(name string) ({{.PropType.MutableGoType}}, error) {
 	{{$firstLetter := .FirstLetter}}
 	{{$zeroValue := .PropType.ZeroValue}}
-	{{if .NamesForType}}
+	{{if .FieldsForType}}
 	switch name {
-		{{range .NamesForType -}}
+		{{range .FieldsForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
 				return {{$firstLetter}}.data.{{.Name}}, nil
@@ -301,9 +301,9 @@ func ({{.FirstLetter}} *{{.ReaderName}}) {{.PropType.Key}}Prop(name string) ({{.
 
 {{else}}
 func ({{.FirstLetter}} *{{.ReaderName}}) Set{{.PropType.Key}}Prop(name string, value {{.PropType.MutableGoType}}) error {
-	{{if .NamesForType}}
+	{{if .FieldsForType}}
 	switch name {
-		{{range .NamesForType -}}
+		{{range .FieldsForType -}}
 			case "{{.Name}}":
 				{{$firstLetter}}.data.{{.Name}} = value
 				return nil

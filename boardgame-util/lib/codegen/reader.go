@@ -29,21 +29,13 @@ type fieldsInfo map[string]*fieldInfo
 //version, and if they're actually a higher type in the hierarchy (e.g.
 //MergedStack instead of just a STack).
 type fieldInfo struct {
+	Name string
 	//Types is the type of the given named field
 	Type    boardgame.PropertyType
 	Mutable bool
 	//SubType will be non-"" if the type is actually represented by a literal
 	//value of one of this type's SubTypes, for example a "SizedStack" when the
 	//Type is boardgame.TypeStack.
-	SubType string
-}
-
-//nameForTypeInfo represents each named struct field of a given
-//boardgame.PropertyType that we'll output, including enough information to know
-//if it needs mutable/upconverter.
-type nameForTypeInfo struct {
-	Name    string
-	Mutable bool
 	SubType string
 }
 
