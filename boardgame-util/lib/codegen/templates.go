@@ -35,35 +35,13 @@ func init() {
 	enumItemTemplate = template.Must(template.New("enumitem").Parse(enumItemTemplateText))
 }
 
-func withImmutable(in string) string {
-	prefix := ""
-	rest := in
-	parts := strings.Split(in, ".")
-	if len(parts) > 1 {
-		prefix = strings.Join(parts[:len(parts)-1], ".")
-		rest = parts[len(parts)-1]
+func withImmutable(in boardgame.PropertyType) string {
+	var result string
+	if in.IsInterface() {
+		result = "Immutable"
 	}
-
-	if _, needsImmutable := configureTypes[rest]; !needsImmutable {
-		return in
-	}
-
-	rest = "Immutable" + rest
-
-	if prefix == "" {
-		return rest
-	}
-
-	return prefix + "." + rest
-
-}
-
-var configureTypes = map[string]bool{
-	"Stack": true,
-	"Timer": true,
-	"Board": true,
-	"Val":   true,
-	"Enum":  true,
+	result += in.Key()
+	return result
 }
 
 func verbForType(in boardgame.PropertyType) string {
@@ -133,7 +111,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Prop(name string) (interface{}, error) 
 	switch propType {
 	{{range $type := .PropertyTypes -}}
 	case boardgame.Type{{$type.Key}}:
-		return {{$firstLetter}}.{{withimmutable $type.Key}}Prop(name)
+		return {{$firstLetter}}.{{withimmutable $type}}Prop(name)
 	{{end}}
 	}
 
@@ -208,7 +186,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 		if !ok {
 			return errors.New("Provided value was not of type {{$type.ImmutableGoType}}")
 		}
-		return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type.Key}}Prop(name, val)
+		return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type}}Prop(name, val)
 		{{- else -}}
 			val, ok := value.({{$type.ImmutableGoType}})
 			if !ok {
@@ -225,7 +203,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 {{end}}
 `
 
-const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{withimmutable .PropType.Key}}Prop(name string) ({{.PropType.ImmutableGoType}}, error) {
+const typedPropertyTemplateText = `func ({{.FirstLetter}} *{{.ReaderName}}) {{withimmutable .PropType}}Prop(name string) ({{.PropType.ImmutableGoType}}, error) {
 	{{$firstLetter := .FirstLetter}}
 	{{if .NamesForType}}
 	switch name {
@@ -269,7 +247,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.PropType.Key}}Prop(name str
 
 }
 
-func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .PropType.Key}}Prop(name string, value {{.PropType.ImmutableGoType}}) error {
+func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .PropType}}Prop(name string, value {{.PropType.ImmutableGoType}}) error {
 	{{if .NamesForType}}
 	switch name {
 		{{range .NamesForType -}}
@@ -292,7 +270,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .PropType.Key}
 	}
 	{{end}}
 
-	return errors.New("No such {{withimmutable .PropType.Key}} prop: " + name)
+	return errors.New("No such {{withimmutable .PropType}} prop: " + name)
 
 }
 
