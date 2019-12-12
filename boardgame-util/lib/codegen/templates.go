@@ -3,6 +3,8 @@ package codegen
 import (
 	"strings"
 	"text/template"
+
+	"github.com/jkomoros/boardgame"
 )
 
 var headerTemplate *template.Template
@@ -76,9 +78,8 @@ var configureTypes = map[string]bool{
 	"Enum":  true,
 }
 
-func verbForType(in string) string {
-	_, configure := configureTypes[in]
-	if configure {
+func verbForType(in boardgame.PropertyType) string {
+	if in.IsInterface() {
 		return "Configure"
 	}
 	return "Set"
@@ -183,7 +184,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) SetProp(name string, value interface{})
 		if !ok {
 			return errors.New("Provided value was not of type {{$type.ImmutableGoType}}")
 		}
-		return {{$firstLetter}}.{{verbfortype $type.Key}}{{$type.Key}}Prop(name, val)
+		return {{$firstLetter}}.{{verbfortype $type}}{{$type.Key}}Prop(name, val)
 	{{- end}}
 	{{end}}
 	}
@@ -212,20 +213,20 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 			if !ok {
 				return errors.New("Provided value was not of type {{$type.MutableGoType}}")
 			}
-			return {{$firstLetter}}.{{verbfortype $type.Key}}{{$type.Key}}Prop(name, val)
+			return {{$firstLetter}}.{{verbfortype $type}}{{$type.Key}}Prop(name, val)
 		}
 		//Immutable variant
 		val, ok := value.({{withimmutable $type.ImmutableGoType}})
 		if !ok {
 			return errors.New("Provided value was not of type {{withimmutable $type.ImmutableGoType}}")
 		}
-		return {{$firstLetter}}.{{verbfortype $type.Key}}{{withimmutable $type.Key}}Prop(name, val)
+		return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type.Key}}Prop(name, val)
 		{{- else -}}
 			val, ok := value.({{$type.ImmutableGoType}})
 			if !ok {
 				return errors.New("Provided value was not of type {{$type.ImmutableGoType}}")
 			}
-			return {{$firstLetter}}.{{verbfortype $type.Key}}{{$type.Key}}Prop(name, val)
+			return {{$firstLetter}}.{{verbfortype $type}}{{$type.Key}}Prop(name, val)
 		{{- end}}
 	{{end}}
 	}
