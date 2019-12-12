@@ -204,9 +204,9 @@ func ({{.FirstLetter}} *{{.ReaderName}}) ConfigureProp(name string, value interf
 			return {{$firstLetter}}.{{verbfortype $type}}{{$type.Key}}Prop(name, val)
 		}
 		//Immutable variant
-		val, ok := value.({{withimmutable $type.ImmutableGoType}})
+		val, ok := value.({{$type.ImmutableGoType}})
 		if !ok {
-			return errors.New("Provided value was not of type {{withimmutable $type.ImmutableGoType}}")
+			return errors.New("Provided value was not of type {{$type.ImmutableGoType}}")
 		}
 		return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type.Key}}Prop(name, val)
 		{{- else -}}
@@ -269,7 +269,7 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.PropType.Key}}Prop(name str
 
 }
 
-func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .PropType.Key}}Prop(name string, value {{withimmutable .PropType.MutableGoType}}) error {
+func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{withimmutable .PropType.Key}}Prop(name string, value {{.PropType.ImmutableGoType}}) error {
 	{{if .NamesForType}}
 	switch name {
 		{{range .NamesForType -}}
