@@ -31,7 +31,7 @@ type readerGenerator struct {
 	outputReadSetter        bool
 	outputReadSetConfigurer bool
 	//TODO: pop all of this directly into the struct
-	fields *typeInfo
+	fields fieldsInfo
 }
 
 //newReaderGenerator processes the given struct and then outputs a generator if
@@ -115,7 +115,7 @@ func (r *readerGenerator) headerForStruct() string {
 		struct {
 			baseReaderGeneratorTemplateArguments
 			PropertyTypes []boardgame.PropertyType
-			Fields        *typeInfo
+			Fields        fieldsInfo
 		}{
 			baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),
 			PropertyTypes:                        allValidTypes,
@@ -126,12 +126,12 @@ func (r *readerGenerator) headerForStruct() string {
 
 		var namesForType []nameForTypeInfo
 
-		for key, val := range r.fields.Types {
-			if val == propType {
+		for key, field := range r.fields {
+			if field.Type == propType {
 				namesForType = append(namesForType, nameForTypeInfo{
 					Name:        key,
-					Mutable:     r.fields.Mutable[key],
-					UpConverter: r.fields.UpConverter[key],
+					Mutable:     field.Mutable,
+					UpConverter: field.UpConverter,
 				})
 			}
 		}

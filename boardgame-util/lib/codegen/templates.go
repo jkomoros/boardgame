@@ -118,8 +118,8 @@ const importText = `import (
 const structHeaderTemplateText = `// Implementation for {{.StructName}}
 
 var {{.ReaderName}}Props = map[string]boardgame.PropertyType{
-	{{range $key, $value := .Fields.Types -}}
-		"{{$key}}": boardgame.{{$value.String}},
+	{{range $key, $value := .Fields -}}
+		"{{$key}}": boardgame.{{$value.Type.String}},
 	{{end}}
 }
 
@@ -155,9 +155,9 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Prop(name string) (interface{}, error) 
 
 func ({{.FirstLetter}} *{{.ReaderName}}) PropMutable(name string) bool {
 	switch name {
-		{{range $key, $val := .Fields.Mutable -}}
+		{{range $key, $val := .Fields -}}
 	case "{{$key}}":
-		return {{$val}}
+		return {{$val.Mutable}}
 		{{end -}}
 	}
 

@@ -18,17 +18,21 @@ type memoizedEmbeddedStructKey struct {
 	TargetStructName string
 }
 
-var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]*typeInfo
+var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]fieldsInfo
 
-//typeInfo is a collection of information about the specific fields in a given
+//fieldsInfo is a collection of field names in a struct and the info about each
+//field.
+type fieldsInfo map[string]*fieldInfo
+
+//fieldInfo is a collection of information about the specific field in a given
 //struct, including their boardgame.PropertyType, whether they're the mutable
 //version, and if they're actually a higher type in the hierarchy (e.g.
 //MergedStack instead of just a STack).
-type typeInfo struct {
+type fieldInfo struct {
 	//Types is the type of the given named field
-	Types       map[string]boardgame.PropertyType
-	Mutable     map[string]bool
-	UpConverter map[string]string
+	Type        boardgame.PropertyType
+	Mutable     bool
+	UpConverter string
 }
 
 //nameForTypeInfo represents each named struct field of a given
@@ -43,7 +47,7 @@ type nameForTypeInfo struct {
 const magicDocLinePrefix = "boardgame:codegen"
 
 func init() {
-	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]*typeInfo)
+	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]fieldsInfo)
 }
 
 /*
@@ -185,24 +189,51 @@ func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 	return false
 }
 
-func structFields(location string, theStruct model.Struct, allStructs []model.Struct) *typeInfo {
-
-	result := &typeInfo{
-		make(map[string]boardgame.PropertyType),
-		make(map[string]bool),
-		make(map[string]string),
+func (f fieldsInfo) setType(fieldName string, t boardgame.PropertyType) {
+	info := f[fieldName]
+	if info == nil {
+		info = new(fieldInfo)
+		f[fieldName] = info
 	}
+	info.Type = t
+}
+
+func (f fieldsInfo) setMutable(fieldName string, isMutable bool) {
+	info := f[fieldName]
+	if info == nil {
+		info = new(fieldInfo)
+		f[fieldName] = info
+	}
+	info.Mutable = isMutable
+}
+
+func (f fieldsInfo) setUpConverter(fieldName string, upConverter string) {
+	info := f[fieldName]
+	if info == nil {
+		info = new(fieldInfo)
+		f[fieldName] = info
+	}
+	info.UpConverter = upConverter
+}
+
+func (f fieldsInfo) combine(other fieldsInfo) {
+	if other == nil {
+		return
+	}
+	for key, val := range other {
+		f[key] = val
+	}
+}
+
+func structFields(location string, theStruct model.Struct, allStructs []model.Struct) fieldsInfo {
+
+	result := make(fieldsInfo)
 
 	for _, field := range theStruct.Fields {
 		if fieldNamePossibleEmbeddedStruct(field) {
 			embeddedInfo := typesForPossibleEmbeddedStruct(location, field, allStructs)
 			if embeddedInfo != nil {
-				for key, val := range embeddedInfo.Types {
-					result.Types[key] = val
-				}
-				for key, val := range embeddedInfo.Mutable {
-					result.Mutable[key] = val
-				}
+				result.combine(embeddedInfo)
 				continue
 			}
 		}
@@ -212,12 +243,7 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 			for _, otherStruct := range allStructs {
 				if otherStruct.Name == field.TypeName {
 					embeddedInfo := structFields(location, otherStruct, allStructs)
-					for key, val := range embeddedInfo.Types {
-						result.Types[key] = val
-					}
-					for key, val := range embeddedInfo.Mutable {
-						result.Mutable[key] = val
-					}
+					result.combine(embeddedInfo)
 					foundStruct = true
 					break
 				}
@@ -232,84 +258,84 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 		switch field.TypeName {
 		case "int":
 			if field.IsSlice {
-				result.Types[field.Name] = boardgame.TypeIntSlice
+				result.setType(field.Name, boardgame.TypeIntSlice)
 			} else {
-				result.Types[field.Name] = boardgame.TypeInt
+				result.setType(field.Name, boardgame.TypeInt)
 			}
-			result.Mutable[field.Name] = true
+			result.setMutable(field.Name, true)
 		case "bool":
 			if field.IsSlice {
-				result.Types[field.Name] = boardgame.TypeBoolSlice
+				result.setType(field.Name, boardgame.TypeBoolSlice)
 			} else {
-				result.Types[field.Name] = boardgame.TypeBool
+				result.setType(field.Name, boardgame.TypeBool)
 			}
-			result.Mutable[field.Name] = true
+			result.setMutable(field.Name, true)
 		case "string":
 			if field.IsSlice {
-				result.Types[field.Name] = boardgame.TypeStringSlice
+				result.setType(field.Name, boardgame.TypeStringSlice)
 			} else {
-				result.Types[field.Name] = boardgame.TypeString
+				result.setType(field.Name, boardgame.TypeString)
 			}
-			result.Mutable[field.Name] = true
+			result.setMutable(field.Name, true)
 		case "boardgame.PlayerIndex":
 			if field.IsSlice {
-				result.Types[field.Name] = boardgame.TypePlayerIndexSlice
+				result.setType(field.Name, boardgame.TypePlayerIndexSlice)
 			} else {
-				result.Types[field.Name] = boardgame.TypePlayerIndex
+				result.setType(field.Name, boardgame.TypePlayerIndex)
 			}
-			result.Mutable[field.Name] = true
+			result.setMutable(field.Name, true)
 		case "boardgame.ImmutableStack":
-			result.Types[field.Name] = boardgame.TypeStack
-			result.Mutable[field.Name] = false
+			result.setType(field.Name, boardgame.TypeStack)
+			result.setMutable(field.Name, false)
 		case "boardgame.MergedStack":
-			result.Types[field.Name] = boardgame.TypeStack
-			result.Mutable[field.Name] = false
-			result.UpConverter[field.Name] = "MergedStack"
+			result.setType(field.Name, boardgame.TypeStack)
+			result.setMutable(field.Name, false)
+			result.setUpConverter(field.Name, "MergedStack")
 		case "boardgame.Stack":
-			result.Types[field.Name] = boardgame.TypeStack
-			result.Mutable[field.Name] = true
+			result.setType(field.Name, boardgame.TypeStack)
+			result.setMutable(field.Name, true)
 		case "boardgame.ImmutableSizedStack":
-			result.Types[field.Name] = boardgame.TypeStack
-			result.Mutable[field.Name] = false
-			result.UpConverter[field.Name] = "ImmutableSizedStack"
+			result.setType(field.Name, boardgame.TypeStack)
+			result.setMutable(field.Name, false)
+			result.setUpConverter(field.Name, "ImmutableSizedStack")
 		case "boardgame.SizedStack":
-			result.Types[field.Name] = boardgame.TypeStack
-			result.Mutable[field.Name] = true
-			result.UpConverter[field.Name] = "SizedStack"
+			result.setType(field.Name, boardgame.TypeStack)
+			result.setMutable(field.Name, true)
+			result.setUpConverter(field.Name, "SizedStack")
 		case "boardgame.ImmutableBoard":
-			result.Types[field.Name] = boardgame.TypeBoard
-			result.Mutable[field.Name] = false
+			result.setType(field.Name, boardgame.TypeBoard)
+			result.setMutable(field.Name, false)
 		case "boardgame.Board":
-			result.Types[field.Name] = boardgame.TypeBoard
-			result.Mutable[field.Name] = true
+			result.setType(field.Name, boardgame.TypeBoard)
+			result.setMutable(field.Name, true)
 		case "enum.ImmutableVal":
-			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = false
+			result.setType(field.Name, boardgame.TypeEnum)
+			result.setMutable(field.Name, false)
 		case "enum.Val":
-			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = true
+			result.setType(field.Name, boardgame.TypeEnum)
+			result.setMutable(field.Name, true)
 		case "enum.ImmutableRangeVal":
-			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = false
-			result.UpConverter[field.Name] = "ImmutableRangeVal"
+			result.setType(field.Name, boardgame.TypeEnum)
+			result.setMutable(field.Name, false)
+			result.setUpConverter(field.Name, "ImmutableRangeVal")
 		case "enum.RangeVal":
-			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = true
-			result.UpConverter[field.Name] = "RangeVal"
+			result.setType(field.Name, boardgame.TypeEnum)
+			result.setMutable(field.Name, true)
+			result.setUpConverter(field.Name, "RangeVal")
 		case "enum.ImmutableTreeVal":
-			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = false
-			result.UpConverter[field.Name] = "ImmutableTreeVal"
+			result.setType(field.Name, boardgame.TypeEnum)
+			result.setMutable(field.Name, false)
+			result.setUpConverter(field.Name, "ImmutableTreeVal")
 		case "enum.TreeVal":
-			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = true
-			result.UpConverter[field.Name] = "TreeVal"
+			result.setType(field.Name, boardgame.TypeEnum)
+			result.setMutable(field.Name, true)
+			result.setUpConverter(field.Name, "TreeVal")
 		case "boardgame.ImmutableTimer":
-			result.Types[field.Name] = boardgame.TypeTimer
-			result.Mutable[field.Name] = false
+			result.setType(field.Name, boardgame.TypeTimer)
+			result.setMutable(field.Name, false)
 		case "boardgame.Timer":
-			result.Types[field.Name] = boardgame.TypeTimer
-			result.Mutable[field.Name] = true
+			result.setType(field.Name, boardgame.TypeTimer)
+			result.setMutable(field.Name, true)
 		default:
 			log.Println("Unknown type on " + theStruct.Name + ": " + field.Name + ": " + field.TypeName)
 		}
@@ -322,7 +348,7 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 //field MIGHT be an embedded struct. If it is, we will identify the package it
 //appears to be built from, parse those structs, try to find the struct, and
 //return a map of property types in it.
-func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) *typeInfo {
+func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) fieldsInfo {
 
 	targetTypeParts := strings.Split(theField.TypeName, ".")
 
