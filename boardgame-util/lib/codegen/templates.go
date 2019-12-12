@@ -226,8 +226,8 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{.PropType.Key}}Prop(name str
 		{{range .NamesForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
-				{{if .UpConverter -}}
-				slotValue := value.{{.UpConverter}}()
+				{{if .SubType -}}
+				slotValue := value.{{.SubType}}()
 				if slotValue == nil {
 					return errors.New("{{.Name}} couldn't be upconverted, returned nil")
 				}
@@ -255,8 +255,8 @@ func ({{.FirstLetter}} *{{.ReaderName}}) Configure{{immutablekey .PropType}}Prop
 			{{if .Mutable -}}
 				return boardgame.ErrPropertyImmutable
 			{{- else -}}
-				{{if .UpConverter -}}
-				slotValue := value.{{.UpConverter}}()
+				{{if .SubType -}}
+				slotValue := value.{{.SubType}}()
 				if slotValue == nil {
 					return errors.New("{{.Name}} couldn't be upconverted, returned nil")
 				}

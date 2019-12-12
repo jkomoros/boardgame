@@ -30,18 +30,21 @@ type fieldsInfo map[string]*fieldInfo
 //MergedStack instead of just a STack).
 type fieldInfo struct {
 	//Types is the type of the given named field
-	Type        boardgame.PropertyType
-	Mutable     bool
-	UpConverter string
+	Type    boardgame.PropertyType
+	Mutable bool
+	//SubType will be non-"" if the type is actually represented by a literal
+	//value of one of this type's SubTypes, for example a "SizedStack" when the
+	//Type is boardgame.TypeStack.
+	SubType string
 }
 
 //nameForTypeInfo represents each named struct field of a given
 //boardgame.PropertyType that we'll output, including enough information to know
 //if it needs mutable/upconverter.
 type nameForTypeInfo struct {
-	Name        string
-	Mutable     bool
-	UpConverter string
+	Name    string
+	Mutable bool
+	SubType string
 }
 
 const magicDocLinePrefix = "boardgame:codegen"
@@ -207,13 +210,13 @@ func (f fieldsInfo) setMutable(fieldName string, isMutable bool) {
 	info.Mutable = isMutable
 }
 
-func (f fieldsInfo) setUpConverter(fieldName string, upConverter string) {
+func (f fieldsInfo) setSubType(fieldName string, subType string) {
 	info := f[fieldName]
 	if info == nil {
 		info = new(fieldInfo)
 		f[fieldName] = info
 	}
-	info.UpConverter = upConverter
+	info.SubType = subType
 }
 
 func (f fieldsInfo) combine(other fieldsInfo) {
@@ -290,18 +293,18 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 		case "boardgame.MergedStack":
 			result.setType(field.Name, boardgame.TypeStack)
 			result.setMutable(field.Name, false)
-			result.setUpConverter(field.Name, "MergedStack")
+			result.setSubType(field.Name, "MergedStack")
 		case "boardgame.Stack":
 			result.setType(field.Name, boardgame.TypeStack)
 			result.setMutable(field.Name, true)
 		case "boardgame.ImmutableSizedStack":
 			result.setType(field.Name, boardgame.TypeStack)
 			result.setMutable(field.Name, false)
-			result.setUpConverter(field.Name, "ImmutableSizedStack")
+			result.setSubType(field.Name, "ImmutableSizedStack")
 		case "boardgame.SizedStack":
 			result.setType(field.Name, boardgame.TypeStack)
 			result.setMutable(field.Name, true)
-			result.setUpConverter(field.Name, "SizedStack")
+			result.setSubType(field.Name, "SizedStack")
 		case "boardgame.ImmutableBoard":
 			result.setType(field.Name, boardgame.TypeBoard)
 			result.setMutable(field.Name, false)
@@ -317,19 +320,19 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 		case "enum.ImmutableRangeVal":
 			result.setType(field.Name, boardgame.TypeEnum)
 			result.setMutable(field.Name, false)
-			result.setUpConverter(field.Name, "ImmutableRangeVal")
+			result.setSubType(field.Name, "ImmutableRangeVal")
 		case "enum.RangeVal":
 			result.setType(field.Name, boardgame.TypeEnum)
 			result.setMutable(field.Name, true)
-			result.setUpConverter(field.Name, "RangeVal")
+			result.setSubType(field.Name, "RangeVal")
 		case "enum.ImmutableTreeVal":
 			result.setType(field.Name, boardgame.TypeEnum)
 			result.setMutable(field.Name, false)
-			result.setUpConverter(field.Name, "ImmutableTreeVal")
+			result.setSubType(field.Name, "ImmutableTreeVal")
 		case "enum.TreeVal":
 			result.setType(field.Name, boardgame.TypeEnum)
 			result.setMutable(field.Name, true)
-			result.setUpConverter(field.Name, "TreeVal")
+			result.setSubType(field.Name, "TreeVal")
 		case "boardgame.ImmutableTimer":
 			result.setType(field.Name, boardgame.TypeTimer)
 			result.setMutable(field.Name, false)

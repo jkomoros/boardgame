@@ -129,9 +129,9 @@ func (r *readerGenerator) headerForStruct() string {
 		for key, field := range r.fields {
 			if field.Type == propType {
 				namesForType = append(namesForType, nameForTypeInfo{
-					Name:        key,
-					Mutable:     field.Mutable,
-					UpConverter: field.UpConverter,
+					Name:    key,
+					Mutable: field.Mutable,
+					SubType: field.SubType,
 				})
 			}
 		}
