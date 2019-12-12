@@ -2,11 +2,11 @@ package codegen
 
 import (
 	"errors"
+	"go/ast"
 	"go/build"
 	"go/format"
 	"log"
 	"strings"
-	"unicode"
 
 	"github.com/MarcGrol/golangAnnotations/model"
 	"github.com/MarcGrol/golangAnnotations/parser"
@@ -150,23 +150,6 @@ func doProcessStructs(sources model.ParsedSources, location string, testFiles bo
 	return output, nil
 }
 
-func fieldNamePublic(name string) bool {
-	if len(name) < 1 {
-		return false
-	}
-
-	firstChar := []rune(name)[0]
-
-	if firstChar != unicode.ToUpper(firstChar) {
-		//It was not upper case, thus private, thus should not be included.
-		return false
-	}
-
-	//TODO: check if the struct says propertyreader:omit
-
-	return true
-}
-
 //fieldNamePossibleEmbeddedStruct returns true if it's possible that the field
 //is an embedded struct.
 func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
@@ -247,7 +230,7 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 				continue
 			}
 		}
-		if !fieldNamePublic(field.Name) {
+		if !ast.IsExported(field.Name) {
 			continue
 		}
 		switch field.TypeName {
