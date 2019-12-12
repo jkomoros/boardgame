@@ -20,7 +20,6 @@ var enumItemTemplate *template.Template
 func init() {
 	funcMap := template.FuncMap{
 		"withimmutable": withImmutable,
-		"ismutable":     isMutable,
 		"verbfortype":   verbForType,
 		"firstLetter":   firstLetter,
 	}
@@ -57,17 +56,6 @@ func withImmutable(in string) string {
 
 	return prefix + "." + rest
 
-}
-
-func isMutable(in string) bool {
-
-	for key := range configureTypes {
-		if strings.Contains(in, key) {
-			return true
-		}
-	}
-
-	return false
 }
 
 var configureTypes = map[string]bool{
