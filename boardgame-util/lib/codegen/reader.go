@@ -22,7 +22,7 @@ var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]fieldsInfo
 
 //fieldsInfo is a collection of field names in a struct and the info about each
 //field.
-type fieldsInfo map[string]*fieldInfo
+type fieldsInfo map[string]fieldInfo
 
 //fieldInfo is a collection of information about the specific field in a given
 //struct, including their boardgame.PropertyType, whether they're the mutable
@@ -167,33 +167,6 @@ func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 	return false
 }
 
-func (f fieldsInfo) setType(fieldName string, t boardgame.PropertyType) {
-	info := f[fieldName]
-	if info == nil {
-		info = new(fieldInfo)
-		f[fieldName] = info
-	}
-	info.Type = propertyType{t}
-}
-
-func (f fieldsInfo) setMutable(fieldName string, isMutable bool) {
-	info := f[fieldName]
-	if info == nil {
-		info = new(fieldInfo)
-		f[fieldName] = info
-	}
-	info.Mutable = isMutable
-}
-
-func (f fieldsInfo) setSubType(fieldName string, subType string) {
-	info := f[fieldName]
-	if info == nil {
-		info = new(fieldInfo)
-		f[fieldName] = info
-	}
-	info.SubType = subType
-}
-
 func (f fieldsInfo) combine(other fieldsInfo) {
 	if other == nil {
 		return
@@ -233,90 +206,12 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 		if !ast.IsExported(field.Name) {
 			continue
 		}
-		switch field.TypeName {
-		case "int":
-			if field.IsSlice {
-				result.setType(field.Name, boardgame.TypeIntSlice)
-			} else {
-				result.setType(field.Name, boardgame.TypeInt)
-			}
-			result.setMutable(field.Name, true)
-		case "bool":
-			if field.IsSlice {
-				result.setType(field.Name, boardgame.TypeBoolSlice)
-			} else {
-				result.setType(field.Name, boardgame.TypeBool)
-			}
-			result.setMutable(field.Name, true)
-		case "string":
-			if field.IsSlice {
-				result.setType(field.Name, boardgame.TypeStringSlice)
-			} else {
-				result.setType(field.Name, boardgame.TypeString)
-			}
-			result.setMutable(field.Name, true)
-		case "boardgame.PlayerIndex":
-			if field.IsSlice {
-				result.setType(field.Name, boardgame.TypePlayerIndexSlice)
-			} else {
-				result.setType(field.Name, boardgame.TypePlayerIndex)
-			}
-			result.setMutable(field.Name, true)
-		case "boardgame.ImmutableStack":
-			result.setType(field.Name, boardgame.TypeStack)
-			result.setMutable(field.Name, false)
-		case "boardgame.MergedStack":
-			result.setType(field.Name, boardgame.TypeStack)
-			result.setMutable(field.Name, false)
-			result.setSubType(field.Name, "MergedStack")
-		case "boardgame.Stack":
-			result.setType(field.Name, boardgame.TypeStack)
-			result.setMutable(field.Name, true)
-		case "boardgame.ImmutableSizedStack":
-			result.setType(field.Name, boardgame.TypeStack)
-			result.setMutable(field.Name, false)
-			result.setSubType(field.Name, "ImmutableSizedStack")
-		case "boardgame.SizedStack":
-			result.setType(field.Name, boardgame.TypeStack)
-			result.setMutable(field.Name, true)
-			result.setSubType(field.Name, "SizedStack")
-		case "boardgame.ImmutableBoard":
-			result.setType(field.Name, boardgame.TypeBoard)
-			result.setMutable(field.Name, false)
-		case "boardgame.Board":
-			result.setType(field.Name, boardgame.TypeBoard)
-			result.setMutable(field.Name, true)
-		case "enum.ImmutableVal":
-			result.setType(field.Name, boardgame.TypeEnum)
-			result.setMutable(field.Name, false)
-		case "enum.Val":
-			result.setType(field.Name, boardgame.TypeEnum)
-			result.setMutable(field.Name, true)
-		case "enum.ImmutableRangeVal":
-			result.setType(field.Name, boardgame.TypeEnum)
-			result.setMutable(field.Name, false)
-			result.setSubType(field.Name, "ImmutableRangeVal")
-		case "enum.RangeVal":
-			result.setType(field.Name, boardgame.TypeEnum)
-			result.setMutable(field.Name, true)
-			result.setSubType(field.Name, "RangeVal")
-		case "enum.ImmutableTreeVal":
-			result.setType(field.Name, boardgame.TypeEnum)
-			result.setMutable(field.Name, false)
-			result.setSubType(field.Name, "ImmutableTreeVal")
-		case "enum.TreeVal":
-			result.setType(field.Name, boardgame.TypeEnum)
-			result.setMutable(field.Name, true)
-			result.setSubType(field.Name, "TreeVal")
-		case "boardgame.ImmutableTimer":
-			result.setType(field.Name, boardgame.TypeTimer)
-			result.setMutable(field.Name, false)
-		case "boardgame.Timer":
-			result.setType(field.Name, boardgame.TypeTimer)
-			result.setMutable(field.Name, true)
-		default:
+		info := fieldInfoForTypeName(field.TypeName, field.IsSlice)
+		if info.Type.PropertyType == boardgame.TypeIllegal {
 			log.Println("Unknown type on " + theStruct.Name + ": " + field.Name + ": " + field.TypeName)
+			continue
 		}
+		result[field.Name] = info
 	}
 
 	return result
