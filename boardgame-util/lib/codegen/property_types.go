@@ -95,6 +95,56 @@ func (t propertyType) Key() string {
 	return strings.TrimPrefix(t.String(), "Type")
 }
 
+//ImmutableSubTypeConverters will return the names of hte converters to convert
+//to the various valid subtypes, e.g. "ImmutableSizedStack" for TypeStack.
+func (t propertyType) ImmutableSubTypeConverters() []string {
+	switch t.PropertyType {
+	case boardgame.TypeStack:
+		return []string{"MergedStack", "ImmutableSizedStack"}
+	case boardgame.TypeEnum:
+		return []string{"ImmutableTreeVal", "ImmutableRangeVal"}
+	}
+	return nil
+}
+
+//MutableSubTypeConverters will return the names of hte converters to convert
+//to the various valid subtypes, e.g. "ImmutableSizedStack" for TypeStack.
+func (t propertyType) MutableSubTypeConverters() []string {
+	switch t.PropertyType {
+	case boardgame.TypeStack:
+		return []string{"SizedStack"}
+	case boardgame.TypeEnum:
+		return []string{"TreeVal", "RangeVal"}
+	}
+	return nil
+}
+
+//ImmutableSubTypes returns the sub type fully qualitfied type strings for
+//sub-types, e.g. "enum.ImmutableRangeVal" for boardgame.TypeEnum.
+func (t propertyType) ImmutableSubTypes() []string {
+	//Since the convertesr by convention are literally just the name of the type
+	//(minus the package qualifier) we can just strip the package name.
+	prefix := t.TypePackagePrefix()
+	var result []string
+	for _, item := range t.ImmutableSubTypeConverters() {
+		result = append(result, strings.TrimPrefix(item, prefix))
+	}
+	return result
+}
+
+//MutableSubTypes returns the sub type fully qualitfied type strings for
+//sub-types, e.g. "enum.ImmutableRangeVal" for boardgame.TypeEnum.
+func (t propertyType) MutableSubTypes() []string {
+	//Since the convertesr by convention are literally just the name of the type
+	//(minus the package qualifier) we can just strip the package name.
+	prefix := t.TypePackagePrefix()
+	var result []string
+	for _, item := range t.MutableSubTypeConverters() {
+		result = append(result, strings.TrimPrefix(item, prefix))
+	}
+	return result
+}
+
 //ZeroValue returns the string representing the zeroValue for this type, e.g.
 //"0" for TypeInt and "[]boardgame.PlayerIndex{}" for TypePlayerIndexSlice. Most
 //useful for codgen package.
