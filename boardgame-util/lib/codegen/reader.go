@@ -31,7 +31,7 @@ type fieldsInfo map[string]*fieldInfo
 type fieldInfo struct {
 	Name string
 	//Types is the type of the given named field
-	Type    boardgame.PropertyType
+	Type    propertyType
 	Mutable bool
 	//SubType will be non-"" if the type is actually represented by a literal
 	//value of one of this type's SubTypes, for example a "SizedStack" when the
@@ -173,7 +173,7 @@ func (f fieldsInfo) setType(fieldName string, t boardgame.PropertyType) {
 		info = new(fieldInfo)
 		f[fieldName] = info
 	}
-	info.Type = t
+	info.Type = propertyType{t}
 }
 
 func (f fieldsInfo) setMutable(fieldName string, isMutable bool) {

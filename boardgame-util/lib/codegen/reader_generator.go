@@ -5,23 +5,7 @@ import (
 	"strings"
 
 	"github.com/MarcGrol/golangAnnotations/model"
-	"github.com/jkomoros/boardgame"
 )
-
-//allValidTypes is an enumeration of all types in order.
-var allValidTypes []boardgame.PropertyType
-
-//highestProperty is the highest enum in the PropertyType enum.
-const highestProperty = boardgame.TypeTimer
-
-func init() {
-	//Only need space for highestProperty because we skip TypeIllegal.
-	allValidTypes = make([]boardgame.PropertyType, highestProperty)
-	//We skip TypeIllegal
-	for i := 0; i < int(highestProperty); i++ {
-		allValidTypes[i] = boardgame.PropertyType(i + 1)
-	}
-}
 
 //readerGenerator represents a strucxt in the imported code that had the magic
 //codegen tag attached, meaning that we should generate code for it.
@@ -114,7 +98,7 @@ func (r *readerGenerator) headerForStruct() string {
 	output := templateOutput(structHeaderTemplate,
 		struct {
 			baseReaderGeneratorTemplateArguments
-			PropertyTypes []boardgame.PropertyType
+			PropertyTypes []propertyType
 			Fields        fieldsInfo
 		}{
 			baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),
@@ -143,7 +127,7 @@ func (r *readerGenerator) headerForStruct() string {
 		output += templateOutput(typedPropertyTemplate,
 			struct {
 				baseReaderGeneratorTemplateArguments
-				PropType      boardgame.PropertyType
+				PropType      propertyType
 				FieldsForType []fieldInfo
 			}{
 				baseReaderGeneratorTemplateArguments: r.baseReaderGeneratorTemplateArguments(),

@@ -78,9 +78,9 @@ const (
 	//TypeTimer is a Timer.
 	TypeTimer
 
-	//NOTE: when adding a new item to the end of this list, also update
-	//boardgame-util/lib/codegen/highestType to ensure codegen enumerates all of
-	//them.
+	//NOTE: when adding a new item to the end of this list, also update 1) the
+	//functions attached to PropertyType here, like IsSlice(), and 2) all
+	//methods and highestType in boardgame-util/lib/codegen/property_types.go
 )
 
 //ErrPropertyImmutable should be returned by PropertyReadSetters'
@@ -268,99 +268,6 @@ func (t PropertyType) BaseType() PropertyType {
 		log.Println("ERROR: BaseType for a non-slice property")
 		return t
 	}
-}
-
-//TypePackagePrefix returns a string representing the package prefix of the go
-//type that is represented by this property type. For example, "boardgame." for
-//TypeStack, and "" for TypeInt. Using strings.TrimPrefix() with this prefix
-//applied to the return value of for example ImmutableGoType and others will
-//strip away the package qualifier, if it exists. Most useful for the codegen
-//package.
-func (t PropertyType) TypePackagePrefix() string {
-	//Strip away any slices so we have fewer conditions to test for
-	base := t.BaseType()
-	switch base {
-	case TypePlayerIndex, TypeStack, TypeBoard, TypeTimer:
-		return "boardgame."
-	case TypeEnum:
-		return "enum."
-	}
-	return ""
-}
-
-//ImmutableGoType emits strings like 'bool', 'boardgame.PlayerIndex'. It
-//represents the type of this property for the immutable/getter contexts. Most
-//useful for codegen package.
-func (t PropertyType) ImmutableGoType() string {
-
-	if t.IsSlice() {
-		return "[]" + t.BaseType().ImmutableGoType()
-	}
-
-	switch t {
-	case TypeBool:
-		return "bool"
-	case TypeInt:
-		return "int"
-	case TypeString:
-		return "string"
-	case TypePlayerIndex:
-		return "boardgame.PlayerIndex"
-	case TypeEnum:
-		return "enum.ImmutableVal"
-	case TypeStack:
-		return "boardgame.ImmutableStack"
-	case TypeBoard:
-		return "boardgame.ImmutableBoard"
-	case TypeTimer:
-		return "boardgame.ImmutableTimer"
-	default:
-		return ""
-	}
-}
-
-//MutableGoType emits a string representing the golang type for the property
-//when in mutable/setter contexts, e.g 'int', 'boardgame.Stack'. Most useful for
-//the codegen package.
-func (t PropertyType) MutableGoType() string {
-	return strings.Replace(t.ImmutableGoType(), "Immutable", "", -1)
-}
-
-//Key returns the part of the PropertyReader method signature for this type. For
-//example, "Bool" for TypeBool, "Timer" for "TypeTimer". Most useful for the
-//codegen package.
-func (t PropertyType) Key() string {
-	return strings.TrimPrefix(t.String(), "Type")
-}
-
-//ZeroValue returns the string representing the zeroValue for this type, e.g.
-//"0" for TypeInt and "[]boardgame.PlayerIndex{}" for TypePlayerIndexSlice. Most
-//useful for codgen package.
-func (t PropertyType) ZeroValue() string {
-
-	switch t {
-	case TypeBool:
-		return "false"
-	case TypeInt:
-		return "0"
-	case TypeString:
-		return "\"\""
-	case TypePlayerIndex:
-		return "0"
-	case TypeIllegal:
-		return ""
-	}
-
-	if t.IsSlice() {
-		return t.ImmutableGoType() + "{}"
-	}
-	if t.IsInterface() {
-		return "nil"
-	}
-
-	log.Println("Unexpected type for ZeroValue")
-	return ""
-
 }
 
 //TODO: protect access to this with a mutex.

@@ -3,8 +3,6 @@ package codegen
 import (
 	"strings"
 	"text/template"
-
-	"github.com/jkomoros/boardgame"
 )
 
 var headerTemplate *template.Template
@@ -35,7 +33,7 @@ func init() {
 	enumItemTemplate = template.Must(template.New("enumitem").Parse(enumItemTemplateText))
 }
 
-func immutableKey(in boardgame.PropertyType) string {
+func immutableKey(in propertyType) string {
 	var result string
 	if in.IsInterface() {
 		result = "Immutable"
@@ -44,7 +42,7 @@ func immutableKey(in boardgame.PropertyType) string {
 	return result
 }
 
-func verbForType(in boardgame.PropertyType) string {
+func verbForType(in propertyType) string {
 	if in.IsInterface() {
 		return "Configure"
 	}
