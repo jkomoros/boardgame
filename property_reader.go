@@ -270,6 +270,24 @@ func (t PropertyType) BaseType() PropertyType {
 	}
 }
 
+//TypePackagePrefix returns a string representing the package prefix of the go
+//type that is represented by this property type. For example, "boardgame." for
+//TypeStack, and "" for TypeInt. Using strings.TrimPrefix() with this prefix
+//applied to the return value of for example ImmutableGoType and others will
+//strip away the package qualifier, if it exists. Most useful for the codegen
+//package.
+func (t PropertyType) TypePackagePrefix() string {
+	//Strip away any slices so we have fewer conditions to test for
+	base := t.BaseType()
+	switch base {
+	case TypePlayerIndex, TypeStack, TypeBoard, TypeTimer:
+		return "boardgame."
+	case TypeEnum:
+		return "enum."
+	}
+	return ""
+}
+
 //ImmutableGoType emits strings like 'bool', 'boardgame.PlayerIndex'. It
 //represents the type of this property for the immutable/getter contexts. Most
 //useful for codegen package.
