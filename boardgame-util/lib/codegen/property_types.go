@@ -10,6 +10,10 @@ import (
 //allValidTypes is an enumeration of all types in order.
 var allValidTypes []propertyType
 
+//typeNamesForFieldInfo is where we store the values to power
+//fieldInfoForTypeName
+var typeNamesToFieldInfo map[string]fieldInfo
+
 //highestProperty is the highest enum in the PropertyType enum.
 const highestProperty = boardgame.TypeTimer
 
@@ -20,6 +24,55 @@ func init() {
 	for i := 0; i < int(highestProperty); i++ {
 		allValidTypes[i] = propertyType{boardgame.PropertyType(i + 1)}
 	}
+	typeNamesToFieldInfo = buildTypeNameMap()
+}
+
+func buildTypeNameMap() map[string]fieldInfo {
+	result := make(map[string]fieldInfo)
+	for _, t := range allValidTypes {
+
+		//Non-interface types have the same type string for ImmutableGoType and
+		//MutableGoType, and we want the ultimate record to say "mutable". By
+		//setting the immutable one first, we'll simply overwrite it just after
+		//this with the mutable record if theyr'e the same.
+		result[t.ImmutableGoType()] = fieldInfo{
+			Type:    t,
+			Mutable: false,
+		}
+
+		result[t.MutableGoType()] = fieldInfo{
+			Type:    t,
+			Mutable: true,
+		}
+
+		for _, name := range t.ImmutableSubTypes() {
+			result[name] = fieldInfo{
+				Type:    t,
+				Mutable: false,
+				SubType: strings.TrimPrefix(name, t.TypePackagePrefix()),
+			}
+		}
+
+		for _, name := range t.MutableSubTypes() {
+			result[name] = fieldInfo{
+				Type:    t,
+				Mutable: true,
+				SubType: strings.TrimPrefix(name, t.TypePackagePrefix()),
+			}
+		}
+	}
+	return result
+}
+
+//fieldInfo returns a field info for the given field type name (as reported by
+//model, which notably does not include "[]" prefix for slices), as well as
+//whether it's a slice.
+func fieldInfoForTypeName(fieldTypeName string, isSlice bool) fieldInfo {
+	key := fieldTypeName
+	if isSlice {
+		key = "[]" + key
+	}
+	return typeNamesToFieldInfo[key]
 }
 
 //propertyType is a simple wrapper around boardgame.PropertyType that extends it
