@@ -180,7 +180,7 @@ func (t propertyType) ImmutableSubTypes() []string {
 	prefix := t.TypePackagePrefix()
 	var result []string
 	for _, item := range t.ImmutableSubTypeConverters() {
-		result = append(result, strings.TrimPrefix(item, prefix))
+		result = append(result, prefix+item)
 	}
 	return result
 }
@@ -193,7 +193,7 @@ func (t propertyType) MutableSubTypes() []string {
 	prefix := t.TypePackagePrefix()
 	var result []string
 	for _, item := range t.MutableSubTypeConverters() {
-		result = append(result, strings.TrimPrefix(item, prefix))
+		result = append(result, prefix+item)
 	}
 	return result
 }
