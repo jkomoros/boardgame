@@ -399,7 +399,8 @@ func (p PlayerIndex) Valid(state ImmutableState) bool {
 	if p < 0 || int(p) >= len(state.ImmutablePlayerStates()) {
 		return false
 	}
-	if !state.Manager().Delegate().PlayerMayBeActive(p) {
+	playerState := state.ImmutablePlayerStates()[p]
+	if !state.Manager().Delegate().PlayerMayBeActive(playerState) {
 		return false
 	}
 	return true
@@ -418,7 +419,7 @@ func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 		p = 0
 	}
 	count := 0
-	for !state.Manager().Delegate().PlayerMayBeActive(p) {
+	for !state.Manager().Delegate().PlayerMayBeActive(state.ImmutablePlayerStates()[p]) {
 		p++
 		if int(p) >= len(state.ImmutablePlayerStates()) {
 			p = 0
@@ -444,7 +445,7 @@ func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 		p = PlayerIndex(len(state.ImmutablePlayerStates()) - 1)
 	}
 	count := 0
-	for !state.Manager().Delegate().PlayerMayBeActive(p) {
+	for !state.Manager().Delegate().PlayerMayBeActive(state.ImmutablePlayerStates()[p]) {
 		p--
 		if int(p) < 0 {
 			p = PlayerIndex(len(state.ImmutablePlayerStates()) - 1)

@@ -359,7 +359,7 @@ func (g *GameDelegate) LegalNumPlayers(numPlayers int) bool {
 }
 
 //PlayerMayBeActive returns true for all indexes.
-func (g *GameDelegate) PlayerMayBeActive(index boardgame.PlayerIndex) bool {
+func (g *GameDelegate) PlayerMayBeActive(player boardgame.ImmutableSubState) bool {
 	return true
 }
 

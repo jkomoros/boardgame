@@ -549,7 +549,7 @@ func (t *testGameDelegate) MaxNumPlayers() int {
 	return 5
 }
 
-func (t *testGameDelegate) PlayerMayBeActive(index PlayerIndex) bool {
+func (t *testGameDelegate) PlayerMayBeActive(player ImmutableSubState) bool {
 	return true
 }
 
