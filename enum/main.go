@@ -277,6 +277,10 @@ type Enum interface {
 	//state.Rand() so the calculations can be deterministic. If r is nil a
 	//fallback will be used.
 	RandomValue(r *rand.Rand) int
+	//MaxValue is the highest valid integer value in the enum. Note that values
+	//need not be sequential, so this number might be very different than
+	//len(Values()) - 1.
+	MaxValue() int
 	//Valid returns whether the given value is a valid member of this enum.
 	Valid(val int) bool
 	//String returns the string value associated with the given value.
@@ -319,6 +323,7 @@ type enum struct {
 	name         string
 	values       map[int]string
 	defaultValue int
+	maxValue     int
 	dimensions   []int
 	//parents is the direct map passed to us to start.
 	parents map[int]int
@@ -467,11 +472,14 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 		enumName,
 		make(map[int]string),
 		math.MaxInt64,
+		//We'll set this to the real maxValue later.
+		0,
 		nil,
 		nil,
 		nil,
 	}
 
+	maxSeenVal := 0
 	seenValues := make(map[string]bool)
 
 	for v, s := range values {
@@ -484,6 +492,10 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 
 		if seenValues[s] {
 			return nil, errors.New("String " + s + " was not unique within enum " + enumName)
+		}
+
+		if v > maxSeenVal {
+			maxSeenVal = v
 		}
 
 		//We put in both values into seenValues here because it's legal for a
@@ -499,6 +511,9 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 		}
 
 	}
+
+	enum.maxValue = maxSeenVal
+
 	if err := e.addEnum(enumName, enum); err != nil {
 		return nil, err
 	}
@@ -547,6 +562,10 @@ func (e *enum) Values() []int {
 
 func (e *enum) DefaultValue() int {
 	return e.defaultValue
+}
+
+func (e *enum) MaxValue() int {
+	return e.maxValue
 }
 
 func (e *enum) RandomValue(r *rand.Rand) int {

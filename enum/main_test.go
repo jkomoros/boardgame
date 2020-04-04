@@ -1,9 +1,10 @@
 package enum
 
 import (
-	"github.com/workfit/tester/assert"
 	"sort"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
 func TestRangedEnum(t *testing.T) {
@@ -142,6 +143,8 @@ func TestEnum(t *testing.T) {
 	assert.For(t).ThatActual(colorEnum.String(ColorBlue)).Equals("Blue")
 
 	assert.For(t).ThatActual(colorEnum.String(125)).Equals("")
+
+	assert.For(t).ThatActual(colorEnum.MaxValue()).Equals(2)
 
 	_, err = enums.Add("Color", map[int]string{
 		ColorBlue: "Blue",
