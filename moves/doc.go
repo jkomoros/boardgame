@@ -206,6 +206,7 @@ each has on the one above it. See the documentation for each struct for more.
                 * FinishTurn - Checks if State.CurrentPlayer().TurnDone() is true, and if so increments CurrentPlayerIndex to the next player, calling playerState.ResetForTurnEnd() and then ResetForTurnStart.
                 * FixUpMulti - Overrides AllowMultipleInProgression() to true, meaning multiple of the same move are legal to apply in a row according to Deafult.Legal()
                     * DefaultComponent - Looks at each component in SourceStack() and sees which one's method of Legal() returns nil, selecting that component for you to operate on in your own Apply.
+                    * ActivateInactivePlayer - Activates any players who are not currently active
                     * ApplyUntil - Legal() returns nil only once ConditionMet() returns nil.
                         * ApplyUntilCount - Supplies a ConditionMet that returns true when Count() is the same as TargetCount().
                             * ApplyCountTimes - Supplies a Count() that is the number of times this move has been applied in a row.
