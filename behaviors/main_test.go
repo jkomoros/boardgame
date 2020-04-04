@@ -46,3 +46,10 @@ func TestInactivePlayer(t *testing.T) {
 	_, ok := b.(interfaces.PlayerInactiver)
 	assert.For(t).ThatActual(ok).IsTrue()
 }
+
+func TestSeater(t *testing.T) {
+	var b interface{}
+	b = &Seat{}
+	_, ok := b.(interfaces.Seater)
+	assert.For(t).ThatActual(ok).IsTrue()
+}

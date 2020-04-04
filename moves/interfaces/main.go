@@ -152,3 +152,11 @@ type PlayerInactiver interface {
 	SetPlayerInactive()
 	SetPlayerActive()
 }
+
+//Seater is for PlayerStates that interace with moves like SeatPlayer.
+type Seater interface {
+	SeatIsFilled() bool
+	SeatIsClosed() bool
+	SetSeatFilled()
+	SetSeatClosed()
+}
