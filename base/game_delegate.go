@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jkomoros/boardgame/moves/interfaces"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
@@ -358,8 +360,15 @@ func (g *GameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 }
 
-//PlayerMayBeActive returns true for all indexes.
+//PlayerMayBeActive returns true for all players, unless they implement
+//moves/interfaces.PlayerInactiverer, in which case IsInactive is consulted, and
+//if it's true then this returns false. Designed to work well with behaviors.InactivePlayer
 func (g *GameDelegate) PlayerMayBeActive(player boardgame.ImmutableSubState) bool {
+	if inactiver, ok := player.(interfaces.PlayerInactiver); ok {
+		if inactiver.IsInactive() {
+			return false
+		}
+	}
 	return true
 }
 

@@ -39,3 +39,10 @@ func TestColor(t *testing.T) {
 	//moves/game_test.go, since testing it requires a whole test game and the
 	//moves package has one.
 }
+
+func TestInactivePlayer(t *testing.T) {
+	var b interface{}
+	b = &InactivePlayer{}
+	_, ok := b.(interfaces.PlayerInactiver)
+	assert.For(t).ThatActual(ok).IsTrue()
+}

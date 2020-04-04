@@ -144,3 +144,11 @@ type BeforeLeavePhaser interface {
 type BeforeEnterPhaser interface {
 	BeforeEnterPhase(phase int, state boardgame.State) error
 }
+
+//PlayerInactiver is for PlayerStates that encode whether that player is
+//Inactive and whether that might be changed.
+type PlayerInactiver interface {
+	IsInactive() bool
+	SetPlayerInactive()
+	SetPlayerActive()
+}
