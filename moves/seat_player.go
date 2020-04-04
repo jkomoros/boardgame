@@ -83,7 +83,13 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	return nil
 }
 
-//Apply sets the targeted player to be Filled.
+//Apply sets the targeted player to be Filled. If the player state also
+//implements interfaces.Inactiver (for example because it implements
+//behaviors.PlayerInactive), then it will also set the player to inactive. This
+//is often the behavior you want; if you're in the middle of a round you
+//typically don't want a new player to be active in the middle of it. But if you
+//do use behaviors.PlayerInactive, remember to implement ActivateInactivePlayer
+//at the beginning of rounds to activate any new seated players.
 func (s *SeatPlayer) Apply(state boardgame.State) error {
 	player := state.ImmutablePlayerStates()[s.TargetPlayerIndex]
 	seat, ok := player.(interfaces.Seater)
@@ -91,6 +97,9 @@ func (s *SeatPlayer) Apply(state boardgame.State) error {
 		return errors.New("Player state didn't implement interfaces.Seater")
 	}
 	seat.SetSeatFilled()
+	if inactiver, ok := player.(interfaces.PlayerInactiver); ok {
+		inactiver.SetPlayerInactive()
+	}
 	return nil
 }
 
