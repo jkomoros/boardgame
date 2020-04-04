@@ -358,6 +358,11 @@ func (g *GameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 }
 
+//PlayerMayBeActive returns true for all indexes.
+func (g *GameDelegate) PlayerMayBeActive(index boardgame.PlayerIndex) bool {
+	return true
+}
+
 //Variants returns a VariantConfig with no entries.
 func (g *GameDelegate) Variants() boardgame.VariantConfig {
 	return boardgame.VariantConfig{}

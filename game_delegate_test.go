@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/sirupsen/logrus"
 )
 
 //defaultGameDelegate is a clone of base.GameDelegate recreated here because
@@ -547,6 +547,10 @@ func (t *testGameDelegate) MinNumPlayers() int {
 
 func (t *testGameDelegate) MaxNumPlayers() int {
 	return 5
+}
+
+func (t *testGameDelegate) PlayerMayBeActive(index PlayerIndex) bool {
+	return true
 }
 
 func (t *testGameDelegate) Variants() VariantConfig {

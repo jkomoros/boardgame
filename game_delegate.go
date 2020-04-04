@@ -194,6 +194,17 @@ type GameDelegate interface {
 	//numbers of players.
 	LegalNumPlayers(numPlayers int) bool
 
+	//PlayerMayBeActive should return whether the given PlayerIndex may be
+	//"active". It will only ever be passed 0 through NumPlayers, exclusive. In
+	//general, this should just return true all of the time, because any player
+	//index that is between 0 and NumPlayers is valid. But there are certain
+	//times when a given player actually isn't valid. For example, a notional
+	//player "seat" might not be filled by a real player currently. This is
+	//primarily used for things like PlayerIndex.Next() and Valid(). This is a
+	//place for things like behaviors.InactivePlayer to hook different behavior
+	//into the core engine.
+	PlayerMayBeActive(index PlayerIndex) bool
+
 	//Variants returns a VariantConfig, which describes the different
 	//categories of configuration values and the legal values they may take on
 	//when a new game is created. In general if you want to inspect legal
