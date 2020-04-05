@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -51,14 +52,12 @@ func (s *SeatPlayer) IsSeatPlayerMove() bool {
 //DefaultsForState sets TargetPlayerIndex to the next player who is neither
 //filled nor closed.
 func (s *SeatPlayer) DefaultsForState(state boardgame.ImmutableState) {
-	var index int
-	for index = 0; index < len(state.ImmutablePlayerStates()); index++ {
-		player := state.ImmutablePlayerStates()[index]
-		if seat, ok := player.(interfaces.Seater); ok {
+	for i, p := range state.ImmutablePlayerStates() {
+		if seat, ok := p.(interfaces.Seater); ok {
 			if seat.SeatIsClosed() || seat.SeatIsFilled() {
 				continue
 			}
-			s.TargetPlayerIndex = boardgame.PlayerIndex(index)
+			s.TargetPlayerIndex = boardgame.PlayerIndex(i)
 			return
 		}
 	}
@@ -145,12 +144,10 @@ type CloseEmptySeat struct {
 //DefaultsForState sets TargetPlayerIndex to the next player who is currently
 //marked as empty, according to interfaces.Seater.
 func (c *CloseEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
-	var index int
-	for index = 0; index < len(state.ImmutablePlayerStates()); index++ {
-		player := state.ImmutablePlayerStates()[index]
-		if seat, ok := player.(interfaces.Seater); ok {
+	for i, p := range state.ImmutablePlayerStates() {
+		if seat, ok := p.(interfaces.Seater); ok {
 			if !seat.SeatIsFilled() && !seat.SeatIsClosed() {
-				c.TargetPlayerIndex = boardgame.PlayerIndex(index)
+				c.TargetPlayerIndex = boardgame.PlayerIndex(i)
 				return
 			}
 		}
@@ -227,18 +224,16 @@ type InactivateEmptySeat struct {
 //marked as inactive and also empty, according to interfaces.Seater and
 //interfaces.PlayerInactiver.
 func (i *InactivateEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
-	var index int
-	for index = 0; index < len(state.ImmutablePlayerStates()); index++ {
-		player := state.ImmutablePlayerStates()[index]
-		if seat, ok := player.(interfaces.Seater); ok {
-			if !seat.SeatIsFilled() {
-				if inactiver, ok := player.(interfaces.PlayerInactiver); ok {
-					if !inactiver.IsInactive() {
-						i.TargetPlayerIndex = boardgame.PlayerIndex(index)
-						return
-					}
-				}
+	for j, p := range state.ImmutablePlayerStates() {
+		if seat, ok := p.(interfaces.Seater); ok {
+			if seat.SeatIsFilled() {
+				continue
 			}
+			if behaviors.PlayerIsInactive(p) {
+				continue
+			}
+			i.TargetPlayerIndex = boardgame.PlayerIndex(j)
+			return
 		}
 	}
 }
@@ -260,11 +255,7 @@ func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boa
 	if seat.SeatIsFilled() {
 		return errors.New("The selected player seat is already filled, not empty. There must not be any seats left to apply to")
 	}
-	inactiver, ok := player.(interfaces.PlayerInactiver)
-	if !ok {
-		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
-	}
-	if inactiver.IsInactive() {
+	if behaviors.PlayerIsInactive(player) {
 		return errors.New("Player is already inactive. There must not be any any seats left to apply to")
 	}
 	return nil

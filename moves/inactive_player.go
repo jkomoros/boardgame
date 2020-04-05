@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -32,14 +33,10 @@ type ActivateInactivePlayer struct {
 //DefaultsForState sets TargetPlayerIndex to the next player who is currently
 //marked as inactive, according to interfaces.PlayerInactiver.
 func (a *ActivateInactivePlayer) DefaultsForState(state boardgame.ImmutableState) {
-	var index int
-	for index = 0; index < len(state.ImmutablePlayerStates()); index++ {
-		player := state.ImmutablePlayerStates()[index]
-		if inactiver, ok := player.(interfaces.PlayerInactiver); ok {
-			if inactiver.IsInactive() {
-				a.TargetPlayerIndex = boardgame.PlayerIndex(index)
-				return
-			}
+	for i, p := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsInactive(p) {
+			a.TargetPlayerIndex = boardgame.PlayerIndex(i)
+			return
 		}
 	}
 }
@@ -53,11 +50,7 @@ func (a *ActivateInactivePlayer) Legal(state boardgame.ImmutableState, proposer 
 		return errors.New("Invalid TargetPlayerIndex")
 	}
 	player := state.ImmutablePlayerStates()[a.TargetPlayerIndex]
-	inactiver, ok := player.(interfaces.PlayerInactiver)
-	if !ok {
-		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
-	}
-	if !inactiver.IsInactive() {
+	if !behaviors.PlayerIsInactive(player) {
 		return errors.New("The selected player is not inactive; there must be no inactive players to activate")
 	}
 	return nil
