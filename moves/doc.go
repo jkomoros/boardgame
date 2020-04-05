@@ -198,6 +198,7 @@ each has on the one above it. See the documentation for each struct for more.
         * Default - Substantial base logic, including base property overriding for with and especially in Legal() around move progressions and phases.
             * Done - A simple move that does nothing in its Apply and has no extra Legal() logic, meaning it's primarily a non-fix-up move applied by a player to move out of a move progression.
             * CurrentPlayer - Defaults to the GameDelegate.CurrentPlayerIndex, and only lets the move be made if it's on behalf of that player.
+            * SeatPlayer - A special move that the server package uses to tell the game logic that a new player has been added to the game.
             * FixUp - Overrides IsFixUp() to always return true, making the move eligible for base.GameDelegate.ProposeFixUpMove.
                 * NoOp - A move that does nothing. Useful for specific edge cases of MoveProessionMatching, and also to signal to AddOrderedForPhase that the lack of a StartPhase move was intentional.
                 * Increment - Increments the provided SourceProperty by Amount. Useful to run automatically at a given spot in a move progression.
