@@ -1,5 +1,10 @@
 package behaviors
 
+import (
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/interfaces"
+)
+
 /*
 InactivePlayer is a struct designed to be embedded anonymously in your
 PlayerStates. It encodes whether a player is Inactive or not. If a player is
@@ -29,4 +34,16 @@ func (i *InactivePlayer) SetPlayerInactive() {
 //interface in moves/interfaces.
 func (i *InactivePlayer) SetPlayerActive() {
 	i.PlayerInactive = false
+}
+
+//PlayerIsInactive is a convenience method that does the cast to
+//interfaces.PlayerInactiver, so you don't have to. You can pass any playerState
+//to it and it will return true if the player state implements
+//interfaces.PlayerInactiver and the IsInactive returns true, false otherwise.
+func PlayerIsInactive(playerState boardgame.ImmutableSubState) bool {
+	inactiver, ok := playerState.(interfaces.PlayerInactiver)
+	if !ok {
+		return false
+	}
+	return inactiver.IsInactive()
 }
