@@ -130,3 +130,83 @@ func (s *SeatPlayer) FallbackHelpText() string {
 func (s *SeatPlayer) FallbackName() string {
 	return "Seat Player"
 }
+
+//CloseEmptySeat is a move that will go through and repeatedly apply itself to
+//close any seat that is not filled. Typically you put this at the end of a
+//SetUp phase, once all of the players are there who you care to wait for, and
+//want to tell the game to not try to seat any more people in them.
+//
+//boardgame:codegen
+type CloseEmptySeat struct {
+	FixUpMulti
+	TargetPlayerIndex boardgame.PlayerIndex
+}
+
+//DefaultsForState sets TargetPlayerIndex to the next player who is currently
+//marked as empty, according to interfaces.Seater.
+func (c *CloseEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
+	var index int
+	for index = 0; index < len(state.ImmutablePlayerStates()); index++ {
+		player := state.ImmutablePlayerStates()[index]
+		if seat, ok := player.(interfaces.Seater); ok {
+			if !seat.SeatIsFilled() && !seat.SeatIsClosed() {
+				c.TargetPlayerIndex = boardgame.PlayerIndex(index)
+				return
+			}
+		}
+	}
+}
+
+//Legal verifies that TargetPlayerIndex is set to a player that is currently
+//empty and not currently closed.
+func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := c.FixUpMulti.Legal(state, proposer); err != nil {
+		return err
+	}
+	if c.TargetPlayerIndex < 0 || int(c.TargetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
+		return errors.New("Invalid TargetPlayerIndex")
+	}
+	player := state.ImmutablePlayerStates()[c.TargetPlayerIndex]
+	seat, ok := player.(interfaces.Seater)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.Seater")
+	}
+	if !seat.SeatIsFilled() {
+		return errors.New("The selected player seat is already filled, not empty. There must not be any seats left to apply to")
+	}
+	if !seat.SeatIsClosed() {
+		return errors.New("The selected player seat is already closed. There must not be any seats left to apply to")
+	}
+	return nil
+}
+
+//Apply sets the TargetPlayerIndex to be closed via interfaces.Seater
+func (c *CloseEmptySeat) Apply(state boardgame.State) error {
+	player := state.ImmutablePlayerStates()[c.TargetPlayerIndex]
+	seat, ok := player.(interfaces.Seater)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.Seater")
+	}
+	seat.SetSeatClosed()
+	return nil
+}
+
+//ValidConfiguration checks that player states implement interfaces.Seater
+func (c *CloseEmptySeat) ValidConfiguration(exampleState boardgame.State) error {
+	player := exampleState.ImmutablePlayerStates()[0]
+	_, ok := player.(interfaces.Seater)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
+	}
+	return nil
+}
+
+//FallbackHelpText returns "Marks any empty seats as being not open for more people to be seated."
+func (c *CloseEmptySeat) FallbackHelpText() string {
+	return "Marks any empty seats as being not open for more people to be seated."
+}
+
+//FallbackName returns "Close Empty Seat"
+func (c *CloseEmptySeat) FallbackName() string {
+	return "Close Empty Seat"
+}
