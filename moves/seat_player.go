@@ -171,10 +171,10 @@ func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgam
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater")
 	}
-	if !seat.SeatIsFilled() {
+	if seat.SeatIsFilled() {
 		return errors.New("The selected player seat is already filled, not empty. There must not be any seats left to apply to")
 	}
-	if !seat.SeatIsClosed() {
+	if seat.SeatIsClosed() {
 		return errors.New("The selected player seat is already closed. There must not be any seats left to apply to")
 	}
 	return nil
