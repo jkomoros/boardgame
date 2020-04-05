@@ -160,3 +160,13 @@ type Seater interface {
 	SetSeatFilled()
 	SetSeatClosed()
 }
+
+//SeatPlayerMover should be implemented for moves that are SeatPlayer moves,
+//returing true from IsSeatPlayerMove(). Typically you use moves.SeatPlayer
+//directly, which implements this interface, but you might also want to embed
+//that move in another move to, for example, change the DefaultsForState logic.
+//This is the way that even those embedded moves can be detected as being
+//intended as SeatPlayer moves.
+type SeatPlayerMover interface {
+	IsSeatPlayerMove() bool
+}

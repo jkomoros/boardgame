@@ -41,6 +41,13 @@ type SeatPlayer struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+//IsSeatPlayerMove returns true. This is a way for moves to signal to other
+//libraries that it's a SeatPlayer move, even if it isn't literally this move
+//struct but a subclass of it. Implements interfaces.SeatPlayerMover.
+func (s *SeatPlayer) IsSeatPlayerMove() bool {
+	return true
+}
+
 //DefaultsForState sets TargetPlayerIndex to the next player who is neither
 //filled nor closed.
 func (s *SeatPlayer) DefaultsForState(state boardgame.ImmutableState) {
