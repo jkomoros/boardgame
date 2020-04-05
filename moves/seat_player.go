@@ -210,3 +210,98 @@ func (c *CloseEmptySeat) FallbackHelpText() string {
 func (c *CloseEmptySeat) FallbackName() string {
 	return "Close Empty Seat"
 }
+
+//InactivateEmptySeat is a move that will go through and repeatedly apply itself
+//to mark as closed any seat that is not filled. Typically you put this at the
+//end of a SetUp phase, once all of the players are there who you care to wait
+//for, and want to signal to your own game logic to not block on them being
+//seated, and act like those seats aren't even there.
+//
+//boardgame:codegen
+type InactivateEmptySeat struct {
+	FixUpMulti
+	TargetPlayerIndex boardgame.PlayerIndex
+}
+
+//DefaultsForState sets TargetPlayerIndex to the next player who is currently
+//marked as inactive and also empty, according to interfaces.Seater and
+//interfaces.PlayerInactiver.
+func (i *InactivateEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
+	var index int
+	for index = 0; index < len(state.ImmutablePlayerStates()); index++ {
+		player := state.ImmutablePlayerStates()[index]
+		if seat, ok := player.(interfaces.Seater); ok {
+			if !seat.SeatIsFilled() {
+				if inactiver, ok := player.(interfaces.PlayerInactiver); ok {
+					if !inactiver.IsInactive() {
+						i.TargetPlayerIndex = boardgame.PlayerIndex(index)
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
+//Legal verifies that TargetPlayerIndex is set to a player that is currently
+//empty and not currently inactive.
+func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := i.FixUpMulti.Legal(state, proposer); err != nil {
+		return err
+	}
+	if i.TargetPlayerIndex < 0 || int(i.TargetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
+		return errors.New("Invalid TargetPlayerIndex")
+	}
+	player := state.ImmutablePlayerStates()[i.TargetPlayerIndex]
+	seat, ok := player.(interfaces.Seater)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.Seater")
+	}
+	if seat.SeatIsFilled() {
+		return errors.New("The selected player seat is already filled, not empty. There must not be any seats left to apply to")
+	}
+	inactiver, ok := player.(interfaces.PlayerInactiver)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
+	}
+	if inactiver.IsInactive() {
+		return errors.New("Player is already inactive. There must not be any any seats left to apply to")
+	}
+	return nil
+}
+
+//Apply sets the TargetPlayerIndex to be inactive via interfaces.PlayerInactiver.
+func (i *InactivateEmptySeat) Apply(state boardgame.State) error {
+	player := state.ImmutablePlayerStates()[i.TargetPlayerIndex]
+	inactiver, ok := player.(interfaces.PlayerInactiver)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
+	}
+	inactiver.SetPlayerInactive()
+	return nil
+}
+
+//ValidConfiguration checks that player states implement interfaces.Seater and
+//interfaces.PlayerInactiver.
+func (i *InactivateEmptySeat) ValidConfiguration(exampleState boardgame.State) error {
+	player := exampleState.ImmutablePlayerStates()[0]
+	_, ok := player.(interfaces.Seater)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
+	}
+	_, ok = player.(interfaces.PlayerInactiver)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.PlayerInactiver. behaviors.PlayerInactiveBehavior implements it for free")
+	}
+	return nil
+}
+
+//FallbackHelpText returns "Marks any empty seats as being inactive, so other game logic will skip them"
+func (i *InactivateEmptySeat) FallbackHelpText() string {
+	return "Marks any empty seats as being inactive, so other game logic will skip them"
+}
+
+//FallbackName returns "Inactivate Empty Seat"
+func (i *InactivateEmptySeat) FallbackName() string {
+	return "Inactivate Empty Seat"
+}

@@ -209,6 +209,7 @@ each has on the one above it. See the documentation for each struct for more.
                     * DefaultComponent - Looks at each component in SourceStack() and sees which one's method of Legal() returns nil, selecting that component for you to operate on in your own Apply.
                     * ActivateInactivePlayer - Activates any players who are not currently active
                     * CloseEmptySeat - Closes any seats that are still marked as empty, so they won't be filled by the server.
+                    * InactivateEmptySeat - Inactivates any seats that are currently empty, so that the rest of game logic will ignore them.
                     * ApplyUntil - Legal() returns nil only once ConditionMet() returns nil.
                         * ApplyUntilCount - Supplies a ConditionMet that returns true when Count() is the same as TargetCount().
                             * ApplyCountTimes - Supplies a Count() that is the number of times this move has been applied in a row.
