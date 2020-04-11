@@ -57,6 +57,8 @@ type Game struct {
 
 	//Proposed moves is where moves that have been proposed but have not yet been applied go.
 	proposedMoves chan *proposedMoveItem
+	//How a game can be signaled to trigger a pass of fixups
+	fixUpTriggered chan bool
 
 	//if true, we will not wait to propose agent moves (mainly used for
 	//testing.)
@@ -547,19 +549,35 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 	return nil
 }
 
+//triggerFixUp signals that we want to ensure that a fixUp loop runs even if no
+//moves have been made, because some state that a move relies on outside of game
+//state has changed.
+func (g *Game) triggerFixUp() {
+	if !g.modifiable {
+		return
+	}
+	g.fixUpTriggered <- true
+}
+
 //MainLoop should be run in a goroutine. It is what takes moves off of
 //proposedMoves and applies them. It is the only method that may call
 //applyMove.
 func (g *Game) mainLoop() {
-
-	for item := range g.proposedMoves {
-		if item == nil {
-			return
+	for {
+		select {
+		case item := <-g.proposedMoves:
+			if item == nil {
+				return
+			}
+			item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
+			close(item.ch)
+		case <-g.fixUpTriggered:
+			move := g.manager.delegate.ProposeFixUpMove(g.CurrentState())
+			if move != nil {
+				g.ProposeMove(move, AdminPlayerIndex)
+			}
 		}
-		item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
-		close(item.ch)
 	}
-
 }
 
 //Modifiable returns true if this instantiation of the game can be modified.

@@ -76,6 +76,19 @@ func (m *ManagerInternals) ForceNextTimer() bool {
 	return m.manager.timers.ForceNextTimer()
 }
 
+//ForceFixUp forces the engine to check if a FixUp move applies, even if no
+//player move is waiting to apply. Typically moves are only legal based on the
+//state, so if a move hasn't been applied they can't be legal. But in some
+//cases, like for server seating players, there's some outside state that might
+//have changed that could cause a move to be legal even though the game state
+//didn't change.
+func (m *ManagerInternals) ForceFixUp(game *Game) {
+	if game == nil {
+		return
+	}
+	game.triggerFixUp()
+}
+
 //StructInflater returns the autp-created StructInflater for the given type of
 //property in your state, allowing you to retrieve the inflater in use to
 //inspect for e.g. SanitizationPolicy configuration. Typically you don't use
@@ -568,10 +581,11 @@ func (g *GameManager) newGame(id, secretSalt string) *Game {
 		manager: g,
 		//TODO: set the size of chan based on something more reasonable.
 		//Note: this is also set similarly in manager.ModifiableGame
-		proposedMoves: make(chan *proposedMoveItem, 20),
-		id:            id,
-		secretSalt:    secretSalt,
-		modifiable:    true,
+		proposedMoves:  make(chan *proposedMoveItem, 20),
+		fixUpTriggered: make(chan bool, 10),
+		id:             id,
+		secretSalt:     secretSalt,
+		modifiable:     true,
 	}
 }
 
@@ -664,6 +678,7 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	//TODO: set the size of chan based on something more reasonable.
 	//Note: this is also set similarly in NewGame
 	game.proposedMoves = make(chan *proposedMoveItem, 20)
+	game.fixUpTriggered = make(chan bool, 10)
 	go game.mainLoop()
 
 	g.modifiableGamesLock.Lock()
