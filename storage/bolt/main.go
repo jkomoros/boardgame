@@ -753,6 +753,12 @@ func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) er
 	return nil
 }
 
+//FetchInjectedDataForGame can just return nil
+func (s *StorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
+	//Don't need to do anything
+	return nil
+}
+
 //WithManagers  does nothing.
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing

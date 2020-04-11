@@ -250,6 +250,12 @@ func (s *ExtendedMemoryStorageManager) PlayerMoveApplied(game *boardgame.GameSto
 	return nil
 }
 
+//FetchInjectedDataForGame can just return nil
+func (s *ExtendedMemoryStorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
+	//Don't need to do anything
+	return nil
+}
+
 //WithManagers is a no op
 func (s *ExtendedMemoryStorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing

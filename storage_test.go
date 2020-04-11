@@ -163,6 +163,10 @@ func (t *testStorageManager) PlayerMoveApplied(game *GameStorageRecord) error {
 	return nil
 }
 
+func (t *testStorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
+	return nil
+}
+
 func (t *testStorageManager) AgentState(gameID string, player PlayerIndex) ([]byte, error) {
 	//TODO: implement
 	return nil, nil

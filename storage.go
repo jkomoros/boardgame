@@ -139,4 +139,12 @@ type StorageManager interface {
 	//anything here; it's primarily useful as a callback to signal that a run
 	//of moves has been applied, e.g. in the server.
 	PlayerMoveApplied(game *GameStorageRecord) error
+
+	//FetchInjectedDataForGame is an override point for other layers to inject
+	//triggers for bits of game logic to call into. dataType should be the name
+	//of the package that publishes the data type, to avoid collissions (for
+	//example, 'github.com/jkomoros/boardgame/server/api.PlayerToSeat'). Things,
+	//like server, will override this method to add new data types. Base storage
+	//managers need only return nil in all cases.
+	FetchInjectedDataForGame(gameID string, dataType string) interface{}
 }
