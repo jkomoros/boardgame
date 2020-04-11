@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
@@ -330,6 +331,55 @@ func (g *GameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 		return scorer.GameScore()
 	}
 	return 0
+}
+
+//NumSeatedActivePlayers returns the number of players who are both seated and
+//active. This is typically the number you want to decide how many 'real'
+//players there are at the moment. See boardgame/behaviors package doc for more.
+func (g *GameDelegate) NumSeatedActivePlayers(state boardgame.ImmutableState) int {
+	count := 0
+	for _, p := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		if seater, ok := p.(interfaces.Seater); ok {
+			if !seater.SeatIsFilled() {
+				continue
+			}
+		}
+		count++
+	}
+	return count
+}
+
+//NumActivePlayers returns the number of players who are active (whether or not
+//they are seated). See also NumSeatedActivePlayers, which is typically what you
+//want. See boardgame/behaviors package doc for more.
+func (g *GameDelegate) NumActivePlayers(state boardgame.ImmutableState) int {
+	count := 0
+	for _, p := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		count++
+	}
+	return count
+}
+
+//NumSeatedPlayers returns the number of players who are seated (whether or not
+//they are active.) See also NumSeatedActivePlayers, which is typically what you
+//want. See boardgame/behaviors package doc for more.
+func (g *GameDelegate) NumSeatedPlayers(state boardgame.ImmutableState) int {
+	count := 0
+	for _, p := range state.ImmutablePlayerStates() {
+		if seater, ok := p.(interfaces.Seater); ok {
+			if !seater.SeatIsFilled() {
+				continue
+			}
+		}
+		count++
+	}
+	return count
 }
 
 //DefaultNumPlayers returns 2.

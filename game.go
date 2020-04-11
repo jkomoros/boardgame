@@ -163,7 +163,10 @@ func (g *Game) Manager() *GameManager {
 }
 
 //NumPlayers returns the number of players for this game, based on how many
-//PlayerStates are in CurrentState.
+//PlayerStates are in CurrentState. Note that if your game logic is complex,
+//this is likely NOT what you want, instead you might want
+//GameDelegate.NumSeatedActivePlayers. See the package doc of
+//boardgame/behaviors for more.
 func (g *Game) NumPlayers() int {
 	return g.numPlayers
 }
