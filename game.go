@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"math/rand"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/jkomoros/boardgame/errors"
@@ -65,9 +64,6 @@ type Game struct {
 
 	//Initalized is set to True after SetUp is called.
 	initalized bool
-
-	moveBeingApplied      bool
-	moveBeingAppliedMutex sync.RWMutex
 
 	created  time.Time
 	modified time.Time
@@ -560,24 +556,10 @@ func (g *Game) mainLoop() {
 		if item == nil {
 			return
 		}
-		g.moveBeingAppliedMutex.Lock()
-		g.moveBeingApplied = true
-		g.moveBeingAppliedMutex.Unlock()
 		item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
 		close(item.ch)
-		g.moveBeingAppliedMutex.Lock()
-		g.moveBeingApplied = false
-		g.moveBeingAppliedMutex.Unlock()
 	}
 
-}
-
-//applyingMove returns true if there is a move actively being applied at the moment
-func (g *Game) applyingMove() bool {
-	g.moveBeingAppliedMutex.RLock()
-	result := g.moveBeingApplied
-	g.moveBeingAppliedMutex.RUnlock()
-	return result
 }
 
 //Modifiable returns true if this instantiation of the game can be modified.
