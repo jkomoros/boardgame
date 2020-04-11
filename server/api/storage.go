@@ -9,6 +9,9 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
+//Note: this is also duplicated in moves/seat_player.go
+const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
+
 //StorageManager extends the base boardgame.StorageManager with a few more
 //methods necessary to make server work. When creating a new Server, you need
 //to pass in a ServerStorageManager, which wraps one of these objects and thus
@@ -107,4 +110,14 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 
 	return nil
 
+}
+
+//FetchInjectedDataForGame is where the server signals to SeatPlayer that
+//there's a player to be seated.
+func (s *ServerStorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
+	if dataType == playerToSeatRendevousDataType {
+		//TODO: check to see if we have pending players for that gameID
+		return boardgame.ObserverPlayerIndex
+	}
+	return s.StorageManager.FetchInjectedDataForGame(gameID, dataType)
 }

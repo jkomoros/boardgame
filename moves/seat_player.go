@@ -8,6 +8,9 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
+//Note: this is also duplicated in server/api/storage.go
+const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
+
 //SeatPlayer is a game that seats a new player into an open seat in the game. It
 //is a special interface point for the server library to interact with your game
 //logic. The core engine has no notion of whether or not a real user is
@@ -33,15 +36,12 @@ import (
 //CloseEmptySeats will automatically mark all currently unfilled seats as
 //closed, so no new players will be accepted.
 //
-//It is NOT a FixUp move; it is a special move that is only every proposed by
-//the server itself.
-//
 //For more on the concept of seats, see the package doc of boardgame/behaviors
 //package.
 //
 //boardgame:codegen
 type SeatPlayer struct {
-	Default
+	FixUp
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -70,8 +70,19 @@ func (s *SeatPlayer) DefaultsForState(state boardgame.ImmutableState) {
 //filled and not closed, and that the proposer is the admin, since only server
 //should propose this move.
 func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := s.Default.Legal(state, proposer); err != nil {
+	if err := s.FixUp.Legal(state, proposer); err != nil {
 		return err
+	}
+	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), playerToSeatRendevousDataType)
+	if playerToSeatGeneric == nil {
+		return errors.New("Unexpectedly did not get data back for playerToSeat from storage manager")
+	}
+	playerToSeat, ok := playerToSeatGeneric.(boardgame.PlayerIndex)
+	if !ok {
+		return errors.New("PlayerToSeat was not a PlayerIndex as expected")
+	}
+	if playerToSeat == boardgame.ObserverPlayerIndex {
+		return errors.New("The server has not signaled that there are any players to seat")
 	}
 	if proposer != boardgame.AdminPlayerIndex {
 		return errors.New("This move may only be proposed by an admin")
