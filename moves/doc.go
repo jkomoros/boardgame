@@ -320,5 +320,10 @@ when used in configuration you can avoid needing to wrap your children list with
 Move names must be unique, but sometimes you want to use the same underlying
 move at multiple points in a progression. WithMoveNameSuffix is useful for that
 case.
+
+Seats and Inactive Players
+
+For more on the concepts of seats and inactive players, see the package doc of
+boardgame/behaviors.
 */
 package moves

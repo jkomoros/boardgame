@@ -146,14 +146,16 @@ type BeforeEnterPhaser interface {
 }
 
 //PlayerInactiver is for PlayerStates that encode whether that player is
-//Inactive and whether that might be changed.
+//Inactive and whether that might be changed. See the package doc of
+//boardgame/behaviors for more on the notion of inactive players.
 type PlayerInactiver interface {
 	IsInactive() bool
 	SetPlayerInactive()
 	SetPlayerActive()
 }
 
-//Seater is for PlayerStates that interace with moves like SeatPlayer.
+//Seater is for PlayerStates that interace with moves like SeatPlayer. See the
+//package doc of boardgame/behaviors for more on the notion of seats.
 type Seater interface {
 	SeatIsFilled() bool
 	SeatIsClosed() bool

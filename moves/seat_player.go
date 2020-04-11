@@ -36,6 +36,9 @@ import (
 //It is NOT a FixUp move; it is a special move that is only every proposed by
 //the server itself.
 //
+//For more on the concept of seats, see the package doc of boardgame/behaviors
+//package.
+//
 //boardgame:codegen
 type SeatPlayer struct {
 	Default
@@ -133,7 +136,8 @@ func (s *SeatPlayer) FallbackName() string {
 //CloseEmptySeat is a move that will go through and repeatedly apply itself to
 //close any seat that is not filled. Typically you put this at the end of a
 //SetUp phase, once all of the players are there who you care to wait for, and
-//want to tell the game to not try to seat any more people in them.
+//want to tell the game to not try to seat any more people in them. For more on
+//the notion of empty seats, see the package doc of boardgames/behaviors.
 //
 //boardgame:codegen
 type CloseEmptySeat struct {
@@ -212,7 +216,8 @@ func (c *CloseEmptySeat) FallbackName() string {
 //to mark as closed any seat that is not filled. Typically you put this at the
 //end of a SetUp phase, once all of the players are there who you care to wait
 //for, and want to signal to your own game logic to not block on them being
-//seated, and act like those seats aren't even there.
+//seated, and act like those seats aren't even there. For more on the notion of
+//seats and inactive players, see the package doc of boardagme/behaviors.
 //
 //boardgame:codegen
 type InactivateEmptySeat struct {

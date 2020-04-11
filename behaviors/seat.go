@@ -5,7 +5,7 @@ package behaviors
 //real player or not. When used in conjunction with moves.SeatPlayer, it allows
 //your game logic to detect when new players are seated (when they join the
 //game), as well as to control when that happens. Implements
-//moves/interfaces.Seater
+//moves/interfaces.Seater . See the package doc of this package for more.
 type Seat struct {
 	SeatFilled bool
 	SeatClosed bool

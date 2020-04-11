@@ -12,7 +12,7 @@ Inactive, then base.GameDelegate will return false for that player index for
 PlayerMayBeActive. This is useful if you have 'filled' seats but the players
 should not be included in the core game logic of your game. For example, if a
 player is sitting out a round of a game (perhaps becuase they joined the game
-mid-way through a round).
+mid-way through a round). See the package doc of this package for more.
 */
 type InactivePlayer struct {
 	PlayerInactive bool

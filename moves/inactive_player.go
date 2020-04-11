@@ -22,7 +22,8 @@ import (
 //either ALWAYS be legal (which means, as soon as a player is seated they should
 //be actively included in play), or have a specific phase when this move
 //activates, for example at the end of the SetUpForNextRound phase in your game.
-//Designed to be used on its own directly.
+//Designed to be used on its own directly. For more on inactive players, see the
+//package doc of boardgame/behaviors.
 //
 //boardgame:codegen
 type ActivateInactivePlayer struct {
