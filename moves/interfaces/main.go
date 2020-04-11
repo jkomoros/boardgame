@@ -172,3 +172,10 @@ type Seater interface {
 type SeatPlayerMover interface {
 	IsSeatPlayerMove() bool
 }
+
+//SeatPlayerSignaler is the way that moves.SeatPlayer and the server coordinate
+//about where to seat a player.
+type SeatPlayerSignaler interface {
+	//The callback that should be called when the move is committed
+	Committed()
+}

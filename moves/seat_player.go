@@ -75,14 +75,11 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	}
 	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), playerToSeatRendevousDataType)
 	if playerToSeatGeneric == nil {
-		return errors.New("Unexpectedly did not get data back for playerToSeat from storage manager")
+		return errors.New("No player to seat")
 	}
-	playerToSeat, ok := playerToSeatGeneric.(boardgame.PlayerIndex)
+	_, ok := playerToSeatGeneric.(interfaces.SeatPlayerSignaler)
 	if !ok {
-		return errors.New("PlayerToSeat was not a PlayerIndex as expected")
-	}
-	if playerToSeat == boardgame.ObserverPlayerIndex {
-		return errors.New("The server has not signaled that there are any players to seat")
+		return errors.New("PlayerToSeat was not a SeatPlayerSignaler as expected")
 	}
 	if proposer != boardgame.AdminPlayerIndex {
 		return errors.New("This move may only be proposed by an admin")
@@ -111,6 +108,18 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 //do use behaviors.PlayerInactive, remember to implement ActivateInactivePlayer
 //at the beginning of rounds to activate any new seated players.
 func (s *SeatPlayer) Apply(state boardgame.State) error {
+
+	//Make sure server will get a signal when the player is seated.
+	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), playerToSeatRendevousDataType)
+	if playerToSeatGeneric == nil {
+		return errors.New("No player to seat")
+	}
+	playerSeater, ok := playerToSeatGeneric.(interfaces.SeatPlayerSignaler)
+	if !ok {
+		return errors.New("PlayerToSeat was not a SeatPlayerSignaler as expected")
+	}
+	state.Manager().Internals().AddCommittedCallback(state, playerSeater.Committed)
+
 	player := state.ImmutablePlayerStates()[s.TargetPlayerIndex]
 	seat, ok := player.(interfaces.Seater)
 	if !ok {

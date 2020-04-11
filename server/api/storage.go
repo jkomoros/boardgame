@@ -116,8 +116,8 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 //there's a player to be seated.
 func (s *ServerStorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
 	if dataType == playerToSeatRendevousDataType {
-		//TODO: check to see if we have pending players for that gameID
-		return boardgame.ObserverPlayerIndex
+		//TODO: check to see if we have pending players for that gameID and return a moves/interfaces.SeatPlayerSignaler with a callback
+		return nil
 	}
 	return s.StorageManager.FetchInjectedDataForGame(gameID, dataType)
 }
