@@ -89,6 +89,22 @@ func (m *ManagerInternals) ForceFixUp(game *Game) {
 	game.triggerFixUp()
 }
 
+//AddCommittedCallback adds a function that will be called once the state is
+//successfully saved. Typically you'd do something with this in your Move's
+//Apply() method if you wanted to note in some external system whether the move
+//had actually been successfully committed or not. Will be called back
+//immediately after the state is successfully saved to the database and before
+//any other fixup moves are called. This is only designed to be called from
+//within a move's Apply function.
+func (m *ManagerInternals) AddCommittedCallback(st State, callback func()) error {
+	s, ok := st.(*state)
+	if !ok {
+		return errors.New("The State was not the expected type of underlying object")
+	}
+	s.AddCommittedCallback(callback)
+	return nil
+}
+
 //StructInflater returns the autp-created StructInflater for the given type of
 //property in your state, allowing you to retrieve the inflater in use to
 //inspect for e.g. SanitizationPolicy configuration. Typically you don't use

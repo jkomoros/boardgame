@@ -527,6 +527,12 @@ type state struct {
 	//we accumulate the timers that still need to be fully started at that
 	//point.
 	timersToStart []string
+	//callbacks that have been installed by AddCommittedCallback()
+	pendingCallbacks []func()
+}
+
+func (s *state) AddCommittedCallback(callback func()) {
+	s.pendingCallbacks = append(s.pendingCallbacks, callback)
 }
 
 func (s *state) Rand() *rand.Rand {
@@ -933,11 +939,16 @@ func validateReaderBeforeSave(reader PropertyReader, name string, state State) e
 
 //committed is called right after the state has been committed to the database
 //and we're sure it will stick. This is the time to do any actions that were
-//triggered during the state manipulation. currently that is only timers.
+//triggered during the state manipulation. currently that is timers and
+//committed callbacks.
 func (s *state) committed() {
 	for _, id := range s.timersToStart {
 		s.game.manager.timers.StartTimer(id)
 	}
+	for _, callback := range s.pendingCallbacks {
+		callback()
+	}
+	s.pendingCallbacks = nil
 }
 
 func (s *state) StorageRecord() StateStorageRecord {
