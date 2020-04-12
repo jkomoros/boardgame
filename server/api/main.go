@@ -370,6 +370,8 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		})
 	}
 
+	closedSeats := s.closedSeatsForGame(game)
+
 	user := s.getUser(c)
 
 	if user == nil {
@@ -377,7 +379,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		//The rest of the flow will handle a nil user fine
 	}
 
-	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents())
+	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents(), closedSeats)
 
 	if user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers() {
 		//Special case: we're the first player, we likely just created it. Just join the thing!
@@ -428,7 +430,9 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 
 	userIds := s.storage.UserIDsForGame(game.ID())
 
-	viewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents())
+	closedSeats := s.closedSeatsForGame(game)
+
+	viewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents(), closedSeats)
 
 	s.doJoinGame(r, game, viewingAsPlayer, emptySlots, user)
 

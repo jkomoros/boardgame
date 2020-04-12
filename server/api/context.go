@@ -256,7 +256,7 @@ func (s *Server) getHasEmptySlots(c *gin.Context) bool {
 	return emptySlots
 }
 
-func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.StorageRecord, agents []string) (player boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex) {
+func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.StorageRecord, agents []string, closedSeats []bool) (player boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex) {
 
 	result := boardgame.ObserverPlayerIndex
 
@@ -264,8 +264,12 @@ func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.
 		panic("Agents and UserIds were different sizes")
 	}
 
+	if len(userIds) != len(closedSeats) {
+		panic("UserIDs and Closed Seats were different sizes")
+	}
+
 	for i, userID := range userIds {
-		if userID == "" && agents[i] == "" {
+		if userID == "" && agents[i] == "" && !closedSeats[i] {
 			emptySlots = append(emptySlots, boardgame.PlayerIndex(i))
 		}
 		if user != nil && userID == user.ID {
