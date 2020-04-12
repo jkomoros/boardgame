@@ -66,6 +66,10 @@ type moveFormField struct {
 type managerInfo struct {
 	manager         *boardgame.GameManager
 	seatPlayerMoves []string
+	//If the game's playerState has seatPlayer. Typically the answer is is yes
+	//if len(seatPlayerMoves) != 0, as moves.SeatPlayer and behaviors.Seat are
+	//used in conjunction most often.
+	playerHasSeat bool
 }
 
 type managerMap map[string]*managerInfo
@@ -122,9 +126,17 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 		name := manager.Delegate().Name()
 		manager.SetLogger(logger)
+
+		pState := manager.ExampleState().ImmutablePlayerStates()[0]
+		playerHasSeat := false
+		if _, ok := pState.(interfaces.Seater); ok {
+			playerHasSeat = true
+		}
+
 		result.managers[name] = &managerInfo{
 			manager:         manager,
 			seatPlayerMoves: managerSeatPlayerMoves(manager),
+			playerHasSeat:   playerHasSeat,
 		}
 		managers = append(managers, manager)
 		if manager.Storage() != storage {
