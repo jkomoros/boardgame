@@ -322,6 +322,30 @@ func (s *Server) gameFromID(gameID, gameName string) *boardgame.Game {
 	return game
 }
 
+//closedSeatsForGame will return a slice of bools of equal length to the game's
+//NumPlayers, where each one is set to true if the playerState has a Seat and
+//the seat is marked as closed.
+func (s *Server) closedSeatsForGame(game *boardgame.Game) []bool {
+	result := make([]bool, game.NumPlayers())
+	info := s.managers[game.Manager().Delegate().Name()]
+	if info == nil {
+		return result
+	}
+	//If the game doesn't use Seat, then just return now
+	if !info.playerHasSeat {
+		return result
+	}
+	state := game.CurrentState()
+	for i, p := range state.ImmutablePlayerStates() {
+		if seater, ok := p.(interfaces.Seater); ok {
+			if seater.SeatIsClosed() {
+				result[i] = true
+			}
+		}
+	}
+	return result
+}
+
 //gameAPISetup fetches the game configured in the URL and puts it in context.
 func (s *Server) gameAPISetup(c *gin.Context) {
 
