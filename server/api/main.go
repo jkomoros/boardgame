@@ -15,6 +15,7 @@ import (
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
@@ -63,7 +64,8 @@ type moveFormField struct {
 }
 
 type managerInfo struct {
-	manager *boardgame.GameManager
+	manager         *boardgame.GameManager
+	seatPlayerMoves []string
 }
 
 type managerMap map[string]*managerInfo
@@ -121,7 +123,8 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		name := manager.Delegate().Name()
 		manager.SetLogger(logger)
 		result.managers[name] = &managerInfo{
-			manager: manager,
+			manager:         manager,
+			seatPlayerMoves: managerSeatPlayerMoves(manager),
 		}
 		managers = append(managers, manager)
 		if manager.Storage() != storage {
@@ -141,6 +144,23 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 	return result
 
+}
+
+//managerSeatPlayerMoves returns the move names for the given manager that are a
+//seat player move. If len(result) is 0, then the game does not have a seat
+//player move.
+func managerSeatPlayerMoves(manager *boardgame.GameManager) []string {
+	var result []string
+	for _, move := range manager.ExampleMoves() {
+		if seatPlayer, ok := move.(interfaces.SeatPlayerMover); ok {
+			//Technically it could return false even if it implements the
+			//method, so check it explicitly returns true.
+			if seatPlayer.IsSeatPlayerMove() {
+				result = append(result, move.Info().Name())
+			}
+		}
+	}
+	return result
 }
 
 func (s *Server) newRenderer(c *gin.Context) *renderer {
