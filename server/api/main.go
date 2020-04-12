@@ -469,6 +469,15 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 
 	slot := emptySlots[0]
 
+	if len(s.managers[game.Name()].seatPlayerMoves) > 0 {
+		//This is a game that uses SeatPlayer move, so instead of adding the
+		//player right now we should go into pending mode to inject the player.
+
+		//TODO: inject the seat player in the queue of players to seat here.
+		r.Error(errors.New("Games that have SeatPlayer are not yet supported"))
+		return
+	}
+
 	if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
 		r.Error(errors.New("Tried to set the user as player " + slot.String() + " but failed: " + err.Error()))
 		return
