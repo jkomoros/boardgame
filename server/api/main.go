@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -19,6 +18,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
+	"github.com/sirupsen/logrus"
 )
 
 //Server is the main server object.
@@ -62,7 +62,11 @@ type moveFormField struct {
 	DefaultValue interface{}
 }
 
-type managerMap map[string]*boardgame.GameManager
+type managerInfo struct {
+	manager *boardgame.GameManager
+}
+
+type managerMap map[string]*managerInfo
 
 /*
 
@@ -116,7 +120,9 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 		name := manager.Delegate().Name()
 		manager.SetLogger(logger)
-		result.managers[name] = manager
+		result.managers[name] = &managerInfo{
+			manager: manager,
+		}
 		managers = append(managers, manager)
 		if manager.Storage() != storage {
 			logger.Fatalln("The storage for one of the managers was not the same item passed in as major storage.")
@@ -260,7 +266,7 @@ func (s *Server) userSetup(c *gin.Context) {
 
 func (s *Server) gameFromID(gameID, gameName string) *boardgame.Game {
 
-	manager := s.managers[gameName]
+	manager := s.managers[gameName].manager
 
 	if manager == nil {
 		s.logger.Errorln("Couldnt' find manager for", gameName)
@@ -420,7 +426,7 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	numPlayers := s.getRequestNumPlayers(c)
 
-	manager := s.managers[managerID]
+	manager := s.managers[managerID].manager
 
 	if manager == nil {
 		r.Error(errors.NewFriendly("That is not a legal type of game").WithError(managerID + " is not a legal manager for this server"))
@@ -538,7 +544,7 @@ func (s *Server) listGamesWithUsers(max int, list listing.Type, userID string, g
 
 	for i, game := range games {
 
-		manager := s.managers[game.Name]
+		manager := s.managers[game.Name].manager
 
 		//When SecretSalt is empty it will be omitted from the JSON output.
 
@@ -564,7 +570,8 @@ func (s *Server) listManagerHandler(c *gin.Context) {
 
 func (s *Server) doListManager(r *renderer) {
 	var managers []map[string]interface{}
-	for name, manager := range s.managers {
+	for name, mInfo := range s.managers {
+		manager := mInfo.manager
 		agents := make([]map[string]interface{}, len(manager.Agents()))
 		for i, agent := range manager.Agents() {
 			agents[i] = map[string]interface{}{
