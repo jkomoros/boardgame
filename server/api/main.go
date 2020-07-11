@@ -506,10 +506,33 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 		//This is a game that uses SeatPlayer move, so instead of adding the
 		//player right now we should go into pending mode to inject the player.
 
-		//TODO: inject the seat player in the queue of players to seat here, and
-		//also call ForceFixUp.
-		r.Error(errors.New("Games that have SeatPlayer are not yet supported"))
-		return
+		gameID := game.ID()
+
+		player := &playerToSeat{
+			s,
+			gameID,
+			slot,
+		}
+
+		s.playersToSeat[gameID] = append(s.playersToSeat[gameID], player)
+
+		//Now we have information waiting for SeatPlayer. Tell the engine to
+		//check whether fixups need to be applied, becuase we know that
+		//something outside of state has changed that might change whether moves
+		//are valid. We don't have to worry about race conditions because Game's
+		//mainLoop will make sure this isn't triggered while another move is
+		//being processed.
+		game.Manager().Internals().ForceFixUp(game)
+
+		//We deliberately fall through here and set that the player is
+		//affirmatively in that game, even though they aren't seated. This is
+		//because this 'pending' seating player currently has no way to retreat;
+		//they'll be seated into that seat the next time a SeatPlayer move is
+		//legal, and if another player comes right now, as far as they're
+		//concerned, that seat is taken.
+
+		//This could get out of sync if the server is shut down while the player
+		//is pending but before theyr'e actually seated. See #221.
 	}
 
 	if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
