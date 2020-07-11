@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
@@ -342,4 +343,106 @@ func (i *InactivateEmptySeat) FallbackHelpText() string {
 //FallbackName returns "Inactivate Empty Seat"
 func (i *InactivateEmptySeat) FallbackName(m *boardgame.GameManager) string {
 	return "Inactivate Empty Seat"
+}
+
+type numSeatedActivePlayerser interface {
+	NumSeatedActivePlayers(state boardgame.ImmutableState) int
+}
+
+//WaitForEnoughPlayers is a move that is useful to include in your phase
+//progressions where you want to wait until there are enough players to start a
+//round. Typically the logic in your SetUpRound game phase will have an
+//Optional(ActivateInactivePlayers) (if your game includes
+//behaviors.InactivePlayer), then a non-optional call to this move, and then the
+//rest of the logic to set up the round. This move will apply as a no-op as long
+//as GameDelegate.NumSeatedActivePlayers is greater than its TargetCount. By
+//default, TargetCount is your game delegate's MinNumPlayers.
+//
+//boardgame:codegen
+type WaitForEnoughPlayers struct {
+	FixUp
+}
+
+//Legal verifies that the GameDelegate's NumSeatedActivePlayers is at least
+//TargetCount.
+func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := w.FixUp.Legal(state, proposer); err != nil {
+		return err
+	}
+	targetCounter, ok := w.TopLevelStruct().(interfaces.TargetCounter)
+	if !ok {
+		return errors.New("Top level move unexpectedly didn't implement targetCounter")
+	}
+
+	activePlayerser, ok := state.Manager().Delegate().(numSeatedActivePlayerser)
+	if !ok {
+		return errors.New("Game delegate didn't implement NumSeatedActivePlayers")
+	}
+
+	targetCount := targetCounter.TargetCount(state)
+	seatedPlayers := activePlayerser.NumSeatedActivePlayers(state)
+
+	if seatedPlayers < targetCount {
+		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " are seated, but move requires at least " + strconv.Itoa(targetCount))
+	}
+
+	return nil
+}
+
+//TargetCount returns the value tha twas provided via WithTargetCount. If none
+//was provided, it returns your game delegate's MinNumPlayers, which is nearly
+//always a reasonable default for the minimum number of players for a round.
+func (w *WaitForEnoughPlayers) TargetCount(state boardgame.ImmutableState) int {
+	config := w.CustomConfiguration()
+
+	val, ok := config[configPropTargetCount]
+
+	if !ok {
+		//No configuration provided, just return default, which is MinNumPlayers
+		if state == nil {
+			return 0
+		}
+		return state.Manager().Delegate().MinNumPlayers()
+	}
+
+	intVal, ok := val.(int)
+
+	if !ok {
+		//signal error
+		return -1
+	}
+
+	return intVal
+}
+
+//Apply does nothing. The main purpose of this move is to block a move
+//progression from proceeding when it is not yet legal.
+func (w *WaitForEnoughPlayers) Apply(state boardgame.State) error {
+	return nil
+}
+
+//ValidConfiguration checks that player states implement interfaces.Seater and
+//interfaces.PlayerInactiver.
+func (w *WaitForEnoughPlayers) ValidConfiguration(exampleState boardgame.State) error {
+	_, ok := w.TopLevelStruct().(interfaces.TargetCounter)
+	if !ok {
+		return errors.New("Top level doesn't implement targetCounter")
+	}
+
+	_, ok = exampleState.Manager().Delegate().(numSeatedActivePlayerser)
+	if !ok {
+		return errors.New("Game delegate didn't implement NumSeatedActivePlayers")
+	}
+	return nil
+}
+
+//FallbackHelpText returns "Waits until at least target count players are active and seated before applying itself"
+func (w *WaitForEnoughPlayers) FallbackHelpText() string {
+	//TODO: live target count
+	return "Waits until at least target count players are active and seated before applying itself"
+}
+
+//FallbackName returns "Wait For Enough Players"
+func (w *WaitForEnoughPlayers) FallbackName(m *boardgame.GameManager) string {
+	return "Wait For Enough Players"
 }

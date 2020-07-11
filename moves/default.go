@@ -67,6 +67,7 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(ActivateInactivePlayer)
 	m = new(CloseEmptySeat)
 	m = new(InactivateEmptySeat)
+	m = new(WaitForEnoughPlayers)
 	if m != nil {
 		return
 	}

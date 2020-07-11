@@ -205,6 +205,7 @@ each has on the one above it. See the documentation for each struct for more.
                 * ShuffleStack - Shuffles the stack at SourceProperty. Useful to run automatically at a certain time in a MoveProgression.
                 * StartPhase - Calls BeforeLeavePhase, then BeforeEnterPhase, then SetCurrentPhase. Generally you have one of these at the end of an AddOrderedForPhase.
                 * FinishTurn - Checks if State.CurrentPlayer().TurnDone() is true, and if so increments CurrentPlayerIndex to the next player, calling playerState.ResetForTurnEnd() and then ResetForTurnStart.
+                * WaitForEnoughPlayers - Is illegal until enough players are seated; used to hold up a phase progression to wait for enough players to join
                 * FixUpMulti - Overrides AllowMultipleInProgression() to true, meaning multiple of the same move are legal to apply in a row according to Deafult.Legal()
                     * DefaultComponent - Looks at each component in SourceStack() and sees which one's method of Legal() returns nil, selecting that component for you to operate on in your own Apply.
                     * ActivateInactivePlayer - Activates any players who are not currently active
