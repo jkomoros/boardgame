@@ -473,7 +473,8 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 		//This is a game that uses SeatPlayer move, so instead of adding the
 		//player right now we should go into pending mode to inject the player.
 
-		//TODO: inject the seat player in the queue of players to seat here.
+		//TODO: inject the seat player in the queue of players to seat here, and
+		//also call ForceFixUp.
 		r.Error(errors.New("Games that have SeatPlayer are not yet supported"))
 		return
 	}
