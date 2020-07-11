@@ -419,7 +419,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 		slot := emptySlots[0]
 
-		if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
+		if err := s.doSeatPlayer(game, slot, user); err != nil {
 			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
 			return
 		}
@@ -471,37 +471,7 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 
 }
 
-func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
-
-	if user == nil {
-		r.Error(errors.New("no user provided"))
-		return
-	}
-
-	eGame, err := s.storage.ExtendedGame(game.ID())
-
-	if err != nil {
-		r.Error(errors.New("Couldn't get extended information about game: " + err.Error()))
-		return
-	}
-
-	if !eGame.Open {
-		r.Error(errors.NewFriendly("the game is not open to people joining"))
-		return
-	}
-
-	if viewingAsPlayer != boardgame.ObserverPlayerIndex {
-		r.Error(errors.NewFriendly("The given player is already in the game."))
-		return
-	}
-
-	if len(emptySlots) == 0 {
-		r.Error(errors.NewFriendly("There aren't any empty slots in the game to join."))
-		return
-	}
-
-	slot := emptySlots[0]
-
+func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, user *users.StorageRecord) error {
 	if len(s.managers[game.Name()].seatPlayerMoves) > 0 {
 		//This is a game that uses SeatPlayer move, so instead of adding the
 		//player right now we should go into pending mode to inject the player.
@@ -535,13 +505,45 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 		//is pending but before theyr'e actually seated. See #221.
 	}
 
-	if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
-		r.Error(errors.New("Tried to set the user as player " + slot.String() + " but failed: " + err.Error()))
+	return s.storage.SetPlayerForGame(game.ID(), slot, user.ID)
+}
+
+func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
+
+	if user == nil {
+		r.Error(errors.New("no user provided"))
 		return
 	}
 
-	r.Success(nil)
+	eGame, err := s.storage.ExtendedGame(game.ID())
 
+	if err != nil {
+		r.Error(errors.New("Couldn't get extended information about game: " + err.Error()))
+		return
+	}
+
+	if !eGame.Open {
+		r.Error(errors.NewFriendly("the game is not open to people joining"))
+		return
+	}
+
+	if viewingAsPlayer != boardgame.ObserverPlayerIndex {
+		r.Error(errors.NewFriendly("The given player is already in the game."))
+		return
+	}
+
+	if len(emptySlots) == 0 {
+		r.Error(errors.NewFriendly("There aren't any empty slots in the game to join."))
+		return
+	}
+
+	slot := emptySlots[0]
+
+	if err := s.doSeatPlayer(game, slot, user); err != nil {
+		r.Error(errors.New("Tried to set the user as player " + slot.String() + " but failed: " + err.Error()))
+	}
+
+	r.Success(nil)
 }
 
 func (s *Server) newGameHandler(c *gin.Context) {
