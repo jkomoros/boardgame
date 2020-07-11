@@ -84,6 +84,6 @@ func (a *ActivateInactivePlayer) FallbackHelpText() string {
 }
 
 //FallbackName returns "Activate Inactive Players"
-func (a *ActivateInactivePlayer) FallbackName() string {
+func (a *ActivateInactivePlayer) FallbackName(m *boardgame.GameManager) string {
 	return "Activate Inactive Players"
 }

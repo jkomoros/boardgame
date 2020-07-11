@@ -63,6 +63,10 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(StartPhase)
 	m = new(DefaultComponent)
 	m = new(Increment)
+	m = new(SeatPlayer)
+	m = new(ActivateInactivePlayer)
+	m = new(CloseEmptySeat)
+	m = new(InactivateEmptySeat)
 	if m != nil {
 		return
 	}

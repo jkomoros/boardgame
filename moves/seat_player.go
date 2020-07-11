@@ -171,7 +171,7 @@ func (s *SeatPlayer) FallbackHelpText() string {
 }
 
 //FallbackName returns "Seat Player"
-func (s *SeatPlayer) FallbackName() string {
+func (s *SeatPlayer) FallbackName(m *boardgame.GameManager) string {
 	return "Seat Player"
 }
 
@@ -250,7 +250,7 @@ func (c *CloseEmptySeat) FallbackHelpText() string {
 }
 
 //FallbackName returns "Close Empty Seat"
-func (c *CloseEmptySeat) FallbackName() string {
+func (c *CloseEmptySeat) FallbackName(m *boardgame.GameManager) string {
 	return "Close Empty Seat"
 }
 
@@ -340,6 +340,6 @@ func (i *InactivateEmptySeat) FallbackHelpText() string {
 }
 
 //FallbackName returns "Inactivate Empty Seat"
-func (i *InactivateEmptySeat) FallbackName() string {
+func (i *InactivateEmptySeat) FallbackName(m *boardgame.GameManager) string {
 	return "Inactivate Empty Seat"
 }
