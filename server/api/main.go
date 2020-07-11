@@ -70,6 +70,12 @@ type managerInfo struct {
 	//if len(seatPlayerMoves) != 0, as moves.SeatPlayer and behaviors.Seat are
 	//used in conjunction most often.
 	playerHasSeat bool
+	playersToSeat []*playerToSeat
+}
+
+type playerToSeat struct {
+	manager   *managerInfo
+	seatIndex boardgame.PlayerIndex
 }
 
 type managerMap map[string]*managerInfo
@@ -156,6 +162,25 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 	return result
 
+}
+
+func (p *playerToSeat) PlayerIndex() boardgame.PlayerIndex {
+	return p.seatIndex
+}
+
+func (p *playerToSeat) Commit() {
+	indexInParent := -1
+	for i, player := range p.manager.playersToSeat {
+		if player == p {
+			indexInParent = i
+			break
+		}
+	}
+	//I guess we weren't in our parent, weird.
+	if indexInParent == -1 {
+		return
+	}
+	p.manager.playersToSeat = append(p.manager.playersToSeat[:indexInParent], p.manager.playersToSeat[indexInParent+1:]...)
 }
 
 //managerSeatPlayerMoves returns the move names for the given manager that are a
