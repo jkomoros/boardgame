@@ -47,7 +47,7 @@ Take this example:
         return pState.(*playerState).Hand
     }
 
-    func (m *MoveDealInitialCards) TargetCount() int {
+    func (m *MoveDealInitialCards) TargetCount(state boardgame.ImmutableState) int {
         return 2
     }
 

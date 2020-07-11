@@ -13,7 +13,7 @@ type moveDealCards struct {
 	DealCountComponents
 }
 
-func (m *moveDealCards) TargetCount() int {
+func (m *moveDealCards) TargetCount(state boardgame.ImmutableState) int {
 	return 2
 }
 
@@ -30,7 +30,7 @@ type moveDealOtherCards struct {
 	DealCountComponents
 }
 
-func (m *moveDealOtherCards) TargetCount() int {
+func (m *moveDealOtherCards) TargetCount(state boardgame.ImmutableState) int {
 	return 3
 }
 

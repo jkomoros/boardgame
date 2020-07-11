@@ -205,7 +205,7 @@ type CollectAllComponents struct {
 //TargetCount returns 0, no matter what was passed with WithTargetCount. This
 //is the primary behavior of this move, compared to
 //CollectComponentsUntilPlayerCountLeft.
-func (c *CollectAllComponents) TargetCount() int {
+func (c *CollectAllComponents) TargetCount(state boardgame.ImmutableState) int {
 	return 0
 }
 

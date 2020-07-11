@@ -395,7 +395,7 @@ func (r *RoundRobin) FallbackHelpText() string {
 }
 
 type numRoundser interface {
-	NumRounds() int
+	NumRounds(state boardgame.ImmutableState) int
 }
 
 //RoundRobinNumRounds is a subclass of RoundRobin whose ConditionMet checks
@@ -421,7 +421,7 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) e
 		return errors.New("embeddingMove unexpectedly did not implement NumRounds")
 	}
 
-	if numRounds.NumRounds() < 0 {
+	if numRounds.NumRounds(exampleState) < 0 {
 		return errors.New("NumRounds returned a negative number, signaling an error")
 	}
 
@@ -432,7 +432,7 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) e
 //soon as that RoundCount is reached, our ConditionMet will start returning
 //nil, signaling the Round Robin is over. Will return the value passed via
 //WithNumRounds to auto.Config, or 1 by default.
-func (r *RoundRobinNumRounds) NumRounds() int {
+func (r *RoundRobinNumRounds) NumRounds(state boardgame.ImmutableState) int {
 	config := r.CustomConfiguration()
 
 	val, ok := config[configPropNumRounds]
@@ -469,7 +469,7 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.ImmutableState) error
 		return nil
 	}
 
-	if roundRobiner.RoundRobinRoundCount() >= numRounds.NumRounds() {
+	if roundRobiner.RoundRobinRoundCount() >= numRounds.NumRounds(state) {
 		return nil
 	}
 
@@ -487,7 +487,7 @@ func (r *RoundRobinNumRounds) FallbackName(m *boardgame.GameManager) string {
 		return "Round Robin Round Count"
 	}
 
-	return "Round Robin " + strconv.Itoa(numRounds.NumRounds()) + " Rounds"
+	return "Round Robin " + strconv.Itoa(numRounds.NumRounds(m.ExampleState())) + " Rounds"
 }
 
 //FallbackHelpText returns "A round robin move that makes INT
@@ -498,5 +498,6 @@ func (r *RoundRobinNumRounds) FallbackHelpText() string {
 	if !ok {
 		return "A round robin move that makes some number of circuits."
 	}
-	return "A round robin move that makes " + strconv.Itoa(numRounds.NumRounds()) + " circuits."
+	//Ideally we'd send an actual state here just in case it was needed, but :shrug:
+	return "A round robin move that makes " + strconv.Itoa(numRounds.NumRounds(nil)) + " circuits."
 }

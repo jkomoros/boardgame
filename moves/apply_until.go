@@ -16,7 +16,9 @@ func targetCountString(topLevelStruct boardgame.Move) string {
 		return "unknown"
 	}
 
-	targetCount := moveCounter.TargetCount()
+	//Technically it's possible that the embedding move could need to do
+	//something with the state, but we don't have a reference to one so :shrug:
+	targetCount := moveCounter.TargetCount(nil)
 
 	return strconv.Itoa(targetCount)
 
@@ -106,7 +108,7 @@ func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.State) error
 		return errors.New("Count returned a value below 0, which signals an error")
 	}
 
-	if theCounter.TargetCount() < 0 {
+	if theCounter.TargetCount(exampleState) < 0 {
 		return errors.New("TargetCount returned a value below 0, which signals an error")
 	}
 
@@ -122,7 +124,7 @@ func (a *ApplyUntilCount) Count(state boardgame.ImmutableState) int {
 //TargetCount should return the count that you want to target. Will return the
 //configuration option passed via WithTargetCount in DefaultConfig, or 1 if
 //that wasn't provided.
-func (a *ApplyUntilCount) TargetCount() int {
+func (a *ApplyUntilCount) TargetCount(state boardgame.ImmutableState) int {
 
 	config := a.CustomConfiguration()
 
@@ -160,7 +162,7 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 	}
 
 	count := moveCounter.Count(state)
-	targetCount := moveCounter.TargetCount()
+	targetCount := moveCounter.TargetCount(state)
 
 	if targetCount == count {
 		//We're at the goal!

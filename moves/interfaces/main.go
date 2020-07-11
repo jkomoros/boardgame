@@ -71,7 +71,7 @@ type CurrentPlayerSetter interface {
 //TargetCounter should be implemented by moves who should be legal until a
 //TargetCount has been reached.
 type TargetCounter interface {
-	TargetCount() int
+	TargetCount(state boardgame.ImmutableState) int
 }
 
 //PlayerTurnFinisher is the interface your playerState is expected to adhere

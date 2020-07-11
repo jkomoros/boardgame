@@ -53,7 +53,7 @@ func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playe
 		return 0, 0, errors.New("Didn't implement target counter")
 	}
 
-	return playerStack.NumComponents(), targetCounter.TargetCount(), nil
+	return playerStack.NumComponents(), targetCounter.TargetCount(playerState.ImmutableState()), nil
 }
 
 func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state boardgame.ImmutableState) (gameCount, targetCount int, err error) {
@@ -78,7 +78,7 @@ func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state board
 		return 0, 0, errors.New("Unexpectedly did not implement TargetCount")
 	}
 
-	return gameStack.NumComponents(), targetCounter.TargetCount(), nil
+	return gameStack.NumComponents(), targetCounter.TargetCount(state), nil
 
 }
 
@@ -101,7 +101,7 @@ type DealCountComponents struct {
 //TargetCount should return the count that you want to target. Will return the
 //configuration option passed via WithTargetCount in auto.Config, or 1 if
 //that wasn't provided.
-func (d *DealCountComponents) TargetCount() int {
+func (d *DealCountComponents) TargetCount(state boardgame.ImmutableState) int {
 
 	config := d.CustomConfiguration()
 
@@ -125,14 +125,14 @@ func (d *DealCountComponents) TargetCount() int {
 //NumRounds simply returns TargetCount. NumRounds is what RoundRobinNumRounds
 //expects, but TargetCount() is the terminology used for all of the similar
 //Deal/Collect/MoveComponents methods.
-func (d *DealCountComponents) NumRounds() int {
+func (d *DealCountComponents) NumRounds(state boardgame.ImmutableState) int {
 	targetCounter, ok := d.TopLevelStruct().(interfaces.TargetCounter)
 
 	if !ok {
 		return 1
 	}
 
-	return targetCounter.TargetCount()
+	return targetCounter.TargetCount(state)
 }
 
 //PlayerStack by default just returns the property on GameState with the name
@@ -221,7 +221,7 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.State) e
 		return errors.New("Embedding move doesn't implement TargetCounter")
 	}
 
-	if targetCounter.TargetCount() < 0 {
+	if targetCounter.TargetCount(exampleState) < 0 {
 		return errors.New("TargetCount returned a number below 0, which signals an error")
 	}
 
@@ -442,7 +442,7 @@ type DealAllComponents struct {
 //TargetCount returns 0, no matter what was passed with WithTargetCount. This
 //is the primary behavior of this move, compared to
 //DealComponentsUntilGameCountLeft.
-func (d *DealAllComponents) TargetCount() int {
+func (d *DealAllComponents) TargetCount(state boardgame.ImmutableState) int {
 	return 0
 }
 
