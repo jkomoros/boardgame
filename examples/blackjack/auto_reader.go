@@ -2970,11 +2970,14 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for playerState
 
 var ȧutoGeneratedPlayerStateReaderProps = map[string]boardgame.PropertyType{
-	"Busted":      boardgame.TypeBool,
-	"Hand":        boardgame.TypeStack,
-	"HiddenHand":  boardgame.TypeStack,
-	"Stood":       boardgame.TypeBool,
-	"VisibleHand": boardgame.TypeStack,
+	"Busted":         boardgame.TypeBool,
+	"Hand":           boardgame.TypeStack,
+	"HiddenHand":     boardgame.TypeStack,
+	"PlayerInactive": boardgame.TypeBool,
+	"SeatClosed":     boardgame.TypeBool,
+	"SeatFilled":     boardgame.TypeBool,
+	"Stood":          boardgame.TypeBool,
+	"VisibleHand":    boardgame.TypeStack,
 }
 
 type ȧutoGeneratedPlayerStateReader struct {
@@ -3031,6 +3034,12 @@ func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 	case "Hand":
 		return false
 	case "HiddenHand":
+		return true
+	case "PlayerInactive":
+		return true
+	case "SeatClosed":
+		return true
+	case "SeatFilled":
 		return true
 	case "Stood":
 		return true
@@ -3252,6 +3261,12 @@ func (p *ȧutoGeneratedPlayerStateReader) BoolProp(name string) (bool, error) {
 	switch name {
 	case "Busted":
 		return p.data.Busted, nil
+	case "PlayerInactive":
+		return p.data.PlayerInactive, nil
+	case "SeatClosed":
+		return p.data.SeatClosed, nil
+	case "SeatFilled":
+		return p.data.SeatFilled, nil
 	case "Stood":
 		return p.data.Stood, nil
 
@@ -3266,6 +3281,15 @@ func (p *ȧutoGeneratedPlayerStateReader) SetBoolProp(name string, value bool) e
 	switch name {
 	case "Busted":
 		p.data.Busted = value
+		return nil
+	case "PlayerInactive":
+		p.data.PlayerInactive = value
+		return nil
+	case "SeatClosed":
+		p.data.SeatClosed = value
+		return nil
+	case "SeatFilled":
+		p.data.SeatFilled = value
 		return nil
 	case "Stood":
 		p.data.Stood = value

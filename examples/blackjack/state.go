@@ -41,6 +41,8 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
+	behaviors.Seat
+	behaviors.InactivePlayer
 	HiddenHand  boardgame.Stack       `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.Stack       `stack:"cards"`
 	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`

@@ -176,6 +176,11 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moveShuffleDiscardToDraw),
 				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
+			//Players may be seated at any time. Because playerState also has
+			//behavior.InactivePlayer, the players will be seated but inactive.
+			auto.MustConfig(
+				new(moves.SeatPlayer),
+			),
 		),
 		moves.AddForPhase(phaseNormalPlay,
 			auto.MustConfig(
@@ -197,6 +202,13 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			),
 		),
 		moves.AddOrderedForPhase(phaseInitialDeal,
+			//Because we have behavior.InactivePlayer, we need to re-activate players... if there are any to run
+			moves.Optional(
+				auto.MustConfig(
+					new(moves.ActivateInactivePlayer),
+				),
+			),
+			//TODO: inactive empty seats here as long as there are enough players to start a round.
 			auto.MustConfig(
 				new(moves.DealCountComponents),
 				moves.WithMoveName("Deal Initial Hidden Card"),
