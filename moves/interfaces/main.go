@@ -176,6 +176,9 @@ type SeatPlayerMover interface {
 //SeatPlayerSignaler is the way that moves.SeatPlayer and the server coordinate
 //about where to seat a player.
 type SeatPlayerSignaler interface {
+	//The index of the seat to sit the palyer in. If it's not a valid index
+	//(e.g. AdminPlayerIndex), will use the next available seat.
+	SeatIndex() boardgame.PlayerIndex
 	//The callback that should be called when the move is committed
 	Committed()
 }

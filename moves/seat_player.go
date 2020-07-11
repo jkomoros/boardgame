@@ -52,9 +52,31 @@ func (s *SeatPlayer) IsSeatPlayerMove() bool {
 	return true
 }
 
-//DefaultsForState sets TargetPlayerIndex to the next player who is neither
-//filled nor closed.
+//the player index for the signaler, if one exists.
+func (s *SeatPlayer) playerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
+	playerToSeatGeneric := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), playerToSeatRendevousDataType)
+	if playerToSeatGeneric == nil {
+		return boardgame.AdminPlayerIndex
+	}
+	signaler, ok := playerToSeatGeneric.(interfaces.SeatPlayerSignaler)
+	if !ok {
+		return boardgame.AdminPlayerIndex
+	}
+	return signaler.SeatIndex()
+}
+
+//DefaultsForState sets TargetPlayerIndex to the PlayerIndex returned by
+//SeatPlayerSignaler, or if that doesn't return anything, the next player who is
+//neither filled nor closed.
 func (s *SeatPlayer) DefaultsForState(state boardgame.ImmutableState) {
+
+	index := s.playerIndex(state)
+
+	if index >= 0 && int(index) < len(state.ImmutablePlayerStates()) {
+		s.TargetPlayerIndex = index
+		return
+	}
+
 	for i, p := range state.ImmutablePlayerStates() {
 		if seat, ok := p.(interfaces.Seater); ok {
 			if seat.SeatIsClosed() || seat.SeatIsFilled() {
