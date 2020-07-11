@@ -26,6 +26,9 @@ import (
 type Server struct {
 	managers managerMap
 
+	//map of game ID to players to seat
+	playersToSeat map[string][]*playerToSeat
+
 	storage *ServerStorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
@@ -70,11 +73,11 @@ type managerInfo struct {
 	//if len(seatPlayerMoves) != 0, as moves.SeatPlayer and behaviors.Seat are
 	//used in conjunction most often.
 	playerHasSeat bool
-	playersToSeat []*playerToSeat
 }
 
 type playerToSeat struct {
-	manager   *managerInfo
+	s         *Server
+	gameID    string
 	seatIndex boardgame.PlayerIndex
 }
 
@@ -112,9 +115,10 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 	logger := logrus.New()
 
 	result := &Server{
-		managers: make(managerMap),
-		storage:  storage,
-		logger:   logger,
+		managers:      make(managerMap),
+		playersToSeat: make(map[string][]*playerToSeat),
+		storage:       storage,
+		logger:        logger,
 	}
 
 	storage.server = result
@@ -169,18 +173,22 @@ func (p *playerToSeat) PlayerIndex() boardgame.PlayerIndex {
 }
 
 func (p *playerToSeat) Commit() {
-	indexInParent := -1
-	for i, player := range p.manager.playersToSeat {
+	slice := p.s.playersToSeat[p.gameID]
+	if len(slice) == 0 {
+		return
+	}
+	indexInSlice := -1
+	for i, player := range slice {
 		if player == p {
-			indexInParent = i
+			indexInSlice = i
 			break
 		}
 	}
 	//I guess we weren't in our parent, weird.
-	if indexInParent == -1 {
+	if indexInSlice == -1 {
 		return
 	}
-	p.manager.playersToSeat = append(p.manager.playersToSeat[:indexInParent], p.manager.playersToSeat[indexInParent+1:]...)
+	p.s.playersToSeat[p.gameID] = append(slice[:indexInSlice], slice[indexInSlice+1:]...)
 }
 
 //managerSeatPlayerMoves returns the move names for the given manager that are a
