@@ -577,7 +577,14 @@ func (g *Game) mainLoop() {
 		case <-g.fixUpTriggered:
 			move := g.manager.delegate.ProposeFixUpMove(g.CurrentState())
 			if move != nil {
-				g.ProposeMove(move, AdminPlayerIndex)
+				//This can't block on proposemove, because this IS the main loop
+				//of this game, so it will just wait forever.
+				go func() {
+					if err := <-g.ProposeMove(move, AdminPlayerIndex); err != nil {
+						//TODO: remove this panic
+						panic("Forced fixed up move errored: " + err.Error())
+					}
+				}()
 			}
 		}
 	}
