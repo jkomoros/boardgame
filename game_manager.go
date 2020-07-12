@@ -895,7 +895,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 //proposeMoveOnGame is how non-modifiable games should tell the manager they
 //have a move they want to make on a given move ID. For now it's just a simple
 //wrapper around ModifiableGame, but in multi-server situations, in the future
-//it would conceivably do an RPC or something.
+//it would conceivably do an RPC or something. Note that game.triggerFixUp()
+//also does this kind of dispatching.
 func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, proposer PlayerIndex) DelayedError {
 
 	//The chan that the core logic will tell us the move is done in.

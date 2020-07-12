@@ -553,7 +553,10 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 //moves have been made, because some state that a move relies on outside of game
 //state has changed.
 func (g *Game) triggerFixUp() {
+	//If we aren't a modifiable copy then we need to dispatch to the one that is
 	if !g.modifiable {
+		game := g.manager.ModifiableGame(g.ID())
+		game.fixUpTriggered <- true
 		return
 	}
 	g.fixUpTriggered <- true
