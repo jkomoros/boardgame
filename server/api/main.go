@@ -168,11 +168,16 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 }
 
-func (p *playerToSeat) PlayerIndex() boardgame.PlayerIndex {
+//by defining the variable type, we verify we actually do implement the
+//interface. Since it flows via FetchInejctedData, there's no type
+//checking otherwise.
+var testPlayerSeat interfaces.SeatPlayerSignaler = &playerToSeat{}
+
+func (p *playerToSeat) SeatIndex() boardgame.PlayerIndex {
 	return p.seatIndex
 }
 
-func (p *playerToSeat) Commit() {
+func (p *playerToSeat) Committed() {
 	slice := p.s.playersToSeat[p.gameID]
 	if len(slice) == 0 {
 		return
