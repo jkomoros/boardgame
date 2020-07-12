@@ -58,7 +58,7 @@ type Game struct {
 	//Proposed moves is where moves that have been proposed but have not yet been applied go.
 	proposedMoves chan *proposedMoveItem
 	//How a game can be signaled to trigger a pass of fixups
-	fixUpTriggered chan bool
+	fixUpTriggered chan DelayedError
 
 	//if true, we will not wait to propose agent moves (mainly used for
 	//testing.)
@@ -552,14 +552,18 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 //triggerFixUp signals that we want to ensure that a fixUp loop runs even if no
 //moves have been made, because some state that a move relies on outside of game
 //state has changed.
-func (g *Game) triggerFixUp() {
+func (g *Game) triggerFixUp() DelayedError {
 	//If we aren't a modifiable copy then we need to dispatch to the one that is
+
+	delayed := make(DelayedError)
+
 	if !g.modifiable {
 		game := g.manager.ModifiableGame(g.ID())
-		game.fixUpTriggered <- true
-		return
+		game.fixUpTriggered <- delayed
+	} else {
+		g.fixUpTriggered <- delayed
 	}
-	g.fixUpTriggered <- true
+	return delayed
 }
 
 //MainLoop should be run in a goroutine. It is what takes moves off of
@@ -574,16 +578,16 @@ func (g *Game) mainLoop() {
 			}
 			item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
 			close(item.ch)
-		case <-g.fixUpTriggered:
+		case delayed := <-g.fixUpTriggered:
 			move := g.manager.delegate.ProposeFixUpMove(g.CurrentState())
-			if move != nil {
-				//This can't block on proposemove, because this IS the main loop
-				//of this game, so it will just wait forever.
+			if move == nil {
+				delayed <- nil
+			} else {
+				proposedDelayed := g.ProposeMove(move, AdminPlayerIndex)
+				//We can't wait for the error here, because the mainLoop needs
+				//to keep chugging to process the move we just put in the queue
 				go func() {
-					if err := <-g.ProposeMove(move, AdminPlayerIndex); err != nil {
-						//TODO: remove this panic
-						panic("Forced fixed up move errored: " + err.Error())
-					}
+					delayed <- (<-proposedDelayed)
 				}()
 			}
 		}

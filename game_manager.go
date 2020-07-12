@@ -82,11 +82,13 @@ func (m *ManagerInternals) ForceNextTimer() bool {
 //cases, like for server seating players, there's some outside state that might
 //have changed that could cause a move to be legal even though the game state
 //didn't change.
-func (m *ManagerInternals) ForceFixUp(game *Game) {
+func (m *ManagerInternals) ForceFixUp(game *Game) DelayedError {
 	if game == nil {
-		return
+		delayed := make(DelayedError, 1)
+		delayed <- nil
+		return delayed
 	}
-	game.triggerFixUp()
+	return game.triggerFixUp()
 }
 
 //AddCommittedCallback adds a function that will be called once the state is
@@ -598,7 +600,7 @@ func (g *GameManager) newGame(id, secretSalt string) *Game {
 		//TODO: set the size of chan based on something more reasonable.
 		//Note: this is also set similarly in manager.ModifiableGame
 		proposedMoves:  make(chan *proposedMoveItem, 20),
-		fixUpTriggered: make(chan bool, 10),
+		fixUpTriggered: make(chan DelayedError, 10),
 		id:             id,
 		secretSalt:     secretSalt,
 		modifiable:     true,
@@ -694,7 +696,7 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	//TODO: set the size of chan based on something more reasonable.
 	//Note: this is also set similarly in NewGame
 	game.proposedMoves = make(chan *proposedMoveItem, 20)
-	game.fixUpTriggered = make(chan bool, 10)
+	game.fixUpTriggered = make(chan DelayedError, 10)
 	go game.mainLoop()
 
 	g.modifiableGamesLock.Lock()

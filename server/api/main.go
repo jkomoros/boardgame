@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -497,7 +498,13 @@ func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, 
 		//are valid. We don't have to worry about race conditions because Game's
 		//mainLoop will make sure this isn't triggered while another move is
 		//being processed.
-		game.Manager().Internals().ForceFixUp(game)
+		delayed := game.Manager().Internals().ForceFixUp(game)
+
+		go func() {
+			if err := <-delayed; err != nil {
+				log.Println("Forced Fix Up failed: " + err.Error())
+			}
+		}()
 
 		//We deliberately fall through here and set that the player is
 		//affirmatively in that game, even though they aren't seated. This is
