@@ -314,7 +314,10 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 
 //PlayerIndex is an int that represents the index of a given player in a game.
 //Normal values are [0, game.NumPlayers). Special values are AdminPlayerIndex
-//and ObserverPlayerIndex.
+//and ObserverPlayerIndex. The logic of incrementing or decrementing the indexes
+//and comparing them follows considerable non-trivial logic, so you should NEVER
+//treat them like integers unless you're very sure of what you're doing. Instead
+//use the methods on them, like Next(), Prev(), and Equivalent().
 type PlayerIndex int
 
 //ObserverPlayerIndex is a special PlayerIndex that denotes that the player in
