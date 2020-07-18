@@ -388,11 +388,11 @@ type State interface {
 	containingStack(c Component) (stack Stack, slotIndex int, err error)
 }
 
-//Valid returns true if the PlayerIndex's value is legal in the context of the
-//current State--that is, it is either AdminPlayerIndex, ObserverPlayerIndex, or
-//between 0 (inclusive) and game.NumPlayers(). It additionaly checks
-//GameDelegate PlayerIndexMayBeActive returns true, for non-special indexes.
-func (p PlayerIndex) Valid(state ImmutableState) bool {
+//WithinBounds returns true if the index is a legal index. That is,
+//ObserverPlayerIndex, AdminPlayerIndex, or between 0 and numPlayers - 1. It
+//does not check whether GameDelegate.PlayerMayBeActive is true. See also
+//Valid().
+func (p PlayerIndex) WithinBounds(state ImmutableState) bool {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return true
 	}
@@ -400,6 +400,21 @@ func (p PlayerIndex) Valid(state ImmutableState) bool {
 		return false
 	}
 	if p < 0 || int(p) >= len(state.ImmutablePlayerStates()) {
+		return false
+	}
+	return true
+}
+
+//Valid returns true if the PlayerIndex's value is legal in the context of the
+//current State--that is, it is either AdminPlayerIndex, ObserverPlayerIndex, or
+//between 0 (inclusive) and game.NumPlayers(). It additionaly checks
+//GameDelegate PlayerIndexMayBeActive returns true, for non-special indexes. See
+//also WithinBounds(), which doesn't check whether the player may be active.
+func (p PlayerIndex) Valid(state ImmutableState) bool {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+		return true
+	}
+	if withinBounds := p.WithinBounds(state); !withinBounds {
 		return false
 	}
 	playerState := state.ImmutablePlayerStates()[p]
