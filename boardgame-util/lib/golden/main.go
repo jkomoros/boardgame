@@ -17,13 +17,74 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/memory"
+	"github.com/sirupsen/logrus"
 	"github.com/yudai/gojsondiff"
 	"github.com/yudai/gojsondiff/formatter"
 )
+
+//Note: these are also duplicated in moves/seat_player.go and server/api/storage.go
+const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
+const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
+
+//by defining the variable type, we verify we actually do implement the
+//interface. Since it flows via FetchInejctedData, there's no type
+//checking otherwise.
+var testPlayerSeat interfaces.SeatPlayerSignaler = &player{}
+
+type player struct {
+	index boardgame.PlayerIndex
+	s     *storageManager
+}
+
+func (p *player) SeatIndex() boardgame.PlayerIndex {
+	return p.index
+}
+
+func (p *player) Committed() {
+	p.s.playerToSeat = nil
+}
+
+type storageManager struct {
+	boardgame.StorageManager
+	playerToSeat *player
+}
+
+func (s *storageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
+	if dataType == willSeatPlayerRendevousDataType {
+		//This data type should return anything non-nil to signal, yes, I am a
+		//context that will pass you SeatPlayers when there's a player to seat.
+		return true
+	}
+	if dataType == playerToSeatRendevousDataType {
+		if s.playerToSeat == nil {
+			//Return an untyped nil
+			return nil
+		}
+		return s.playerToSeat
+	}
+	return s.StorageManager.FetchInjectedDataForGame(gameID, dataType)
+}
+
+//injectPlayerToSeat is how you make StorageManager tell the SeatPlayer move to
+//seat the player at the given index. You also need to call ForceFixUp after
+//caling this.
+func (s *storageManager) injectPlayerToSeat(index boardgame.PlayerIndex) {
+	s.playerToSeat = &player{
+		index,
+		s,
+	}
+}
+
+func newStorageManager() *storageManager {
+	return &storageManager{
+		memory.NewStorageManager(),
+		nil,
+	}
+}
 
 //Compare is the primary method in the package. It takes a game delegate and a
 //filename denoting a record to compare against. delegate shiould be a fresh
@@ -35,7 +96,9 @@ import (
 //deterministic then everything should work.
 func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 
-	manager, err := boardgame.NewGameManager(delegate, memory.NewStorageManager())
+	storage := newStorageManager()
+
+	manager, err := boardgame.NewGameManager(delegate, storage)
 
 	if err != nil {
 		return errors.New("Couldn't create new manager: " + err.Error())
@@ -47,7 +110,7 @@ func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 		return errors.New("Couldn't create record: " + err.Error())
 	}
 
-	return compare(manager, rec)
+	return compare(manager, rec, storage)
 
 }
 
@@ -55,7 +118,10 @@ func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 //recFolder that ends in .json. Errors if any of those files cannot be parsed
 //into recs.
 func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
-	manager, err := boardgame.NewGameManager(delegate, memory.NewStorageManager())
+
+	storage := newStorageManager()
+
+	manager, err := boardgame.NewGameManager(delegate, storage)
 
 	if err != nil {
 		return errors.New("Couldn't create new manager: " + err.Error())
@@ -82,7 +148,7 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
 			return errors.New("File with name " + info.Name() + " couldn't be loaded into rec: " + err.Error())
 		}
 
-		if err := compare(manager, rec); err != nil {
+		if err := compare(manager, rec, storage); err != nil {
 			return errors.New("File named " + info.Name() + " had compare error: " + err.Error())
 		}
 
@@ -99,7 +165,7 @@ func newLogger() (*logrus.Logger, *bytes.Buffer) {
 	return result, buf
 }
 
-func compare(manager *boardgame.GameManager, rec *record.Record) (result error) {
+func compare(manager *boardgame.GameManager, rec *record.Record, storage *storageManager) (result error) {
 	game, err := manager.Internals().RecreateGame(rec.Game())
 
 	if err != nil {
