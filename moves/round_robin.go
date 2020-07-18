@@ -87,7 +87,7 @@ type RoundRobin struct {
 //RoundRobinStarterPlayer by default will return delegate.CurrentPlayer.
 //Override this method if you want a different starter.
 func (r *RoundRobin) RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex {
-	return state.Manager().Delegate().CurrentPlayerIndex(state)
+	return state.Manager().Delegate().CurrentPlayerIndex(state).EnsureValid(state)
 }
 
 //ConditionMet  goes around and returns nil if all players have had their
@@ -191,7 +191,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boa
 
 	if r.roundRobinHasStarted(state) {
 
-		currentPlayer = roundRobiner.RoundRobinLastPlayer()
+		currentPlayer = roundRobiner.RoundRobinLastPlayer().EnsureValid(state)
 	} else {
 
 		starterPlayer, ok := r.TopLevelStruct().(roundRobinStarterPlayer)
@@ -200,7 +200,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boa
 			return boardgame.ObserverPlayerIndex, true
 		}
 
-		currentPlayer = starterPlayer.RoundRobinStarterPlayer(state).Previous(state)
+		currentPlayer = starterPlayer.RoundRobinStarterPlayer(state).EnsureValid(state).Previous(state)
 	}
 
 	//If the PlayerConditionMet for that player is already true, we know that
@@ -227,7 +227,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boa
 
 		currentPlayer = currentPlayer.Next(state)
 
-		if currentPlayer == roundRobiner.RoundRobinStarterPlayer() {
+		if currentPlayer == roundRobiner.RoundRobinStarterPlayer().EnsureValid((state)) {
 			roundSkip = true
 		}
 

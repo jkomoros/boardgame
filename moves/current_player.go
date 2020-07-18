@@ -40,19 +40,21 @@ func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	currentPlayer := state.CurrentPlayerIndex()
 
-	if !c.TargetPlayerIndex.Valid(state) {
+	targetPlayerIndex := c.TargetPlayerIndex.EnsureValid(state)
+
+	if !targetPlayerIndex.Valid(state) {
 		return errors.New("The specified target player is not valid")
 	}
 
-	if c.TargetPlayerIndex < 0 {
+	if targetPlayerIndex < 0 {
 		return errors.New("The specified target player is not valid")
 	}
 
-	if !c.TargetPlayerIndex.Equivalent(currentPlayer) {
+	if !targetPlayerIndex.Equivalent(currentPlayer) {
 		return errors.New("it's not your turn")
 	}
 
-	if !c.TargetPlayerIndex.Equivalent(proposer) {
+	if !targetPlayerIndex.Equivalent(proposer) {
 		return errors.New("it's not your turn")
 	}
 
@@ -62,7 +64,7 @@ func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame
 
 //DefaultsForState will set the TargetPlayerIndex to be the CurrentPlayerIndex.
 func (c *CurrentPlayer) DefaultsForState(state boardgame.ImmutableState) {
-	c.TargetPlayerIndex = state.CurrentPlayerIndex()
+	c.TargetPlayerIndex = state.CurrentPlayerIndex().EnsureValid(state)
 }
 
 //FallbackName returns "Current Player Move"

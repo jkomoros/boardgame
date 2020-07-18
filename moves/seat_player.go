@@ -63,7 +63,7 @@ func (s *SeatPlayer) playerIndex(state boardgame.ImmutableState) boardgame.Playe
 	if !ok {
 		return boardgame.AdminPlayerIndex
 	}
-	return signaler.SeatIndex()
+	return signaler.SeatIndex().EnsureValid(state)
 }
 
 //DefaultsForState sets TargetPlayerIndex to the PlayerIndex returned by
@@ -107,10 +107,12 @@ func (s *SeatPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	if proposer != boardgame.AdminPlayerIndex {
 		return errors.New("This move may only be proposed by an admin")
 	}
-	if s.TargetPlayerIndex < 0 || int(s.TargetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
+
+	targetPlayerIndex := s.TargetPlayerIndex.EnsureValid(state)
+	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("TargetPlayerIndex is invalid")
 	}
-	seat, ok := state.ImmutablePlayerStates()[s.TargetPlayerIndex].(interfaces.Seater)
+	seat, ok := state.ImmutablePlayerStates()[targetPlayerIndex].(interfaces.Seater)
 	if !ok {
 		return errors.New("The selected player did not implement interfaces.Seater")
 	}
@@ -143,7 +145,8 @@ func (s *SeatPlayer) Apply(state boardgame.State) error {
 	}
 	state.Manager().Internals().AddCommittedCallback(state, playerSeater.Committed)
 
-	player := state.ImmutablePlayerStates()[s.TargetPlayerIndex]
+	targetPlayerIndex := s.TargetPlayerIndex.EnsureValid(state)
+	player := state.ImmutablePlayerStates()[targetPlayerIndex]
 	seat, ok := player.(interfaces.Seater)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater")
@@ -207,10 +210,11 @@ func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgam
 	if err := c.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
-	if c.TargetPlayerIndex < 0 || int(c.TargetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
+	targetPlayerIndex := c.TargetPlayerIndex.EnsureValid(state)
+	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("Invalid TargetPlayerIndex")
 	}
-	player := state.ImmutablePlayerStates()[c.TargetPlayerIndex]
+	player := state.ImmutablePlayerStates()[targetPlayerIndex]
 	seat, ok := player.(interfaces.Seater)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater")
@@ -226,7 +230,8 @@ func (c *CloseEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgam
 
 //Apply sets the TargetPlayerIndex to be closed via interfaces.Seater
 func (c *CloseEmptySeat) Apply(state boardgame.State) error {
-	player := state.ImmutablePlayerStates()[c.TargetPlayerIndex]
+	targetPlayerIndex := c.TargetPlayerIndex.EnsureValid(state)
+	player := state.ImmutablePlayerStates()[targetPlayerIndex]
 	seat, ok := player.(interfaces.Seater)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater")
@@ -292,10 +297,11 @@ func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boa
 	if err := i.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
-	if i.TargetPlayerIndex < 0 || int(i.TargetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
+	targetPlayerIndex := i.TargetPlayerIndex.EnsureValid(state)
+	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("Invalid TargetPlayerIndex")
 	}
-	player := state.ImmutablePlayerStates()[i.TargetPlayerIndex]
+	player := state.ImmutablePlayerStates()[targetPlayerIndex]
 	seat, ok := player.(interfaces.Seater)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater")
@@ -311,7 +317,8 @@ func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boa
 
 //Apply sets the TargetPlayerIndex to be inactive via interfaces.PlayerInactiver.
 func (i *InactivateEmptySeat) Apply(state boardgame.State) error {
-	player := state.ImmutablePlayerStates()[i.TargetPlayerIndex]
+	targetPlayerIndex := i.TargetPlayerIndex.EnsureValid(state)
+	player := state.ImmutablePlayerStates()[targetPlayerIndex]
 	inactiver, ok := player.(interfaces.PlayerInactiver)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.PlayerInactiver")

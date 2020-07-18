@@ -114,7 +114,7 @@ func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgam
 
 //CurrentPlayerIndex returns gameState.CurrentPlayer, if that is a PlayerIndex
 //property. If not, returns ObserverPlayerIndex. If you use
-//behaviors.CurrentPlayerBehavior it works well with this.
+//behaviors.CurrentPlayerBehavior it works well with this. Will use EnsureValid.
 func (g *GameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
 	index, err := state.ImmutableGameState().Reader().PlayerIndexProp("CurrentPlayer")
 
@@ -123,7 +123,7 @@ func (g *GameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardg
 		return boardgame.ObserverPlayerIndex
 	}
 
-	return index
+	return index.EnsureValid(state)
 }
 
 //CurrentPhase by default with return the value of gameState.Phase, if it is
