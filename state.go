@@ -410,13 +410,15 @@ func (p PlayerIndex) Valid(state ImmutableState) bool {
 }
 
 //Next returns the next PlayerIndex, wrapping around back to 0 if it overflows,
-//skipping any players where GameDelegate returns false for PlayerMayBeActive.
-//PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
+//skipping any players where GameDelegate returns false for PlayerMayBeActive
+//(if all players return false for PlayerMayBeActive it will return the current
+//value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
 //affected.
 func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return p
 	}
+	original := p
 	p++
 	if int(p) >= len(state.ImmutablePlayerStates()) {
 		p = 0
@@ -429,7 +431,8 @@ func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 		}
 		count++
 		if count >= len(state.ImmutablePlayerStates()) {
-			panic("Delegate's PlayerMayBeActive is returning false for all player indexes")
+			state.Manager().Logger().Debugln("There were no valid players, leaving Next at same value")
+			return original
 		}
 	}
 	return p
@@ -437,12 +440,14 @@ func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 
 //Previous returns the previous PlayerIndex, wrapping around back to len(players
 //-1) if it goes below 0, skipping any players where GameDelegate returns false
-//for PlayerMayBeActive. PlayerIndexes of AdminPlayerIndex and Observer
-//PlayerIndex will not be affected.
+//for PlayerMayBeActive (if all players return false, it will leave at the same
+//value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
+//affected.
 func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return p
 	}
+	original := p
 	p--
 	if int(p) < 0 {
 		p = PlayerIndex(len(state.ImmutablePlayerStates()) - 1)
@@ -455,7 +460,8 @@ func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 		}
 		count++
 		if count >= len(state.ImmutablePlayerStates()) {
-			panic("Delegate's PlayerMayBeActive is returning false for all player indexes")
+			state.Manager().Logger().Debugln("There were no valid players, leaving Prev at same value")
+			return original
 		}
 	}
 	return p
