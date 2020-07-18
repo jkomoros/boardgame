@@ -317,7 +317,8 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 //and ObserverPlayerIndex. The logic of incrementing or decrementing the indexes
 //and comparing them follows considerable non-trivial logic, so you should NEVER
 //treat them like integers unless you're very sure of what you're doing. Instead
-//use the methods on them, like Next(), Prev(), and Equivalent().
+//use the methods on them, like Next(), Prev(), and Equivalent(). Typically
+//instead of reading these directly, you use the result of p.EnsureValid().
 type PlayerIndex int
 
 //ObserverPlayerIndex is a special PlayerIndex that denotes that the player in
@@ -386,6 +387,17 @@ type State interface {
 	//associated component, if that location is not sanitized. If no error is
 	//returned, stack.ComponentAt(slotIndex) == c will evaluate to true.
 	containingStack(c Component) (stack Stack, slotIndex int, err error)
+}
+
+//EnsureValid returns either the current value, if it is Valid(), or the next
+//valid index. Typically instead of using a PlayerIndex directly you should use
+//the result of this, which verifies that even if the current player has become
+//invalid since the PlayerIndex was last touched, you still get a valid player index.
+func (p PlayerIndex) EnsureValid(state ImmutableState) PlayerIndex {
+	if valid := p.Valid(state); valid {
+		return p
+	}
+	return p.Next(state)
 }
 
 //WithinBounds returns true if the index is a legal index. That is,
