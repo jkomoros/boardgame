@@ -38,7 +38,7 @@ func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 
 	game, players := concreteStates(state)
 
-	if players[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
+	if players[m.TargetPlayerIndex.EnsureValid(state)].UnusedTokens.Len() < 1 {
 		return errors.New("there aren't any remaining tokens for the current player to place")
 	}
 
@@ -58,7 +58,7 @@ func (m *movePlaceToken) Apply(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 
-	u := players[m.TargetPlayerIndex]
+	u := players[m.TargetPlayerIndex.EnsureValid(state)]
 
 	if err := u.UnusedTokens.First().MoveTo(game.Slots, m.Slot); err != nil {
 		return err

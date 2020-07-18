@@ -44,7 +44,7 @@ func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgam
 
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	if p.CardsLeftToReveal < 1 {
 		return errors.New("You have no cards left to reveal this turn")
@@ -67,7 +67,7 @@ func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgam
 func (m *moveRevealCard) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	p.CardsLeftToReveal--
 	game.HiddenCards.ComponentAt(m.CardIndex).MoveTo(game.VisibleCards, m.CardIndex)
@@ -205,7 +205,7 @@ func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	if p.CardsLeftToReveal > 0 {
 		return errors.New("You still have to reveal more cards before your turn is over")

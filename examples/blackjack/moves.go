@@ -76,7 +76,7 @@ func (m *moveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer bo
 
 	game, players := concreteStates(state)
 
-	currentPlayer := players[game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
 
 	if currentPlayer.Busted {
 		return errors.New("Current player is busted")
@@ -92,7 +92,7 @@ func (m *moveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer bo
 func (m *moveCurrentPlayerHit) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
-	currentPlayer := players[game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
 
 	game.DrawStack.First().MoveToFirstSlot(currentPlayer.VisibleHand)
 
@@ -123,7 +123,7 @@ func (m *moveCurrentPlayerStand) Legal(state boardgame.ImmutableState, proposer 
 
 	game, players := concreteStates(state)
 
-	currentPlayer := players[game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
 
 	if currentPlayer.Busted {
 		return errors.New("the current player has already busted")
@@ -141,7 +141,7 @@ func (m *moveCurrentPlayerStand) Apply(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 
-	currentPlayer := players[game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
 
 	currentPlayer.Stood = true
 

@@ -37,7 +37,7 @@ func (m *moveRollDice) Legal(state boardgame.ImmutableState, proposer boardgame.
 
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	if !p.DieCounted {
 		return errors.New("Your most recent roll has not yet been counted")
@@ -49,7 +49,7 @@ func (m *moveRollDice) Legal(state boardgame.ImmutableState, proposer boardgame.
 func (m *moveRollDice) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	die := game.Die.ComponentAt(0)
 
@@ -74,7 +74,7 @@ func (m *moveDoneTurn) Legal(state boardgame.ImmutableState, proposer boardgame.
 
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	if !p.DieCounted {
 		return errors.New("your most recent roll has not yet been counted")
@@ -90,7 +90,7 @@ func (m *moveDoneTurn) Legal(state boardgame.ImmutableState, proposer boardgame.
 func (m *moveDoneTurn) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	p.Done = true
 
@@ -111,7 +111,7 @@ func (m *moveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.
 
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	if p.DieCounted {
 		return errors.New("the most recent die roll has already been counted")
@@ -123,7 +123,7 @@ func (m *moveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.
 func (m *moveCountDie) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
-	p := players[game.CurrentPlayer]
+	p := players[game.CurrentPlayer.EnsureValid(state)]
 
 	value := game.Die.ComponentAt(0).DynamicValues().(*dice.DynamicValue).Value
 
