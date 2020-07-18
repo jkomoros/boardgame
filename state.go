@@ -939,7 +939,11 @@ func validateReaderBeforeSave(reader PropertyReader, name string, state State) e
 			if err != nil {
 				return errors.New("Error reading property " + propName + ": " + err.Error())
 			}
-			if !val.Valid(state) {
+			//We use WithinBounds, not Valid(), because there are some cases,
+			//like at the very beginning of a game that uses behavior.Seat and
+			//behavior.InactivePlayer, where PlayerIndexes are not valid (the
+			//player is not active) but are within bounds.z
+			if !val.WithinBounds(state) {
 				return errors.New(propName + " was an invalid PlayerIndex, with value " + strconv.Itoa(int(val)))
 			}
 		}
