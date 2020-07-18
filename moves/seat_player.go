@@ -9,8 +9,9 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//Note: this is also duplicated in server/api/storage.go
+//Note: these are also duplicated in server/api/storage.go
 const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
+const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
 
 //SeatPlayer is a game that seats a new player into an open seat in the game. It
 //is a special interface point for the server library to interact with your game
@@ -363,7 +364,9 @@ type numSeatedActivePlayerser interface {
 //behaviors.InactivePlayer), then a non-optional call to this move, and then the
 //rest of the logic to set up the round. This move will apply as a no-op as long
 //as GameDelegate.NumSeatedActivePlayers is greater than its TargetCount. By
-//default, TargetCount is your game delegate's MinNumPlayers.
+//default, TargetCount is your game delegate's MinNumPlayers. This move will
+//auto-apply itself in contexts where SeatPlayer won't ever be called (for
+//example, if you're running your game logic outside of an instance of server)
 //
 //boardgame:codegen
 type WaitForEnoughPlayers struct {
@@ -376,6 +379,13 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 	if err := w.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
+
+	if willSeatPlayer := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), willSeatPlayerRendevousDataType); willSeatPlayer == nil {
+		//We're in a context that won't ever SeatPlayer, so we should just auto trigger now.
+		//TODO: when this is extended to allow players to flag it, we should likely have different behavior.
+		return nil
+	}
+
 	targetCounter, ok := w.TopLevelStruct().(interfaces.TargetCounter)
 	if !ok {
 		return errors.New("Top level move unexpectedly didn't implement targetCounter")
