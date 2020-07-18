@@ -47,7 +47,8 @@ func (a *ActivateInactivePlayer) Legal(state boardgame.ImmutableState, proposer 
 	if err := a.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
-	targetPlayerIndex := a.TargetPlayerIndex.EnsureValid(state)
+	//We explicitly do not do EnsureValid, because we WANT to select an inactive player!
+	targetPlayerIndex := a.TargetPlayerIndex
 	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("Invalid TargetPlayerIndex")
 	}
@@ -60,8 +61,7 @@ func (a *ActivateInactivePlayer) Legal(state boardgame.ImmutableState, proposer 
 
 //Apply sets the TargetPlayerIndex to be active via SetPlayerActive.
 func (a *ActivateInactivePlayer) Apply(state boardgame.State) error {
-	targetPlayerIndex := a.TargetPlayerIndex.EnsureValid(state)
-	player := state.ImmutablePlayerStates()[targetPlayerIndex]
+	player := state.ImmutablePlayerStates()[a.TargetPlayerIndex]
 	inactiver, ok := player.(interfaces.PlayerInactiver)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.PlayerInactiver")
