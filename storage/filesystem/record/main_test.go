@@ -8,6 +8,7 @@ import (
 
 const fullJSONFilename = "testdata/full.json"
 const diffJSONFilename = "testdata/diff.json"
+const relativeDiffJSONFilename = "testdata/relative_diff.json"
 
 func TestEncoding(t *testing.T) {
 
@@ -78,6 +79,26 @@ func TestExpand(t *testing.T) {
 	err = canonicalRec.compare(rec)
 	assert.For(t).ThatActual(err).IsNil()
 
+}
+
+func TestRelativeMoves(t *testing.T) {
+	canonicalRec, err := New(diffJSONFilename)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	rec, err := New(relativeDiffJSONFilename)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(len(canonicalRec.data.Moves)).Equals(len(rec.data.Moves))
+
+	for i := 1; i < len(rec.data.Moves); i++ {
+		canonicalMove, err := canonicalRec.Move(i)
+		assert.For(t, i).ThatActual(err).IsNil()
+		move, err := rec.Move(i)
+		assert.For(t, i).ThatActual(err).IsNil()
+		assert.For(t, i).ThatActual(move).Equals(canonicalMove).ThenDiffOnFail()
+	}
 }
 
 //TODO: actually test the behavior where we flip from compressed to expanded

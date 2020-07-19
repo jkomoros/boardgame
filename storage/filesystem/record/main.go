@@ -57,7 +57,14 @@ type Record struct {
 }
 
 type storageRecord struct {
-	Game  *boardgame.GameStorageRecord
+	Game *boardgame.GameStorageRecord
+	//Moves can be in 'absolute' mode, where their Version and Initiator fields
+	//are positive values, or 'relative mode, where their Version is -1. In
+	//relative mode, when Record.Move() is called, the MoveStorageRecord will
+	//have the version automatically set to the right version number, and its
+	//Initiator version will be added to its version number to give the right
+	//absolute number. This library handles moves in either mode on disk, but
+	//new moves added will be stored in relative mode.
 	Moves []*boardgame.MoveStorageRecord
 	//StatePatches are diffs from the state before. Get the actual state for a
 	//version with State().
@@ -318,7 +325,23 @@ func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 		return nil, errors.New("Not enough moves")
 	}
 
-	return r.data.Moves[version], nil
+	rec := r.data.Moves[version]
+
+	if rec.Version >= 0 {
+		//It's in absolute mode already
+		return rec, nil
+	}
+
+	//It's in relative mode, return a copy that's de-relativized
+
+	recCopy := new(boardgame.MoveStorageRecord)
+	*recCopy = *rec
+
+	//We removed one from version to fetch it
+	recCopy.Version = version + 1
+	recCopy.Initiator = recCopy.Version + recCopy.Initiator
+
+	return recCopy, nil
 }
 
 //randomString returns a random string of the given length.
@@ -448,6 +471,11 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 	r.data.Game = game
 
 	if move != nil {
+		moveCopy := new(boardgame.MoveStorageRecord)
+		*moveCopy = *move
+		//Store in relative mode (see comments on storageRecord.Moves)
+		moveCopy.Initiator = -1 * (moveCopy.Version - moveCopy.Initiator)
+		moveCopy.Version = -1
 		r.data.Moves = append(r.data.Moves, move)
 	}
 
