@@ -331,7 +331,7 @@ func TestApplyMove(t *testing.T) {
 		t.Error("Unexpected error", err)
 	}
 
-	wrapper, err := game.Manager().stateFromRecord(record)
+	wrapper, err := game.Manager().stateFromRecord(record, game.Version())
 
 	if err != nil {
 		t.Error("Error state from from blob", err)

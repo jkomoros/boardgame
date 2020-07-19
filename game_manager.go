@@ -836,7 +836,7 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 //it. Storage sub-packages should call this to recover a real State object
 //given a serialized state blob. Note: the state that is returned does not
 //have its game property set.
-func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error) {
+func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*state, error) {
 	//At this point, no extra state is stored in the blob other than in props.
 
 	//We can't just delegate to StateProps to unmarshal itself, because it
@@ -846,6 +846,11 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 	if err := json.Unmarshal(record, &refried); err != nil {
 		return nil, err
 	}
+
+	//Old state blobs might have their own version, but new ones don't encode
+	//it. (It's always implied, and it's just a random thing in state blobs that
+	//changes that doens't need to)
+	refried.Version = version
 
 	result, err := g.emptyState(len(refried.Players))
 

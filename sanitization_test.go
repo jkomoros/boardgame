@@ -2,10 +2,11 @@ package boardgame
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame/internal/patchtree"
-	"github.com/workfit/tester/assert"
 	"strconv"
 	"testing"
+
+	"github.com/jkomoros/boardgame/internal/patchtree"
+	"github.com/workfit/tester/assert"
 )
 
 func TestPolicyFromString(t *testing.T) {
@@ -244,7 +245,8 @@ func TestSanitization(t *testing.T) {
 			t.Fatal("patchtree failure: " + err.Error())
 		}
 
-		state, err := game.manager.stateFromRecord(inputBlob)
+		//version doesn't matter in this context
+		state, err := game.manager.stateFromRecord(inputBlob, 0)
 
 		//This is hacky, but we don't really need the game for much more anyway
 		state.game = game

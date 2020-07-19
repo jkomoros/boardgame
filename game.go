@@ -278,7 +278,7 @@ func (g *Game) State(version int) ImmutableState {
 		return nil
 	}
 
-	result, err := g.manager.stateFromRecord(record)
+	result, err := g.manager.stateFromRecord(record, version)
 
 	if err != nil {
 		g.manager.Logger().Error("StateFromBlob failed: " + err.Error())

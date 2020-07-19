@@ -1000,7 +1000,6 @@ func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, er
 	obj := map[string]interface{}{
 		"Game":    s.gameState,
 		"Players": s.playerStates,
-		"Version": s.version,
 	}
 
 	if includeComputed {

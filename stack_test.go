@@ -435,7 +435,7 @@ func TestChangedSizeStackRoundTrip(t *testing.T) {
 
 	rec := cState.StorageRecord()
 
-	refriedState, err := game.Manager().stateFromRecord(rec)
+	refriedState, err := game.Manager().stateFromRecord(rec, 0)
 
 	assert.For(t).ThatActual(err).IsNil()
 

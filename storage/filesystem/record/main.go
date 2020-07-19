@@ -100,6 +100,24 @@ func EmptyWithFullStateEncoding() *Record {
 	}
 }
 
+func stateWithoutVersion(blob boardgame.StateStorageRecord) (boardgame.StateStorageRecord, error) {
+	data := make(map[string]interface{})
+
+	if err := json.Unmarshal(blob, &data); err != nil {
+		return nil, errors.New("Couldn't unmarshal: " + err.Error())
+	}
+
+	delete(data, "Version")
+
+	blob, err := boardgame.DefaultMarshalJSON(data)
+
+	if err != nil {
+		return nil, errors.New("Couldn't marshal: " + err.Error())
+	}
+
+	return blob, nil
+}
+
 //New returns a new record with the data encoded in the file. If you want one
 //that does not yet have a file backing it, you can just use an empty value of
 //Record. If a record with that filename has already been saved, it will
@@ -130,6 +148,16 @@ func New(filename string) (*Record, error) {
 		if err := fullEncoder.Matches(storageRec.StatePatches[0]); err == nil {
 			result.fullStateEncoding = true
 		}
+	}
+
+	//The library now doesn't include a version number in states, but it used
+	//to, so some old records have it. Make sure we remove it if we see it.
+	for i, blob := range result.data.StatePatches {
+		newBlob, err := stateWithoutVersion(boardgame.StateStorageRecord(blob))
+		if err != nil {
+			return nil, errors.New(strconv.Itoa(i) + " record couldn't have state removed: " + err.Error())
+		}
+		result.data.StatePatches[i] = json.RawMessage(newBlob)
 	}
 
 	return result, nil
@@ -516,10 +544,8 @@ func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 
 	patch := r.data.StatePatches[version]
 
-	//Sanity check the patch is a format we expect
-	if err := enc.Matches(patch); err != nil {
-		return nil, errors.New("Unexpected error: Sanity check failed: the stored patch does not appear to be in the format this encoder expects: " + err.Error())
-	}
+	//We used to do a sanity check here, but that was when any given patch was
+	//possible to tell which encoder matches; now only patch 1 works.
 
 	blob, err := enc.ApplyPatch(lastStateBlob, patch)
 

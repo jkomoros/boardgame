@@ -43,16 +43,17 @@ func (f *fullEncoderImpl) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame
 	return patchBlob, nil
 }
 
+//Note: this only works if examplePatch is the first one now.
 func (f *fullEncoderImpl) Matches(examplePatch []byte) error {
 
 	//We match if the patch has a version string who is an int.
 
 	var probeStruct struct {
-		Version int
+		Game []interface{}
 	}
 
-	if err := json.Unmarshal(examplePatch, &probeStruct); err != nil {
-		return errors.New("Unmarshal probe for Version as single int failed: " + err.Error())
+	if err := json.Unmarshal(examplePatch, &probeStruct); err == nil {
+		return errors.New("Unmarshal probe for Game as multiple items did NOT fail as expected")
 	}
 
 	return nil

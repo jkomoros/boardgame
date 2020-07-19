@@ -488,7 +488,7 @@ func TestState(t *testing.T) {
 		t.Error("Unexpected error", err)
 	}
 
-	state, err := game.Manager().stateFromRecord(record)
+	state, err := game.Manager().stateFromRecord(record, game.Version())
 	state.game = game
 
 	if err != nil {
@@ -570,7 +570,7 @@ func TestStateSerialization(t *testing.T) {
 		t.Fatal("Couldn't serialize state:", err)
 	}
 
-	reconstitutedState, err := game.Manager().stateFromRecord(blob)
+	reconstitutedState, err := game.Manager().stateFromRecord(blob, game.Version())
 
 	if err != nil {
 		t.Error("StateFromBlob returned unexpected err", err)

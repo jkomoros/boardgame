@@ -3,11 +3,12 @@ package record
 import (
 	"encoding/json"
 	"errors"
+	"strings"
+
 	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
 	"github.com/yudai/gojsondiff"
 	"github.com/yudai/gojsondiff/formatter"
-	"strings"
 )
 
 var diffEncoder = &diffEncoderImpl{}
@@ -98,20 +99,17 @@ func (d *diffEncoderImpl) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame
 	return blob, nil
 }
 
+//Note: this only works if examplePatch is the first one now.
 func (d *diffEncoderImpl) Matches(examplePatch []byte) error {
 
 	//We match if the patch has a version string who is an int.
 
 	var probeStruct struct {
-		Version []int
+		Game []interface{}
 	}
 
 	if err := json.Unmarshal(examplePatch, &probeStruct); err != nil {
-		return errors.New("Unmarshal probe for Version as two ints failed: " + err.Error())
-	}
-
-	if len(probeStruct.Version) == 0 || len(probeStruct.Version) > 2 {
-		return errors.New("Probe struct version had zero version ints, expected 1 or 2")
+		return errors.New("Unmarshal probe for Game as a list failed: " + err.Error())
 	}
 
 	return nil
