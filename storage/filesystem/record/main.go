@@ -413,28 +413,6 @@ func (r *Record) Save(filename string, fullEncodingErrors bool) error {
 	return nil
 }
 
-func relativizeStateVersion(state boardgame.StateStorageRecord) (boardgame.StateStorageRecord, error) {
-	dict := make(map[string]interface{})
-
-	if err := json.Unmarshal(state, dict); err != nil {
-		return nil, errors.New("Can't unmarshal state: " + err.Error())
-	}
-
-	if _, ok := dict["Version"]; !ok {
-		return nil, errors.New("State unexpectedly didn't have Version field")
-	}
-
-	dict["Version"] = -1
-
-	blob, err := boardgame.DefaultMarshalJSON(dict)
-
-	if err != nil {
-		return nil, errors.New("Couldn't re-marshal state: " + err.Error())
-	}
-
-	return blob, nil
-}
-
 //AddGameAndCurrentState adds the game, state, and move (if non-nil), ready
 //for saving. Designed to be used in a SaveGameAndCurrentState method. If the
 //state cannot be succcesfully encoded as a diffed encoding (due to an
@@ -446,8 +424,6 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 	if r.data == nil {
 		r.data = &storageRecord{}
 	}
-
-	//TODO: relativize state version here
 
 	lastState, err := r.State(len(r.data.StatePatches) - 1)
 
