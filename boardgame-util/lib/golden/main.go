@@ -269,6 +269,28 @@ func compare(manager *boardgame.GameManager, rec *record.Record, storage *storag
 		}
 
 		if nextMoveRec.Proposer < 0 {
+
+			//The next move was applied by admin, but wasn't already applied.
+			//That means it's either a SeatPlayer move, or a timer that fired.
+
+			//First, check if the nextMoveRec is a type of move that is a Seat
+			//Player move.
+
+			exampleMove := manager.ExampleMoveByName(nextMoveRec.Name)
+
+			if isSeatPlayer, ok := exampleMove.(interfaces.SeatPlayerMover); ok && isSeatPlayer.IsSeatPlayerMove() {
+				//It does seem to be a seat Player mover.
+				index, err := exampleMove.Reader().PlayerIndexProp("TargetPlayerIndex")
+				if err != nil {
+					return errors.New("Couldn't get expected TargetPlayerIndex from next SeatPlayer: " + err.Error())
+				}
+				storage.injectPlayerToSeat(index)
+				if err := <-manager.Internals().ForceFixUp(game); err != nil {
+					return errors.New("Couldn't force inject a SeatPlayer move: " + err.Error())
+				}
+				continue
+			}
+
 			//We could be waiting for a timer to fire.
 			//If there was a timer, try to force it to fire early.
 			if manager.Internals().ForceNextTimer() {
