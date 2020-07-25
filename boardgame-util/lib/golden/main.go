@@ -50,14 +50,51 @@ func (p *player) Committed() {
 
 type storageManager struct {
 	boardgame.StorageManager
+	manager      *boardgame.GameManager
 	playerToSeat *player
+	//A cache of whether a given gameID will call seatPlayer.
+	memoizedGameWillSeatPlayer map[string]bool
+	gameRecords                map[string]*record.Record
+}
+
+func (s *storageManager) gameWillSeatPlayer(gameID string) bool {
+	if result, ok := s.memoizedGameWillSeatPlayer[gameID]; ok {
+		return result
+	}
+	if s.gameRecords[gameID] == nil {
+		panic("Game record didn't exist for " + gameID)
+	}
+
+	rec := s.gameRecords[gameID]
+
+	foundSeatPlayerMove := false
+
+	for i := 1; i <= rec.Game().Version; i++ {
+		moveRec, err := rec.Move(i)
+		if err != nil {
+			panic("Couldn't get move " + strconv.Itoa(i) + ": " + err.Error())
+		}
+		exampleMove := s.manager.ExampleMoveByName(moveRec.Name)
+		if seatPlayerer, ok := exampleMove.(interfaces.SeatPlayerMover); ok {
+			if seatPlayerer.IsSeatPlayerMove() {
+				foundSeatPlayerMove = true
+				break
+			}
+		}
+	}
+
+	s.memoizedGameWillSeatPlayer[gameID] = foundSeatPlayerMove
+	return foundSeatPlayerMove
+
 }
 
 func (s *storageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
 	if dataType == willSeatPlayerRendevousDataType {
 		//This data type should return anything non-nil to signal, yes, I am a
 		//context that will pass you SeatPlayers when there's a player to seat.
-		return true
+
+		//Only games that do have a SeatPlayer in their golden should return true.
+		return s.gameWillSeatPlayer(gameID)
 	}
 	if dataType == playerToSeatRendevousDataType {
 		if s.playerToSeat == nil {
@@ -83,6 +120,9 @@ func newStorageManager() *storageManager {
 	return &storageManager{
 		memory.NewStorageManager(),
 		nil,
+		nil,
+		make(map[string]bool),
+		make(map[string]*record.Record),
 	}
 }
 
@@ -103,6 +143,8 @@ func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 	if err != nil {
 		return errors.New("Couldn't create new manager: " + err.Error())
 	}
+
+	storage.manager = manager
 
 	rec, err := record.New(recFilename)
 
@@ -126,6 +168,8 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
 	if err != nil {
 		return errors.New("Couldn't create new manager: " + err.Error())
 	}
+
+	storage.manager = manager
 
 	infos, err := ioutil.ReadDir(recFolder)
 
@@ -166,6 +210,10 @@ func newLogger() (*logrus.Logger, *bytes.Buffer) {
 }
 
 func compare(manager *boardgame.GameManager, rec *record.Record, storage *storageManager) (result error) {
+
+	//FetchInjectedDataForGame requires a reference to the game
+	storage.gameRecords[rec.Game().ID] = rec
+
 	game, err := manager.Internals().RecreateGame(rec.Game())
 
 	if err != nil {
