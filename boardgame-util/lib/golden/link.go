@@ -87,12 +87,16 @@ game package.
 */
 
 import (
-	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
+	"flag"
 	"testing"
+
+	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
 )
 
+var updateGolden = flag.Bool("update-golden", false, "update golden files if they're different instead of erroring")
+
 func TestGolden(t *testing.T) {
-	if err := golden.CompareFolder(NewDelegate(), "{{.folder}}"); err != nil {
+	if err := golden.CompareFolder(NewDelegate(), "testdata/golden", *updateGolden); err != nil {
 		t.Error(err.Error())
 	}
 }

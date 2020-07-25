@@ -131,13 +131,16 @@ func newStorageManager() *storageManager {
 
 //Compare is the primary method in the package. It takes a game delegate and a
 //filename denoting a record to compare against. delegate shiould be a fresh
-//delegate not yet affiliated with a manager. It compares every version and
-//move in the history (ignoring things that shouldn't be the same, like
-//timestamps) and reports the first place they divrge. Any time it finds a
-//move not proposed by AdminPlayerIndex it will propose that move. As long as
-//your game uses state.Rand() for all randomness and is otherwise
-//deterministic then everything should work.
-func Compare(delegate boardgame.GameDelegate, recFilename string) error {
+//delegate not yet affiliated with a manager. It compares every version and move
+//in the history (ignoring things that shouldn't be the same, like timestamps)
+//and reports the first place they divrge. Any time it finds a move not proposed
+//by AdminPlayerIndex it will propose that move. As long as your game uses
+//state.Rand() for all randomness and is otherwise deterministic then everything
+//should work. If updateOnDifferent is true, instead of erroring, it will
+//instead overwrite the existing golden with a new one. The boardgame-util
+//create-goldens tool will output a test that will look for a `-update-golden`
+//flag and pass in that variable here.
+func Compare(delegate boardgame.GameDelegate, recFilename string, updateOnDifferent bool) error {
 
 	storage := newStorageManager()
 
@@ -161,8 +164,8 @@ func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 
 //CompareFolder is like Compare, except it will iterate through any file in
 //recFolder that ends in .json. Errors if any of those files cannot be parsed
-//into recs.
-func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
+//into recs. See Compare for more documentation.
+func CompareFolder(delegate boardgame.GameDelegate, recFolder string, updateOnDifferent bool) error {
 
 	storage := newStorageManager()
 
