@@ -310,11 +310,18 @@ func (i *InactivateEmptySeat) DefaultsForState(state boardgame.ImmutableState) {
 }
 
 //Legal verifies that TargetPlayerIndex is set to a player that is currently
-//empty and not currently inactive.
+//empty and not currently inactive. If the game is running in a context where
+//moves.SeatPlayer will never be called, then it will not activate for any seat
+//(because it would activate for ALL seats).
 func (i *InactivateEmptySeat) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := i.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
+
+	if !gameWillSeatPlayer(state) {
+		return errors.New("Game will never seat players, so we shouldn't inactivate any, or we'd inactivate all of them")
+	}
+
 	targetPlayerIndex := i.TargetPlayerIndex.EnsureValid(state)
 	if targetPlayerIndex < 0 || int(targetPlayerIndex) >= len(state.ImmutablePlayerStates()) {
 		return errors.New("Invalid TargetPlayerIndex")
