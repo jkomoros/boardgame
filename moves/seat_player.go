@@ -13,6 +13,23 @@ import (
 const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
 const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
 
+//gameWillSeatPlayer returns true if the game will ever potentially call
+//moves.SeatPlayer or not.
+func gameWillSeatPlayer(state boardgame.ImmutableState) bool {
+	willSeatPlayer := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), willSeatPlayerRendevousDataType)
+	if willSeatPlayer == nil {
+		return false
+	}
+	willSeatPlayerBool, ok := willSeatPlayer.(bool)
+	if !ok {
+		return false
+	}
+	if !willSeatPlayerBool {
+		return false
+	}
+	return true
+}
+
 //SeatPlayer is a game that seats a new player into an open seat in the game. It
 //is a special interface point for the server library to interact with your game
 //logic. The core engine has no notion of whether or not a real user is
@@ -380,7 +397,7 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 		return err
 	}
 
-	if willSeatPlayer := state.Manager().Storage().FetchInjectedDataForGame(state.Game().ID(), willSeatPlayerRendevousDataType); willSeatPlayer == nil {
+	if !gameWillSeatPlayer(state) {
 		//We're in a context that won't ever SeatPlayer, so we should just auto trigger now.
 		//TODO: when this is extended to allow players to flag it, we should likely have different behavior.
 		return nil

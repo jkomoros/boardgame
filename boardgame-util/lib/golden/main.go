@@ -94,11 +94,8 @@ func (s *storageManager) FetchInjectedDataForGame(gameID string, dataType string
 		//context that will pass you SeatPlayers when there's a player to seat.
 
 		//Only games that do have a SeatPlayer in their golden should return
-		//true. If not, we should return nil.
-		if s.gameWillSeatPlayer(gameID) {
-			return true
-		}
-		return nil
+		//true.
+		return s.gameWillSeatPlayer(gameID)
 	}
 	if dataType == playerToSeatRendevousDataType {
 		if s.playerToSeat == nil {
