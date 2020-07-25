@@ -16,7 +16,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 
+	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
@@ -429,7 +431,7 @@ func compareMoveStorageRecords(one, two *boardgame.MoveStorageRecord) error {
 	two.Timestamp = one.Timestamp
 
 	if !reflect.DeepEqual(one, two) {
-		return errors.New("Move storage records differed in base fields")
+		return errors.New("Move storage records differed in base fields: " + strings.Join(deep.Equal(one, two), ", "))
 	}
 
 	return compareJSONBlobs(oneBlob, twoBlob)
