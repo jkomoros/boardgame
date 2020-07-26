@@ -119,7 +119,10 @@ func pathForID(basePath, gameID string) string {
 	return ""
 }
 
-func (s *StorageManager) recordForID(gameID string) (*record.Record, error) {
+//RecordForID returns the *record.Record associated with that gameID, if it
+//exists. This is exposed for debug scenarios; in typical usage of this storage
+//layer you don't need access to it.
+func (s *StorageManager) RecordForID(gameID string) (*record.Record, error) {
 	if s.basePath == "" {
 		return nil, errors.New("No base path provided")
 	}
@@ -168,7 +171,7 @@ func (s *StorageManager) saveRecordForID(gameID string, rec *record.Record) erro
 
 //State returns the state for that gameID and version.
 func (s *StorageManager) State(gameID string, version int) (boardgame.StateStorageRecord, error) {
-	rec, err := s.recordForID(gameID)
+	rec, err := s.RecordForID(gameID)
 
 	if err != nil {
 		return nil, err
@@ -186,7 +189,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 
 //Move returns the move for that gameID and version
 func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorageRecord, error) {
-	rec, err := s.recordForID(gameID)
+	rec, err := s.RecordForID(gameID)
 
 	if err != nil {
 		return nil, err
@@ -203,7 +206,7 @@ func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*bo
 //Game returns the game storage record for that game.
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
-	rec, err := s.recordForID(id)
+	rec, err := s.RecordForID(id)
 
 	if err != nil {
 		return nil, err
@@ -214,7 +217,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 //SaveGameAndCurrentState saves the game and current state.
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
-	rec, err := s.recordForID(game.ID)
+	rec, err := s.RecordForID(game.ID)
 
 	if err != nil {
 		//Must be the first save.
@@ -235,7 +238,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 //CombinedGame returns the combined game
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
-	rec, err := s.recordForID(id)
+	rec, err := s.RecordForID(id)
 
 	if err != nil {
 		return nil, err
@@ -278,7 +281,7 @@ func (s *StorageManager) recursiveAllGames(basePath string) []*boardgame.GameSto
 		if ext != ".json" {
 			continue
 		}
-		rec, err := s.recordForID(idFromPath(file.Name()))
+		rec, err := s.RecordForID(idFromPath(file.Name()))
 		if err != nil {
 			return nil
 		}
