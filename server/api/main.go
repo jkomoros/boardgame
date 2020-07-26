@@ -1106,6 +1106,11 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		"GameOpen":        gameInfo.Open,
 		"GameVisible":     gameInfo.Visible,
 		"IsOwner":         isOwner,
+		//The StateVersion is almost always the Game.Version, except in the
+		//special case described above where lots of fix up moves have been
+		//applied but no player moves yet. State blobs used to include their own
+		//state version but now we have to ship it down to the client speically.
+		"StateVersion": state.Version(),
 	}
 
 	s.lastErrorMessage = ""

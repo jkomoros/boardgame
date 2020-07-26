@@ -537,8 +537,8 @@ class BoardgameGameStateManager extends PolymerElement {
     //We don't use newValue.Game.Version, because in some cases the current
     //state we're returning is not actually current state, but an old one to
     //force us to play animations for moves that are made before a player move
-    //is.
-    this.lastFetchedVersion = newValue.Game.CurrentState.Version;
+    //is. The server ships down this information in a special field.
+    this.lastFetchedVersion = newValue.StateVersion;
     this.targetVersion = newValue.Game.Version;
   }
 
