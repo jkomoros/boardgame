@@ -38,6 +38,9 @@ import (
 
 const randomStringChars = "ABCDEF0123456789"
 
+//if the time is before this in a MoveStorageRecord, then it's relative time.
+var relativeTimeCutoff = time.Date(2000, time.January, 0, 0, 0, 0, 0, time.UTC)
+
 var recCache map[string]*Record
 
 func init() {
@@ -355,7 +358,7 @@ func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 
 	rec := r.data.Moves[version]
 
-	if rec.Version >= 0 {
+	if rec.Version >= 0 && rec.Timestamp.After(relativeTimeCutoff) {
 		//It's in absolute mode already
 		return rec, nil
 	}
@@ -365,9 +368,17 @@ func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 	recCopy := new(boardgame.MoveStorageRecord)
 	*recCopy = *rec
 
-	//We removed one from version to fetch it
-	recCopy.Version = version + 1
-	recCopy.Initiator = recCopy.Version + recCopy.Initiator
+	if rec.Version < 0 {
+		//We removed one from version to fetch it
+		recCopy.Version = version + 1
+		recCopy.Initiator = recCopy.Version + recCopy.Initiator
+	}
+
+	if rec.Timestamp.Before(relativeTimeCutoff) {
+		//IN relative time, the timestamp is stored relative to the Epcoh, for a
+		//duration that is then applied to the game's created field.
+		recCopy.Timestamp = r.data.Game.Created.Add(rec.Timestamp.Sub(time.Time{}))
+	}
 
 	return recCopy, nil
 }
@@ -504,6 +515,9 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		//Store in relative mode (see comments on storageRecord.Moves)
 		moveCopy.Initiator = -1 * (moveCopy.Version - moveCopy.Initiator)
 		moveCopy.Version = -1
+		//Store the time in relative time, which is subtract the relative time
+		//from the Game created, and then add that to epoch time.
+		moveCopy.Timestamp = time.Time{}.Add(move.Timestamp.Sub(game.Created))
 		r.data.Moves = append(r.data.Moves, moveCopy)
 	}
 
