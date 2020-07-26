@@ -47,7 +47,11 @@ type StorageManager struct {
 	//updating goldens, which is why it's exposed as an odd debug flag, not as
 	//an argument in NewStorageManager or Connect.
 	DebugNoDisk bool
-	//the records cache. Only actually used if DebugNoDisk is true.
+	//the records cache. Only actually used if DebugNoDisk is true. We don't use
+	//this in normal operation because the record library already does in-memory
+	//caching based on filenames, and because a storage layer should be able to
+	//run for long periods of time, so it's better for it to not keep more
+	//things in memory than necessary.
 	records map[string]*record.Record
 }
 
