@@ -40,6 +40,15 @@ type StorageManager struct {
 	managers []*boardgame.GameManager
 	//Only shoiuld be on in testing scenarios
 	forceFullEncoding bool
+	//DebugNoDisk is a debug option. If true, instead of reading/writing from
+	//disk, the records will be maintained only in memory (and reads on whats
+	//not yet in memory will get empty records). The only way to fetch the state
+	//of them is via RecordForID(). This is only useful in limited contexts like
+	//updating goldens, which is why it's exposed as an odd debug flag, not as
+	//an argument in NewStorageManager or Connect.
+	DebugNoDisk bool
+	//the records cache. Only actually used if DebugNoDisk is true.
+	records map[string]*record.Record
 }
 
 //Store seen ids and remember where the path was
@@ -56,6 +65,9 @@ func NewStorageManager(basePath string) *StorageManager {
 
 	result := &StorageManager{
 		basePath: basePath,
+		//This will only be used if DebugNoDisk is later set to true, but
+		//initalize it now just so we don't have to keep checking.
+		records: make(map[string]*record.Record),
 	}
 
 	result.ExtendedMemoryStorageManager = helpers.NewExtendedMemoryStorageManager(result)
@@ -123,11 +135,20 @@ func pathForID(basePath, gameID string) string {
 //exists. This is exposed for debug scenarios; in typical usage of this storage
 //layer you don't need access to it.
 func (s *StorageManager) RecordForID(gameID string) (*record.Record, error) {
+
+	gameID = strings.ToLower(gameID)
+
+	if s.DebugNoDisk {
+		rec, ok := s.records[gameID]
+		if !ok {
+			return nil, errors.New("No record with that ID has been saved: " + gameID)
+		}
+		return rec, nil
+	}
+
 	if s.basePath == "" {
 		return nil, errors.New("No base path provided")
 	}
-
-	gameID = strings.ToLower(gameID)
 
 	path := pathForID(s.basePath, gameID)
 
@@ -145,6 +166,12 @@ func (s *StorageManager) saveRecordForID(gameID string, rec *record.Record) erro
 
 	if rec.Game() == nil {
 		return errors.New("Game record in rec was nil")
+	}
+
+	if s.DebugNoDisk {
+		//Just make sure it's in the records cache.
+		s.records[gameID] = rec
+		return nil
 	}
 
 	gameID = strings.ToLower(gameID)
