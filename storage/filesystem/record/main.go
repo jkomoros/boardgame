@@ -504,7 +504,7 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		//Store in relative mode (see comments on storageRecord.Moves)
 		moveCopy.Initiator = -1 * (moveCopy.Version - moveCopy.Initiator)
 		moveCopy.Version = -1
-		r.data.Moves = append(r.data.Moves, move)
+		r.data.Moves = append(r.data.Moves, moveCopy)
 	}
 
 	r.states = append(r.states, state)
