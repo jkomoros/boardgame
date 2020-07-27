@@ -164,13 +164,12 @@ func (s *StorageManager) RecordForID(gameID string) (*record.Record, error) {
 }
 
 func (s *StorageManager) saveRecordForID(gameID string, rec *record.Record) error {
-	if s.basePath == "" {
-		return errors.New("Invalid base path")
-	}
 
 	if rec.Game() == nil {
 		return errors.New("Game record in rec was nil")
 	}
+
+	gameID = strings.ToLower(gameID)
 
 	if s.DebugNoDisk {
 		//Just make sure it's in the records cache.
@@ -178,7 +177,9 @@ func (s *StorageManager) saveRecordForID(gameID string, rec *record.Record) erro
 		return nil
 	}
 
-	gameID = strings.ToLower(gameID)
+	if s.basePath == "" {
+		return errors.New("Invalid base path")
+	}
 
 	//If a sub directory for that game type exists, save there. If not, save in the root of basePath.
 	gameTypeSubDir := filepath.Join(s.basePath, rec.Game().Name)
