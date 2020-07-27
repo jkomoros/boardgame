@@ -293,6 +293,26 @@ func (c *comparer) LastVerifiedVersion() int {
 	return c.lastVerifiedVersion
 }
 
+//AdvanceToNextInitiatorMove is like VerifyUnverifiedMoves, but advances
+//LastVerifiedVersion automatically up to the next move whose Initator is
+//itself: that is, that is a Player move, a Timer move, or a SeatPlayer move.
+//This leaves the golden in the state where the next move to make in the new
+//version is the next unverified move.
+func (c *comparer) AdvanceToNextInitiatorMove() {
+	c.lastVerifiedVersion++
+	for c.lastVerifiedVersion <= c.golden.Game().Version {
+		moveRec, err := c.golden.Move(c.lastVerifiedVersion)
+		if err != nil {
+			//Assume we're at the end of the game
+			return
+		}
+		if moveRec.Initiator == moveRec.Version {
+			//We found the next move that starts a chain
+			return
+		}
+	}
+}
+
 //VerifyUnverifiedMoves compares moves and states for moves that have been
 //applied but not yet verified. Even if it errors, it may have incremented
 //LastVerifiedVersion(). If skipComparingStates is true, then the state won't be
@@ -460,13 +480,13 @@ func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
 func (c *comparer) RegenerateGolden() (*record.Record, error) {
 
 	for c.GoldenHasRemainingMoves() {
-		c.ResetDebugLog()
 
-		//TODO: this logic isn't exactly right, becuase there will be extra (or
-		//missing!) moves to skip over or not.
-		if err := c.VerifyUnverifiedMoves(true); err != nil {
-			return nil, errors.New("Couldn't verify moves: " + err.Error())
-		}
+		c.ResetDebugLog()
+		//We assume that the chain of fixups that are all applied--even if it
+		//now has fewer or more items--is fine in this new world. We want to
+		//fast-forward to the next non-initatied move in the golden to apply,
+		//and then apply that.
+		c.AdvanceToNextInitiatorMove()
 
 		applied, err := c.ApplyNextMove()
 		if err != nil {
