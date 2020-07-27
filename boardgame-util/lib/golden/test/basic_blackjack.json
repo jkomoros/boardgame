@@ -1,7 +1,7 @@
 {
 	"Game": {
 		"Name": "blackjack",
-		"Id": "DDD6477820CB836E",
+		"ID": "DDD6477820CB836E",
 		"SecretSalt": "081DC3FBD90D5F74",
 		"Version": 22,
 		"Winners": [
@@ -17,7 +17,7 @@
 			"",
 			""
 		],
-		"Config": {}
+		"Variant": null
 	},
 	"Moves": [
 		{
@@ -26,7 +26,7 @@
 			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.825362907+01:00",
+			"Timestamp": "0001-01-01T00:00:00.00207958Z",
 			"Blob": {}
 		},
 		{
@@ -35,7 +35,7 @@
 			"Initiator": -1,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.83134365+01:00",
+			"Timestamp": "0001-01-01T00:00:00.005158665Z",
 			"Blob": {}
 		},
 		{
@@ -44,7 +44,7 @@
 			"Initiator": -2,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.838696096+01:00",
+			"Timestamp": "0001-01-01T00:00:00.008632473Z",
 			"Blob": {}
 		},
 		{
@@ -53,7 +53,7 @@
 			"Initiator": -3,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.846908586+01:00",
+			"Timestamp": "0001-01-01T00:00:00.011757747Z",
 			"Blob": {}
 		},
 		{
@@ -62,7 +62,7 @@
 			"Initiator": -4,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.856253775+01:00",
+			"Timestamp": "0001-01-01T00:00:00.014857651Z",
 			"Blob": {}
 		},
 		{
@@ -71,7 +71,7 @@
 			"Initiator": -5,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.869933675+01:00",
+			"Timestamp": "0001-01-01T00:00:00.018528044Z",
 			"Blob": {}
 		},
 		{
@@ -80,7 +80,7 @@
 			"Initiator": -6,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.883597148+01:00",
+			"Timestamp": "0001-01-01T00:00:00.02176015Z",
 			"Blob": {}
 		},
 		{
@@ -89,7 +89,7 @@
 			"Initiator": -7,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.898683958+01:00",
+			"Timestamp": "0001-01-01T00:00:00.02505758Z",
 			"Blob": {}
 		},
 		{
@@ -98,7 +98,7 @@
 			"Initiator": -8,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.914918429+01:00",
+			"Timestamp": "0001-01-01T00:00:00.028250508Z",
 			"Blob": {}
 		},
 		{
@@ -107,7 +107,7 @@
 			"Initiator": -9,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:08.929691744+01:00",
+			"Timestamp": "0001-01-01T00:00:00.031681363Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -118,7 +118,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
-			"Timestamp": "2018-07-24T11:50:13.254270065+01:00",
+			"Timestamp": "0001-01-01T00:00:00.034996685Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -129,7 +129,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:13.272976861+01:00",
+			"Timestamp": "0001-01-01T00:00:00.038443801Z",
 			"Blob": {}
 		},
 		{
@@ -138,7 +138,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:13.292435831+01:00",
+			"Timestamp": "0001-01-01T00:00:00.041772706Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -149,7 +149,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-07-24T11:50:14.3370843+01:00",
+			"Timestamp": "0001-01-01T00:00:00.045848199Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -160,7 +160,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-07-24T11:50:15.768832011+01:00",
+			"Timestamp": "0001-01-01T00:00:00.049173509Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -171,7 +171,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:15.79205369+01:00",
+			"Timestamp": "0001-01-01T00:00:00.052377514Z",
 			"Blob": {}
 		},
 		{
@@ -180,7 +180,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:15.815611132+01:00",
+			"Timestamp": "0001-01-01T00:00:00.056277174Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -191,7 +191,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 2,
-			"Timestamp": "2018-07-24T11:50:16.707264449+01:00",
+			"Timestamp": "0001-01-01T00:00:00.059965896Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -202,7 +202,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 2,
-			"Timestamp": "2018-07-24T11:50:17.391405078+01:00",
+			"Timestamp": "0001-01-01T00:00:00.063315896Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -213,7 +213,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:17.417521997+01:00",
+			"Timestamp": "0001-01-01T00:00:00.067227765Z",
 			"Blob": {}
 		},
 		{
@@ -222,7 +222,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:17.445195722+01:00",
+			"Timestamp": "0001-01-01T00:00:00.070820551Z",
 			"Blob": {
 				"TargetPlayerIndex": 3
 			}
@@ -233,7 +233,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 3,
-			"Timestamp": "2018-07-24T11:50:19.581023467+01:00",
+			"Timestamp": "0001-01-01T00:00:00.074611764Z",
 			"Blob": {
 				"TargetPlayerIndex": 3
 			}
@@ -506,10 +506,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -536,10 +536,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -566,10 +566,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -596,10 +596,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],

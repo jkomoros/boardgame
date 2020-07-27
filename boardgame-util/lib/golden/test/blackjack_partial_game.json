@@ -1,7 +1,7 @@
 {
 	"Game": {
 		"Name": "blackjack",
-		"Id": "92597E5A0EB2CB35",
+		"ID": "92597E5A0EB2CB35",
 		"SecretSalt": "0EBDAFE6D01BB76B",
 		"Version": 17,
 		"Winners": null,
@@ -15,7 +15,7 @@
 			"",
 			""
 		],
-		"Config": {}
+		"Variant": null
 	},
 	"Moves": [
 		{
@@ -24,7 +24,7 @@
 			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.204983375+01:00",
+			"Timestamp": "0001-01-01T00:00:00.002329244Z",
 			"Blob": {}
 		},
 		{
@@ -33,7 +33,7 @@
 			"Initiator": -1,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.210570137+01:00",
+			"Timestamp": "0001-01-01T00:00:00.005803913Z",
 			"Blob": {}
 		},
 		{
@@ -42,7 +42,7 @@
 			"Initiator": -2,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.216838243+01:00",
+			"Timestamp": "0001-01-01T00:00:00.009056215Z",
 			"Blob": {}
 		},
 		{
@@ -51,7 +51,7 @@
 			"Initiator": -3,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.224350636+01:00",
+			"Timestamp": "0001-01-01T00:00:00.012372589Z",
 			"Blob": {}
 		},
 		{
@@ -60,7 +60,7 @@
 			"Initiator": -4,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.233062751+01:00",
+			"Timestamp": "0001-01-01T00:00:00.016026971Z",
 			"Blob": {}
 		},
 		{
@@ -69,7 +69,7 @@
 			"Initiator": -5,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.244264677+01:00",
+			"Timestamp": "0001-01-01T00:00:00.019389268Z",
 			"Blob": {}
 		},
 		{
@@ -78,7 +78,7 @@
 			"Initiator": -6,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.256419437+01:00",
+			"Timestamp": "0001-01-01T00:00:00.022883465Z",
 			"Blob": {}
 		},
 		{
@@ -87,7 +87,7 @@
 			"Initiator": -7,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.270301088+01:00",
+			"Timestamp": "0001-01-01T00:00:00.026864395Z",
 			"Blob": {}
 		},
 		{
@@ -96,7 +96,7 @@
 			"Initiator": -8,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.283789479+01:00",
+			"Timestamp": "0001-01-01T00:00:00.030407984Z",
 			"Blob": {}
 		},
 		{
@@ -105,7 +105,7 @@
 			"Initiator": -9,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:25.299751445+01:00",
+			"Timestamp": "0001-01-01T00:00:00.033485069Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -116,7 +116,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
-			"Timestamp": "2018-07-24T11:50:26.771483736+01:00",
+			"Timestamp": "0001-01-01T00:00:00.036816513Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -127,7 +127,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:26.790040004+01:00",
+			"Timestamp": "0001-01-01T00:00:00.040476064Z",
 			"Blob": {}
 		},
 		{
@@ -136,7 +136,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:26.809537214+01:00",
+			"Timestamp": "0001-01-01T00:00:00.043950444Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -147,7 +147,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-07-24T11:50:28.823608395+01:00",
+			"Timestamp": "0001-01-01T00:00:00.047420629Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -158,7 +158,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-07-24T11:50:30.760907489+01:00",
+			"Timestamp": "0001-01-01T00:00:00.051302247Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -169,7 +169,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:30.785601477+01:00",
+			"Timestamp": "0001-01-01T00:00:00.054636369Z",
 			"Blob": {}
 		},
 		{
@@ -178,7 +178,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-07-24T11:50:30.810103866+01:00",
+			"Timestamp": "0001-01-01T00:00:00.05817344Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -451,10 +451,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -481,10 +481,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -511,10 +511,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -541,10 +541,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
