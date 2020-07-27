@@ -299,9 +299,16 @@ func (c *comparer) LastVerifiedVersion() int {
 //This leaves the golden in the state where the next move to make in the new
 //version is the next unverified move.
 func (c *comparer) AdvanceToNextInitiatorMove() {
+	if c.lastVerifiedVersion == 0 {
+		//there is no move 0
+		c.lastVerifiedVersion++
+	}
+	//The one we're currently on is likely the initator from last time, so
+	//advance past it.
 	c.lastVerifiedVersion++
 	for c.lastVerifiedVersion <= c.golden.Game().Version {
 		moveRec, err := c.golden.Move(c.lastVerifiedVersion)
+
 		if err != nil {
 			//Assume we're at the end of the game
 			return
@@ -310,6 +317,7 @@ func (c *comparer) AdvanceToNextInitiatorMove() {
 			//We found the next move that starts a chain
 			return
 		}
+		c.lastVerifiedVersion++
 	}
 }
 
