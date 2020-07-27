@@ -500,7 +500,17 @@ func (c *comparer) RegenerateGolden() (*record.Record, error) {
 		c.AdvanceToNextInitiatorMove()
 	}
 
-	return c.storage.RecordForID(c.golden.Game().ID)
+	newRecord, err := c.storage.RecordForID(c.golden.Game().ID)
+
+	if err != nil {
+		return nil, errors.New("Couldn't get RecordForID: " + err.Error())
+	}
+
+	if err := alignTimes(newRecord, c.golden); err != nil {
+		return nil, errors.New("Couldn't align times: " + err.Error())
+	}
+
+	return newRecord, nil
 
 }
 
@@ -566,6 +576,16 @@ func compare(manager *boardgame.GameManager, rec *record.Record, storage *storag
 		}
 	}
 
+	return nil
+}
+
+//alignTimes MODIFIES the given new storage record, specifically trying to
+//minimize diffs between the two, at least due to timeStamps, as much as
+//possible.
+func alignTimes(new, golden *record.Record) error {
+	new.Game().Created = golden.Game().Created
+	new.Game().Modified = golden.Game().Modified
+	//TODO: also align move times as much as possible!
 	return nil
 }
 
