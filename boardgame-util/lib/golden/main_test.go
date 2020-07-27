@@ -12,7 +12,8 @@ var updateGolden = flag.Bool("update-golden", false, "update golden files if the
 
 func TestBasic(t *testing.T) {
 
-	err := Compare(blackjack.NewDelegate(), "test/basic_blackjack.json", *updateGolden)
+	//If we also used updateGolden here, then the two tests would collide.
+	err := Compare(blackjack.NewDelegate(), "test/basic_blackjack.json", false)
 
 	assert.For(t).ThatActual(err).IsNil()
 
