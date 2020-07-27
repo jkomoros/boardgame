@@ -458,7 +458,27 @@ func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
 //RegenerateGolden returns a new golden that has applied the non-fixup moves
 //like the golden that the comparer is based off of.
 func (c *comparer) RegenerateGolden() (*record.Record, error) {
-	return nil, errors.New("Not yet implemented")
+
+	for c.GoldenHasRemainingMoves() {
+		c.ResetDebugLog()
+
+		//TODO: this logic isn't exactly right, becuase there will be extra (or
+		//missing!) moves to skip over or not.
+		if err := c.VerifyUnverifiedMoves(true); err != nil {
+			return nil, errors.New("Couldn't verify moves: " + err.Error())
+		}
+
+		applied, err := c.ApplyNextMove()
+		if err != nil {
+			return nil, errors.New("Couldnt apply next move: " + err.Error())
+		}
+		if !applied {
+			return nil, errors.New("There were still moves left in golden to apply but they hadn't been triggered")
+		}
+	}
+
+	return c.storage.RecordForID(c.golden.Game().ID)
+
 }
 
 func (c *comparer) Compare() error {
