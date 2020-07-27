@@ -285,8 +285,10 @@ func (c *comparer) LastVerifiedVersion() int {
 
 //VerifyUnverifiedMoves compares moves and states for moves that have been
 //applied but not yet verified. Even if it errors, it may have incremented
-//LastVerifiedVersion().
-func (c *comparer) VerifyUnverifiedMoves() error {
+//LastVerifiedVersion(). If skipComparingStates is true, then the state won't be
+//compared, only the move. That's useful in cases where you aren't trying to
+//actually verify the golden, just skip moves.
+func (c *comparer) VerifyUnverifiedMoves(skipComparingStates bool) error {
 	for c.lastVerifiedVersion < c.game.Version() {
 		stateToCompare, err := c.golden.State(c.lastVerifiedVersion)
 
@@ -331,8 +333,10 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 			}
 		}
 
-		if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
-			return errors.New("State " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
+		if !skipComparingStates {
+			if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
+				return errors.New("State " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
+			}
 		}
 
 		c.lastVerifiedVersion++
@@ -441,6 +445,12 @@ func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
 	return false, errors.New("At version " + strconv.Itoa(c.lastVerifiedVersion) + " the next player move to apply was not applied by a player. This implies that the fixUp move named " + nextMoveRec.Name + " is erroneously returning an error from its Legal method.")
 }
 
+//RegenerateGolden returns a new golden that has applied the non-fixup moves
+//like the golden that the comparer is based off of.
+func (c *comparer) RegenerateGolden() (*record.Record, error) {
+	return nil, errors.New("Not yet implemented")
+}
+
 func (c *comparer) Compare() error {
 	for !c.game.Finished() {
 
@@ -448,7 +458,7 @@ func (c *comparer) Compare() error {
 
 		//Verify all new moves that have happened since the last time we
 		//checked (often, fix-up moves).
-		if err := c.VerifyUnverifiedMoves(); err != nil {
+		if err := c.VerifyUnverifiedMoves(false); err != nil {
 			return errors.New("VerifyUnverifiedMoves failed: " + err.Error())
 		}
 
