@@ -303,17 +303,15 @@ func (c *comparer) AdvanceToNextInitiatorMove() {
 		//there is no move 0
 		c.lastVerifiedVersion++
 	}
-	//The one we're currently on is likely the initator from last time, so
-	//advance past it.
-	c.lastVerifiedVersion++
 	for c.lastVerifiedVersion <= c.golden.Game().Version {
-		moveRec, err := c.golden.Move(c.lastVerifiedVersion)
+		//We want to return one BEFORE the next initator move.
+		nextMoveRec, err := c.golden.Move(c.lastVerifiedVersion + 1)
 
 		if err != nil {
 			//Assume we're at the end of the game
 			return
 		}
-		if moveRec.Initiator == moveRec.Version {
+		if nextMoveRec.Initiator == nextMoveRec.Version {
 			//We found the next move that starts a chain
 			return
 		}
