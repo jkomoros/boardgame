@@ -52,6 +52,7 @@ func init() {
 //contents of a file with New(). If you want a new blank one you can just use
 //a zero value of this.
 type Record struct {
+	path              string
 	data              *storageRecord
 	states            []boardgame.StateStorageRecord
 	fullStateEncoding bool
@@ -144,6 +145,7 @@ func New(filename string) (*Record, error) {
 	}
 
 	result := &Record{
+		path: filename,
 		data: &storageRec,
 	}
 
@@ -164,6 +166,13 @@ func New(filename string) (*Record, error) {
 	}
 
 	return result, nil
+}
+
+//Path returns the string represeting the filename that this record represents
+//(the filename that was passed to New()). Note that if you call Save() on a
+//record, it doesn't update this value.
+func (r *Record) Path() string {
+	return r.path
 }
 
 func (r *Record) encoder() encoder {
