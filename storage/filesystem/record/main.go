@@ -346,7 +346,19 @@ func (r *Record) Description() string {
 	return r.data.Description
 }
 
-//Move returns the move for that version from that record.
+//RawMoves returns the actual raw MoveStorageRecords, which golden needs access
+//to to align timestamps. The moves are 1-indexed, and their Initator, Version,
+//and Timestamp fields might be in relative values that will trip up other logic
+//outside of this package.
+func (r *Record) RawMoves() []*boardgame.MoveStorageRecord {
+	if r.data == nil {
+		return nil
+	}
+	return r.data.Moves
+}
+
+//Move returns the move for that version from that record. Note that it might be
+//a copy from the underlying value.
 func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 	if r.data == nil {
 		return nil, errors.New("No data")
