@@ -3,7 +3,6 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
-	"strconv"
 	"time"
 )
 
@@ -33,11 +32,6 @@ type MoveStorageRecord struct {
 	Timestamp time.Time
 	//The actual JSON serialized blob representing the properties of the move.
 	Blob json.RawMessage
-}
-
-//String returns the name of the move and its version, for easy debugging.
-func (m *MoveStorageRecord) String() string {
-	return m.Name + ": " + strconv.Itoa(m.Version)
 }
 
 //Inflate takes a move storage record and turns it into a move associated with
