@@ -21,8 +21,8 @@ import (
 	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/storage/filesystem"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
-	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/sirupsen/logrus"
 	"github.com/yudai/gojsondiff"
 	"github.com/yudai/gojsondiff/formatter"
@@ -51,7 +51,7 @@ func (p *player) Committed() {
 }
 
 type storageManager struct {
-	boardgame.StorageManager
+	*filesystem.StorageManager
 	manager      *boardgame.GameManager
 	playerToSeat *player
 	//A cache of whether a given gameID will call seatPlayer.
@@ -120,8 +120,10 @@ func (s *storageManager) injectPlayerToSeat(index boardgame.PlayerIndex) {
 }
 
 func newStorageManager() *storageManager {
+	fsStorage := filesystem.NewStorageManager("")
+	fsStorage.DebugNoDisk = true
 	return &storageManager{
-		memory.NewStorageManager(),
+		fsStorage,
 		nil,
 		nil,
 		make(map[string]bool),
