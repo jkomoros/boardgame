@@ -481,14 +481,10 @@ func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
 //like the golden that the comparer is based off of.
 func (c *comparer) RegenerateGolden() (*record.Record, error) {
 
+	c.AdvanceToNextInitiatorMove()
 	for c.GoldenHasRemainingMoves() {
 
 		c.ResetDebugLog()
-		//We assume that the chain of fixups that are all applied--even if it
-		//now has fewer or more items--is fine in this new world. We want to
-		//fast-forward to the next non-initatied move in the golden to apply,
-		//and then apply that.
-		c.AdvanceToNextInitiatorMove()
 
 		applied, err := c.ApplyNextMove()
 		if err != nil {
@@ -497,6 +493,11 @@ func (c *comparer) RegenerateGolden() (*record.Record, error) {
 		if !applied {
 			return nil, errors.New("There were still moves left in golden to apply but they hadn't been triggered: " + strconv.Itoa(c.lastVerifiedVersion))
 		}
+		//We assume that the chain of fixups that are all applied--even if it
+		//now has fewer or more items--is fine in this new world. We want to
+		//fast-forward to the next non-initatied move in the golden to apply,
+		//and then apply that.
+		c.AdvanceToNextInitiatorMove()
 	}
 
 	return c.storage.RecordForID(c.golden.Game().ID)
