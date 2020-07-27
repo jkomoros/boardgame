@@ -279,6 +279,12 @@ func (c *comparer) ResetDebugLog() {
 	c.buf = buf
 }
 
+//GoldenHasRemainingMoves returns whether there are moves beyond what golden
+//contains.
+func (c *comparer) GoldenHasRemainingMoves() bool {
+	return c.golden.Game().Version > c.lastVerifiedVersion
+}
+
 func (c *comparer) LastVerifiedVersion() int {
 	return c.lastVerifiedVersion
 }
