@@ -315,10 +315,8 @@ func (c *comparer) AdvanceToNextInitiatorMove() {
 
 //VerifyUnverifiedMoves compares moves and states for moves that have been
 //applied but not yet verified. Even if it errors, it may have incremented
-//LastVerifiedVersion(). If skipComparingStates is true, then the state won't be
-//compared, only the move. That's useful in cases where you aren't trying to
-//actually verify the golden, just skip moves.
-func (c *comparer) VerifyUnverifiedMoves(skipComparingStates bool) error {
+//LastVerifiedVersion().
+func (c *comparer) VerifyUnverifiedMoves() error {
 	for c.lastVerifiedVersion < c.game.Version() {
 		stateToCompare, err := c.golden.State(c.lastVerifiedVersion)
 
@@ -363,10 +361,8 @@ func (c *comparer) VerifyUnverifiedMoves(skipComparingStates bool) error {
 			}
 		}
 
-		if !skipComparingStates {
-			if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
-				return errors.New("State " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
-			}
+		if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
+			return errors.New("State " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
 		}
 
 		c.lastVerifiedVersion++
@@ -508,7 +504,7 @@ func (c *comparer) Compare() error {
 
 		//Verify all new moves that have happened since the last time we
 		//checked (often, fix-up moves).
-		if err := c.VerifyUnverifiedMoves(false); err != nil {
+		if err := c.VerifyUnverifiedMoves(); err != nil {
 			return errors.New("VerifyUnverifiedMoves failed: " + err.Error())
 		}
 
