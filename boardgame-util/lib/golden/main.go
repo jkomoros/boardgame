@@ -231,6 +231,10 @@ type comparer struct {
 
 func newComparer(manager *boardgame.GameManager, rec *record.Record, storage *storageManager) (*comparer, error) {
 
+	if existingGameRec, _ := storage.Game(rec.Game().ID); existingGameRec != nil {
+		return nil, errors.New("The storage layer already has a game with that ID. Use a fresh storage manager")
+	}
+
 	game, err := manager.Internals().RecreateGame(rec.Game())
 
 	if err != nil {
