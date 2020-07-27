@@ -217,164 +217,277 @@ func newLogger() (*logrus.Logger, *bytes.Buffer) {
 	return result, buf
 }
 
-func compare(manager *boardgame.GameManager, rec *record.Record, storage *storageManager) (result error) {
+//comparer is a struct that manages the process of comparing a given golden to a
+//new game. Typically you create one wiht newComparer, and then call Compare.
+type comparer struct {
+	manager             *boardgame.GameManager
+	golden              *record.Record
+	storage             *storageManager
+	game                *boardgame.Game
+	buf                 *bytes.Buffer
+	lastBuf             *bytes.Buffer
+	lastVerifiedVersion int
+}
 
-	//FetchInjectedDataForGame requires a reference to the game
-	storage.gameRecords[rec.Game().ID] = rec
+func newComparer(manager *boardgame.GameManager, rec *record.Record, storage *storageManager) (*comparer, error) {
 
 	game, err := manager.Internals().RecreateGame(rec.Game())
 
 	if err != nil {
-		return errors.New("Couldn't create game: " + err.Error())
+		return nil, errors.New("Couldn't create game: " + err.Error())
 	}
 
-	lastVerifiedVersion := 0
+	result := &comparer{
+		manager,
+		rec,
+		storage,
+		game,
+		nil,
+		nil,
+		0,
+	}
 
-	//buf is set at top of loop, but doesn't get a useful value until bottom
-	//of loop.
-	var buf *bytes.Buffer
-	var lastBuf *bytes.Buffer
-	var logger *logrus.Logger
+	//FetchInjectedDataForGame requires a reference to the game
+	storage.gameRecords[rec.Game().ID] = rec
 
-	defer func() {
-		//If we errored, return debug output as well about last fix ups from
-		//game manager.
-		if result == nil {
-			return
+	return result, nil
+}
+
+func (c *comparer) PrintDebug() {
+
+	if c.lastBuf == nil {
+		return
+	}
+
+	if c.lastBuf.Len() == 0 {
+		return
+	}
+	fmt.Println(c.lastBuf)
+
+	fmt.Println("Last state: ")
+	state := c.game.State(c.lastVerifiedVersion)
+	jsonBuf, _ := json.MarshalIndent(state, "", "\t")
+	fmt.Println(string(jsonBuf))
+}
+
+//ResetDebugLog should be called at the top of the loop, so that PrintDebug()
+//will only print the last turn through the game's worth of logs.
+func (c *comparer) ResetDebugLog() {
+	c.lastBuf = c.buf
+	logger, buf := newLogger()
+	c.manager.SetLogger(logger)
+	c.buf = buf
+}
+
+func (c *comparer) LastVerifiedVersion() int {
+	return c.lastVerifiedVersion
+}
+
+//VerifyUnverifiedMoves compares moves and states for moves that have been
+//applied but not yet verified. Even if it errors, it may have incremented
+//LastVerifiedVersion().
+func (c *comparer) VerifyUnverifiedMoves() error {
+	for c.lastVerifiedVersion < c.game.Version() {
+		stateToCompare, err := c.golden.State(c.lastVerifiedVersion)
+
+		if err != nil {
+			return errors.New("Couldn't get " + strconv.Itoa(c.lastVerifiedVersion) + " state: " + err.Error())
 		}
 
-		if lastBuf == nil {
-			return
+		//We used to just do
+		//game.State(lastVerifiedVersion).StorageRecord(), but that
+		//doesn't guarantee that it's the same as
+		//manager.Storage().State() because it relies on state in
+		//timerManager. This is unexpected and needs its own issue.
+		storageRec, err := c.manager.Storage().State(c.game.ID(), c.lastVerifiedVersion)
+
+		if err != nil {
+			return errors.New("Couldn't get state storage rec from game: " + err.Error())
 		}
 
-		if lastBuf.Len() == 0 {
-			return
+		//Compare move first, because if the state doesn't match, it's
+		//important to know first if the wrong move was applied or if the
+		//state was wrong.
+
+		if c.lastVerifiedVersion > 0 {
+
+			//Version 0 has no associated move
+
+			recMove, err := c.golden.Move(c.lastVerifiedVersion)
+
+			if err != nil {
+				return errors.New("Couldn't get move " + strconv.Itoa(c.lastVerifiedVersion) + " from record")
+			}
+
+			moves := c.game.MoveRecords(c.lastVerifiedVersion)
+
+			if len(moves) < 1 {
+				return errors.New("Didn't fetch historical move records for " + strconv.Itoa(c.lastVerifiedVersion))
+			}
+
+			//Warning: records are modified by this method
+			if err := compareMoveStorageRecords(moves[len(moves)-1], recMove); err != nil {
+				return errors.New("Move " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
+			}
 		}
-		fmt.Println(lastBuf)
 
-		fmt.Println("Last state: ")
-		state := game.State(lastVerifiedVersion)
-		jsonBuf, _ := json.MarshalIndent(state, "", "\t")
-		fmt.Println(string(jsonBuf))
-	}()
+		if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
+			return errors.New("State " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
+		}
 
-	for !game.Finished() {
+		c.lastVerifiedVersion++
+	}
+	return nil
+}
 
-		lastBuf = buf
-		logger, buf = newLogger()
-		manager.SetLogger(logger)
+//ApplyNextMove will apply the next move, whether it's a player move or a
+//special admin move.
+func (c *comparer) ApplyNextMove() (bool, error) {
+	applied, err := c.ApplyNextSpecialAdminMove()
+	if err != nil {
+		return false, errors.New("Couldn't apply next special admin move: " + err.Error())
+	}
+	if applied {
+		return true, nil
+	}
+	applied, err = c.ApplyNextPlayerMove()
+	if err != nil {
+		return false, errors.New("Couldn't apply next player move: " + err.Error())
+	}
+	return applied, nil
+}
+
+//ApplyNextPlayerMove applies the next player move in the sequence.
+func (c *comparer) ApplyNextPlayerMove() (bool, error) {
+
+	nextMoveRec, err := c.golden.Move(c.lastVerifiedVersion + 1)
+
+	if err != nil {
+		//We'll assume that menas that's all of the moves there are to make.
+		return false, nil
+	}
+
+	if nextMoveRec.Proposer < 0 {
+		//The next move was not a PlayerMove
+		return false, nil
+	}
+
+	nextMove, err := c.manager.Internals().InflateMoveStorageRecord(nextMoveRec, c.game)
+
+	if err != nil {
+		return false, errors.New("Couldn't inflate move: " + err.Error())
+	}
+
+	if err := <-c.game.ProposeMove(nextMove, nextMoveRec.Proposer); err != nil {
+		return false, errors.New("Couldn't propose next move in chain: " + err.Error())
+	}
+
+	return true, nil
+}
+
+//ApplyNextSpecialAdminMove will return the next special admin move, returning
+//true if one was applied. Typically Admin (FixUp) moves are applied
+//automatically by the engine after a PlayerMove is applied. But two special
+//kinds of moves have to be handeled specially: 1) timers that are queued up but
+//have not fired yet, and 2) SeatPlayer moves.
+func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
+	nextMoveRec, err := c.golden.Move(c.lastVerifiedVersion + 1)
+
+	if err != nil {
+		//We'll assume that menas that's all of the moves there are to make.
+		return false, nil
+	}
+
+	//There was no special move to apply
+	if nextMoveRec.Proposer >= 0 {
+		return false, nil
+	}
+
+	//The next move was applied by admin, but wasn't already applied.
+	//That means it's either a SeatPlayer move, or a timer that fired.
+
+	//First, check if the nextMoveRec is a type of move that is a Seat
+	//Player move.
+
+	exampleMove := c.manager.ExampleMoveByName(nextMoveRec.Name)
+
+	if exampleMove == nil {
+		return false, errors.New("Couldn't fetch move named: " + nextMoveRec.Name)
+	}
+
+	if isSeatPlayer, ok := exampleMove.(interfaces.SeatPlayerMover); ok && isSeatPlayer.IsSeatPlayerMove() {
+		//It does seem to be a seat Player mover.
+		index, err := exampleMove.Reader().PlayerIndexProp("TargetPlayerIndex")
+		if err != nil {
+			return false, errors.New("Couldn't get expected TargetPlayerIndex from next SeatPlayer: " + err.Error())
+		}
+		c.storage.injectPlayerToSeat(index)
+		if err := <-c.manager.Internals().ForceFixUp(c.game); err != nil {
+			return false, errors.New("Couldn't force inject a SeatPlayer move: " + err.Error())
+		}
+		return true, nil
+	}
+
+	//We could be waiting for a timer to fire.
+	//If there was a timer, try to force it to fire early.
+	if c.manager.Internals().ForceNextTimer() {
+		return true, nil
+	}
+
+	//If we get to here, there's another admin move to apply that wasn't for
+	//some reason. There must be a problem in the game logic.
+
+	//There wasn't a timer pending, so it's just an error
+	return false, errors.New("At version " + strconv.Itoa(c.lastVerifiedVersion) + " the next player move to apply was not applied by a player. This implies that the fixUp move named " + nextMoveRec.Name + " is erroneously returning an error from its Legal method.")
+}
+
+func (c *comparer) Compare() error {
+	for !c.game.Finished() {
+
+		c.ResetDebugLog()
 
 		//Verify all new moves that have happened since the last time we
 		//checked (often, fix-up moves).
-		for lastVerifiedVersion < game.Version() {
-			stateToCompare, err := rec.State(lastVerifiedVersion)
-
-			if err != nil {
-				return errors.New("Couldn't get " + strconv.Itoa(lastVerifiedVersion) + " state: " + err.Error())
-			}
-
-			//We used to just do
-			//game.State(lastVerifiedVersion).StorageRecord(), but that
-			//doesn't guarantee that it's the same as
-			//manager.Storage().State() because it relies on state in
-			//timerManager. This is unexpected and needs its own issue.
-			storageRec, err := manager.Storage().State(game.ID(), lastVerifiedVersion)
-
-			if err != nil {
-				return errors.New("Couldn't get state storage rec from game: " + err.Error())
-			}
-
-			//Compare move first, because if the state doesn't match, it's
-			//important to know first if the wrong move was applied or if the
-			//state was wrong.
-
-			if lastVerifiedVersion > 0 {
-
-				//Version 0 has no associated move
-
-				recMove, err := rec.Move(lastVerifiedVersion)
-
-				if err != nil {
-					return errors.New("Couldn't get move " + strconv.Itoa(lastVerifiedVersion) + " from record")
-				}
-
-				moves := game.MoveRecords(lastVerifiedVersion)
-
-				if len(moves) < 1 {
-					return errors.New("Didn't fetch historical move records for " + strconv.Itoa(lastVerifiedVersion))
-				}
-
-				//Warning: records are modified by this method
-				if err := compareMoveStorageRecords(moves[len(moves)-1], recMove); err != nil {
-					return errors.New("Move " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
-				}
-			}
-
-			if err := compareJSONBlobs(storageRec, stateToCompare); err != nil {
-				return errors.New("State " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
-			}
-
-			lastVerifiedVersion++
+		if err := c.VerifyUnverifiedMoves(); err != nil {
+			return errors.New("VerifyUnverifiedMoves failed: " + err.Error())
 		}
 
-		nextMoveRec, err := rec.Move(lastVerifiedVersion + 1)
-
+		applied, err := c.ApplyNextMove()
 		if err != nil {
-			//We'll assume that menas that's all of the moves there are to make.
+			return errors.New("Couldn't apply move: " + err.Error())
+		}
+		if !applied {
 			break
 		}
-
-		if nextMoveRec.Proposer < 0 {
-
-			//The next move was applied by admin, but wasn't already applied.
-			//That means it's either a SeatPlayer move, or a timer that fired.
-
-			//First, check if the nextMoveRec is a type of move that is a Seat
-			//Player move.
-
-			exampleMove := manager.ExampleMoveByName(nextMoveRec.Name)
-
-			if isSeatPlayer, ok := exampleMove.(interfaces.SeatPlayerMover); ok && isSeatPlayer.IsSeatPlayerMove() {
-				//It does seem to be a seat Player mover.
-				index, err := exampleMove.Reader().PlayerIndexProp("TargetPlayerIndex")
-				if err != nil {
-					return errors.New("Couldn't get expected TargetPlayerIndex from next SeatPlayer: " + err.Error())
-				}
-				storage.injectPlayerToSeat(index)
-				if err := <-manager.Internals().ForceFixUp(game); err != nil {
-					return errors.New("Couldn't force inject a SeatPlayer move: " + err.Error())
-				}
-				continue
-			}
-
-			//We could be waiting for a timer to fire.
-			//If there was a timer, try to force it to fire early.
-			if manager.Internals().ForceNextTimer() {
-				continue
-			}
-
-			//There wasn't a timer pending, so it's just an error
-			return errors.New("At version " + strconv.Itoa(lastVerifiedVersion) + " the next player move to apply was not applied by a player. This implies that the fixUp move named " + nextMoveRec.Name + " is erroneously returning an error from its Legal method.")
-		}
-
-		nextMove, err := manager.Internals().InflateMoveStorageRecord(nextMoveRec, game)
-
-		if err != nil {
-			return errors.New("Couldn't inflate move: " + err.Error())
-		}
-
-		if err := <-game.ProposeMove(nextMove, nextMoveRec.Proposer); err != nil {
-			return errors.New("Couldn't propose next move in chain: " + err.Error())
-		}
-
 	}
+	return c.CompareFinished()
+}
 
-	if game.Finished() != rec.Game().Finished {
+func (c *comparer) CompareFinished() error {
+
+	if c.game.Finished() != c.golden.Game().Finished {
 		return errors.New("Game finished did not match rec")
 	}
 
-	if !reflect.DeepEqual(game.Winners(), rec.Game().Winners) {
+	if !reflect.DeepEqual(c.game.Winners(), c.golden.Game().Winners) {
 		return errors.New("Game winners did not match")
+	}
+
+	return nil
+}
+
+func compare(manager *boardgame.GameManager, rec *record.Record, storage *storageManager) error {
+
+	//TODO: get rid of this function once refactored
+	comparer, err := newComparer(manager, rec, storage)
+
+	if err != nil {
+		return errors.New("Couldn't create comparer: " + err.Error())
+	}
+
+	if err := comparer.Compare(); err != nil {
+		comparer.PrintDebug()
+		return err
 	}
 
 	return nil
