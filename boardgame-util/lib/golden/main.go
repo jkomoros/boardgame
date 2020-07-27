@@ -299,10 +299,10 @@ func (c *comparer) LastVerifiedVersion() int {
 //This leaves the golden in the state where the next move to make in the new
 //version is the next unverified move.
 func (c *comparer) AdvanceToNextInitiatorMove() {
-	if c.lastVerifiedVersion == 0 {
-		//there is no move 0
-		c.lastVerifiedVersion++
-	}
+
+	//Always advance by at least one
+	c.lastVerifiedVersion++
+
 	for c.lastVerifiedVersion <= c.golden.Game().Version {
 		//We want to return one BEFORE the next initator move.
 		nextMoveRec, err := c.golden.Move(c.lastVerifiedVersion + 1)
@@ -495,7 +495,7 @@ func (c *comparer) RegenerateGolden() (*record.Record, error) {
 			return nil, errors.New("Couldnt apply next move: " + err.Error())
 		}
 		if !applied {
-			return nil, errors.New("There were still moves left in golden to apply but they hadn't been triggered")
+			return nil, errors.New("There were still moves left in golden to apply but they hadn't been triggered: " + strconv.Itoa(c.lastVerifiedVersion))
 		}
 	}
 
