@@ -160,7 +160,7 @@ func Compare(delegate boardgame.GameDelegate, recFilename string, updateOnDiffer
 		return errors.New("Couldn't create record: " + err.Error())
 	}
 
-	return compare(manager, rec, storage)
+	return compare(manager, rec, storage, updateOnDifferent)
 
 }
 
@@ -200,7 +200,7 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string, updateOnDi
 			return errors.New("File with name " + info.Name() + " couldn't be loaded into rec: " + err.Error())
 		}
 
-		if err := compare(manager, rec, storage); err != nil {
+		if err := compare(manager, rec, storage, updateOnDifferent); err != nil {
 			return errors.New("File named " + info.Name() + " had compare error: " + err.Error())
 		}
 
@@ -532,7 +532,7 @@ func (c *comparer) CompareFinished() error {
 	return nil
 }
 
-func compare(manager *boardgame.GameManager, rec *record.Record, storage *storageManager) error {
+func compare(manager *boardgame.GameManager, rec *record.Record, storage *storageManager, updateOnDifferent bool) error {
 
 	//TODO: get rid of this function once refactored
 	comparer, err := newComparer(manager, rec, storage)
@@ -541,9 +541,22 @@ func compare(manager *boardgame.GameManager, rec *record.Record, storage *storag
 		return errors.New("Couldn't create comparer: " + err.Error())
 	}
 
-	if err := comparer.Compare(); err != nil {
-		comparer.PrintDebug()
-		return err
+	if updateOnDifferent {
+		fmt.Println("WARNING: overwriting old goldens, verify the diff looks sane before committing!")
+		newGolden, err := comparer.RegenerateGolden()
+		if err != nil {
+			comparer.PrintDebug()
+			return err
+		}
+		if err := newGolden.Save(rec.Path(), false); err != nil {
+			return errors.New("Could not overwrite " + rec.Path() + ": " + err.Error())
+		}
+	} else {
+
+		if err := comparer.Compare(); err != nil {
+			comparer.PrintDebug()
+			return err
+		}
 	}
 
 	return nil
