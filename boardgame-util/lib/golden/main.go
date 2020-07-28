@@ -59,6 +59,24 @@ possible content doesn't change. The design of filesystem.record.Record
 use existing timestamps wherever possible and generate reasonable intermediate
 timestamps for new moves that have been added.
 
+If you have changed your game logic (for example, adding a new FixUp move that
+didn't exist before), then your old goldens will no longer match, so `go test`
+will fail, and you'll need to remaster your goldens. In the common case where
+the new FixUp move occurs within a run of already-existing FixUp moves, then you
+don't need to do anything special; `go test -update-golden`, combined with a
+manual sanity check of the diff, should be sufficient.
+
+In the case where you have added a new Player move, or a move like SeatPlayer
+that occurs on its own, you'll need to do a bit of manual surgery. Before
+remastering, splice in a move record corresponding to the new move into the
+right place in the golden's Move section. Note that you'll need to update the
+Initiator fields of any other moves that come in the immediate fixup run
+immediately after it, to verify that their relative value points to the new
+initator. You do not need to update the state patches to match. Then, run `go
+test -update-golden` and verify the output looks correct. Note that your manual
+splice will now have been overwritten, which means that if the output was wrong,
+you'll need to reset it, manually modify again, and then remaster.
+
 */
 package golden
 
