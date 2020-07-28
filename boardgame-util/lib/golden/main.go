@@ -4,6 +4,36 @@ Package golden is a package designed to make it possible to compare a game to a
 golden run for testing purposes. It takes a record saved in storage/filesystem
 format and compares it.
 
+Typical Use
+
+Typically you generate a new set of goldens by cd'ing into the package
+containing the game you want to test. Then you run `boardgame-util
+create-golden`, which generates a stub server for that game. As you play and
+create games, it will save the records as filesystem.record.Record, a format
+that is designed to be easy to read and modify as JSON. `create-golden` also
+will save a `golden_test.go` which will, when tests are run, compare the current
+GameManager's operation to the states and moves saved in the golden json blobs.
+These tests are a great way to verify that the behavior of your game does not
+accidentlaly change.
+
+The format of filesystem.record.Record is optimized to be able to be
+hand-edited. It does a number of tricks to make sure that states and moves can
+be spliced in easily. First and foremost, it typically stores subsequent states
+not as full blobs but as diffs from the state before. This means that changing
+one state doesn't require also modifying all subsequent states to have the same
+values. The format also "relativizes" moves, setting their Version to -1,
+signifying that when fetched via record.Move(version), it should just use the
+version number it said it was. In addition, the Initiator field is stored as a
+relative number for how many moves back in history to go to. Finally, the
+Timestamp field is stored in a format that is as many seconds past the Unix
+epoch as the move is from the Game's Created timestamp. All of these properties
+mean that the format is (relatively) easy to tweak manually to add or remove
+moves.
+
+You can also add a "Description" top-level field in the json to describe what
+the game is testing, which is useful to keep track of goldens that test various
+edge cases.
+
 */
 package golden
 
