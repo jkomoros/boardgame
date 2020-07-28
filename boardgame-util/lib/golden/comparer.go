@@ -130,6 +130,7 @@ func (c *comparer) AdvanceToNextInitiatorMove() {
 //applied but not yet verified. Even if it errors, it may have incremented
 //LastVerifiedVersion().
 func (c *comparer) VerifyUnverifiedMoves() error {
+	verifiedAtLeastOne := false
 	for c.lastVerifiedVersion < c.game.Version() {
 		stateToCompare, err := c.golden.State(c.lastVerifiedVersion)
 
@@ -179,6 +180,10 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 		}
 
 		c.lastVerifiedVersion++
+		verifiedAtLeastOne = true
+	}
+	if !verifiedAtLeastOne {
+		return errors.New("VerifyUnverifiedMoves didn't verify any new moves; this implies that ApplyNextMove isn't actually applying the next move")
 	}
 	return nil
 }
