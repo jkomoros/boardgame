@@ -107,7 +107,9 @@ func (c *comparer) AdvanceToNextInitiatorMove() {
 		c.lastVerifiedVersion++
 	}
 
-	for c.lastVerifiedVersion <= c.golden.Game().Version {
+	//We can't use golden.Game().Version, because in the case of a record with
+	//manual surgery to introduce another move, the Version won't have been upped.
+	for c.lastVerifiedVersion <= len(c.golden.RawMoves())+1 {
 		//We want to return one BEFORE the next initator move.
 		nextMoveRec, err := c.golden.Move(c.lastVerifiedVersion + 1)
 
