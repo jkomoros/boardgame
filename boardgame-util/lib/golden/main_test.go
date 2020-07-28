@@ -238,7 +238,88 @@ func TestMoveAlignment(t *testing.T) {
 				},
 			},
 		},
-		//TODO: 3 tests where there's a single extra move inserted in the new one (at the front, in the middle, at the end)
+		{
+			"Two move splice at front",
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "F",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(1, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(2, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "F",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+		},
+		//TODO: 2 tests where there's a single extra move inserted in the new one (at the middle, at the end)
 		//TODO: a test where the Blobs don't align
 	}
 
