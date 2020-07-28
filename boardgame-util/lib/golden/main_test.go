@@ -239,6 +239,69 @@ func TestMoveAlignment(t *testing.T) {
 			},
 		},
 		{
+			"Two move no overlap",
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(1, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "C",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "D",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(1, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(1, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+		},
+		{
 			"Two move second move blob mismatch",
 			[]*boardgame.MoveStorageRecord{
 				{

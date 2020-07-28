@@ -681,6 +681,10 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 		}
 		leftHoleIndex := holeLeftIndexes[i]
 		rightHoleIndex := holeRightIndexes[i]
+		if leftHoleIndex == -1 && rightHoleIndex == -1 {
+			//Hmmm, guess there's no matches whatsoever, just leave it alone
+			continue
+		}
 		//If either the left or right hole index is the sentinel, then the new
 		//moves are either at the very beginning or very end. Just copy over the
 		//values of the closest non-hole one.
