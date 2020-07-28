@@ -155,6 +155,17 @@ func New(filename string) (*Record, error) {
 		}
 	}
 
+	//Ensure all moves are kept in memory in relative time mode. This is useful
+	//for e.g. remastering goldens, where RawMoves will be fetched and copied.
+	for i := range result.data.Moves {
+		move := result.data.Moves[i]
+		if move.Timestamp.After(relativeTimeCutoff) {
+			//IN relative time, the timestamp is stored relative to the Epcoh, for a
+			//duration that is then applied to the game's created field.
+			move.Timestamp = time.Time{}.Add(move.Timestamp.Sub(result.data.Game.Created))
+		}
+	}
+
 	//The library now doesn't include a version number in states, but it used
 	//to, so some old records have it. Make sure we remove it if we see it.
 	for i, blob := range result.data.StatePatches {
