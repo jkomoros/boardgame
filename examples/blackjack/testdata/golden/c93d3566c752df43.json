@@ -27,7 +27,7 @@
 			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.423233-07:00",
+			"Timestamp": "0001-01-01T00:00:00.001868Z",
 			"Blob": {}
 		},
 		{
@@ -36,7 +36,7 @@
 			"Initiator": -1,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.426292-07:00",
+			"Timestamp": "0001-01-01T00:00:00.004927Z",
 			"Blob": {}
 		},
 		{
@@ -45,7 +45,7 @@
 			"Initiator": -2,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.430359-07:00",
+			"Timestamp": "0001-01-01T00:00:00.008994Z",
 			"Blob": {}
 		},
 		{
@@ -54,7 +54,7 @@
 			"Initiator": -3,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.432699-07:00",
+			"Timestamp": "0001-01-01T00:00:00.011334Z",
 			"Blob": {}
 		},
 		{
@@ -63,7 +63,7 @@
 			"Initiator": -4,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.435813-07:00",
+			"Timestamp": "0001-01-01T00:00:00.014448Z",
 			"Blob": {}
 		},
 		{
@@ -72,7 +72,7 @@
 			"Initiator": -5,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.438538-07:00",
+			"Timestamp": "0001-01-01T00:00:00.017173Z",
 			"Blob": {}
 		},
 		{
@@ -81,7 +81,7 @@
 			"Initiator": -6,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.441128-07:00",
+			"Timestamp": "0001-01-01T00:00:00.019763Z",
 			"Blob": {}
 		},
 		{
@@ -90,7 +90,7 @@
 			"Initiator": -7,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.444302-07:00",
+			"Timestamp": "0001-01-01T00:00:00.022937Z",
 			"Blob": {}
 		},
 		{
@@ -99,7 +99,7 @@
 			"Initiator": -8,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.447875-07:00",
+			"Timestamp": "0001-01-01T00:00:00.02651Z",
 			"Blob": {}
 		},
 		{
@@ -108,7 +108,7 @@
 			"Initiator": -9,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:41.450484-07:00",
+			"Timestamp": "0001-01-01T00:00:00.029119Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -119,7 +119,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
-			"Timestamp": "2018-09-23T21:24:43.625312-07:00",
+			"Timestamp": "0001-01-01T00:00:02.203947Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -130,7 +130,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:43.628481-07:00",
+			"Timestamp": "0001-01-01T00:00:02.207116Z",
 			"Blob": {}
 		},
 		{
@@ -139,7 +139,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:43.631054-07:00",
+			"Timestamp": "0001-01-01T00:00:02.209689Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -150,7 +150,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-09-23T21:24:49.325513-07:00",
+			"Timestamp": "0001-01-01T00:00:07.904148Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -161,7 +161,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:49.328231-07:00",
+			"Timestamp": "0001-01-01T00:00:07.906866Z",
 			"Blob": {}
 		},
 		{
@@ -170,7 +170,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:49.330697-07:00",
+			"Timestamp": "0001-01-01T00:00:07.909332Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -181,7 +181,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 2,
-			"Timestamp": "2018-09-23T21:24:51.012631-07:00",
+			"Timestamp": "0001-01-01T00:00:09.591266Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -192,7 +192,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:51.015768-07:00",
+			"Timestamp": "0001-01-01T00:00:09.594403Z",
 			"Blob": {}
 		},
 		{
@@ -201,7 +201,7 @@
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-09-23T21:24:51.01805-07:00",
+			"Timestamp": "0001-01-01T00:00:09.596685Z",
 			"Blob": {
 				"TargetPlayerIndex": 3
 			}
@@ -212,7 +212,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 3,
-			"Timestamp": "2018-09-23T21:24:54.313104-07:00",
+			"Timestamp": "0001-01-01T00:00:12.891739Z",
 			"Blob": {
 				"TargetPlayerIndex": 3
 			}

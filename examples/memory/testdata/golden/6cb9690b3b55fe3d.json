@@ -27,7 +27,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:40:20.696486-07:00",
+			"Timestamp": "0001-01-01T00:00:03.605085Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 1
@@ -39,7 +39,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:40:21.415152-07:00",
+			"Timestamp": "0001-01-01T00:00:04.323751Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 8
@@ -51,7 +51,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:21.424867-07:00",
+			"Timestamp": "0001-01-01T00:00:04.333466Z",
 			"Blob": {}
 		},
 		{
@@ -60,7 +60,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:25.460333-07:00",
+			"Timestamp": "0001-01-01T00:00:08.368932Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -71,7 +71,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:25.469589-07:00",
+			"Timestamp": "0001-01-01T00:00:08.378188Z",
 			"Blob": {}
 		},
 		{
@@ -80,7 +80,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:40:26.354039-07:00",
+			"Timestamp": "0001-01-01T00:00:09.262638Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 0
@@ -92,7 +92,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:40:28.536489-07:00",
+			"Timestamp": "0001-01-01T00:00:11.445088Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 2
@@ -104,7 +104,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:28.545995-07:00",
+			"Timestamp": "0001-01-01T00:00:11.454594Z",
 			"Blob": {}
 		},
 		{
@@ -113,7 +113,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:40:31.260541-07:00",
+			"Timestamp": "0001-01-01T00:00:14.16914Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -124,7 +124,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:31.35377-07:00",
+			"Timestamp": "0001-01-01T00:00:14.262369Z",
 			"Blob": {}
 		},
 		{
@@ -133,7 +133,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:40:40.011655-07:00",
+			"Timestamp": "0001-01-01T00:00:22.920254Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 18
@@ -145,7 +145,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:40:41.249322-07:00",
+			"Timestamp": "0001-01-01T00:00:24.157921Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 9
@@ -157,7 +157,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:41.317813-07:00",
+			"Timestamp": "0001-01-01T00:00:24.226412Z",
 			"Blob": {}
 		},
 		{
@@ -166,7 +166,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:41.388828-07:00",
+			"Timestamp": "0001-01-01T00:00:24.297427Z",
 			"Blob": {}
 		},
 		{
@@ -175,7 +175,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:40:43.793629-07:00",
+			"Timestamp": "0001-01-01T00:00:26.702228Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 12
@@ -187,7 +187,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:40:44.838967-07:00",
+			"Timestamp": "0001-01-01T00:00:27.747566Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 10
@@ -199,7 +199,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:44.90837-07:00",
+			"Timestamp": "0001-01-01T00:00:27.816969Z",
 			"Blob": {}
 		},
 		{
@@ -208,7 +208,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:49.167303-07:00",
+			"Timestamp": "0001-01-01T00:00:32.075902Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -219,7 +219,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:49.23686-07:00",
+			"Timestamp": "0001-01-01T00:00:32.145459Z",
 			"Blob": {}
 		},
 		{
@@ -228,7 +228,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:40:50.691174-07:00",
+			"Timestamp": "0001-01-01T00:00:33.599773Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 6
@@ -240,7 +240,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:40:51.826821-07:00",
+			"Timestamp": "0001-01-01T00:00:34.73542Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 10
@@ -252,7 +252,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:51.899149-07:00",
+			"Timestamp": "0001-01-01T00:00:34.807748Z",
 			"Blob": {}
 		},
 		{
@@ -261,7 +261,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:56.122498-07:00",
+			"Timestamp": "0001-01-01T00:00:39.031097Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -272,7 +272,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:56.19559-07:00",
+			"Timestamp": "0001-01-01T00:00:39.104189Z",
 			"Blob": {}
 		},
 		{
@@ -281,7 +281,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:40:57.013425-07:00",
+			"Timestamp": "0001-01-01T00:00:39.922024Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 0
@@ -293,7 +293,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:40:58.982802-07:00",
+			"Timestamp": "0001-01-01T00:00:41.891401Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 10
@@ -305,7 +305,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:59.058289-07:00",
+			"Timestamp": "0001-01-01T00:00:41.966888Z",
 			"Blob": {}
 		},
 		{
@@ -314,7 +314,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:40:59.136703-07:00",
+			"Timestamp": "0001-01-01T00:00:42.045302Z",
 			"Blob": {}
 		},
 		{
@@ -323,7 +323,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:03.011044-07:00",
+			"Timestamp": "0001-01-01T00:00:45.919643Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 2
@@ -335,7 +335,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:04.237006-07:00",
+			"Timestamp": "0001-01-01T00:00:47.145605Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 14
@@ -347,7 +347,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:04.314956-07:00",
+			"Timestamp": "0001-01-01T00:00:47.223555Z",
 			"Blob": {}
 		},
 		{
@@ -356,7 +356,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:04.396029-07:00",
+			"Timestamp": "0001-01-01T00:00:47.304628Z",
 			"Blob": {}
 		},
 		{
@@ -365,7 +365,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:06.059425-07:00",
+			"Timestamp": "0001-01-01T00:00:48.968024Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 13
@@ -377,7 +377,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:07.308808-07:00",
+			"Timestamp": "0001-01-01T00:00:50.217407Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 11
@@ -389,7 +389,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:07.390203-07:00",
+			"Timestamp": "0001-01-01T00:00:50.298802Z",
 			"Blob": {}
 		},
 		{
@@ -398,7 +398,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:11.661981-07:00",
+			"Timestamp": "0001-01-01T00:00:54.57058Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -409,7 +409,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:11.741798-07:00",
+			"Timestamp": "0001-01-01T00:00:54.650397Z",
 			"Blob": {}
 		},
 		{
@@ -418,7 +418,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:13.37482-07:00",
+			"Timestamp": "0001-01-01T00:00:56.283419Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 19
@@ -430,7 +430,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:14.632371-07:00",
+			"Timestamp": "0001-01-01T00:00:57.54097Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 13
@@ -442,7 +442,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:14.716206-07:00",
+			"Timestamp": "0001-01-01T00:00:57.624805Z",
 			"Blob": {}
 		},
 		{
@@ -451,7 +451,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:14.800997-07:00",
+			"Timestamp": "0001-01-01T00:00:57.709596Z",
 			"Blob": {}
 		},
 		{
@@ -460,7 +460,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:17.366318-07:00",
+			"Timestamp": "0001-01-01T00:01:00.274917Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 15
@@ -472,7 +472,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:18.840042-07:00",
+			"Timestamp": "0001-01-01T00:01:01.748641Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 5
@@ -484,7 +484,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:18.92583-07:00",
+			"Timestamp": "0001-01-01T00:01:01.834429Z",
 			"Blob": {}
 		},
 		{
@@ -493,7 +493,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:23.177904-07:00",
+			"Timestamp": "0001-01-01T00:01:06.086503Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -504,7 +504,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:23.265502-07:00",
+			"Timestamp": "0001-01-01T00:01:06.174101Z",
 			"Blob": {}
 		},
 		{
@@ -513,7 +513,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:24.206193-07:00",
+			"Timestamp": "0001-01-01T00:01:07.114792Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 15
@@ -525,7 +525,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:24.903903-07:00",
+			"Timestamp": "0001-01-01T00:01:07.812502Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 11
@@ -537,7 +537,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:24.992326-07:00",
+			"Timestamp": "0001-01-01T00:01:07.900925Z",
 			"Blob": {}
 		},
 		{
@@ -546,7 +546,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:25.080517-07:00",
+			"Timestamp": "0001-01-01T00:01:07.989116Z",
 			"Blob": {}
 		},
 		{
@@ -555,7 +555,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:27.413459-07:00",
+			"Timestamp": "0001-01-01T00:01:10.322058Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 5
@@ -567,7 +567,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:29.056232-07:00",
+			"Timestamp": "0001-01-01T00:01:11.964831Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 6
@@ -579,7 +579,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:29.148587-07:00",
+			"Timestamp": "0001-01-01T00:01:12.057186Z",
 			"Blob": {}
 		},
 		{
@@ -588,7 +588,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:29.239712-07:00",
+			"Timestamp": "0001-01-01T00:01:12.148311Z",
 			"Blob": {}
 		},
 		{
@@ -597,7 +597,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:31.834294-07:00",
+			"Timestamp": "0001-01-01T00:01:14.742893Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 12
@@ -609,7 +609,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:33.611664-07:00",
+			"Timestamp": "0001-01-01T00:01:16.520263Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 8
@@ -621,7 +621,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:33.704325-07:00",
+			"Timestamp": "0001-01-01T00:01:16.612924Z",
 			"Blob": {}
 		},
 		{
@@ -630,7 +630,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:38.007643-07:00",
+			"Timestamp": "0001-01-01T00:01:20.916242Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -641,7 +641,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:38.10182-07:00",
+			"Timestamp": "0001-01-01T00:01:21.010419Z",
 			"Blob": {}
 		},
 		{
@@ -650,7 +650,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:38.720556-07:00",
+			"Timestamp": "0001-01-01T00:01:21.629155Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 1
@@ -662,7 +662,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:41.015876-07:00",
+			"Timestamp": "0001-01-01T00:01:23.924475Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 7
@@ -674,7 +674,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:41.112293-07:00",
+			"Timestamp": "0001-01-01T00:01:24.020892Z",
 			"Blob": {}
 		},
 		{
@@ -683,7 +683,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:45.264687-07:00",
+			"Timestamp": "0001-01-01T00:01:28.173286Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -694,7 +694,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:45.362275-07:00",
+			"Timestamp": "0001-01-01T00:01:28.270874Z",
 			"Blob": {}
 		},
 		{
@@ -703,7 +703,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:47.339795-07:00",
+			"Timestamp": "0001-01-01T00:01:30.248394Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 16
@@ -715,7 +715,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:48.968555-07:00",
+			"Timestamp": "0001-01-01T00:01:31.877154Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 4
@@ -727,7 +727,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:49.068061-07:00",
+			"Timestamp": "0001-01-01T00:01:31.97666Z",
 			"Blob": {}
 		},
 		{
@@ -736,7 +736,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:51.593318-07:00",
+			"Timestamp": "0001-01-01T00:01:34.501917Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -747,7 +747,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:51.694793-07:00",
+			"Timestamp": "0001-01-01T00:01:34.603392Z",
 			"Blob": {}
 		},
 		{
@@ -756,7 +756,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:52.669241-07:00",
+			"Timestamp": "0001-01-01T00:01:35.57784Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 4
@@ -768,7 +768,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:53.806819-07:00",
+			"Timestamp": "0001-01-01T00:01:36.715418Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 7
@@ -780,7 +780,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:53.909512-07:00",
+			"Timestamp": "0001-01-01T00:01:36.818111Z",
 			"Blob": {}
 		},
 		{
@@ -789,7 +789,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:54.013796-07:00",
+			"Timestamp": "0001-01-01T00:01:36.922395Z",
 			"Blob": {}
 		},
 		{
@@ -798,7 +798,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:55.707979-07:00",
+			"Timestamp": "0001-01-01T00:01:38.616578Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 17
@@ -810,7 +810,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:41:57.31611-07:00",
+			"Timestamp": "0001-01-01T00:01:40.224709Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 8
@@ -822,7 +822,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:57.420778-07:00",
+			"Timestamp": "0001-01-01T00:01:40.329377Z",
 			"Blob": {}
 		},
 		{
@@ -831,7 +831,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:41:57.526671-07:00",
+			"Timestamp": "0001-01-01T00:01:40.43527Z",
 			"Blob": {}
 		},
 		{
@@ -840,7 +840,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:41:59.915301-07:00",
+			"Timestamp": "0001-01-01T00:01:42.8239Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 1
@@ -852,7 +852,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:42:01.388913-07:00",
+			"Timestamp": "0001-01-01T00:01:44.297512Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 16
@@ -864,7 +864,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:42:01.497707-07:00",
+			"Timestamp": "0001-01-01T00:01:44.406306Z",
 			"Blob": {}
 		},
 		{
@@ -873,7 +873,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:42:05.216471-07:00",
+			"Timestamp": "0001-01-01T00:01:48.12507Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -884,7 +884,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:42:05.326321-07:00",
+			"Timestamp": "0001-01-01T00:01:48.23492Z",
 			"Blob": {}
 		},
 		{
@@ -893,7 +893,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:42:06.529838-07:00",
+			"Timestamp": "0001-01-01T00:01:49.438437Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 12
@@ -905,7 +905,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:42:07.905183-07:00",
+			"Timestamp": "0001-01-01T00:01:50.813782Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"CardIndex": 16
@@ -917,7 +917,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:42:08.016627-07:00",
+			"Timestamp": "0001-01-01T00:01:50.925226Z",
 			"Blob": {}
 		},
 		{
@@ -926,7 +926,7 @@
 			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:42:08.129232-07:00",
+			"Timestamp": "0001-01-01T00:01:51.037831Z",
 			"Blob": {}
 		},
 		{
@@ -935,7 +935,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:42:10.37724-07:00",
+			"Timestamp": "0001-01-01T00:01:53.285839Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 1
@@ -947,7 +947,7 @@
 			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:42:11.0763-07:00",
+			"Timestamp": "0001-01-01T00:01:53.984899Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"CardIndex": 3
@@ -959,7 +959,7 @@
 			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:42:11.189655-07:00",
+			"Timestamp": "0001-01-01T00:01:54.098254Z",
 			"Blob": {}
 		}
 	],

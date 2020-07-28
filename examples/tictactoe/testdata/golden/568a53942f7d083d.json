@@ -24,7 +24,7 @@
 			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:47:06.491637-07:00",
+			"Timestamp": "0001-01-01T00:00:02.136241Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"Slot": 0
@@ -36,7 +36,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:47:06.49314-07:00",
+			"Timestamp": "0001-01-01T00:00:02.137744Z",
 			"Blob": {}
 		},
 		{
@@ -45,7 +45,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:47:11.6547-07:00",
+			"Timestamp": "0001-01-01T00:00:07.299304Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"Slot": 4
@@ -57,7 +57,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:47:11.65613-07:00",
+			"Timestamp": "0001-01-01T00:00:07.300734Z",
 			"Blob": {}
 		},
 		{
@@ -66,7 +66,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:47:13.038699-07:00",
+			"Timestamp": "0001-01-01T00:00:08.683303Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"Slot": 6
@@ -78,7 +78,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:47:13.040187-07:00",
+			"Timestamp": "0001-01-01T00:00:08.684791Z",
 			"Blob": {}
 		},
 		{
@@ -87,7 +87,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:47:15.704154-07:00",
+			"Timestamp": "0001-01-01T00:00:11.348758Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"Slot": 3
@@ -99,7 +99,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:47:15.706292-07:00",
+			"Timestamp": "0001-01-01T00:00:11.350896Z",
 			"Blob": {}
 		},
 		{
@@ -108,7 +108,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
-			"Timestamp": "2018-10-07T16:47:16.795802-07:00",
+			"Timestamp": "0001-01-01T00:00:12.440406Z",
 			"Blob": {
 				"TargetPlayerIndex": 0,
 				"Slot": 1
@@ -120,7 +120,7 @@
 			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "2018-10-07T16:47:16.797354-07:00",
+			"Timestamp": "0001-01-01T00:00:12.441958Z",
 			"Blob": {}
 		},
 		{
@@ -129,7 +129,7 @@
 			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
-			"Timestamp": "2018-10-07T16:47:18.292227-07:00",
+			"Timestamp": "0001-01-01T00:00:13.936831Z",
 			"Blob": {
 				"TargetPlayerIndex": 1,
 				"Slot": 5
