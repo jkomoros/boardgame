@@ -50,6 +50,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
+
 		moves.AddOrderedForPhase(
 			phaseSetUp,
 

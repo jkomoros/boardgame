@@ -46,8 +46,12 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
+		moves.Add(
+			auto.MustConfig(new(moves.SeatPlayer)),
+		),
 		moves.AddOrderedForPhase(
 			phaseSetUp,
+			moves.DefaultRoundSetup(auto),
 			//This move will keep on applying itself in round robin fashion
 			//until all of the cards are dealt.
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),

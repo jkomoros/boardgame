@@ -245,8 +245,14 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			),
 		),
 		{{ else -}}
+		{{if .EnableSeatPlayer -}}moves.Add(
+			auto.MustConfig(new(moves.SeatPlayer)),
+		),{{end}}
 		moves.AddOrderedForPhase(
 			phaseSetUp,
+			{{if .EnableInactivePlayer -}}
+			moves.DefaultRoundSetup(auto),
+			{{- end}}
 			{{if .EnableExampleDeck -}}
 			//This move will keep on applying itself in round robin fashion
 			//until all of the cards are dealt.
@@ -488,12 +494,21 @@ import (
 	{{if .EnableExampleDeck -}}
 	"github.com/jkomoros/boardgame"
 	{{- end}}
+	{{if or .EnableSeatPlayer .EnableInactivePlayer -}}
+	"github.com/jkomoros/boardgame/behaviors"
+	{{- end}}
 	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
 type playerState struct {
 	base.SubState
+	{{if .EnableSeatPlayer -}}
+	behaviors.Seat
+	{{- end}}
+	{{if .EnableInactivePlayer -}}
+	behaviors.InactivePlayer
+	{{- end}}
 	{{if .EnableExampleDeck -}}
 	Hand boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `
 	{{- end}}

@@ -48,6 +48,8 @@ type Options struct {
 	EnableExampleVariants               bool
 	EnableExampleClient                 bool
 	EnableExampleMoves                  bool
+	EnableSeatPlayer                    bool
+	EnableInactivePlayer                bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -80,6 +82,8 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleVariants = true
 	o.EnableExampleClient = true
 	o.EnableExampleMoves = true
+	o.EnableSeatPlayer = true
+	o.EnableInactivePlayer = true
 }
 
 func nameLegal(gameName string) bool {
@@ -160,6 +164,14 @@ func (o *Options) Validate() error {
 
 	if o.EnableExampleDeck {
 		o.SuppressComponentsStubs = false
+	}
+
+	if o.EnableInactivePlayer {
+		o.EnableSeatPlayer = true
+	}
+
+	if o.EnableSeatPlayer {
+		o.SuppressPhase = false
 	}
 
 	return nil
