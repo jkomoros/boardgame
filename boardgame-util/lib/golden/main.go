@@ -363,7 +363,7 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 			}
 
 			//Warning: records are modified by this method
-			if err := compareMoveStorageRecords(*moves[len(moves)-1], *recMove); err != nil {
+			if err := compareMoveStorageRecords(*moves[len(moves)-1], *recMove, false); err != nil {
 				return errors.New("Move " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
 			}
 		}
@@ -610,7 +610,7 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 		//golden) then see if the moves are equivalent, and if so copy the
 		//timestamps.
 		if goldenIndex < len(golden) {
-			if err := compareMoveStorageRecords(*new[newIndex], *golden[goldenIndex]); err == nil {
+			if err := compareMoveStorageRecords(*new[newIndex], *golden[goldenIndex], true); err == nil {
 				//Match!
 				new[newIndex].Timestamp = golden[goldenIndex].Timestamp
 				goldenIndexes[newIndex] = goldenIndex
@@ -621,7 +621,7 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 			//They didn't match. But scan ahead and see if there's a match--if
 			//there is, that implies that those items were deleted.
 			for tempGoldenIndex := goldenIndex; tempGoldenIndex < len(golden); tempGoldenIndex++ {
-				if err := compareMoveStorageRecords(*new[newIndex], *golden[tempGoldenIndex]); err == nil {
+				if err := compareMoveStorageRecords(*new[newIndex], *golden[tempGoldenIndex], true); err == nil {
 					//We found it by skipping ahead in our new index. TODO: this
 					//logic could get confused by a singular move that appears
 					//to match; ideally we'd scan forward and pick the match
@@ -735,7 +735,7 @@ func compareJSONBlobs(one, two []byte) error {
 
 }
 
-func compareMoveStorageRecords(one, two boardgame.MoveStorageRecord) error {
+func compareMoveStorageRecords(one, two boardgame.MoveStorageRecord, skipAbsoluteVersions bool) error {
 
 	oneBlob := one.Blob
 	twoBlob := two.Blob
@@ -745,6 +745,13 @@ func compareMoveStorageRecords(one, two boardgame.MoveStorageRecord) error {
 	two.Blob = nil
 
 	two.Timestamp = one.Timestamp
+
+	if skipAbsoluteVersions {
+		if one.Version >= 0 || two.Version >= 0 {
+			two.Version = one.Version
+			two.Initiator = one.Initiator
+		}
+	}
 
 	if !reflect.DeepEqual(one, two) {
 		return errors.New("Move storage records differed in base fields: " + strings.Join(deep.Equal(one, two), ", "))

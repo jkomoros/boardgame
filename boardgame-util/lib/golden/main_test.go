@@ -302,6 +302,69 @@ func TestMoveAlignment(t *testing.T) {
 			},
 		},
 		{
+			"Two move version mismatch should still work",
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   3,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(1, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   3,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+		},
+		{
 			"Two move splice at front",
 			[]*boardgame.MoveStorageRecord{
 				{
