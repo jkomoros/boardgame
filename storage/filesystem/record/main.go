@@ -61,7 +61,8 @@ type Record struct {
 }
 
 type storageRecord struct {
-	Game *boardgame.GameStorageRecord
+	Description string `json:",omitempty"`
+	Game        *boardgame.GameStorageRecord
 	//Moves can be in 'absolute' mode, where their Version and Initiator fields
 	//are positive values, or 'relative mode, where their Version is -1. In
 	//relative mode, when Record.Move() is called, the MoveStorageRecord will
@@ -73,7 +74,6 @@ type storageRecord struct {
 	//StatePatches are diffs from the state before. Get the actual state for a
 	//version with State().
 	StatePatches []json.RawMessage
-	Description  string `json:",omitempty"`
 }
 
 //encoder is the thing that actually does the encoding
