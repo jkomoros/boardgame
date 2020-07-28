@@ -669,7 +669,7 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 		}
 		holeSize := rightHoleIndex - leftHoleIndex
 		duration := new[rightHoleIndex].Timestamp.Sub(new[leftHoleIndex].Timestamp)
-		new[i].Timestamp = new[leftHoleIndex].Timestamp.Add(duration / time.Duration(holeSize))
+		new[i].Timestamp = new[leftHoleIndex].Timestamp.Add(duration / time.Duration(holeSize) * time.Duration(i-leftHoleIndex))
 	}
 
 	return nil
