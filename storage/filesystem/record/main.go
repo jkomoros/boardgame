@@ -336,9 +336,16 @@ func (r *Record) Game() *boardgame.GameStorageRecord {
 	return r.data.Game
 }
 
-//Description returns the top-level description string set in the json file.
-//There's no way to set this except by modifying the JSON serialization
-//directly, but it can be read from record.
+//SetDescription allows you to set the description that will be written.
+func (r *Record) SetDescription(description string) {
+	if r.data == nil {
+		return
+	}
+	r.data.Description = description
+}
+
+//Description returns the top-level description string set in the json file. You
+//can call SetDescription to set it.
 func (r *Record) Description() string {
 	if r.data == nil {
 		return ""
