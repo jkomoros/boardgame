@@ -21,8 +21,8 @@
 	"Moves": [
 		{
 			"Name": "Count Die",
-			"Version": 1,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:27.155489-07:00",
@@ -32,8 +32,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 2,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:27.156242-07:00",
@@ -41,8 +41,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 3,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:31.004695-07:00",
@@ -52,8 +52,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 4,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:31.005531-07:00",
@@ -63,8 +63,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 5,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:31.707214-07:00",
@@ -74,8 +74,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 6,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:31.708598-07:00",
@@ -85,8 +85,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 7,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:32.813661-07:00",
@@ -96,8 +96,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 8,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:32.814421-07:00",
@@ -107,8 +107,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 9,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:32.814995-07:00",
@@ -116,8 +116,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 10,
-			"Initiator": 10,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:34.34549-07:00",
@@ -127,8 +127,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 11,
-			"Initiator": 10,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:34.346752-07:00",
@@ -138,8 +138,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 12,
-			"Initiator": 12,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:34.99023-07:00",
@@ -149,8 +149,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 13,
-			"Initiator": 12,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:34.991892-07:00",
@@ -160,8 +160,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 14,
-			"Initiator": 14,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:36.270536-07:00",
@@ -171,8 +171,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 15,
-			"Initiator": 14,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:36.271553-07:00",
@@ -180,8 +180,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 16,
-			"Initiator": 16,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:37.800687-07:00",
@@ -191,8 +191,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 17,
-			"Initiator": 16,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:37.801635-07:00",
@@ -202,8 +202,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 18,
-			"Initiator": 18,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:38.352186-07:00",
@@ -213,8 +213,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 19,
-			"Initiator": 18,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:38.353437-07:00",
@@ -224,8 +224,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 20,
-			"Initiator": 18,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:38.354722-07:00",
@@ -233,8 +233,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 21,
-			"Initiator": 21,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:39.486619-07:00",
@@ -244,8 +244,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 22,
-			"Initiator": 21,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:39.487513-07:00",
@@ -255,8 +255,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 23,
-			"Initiator": 23,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:40.304618-07:00",
@@ -266,8 +266,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 24,
-			"Initiator": 23,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:40.306478-07:00",
@@ -277,8 +277,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 25,
-			"Initiator": 25,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:41.633196-07:00",
@@ -288,8 +288,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 26,
-			"Initiator": 25,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:41.634229-07:00",
@@ -297,8 +297,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 27,
-			"Initiator": 27,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:42.624351-07:00",
@@ -308,8 +308,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 28,
-			"Initiator": 27,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:42.62686-07:00",
@@ -319,8 +319,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 29,
-			"Initiator": 29,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:43.289934-07:00",
@@ -330,8 +330,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 30,
-			"Initiator": 29,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:43.291631-07:00",
@@ -341,8 +341,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 31,
-			"Initiator": 31,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:43.989954-07:00",
@@ -352,8 +352,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 32,
-			"Initiator": 31,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:43.991901-07:00",
@@ -363,8 +363,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 33,
-			"Initiator": 33,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:45.08426-07:00",
@@ -374,8 +374,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 34,
-			"Initiator": 33,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:45.085668-07:00",
@@ -385,8 +385,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 35,
-			"Initiator": 35,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:46.470712-07:00",
@@ -396,8 +396,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 36,
-			"Initiator": 35,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:46.471603-07:00",
@@ -405,8 +405,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 37,
-			"Initiator": 37,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:47.81979-07:00",
@@ -416,8 +416,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 38,
-			"Initiator": 37,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:47.820855-07:00",
@@ -427,8 +427,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 39,
-			"Initiator": 37,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:47.821855-07:00",
@@ -436,8 +436,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 40,
-			"Initiator": 40,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:48.388348-07:00",
@@ -447,8 +447,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 41,
-			"Initiator": 40,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:48.390032-07:00",
@@ -458,8 +458,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 42,
-			"Initiator": 40,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:48.391198-07:00",
@@ -467,8 +467,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 43,
-			"Initiator": 43,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:49.206104-07:00",
@@ -478,8 +478,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 44,
-			"Initiator": 43,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:49.208004-07:00",
@@ -489,8 +489,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 45,
-			"Initiator": 45,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:50.061669-07:00",
@@ -500,8 +500,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 46,
-			"Initiator": 45,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:50.063712-07:00",
@@ -511,8 +511,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 47,
-			"Initiator": 47,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:51.636632-07:00",
@@ -522,8 +522,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 48,
-			"Initiator": 47,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:51.637573-07:00",
@@ -531,8 +531,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 49,
-			"Initiator": 49,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:52.56418-07:00",
@@ -542,8 +542,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 50,
-			"Initiator": 49,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:52.566103-07:00",
@@ -553,8 +553,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 51,
-			"Initiator": 51,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:53.237255-07:00",
@@ -564,8 +564,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 52,
-			"Initiator": 51,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:53.239778-07:00",
@@ -575,8 +575,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 53,
-			"Initiator": 53,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:53.837363-07:00",
@@ -586,8 +586,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 54,
-			"Initiator": 53,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:53.839466-07:00",
@@ -597,8 +597,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 55,
-			"Initiator": 53,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:53.840808-07:00",
@@ -606,8 +606,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 56,
-			"Initiator": 56,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:55.815875-07:00",
@@ -617,8 +617,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 57,
-			"Initiator": 56,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:55.816892-07:00",
@@ -628,8 +628,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 58,
-			"Initiator": 56,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:55.817797-07:00",
@@ -637,8 +637,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 59,
-			"Initiator": 59,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:56.348075-07:00",
@@ -648,8 +648,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 60,
-			"Initiator": 59,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:56.349696-07:00",
@@ -659,8 +659,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 61,
-			"Initiator": 61,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:57.094741-07:00",
@@ -670,8 +670,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 62,
-			"Initiator": 61,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:57.096788-07:00",
@@ -681,8 +681,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 63,
-			"Initiator": 63,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:06:58.433666-07:00",
@@ -692,8 +692,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 64,
-			"Initiator": 63,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:58.43545-07:00",
@@ -701,8 +701,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 65,
-			"Initiator": 65,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:06:59.397497-07:00",
@@ -712,8 +712,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 66,
-			"Initiator": 65,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:06:59.399634-07:00",
@@ -723,8 +723,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 67,
-			"Initiator": 67,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:00.065119-07:00",
@@ -734,8 +734,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 68,
-			"Initiator": 67,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:00.067221-07:00",
@@ -745,8 +745,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 69,
-			"Initiator": 69,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:00.764398-07:00",
@@ -756,8 +756,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 70,
-			"Initiator": 69,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:00.766591-07:00",
@@ -767,8 +767,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 71,
-			"Initiator": 71,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:01.769858-07:00",
@@ -778,8 +778,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 72,
-			"Initiator": 71,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:01.771527-07:00",
@@ -787,8 +787,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 73,
-			"Initiator": 73,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:02.797113-07:00",
@@ -798,8 +798,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 74,
-			"Initiator": 73,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:02.798993-07:00",
@@ -809,8 +809,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 75,
-			"Initiator": 75,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:03.479292-07:00",
@@ -820,8 +820,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 76,
-			"Initiator": 75,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:03.481706-07:00",
@@ -831,8 +831,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 77,
-			"Initiator": 77,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:04.137054-07:00",
@@ -842,8 +842,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 78,
-			"Initiator": 77,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:04.139225-07:00",
@@ -853,8 +853,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 79,
-			"Initiator": 79,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:05.150965-07:00",
@@ -864,8 +864,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 80,
-			"Initiator": 79,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:05.152757-07:00",
@@ -873,8 +873,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 81,
-			"Initiator": 81,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:06.321894-07:00",
@@ -884,8 +884,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 82,
-			"Initiator": 81,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:06.323341-07:00",
@@ -895,8 +895,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 83,
-			"Initiator": 83,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:06.934711-07:00",
@@ -906,8 +906,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 84,
-			"Initiator": 83,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:06.937034-07:00",
@@ -917,8 +917,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 85,
-			"Initiator": 85,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:07.864252-07:00",
@@ -928,8 +928,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 86,
-			"Initiator": 85,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:07.866567-07:00",
@@ -939,8 +939,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 87,
-			"Initiator": 87,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:09.095487-07:00",
@@ -950,8 +950,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 88,
-			"Initiator": 87,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:09.097052-07:00",
@@ -959,8 +959,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 89,
-			"Initiator": 89,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:10.649649-07:00",
@@ -970,8 +970,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 90,
-			"Initiator": 89,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:10.651081-07:00",
@@ -981,8 +981,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 91,
-			"Initiator": 91,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:11.344828-07:00",
@@ -992,8 +992,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 92,
-			"Initiator": 91,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:11.347318-07:00",
@@ -1003,8 +1003,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 93,
-			"Initiator": 93,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:12.242035-07:00",
@@ -1014,8 +1014,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 94,
-			"Initiator": 93,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:12.244506-07:00",
@@ -1025,8 +1025,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 95,
-			"Initiator": 95,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:13.481744-07:00",
@@ -1036,8 +1036,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 96,
-			"Initiator": 95,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:13.483368-07:00",
@@ -1045,8 +1045,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 97,
-			"Initiator": 97,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:14.814378-07:00",
@@ -1056,8 +1056,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 98,
-			"Initiator": 97,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:14.81562-07:00",
@@ -1067,8 +1067,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 99,
-			"Initiator": 97,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:14.816979-07:00",
@@ -1076,8 +1076,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 100,
-			"Initiator": 100,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:15.475371-07:00",
@@ -1087,8 +1087,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 101,
-			"Initiator": 100,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:15.477938-07:00",
@@ -1098,8 +1098,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 102,
-			"Initiator": 102,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:16.281801-07:00",
@@ -1109,8 +1109,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 103,
-			"Initiator": 102,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:16.284273-07:00",
@@ -1120,8 +1120,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 104,
-			"Initiator": 104,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:16.874356-07:00",
@@ -1131,8 +1131,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 105,
-			"Initiator": 104,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:16.877004-07:00",
@@ -1142,8 +1142,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 106,
-			"Initiator": 106,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:18.021729-07:00",
@@ -1153,8 +1153,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 107,
-			"Initiator": 106,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:18.023006-07:00",
@@ -1162,8 +1162,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 108,
-			"Initiator": 108,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:19.111269-07:00",
@@ -1173,8 +1173,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 109,
-			"Initiator": 108,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:19.113681-07:00",
@@ -1184,8 +1184,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 110,
-			"Initiator": 110,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:19.787044-07:00",
@@ -1195,8 +1195,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 111,
-			"Initiator": 110,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:19.789691-07:00",
@@ -1206,8 +1206,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 112,
-			"Initiator": 112,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:20.501042-07:00",
@@ -1217,8 +1217,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 113,
-			"Initiator": 112,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:20.504565-07:00",
@@ -1228,8 +1228,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 114,
-			"Initiator": 114,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:21.848542-07:00",
@@ -1239,8 +1239,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 115,
-			"Initiator": 114,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:21.849889-07:00",
@@ -1248,8 +1248,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 116,
-			"Initiator": 116,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:22.830451-07:00",
@@ -1259,8 +1259,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 117,
-			"Initiator": 116,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:22.833122-07:00",
@@ -1270,8 +1270,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 118,
-			"Initiator": 118,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:23.405787-07:00",
@@ -1281,8 +1281,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 119,
-			"Initiator": 118,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:23.408641-07:00",
@@ -1292,8 +1292,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 120,
-			"Initiator": 118,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:23.410754-07:00",
@@ -1301,8 +1301,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 121,
-			"Initiator": 121,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:24.318854-07:00",
@@ -1312,8 +1312,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 122,
-			"Initiator": 121,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:24.321433-07:00",
@@ -1323,8 +1323,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 123,
-			"Initiator": 121,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:24.323427-07:00",
@@ -1332,8 +1332,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 124,
-			"Initiator": 124,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:25.248716-07:00",
@@ -1343,8 +1343,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 125,
-			"Initiator": 124,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:25.251079-07:00",
@@ -1354,8 +1354,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 126,
-			"Initiator": 126,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:26.054355-07:00",
@@ -1365,8 +1365,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 127,
-			"Initiator": 126,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:26.056995-07:00",
@@ -1376,8 +1376,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 128,
-			"Initiator": 128,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:26.901355-07:00",
@@ -1387,8 +1387,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 129,
-			"Initiator": 128,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:26.903743-07:00",
@@ -1396,8 +1396,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 130,
-			"Initiator": 130,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:28.005371-07:00",
@@ -1407,8 +1407,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 131,
-			"Initiator": 130,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:28.008612-07:00",
@@ -1418,8 +1418,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 132,
-			"Initiator": 132,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:28.515139-07:00",
@@ -1429,8 +1429,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 133,
-			"Initiator": 132,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:28.517642-07:00",
@@ -1440,8 +1440,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 134,
-			"Initiator": 134,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:29.141447-07:00",
@@ -1451,8 +1451,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 135,
-			"Initiator": 134,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:29.144642-07:00",
@@ -1462,8 +1462,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 136,
-			"Initiator": 136,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:30.166497-07:00",
@@ -1473,8 +1473,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 137,
-			"Initiator": 136,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:30.168678-07:00",
@@ -1482,8 +1482,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 138,
-			"Initiator": 138,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:31.373768-07:00",
@@ -1493,8 +1493,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 139,
-			"Initiator": 138,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:31.376217-07:00",
@@ -1504,8 +1504,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 140,
-			"Initiator": 138,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:31.379048-07:00",
@@ -1513,8 +1513,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 141,
-			"Initiator": 141,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:31.994815-07:00",
@@ -1524,8 +1524,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 142,
-			"Initiator": 141,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:31.998013-07:00",
@@ -1535,8 +1535,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 143,
-			"Initiator": 141,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:32.000097-07:00",
@@ -1544,8 +1544,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 144,
-			"Initiator": 144,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:32.933652-07:00",
@@ -1555,8 +1555,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 145,
-			"Initiator": 144,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:32.936556-07:00",
@@ -1566,8 +1566,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 146,
-			"Initiator": 146,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:33.506146-07:00",
@@ -1577,8 +1577,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 147,
-			"Initiator": 146,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:33.508793-07:00",
@@ -1588,8 +1588,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 148,
-			"Initiator": 146,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:33.511372-07:00",
@@ -1597,8 +1597,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 149,
-			"Initiator": 149,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:34.298716-07:00",
@@ -1608,8 +1608,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 150,
-			"Initiator": 149,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:34.301768-07:00",
@@ -1619,8 +1619,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 151,
-			"Initiator": 149,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:34.304084-07:00",
@@ -1628,8 +1628,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 152,
-			"Initiator": 152,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:35.096673-07:00",
@@ -1639,8 +1639,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 153,
-			"Initiator": 152,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:35.099948-07:00",
@@ -1650,8 +1650,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 154,
-			"Initiator": 154,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:35.950548-07:00",
@@ -1661,8 +1661,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 155,
-			"Initiator": 154,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:35.953293-07:00",
@@ -1672,8 +1672,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 156,
-			"Initiator": 156,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:36.594108-07:00",
@@ -1683,8 +1683,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 157,
-			"Initiator": 156,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:36.597472-07:00",
@@ -1694,8 +1694,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 158,
-			"Initiator": 156,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:36.600036-07:00",
@@ -1703,8 +1703,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 159,
-			"Initiator": 159,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:37.96518-07:00",
@@ -1714,8 +1714,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 160,
-			"Initiator": 159,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:37.967202-07:00",
@@ -1725,8 +1725,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 161,
-			"Initiator": 159,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:37.96923-07:00",
@@ -1734,8 +1734,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 162,
-			"Initiator": 162,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:38.692288-07:00",
@@ -1745,8 +1745,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 163,
-			"Initiator": 162,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:38.695409-07:00",
@@ -1756,8 +1756,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 164,
-			"Initiator": 164,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:39.539142-07:00",
@@ -1767,8 +1767,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 165,
-			"Initiator": 164,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:39.542296-07:00",
@@ -1778,8 +1778,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 166,
-			"Initiator": 166,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:40.566824-07:00",
@@ -1789,8 +1789,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 167,
-			"Initiator": 166,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:40.569194-07:00",
@@ -1798,8 +1798,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 168,
-			"Initiator": 168,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:41.521557-07:00",
@@ -1809,8 +1809,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 169,
-			"Initiator": 168,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:41.524713-07:00",
@@ -1820,8 +1820,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 170,
-			"Initiator": 170,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:42.146457-07:00",
@@ -1831,8 +1831,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 171,
-			"Initiator": 170,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:42.149672-07:00",
@@ -1842,8 +1842,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 172,
-			"Initiator": 172,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:42.969439-07:00",
@@ -1853,8 +1853,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 173,
-			"Initiator": 172,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:42.972769-07:00",
@@ -1864,8 +1864,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 174,
-			"Initiator": 174,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:44.094557-07:00",
@@ -1875,8 +1875,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 175,
-			"Initiator": 174,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:44.097249-07:00",
@@ -1884,8 +1884,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 176,
-			"Initiator": 176,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:45.384968-07:00",
@@ -1895,8 +1895,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 177,
-			"Initiator": 176,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:45.386648-07:00",
@@ -1906,8 +1906,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 178,
-			"Initiator": 178,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:46.112237-07:00",
@@ -1917,8 +1917,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 179,
-			"Initiator": 178,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:46.11565-07:00",
@@ -1928,8 +1928,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 180,
-			"Initiator": 180,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:46.819526-07:00",
@@ -1939,8 +1939,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 181,
-			"Initiator": 180,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:46.823132-07:00",
@@ -1950,8 +1950,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 182,
-			"Initiator": 180,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:46.826264-07:00",
@@ -1959,8 +1959,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 183,
-			"Initiator": 183,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:47.711408-07:00",
@@ -1970,8 +1970,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 184,
-			"Initiator": 183,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:47.713228-07:00",
@@ -1981,8 +1981,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 185,
-			"Initiator": 183,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:47.71517-07:00",
@@ -1990,8 +1990,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 186,
-			"Initiator": 186,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:48.498037-07:00",
@@ -2001,8 +2001,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 187,
-			"Initiator": 186,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:48.50131-07:00",
@@ -2012,8 +2012,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 188,
-			"Initiator": 188,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:49.262165-07:00",
@@ -2023,8 +2023,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 189,
-			"Initiator": 188,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:49.265521-07:00",
@@ -2034,8 +2034,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 190,
-			"Initiator": 190,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:49.904151-07:00",
@@ -2045,8 +2045,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 191,
-			"Initiator": 190,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:49.907504-07:00",
@@ -2056,8 +2056,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 192,
-			"Initiator": 192,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:50.90502-07:00",
@@ -2067,8 +2067,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 193,
-			"Initiator": 192,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:50.908695-07:00",
@@ -2076,8 +2076,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 194,
-			"Initiator": 194,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:52.378098-07:00",
@@ -2087,8 +2087,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 195,
-			"Initiator": 194,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:52.380819-07:00",
@@ -2098,8 +2098,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 196,
-			"Initiator": 194,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:52.38267-07:00",
@@ -2107,8 +2107,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 197,
-			"Initiator": 197,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:53.244366-07:00",
@@ -2118,8 +2118,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 198,
-			"Initiator": 197,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:53.247924-07:00",
@@ -2129,8 +2129,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 199,
-			"Initiator": 197,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:53.250574-07:00",
@@ -2138,8 +2138,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 200,
-			"Initiator": 200,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:54.2241-07:00",
@@ -2149,8 +2149,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 201,
-			"Initiator": 200,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:54.227899-07:00",
@@ -2160,8 +2160,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 202,
-			"Initiator": 202,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:55.127744-07:00",
@@ -2171,8 +2171,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 203,
-			"Initiator": 202,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:55.131353-07:00",
@@ -2182,8 +2182,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 204,
-			"Initiator": 202,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:55.134322-07:00",
@@ -2191,8 +2191,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 205,
-			"Initiator": 205,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:07:55.901685-07:00",
@@ -2202,8 +2202,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 206,
-			"Initiator": 205,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:55.904855-07:00",
@@ -2213,8 +2213,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 207,
-			"Initiator": 205,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:55.907362-07:00",
@@ -2222,8 +2222,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 208,
-			"Initiator": 208,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:56.598675-07:00",
@@ -2233,8 +2233,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 209,
-			"Initiator": 208,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:56.601825-07:00",
@@ -2244,8 +2244,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 210,
-			"Initiator": 210,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:57.552487-07:00",
@@ -2255,8 +2255,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 211,
-			"Initiator": 210,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:57.555704-07:00",
@@ -2266,8 +2266,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 212,
-			"Initiator": 212,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:58.15463-07:00",
@@ -2277,8 +2277,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 213,
-			"Initiator": 212,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:58.158895-07:00",
@@ -2288,8 +2288,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 214,
-			"Initiator": 214,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:07:59.338395-07:00",
@@ -2299,8 +2299,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 215,
-			"Initiator": 214,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:07:59.34135-07:00",
@@ -2308,8 +2308,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 216,
-			"Initiator": 216,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:08:00.39034-07:00",
@@ -2319,8 +2319,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 217,
-			"Initiator": 216,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:08:00.393209-07:00",
@@ -2330,8 +2330,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 218,
-			"Initiator": 218,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:08:01.174388-07:00",
@@ -2341,8 +2341,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 219,
-			"Initiator": 218,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:08:01.178213-07:00",
@@ -2352,8 +2352,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 220,
-			"Initiator": 220,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-09-23T21:08:02.07711-07:00",
@@ -2363,8 +2363,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 221,
-			"Initiator": 220,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:08:02.08015-07:00",
@@ -2372,8 +2372,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 222,
-			"Initiator": 222,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:08:03.251482-07:00",
@@ -2383,8 +2383,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 223,
-			"Initiator": 222,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:08:03.253729-07:00",
@@ -2394,8 +2394,8 @@
 		},
 		{
 			"Name": "Roll Dice",
-			"Version": 224,
-			"Initiator": 224,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:08:04.110987-07:00",
@@ -2405,8 +2405,8 @@
 		},
 		{
 			"Name": "Count Die",
-			"Version": 225,
-			"Initiator": 224,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:08:04.114337-07:00",
@@ -2416,8 +2416,8 @@
 		},
 		{
 			"Name": "Done Turn",
-			"Version": 226,
-			"Initiator": 226,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-09-23T21:08:05.604412-07:00",
@@ -2427,8 +2427,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 227,
-			"Initiator": 226,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-09-23T21:08:05.606439-07:00",
@@ -2461,8 +2461,8 @@
 						"Indexes": [
 							0
 						],
-						"Size": 1,
-						"ShuffleCount": 0
+						"ShuffleCount": 0,
+						"Size": 1
 					},
 					"TargetScore": 100
 				}
@@ -2484,9 +2484,6 @@
 						"TotalScore": 0
 					}
 				]
-			],
-			"Version": [
-				0
 			]
 		},
 		{
@@ -2502,11 +2499,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				0,
-				1
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2529,11 +2522,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				1,
-				2
-			]
+			}
 		},
 		{
 			"Components": {
@@ -2559,11 +2548,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				2,
-				3
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2578,11 +2563,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				3,
-				4
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2593,11 +2574,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				4,
-				5
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2612,11 +2589,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				5,
-				6
-			]
+			}
 		},
 		{
 			"Components": {
@@ -2642,11 +2615,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				6,
-				7
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2661,11 +2630,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				7,
-				8
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2696,11 +2661,7 @@
 					0
 				],
 				"_t": "a"
-			},
-			"Version": [
-				8,
-				9
-			]
+			}
 		},
 		{
 			"Components": {
@@ -2726,11 +2687,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				9,
-				10
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2745,11 +2702,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				10,
-				11
-			]
+			}
 		},
 		{
 			"Components": {
@@ -2775,11 +2728,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				11,
-				12
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2794,11 +2743,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				12,
-				13
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2809,11 +2754,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				13,
-				14
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2838,11 +2779,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				14,
-				15
-			]
+			}
 		},
 		{
 			"Components": {
@@ -2868,11 +2805,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				15,
-				16
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2887,11 +2820,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				16,
-				17
-			]
+			}
 		},
 		{
 			"Components": {
@@ -2917,11 +2846,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				17,
-				18
-			]
+			}
 		},
 		{
 			"Players": {
@@ -2936,11 +2861,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				18,
-				19
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2961,11 +2882,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				19,
-				20
-			]
+			}
 		},
 		{
 			"Components": {
@@ -2991,11 +2908,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				20,
-				21
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3010,11 +2923,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				21,
-				22
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3040,11 +2949,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				22,
-				23
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3059,11 +2964,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				23,
-				24
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3074,11 +2975,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				24,
-				25
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3103,11 +3000,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				25,
-				26
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3133,11 +3026,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				26,
-				27
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3152,11 +3041,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				27,
-				28
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3182,11 +3067,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				28,
-				29
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3201,11 +3082,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				29,
-				30
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3231,11 +3108,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				30,
-				31
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3250,11 +3123,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				31,
-				32
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3280,11 +3149,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				32,
-				33
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3299,11 +3164,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				33,
-				34
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3314,11 +3175,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				34,
-				35
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3343,11 +3200,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				35,
-				36
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3373,11 +3226,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				36,
-				37
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3392,11 +3241,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				37,
-				38
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3413,11 +3258,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				38,
-				39
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3428,11 +3269,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				39,
-				40
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3447,11 +3284,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				40,
-				41
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3468,11 +3301,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				41,
-				42
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3498,11 +3327,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				42,
-				43
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3517,11 +3342,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				43,
-				44
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3547,11 +3368,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				44,
-				45
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3566,11 +3383,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				45,
-				46
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3581,11 +3394,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				46,
-				47
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3610,11 +3419,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				47,
-				48
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3625,11 +3430,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				48,
-				49
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3644,11 +3445,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				49,
-				50
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3674,11 +3471,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				50,
-				51
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3693,11 +3486,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				51,
-				52
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3723,11 +3512,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				52,
-				53
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3742,11 +3527,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				53,
-				54
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3767,11 +3548,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				54,
-				55
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3782,11 +3559,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				55,
-				56
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3801,11 +3574,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				56,
-				57
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3822,11 +3591,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				57,
-				58
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3852,11 +3617,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				58,
-				59
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3871,11 +3632,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				59,
-				60
-			]
+			}
 		},
 		{
 			"Components": {
@@ -3901,11 +3658,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				60,
-				61
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3920,11 +3673,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				61,
-				62
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3935,11 +3684,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				62,
-				63
-			]
+			}
 		},
 		{
 			"Game": {
@@ -3964,11 +3709,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				63,
-				64
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3979,11 +3720,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				64,
-				65
-			]
+			}
 		},
 		{
 			"Players": {
@@ -3998,11 +3735,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				65,
-				66
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4028,11 +3761,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				66,
-				67
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4047,11 +3776,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				67,
-				68
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4062,11 +3787,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				68,
-				69
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4081,11 +3802,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				69,
-				70
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4096,11 +3813,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				70,
-				71
-			]
+			}
 		},
 		{
 			"Game": {
@@ -4125,11 +3838,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				71,
-				72
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4155,11 +3864,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				72,
-				73
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4174,11 +3879,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				73,
-				74
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4189,11 +3890,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				74,
-				75
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4208,11 +3905,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				75,
-				76
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4238,11 +3931,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				76,
-				77
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4257,11 +3946,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				77,
-				78
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4272,11 +3957,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				78,
-				79
-			]
+			}
 		},
 		{
 			"Game": {
@@ -4301,11 +3982,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				79,
-				80
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4331,11 +4008,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				80,
-				81
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4350,11 +4023,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				81,
-				82
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4380,11 +4049,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				82,
-				83
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4399,11 +4064,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				83,
-				84
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4429,11 +4090,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				84,
-				85
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4448,11 +4105,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				85,
-				86
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4463,11 +4116,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				86,
-				87
-			]
+			}
 		},
 		{
 			"Game": {
@@ -4492,11 +4141,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				87,
-				88
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4522,11 +4167,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				88,
-				89
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4541,11 +4182,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				89,
-				90
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4571,11 +4208,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				90,
-				91
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4590,11 +4223,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				91,
-				92
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4620,11 +4249,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				92,
-				93
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4639,11 +4264,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				93,
-				94
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4654,11 +4275,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				94,
-				95
-			]
+			}
 		},
 		{
 			"Game": {
@@ -4683,11 +4300,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				95,
-				96
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4713,11 +4326,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				96,
-				97
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4732,11 +4341,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				97,
-				98
-			]
+			}
 		},
 		{
 			"Game": {
@@ -4753,11 +4358,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				98,
-				99
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4783,11 +4384,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				99,
-				100
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4802,11 +4399,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				100,
-				101
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4832,11 +4425,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				101,
-				102
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4851,11 +4440,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				102,
-				103
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4866,11 +4451,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				103,
-				104
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4885,11 +4466,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				104,
-				105
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4900,11 +4477,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				105,
-				106
-			]
+			}
 		},
 		{
 			"Game": {
@@ -4929,11 +4502,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				106,
-				107
-			]
+			}
 		},
 		{
 			"Components": {
@@ -4959,11 +4528,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				107,
-				108
-			]
+			}
 		},
 		{
 			"Players": {
@@ -4978,11 +4543,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				108,
-				109
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5008,11 +4569,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				109,
-				110
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5027,11 +4584,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				110,
-				111
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5057,11 +4610,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				111,
-				112
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5076,11 +4625,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				112,
-				113
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5091,11 +4636,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				113,
-				114
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5120,11 +4661,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				114,
-				115
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5150,11 +4687,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				115,
-				116
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5169,11 +4702,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				116,
-				117
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5199,11 +4728,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				117,
-				118
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5218,11 +4743,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				118,
-				119
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5243,11 +4764,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				119,
-				120
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5258,11 +4775,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				120,
-				121
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5277,11 +4790,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				121,
-				122
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5298,11 +4807,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				122,
-				123
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5328,11 +4833,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				123,
-				124
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5347,11 +4848,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				124,
-				125
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5377,11 +4874,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				125,
-				126
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5396,11 +4889,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				126,
-				127
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5411,11 +4900,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				127,
-				128
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5440,11 +4925,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				128,
-				129
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5455,11 +4936,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				129,
-				130
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5474,11 +4951,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				130,
-				131
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5504,11 +4977,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				131,
-				132
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5523,11 +4992,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				132,
-				133
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5553,11 +5018,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				133,
-				134
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5572,11 +5033,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				134,
-				135
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5587,11 +5044,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				135,
-				136
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5616,11 +5069,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				136,
-				137
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5646,11 +5095,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				137,
-				138
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5665,11 +5110,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				138,
-				139
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5686,11 +5127,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				139,
-				140
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5701,11 +5138,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				140,
-				141
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5720,11 +5153,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				141,
-				142
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5741,11 +5170,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				142,
-				143
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5771,11 +5196,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				143,
-				144
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5790,11 +5211,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				144,
-				145
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5820,11 +5237,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				145,
-				146
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5839,11 +5252,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				146,
-				147
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5864,11 +5273,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				147,
-				148
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5879,11 +5284,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				148,
-				149
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5898,11 +5299,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				149,
-				150
-			]
+			}
 		},
 		{
 			"Game": {
@@ -5919,11 +5316,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				150,
-				151
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5949,11 +5342,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				151,
-				152
-			]
+			}
 		},
 		{
 			"Players": {
@@ -5968,11 +5357,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				152,
-				153
-			]
+			}
 		},
 		{
 			"Components": {
@@ -5998,11 +5383,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				153,
-				154
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6017,11 +5398,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				154,
-				155
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6047,11 +5424,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				155,
-				156
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6066,11 +5439,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				156,
-				157
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6091,11 +5460,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				157,
-				158
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6106,11 +5471,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				158,
-				159
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6125,11 +5486,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				159,
-				160
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6146,11 +5503,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				160,
-				161
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6176,11 +5529,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				161,
-				162
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6195,11 +5544,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				162,
-				163
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6225,11 +5570,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				163,
-				164
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6244,11 +5585,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				164,
-				165
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6259,11 +5596,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				165,
-				166
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6288,11 +5621,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				166,
-				167
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6303,11 +5632,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				167,
-				168
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6322,11 +5647,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				168,
-				169
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6337,11 +5658,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				169,
-				170
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6356,11 +5673,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				170,
-				171
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6386,11 +5699,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				171,
-				172
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6405,11 +5714,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				172,
-				173
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6420,11 +5725,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				173,
-				174
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6449,11 +5750,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				174,
-				175
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6479,11 +5776,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				175,
-				176
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6498,11 +5791,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				176,
-				177
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6528,11 +5817,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				177,
-				178
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6547,11 +5832,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				178,
-				179
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6577,11 +5858,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				179,
-				180
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6596,11 +5873,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				180,
-				181
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6621,11 +5894,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				181,
-				182
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6636,11 +5905,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				182,
-				183
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6655,11 +5920,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				183,
-				184
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6676,11 +5937,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				184,
-				185
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6706,11 +5963,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				185,
-				186
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6725,11 +5978,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				186,
-				187
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6755,11 +6004,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				187,
-				188
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6774,11 +6019,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				188,
-				189
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6804,11 +6045,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				189,
-				190
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6823,11 +6060,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				190,
-				191
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6838,11 +6071,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				191,
-				192
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6867,11 +6096,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				192,
-				193
-			]
+			}
 		},
 		{
 			"Components": {
@@ -6897,11 +6122,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				193,
-				194
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6916,11 +6137,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				194,
-				195
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6937,11 +6154,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				195,
-				196
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6952,11 +6165,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				196,
-				197
-			]
+			}
 		},
 		{
 			"Players": {
@@ -6971,11 +6180,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				197,
-				198
-			]
+			}
 		},
 		{
 			"Game": {
@@ -6992,11 +6197,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				198,
-				199
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7022,11 +6223,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				199,
-				200
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7041,11 +6238,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				200,
-				201
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7071,11 +6264,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				201,
-				202
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7090,11 +6279,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				202,
-				203
-			]
+			}
 		},
 		{
 			"Game": {
@@ -7115,11 +6300,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				203,
-				204
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7130,11 +6311,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				204,
-				205
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7149,11 +6326,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				205,
-				206
-			]
+			}
 		},
 		{
 			"Game": {
@@ -7170,11 +6343,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				206,
-				207
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7200,11 +6369,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				207,
-				208
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7219,11 +6384,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				208,
-				209
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7249,11 +6410,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				209,
-				210
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7268,11 +6425,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				210,
-				211
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7298,11 +6451,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				211,
-				212
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7317,11 +6466,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				212,
-				213
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7332,11 +6477,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				213,
-				214
-			]
+			}
 		},
 		{
 			"Game": {
@@ -7361,11 +6502,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				214,
-				215
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7391,11 +6528,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				215,
-				216
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7410,11 +6543,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				216,
-				217
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7440,11 +6569,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				217,
-				218
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7459,11 +6584,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				218,
-				219
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7474,11 +6595,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				219,
-				220
-			]
+			}
 		},
 		{
 			"Game": {
@@ -7503,11 +6620,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				220,
-				221
-			]
+			}
 		},
 		{
 			"Components": {
@@ -7533,11 +6646,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				221,
-				222
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7552,11 +6661,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				222,
-				223
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7567,11 +6672,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				223,
-				224
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7586,11 +6687,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				224,
-				225
-			]
+			}
 		},
 		{
 			"Players": {
@@ -7601,11 +6698,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				225,
-				226
-			]
+			}
 		},
 		{
 			"Game": {
@@ -7630,12 +6723,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				226,
-				227
-			]
+			}
 		}
-	],
-	"omitempty": ""
+	]
 }
