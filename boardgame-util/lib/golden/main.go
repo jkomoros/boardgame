@@ -416,7 +416,7 @@ func (c *comparer) ApplyNextPlayerMove() (bool, error) {
 	}
 
 	if err := <-c.game.ProposeMove(nextMove, nextMoveRec.Proposer); err != nil {
-		return false, errors.New("Couldn't propose next move in chain: " + err.Error())
+		return false, errors.New("Couldn't propose next move in chain: " + strconv.Itoa(nextMoveRec.Version) + ": " + err.Error())
 	}
 
 	return true, nil
