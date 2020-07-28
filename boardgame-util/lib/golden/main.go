@@ -70,9 +70,10 @@ In the case where you have added a new Player move, or a move like SeatPlayer
 that occurs on its own, you'll need to do a bit of manual surgery. Before
 remastering, splice in a move record corresponding to the new move into the
 right place in the golden's Move section. Note that you'll need to update the
-Initiator fields of any other moves that come in the immediate fixup run
-immediately after it, to verify that their relative value points to the new
-initator. You do not need to update the state patches to match. Then, run `go
+Initiator fields of the single next move that comes in the immediate fixup run
+immediately after it, to verify that its relative value points to the new
+initator, so the new move is part of the run. You do not need to update the
+state patches to match, or the max Version of the Game section. Then, run `go
 test -update-golden` and verify the output looks correct. Note that your manual
 splice will now have been overwritten, which means that if the output was wrong,
 you'll need to reset it, manually modify again, and then remaster.
