@@ -20,8 +20,8 @@
 	"Moves": [
 		{
 			"Name": "Place Token",
-			"Version": 1,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:06.491637-07:00",
@@ -32,8 +32,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 2,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:06.49314-07:00",
@@ -41,8 +41,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 3,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:11.6547-07:00",
@@ -53,8 +53,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 4,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:11.65613-07:00",
@@ -62,8 +62,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 5,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:13.038699-07:00",
@@ -74,8 +74,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 6,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:13.040187-07:00",
@@ -83,8 +83,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 7,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:15.704154-07:00",
@@ -95,8 +95,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 8,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:15.706292-07:00",
@@ -104,8 +104,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 9,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:16.795802-07:00",
@@ -116,8 +116,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 10,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:16.797354-07:00",
@@ -125,8 +125,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 11,
-			"Initiator": 11,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:18.292227-07:00",
@@ -170,8 +170,8 @@
 							-1,
 							-1
 						],
-						"Size": 9,
-						"ShuffleCount": 0
+						"ShuffleCount": 0,
+						"Size": 9
 					}
 				}
 			],
@@ -236,9 +236,6 @@
 						}
 					}
 				]
-			],
-			"Version": [
-				0
 			]
 		},
 		{
@@ -295,11 +292,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				0,
-				1
-			]
+			}
 		},
 		{
 			"Game": {
@@ -307,11 +300,7 @@
 					0,
 					1
 				]
-			},
-			"Version": [
-				1,
-				2
-			]
+			}
 		},
 		{
 			"Game": {
@@ -363,11 +352,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				2,
-				3
-			]
+			}
 		},
 		{
 			"Game": {
@@ -384,11 +369,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				3,
-				4
-			]
+			}
 		},
 		{
 			"Game": {
@@ -440,11 +421,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				4,
-				5
-			]
+			}
 		},
 		{
 			"Game": {
@@ -461,11 +438,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				5,
-				6
-			]
+			}
 		},
 		{
 			"Game": {
@@ -517,11 +490,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				6,
-				7
-			]
+			}
 		},
 		{
 			"Game": {
@@ -538,11 +507,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				7,
-				8
-			]
+			}
 		},
 		{
 			"Game": {
@@ -594,11 +559,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				8,
-				9
-			]
+			}
 		},
 		{
 			"Game": {
@@ -615,11 +576,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				9,
-				10
-			]
+			}
 		},
 		{
 			"Game": {
@@ -671,11 +628,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				10,
-				11
-			]
+			}
 		}
 	]
 }

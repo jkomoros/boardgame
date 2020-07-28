@@ -20,8 +20,8 @@
 	"Moves": [
 		{
 			"Name": "Place Token",
-			"Version": 1,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:58.131807-07:00",
@@ -32,8 +32,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 2,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:58.133329-07:00",
@@ -41,8 +41,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 3,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:59.197767-07:00",
@@ -53,8 +53,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 4,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:59.1992-07:00",
@@ -62,8 +62,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 5,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:59.816142-07:00",
@@ -74,8 +74,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 6,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:59.817563-07:00",
@@ -83,8 +83,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 7,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:48:02.246494-07:00",
@@ -95,8 +95,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 8,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:48:02.248048-07:00",
@@ -104,8 +104,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 9,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:48:03.384395-07:00",
@@ -116,8 +116,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 10,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:48:03.385977-07:00",
@@ -125,8 +125,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 11,
-			"Initiator": 11,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:48:06.105094-07:00",
@@ -137,8 +137,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 12,
-			"Initiator": 11,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:48:06.106658-07:00",
@@ -146,8 +146,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 13,
-			"Initiator": 13,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:48:06.937939-07:00",
@@ -191,8 +191,8 @@
 							-1,
 							-1
 						],
-						"Size": 9,
-						"ShuffleCount": 0
+						"ShuffleCount": 0,
+						"Size": 9
 					}
 				}
 			],
@@ -257,9 +257,6 @@
 						}
 					}
 				]
-			],
-			"Version": [
-				0
 			]
 		},
 		{
@@ -316,11 +313,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				0,
-				1
-			]
+			}
 		},
 		{
 			"Game": {
@@ -328,11 +321,7 @@
 					0,
 					1
 				]
-			},
-			"Version": [
-				1,
-				2
-			]
+			}
 		},
 		{
 			"Game": {
@@ -384,11 +373,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				2,
-				3
-			]
+			}
 		},
 		{
 			"Game": {
@@ -405,11 +390,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				3,
-				4
-			]
+			}
 		},
 		{
 			"Game": {
@@ -461,11 +442,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				4,
-				5
-			]
+			}
 		},
 		{
 			"Game": {
@@ -482,11 +459,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				5,
-				6
-			]
+			}
 		},
 		{
 			"Game": {
@@ -538,11 +511,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				6,
-				7
-			]
+			}
 		},
 		{
 			"Game": {
@@ -559,11 +528,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				7,
-				8
-			]
+			}
 		},
 		{
 			"Game": {
@@ -615,11 +580,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				8,
-				9
-			]
+			}
 		},
 		{
 			"Game": {
@@ -636,11 +597,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				9,
-				10
-			]
+			}
 		},
 		{
 			"Game": {
@@ -692,11 +649,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				10,
-				11
-			]
+			}
 		},
 		{
 			"Game": {
@@ -713,11 +666,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				11,
-				12
-			]
+			}
 		},
 		{
 			"Game": {
@@ -769,11 +718,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				12,
-				13
-			]
+			}
 		}
 	]
 }

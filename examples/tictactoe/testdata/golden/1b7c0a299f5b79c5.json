@@ -18,8 +18,8 @@
 	"Moves": [
 		{
 			"Name": "Place Token",
-			"Version": 1,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:23.40106-07:00",
@@ -30,8 +30,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 2,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:23.402537-07:00",
@@ -39,8 +39,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 3,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:24.310898-07:00",
@@ -51,8 +51,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 4,
-			"Initiator": 3,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:24.312347-07:00",
@@ -60,8 +60,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 5,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:25.075933-07:00",
@@ -72,8 +72,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 6,
-			"Initiator": 5,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:25.077351-07:00",
@@ -81,8 +81,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 7,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:26.302089-07:00",
@@ -93,8 +93,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 8,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:26.303537-07:00",
@@ -102,8 +102,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 9,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:27.888487-07:00",
@@ -114,8 +114,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 10,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:27.890031-07:00",
@@ -123,8 +123,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 11,
-			"Initiator": 11,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:29.992465-07:00",
@@ -135,8 +135,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 12,
-			"Initiator": 11,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:29.99402-07:00",
@@ -144,8 +144,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 13,
-			"Initiator": 13,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:31.668487-07:00",
@@ -156,8 +156,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 14,
-			"Initiator": 13,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:31.670086-07:00",
@@ -165,8 +165,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 15,
-			"Initiator": 15,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:47:50.377663-07:00",
@@ -177,8 +177,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 16,
-			"Initiator": 15,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": 1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:47:50.379924-07:00",
@@ -186,8 +186,8 @@
 		},
 		{
 			"Name": "Place Token",
-			"Version": 17,
-			"Initiator": 17,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": 1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:47:51.468671-07:00",
@@ -231,8 +231,8 @@
 							-1,
 							-1
 						],
-						"Size": 9,
-						"ShuffleCount": 0
+						"ShuffleCount": 0,
+						"Size": 9
 					}
 				}
 			],
@@ -297,9 +297,6 @@
 						}
 					}
 				]
-			],
-			"Version": [
-				0
 			]
 		},
 		{
@@ -356,11 +353,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				0,
-				1
-			]
+			}
 		},
 		{
 			"Game": {
@@ -368,11 +361,7 @@
 					0,
 					1
 				]
-			},
-			"Version": [
-				1,
-				2
-			]
+			}
 		},
 		{
 			"Game": {
@@ -424,11 +413,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				2,
-				3
-			]
+			}
 		},
 		{
 			"Game": {
@@ -445,11 +430,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				3,
-				4
-			]
+			}
 		},
 		{
 			"Game": {
@@ -501,11 +482,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				4,
-				5
-			]
+			}
 		},
 		{
 			"Game": {
@@ -522,11 +499,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				5,
-				6
-			]
+			}
 		},
 		{
 			"Game": {
@@ -578,11 +551,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				6,
-				7
-			]
+			}
 		},
 		{
 			"Game": {
@@ -599,11 +568,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				7,
-				8
-			]
+			}
 		},
 		{
 			"Game": {
@@ -655,11 +620,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				8,
-				9
-			]
+			}
 		},
 		{
 			"Game": {
@@ -676,11 +637,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				9,
-				10
-			]
+			}
 		},
 		{
 			"Game": {
@@ -732,11 +689,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				10,
-				11
-			]
+			}
 		},
 		{
 			"Game": {
@@ -753,11 +706,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				11,
-				12
-			]
+			}
 		},
 		{
 			"Game": {
@@ -809,11 +758,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				12,
-				13
-			]
+			}
 		},
 		{
 			"Game": {
@@ -830,11 +775,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				13,
-				14
-			]
+			}
 		},
 		{
 			"Game": {
@@ -886,11 +827,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				14,
-				15
-			]
+			}
 		},
 		{
 			"Game": {
@@ -907,11 +844,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				15,
-				16
-			]
+			}
 		},
 		{
 			"Game": {
@@ -963,11 +896,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				16,
-				17
-			]
+			}
 		}
 	]
 }
