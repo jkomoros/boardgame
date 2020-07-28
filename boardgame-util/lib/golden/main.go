@@ -609,7 +609,7 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 		//If the goldenIndex is valid (that is, hasn't advanced past the end of
 		//golden) then see if the moves are equivalent, and if so copy the
 		//timestamps.
-		if goldenIndex <= len(golden)-1 {
+		if goldenIndex < len(golden) {
 			if err := compareMoveStorageRecords(*new[newIndex], *golden[goldenIndex]); err == nil {
 				//Match!
 				new[newIndex].Timestamp = golden[goldenIndex].Timestamp
