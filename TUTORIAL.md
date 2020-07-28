@@ -1732,6 +1732,39 @@ AllowMultipleInProgression means that the move inherently knows how to terminate
 
 Note that move progression groups match greedily as much as they can. In some cases when you have two groups that abut, where the same type of AllowMultipleInProgression moves are next to each other within different groups, the first one consumes all of them in a row, meaning the second group will never match. In this case you can use moves.NoOp to form a barrier.
 
+### Seats and Inactive players
+
+The core game logic has no idea which actual user is playing as any given
+player; it has no concept of who may legally propose a move on behalf of a given
+player at all. The server package is where specific users are mapped to specific
+players.
+
+However, in some cases it's important for the game logic to know that there's
+not actually a user actually there yet to play on behalf of a given player. For
+that reason, there exists behaviors.Seat and moves.SeatPlayer. If your game
+logic has moves.SeatPlayer, then the server will propose that move when a new
+physical user wants to join the game. By defining when in your rounds that move
+is legal, you can define when it will be fired. When you use moves.SeatPlayer,
+you should also embed behaviors.Seat in your playerState.
+
+You often don't want a player to be seated and immediately active--for example,
+if a player joins in the middle of a round you want to wait until the start of
+the next round to deal them in. For that reason there's also a
+behaviors.InactivePlayer. If that's embedded, then when a player is seated
+they'll immediately be marked as "Inactive", meaning the rest of the game logic
+will pretend they aren't there. You then need to choose when to activate those
+players, typically by having moves.ActivateInactivePlayers fire.
+
+Typically at the setup phase before a round, you want to activate any inactive
+players, pause to wait until we have at least the necessary number of players,
+and then inactivate any currently empty seats so we won't wait for those
+non-existent players in the round. That's such a common series of moves that you
+can use moves.DefaultRoundSetup().
+
+You can see idiomatic use of these concepts in the blackjack example.
+
+See the package doc of the behaviors package for more.
+
 ### Variants
 
 Games can often have different variations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
