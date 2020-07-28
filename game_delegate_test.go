@@ -417,6 +417,10 @@ func (t *testGameDelegate) PhaseEnum() enum.Enum {
 	return testPhaseEnum
 }
 
+func (t *testGameDelegate) GroupEnum() enum.Enum {
+	return nil
+}
+
 func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
 	deck := NewDeck()
 

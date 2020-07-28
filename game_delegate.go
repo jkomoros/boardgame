@@ -236,6 +236,10 @@ type GameDelegate interface {
 	//core package doesn't rely on this method directly.
 	PhaseEnum() enum.Enum
 
+	//GroupEnum should return the enum to use for group membership in
+	//SanitizationPolicy. If you return nil, then BaseGroupEnum will be used.
+	GroupEnum() enum.Enum
+
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is a
 	//mamber of. In practice the default behavior of base.GameDelegate, which
@@ -244,7 +248,8 @@ type GameDelegate interface {
 	//documenation for Policy. The statePropetyRef passed will never be
 	//StateGroupComponentValues, and will always have the Index properties set
 	//to 0, but remember that the returned Policy will be applied to all
-	//Indexes.
+	//Indexes. The integer indexes into groupMembership will always be values
+	//from GroupEnum's enum.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
 	//If you have computed properties that you want to be included in your

@@ -153,6 +153,12 @@ func (g *GameDelegate) PhaseEnum() enum.Enum {
 	return g.Manager().Chest().Enums().Enum("Phase")
 }
 
+//GroupEnum simply returns nil, signaling to the main library to use
+//boargame.BaseGroupEnum.
+func (g *GameDelegate) GroupEnum() enum.Enum {
+	return nil
+}
+
 //DistributeComponentToStarterStack does nothing any returns an error. If your
 //game has components, it should override this to tell the engine where to stash
 //the components to start. If your game doesn't have any components, then this
