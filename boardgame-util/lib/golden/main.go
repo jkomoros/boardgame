@@ -301,8 +301,13 @@ func (c *comparer) LastVerifiedVersion() int {
 //version is the next unverified move.
 func (c *comparer) AdvanceToNextInitiatorMove() {
 
-	//Always advance by at least one
-	c.lastVerifiedVersion++
+	if c.game.Version() > 0 {
+		//Always advance by at least one, unless we're the first version--if we
+		//are, and the very first move is a player move, we'd skip it
+		//erroneously. We check the game.Version() otherwise if we checked
+		//lastVerifiedVersion it would never advance.
+		c.lastVerifiedVersion++
+	}
 
 	for c.lastVerifiedVersion <= c.golden.Game().Version {
 		//We want to return one BEFORE the next initator move.
