@@ -598,13 +598,13 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 	}
 
 	for newIndex := 0; newIndex < len(new); newIndex++ {
-		if err := compareMoveStorageRecords(*new[newIndex], *golden[goldenIndex]); err == nil {
-			//Match!
-			new[newIndex].Timestamp = golden[goldenIndex].Timestamp
-			if goldenIndex < len(golden)-1 {
+		if goldenIndex <= len(golden)-1 {
+			if err := compareMoveStorageRecords(*new[newIndex], *golden[goldenIndex]); err == nil {
+				//Match!
+				new[newIndex].Timestamp = golden[goldenIndex].Timestamp
 				goldenIndex++
+				continue
 			}
-			continue
 		}
 	}
 
