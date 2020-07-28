@@ -175,10 +175,75 @@ func TestMoveAlignment(t *testing.T) {
 				},
 			},
 		},
+		{
+			"Two move simple timestamp copy",
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(1, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+		},
+		//TODO: 3 tests where there's a single extra move inserted in the new one (at the front, in the middle, at the end)
+		//TODO: a test where the Blobs don't align
 	}
 
 	for i, test := range tests {
 		alignMoveTimes(test.new, test.old)
-		assert.For(t, i).ThatActual(test.new).Equals(test.golden)
+		assert.For(t, i).ThatActual(test.new).Equals(test.golden).ThenDiffOnFail()
 	}
 }

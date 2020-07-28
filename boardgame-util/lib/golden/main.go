@@ -590,7 +590,22 @@ func alignTimes(new, golden *record.Record) error {
 }
 
 func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
-	//TODO: do actual alignment attempts
+	goldenIndex := 0
+
+	//Guard against the case where there is no valid index into golden
+	if len(golden) == 0 {
+		return nil
+	}
+
+	for newIndex := 0; newIndex < len(new); newIndex++ {
+		if err := compareMoveStorageRecords(*new[newIndex], *golden[goldenIndex]); err == nil {
+			//Match!
+			new[newIndex].Timestamp = golden[goldenIndex].Timestamp
+			goldenIndex++
+			continue
+		}
+	}
+
 	return nil
 }
 
