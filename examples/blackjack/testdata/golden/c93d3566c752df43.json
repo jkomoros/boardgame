@@ -485,10 +485,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -515,40 +515,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
-						"VisibleHand": {
-							"Deck": "cards",
-							"IDs": [],
-							"IDsLastSeen": {},
-							"Indexes": []
-							,"ShuffleCount": 0
-						}
-					},
-					{
-						"Busted": false,
-						"Hand": {
-							"Deck": "cards",
-							"IDs": null,
-							"IDsLastSeen": {},
-							"Indexes": [],
-							"MaxSize": 1,
-							"ShuffleCount": 0
-						},
-						"HiddenHand": {
-							"Deck": "cards",
-							"IDs": [],
-							"IDsLastSeen": {},
-							"Indexes": [],
-							"MaxSize": 1,
-							"ShuffleCount": 0
-						},
 						"Stood": false,
-						"PlayerInactive": false,
-						"SeatClosed": false,
-						"SeatFilled": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -575,10 +545,40 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
+						"VisibleHand": {
+							"Deck": "cards",
+							"IDs": [],
+							"IDsLastSeen": {},
+							"Indexes": [],
+							"ShuffleCount": 0
+						}
+					},
+					{
+						"Busted": false,
+						"Hand": {
+							"Deck": "cards",
+							"IDs": null,
+							"IDsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1,
+							"ShuffleCount": 0
+						},
+						"HiddenHand": {
+							"Deck": "cards",
+							"IDs": [],
+							"IDsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1,
+							"ShuffleCount": 0
+						},
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -1624,6 +1624,5 @@
 				"_t": "a"
 			}
 		}
-	],
-	"omitempty": ""
+	]
 }

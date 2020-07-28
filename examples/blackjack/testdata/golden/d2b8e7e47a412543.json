@@ -451,10 +451,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -481,10 +481,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -511,10 +511,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -541,10 +541,10 @@
 							"MaxSize": 1,
 							"ShuffleCount": 0
 						},
-						"Stood": false,
 						"PlayerInactive": false,
 						"SeatClosed": false,
 						"SeatFilled": false,
+						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -1515,6 +1515,5 @@
 				"_t": "a"
 			}
 		}
-	],
-	"omitempty": ""
+	]
 }
