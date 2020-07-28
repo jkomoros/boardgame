@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
@@ -597,15 +598,78 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 		return nil
 	}
 
+	//The first part is simple: look for analoges between new and golden and
+	//copy the timestamp over from golden.
+
+	//goldenIndexes keeps track of which index into golden it was copying from.
+	//-1 signifies one that wasn't copied.
+	goldenIndexes := make([]int, len(new))
+
 	for newIndex := 0; newIndex < len(new); newIndex++ {
 		if goldenIndex <= len(golden)-1 {
 			if err := compareMoveStorageRecords(*new[newIndex], *golden[goldenIndex]); err == nil {
 				//Match!
 				new[newIndex].Timestamp = golden[goldenIndex].Timestamp
+				goldenIndexes[newIndex] = goldenIndex
 				goldenIndex++
 				continue
 			}
 		}
+		//Signal that we didn't have a goldenIndex to copy from
+		goldenIndexes[newIndex] = -1
+	}
+
+	//Now we need to "smear" the times into the "holes" (that is, the moves that
+	//were added in new but have no analog in golden) so that the timestamp
+	//differences smoothly spread across the hole.
+
+	//"holes" are the indexes in goldenIndexes that are -1... that is, that
+	//don't have a corresponding pair in golden. holeLeftIndexes and
+	//holeRightIndexes encode the start and end index of the indexes on either
+	//end of the "hole" that are not themselves part of the hole.
+	holeLeftIndexes := make([]int, len(new))
+	holeRightIndexes := make([]int, len(new))
+
+	nonHoleIndex := -1
+	for i := 0; i < len(goldenIndexes); i++ {
+		goldenIndex := goldenIndexes[i]
+		if goldenIndex == -1 {
+			holeLeftIndexes[i] = nonHoleIndex
+			continue
+		}
+		nonHoleIndex = i
+	}
+
+	nonHoleIndex = -1
+	for i := len(goldenIndexes) - 1; i >= 0; i-- {
+		goldenIndex := goldenIndexes[i]
+		if goldenIndex == -1 {
+			holeRightIndexes[i] = nonHoleIndex
+			continue
+		}
+		nonHoleIndex = i
+	}
+
+	for i, goldenIndex := range goldenIndexes {
+		if goldenIndex != -1 {
+			continue
+		}
+		leftHoleIndex := holeLeftIndexes[i]
+		rightHoleIndex := holeRightIndexes[i]
+		//If either the left or right hole index is the sentinel, then the new
+		//moves are either at the very beginning or very end. Just copy over the
+		//values of the closest non-hole one.
+		if leftHoleIndex == -1 {
+			new[i].Timestamp = new[rightHoleIndex].Timestamp
+			continue
+		}
+		if rightHoleIndex == -1 {
+			new[i].Timestamp = new[leftHoleIndex].Timestamp
+			continue
+		}
+		holeSize := rightHoleIndex - leftHoleIndex
+		duration := new[rightHoleIndex].Timestamp.Sub(new[leftHoleIndex].Timestamp)
+		new[i].Timestamp = new[leftHoleIndex].Timestamp.Add(duration / time.Duration(holeSize))
 	}
 
 	return nil

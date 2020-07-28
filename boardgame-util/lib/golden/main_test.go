@@ -296,7 +296,7 @@ func TestMoveAlignment(t *testing.T) {
 					Initiator: 0,
 					Phase:     0,
 					Proposer:  -2,
-					Timestamp: time.Unix(0, 0),
+					Timestamp: time.Unix(3, 0),
 					Blob:      json.RawMessage("{}"),
 				},
 				{
@@ -395,17 +395,98 @@ func TestMoveAlignment(t *testing.T) {
 					Initiator: 0,
 					Phase:     0,
 					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+		},
+		{
+			"Two move singular splice in middle",
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(1, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "F",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(5, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(2, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(5, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(3, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "F",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(4, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+				{
+					Name:      "B",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
 					Timestamp: time.Unix(5, 0),
 					Blob:      json.RawMessage("{}"),
 				},
 			},
 		},
-		//TODO: test where there's a single extra move inserted at the end
+		//TODO: test a double splice in middle
 		//TODO: a test where the Blobs don't align
 	}
 
 	for i, test := range tests {
 		alignMoveTimes(test.new, test.old)
-		assert.For(t, i).ThatActual(test.new).Equals(test.golden).ThenDiffOnFail()
+		assert.For(t, i, test.description).ThatActual(test.new).Equals(test.golden).ThenDiffOnFail()
 	}
 }
