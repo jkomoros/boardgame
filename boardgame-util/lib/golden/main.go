@@ -34,6 +34,31 @@ You can also add a "Description" top-level field in the json to describe what
 the game is testing, which is useful to keep track of goldens that test various
 edge cases.
 
+Remastering Goldens
+
+Typically you record a golden, and then every time you test the game package, it
+will just verify the game logic still applies the same moves in the right order,
+with the right state modifications. But every so often you want to 'remaster'
+your golden. For example, perhaps the game logic has changed to have slightly
+different behavior, or you want to update the format of the golden to ensure
+it's canonical and up-to-date, to match changes in the underlying library.
+
+It's possible to 'remaster' goldens, which means to re-record them and overwrite
+the original. You do this by passing true as the last value to Compare or
+CompareFolder. The `golden_test.go` that is generated for you will also
+automatically add a flag that will be passed in, so the canonical way to
+remaster is to run `go test -update-golden`, which instead of comparing the
+golden, will remaster it, overwriting the original.
+
+After you remaster, it's a good idea to sanity check by doing a normal test (`go
+test`) to verify the game logic matches the new golden. You should also visually
+inspect the diff of the golden before commiting to make sure there aren't any
+unintended changes. The remastering process is designed to ensure that wherever
+possible content doesn't change. The design of filesystem.record.Record
+(described above) helps, but the remastering process also seeks to, for example,
+use existing timestamps wherever possible and generate reasonable intermediate
+timestamps for new moves that have been added.
+
 */
 package golden
 
