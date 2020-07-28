@@ -38,6 +38,18 @@ const (
 	GroupAll = -3
 )
 
+var enumSet = enum.NewSet()
+
+//BaseGroupEnum is the enum set containing GroupSelf, GroupOther, GroupAll.
+//These are the default groups that are always passed into
+//GameDelegate.SanitizationPolicy. It's exposed so that you can create a
+//combined enum that has more values.
+var BaseGroupEnum = enumSet.MustAdd("baseGroups", map[int]string{
+	GroupSelf:  "self",
+	GroupOther: "other",
+	GroupAll:   "all",
+})
+
 /*
 
 Policy is the type that reprsents a sanitization policy.
