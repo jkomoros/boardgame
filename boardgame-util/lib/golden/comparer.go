@@ -182,7 +182,7 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 		c.lastVerifiedVersion++
 		verifiedAtLeastOne = true
 	}
-	if !verifiedAtLeastOne {
+	if !verifiedAtLeastOne && c.game.Version() > 0 {
 		return errors.New("VerifyUnverifiedMoves didn't verify any new moves; this implies that ApplyNextMove isn't actually applying the next move")
 	}
 	return nil
@@ -336,7 +336,7 @@ func (c *comparer) Compare() error {
 		//Verify all new moves that have happened since the last time we
 		//checked (often, fix-up moves).
 		if err := c.VerifyUnverifiedMoves(); err != nil {
-			return errors.New("VerifyUnverifiedMoves failed: " + err.Error())
+			return errors.New("VerifyUnverifiedMoves failed: " + strconv.Itoa(c.game.Version()) + ": " + err.Error())
 		}
 
 		applied, err := c.ApplyNextMove()
