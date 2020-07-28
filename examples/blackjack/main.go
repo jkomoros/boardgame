@@ -206,19 +206,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 		moves.AddOrderedForPhase(phaseInitialDeal,
 			//Because we have behavior.InactivePlayer, we need to re-activate players... if there are any to run
-			moves.Optional(
-				auto.MustConfig(
-					new(moves.ActivateInactivePlayer),
-				),
-			),
-			auto.MustConfig(
-				new(moves.WaitForEnoughPlayers),
-			),
-			moves.Optional(
-				auto.MustConfig(
-					new(moves.InactivateEmptySeat),
-				),
-			),
+			moves.DefaultRoundSetup(auto),
 			auto.MustConfig(
 				new(moves.DealCountComponents),
 				moves.WithMoveName("Deal Initial Hidden Card"),

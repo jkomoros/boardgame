@@ -30,6 +30,33 @@ func gameWillSeatPlayer(state boardgame.ImmutableState) bool {
 	return true
 }
 
+//DefaultRoundSetup returns a serial move progression appropriate for putting at
+//the beginning of your RoundSetUp phase, if you have a game that uses
+//SeatPlayer. It returns a Optional(ActivateInactivePlayer),
+//WaitForEnoughPlayers, Optional(InactivateEmptySeat). What this does is
+//activate any players who have been seated already but not yet activated, then
+//pause until we have enough players to activate the round, and then mark any
+//unfilled seats as Inactive so the game logic within the actual round doesn't
+//wait for them. This progression is finicky to get right, which is why it's
+//provided as a baked function.
+func DefaultRoundSetup(auto *AutoConfigurer) MoveProgressionGroup {
+	return Serial(
+		Optional(
+			auto.MustConfig(
+				new(ActivateInactivePlayer),
+			),
+		),
+		auto.MustConfig(
+			new(WaitForEnoughPlayers),
+		),
+		Optional(
+			auto.MustConfig(
+				new(InactivateEmptySeat),
+			),
+		),
+	)
+}
+
 //SeatPlayer is a game that seats a new player into an open seat in the game. It
 //is a special interface point for the server library to interact with your game
 //logic. The core engine has no notion of whether or not a real user is
