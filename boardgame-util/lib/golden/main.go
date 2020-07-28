@@ -362,7 +362,7 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 			}
 
 			//Warning: records are modified by this method
-			if err := compareMoveStorageRecords(moves[len(moves)-1], recMove); err != nil {
+			if err := compareMoveStorageRecords(*moves[len(moves)-1], *recMove); err != nil {
 				return errors.New("Move " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
 			}
 		}
@@ -629,16 +629,7 @@ func compareJSONBlobs(one, two []byte) error {
 
 }
 
-//warning: modifies the records
-func compareMoveStorageRecords(one, two *boardgame.MoveStorageRecord) error {
-
-	if one == nil {
-		return errors.New("One was nil")
-	}
-
-	if two == nil {
-		return errors.New("Two was nil")
-	}
+func compareMoveStorageRecords(one, two boardgame.MoveStorageRecord) error {
 
 	oneBlob := one.Blob
 	twoBlob := two.Blob
