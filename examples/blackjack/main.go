@@ -142,6 +142,9 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 	_, players := concreteStates(state)
 
 	for _, player := range players {
+		if player.PlayerInactive {
+			continue
+		}
 		if !player.Busted && !player.Stood {
 			return false
 		}
@@ -208,7 +211,14 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 					new(moves.ActivateInactivePlayer),
 				),
 			),
-			//TODO: inactive empty seats here as long as there are enough players to start a round.
+			auto.MustConfig(
+				new(moves.WaitForEnoughPlayers),
+			),
+			moves.Optional(
+				auto.MustConfig(
+					new(moves.InactivateEmptySeat),
+				),
+			),
 			auto.MustConfig(
 				new(moves.DealCountComponents),
 				moves.WithMoveName("Deal Initial Hidden Card"),

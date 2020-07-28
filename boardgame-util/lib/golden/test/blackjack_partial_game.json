@@ -3,7 +3,7 @@
 		"Name": "blackjack",
 		"ID": "92597E5A0EB2CB35",
 		"SecretSalt": "0EBDAFE6D01BB76B",
-		"Version": 17,
+		"Version": 18,
 		"Winners": null,
 		"Finished": false,
 		"Created": "2018-07-24T11:50:25.195895981+01:00",
@@ -19,12 +19,12 @@
 	},
 	"Moves": [
 		{
-			"Name": "Deal Initial Hidden Card",
+			"Name": "Wait For Enough Players",
 			"Version": -1,
 			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.002329244Z",
+			"Timestamp": "0001-01-01T00:00:00.005803913Z",
 			"Blob": {}
 		},
 		{
@@ -55,12 +55,12 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Deal Initial Visible Card",
+			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -4,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.016026971Z",
+			"Timestamp": "0001-01-01T00:00:00.015880928Z",
 			"Blob": {}
 		},
 		{
@@ -91,21 +91,30 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Start Phase Normal Play",
+			"Name": "Deal Initial Visible Card",
 			"Version": -1,
 			"Initiator": -8,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.030407984Z",
+			"Timestamp": "0001-01-01T00:00:00.029352424Z",
+			"Blob": {}
+		},
+		{
+			"Name": "Start Phase Normal Play",
+			"Version": -1,
+			"Initiator": -9,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "0001-01-01T00:00:00.031840453Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Reveal Hidden Card",
 			"Version": -1,
-			"Initiator": -9,
+			"Initiator": -10,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.033485069Z",
+			"Timestamp": "0001-01-01T00:00:00.034328482Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -614,6 +623,7 @@
 				}
 			]
 		},
+		{},
 		{
 			"Game": {
 				"DrawStack": {
@@ -650,7 +660,7 @@
 						],
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								1
+								2
 							]
 						},
 						"Indexes": {
@@ -669,7 +679,7 @@
 						},
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								1
+								2
 							]
 						},
 						"Indexes": {
@@ -719,7 +729,7 @@
 						],
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								2
+								3
 							]
 						},
 						"Indexes": {
@@ -738,7 +748,7 @@
 						},
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								2
+								3
 							]
 						},
 						"Indexes": {
@@ -788,7 +798,7 @@
 						],
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								3
+								4
 							]
 						},
 						"Indexes": {
@@ -807,7 +817,7 @@
 						},
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								3
+								4
 							]
 						},
 						"Indexes": {
@@ -865,7 +875,7 @@
 						],
 						"IDsLastSeen": {
 							"85e33d7b1618bbfb1c24323e921bedf2d6e48cbd": [
-								4
+								5
 							]
 						},
 						"Indexes": {
@@ -884,7 +894,7 @@
 						},
 						"IDsLastSeen": {
 							"85e33d7b1618bbfb1c24323e921bedf2d6e48cbd": [
-								4
+								5
 							]
 						},
 						"Indexes": {
@@ -942,7 +952,7 @@
 						},
 						"IDsLastSeen": {
 							"d8dd112c55aff9e888725ce4c372e8ac45712999": [
-								5
+								6
 							]
 						},
 						"Indexes": {
@@ -961,7 +971,7 @@
 						},
 						"IDsLastSeen": {
 							"d8dd112c55aff9e888725ce4c372e8ac45712999": [
-								5
+								6
 							]
 						},
 						"Indexes": {
@@ -1011,7 +1021,7 @@
 						},
 						"IDsLastSeen": {
 							"a076ae88fa7b8bd929bbc7ba6fbb6c3f03543933": [
-								6
+								7
 							]
 						},
 						"Indexes": {
@@ -1030,7 +1040,7 @@
 						},
 						"IDsLastSeen": {
 							"a076ae88fa7b8bd929bbc7ba6fbb6c3f03543933": [
-								6
+								7
 							]
 						},
 						"Indexes": {
@@ -1080,7 +1090,7 @@
 						},
 						"IDsLastSeen": {
 							"328713e7ce4f8957c15b61fc2719b7ed6572ea82": [
-								7
+								8
 							]
 						},
 						"Indexes": {
@@ -1099,7 +1109,7 @@
 						},
 						"IDsLastSeen": {
 							"328713e7ce4f8957c15b61fc2719b7ed6572ea82": [
-								7
+								8
 							]
 						},
 						"Indexes": {
@@ -1157,7 +1167,7 @@
 						},
 						"IDsLastSeen": {
 							"6cefe9064f3f7a583722d7a6235f9d649526b0a5": [
-								8
+								9
 							]
 						},
 						"Indexes": {
@@ -1176,7 +1186,7 @@
 						},
 						"IDsLastSeen": {
 							"6cefe9064f3f7a583722d7a6235f9d649526b0a5": [
-								8
+								9
 							]
 						},
 						"Indexes": {
@@ -1204,8 +1214,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								1,
-								10
+								2,
+								11
 							]
 						}
 					},
@@ -1236,7 +1246,7 @@
 						},
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								10
+								11
 							]
 						},
 						"Indexes": {
@@ -1282,7 +1292,7 @@
 						},
 						"IDsLastSeen": {
 							"8a1360670fcf7ea0ae25160f077483ad01b7c100": [
-								11
+								12
 							]
 						},
 						"Indexes": {
@@ -1305,7 +1315,7 @@
 						},
 						"IDsLastSeen": {
 							"8a1360670fcf7ea0ae25160f077483ad01b7c100": [
-								11
+								12
 							]
 						},
 						"Indexes": {
@@ -1333,8 +1343,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								2,
-								13
+								3,
+								14
 							]
 						}
 					},
@@ -1365,7 +1375,7 @@
 						},
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								13
+								14
 							]
 						},
 						"Indexes": {
@@ -1411,7 +1421,7 @@
 						},
 						"IDsLastSeen": {
 							"f6359ae00346920b61d8d03a4f1f0c88565e939b": [
-								14
+								15
 							]
 						},
 						"Indexes": {
@@ -1430,7 +1440,7 @@
 						},
 						"IDsLastSeen": {
 							"f6359ae00346920b61d8d03a4f1f0c88565e939b": [
-								14
+								15
 							]
 						},
 						"Indexes": {
@@ -1469,8 +1479,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								3,
-								17
+								4,
+								18
 							]
 						}
 					},
@@ -1501,7 +1511,7 @@
 						},
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								17
+								18
 							]
 						},
 						"Indexes": {

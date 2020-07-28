@@ -3,7 +3,7 @@
 		"Name": "blackjack",
 		"ID": "DAC0BC2B57492B3A",
 		"SecretSalt": "1B83CDF30D68594B",
-		"Version": 39,
+		"Version": 40,
 		"Winners": [
 			0
 		],
@@ -24,12 +24,12 @@
 	},
 	"Moves": [
 		{
-			"Name": "Deal Initial Hidden Card",
+			"Name": "Wait For Enough Players",
 			"Version": -1,
 			"Initiator": 0,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.001711Z",
+			"Timestamp": "0001-01-01T00:00:00.005062Z",
 			"Blob": {}
 		},
 		{
@@ -87,12 +87,12 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Deal Initial Visible Card",
+			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -7,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.021398Z",
+			"Timestamp": "0001-01-01T00:00:00.021663Z",
 			"Blob": {}
 		},
 		{
@@ -150,21 +150,30 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Start Phase Normal Play",
+			"Name": "Deal Initial Visible Card",
 			"Version": -1,
 			"Initiator": -14,
 			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.041487Z",
+			"Timestamp": "0001-01-01T00:00:00.83203075Z",
+			"Blob": {}
+		},
+		{
+			"Name": "Start Phase Normal Play",
+			"Version": -1,
+			"Initiator": -15,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "0001-01-01T00:00:01.6259735Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Reveal Hidden Card",
 			"Version": -1,
-			"Initiator": -15,
+			"Initiator": -16,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.044196Z",
+			"Timestamp": "0001-01-01T00:00:02.41991625Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -931,6 +940,7 @@
 				}
 			]
 		},
+		{},
 		{
 			"Game": {
 				"DrawStack": {
@@ -967,7 +977,7 @@
 						],
 						"IDsLastSeen": {
 							"7ec7cf50d3513e411c14d3441b5bda615eec91b1": [
-								1
+								2
 							]
 						},
 						"Indexes": {
@@ -986,7 +996,7 @@
 						},
 						"IDsLastSeen": {
 							"7ec7cf50d3513e411c14d3441b5bda615eec91b1": [
-								1
+								2
 							]
 						},
 						"Indexes": {
@@ -1036,7 +1046,7 @@
 						],
 						"IDsLastSeen": {
 							"5f9123370505df82554ae54951edb77eaaced47e": [
-								2
+								3
 							]
 						},
 						"Indexes": {
@@ -1055,7 +1065,7 @@
 						},
 						"IDsLastSeen": {
 							"5f9123370505df82554ae54951edb77eaaced47e": [
-								2
+								3
 							]
 						},
 						"Indexes": {
@@ -1105,7 +1115,7 @@
 						],
 						"IDsLastSeen": {
 							"235caab1ba5d15b8d7202e4e6af7516eb36477ab": [
-								3
+								4
 							]
 						},
 						"Indexes": {
@@ -1124,7 +1134,7 @@
 						},
 						"IDsLastSeen": {
 							"235caab1ba5d15b8d7202e4e6af7516eb36477ab": [
-								3
+								4
 							]
 						},
 						"Indexes": {
@@ -1174,7 +1184,7 @@
 						],
 						"IDsLastSeen": {
 							"a999f8648be5dd41e3af63f61eaa930f852e21bc": [
-								4
+								5
 							]
 						},
 						"Indexes": {
@@ -1193,7 +1203,7 @@
 						},
 						"IDsLastSeen": {
 							"a999f8648be5dd41e3af63f61eaa930f852e21bc": [
-								4
+								5
 							]
 						},
 						"Indexes": {
@@ -1243,7 +1253,7 @@
 						],
 						"IDsLastSeen": {
 							"335057d55a5801a98bfce3db5ac9ff5250acae2e": [
-								5
+								6
 							]
 						},
 						"Indexes": {
@@ -1262,7 +1272,7 @@
 						},
 						"IDsLastSeen": {
 							"335057d55a5801a98bfce3db5ac9ff5250acae2e": [
-								5
+								6
 							]
 						},
 						"Indexes": {
@@ -1312,7 +1322,7 @@
 						],
 						"IDsLastSeen": {
 							"7021e647d17d3f5beafa493913d335011f26eec2": [
-								6
+								7
 							]
 						},
 						"Indexes": {
@@ -1331,7 +1341,7 @@
 						},
 						"IDsLastSeen": {
 							"7021e647d17d3f5beafa493913d335011f26eec2": [
-								6
+								7
 							]
 						},
 						"Indexes": {
@@ -1389,7 +1399,7 @@
 						],
 						"IDsLastSeen": {
 							"42a607637cfd991742522a8b196f64d1b63cdd83": [
-								7
+								8
 							]
 						},
 						"Indexes": {
@@ -1408,7 +1418,7 @@
 						},
 						"IDsLastSeen": {
 							"42a607637cfd991742522a8b196f64d1b63cdd83": [
-								7
+								8
 							]
 						},
 						"Indexes": {
@@ -1466,7 +1476,7 @@
 						},
 						"IDsLastSeen": {
 							"08a196ba27c3208505c9c6f5daca9ae909d0d142": [
-								8
+								9
 							]
 						},
 						"Indexes": {
@@ -1485,7 +1495,7 @@
 						},
 						"IDsLastSeen": {
 							"08a196ba27c3208505c9c6f5daca9ae909d0d142": [
-								8
+								9
 							]
 						},
 						"Indexes": {
@@ -1535,7 +1545,7 @@
 						},
 						"IDsLastSeen": {
 							"d0bacfd385b4b7ffd4f947d08b6c8476d2f8da4f": [
-								9
+								10
 							]
 						},
 						"Indexes": {
@@ -1554,7 +1564,7 @@
 						},
 						"IDsLastSeen": {
 							"d0bacfd385b4b7ffd4f947d08b6c8476d2f8da4f": [
-								9
+								10
 							]
 						},
 						"Indexes": {
@@ -1604,7 +1614,7 @@
 						},
 						"IDsLastSeen": {
 							"8845bb07d76d6849a027cbedac2e53eee1ee501a": [
-								10
+								11
 							]
 						},
 						"Indexes": {
@@ -1623,7 +1633,7 @@
 						},
 						"IDsLastSeen": {
 							"8845bb07d76d6849a027cbedac2e53eee1ee501a": [
-								10
+								11
 							]
 						},
 						"Indexes": {
@@ -1673,7 +1683,7 @@
 						},
 						"IDsLastSeen": {
 							"624a3e61d46c6ad6a3d7137d49f5ad1f095fae32": [
-								11
+								12
 							]
 						},
 						"Indexes": {
@@ -1692,7 +1702,7 @@
 						},
 						"IDsLastSeen": {
 							"624a3e61d46c6ad6a3d7137d49f5ad1f095fae32": [
-								11
+								12
 							]
 						},
 						"Indexes": {
@@ -1742,7 +1752,7 @@
 						},
 						"IDsLastSeen": {
 							"c931b1253fdf6e780b531a45891d8b91eaf274ea": [
-								12
+								13
 							]
 						},
 						"Indexes": {
@@ -1761,7 +1771,7 @@
 						},
 						"IDsLastSeen": {
 							"c931b1253fdf6e780b531a45891d8b91eaf274ea": [
-								12
+								13
 							]
 						},
 						"Indexes": {
@@ -1811,7 +1821,7 @@
 						},
 						"IDsLastSeen": {
 							"7f5256aa2067a3fb91faa6f1b959f98725888cc5": [
-								13
+								14
 							]
 						},
 						"Indexes": {
@@ -1830,7 +1840,7 @@
 						},
 						"IDsLastSeen": {
 							"7f5256aa2067a3fb91faa6f1b959f98725888cc5": [
-								13
+								14
 							]
 						},
 						"Indexes": {
@@ -1888,7 +1898,7 @@
 						},
 						"IDsLastSeen": {
 							"989d35b9b3c7376a8ba71703eddcf294c8f47583": [
-								14
+								15
 							]
 						},
 						"Indexes": {
@@ -1907,7 +1917,7 @@
 						},
 						"IDsLastSeen": {
 							"989d35b9b3c7376a8ba71703eddcf294c8f47583": [
-								14
+								15
 							]
 						},
 						"Indexes": {
@@ -1935,8 +1945,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"7ec7cf50d3513e411c14d3441b5bda615eec91b1": [
-								1,
-								16
+								2,
+								17
 							]
 						}
 					},
@@ -1967,7 +1977,7 @@
 						},
 						"IDsLastSeen": {
 							"7ec7cf50d3513e411c14d3441b5bda615eec91b1": [
-								16
+								17
 							]
 						},
 						"Indexes": {
@@ -2013,7 +2023,7 @@
 						},
 						"IDsLastSeen": {
 							"2c7c802810ce8b518e2629ca50b52630d337b557": [
-								17
+								18
 							]
 						},
 						"Indexes": {
@@ -2032,7 +2042,7 @@
 						},
 						"IDsLastSeen": {
 							"2c7c802810ce8b518e2629ca50b52630d337b557": [
-								17
+								18
 							]
 						},
 						"Indexes": {
@@ -2071,8 +2081,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"5f9123370505df82554ae54951edb77eaaced47e": [
-								2,
-								20
+								3,
+								21
 							]
 						}
 					},
@@ -2103,7 +2113,7 @@
 						},
 						"IDsLastSeen": {
 							"5f9123370505df82554ae54951edb77eaaced47e": [
-								20
+								21
 							]
 						},
 						"Indexes": {
@@ -2149,7 +2159,7 @@
 						},
 						"IDsLastSeen": {
 							"ac8d6ce832beea6c2d0c6bb5d286216b067291f0": [
-								21
+								22
 							]
 						},
 						"Indexes": {
@@ -2168,7 +2178,7 @@
 						},
 						"IDsLastSeen": {
 							"ac8d6ce832beea6c2d0c6bb5d286216b067291f0": [
-								21
+								22
 							]
 						},
 						"Indexes": {
@@ -2207,8 +2217,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"235caab1ba5d15b8d7202e4e6af7516eb36477ab": [
-								3,
-								24
+								4,
+								25
 							]
 						}
 					},
@@ -2239,7 +2249,7 @@
 						},
 						"IDsLastSeen": {
 							"235caab1ba5d15b8d7202e4e6af7516eb36477ab": [
-								24
+								25
 							]
 						},
 						"Indexes": {
@@ -2278,8 +2288,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"a999f8648be5dd41e3af63f61eaa930f852e21bc": [
-								4,
-								27
+								5,
+								28
 							]
 						}
 					},
@@ -2310,7 +2320,7 @@
 						},
 						"IDsLastSeen": {
 							"a999f8648be5dd41e3af63f61eaa930f852e21bc": [
-								27
+								28
 							]
 						},
 						"Indexes": {
@@ -2356,7 +2366,7 @@
 						},
 						"IDsLastSeen": {
 							"d5db7a9ef2d99e7deeca15d30fdd157b7bbfc9b3": [
-								28
+								29
 							]
 						},
 						"Indexes": {
@@ -2375,7 +2385,7 @@
 						},
 						"IDsLastSeen": {
 							"d5db7a9ef2d99e7deeca15d30fdd157b7bbfc9b3": [
-								28
+								29
 							]
 						},
 						"Indexes": {
@@ -2425,7 +2435,7 @@
 						},
 						"IDsLastSeen": {
 							"4969c43d8498e11385e70ae10a132813233c9d35": [
-								29
+								30
 							]
 						},
 						"Indexes": {
@@ -2444,7 +2454,7 @@
 						},
 						"IDsLastSeen": {
 							"4969c43d8498e11385e70ae10a132813233c9d35": [
-								29
+								30
 							]
 						},
 						"Indexes": {
@@ -2472,8 +2482,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"335057d55a5801a98bfce3db5ac9ff5250acae2e": [
-								5,
-								31
+								6,
+								32
 							]
 						}
 					},
@@ -2504,7 +2514,7 @@
 						},
 						"IDsLastSeen": {
 							"335057d55a5801a98bfce3db5ac9ff5250acae2e": [
-								31
+								32
 							]
 						},
 						"Indexes": {
@@ -2543,8 +2553,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"7021e647d17d3f5beafa493913d335011f26eec2": [
-								6,
-								34
+								7,
+								35
 							]
 						}
 					},
@@ -2575,7 +2585,7 @@
 						},
 						"IDsLastSeen": {
 							"7021e647d17d3f5beafa493913d335011f26eec2": [
-								34
+								35
 							]
 						},
 						"Indexes": {
@@ -2621,7 +2631,7 @@
 						},
 						"IDsLastSeen": {
 							"308754745007298888bcbdf60a2a02d8af70aeca": [
-								35
+								36
 							]
 						},
 						"Indexes": {
@@ -2640,7 +2650,7 @@
 						},
 						"IDsLastSeen": {
 							"308754745007298888bcbdf60a2a02d8af70aeca": [
-								35
+								36
 							]
 						},
 						"Indexes": {
@@ -2679,8 +2689,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"42a607637cfd991742522a8b196f64d1b63cdd83": [
-								7,
-								38
+								8,
+								39
 							]
 						}
 					},
@@ -2711,7 +2721,7 @@
 						},
 						"IDsLastSeen": {
 							"42a607637cfd991742522a8b196f64d1b63cdd83": [
-								38
+								39
 							]
 						},
 						"Indexes": {
@@ -2761,7 +2771,7 @@
 						},
 						"IDsLastSeen": {
 							"e77d7eb6e7b9945c5bb3034615c2f46b1d54602e": [
-								39
+								40
 							]
 						},
 						"Indexes": {
@@ -2780,7 +2790,7 @@
 						},
 						"IDsLastSeen": {
 							"e77d7eb6e7b9945c5bb3034615c2f46b1d54602e": [
-								39
+								40
 							]
 						},
 						"Indexes": {
