@@ -586,6 +586,11 @@ func alignTimes(new, golden *record.Record) error {
 	new.Game().Created = golden.Game().Created
 	new.Game().Modified = golden.Game().Modified
 	//TODO: also align move times as much as possible!
+	return alignMoveTimes(new.RawMoves(), golden.RawMoves())
+}
+
+func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
+	//TODO: do actual alignment attempts
 	return nil
 }
 

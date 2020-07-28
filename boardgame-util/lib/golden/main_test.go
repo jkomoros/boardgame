@@ -1,9 +1,12 @@
 package golden
 
 import (
+	"encoding/json"
 	"flag"
 	"testing"
+	"time"
 
+	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/workfit/tester/assert"
 )
@@ -22,4 +25,55 @@ func TestBasic(t *testing.T) {
 func TestFolder(t *testing.T) {
 	err := CompareFolder(blackjack.NewDelegate(), "test", *updateGolden)
 	assert.For(t).ThatActual(err).IsNil()
+}
+
+func TestMoveAlignment(t *testing.T) {
+	tests := []struct {
+		description string
+		new         []*boardgame.MoveStorageRecord
+		old         []*boardgame.MoveStorageRecord
+		golden      []*boardgame.MoveStorageRecord
+	}{
+		{
+			"Single move no op",
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+			[]*boardgame.MoveStorageRecord{
+				{
+					Name:      "A",
+					Version:   -1,
+					Initiator: 0,
+					Phase:     0,
+					Proposer:  -2,
+					Timestamp: time.Unix(0, 0),
+					Blob:      json.RawMessage("{}"),
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		alignMoveTimes(test.new, test.old)
+		assert.For(t, i).ThatActual(test.new).Equals(test.golden)
+	}
 }
