@@ -32,6 +32,11 @@ func newComparer(manager *boardgame.GameManager, rec *record.Record, storage *st
 		return nil, errors.New("The storage layer already has a game with that ID. Use a fresh storage manager")
 	}
 
+	//FetchInjectedDataForGame requires a reference to the game, and it has to
+	//be there before any FixUp moves are applied, so before the game is
+	//created.
+	storage.gameRecords[rec.Game().ID] = rec
+
 	game, err := manager.Internals().RecreateGame(rec.Game())
 
 	if err != nil {
@@ -47,9 +52,6 @@ func newComparer(manager *boardgame.GameManager, rec *record.Record, storage *st
 		nil,
 		0,
 	}
-
-	//FetchInjectedDataForGame requires a reference to the game
-	storage.gameRecords[rec.Game().ID] = rec
 
 	return result, nil
 }
