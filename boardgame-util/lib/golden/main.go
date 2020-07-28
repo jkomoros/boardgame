@@ -617,8 +617,30 @@ func alignMoveTimes(new, golden []*boardgame.MoveStorageRecord) error {
 				goldenIndex++
 				continue
 			}
+			doContinue := false
+			//They didn't match. But scan ahead and see if there's a match--if
+			//there is, that implies that those items were deleted.
+			for tempGoldenIndex := goldenIndex; tempGoldenIndex < len(golden); tempGoldenIndex++ {
+				if err := compareMoveStorageRecords(*new[newIndex], *golden[tempGoldenIndex]); err == nil {
+					//We found it by skipping ahead in our new index. TODO: this
+					//logic could get confused by a singular move that appears
+					//to match; ideally we'd scan forward and pick the match
+					//that has the longest matching subset.
+					goldenIndex = tempGoldenIndex
+					new[newIndex].Timestamp = golden[goldenIndex].Timestamp
+					goldenIndexes[newIndex] = goldenIndex
+					goldenIndex++
+					//We want to stop iterating in this for loop, and continue in the one above.
+					doContinue = true
+					break
+				}
+			}
+			if doContinue {
+				continue
+			}
 		}
-		//Signal that we didn't have a goldenIndex to copy from
+		//Signal that we didn't have a goldenIndex to copy from--that is, the
+		//item appears to be new in new and not present in golden.
 		goldenIndexes[newIndex] = -1
 	}
 
