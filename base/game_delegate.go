@@ -248,11 +248,12 @@ type PlayerGameScorer interface {
 }
 
 //CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
-//then it fetches delegate.PlayerScore() for each player and returns all
-//players who have the highest score as winners. (If delegate.LowScoreWins()
-//is true, instead of highest score, it does lowest score.) To use this
-//implementation simply implement those methods. This is sufficient for many
-//games, but not all, so sometimes needs to be overriden.
+//then it fetches delegate.PlayerScore() for each player and returns all players
+//who have the highest score as winners. (If delegate.LowScoreWins() is true,
+//instead of highest score, it does lowest score.) It skips any players who are
+//Inactive (according to behaviors.PlayerIsInactive). To use this implementation
+//simply implement those methods. This is sufficient for many games, but not
+//all, so sometimes needs to be overriden.
 func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finished bool, winners []boardgame.PlayerIndex) {
 
 	if g.Manager() == nil {
@@ -279,6 +280,11 @@ func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 	}
 
 	for _, player := range state.ImmutablePlayerStates() {
+
+		if behaviors.PlayerIsInactive(player) {
+			continue
+		}
+
 		score := checkGameFinished.PlayerScore(player)
 
 		if lowScoreWins {
@@ -294,6 +300,11 @@ func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 
 	//Who has the most extreme score score?
 	for i, player := range state.ImmutablePlayerStates() {
+
+		if behaviors.PlayerIsInactive(player) {
+			continue
+		}
+
 		score := checkGameFinished.PlayerScore(player)
 
 		if score == extremeScore {
