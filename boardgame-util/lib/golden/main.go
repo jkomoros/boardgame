@@ -507,6 +507,8 @@ func (c *comparer) RegenerateGolden() (*record.Record, error) {
 		return nil, errors.New("Couldn't get RecordForID: " + err.Error())
 	}
 
+	newRecord.SetDescription(c.golden.Description())
+
 	if err := alignTimes(newRecord, c.golden); err != nil {
 		return nil, errors.New("Couldn't align times: " + err.Error())
 	}
