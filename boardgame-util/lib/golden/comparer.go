@@ -257,15 +257,15 @@ func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
 	//First, check if the nextMoveRec is a type of move that is a Seat
 	//Player move.
 
-	exampleMove := c.manager.ExampleMoveByName(nextMoveRec.Name)
+	move := c.game.MoveByName(nextMoveRec.Name)
 
-	if exampleMove == nil {
+	if move == nil {
 		return false, errors.New("Couldn't fetch move named: " + nextMoveRec.Name)
 	}
 
-	if isSeatPlayer, ok := exampleMove.(interfaces.SeatPlayerMover); ok && isSeatPlayer.IsSeatPlayerMove() {
+	if isSeatPlayer, ok := move.(interfaces.SeatPlayerMover); ok && isSeatPlayer.IsSeatPlayerMove() {
 		//It does seem to be a seat Player mover.
-		index, err := exampleMove.Reader().PlayerIndexProp("TargetPlayerIndex")
+		index, err := move.Reader().PlayerIndexProp("TargetPlayerIndex")
 		if err != nil {
 			return false, errors.New("Couldn't get expected TargetPlayerIndex from next SeatPlayer: " + err.Error())
 		}
