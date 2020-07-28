@@ -21,8 +21,8 @@
 	"Moves": [
 		{
 			"Name": "Reveal Card",
-			"Version": 1,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:43:18.035221-07:00",
@@ -33,8 +33,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 2,
-			"Initiator": 2,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:43:18.722191-07:00",
@@ -45,8 +45,8 @@
 		},
 		{
 			"Name": "Start Hide Cards Timer",
-			"Version": 3,
-			"Initiator": 2,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:43:18.73149-07:00",
@@ -54,8 +54,8 @@
 		},
 		{
 			"Name": "Hide Cards",
-			"Version": 4,
-			"Initiator": 4,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:43:20.937984-07:00",
@@ -65,8 +65,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 5,
-			"Initiator": 4,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:43:20.946999-07:00",
@@ -108,8 +108,8 @@
 							68,
 							69
 						],
-						"Size": 10,
-						"ShuffleCount": 1
+						"ShuffleCount": 1,
+						"Size": 10
 					},
 					"CurrentPlayer": 0,
 					"HiddenCards": {
@@ -160,8 +160,8 @@
 							68,
 							69
 						],
-						"Size": 10,
-						"ShuffleCount": 1
+						"ShuffleCount": 1,
+						"Size": 10
 					},
 					"HideCardsTimer": {
 						"ID": "",
@@ -665,8 +665,8 @@
 							-1,
 							-1
 						],
-						"Size": 10,
-						"ShuffleCount": 0
+						"ShuffleCount": 0,
+						"Size": 10
 					}
 				}
 			],
@@ -819,9 +819,6 @@
 						1
 					]
 				}
-			],
-			"Version": [
-				0
 			]
 		},
 		{
@@ -880,11 +877,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				0,
-				1
-			]
+			}
 		},
 		{
 			"Game": {
@@ -942,11 +935,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				1,
-				2
-			]
+			}
 		},
 		{
 			"Game": {
@@ -956,11 +945,7 @@
 						"F4CC96527194DBCC"
 					]
 				}
-			},
-			"Version": [
-				2,
-				3
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1056,11 +1041,7 @@
 						"_t": "a"
 					}
 				}
-			},
-			"Version": [
-				3,
-				4
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1077,11 +1058,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				4,
-				5
-			]
+			}
 		}
 	]
 }

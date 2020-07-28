@@ -21,8 +21,8 @@
 	"Moves": [
 		{
 			"Name": "Reveal Card",
-			"Version": 1,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:42:33.283443-07:00",
@@ -33,8 +33,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 2,
-			"Initiator": 2,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:42:33.993897-07:00",
@@ -45,8 +45,8 @@
 		},
 		{
 			"Name": "Start Hide Cards Timer",
-			"Version": 3,
-			"Initiator": 2,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:34.003746-07:00",
@@ -54,8 +54,8 @@
 		},
 		{
 			"Name": "Hide Cards",
-			"Version": 4,
-			"Initiator": 4,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:38.153329-07:00",
@@ -65,8 +65,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 5,
-			"Initiator": 4,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:38.16551-07:00",
@@ -74,8 +74,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 6,
-			"Initiator": 6,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:42:42.923908-07:00",
@@ -86,8 +86,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 7,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:42:43.669305-07:00",
@@ -98,8 +98,8 @@
 		},
 		{
 			"Name": "Start Hide Cards Timer",
-			"Version": 8,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:43.67976-07:00",
@@ -107,8 +107,8 @@
 		},
 		{
 			"Name": "Hide Cards",
-			"Version": 9,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:47.762717-07:00",
@@ -118,8 +118,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 10,
-			"Initiator": 9,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:47.773292-07:00",
@@ -127,8 +127,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 11,
-			"Initiator": 11,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:42:51.024232-07:00",
@@ -139,8 +139,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 12,
-			"Initiator": 12,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:42:52.242461-07:00",
@@ -151,8 +151,8 @@
 		},
 		{
 			"Name": "Start Hide Cards Timer",
-			"Version": 13,
-			"Initiator": 12,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:52.252743-07:00",
@@ -160,8 +160,8 @@
 		},
 		{
 			"Name": "Hide Cards",
-			"Version": 14,
-			"Initiator": 14,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:56.368666-07:00",
@@ -171,8 +171,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 15,
-			"Initiator": 14,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:56.379388-07:00",
@@ -180,8 +180,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 16,
-			"Initiator": 16,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:42:57.156688-07:00",
@@ -192,8 +192,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 17,
-			"Initiator": 17,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:42:58.415782-07:00",
@@ -204,8 +204,8 @@
 		},
 		{
 			"Name": "Start Hide Cards Timer",
-			"Version": 18,
-			"Initiator": 17,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:42:58.425957-07:00",
@@ -213,8 +213,8 @@
 		},
 		{
 			"Name": "Hide Cards",
-			"Version": 19,
-			"Initiator": 19,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:43:00.23992-07:00",
@@ -224,8 +224,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 20,
-			"Initiator": 19,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:43:00.250261-07:00",
@@ -233,8 +233,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 21,
-			"Initiator": 21,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:43:03.072983-07:00",
@@ -245,8 +245,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 22,
-			"Initiator": 22,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:43:03.725159-07:00",
@@ -257,8 +257,8 @@
 		},
 		{
 			"Name": "Capture Cards",
-			"Version": 23,
-			"Initiator": 22,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:43:03.735121-07:00",
@@ -266,8 +266,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 24,
-			"Initiator": 22,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:43:03.746172-07:00",
@@ -275,8 +275,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 25,
-			"Initiator": 25,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:43:07.034057-07:00",
@@ -287,8 +287,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 26,
-			"Initiator": 26,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:43:07.741322-07:00",
@@ -299,8 +299,8 @@
 		},
 		{
 			"Name": "Start Hide Cards Timer",
-			"Version": 27,
-			"Initiator": 26,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:43:07.751821-07:00",
@@ -308,8 +308,8 @@
 		},
 		{
 			"Name": "Hide Cards",
-			"Version": 28,
-			"Initiator": 28,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:43:09.771902-07:00",
@@ -319,8 +319,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 29,
-			"Initiator": 28,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:43:09.782323-07:00",
@@ -422,8 +422,8 @@
 							113,
 							101
 						],
-						"Size": 40,
-						"ShuffleCount": 1
+						"ShuffleCount": 1,
+						"Size": 40
 					},
 					"CurrentPlayer": 0,
 					"HiddenCards": {
@@ -594,8 +594,8 @@
 							113,
 							101
 						],
-						"Size": 40,
-						"ShuffleCount": 1
+						"ShuffleCount": 1,
+						"Size": 40
 					},
 					"HideCardsTimer": {
 						"ID": "",
@@ -1013,7 +1013,6 @@
 						"ShuffleCount": 1
 					},
 					"VisibleCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"IDs": [
 							"",
@@ -1100,6 +1099,7 @@
 							-1,
 							-1
 						],
+						"ShuffleCount": 0,
 						"Size": 40
 					}
 				}
@@ -1253,9 +1253,6 @@
 						2
 					]
 				}
-			],
-			"Version": [
-				0
 			]
 		},
 		{
@@ -1314,11 +1311,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				0,
-				1
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1376,11 +1369,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				1,
-				2
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1390,11 +1379,7 @@
 						"C7DC66A428487C82"
 					]
 				}
-			},
-			"Version": [
-				2,
-				3
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1490,11 +1475,7 @@
 						"_t": "a"
 					}
 				}
-			},
-			"Version": [
-				3,
-				4
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1511,11 +1492,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				4,
-				5
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1573,11 +1550,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				5,
-				6
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1655,11 +1628,7 @@
 					0
 				],
 				"_t": "a"
-			},
-			"Version": [
-				6,
-				7
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1669,11 +1638,7 @@
 						"647112A714F0192F"
 					]
 				}
-			},
-			"Version": [
-				7,
-				8
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1769,11 +1734,7 @@
 						"_t": "a"
 					}
 				}
-			},
-			"Version": [
-				8,
-				9
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1790,11 +1751,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				9,
-				10
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1852,11 +1809,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				10,
-				11
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1914,11 +1867,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				11,
-				12
-			]
+			}
 		},
 		{
 			"Game": {
@@ -1928,11 +1877,7 @@
 						"5BDA9117F92C61CA"
 					]
 				}
-			},
-			"Version": [
-				12,
-				13
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2028,11 +1973,7 @@
 						"_t": "a"
 					}
 				}
-			},
-			"Version": [
-				13,
-				14
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2049,11 +1990,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				14,
-				15
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2111,11 +2048,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				15,
-				16
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2193,11 +2126,7 @@
 					0
 				],
 				"_t": "a"
-			},
-			"Version": [
-				16,
-				17
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2207,11 +2136,7 @@
 						"6FED3F196D22FAE7"
 					]
 				}
-			},
-			"Version": [
-				17,
-				18
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2307,11 +2232,7 @@
 						"_t": "a"
 					}
 				}
-			},
-			"Version": [
-				18,
-				19
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2328,11 +2249,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				19,
-				20
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2390,11 +2307,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				20,
-				21
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2459,11 +2372,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				21,
-				22
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2566,11 +2475,7 @@
 					}
 				},
 				"_t": "a"
-			},
-			"Version": [
-				22,
-				23
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2587,11 +2492,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				23,
-				24
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2651,11 +2552,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				24,
-				25
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2715,11 +2612,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				25,
-				26
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2729,11 +2622,7 @@
 						"C17475571797C952"
 					]
 				}
-			},
-			"Version": [
-				26,
-				27
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2829,11 +2718,7 @@
 						"_t": "a"
 					}
 				}
-			},
-			"Version": [
-				27,
-				28
-			]
+			}
 		},
 		{
 			"Game": {
@@ -2850,11 +2735,7 @@
 					]
 				},
 				"_t": "a"
-			},
-			"Version": [
-				28,
-				29
-			]
+			}
 		}
 	]
 }

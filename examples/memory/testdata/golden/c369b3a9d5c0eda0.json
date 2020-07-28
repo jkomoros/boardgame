@@ -21,8 +21,8 @@
 	"Moves": [
 		{
 			"Name": "Reveal Card",
-			"Version": 1,
-			"Initiator": 1,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:45:07.682349-07:00",
@@ -33,8 +33,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 2,
-			"Initiator": 2,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:45:08.25348-07:00",
@@ -45,8 +45,8 @@
 		},
 		{
 			"Name": "Start Hide Cards Timer",
-			"Version": 3,
-			"Initiator": 2,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:45:08.26282-07:00",
@@ -54,8 +54,8 @@
 		},
 		{
 			"Name": "Hide Cards",
-			"Version": 4,
-			"Initiator": 4,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 0,
 			"Timestamp": "2018-10-07T16:45:10.306709-07:00",
@@ -65,8 +65,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 5,
-			"Initiator": 4,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:45:10.367721-07:00",
@@ -74,8 +74,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 6,
-			"Initiator": 6,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:45:19.246364-07:00",
@@ -86,8 +86,8 @@
 		},
 		{
 			"Name": "Reveal Card",
-			"Version": 7,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": 0,
 			"Phase": -1,
 			"Proposer": 1,
 			"Timestamp": "2018-10-07T16:45:19.85159-07:00",
@@ -98,8 +98,8 @@
 		},
 		{
 			"Name": "Capture Cards",
-			"Version": 8,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -1,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:45:19.886662-07:00",
@@ -107,8 +107,8 @@
 		},
 		{
 			"Name": "Finish Turn",
-			"Version": 9,
-			"Initiator": 7,
+			"Version": -1,
+			"Initiator": -2,
 			"Phase": -1,
 			"Proposer": -2,
 			"Timestamp": "2018-10-07T16:45:19.921669-07:00",
@@ -119,11 +119,10 @@
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 0,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 0,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -171,10 +170,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -201,10 +200,10 @@
 						""
 					],
 					"IDsLastSeen": {},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -231,6 +230,7 @@
 						"a9d74dd0b335858fe1aeaeb463631b06509b273a"
 					],
 					"IDsLastSeen": {},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -238,7 +238,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -705,28 +704,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 2,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -853,17 +853,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 0
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 0,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 0,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -911,10 +909,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -943,10 +941,10 @@
 					"IDsLastSeen": {
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -975,6 +973,7 @@
 					"IDsLastSeen": {
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -982,7 +981,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -1449,28 +1447,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 1,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -1597,17 +1596,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 1
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 0,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 0,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -1655,10 +1652,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -1688,10 +1685,10 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 2,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -1721,6 +1718,7 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 2,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -1728,7 +1726,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -2195,28 +2192,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -2343,17 +2341,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 2
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 0,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 0,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -2401,10 +2397,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -2434,10 +2430,10 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 2,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -2467,6 +2463,7 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 2,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -2474,7 +2471,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -2941,28 +2937,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -3089,17 +3086,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 3
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
-				"CardSet": "foods",
-				"NumCards": 10,
 				"CurrentPlayer": 0,
+				"CardSet": "foods",
+				"NumCards": 10,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -3147,10 +3142,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -3180,10 +3175,10 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 2,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -3213,6 +3208,7 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 4,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 4
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -3220,7 +3216,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -3687,28 +3682,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -3835,17 +3831,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 4
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 1,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 1,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -3893,10 +3887,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -3926,10 +3920,10 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 2,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -3959,6 +3953,7 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 4,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 4
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -3966,7 +3961,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -4433,28 +4427,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 2,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -4581,17 +4576,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 5
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 1,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 1,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -4639,10 +4632,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -4672,10 +4665,10 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 6,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -4705,6 +4698,7 @@
 						"6576d0c89115ae8d0956088125b2c43695d2645f": 6,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 4
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -4712,7 +4706,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -5179,28 +5172,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 1,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -5327,17 +5321,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 6
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 1,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 1,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -5385,10 +5377,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -5419,10 +5411,10 @@
 						"bb2984d10b65ff97722251e6660c1db45232aed3": 7,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -5453,6 +5445,7 @@
 						"bb2984d10b65ff97722251e6660c1db45232aed3": 7,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 4
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -5460,7 +5453,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -5927,28 +5919,29 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -6075,17 +6068,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 7
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 1,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 1,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -6133,10 +6124,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -6167,10 +6158,10 @@
 						"bb2984d10b65ff97722251e6660c1db45232aed3": 7,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -6201,6 +6192,7 @@
 						"bb2984d10b65ff97722251e6660c1db45232aed3": 7,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 4
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -6208,7 +6200,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -6675,24 +6666,24 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [
 							75,
@@ -6705,7 +6696,8 @@
 						"IDsLastSeen": {
 							"6576d0c89115ae8d0956088125b2c43695d2645f": 8,
 							"bb2984d10b65ff97722251e6660c1db45232aed3": 8
-						}
+						},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -6832,17 +6824,15 @@
 					1,
 					1
 				]
-			},
-			"Version": 8
+			}
 		},
 		{
 			"Components": {},
 			"Game": {
+				"CurrentPlayer": 0,
 				"CardSet": "foods",
 				"NumCards": 10,
-				"CurrentPlayer": 0,
 				"HiddenCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -6890,10 +6880,10 @@
 						"f3b85e81309283cdf68685d6e638153725f99a86": 0,
 						"fcc2adbf75105ca4ff1d6bdf1e77aeb2d380e2c8": 0
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"VisibleCards": {
-					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -6924,10 +6914,10 @@
 						"bb2984d10b65ff97722251e6660c1db45232aed3": 7,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 1
 					},
+					"ShuffleCount": 0,
 					"Size": 10
 				},
 				"Cards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -6958,6 +6948,7 @@
 						"bb2984d10b65ff97722251e6660c1db45232aed3": 7,
 						"e40eeca29cc3166dd4150c7700e7cfaa554196d9": 4
 					},
+					"ShuffleCount": 1,
 					"Size": 10
 				},
 				"HideCardsTimer": {
@@ -6965,7 +6956,6 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
-					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						27,
@@ -7432,24 +7422,24 @@
 						"fba1a23eb7098a5af1add4f657166a56d95cdef2": 0,
 						"fda7da844edd3164f7d63b865dc3f19fe6767baf": 0,
 						"fed0b3a5cc103ef6c31cb4db9e2d1c3883004246": 0
-					}
+					},
+					"ShuffleCount": 1
 				}
 			},
 			"Players": [
 				{
 					"CardsLeftToReveal": 2,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"IDs": [],
-						"IDsLastSeen": {}
+						"IDsLastSeen": {},
+						"ShuffleCount": 0
 					}
 				},
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
-						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [
 							75,
@@ -7462,7 +7452,8 @@
 						"IDsLastSeen": {
 							"6576d0c89115ae8d0956088125b2c43695d2645f": 8,
 							"bb2984d10b65ff97722251e6660c1db45232aed3": 8
-						}
+						},
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -7589,8 +7580,7 @@
 					1,
 					1
 				]
-			},
-			"Version": 9
+			}
 		}
 	]
 }
