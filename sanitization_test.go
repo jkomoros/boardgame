@@ -60,6 +60,10 @@ type sanitizationTestConfig struct {
 //read in from the struct tags.
 func (s *sanitizationTestConfig) Install(manager *GameManager) {
 
+	//Reset memoization of special group names, since sanitization machinery
+	//relies on cached values for them.
+	manager.memoizedSpecialGroupNames = nil
+
 	manager.gameValidator.sanitizationPolicy = s.policyForSubObject(manager.Delegate().GameStateConstructor().Reader(), s.Game, false)
 	manager.playerValidator.sanitizationPolicy = s.policyForSubObject(manager.Delegate().PlayerStateConstructor(0).Reader(), s.Player, true)
 

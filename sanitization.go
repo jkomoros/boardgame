@@ -189,7 +189,11 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) (ImmutableState, error) {
 		return s, nil
 	}
 
-	transformation := s.generateSanitizationTransformation(player)
+	transformation, err := s.generateSanitizationTransformation(player)
+
+	if err != nil {
+		return nil, err
+	}
 
 	sanitized, err := s.applySanitizationTransformation(transformation)
 
@@ -200,18 +204,43 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) (ImmutableState, error) {
 	return sanitized, nil
 }
 
+func groupMembershipForPlayerState(playerState ImmutableSubState) (map[int]bool, map[string]bool) {
+	viewingAsPlayerGroupMembership := make(map[int]bool)
+	viewingAsPlayerStringGroupMembership := make(map[string]bool)
+	if playerState != nil {
+		delegate := playerState.ImmutableState().Manager().Delegate()
+		viewingAsPlayerGroupMembership = delegate.GroupMembership(playerState)
+		groupEnum := delegate.GroupEnum()
+		if groupEnum != nil {
+			for k, v := range viewingAsPlayerGroupMembership {
+				viewingAsPlayerStringGroupMembership[groupEnum.String(k)] = v
+			}
+		}
+	}
+	viewingAsPlayerStringGroupMembership[BaseGroupEnum.String(GroupAll)] = true
+	return viewingAsPlayerGroupMembership, viewingAsPlayerStringGroupMembership
+}
+
 //generateSanitizationTransformation creates a sanitizationTransformation by
 //consulting the delegate for each property on each sub-state.
-func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitizationTransformation {
+func (s *state) generateSanitizationTransformation(player PlayerIndex) (*sanitizationTransformation, error) {
 
 	result := &sanitizationTransformation{}
+
+	var viewingAsPlayerState ImmutableSubState
+	if player >= 0 {
+		viewingAsPlayerState = s.playerStates[player]
+	}
+	viewingAsPlayerGroupMembership, viewingAsPlayerStringGroupMembership := groupMembershipForPlayerState(viewingAsPlayerState)
 
 	ref := StatePropertyRef{
 		Group: StateGroupGame,
 	}
 
-	result.Game = generateSubStateSanitizationTransformation(s.GameState(),
-		ref, player, -1)
+	//we pass the viewingAsPlayer's groupMembership to all transformations,
+	//including game, because things like 'guesser:hidden' should apply even if
+	//the group membership comes from the player's state.
+	result.Game = generateSubStateSanitizationTransformation(s.GameState(), ref, viewingAsPlayerStringGroupMembership)
 
 	result.Players = make([]subStateSanitizationTransformation, len(s.PlayerStates()))
 
@@ -219,75 +248,39 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 		ref := StatePropertyRef{
 			Group: StateGroupPlayer,
 		}
-		result.Players[i] = generateSubStateSanitizationTransformation(playerState, ref, player, PlayerIndex(i))
+
+		playerStateGroupMembership, playerStateStringGroupMembership := groupMembershipForPlayerState(playerState)
+
+		//extend the groupMembership map to include any computed ones--any ones who are not included in groupEnum.
+		for _, groupName := range s.Manager().propertySanitizationSpecialGroupNames() {
+			inGroup, err := s.Manager().computedPlayerGroupMembership(groupName, PlayerIndex(i), player, playerStateGroupMembership, viewingAsPlayerGroupMembership)
+			if err != nil {
+				return nil, errors.New("Couldn't get group membership for groupName: " + groupName + ": " + err.Error())
+			}
+			playerStateStringGroupMembership[groupName] = inGroup
+		}
+
+		result.Players[i] = generateSubStateSanitizationTransformation(playerState, ref, playerStateStringGroupMembership)
 	}
 
 	result.DynamicComponentValues = make(map[string]subStateSanitizationTransformation)
 
 	for deckName, deckValues := range s.DynamicComponentValues() {
 		if len(deckValues) == 0 {
-			return nil
+			return nil, errors.New("No deck values")
 		}
 		ref := StatePropertyRef{
 			Group:    StateGroupDynamicComponentValues,
 			DeckName: deckName,
 		}
-		result.DynamicComponentValues[deckName] = generateSubStateSanitizationTransformation(deckValues[0], ref, player, -1)
+		result.DynamicComponentValues[deckName] = generateSubStateSanitizationTransformation(deckValues[0], ref, viewingAsPlayerStringGroupMembership)
 	}
 
-	return result
+	return result, nil
 
 }
 
-//groupMembershipForState returns a groupMembership fo rthe given playerState.
-//isGeneratingForPlayer should be true if the given player state is the one
-//representing the player it's being santizied for.
-func groupMembershipForPlayerState(playerState ImmutableSubState, isGeneratingForPlayer bool) map[string]bool {
-
-	var intermediateMembership map[int]bool
-
-	//playerState might be nil if for example it's observerPlayerIndex we're
-	//genearting for
-	if playerState != nil {
-		intermediateMembership = playerState.ImmutableState().Manager().Delegate().GroupMembership(playerState)
-	}
-
-	if intermediateMembership == nil {
-		//Initalize it for GroupAll, and either GroupSelf or GroupOther
-		intermediateMembership = make(map[int]bool, 2)
-	}
-
-	intermediateMembership[GroupAll] = true
-
-	if isGeneratingForPlayer {
-		intermediateMembership[GroupSelf] = true
-	} else {
-		intermediateMembership[GroupOther] = true
-	}
-
-	groupEnum := playerState.ImmutableState().Manager().Delegate().GroupEnum()
-	if groupEnum == nil {
-		groupEnum = BaseGroupEnum
-	}
-
-	result := make(map[string]bool, len(intermediateMembership))
-	for k, v := range intermediateMembership {
-		result[groupEnum.String(k)] = v
-	}
-
-	return result
-}
-
-func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
-
-	var groupMembership map[string]bool
-
-	if propertyRef.Group == StateGroupPlayer {
-		groupMembership = groupMembershipForPlayerState(subState, generatingForPlayer == index)
-	} else {
-		groupMembership = make(map[string]bool)
-		groupMembership[BaseGroupEnum.String(GroupAll)] = true
-	}
+func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, fullGroupMembership map[string]bool) subStateSanitizationTransformation {
 
 	result := make(subStateSanitizationTransformation)
 
@@ -296,7 +289,7 @@ func generateSubStateSanitizationTransformation(subState ImmutableSubState, prop
 	for propName := range subState.Reader().Props() {
 		//Since propertyRef is passed in by value we can modify it locally without a problem
 		propertyRef.PropName = propName
-		result[propName] = delegate.SanitizationPolicy(propertyRef, groupMembership)
+		result[propName] = delegate.SanitizationPolicy(propertyRef, fullGroupMembership)
 	}
 
 	return result
