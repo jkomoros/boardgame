@@ -170,3 +170,18 @@ var prefixBugEnum = enums.MustAdd("prefixBug", map[int]string{
 	prefixBugGreenprefixBug: "Greenprefix Bug",
 	prefixBugWhite:          "White",
 })
+
+//blargEnum is the enum.Enum for blarg
+var blargEnum = enums.MustAdd("blarg", map[int]string{
+	blargA: "A",
+	blargB: "B",
+})
+
+//flargEnum is the enum.Enum for flarg
+var flargEnum = enums.MustAdd("flarg", map[int]string{
+	flargC: "C",
+	flargD: "D",
+})
+
+//GroupEnum is the combined enum.Enum for Group
+var GroupEnum = enums.MustCombine("Group", blargEnum, flargEnum)

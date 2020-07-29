@@ -14,6 +14,7 @@ var readSetConfigurerTemplate *template.Template
 var enumHeaderTemplate *template.Template
 var enumDelegateTemplate *template.Template
 var enumItemTemplate *template.Template
+var enumGroupTemplate *template.Template
 
 func init() {
 	funcMap := template.FuncMap{
@@ -31,6 +32,7 @@ func init() {
 	enumHeaderTemplate = template.Must(template.New("enumheader").Funcs(funcMap).Parse(enumHeaderTemplateText))
 	enumDelegateTemplate = template.Must(template.New("enumdelegate").Funcs(funcMap).Parse(enumDelegateTemplateText))
 	enumItemTemplate = template.Must(template.New("enumitem").Parse(enumItemTemplateText))
+	enumGroupTemplate = template.Must(template.New("enumgroup").Parse(enumGroupTemplateText))
 }
 
 func immutableKey(in propertyType) string {
@@ -389,5 +391,10 @@ var {{.prefix}}Enum = enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map
 	{{end}}
 {{end -}}
 })
+
+`
+
+const enumGroupTemplateText = `//{{.name}}Enum is the combined enum.Enum for {{.name}}
+var {{.name}}Enum = enums.MustCombine("{{.name}}", {{.varNames}})
 
 `

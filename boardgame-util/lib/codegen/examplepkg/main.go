@@ -190,6 +190,21 @@ const (
 	prefixBugGreenprefixBug
 )
 
+//boardgame:codegen
+//combine:"Group"
+const (
+	blargA = iota
+	blargB
+)
+
+//boardgame:codegen
+//combine:"Group"
+const (
+	//guarantee no overlap with the combine set
+	flargC = blargB + 1 + iota
+	flargD
+)
+
 //boardgame:codegen all
 type myStruct struct {
 	base.SubState

@@ -17,9 +17,12 @@ import (
 )
 
 var displayNameRegExp = regexp.MustCompile(`display:\"(.*)\"`)
+var combineRegExp = regexp.MustCompile(`combine:\"(.*)\"`)
 var transformUpperRegExp = regexp.MustCompile(`(?i)transform:\s*upper`)
 var transformLowerRegExp = regexp.MustCompile(`(?i)transform:\s*lower`)
 var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
+
+const defaultGroupsName = "Groups"
 
 type transform int
 
@@ -55,6 +58,8 @@ type enum struct {
 	defaultTransform    transform
 	cachedPrefix        string
 	processed           bool
+	//the name picked up from the combineRegExp, if one exists.
+	combineName string
 }
 
 //findDelegateName looks through the given package to find the name of the
@@ -303,6 +308,8 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 				theEnum := newEnum(packageName, defaultTransform)
 
+				theEnum.combineName = configCombineName(genDecl.Doc.Text())
+
 				for _, spec := range genDecl.Specs {
 
 					valueSpec, ok := spec.(*ast.ValueSpec)
@@ -425,6 +432,8 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 
 	output := enumHeaderForPackage(enums[0].PackageName, filteredDelegateNames)
 
+	groups := make(map[string][]*enum)
+
 	for i, e := range enums {
 
 		if err := e.Process(); err != nil {
@@ -436,6 +445,27 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 		}
 		output += enumOutput
 
+		if e.combineName != "" {
+			groups[e.combineName] = append(groups[e.combineName], e)
+		}
+	}
+
+	//ensure that groups are always output in the same order
+	var groupNamesInOrder []string
+	for name := range groups {
+		groupNamesInOrder = append(groupNamesInOrder, name)
+	}
+	sort.Strings(groupNamesInOrder)
+
+	for _, name := range groupNamesInOrder {
+		group := groups[name]
+		//TODO: if name is defaultGroupsName, then also emit
+		//boardgame.BaseGroupEnum, combined with the extra boardgame import
+		var varNames []string
+		for _, item := range group {
+			varNames = append(varNames, item.Prefix()+"Enum")
+		}
+		output += groupOutput(name, varNames)
 	}
 
 	formattedEnumBytes, err := format.Source([]byte(output))
@@ -480,6 +510,31 @@ func configTransform(docLines string, defaultTransform transform) transform {
 	}
 
 	return defaultTransform
+}
+
+func configCombineName(docLines string) string {
+	for _, line := range strings.Split(docLines, "\n") {
+		result := combineRegExp.FindStringSubmatch(line)
+
+		if len(result) == 0 {
+			continue
+		}
+
+		if len(result[0]) == 0 {
+			continue
+		}
+		if len(result) != 2 {
+			continue
+		}
+
+		//Found it! Even if the matched expression is "", that's fine. if
+		//there are quoted strings that's fine, because that's exactly how
+		//they should be output at the end.
+		return result[1]
+
+	}
+
+	return ""
 }
 
 func overrideDisplayname(docLines string) (hasOverride bool, displayName string) {
@@ -1219,5 +1274,12 @@ func (e *enum) baseOutput(prefix string, values map[string]string, parents map[s
 		"parents":     parents,
 		"firstNewKey": firstKey,
 		"restNewKeys": newKeys,
+	})
+}
+
+func groupOutput(name string, enumVarNames []string) string {
+	return templateOutput(enumGroupTemplate, map[string]interface{}{
+		"name":     name,
+		"varNames": strings.Join(enumVarNames, ", "),
 	})
 }
