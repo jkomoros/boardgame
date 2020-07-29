@@ -237,14 +237,14 @@ type GameDelegate interface {
 	PhaseEnum() enum.Enum
 
 	//GroupEnum should return the enum to use for group membership in
-	//SanitizationPolicy. This enum's string values will also be legal keys to
+	//SanitizationPolicy. This enum's string values will be legal keys to
 	//be passed to delegate.SanitizationPolicy in addition to the built-in
 	//values.
 	GroupEnum() enum.Enum
 
 	//GroupMembership should return the groups this playerState is part of
 	//(where the ints are valid values from GroupEnum()). This information will
-	//be passed into SanitizationPolicy after being transformed to ahve string
+	//be passed into SanitizationPolicy after being transformed to have string
 	//keys, and extended with 'all', and any built ins like self or other, and
 	//ComputedPlayerGroupMembership . A nil return value is legal.
 	GroupMembership(playerState ImmutableSubState) map[int]bool

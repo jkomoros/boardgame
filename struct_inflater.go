@@ -355,9 +355,9 @@ func (s *StructInflater) sanitizationPolicyGroupNames(groupEnum enum.Enum) map[s
 
 /*
 
-PropertySanitizationPolicy returns the policy (map[GroupIndex]Policy) based on
-the struct tags from the example struct given originally to NewStructInflater.
-It does not use reflection, relying on reflection at the time of creation of the
+PropertySanitizationPolicy returns the policy (map[string]Policy) based on the
+struct tags from the example struct given originally to NewStructInflater. It
+does not use reflection, relying on reflection at the time of creation of the
 StructInflater. In particular, it interprets policy tags in the following way:
 
 It looks for struct tag configuration with the `sanitize` keyword.
@@ -380,7 +380,9 @@ handled by your delegate's ComputedPlayerGroupMembership() may be used.
 Group name 'all' will always be passed to delegate.SanitizationPolicy. Group
 name 'self' will be passed for PlayerStates where that player is also the player
 the state is being sanitized for. Group name 'other' is the opposite behavior of
-'self'.
+'self'. This behavior means that for example you would typically have a private
+Hand stack in your playerState have policy "other:len", so that players can only
+view their own hands, and no one else can.
 
 This means all of the following are valid:
 
