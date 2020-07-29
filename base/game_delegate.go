@@ -221,13 +221,94 @@ func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) 
 	return result
 }
 
-//ComputedPlayerGroupMembership is the override point where advanced groups like
-//'same-ENUMNAME' are supported. For now, it simply returns an error for every
-//group name. Typically you leave this as-is without overriding. If you
-//override this, always fall back in the base case to returning the value from
-//this implementation, so you don't lose the ability to have the special group
-//names it provides.
+const computedGroupNameDelimiter = "-"
+const computedGroupNameFunctionSame = "same"
+const computedGroupNameFunctionsDifferent = "different"
+
+var legalComputedGroupNameFunctions = map[string]bool{
+	computedGroupNameFunctionSame:       true,
+	computedGroupNameFunctionsDifferent: true,
+}
+
+//fun will be one of legalComputedGroupNameFunctions. e will not be nil, and will be known to be a subset of GroupEnum.
+func doComputedGroupMembership(fun string, e enum.Enum, playerMembership, viewingAsPlayerMembership map[int]bool) bool {
+	for _, key := range e.Values() {
+		p := playerMembership[key]
+		v := viewingAsPlayerMembership[key]
+		switch fun {
+		case computedGroupNameFunctionSame:
+			//all of p and v must be the same
+			if p != v {
+				return false
+			}
+		case computedGroupNameFunctionsDifferent:
+			//need any one key to be different
+			if p != v {
+				return true
+			}
+		}
+	}
+	//Default values for each
+	switch fun {
+	case computedGroupNameFunctionSame:
+		return true
+	case computedGroupNameFunctionsDifferent:
+		return false
+	}
+	return false
+}
+
+/*
+ComputedPlayerGroupMembership is the override point where advanced groups like
+'same-ENUMNAME' are supported. Typically you leave this as-is without
+overriding. If you override this, always fall back in the base case to returning
+the value from this implementation, so you don't lose the ability to have the
+special group names it provides.
+
+The special names it supports are of the form 'TYPE-ENUMMNAME'. ENUMNAME must be
+a named enum in the game's chest that is also a subset of delegate.GroupEnum.
+TYPE must be one of the following types:
+
+'same' returns true if all of the keys for that enum in playerMembership and
+viewingAsPlayerMembership are the same.
+
+'different' returns true if any of the keys for that enum in playerMembership
+and viewingAsPlayerMembership are different.
+
+Example: 'same-color': true if the two players are precisely the same color as
+returned by GroupMembership.
+
+*/
 func (g *GameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
+
+	parts := strings.Split(groupName, computedGroupNameDelimiter)
+
+	if len(parts) == 2 {
+
+		fun := strings.ToLower(parts[0])
+		if _, ok := legalComputedGroupNameFunctions[fun]; !ok {
+			return false, errors.New(parts[0] + " was used as a computed group name function but it's not a known one")
+		}
+
+		e := g.Manager().Chest().Enums().Enum(parts[1])
+		if e == nil {
+			return false, errors.New(parts[1] + " was used as a computed group name enum but it's not a legal enum")
+		}
+
+		//use manager.delegate to make sure we use any overriden funtions
+		groupEnum := g.Manager().Delegate().GroupEnum()
+
+		if groupEnum == nil {
+			return false, errors.New("A computed group name used an enum, but there is no Group enum")
+		}
+
+		if !e.SubsetOf(groupEnum) {
+			return false, errors.New(parts[1] + " enum is not a subset of GroupEnum")
+		}
+
+		return doComputedGroupMembership(fun, e, playerMembership, viewingAsPlayerMembership), nil
+	}
+
 	return false, errors.New("Unsupported group name: " + groupName)
 }
 
