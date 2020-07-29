@@ -70,9 +70,9 @@ func (s *sanitizationTestConfig) Install(manager *GameManager) {
 
 }
 
-func (s *sanitizationTestConfig) policyForSubObject(reader PropertyReader, config map[string]string, isPlayer bool) map[string]map[int]Policy {
+func (s *sanitizationTestConfig) policyForSubObject(reader PropertyReader, config map[string]string, isPlayer bool) map[string]map[string]Policy {
 
-	result := make(map[string]map[int]Policy)
+	result := make(map[string]map[string]Policy)
 
 	defaultGroup := "all"
 
@@ -81,7 +81,7 @@ func (s *sanitizationTestConfig) policyForSubObject(reader PropertyReader, confi
 	}
 
 	for propName := range reader.Props() {
-		result[propName] = policyFromStructTag(config[propName], defaultGroup, BaseGroupEnum)
+		result[propName] = policyFromStructTag(config[propName], defaultGroup)
 	}
 
 	return result

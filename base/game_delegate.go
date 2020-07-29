@@ -194,6 +194,11 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 		return boardgame.PolicyInvalid
 	}
 
+	groupEnum := g.GroupEnum()
+	if groupEnum == nil {
+		groupEnum = boardgame.BaseGroupEnum
+	}
+
 	policyMap := inflater.PropertySanitizationPolicy(prop.PropName)
 
 	var applicablePolicies []int
@@ -207,7 +212,7 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 		}
 
 		//Only if the policy is actually in the map should we use it
-		if policy, ok := policyMap[group]; ok {
+		if policy, ok := policyMap[groupEnum.String(group)]; ok {
 			applicablePolicies = append(applicablePolicies, int(policy))
 		}
 	}

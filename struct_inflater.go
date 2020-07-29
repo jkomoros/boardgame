@@ -51,7 +51,7 @@ type StructInflater struct {
 	autoMutableEnumFields map[string]enum.Enum
 	autoStackFields       map[string]*autoStackConfig
 	autoMergedStackFields map[string]*autoMergedStackConfig
-	sanitizationPolicy    map[string]map[int]Policy
+	sanitizationPolicy    map[string]map[string]Policy
 	illegalTypes          map[PropertyType]bool
 }
 
@@ -99,30 +99,21 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 	autoMutableEnumFields := make(map[string]enum.Enum)
 	autoStackFields := make(map[string]*autoStackConfig)
 	autoMergedStackFields := make(map[string]*autoMergedStackConfig)
-	sanitizationPolicy := make(map[string]map[int]Policy)
-
-	var groupEnum enum.Enum
-	//In some scenarios like testing, etc the groupEnum might not be set.
-	if chest != nil && chest.Manager() != nil && chest.Manager().Delegate() != nil {
-		groupEnum = chest.Manager().Delegate().GroupEnum()
-	}
-	if groupEnum == nil {
-		groupEnum = BaseGroupEnum
-	}
+	sanitizationPolicy := make(map[string]map[string]Policy)
 
 	//NewGameManger already verified that we could rely on the groupEnum to have
 	//GroupAll, groupOther.
-	defaultGroup := groupEnum.String(GroupAll)
+	defaultGroup := BaseGroupEnum.String(GroupAll)
 	//If the object apeparst to be a playerState, then the default group is "other", not "all".
 	if subState, ok := exampleObj.(SubState); ok {
 		if subState.StatePropertyRef().Group == StateGroupPlayer {
-			defaultGroup = groupEnum.String(GroupOther)
+			defaultGroup = BaseGroupEnum.String(GroupOther)
 		}
 	}
 
 	for propName, propType := range exampleReader.Props() {
 
-		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup, groupEnum)
+		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
 
 		switch propType {
 		case TypeStack, TypeBoard:
@@ -304,16 +295,15 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 	return result, nil
 }
 
-func policyFromStructTag(tag string, defaultGroup string, groupEnum enum.Enum) map[int]Policy {
+func policyFromStructTag(tag string, defaultGroup string) map[string]Policy {
 	if tag == "" {
 		tag = "visible"
 	}
 
-	errorMap := map[int]Policy{
-		GroupAll: PolicyInvalid,
-	}
+	errorMap := make(map[string]Policy)
+	errorMap[BaseGroupEnum.String(GroupAll)] = PolicyInvalid
 
-	result := make(map[int]Policy)
+	result := make(map[string]Policy)
 
 	pieces := strings.Split(tag, ",")
 	for _, piece := range pieces {
@@ -331,13 +321,9 @@ func policyFromStructTag(tag string, defaultGroup string, groupEnum enum.Enum) m
 			policyString = splitPiece[1]
 		}
 
-		group := groupEnum.ValueFromString(groupString)
-		if group == enum.IllegalValue {
-			return errorMap
-		}
 		policy := policyFromString(policyString)
 
-		result[group] = policy
+		result[groupString] = policy
 
 	}
 
@@ -379,8 +365,12 @@ This means all of the following are valid:
 Missing policy configuration is interpreted for that property as though it said
 `sanitize:"all:visible"`
 
+The string keys in the map will typically be the string values of items in
+delegate.GroupEnum, but may also be special keys not in the enum, which will
+later be processed by delegate.SpecialGroupMembership.
+
 */
-func (s *StructInflater) PropertySanitizationPolicy(propName string) map[int]Policy {
+func (s *StructInflater) PropertySanitizationPolicy(propName string) map[string]Policy {
 	return s.sanitizationPolicy[propName]
 }
 
@@ -625,7 +615,7 @@ func (s *StructInflater) Valid(obj Reader) error {
 
 		for group, policy := range policyMap {
 			if policy == PolicyInvalid {
-				return errors.New(propName + " had invalid policy for group " + strconv.Itoa(group))
+				return errors.New(propName + " had invalid policy for group " + group)
 			}
 		}
 

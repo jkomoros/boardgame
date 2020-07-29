@@ -177,6 +177,11 @@ func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 		return PolicyInvalid
 	}
 
+	groupEnum := d.GroupEnum()
+	if groupEnum == nil {
+		groupEnum = BaseGroupEnum
+	}
+
 	policyMap := inflater.PropertySanitizationPolicy(prop.PropName)
 
 	var applicablePolicies []int
@@ -190,7 +195,7 @@ func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 		}
 
 		//Only if the policy is actually in the map should we use it
-		if policy, ok := policyMap[group]; ok {
+		if policy, ok := policyMap[groupEnum.String(group)]; ok {
 			applicablePolicies = append(applicablePolicies, int(policy))
 		}
 	}
@@ -345,6 +350,10 @@ func (d *defaultGameDelegate) MaxNumPlayers() int {
 	return 16
 }
 
+func (d *defaultGameDelegate) GroupEnum() enum.Enum {
+	return nil
+}
+
 //LegalNumPlayers checks that the number of players is between MinNumPlayers
 //and MaxNumPlayers, inclusive. You'd only want to override this if some
 //player numbers in that range are not legal, for example a game where only
@@ -419,10 +428,6 @@ func (t *testGameDelegate) ConfigureConstants() PropertyCollection {
 
 func (t *testGameDelegate) PhaseEnum() enum.Enum {
 	return testPhaseEnum
-}
-
-func (t *testGameDelegate) GroupEnum() enum.Enum {
-	return nil
 }
 
 func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {

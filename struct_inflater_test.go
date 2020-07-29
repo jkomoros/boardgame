@@ -9,37 +9,37 @@ import (
 
 func TestPolicyFromStructTag(t *testing.T) {
 
-	errorMap := map[int]Policy{
-		GroupAll: PolicyInvalid,
+	errorMap := map[string]Policy{
+		"all": PolicyInvalid,
 	}
 
 	tests := []struct {
 		in       string
-		expected map[int]Policy
+		expected map[string]Policy
 	}{
 		{
 			"",
-			map[int]Policy{
-				GroupAll: PolicyVisible,
+			map[string]Policy{
+				"all": PolicyVisible,
 			},
 		},
 		{
 			"hidden",
-			map[int]Policy{
-				GroupAll: PolicyHidden,
+			map[string]Policy{
+				"all": PolicyHidden,
 			},
 		},
 		{
 			"other:hidden",
-			map[int]Policy{
-				GroupOther: PolicyHidden,
+			map[string]Policy{
+				"other": PolicyHidden,
 			},
 		},
 		{
 			"all:order,other:hidden",
-			map[int]Policy{
-				GroupOther: PolicyHidden,
-				GroupAll:   PolicyOrder,
+			map[string]Policy{
+				"other": PolicyHidden,
+				"all":   PolicyOrder,
 			},
 		},
 		{
@@ -49,7 +49,7 @@ func TestPolicyFromStructTag(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result := policyFromStructTag(test.in, "all", BaseGroupEnum)
+		result := policyFromStructTag(test.in, "all")
 		assert.For(t, i).ThatActual(result).Equals(test.expected)
 	}
 
@@ -231,16 +231,16 @@ func TestStructInflater(t *testing.T) {
 
 	assert.For(t).ThatActual(autoFilledObj.TheTimer).IsNotNil()
 
-	assert.For(t).ThatActual(validator.sanitizationPolicy["TheInt"]).Equals(map[int]Policy{
-		GroupAll: PolicyHidden,
+	assert.For(t).ThatActual(validator.sanitizationPolicy["TheInt"]).Equals(map[string]Policy{
+		"all": PolicyHidden,
 	})
 
-	assert.For(t).ThatActual(validator.sanitizationPolicy["TheGrowableStack"]).Equals(map[int]Policy{
-		GroupAll: PolicyOrder,
+	assert.For(t).ThatActual(validator.sanitizationPolicy["TheGrowableStack"]).Equals(map[string]Policy{
+		"all": PolicyOrder,
 	})
 
-	assert.For(t).ThatActual(validator.sanitizationPolicy["TheTimer"]).Equals(map[int]Policy{
-		GroupAll: PolicyVisible,
+	assert.For(t).ThatActual(validator.sanitizationPolicy["TheTimer"]).Equals(map[string]Policy{
+		"all": PolicyVisible,
 	})
 
 }
