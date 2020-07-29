@@ -437,6 +437,8 @@ func (g *GameManager) setUpValidators() error {
 		return errors.New("GameStateConstructor returned nil")
 	}
 
+	exampleGameState.ConnectContainingState(nil, StatePropertyRef{Group: StateGroupGame})
+
 	validator, err := NewStructInflater(exampleGameState, nil, g.chest)
 
 	if err != nil {
@@ -461,6 +463,8 @@ func (g *GameManager) setUpValidators() error {
 	if examplePlayerState == nil {
 		return errors.New("PlayerStateConstructor returned nil")
 	}
+
+	examplePlayerState.ConnectContainingState(nil, StatePropertyRef{Group: StateGroupPlayer})
 
 	validator, err = NewStructInflater(examplePlayerState, nil, g.chest)
 
@@ -488,6 +492,8 @@ func (g *GameManager) setUpValidators() error {
 		if exampleDynamicComponentValue == nil {
 			continue
 		}
+
+		exampleDynamicComponentValue.ConnectContainingState(nil, StatePropertyRef{Group: StateGroupDynamicComponentValues, DeckName: deckName})
 
 		validator, err = NewStructInflater(exampleDynamicComponentValue, nil, g.chest)
 
