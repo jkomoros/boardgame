@@ -196,7 +196,7 @@ var flargoEnum = enums.MustAdd("flargo", map[int]string{
 	flargoD: "D",
 })
 
-//groupEnum is the combined enum.Enum for group
+//groupEnum is the combined enum.Enum for group. It also includes boardgame.BaseGroupEnum.
 var groupEnum = enums.MustCombine("group", boardgame.BaseGroupEnum, blargoEnum, flargoEnum)
 
 //theGroupEnum is the combined enum.Enum for theGroup

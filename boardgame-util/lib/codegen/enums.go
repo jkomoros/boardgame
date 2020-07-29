@@ -469,13 +469,15 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 		//TODO: if name is defaultGroupsName, then also emit
 		//boardgame.BaseGroupEnum, combined with the extra boardgame import
 		var varNames []string
+		includesBaseGroup := false
 		if name == defaultGroupsName {
 			varNames = append(varNames, "boardgame.BaseGroupEnum")
+			includesBaseGroup = true
 		}
 		for _, item := range group {
 			varNames = append(varNames, item.Prefix()+"Enum")
 		}
-		output += groupOutput(name, varNames)
+		output += groupOutput(name, varNames, includesBaseGroup)
 	}
 
 	formattedEnumBytes, err := format.Source([]byte(output))
@@ -1288,9 +1290,10 @@ func (e *enum) baseOutput(prefix string, values map[string]string, parents map[s
 	})
 }
 
-func groupOutput(name string, enumVarNames []string) string {
+func groupOutput(name string, enumVarNames []string, includesBaseGroup bool) string {
 	return templateOutput(enumGroupTemplate, map[string]interface{}{
-		"name":     name,
-		"varNames": strings.Join(enumVarNames, ", "),
+		"name":              name,
+		"varNames":          strings.Join(enumVarNames, ", "),
+		"includesBaseGroup": includesBaseGroup,
 	})
 }

@@ -395,7 +395,7 @@ var {{.prefix}}Enum = enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map
 
 `
 
-const enumGroupTemplateText = `//{{.name}}Enum is the combined enum.Enum for {{.name}}
+const enumGroupTemplateText = `//{{.name}}Enum is the combined enum.Enum for {{.name}}{{if .includesBaseGroup}}. It also includes boardgame.BaseGroupEnum.{{end}}
 var {{.name}}Enum = enums.MustCombine("{{.name}}", {{.varNames}})
 
 `
