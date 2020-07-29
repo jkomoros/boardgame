@@ -167,7 +167,7 @@ func (d *defaultGameDelegate) DistributeComponentToStarterStack(state ImmutableS
 //It sees which policies apply given the provided group membership, and then
 //returns the LEAST restrictive policy that applies. This behavior is almost
 //always what you want; it is rare to need to override this method.
-func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy {
+func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMembership map[string]bool) Policy {
 
 	manager := d.Manager()
 
@@ -177,16 +177,11 @@ func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 		return PolicyInvalid
 	}
 
-	groupEnum := d.GroupEnum()
-	if groupEnum == nil {
-		groupEnum = BaseGroupEnum
-	}
-
 	policyMap := inflater.PropertySanitizationPolicy(prop.PropName)
 
 	var applicablePolicies []int
 
-	for group, isMember := range groupMembership {
+	for groupName, isMember := range groupMembership {
 
 		//The only ones that are in the map should be `true` but sanity check
 		//just in case.
@@ -195,7 +190,7 @@ func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 		}
 
 		//Only if the policy is actually in the map should we use it
-		if policy, ok := policyMap[groupEnum.String(group)]; ok {
+		if policy, ok := policyMap[groupName]; ok {
 			applicablePolicies = append(applicablePolicies, int(policy))
 		}
 	}

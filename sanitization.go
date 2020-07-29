@@ -243,42 +243,51 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 //groupMembershipForState returns a groupMembership fo rthe given playerState.
 //isGeneratingForPlayer should be true if the given player state is the one
 //representing the player it's being santizied for.
-func groupMembershipForPlayerState(playerState ImmutableSubState, isGeneratingForPlayer bool) map[int]bool {
+func groupMembershipForPlayerState(playerState ImmutableSubState, isGeneratingForPlayer bool) map[string]bool {
 
-	var groupMembership map[int]bool
+	var intermediateMembership map[int]bool
 
 	//playerState might be nil if for example it's observerPlayerIndex we're
 	//genearting for
 	if playerState != nil {
-		groupMembership = playerState.ImmutableState().Manager().Delegate().GroupMembership(playerState)
+		intermediateMembership = playerState.ImmutableState().Manager().Delegate().GroupMembership(playerState)
 	}
 
-	if groupMembership == nil {
+	if intermediateMembership == nil {
 		//Initalize it for GroupAll, and either GroupSelf or GroupOther
-		groupMembership = make(map[int]bool, 2)
+		intermediateMembership = make(map[int]bool, 2)
 	}
 
-	groupMembership[GroupAll] = true
+	intermediateMembership[GroupAll] = true
 
 	if isGeneratingForPlayer {
-		groupMembership[GroupSelf] = true
+		intermediateMembership[GroupSelf] = true
 	} else {
-		groupMembership[GroupOther] = true
+		intermediateMembership[GroupOther] = true
 	}
 
-	return groupMembership
+	groupEnum := playerState.ImmutableState().Manager().Delegate().GroupEnum()
+	if groupEnum == nil {
+		groupEnum = BaseGroupEnum
+	}
+
+	result := make(map[string]bool, len(intermediateMembership))
+	for k, v := range intermediateMembership {
+		result[groupEnum.String(k)] = v
+	}
+
+	return result
 }
 
 func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
 
-	var groupMembership map[int]bool
+	var groupMembership map[string]bool
 
 	if propertyRef.Group == StateGroupPlayer {
 		groupMembership = groupMembershipForPlayerState(subState, generatingForPlayer == index)
 	} else {
-		groupMembership = map[int]bool{
-			GroupAll: true,
-		}
+		groupMembership = make(map[string]bool)
+		groupMembership[BaseGroupEnum.String(GroupAll)] = true
 	}
 
 	result := make(subStateSanitizationTransformation)

@@ -184,7 +184,7 @@ func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) 
 //It sees which policies apply given the provided group membership, and then
 //returns the LEAST restrictive policy that applies. This behavior is almost
 //always what you want; it is rare to need to override this method.
-func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, groupMembership map[int]bool) boardgame.Policy {
+func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, groupMembership map[string]bool) boardgame.Policy {
 
 	manager := g.Manager()
 
@@ -194,16 +194,11 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 		return boardgame.PolicyInvalid
 	}
 
-	groupEnum := g.GroupEnum()
-	if groupEnum == nil {
-		groupEnum = boardgame.BaseGroupEnum
-	}
-
 	policyMap := inflater.PropertySanitizationPolicy(prop.PropName)
 
 	var applicablePolicies []int
 
-	for group, isMember := range groupMembership {
+	for groupName, isMember := range groupMembership {
 
 		//The only ones that are in the map should be `true` but sanity check
 		//just in case.
@@ -212,7 +207,7 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 		}
 
 		//Only if the policy is actually in the map should we use it
-		if policy, ok := policyMap[groupEnum.String(group)]; ok {
+		if policy, ok := policyMap[groupName]; ok {
 			applicablePolicies = append(applicablePolicies, int(policy))
 		}
 	}
