@@ -174,9 +174,30 @@ func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
-//GroupMembership merely returns nil
+//GroupMembership will look for any Enum properties on playerState, and if any
+//of them are part of GroupEnum(), will return true for the values that they
+//are. This handles many common cases correctly.
 func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) map[int]bool {
-	return nil
+	//use manager.delegate to ensure we're getting any structs that embed us
+	groupEnum := g.Manager().Delegate().GroupEnum()
+	if groupEnum == nil {
+		return nil
+	}
+	result := make(map[int]bool)
+	for propName, propType := range playerState.Reader().Props() {
+		if propType != boardgame.TypeEnum {
+			continue
+		}
+		enumVal, err := playerState.Reader().ImmutableEnumProp(propName)
+		if err != nil {
+			continue
+		}
+		//TODO: optimize this, only fetching the enumProps that we know are part of this.
+		if enumVal.Enum().SubsetOf(groupEnum) {
+			result[enumVal.Value()] = true
+		}
+	}
+	return result
 }
 
 //ComputedPlayerGroupMembership is the override point where advanced groups like
