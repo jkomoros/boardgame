@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -22,23 +21,22 @@ import (
 //storage, proposing moves, and other lifecycle methods. All games of a
 //certain type on a certain computer use the same GameManager.
 type GameManager struct {
-	delegate                   GameDelegate
-	gameValidator              *StructInflater
-	playerValidator            *StructInflater
-	dynamicComponentValidator  map[string]*StructInflater
-	chest                      *ComponentChest
-	storage                    StorageManager
-	agents                     []Agent
-	moves                      []*moveType
-	movesByName                map[string]*moveType
-	agentsByName               map[string]Agent
-	modifiableGamesLock        sync.RWMutex
-	modifiableGames            map[string]*Game
-	timers                     *timerManager
-	initialized                bool
-	logger                     *logrus.Logger
-	variantConfig              VariantConfig
-	memoizedComputedGroupNames []string
+	delegate                  GameDelegate
+	gameValidator             *StructInflater
+	playerValidator           *StructInflater
+	dynamicComponentValidator map[string]*StructInflater
+	chest                     *ComponentChest
+	storage                   StorageManager
+	agents                    []Agent
+	moves                     []*moveType
+	movesByName               map[string]*moveType
+	agentsByName              map[string]Agent
+	modifiableGamesLock       sync.RWMutex
+	modifiableGames           map[string]*Game
+	timers                    *timerManager
+	initialized               bool
+	logger                    *logrus.Logger
+	variantConfig             VariantConfig
 }
 
 //Internals returns a ManagerInternals for this manager. All of the methods on
@@ -519,54 +517,6 @@ func (g *GameManager) computedPlayerGroupMembership(groupName string, player, vi
 	}
 
 	return g.Delegate().ComputedPlayerGroupMembership(groupName, playerMembership, viewingAsPlayerMembership)
-}
-
-//propertySanitizationComputedGroupNames returns all of the group names in any
-//validator for any part of sub-state that are NOT valid string values in
-//dleegate.GroupEnum.
-func (g *GameManager) propertySanitizationComputedGroupNames() []string {
-	if g.memoizedComputedGroupNames != nil {
-		return g.memoizedComputedGroupNames
-	}
-
-	intermediateMap := make(map[string]bool)
-
-	for k := range g.gameValidator.sanitizationPolicyGroupNames() {
-		intermediateMap[k] = true
-	}
-
-	for k := range g.playerValidator.sanitizationPolicyGroupNames() {
-		intermediateMap[k] = true
-	}
-
-	for _, deckValidator := range g.dynamicComponentValidator {
-		for k := range deckValidator.sanitizationPolicyGroupNames() {
-			intermediateMap[k] = true
-		}
-	}
-
-	//result should never be nil, so it can be a valid signal value that it's
-	//memoized
-	result := []string{}
-
-	groupEnum := g.Delegate().GroupEnum()
-
-	for k := range intermediateMap {
-		if groupEnum != nil {
-			//Skip keys that we know of already in GroupEnum.
-			if groupEnum.ValueFromString(k) != enum.IllegalValue {
-				continue
-			}
-		}
-		//all is always OK
-		if k == SanitizationDefaultGroup {
-			continue
-		}
-		result = append(result, k)
-	}
-
-	g.memoizedComputedGroupNames = result
-	return result
 }
 
 //Logger returns the logrus.Logger that is in use for this game. This is a

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"reflect"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -32,9 +31,8 @@ func TestGameDelegateConstants(t *testing.T) {
 
 func TestComputedGroupNames(t *testing.T) {
 	manager := newTestGameManger(t)
-	names := manager.propertySanitizationComputedGroupNames()
-	sort.Strings(names)
-	assert.For(t).ThatActual(names).Equals([]string{"other"})
+	names := manager.playerValidator.sanitizationPolicyGroupNames(manager.delegate.GroupEnum())
+	assert.For(t).ThatActual(names).Equals(map[string]bool{"other": true})
 }
 
 func TestIllegalPhase(t *testing.T) {

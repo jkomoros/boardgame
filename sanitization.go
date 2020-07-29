@@ -240,7 +240,7 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) (*sanitiz
 		playerStateGroupMembership, playerStateStringGroupMembership := groupMembershipForPlayerState(playerState)
 
 		//extend the groupMembership map to include any computed ones--any ones who are not included in groupEnum.
-		for _, groupName := range s.Manager().propertySanitizationComputedGroupNames() {
+		for groupName := range s.Manager().playerValidator.sanitizationPolicyGroupNames(s.Manager().Delegate().GroupEnum()) {
 			inGroup, err := s.Manager().computedPlayerGroupMembership(groupName, PlayerIndex(i), player, playerStateGroupMembership, viewingAsPlayerGroupMembership)
 			if err != nil {
 				return nil, errors.New("Couldn't get group membership for groupName: " + groupName + ": " + err.Error())

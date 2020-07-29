@@ -333,10 +333,20 @@ func policyFromStructTag(tag string, defaultGroup string) map[string]Policy {
 
 //sanitizationPolicyGroupNames returns a map of all sanitization group names
 //used in this inflater.
-func (s *StructInflater) sanitizationPolicyGroupNames() map[string]bool {
+func (s *StructInflater) sanitizationPolicyGroupNames(groupEnum enum.Enum) map[string]bool {
 	result := make(map[string]bool)
 	for _, policyMap := range s.sanitizationPolicy {
 		for key := range policyMap {
+			if groupEnum != nil {
+				//Skip keys that we know of already in GroupEnum.
+				if groupEnum.ValueFromString(key) != enum.IllegalValue {
+					continue
+				}
+			}
+			//all is always OK
+			if key == SanitizationDefaultGroup {
+				continue
+			}
 			result[key] = true
 		}
 	}
