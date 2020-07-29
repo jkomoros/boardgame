@@ -162,6 +162,10 @@ func (d *defaultGameDelegate) DistributeComponentToStarterStack(state ImmutableS
 	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
+func (d *defaultGameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
+	return false, errors.New("Unsupported group name: " + groupName)
+}
+
 //SanitizatinoPolicy uses struct tags to identify the right policy to apply
 //(see the package doc on SanitizationPolicy for how to configure those tags).
 //It sees which policies apply given the provided group membership, and then

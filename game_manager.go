@@ -518,8 +518,7 @@ func (g *GameManager) computedPlayerGroupMembership(groupName string, player, vi
 		return false, nil
 	}
 
-	//TODO: fall back on delegate's ComputedPlayerGroupMembership once it exists.
-	return false, errors.New("Unknown group name: " + groupName)
+	return g.Delegate().ComputedPlayerGroupMembership(groupName, playerMembership, viewingAsPlayerMembership)
 }
 
 //propertySanitizationComputedGroupNames returns all of the group names in any

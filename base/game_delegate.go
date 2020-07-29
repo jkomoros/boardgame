@@ -179,6 +179,16 @@ func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) 
 	return nil
 }
 
+//ComputedPlayerGroupMembership is the override point where advanced groups like
+//'same-ENUMNAME' are supported. For now, it simply returns an error for every
+//group name. Typically you leave this as-is without overriding. If you
+//override this, always fall back in the base case to returning the value from
+//this implementation, so you don't lose the ability to have the special group
+//names it provides.
+func (g *GameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
+	return false, errors.New("Unsupported group name: " + groupName)
+}
+
 //SanitizationPolicy uses struct tags to identify the right policy to apply
 //(see the package doc on SanitizationPolicy for how to configure those tags).
 //It sees which policies apply given the provided group membership, and then

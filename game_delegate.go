@@ -249,6 +249,19 @@ type GameDelegate interface {
 	//value is legal.
 	GroupMembership(playerState ImmutableSubState) map[int]bool
 
+	//ComputedPlayerGroupMembership is an opportunity for your game's
+	//sanitization logic to handle more complex group membership that is tied to
+	//how the player state in question compares to the playerState related to
+	//the player the state is being sanitized for. For example,
+	//base.GameDelegate does lots of special behavior e.g. 'same-ENUMNAME' via
+	//overriding this method. playerMembership and viewingAsPlayerMembership
+	//will be the return values of delegate.GroupMembership for the different
+	//player states. Note that viewingAsPlayerMembership might be a zero-entry
+	//map if the viewingAsPlayer is ObserverPlayerIndex. Your method should
+	//return an error if the groupName is not one it knows how to process. This
+	//is only applied on players, and not other types of subStates currently.
+	ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error)
+
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is a
 	//mamber of. In practice the default behavior of base.GameDelegate, which
