@@ -242,14 +242,17 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 
 }
 
-func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, delegate GameDelegate, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
-
-	//Since propertyRef is passed in by value we can modify it locally without a problem
+//groupMembershipForState returns a groupMembership fo rthe given playerState.
+//isGeneratingForPlayer should be true if the given player state is the one
+//representing the player it's being santizied for.
+func groupMembershipForPlayerState(playerState ImmutableSubState, isGeneratingForPlayer bool) map[int]bool {
 
 	var groupMembership map[int]bool
 
-	if propertyRef.Group == StateGroupPlayer {
-		groupMembership = subState.ImmutableState().Manager().Delegate().GroupMembership(subState)
+	//playerState might be nil if for example it's observerPlayerIndex we're
+	//genearting for
+	if playerState != nil {
+		groupMembership = playerState.ImmutableState().Manager().Delegate().GroupMembership(playerState)
 	}
 
 	if groupMembership == nil {
@@ -259,21 +262,33 @@ func generateSubStateSanitizationTransformation(subState ImmutableSubState, prop
 
 	groupMembership[GroupAll] = true
 
+	if isGeneratingForPlayer {
+		groupMembership[GroupSelf] = true
+	} else {
+		groupMembership[GroupOther] = true
+	}
+
+	return groupMembership
+}
+
+func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, delegate GameDelegate, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
+
+	var groupMembership map[int]bool
+
 	if propertyRef.Group == StateGroupPlayer {
-		if generatingForPlayer == index {
-			groupMembership[GroupSelf] = true
-		} else {
-			groupMembership[GroupOther] = true
+		groupMembership = groupMembershipForPlayerState(subState, generatingForPlayer == index)
+	} else {
+		groupMembership = map[int]bool{
+			GroupAll: true,
 		}
 	}
 
 	result := make(subStateSanitizationTransformation)
 
 	for propName := range subState.Reader().Props() {
+		//Since propertyRef is passed in by value we can modify it locally without a problem
 		propertyRef.PropName = propName
-
 		result[propName] = delegate.SanitizationPolicy(propertyRef, groupMembership)
-
 	}
 
 	return result
