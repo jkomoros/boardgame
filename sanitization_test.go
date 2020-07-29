@@ -255,7 +255,9 @@ func TestSanitization(t *testing.T) {
 
 		test.policy.Install(game.Manager())
 
-		sanitizedState := state.SanitizedForPlayer(test.playerIndex)
+		sanitizedState, err := state.SanitizedForPlayer(test.playerIndex)
+
+		assert.For(t).ThatActual(err).IsNil()
 
 		assert.For(t).ThatActual(sanitizedState).IsNotNil()
 

@@ -818,14 +818,14 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 }
 
-func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) []gin.H {
+func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) ([]gin.H, error) {
 	var bundles []gin.H
 
 	if len(moves) == 0 {
 		moves = append(moves, nil)
 	}
 
-	for _, move := range moves {
+	for i, move := range moves {
 
 		version := 0
 		if move != nil {
@@ -842,10 +842,16 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 			}
 		}
 
+		gameJSON, err := game.JSONForPlayer(playerIndex, state)
+
+		if err != nil {
+			return nil, errors.New("Couldn't seralize json for " + strconv.Itoa(i) + ": " + err.Error())
+		}
+
 		//If state is nil, JSONForPlayer will basically treat it as just "give the
 		//current version" which is a reasonable fallback.
 		bundle := gin.H{
-			"Game":            game.JSONForPlayer(playerIndex, state),
+			"Game":            gameJSON,
 			"Move":            move,
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           s.generateForms(game),
@@ -855,7 +861,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 
 	}
 
-	return bundles
+	return bundles, nil
 }
 
 func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromVersion int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
@@ -885,8 +891,15 @@ func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromV
 		}
 	}
 
+	bundles, err := s.moveBundles(game, moves, playerIndex, autoCurrentPlayer)
+
+	if err != nil {
+		r.Error(errors.New("Couldn't generate move bundles: " + err.Error()))
+		return
+	}
+
 	r.Success(gin.H{
-		"Bundles": s.moveBundles(game, moves, playerIndex, autoCurrentPlayer),
+		"Bundles": bundles,
 	})
 }
 
@@ -1095,10 +1108,17 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		}
 	}
 
+	gameJSON, err := game.JSONForPlayer(playerIndex, state)
+
+	if err != nil {
+		r.Error(errors.New("Couldn't serialize json: " + err.Error()))
+		return
+	}
+
 	args := gin.H{
 		"Chest":           game.Manager().Chest(),
 		"Forms":           s.generateForms(game),
-		"Game":            game.JSONForPlayer(playerIndex, state),
+		"Game":            gameJSON,
 		"Error":           s.lastErrorMessage,
 		"Players":         s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
 		"ViewingAsPlayer": playerIndex,

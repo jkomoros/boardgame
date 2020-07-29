@@ -119,7 +119,9 @@ func TestContainingComponent(t *testing.T) {
 
 	verifyContainingComponent(t, refriedGame.CurrentState(), deck)
 
-	sanitizedState := game.CurrentState().SanitizedForPlayer(0)
+	sanitizedState, err := game.CurrentState().SanitizedForPlayer(0)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	//DrawDeck is the on that is sanitized by default
 	componentsInDrawDeck := make(map[*component]bool)

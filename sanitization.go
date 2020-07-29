@@ -182,11 +182,11 @@ func policyFromString(policyName string) Policy {
 	return PolicyInvalid
 }
 
-func (s *state) SanitizedForPlayer(player PlayerIndex) ImmutableState {
+func (s *state) SanitizedForPlayer(player PlayerIndex) (ImmutableState, error) {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
 	if player < -1 || int(player) >= len(s.playerStates) {
-		return s
+		return s, nil
 	}
 
 	transformation := s.generateSanitizationTransformation(player)
@@ -194,11 +194,10 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) ImmutableState {
 	sanitized, err := s.applySanitizationTransformation(transformation)
 
 	if err != nil {
-		s.game.manager.Logger().Error("Couldn't sanitize for player: " + err.Error())
-		return nil
+		return nil, err
 	}
 
-	return sanitized
+	return sanitized, nil
 }
 
 //generateSanitizationTransformation creates a sanitizationTransformation by

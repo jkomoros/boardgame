@@ -89,7 +89,7 @@ type ImmutableState interface {
 	//Sanitized() return true. Will call GameDelegate.SanitizationPolicy to
 	//construct the effective policy to apply. See the documentation for
 	//Policy for more on sanitization.
-	SanitizedForPlayer(player PlayerIndex) ImmutableState
+	SanitizedForPlayer(player PlayerIndex) (ImmutableState, error)
 
 	//Game is the Game that this state is part of. Calling
 	//Game.State(state.Version()) should return a state equivalent to this State

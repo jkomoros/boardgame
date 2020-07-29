@@ -179,13 +179,17 @@ func (g *Game) NumPlayers() int {
 //should be a state for this game (e.g. an old version). If state is nil, the
 //game's CurrentState will be used. This is effectively equivalent to
 //state.SanitizeForPlayer().
-func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface{} {
+func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) (interface{}, error) {
 
 	if state == nil {
 		state = g.CurrentState()
 	}
 
-	state = state.SanitizedForPlayer(player)
+	state, err := state.SanitizedForPlayer(player)
+
+	if err != nil {
+		return nil, errors.New("Couldn't sanitize state: " + err.Error())
+	}
 
 	//We deliberately never include SecretSalt in the JSON blobs we create.
 
@@ -202,14 +206,18 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface
 		"Variant":            g.Variant(),
 		"Version":            g.Version(),
 		"ActiveTimers":       g.manager.timers.ActiveTimersForGame(g.ID()),
-	}
+	}, nil
 }
 
 //MarshalJSON returns a marshaled version of the output of JSONForPlayer for
 //AdminPlayerIndex.
 func (g *Game) MarshalJSON() ([]byte, error) {
 	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
-	return json.Marshal(g.JSONForPlayer(AdminPlayerIndex, nil))
+	val, err := g.JSONForPlayer(AdminPlayerIndex, nil)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(val)
 }
 
 //StorageRecord returns a GameStorageRecord representing the aspects of this
