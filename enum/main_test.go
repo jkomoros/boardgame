@@ -102,6 +102,55 @@ func TestRangedEnum(t *testing.T) {
 
 }
 
+func TestCombine(t *testing.T) {
+	setOne := NewSet()
+
+	a, err := setOne.Add("a", map[int]string{
+		0: "Zero",
+	})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	setTwo := NewSet()
+
+	b, err := setTwo.Add("b", map[int]string{
+		1: "One",
+	})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	c, err := setTwo.Add("c", map[int]string{
+		1: "Not One",
+	})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	d, err := setTwo.Add("d", map[int]string{
+		2: "Zero",
+	})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	ab, err := setTwo.Combine("a+b", a, b)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	intValues := ab.Values()
+	sort.Ints(intValues)
+
+	assert.For(t).ThatActual(intValues).Equals([]int{0, 1})
+	assert.For(t).ThatActual(ab.String(1)).Equals("One")
+
+	//c overlaps with b's int key
+	_, err = setTwo.Combine("a+b+c", a, b, c)
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	//d overlaps with string key Zero
+	_, err = setTwo.Combine("a+b+d", a, b, d)
+	assert.For(t).ThatActual(err).IsNotNil()
+
+}
+
 func TestNormalizeStringKey(t *testing.T) {
 	enums := NewSet()
 

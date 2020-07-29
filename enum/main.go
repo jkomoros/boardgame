@@ -455,6 +455,35 @@ func (e *Set) MustAdd(enumName string, values map[int]string) Enum {
 	return result
 }
 
+//MustCombine is like Combine, but if it would have errored it will panic.
+//Suitable for usage at package-level initalization, where any panics will be
+//found during initialization.
+func (e *Set) MustCombine(name string, enums ...Enum) Enum {
+	result, err := e.Combine(name, enums...)
+
+	if err != nil {
+		panic("Couldn't combine sets: " + err.Error())
+	}
+
+	return result
+}
+
+//Combine creates a new enum that is the combination of the enumerated enums.
+//The enums need not be in this set. Will error if the combined enum is invalid
+//(e.g. overlapping index or strings)
+func (e *Set) Combine(name string, enums ...Enum) (Enum, error) {
+	values := make(map[int]string)
+	for _, en := range enums {
+		for _, n := range en.Values() {
+			if _, ok := values[n]; ok {
+				return nil, errors.New(strconv.Itoa(n) + " (" + en.String(n) + ") from enum named " + en.Name() + " was already in the set from another enum")
+			}
+			values[n] = en.String(n)
+		}
+	}
+	return e.addEnumImpl(name, values)
+}
+
 /*
 Add ads an enum with the given name and values to the enum manager. Will error
 if that name has already been added or if the config you provide has more than
