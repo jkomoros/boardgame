@@ -919,6 +919,8 @@ By default, the policy you apply for GameStates and DynamicComponentValues apply
 
 This behavior can be overridden in more detail by being more explicit about which groups the policies apply to and also by defining policies for multiple groups. For more on that, see the package doc. In almost all cases the default behavior is sufficient.
 
+It's also possible to define your own group names and computed group names for property santization. See Advanced Sanitization in this tutorial, below.
+
 As an aside, sanitization is actually a bit more involved than it looks originally, because it must be possible for the client to know which components in two different states are the "same" in order to do animations of items as they move from stack to stack between states--even if the stacks themselves are sanitized. This concept is referrred to as "Ids". In general everything should just work as you expect automatically. If you want to learn more, refer to the Sanitization section of the package doc.
 
 #### Policies in Detail
@@ -1731,6 +1733,38 @@ For this you may use MoveProgressionGroup's, many of which are defined in `moves
 AllowMultipleInProgression means that the move inherently knows how to terminate its own progression; a move that is in a Repeat group without AllowMultipleInProgression doesn't know how to terminate itself when it's no longer valid and needs the help of the group it's a part of to do that calculation.
 
 Note that move progression groups match greedily as much as they can. In some cases when you have two groups that abut, where the same type of AllowMultipleInProgression moves are next to each other within different groups, the first one consumes all of them in a row, meaning the second group will never match. In this case you can use moves.NoOp to form a barrier.
+
+### Advanced Sanitization
+
+By default, you sanitize with struct tags on properties that use a group of 'all', 'self', or 'other' (or omit the group name and leave it implied). But it's also possible to do more advanced things with group names.
+
+GameDelegate defines GroupEnum, GroupMembership, and ComputedPlayerGroupMembership. These are override points that allow more complex groups to be defined. You can learn more about how they work by looking at the documentation. But in practice, here are some things to know.
+
+If you want to have sanitization that applies to any non-default groups, then you need to create an enum that lists all of the various groups a given player may be in. If you do the following, `boardagme-util codegen` will handle it correctly for you:
+
+```
+//boardgame:codegen
+//The next line tells codegen to combine it into a new enum with other enums that also reference the same named item after the colon. 'group' is the one that base.GameDelegate is configured to use automatically when deciding the GroupMembership of a playerState.
+//combine:group
+const (
+	roleGuesser = iota
+	roleClueGiver
+)
+
+//boardgame:codegen
+//combine:group
+const (
+	colorRed = iota
+	colorBlue
+)
+
+```
+
+You could then add behaviors like behavior.PlayerRole and behavior.PlayerColor to your playerState.
+
+Then, in your playerStates you could use sanitization policies like: `guesser:hidden` to hide properties when sanitizing a state for a player who has the Role of roleGuesser.
+
+You can also do more advanced things. For example, `different-color:len` would make it so if a player who is a different color than the player in question is looking at a stack, they'll just see the len. This would allow players on the same "team" to see that stack property for each other, while other players not being able to see them. `same-color` also works similarly, but opposite.
 
 ### Seats and Inactive players
 
