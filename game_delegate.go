@@ -238,6 +238,8 @@ type GameDelegate interface {
 
 	//GroupEnum should return the enum to use for group membership in
 	//SanitizationPolicy. If you return nil, then BaseGroupEnum will be used.
+	//Any enum that is returned must return the same int/string values for the
+	//valid values of BaseGroupEnum. This will be verified in NewGameManager.
 	GroupEnum() enum.Enum
 
 	//SanitizationPolicy is consulted when sanitizing states. It is called for

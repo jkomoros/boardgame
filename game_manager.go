@@ -224,6 +224,18 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		}
 	}
 
+	if groupEnum := delegate.GroupEnum(); groupEnum != nil {
+		for _, value := range BaseGroupEnum.Values() {
+			strValue := BaseGroupEnum.String(value)
+			if !groupEnum.Valid(value) {
+				return nil, errors.New("GroupEnum returned an enum that was not valid for " + strValue)
+			}
+			if groupEnum.String(value) != strValue {
+				return nil, errors.New("GroupEnum returned an enum that had the wrong string value for " + strValue)
+			}
+		}
+	}
+
 	chest.finish()
 
 	result := &GameManager{
