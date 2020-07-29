@@ -349,9 +349,8 @@ func policyFromStructTag(tag string, defaultGroup string, groupEnum enum.Enum) m
 
 PropertySanitizationPolicy returns the policy (map[GroupIndex]Policy) based on
 the struct tags from the example struct given originally to NewStructInflater.
-It does not use reflection, relying on reflection at the time of creation of
-the StructInflater. In particular, it interprets policy tags in the following
-way:
+It does not use reflection, relying on reflection at the time of creation of the
+StructInflater. In particular, it interprets policy tags in the following way:
 
 It looks for struct tag configuration with the `sanitize` keyword.
 
@@ -364,18 +363,21 @@ If the group name is omitted for a config item, it is assumed to be "all" (for
 non-playerState structs), or "other" for playerState structs. We decide if a
 struct is a playerState if it can be cast to a boardgame.PlayerState.
 
+Any string key that is a member of enum returned from delegate.GroupEnum() may
+be used, not just 'all', 'other', or 'self'.
+
 This means all of the following are valid:
 
-	type myPlayerState struct {
-		base.SubState
-		playerIndex boardgame.PlayerIndex
-		VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
-		HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.
-		OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
-	}
+    type myPlayerState struct {
+        base.SubState
+        playerIndex boardgame.PlayerIndex
+        VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
+        HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.
+        OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
+    }
 
-Missing policy configuration is interpreted for that property as though it
-said `sanitize:"all:visible"`
+Missing policy configuration is interpreted for that property as though it said
+`sanitize:"all:visible"`
 
 */
 func (s *StructInflater) PropertySanitizationPolicy(propName string) map[int]Policy {
