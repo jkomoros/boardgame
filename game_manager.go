@@ -509,6 +509,27 @@ func (g *GameManager) setUpValidators() error {
 	return nil
 }
 
+//computedPlayerGroupMembership is how we compute special group names for player
+//states. player is the player state being prepared, and viewingAsPlayer is the
+//state for the viewing as player, or an empty map if the viewingAsPlayer is
+//obdserver.
+func (g *GameManager) computedPlayerGroupMembership(groupName string, player, viewingAsPlayer PlayerIndex, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
+	if groupName == BaseGroupEnum.String(GroupSelf) {
+		if player == viewingAsPlayer {
+			return true, nil
+		}
+		return false, nil
+	} else if groupName == BaseGroupEnum.String(GroupOther) {
+		if player != viewingAsPlayer {
+			return true, nil
+		}
+		return false, nil
+	}
+
+	//TODO: fall back on delegate's ComputedPlayerGroupMembership once it exists.
+	return false, errors.New("Unknown group name: " + groupName)
+}
+
 //propertySanitizationSpecialGroupNames returns all of the group names in any
 //validator for any part of sub-state that are NOT valid string values in
 //dleegate.GroupEnum.
@@ -516,8 +537,6 @@ func (g *GameManager) propertySanitizationSpecialGroupNames() []string {
 	if g.memoizedSpecialGroupNames != nil {
 		return g.memoizedSpecialGroupNames
 	}
-
-	//TODO: test this function
 
 	groupEnum := g.Delegate().GroupEnum()
 	if groupEnum == nil {
