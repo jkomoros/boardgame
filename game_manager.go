@@ -509,6 +509,9 @@ func (g *GameManager) setUpValidators() error {
 	return nil
 }
 
+//propertySanitizationSpecialGroupNames returns all of the group names in any
+//validator for any part of sub-state that are NOT valid string values in
+//dleegate.GroupEnum.
 func (g *GameManager) propertySanitizationSpecialGroupNames() []string {
 	if g.memoizedSpecialGroupNames != nil {
 		return g.memoizedSpecialGroupNames
