@@ -246,31 +246,31 @@ func generateSubStateSanitizationTransformation(subState ImmutableSubState, prop
 
 	//Since propertyRef is passed in by value we can modify it locally without a problem
 
+	var groupMembership map[int]bool
+
+	if propertyRef.Group == StateGroupPlayer {
+		groupMembership = subState.ImmutableState().Manager().Delegate().GroupMembership(subState)
+	}
+
+	if groupMembership == nil {
+		//Initalize it for GroupAll, and either GroupSelf or GroupOther
+		groupMembership = make(map[int]bool, 2)
+	}
+
+	groupMembership[GroupAll] = true
+
+	if propertyRef.Group == StateGroupPlayer {
+		if generatingForPlayer == index {
+			groupMembership[GroupSelf] = true
+		} else {
+			groupMembership[GroupOther] = true
+		}
+	}
+
 	result := make(subStateSanitizationTransformation)
 
 	for propName := range subState.Reader().Props() {
 		propertyRef.PropName = propName
-
-		var groupMembership map[int]bool
-
-		if propertyRef.Group == StateGroupPlayer {
-			groupMembership = subState.ImmutableState().Manager().Delegate().GroupMembership(subState)
-		}
-
-		if groupMembership == nil {
-			//Initalize it for GroupAll, and either GroupSelf or GroupOther
-			groupMembership = make(map[int]bool, 2)
-		}
-
-		groupMembership[GroupAll] = true
-
-		if propertyRef.Group == StateGroupPlayer {
-			if generatingForPlayer == index {
-				groupMembership[GroupSelf] = true
-			} else {
-				groupMembership[GroupOther] = true
-			}
-		}
 
 		result[propName] = delegate.SanitizationPolicy(propertyRef, groupMembership)
 
