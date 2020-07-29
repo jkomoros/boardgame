@@ -22,6 +22,9 @@ import (
 //particular game.
 type GameDelegate struct {
 	manager *boardgame.GameManager
+	//the names of properties on playerStates that should be used in
+	//GroupMembership.
+	cachedGroupMembershipProperties []string
 }
 
 //Diagram returns the string "This should be overriden to render a reasonable state here"
@@ -178,24 +181,42 @@ func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 //of them are part of GroupEnum(), will return true for the values that they
 //are. This handles many common cases correctly.
 func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) map[int]bool {
-	//use manager.delegate to ensure we're getting any structs that embed us
-	groupEnum := g.Manager().Delegate().GroupEnum()
-	if groupEnum == nil {
+
+	//Calculating which properties to include is expensive, so only do it once.
+	if playerState != nil && g.cachedGroupMembershipProperties == nil {
+		//use manager.delegate to ensure we're getting any structs that embed usoupEnum := g.Manager().Delegate().GroupEnum()
+		groupEnum := g.Manager().Delegate().GroupEnum()
+		if groupEnum == nil {
+			return nil
+		}
+		//Don't start as nil, so in the common case where they aren't any props,
+		//we still won't regenerate this every time.
+		props := make([]string, 0)
+		for propName, propType := range playerState.Reader().Props() {
+			if propType != boardgame.TypeEnum {
+				continue
+			}
+			enumVal, err := playerState.Reader().ImmutableEnumProp(propName)
+			if err != nil {
+				continue
+			}
+			if enumVal.Enum().SubsetOf(groupEnum) {
+				props = append(props, propName)
+			}
+		}
+		g.cachedGroupMembershipProperties = props
+	}
+
+	if len(g.cachedGroupMembershipProperties) == 0 {
 		return nil
 	}
-	result := make(map[int]bool)
-	for propName, propType := range playerState.Reader().Props() {
-		if propType != boardgame.TypeEnum {
-			continue
-		}
+	result := make(map[int]bool, len(g.cachedGroupMembershipProperties))
+	for _, propName := range g.cachedGroupMembershipProperties {
 		enumVal, err := playerState.Reader().ImmutableEnumProp(propName)
 		if err != nil {
 			continue
 		}
-		//TODO: optimize this, only fetching the enumProps that we know are part of this.
-		if enumVal.Enum().SubsetOf(groupEnum) {
-			result[enumVal.Value()] = true
-		}
+		result[enumVal.Value()] = true
 	}
 	return result
 }
