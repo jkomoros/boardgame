@@ -30,9 +30,9 @@ func TestGameDelegateConstants(t *testing.T) {
 	})
 }
 
-func TestSpecialGroupNames(t *testing.T) {
+func TestComputedGroupNames(t *testing.T) {
 	manager := newTestGameManger(t)
-	names := manager.propertySanitizationSpecialGroupNames()
+	names := manager.propertySanitizationComputedGroupNames()
 	sort.Strings(names)
 	assert.For(t).ThatActual(names).Equals([]string{"special"})
 }

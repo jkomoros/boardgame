@@ -22,23 +22,23 @@ import (
 //storage, proposing moves, and other lifecycle methods. All games of a
 //certain type on a certain computer use the same GameManager.
 type GameManager struct {
-	delegate                  GameDelegate
-	gameValidator             *StructInflater
-	playerValidator           *StructInflater
-	dynamicComponentValidator map[string]*StructInflater
-	chest                     *ComponentChest
-	storage                   StorageManager
-	agents                    []Agent
-	moves                     []*moveType
-	movesByName               map[string]*moveType
-	agentsByName              map[string]Agent
-	modifiableGamesLock       sync.RWMutex
-	modifiableGames           map[string]*Game
-	timers                    *timerManager
-	initialized               bool
-	logger                    *logrus.Logger
-	variantConfig             VariantConfig
-	memoizedSpecialGroupNames []string
+	delegate                   GameDelegate
+	gameValidator              *StructInflater
+	playerValidator            *StructInflater
+	dynamicComponentValidator  map[string]*StructInflater
+	chest                      *ComponentChest
+	storage                    StorageManager
+	agents                     []Agent
+	moves                      []*moveType
+	movesByName                map[string]*moveType
+	agentsByName               map[string]Agent
+	modifiableGamesLock        sync.RWMutex
+	modifiableGames            map[string]*Game
+	timers                     *timerManager
+	initialized                bool
+	logger                     *logrus.Logger
+	variantConfig              VariantConfig
+	memoizedComputedGroupNames []string
 }
 
 //Internals returns a ManagerInternals for this manager. All of the methods on
@@ -534,12 +534,12 @@ func (g *GameManager) computedPlayerGroupMembership(groupName string, player, vi
 	return false, errors.New("Unknown group name: " + groupName)
 }
 
-//propertySanitizationSpecialGroupNames returns all of the group names in any
+//propertySanitizationComputedGroupNames returns all of the group names in any
 //validator for any part of sub-state that are NOT valid string values in
 //dleegate.GroupEnum.
-func (g *GameManager) propertySanitizationSpecialGroupNames() []string {
-	if g.memoizedSpecialGroupNames != nil {
-		return g.memoizedSpecialGroupNames
+func (g *GameManager) propertySanitizationComputedGroupNames() []string {
+	if g.memoizedComputedGroupNames != nil {
+		return g.memoizedComputedGroupNames
 	}
 
 	groupEnum := g.Delegate().GroupEnum()
@@ -579,7 +579,7 @@ func (g *GameManager) propertySanitizationSpecialGroupNames() []string {
 		result = append(result, k)
 	}
 
-	g.memoizedSpecialGroupNames = result
+	g.memoizedComputedGroupNames = result
 	return result
 }
 
