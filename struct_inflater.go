@@ -331,6 +331,18 @@ func policyFromStructTag(tag string, defaultGroup string) map[string]Policy {
 
 }
 
+//sanitizationPolicyGroupNames returns a map of all sanitization group names
+//used in this inflater.
+func (s *StructInflater) sanitizationPolicyGroupNames() map[string]bool {
+	result := make(map[string]bool)
+	for _, policyMap := range s.sanitizationPolicy {
+		for key := range policyMap {
+			result[key] = true
+		}
+	}
+	return result
+}
+
 /*
 
 PropertySanitizationPolicy returns the policy (map[GroupIndex]Policy) based on

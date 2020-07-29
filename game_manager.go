@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -37,6 +38,7 @@ type GameManager struct {
 	initialized               bool
 	logger                    *logrus.Logger
 	variantConfig             VariantConfig
+	memoizedSpecialGroupNames []string
 }
 
 //Internals returns a ManagerInternals for this manager. All of the methods on
@@ -505,6 +507,49 @@ func (g *GameManager) setUpValidators() error {
 	}
 
 	return nil
+}
+
+func (g *GameManager) propertySanitizationSpecialGroupNames() []string {
+	if g.memoizedSpecialGroupNames != nil {
+		return g.memoizedSpecialGroupNames
+	}
+
+	//TODO: test this function
+
+	groupEnum := g.Delegate().GroupEnum()
+	if groupEnum == nil {
+		groupEnum = BaseGroupEnum
+	}
+
+	intermediateMap := make(map[string]bool)
+
+	for k := range g.gameValidator.sanitizationPolicyGroupNames() {
+		intermediateMap[k] = true
+	}
+
+	for k := range g.playerValidator.sanitizationPolicyGroupNames() {
+		intermediateMap[k] = true
+	}
+
+	for _, deckValidator := range g.dynamicComponentValidator {
+		for k := range deckValidator.sanitizationPolicyGroupNames() {
+			intermediateMap[k] = true
+		}
+	}
+
+	//result should never be nil, so it can be a valid signal value that it's
+	//memoized
+	result := []string{}
+	for k := range intermediateMap {
+		//Skip keys that we know of already in GroupEnum.
+		if groupEnum.ValueFromString(k) != enum.IllegalValue {
+			continue
+		}
+		result = append(result, k)
+	}
+
+	g.memoizedSpecialGroupNames = result
+	return result
 }
 
 //Logger returns the logrus.Logger that is in use for this game. This is a
