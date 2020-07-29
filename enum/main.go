@@ -246,6 +246,7 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 )
 
 //IllegalValue is the senitnel value that will be returned for illegal values.
@@ -484,13 +485,15 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 
 	for v, s := range values {
 
+		normalizedS := normalizeStringKey(s)
+
 		numString := strconv.Itoa(v)
 
 		if seenValues[numString] {
 			return nil, errors.New("The string value of " + numString + " was already in the enum")
 		}
 
-		if seenValues[s] {
+		if seenValues[normalizedS] {
 			return nil, errors.New("String " + s + " was not unique within enum " + enumName)
 		}
 
@@ -502,7 +505,7 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 		//const to have its string-value be the stringification of its own
 		//int.
 		seenValues[numString] = true
-		seenValues[s] = true
+		seenValues[normalizedS] = true
 
 		enum.values[v] = s
 
@@ -601,9 +604,14 @@ func (e *enum) Name() string {
 	return e.name
 }
 
+func normalizeStringKey(in string) string {
+	return strings.TrimSpace(strings.ToLower(in))
+}
+
 func (e *enum) ValueFromString(in string) int {
+	normalizedIn := normalizeStringKey(in)
 	for v, str := range e.values {
-		if str == in {
+		if normalizeStringKey(str) == normalizedIn {
 			return v
 		}
 	}

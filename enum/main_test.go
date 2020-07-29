@@ -102,6 +102,29 @@ func TestRangedEnum(t *testing.T) {
 
 }
 
+func TestNormalizeStringKey(t *testing.T) {
+	enums := NewSet()
+
+	//Two values that have the same normalized key may not be included
+	_, err := enums.Add("A", map[int]string{
+		0: "Zero",
+		1: "zero ",
+	})
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	theEnum, err := enums.Add("B", map[int]string{
+		0: "Zero",
+	})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(theEnum.String(0)).Equals("Zero")
+
+	assert.For(t).ThatActual(theEnum.ValueFromString(" zero")).Equals(0)
+
+}
+
 func TestEnum(t *testing.T) {
 	enums := NewSet()
 
