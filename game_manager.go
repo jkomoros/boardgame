@@ -299,6 +299,19 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 
 	}
 
+	//Verify that all of the int values returned by GroupMembership are part of
+	//groupEnum. a nil return value is fine.
+	if groupMembership := result.delegate.GroupMembership(exampleState.ImmutablePlayerStates()[0]); groupMembership != nil {
+		if len(groupMembership) > 0 && groupEnum == nil {
+			return nil, errors.New("delegate.GroupMembership returned keys but groupEnum was nil")
+		}
+		for k := range groupMembership {
+			if !groupEnum.Valid(k) {
+				return nil, errors.New("delegate.GroupMembership returned an int not in GroupEnum: " + strconv.Itoa(k))
+			}
+		}
+	}
+
 	//This will implicitly check that the extra group names for playerValidator
 	//are all handled by computedPlayerGroupMembership.
 	if _, err := exampleState.SanitizedForPlayer(0); err != nil {
