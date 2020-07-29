@@ -244,9 +244,9 @@ type GameDelegate interface {
 
 	//GroupMembership should return the groups this playerState is part of
 	//(where the ints are valid values from GroupEnum()). This information will
-	//be passed into SanitizationPolicy, after being extended with
-	//GroupAll,GroupSelf,GroupOther membership as appropriate. A nil return
-	//value is legal.
+	//be passed into SanitizationPolicy after being transformed to ahve string
+	//keys, and extended with 'all', and any built ins like self or other, and
+	//ComputedPlayerGroupMembership . A nil return value is legal.
 	GroupMembership(playerState ImmutableSubState) map[int]bool
 
 	//ComputedPlayerGroupMembership is an opportunity for your game's

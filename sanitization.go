@@ -193,20 +193,23 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) (ImmutableState, error) {
 }
 
 func groupMembershipForPlayerState(playerState ImmutableSubState) (map[int]bool, map[string]bool) {
-	viewingAsPlayerGroupMembership := make(map[int]bool)
-	viewingAsPlayerStringGroupMembership := make(map[string]bool)
+	groupMembership := make(map[int]bool)
+	stringGroupMembership := make(map[string]bool)
 	if playerState != nil {
 		delegate := playerState.ImmutableState().Manager().Delegate()
-		viewingAsPlayerGroupMembership = delegate.GroupMembership(playerState)
+		groupMembership = delegate.GroupMembership(playerState)
+		if groupMembership == nil {
+			groupMembership = make(map[int]bool)
+		}
 		groupEnum := delegate.GroupEnum()
 		if groupEnum != nil {
-			for k, v := range viewingAsPlayerGroupMembership {
-				viewingAsPlayerStringGroupMembership[groupEnum.String(k)] = v
+			for k, v := range groupMembership {
+				stringGroupMembership[groupEnum.String(k)] = v
 			}
 		}
 	}
-	viewingAsPlayerStringGroupMembership[SanitizationDefaultGroup] = true
-	return viewingAsPlayerGroupMembership, viewingAsPlayerStringGroupMembership
+	stringGroupMembership[SanitizationDefaultGroup] = true
+	return groupMembership, stringGroupMembership
 }
 
 //generateSanitizationTransformation creates a sanitizationTransformation by
