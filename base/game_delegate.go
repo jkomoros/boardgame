@@ -222,6 +222,9 @@ func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) 
 }
 
 const computedGroupNameDelimiter = "-"
+
+//TODO: also support 'overlapping' and 'nonoverlapping' (note the latter cant
+//have a dash as that's the delimiter)
 const computedGroupNameFunctionSame = "same"
 const computedGroupNameFunctionsDifferent = "different"
 
