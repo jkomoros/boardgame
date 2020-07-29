@@ -224,18 +224,6 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		}
 	}
 
-	if groupEnum := delegate.GroupEnum(); groupEnum != nil {
-		for _, value := range BaseGroupEnum.Values() {
-			strValue := BaseGroupEnum.String(value)
-			if !groupEnum.Valid(value) {
-				return nil, errors.New("GroupEnum returned an enum that was not valid for " + strValue)
-			}
-			if groupEnum.String(value) != strValue {
-				return nil, errors.New("GroupEnum returned an enum that had the wrong string value for " + strValue)
-			}
-		}
-	}
-
 	chest.finish()
 
 	result := &GameManager{
@@ -250,6 +238,20 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	chest.manager = result
 
 	delegate.SetManager(result)
+
+	//This has to happen after chest is finished, manager is created, and
+	//delegate has a pointer to manager.
+	if groupEnum := delegate.GroupEnum(); groupEnum != nil {
+		for _, value := range BaseGroupEnum.Values() {
+			strValue := BaseGroupEnum.String(value)
+			if !groupEnum.Valid(value) {
+				return nil, errors.New("GroupEnum returned an enum that was not valid for " + strValue)
+			}
+			if groupEnum.String(value) != strValue {
+				return nil, errors.New("GroupEnum returned an enum that had the wrong string value for " + strValue)
+			}
+		}
+	}
 
 	if !delegate.LegalNumPlayers(delegate.DefaultNumPlayers()) {
 		return nil, errors.New("The default number of players is not legal")

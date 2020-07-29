@@ -153,10 +153,13 @@ func (g *GameDelegate) PhaseEnum() enum.Enum {
 	return g.Manager().Chest().Enums().Enum("Phase")
 }
 
-//GroupEnum simply returns nil, signaling to the main library to use
-//boargame.BaseGroupEnum.
+const defaultGroupsName = "group"
+
+//GroupEnum will return the enum named 'group', if it exists, otherwise nil.
+//'group' is the name of the special combine group that codegen treats specially
+//and combines with boardgame.BaseGroupEnum.
 func (g *GameDelegate) GroupEnum() enum.Enum {
-	return nil
+	return g.Manager().Chest().Enums().Enum(defaultGroupsName)
 }
 
 //DistributeComponentToStarterStack does nothing any returns an error. If your
