@@ -533,10 +533,6 @@ func (g *GameManager) computedPlayerGroupMembership(groupName string, player, vi
 	}
 
 	//TODO: fall back on delegate's ComputedPlayerGroupMembership once it exists.
-	//in the meantime, as a TOTAL HACK, handle the string 'special' specially (it's in one of the tests)
-	if groupName == "special" {
-		return false, nil
-	}
 	return false, errors.New("Unknown group name: " + groupName)
 }
 

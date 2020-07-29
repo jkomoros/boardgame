@@ -155,7 +155,7 @@ type testGameState struct {
 	DownSizeStack      SizedStack  `sizedstack:"test, ConstantStackSize" sanitize:"all:visible"`
 	OtherStack         SizedStack  `sizedstack:"test,2"`
 	MyMergedStack      MergedStack `concatenate:"DownSizeStack,OtherStack"`
-	MyBoard            Board       `stack:"test" board:"3" sanitize:"special:len"`
+	MyBoard            Board       `stack:"test" board:"3"`
 }
 
 func (t *testGameState) Reader() PropertyReader {
@@ -197,9 +197,10 @@ type testPlayerState struct {
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
-	playerIndex       PlayerIndex
-	Score             int
-	MovesLeftThisTurn int
+	playerIndex PlayerIndex
+	Score       int
+	//by omitting the groupName, it should effectively be 'other'
+	MovesLeftThisTurn int        `sanitize:"hidden"`
 	Hand              SizedStack `sizedstack:"test,2"`
 	IsFoo             bool
 	EnumVal           enum.Val `enum:"color"`
