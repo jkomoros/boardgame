@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -27,6 +28,13 @@ func TestGameDelegateConstants(t *testing.T) {
 		"ConstantStackSize",
 		"MyBool",
 	})
+}
+
+func TestSpecialGroupNames(t *testing.T) {
+	manager := newTestGameManger(t)
+	names := manager.propertySanitizationSpecialGroupNames()
+	sort.Strings(names)
+	assert.For(t).ThatActual(names).Equals([]string{"special"})
 }
 
 func TestIllegalPhase(t *testing.T) {

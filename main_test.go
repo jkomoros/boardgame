@@ -152,10 +152,10 @@ type testGameState struct {
 	MyPlayerIndexSlice []PlayerIndex
 	MyEnumValue        enum.Val
 	MyEnumConst        enum.ImmutableVal
-	DownSizeStack      SizedStack  `sizedstack:"test, ConstantStackSize"`
+	DownSizeStack      SizedStack  `sizedstack:"test, ConstantStackSize" sanitize:"all:visible"`
 	OtherStack         SizedStack  `sizedstack:"test,2"`
 	MyMergedStack      MergedStack `concatenate:"DownSizeStack,OtherStack"`
-	MyBoard            Board       `stack:"test" board:"3"`
+	MyBoard            Board       `stack:"test" board:"3" sanitize:"special:len"`
 }
 
 func (t *testGameState) Reader() PropertyReader {
