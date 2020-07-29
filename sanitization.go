@@ -205,8 +205,6 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) ImmutableState {
 //consulting the delegate for each property on each sub-state.
 func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitizationTransformation {
 
-	delegate := s.game.manager.delegate
-
 	result := &sanitizationTransformation{}
 
 	ref := StatePropertyRef{
@@ -214,7 +212,7 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 	}
 
 	result.Game = generateSubStateSanitizationTransformation(s.GameState(),
-		ref, delegate, player, -1)
+		ref, player, -1)
 
 	result.Players = make([]subStateSanitizationTransformation, len(s.PlayerStates()))
 
@@ -222,7 +220,7 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 		ref := StatePropertyRef{
 			Group: StateGroupPlayer,
 		}
-		result.Players[i] = generateSubStateSanitizationTransformation(playerState, ref, delegate, player, PlayerIndex(i))
+		result.Players[i] = generateSubStateSanitizationTransformation(playerState, ref, player, PlayerIndex(i))
 	}
 
 	result.DynamicComponentValues = make(map[string]subStateSanitizationTransformation)
@@ -235,7 +233,7 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 			Group:    StateGroupDynamicComponentValues,
 			DeckName: deckName,
 		}
-		result.DynamicComponentValues[deckName] = generateSubStateSanitizationTransformation(deckValues[0], ref, delegate, player, -1)
+		result.DynamicComponentValues[deckName] = generateSubStateSanitizationTransformation(deckValues[0], ref, player, -1)
 	}
 
 	return result
@@ -271,7 +269,7 @@ func groupMembershipForPlayerState(playerState ImmutableSubState, isGeneratingFo
 	return groupMembership
 }
 
-func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, delegate GameDelegate, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
+func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
 
 	var groupMembership map[int]bool
 
@@ -284,6 +282,8 @@ func generateSubStateSanitizationTransformation(subState ImmutableSubState, prop
 	}
 
 	result := make(subStateSanitizationTransformation)
+
+	delegate := subState.ImmutableState().Manager().Delegate()
 
 	for propName := range subState.Reader().Props() {
 		//Since propertyRef is passed in by value we can modify it locally without a problem
