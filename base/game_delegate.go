@@ -179,7 +179,9 @@ func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 //GroupMembership will look for any Enum properties on playerState, and if any
 //of them are part of GroupEnum(), will return true for the values that they
-//are. This handles many common cases correctly.
+//are. This handles many common cases correctly. For example, if you use
+//behaviors.Color, and your color enum is combined into the enum called 'group',
+//then this will automatically report that membership for the player.
 func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) map[int]bool {
 
 	//Calculating which properties to include is expensive, so only do it once.
