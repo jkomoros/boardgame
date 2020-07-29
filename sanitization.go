@@ -251,8 +251,16 @@ func generateSubStateSanitizationTransformation(subState ImmutableSubState, prop
 	for propName := range subState.Reader().Props() {
 		propertyRef.PropName = propName
 
-		//Initalize it for GroupAll, and either GroupSelf or GroupOther
-		groupMembership := make(map[int]bool, 2)
+		var groupMembership map[int]bool
+
+		if propertyRef.Group == StateGroupPlayer {
+			groupMembership = subState.ImmutableState().Manager().Delegate().GroupMembership(subState)
+		}
+
+		if groupMembership == nil {
+			//Initalize it for GroupAll, and either GroupSelf or GroupOther
+			groupMembership = make(map[int]bool, 2)
+		}
 
 		groupMembership[GroupAll] = true
 

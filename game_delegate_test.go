@@ -363,6 +363,10 @@ func (d *defaultGameDelegate) Variants() VariantConfig {
 	return VariantConfig{}
 }
 
+func (d *defaultGameDelegate) GroupMembership(pState ImmutableSubState) map[int]bool {
+	return nil
+}
+
 //ConfigureAgents by default returns nil. If you want agents in your game,
 //override this.
 func (d *defaultGameDelegate) ConfigureAgents() []Agent {

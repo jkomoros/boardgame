@@ -171,6 +171,11 @@ func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
+//GroupMembership merely returns nil
+func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) map[int]bool {
+	return nil
+}
+
 //SanitizationPolicy uses struct tags to identify the right policy to apply
 //(see the package doc on SanitizationPolicy for how to configure those tags).
 //It sees which policies apply given the provided group membership, and then
