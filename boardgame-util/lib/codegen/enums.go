@@ -17,7 +17,7 @@ import (
 )
 
 var displayNameRegExp = regexp.MustCompile(`display:\"(.*)\"`)
-var combineRegExp = regexp.MustCompile(`combine:\"(.*)\"`)
+var combineRegExp = regexp.MustCompile(`combine:\s*(.*)`)
 var transformUpperRegExp = regexp.MustCompile(`(?i)transform:\s*upper`)
 var transformLowerRegExp = regexp.MustCompile(`(?i)transform:\s*lower`)
 var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
