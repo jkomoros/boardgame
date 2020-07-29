@@ -191,21 +191,6 @@ const (
 )
 
 //boardgame:codegen
-//combine:theGroup
-const (
-	blargA = iota
-	blargB
-)
-
-//boardgame:codegen
-//combine: theGroup
-const (
-	//guarantee no overlap with the combine set
-	flargC = blargB + 1 + iota
-	flargD
-)
-
-//boardgame:codegen
 //combine:group
 const (
 	blargoA = iota

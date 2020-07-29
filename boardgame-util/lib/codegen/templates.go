@@ -351,7 +351,6 @@ const enumHeaderTemplateText = `/************************************
 package {{.packageName}}
 
 import (
-	{{if .includeBoardgameImport}}"github.com/jkomoros/boardgame"{{end}}
 	"github.com/jkomoros/boardgame/enum"
 )
 
@@ -395,7 +394,7 @@ var {{.prefix}}Enum = enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map
 
 `
 
-const enumGroupTemplateText = `//{{.name}}Enum is the combined enum.Enum for {{.name}}{{if .includesBaseGroup}}. It also includes boardgame.BaseGroupEnum.{{end}}
+const enumGroupTemplateText = `//{{.name}}Enum is the combined enum.Enum for {{.name}}
 var {{.name}}Enum = enums.MustCombine("{{.name}}", {{.varNames}})
 
 `

@@ -241,20 +241,6 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 
 	delegate.SetManager(result)
 
-	//This has to happen after chest is finished, manager is created, and
-	//delegate has a pointer to manager.
-	if groupEnum := delegate.GroupEnum(); groupEnum != nil {
-		for _, value := range BaseGroupEnum.Values() {
-			strValue := BaseGroupEnum.String(value)
-			if !groupEnum.Valid(value) {
-				return nil, errors.New("GroupEnum returned an enum that was not valid for " + strValue)
-			}
-			if groupEnum.String(value) != strValue {
-				return nil, errors.New("GroupEnum returned an enum that had the wrong string value for " + strValue)
-			}
-		}
-	}
-
 	if !delegate.LegalNumPlayers(delegate.DefaultNumPlayers()) {
 		return nil, errors.New("The default number of players is not legal")
 	}
@@ -520,12 +506,12 @@ func (g *GameManager) setUpValidators() error {
 //state for the viewing as player, or an empty map if the viewingAsPlayer is
 //obdserver.
 func (g *GameManager) computedPlayerGroupMembership(groupName string, player, viewingAsPlayer PlayerIndex, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
-	if groupName == BaseGroupEnum.String(GroupSelf) {
+	if groupName == sanitizationGroupSelf {
 		if player == viewingAsPlayer {
 			return true, nil
 		}
 		return false, nil
-	} else if groupName == BaseGroupEnum.String(GroupOther) {
+	} else if groupName == sanitizationGroupOther {
 		if player != viewingAsPlayer {
 			return true, nil
 		}
@@ -542,11 +528,6 @@ func (g *GameManager) computedPlayerGroupMembership(groupName string, player, vi
 func (g *GameManager) propertySanitizationComputedGroupNames() []string {
 	if g.memoizedComputedGroupNames != nil {
 		return g.memoizedComputedGroupNames
-	}
-
-	groupEnum := g.Delegate().GroupEnum()
-	if groupEnum == nil {
-		groupEnum = BaseGroupEnum
 	}
 
 	intermediateMap := make(map[string]bool)
@@ -568,15 +549,19 @@ func (g *GameManager) propertySanitizationComputedGroupNames() []string {
 	//result should never be nil, so it can be a valid signal value that it's
 	//memoized
 	result := []string{}
+
+	groupEnum := g.Delegate().GroupEnum()
+
 	for k := range intermediateMap {
-		//Skip keys that we know of already in GroupEnum.
-		if groupEnum.ValueFromString(k) != enum.IllegalValue {
-			//TODO: while BaseGroupEnum still exists, temporarily skip Self and
-			//Other, so that we use manager.computedPlayerGroupMembershp, which
-			//is where those are implemented.
-			if k != BaseGroupEnum.String(GroupSelf) && k != BaseGroupEnum.String(GroupOther) {
+		if groupEnum != nil {
+			//Skip keys that we know of already in GroupEnum.
+			if groupEnum.ValueFromString(k) != enum.IllegalValue {
 				continue
 			}
+		}
+		//all is always OK
+		if k == SanitizationDefaultGroup {
+			continue
 		}
 		result = append(result, k)
 	}

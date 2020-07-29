@@ -237,9 +237,9 @@ type GameDelegate interface {
 	PhaseEnum() enum.Enum
 
 	//GroupEnum should return the enum to use for group membership in
-	//SanitizationPolicy. If you return nil, then BaseGroupEnum will be used.
-	//Any enum that is returned must return the same int/string values for the
-	//valid values of BaseGroupEnum. This will be verified in NewGameManager.
+	//SanitizationPolicy. This enum's string values will also be legal keys to
+	//be passed to delegate.SanitizationPolicy in addition to the built-in
+	//values.
 	GroupEnum() enum.Enum
 
 	//GroupMembership should return the groups this playerState is part of
@@ -258,7 +258,11 @@ type GameDelegate interface {
 	//StateGroupComponentValues, and will always have the Index properties set
 	//to 0, but remember that the returned Policy will be applied to all
 	//Indexes. The string keys will be the string values of GroupEnum()'s keys,
-	//as well as always including 'all' and potentially also 'self' and 'other'.
+	//as well as always including 'all' and potentially also 'self' and 'other',
+	//and any other keys that were provided that didn't error for
+	//delegate.ComputedPlayerGroupMembership(). See the documentation of
+	//StructInflater.PropertySanitizationPolicy for more about the special
+	//values of 'all', 'other', and 'self'.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[string]bool) Policy
 
 	//If you have computed properties that you want to be included in your

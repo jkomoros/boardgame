@@ -103,11 +103,11 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 	//NewGameManger already verified that we could rely on the groupEnum to have
 	//GroupAll, groupOther.
-	defaultGroup := BaseGroupEnum.String(GroupAll)
+	defaultGroup := SanitizationDefaultGroup
 	//If the object apeparst to be a playerState, then the default group is "other", not "all".
 	if subState, ok := exampleObj.(SubState); ok {
 		if subState.StatePropertyRef().Group == StateGroupPlayer {
-			defaultGroup = BaseGroupEnum.String(GroupOther)
+			defaultGroup = SanitizationDefaultPlayerGroup
 		}
 	}
 
@@ -301,7 +301,7 @@ func policyFromStructTag(tag string, defaultGroup string) map[string]Policy {
 	}
 
 	errorMap := make(map[string]Policy)
-	errorMap[BaseGroupEnum.String(GroupAll)] = PolicyInvalid
+	errorMap[SanitizationDefaultGroup] = PolicyInvalid
 
 	result := make(map[string]Policy)
 
@@ -353,16 +353,24 @@ StructInflater. In particular, it interprets policy tags in the following way:
 It looks for struct tag configuration with the `sanitize` keyword.
 
 Keywords are interpreted by splitting at "," into a series of configurations.
-For each configuration, a group name ("all", "other", "self") is followed by a
-":" and then a policy, one of "visible", "order", "len", "nonempty", and
-"hidden".
+For each configuration, a group name ("all", "other", "self", or one of the
+other valid values described below) is followed by a ":" and then a policy, one
+of "visible", "order", "len", "nonempty", and "hidden".
 
 If the group name is omitted for a config item, it is assumed to be "all" (for
 non-playerState structs), or "other" for playerState structs. We decide if a
-struct is a playerState if it can be cast to a boardgame.PlayerState.
+struct is a playerState if it can be cast to a boardgame.PlayerState. The
+constants for "all" and "other" are available as SanitizationDefaultGroup and
+SanitizationDefaultPlayerGroup.
 
 Any string key that is a member of enum returned from delegate.GroupEnum() may
-be used, not just 'all', 'other', or 'self'.
+be used, not just 'all', 'other', or 'self'. In addition, any group name that is
+handled by your delegate's ComputedPlayerGroupMembership() may be used.
+
+Group name 'all' will always be passed to delegate.SanitizationPolicy. Group
+name 'self' will be passed for PlayerStates where that player is also the player
+the state is being sanitized for. Group name 'other' is the opposite behavior of
+'self'.
 
 This means all of the following are valid:
 
@@ -376,10 +384,6 @@ This means all of the following are valid:
 
 Missing policy configuration is interpreted for that property as though it said
 `sanitize:"all:visible"`
-
-The string keys in the map will typically be the string values of items in
-delegate.GroupEnum, but may also be special keys not in the enum, which will
-later be processed by delegate.SpecialGroupMembership.
 
 */
 func (s *StructInflater) PropertySanitizationPolicy(propName string) map[string]Policy {

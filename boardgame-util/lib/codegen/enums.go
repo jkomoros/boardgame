@@ -22,10 +22,6 @@ var transformUpperRegExp = regexp.MustCompile(`(?i)transform:\s*upper`)
 var transformLowerRegExp = regexp.MustCompile(`(?i)transform:\s*lower`)
 var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
 
-//the name of the default group enum that base.GameDelegate will use for the
-//GroupEnum.
-const defaultGroupsName = "group"
-
 type transform int
 
 //This used to be "_" which was clearer, but then the constant names would have
@@ -448,9 +444,7 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 		}
 	}
 
-	_, hasDefaultGroup := groups[defaultGroupsName]
-
-	output := enumHeaderForPackage(enums[0].PackageName, filteredDelegateNames, hasDefaultGroup)
+	output := enumHeaderForPackage(enums[0].PackageName, filteredDelegateNames)
 
 	for i, e := range enums {
 
@@ -477,15 +471,10 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 		//TODO: if name is defaultGroupsName, then also emit
 		//boardgame.BaseGroupEnum, combined with the extra boardgame import
 		var varNames []string
-		includesBaseGroup := false
-		if name == defaultGroupsName {
-			varNames = append(varNames, "boardgame.BaseGroupEnum")
-			includesBaseGroup = true
-		}
 		for _, item := range group {
 			varNames = append(varNames, item.Prefix()+"Enum")
 		}
-		output += groupOutput(name, varNames, includesBaseGroup)
+		output += groupOutput(name, varNames)
 	}
 
 	formattedEnumBytes, err := format.Source([]byte(output))
@@ -850,11 +839,10 @@ func (e *enum) Legal() error {
 
 }
 
-func enumHeaderForPackage(packageName string, delegateNames []string, includeBoardgameImport bool) string {
+func enumHeaderForPackage(packageName string, delegateNames []string) string {
 
 	output := templateOutput(enumHeaderTemplate, map[string]interface{}{
-		"packageName":            packageName,
-		"includeBoardgameImport": includeBoardgameImport,
+		"packageName": packageName,
 	})
 
 	//Ensure  a consistent ordering.
@@ -1298,10 +1286,9 @@ func (e *enum) baseOutput(prefix string, values map[string]string, parents map[s
 	})
 }
 
-func groupOutput(name string, enumVarNames []string, includesBaseGroup bool) string {
+func groupOutput(name string, enumVarNames []string) string {
 	return templateOutput(enumGroupTemplate, map[string]interface{}{
-		"name":              name,
-		"varNames":          strings.Join(enumVarNames, ", "),
-		"includesBaseGroup": includesBaseGroup,
+		"name":     name,
+		"varNames": strings.Join(enumVarNames, ", "),
 	})
 }

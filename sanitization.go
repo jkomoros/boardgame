@@ -22,33 +22,21 @@ type sanitizationTransformation struct {
 //Map of policy to apply for each propname in this sub-state
 type subStateSanitizationTransformation map[string]Policy
 
-//Policies apply to Groups of players. Groups with numbers 0 or above are
-//defined in State.GroupMembership. There are two special groups: Self and
-//Other.
-const (
-	//GroupSelf applies if the player the state is being prepared for is the
-	//current PlayerState being transformed.
-	GroupSelf = -1
-	//GroupOther applies if the player the state is being prepared for is NOT
-	//the current PlayerState being transformed.
-	GroupOther = -2
-	//GroupAll matches all players. It's useful for setting a restrictive
-	//policy by default, that then some sub-groups relax by applying a less
-	//restrictive policy.
-	GroupAll = -3
-)
+//SanitizationDefaultGroup is the implied sanitization group name if no group
+//name is included. See StructInflater.PropertySanitizationPolicy for more on
+//sanitization policy groups.
+const SanitizationDefaultGroup = "all"
 
-var enumSet = enum.NewSet()
+//SanitizationDefaultPlayerGroup is the implied sanitization group name if no group
+//name is included for player states. See
+//StructInflater.PropertySanitizationPolicy for more on sanitization policy
+//groups.
+const SanitizationDefaultPlayerGroup = "other"
 
-//BaseGroupEnum is the enum set containing GroupSelf, GroupOther, GroupAll.
-//These are the default groups that are always passed into
-//GameDelegate.SanitizationPolicy. It's exposed so that you can create a
-//combined enum that has more values.
-var BaseGroupEnum = enumSet.MustAdd("baseGroups", map[int]string{
-	GroupSelf:  "self",
-	GroupOther: "other",
-	GroupAll:   "all",
-})
+//the only part of machinery that treats these specially is
+//gameManager.computedPlayerGroupMembership.
+const sanitizationGroupSelf = "self"
+const sanitizationGroupOther = SanitizationDefaultPlayerGroup
 
 /*
 
@@ -217,7 +205,7 @@ func groupMembershipForPlayerState(playerState ImmutableSubState) (map[int]bool,
 			}
 		}
 	}
-	viewingAsPlayerStringGroupMembership[BaseGroupEnum.String(GroupAll)] = true
+	viewingAsPlayerStringGroupMembership[SanitizationDefaultGroup] = true
 	return viewingAsPlayerGroupMembership, viewingAsPlayerStringGroupMembership
 }
 
