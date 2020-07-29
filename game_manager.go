@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -255,6 +256,24 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		return nil, errors.New("Couldn't configure validators: " + err.Error())
 	}
 
+	groupEnum := result.delegate.GroupEnum()
+
+	groupNames := result.gameValidator.sanitizationPolicyGroupNames(groupEnum)
+	if len(groupNames) > 0 {
+		return nil, errors.New("Game state had illegal group names in sanitization policy: " + fmt.Sprint(groupNames))
+	}
+
+	//we can skip playerValidator for now; they're legal to have extra group
+	//names. Later, we'll verify that a SanitizedForPlayer state works, which
+	//will implicitly test all groupNames are valid.
+
+	for deckName, deckValidator := range result.dynamicComponentValidator {
+		groupNames = deckValidator.sanitizationPolicyGroupNames(groupEnum)
+		if len(groupNames) > 0 {
+			return nil, errors.New("DynamicComponentValues " + deckName + " state had illegal group names in sanitization policy: " + fmt.Sprint(groupNames))
+		}
+	}
+
 	if err := result.installMoves(delegate.ConfigureMoves()); err != nil {
 		return nil, errors.New("Failed to install moves: " + err.Error())
 	}
@@ -278,6 +297,12 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 			return nil, errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
 		}
 
+	}
+
+	//This will implicitly check that the extra group names for playerValidator
+	//are all handled by computedPlayerGroupMembership.
+	if _, err := exampleState.SanitizedForPlayer(0); err != nil {
+		return nil, errors.New("Couldn't sanitize for player: " + err.Error())
 	}
 
 	result.agentsByName = make(map[string]Agent)
