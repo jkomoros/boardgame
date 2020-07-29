@@ -351,6 +351,7 @@ const enumHeaderTemplateText = `/************************************
 package {{.packageName}}
 
 import (
+	{{if .includeBoardgameImport}}"github.com/jkomoros/boardgame"{{end}}
 	"github.com/jkomoros/boardgame/enum"
 )
 

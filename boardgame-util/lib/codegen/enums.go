@@ -22,7 +22,9 @@ var transformUpperRegExp = regexp.MustCompile(`(?i)transform:\s*upper`)
 var transformLowerRegExp = regexp.MustCompile(`(?i)transform:\s*lower`)
 var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
 
-const defaultGroupsName = "Groups"
+//the name of the default group enum that base.GameDelegate will use for the
+//GroupEnum.
+const defaultGroupsName = "group"
 
 type transform int
 
@@ -430,9 +432,17 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 
 	filteredDelegateNames := filterDelegateNames(delegateNames, packageASTs)
 
-	output := enumHeaderForPackage(enums[0].PackageName, filteredDelegateNames)
-
 	groups := make(map[string][]*enum)
+
+	for _, e := range enums {
+		if e.combineName != "" {
+			groups[e.combineName] = append(groups[e.combineName], e)
+		}
+	}
+
+	_, hasDefaultGroup := groups[defaultGroupsName]
+
+	output := enumHeaderForPackage(enums[0].PackageName, filteredDelegateNames, hasDefaultGroup)
 
 	for i, e := range enums {
 
@@ -445,9 +455,6 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 		}
 		output += enumOutput
 
-		if e.combineName != "" {
-			groups[e.combineName] = append(groups[e.combineName], e)
-		}
 	}
 
 	//ensure that groups are always output in the same order
@@ -462,6 +469,9 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 		//TODO: if name is defaultGroupsName, then also emit
 		//boardgame.BaseGroupEnum, combined with the extra boardgame import
 		var varNames []string
+		if name == defaultGroupsName {
+			varNames = append(varNames, "boardgame.BaseGroupEnum")
+		}
 		for _, item := range group {
 			varNames = append(varNames, item.Prefix()+"Enum")
 		}
@@ -830,10 +840,11 @@ func (e *enum) Legal() error {
 
 }
 
-func enumHeaderForPackage(packageName string, delegateNames []string) string {
+func enumHeaderForPackage(packageName string, delegateNames []string, includeBoardgameImport bool) string {
 
 	output := templateOutput(enumHeaderTemplate, map[string]interface{}{
-		"packageName": packageName,
+		"packageName":            packageName,
+		"includeBoardgameImport": includeBoardgameImport,
 	})
 
 	//Ensure  a consistent ordering.

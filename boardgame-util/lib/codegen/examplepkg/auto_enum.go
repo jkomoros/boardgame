@@ -10,6 +10,7 @@
 package examplepkg
 
 import (
+	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )
 
@@ -183,5 +184,20 @@ var flargEnum = enums.MustAdd("flarg", map[int]string{
 	flargD: "D",
 })
 
-//GroupEnum is the combined enum.Enum for Group
-var GroupEnum = enums.MustCombine("Group", blargEnum, flargEnum)
+//blargoEnum is the enum.Enum for blargo
+var blargoEnum = enums.MustAdd("blargo", map[int]string{
+	blargoA: "A",
+	blargoB: "B",
+})
+
+//flargoEnum is the enum.Enum for flargo
+var flargoEnum = enums.MustAdd("flargo", map[int]string{
+	flargoC: "C",
+	flargoD: "D",
+})
+
+//groupEnum is the combined enum.Enum for group
+var groupEnum = enums.MustCombine("group", boardgame.BaseGroupEnum, blargoEnum, flargoEnum)
+
+//theGroupEnum is the combined enum.Enum for theGroup
+var theGroupEnum = enums.MustCombine("theGroup", blargEnum, flargEnum)
