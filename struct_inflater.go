@@ -101,17 +101,28 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 	autoMergedStackFields := make(map[string]*autoMergedStackConfig)
 	sanitizationPolicy := make(map[string]map[int]Policy)
 
-	defaultGroup := "all"
+	var groupEnum enum.Enum
+	//In some scenarios like testing, etc the groupEnum might not be set.
+	if chest != nil && chest.Manager() != nil && chest.Manager().Delegate() != nil {
+		groupEnum = chest.Manager().Delegate().GroupEnum()
+	}
+	if groupEnum == nil {
+		groupEnum = BaseGroupEnum
+	}
+
+	//NewGameManger already verified that we could rely on the groupEnum to have
+	//GroupAll, groupOther.
+	defaultGroup := groupEnum.String(GroupAll)
 	//If the object apeparst to be a playerState, then the default group is "other", not "all".
 	if subState, ok := exampleObj.(SubState); ok {
 		if subState.StatePropertyRef().Group == StateGroupPlayer {
-			defaultGroup = "other"
+			defaultGroup = groupEnum.String(GroupOther)
 		}
 	}
 
 	for propName, propType := range exampleReader.Props() {
 
-		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
+		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup, groupEnum)
 
 		switch propType {
 		case TypeStack, TypeBoard:
@@ -293,7 +304,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 	return result, nil
 }
 
-func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
+func policyFromStructTag(tag string, defaultGroup string, groupEnum enum.Enum) map[int]Policy {
 	if tag == "" {
 		tag = "visible"
 	}
@@ -320,7 +331,10 @@ func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 			policyString = splitPiece[1]
 		}
 
-		group := groupFromString(groupString)
+		group := groupEnum.ValueFromString(groupString)
+		if group == enum.IllegalValue {
+			return errorMap
+		}
 		policy := policyFromString(policyString)
 
 		result[group] = policy

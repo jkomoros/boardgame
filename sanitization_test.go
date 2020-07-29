@@ -81,7 +81,7 @@ func (s *sanitizationTestConfig) policyForSubObject(reader PropertyReader, confi
 	}
 
 	for propName := range reader.Props() {
-		result[propName] = policyFromStructTag(config[propName], defaultGroup)
+		result[propName] = policyFromStructTag(config[propName], defaultGroup, BaseGroupEnum)
 	}
 
 	return result

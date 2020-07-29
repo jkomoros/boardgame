@@ -1,9 +1,10 @@
 package boardgame
 
 import (
+	"testing"
+
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
-	"testing"
 )
 
 func TestPolicyFromStructTag(t *testing.T) {
@@ -48,7 +49,7 @@ func TestPolicyFromStructTag(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result := policyFromStructTag(test.in, "all")
+		result := policyFromStructTag(test.in, "all", BaseGroupEnum)
 		assert.For(t, i).ThatActual(result).Equals(test.expected)
 	}
 

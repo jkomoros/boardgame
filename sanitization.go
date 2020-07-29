@@ -163,24 +163,6 @@ const (
 	//TODO: implement the other policies.
 )
 
-func groupFromString(groupName string) int {
-
-	//TODO: this will have to do somethign different when we support user-
-	//defined groups.
-
-	groupName = strings.ToLower(groupName)
-	groupName = strings.TrimSpace(groupName)
-	switch groupName {
-	case "all":
-		return GroupAll
-	case "other":
-		return GroupOther
-	case "self":
-		return GroupSelf
-	}
-	return 0
-}
-
 func policyFromString(policyName string) Policy {
 	policyName = strings.ToLower(policyName)
 	policyName = strings.TrimSpace(policyName)
