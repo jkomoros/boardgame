@@ -310,6 +310,10 @@ type Enum interface {
 	MustNewImmutableVal(val int) ImmutableVal
 	MustNewVal(val int) Val
 
+	//SubsetOf returns true if every int key in this enum is also present in
+	//other, and the string values for each int key are the same.
+	SubsetOf(other Enum) bool
+
 	//RangeEnum will return a version of this Enum that satisifies the
 	//RangeEnum interface, if possible, nil otherwise.
 	RangeEnum() RangeEnum
@@ -590,6 +594,20 @@ func (e *enum) Values() []int {
 		counter++
 	}
 	return result
+}
+
+func (e *enum) SubsetOf(other Enum) bool {
+	//TODO: in the case where e was Combine()'d into other, if we kept track of
+	//that in the Enum, we could short circuit this.
+	for k, v := range e.values {
+		if !other.Valid(k) {
+			return false
+		}
+		if other.String(k) != v {
+			return false
+		}
+	}
+	return true
 }
 
 func (e *enum) DefaultValue() int {

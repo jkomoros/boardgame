@@ -134,6 +134,10 @@ func TestCombine(t *testing.T) {
 	ab, err := setTwo.Combine("a+b", a, b)
 
 	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(a.SubsetOf(ab)).IsTrue()
+	assert.For(t).ThatActual(b.SubsetOf(ab)).IsTrue()
+	assert.For(t).ThatActual(c.SubsetOf(ab)).IsFalse()
+	assert.For(t).ThatActual(ab.SubsetOf(ab)).IsTrue()
 
 	intValues := ab.Values()
 	sort.Ints(intValues)
