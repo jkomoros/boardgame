@@ -48,6 +48,10 @@
     "@polymer/polymer": "^3.3.0",
     "@webcomponents/webcomponentsjs": "^2.3.0",
     "firebase": "^5.11.1",
+    "lit-element": "^2.3.1",
+    "pwa-helpers": "^0.9.1",
+    "redux": "^4.0.5",
+    "redux-thunk": "^2.3.0",
     "web-animations-js": "^2.3.2"
   }
 }
