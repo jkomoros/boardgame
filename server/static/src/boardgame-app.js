@@ -97,7 +97,7 @@ class BoardgameApp extends PolymerElement {
       <!-- Drawer content -->
       <app-drawer slot="drawer" id="drawer">
         <boardgame-user id="user" logged-in="{{loggedIn}}" admin-allowed="{{adminAllowed}}"></boardgame-user>
-        <paper-toggle-button checked="{{admin}}" hidden="{{!adminAllowed}}">Admin Mode</paper-toggle-button>
+        <paper-toggle-button checked="{{admin}}" hidden="[[!adminAllowed]]">Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="list-games" href="/list-games">List Games</a>
@@ -115,16 +115,16 @@ class BoardgameApp extends PolymerElement {
         </app-header>
 
         <iron-pages selected="[[page]]" attr-for-selected="name" fallback-selection="view404" selected-attribute="selected" role="main">
-          <boardgame-game-view logged-in="{{loggedIn}}" admin="{{admin}}" name="game" game-route="[[gameRoute]]"></boardgame-game-view>
-          <boardgame-list-games-view name="list-games" logged-in="{{loggedIn}}" admin="{{admin}}"></boardgame-list-games-view>
+          <boardgame-game-view logged-in="[[loggedIn]]" admin="[[admin]]" name="game" game-route="[[gameRoute]]"></boardgame-game-view>
+          <boardgame-list-games-view name="list-games" logged-in="[[loggedIn]]" admin="[[admin]]"></boardgame-list-games-view>
           <boardgame-404-view name="404"></boardgame-404-view>
         </iron-pages>
       </app-header-layout>
     </app-drawer-layout>
     <paper-dialog id="error">
-      <h2>{{errorTitle}}</h2>
-      <p>{{friendlyErrorMessage}}</p>
-      <p class="detail">{{errorMessage}}</p>
+      <h2>[[errorTitle]]</h2>
+      <p>[[friendlyErrorMessage]]</p>
+      <p class="detail">[[errorMessage]]</p>
       <div class="buttons">
         <paper-button dialog-dismiss="">OK</paper-button>
       </div>
