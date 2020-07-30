@@ -30,29 +30,29 @@ class BoardgameMoveForm extends PolymerElement {
     </style>
       <h2>Moves</h2>
       <div id="container">
-        <template is="dom-repeat" items="{{config}}">
-          <details id="moves-{{_normalizeID(item.Name)}}">
-            <summary>Move {{item.Name}}</summary>
+        <template is="dom-repeat" items="[[config]]">
+          <details id="moves-[[_normalizeID(item.Name)]]">
+            <summary>Move [[item.Name]]</summary>
             <form>
-              <p><em>{{item.HelpText}}</em></p>
-              <input type="hidden" name="MoveType" value="{{item.Name}}">
-              <input type="hidden" name="admin" value="{{boolToInt(admin)}}">
-              <input type="hidden" name="player" value="{{moveAsPlayer}}">
-              <template is="dom-repeat" items="{{item.Fields}}">
-                <strong>{{item.Name}}</strong>
+              <p><em>[[item.HelpText]]</em></p>
+              <input type="hidden" name="MoveType" value="[[item.Name]]">
+              <input type="hidden" name="admin" value="[[boolToInt(admin)]]">
+              <input type="hidden" name="player" value="[[moveAsPlayer]]">
+              <template is="dom-repeat" items="[[item.Fields]]">
+                <strong>[[item.Name]]</strong>
                 <template is="dom-if" if="[[_isEnumField(item.Type)]]">
-                  <select name="{{item.Name}}">
-                    <template is="dom-repeat" items="{{_stringValues(item.Enum.Values)}}">
-                      <option value="{{item}}">{{item}}</option>
+                  <select name="[[item.Name]]">
+                    <template is="dom-repeat" items="[[_stringValues(item.Enum.Values)]]">
+                      <option value="[[item]]">[[item]]</option>
                     </template>
                   </select>
                 </template>
                 <template is="dom-if" if="[[!_isEnumField(item.Type)]]">
-                  <input name="{{item.Name}}" value="{{_prepareValue(item.DefaultValue)}}">
+                  <input name="[[item.Name]]" value="[[_prepareValue(item.DefaultValue)]]">
                 </template>
                 <br>
               </template>
-              <div hidden\$="{{item.Fields}}">
+              <div hidden\$="[[item.Fields]]">
                 <em>No modifiable fields</em><br>
               </div>
               <input type="button" on-tap="doSubmitForm" value="Make Move">
