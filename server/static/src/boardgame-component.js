@@ -96,7 +96,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 
     <!-- subclass style should be inserted here -->
 
-    <div id="outer" class\$="{{_classes}}" on-tap="handleTap" style\$="{{_outerStyle}}">
+    <div id="outer" class\$="[[_classes]]" on-tap="handleTap" style\$="[[_outerStyle]]">
       <div id="inner">
         <!-- subclass content should be inserted here -->
       </div>
