@@ -49,13 +49,13 @@ class BoardgameGameView extends PolymerElement {
     </style>
 
     <div class="card">
-      <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" game-open="{{gameOpen}}" game-visible="{{gameVisible}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}" finished="[[game.Finished]]" winners="[[game.Winners]]" admin="{{admin}}" is-owner="{{isOwner}}" active="[[selected]]"></boardgame-player-roster>
+      <boardgame-player-roster id="player" logged-in="[[loggedIn]]" game-route="[[gameRoute]]" viewing-as-player="[[viewingAsPlayer]]" has-empty-slots="[[hasEmptySlots]]" game-open="[[gameOpen]]" game-visible="[[gameVisible]]" current-player-index="[[game.CurrentPlayerIndex]]" players-info="[[playersInfo]]" state="[[currentState]]" finished="[[game.Finished]]" winners="[[game.Winners]]" admin="[[admin]]" is-owner="[[isOwner]]" active="[[selected]]"></boardgame-player-roster>
     </div>
     <div class="card">
-      <boardgame-render-game id="render" state="{{currentState}}" diagram="{{game.Diagram}}" renderer="{{activeRenderer}}" game-name="[[gameRoute.name]]" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}" socket-active="{{socketActive}}" active="[[selected]]" chest="[[chest]]"></boardgame-render-game>
+      <boardgame-render-game id="render" state="[[currentState]]" diagram="[[game.Diagram]]" renderer="[[activeRenderer]]" game-name="[[gameRoute.name]]" viewing-as-player="[[viewingAsPlayer]]" current-player-index="[[game.CurrentPlayerIndex]]" socket-active="[[socketActive]]" active="[[selected]]" chest="[[chest]]"></boardgame-render-game>
     </div>
     <boardgame-admin-controls id="admin" active="{{admin}}" game="[[game]]" viewing-as-player="[[viewingAsPlayer]]" move-forms="[[moveForms]]" game-route="[[gameRoute]]" chest="[[chest]]" game-state="[[gameState]]" requested-player="{{requestedPlayer}}" auto-current-player="{{autoCurrentPlayer}}"></boardgame-admin-controls>
-    <boardgame-game-state-manager id="manager" active-renderer="[[activeRenderer]]" game-route="[[gameRoute]]" requested-player="[[requestedPlayer]]" active="[[selected]]" admin="[[admin]]" game-finished="[[game.Finished]]" game-version="[[game.Version]]" logged-in="[[loggedIn]]" auto-current-player="{{autoCurrentPlayer}}" viewing-as-player="[[viewingAsPlayer]]" socket-active="{{socketActive}}"></boardgame-game-state-manager>
+    <boardgame-game-state-manager id="manager" active-renderer="[[activeRenderer]]" game-route="[[gameRoute]]" requested-player="[[requestedPlayer]]" active="[[selected]]" admin="[[admin]]" game-finished="[[game.Finished]]" game-version="[[game.Version]]" logged-in="[[loggedIn]]" auto-current-player="[[autoCurrentPlayer]]" viewing-as-player="[[viewingAsPlayer]]" socket-active="{{socketActive}}"></boardgame-game-state-manager>
 `;
   }
 
