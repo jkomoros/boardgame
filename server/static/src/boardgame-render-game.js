@@ -53,17 +53,17 @@ class BoardgameRenderGame extends PolymerElement {
         --paper-spinner-stroke-width: 10px;
       }
     </style>
-    <boardgame-component-animator id="animator" ancestor-offset-parent="{{\$.container}}"></boardgame-component-animator>
-    <div hidden\$="{{rendererLoaded}}">
-      <h2>Diagram of {{gameName}}</h2>
-      <pre>{{diagram}}</pre>
+    <boardgame-component-animator id="animator" ancestor-offset-parent="[[\$.container]]"></boardgame-component-animator>
+    <div hidden\$="[[rendererLoaded]]">
+      <h2>Diagram of [[gameName]]</h2>
+      <pre>[[diagram]]</pre>
     </div>
     <div id="container">
     <!-- This is where renderer will go -->
     </div>
-    <div id="loading" active\$="{{!socketActive}}">
+    <div id="loading" active\$="[[!socketActive]]">
       <div>
-        <paper-spinner-lite active="{{!socketActive}}"></paper-spinner-lite>
+        <paper-spinner-lite active="[[!socketActive]]"></paper-spinner-lite>
       </div>
     </div>
 `;
