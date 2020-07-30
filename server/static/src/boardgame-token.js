@@ -101,7 +101,7 @@ class BoardgameToken extends BoardgameComponent {
 
     </style>
     <div id="import">
-      <img src="{{_asset}}">
+      <img src="[[_asset]]">
     </div>
 `;
   }
