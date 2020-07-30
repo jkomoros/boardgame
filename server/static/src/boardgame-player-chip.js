@@ -27,7 +27,7 @@ class BoardgamePlayerChip extends PolymerElement {
 
     </style>
 
-    <img id="chip" src\$="{{_effectivePhotoUrl(photoUrl, isAgent)}}" class="photo">
+    <img id="chip" src\$="[[_effectivePhotoUrl(photoUrl, isAgent)]]" class="photo">
 `;
   }
 
