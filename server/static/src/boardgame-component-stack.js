@@ -167,7 +167,7 @@ BoardgameComponentStack = class extends PolymerElement {
 
     </style>
 
-    <div id="container" class\$="{{_classes(layout, noAnimate)}}" style\$="{{_style}}">
+    <div id="container" class\$="[[_classes(layout, noAnimate)]]" style\$="[[_style]]">
       <div id="slot-holder">
         <slot id="components"></slot>
       </div>
