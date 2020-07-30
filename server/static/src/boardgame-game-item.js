@@ -26,14 +26,14 @@ class BoardgameGameItem extends GamePathMixin(PolymerElement) {
       }
     </style>
     <div class="card layout horizontal center">
-      <a href="{{GamePath(item.Name, item.ID)}}">{{gameDisplayName}}</a>
-      <template is="dom-repeat" items="{{item.Players}}">
-        <boardgame-player-chip photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" is-agent="{{item.IsAgent}}"></boardgame-player-chip>
+      <a href="[[GamePath(item.Name, item.ID)]]">[[gameDisplayName]]</a>
+      <template is="dom-repeat" items="[[item.Players]]">
+        <boardgame-player-chip photo-url="[[item.PhotoUrl]]" display-name="[[item.DisplayName]]" is-agent="[[item.IsAgent]]"></boardgame-player-chip>
       </template>
-      <span class="minor">Last activity {{item.ReadableLastActivity}}</span>
+      <span class="minor">Last activity [[item.ReadableLastActivity]]</span>
       <div class="flex"></div>
-      <span class="minor">{{item.ID}}</span>
-      <boardgame-configure-game-properties game-open="{{item.Open}}" game-visible="{{item.Visible}}"></boardgame-configure-game-properties>
+      <span class="minor">[[item.ID]]</span>
+      <boardgame-configure-game-properties game-open="[[item.Open]]" game-visible="[[item.Visible]]"></boardgame-configure-game-properties>
     </div>
 `;
   }
