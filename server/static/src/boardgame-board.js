@@ -29,10 +29,10 @@ class BoardgameBoard extends PolymerElement {
       }
     </style>
     <div class="container">
-      <template is="dom-repeat" items="{{_cellItems}}" as="row" index-as="r">
+      <template is="dom-repeat" items="[[_cellItems]]" as="row" index-as="r">
         <div class="row layout horizontal">
-          <template is="dom-repeat" items="{{row}}" as="col" index-as="c">
-            <div class\$="{{col}} cell layout vertical" r="{{r}}" c="{{c}}" on-tap="_regionTapped">
+          <template is="dom-repeat" items="[[row]]" as="col" index-as="c">
+            <div class\$="{{col}} cell layout vertical" r="[[r]]" c="[[c]]" on-tap="_regionTapped">
             </div>
           </template>
         </div>
