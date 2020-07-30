@@ -64,11 +64,11 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
       <div class="horizontal layout center game">
         <paper-dropdown-menu name="manager" label="Game Type" horizontal-align="left">
           <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
-            <template is="dom-repeat" items="{{managers}}">
-              <paper-item value="{{item.Name}}" data="{{item}}" label="{{item.DisplayName}}">
+            <template is="dom-repeat" items="[[managers]]">
+              <paper-item value="[[item.Name]]" data="[[item]]" label="[[item.DisplayName]]">
                 <paper-item-body two-line="">
-                  <div>{{item.DisplayName}}</div>
-                  <div secondary="">{{item.Description}}</div>
+                  <div>[[item.DisplayName]]</div>
+                  <div secondary="">[[item.Description]]</div>
                 </paper-item-body>
               </paper-item> 
             </template>
@@ -76,27 +76,27 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
         </paper-dropdown-menu>
         <div class="vertical layout">
 
-          <div hidden\$="{{managerFixedPlayerCount}}">
+          <div hidden\$="[[managerFixedPlayerCount]]">
             <div class="secondary">Number of Players</div>
-            <paper-slider name="numplayers" label="Number of Players" min="{{selectedManager.data.MinNumPlayers}}" max="{{selectedManager.data.MaxNumPlayers}}" value="{{numPlayers}}" snaps="" pin="" editable="" max-markers="100"></paper-slider>
+            <paper-slider name="numplayers" label="Number of Players" min="[[selectedManager.data.MinNumPlayers]]" max="[[selectedManager.data.MaxNumPlayers]]" value="{{numPlayers}}" snaps="" pin="" editable="" max-markers="100"></paper-slider>
           </div>
-          <div hidden\$="{{!managerFixedPlayerCount}}">
-            <div class="secondary"><strong>{{selectedManager.data.MinNumPlayers}}</strong> players</div>
+          <div hidden\$="[[!managerFixedPlayerCount]]">
+            <div class="secondary"><strong>[[selectedManager.data.MinNumPlayers]]</strong> players</div>
           </div>
         </div>
         <div class="flex"></div>
         <paper-button on-tap="createGame" default="" raised="">Create Game</paper-button>
       </div>
 
-      <div class="horizontal layout justified" hidden\$="{{managerHasAgents}}">
-        <template is="dom-repeat" items="{{players}}">
+      <div class="horizontal layout justified" hidden\$="[[managerHasAgents]]">
+        <template is="dom-repeat" items="[[players]]">
           <div class="flex">
             <div class="vertical layout">
-              Player {{index}}
-              <paper-radio-group selected="" disabled="{{managerHasAgents}}" name="agent-player-{{index}}" attr-for-selected="value">
-                <paper-radio-button name="agent-player-{{index}}" value="" disabled="{{managerHasAgents}}">Real Live Human</paper-radio-button>
-                <template is="dom-repeat" items="{{selectedManager.data.Agents}}" index-as="agentIndex">
-                  <paper-radio-button name="agent-player-{{index}}" value="{{item.Name}}">{{item.DisplayName}}</paper-radio-button>
+              Player [[index]]
+              <paper-radio-group selected="" disabled="[[managerHasAgents]]" name="agent-player-[[index]]" attr-for-selected="value">
+                <paper-radio-button name="agent-player-[[index]]" value="" disabled="[[managerHasAgents]]">Real Live Human</paper-radio-button>
+                <template is="dom-repeat" items="[[selectedManager.data.Agents]]" index-as="agentIndex">
+                  <paper-radio-button name="agent-player-[[index]]" value="[[item.Name]]">[[item.DisplayName]]</paper-radio-button>
                 </template>
               </paper-radio-group>
             </div>
@@ -104,21 +104,21 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
         </template>
       </div>
       <div class="horizontal layout variant">
-        <template is="dom-repeat" items="{{selectedManager.data.Variant}}">
+        <template is="dom-repeat" items="[[selectedManager.data.Variant]]">
           <div class="vertical layout">
-            <paper-dropdown-menu label="{{item.DisplayName}}" name="variant_{{item.Name}}" horizontal-align="left">
+            <paper-dropdown-menu label="[[item.DisplayName]]" name="variant_[[item.Name]]" horizontal-align="left">
               <paper-listbox slot="dropdown-content" selected="0">
-                <template is="dom-repeat" items="{{item.Values}}">
-                  <paper-item value="{{item.Value}}" label="{{item.DisplayName}}">
+                <template is="dom-repeat" items="[[item.Values]]">
+                  <paper-item value="[[item.Value]]" label="[[item.DisplayName]]">
                     <paper-item-body two-line="">
-                      <div>{{item.DisplayName}}</div>
-                      <div secondary="">{{item.Description}}</div>
+                      <div>[[item.DisplayName]]</div>
+                      <div secondary="">[[item.Description]]</div>
                     </paper-item-body>
                   </paper-item>
                 </template>
               </paper-listbox>
             </paper-dropdown-menu>
-            <div class="secondary">{{item.Description}}</div>
+            <div class="secondary">[[item.Description]]</div>
           </div>
         </template>
       </div>
