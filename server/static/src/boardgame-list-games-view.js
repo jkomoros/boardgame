@@ -34,51 +34,51 @@ class BoardgameListGamesView extends PolymerElement {
       }
     </style>
     <div class="card">
-      <boardgame-create-game logged-in="{{loggedIn}}" managers="{{managers}}"></boardgame-create-game>
+      <boardgame-create-game logged-in="[[loggedIn]]" managers="[[managers]]"></boardgame-create-game>
     </div>
     <div class="card">
       <paper-dropdown-menu name="manager" label="Game Type Filter">
         <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
           <paper-item value="">All Games</paper-item>
-          <template is="dom-repeat" items="{{managers}}">
-            <paper-item value="{{item.Name}}" data="{{item}}">{{item.DisplayName}}</paper-item> 
+          <template is="dom-repeat" items="[[managers]]">
+            <paper-item value="[[item.Name]]" data="[[item]]">[[item.DisplayName]]</paper-item> 
           </template>
         </paper-listbox>
       </paper-dropdown-menu>
     </div>
-    <template is="dom-if" if="{{data.ParticipatingActiveGames.length}}">
+    <template is="dom-if" if="[[data.ParticipatingActiveGames.length]]">
       <h2>Active</h2>
-      <template is="dom-repeat" items="{{data.ParticipatingActiveGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+      <template is="dom-repeat" items="[[data.ParticipatingActiveGames]]">
+        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="{{data.PaticipatingFinishedGames.length}}">
+    <template is="dom-if" if="[[data.PaticipatingFinishedGames.length]]">
       <h2>Finished</h2>
-      <template is="dom-repeat" items="{{data.PaticipatingFinishedGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+      <template is="dom-repeat" items="[[data.PaticipatingFinishedGames]]">
+        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="{{data.VisibleJoinableActiveGames.length}}">
+    <template is="dom-if" if="[[data.VisibleJoinableActiveGames.length]]">
       <h2>Joinable</h2>
-      <template is="dom-repeat" items="{{data.VisibleJoinableActiveGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+      <template is="dom-repeat" items="[[data.VisibleJoinableActiveGames]]">
+        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="{{data.VisibleActiveGames.length}}">
+    <template is="dom-if" if="[[data.VisibleActiveGames.length]]">
       <h2>Spectator</h2>
-      <template is="dom-repeat" items="{{data.VisibleActiveGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+      <template is="dom-repeat" items="[[data.VisibleActiveGames]]">
+        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="{{data.AllGames.length}}">
+    <template is="dom-if" if="[[data.AllGames.length]]">
       <h2>All Games</h2>
-      <template is="dom-repeat" items="{{data.AllGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+      <template is="dom-repeat" items="[[data.AllGames]]">
+        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
 
     
-    <boardgame-ajax auto="" debounce-duration="100" id="games" path="list/game" handle-as="json" params="{{gamesArgs}}" last-response="{{data}}"></boardgame-ajax>
+    <boardgame-ajax auto="" debounce-duration="100" id="games" path="list/game" handle-as="json" params="[[gamesArgs]]" last-response="{{data}}"></boardgame-ajax>
     <boardgame-ajax auto="" path="list/manager" handle-as="json" last-response="{{managerData}}"></boardgame-ajax>
 `;
   }
