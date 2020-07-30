@@ -79,15 +79,15 @@ class BoardgamePlayerRosterItem extends PolymerElement {
       }
 
     </style>
-    <div class\$="layout horizontal center {{classForPlayer(playerIndex, viewingAsPlayer, currentPlayerIndex, finished, winner)}}">
+    <div class\$="layout horizontal center [[classForPlayer(playerIndex, viewingAsPlayer, currentPlayerIndex, finished, winner)]]">
       <div style="position:relative">
-        <boardgame-player-chip display-name="{{displayName}}" is-agent="{{isAgent}}" photo-url="{{photoUrl}}"></boardgame-player-chip>
-        <strong class="chip" style\$="{{_styleForChip(chipColor, finished, winner)}}">{{_textForChip(chipText, playerIndex, finished, winner)}}</strong>
+        <boardgame-player-chip display-name="[[displayName]]" is-agent="[[isAgent]]" photo-url="[[photoUrl]]"></boardgame-player-chip>
+        <strong class="chip" style\$="[[_styleForChip(chipColor, finished, winner)]]">[[_textForChip(chipText, playerIndex, finished, winner)]]</strong>
       </div>
       <div class="layout vertical">
-        <strong class\$="{{classForName(displayName)}}">{{nameOrNobody(displayName)}}</strong>
-        <span>{{playerDescription(isEmpty, isAgent, playerIndex, viewingAsPlayer)}}</span>
-        <boardgame-render-player-info state="{{state}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}" chip-text="{{chipText}}" chip-color="{{chipColor}}" active="[[active]]"></boardgame-render-player-info>
+        <strong class\$="[[classForName(displayName)]]">[[nameOrNobody(displayName)]]</strong>
+        <span>[[playerDescription(isEmpty, isAgent, playerIndex, viewingAsPlayer)]]</span>
+        <boardgame-render-player-info state="[[state]]" player-index="[[playerIndex]]" renderer-loaded="[[rendererLoaded]]" game-name="[[gameName]]" chip-text="{{chipText}}" chip-color="{{chipColor}}" active="[[active]]"></boardgame-render-player-info>
       </div>
     </div>
 `;
