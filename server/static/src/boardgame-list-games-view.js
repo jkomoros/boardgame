@@ -56,13 +56,13 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
       }
     </style>
     <div class="card">
-      <boardgame-create-game logged-in="[[loggedIn]]" managers="[[managers]]"></boardgame-create-game>
+      <boardgame-create-game logged-in="[[loggedIn]]" managers="[[_managers]]"></boardgame-create-game>
     </div>
     <div class="card">
       <paper-dropdown-menu name="manager" label="Game Type Filter">
         <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
           <paper-item value="">All Games</paper-item>
-          <template is="dom-repeat" items="[[managers]]">
+          <template is="dom-repeat" items="[[_managers]]">
             <paper-item value="[[item.Name]]" data="[[item]]">[[item.DisplayName]]</paper-item> 
           </template>
         </paper-listbox>
@@ -71,31 +71,31 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
     <template is="dom-if" if="[[_participatingActiveGames.length]]">
       <h2>Active</h2>
       <template is="dom-repeat" items="[[_participatingActiveGames]]">
-        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
+        <boardgame-game-item item="[[item]]" managers="[[_managers]]"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="[[_participatingFinishedGames.length]]">
       <h2>Finished</h2>
       <template is="dom-repeat" items="[[_participatingFinishedGames]]">
-        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
+        <boardgame-game-item item="[[item]]" managers="[[_managers]]"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="[[_visibleJoinableActiveGames.length]]">
       <h2>Joinable</h2>
       <template is="dom-repeat" items="[[_visibleJoinableActiveGames]]">
-        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
+        <boardgame-game-item item="[[item]]" managers="[[_managers]]"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="[[_visibleActiveGames.length]]">
       <h2>Spectator</h2>
       <template is="dom-repeat" items="[[_visibleActiveGames]]">
-        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
+        <boardgame-game-item item="[[item]]" managers="[[_managers]]"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="[[_allGames.length]]">
       <h2>All Games</h2>
       <template is="dom-repeat" items="[[_allGames]]">
-        <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
+        <boardgame-game-item item="[[item]]" managers="[[_managers]]"></boardgame-game-item>
       </template>
     </template>
 `;
@@ -112,7 +112,7 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
       _visibleActiveGames: { type: Array },
       _visibleJoinableGames: { type: Array },
       _allGames: { type: Array },
-      managers: {
+      _managers: {
         type: Array,
       },
       selectedManager: Object,
@@ -139,7 +139,7 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
   }
 
   stateChanged(state) {
-    this.managers = selectManagers(state);
+    this._managers = selectManagers(state);
     this._participatingActiveGames = selectParticipatingActiveGames(state);
     this._participatingFinishedGames = selectParticipatingFinishedGames(state);
     this._visibleActiveGames = selectVisibleActiveGames(state);
