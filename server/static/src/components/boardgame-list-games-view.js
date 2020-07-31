@@ -19,9 +19,9 @@ import './boardgame-game-item.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
-import { store } from './store.js';
+import { store } from '../store.js';
 
-import list from './reducers/list.js';
+import list from '../reducers/list.js';
 store.addReducers({
 	list
 });
@@ -34,14 +34,14 @@ import {
   selectVisibleActiveGames,
   selectVisibleJoinableGames,
   selectAllGames,
-} from './selectors.js';
+} from '../selectors.js';
 
 
 import {
   fetchManagers,
   updateGameTypeFilter,
   fetchGamesList
-} from './actions/list.js';
+} from '../actions/list.js';
 
 class BoardgameListGamesView extends connect(store)(PolymerElement) {
   static get template() {
