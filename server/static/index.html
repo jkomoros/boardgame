@@ -75,6 +75,16 @@
       }
     </script>
 
+    <script>
+      // HACK(keanulee): The Redux package assumes `process` exists - mock it here before
+      // the module is loaded.
+      window.process = {
+        env: {
+          NODE_ENV: 'production'
+        }
+      };
+    </script>
+
     <!-- This shim was added to fix a bug in the drop-down menus, as written at https://github.com/PolymerElements/paper-swatch-picker/issues/36 -->
     <script src="./node_modules/web-animations-js/web-animations-next.min.js"></script>
 

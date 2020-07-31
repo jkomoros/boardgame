@@ -1,0 +1,1 @@
+export const selectManagers = (state) => state.list ? state.list.managers : [];

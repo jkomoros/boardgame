@@ -52,6 +52,7 @@
     "pwa-helpers": "^0.9.1",
     "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
+    "reselect-tools": "0.0.7",
     "web-animations-js": "^2.3.2"
   }
 }

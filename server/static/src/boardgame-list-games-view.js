@@ -19,7 +19,24 @@ import './boardgame-game-item.js';
 import './boardgame-ajax.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameListGamesView extends PolymerElement {
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import { store } from './store.js';
+
+import list from './reducers/list.js';
+store.addReducers({
+	list
+});
+
+import {
+  selectManagers
+} from './selectors.js';
+
+
+import {
+  fetchManagers
+} from './actions/list.js';
+
+class BoardgameListGamesView extends connect(store)(PolymerElement) {
   static get template() {
     return html`
     <style include="shared-styles">
@@ -79,7 +96,6 @@ class BoardgameListGamesView extends PolymerElement {
 
     
     <boardgame-ajax auto="" debounce-duration="100" id="games" path="list/game" handle-as="json" params="[[gamesArgs]]" last-response="{{data}}"></boardgame-ajax>
-    <boardgame-ajax auto="" path="list/manager" handle-as="json" last-response="{{managerData}}"></boardgame-ajax>
 `;
   }
 
@@ -92,9 +108,7 @@ class BoardgameListGamesView extends PolymerElement {
       data: Object,
       managers: {
         type: Array,
-        computed: "_computeManagers(managerData)"
       },
-      managerData: Object,
       selectedManager: Object,
       admin: {
         type: Boolean,
@@ -120,9 +134,13 @@ class BoardgameListGamesView extends PolymerElement {
     }
   }
 
-  _computeManagers(managerData) {
-    if (!managerData) return [];
-    return managerData.Managers;
+  ready() {
+    super.ready();
+    store.dispatch(fetchManagers());
+  }
+
+  stateChanged(state) {
+    this.managers = selectManagers(state);
   }
 
   _computeGamesArgs(gameType, admin) {

@@ -200,8 +200,7 @@ class BoardgameApp extends PolymerElement {
   }
 
   _pageChanged(page) {
-    // Load page import on demand. Show 404 page if fails
-    import('./boardgame-' + page + '-view.js').then(null, this._showPage404.bind(this));
+    import('./boardgame-' + page + '-view.js');
   }
 
   _showPage404(err) {

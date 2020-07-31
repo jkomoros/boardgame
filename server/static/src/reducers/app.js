@@ -14,7 +14,7 @@ const INITIAL_STATE = {
 	pageExtra: '',
 	offline: false,
 	snackbarOpened: false,
-	headerPanelOpen: HEADER_PANEL_DEFAULT_VALUE,
+	headerPanelOpen: false,
 };
 
 const app = (state = INITIAL_STATE, action) => {
