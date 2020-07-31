@@ -16,7 +16,6 @@ import '@polymer/paper-listbox/paper-listbox.js';
 import './shared-styles.js';
 import './boardgame-create-game.js';
 import './boardgame-game-item.js';
-import './boardgame-ajax.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
@@ -28,12 +27,18 @@ store.addReducers({
 });
 
 import {
-  selectManagers
+  selectManagers,
+  selectParticipatingActiveGames,
+  selectParticipatingFinishedGames,
+  selectVisibleActiveGames,
+  selectVisibleJoinableGames,
+  selectAllGames,
 } from './selectors.js';
 
 
 import {
-  fetchManagers
+  fetchManagers,
+  fetchGamesList
 } from './actions/list.js';
 
 class BoardgameListGamesView extends connect(store)(PolymerElement) {
@@ -63,39 +68,36 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
         </paper-listbox>
       </paper-dropdown-menu>
     </div>
-    <template is="dom-if" if="[[data.ParticipatingActiveGames.length]]">
+    <template is="dom-if" if="[[_participatingActiveGames.length]]">
       <h2>Active</h2>
-      <template is="dom-repeat" items="[[data.ParticipatingActiveGames]]">
+      <template is="dom-repeat" items="[[_participatingActiveGames]]">
         <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="[[data.PaticipatingFinishedGames.length]]">
+    <template is="dom-if" if="[[_participatingFinishedGames.length]]">
       <h2>Finished</h2>
-      <template is="dom-repeat" items="[[data.PaticipatingFinishedGames]]">
+      <template is="dom-repeat" items="[[_participatingFinishedGames]]">
         <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="[[data.VisibleJoinableActiveGames.length]]">
+    <template is="dom-if" if="[[_visibleJoinableActiveGames.length]]">
       <h2>Joinable</h2>
-      <template is="dom-repeat" items="[[data.VisibleJoinableActiveGames]]">
+      <template is="dom-repeat" items="[[_visibleJoinableActiveGames]]">
         <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="[[data.VisibleActiveGames.length]]">
+    <template is="dom-if" if="[[_visibleActiveGames.length]]">
       <h2>Spectator</h2>
-      <template is="dom-repeat" items="[[data.VisibleActiveGames]]">
+      <template is="dom-repeat" items="[[_visibleActiveGames]]">
         <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-    <template is="dom-if" if="[[data.AllGames.length]]">
+    <template is="dom-if" if="[[_allGames.length]]">
       <h2>All Games</h2>
-      <template is="dom-repeat" items="[[data.AllGames]]">
+      <template is="dom-repeat" items="[[_allGames]]">
         <boardgame-game-item item="[[item]]" managers="[[managers]]"></boardgame-game-item>
       </template>
     </template>
-
-    
-    <boardgame-ajax auto="" debounce-duration="100" id="games" path="list/game" handle-as="json" params="[[gamesArgs]]" last-response="{{data}}"></boardgame-ajax>
 `;
   }
 
@@ -105,7 +107,11 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
 
   static get properties() {
     return {
-      data: Object,
+      _participatingActiveGames: { type: Array },
+      _participatingFinishedGames: { type: Array },
+      _visibleActiveGames: { type: Array },
+      _visibleJoinableGames: { type: Array },
+      _allGames: { type: Array },
       managers: {
         type: Array,
       },
@@ -113,15 +119,13 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
       admin: {
         type: Boolean,
         value: false,
+        observer: "_adminChanged",
       },
       gameType: {
         type: String,
         value: "",
         computed: "_computeGameType(selectedManager)",
-      },
-      gamesArgs: {
-        type: Object,
-        computed: "_computeGamesArgs(gameType, admin)"
+        observer: "_gameTypeChanged",
       },
       selected: {
         type: Boolean,
@@ -134,17 +138,21 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
     }
   }
 
-  ready() {
-    super.ready();
-    store.dispatch(fetchManagers());
-  }
-
   stateChanged(state) {
     this.managers = selectManagers(state);
+    this._participatingActiveGames = selectParticipatingActiveGames(state);
+    this._participatingFinishedGames = selectParticipatingFinishedGames(state);
+    this._visibleActiveGames = selectVisibleActiveGames(state);
+    this._visibleJoinableGames = selectVisibleJoinableGames(state);
+    this._allGames = selectAllGames(state);
   }
 
-  _computeGamesArgs(gameType, admin) {
-    return {"name": gameType, "admin" : (admin ? 1 : 0)}
+  _adminChanged() {
+    this._fetchGames();
+  }
+
+  _gameTypeChanged() {
+    this._fetchGames();
   }
 
   _computeGameType(selectedManager) {
@@ -155,13 +163,17 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
   _loggedInChanged(newValue) {
     //TODO: this is a race. Ideally loggedIn wouldn't change until the
     //user was logged out as far as server was concerned.
-    setTimeout(() => this.$.games.generateRequest(), 250);
+    setTimeout(() => this._fetchGames(), 250);
+  }
+
+  _fetchGames() {
+    store.dispatch(fetchGamesList(this.gameType, this.admin));
   }
 
   _selectedChanged(newValue) {
     if (newValue) {
-      if (this.$.games.loading) return;
-      this.$.games.generateRequest();
+      store.dispatch(fetchManagers());
+      this._fetchGames();
     }
   }
 }
