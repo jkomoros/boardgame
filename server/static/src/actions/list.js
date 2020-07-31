@@ -1,5 +1,6 @@
 export const UPDATE_MANAGERS = 'UPDATE_MANAGERS';
 export const UPDATE_GAMES_LIST = 'UPDATE_GAMES_LIST';
+export const UPDATE_GAME_TYPE_FILTER = 'UPDATE_GAME_TYPE_FILTER';
 
 import {
     apiPath
@@ -17,6 +18,13 @@ export const fetchManagers = () => async (dispatch) => {
         type: UPDATE_MANAGERS,
         managers
     })
+}
+
+export const updateGameTypeFilter = (name) => {
+    return {
+        type: UPDATE_GAME_TYPE_FILTER,
+        name,
+    }
 }
 
 export const fetchGamesList = (gameType, isAdmin) => async (dispatch) => {

@@ -1,9 +1,11 @@
 import {
     UPDATE_MANAGERS,
-    UPDATE_GAMES_LIST
+    UPDATE_GAMES_LIST,
+    UPDATE_GAME_TYPE_FILTER
 } from '../actions/list.js';
 
 const INITIAL_STATE = {
+    gameTypeFilter: "",
     managers: [],
     allGames: [],
     participatingActiveGames: [],
@@ -18,6 +20,11 @@ const app = (state = INITIAL_STATE, action) => {
 		return {
 			...state,
             managers: action.managers,
+        };
+    case UPDATE_GAME_TYPE_FILTER:
+        return {
+            ...state,
+            gameTypeFilter: action.name
         };
     case UPDATE_GAMES_LIST:
         return {

@@ -28,6 +28,7 @@ store.addReducers({
 
 import {
   selectManagers,
+  selectGameTypeFilter,
   selectParticipatingActiveGames,
   selectParticipatingFinishedGames,
   selectVisibleActiveGames,
@@ -38,6 +39,7 @@ import {
 
 import {
   fetchManagers,
+  updateGameTypeFilter,
   fetchGamesList
 } from './actions/list.js';
 
@@ -60,7 +62,7 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
     </div>
     <div class="card">
       <paper-dropdown-menu name="manager" label="Game Type Filter">
-        <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
+        <paper-listbox slot="dropdown-content" selected="[[_gameTypeFilter]]" on-selected-changed="_handleSelectedChanged">
           <paper-item value="">All Games</paper-item>
           <template is="dom-repeat" items="[[_managers]]">
             <paper-item value="[[item.Name]]" data="[[item]]">[[item.DisplayName]]</paper-item> 
@@ -115,17 +117,14 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
       _managers: {
         type: Array,
       },
-      selectedManager: Object,
+      _gameTypeFilter: { 
+        type: String,
+        observer: "_gameTypeChanged",
+      },
       admin: {
         type: Boolean,
         value: false,
         observer: "_adminChanged",
-      },
-      gameType: {
-        type: String,
-        value: "",
-        computed: "_computeGameType(selectedManager)",
-        observer: "_gameTypeChanged",
       },
       selected: {
         type: Boolean,
@@ -140,11 +139,16 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
 
   stateChanged(state) {
     this._managers = selectManagers(state);
+    this._gameTypeFilter = selectGameTypeFilter(state);
     this._participatingActiveGames = selectParticipatingActiveGames(state);
     this._participatingFinishedGames = selectParticipatingFinishedGames(state);
     this._visibleActiveGames = selectVisibleActiveGames(state);
     this._visibleJoinableGames = selectVisibleJoinableGames(state);
     this._allGames = selectAllGames(state);
+  }
+
+  _handleSelectedChanged(e) {
+    store.dispatch(updateGameTypeFilter(e.path[0].selectedItem.value))
   }
 
   _adminChanged() {
@@ -155,11 +159,6 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
     this._fetchGames();
   }
 
-  _computeGameType(selectedManager) {
-    if (!selectedManager) return "";
-    return selectedManager.value || selectedManager.getAttribute("value") || "";
-  }
-
   _loggedInChanged(newValue) {
     //TODO: this is a race. Ideally loggedIn wouldn't change until the
     //user was logged out as far as server was concerned.
@@ -167,7 +166,7 @@ class BoardgameListGamesView extends connect(store)(PolymerElement) {
   }
 
   _fetchGames() {
-    store.dispatch(fetchGamesList(this.gameType, this.admin));
+    store.dispatch(fetchGamesList(this._gameTypeFilter, this.admin));
   }
 
   _selectedChanged(newValue) {

@@ -1,4 +1,5 @@
 export const selectManagers = (state) => state.list ? state.list.managers : [];
+export const selectGameTypeFilter = (state) => state.list ? state.list.gameTypeFilter : "";
 export const selectParticipatingActiveGames = (state) => state.list ? state.list.participatingActiveGames : [];
 export const selectParticipatingFinishedGames = (state) => state.list ? state.list.participatingFinishedGames : [];
 export const selectVisibleActiveGames = (state) => state.list ? state.list.visibleActiveGames : [];
