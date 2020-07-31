@@ -48,7 +48,8 @@ export const fetchGamesList = (gameType, isAdmin) => async (dispatch) => {
         participatingActiveGames: data.ParticipatingActiveGames,
         participatingFinishedGames: data.ParticipatingFinishedGames,
         visibleActiveGames: data.VisibleActiveGames,
-        visibleJoinableGames: data.VisibleJoinableGames,
+        //TODO: it's weird that we rename this variable from the server here
+        visibleJoinableGames: data.VisibleJoinableActiveGames,
         allGames: data.AllGames,
     })
 
