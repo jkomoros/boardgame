@@ -34,11 +34,11 @@ export const getProperty = (obj, propNames) => {
     if (typeof obj != "object") return undefined;
     if (!propNames) return undefined;
     if (typeof propNames == "string") propNames = propNames.split(".");
-    let propName = propNames.shift();
+    let propName = propNames[0];
     let prop = obj[propName];
     //That was the last name in the chain
-    if (propNames.length == 0) return prop;
-    return getProperty(prop, propNames);
+    if (propNames.length == 1) return prop;
+    return getProperty(prop, propNames.slice(1));
 }
 
 //setProperty sets the given propName to val. Will return true if it was
@@ -48,11 +48,11 @@ export const setProperty = (obj, propNames, val) => {
     if (typeof obj != "object") return false;
     if (!propNames) return false;
     if (typeof propNames == "string") propNames = propNames.split(".");
-    let propName = propNames.shift();
+    let propName = propNames[0];
     //That was the last name in the chain
-    if (propNames.length == 0) {
+    if (propNames.length == 1) {
         obj[propName] = val;
         return true;
     };
-    return setProperty(obj[propName], propNames, val);
+    return setProperty(obj[propName], propNames.slice(1), val);
 }
