@@ -225,7 +225,7 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
 
   _createGameResponseChanged(newValue) {
     if (newValue.Status == "Success") {
-      this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: this.GamePath(newValue.GameName, newValue.GameID)}));
+      this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: '/' + this.GamePath(newValue.GameName, newValue.GameID)}));
     } else {
       this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail:{message:newValue.Error, friendlyMessage: newValue.FriendlyError}}));
     }
