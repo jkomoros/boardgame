@@ -16,6 +16,15 @@ export const apiPath = (path, params) => {
     return url + "?" + parts.join("&");
 }
 
+export const deepCopy = (obj) => {
+    if (typeof obj != "object") return obj;
+    const result = {};
+    for (let [key, val] of Object.entries(obj)) {
+        result[key] = deepCopy(val);
+    }
+    return result;
+}
+
 //getProperty returns the given prop name out of the object. propName may be a
 //string or an array of string fields. if propNames has a dot, then it will be
 //split on those items. Handles undefined fine.
