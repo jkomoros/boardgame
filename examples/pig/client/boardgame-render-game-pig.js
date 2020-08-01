@@ -2,9 +2,9 @@ import '@polymer/polymer/polymer-element.js';
 import '@polymer/polymer/lib/elements/dom-repeat.js';
 import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import '@polymer/paper-button/paper-button.js';
-import '../../src/boardgame-die.js';
-import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
-import '../../src/boardgame-fading-text.js';
+import '../../src/components/boardgame-die.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import '../../src/components/boardgame-fading-text.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 class BoardgameRenderGamePig extends BoardgameBaseGameRenderer {

@@ -177,7 +177,7 @@ class BoardgamePlayerRoster extends PolymerElement {
   _gameRouteChanged(newValue) {
     if (!newValue) return;
     this.rendererLoaded = false;
-    import("../game-src/" +newValue.name + "/boardgame-render-player-info-" + newValue.name + ".js").then(this._rendererLoaded.bind(this), null);
+    import("../../game-src/" +newValue.name + "/boardgame-render-player-info-" + newValue.name + ".js").then(this._rendererLoaded.bind(this), null);
   }
 
   _rendererLoaded(e) {

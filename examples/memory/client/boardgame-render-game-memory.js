@@ -4,11 +4,11 @@ import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-styles/typography.js';
-import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
-import '../../src/boardgame-card.js';
-import '../../src/boardgame-component-stack.js';
-import '../../src/boardgame-fading-text.js';
-import '../../src/boardgame-deck-defaults.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import '../../src/components/boardgame-card.js';
+import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-fading-text.js';
+import '../../src/components/boardgame-deck-defaults.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {

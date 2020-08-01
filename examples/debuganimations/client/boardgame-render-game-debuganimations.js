@@ -7,13 +7,13 @@ import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-item/paper-item.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
 import '@polymer/paper-slider/paper-slider.js';
-import '../../src/boardgame-deck-defaults.js';
-import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
-import '../../src/boardgame-card.js';
-import '../../src/boardgame-component-stack.js';
-import '../../src/boardgame-fading-text.js';
-import '../../src/boardgame-status-text.js';
-import '../../src/boardgame-token.js';
+import '../../src/components/boardgame-deck-defaults.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import '../../src/components/boardgame-card.js';
+import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-fading-text.js';
+import '../../src/components/boardgame-status-text.js';
+import '../../src/components/boardgame-token.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {

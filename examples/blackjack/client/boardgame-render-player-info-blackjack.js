@@ -1,5 +1,5 @@
 import { PolymerElement } from '@polymer/polymer/polymer-element.js';
-import '../../src/boardgame-status-text.js';
+import '../../src/components/boardgame-status-text.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 class BoardgameRenderPlayerInfoBlackjack extends PolymerElement {

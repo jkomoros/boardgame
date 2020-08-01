@@ -1118,7 +1118,7 @@ Your renderer web component should be named `boardgame-render-game-GAMENAME`,
 where `GAMENAME` is the name of your game (what your GameDelegate returns from
 the Name() method).
 
-The import will be looked for in `../game-src/GAMENAME/boardgame-render-game-
+The import will be looked for in `../../game-src/GAMENAME/boardgame-render-game-
 GAMENAME.js`.
 
 Your game type might be imported into many different servers, so it's best
