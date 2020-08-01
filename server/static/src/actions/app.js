@@ -7,7 +7,7 @@ export const OPEN_HEADER_PANEL = 'OPEN_HEADER_PANEL';
 export const CLOSE_HEADER_PANEL = 'CLOSE_HEADER_PANEL';
 
 export const PAGE_DEFAULT = 'list-games';
-export const PAGE_COMMENT = 'game';
+export const PAGE_GAME = 'game';
 export const PAGE_404 = 'view404';
 
 //if silent is true, then just passively updates the URL to reflect what it should be.
@@ -44,17 +44,17 @@ const loadPage = (pathname, query) => (dispatch) => {
 
 	switch(page) {
 	case PAGE_DEFAULT:
-		import('../boardgame-list-games-view.js').then(() => {
+		import('../components/boardgame-list-games-view.js').then(() => {
 			// Put code in here that you want to run every time when
 			// navigating to view1 after my-view1.js is loaded.
 		});
 		break;
 	case PAGE_GAME:
-		import('../boardgame-game-view.js');
+		import('../components/boardgame-game-view.js');
         break;
     default:
 		page = PAGE_404;
-		import('../boardgame-404-view.js');
+		import('../components/boardgame-404-view.js');
 	}
 
 	dispatch(updatePage(pathname, page, pageExtra));

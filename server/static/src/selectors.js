@@ -1,3 +1,5 @@
+export const selectPage = (state) => state.app ? state.app.page : "";
+export const selectPageExtra = (state) => state.app ? state.app.pageExtra : "";
 export const selectManagers = (state) => state.list ? state.list.managers : [];
 export const selectGameTypeFilter = (state) => state.list ? state.list.gameTypeFilter : "";
 export const selectParticipatingActiveGames = (state) => state.list ? state.list.participatingActiveGames : [];

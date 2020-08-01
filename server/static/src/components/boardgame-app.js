@@ -22,8 +22,6 @@ import '@polymer/app-layout/app-header/app-header.js';
 import '@polymer/app-layout/app-header-layout/app-header-layout.js';
 import '@polymer/app-layout/app-scroll-effects/app-scroll-effects.js';
 import '@polymer/app-layout/app-toolbar/app-toolbar.js';
-import '@polymer/app-route/app-location.js';
-import '@polymer/app-route/app-route.js';
 import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/iron-selector/iron-selector.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
@@ -36,7 +34,23 @@ import './boardgame-user.js';
 import './my-icons.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameApp extends PolymerElement {
+import { installRouter } from 'pwa-helpers/router.js';
+
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import { store } from '../store.js';
+
+import {
+  selectPage,
+  selectPageExtra
+} from '../selectors.js';
+
+import {
+  navigated,
+  navigatePathTo,
+  PAGE_GAME,
+} from '../actions/app.js';
+
+class BoardgameApp extends connect(store)(PolymerElement) {
   static get template() {
     return html`
     <style>
@@ -89,17 +103,13 @@ class BoardgameApp extends PolymerElement {
       }
     </style>
 
-    <app-location route="{{route}}"></app-location>
-    <app-route route="{{route}}" pattern="/:page" data="{{routeData}}" tail="{{subroute}}"></app-route>
-    <app-route route="{{route}}" pattern="/game/:name/:id" data="{{gameRoute}}" tail="{{gameSubRoute}}"></app-route>
-
     <app-drawer-layout fullbleed="">
       <!-- Drawer content -->
       <app-drawer slot="drawer" id="drawer">
         <boardgame-user id="user" logged-in="{{loggedIn}}" admin-allowed="{{adminAllowed}}"></boardgame-user>
         <paper-toggle-button checked="{{admin}}" hidden="[[!adminAllowed]]">Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
-        <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
+        <iron-selector selected="[[_page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="list-games" href="/list-games">List Games</a>
         </iron-selector>
       </app-drawer>
@@ -114,10 +124,10 @@ class BoardgameApp extends PolymerElement {
           </app-toolbar>
         </app-header>
 
-        <iron-pages selected="[[page]]" attr-for-selected="name" fallback-selection="view404" selected-attribute="selected" role="main">
-          <boardgame-game-view logged-in="[[loggedIn]]" admin="[[admin]]" name="game" game-route="[[gameRoute]]"></boardgame-game-view>
+        <iron-pages selected="[[_page]]" attr-for-selected="name" fallback-selection="view404" selected-attribute="selected" role="main">
+          <boardgame-game-view logged-in="[[loggedIn]]" admin="[[admin]]" name="game" game-route="[[_gameRoute]]"></boardgame-game-view>
           <boardgame-list-games-view name="list-games" logged-in="[[loggedIn]]" admin="[[admin]]"></boardgame-list-games-view>
-          <boardgame-404-view name="404"></boardgame-404-view>
+          <boardgame-404-view name="view404"></boardgame-404-view>
         </iron-pages>
       </app-header-layout>
     </app-drawer-layout>
@@ -138,12 +148,12 @@ class BoardgameApp extends PolymerElement {
 
   static get properties() {
     return {
-      page: {
-        type: String,
-        reflectToAttribute: true,
-        observer: '_pageChanged',
+      _page: { type: String },
+      _pageExtra: { type: String },
+      _gameRoute: {
+        type: Object,
+        computed: "_computeGameRoute(_page, _pageExtra)"
       },
-      route : Object,
       user: Object,
       loggedIn : Boolean,
       admin: {
@@ -157,21 +167,39 @@ class BoardgameApp extends PolymerElement {
     }
   }
 
-  static get observers() {
-    return [
-      '_routePageChanged(routeData.page)',
-    ] 
-  }
-
   ready() {
     super.ready();
     this.addEventListener('navigate-to', e => this.handleNavigateTo(e));
     this.addEventListener('show-error', e => this.handleShowError(e));
     this.addEventListener('show-login', e => this.handleShowLogIn(e));
+    installRouter((location) => store.dispatch(navigated(decodeURIComponent(location.pathname), decodeURIComponent(location.search))));
+  }
+
+  stateChanged(state) {
+    this._page = selectPage(state);
+    this._pageExtra = selectPageExtra(state);
+  }
+
+  //TODO: this logic should live in actions/app.js, and be kicked off by
+  //game-view once it's a connected component
+  _computeGameRoute(page, pageExtra) {
+    if (!page || !pageExtra) return null;
+    if (page != PAGE_GAME) return null;
+    const pieces = pageExtra.split("/");
+    //remove the trailing slash
+    if (!pieces[pieces.length - 1]) pieces.pop();
+    if (pieces.length != 2) {
+      console.warn("URL for game didn't have expected number of pieces");
+      return null;
+    }
+    return {
+      name: pieces[0],
+      id: pieces[1],
+    }
   }
 
   handleNavigateTo(e) {
-    this.set('route.path',e.detail);
+    store.dispatch(navigatePathTo(e.detail, false));
   }
 
   handleShowError(e) {
@@ -191,22 +219,6 @@ class BoardgameApp extends PolymerElement {
     this.$.user.showSignInDialog(e);
   }
 
-  _routePageChanged(page) {
-    this.page = page || 'list-games';
-
-    if (!this.$.drawer.persistent) {
-      this.$.drawer.close();
-    }
-  }
-
-  _pageChanged(page) {
-    import('./boardgame-' + page + '-view.js');
-  }
-
-  _showPage404(err) {
-    console.log(err);
-    this.page = '404';
-  }
 }
 
 customElements.define(BoardgameApp.is, BoardgameApp);
