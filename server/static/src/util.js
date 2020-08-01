@@ -18,6 +18,7 @@ export const apiPath = (path, params) => {
 
 export const deepCopy = (obj) => {
     if (typeof obj != "object") return obj;
+    if (!obj) return obj;
     const result = {};
     for (let [key, val] of Object.entries(obj)) {
         result[key] = deepCopy(val);
