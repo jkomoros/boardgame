@@ -126,11 +126,11 @@ class BoardgameDie extends BoardgameAnimatableItem {
     </style>
 
     <div id="scaler">
-      <div id="main" style\$="--selected-face:{{selectedFace}}" class\$="{{_classes(disabled)}}">
+      <div id="main" style\$="--selected-face:[[selectedFace]]" class\$="[[_classes(disabled)]]">
         <div id="inner">
-          <template is="dom-repeat" items="{{faces}}">
-            <div class\$="{{_classForFace(item)}}">
-              <span>{{item}}</span>
+          <template is="dom-repeat" items="[[faces]]">
+            <div class\$="[[_classForFace(item)]]">
+              <span>[[item]]</span>
               <div class="pip mid center"></div>
               <div class="pip top left"></div>
               <div class="pip top right"></div>

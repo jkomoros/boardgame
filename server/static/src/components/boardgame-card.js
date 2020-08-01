@@ -184,10 +184,10 @@ class BoardgameCard extends BoardgameComponent {
         <div class="normal">
           <slot id="front-slot">
             <div id="top-rank">
-              {{suit}}{{rank}}
+              [[suit]][[rank]]
             </div>
             <div id="bottom-rank">
-              {{suit}}{{rank}}
+              [[suit]][[rank]]
             </div>
           </slot>
         </div>

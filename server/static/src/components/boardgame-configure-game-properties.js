@@ -8,8 +8,8 @@ import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 class BoardgameConfigureGameProperties extends PolymerElement {
   static get template() {
     return html`
-      <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled="{{disabled}}" on-tap="_handleOpenTapped"></paper-icon-button>
-      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" alt="{{_visibleAlt(gameVisible)}}" disabled="{{disabled}}" on-tap="_handleVisibleTapped"></paper-icon-button>
+      <paper-icon-button icon="[[_openIcon(gameOpen)]]" alt="[[_openAlt(gameOpen)]]" disabled="[[disabled]]" on-tap="_handleOpenTapped"></paper-icon-button>
+      <paper-icon-button icon="[[_visibleIcon(gameVisible)]]" alt="[[_visibleAlt(gameVisible)]]" disabled="[[disabled]]" on-tap="_handleVisibleTapped"></paper-icon-button>
       <boardgame-ajax id="ajax" game-path="configure" game-route="[[gameRoute]]" method="POST" content-type="application/x-www-form-urlencoded" last-response="{{_response}}"></boardgame-ajax>
 `;
   }

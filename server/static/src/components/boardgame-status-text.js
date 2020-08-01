@@ -17,11 +17,11 @@ class BoardgameStatusText extends PolymerElement {
       }
 
     </style>
-    <strong>{{message}}</strong>
+    <strong>[[message]]</strong>
     <div class="hidden">
       <slot id="content"></slot>
     </div>
-    <boardgame-fading-text trigger="{{message}}" auto-message="{{autoMessage}}" suppress="falsey"></boardgame-fading-text>
+    <boardgame-fading-text trigger="[[message]]" auto-message="[[autoMessage]]" suppress="falsey"></boardgame-fading-text>
 `;
   }
 

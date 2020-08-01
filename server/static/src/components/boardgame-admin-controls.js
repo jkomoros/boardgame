@@ -15,7 +15,7 @@ class BoardgameAdminControls extends PolymerElement {
     <style include="iron-flex shared-styles">
 
     </style>
-    <div hidden="{{!active}}">
+    <div hidden="[[!active]]">
       <div class="card horizontal layout admin center">
         <div class="flex">
           View as
@@ -25,27 +25,27 @@ class BoardgameAdminControls extends PolymerElement {
             <paper-radio-button name="current">Current Player</paper-radio-button>
             <paper-radio-button name="custom">Custom</paper-radio-button>
           </paper-radio-group>
-          <input is="iron-input" type="number" value-as-number="{{customRequestedPlayer::input}}" min="0" max="{{maxRequestedPlayerIndex}}">
+          <input is="iron-input" type="number" value-as-number="{{customRequestedPlayer::input}}" min="0" max="[[maxRequestedPlayerIndex]]">
         </div>
         <div>
           <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
         </div>
       </div>
-      <template is="dom-if" if="{{!game.Finished}}">
+      <template is="dom-if" if="[[!game.Finished]]">
         <div class="card">
-          <boardgame-move-form admin="{{active}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-route="[[gameRoute]]"></boardgame-move-form>
+          <boardgame-move-form admin="[[active]]" move-as-player="[[moveAsPlayer]]" id="moves" config="[[moveForms]]" game-route="[[gameRoute]]"></boardgame-move-form>
         </div>
       </template>
       <div class="card">
         <details>
           <summary>State</summary>
-          <pre>{{gameState}}</pre>
+          <pre>[[gameState]]</pre>
         </details>
       </div>
       <div class="card">
         <details>
           <summary>Chest</summary>
-          <pre>{{_chestAsString}}</pre>
+          <pre>[[_chestAsString]]</pre>
         </details>
       </div>
     </div>

@@ -188,11 +188,11 @@ func BuildPolymer(dir string) error {
 
 const basePolymerJSON = `{
   "entrypoint": "index.html",
-  "shell": "src/boardgame-app.js",
+  "shell": "src/components/boardgame-app.js",
   "fragments": [
-    "src/boardgame-game-view.js",
-    "src/boardgame-list-games-view.js",
-    "src/boardgame-404-view.js"
+    "src/components/boardgame-game-view.js",
+    "src/components/boardgame-list-games-view.js",
+    "src/components/boardgame-404-view.js"
   ],
   "sourceGlobs": [
     "src/**/*",

@@ -91,16 +91,16 @@ class BoardgameUser extends PolymerElement {
         display:block;
       }
     </style>
-    <div class\$="{{_classForVerifyingAuth(verifyingAuth, offlineDevMode)}}">
+    <div class\$="[[_classForVerifyingAuth(verifyingAuth, offlineDevMode)]]">
       <div id="offline"></div>
       <div class="horizontal layout">
-        <boardgame-player-chip photo-url="{{_string(user.PhotoURL)}}" display-name="{{_string(user.DisplayName)}}"></boardgame-player-chip>
+        <boardgame-player-chip photo-url="[[_string(user.PhotoURL)]]" display-name="[[_string(user.DisplayName)]]"></boardgame-player-chip>
         <div class="vertical layout">
-          <template is="dom-if" if="{{user}}">
-              <div>{{user.DisplayName}}</div>
+          <template is="dom-if" if="[[user]]">
+              <div>[[user.DisplayName]]</div>
               <a on-tap="signOut">Sign Out</a>
           </template>
-          <template is="dom-if" if="{{!user}}">
+          <template is="dom-if" if="[[!user]]">
             <div>Not signed in</div>
             <a on-tap="showSignInDialog">Sign In</a>
           </template>
@@ -111,7 +111,7 @@ class BoardgameUser extends PolymerElement {
     See https://github.com/PolymerElements/paper-dialog/issues/7 -->
 
     <paper-dialog id="dialog" no-cancel-on-esc-key="" no-cancel-on-outside-click="">
-      <div hidden$="{{!offlineDevMode}}">
+      <div hidden$="[[!offlineDevMode]]">
         <strong style="color:red;">Offline Dev Mode enabled; login is faked</strong>
       </div>
       <iron-pages id="pages">
@@ -130,7 +130,7 @@ class BoardgameUser extends PolymerElement {
           <paper-input id="password" label="Password" type="password"></paper-input>
           <div class="buttons">
             <paper-button on-tap="cancel">Cancel</paper-button>
-            <paper-button on-tap="emailSubmitted" autofocus="" default="">{{buttonText(emailFormIsSignIn)}}</paper-button>
+            <paper-button on-tap="emailSubmitted" autofocus="" default="">[[buttonText(emailFormIsSignIn)]]</paper-button>
           </div>
         </div>
         <div>
@@ -139,7 +139,7 @@ class BoardgameUser extends PolymerElement {
         </div>
         <div>
           <h2>Sign In Error</h2>
-          <div>{{errorText}}</div>
+          <div>[[errorText]]</div>
           <div class="buttons">
             <paper-button on-tap="cancel" default="">OK</paper-button>
           </div>

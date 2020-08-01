@@ -32,22 +32,22 @@ class BoardgamePlayerRoster extends PolymerElement {
 
     </style>
     <div class="layout horizontal center">
-      <h3 class="flex">{{_bannerText(finished, winners)}}</h3>
-      <boardgame-configure-game-properties game-visible="{{gameVisible}}" game-open="{{gameOpen}}" admin="{{admin}}" is-owner="{{isOwner}}" game-route="{{gameRoute}}" configurable="">
+      <h3 class="flex">[[_bannerText(finished, winners)]]</h3>
+      <boardgame-configure-game-properties game-visible="[[gameVisible]]" game-open="[[gameOpen]]" admin="[[admin]]" is-owner="[[isOwner]]" game-route="[[gameRoute]]" configurable="">
       </boardgame-configure-game-properties>
     </div>
     <div class="layout horizontal justified players">
       <template is="dom-repeat" items="{{playersInfo}}">
-        <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameRoute.name}}" is-empty="{{item.IsEmpty}}" finished="[[finished]]" winner="[[_isWinner(index, winners)]]" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}" active="[[active]]">
+        <boardgame-player-roster-item class="flex" state="[[state]]" game-name="[[gameRoute.name]]" is-empty="[[item.IsEmpty]]" finished="[[finished]]" winner="[[_isWinner(index, winners)]]" is-agent="[[item.IsAgent]]" photo-url="[[item.PhotoUrl]]" display-name="[[item.DisplayName]]" player-index="[[index]]" viewing-as-player="[[viewingAsPlayer]]" current-player-index="[[currentPlayerIndex]]" renderer-loaded="[[rendererLoaded]]" active="[[active]]">
         </boardgame-player-roster-item>
       </template>
     </div>
-    <div hidden\$="{{!isObserver}}">
+    <div hidden\$="[[!isObserver]]">
       <div class="layout horizontal center">
         <h3 class="flex">
           Observing
         </h3>
-        <div hidden\$="{{!showJoin}}">
+        <div hidden\$="[[!showJoin]]">
           <paper-button on-tap="showDialog" raised="" default="">Join game</paper-button>
         </div>
       </div>

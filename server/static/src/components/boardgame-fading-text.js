@@ -47,9 +47,9 @@ class BoardgameFadingText extends PolymerElement {
 
     </style>
 
-    <div id="container" class\$="{{_classes(_animating)}}">
+    <div id="container" class\$="[[_classes(_animating)]]">
       <div id="message">
-        {{message}}
+        [[message]]
       </div>
     </div>
 `;
