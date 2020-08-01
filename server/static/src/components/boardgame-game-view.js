@@ -209,7 +209,7 @@ class BoardgameGameView extends LitElement {
   }
 
   _firstStateBundleInstalled() {
-    if (this.selected && this.loggedIn && this.$.player.showJoin && !this.promptedToJoin) {
+    if (this.selected && this.loggedIn && this._playerEle.showJoin && !this.promptedToJoin) {
 
       //Take note that we already prompted them, and don't prompt again unless the game changes.
       this.promptedToJoin = true;
