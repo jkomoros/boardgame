@@ -30,3 +30,19 @@ export const getProperty = (obj, propNames) => {
     if (propNames.length == 0) return prop;
     return getProperty(prop, propNames);
 }
+
+//setProperty sets the given propName to val. Will return true if it was
+//successfully set, false if there was an error in the shape.
+export const setProperty = (obj, propNames, val) => {
+    if (!obj) return false;
+    if (typeof obj != "object") return false;
+    if (!propNames) return false;
+    if (typeof propNames == "string") propNames = propNames.split(".");
+    let propName = propNames.shift();
+    //That was the last name in the chain
+    if (propNames.length == 0) {
+        obj[propName] = val;
+        return true;
+    };
+    return setProperty(obj[propName], propNames, val);
+}
