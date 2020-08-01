@@ -267,6 +267,8 @@ class BoardgameRenderGame extends PolymerElement {
 
     this._removeRenderer();
 
+    if (!newValue) return;
+
     import("../../game-src/" +newValue + "/boardgame-render-game-" + newValue + ".js").then(this._instantiateRenderer.bind(this), null);
   }
 
