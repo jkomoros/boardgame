@@ -34,12 +34,14 @@ import {
   signInWithGoogle,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  showSignInDialog
 } from '../actions/user.js';
 
 import {
   selectUser,
   selectVerifyingAuth,
-  selectSignInErrorMessage
+  selectSignInErrorMessage,
+  selectSignInDialogOpen
 } from '../selectors.js';
 
 class BoardgameUser extends connect(store)(PolymerElement) {
@@ -99,7 +101,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     <!-- TODO: ideall this would be modal, but given its position in DOM that doesn't work.
     See https://github.com/PolymerElements/paper-dialog/issues/7 -->
 
-    <paper-dialog id="dialog" no-cancel-on-esc-key="" no-cancel-on-outside-click="">
+    <paper-dialog id="dialog" no-cancel-on-esc-key="" no-cancel-on-outside-click="" opened="[[_dialogOpen]]">
       <div hidden$="[[!offlineDevMode]]">
         <strong style="color:red;">Offline Dev Mode enabled; login is faked</strong>
       </div>
@@ -158,7 +160,8 @@ class BoardgameUser extends connect(store)(PolymerElement) {
       _errorMessage: {
         type: String,
         observer: "_errorMessageChanged"
-      }
+      },
+      _dialogOpen: { type: Boolean },
     }
   }
 
@@ -166,6 +169,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     this._user = selectUser(state);
     this._verifyingAuth = selectVerifyingAuth(state);
     this._errorMessage = selectSignInErrorMessage(state);
+    this._dialogOpen = selectSignInDialogOpen(state);
   }
 
   get offlineDevMode() {
@@ -249,13 +253,9 @@ class BoardgameUser extends connect(store)(PolymerElement) {
 
   showSignInDialog(e) {
     //Might be undefined, that's fine
-    const nextAction = e.detail.nextAction;
-    setSignedInAction(() => {
-      this.$.dialog.close();
-      if (nextAction) nextAction();
-    });
+    setSignedInAction(e.detail.nextAction);
     this.$.pages.selected = 0;
-    this.$.dialog.open();
+    store.dispatch(showSignInDialog());
   }
 
   signOut() {

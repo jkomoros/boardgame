@@ -2,7 +2,8 @@ import {
     UPDATE_USER,
     VERIFYING_AUTH,
     UPDATE_SIGN_IN_ERROR_MESSAGE,
-    SET_USER_ADMIN
+    SET_USER_ADMIN,
+    SHOW_SIGN_IN_DIALOG
 } from '../actions/user.js';
 
 const INITIAL_STATE = {
@@ -13,6 +14,7 @@ const INITIAL_STATE = {
     //the user object from OUR server
     user: null,
     errorMessage: "",
+    dialogOpen: false,
 };
 
 const user = (state = INITIAL_STATE, action) => {
@@ -24,6 +26,7 @@ const user = (state = INITIAL_STATE, action) => {
             user: action.user,
             adminAllowed: action.adminAllowed,
             verifyingAuth: false,
+            dialogOpen: false,
             loggedIn,
         };
     case VERIFYING_AUTH:
@@ -46,6 +49,11 @@ const user = (state = INITIAL_STATE, action) => {
         return {
             ...state,
             admin: action.admin
+        }
+    case SHOW_SIGN_IN_DIALOG:
+        return {
+            ...state,
+            dialogOpen: true
         }
 	default:
 		return state;

@@ -3,6 +3,7 @@ export const UPDATE_USER = 'UPDATE_USER';
 export const VERIFYING_AUTH = 'VERIFYING_AUTH';
 export const UPDATE_SIGN_IN_ERROR_MESSAGE = 'UPDATE_SIGN_IN_ERROR_MESSAGE';
 export const SET_USER_ADMIN = 'SET_USER_ADMIN';
+export const SHOW_SIGN_IN_DIALOG = 'SHOW_SIGN_IN_DIALOG';
 
 // This import loads the firebase namespace along with all its type information.
 import firebase from '@firebase/app';
@@ -226,4 +227,10 @@ export const setUserAdmin = (isAdmin) => (dispatch, getState) => {
         type: SET_USER_ADMIN,
         admin: isAdmin
     })
+}
+
+export const showSignInDialog = () => {
+    return {
+        type: SHOW_SIGN_IN_DIALOG
+    }
 }
