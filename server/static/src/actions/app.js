@@ -10,6 +10,8 @@ export const PAGE_DEFAULT = 'list-games';
 export const PAGE_GAME = 'game';
 export const PAGE_404 = 'view404';
 
+export const OFFLINE_DEV_MODE = CONFIG ? CONFIG.offline_dev_mode || false : false;
+
 //if silent is true, then just passively updates the URL to reflect what it should be.
 export const navigatePathTo = (path, silent) => (dispatch, getState) => {
 	const state = getState();

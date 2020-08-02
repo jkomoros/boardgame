@@ -13,6 +13,11 @@ export const selectErrorMessage = (state) => state.error ? state.error.message :
 export const selectErrorFriendlyMessage = (state) => state.error ? state.error.friendlyMessage : "";
 export const selectErrorTitle = (state) => state.error ? state.error.title : "";
 export const selectErrorShowing = (state) => state.error ? state.error.showing : "";
+export const selectUser = (state) => state.user ? state.user.user : null;
+export const selectVerifyingAuth = (state) => state.user ? state.user.verifyingAuth : false;
+export const selectLoggedIn = (state) => state.user ? state.user.loggedIn : false;
+export const selectAdminAllowed = (state) => state.user ? state.user.adminAllowed : false;
+export const selectSignInErrorMessage = (state) => state.user ? state.user.errorMessage : "";
 
 const selectGameID = (state) => state.game ? state.game.id : '';
 const selectGameName = (state) => state.game ? state.game.name : '';
