@@ -22,6 +22,7 @@ export const selectAdmin = (state) => state.user ? state.user.admin : false;
 export const selectSignInDialogOpen = (state) => state.user ? state.user.dialogOpen : false;
 export const selectSignInDialogEmail = (state) => state.user ? state.user.dialogEmail : "";
 export const selectSignInDialogPassword = (state) => state.user ? state.user.dialogPassword : "";
+export const selectSignInDialogIsCreate = (state) => state.user ? state.user.isCreate : false;
 
 const selectGameID = (state) => state.game ? state.game.id : '';
 const selectGameName = (state) => state.game ? state.game.name : '';

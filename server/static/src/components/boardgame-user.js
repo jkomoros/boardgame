@@ -32,11 +32,11 @@ import {
   signOut,
   setSignedInAction,
   signInWithGoogle,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
+  signInOrCreateWithEmailAndPassword,
   showSignInDialog,
   updateSignInDialogEmail,
-  updateSignInDialogPassword
+  updateSignInDialogPassword,
+  updateSignInDialogIsCreate
 } from '../actions/user.js';
 
 import {
@@ -45,7 +45,8 @@ import {
   selectSignInErrorMessage,
   selectSignInDialogOpen,
   selectSignInDialogEmail,
-  selectSignInDialogPassword
+  selectSignInDialogPassword,
+  selectSignInDialogIsCreate
 } from '../selectors.js';
 
 class BoardgameUser extends connect(store)(PolymerElement) {
@@ -125,7 +126,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
           <paper-input id="password" label="Password" type="password" value="[[_password]]" on-change="_handlePasswordChanged"></paper-input>
           <div class="buttons">
             <paper-button on-tap="cancel">Cancel</paper-button>
-            <paper-button on-tap="emailSubmitted" autofocus="" default="">[[buttonText(_emailFormIsSignIn)]]</paper-button>
+            <paper-button on-tap="emailSubmitted" autofocus="" default="">[[_buttonText(_isCreate)]]</paper-button>
           </div>
         </div>
         <div>
@@ -150,10 +151,6 @@ class BoardgameUser extends connect(store)(PolymerElement) {
 
   static get properties() {
     return {
-      _emailFormIsSignIn: {
-        type: Boolean,
-        value: true,
-      },
       //set to true after firebase has a user but before our server has ack'd.
       _verifyingAuth : Boolean,
       //The confirmed user object from our server
@@ -168,6 +165,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
       _dialogOpen: { type: Boolean },
       _email: { type: String },
       _password: { type: String },
+      _isCreate: { type: Boolean },
     }
   }
 
@@ -178,6 +176,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     this._dialogOpen = selectSignInDialogOpen(state);
     this._email = selectSignInDialogEmail(state);
     this._password = selectSignInDialogPassword(state);
+    this._isCreate = selectSignInDialogIsCreate(state);
   }
 
   get offlineDevMode() {
@@ -191,8 +190,8 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     store.dispatch(firebaseSignIn());
   }
 
-  buttonText(isSignIn) {
-    return isSignIn ? "Sign In" : "Create Account";
+  _buttonText(isCreate) {
+    return isCreate ? "Create Account" : "Sign In";
   }
 
   _classForVerifyingAuth(verifyingAuth, offlineDevMode) {
@@ -218,7 +217,12 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   }
 
   createLogin() {
-    this._emailFormIsSignIn = false;
+    store.dispatch(updateSignInDialogIsCreate(true));
+    this.showEmailPage();
+  }
+
+  showEmail() {
+    store.dispatch(updateSignInDialogIsCreate(false));
     this.showEmailPage();
   }
 
@@ -227,20 +231,11 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   }
 
   emailSubmitted() {
-    if (this._emailFormIsSignIn) {
-      this.signInWithEmailAndPassword();
-    } else {
-      this.createUserWithEmailAndPassword();
-    }
+    this.signInWithEmailAndPassword();
   }
 
   _errorMessageChanged(newValue) {
     if (newValue) this.$.pages.selected = 3;
-  }
-
-  showEmail() {
-    this._emailFormIsSignIn = true;
-    this.showEmailPage();
   }
 
   signInWithGoogle() {
@@ -249,12 +244,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   }
 
   signInWithEmailAndPassword() {
-    store.dispatch(signInWithEmailAndPassword());
-    this.$.pages.selected = 2;
-  }
-
-  createUserWithEmailAndPassword() {
-    store.dispatch(createUserWithEmailAndPassword());
+    store.dispatch(signInOrCreateWithEmailAndPassword());
     this.$.pages.selected = 2;
   }
 

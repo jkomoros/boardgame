@@ -5,7 +5,8 @@ import {
     SET_USER_ADMIN,
     SHOW_SIGN_IN_DIALOG,
     UPDATE_SIGN_IN_DIALOG_EMAIL,
-    UPDATE_SIGN_IN_DIALOG_PASSWORD
+    UPDATE_SIGN_IN_DIALOG_PASSWORD,
+    UPDATE_SIGN_IN_DIALOG_IS_CREATE
 } from '../actions/user.js';
 
 const INITIAL_STATE = {
@@ -19,6 +20,8 @@ const INITIAL_STATE = {
     dialogOpen: false,
     dialogEmail: "",
     dialogPassword: "",
+    //The dialog can be either in sign-in mode, or create account mode
+    dialogIsCreate: false,
 };
 
 const user = (state = INITIAL_STATE, action) => {
@@ -70,6 +73,11 @@ const user = (state = INITIAL_STATE, action) => {
         return {
             ...state,
             dialogPassword: action.password
+        }
+    case UPDATE_SIGN_IN_DIALOG_IS_CREATE:
+        return {
+            ...state,
+            dialogIsCreate: action.isCreate
         }
 	default:
 		return state;

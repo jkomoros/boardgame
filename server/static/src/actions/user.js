@@ -6,6 +6,7 @@ export const SET_USER_ADMIN = 'SET_USER_ADMIN';
 export const SHOW_SIGN_IN_DIALOG = 'SHOW_SIGN_IN_DIALOG';
 export const UPDATE_SIGN_IN_DIALOG_EMAIL = "UPDATE_SIGN_IN_DIALOG_EMAIL";
 export const UPDATE_SIGN_IN_DIALOG_PASSWORD = "UPDATE_SIGN_IN_DIALOG_PASSWORD";
+export const UPDATE_SIGN_IN_DIALOG_IS_CREATE = "UPDATE_SIGN_IN_DIALOG_IS_CREATE";
 
 // This import loads the firebase namespace along with all its type information.
 import firebase from '@firebase/app';
@@ -14,7 +15,8 @@ import '@firebase/auth';
 import {
     selectUser,
     selectAdminAllowed,
-    selectSignInDialogEmail
+    selectSignInDialogEmail,
+    selectSignInDialogIsCreate
 } from '../selectors.js';
 
 import {
@@ -101,27 +103,21 @@ export const signInWithGoogle = () => (dispatch) => {
     }
 };
 
-export const signInWithEmailAndPassword = () => (dispatch, getState) => {
+export const signInOrCreateWithEmailAndPassword = () => (dispatch, getState) => {
     const state = getState();
     const email = selectSignInDialogEmail(state);
     const password = selectSignInDialogPassword(state);
+    const isCreate = selectSignInDialogIsCreate(state);
     if (OFFLINE_DEV_MODE) {
         dispatch(fauxSignIn(email, email));
     } else {
-        firebaseApp.auth().signInWithEmailAndPassword(email, password).catch(err => dispatch(updateSignInError(err)));
+        if (isCreate) {
+            firebaseApp.auth().createUserWithEmailAndPassword(email, password).catch(err => dispatch(updateSignInError(err)));
+        } else {
+            firebaseApp.auth().signInWithEmailAndPassword(email, password).catch(err => dispatch(updateSignInError(err)));
+        }
     };
 };
-
-export const createUserWithEmailAndPassword = () => (dispatch) => {
-    const state = getState();
-    const email = selectSignInDialogEmail(state);
-    const password = selectSignInDialogPassword(state);
-    if (OFFLINE_DEV_MODE) {
-        dispatch(fauxSignIn(email, email));
-      } else {
-        firebaseApp.auth().createUserWithEmailAndPassword(email, password).catch(err => dispatch(updateSignInError(err)));
-      }
-}
 
 const firebaseUserUpdated = (fUser) => (dispatch, getState) => {
     firebaseUser = fUser;
@@ -255,5 +251,12 @@ export const updateSignInDialogPassword = (password) => {
     return {
         type: UPDATE_SIGN_IN_DIALOG_EMAIL,
         password
+    }
+}
+
+export const updateSignInDialogIsCreate = (isCreate) => {
+    return {
+        type: UPDATE_SIGN_IN_DIALOG_IS_CREATE,
+        isCreate
     }
 }
