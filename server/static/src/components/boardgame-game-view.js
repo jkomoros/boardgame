@@ -18,7 +18,8 @@ import {
   selectPage,
   selectPageExtra,
   selectGameRoute,
-  selectLoggedIn
+  selectLoggedIn,
+  selectAdmin
 } from '../selectors.js';
 
 import {
@@ -66,13 +67,13 @@ class BoardgameGameView extends connect(store)(LitElement) {
     </style>
 
     <div class="card">
-      <boardgame-player-roster id="player" .loggedIn=${this._loggedIn} .gameRoute=${this._gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this.hasEmptySlots} .gameOpen=${this.gameOpen} .gameVisible=${this.gameVisible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this.playersInfo} .state=${this.currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this.admin} isOwner=${this.isOwner} .active=${this.selected}></boardgame-player-roster>
+      <boardgame-player-roster id="player" .loggedIn=${this._loggedIn} .gameRoute=${this._gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this.hasEmptySlots} .gameOpen=${this.gameOpen} .gameVisible=${this.gameVisible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this.playersInfo} .state=${this.currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this._admin} isOwner=${this.isOwner} .active=${this.selected}></boardgame-player-roster>
     </div>
     <div class="card">
       <boardgame-render-game id="render" .state=${this.currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this._gameRoute ? this._gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this.chest}></boardgame-render-game>
     </div>
-    <boardgame-admin-controls id="admin" .active=${this.admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this.chest} .gameState=${this.gameState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
-    <boardgame-game-state-manager id="manager" .activeRenderer=${this.activeRenderer} .gameRoute=${this._gameRoute} .requestedPlayer=${this.requestedPlayer} .active=${this.selected} .admin=${this.admin} .gameFinished=${this.game ? this.game.Finished : false} .gameVersion=${this.game ? this.game.Version : 0} .loggedIn=${this._loggedIn} .autoCurrentPlayer=${this.autoCurrentPlayer} .viewingAsPlayer=${this.viewingAsPlayer} .socketActive=${this.socketActive} @socket-active-changed=${this._handleSocketActiveChanged}></boardgame-game-state-manager>
+    <boardgame-admin-controls id="admin" .active=${this._admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this.chest} .gameState=${this.gameState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
+    <boardgame-game-state-manager id="manager" .activeRenderer=${this.activeRenderer} .gameRoute=${this._gameRoute} .requestedPlayer=${this.requestedPlayer} .active=${this.selected} .admin=${this._admin} .gameFinished=${this.game ? this.game.Finished : false} .gameVersion=${this.game ? this.game.Version : 0} .loggedIn=${this._loggedIn} .autoCurrentPlayer=${this.autoCurrentPlayer} .viewingAsPlayer=${this.viewingAsPlayer} .socketActive=${this.socketActive} @socket-active-changed=${this._handleSocketActiveChanged}></boardgame-game-state-manager>
 `;
   }
 
@@ -89,7 +90,6 @@ class BoardgameGameView extends connect(store)(LitElement) {
       gameVisible: { type: Boolean },
       isOwner: { type: Boolean },
       autoCurrentPlayer: { type: Boolean },
-      admin: { type: Boolean },
       selected: { type: Boolean },
       promptedToJoin: { type: Boolean },
       pathsToTick: { type: Array },
@@ -108,6 +108,7 @@ class BoardgameGameView extends connect(store)(LitElement) {
       _pageExtra: { type: String },
       _gameRoute: { type: Object },
       _loggedIn: { type: Boolean },
+      _admin: { type: Boolean },
     }
   }
 
@@ -121,6 +122,7 @@ class BoardgameGameView extends connect(store)(LitElement) {
     this._pageExtra = selectPageExtra(state);
     this._gameRoute = selectGameRoute(state);
     this._loggedIn = selectLoggedIn(state);
+    this._admin = selectAdmin(state);
   }
 
   constructor() {

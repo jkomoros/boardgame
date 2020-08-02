@@ -1,7 +1,8 @@
 import {
     UPDATE_USER,
     VERIFYING_AUTH,
-    UPDATE_SIGN_IN_ERROR_MESSAGE
+    UPDATE_SIGN_IN_ERROR_MESSAGE,
+    SET_USER_ADMIN
 } from '../actions/user.js';
 
 const INITIAL_STATE = {
@@ -40,6 +41,11 @@ const user = (state = INITIAL_STATE, action) => {
         return {
             ...state,
             errorMessage: action.error,
+        }
+    case SET_USER_ADMIN:
+        return {
+            ...state,
+            admin: action.admin
         }
 	default:
 		return state;

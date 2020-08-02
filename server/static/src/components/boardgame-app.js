@@ -45,7 +45,8 @@ import {
   selectErrorMessage,
   selectErrorFriendlyMessage,
   selectErrorTitle,
-  selectAdminAllowed
+  selectAdminAllowed,
+  selectAdmin
 } from '../selectors.js';
 
 import {
@@ -57,6 +58,10 @@ import {
   updateAndShowError,
   hideError
 } from '../actions/error.js';
+
+import {
+  setUserAdmin
+} from '../actions/user.js';
 
 class BoardgameApp extends connect(store)(PolymerElement) {
   static get template() {
@@ -115,7 +120,7 @@ class BoardgameApp extends connect(store)(PolymerElement) {
       <!-- Drawer content -->
       <app-drawer slot="drawer" id="drawer">
         <boardgame-user id="user"></boardgame-user>
-        <paper-toggle-button checked="{{_admin}}" hidden="[[!_adminAllowed]]">Admin Mode</paper-toggle-button>
+        <paper-toggle-button checked="[[_admin]]" on-checked-changed="_handleAdminCheckedChanged" hidden="[[!_adminAllowed]]">Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[_page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="list-games" href="/list-games">List Games</a>
@@ -133,8 +138,8 @@ class BoardgameApp extends connect(store)(PolymerElement) {
         </app-header>
 
         <iron-pages selected="[[_page]]" attr-for-selected="name" fallback-selection="view404" selected-attribute="selected" role="main">
-          <boardgame-game-view admin="[[_admin]]" name="game"></boardgame-game-view>
-          <boardgame-list-games-view name="list-games" admin="[[_admin]]"></boardgame-list-games-view>
+          <boardgame-game-view name="game"></boardgame-game-view>
+          <boardgame-list-games-view name="list-games"></boardgame-list-games-view>
           <boardgame-404-view name="view404"></boardgame-404-view>
         </iron-pages>
       </app-header-layout>
@@ -156,13 +161,13 @@ class BoardgameApp extends connect(store)(PolymerElement) {
 
   static get properties() {
     return {
-      _admin: { type: Boolean },
       _page: { type: String },
       _errorShowing: { type: Boolean },
       _errorMessage: { type: String },
       _errorFriendlyMessage: { type: String },
       _errorTitle: { type: String },
-      _adminAllowed: { type: Boolean }
+      _adminAllowed: { type: Boolean },
+      _admin: { type: Boolean },
     }
   }
 
@@ -181,6 +186,11 @@ class BoardgameApp extends connect(store)(PolymerElement) {
     this._errorMessage = selectErrorMessage(state);
     this._errorFriendlyMessage = selectErrorFriendlyMessage(state);
     this._adminAllowed = selectAdminAllowed(state);
+    this._admin = selectAdmin(state);
+  }
+
+  _handleAdminCheckedChanged(e) {
+    store.dispatch(setUserAdmin(e.detail.value));
   }
 
   _handleNavigateTo(e) {

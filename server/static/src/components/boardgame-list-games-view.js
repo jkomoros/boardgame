@@ -27,7 +27,8 @@ import {
   selectVisibleActiveGames,
   selectVisibleJoinableGames,
   selectAllGames,
-  selectLoggedIn
+  selectLoggedIn,
+  selectAdmin
 } from '../selectors.js';
 
 
@@ -106,11 +107,6 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
 `;
   }
 
-  constructor() {
-    super();
-    this.admin = false;
-  }
-
   static get properties() {
     return {
       _participatingActiveGames: { type: Array },
@@ -118,12 +114,10 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
       _visibleActiveGames: { type: Array },
       _visibleJoinableGames: { type: Array },
       _allGames: { type: Array },
-      _managers: {
-        type: Array,
-      },
+      _managers: { type: Array },
       _gameTypeFilter: { type: String },
       _loggedIn: { type: Boolean},
-      admin: { type: Boolean },
+      _admin: { type: Boolean },
       selected: { type: Boolean },
     }
   }
@@ -137,6 +131,7 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
     this._visibleJoinableGames = selectVisibleJoinableGames(state);
     this._allGames = selectAllGames(state);
     this._loggedIn = selectLoggedIn(state);
+    this._admin = selectAdmin(state);
   }
 
   updated(changedProps) {
@@ -150,13 +145,13 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
       //user was logged out as far as server was concerned.
       setTimeout(() =>  this._fetchGamesList(), 250);
     }
-    if (changedProps.has('admin') || changedProps.has('_gameTypeFilter')) {
+    if (changedProps.has('_admin') || changedProps.has('_gameTypeFilter')) {
       this._fetchGamesList();
     }
   }
 
   _fetchGamesList() {
-    store.dispatch(fetchGamesList(this._gameTypeFilter, this.admin));
+    store.dispatch(fetchGamesList(this._gameTypeFilter, this._admin));
   }
 
   _handleSelectedChanged(e) {

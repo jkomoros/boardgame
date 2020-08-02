@@ -18,6 +18,7 @@ export const selectVerifyingAuth = (state) => state.user ? state.user.verifyingA
 export const selectLoggedIn = (state) => state.user ? state.user.loggedIn : false;
 export const selectAdminAllowed = (state) => state.user ? state.user.adminAllowed : false;
 export const selectSignInErrorMessage = (state) => state.user ? state.user.errorMessage : "";
+export const selectAdmin = (state) => state.user ? state.user.admin : false;
 
 const selectGameID = (state) => state.game ? state.game.id : '';
 const selectGameName = (state) => state.game ? state.game.name : '';

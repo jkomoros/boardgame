@@ -2,13 +2,15 @@
 export const UPDATE_USER = 'UPDATE_USER';
 export const VERIFYING_AUTH = 'VERIFYING_AUTH';
 export const UPDATE_SIGN_IN_ERROR_MESSAGE = 'UPDATE_SIGN_IN_ERROR_MESSAGE';
+export const SET_USER_ADMIN = 'SET_USER_ADMIN';
 
 // This import loads the firebase namespace along with all its type information.
 import firebase from '@firebase/app';
 import '@firebase/auth';
 
 import {
-    selectUser
+    selectUser,
+    selectAdminAllowed
 } from '../selectors.js';
 
 import {
@@ -212,4 +214,16 @@ const updateUser = (user, adminAllowed = false) => {
         user,
         adminAllowed,
     }
+}
+
+export const setUserAdmin = (isAdmin) => (dispatch, getState) => {
+    const adminAllowed = selectAdminAllowed(getState());
+    if (isAdmin && !adminAllowed) {
+        console.warn("Can't set admin to true: admin not allowed");
+        return;
+    }
+    dispatch({
+        type: SET_USER_ADMIN,
+        admin: isAdmin
+    })
 }
