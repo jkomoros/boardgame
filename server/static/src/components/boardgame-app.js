@@ -1,21 +1,3 @@
-/**
-@license
-Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
-*/
-/* Statically import dynamic imports for the sake of modulizer */
-/* end static linking */
-/*
-  FIXME(polymer-modulizer): the above comments were extracted
-  from HTML and may be out of place here. Review them and
-  then delete this comment!
-*/
-import { PolymerElement } from '@polymer/polymer/polymer-element.js';
-
 import '@polymer/app-layout/app-drawer/app-drawer.js';
 import '@polymer/app-layout/app-drawer-layout/app-drawer-layout.js';
 import '@polymer/app-layout/app-header/app-header.js';
@@ -32,7 +14,8 @@ import '@polymer/paper-styles/typography.js';
 import '@polymer/paper-styles/default-theme.js';
 import './boardgame-user.js';
 import './my-icons.js';
-import { html } from '@polymer/polymer/lib/utils/html-tag.js';
+
+import { LitElement, html } from '@polymer/lit-element';
 
 import { installRouter } from 'pwa-helpers/router.js';
 
@@ -63,8 +46,8 @@ import {
   setUserAdmin
 } from '../actions/user.js';
 
-class BoardgameApp extends connect(store)(PolymerElement) {
-  static get template() {
+class BoardgameApp extends connect(store)(LitElement) {
+  render() {
     return html`
     <style>
       :host {
@@ -120,9 +103,9 @@ class BoardgameApp extends connect(store)(PolymerElement) {
       <!-- Drawer content -->
       <app-drawer slot="drawer" id="drawer">
         <boardgame-user id="user"></boardgame-user>
-        <paper-toggle-button checked="[[_admin]]" on-checked-changed="_handleAdminCheckedChanged" hidden="[[!_adminAllowed]]">Admin Mode</paper-toggle-button>
+        <paper-toggle-button .checked=${this._admin} @checked-changed=${this._handleAdminCheckedChanged} ?hidden=${!this._adminAllowed}>Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
-        <iron-selector selected="[[_page]]" attr-for-selected="name" class="drawer-list" role="navigation">
+        <iron-selector .selected=${this._page} .attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="list-games" href="/list-games">List Games</a>
         </iron-selector>
       </app-drawer>
@@ -137,26 +120,22 @@ class BoardgameApp extends connect(store)(PolymerElement) {
           </app-toolbar>
         </app-header>
 
-        <iron-pages selected="[[_page]]" attr-for-selected="name" fallback-selection="view404" selected-attribute="selected" role="main">
+        <iron-pages .selected=${this._page} attr-for-selected="name" fallback-selection="view404" selected-attribute="selected" role="main">
           <boardgame-game-view name="game"></boardgame-game-view>
           <boardgame-list-games-view name="list-games"></boardgame-list-games-view>
           <boardgame-404-view name="view404"></boardgame-404-view>
         </iron-pages>
       </app-header-layout>
     </app-drawer-layout>
-    <paper-dialog id="error" on-opened-changed="_handleDialogOpenedChanged" opened="[[_errorShowing]]">
-      <h2>[[_errorTitle]]</h2>
-      <p>[[_errorFriendlyMessage]]</p>
-      <p class="detail">[[_errorMessage]]</p>
+    <paper-dialog id="error" @opened-changed=${this._handleDialogOpenedChanged} .opened=${this._errorShowing}>
+      <h2>${this._errorTitle}</h2>
+      <p>${this._errorFriendlyMessage}</p>
+      <p class="detail">${this._errorMessage}</p>
       <div class="buttons">
-        <paper-button on-tap="_handleDialogDismissTapped">OK</paper-button>
+        <paper-button @tap=${this._handleDialogDismissTapped}>OK</paper-button>
       </div>
     </paper-dialog>
 `;
-  }
-
-  static get is() {
-    return "boardgame-app"
   }
 
   static get properties() {
@@ -171,8 +150,7 @@ class BoardgameApp extends connect(store)(PolymerElement) {
     }
   }
 
-  ready() {
-    super.ready();
+  firstUpdated() {
     this.addEventListener('navigate-to', e => this._handleNavigateTo(e));
     this.addEventListener('show-error', e => this._handleShowError(e));
     this.addEventListener('show-login', e => this._handleShowLogIn(e));
@@ -219,10 +197,11 @@ class BoardgameApp extends connect(store)(PolymerElement) {
   }
 
   _handleShowLogIn(e) {
+    const userEle = this.shadowRoot.querySelector("#user");
     //The event might have things like a nextAction, so forward it.
-    this.$.user.showSignInDialog(e);
+    userEle.showSignInDialog(e);
   }
 
 }
 
-customElements.define(BoardgameApp.is, BoardgameApp);
+customElements.define("boardgame-app", BoardgameApp);
