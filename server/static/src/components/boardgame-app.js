@@ -41,12 +41,21 @@ import { store } from '../store.js';
 
 import {
   selectPage,
+  selectErrorShowing,
+  selectErrorMessage,
+  selectErrorFriendlyMessage,
+  selectErrorTitle,
 } from '../selectors.js';
 
 import {
   navigated,
   navigatePathTo,
 } from '../actions/app.js';
+
+import {
+  updateAndShowError,
+  hideError
+} from '../actions/error.js';
 
 class BoardgameApp extends connect(store)(PolymerElement) {
   static get template() {
@@ -129,12 +138,12 @@ class BoardgameApp extends connect(store)(PolymerElement) {
         </iron-pages>
       </app-header-layout>
     </app-drawer-layout>
-    <paper-dialog id="error">
-      <h2>[[errorTitle]]</h2>
-      <p>[[friendlyErrorMessage]]</p>
-      <p class="detail">[[errorMessage]]</p>
+    <paper-dialog id="error" on-opened-changed="_handleDialogOpenedChanged" opened="[[_errorShowing]]">
+      <h2>[[_errorTitle]]</h2>
+      <p>[[_errorFriendlyMessage]]</p>
+      <p class="detail">[[_errorMessage]]</p>
       <div class="buttons">
-        <paper-button dialog-dismiss="">OK</paper-button>
+        <paper-button on-tap="_handleDialogDismissTapped">OK</paper-button>
       </div>
     </paper-dialog>
 `;
@@ -147,6 +156,10 @@ class BoardgameApp extends connect(store)(PolymerElement) {
   static get properties() {
     return {
       _page: { type: String },
+      _errorShowing: { type: Boolean },
+      _errorMessage: { type: String },
+      _errorFriendlyMessage: { type: String },
+      _errorTitle: { type: String },
       user: Object,
       loggedIn : Boolean,
       admin: {
@@ -162,33 +175,46 @@ class BoardgameApp extends connect(store)(PolymerElement) {
 
   ready() {
     super.ready();
-    this.addEventListener('navigate-to', e => this.handleNavigateTo(e));
-    this.addEventListener('show-error', e => this.handleShowError(e));
-    this.addEventListener('show-login', e => this.handleShowLogIn(e));
+    this.addEventListener('navigate-to', e => this._handleNavigateTo(e));
+    this.addEventListener('show-error', e => this._handleShowError(e));
+    this.addEventListener('show-login', e => this._handleShowLogIn(e));
     installRouter((location) => store.dispatch(navigated(decodeURIComponent(location.pathname), decodeURIComponent(location.search))));
   }
 
   stateChanged(state) {
     this._page = selectPage(state);
+    this._errorShowing = selectErrorShowing(state);
+    this._errorTitle = selectErrorTitle(state);
+    this._errorMessage = selectErrorMessage(state);
+    this._errorFriendlyMessage = selectErrorFriendlyMessage(state);
   }
 
-  handleNavigateTo(e) {
+  _handleNavigateTo(e) {
     store.dispatch(navigatePathTo(e.detail, false));
   }
 
-  handleShowError(e) {
+  _handleShowError(e) {
     let details = e.detail;
-    this.showError(details.title, details.friendlyMessage, details.message);
+    store.dispatch(updateAndShowError(details.title, details.friendlyMessage, details.message));
   }
 
-  showError(title, friendlyMessage, message) {
-      this.errorTitle = (title || "Error");
-      this.friendlyErrorMessage = (friendlyMessage || "There was an error");
-      this.errorMessage = (message != friendlyMessage) ? message : "";
-      this.$.error.open();
+  _handleDialogDismissTapped() {
+    store.dispatch(hideError());
   }
 
-  handleShowLogIn(e) {
+  _handleDialogOpenedChanged(e) {
+    //When the dialog is canceled by clicking on background or esc, we get a
+    //different way. we coul dhave the dismiss button have `dialog-dismiss`, but
+    //then it's not possible to distinguish that being clicked and just the
+    //first time being updated
+    if (!e.detail.value) {
+      const dialogEle = this.shadowRoot.querySelector("#error");
+      if (dialogEle && !dialogEle.closingReason.canceled) return;
+      store.dispatch(hideError());
+    }
+  }
+
+  _handleShowLogIn(e) {
     //The event might have things like a nextAction, so forward it.
     this.$.user.showSignInDialog(e);
   }

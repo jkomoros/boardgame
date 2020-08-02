@@ -9,6 +9,10 @@ export const selectParticipatingFinishedGames = (state) => state.list ? state.li
 export const selectVisibleActiveGames = (state) => state.list ? state.list.visibleActiveGames : [];
 export const selectVisibleJoinableGames = (state) => state.list ? state.list.visibleJoinableGames : [];
 export const selectAllGames = (state) => state.list ? state.list.allGames : [];
+export const selectErrorMessage = (state) => state.error ? state.error.message : "";
+export const selectErrorFriendlyMessage = (state) => state.error ? state.error.friendlyMessage : "";
+export const selectErrorTitle = (state) => state.error ? state.error.title : "";
+export const selectErrorShowing = (state) => state.error ? state.error.showing : "";
 
 const selectGameID = (state) => state.game ? state.game.id : '';
 const selectGameName = (state) => state.game ? state.game.name : '';
