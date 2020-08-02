@@ -1,24 +1,16 @@
-/**
-@license
-Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
-*/
-import { PolymerElement } from '@polymer/polymer/polymer-element.js';
-
 import '@polymer/polymer/lib/elements/dom-if.js';
 import '@polymer/paper-dialog/paper-dialog.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/iron-pages/iron-pages.js';
-import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import '@polymer/paper-spinner/paper-spinner-lite.js';
 import './boardgame-player-chip.js';
-import './shared-styles.js';
-import { html } from '@polymer/polymer/lib/utils/html-tag.js';
+
+import {
+  SharedStyles
+} from './shared-styles-lit.js';
+
+import { LitElement, html } from '@polymer/lit-element';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -49,10 +41,11 @@ import {
   selectSignInDialogIsCreate
 } from '../selectors.js';
 
-class BoardgameUser extends connect(store)(PolymerElement) {
-  static get template() {
+class BoardgameUser extends connect(store)(LitElement) {
+  render() {
     return html`
-    <style is="custom-style" include="iron-flex shared-styles">
+    ${ SharedStyles }
+    <style>
       :host {
         display:block;
         position: relative;
@@ -72,6 +65,16 @@ class BoardgameUser extends connect(store)(PolymerElement) {
         font-style: italic;
       }
 
+      .horizontal {
+        display:flex;
+        flex-direction: row;
+      }
+
+      .vertical {
+        display: flex;
+        flex-direction: column;
+      }
+
       #offline {
         display:none;
         height: 5px;
@@ -87,27 +90,26 @@ class BoardgameUser extends connect(store)(PolymerElement) {
         display:block;
       }
     </style>
-    <div class\$="[[_classForVerifyingAuth(_verifyingAuth, offlineDevMode)]]">
+    <div class="${this._verifyingAuth ? 'verifying' : ''} ${OFFLINE_DEV_MODE ? 'offline' : ''}">
       <div id="offline"></div>
-      <div class="horizontal layout">
-        <boardgame-player-chip photo-url="[[_string(_user.PhotoURL)]]" display-name="[[_string(_user.DisplayName)]]"></boardgame-player-chip>
-        <div class="vertical layout">
-          <template is="dom-if" if="[[_user]]">
-              <div>[[_user.DisplayName]]</div>
-              <a on-tap="signOut">Sign Out</a>
-          </template>
-          <template is="dom-if" if="[[!_user]]">
-            <div>Not signed in</div>
-            <a on-tap="showSignInDialog">Sign In</a>
-          </template>
+      <div class="horizontal">
+        <boardgame-player-chip .photoUrl=${this._user ? this._user.PhotoURL : ''} .displayName=${this._user ? this._user.DisplayName : ''}></boardgame-player-chip>
+        <div class="vertical">
+          ${
+            this._user ?
+            html`<div>${this._user.DisplayName}}</div>
+              <a @tap=${this.signOut}>Sign Out</a>` : 
+            html`<div>Not signed in</div>
+              <a @tap=${this.showSignInDialog}>Sign In</a>`
+          }
         </div>
       </div>
     </div>
     <!-- TODO: ideall this would be modal, but given its position in DOM that doesn't work.
     See https://github.com/PolymerElements/paper-dialog/issues/7 -->
 
-    <paper-dialog id="dialog" no-cancel-on-esc-key="" no-cancel-on-outside-click="" opened="[[_dialogOpen]]">
-      <div hidden$="[[!offlineDevMode]]">
+    <paper-dialog id="dialog" no-cancel-on-esc-key="" no-cancel-on-outside-click="" .opened=${this._dialogOpen}>
+      <div ?hidden=${!OFFLINE_DEV_MODE}>
         <strong style="color:red;">Offline Dev Mode enabled; login is faked</strong>
       </div>
       <iron-pages id="pages">
@@ -115,18 +117,18 @@ class BoardgameUser extends connect(store)(PolymerElement) {
           <h2>Sign In</h2>
           <p>You must sign in to use this app.</p>
           <div class="layout vertical">
-            <paper-button on-tap="signInWithGoogle">Google</paper-button>
-            <paper-button on-tap="showEmail">Email/Password</paper-button>
+            <paper-button @tap=${this.signInWithGoogle}>Google</paper-button>
+            <paper-button @tap=${this.showEmail}>Email/Password</paper-button>
             <p style="text-align:center"><em>or</em></p>
-            <paper-button on-tap="createLogin">Create an account</paper-button>
+            <paper-button @tap=${this.createLogin}>Create an account</paper-button>
           </div>
         </div>
         <div>
-          <paper-input id="email" label="Email" value="[[_email]]" on-change="_handleEmailChanged"></paper-input>
-          <paper-input id="password" label="Password" type="password" value="[[_password]]" on-change="_handlePasswordChanged"></paper-input>
+          <paper-input id="email" label="Email" .value=${this._email} @change=${this._handleEmailChanged}></paper-input>
+          <paper-input id="password" label="Password" type="password" .value=${this._password} @change=${this._handlePasswordChanged}></paper-input>
           <div class="buttons">
-            <paper-button on-tap="cancel">Cancel</paper-button>
-            <paper-button on-tap="emailSubmitted" autofocus="" default="">[[_buttonText(_isCreate)]]</paper-button>
+            <paper-button @tap=${this.cancel}>Cancel</paper-button>
+            <paper-button @tap=${this.emailSubmitted} autofocus default>${this._isCreate ? 'Create Account' : 'Sign In'}</paper-button>
           </div>
         </div>
         <div>
@@ -135,18 +137,14 @@ class BoardgameUser extends connect(store)(PolymerElement) {
         </div>
         <div>
           <h2>Sign In Error</h2>
-          <div>[[_errorMessage]]</div>
+          <div>${this._errorMessage}</div>
           <div class="buttons">
-            <paper-button on-tap="cancel" default="">OK</paper-button>
+            <paper-button @tap=${this.cancel} default="">OK</paper-button>
           </div>
         </div>
       </iron-pages>
     </paper-dialog>
 `;
-  }
-
-  static get is() {
-    return "boardgame-user"
   }
 
   static get properties() {
@@ -166,6 +164,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
       _email: { type: String },
       _password: { type: String },
       _isCreate: { type: Boolean },
+      _pagesEle: { type: Object },
     }
   }
 
@@ -179,33 +178,9 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     this._isCreate = selectSignInDialogIsCreate(state);
   }
 
-  get offlineDevMode() {
-    //TODO; get rid of this getter when we switch to litelement. This is only
-    //necessary for the template stamping
-    return OFFLINE_DEV_MODE
-  }
-
-  ready() {
-    super.ready();
+  firstUpdated() {
     store.dispatch(firebaseSignIn());
-  }
-
-  _buttonText(isCreate) {
-    return isCreate ? "Create Account" : "Sign In";
-  }
-
-  _classForVerifyingAuth(verifyingAuth, offlineDevMode) {
-    let pieces = [];
-    if (offlineDevMode) pieces.push("offline");
-    if (verifyingAuth) pieces.push("verifying");
-    return pieces.join(" ");
-  }
-
-  _string(str) {
-    //Necessary for a thing that might be undefined to make it the empty
-    //string instead, because Polymer's databinding treats setting as
-    //undefined as a signal that nothing has changed.
-    return (str) ? str : ""
+    this._pagesEle = this.shadowRoot.querySelector("#pages");
   }
 
   _handleEmailChanged(e) {
@@ -227,7 +202,7 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   }
 
   cancel() {
-    this.$.pages.selected = 0;
+    this._pagesEle.selected = 0;
   }
 
   emailSubmitted() {
@@ -235,28 +210,28 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   }
 
   _errorMessageChanged(newValue) {
-    if (newValue) this.$.pages.selected = 3;
+    if (newValue) this._pagesEle.selected = 3;
   }
 
   signInWithGoogle() {
     store.dispatch(signInWithGoogle());
-    this.$.pages.selected = 2;
+    this._pagesEle.selected = 2;
   }
 
   signInWithEmailAndPassword() {
     store.dispatch(signInOrCreateWithEmailAndPassword());
-    this.$.pages.selected = 2;
+    this._pagesEle.selected = 2;
   }
 
   showEmailPage() {
     //TODO: Zero out email and password
-    this.$.pages.selected = 1;
+    this._pagesEle.selected = 1;
   }
 
   showSignInDialog(e) {
     //Might be undefined, that's fine
     setSignedInAction(e.detail.nextAction);
-    this.$.pages.selected = 0;
+    this._pagesEle.selected = 0;
     store.dispatch(showSignInDialog());
   }
 
@@ -265,4 +240,4 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   }
 }
 
-customElements.define(BoardgameUser.is, BoardgameUser);
+customElements.define("boardgame-user", BoardgameUser);
