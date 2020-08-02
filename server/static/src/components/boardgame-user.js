@@ -39,8 +39,6 @@ import {
 import {
   selectUser,
   selectVerifyingAuth,
-  selectLoggedIn,
-  selectAdminAllowed,
   selectSignInErrorMessage
 } from '../selectors.js';
 
@@ -146,16 +144,6 @@ class BoardgameUser extends connect(store)(PolymerElement) {
 
   static get properties() {
     return {
-      //TODO: both of these should move to being private once everything else
-      //that needs them is a connected component
-      adminAllowed: {
-        type: Boolean,
-        notify: true,
-      },
-      loggedIn : {
-        type: Boolean,
-        notify:true,
-      },
       _emailFormIsSignIn: {
         type: Boolean,
         value: true,
@@ -177,8 +165,6 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   stateChanged(state) {
     this._user = selectUser(state);
     this._verifyingAuth = selectVerifyingAuth(state);
-    this.loggedIn = selectLoggedIn(state);
-    this.adminAllowed = selectAdminAllowed(state);
     this._errorMessage = selectSignInErrorMessage(state);
   }
 

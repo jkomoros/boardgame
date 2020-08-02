@@ -27,6 +27,7 @@ import {
   selectVisibleActiveGames,
   selectVisibleJoinableGames,
   selectAllGames,
+  selectLoggedIn
 } from '../selectors.js';
 
 
@@ -52,7 +53,7 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
       }
     </style>
     <div class="card">
-      <boardgame-create-game .loggedIn=${this.loggedIn} .managers=${this._managers}></boardgame-create-game>
+      <boardgame-create-game .loggedIn=${this._loggedIn} .managers=${this._managers}></boardgame-create-game>
     </div>
     <div class="card">
       <paper-dropdown-menu name="manager" label="Game Type Filter">
@@ -121,9 +122,9 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
         type: Array,
       },
       _gameTypeFilter: { type: String },
+      _loggedIn: { type: Boolean},
       admin: { type: Boolean },
       selected: { type: Boolean },
-      loggedIn: { type: Boolean},
     }
   }
 
@@ -135,6 +136,7 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
     this._visibleActiveGames = selectVisibleActiveGames(state);
     this._visibleJoinableGames = selectVisibleJoinableGames(state);
     this._allGames = selectAllGames(state);
+    this._loggedIn = selectLoggedIn(state);
   }
 
   updated(changedProps) {
@@ -143,7 +145,7 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
       this._fetchGamesList();
       return
     }
-    if (changedProps.has('loggedIn')) {
+    if (changedProps.has('_loggedIn')) {
       //TODO: this is a race. Ideally loggedIn wouldn't change until the
       //user was logged out as far as server was concerned.
       setTimeout(() =>  this._fetchGamesList(), 250);
