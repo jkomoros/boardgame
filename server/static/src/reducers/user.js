@@ -6,8 +6,8 @@ import {
     SHOW_SIGN_IN_DIALOG,
     UPDATE_SIGN_IN_DIALOG_EMAIL,
     UPDATE_SIGN_IN_DIALOG_PASSWORD,
-    UPDATE_SIGN_IN_DIALOG_IS_CREATE,
-    UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE
+    UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE,
+    SHOW_SIGN_IN_DIALOG_EMAIL_PAGE
 } from '../actions/user.js';
 
 const INITIAL_STATE = {
@@ -79,10 +79,13 @@ const user = (state = INITIAL_STATE, action) => {
             ...state,
             dialogPassword: action.password
         }
-    case UPDATE_SIGN_IN_DIALOG_IS_CREATE:
+    case SHOW_SIGN_IN_DIALOG_EMAIL_PAGE: 
         return {
             ...state,
-            dialogIsCreate: action.isCreate
+            dialogIsCreate: action.isCreate,
+            dialogSelectedPage: 1,
+            dialogEmail: "",
+            dialogPassword: ""
         }
     case UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE:
         return{

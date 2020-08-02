@@ -28,7 +28,7 @@ import {
   showSignInDialog,
   updateSignInDialogEmail,
   updateSignInDialogPassword,
-  updateSignInDialogIsCreate
+  showSignInDialogEmailPage
 } from '../actions/user.js';
 
 import {
@@ -41,7 +41,6 @@ import {
   selectSignInDialogIsCreate,
   selectSignInDialogSelectedPage
 } from '../selectors.js';
-import { updateSignInDialogSelectedPage } from '../actions/user';
 
 class BoardgameUser extends connect(store)(LitElement) {
   render() {
@@ -191,17 +190,15 @@ class BoardgameUser extends connect(store)(LitElement) {
   }
 
   createLogin() {
-    store.dispatch(updateSignInDialogIsCreate(true));
-    this.showEmailPage();
+    store.dispatch(showSignInDialogEmailPage(true));
   }
 
   showEmail() {
-    store.dispatch(updateSignInDialogIsCreate(false));
-    this.showEmailPage();
+    store.dispatch(showSignInDialogEmailPage(false));
   }
 
   cancel() {
-    store.dispatch(updateSignInDialogSelectedPage(0));
+    store.dispatch(showSignInDialog());
   }
 
   emailSubmitted() {
@@ -214,11 +211,6 @@ class BoardgameUser extends connect(store)(LitElement) {
 
   signInWithEmailAndPassword() {
     store.dispatch(signInOrCreateWithEmailAndPassword());
-  }
-
-  showEmailPage() {
-    //TODO: Zero out email and password
-    store.dispatch(updateSignInDialogSelectedPage(1));
   }
 
   showSignInDialog(e) {

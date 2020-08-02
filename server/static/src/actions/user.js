@@ -6,8 +6,8 @@ export const SET_USER_ADMIN = 'SET_USER_ADMIN';
 export const SHOW_SIGN_IN_DIALOG = 'SHOW_SIGN_IN_DIALOG';
 export const UPDATE_SIGN_IN_DIALOG_EMAIL = "UPDATE_SIGN_IN_DIALOG_EMAIL";
 export const UPDATE_SIGN_IN_DIALOG_PASSWORD = "UPDATE_SIGN_IN_DIALOG_PASSWORD";
-export const UPDATE_SIGN_IN_DIALOG_IS_CREATE = "UPDATE_SIGN_IN_DIALOG_IS_CREATE";
 export const UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE = "UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE";
+export const SHOW_SIGN_IN_DIALOG_EMAIL_PAGE = "SHOW_SIGN_IN_DIALOG_EMAIL_PAGE";
 
 // This import loads the firebase namespace along with all its type information.
 import firebase from '@firebase/app';
@@ -237,6 +237,13 @@ export const setUserAdmin = (isAdmin) => (dispatch, getState) => {
     })
 }
 
+export const showSignInDialogEmailPage = (isCreate) => {
+    return {
+        type: SHOW_SIGN_IN_DIALOG_EMAIL_PAGE,
+        isCreate
+    }
+}
+
 export const showSignInDialog = () => {
     return {
         type: SHOW_SIGN_IN_DIALOG
@@ -257,12 +264,6 @@ export const updateSignInDialogPassword = (password) => {
     }
 }
 
-export const updateSignInDialogIsCreate = (isCreate) => {
-    return {
-        type: UPDATE_SIGN_IN_DIALOG_IS_CREATE,
-        isCreate
-    }
-}
 
 export const updateSignInDialogSelectedPage = (selectedPage) => {
     return {
