@@ -4,6 +4,8 @@ export const VERIFYING_AUTH = 'VERIFYING_AUTH';
 export const UPDATE_SIGN_IN_ERROR_MESSAGE = 'UPDATE_SIGN_IN_ERROR_MESSAGE';
 export const SET_USER_ADMIN = 'SET_USER_ADMIN';
 export const SHOW_SIGN_IN_DIALOG = 'SHOW_SIGN_IN_DIALOG';
+export const UPDATE_SIGN_IN_DIALOG_EMAIL = "UPDATE_SIGN_IN_DIALOG_EMAIL";
+export const UPDATE_SIGN_IN_DIALOG_PASSWORD = "UPDATE_SIGN_IN_DIALOG_PASSWORD";
 
 // This import loads the firebase namespace along with all its type information.
 import firebase from '@firebase/app';
@@ -11,7 +13,8 @@ import '@firebase/auth';
 
 import {
     selectUser,
-    selectAdminAllowed
+    selectAdminAllowed,
+    selectSignInDialogEmail
 } from '../selectors.js';
 
 import {
@@ -98,7 +101,10 @@ export const signInWithGoogle = () => (dispatch) => {
     }
 };
 
-export const signInWithEmailAndPassword = (email, password) => (dispatch) => {
+export const signInWithEmailAndPassword = () => (dispatch, getState) => {
+    const state = getState();
+    const email = selectSignInDialogEmail(state);
+    const password = selectSignInDialogPassword(state);
     if (OFFLINE_DEV_MODE) {
         dispatch(fauxSignIn(email, email));
     } else {
@@ -106,7 +112,10 @@ export const signInWithEmailAndPassword = (email, password) => (dispatch) => {
     };
 };
 
-export const createUserWithEmailAndPassword = (email, password) => (dispatch) => {
+export const createUserWithEmailAndPassword = () => (dispatch) => {
+    const state = getState();
+    const email = selectSignInDialogEmail(state);
+    const password = selectSignInDialogPassword(state);
     if (OFFLINE_DEV_MODE) {
         dispatch(fauxSignIn(email, email));
       } else {
@@ -232,5 +241,19 @@ export const setUserAdmin = (isAdmin) => (dispatch, getState) => {
 export const showSignInDialog = () => {
     return {
         type: SHOW_SIGN_IN_DIALOG
+    }
+}
+
+export const updateSignInDialogEmail = (email) => {
+    return {
+        type: UPDATE_SIGN_IN_DIALOG_EMAIL,
+        email
+    }
+}
+
+export const updateSignInDialogPassword = (password) => {
+    return {
+        type: UPDATE_SIGN_IN_DIALOG_EMAIL,
+        password
     }
 }

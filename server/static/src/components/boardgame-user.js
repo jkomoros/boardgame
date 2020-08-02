@@ -34,14 +34,18 @@ import {
   signInWithGoogle,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  showSignInDialog
+  showSignInDialog,
+  updateSignInDialogEmail,
+  updateSignInDialogPassword
 } from '../actions/user.js';
 
 import {
   selectUser,
   selectVerifyingAuth,
   selectSignInErrorMessage,
-  selectSignInDialogOpen
+  selectSignInDialogOpen,
+  selectSignInDialogEmail,
+  selectSignInDialogPassword
 } from '../selectors.js';
 
 class BoardgameUser extends connect(store)(PolymerElement) {
@@ -117,8 +121,8 @@ class BoardgameUser extends connect(store)(PolymerElement) {
           </div>
         </div>
         <div>
-          <paper-input id="email" label="Email"></paper-input>
-          <paper-input id="password" label="Password" type="password"></paper-input>
+          <paper-input id="email" label="Email" value="[[_email]]" on-change="_handleEmailChanged"></paper-input>
+          <paper-input id="password" label="Password" type="password" value="[[_password]]" on-change="_handlePasswordChanged"></paper-input>
           <div class="buttons">
             <paper-button on-tap="cancel">Cancel</paper-button>
             <paper-button on-tap="emailSubmitted" autofocus="" default="">[[buttonText(_emailFormIsSignIn)]]</paper-button>
@@ -162,6 +166,8 @@ class BoardgameUser extends connect(store)(PolymerElement) {
         observer: "_errorMessageChanged"
       },
       _dialogOpen: { type: Boolean },
+      _email: { type: String },
+      _password: { type: String },
     }
   }
 
@@ -170,6 +176,8 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     this._verifyingAuth = selectVerifyingAuth(state);
     this._errorMessage = selectSignInErrorMessage(state);
     this._dialogOpen = selectSignInDialogOpen(state);
+    this._email = selectSignInDialogEmail(state);
+    this._password = selectSignInDialogPassword(state);
   }
 
   get offlineDevMode() {
@@ -201,6 +209,14 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     return (str) ? str : ""
   }
 
+  _handleEmailChanged(e) {
+    store.dispatch(updateSignInDialogEmail(e.composedPath()[0].value))
+  }
+
+  _handlePasswordChanged(e) {
+    store.dispatch(updateSignInDialogPassword(e.composedPath()[0].value));
+  }
+
   createLogin() {
     this._emailFormIsSignIn = false;
     this.showEmailPage();
@@ -211,13 +227,10 @@ class BoardgameUser extends connect(store)(PolymerElement) {
   }
 
   emailSubmitted() {
-    let email = this.$.email.value;
-    let password = this.$.password.value;
-
     if (this._emailFormIsSignIn) {
-      this.signInWithEmailAndPassword(email, password);
+      this.signInWithEmailAndPassword();
     } else {
-      this.createUserWithEmailAndPassword(email, password);
+      this.createUserWithEmailAndPassword();
     }
   }
 
@@ -235,19 +248,18 @@ class BoardgameUser extends connect(store)(PolymerElement) {
     this.$.pages.selected = 2;
   }
 
-  signInWithEmailAndPassword(email, password) {
-    store.dispatch(signInWithEmailAndPassword(email, password));
+  signInWithEmailAndPassword() {
+    store.dispatch(signInWithEmailAndPassword());
     this.$.pages.selected = 2;
   }
 
-  createUserWithEmailAndPassword(email, password) {
-    store.dispatch(createUserWithEmailAndPassword(email, password));
+  createUserWithEmailAndPassword() {
+    store.dispatch(createUserWithEmailAndPassword());
     this.$.pages.selected = 2;
   }
 
   showEmailPage() {
-    this.$.email.value = "";
-    this.$.password.value = "";
+    //TODO: Zero out email and password
     this.$.pages.selected = 1;
   }
 

@@ -3,7 +3,9 @@ import {
     VERIFYING_AUTH,
     UPDATE_SIGN_IN_ERROR_MESSAGE,
     SET_USER_ADMIN,
-    SHOW_SIGN_IN_DIALOG
+    SHOW_SIGN_IN_DIALOG,
+    UPDATE_SIGN_IN_DIALOG_EMAIL,
+    UPDATE_SIGN_IN_DIALOG_PASSWORD
 } from '../actions/user.js';
 
 const INITIAL_STATE = {
@@ -15,6 +17,8 @@ const INITIAL_STATE = {
     user: null,
     errorMessage: "",
     dialogOpen: false,
+    dialogEmail: "",
+    dialogPassword: "",
 };
 
 const user = (state = INITIAL_STATE, action) => {
@@ -53,7 +57,19 @@ const user = (state = INITIAL_STATE, action) => {
     case SHOW_SIGN_IN_DIALOG:
         return {
             ...state,
-            dialogOpen: true
+            dialogOpen: true,
+            dialogEmail: "",
+            dialogPassword: ""
+        }
+    case UPDATE_SIGN_IN_DIALOG_EMAIL:
+        return {
+            ...state,
+            dialogEmail: action.email
+        }
+    case UPDATE_SIGN_IN_DIALOG_PASSWORD:
+        return {
+            ...state,
+            dialogPassword: action.password
         }
 	default:
 		return state;

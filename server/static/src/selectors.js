@@ -20,6 +20,8 @@ export const selectAdminAllowed = (state) => state.user ? state.user.adminAllowe
 export const selectSignInErrorMessage = (state) => state.user ? state.user.errorMessage : "";
 export const selectAdmin = (state) => state.user ? state.user.admin : false;
 export const selectSignInDialogOpen = (state) => state.user ? state.user.dialogOpen : false;
+export const selectSignInDialogEmail = (state) => state.user ? state.user.dialogEmail : "";
+export const selectSignInDialogPassword = (state) => state.user ? state.user.dialogPassword : "";
 
 const selectGameID = (state) => state.game ? state.game.id : '';
 const selectGameName = (state) => state.game ? state.game.name : '';
