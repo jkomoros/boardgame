@@ -6,6 +6,11 @@ import {
     apiPath
 } from '../util.js';
 
+import {
+    selectGameTypeFilter,
+    selectAdmin
+} from '../selectors.js';
+
 export const fetchManagers = () => async (dispatch) => {
 
     let response = await fetch(apiPath('list/manager'));
@@ -27,12 +32,13 @@ export const updateGameTypeFilter = (name) => {
     }
 }
 
-export const fetchGamesList = (gameType, isAdmin) => async (dispatch) => {
+export const fetchGamesList = () => async (dispatch, getState) => {
 
     //TODO: debounce this
 
-    //TODO: gameType, isAdmin should be recoverable from state and not need to
-    //be passed as arguments.
+    const state = getState();
+    const gameType = selectGameTypeFilter(state);
+    const isAdmin = selectAdmin(state);
 
     let response = await fetch(apiPath('list/game', {
         name: gameType,

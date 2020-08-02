@@ -145,13 +145,14 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
       //user was logged out as far as server was concerned.
       setTimeout(() =>  this._fetchGamesList(), 250);
     }
+    //TODO: the only reason we keep track of admin is to know to call fetchGamesList again...
     if (changedProps.has('_admin') || changedProps.has('_gameTypeFilter')) {
       this._fetchGamesList();
     }
   }
 
   _fetchGamesList() {
-    store.dispatch(fetchGamesList(this._gameTypeFilter, this._admin));
+    store.dispatch(fetchGamesList());
   }
 
   _handleSelectedChanged(e) {
