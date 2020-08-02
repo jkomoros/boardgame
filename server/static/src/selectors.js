@@ -23,6 +23,7 @@ export const selectSignInDialogOpen = (state) => state.user ? state.user.dialogO
 export const selectSignInDialogEmail = (state) => state.user ? state.user.dialogEmail : "";
 export const selectSignInDialogPassword = (state) => state.user ? state.user.dialogPassword : "";
 export const selectSignInDialogIsCreate = (state) => state.user ? state.user.isCreate : false;
+export const selectSignInDialogSelectedPage = (state) => state.user ? state.user.dialogSelectedPage : 0;
 
 const selectGameID = (state) => state.game ? state.game.id : '';
 const selectGameName = (state) => state.game ? state.game.name : '';

@@ -7,6 +7,7 @@ export const SHOW_SIGN_IN_DIALOG = 'SHOW_SIGN_IN_DIALOG';
 export const UPDATE_SIGN_IN_DIALOG_EMAIL = "UPDATE_SIGN_IN_DIALOG_EMAIL";
 export const UPDATE_SIGN_IN_DIALOG_PASSWORD = "UPDATE_SIGN_IN_DIALOG_PASSWORD";
 export const UPDATE_SIGN_IN_DIALOG_IS_CREATE = "UPDATE_SIGN_IN_DIALOG_IS_CREATE";
+export const UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE = "UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE";
 
 // This import loads the firebase namespace along with all its type information.
 import firebase from '@firebase/app';
@@ -100,6 +101,7 @@ export const signInWithGoogle = () => (dispatch) => {
         provider.addScope("profile");
         provider.addScope("email");
         firebaseApp.auth().signInWithPopup(provider).catch(err => dispatch(updateSignInError(err)));
+        dispatch(updateSignInDialogSelectedPage(2));
     }
 };
 
@@ -117,6 +119,7 @@ export const signInOrCreateWithEmailAndPassword = () => (dispatch, getState) => 
             firebaseApp.auth().signInWithEmailAndPassword(email, password).catch(err => dispatch(updateSignInError(err)));
         }
     };
+    dispatch(updateSignInDialogSelectedPage(2));
 };
 
 const firebaseUserUpdated = (fUser) => (dispatch, getState) => {
@@ -258,5 +261,12 @@ export const updateSignInDialogIsCreate = (isCreate) => {
     return {
         type: UPDATE_SIGN_IN_DIALOG_IS_CREATE,
         isCreate
+    }
+}
+
+export const updateSignInDialogSelectedPage = (selectedPage) => {
+    return {
+        type: UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE,
+        selectedPage
     }
 }

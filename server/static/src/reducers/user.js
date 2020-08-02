@@ -6,7 +6,8 @@ import {
     SHOW_SIGN_IN_DIALOG,
     UPDATE_SIGN_IN_DIALOG_EMAIL,
     UPDATE_SIGN_IN_DIALOG_PASSWORD,
-    UPDATE_SIGN_IN_DIALOG_IS_CREATE
+    UPDATE_SIGN_IN_DIALOG_IS_CREATE,
+    UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE
 } from '../actions/user.js';
 
 const INITIAL_STATE = {
@@ -22,6 +23,7 @@ const INITIAL_STATE = {
     dialogPassword: "",
     //The dialog can be either in sign-in mode, or create account mode
     dialogIsCreate: false,
+    dialogSelectedPage: 0,
 };
 
 const user = (state = INITIAL_STATE, action) => {
@@ -48,9 +50,11 @@ const user = (state = INITIAL_STATE, action) => {
             errorMessage: "",
         }
     case UPDATE_SIGN_IN_ERROR_MESSAGE:
+        let selectedPage = action.error ? 3 : state.dialogSelectedPage
         return {
             ...state,
             errorMessage: action.error,
+            dialogSelectedPage: selectedPage
         }
     case SET_USER_ADMIN:
         return {
@@ -62,7 +66,8 @@ const user = (state = INITIAL_STATE, action) => {
             ...state,
             dialogOpen: true,
             dialogEmail: "",
-            dialogPassword: ""
+            dialogPassword: "",
+            dialogSelectedPage: 0
         }
     case UPDATE_SIGN_IN_DIALOG_EMAIL:
         return {
@@ -78,6 +83,11 @@ const user = (state = INITIAL_STATE, action) => {
         return {
             ...state,
             dialogIsCreate: action.isCreate
+        }
+    case UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE:
+        return{
+            ...state,
+            dialogSelectedPage: action.selectedPage
         }
 	default:
 		return state;

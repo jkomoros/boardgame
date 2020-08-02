@@ -38,8 +38,10 @@ import {
   selectSignInDialogOpen,
   selectSignInDialogEmail,
   selectSignInDialogPassword,
-  selectSignInDialogIsCreate
+  selectSignInDialogIsCreate,
+  selectSignInDialogSelectedPage
 } from '../selectors.js';
+import { updateSignInDialogSelectedPage } from '../actions/user';
 
 class BoardgameUser extends connect(store)(LitElement) {
   render() {
@@ -112,7 +114,7 @@ class BoardgameUser extends connect(store)(LitElement) {
       <div ?hidden=${!OFFLINE_DEV_MODE}>
         <strong style="color:red;">Offline Dev Mode enabled; login is faked</strong>
       </div>
-      <iron-pages id="pages">
+      <iron-pages id="pages" .selected=${this._selectedPage}>
         <div>
           <h2>Sign In</h2>
           <p>You must sign in to use this app.</p>
@@ -156,15 +158,12 @@ class BoardgameUser extends connect(store)(LitElement) {
         type: Object,
         value: null,
       },
-      _errorMessage: {
-        type: String,
-        observer: "_errorMessageChanged"
-      },
+      _errorMessage: { type: String },
       _dialogOpen: { type: Boolean },
       _email: { type: String },
       _password: { type: String },
       _isCreate: { type: Boolean },
-      _pagesEle: { type: Object },
+      _selectedPage: { type: Number },
     }
   }
 
@@ -176,11 +175,11 @@ class BoardgameUser extends connect(store)(LitElement) {
     this._email = selectSignInDialogEmail(state);
     this._password = selectSignInDialogPassword(state);
     this._isCreate = selectSignInDialogIsCreate(state);
+    this._selectedPage = selectSignInDialogSelectedPage(state);
   }
 
   firstUpdated() {
     store.dispatch(firebaseSignIn());
-    this._pagesEle = this.shadowRoot.querySelector("#pages");
   }
 
   _handleEmailChanged(e) {
@@ -202,36 +201,29 @@ class BoardgameUser extends connect(store)(LitElement) {
   }
 
   cancel() {
-    this._pagesEle.selected = 0;
+    store.dispatch(updateSignInDialogSelectedPage(0));
   }
 
   emailSubmitted() {
     this.signInWithEmailAndPassword();
   }
 
-  _errorMessageChanged(newValue) {
-    if (newValue) this._pagesEle.selected = 3;
-  }
-
   signInWithGoogle() {
     store.dispatch(signInWithGoogle());
-    this._pagesEle.selected = 2;
   }
 
   signInWithEmailAndPassword() {
     store.dispatch(signInOrCreateWithEmailAndPassword());
-    this._pagesEle.selected = 2;
   }
 
   showEmailPage() {
     //TODO: Zero out email and password
-    this._pagesEle.selected = 1;
+    store.dispatch(updateSignInDialogSelectedPage(1));
   }
 
   showSignInDialog(e) {
     //Might be undefined, that's fine
     setSignedInAction(e.detail.nextAction);
-    this._pagesEle.selected = 0;
     store.dispatch(showSignInDialog());
   }
 
