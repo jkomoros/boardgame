@@ -1,4 +1,3 @@
-
 import { LitElement, html } from '@polymer/lit-element';
 import './boardgame-player-roster.js';
 import './shared-styles.js';
@@ -12,7 +11,29 @@ import {
   setProperty,
 } from '../util.js';
 
-class BoardgameGameView extends LitElement {
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import { store } from '../store.js';
+
+import {
+  selectPage,
+  selectPageExtra,
+  selectGameRoute
+} from '../selectors.js';
+
+import {
+  PAGE_GAME
+} from '../actions/app.js';
+
+import {
+  updateGameRoute
+} from '../actions/game.js';
+
+import game from '../reducers/game.js';
+store.addReducers({
+	game
+});
+
+class BoardgameGameView extends connect(store)(LitElement) {
   render() {
     return html`
     ${ SharedStyles }
@@ -44,13 +65,13 @@ class BoardgameGameView extends LitElement {
     </style>
 
     <div class="card">
-      <boardgame-player-roster id="player" .loggedIn=${this.loggedIn} .gameRoute=${this.gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this.hasEmptySlots} .gameOpen=${this.gameOpen} .gameVisible=${this.gameVisible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this.playersInfo} .state=${this.currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this.admin} isOwner=${this.isOwner} .active=${this.selected}></boardgame-player-roster>
+      <boardgame-player-roster id="player" .loggedIn=${this.loggedIn} .gameRoute=${this._gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this.hasEmptySlots} .gameOpen=${this.gameOpen} .gameVisible=${this.gameVisible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this.playersInfo} .state=${this.currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this.admin} isOwner=${this.isOwner} .active=${this.selected}></boardgame-player-roster>
     </div>
     <div class="card">
-      <boardgame-render-game id="render" .state=${this.currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this.gameRoute ? this.gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this.chest}></boardgame-render-game>
+      <boardgame-render-game id="render" .state=${this.currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this._gameRoute ? this._gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this.chest}></boardgame-render-game>
     </div>
-    <boardgame-admin-controls id="admin" .active=${this.admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this.gameRoute} .chest=${this.chest} .gameState=${this.gameState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
-    <boardgame-game-state-manager id="manager" .activeRenderer=${this.activeRenderer} .gameRoute=${this.gameRoute} .requestedPlayer=${this.requestedPlayer} .active=${this.selected} .admin=${this.admin} .gameFinished=${this.game ? this.game.Finished : false} .gameVersion=${this.game ? this.game.Version : 0} .loggedIn=${this.loggedIn} .autoCurrentPlayer=${this.autoCurrentPlayer} .viewingAsPlayer=${this.viewingAsPlayer} .socketActive=${this.socketActive} @socket-active-changed=${this._handleSocketActiveChanged}></boardgame-game-state-manager>
+    <boardgame-admin-controls id="admin" .active=${this.admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this.chest} .gameState=${this.gameState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
+    <boardgame-game-state-manager id="manager" .activeRenderer=${this.activeRenderer} .gameRoute=${this._gameRoute} .requestedPlayer=${this.requestedPlayer} .active=${this.selected} .admin=${this.admin} .gameFinished=${this.game ? this.game.Finished : false} .gameVersion=${this.game ? this.game.Version : 0} .loggedIn=${this.loggedIn} .autoCurrentPlayer=${this.autoCurrentPlayer} .viewingAsPlayer=${this.viewingAsPlayer} .socketActive=${this.socketActive} @socket-active-changed=${this._handleSocketActiveChanged}></boardgame-game-state-manager>
 `;
   }
 
@@ -66,7 +87,6 @@ class BoardgameGameView extends LitElement {
       gameOpen: { type: Boolean },
       gameVisible: { type: Boolean },
       isOwner: { type: Boolean },
-      gameRoute: { type: Object },
       autoCurrentPlayer: { type: Boolean },
       admin: { type: Boolean },
       selected: { type: Boolean },
@@ -85,7 +105,20 @@ class BoardgameGameView extends LitElement {
       _adminEle: { type: Object },
       _renderEle: { type: Object },
       _playerEle: { type: Object },
+      _pageExtra: { type: String },
+      _gameRoute: { type: Object },
     }
+  }
+
+  //TODO: shouldUpdate should return false if selected is false. But if we do
+  //that, then game-state-manager is never updated, so it never lerans that
+  //there was a time when it wasn't active. Once game-state-manager is done as
+  //action creators then it should be fine.
+
+  stateChanged(state) {
+    this._page = selectPage(state);
+    this._pageExtra = selectPageExtra(state);
+    this._gameRoute = selectGameRoute(state);
   }
 
   constructor() {
@@ -136,10 +169,13 @@ class BoardgameGameView extends LitElement {
   }
 
   updated(changedProps) {
+    if (changedProps.has('_pageExtra') && this._page == PAGE_GAME) {
+      store.dispatch(updateGameRoute(this._pageExtra));
+    }
     if (changedProps.has('selected') && !this.selected) {
       this._resetState();
     }
-    if (changedProps.has('gameRoute')) {
+    if (changedProps.has('_gameRoute')) {
       //reset this so the next time we get data set and notice that we COULD
       //login we prompt for it.
       this.promptedToJoin = false;

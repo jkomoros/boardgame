@@ -7,3 +7,4 @@ export const selectParticipatingFinishedGames = (state) => state.list ? state.li
 export const selectVisibleActiveGames = (state) => state.list ? state.list.visibleActiveGames : [];
 export const selectVisibleJoinableGames = (state) => state.list ? state.list.visibleJoinableGames : [];
 export const selectAllGames = (state) => state.list ? state.list.allGames : [];
+export const selectGameRoute = (state) => state.game && state.game.id ? {id: state.game.id, name: state.game.name} : null;

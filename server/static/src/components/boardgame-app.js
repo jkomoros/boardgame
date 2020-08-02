@@ -41,13 +41,11 @@ import { store } from '../store.js';
 
 import {
   selectPage,
-  selectPageExtra
 } from '../selectors.js';
 
 import {
   navigated,
   navigatePathTo,
-  PAGE_GAME,
 } from '../actions/app.js';
 
 class BoardgameApp extends connect(store)(PolymerElement) {
@@ -125,7 +123,7 @@ class BoardgameApp extends connect(store)(PolymerElement) {
         </app-header>
 
         <iron-pages selected="[[_page]]" attr-for-selected="name" fallback-selection="view404" selected-attribute="selected" role="main">
-          <boardgame-game-view logged-in="[[loggedIn]]" admin="[[admin]]" name="game" game-route="[[_gameRoute]]"></boardgame-game-view>
+          <boardgame-game-view logged-in="[[loggedIn]]" admin="[[admin]]" name="game"></boardgame-game-view>
           <boardgame-list-games-view name="list-games" logged-in="[[loggedIn]]" admin="[[admin]]"></boardgame-list-games-view>
           <boardgame-404-view name="view404"></boardgame-404-view>
         </iron-pages>
@@ -149,11 +147,6 @@ class BoardgameApp extends connect(store)(PolymerElement) {
   static get properties() {
     return {
       _page: { type: String },
-      _pageExtra: { type: String },
-      _gameRoute: {
-        type: Object,
-        computed: "_computeGameRoute(_page, _pageExtra)"
-      },
       user: Object,
       loggedIn : Boolean,
       admin: {
@@ -177,25 +170,6 @@ class BoardgameApp extends connect(store)(PolymerElement) {
 
   stateChanged(state) {
     this._page = selectPage(state);
-    this._pageExtra = selectPageExtra(state);
-  }
-
-  //TODO: this logic should live in actions/app.js, and be kicked off by
-  //game-view once it's a connected component
-  _computeGameRoute(page, pageExtra) {
-    if (!page || !pageExtra) return null;
-    if (page != PAGE_GAME) return null;
-    const pieces = pageExtra.split("/");
-    //remove the trailing slash
-    if (!pieces[pieces.length - 1]) pieces.pop();
-    if (pieces.length != 2) {
-      console.warn("URL for game didn't have expected number of pieces");
-      return null;
-    }
-    return {
-      name: pieces[0],
-      id: pieces[1],
-    }
   }
 
   handleNavigateTo(e) {
