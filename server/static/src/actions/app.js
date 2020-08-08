@@ -1,4 +1,3 @@
-
 export const UPDATE_PAGE = 'UPDATE_PAGE';
 export const UPDATE_OFFLINE = 'UPDATE_OFFLINE';
 export const OPEN_SNACKBAR = 'OPEN_SNACKBAR';
@@ -9,6 +8,10 @@ export const CLOSE_HEADER_PANEL = 'CLOSE_HEADER_PANEL';
 export const PAGE_DEFAULT = 'list-games';
 export const PAGE_GAME = 'game';
 export const PAGE_404 = 'view404';
+
+import {
+	gamePath
+} from '../util.js';
 
 export const OFFLINE_DEV_MODE = CONFIG ? CONFIG.offline_dev_mode || false : false;
 
@@ -22,6 +25,11 @@ export const navigatePathTo = (path, silent) => (dispatch, getState) => {
 	window.history.pushState({}, '', path);
 	dispatch(navigated(decodeURIComponent(path), decodeURIComponent(location.search)));
 };
+
+export const navigateToGame = (gameName, gameID) => (dispatch) => {
+	//Do I need dispatch here, or could I just return?
+	dispatch(navigateToGame(gamePath(gameName, gameID)));
+}
 
 export const navigated = (path, query) => (dispatch) => {
 
