@@ -1,17 +1,4 @@
-/**
-@license
-Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
-*/
-import { PolymerElement } from '@polymer/polymer/polymer-element.js';
-
-import '@polymer/polymer/lib/elements/dom-repeat.js';
 import '@polymer/paper-button/paper-button.js';
-import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
 import '@polymer/paper-listbox/paper-listbox.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
@@ -25,11 +12,13 @@ import '@polymer/iron-icons/social-icons.js';
 import '@polymer/iron-icon/iron-icon.js';
 import '@polymer/paper-styles/typography.js';
 import '@polymer/paper-styles/default-theme.js';
-import './shared-styles.js';
-import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
+
+import { LitElement, html } from '@polymer/lit-element';
+
+import { SharedStyles } from './shared-styles-lit.js';
 
 import {
   createGame
@@ -39,10 +28,22 @@ import {
   selectManagers
 } from '../selectors.js';
 
-class BoardgameCreateGame extends connect(store)(PolymerElement) {
-  static get template() {
+//The templates are a pain to tell to expect an empty manager, so have a blank
+//one for use in tempaltes. Every time the templates below rely on a new
+//property of selected manager we should change this.
+const EMPTY_MANAGER = {
+  DefaultNumPlayers: 0,
+  MinNumPlayers: 0,
+  MaxNumPlayers: 0,
+  Variant: [],
+  Agents: [],
+}
+
+class BoardgameCreateGame extends connect(store)(LitElement) {
+  render() {
     return html`
-    <style is="custom-style" include="iron-flex iron-flex-alignment shared-styles">
+    ${SharedStyles}
+    <style>
       paper-toggle-button {
         margin-right: 1em;
       }
@@ -68,68 +69,91 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
         max-width: 40em;
         white-space: normal;
       }
+
+      .layout {
+        display: flex;
+      }
+
+      .vertical {
+        flex-direction: column;
+      }
+
+      .horizontal {
+        flex-direction: row;
+      }
+
+      .center {
+        align-items: center;
+      }
+
+      .justified {
+        justify-content: space-between;
+      }
+
+      .flex {
+        flex-grow: 1;
+      }
     </style>
     <div class="vertical layout">
       <div class="horizontal layout center game">
         <paper-dropdown-menu name="manager" label="Game Type" horizontal-align="left">
-          <paper-listbox slot="dropdown-content" selected="[[_selectedManagerIndex]]" on-selected-changed="_handleSelectedManagerIndexChanged">
-            <template is="dom-repeat" items="[[_managers]]">
-              <paper-item value="[[item.Name]]" data="[[item]]" label="[[item.DisplayName]]">
-                <paper-item-body two-line="">
-                  <div>[[item.DisplayName]]</div>
-                  <div secondary="">[[item.Description]]</div>
+          <paper-listbox slot="dropdown-content" .selected=${this._selectedManagerIndex} @selected-changed=${this._handleSelectedManagerIndexChanged}>
+          ${this._managers.map((item) =>
+            html`
+              <paper-item .value=${item.Name} .label=${item.DisplayName}>
+                <paper-item-body two-line>
+                  <div>${item.DisplayName}</div>
+                  <div secondary>${item.Description}</div>
                 </paper-item-body>
-              </paper-item> 
-            </template>
+              </paper-item>`
+            )}
           </paper-listbox>
         </paper-dropdown-menu>
         <div class="vertical layout">
-
-          <div hidden\$="[[managerFixedPlayerCount]]">
-            <div class="secondary">Number of Players</div>
-            <paper-slider name="numplayers" label="Number of Players" min="[[_selectedManager.MinNumPlayers]]" max="[[_selectedManager.MaxNumPlayers]]" value="{{numPlayers}}" snaps="" pin="" editable="" max-markers="100"></paper-slider>
-          </div>
-          <div hidden\$="[[!managerFixedPlayerCount]]">
-            <div class="secondary"><strong>[[_selectedManager.MinNumPlayers]]</strong> players</div>
-          </div>
+            ${this._managerHasFixedPlayerCount ? 
+             html`<div class="secondary"><strong>${this._selectedManager.MinNumPlayers}</strong> players</div>` :
+              html`<div class="secondary">Number of Players</div>
+              <paper-slider name="numplayers" label="Number of Players" .min=${this._selectedManager.MinNumPlayers} .max=${this._selectedManager.MaxNumPlayers} .value=${this._numPlayers} @value-changed=${this._handleSliderValueChanged} snaps pin editable max-markers="100"></paper-slider>`
+            }
         </div>
         <div class="flex"></div>
-        <paper-button on-tap="createGame" default="" raised="">Create Game</paper-button>
+        <paper-button @tap=${this.createGame} default raised>Create Game</paper-button>
       </div>
 
-      <div class="horizontal layout justified" hidden\$="[[managerHasAgents]]">
-        <template is="dom-repeat" items="[[players]]">
+      <div class="horizontal layout justified" ?hidden=${this._managerHasAgents}>
+      ${this._players.map((item, index) => html`
           <div class="flex">
             <div class="vertical layout">
-              Player [[index]]
-              <paper-radio-group selected="" disabled="[[managerHasAgents]]" name="agent-player-[[index]]" attr-for-selected="value">
-                <paper-radio-button name="agent-player-[[index]]" value="" disabled="[[managerHasAgents]]">Real Live Human</paper-radio-button>
-                <template is="dom-repeat" items="[[_selectedManager.Agents]]" index-as="agentIndex">
-                  <paper-radio-button name="agent-player-[[index]]" value="[[item.Name]]">[[item.DisplayName]]</paper-radio-button>
-                </template>
+              Player ${index}
+              <paper-radio-group selected .disabled=${this._managerHasAgents} .name=${"agent-player-" + index} attr-for-selected="value">
+                <paper-radio-button .name=${"agent-player-" + index} .disabled=${this._managerHasAgents}>Real Live Human</paper-radio-button>
+                ${this._selectedManager.Agents.map((item, index) => html`
+                <paper-radio-button .name=${"agent-player-" + index} .value=${item.Name}>${item.DisplayName}</paper-radio-button>
+                `)}
               </paper-radio-group>
             </div>
           </div>
-        </template>
+      `)}
       </div>
       <div class="horizontal layout variant">
-        <template is="dom-repeat" items="[[_selectedManager.Variant]]">
+        ${this._variants.map((item) => html`
           <div class="vertical layout">
-            <paper-dropdown-menu label="[[item.DisplayName]]" name="variant_[[item.Name]]" horizontal-align="left">
+            <paper-dropdown-menu .label=${item.DisplayName} .name=${"variant_" + item.Name} horizontal-align="left">
               <paper-listbox slot="dropdown-content" selected="0">
-                <template is="dom-repeat" items="[[item.Values]]">
-                  <paper-item value="[[item.Value]]" label="[[item.DisplayName]]">
-                    <paper-item-body two-line="">
-                      <div>[[item.DisplayName]]</div>
-                      <div secondary="">[[item.Description]]</div>
+                ${item.Values.map(item => html`
+                  <paper-item .value=${item.Value} .label=${item.DisplayName}>
+                    <paper-item-body two-line>
+                      <div>${item.DisplayName}</div>
+                      <div secondary>${item.Description}</div>
                     </paper-item-body>
                   </paper-item>
-                </template>
+                `)}
               </paper-listbox>
             </paper-dropdown-menu>
-            <div class="secondary">[[item.Description]]</div>
+            <div class="secondary">${item.Description}</div>
           </div>
-        </template>
+        `)}
+
       </div>
       <div class="horizontal layout">
         <paper-toggle-button name="visible" checked=""><iron-icon icon="visibility"></iron-icon> Allow strangers to find the game</paper-toggle-button>
@@ -139,39 +163,21 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
 `;
   }
 
-  static get is() {
-    return "boardgame-create-game";
-  }
-
   static get properties() {
     return {
-      _selectedManagerIndex: {
-        type: Number,
-        value: 0
-      },
-      _managers: Array,
-      _selectedManager: {
-        type: Object,
-        computed: "_computeSelectedManager(_selectedManagerIndex, _managers)"
-      },
-      managerHasAgents: {
-        type: Boolean,
-        computed: "_computeManagerHasAgents(_selectedManager)"
-      },
-      managerFixedPlayerCount: {
-        type: Boolean,
-        computed: "_computeManagerHasFixedPlayerCount(_selectedManager)"
-      },
-      numPlayers: {
-        type: Number,
-        value: 0,
-        computed: "_computeNumPlayers(_selectedManager)",
-      },
-      players: {
-        type: Object,
-        computed: "_computePlayers(_selectedManager, numPlayers)",
-      }
+      //TODO: selectedManagerIndex should be stored in state
+      _selectedManagerIndex: { type: Number },
+      _managers: { type: Array },
+      _numPlayers: { type: Number },
     }
+  }
+
+  constructor() {
+    super();
+
+    this._managers = [];
+    this._selectedManagerIndex = 0;
+    this._numPlayers = 0;
   }
 
   stateChanged(state) {
@@ -182,16 +188,17 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
     this._selectedManagerIndex = e.detail.value;
   }
 
-  _computeSelectedManager(selectedManagerIndex, managers) {
-    if (!managers || selectedManagerIndex < 0 || selectedManagerIndex >= managers.length) return null;
-    return managers[selectedManagerIndex];
+  get _selectedManager() {
+    //TODO: this and other getters should probably be selectors
+    if (!this._managers || this._selectedManagerIndex < 0 || this._selectedManagerIndex >= this._managers.length) return EMPTY_MANAGER;
+    return this._managers[this._selectedManagerIndex];
   }
 
-  _computePlayers(selectedManager, numPlayers) {
+  get _players() {
 
-    if (!selectedManager) return [];
+    let numPlayers = this._numPlayers;
     if (numPlayers == 0) {
-      numPlayers = selectedManager.DefaultNumPlayers;
+      numPlayers = this._selectedManager.DefaultNumPlayers;
     }
     var result = [];
     for (var i = 0; i < numPlayers; i++) {
@@ -200,16 +207,22 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
     return result;
   }
 
-  _computeNumPlayers(selectedManager) {
-    return selectedManager ? selectedManager.DefaultNumPlayers : 0;
+  get _variants() {
+    //This is here because games with no variant form server will have null for
+    //that field, not an empty array, and the template requires an array.
+    return this._selectedManager.Variant || [];
   }
 
-  _computeManagerHasAgents(selectedManager) {
-    return selectedManager ? selectedManager.Agents.length == 0 : false;
+  _handleSliderNumberChanged(e) {
+    this._numPlayers = e.detail.value;
   }
 
-  _computeManagerHasFixedPlayerCount(selectedManager) {
-    return selectedManager ? selectedManager.MinNumPlayers == selectedManager.MaxNumPlayers : false;
+  get _managerHasAgents() {
+    return this._selectedManager.Agents.length == 0;
+  }
+
+  get _managerHasFixedPlayerCount() {
+    return this._selectedManager.MinNumPlayers == this._selectedManager.MaxNumPlayers;
   }
 
   serialize() {
@@ -243,4 +256,4 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
   }
 }
 
-customElements.define(BoardgameCreateGame.is, BoardgameCreateGame);
+customElements.define("boardgame-create-game", BoardgameCreateGame);
