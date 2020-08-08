@@ -25,12 +25,17 @@ import '@polymer/iron-icons/social-icons.js';
 import '@polymer/iron-icon/iron-icon.js';
 import '@polymer/paper-styles/typography.js';
 import '@polymer/paper-styles/default-theme.js';
-import './boardgame-ajax.js';
 import './shared-styles.js';
-import {GamePathMixin} from './boardgame-game-path.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import { store } from '../store.js';
+
+import {
+  createGame
+} from '../actions/list.js';
+
+class BoardgameCreateGame extends connect(store)(PolymerElement) {
   static get template() {
     return html`
     <style is="custom-style" include="iron-flex iron-flex-alignment shared-styles">
@@ -127,7 +132,6 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
         <paper-toggle-button name="open" checked=""><iron-icon icon="social:people"></iron-icon> Allow anyone who can view the game to join</paper-toggle-button>
       </div>
     </div>
-    <boardgame-ajax id="create" path="new/game" method="POST" content-type="application/x-www-form-urlencoded" last-response="{{createGameResponse}}"></boardgame-ajax>
 `;
   }
 
@@ -137,7 +141,6 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
 
   static get properties() {
     return {
-      loggedIn: Boolean,
       selectedManager: {
         type: Object,
         observer: "_selectedManagerChanged",
@@ -158,12 +161,12 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
       players: {
         type: Object,
         computed: "_computePlayers(selectedManager, numPlayers)",
-      },
-      createGameResponse: {
-        type: Object,
-        observer: "_createGameResponseChanged"
       }
     }
+  }
+
+  stateChanged() {
+    //We don't currently fetch anything from state; we just dispatch action creators
   }
 
   _computePlayers(selectedManager, numPlayers) {
@@ -223,21 +226,8 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
     return body;
   }
 
-  _createGameResponseChanged(newValue) {
-    if (newValue.Status == "Success") {
-      this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: '/' + this.GamePath(newValue.GameName, newValue.GameID)}));
-    } else {
-      this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail:{message:newValue.Error, friendlyMessage: newValue.FriendlyError}}));
-    }
-  }
-
   createGame() {
-    if (!this.loggedIn) {
-      this.dispatchEvent(new CustomEvent('show-login', {composed: true, detail: {nextAction:this.createGame.bind(this)}}));
-      return;
-    }
-    this.$.create.body = this.serialize();
-    this.$.create.generateRequest();
+    store.dispatch(createGame(this.serialize()));
   }
 }
 

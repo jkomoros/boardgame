@@ -54,7 +54,7 @@ class BoardgameListGamesView extends connect(store)(LitElement) {
       }
     </style>
     <div class="card">
-      <boardgame-create-game .loggedIn=${this._loggedIn} .managers=${this._managers}></boardgame-create-game>
+      <boardgame-create-game .managers=${this._managers}></boardgame-create-game>
     </div>
     <div class="card">
       <paper-dropdown-menu name="manager" label="Game Type Filter">

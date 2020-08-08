@@ -8,8 +8,22 @@ import {
 
 import {
     selectGameTypeFilter,
-    selectAdmin
+    selectAdmin,
+    selectLoggedIn
 } from '../selectors.js';
+
+import {
+    setSignedInAction,
+    showSignInDialog
+} from './user.js';
+
+import {
+    navigateToGame
+} from './app.js';
+
+import {
+    updateAndShowError
+} from './error.js';
 
 export const fetchManagers = () => async (dispatch) => {
 
@@ -60,5 +74,41 @@ export const fetchGamesList = () => async (dispatch, getState) => {
     })
 
 }
+
+export const createGame = (propertyDict) => async (dispatch, getState) => {
+
+    //TODO: we should probably have this signature take something different,
+    //like manager, numPlayers, open, visible separately, then a bundle of
+    //game-specific variant properties
+
+    const state = getState();
+    const loggedIn = selectLoggedIn(state);
+
+    if (!loggedIn) {
+        setSignedInAction(() => dispatch(createGame(propertyDict)));
+        dispatch(showSignInDialog());
+        return;
+    }
+
+    const body = Object.entries(propertyDict).map((entry) => '' + entry[0] + '=' + entry[1]).join('&');
+
+    let response = await fetch(apiPath('new/game'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        mode: 'cors',
+        body: body,
+    });
+
+    let responseJSON = await response.json();
+
+    if (responseJSON.Status == "Success") {
+        dispatch(navigateToGame(responseJSON.GameName, responseJSON.GameID));
+    } else {
+        dispatch(updateAndShowError("", responseJSON.Error, responseJSON.FriendlyError));
+    }
+};
 
 
