@@ -1,5 +1,9 @@
-export const gamePath = (name, id, params) => {
-    return apiPath("game/" + name + "/" + id + "/", params);
+export const gamePath = (name, id) => {
+    return "game/" + name + "/" + id + "/"
+}
+
+export const gameAPIPath = (name, id, params) => {
+    return apiPath(gamePath(name, id), params);
 }
 
 export const apiPath = (path, params) => {
