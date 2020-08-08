@@ -201,15 +201,11 @@ class BoardgameUser extends connect(store)(LitElement) {
   }
 
   emailSubmitted() {
-    this.signInWithEmailAndPassword();
+    store.dispatch(signInOrCreateWithEmailAndPassword());
   }
 
   signInWithGoogle() {
     store.dispatch(signInWithGoogle());
-  }
-
-  signInWithEmailAndPassword() {
-    store.dispatch(signInOrCreateWithEmailAndPassword());
   }
 
   showSignInDialog(e) {
