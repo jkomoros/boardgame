@@ -28,7 +28,7 @@ export const navigatePathTo = (path, silent) => (dispatch, getState) => {
 
 export const navigateToGame = (gameName, gameID) => (dispatch) => {
 	//Do I need dispatch here, or could I just return?
-	dispatch(navigatePathTo(gamePath(gameName, gameID), false));
+	dispatch(navigatePathTo('/' + gamePath(gameName, gameID), false));
 }
 
 export const navigated = (path, query) => (dispatch) => {
