@@ -21,7 +21,6 @@ import {
 import {
   firebaseSignIn,
   signOut,
-  setSignedInAction,
   signInWithGoogle,
   signInOrCreateWithEmailAndPassword,
   showSignInDialog,
@@ -208,9 +207,7 @@ class BoardgameUser extends connect(store)(LitElement) {
     store.dispatch(signInWithGoogle());
   }
 
-  showSignInDialog(e) {
-    //Might be undefined, that's fine
-    setSignedInAction(e.detail.nextAction);
+  showSignInDialog() {
     store.dispatch(showSignInDialog());
   }
 

@@ -43,7 +43,9 @@ import {
 } from '../actions/error.js';
 
 import {
-  setUserAdmin
+  setUserAdmin,
+  setSignedInAction,
+  showSignInDialog
 } from '../actions/user.js';
 
 class BoardgameApp extends connect(store)(LitElement) {
@@ -197,9 +199,9 @@ class BoardgameApp extends connect(store)(LitElement) {
   }
 
   _handleShowLogIn(e) {
-    const userEle = this.shadowRoot.querySelector("#user");
-    //The event might have things like a nextAction, so forward it.
-    userEle.showSignInDialog(e);
+      //Might be undefined, that's fine
+      setSignedInAction(e.detail.nextAction);
+      store.dispatch(showSignInDialog());
   }
 
 }
