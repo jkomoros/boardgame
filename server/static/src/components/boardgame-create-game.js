@@ -72,7 +72,7 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
     <div class="vertical layout">
       <div class="horizontal layout center game">
         <paper-dropdown-menu name="manager" label="Game Type" horizontal-align="left">
-          <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
+          <paper-listbox slot="dropdown-content" selected="[[_selectedManagerIndex]]" on-selected-changed="_handleSelectedManagerIndexChanged">
             <template is="dom-repeat" items="[[_managers]]">
               <paper-item value="[[item.Name]]" data="[[item]]" label="[[item.DisplayName]]">
                 <paper-item-body two-line="">
@@ -87,10 +87,10 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
 
           <div hidden\$="[[managerFixedPlayerCount]]">
             <div class="secondary">Number of Players</div>
-            <paper-slider name="numplayers" label="Number of Players" min="[[selectedManager.data.MinNumPlayers]]" max="[[selectedManager.data.MaxNumPlayers]]" value="{{numPlayers}}" snaps="" pin="" editable="" max-markers="100"></paper-slider>
+            <paper-slider name="numplayers" label="Number of Players" min="[[_selectedManager.MinNumPlayers]]" max="[[_selectedManager.MaxNumPlayers]]" value="{{numPlayers}}" snaps="" pin="" editable="" max-markers="100"></paper-slider>
           </div>
           <div hidden\$="[[!managerFixedPlayerCount]]">
-            <div class="secondary"><strong>[[selectedManager.data.MinNumPlayers]]</strong> players</div>
+            <div class="secondary"><strong>[[_selectedManager.MinNumPlayers]]</strong> players</div>
           </div>
         </div>
         <div class="flex"></div>
@@ -104,7 +104,7 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
               Player [[index]]
               <paper-radio-group selected="" disabled="[[managerHasAgents]]" name="agent-player-[[index]]" attr-for-selected="value">
                 <paper-radio-button name="agent-player-[[index]]" value="" disabled="[[managerHasAgents]]">Real Live Human</paper-radio-button>
-                <template is="dom-repeat" items="[[selectedManager.data.Agents]]" index-as="agentIndex">
+                <template is="dom-repeat" items="[[_selectedManager.Agents]]" index-as="agentIndex">
                   <paper-radio-button name="agent-player-[[index]]" value="[[item.Name]]">[[item.DisplayName]]</paper-radio-button>
                 </template>
               </paper-radio-group>
@@ -113,7 +113,7 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
         </template>
       </div>
       <div class="horizontal layout variant">
-        <template is="dom-repeat" items="[[selectedManager.data.Variant]]">
+        <template is="dom-repeat" items="[[_selectedManager.Variant]]">
           <div class="vertical layout">
             <paper-dropdown-menu label="[[item.DisplayName]]" name="variant_[[item.Name]]" horizontal-align="left">
               <paper-listbox slot="dropdown-content" selected="0">
@@ -145,26 +145,31 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
 
   static get properties() {
     return {
-      selectedManager: {
-        type: Object,
-        observer: "_selectedManagerChanged",
+      _selectedManagerIndex: {
+        type: Number,
+        value: 0
       },
       _managers: Array,
+      _selectedManager: {
+        type: Object,
+        computed: "_computeSelectedManager(_selectedManagerIndex, _managers)"
+      },
       managerHasAgents: {
         type: Boolean,
-        computed: "_computeManagerHasAgents(selectedManager)"
+        computed: "_computeManagerHasAgents(_selectedManager)"
       },
       managerFixedPlayerCount: {
         type: Boolean,
-        computed: "_computeManagerHasFixedPlayerCount(selectedManager)"
+        computed: "_computeManagerHasFixedPlayerCount(_selectedManager)"
       },
       numPlayers: {
         type: Number,
         value: 0,
+        computed: "_computeNumPlayers(_selectedManager)",
       },
       players: {
         type: Object,
-        computed: "_computePlayers(selectedManager, numPlayers)",
+        computed: "_computePlayers(_selectedManager, numPlayers)",
       }
     }
   }
@@ -173,11 +178,20 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
     this._managers = selectManagers(state);
   }
 
+  _handleSelectedManagerIndexChanged(e) {
+    this._selectedManagerIndex = e.detail.value;
+  }
+
+  _computeSelectedManager(selectedManagerIndex, managers) {
+    if (!managers || selectedManagerIndex < 0 || selectedManagerIndex >= managers.length) return null;
+    return managers[selectedManagerIndex];
+  }
+
   _computePlayers(selectedManager, numPlayers) {
+
     if (!selectedManager) return [];
-    var data = selectedManager.data;
     if (numPlayers == 0) {
-      numPlayers = data.DefaultNumPlayers;
+      numPlayers = selectedManager.DefaultNumPlayers;
     }
     var result = [];
     for (var i = 0; i < numPlayers; i++) {
@@ -186,20 +200,16 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
     return result;
   }
 
-  _selectedManagerChanged(newValue) {
-    if (!newValue) return;
-    this.numPlayers = newValue.data.DefaultNumPlayers;
+  _computeNumPlayers(selectedManager) {
+    return selectedManager ? selectedManager.DefaultNumPlayers : 0;
   }
 
   _computeManagerHasAgents(selectedManager) {
-    if (!selectedManager) return false;
-    return selectedManager.data.Agents.length == 0;
+    return selectedManager ? selectedManager.Agents.length == 0 : false;
   }
 
   _computeManagerHasFixedPlayerCount(selectedManager) {
-    if (!selectedManager) return false;
-    let data = selectedManager.data;
-    return data.MinNumPlayers == data.MaxNumPlayers;
+    return selectedManager ? selectedManager.MinNumPlayers == selectedManager.MaxNumPlayers : false;
   }
 
   serialize() {
