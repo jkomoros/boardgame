@@ -35,6 +35,10 @@ import {
   createGame
 } from '../actions/list.js';
 
+import {
+  selectManagers
+} from '../selectors.js';
+
 class BoardgameCreateGame extends connect(store)(PolymerElement) {
   static get template() {
     return html`
@@ -69,7 +73,7 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
       <div class="horizontal layout center game">
         <paper-dropdown-menu name="manager" label="Game Type" horizontal-align="left">
           <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
-            <template is="dom-repeat" items="[[managers]]">
+            <template is="dom-repeat" items="[[_managers]]">
               <paper-item value="[[item.Name]]" data="[[item]]" label="[[item.DisplayName]]">
                 <paper-item-body two-line="">
                   <div>[[item.DisplayName]]</div>
@@ -145,7 +149,7 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
         type: Object,
         observer: "_selectedManagerChanged",
       },
-      managers: Array,
+      _managers: Array,
       managerHasAgents: {
         type: Boolean,
         computed: "_computeManagerHasAgents(selectedManager)"
@@ -165,8 +169,8 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
     }
   }
 
-  stateChanged() {
-    //We don't currently fetch anything from state; we just dispatch action creators
+  stateChanged(state) {
+    this._managers = selectManagers(state);
   }
 
   _computePlayers(selectedManager, numPlayers) {
@@ -181,8 +185,6 @@ class BoardgameCreateGame extends connect(store)(PolymerElement) {
     }
     return result;
   }
-
-
 
   _selectedManagerChanged(newValue) {
     if (!newValue) return;
