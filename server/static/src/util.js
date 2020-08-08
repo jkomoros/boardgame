@@ -1,12 +1,18 @@
+//gamePath returns the absolute path to view the given game.
 export const gamePath = (name, id) => {
-    return "game/" + name + "/" + id + "/"
+    return "/game/" + name + "/" + id + "/"
 }
 
+//gameAPIPath returns the absolute path to the API endpoint for the given name
 export const gameAPIPath = (name, id, params) => {
+    //gamePath has '/' but apiPath can strip it out
     return apiPath(gamePath(name, id), params);
 }
 
 export const apiPath = (path, params) => {
+
+    if (path && path[0] === '/') path.slice(1);
+
     //API_HOST is defined in index.html
     const url = API_HOST + '/api/' + path;
 
