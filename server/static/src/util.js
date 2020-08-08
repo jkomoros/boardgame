@@ -26,6 +26,19 @@ export const apiPath = (path, params) => {
     return url + "?" + parts.join("&");
 }
 
+//postFetchParams returns the default params to use for a post fetch
+export const postFetchParams = (body) => {
+    return {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        mode: 'cors',
+        body,
+    }
+}
+
 export const deepCopy = (obj) => {
     if (typeof obj != "object") return obj;
     if (!obj) return obj;

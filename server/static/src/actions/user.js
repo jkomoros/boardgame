@@ -21,7 +21,8 @@ import {
 } from '../selectors.js';
 
 import {
-    apiPath
+    apiPath,
+    postFetchParams
 } from '../util.js';
 
 import {
@@ -181,15 +182,9 @@ const validateCookieWithToken = (token) => async (dispatch) => {
         }
     }
 
-    let authResponse = await fetch(apiPath('auth'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        mode: 'cors',
-        body: "uid=" + uid + "&token=" + token + "&email=" + email + "&photo=" + photoUrl + "&displayname=" + displayName
-    });
+    const body = "uid=" + uid + "&token=" + token + "&email=" + email + "&photo=" + photoUrl + "&displayname=" + displayName;
+
+    let authResponse = await fetch(apiPath('auth'), postFetchParams(body));
 
     if (authResponse.status != 200) {
         //TODO: show an error here to user

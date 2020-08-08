@@ -3,7 +3,8 @@ export const UPDATE_GAMES_LIST = 'UPDATE_GAMES_LIST';
 export const UPDATE_GAME_TYPE_FILTER = 'UPDATE_GAME_TYPE_FILTER';
 
 import {
-    apiPath
+    apiPath,
+    postFetchParams
 } from '../util.js';
 
 import {
@@ -92,15 +93,7 @@ export const createGame = (propertyDict) => async (dispatch, getState) => {
 
     const body = Object.entries(propertyDict).map((entry) => '' + entry[0] + '=' + entry[1]).join('&');
 
-    let response = await fetch(apiPath('new/game'), {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        mode: 'cors',
-        body: body,
-    });
+    let response = await fetch(apiPath('new/game'), postFetchParams(body));
 
     let responseJSON = await response.json();
 
