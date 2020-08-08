@@ -96,7 +96,7 @@ class BoardgameUser extends connect(store)(LitElement) {
         <div class="vertical">
           ${
             this._user ?
-            html`<div>${this._user.DisplayName}}</div>
+            html`<div>${this._user.DisplayName}</div>
               <a @tap=${this.signOut}>Sign Out</a>` : 
             html`<div>Not signed in</div>
               <a @tap=${this.showSignInDialog}>Sign In</a>`
