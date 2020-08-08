@@ -97,9 +97,9 @@ class BoardgameUser extends connect(store)(LitElement) {
           ${
             this._user ?
             html`<div>${this._user.DisplayName}</div>
-              <a @tap=${this.signOut}>Sign Out</a>` : 
+              <a @tap=${() => store.dispatch(signOut())}>Sign Out</a>` : 
             html`<div>Not signed in</div>
-              <a @tap=${this.showSignInDialog}>Sign In</a>`
+              <a @tap=${() => store.dispatch(showSignInDialog())}>Sign In</a>`
           }
         </div>
       </div>
@@ -116,18 +116,18 @@ class BoardgameUser extends connect(store)(LitElement) {
           <h2>Sign In</h2>
           <p>You must sign in to use this app.</p>
           <div class="layout vertical">
-            <paper-button @tap=${this.signInWithGoogle}>Google</paper-button>
-            <paper-button @tap=${this.showEmail}>Email/Password</paper-button>
+            <paper-button @tap=${() => store.dispatch(signInWithGoogle())}>Google</paper-button>
+            <paper-button @tap=${() => store.dispatch(showSignInDialogEmailPage(false))}>Email/Password</paper-button>
             <p style="text-align:center"><em>or</em></p>
-            <paper-button @tap=${this.createLogin}>Create an account</paper-button>
+            <paper-button @tap=${() => store.dispatch(showSignInDialogEmailPage(true))}>Create an account</paper-button>
           </div>
         </div>
         <div>
           <paper-input id="email" label="Email" .value=${this._email} @change=${this._handleEmailChanged}></paper-input>
           <paper-input id="password" label="Password" type="password" .value=${this._password} @change=${this._handlePasswordChanged}></paper-input>
           <div class="buttons">
-            <paper-button @tap=${this.cancel}>Cancel</paper-button>
-            <paper-button @tap=${this.emailSubmitted} autofocus default>${this._isCreate ? 'Create Account' : 'Sign In'}</paper-button>
+            <paper-button @tap=${() => store.dispatch(showSignInDialog())}>Cancel</paper-button>
+            <paper-button @tap=${() => store.dispatch(signInOrCreateWithEmailAndPassword())} autofocus default>${this._isCreate ? 'Create Account' : 'Sign In'}</paper-button>
           </div>
         </div>
         <div>
@@ -138,7 +138,7 @@ class BoardgameUser extends connect(store)(LitElement) {
           <h2>Sign In Error</h2>
           <div>${this._errorMessage}</div>
           <div class="buttons">
-            <paper-button @tap=${this.cancel} default="">OK</paper-button>
+            <paper-button @tap=${() => store.dispatch(showSignInDialog())} default="">OK</paper-button>
           </div>
         </div>
       </iron-pages>
@@ -185,34 +185,6 @@ class BoardgameUser extends connect(store)(LitElement) {
 
   _handlePasswordChanged(e) {
     store.dispatch(updateSignInDialogPassword(e.composedPath()[0].value));
-  }
-
-  createLogin() {
-    store.dispatch(showSignInDialogEmailPage(true));
-  }
-
-  showEmail() {
-    store.dispatch(showSignInDialogEmailPage(false));
-  }
-
-  cancel() {
-    store.dispatch(showSignInDialog());
-  }
-
-  emailSubmitted() {
-    store.dispatch(signInOrCreateWithEmailAndPassword());
-  }
-
-  signInWithGoogle() {
-    store.dispatch(signInWithGoogle());
-  }
-
-  showSignInDialog() {
-    store.dispatch(showSignInDialog());
-  }
-
-  signOut() {
-    store.dispatch(signOut());
   }
 }
 
