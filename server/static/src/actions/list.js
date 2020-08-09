@@ -1,6 +1,7 @@
 export const UPDATE_MANAGERS = 'UPDATE_MANAGERS';
 export const UPDATE_GAMES_LIST = 'UPDATE_GAMES_LIST';
 export const UPDATE_GAME_TYPE_FILTER = 'UPDATE_GAME_TYPE_FILTER';
+export const UPDATE_SELECTED_MANAGER_INDEX = "UPDATE_SELECTED_MANAGER_INDEX";
 
 import {
     apiPath,
@@ -104,4 +105,10 @@ export const createGame = (propertyDict) => async (dispatch, getState) => {
     }
 };
 
+export const updateSelectedMangerIndex = (index) => {
+    return{
+        type: UPDATE_SELECTED_MANAGER_INDEX,
+        index
+    }
+}
 

@@ -1,11 +1,13 @@
 import {
     UPDATE_MANAGERS,
     UPDATE_GAMES_LIST,
-    UPDATE_GAME_TYPE_FILTER
+    UPDATE_GAME_TYPE_FILTER,
+    UPDATE_SELECTED_MANAGER_INDEX
 } from '../actions/list.js';
 
 const INITIAL_STATE = {
     gameTypeFilter: "",
+    selectedManagerIndex: -1,
     managers: [],
     allGames: [],
     participatingActiveGames: [],
@@ -20,6 +22,7 @@ const app = (state = INITIAL_STATE, action) => {
 		return {
 			...state,
             managers: action.managers,
+            selectedManagerIndex: 0,
         };
     case UPDATE_GAME_TYPE_FILTER:
         return {
@@ -34,6 +37,11 @@ const app = (state = INITIAL_STATE, action) => {
             visibleActiveGames: action.visibleActiveGames,
             visibleJoinableGames: action.visibleJoinableGames,
             allGames: action.allGames || [],
+        };
+    case UPDATE_SELECTED_MANAGER_INDEX:
+        return {
+            ...state,
+            selectedManagerIndex: action.index
         };
 	default:
 		return state;

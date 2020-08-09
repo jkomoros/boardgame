@@ -21,11 +21,13 @@ import { LitElement, html } from '@polymer/lit-element';
 import { SharedStyles } from './shared-styles-lit.js';
 
 import {
-  createGame
+  createGame,
+  updateSelectedMangerIndex
 } from '../actions/list.js';
 
 import {
-  selectManagers
+  selectManagers,
+  selectSelectedManagerIndex
 } from '../selectors.js';
 
 //The templates are a pain to tell to expect an empty manager, so have a blank
@@ -165,7 +167,6 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
 
   static get properties() {
     return {
-      //TODO: selectedManagerIndex should be stored in state
       _selectedManagerIndex: { type: Number },
       _managers: { type: Array },
       _numPlayers: { type: Number },
@@ -176,16 +177,16 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
     super();
 
     this._managers = [];
-    this._selectedManagerIndex = 0;
     this._numPlayers = 0;
   }
 
   stateChanged(state) {
     this._managers = selectManagers(state);
+    this._selectedManagerIndex = selectSelectedManagerIndex(state);
   }
 
   _handleSelectedManagerIndexChanged(e) {
-    this._selectedManagerIndex = e.detail.value;
+    store.dispatch(updateSelectedMangerIndex(e.detail.value));
   }
 
   get _selectedManager() {
