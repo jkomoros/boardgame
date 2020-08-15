@@ -275,9 +275,6 @@ class BoardgameGameStateManager extends PolymerElement {
     var bundle = {};
 
     bundle.originalWallClockStartTime = Date.now();
-
-    bundle.pathsToTick = this._expandState(game.CurrentState, game.ActiveTimers);
-
     bundle.game = game;
     bundle.move = move;
     bundle.moveForms = this._expandMoveForms(moveForms);
@@ -300,121 +297,6 @@ class BoardgameGameStateManager extends PolymerElement {
       }
     }
     return moveForms;
-  }
-
-  _expandState(currentState, timerInfos) {
-    //Takes the currentState and returns an object where all of the Stacks are replaced by actual references to the component they reference.
-
-    var pathsToTick = [];
-
-
-    this._expandLeafState(currentState, currentState.Game, ["Game"], pathsToTick, timerInfos)
-    for (var i = 0; i < currentState.Players.length; i++) {
-      this._expandLeafState(currentState, currentState.Players[i], ["Players", i], pathsToTick, timerInfos)
-    }
-
-    return pathsToTick;
-
-  }
-
-  _expandLeafState(wholeState, leafState, pathToLeaf, pathsToTick, timerInfos) {
-    //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
-    
-    var entries = Object.entries(leafState);
-    for (var i = 0; i < entries.length; i++) {
-      let item = entries[i];
-      let key = item[0];
-      let val = item[1];
-      //Note: null is typeof "object"
-      if (val && typeof val == "object") {
-        if (val.Deck) {
-          this._expandStack(val, wholeState);
-        } else if (val.IsTimer) {
-          this._expandTimer(val, pathToLeaf.concat([key]), pathsToTick, timerInfos);
-        }   
-      }
-    }
-
-    //Copy in Player computed state if it exists, for convenience. Do it after expanding properties
-    if (pathToLeaf && pathToLeaf.length == 2 && pathToLeaf[0] == "Players") {
-      if (wholeState.Computed && wholeState.Computed.Players && wholeState.Computed.Players.length) {
-        leafState.Computed = wholeState.Computed.Players[pathToLeaf[1]];
-      }
-    }
-  }
-
-  _expandStack(stack, wholeState) {
-    if (!stack.Deck) {
-      //Meh, I guess it's not a stack
-      return;
-    }
-
-    var deck = this.chest.Decks[stack.Deck];
-
-    var gameName = (this.gameRoute) ? this.gameRoute.name : "";
-
-    var components = [];
-
-    for (var i = 0; i < stack.Indexes.length; i++) {
-      let index = stack.Indexes[i];
-      if (index == -1) {
-        components[i] = null;
-        continue;
-      }
-
-      if(index == -2) {
-        //TODO: to handle this appropriately we'd need to know how to
-        //produce a GenericComponent for each Deck clientside.
-        components[i] = {};
-      } else {
-        components[i] = this._componentForDeckAndIndex(stack.Deck, index, wholeState);
-      }
-      
-      if (stack.IDs) {
-        components[i].ID = stack.IDs[i];
-      }
-      components[i].Deck = stack.Deck;
-      components[i].GameName = gameName;
-    }
-
-    stack.GameName = gameName;
-
-    stack.Components = components;
-
-  }
-
-  _expandTimer(timer, pathToLeaf, pathsToTick, timerInfo) {
-
-    //Always make sure these default to a number so databinding can use them.
-    timer.TimeLeft = 0;
-    timer.originalTimeLeft = 0;
-
-    if (!timerInfo) return;
-
-    let info = timerInfo[timer.ID];
-
-    if (!info) return;
-    timer.TimeLeft = info.TimeLeft;
-    timer.originalTimeLeft = timer.TimeLeft;
-    pathsToTick.push(pathToLeaf);
-  }
-
-
-  _componentForDeckAndIndex(deckName, index, wholeState) {
-    let deck = this.chest.Decks[deckName];
-
-    if (!deck) return null;
-
-    let result = this._copyObj(deck[index]);
-
-    if (wholeState && wholeState.Components) {
-      if (wholeState.Components[deckName]) {
-        result.DynamicValues = wholeState.Components[deckName][index];
-      }
-    }
-
-    return result
-
   }
 
   _copyObj(obj) {

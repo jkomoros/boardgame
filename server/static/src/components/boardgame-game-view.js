@@ -25,7 +25,8 @@ import {
   selectGameHasEmptySlots,
   selectGameOpen,
   selectGameVisible,
-  selectGameIsOwner
+  selectGameIsOwner,
+  selectGameCurrentState
 } from '../selectors.js';
 
 import {
@@ -34,7 +35,8 @@ import {
 
 import {
   updateGameRoute,
-  updateGameStaticInfo
+  updateGameStaticInfo,
+  installGameState,
 } from '../actions/game.js';
 
 import game from '../reducers/game.js';
@@ -74,12 +76,12 @@ class BoardgameGameView extends connect(store)(LitElement) {
     </style>
 
     <div class="card">
-      <boardgame-player-roster id="player" .loggedIn=${this._loggedIn} .gameRoute=${this._gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this._hasEmptySlots} .gameOpen=${this._open} .gameVisible=${this._visible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this._playersInfo} .state=${this.currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this._admin} .isOwner=${this._isOwner} .active=${this.selected}></boardgame-player-roster>
+      <boardgame-player-roster id="player" .loggedIn=${this._loggedIn} .gameRoute=${this._gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this._hasEmptySlots} .gameOpen=${this._open} .gameVisible=${this._visible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this._playersInfo} .state=${this._currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this._admin} .isOwner=${this._isOwner} .active=${this.selected}></boardgame-player-roster>
     </div>
     <div class="card">
-      <boardgame-render-game id="render" .state=${this.currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this._gameRoute ? this._gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this._chest}></boardgame-render-game>
+      <boardgame-render-game id="render" .state=${this._currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this._gameRoute ? this._gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this._chest}></boardgame-render-game>
     </div>
-    <boardgame-admin-controls id="admin" .active=${this._admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this._chest} .currentState=${this.currentState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
+    <boardgame-admin-controls id="admin" .active=${this._admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this._chest} .currentState=${this._currentState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
     <boardgame-game-state-manager id="manager" .activeRenderer=${this.activeRenderer} .gameRoute=${this._gameRoute} .requestedPlayer=${this.requestedPlayer} .active=${this.selected} .admin=${this._admin} .gameFinished=${this.game ? this.game.Finished : false} .gameVersion=${this.game ? this.game.Version : 0} .loggedIn=${this._loggedIn} .autoCurrentPlayer=${this.autoCurrentPlayer} .viewingAsPlayer=${this.viewingAsPlayer} .socketActive=${this.socketActive} @socket-active-changed=${this._handleSocketActiveChanged}></boardgame-game-state-manager>
 `;
   }
@@ -88,7 +90,7 @@ class BoardgameGameView extends connect(store)(LitElement) {
     return {
       requestedPlayer: { type: Number },
       game: { type: Object },
-      currentState: { type: Object },
+      _currentState: { type: Object },
       _chest: { type: Object },
       _playersInfo: { type: Array },
       _hasEmptySlots: { type: Boolean },
@@ -135,6 +137,7 @@ class BoardgameGameView extends connect(store)(LitElement) {
     this._open = selectGameOpen(state);
     this._visible = selectGameVisible(state);
     this._isOwner = selectGameIsOwner(state);
+    this._currentState = selectGameCurrentState(state);
   }
 
   constructor() {
@@ -199,48 +202,6 @@ class BoardgameGameView extends connect(store)(LitElement) {
     }
   }
 
-  _doTick() {
-    this._tick();
-    if (this.pathsToTick.length > 0) {
-      window.requestAnimationFrame(this._doTick.bind(this));
-    }
-  }
-
-  _tick() {
-
-    if (!this.currentState) return;
-
-    let newPaths = [];
-
-    for (let i = 0; i < this.pathsToTick.length; i++) {
-      let currentPath = this.pathsToTick[i];
-
-      let timer = getProperty(this.currentState, currentPath);
-
-      let now = Date.now();
-      let difference = now - this.originalWallClockStartTime;
-
-      let result = Math.max(0, timer.originalTimeLeft - difference);
-
-      let newState = deepCopy(this.currentState);
-
-      if (!setProperty(newState, currentPath.concat(["TimeLeft"]), result)) {
-        console.warn("Failed to set property: ", newState, currentPath.concat("TimeLeft"), result);
-      }
-
-      //this should requestUpdate automatically since it's a copy
-      this.currentState = newState;
-
-      //If we still have time to tick on this, then make sure it's still
-      //in the list of things to tick.
-      if (timer.TimeLeft > 0) {
-        newPaths.push(currentPath);
-      }
-    }
-
-    this.pathsToTick = newPaths;
-  }
-
   _handleStateBundle(e) {
     this._installStateBundle(e.detail);
   }
@@ -270,11 +231,9 @@ class BoardgameGameView extends connect(store)(LitElement) {
 
   _resetState() {
     this.game = null;
-    this.currentState = null;
+    this._currentState = null;
     this.moveForms = null;
     this.viewingAsPlayer = 0;
-    this.originalWallClockStartTime = null;
-    this.pathsToTick = null;
     this._firstStateBundle = true;
     this._chest = null;
     this._playersInfo = null;
@@ -288,20 +247,18 @@ class BoardgameGameView extends connect(store)(LitElement) {
 
   _installStateBundle(bundle) {
 
+    store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
+
     //We only rerender once despite setting multiple properties at once
     this.game = bundle.game;
-    this.currentState = bundle.game.CurrentState;
     this.moveForms = bundle.moveForms;
     this.viewingAsPlayer = bundle.viewingAsPlayer;
-    this.originalWallClockStartTime = bundle.originalWallClockStartTime;
-    this.pathsToTick = bundle.pathsToTick;
 
     if (this._firstStateBundle) {
       this._firstStateBundleInstalled();
     }
     this._firstStateBundle = false;
 
-    window.requestAnimationFrame(() => this._doTick());
   }
 }
 

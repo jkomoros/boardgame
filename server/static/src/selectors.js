@@ -37,9 +37,10 @@ export const selectGameHasEmptySlots = (state) => state.game ? state.game.hasEmp
 export const selectGameOpen = (state) => state.game ? state.game.open : false;
 export const selectGameVisible = (state) => state.game ? state.game.visible : false;
 export const selectGameIsOwner = (state) => state.game ? state.game.isOwner : false;
+export const selectGameCurrentState = (state) => state.game ? state.game.currentState : null;
 
 const selectGameID = (state) => state.game ? state.game.id : '';
-const selectGameName = (state) => state.game ? state.game.name : '';
+export const selectGameName = (state) => state.game ? state.game.name : '';
 
 export const selectGameRoute = createSelector(
     selectGameID,

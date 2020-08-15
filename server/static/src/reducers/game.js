@@ -1,6 +1,7 @@
 import {
 	UPDATE_GAME_ROUTE,
-	UPDATE_GAME_STATIC_INFO
+	UPDATE_GAME_STATIC_INFO,
+	UPDATE_GAME_CURRENT_STATE
 } from '../actions/game.js';
 
 const INITIAL_STATE = {
@@ -11,7 +12,12 @@ const INITIAL_STATE = {
 	hasEmptySlots: false,
 	open: false,
 	visible: false,
-	isOwner: false
+	isOwner: false,
+	currentState: null,
+	//note that pathsToTick and originalWallClockTime are accessed directly
+	//(without selectors) in actions/game.js
+	pathsToTick: [],
+	originalWallClockTime: 0
 };
 
 const app = (state = INITIAL_STATE, action) => {
@@ -31,7 +37,14 @@ const app = (state = INITIAL_STATE, action) => {
 			open: action.open,
 			visible: action.visible,
 			isOwner: action.isOwner
-		}
+		};
+	case UPDATE_GAME_CURRENT_STATE:
+		return {
+			...state,
+			currentState: action.currentState,
+			pathsToTick: action.pathsToTick,
+			originalWallClockTime: action.originalWallClockTime
+		};
 	default:
 		return state;
 	}
