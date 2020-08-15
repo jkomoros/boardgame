@@ -42,7 +42,7 @@ export const postFetchParams = (body) => {
 export const deepCopy = (obj) => {
     if (typeof obj != "object") return obj;
     if (!obj) return obj;
-    const result = {};
+    const result = Array.isArray(obj) ? [] : {};
     for (let [key, val] of Object.entries(obj)) {
         result[key] = deepCopy(val);
     }
