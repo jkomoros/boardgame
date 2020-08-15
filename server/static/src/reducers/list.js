@@ -4,7 +4,9 @@ import {
     UPDATE_GAME_TYPE_FILTER,
     UPDATE_SELECTED_MANAGER_INDEX,
     UPDATE_NUM_PLAYERS,
-    UPDATE_AGENT_NAME
+    UPDATE_AGENT_NAME,
+    UPDATE_CREATE_GAME_VISIBLE,
+    UPDATE_CREATE_GAME_OPEN
 } from '../actions/list.js';
 
 const INITIAL_STATE = {
@@ -12,6 +14,8 @@ const INITIAL_STATE = {
     selectedManagerIndex: -1,
     numPlayers: 0,
     agents: [],
+    visible: false,
+    open: false,
     managers: [],
     allGames: [],
     participatingActiveGames: [],
@@ -72,6 +76,16 @@ const app = (state = INITIAL_STATE, action) => {
         return {
             ...state,
             agents: modifiedAgents
+        }
+    case UPDATE_CREATE_GAME_OPEN:
+        return {
+            ...state,
+            open: action.open
+        }
+    case UPDATE_CREATE_GAME_VISIBLE:
+        return {
+            ...state,
+            visible: action.visible
         }
 	default:
 		return state;

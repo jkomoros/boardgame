@@ -23,16 +23,20 @@ import { SharedStyles } from './shared-styles-lit.js';
 import {
   createGame,
   updateSelectedMangerIndex,
-  updateNumPlayers
+  updateNumPlayers,
+  updateAgentName,
+  updateOpen,
+  updateVisible
 } from '../actions/list.js';
 
 import {
   selectManagers,
   selectSelectedManagerIndex,
   selectCreateGameNumPlayers,
-  selectCreateGameAgents
+  selectCreateGameAgents,
+  selectCreateGameOpen,
+  selectCreateGameVisible
 } from '../selectors.js';
-import { updateAgentName } from '../actions/list';
 
 //The templates are a pain to tell to expect an empty manager, so have a blank
 //one for use in tempaltes. Every time the templates below rely on a new
@@ -162,8 +166,8 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
 
       </div>
       <div class="horizontal layout">
-        <paper-toggle-button name="visible" checked=""><iron-icon icon="visibility"></iron-icon> Allow strangers to find the game</paper-toggle-button>
-        <paper-toggle-button name="open" checked=""><iron-icon icon="social:people"></iron-icon> Allow anyone who can view the game to join</paper-toggle-button>
+        <paper-toggle-button name="visible" .checked=${this._visible} @checked-changed=${this._handleVisibleChanged}><iron-icon icon="visibility"></iron-icon> Allow strangers to find the game</paper-toggle-button>
+        <paper-toggle-button name="open" .checked=${this._open} @checked-changed=${this._handleOpenChanged}><iron-icon icon="social:people"></iron-icon> Allow anyone who can view the game to join</paper-toggle-button>
       </div>
     </div>
 `;
@@ -174,7 +178,9 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
       _selectedManagerIndex: { type: Number },
       _managers: { type: Array },
       _numPlayers: { type: Number },
-      _agents: { type: Array }
+      _agents: { type: Array },
+      _open: { type: Boolean },
+      _visible: { type: Boolean}
     }
   }
 
@@ -190,10 +196,20 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
     this._selectedManagerIndex = selectSelectedManagerIndex(state);
     this._numPlayers = selectCreateGameNumPlayers(state);
     this._agents = selectCreateGameAgents(state);
+    this._open = selectCreateGameOpen(state);
+    this._visible = selectCreateGameVisible(state);
   }
 
   _handleSelectedManagerIndexChanged(e) {
     store.dispatch(updateSelectedMangerIndex(e.detail.value));
+  }
+
+  _handleOpenChanged(e) {
+    store.dispatch(updateOpen(e.composedPath()[0].checked));
+  }
+
+  _handleVisibleChanged(e) {
+    store.dispatch(updateVisible(e.composedPath()[0].checked));
   }
 
   get _selectedManager() {

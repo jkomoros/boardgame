@@ -4,6 +4,8 @@ export const UPDATE_GAME_TYPE_FILTER = 'UPDATE_GAME_TYPE_FILTER';
 export const UPDATE_SELECTED_MANAGER_INDEX = "UPDATE_SELECTED_MANAGER_INDEX";
 export const UPDATE_NUM_PLAYERS = "UPDATE_NUM_PLAYERS";
 export const UPDATE_AGENT_NAME = "UPDATE_AGENT_NAME";
+export const UPDATE_CREATE_GAME_OPEN = "UPDATE_CREATE_GAME_OPEN";
+export const UPDATE_CREATE_GAME_VISIBLE = "UPDATE_CREATE_GAME_VISIBLE";
 
 import {
     apiPath,
@@ -131,5 +133,19 @@ export const updateAgentName = (index, name) => (dispatch, getState) => {
         index,
         name
     })
+}
+
+export const updateOpen = (open) => {
+    return {
+        type: UPDATE_CREATE_GAME_OPEN,
+        open
+    }
+}
+
+export const updateVisible = (visible) => {
+    return {
+        type: UPDATE_CREATE_GAME_VISIBLE,
+        visible
+    }
 }
 
