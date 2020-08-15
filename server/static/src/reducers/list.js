@@ -3,7 +3,8 @@ import {
     UPDATE_GAMES_LIST,
     UPDATE_GAME_TYPE_FILTER,
     UPDATE_SELECTED_MANAGER_INDEX,
-    UPDATE_NUM_PLAYERS
+    UPDATE_NUM_PLAYERS,
+    UPDATE_AGENT_NAME
 } from '../actions/list.js';
 
 const INITIAL_STATE = {
@@ -64,6 +65,13 @@ const app = (state = INITIAL_STATE, action) => {
             ...state,
             numPlayers: action.numPlayers,
             agents: newAgents,
+        }
+    case UPDATE_AGENT_NAME:
+        const modifiedAgents = [...state.agents];
+        modifiedAgents[action.index] = action.name;
+        return {
+            ...state,
+            agents: modifiedAgents
         }
 	default:
 		return state;

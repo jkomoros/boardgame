@@ -32,6 +32,7 @@ import {
   selectCreateGameNumPlayers,
   selectCreateGameAgents
 } from '../selectors.js';
+import { updateAgentName } from '../actions/list';
 
 //The templates are a pain to tell to expect an empty manager, so have a blank
 //one for use in tempaltes. Every time the templates below rely on a new
@@ -130,8 +131,8 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
           <div class="flex">
             <div class="vertical layout">
               Player ${index}
-              <paper-radio-group selected .disabled=${this._managerHasAgents} .name=${"agent-player-" + index} attr-for-selected="value">
-                <paper-radio-button .name=${"agent-player-" + index} .disabled=${this._managerHasAgents}>Real Live Human</paper-radio-button>
+              <paper-radio-group .selected=${item} .disabled=${this._managerHasAgents} .name=${"agent-player-" + index} attr-for-selected="value" .index=${index} @selected-changed=${this._handleAgentSelectedChanged}>
+                <paper-radio-button .name=${"agent-player-" + index} .disabled=${this._managerHasAgents} .value=${""}>Real Live Human</paper-radio-button>
                 ${this._selectedManager.Agents.map((item, index) => html`
                 <paper-radio-button .name=${"agent-player-" + index} .value=${item.Name}>${item.DisplayName}</paper-radio-button>
                 `)}
@@ -205,6 +206,11 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
     //This is here because games with no variant form server will have null for
     //that field, not an empty array, and the template requires an array.
     return this._selectedManager.Variant || [];
+  }
+
+  _handleAgentSelectedChanged(e) {
+    const group = e.composedPath()[0];
+    store.dispatch(updateAgentName(group.index, group.selected));
   }
 
   _handleSliderValueChanged(e) {

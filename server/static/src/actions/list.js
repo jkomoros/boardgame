@@ -3,6 +3,7 @@ export const UPDATE_GAMES_LIST = 'UPDATE_GAMES_LIST';
 export const UPDATE_GAME_TYPE_FILTER = 'UPDATE_GAME_TYPE_FILTER';
 export const UPDATE_SELECTED_MANAGER_INDEX = "UPDATE_SELECTED_MANAGER_INDEX";
 export const UPDATE_NUM_PLAYERS = "UPDATE_NUM_PLAYERS";
+export const UPDATE_AGENT_NAME = "UPDATE_AGENT_NAME";
 
 import {
     apiPath,
@@ -12,7 +13,8 @@ import {
 import {
     selectGameTypeFilter,
     selectAdmin,
-    selectLoggedIn
+    selectLoggedIn,
+    selectCreateGameAgents
 } from '../selectors.js';
 
 import {
@@ -118,5 +120,16 @@ export const updateNumPlayers = (numPlayers) => {
         type: UPDATE_NUM_PLAYERS,
         numPlayers
     }
+}
+
+export const updateAgentName = (index, name) => (dispatch, getState) => {
+    const agents = selectCreateGameAgents(getState());
+    if (index < 0 || index >= agents.length) return;
+    if (agents[index] == name) return;
+    dispatch({
+        type: UPDATE_AGENT_NAME,
+        index,
+        name
+    })
 }
 
