@@ -115,7 +115,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
             ${this._managerHasFixedPlayerCount ? 
              html`<div class="secondary"><strong>${this._selectedManager.MinNumPlayers}</strong> players</div>` :
               html`<div class="secondary">Number of Players</div>
-              <paper-slider name="numplayers" label="Number of Players" .min=${this._selectedManager.MinNumPlayers} .max=${this._selectedManager.MaxNumPlayers} .value=${this._numPlayers} @value-changed=${this._handleSliderValueChanged} snaps pin editable max-markers="100"></paper-slider>`
+              <paper-slider name="numplayers" label="Number of Players" .min=${this._selectedManager.MinNumPlayers} .max=${this._selectedManager.MaxNumPlayers} .value=${this._numPlayers} @change=${this._handleSliderValueChanged} snaps pin editable max-markers="100"></paper-slider>`
             }
         </div>
         <div class="flex"></div>
@@ -214,8 +214,8 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
     return this._selectedManager.Variant || [];
   }
 
-  _handleSliderNumberChanged(e) {
-    this._numPlayers = e.detail.value;
+  _handleSliderValueChanged(e) {
+    this._numPlayers = e.composedPath()[0].value;
   }
 
   get _managerHasAgents() {
