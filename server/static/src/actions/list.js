@@ -4,6 +4,7 @@ export const UPDATE_GAME_TYPE_FILTER = 'UPDATE_GAME_TYPE_FILTER';
 export const UPDATE_SELECTED_MANAGER_INDEX = "UPDATE_SELECTED_MANAGER_INDEX";
 export const UPDATE_NUM_PLAYERS = "UPDATE_NUM_PLAYERS";
 export const UPDATE_AGENT_NAME = "UPDATE_AGENT_NAME";
+export const UPDATE_VARIANT_OPTION = "UPDATE_VARIANT_OPTION";
 export const UPDATE_CREATE_GAME_OPEN = "UPDATE_CREATE_GAME_OPEN";
 export const UPDATE_CREATE_GAME_VISIBLE = "UPDATE_CREATE_GAME_VISIBLE";
 
@@ -16,7 +17,8 @@ import {
     selectGameTypeFilter,
     selectAdmin,
     selectLoggedIn,
-    selectCreateGameAgents
+    selectCreateGameAgents,
+    selectCreateGameVariantOptions
 } from '../selectors.js';
 
 import {
@@ -132,6 +134,17 @@ export const updateAgentName = (index, name) => (dispatch, getState) => {
         type: UPDATE_AGENT_NAME,
         index,
         name
+    })
+}
+
+export const updateVariantOption = (variantIndex, optionIndex) => (dispatch, getState) => {
+    const variantOptions = selectCreateGameVariantOptions(getState());
+    if (variantIndex < 0 || variantIndex >= variantOptions.length) return;
+    if (variantOptions[variantIndex] == optionIndex) return;
+    dispatch({
+        type: UPDATE_VARIANT_OPTION,
+        variantIndex,
+        optionIndex
     })
 }
 

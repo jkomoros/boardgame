@@ -6,6 +6,7 @@ export const selectManagers = (state) => state.list ? state.list.managers : [];
 export const selectSelectedManagerIndex = (state) => state.list ? state.list.selectedManagerIndex : 0;
 export const selectCreateGameNumPlayers = (state) => state.list ? state.list.numPlayers : 0;
 export const selectCreateGameAgents = (state) => state.list ? state.list.agents : [];
+export const selectCreateGameVariantOptions = (state) => state.list ? state.list.variantOptions : [];
 export const selectCreateGameOpen = (state) => state.list ? state.list.open : false;
 export const selectCreateGameVisible = (state) => state.list ? state.list.visible : false;
 export const selectGameTypeFilter = (state) => state.list ? state.list.gameTypeFilter : "";

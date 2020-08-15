@@ -25,6 +25,7 @@ import {
   updateSelectedMangerIndex,
   updateNumPlayers,
   updateAgentName,
+  updateVariantOption,
   updateOpen,
   updateVisible
 } from '../actions/list.js';
@@ -35,7 +36,8 @@ import {
   selectCreateGameNumPlayers,
   selectCreateGameAgents,
   selectCreateGameOpen,
-  selectCreateGameVisible
+  selectCreateGameVisible,
+  selectCreateGameVariantOptions
 } from '../selectors.js';
 
 //The templates are a pain to tell to expect an empty manager, so have a blank
@@ -146,10 +148,10 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
       `)}
       </div>
       <div class="horizontal layout variant">
-        ${this._variants.map((item) => html`
+        ${this._variants.map((item, index) => html`
           <div class="vertical layout">
             <paper-dropdown-menu .label=${item.DisplayName} .name=${"variant_" + item.Name} horizontal-align="left">
-              <paper-listbox slot="dropdown-content" selected="0">
+              <paper-listbox slot="dropdown-content" .selected=${this._variantOptions[index]} @selected-changed=${this._handleVariantOptionChanged} .index=${index}>
                 ${item.Values.map(item => html`
                   <paper-item .value=${item.Value} .label=${item.DisplayName}>
                     <paper-item-body two-line>
@@ -179,6 +181,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
       _managers: { type: Array },
       _numPlayers: { type: Number },
       _agents: { type: Array },
+      _variantOptions: { type: Array },
       _open: { type: Boolean },
       _visible: { type: Boolean}
     }
@@ -196,6 +199,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
     this._selectedManagerIndex = selectSelectedManagerIndex(state);
     this._numPlayers = selectCreateGameNumPlayers(state);
     this._agents = selectCreateGameAgents(state);
+    this._variantOptions = selectCreateGameVariantOptions(state);
     this._open = selectCreateGameOpen(state);
     this._visible = selectCreateGameVisible(state);
   }
@@ -227,6 +231,11 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
   _handleAgentSelectedChanged(e) {
     const group = e.composedPath()[0];
     store.dispatch(updateAgentName(group.index, group.selected));
+  }
+
+  _handleVariantOptionChanged(e) {
+    const listbox = e.composedPath()[0];
+    store.dispatch(updateVariantOption(listbox.index, listbox.selected));
   }
 
   _handleSliderValueChanged(e) {

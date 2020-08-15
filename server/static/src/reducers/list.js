@@ -5,6 +5,7 @@ import {
     UPDATE_SELECTED_MANAGER_INDEX,
     UPDATE_NUM_PLAYERS,
     UPDATE_AGENT_NAME,
+    UPDATE_VARIANT_OPTION,
     UPDATE_CREATE_GAME_VISIBLE,
     UPDATE_CREATE_GAME_OPEN
 } from '../actions/list.js';
@@ -82,6 +83,13 @@ const app = (state = INITIAL_STATE, action) => {
         return {
             ...state,
             agents: modifiedAgents
+        }
+    case UPDATE_VARIANT_OPTION:
+        const modifiedVariantOptions = [...state.variantOptions];
+        modifiedVariantOptions[action.variantIndex] = action.optionIndex;
+        return {
+            ...state,
+            variantOptions: modifiedVariantOptions
         }
     case UPDATE_CREATE_GAME_OPEN:
         return {
