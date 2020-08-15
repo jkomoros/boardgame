@@ -29,7 +29,8 @@ import {
 import {
   selectManagers,
   selectSelectedManagerIndex,
-  selectCreateGameNumPlayers
+  selectCreateGameNumPlayers,
+  selectCreateGameAgents
 } from '../selectors.js';
 
 //The templates are a pain to tell to expect an empty manager, so have a blank
@@ -125,7 +126,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
       </div>
 
       <div class="horizontal layout justified" ?hidden=${this._managerHasAgents}>
-      ${this._players.map((item, index) => html`
+      ${this._agents.map((item, index) => html`
           <div class="flex">
             <div class="vertical layout">
               Player ${index}
@@ -172,6 +173,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
       _selectedManagerIndex: { type: Number },
       _managers: { type: Array },
       _numPlayers: { type: Number },
+      _agents: { type: Array }
     }
   }
 
@@ -186,6 +188,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
     this._managers = selectManagers(state);
     this._selectedManagerIndex = selectSelectedManagerIndex(state);
     this._numPlayers = selectCreateGameNumPlayers(state);
+    this._agents = selectCreateGameAgents(state);
   }
 
   _handleSelectedManagerIndexChanged(e) {
@@ -196,19 +199,6 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
     //TODO: this and other getters should probably be selectors
     if (!this._managers || this._selectedManagerIndex < 0 || this._selectedManagerIndex >= this._managers.length) return EMPTY_MANAGER;
     return this._managers[this._selectedManagerIndex];
-  }
-
-  get _players() {
-
-    let numPlayers = this._numPlayers;
-    if (numPlayers == 0) {
-      numPlayers = this._selectedManager.DefaultNumPlayers;
-    }
-    var result = [];
-    for (var i = 0; i < numPlayers; i++) {
-      result.push("");
-    }
-    return result;
   }
 
   get _variants() {

@@ -10,6 +10,7 @@ const INITIAL_STATE = {
     gameTypeFilter: "",
     selectedManagerIndex: -1,
     numPlayers: 0,
+    agents: [],
     managers: [],
     allGames: [],
     participatingActiveGames: [],
@@ -21,11 +22,13 @@ const INITIAL_STATE = {
 const app = (state = INITIAL_STATE, action) => {
 	switch (action.type) {
 	case UPDATE_MANAGERS:
+        const newNumPlayers = action.managers[0].DefaultNumPlayers || 0
 		return {
 			...state,
             managers: action.managers,
             selectedManagerIndex: 0,
-            numPlayers: action.managers[0].DefaultNumPlayers || 0
+            numPlayers: newNumPlayers,
+            agents: Array(newNumPlayers).fill("")
         };
     case UPDATE_GAME_TYPE_FILTER:
         return {
@@ -42,15 +45,25 @@ const app = (state = INITIAL_STATE, action) => {
             allGames: action.allGames || [],
         };
     case UPDATE_SELECTED_MANAGER_INDEX:
+        const updatedNumPlayers = state.managers[action.index] ? state.managers[action.index].DefaultNumPlayers || 0 : 0;
         return {
             ...state,
             selectedManagerIndex: action.index,
-            numPlayers: state.managers[action.index] ? state.managers[action.index].DefaultNumPlayers || 0 : 0,
+            numPlayers: updatedNumPlayers,
+            agents: Array(updatedNumPlayers).fill("")
         };
     case UPDATE_NUM_PLAYERS:
+        const newAgents = [...state.agents];
+        while (action.numPlayers > newAgents.length) {
+            newAgents.push("");
+        }
+        while (action.numPlayers < newAgents.length) {
+            newAgents.pop();
+        }
         return {
             ...state,
-            numPlayers: action.numPlayers
+            numPlayers: action.numPlayers,
+            agents: newAgents,
         }
 	default:
 		return state;
