@@ -19,7 +19,13 @@ import {
   selectPageExtra,
   selectGameRoute,
   selectLoggedIn,
-  selectAdmin
+  selectAdmin,
+  selectGameChest,
+  selectGamePlayersInfo,
+  selectGameHasEmptySlots,
+  selectGameOpen,
+  selectGameVisible,
+  selectGameIsOwner
 } from '../selectors.js';
 
 import {
@@ -27,7 +33,8 @@ import {
 } from '../actions/app.js';
 
 import {
-  updateGameRoute
+  updateGameRoute,
+  updateGameStaticInfo
 } from '../actions/game.js';
 
 import game from '../reducers/game.js';
@@ -67,12 +74,12 @@ class BoardgameGameView extends connect(store)(LitElement) {
     </style>
 
     <div class="card">
-      <boardgame-player-roster id="player" .loggedIn=${this._loggedIn} .gameRoute=${this._gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this.hasEmptySlots} .gameOpen=${this.gameOpen} .gameVisible=${this.gameVisible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this.playersInfo} .state=${this.currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this._admin} isOwner=${this.isOwner} .active=${this.selected}></boardgame-player-roster>
+      <boardgame-player-roster id="player" .loggedIn=${this._loggedIn} .gameRoute=${this._gameRoute} .viewingAsPlayer=${this.viewingAsPlayer} .hasEmptySlots=${this._hasEmptySlots} .gameOpen=${this._open} .gameVisible=${this._visible} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .playersInfo=${this._playersInfo} .state=${this.currentState} .finished=${this.game ? this.game.Finished : false} .winners=${this.game ? this.game.Winners : []} .admin=${this._admin} .isOwner=${this._isOwner} .active=${this.selected}></boardgame-player-roster>
     </div>
     <div class="card">
-      <boardgame-render-game id="render" .state=${this.currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this._gameRoute ? this._gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this.chest}></boardgame-render-game>
+      <boardgame-render-game id="render" .state=${this.currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this._gameRoute ? this._gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this._chest}></boardgame-render-game>
     </div>
-    <boardgame-admin-controls id="admin" .active=${this._admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this.chest} .currentState=${this.currentState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
+    <boardgame-admin-controls id="admin" .active=${this._admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this._chest} .currentState=${this.currentState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
     <boardgame-game-state-manager id="manager" .activeRenderer=${this.activeRenderer} .gameRoute=${this._gameRoute} .requestedPlayer=${this.requestedPlayer} .active=${this.selected} .admin=${this._admin} .gameFinished=${this.game ? this.game.Finished : false} .gameVersion=${this.game ? this.game.Version : 0} .loggedIn=${this._loggedIn} .autoCurrentPlayer=${this.autoCurrentPlayer} .viewingAsPlayer=${this.viewingAsPlayer} .socketActive=${this.socketActive} @socket-active-changed=${this._handleSocketActiveChanged}></boardgame-game-state-manager>
 `;
   }
@@ -82,12 +89,12 @@ class BoardgameGameView extends connect(store)(LitElement) {
       requestedPlayer: { type: Number },
       game: { type: Object },
       currentState: { type: Object },
-      chest: { type: Object },
-      playersInfo: { type: Array },
-      hasEmptySlots: { type: Boolean },
-      gameOpen: { type: Boolean },
-      gameVisible: { type: Boolean },
-      isOwner: { type: Boolean },
+      _chest: { type: Object },
+      _playersInfo: { type: Array },
+      _hasEmptySlots: { type: Boolean },
+      _open: { type: Boolean },
+      _visible: { type: Boolean },
+      _isOwner: { type: Boolean },
       autoCurrentPlayer: { type: Boolean },
       selected: { type: Boolean },
       promptedToJoin: { type: Boolean },
@@ -122,6 +129,12 @@ class BoardgameGameView extends connect(store)(LitElement) {
     this._gameRoute = selectGameRoute(state);
     this._loggedIn = selectLoggedIn(state);
     this._admin = selectAdmin(state);
+    this._chest = selectGameChest(state);
+    this._playersInfo = selectGamePlayersInfo(state);
+    this._hasEmptySlots = selectGameHasEmptySlots(state);
+    this._open = selectGameOpen(state);
+    this._visible = selectGameVisible(state);
+    this._isOwner = selectGameIsOwner(state);
   }
 
   constructor() {
@@ -233,10 +246,8 @@ class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   _handleGameStaticInfo(e) {
-    //this is where things like chest, gameOpen, gameVisible, hasEmptySlots, isOwner, and playersInfo is set.
-    for (let [key, val] of Object.entries(e.detail)) {
-      this[key] = val;
-    }
+    const bundle = e.detail;
+    store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner));
   }
 
   _handleAllAnimationsDone(e) {
@@ -265,12 +276,12 @@ class BoardgameGameView extends connect(store)(LitElement) {
     this.originalWallClockStartTime = null;
     this.pathsToTick = null;
     this._firstStateBundle = true;
-    this.chest = null;
-    this.playersInfo = null;
-    this.hasEmptySlots = false;
-    this.gameOpen = false;
-    this.gameVisible = false;
-    this.isOwner = false;
+    this._chest = null;
+    this._playersInfo = null;
+    this._hasEmptySlots = false;
+    this._open = false;
+    this._visible = false;
+    this._isOwner = false;
     this._firstStateBundle = true;
   }
 

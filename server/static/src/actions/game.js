@@ -1,4 +1,5 @@
 export const UPDATE_GAME_ROUTE = 'UPDATE_GAME_ROUTE';
+export const UPDATE_GAME_STATIC_INFO = "UPDATE_GAME_STATIC_INFO";
 
 export const updateGameRoute = (pageExtra) => {
     const pieces = pageExtra.split("/");
@@ -13,4 +14,16 @@ export const updateGameRoute = (pageExtra) => {
         name: pieces[0],
         id: pieces[1],
     }
+}
+
+export const updateGameStaticInfo = (chest, playersInfo, hasEmptySlots, open, visible, isOwner) => {
+  return {
+    type: UPDATE_GAME_STATIC_INFO,
+    chest,
+    playersInfo,
+    hasEmptySlots,
+    open,
+    visible,
+    isOwner
+  }
 }

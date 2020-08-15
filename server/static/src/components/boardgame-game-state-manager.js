@@ -519,8 +519,8 @@ class BoardgameGameStateManager extends PolymerElement {
       chest: newValue.Chest,
       playersInfo: newValue.Players,
       hasEmptySlots: newValue.HasEmptySlots,
-      gameOpen: newValue.GameOpen,
-      gameVisible: newValue.GameVisible,
+      open: newValue.GameOpen,
+      visible: newValue.GameVisible,
       isOwner: newValue.IsOwner,
     }
 

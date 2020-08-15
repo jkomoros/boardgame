@@ -31,6 +31,13 @@ export const selectSignInDialogPassword = (state) => state.user ? state.user.dia
 export const selectSignInDialogIsCreate = (state) => state.user ? state.user.dialogIsCreate : false;
 export const selectSignInDialogSelectedPage = (state) => state.user ? state.user.dialogSelectedPage : 0;
 
+export const selectGameChest = (state) => state.game ? state.game.chest : null;
+export const selectGamePlayersInfo = (state) => state.game ? state.game.playersInfo : [];
+export const selectGameHasEmptySlots = (state) => state.game ? state.game.hasEmptySlots : false;
+export const selectGameOpen = (state) => state.game ? state.game.open : false;
+export const selectGameVisible = (state) => state.game ? state.game.visible : false;
+export const selectGameIsOwner = (state) => state.game ? state.game.isOwner : false;
+
 const selectGameID = (state) => state.game ? state.game.id : '';
 const selectGameName = (state) => state.game ? state.game.name : '';
 
