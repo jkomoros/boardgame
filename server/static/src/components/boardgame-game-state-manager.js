@@ -274,9 +274,6 @@ class BoardgameGameStateManager extends PolymerElement {
 
     var bundle = {};
 
-    bundle.gameState = JSON.stringify(game.CurrentState, null, 2);
-    //Have to use this.set to get databinding system to notice the change.
-
     bundle.originalWallClockStartTime = Date.now();
 
     bundle.pathsToTick = this._expandState(game.CurrentState, game.ActiveTimers);

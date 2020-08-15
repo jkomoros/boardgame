@@ -72,7 +72,7 @@ class BoardgameGameView extends connect(store)(LitElement) {
     <div class="card">
       <boardgame-render-game id="render" .state=${this.currentState} .diagram=${this.game ? this.game.Diagram : ""} .renderer=${this.activeRenderer} @renderer-changed=${this._handleRendererChanged} .gameName=${this._gameRoute ? this._gameRoute.name : ""} .viewingAsPlayer=${this.viewingAsPlayer} .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0} .socketActive=${this.socketActive} .active=${this.selected} .chest=${this.chest}></boardgame-render-game>
     </div>
-    <boardgame-admin-controls id="admin" .active=${this._admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this.chest} .gameState=${this.gameState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
+    <boardgame-admin-controls id="admin" .active=${this._admin} .game=${this.game} .viewingAsPlayer=${this.viewingAsPlayer} .moveForms=${this.moveForms} .gameRoute=${this._gameRoute} .chest=${this.chest} .currentState=${this.currentState} .requestedPlayer=${this.requestedPlayer} @requested-player-changed=${this._handleRequestedPlayerChanged} .autoCurrentPlayer=${this.autoCurrentPlayer} @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}></boardgame-admin-controls>
     <boardgame-game-state-manager id="manager" .activeRenderer=${this.activeRenderer} .gameRoute=${this._gameRoute} .requestedPlayer=${this.requestedPlayer} .active=${this.selected} .admin=${this._admin} .gameFinished=${this.game ? this.game.Finished : false} .gameVersion=${this.game ? this.game.Version : 0} .loggedIn=${this._loggedIn} .autoCurrentPlayer=${this.autoCurrentPlayer} .viewingAsPlayer=${this.viewingAsPlayer} .socketActive=${this.socketActive} @socket-active-changed=${this._handleSocketActiveChanged}></boardgame-game-state-manager>
 `;
   }
@@ -80,7 +80,6 @@ class BoardgameGameView extends connect(store)(LitElement) {
   static get properties() {
     return {
       requestedPlayer: { type: Number },
-      gameState: { type: String },
       game: { type: Object },
       currentState: { type: Object },
       chest: { type: Object },
@@ -264,7 +263,6 @@ class BoardgameGameView extends connect(store)(LitElement) {
     this.moveForms = null;
     this.viewingAsPlayer = 0;
     this.originalWallClockStartTime = null;
-    this.gameState = "";
     this.pathsToTick = null;
     this._firstStateBundle = true;
     this.chest = null;
@@ -285,7 +283,6 @@ class BoardgameGameView extends connect(store)(LitElement) {
     this.moveForms = bundle.moveForms;
     this.viewingAsPlayer = bundle.viewingAsPlayer;
     this.originalWallClockStartTime = bundle.originalWallClockStartTime;
-    this.gameState = bundle.gameState;
     this.pathsToTick = bundle.pathsToTick;
 
     if (this._firstStateBundle) {

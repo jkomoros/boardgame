@@ -39,7 +39,7 @@ class BoardgameAdminControls extends PolymerElement {
       <div class="card">
         <details>
           <summary>State</summary>
-          <pre>[[gameState]]</pre>
+          <pre>[[_gameStateBlob]]</pre>
         </details>
       </div>
       <div class="card">
@@ -104,7 +104,11 @@ class BoardgameAdminControls extends PolymerElement {
         type: String,
         computed: "_computeChestAsString(chest)"
       },
-      gameState : String,
+      currentState: Object,
+      _gameStateBlob : {
+        type: String,
+        computed: "_computeGameStateBlob(currentState)",
+      },
       //TODO: there must be a better way to do constants...
       OBSERVER_PLAYER_INDEX : {
         type: Number,
@@ -117,6 +121,11 @@ class BoardgameAdminControls extends PolymerElement {
       moveForms: Object,
       game: Object
     }
+  }
+
+  _computeGameStateBlob(state) {
+    //TODO: can we combine this with _computeChestAsString?
+    return JSON.stringify(state, null, 2);
   }
 
   _computeChestAsString(chest) {
