@@ -4,6 +4,7 @@ export const selectPage = (state) => state.app ? state.app.page : "";
 export const selectPageExtra = (state) => state.app ? state.app.pageExtra : "";
 export const selectManagers = (state) => state.list ? state.list.managers : [];
 export const selectSelectedManagerIndex = (state) => state.list ? state.list.selectedManagerIndex : 0;
+export const selectCreateGameNumPlayers = (state) => state.list ? state.list.numPlayers : 0;
 export const selectGameTypeFilter = (state) => state.list ? state.list.gameTypeFilter : "";
 export const selectParticipatingActiveGames = (state) => state.list ? state.list.participatingActiveGames : [];
 export const selectParticipatingFinishedGames = (state) => state.list ? state.list.participatingFinishedGames : [];

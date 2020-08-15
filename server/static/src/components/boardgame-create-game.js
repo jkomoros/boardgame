@@ -22,12 +22,14 @@ import { SharedStyles } from './shared-styles-lit.js';
 
 import {
   createGame,
-  updateSelectedMangerIndex
+  updateSelectedMangerIndex,
+  updateNumPlayers
 } from '../actions/list.js';
 
 import {
   selectManagers,
-  selectSelectedManagerIndex
+  selectSelectedManagerIndex,
+  selectCreateGameNumPlayers
 } from '../selectors.js';
 
 //The templates are a pain to tell to expect an empty manager, so have a blank
@@ -183,6 +185,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
   stateChanged(state) {
     this._managers = selectManagers(state);
     this._selectedManagerIndex = selectSelectedManagerIndex(state);
+    this._numPlayers = selectCreateGameNumPlayers(state);
   }
 
   _handleSelectedManagerIndexChanged(e) {
@@ -215,7 +218,7 @@ class BoardgameCreateGame extends connect(store)(LitElement) {
   }
 
   _handleSliderValueChanged(e) {
-    this._numPlayers = e.composedPath()[0].value;
+    store.dispatch(updateNumPlayers(e.composedPath()[0].value));
   }
 
   get _managerHasAgents() {
