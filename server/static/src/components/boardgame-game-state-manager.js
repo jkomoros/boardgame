@@ -299,14 +299,6 @@ class BoardgameGameStateManager extends PolymerElement {
     return moveForms;
   }
 
-  _copyObj(obj) {
-    let copy = {}
-    for (let attr in obj) {
-      if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr]
-    }
-    return copy
-  }
-
   //Called when gameView tells us to pass up the next state if we have one
   //(the animations are done). 
   readyForNextState() {
