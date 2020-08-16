@@ -79,3 +79,30 @@ export const setProperty = (obj, propNames, val) => {
     };
     return setProperty(obj[propName], propNames.slice(1), val);
 }
+
+//setPropertyInClone is like setProperty, but instead of modifying the given
+//obj, it returns a clone that has the given property affected. The clone will
+//duplicate as few things as possible, so for example sub-objects that are not
+//affected by the property set will be returned as is. What this means in
+//practice is that every object in the path down to propName will be a copy, but
+//hopefully nothing else will be.
+export const setPropertyInClone = (obj, propNames, valToSet) => {
+    //Were at the end of the propNames chain, return val to "set" it in the
+    //clone.
+    if (!propNames || propNames.length == 0) return valToSet;
+    if (!obj) return obj;
+    if (typeof obj != "object") return obj;
+    if (typeof propNames == "string") propNames = propNames.split(".");
+    let propName = propNames[0];
+    const result = Array.isArray(obj) ? [] : {};
+    for (let [key, val] of Object.entries(obj)) {
+        if (key != propName) {
+            //The modification doesn't lie down this branch so we can just reuse
+            //existing keys.
+            result[key] = val;
+            continue;
+        }
+        result[key] = setPropertyInClone(obj[propName], propNames.slice(1), valToSet)
+    }
+    return result;
+}

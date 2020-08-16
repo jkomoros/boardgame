@@ -11,7 +11,7 @@ import {
 import {
   deepCopy,
   getProperty,
-  setProperty
+  setPropertyInClone
 } from '../util.js';
 
 export const UPDATE_GAME_ROUTE = 'UPDATE_GAME_ROUTE';
@@ -208,9 +208,10 @@ const tick = () => {
   if (pathsToTick.length == 0) return;
 
   let newPaths = [];
-  //TODO: once setProperty can return minimally-different copies, don't do a
-  //whole new state here
-  let newState = deepCopy(currentState);
+
+  //We'll use util.setPropertyInClone, so the newState will diverge from
+  //currentState as we write to it, but can start out the same.
+  let newState = currentState;
 
 
   for (let i = 0; i < pathsToTick.length; i++) {
@@ -223,9 +224,7 @@ const tick = () => {
 
     let result = Math.max(0, timer.originalTimeLeft - difference);
 
-    if (!setProperty(newState, currentPath.concat(["TimeLeft"]), result)) {
-      console.warn("Failed to set property: ", newState, currentPath.concat("TimeLeft"), result);
-    }
+    newState = setPropertyInClone(newState, currentPath.concat(["TimeLeft"]), result);
 
     //If we still have time to tick on this, then make sure it's still
     //in the list of things to tick.
