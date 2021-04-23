@@ -297,16 +297,16 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 					continue
 				}
 
-				if !enumConfig(genDecl.Doc.Text()) {
+				if !enumConfig(genDecl.Doc) {
 					//Must not have found the magic comment in the docs.
 					continue
 				}
 
-				defaultTransform := configTransform(genDecl.Doc.Text(), transformNone)
+				defaultTransform := configTransform(genDecl.Doc, transformNone)
 
 				theEnum := newEnum(packageName, defaultTransform)
 
-				theEnum.combineName = configCombineName(genDecl.Doc.Text())
+				theEnum.combineName = configCombineName(genDecl.Doc)
 
 				for _, spec := range genDecl.Specs {
 
@@ -325,7 +325,7 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 					hasOverride, displayName := overrideDisplayname(valueSpec.Doc.Text())
 
-					transform := configTransform(valueSpec.Doc.Text(), defaultTransform)
+					transform := configTransform(valueSpec.Doc, defaultTransform)
 
 					theEnum.AddTransformKey(keyName, hasOverride, displayName, transform)
 
@@ -491,9 +491,14 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 
 }
 
-func enumConfig(docLines string) bool {
+func enumConfig(comment *ast.CommentGroup) bool {
 
-	for _, docLine := range strings.Split(docLines, "\n") {
+	if comment == nil {
+		return false
+	}
+
+	for _, line := range comment.List {
+		docLine := line.Text
 		docLine = strings.ToLower(docLine)
 		docLine = strings.TrimPrefix(docLine, "//")
 		docLine = strings.TrimSpace(docLine)
@@ -505,8 +510,12 @@ func enumConfig(docLines string) bool {
 	return false
 }
 
-func configTransform(docLines string, defaultTransform transform) transform {
-	for _, line := range strings.Split(docLines, "\n") {
+func configTransform(comment *ast.CommentGroup, defaultTransform transform) transform {
+	if comment == nil {
+		return defaultTransform
+	}
+	for _, commentLine := range comment.List {
+		line := commentLine.Text
 		if transformLowerRegExp.MatchString(line) {
 			return transformLower
 		}
@@ -521,9 +530,14 @@ func configTransform(docLines string, defaultTransform transform) transform {
 	return defaultTransform
 }
 
-func configCombineName(docLines string) string {
-	for _, line := range strings.Split(docLines, "\n") {
-		result := combineRegExp.FindStringSubmatch(line)
+func configCombineName(comment *ast.CommentGroup) string {
+
+	if comment == nil {
+		return ""
+	}
+
+	for _, line := range comment.List {
+		result := combineRegExp.FindStringSubmatch(line.Text)
 
 		if len(result) == 0 {
 			continue
