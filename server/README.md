@@ -37,7 +37,7 @@ stack in the state, and then ensure you have a template for that deck defined in
 
 In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to use the `boardgame-deck-defaults` element in your renderer's template and include a template for your deck.
 
-```
+```html
 <!-- define a simple front if no processing required -->
 <boardgame-deck-defaults>
   <template deck="cards">
@@ -54,7 +54,8 @@ In many cases you only have a small number of types of cards in a game, and you 
 Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
 
 Then stamping those components is as simple as using a `boardgame-component-stack` and databinding in the stack property:
-```
+
+```html
 <boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
 </boardgame-component-stack>
 ```
@@ -63,14 +64,14 @@ The `boardgame-component-stack` will automatically instantiate and bind componen
 
 Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
 
-```
+```html
 <boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
 </boardgame-component-stack>
 ```
 
 If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
 
-```
+```html
 <link rel='import' href='my-complex-card.html'>
 <boardgame-deck-defaults>
   <template deck="cards">
@@ -88,13 +89,12 @@ The boardgame-fading-text element will render text that animates when changed. T
 
 You can use boardgame-status-text to render text that will also show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
 
-```
+```html
 <!-- you can bind to message attribute -->
 <boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
 
 <!-- you can also just include content which automatically sets message -->
 <boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
-
 ```
 
 ### Optional: BoardgameBaseGameRenderer
@@ -132,19 +132,19 @@ config.json.
 1. Install Node.js
 2. Install bower:
 
-```
+```sh
 npm install -g bower
 ```
 
 1. Install polymer CLI:
 
-```
+```sh
 npm install -g polymer-cli
 ```
 
 If you have a fresh checkout, cd into boardgame/server/webapp and run:
 
-```
+```sh
 bower install
 ```
 
@@ -152,7 +152,7 @@ Install the [https://cloud.google.com/sdk/docs/](Google Cloud SDK).
 
 Install firebase tool:
 
-```
+```sh
 npm install -g firebase-tools
 
 firebase login
@@ -177,7 +177,7 @@ follow the steps in connect domain.
 
 Tell the gcloud commands which project you're operating on.
 
-```
+```sh
 gcloud config set project <project-id>
 ```
 
@@ -208,13 +208,13 @@ Set up your domain to have a CNAME that points to c.storage.googleapis.com
 
 Create the storage bucket to serve the files in. It must be based on the domain you will serve from:
 
-```
+```sh
 gsutil mb gs://www.mydomain.com
 ```
 
 Set the acls to be world-readable (do this before the first push so all files you push get this ACL by default)
 
-```
+```sh
 gsutil defacl set public-read gs://www.mydomain.com
 ```
 
@@ -222,7 +222,7 @@ Now do a normal deploy, as described in the "Deploying" section below.
 
 Set it so index.html is returned by default for all routes that don't have other objects:
 
-```
+```sh
 gsutil web set -e static/index.html gs://www.mydomain.com
 ```
 
@@ -246,7 +246,7 @@ Cd into boardgame/webapp/build/bundled
 
 Run
 
-```
+```sh
 gsutil -m rsync -r . gs://www.mydomain.com/static
 ```
 
@@ -259,19 +259,20 @@ Cd into mygame/server/api.
 Make sure your database is up to date. 
 
 Run:
-```
+
+```sh
 boardgame-util db --prod up
 ```
 
 Run:
 
-```
+```sh
 gcloud app deploy
 ```
 
 If it's been awhile since you installed gcloud, you can run:
 
-```
+```sh
 gcloud components update
 ```
 
