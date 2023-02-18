@@ -18,13 +18,13 @@ The rest of this tutorial will assume you have it installed. Sitting in the `boa
 
 Now ensure it's installed by running:
 
-```
+```sh
 boardgame-util
 ```
 
 You should see a help message describing what boardgame-util can do. The help of the boardgame-util command is very comprehensive, and it's the best way to learn about what it can do. The `help` subcommand to learn more about any given comand or sub-command:
 
-```
+```sh
 boardgame-util help
 ```
 
@@ -42,7 +42,7 @@ You can install npm by following the instructions to install node: https://nodej
 
 Once you have npm installed, run:
 
-```
+```sh
 npm install -g polymer-cli
 ```
 
@@ -52,7 +52,7 @@ Now you have the prerequisites installed and can use the `boardgame-util serve` 
 
 Sitting in the boardgame package, run:
 
-```
+```sh
 boardgame-util serve
 ```
 
@@ -84,7 +84,7 @@ Let's dig into concrete examples in memory, in `examples/memory/state.go`.
 
 The core of the states are represented here:
 
-```
+```go
 //boardgame:codegen
 type gameState struct {
 	base.SubState
@@ -145,7 +145,7 @@ In a number of cases (including your GameState and PlayerState), your specific g
 
 The core package has a notion of a `PropertyReader` (as well as `PropertyReadSetter` and `PropertyReadSetConfigurer`), which makes it possible to enumerate, read, and set properties on these types of objects. The signature looks something like this:
 
-```
+```go
 type PropertyReader interface {
     //Enumerate all properties it is valid to read and set on this object, and their types.
 	Props() map[string]PropertyType
@@ -208,7 +208,7 @@ First, install the command by running `go install` from within `$GOPATH/github.c
 
 Somewhere in the package, include:
 
-```
+```go
 //go:generate boardgame-util codegen
 ```
 
@@ -216,7 +216,7 @@ Somewhere in the package, include:
 
 And then immediately before every struct you want to have a PropertyReader for, include the magic comment:
 
-```
+```go
 //boardgame:codegen
 type MyStruct struct {
 	//....
@@ -235,7 +235,7 @@ Many of the methods you implement will accept an ImmutableState object. Of cours
 
 That's why it's convention for each game package to define the following private method in their package:
 
-```
+```go
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
 	game := state.ImmutableGameState().(*gameState)
 
@@ -251,14 +251,12 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 Whenever the game engine hands you a state object, this one-liner will hand you back the concrete states specific to your game type:
 
-```
+```go
 func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	game, players := concreteStates(state)
 	//do something with game and players, since they are now the concrete types defined in this package
 }
 ```
-
-
 
 ... Of course, when you pass the ImmutableState or State object through your concreteStates method you'll just get the naked, modifiable, concrete structs back, and there's nothing to prevent you from changing the properties. Don't do that--at best it won't actually make a change that will be persisted, but at worse it could lead to odd inconsitencies later, if the engine for example re-used the same state object.
 
@@ -286,7 +284,7 @@ The answer to that, and many other questions, is the `GameDelegate`. The `GameMa
 
 The most basic methods are about the name of your gametype:
 
-```
+```go
 type GameDelegate interface {
 	Name() string
 	DisplayName() string
@@ -303,7 +301,7 @@ Most of the methods on GameDelegate are straightforward, like `LegalNumPlayers(n
 
 GameDelegates are also where you have "Constructors" for your core concrete types:
 
-```
+```go
 type GameDelegate interface {
 	//...
 	GameStateConstructor() ConfigurableSubState
@@ -318,7 +316,7 @@ GameStateConstructor and PlayerStateConstructor should return zero-value objects
 
 In many cases they can just be a single line or two, as you can see for the PlayerStateConstructor and GameStateConstructor in main.go:
 
-```
+```go
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 
 	return new(playerState)
@@ -333,7 +331,7 @@ This is actually very interesting. As mentioned above, Interface properties (lik
 
 One way to do that is to initalize them to a reasonable value in the GameStateConstructor:
 
-```
+```go
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 
 	//This sample shows a way to write this that is NOT what memory
@@ -356,7 +354,7 @@ But that's not what memory does; it simply returns a pointer to a gameState obje
 
 The answer is in the struct tags in game and playerStates:
 
-```
+```go
 //boardgame:codegen
 type gameState struct {
 	//...
@@ -385,7 +383,7 @@ One of them is `CheckGameFinished`, which is run after every Move is applied. In
 
 Memory's `CheckGameFinished` could look like this:
 
-```
+```go
 func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finished bool, winners []boardgame.PlayerIndex) {
 
 	//This is NOT how memory's CheckGameFinished looks
@@ -423,7 +421,7 @@ If there are no cards left in the grid, it figures out which player has the most
 
 However, this pattern--check if the game is finished, and if it is return as a winner any player who has the highest score--is so common that the engine makes it easy to implement with a default behavior built into `base.GameDelegate`. Memory uses it, as you can see in `examples/memory/main.go`:
 
-```
+```go
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	game, _ := concreteStates(state)
 
@@ -439,7 +437,6 @@ func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 
 	return player.WonCards.NumComponents()
 }
-
 ```
 
 Implementing these two methods is sufficient for base.GameDelegate's default CheckGameFinished to do the right thing.
@@ -484,7 +481,7 @@ There are two types of objects related to Moves: `MoveConfig` and `Move`s.
 
 A `Move` is a specific instantiation of a particular type of Move. It is a concrete struct that you define and that adheres to the `Move` interface:
 
-```
+```go
 type Move interface {
     Legal(state ImmutableState, proposer PlayerIndex) error
     Apply(state State) error
@@ -547,7 +544,8 @@ if your move is a FixUp move it's best to embed it so that
 Many Player moves can only be made by the CurrentPlayer. This move encodes which player the move applies to (set automatically in `DefaultsForState`) and also includes the logic to verify that the `proposer` of the move is allowed to make the move, and is modifiying their own state. (This logic is slightly tricky because it needs to accomodate `AdminPlayerIndex` making moves on behalf of any player).
 
 In typical use you embed this struct, and then check its Legal method at the top of your own Legal method, as in this example from memory:
-```
+
+```go
 type moveRevealCard struct {
     moves.CurrentPlayer
     CardIndex int
@@ -571,7 +569,7 @@ Another common pattern is to have a FixUp move that inspects the state to see if
 
 `moves.FinishTurn` defines two interafaces that your sub-state objects must implement:
 
-```
+```go
 type CurrentPlayerSetter interface {
     SetCurrentPlayer(currentPlayer boardgame.PlayerIndex)
 }
@@ -579,7 +577,7 @@ type CurrentPlayerSetter interface {
 
 must be implemented by your gameState. Generally this is as simple as setting the CurrentPlayer index to that value, as you can see in the example from memory:
 
-```
+```go
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
     g.CurrentPlayer = currentPlayer
 }
@@ -587,7 +585,7 @@ func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 
 The next interface must be implemented by your playerStates:
 
-```
+```go
 type PlayerTurnFinisher interface {
     //TurnDone should return nil when the turn is done, or a descriptive error
     //if the turn is not done.
@@ -606,7 +604,7 @@ In most cases, your playerState has enough information to return an answer for e
 
 Memory's implementation of these methods looks like follows:
 
-```
+```go
 func (p *playerState) TurnDone() error {
     if p.CardsLeftToReveal > 0 {
         return errors.New("they still have cards left to reveal")
@@ -653,7 +651,7 @@ installing moves, in the `moves` package doc.
 
 Let's look at a fully-worked example of defining a specific move from memory:
 
-```
+```go
 //boardgame:codegen readsetter
 type moveHideCards struct {
     moves.CurrentPlayer
@@ -664,7 +662,7 @@ MoveHideCards is a simple concrete struct that embeds a `moves.CurrentPlayer`. T
 
 MoveHideCards is decorated by the magic codegen comment, which means its ReadSetter will be automatically generated. The `readsetter` at the end of the comment tells `boardgame-util codegen` to only bother creating the `PropertyReadSetter` method and not worry about the `PropertyReader` method. It would work fine (just with a tiny bit more code generated) with that argument omitted.
 
-```
+```go
 var moveHideCardsConfig = boardgame.MoveConfig{
     Name:     "Hide Cards",
     Constructor: func() boardgame.Move {
@@ -680,7 +678,7 @@ The `Name` property is a unique-within-this-game-package, human-readable name fo
 
 The most important aspect is the `Constructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
 
-```
+```go
 func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
     if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
@@ -705,7 +703,7 @@ func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame
 
 This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Default includes important logic in its Legal implementation.
 
-```
+```go
 func (m *moveHideCards) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
@@ -750,7 +748,7 @@ For example, a component that is a card from a traditional American deck of play
 
 The components for memory are quite simple:
 
-```
+```go
 package memory
 
 import (
@@ -825,7 +823,7 @@ creation process for a GameManager and all of the returned MoveConfigs will be i
 
 An example that could be for memory is here:
 
-```
+```go
 //Not what memory actually does
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig{
 	return []boardgame.MoveType{
@@ -841,7 +839,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig{
 
 In practice, however, memory uses `moves.AutoConfigurer`--just as almost every game will--to automatically generate MoveConfigs.
 
-```
+```go
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 	//...some lines elided...
@@ -885,7 +883,7 @@ There are two other methods that are called on your delegate during the game man
 
 Memory's is very simple:
 
-```
+```go
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	return map[string]*boardgame.Deck{
 		cardsDeckName: newDeck(),
@@ -950,7 +948,7 @@ In most cases, applying a policy is as simple as adding a struct tag to any fiel
 
 Memory's states are defined as follows:
 
-```
+```go
 //boardgame:codegen
 type gameState struct {
 	base.SubState
@@ -990,7 +988,7 @@ When you use merged stacks, the convention is to name the hidden stack `HiddenFo
 
 That's not a *particularly* interesting example. Here's the states for blackjack:
 
-```
+```go
 //boardgame:codegen
 type gameState struct {
 	base.SubState
@@ -1131,17 +1129,17 @@ memory:
 
 ```
 memory/
-	|	client/
-	|	| boardgame-render-game-memory.js
-	|	| boardgame-render-player-info-memory.js
-	|	agent.go
-	|	agent_test.go
-	|	auto_reader.go
-	|	components.go
-	|	main.go
-	|	main_test.go
-	|	moves.go
-	|	state.go
+├── client/
+│   ├── boardgame-render-game-memory.js
+│   └── boardgame-render-player-info-memory.js
+├── agent.go
+├── agent_test.go
+├── auto_reader.go
+├── components.go
+├── main.go
+├── main_test.go
+├── moves.go
+└── state.go
 ```
 
 (We'll get to what `boardgame-render-player-info-memory.js` in just a bit).
@@ -1180,7 +1178,7 @@ stack in the state, and then ensure you have a template for that deck defined in
 
 In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to use the `boardgame-deck-defaults` element in your renderer's template and include a template for your deck.
 
-```
+```html
 <!-- define a simple front if no processing required -->
 <boardgame-deck-defaults>
   <template deck="cards">
@@ -1197,7 +1195,8 @@ In many cases you only have a small number of types of cards in a game, and you 
 Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
 
 Then stamping those components is as simple as using a `boardgame-component-stack` and databinding in the stack property:
-```
+
+```html
 <boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
 </boardgame-component-stack>
 ```
@@ -1206,14 +1205,14 @@ The `boardgame-component-stack` will automatically instantiate and bind componen
 
 Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
 
-```
+```html
 <boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
 </boardgame-component-stack>
 ```
 
 If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
 
-```
+```html
 <link rel='import' href='my-complex-card.html'>
 <boardgame-deck-defaults>
   <template deck="cards">
@@ -1234,13 +1233,12 @@ In many cases there are parts of your UI that show a value in them, and when tha
 
 You can use `boardgame-status-text` to render text that will automatically show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
 
-```
+```html
 <!-- you can bind to message attribute -->
 <boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
 
 <!-- you can also just include content which automatically sets message -->
 <boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
-
 ```
 
 ##### boardgame-base-game-renderer
@@ -1254,7 +1252,8 @@ In particular, if an interface element is tapped that has a `propose-move="MOVEN
 In general your renderer is mostly concerned with telling the data-binding system where and how to stamp out stacks and buttons. This is one reasons Computed Properties (see the "Other Important Concepts" section below) are useful, because they allow you to define your semantic logic almost entirely on the server and allow the client to be almost entirely about data-binding.
 
 Here's the data-binding for Memory:
-```
+
+```html
     <boardgame-deck-defaults>
       <template deck="cards">
         <boardgame-card>
@@ -1294,7 +1293,8 @@ You can override this behavior, and also add more information to be rendered for
 Your player-info renderer can also expose a chipColor and chipText property to override the text of the badge on each player (by default their player index) and what color it is.
 
 memory's player-info just prints out the current score:
-```
+
+```html
   <template>
     Won Cards <boardgame-status-text>{{playerState.WonCards.Indexes.length}}</boardgame-status-text>
   </template>
@@ -1312,7 +1312,7 @@ Before we go further we'll want to generate a config.json. In the tutorial to da
 
 `boardgame-util` can help us create and modify config files. The rest of the commands in this section assume you're sitting in the root of your new games repo.
 
-```
+```sh
 boardgame-util config init
 ```
 
@@ -1324,7 +1324,7 @@ First, install mysql on your system and run it. The rest of the steps assume it'
 
 Now we need to set-up the tables we expect. `boardgame-util` can help us with that, too:
 
-```
+```sh
 boardgame-util db setup
 ```
 
@@ -1332,13 +1332,13 @@ In the future if we upgrade the library, you can make sure your mysql tables are
 
 OK, now we should have mysql set up. Verify everything's working:
 
-```
+```sh
 boardgame-util serve
 ```
 
 When you actually push to production you'll need to set the production mysql config string. You'll run:
 
-```
+```sh
 boardgame-util config set --secret --prod storage mysql USERNAME:PASSWORD@unix(CONNECTIONSTRING)/boardgame
 ```
 
@@ -1346,7 +1346,7 @@ See storage/mysql/README.md for more on the structure of that property.
 
 OK, so we have the server set up, but we don't have our own game. `boardgame-util` can help us generate a starter game.
 
-```
+```sh
 boardgame-util stub examplegame
 ```
 
@@ -1358,7 +1358,7 @@ This made a new directory called examplegame and filled it with lots of starter 
 
 You still need to add it to your games list, so run:
 
-```
+```sh
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
 ```
 
@@ -1381,7 +1381,7 @@ By default Components are entirely fixed--their values are exactly the same in e
 
 These use cases are represented by the concept of *Dynamic Component Values*. For decks that have dynamic component values, the values will be stored as an extra section in your State, just like `gameState` and your `playerState`s. On the server, given a state and a component c, you can access the dynamic component values like so:
 
-```
+```go
 values := c.DynamicValues(state)
 ```
 
@@ -1403,7 +1403,7 @@ When a JSON representation of your gameState is being prepared for a player, you
 
 Typically this is a simple enumeration of the names of the values and the method calls, like you can see in memory:
 
-```
+```go
 func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
 	game, _ := concreteStates(state)
 	return boardgame.PropertyCollection{
@@ -1428,7 +1428,7 @@ You define your named Enums at set up time as part of an `EnumSet`, and list the
 
 Given an enum, you can create an `enum.Val`, which is a container for a value from that enum. These `enum.Val` and `enum.MutableVal` are legal properties to add to your states and moves, and like stacks can be configured via struct tags, as you can see in blackjack's `state.go`:
 
-```
+```go
 //boardgame:codegen
 type gameState struct {
 	base.SubState
@@ -1445,7 +1445,7 @@ Creating an enum is slightly cumbersome and repetitive. You typically create a c
 
 The `boardgame-util codegen` command can also help automate this, as you can see in the blackjack example in `state.go`:
 
-```
+```go
 //boardgame:codegen
 const (
 	phaseInitialDeal = iota
@@ -1464,7 +1464,7 @@ Sometimes when you're creating a boardgame--especially one with a board and mult
 
 The enum package also allows you to create a ranged enum. It's just a normal enum, but created with all of the values in the given dimensions:
 
-```
+```go
 //returns an enum with 9 items
 e := set.MustAddRanged("Spaces", 3, 3)
 
@@ -1474,7 +1474,7 @@ e.IsRange()
 
 Under the covers it's just a simple enum with values from 0 to 8, where the string value for 0 is "0,0". But because it was created with AddRange is also has a few additional convience getters to and from the raw index to the multi-dimensional index it represents.
 
-```
+```go
 //Returns []int{0,1}
 e.ValueToRange(3)
 
@@ -1484,8 +1484,7 @@ e.RangeToValue(0, 1)
 
 Typically to model a board with spaces, you create a RangedEnum of the correct dimensions. Then on your gameState you'd have a SizedStack that is the same size as the RangedEnum. You'd use the Ranged getters to convert a multi-dimensional index into a single-dimensional index into the stack. This set-up works if each space on the board can have only one token; if a given space can host more than one, create a Spaces SizedStack for each player.
 
-```
-
+```go
 const DIM = 8
 //TOTAL_DIM is exported as a constant, so it can be used in the tag-based struct inflation.
 const TOTAL_DIM = DIM * DIM
@@ -1505,7 +1504,7 @@ gState.Spaces.ComponentAt(chessBoard.RangeToValue(3,3))
 
 You can add your own edges between items, but for grid-based boards, NewGridConnectedness() often does what you want. Check out the package doc for more, but here's a quick example:
 
-```
+```go
 set := enum.NewSet()
 chessBoard := set.MustAddRange("Spaces", 8, 8)
 
@@ -1534,7 +1533,7 @@ The actual machinery to implement Moves is not important, other than to know tha
 
 If you're going to support the notion of phases, you'll need to store the current phase somewhere in your state. In `examples/blackjack/state.go` we have:
 
-```
+```go
 //boardgame:codegen
 type gameState struct {
 	base.SubState
@@ -1549,7 +1548,7 @@ type gameState struct {
 
 We also need to define the values of the enum. In `examples/blackjack/components.go` we have:
 
-```
+```go
 //boardgame:codegen
 const (
 	phaseSetUp = iota
@@ -1563,7 +1562,8 @@ In general it's easiest to use `boardgame-util codegen`'s enum-generation tool, 
 It's convention to name your phase enum as "phase", and `moves.Default` will rely on that in some cases to create meaningful error messages. If you want to name it something different, override `GameDelegate.PhaseEnum`.
 
 Now we have to tell the engine what the current phase is. We do this by overriding a method on our gamedelegate, much like we do for CurrentPlayerIndex:
-```
+
+```go
 func (g *gameDelegate) CurrentPhase(state boardgame.ImmutableState) int {
 	game, _ := concreteStates(state)
 	return game.Phase.Value()
@@ -1582,7 +1582,7 @@ That's why the `moves` package defines `Add`, `AddForPhase`, and `AddOrderedForP
 
 You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 
-```
+```go
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
@@ -1611,7 +1611,7 @@ You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 
 Of course, there are sometimes moves that are legal in *any* mode. For those, it still makes sense to use `moves.Add`, as blackjack does:
 
-```
+```go
 	return moves.Combine(
 		moves.Add(
 			auto.MustConfig(
@@ -1642,7 +1642,7 @@ Like setting the legal phases, though, it's extremely error prone to call these 
 
 You can see it in action in Blackjack:
 
-```
+```go
 	//...
 		moves.AddOrderedForPhase(phaseInitialDeal,
 			auto.MustConfig(
@@ -1742,7 +1742,7 @@ GameDelegate defines GroupEnum, GroupMembership, and ComputedPlayerGroupMembersh
 
 If you want to have sanitization that applies to any non-default groups, then you need to create an enum that lists all of the various groups a given player may be in. If you do the following, `boardagme-util codegen` will handle it correctly for you:
 
-```
+```go
 //boardgame:codegen
 //The next line tells codegen to combine it into a new enum with other enums that also reference the same named item after the colon. 'group' is the one that base.GameDelegate is configured to use automatically when deciding the GroupMembership of a playerState.
 //combine:group
@@ -1757,7 +1757,6 @@ const (
 	colorRed = iota
 	colorBlue
 )
-
 ```
 
 You could then add behaviors like behavior.PlayerRole and behavior.PlayerColor to your playerState.
@@ -1809,7 +1808,7 @@ If you want to support variants in your game, your delegate should return a Vari
 
 Here's memory's:
 
-```
+```go
 const (
 	variantKeyNumCards = "numcards"
 	variantKeyCardSet  = "cardset"
@@ -1891,7 +1890,7 @@ after every move is made to have a chance to propose a move.
 
 The interface that agents must implement is simple:
 
-```
+```sh
 type Agent interface {
     Name() string
 
@@ -1921,7 +1920,7 @@ Constants that are exported via `ConfigureConstants()` will automatically be tra
 
 Constants can also be used as the int argument in a tag-based struct auto-inflation. For example, see the tictactoe example:
 
-```
+```go
 //In examples/tictactoe/main.go
 
 func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {
@@ -1931,7 +1930,7 @@ func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {
 }
 ```
 
-```
+```go
 //In examples/tictactoe/state.go
 
 //boardgame:codegen
@@ -1958,7 +1957,7 @@ The description of what the various config fields do is in `boardgame/boardgame-
 
 When creating a new repo or game, it's strongly encouraged to add the following line to your .gitignore:
 
-```
+```gitignore
 *.SECRET.*
 ```
 
@@ -2035,7 +2034,3 @@ The `config.SAMPLE.json` in `github.com/jkomoros/boardgame` (the config you've i
 ### Conclusion
 
 This library is a passion project I'm pursuing in my free time. It's under active development. If you see something that seems to be missing or off, please reach out via a GitHub issue. And pull requests are very appreciated!
-
-
-
-
