@@ -1,6 +1,7 @@
 import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, TemplateResult } from 'lit';
 import { property } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 export class BoardgameToken extends BoardgameComponent {
   static override styles = [
@@ -125,15 +126,6 @@ export class BoardgameToken extends BoardgameComponent {
 
   protected override updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
-
-    if (
-      changedProperties.has('color') ||
-      changedProperties.has('active') ||
-      changedProperties.has('highlighted') ||
-      changedProperties.has('type')
-    ) {
-      this._updateClasses();
-    }
   }
 
   private _computeAsset(type: string): string {
@@ -141,23 +133,20 @@ export class BoardgameToken extends BoardgameComponent {
   }
 
   // Override _computeClasses and add some more.
-  protected override _computeClasses(): string {
-    const result: string[] = [this.color];
-    if (this.active) {
-      result.push('active');
-    }
-    if (this.highlighted) {
-      result.push('highlighted');
-    }
-    result.push(this.type);
-    result.push(super._computeClasses());
-    return result.join(' ');
+  protected override _computeClasses(): Record<string, boolean> {
+    return {
+      ...super._computeClasses(),
+      [this.color]: true,
+      active: this.active,
+      highlighted: this.highlighted,
+      [this.type]: true
+    };
   }
 
   override render(): TemplateResult {
     const asset = this._computeAsset(this.type);
     return html`
-      <div id="outer" class="${this._computeClasses()}" @click="${this.handleTap}" style="${this._outerStyle}">
+      <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}">
         <div id="inner">
           <img src="${asset}" />
         </div>

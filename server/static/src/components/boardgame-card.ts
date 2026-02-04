@@ -1,6 +1,7 @@
 import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 export class BoardgameCard extends BoardgameComponent {
   static override styles = [
@@ -223,14 +224,6 @@ export class BoardgameCard extends BoardgameComponent {
       this._rotatedChanged(this.rotated);
     }
 
-    if (
-      changedProperties.has('noContent') ||
-      changedProperties.has('rotated') ||
-      changedProperties.has('tall')
-    ) {
-      this._updateClasses();
-    }
-
     if (changedProperties.has('aspectRatio')) {
       this._outerStyle = this._computeOuterStyle(this.aspectRatio);
     }
@@ -356,22 +349,20 @@ export class BoardgameCard extends BoardgameComponent {
   }
 
   // Override _computeClasses and add some more.
-  protected override _computeClasses(): string {
-    const result: string[] = ['card'];
-    if (this.rotated) {
-      result.push('rotated');
-    }
-    if (this.noContent) {
-      result.push('no-content');
-    }
-    result.push(this.tall ? 'tall' : 'wide');
-    result.push(super._computeClasses());
-    return result.join(' ');
+  protected override _computeClasses(): Record<string, boolean> {
+    return {
+      ...super._computeClasses(),
+      card: true,
+      rotated: this.rotated,
+      'no-content': this.noContent,
+      tall: this.tall,
+      wide: !this.tall
+    };
   }
 
   override render(): TemplateResult {
     return html`
-      <div id="outer" class="${this._computeClasses()}" @click="${this.handleTap}" style="${this._outerStyle}">
+      <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}">
         <div id="inner">
           <div id="front">
             <div class="normal">

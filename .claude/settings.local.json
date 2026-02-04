@@ -19,7 +19,8 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 2 \\(Partial\\): Migrate simple leaf components to Lit 3 + TypeScript\n\nMigrated components:\n- boardgame-404-view.ts: Static 404 error page\n  - Converted from Polymer PolymerElement to Lit LitElement\n  - Uses @customElement decorator for registration\n  - css`` for styles, html`` for template\n  - Adds HTMLElementTagNameMap declaration for type safety\n\n- boardgame-player-chip.ts: Player avatar with color-hashed background\n  - Converted property observers to updated\\(\\) lifecycle\n  - Uses @property, @query decorators\n  - Maintains color hashing algorithm \\(displayName -> hsl color\\)\n  - Preserves agent/player avatar logic\n\nDeferred components \\(require paper-* dependencies\\):\n- boardgame-player-roster-item: Uses paper-styles, needs Phase 5\n- boardgame-player-roster: Uses paper-dialog, paper-button, dom-repeat\n\nBoth migrated components maintain 100% behavior compatibility.\nOld .js files remain for backward compatibility until full migration.\n\nVerification: npm run type-check passes with zero errors.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run tsc:*)"
     ]
   }
 }

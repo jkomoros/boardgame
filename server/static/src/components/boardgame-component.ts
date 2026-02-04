@@ -1,6 +1,7 @@
 import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
 import { html, css, CSSResult, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 export class BoardgameComponent extends BoardgameAnimatableItem {
   static override styles: any = css`
@@ -111,9 +112,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 
   @query('#inner')
   protected innerElement!: HTMLElement;
-
-  @query('#outer')
-  protected outerElement!: HTMLElement;
 
   protected _outerStyle = '';
 
@@ -240,17 +238,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     if (changedProperties.has('item')) {
       this._itemChanged(this.item);
     }
-
-    // Update classes when relevant properties change
-    if (
-      changedProperties.has('spacer') ||
-      changedProperties.has('noShadow') ||
-      changedProperties.has('altShadow') ||
-      changedProperties.has('disabled') ||
-      changedProperties.has('noAnimate')
-    ) {
-      this._updateClasses();
-    }
   }
 
   protected _itemChanged(newValue: any) {
@@ -262,32 +249,15 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     this.id = newValue.ID || '';
   }
 
-  protected _updateClasses() {
-    // Subclasses will override _computeClasses() to add their own classes
-    const classes = this._computeClasses();
-    if (this.outerElement) {
-      this.outerElement.className = classes;
-    }
-  }
-
-  protected _computeClasses(): string {
-    const result: string[] = [];
-    if (this.spacer) {
-      result.push('spacer');
-    }
-    if (!this.noShadow) {
-      result.push(this.altShadow ? 'alt-shadow' : 'shadow');
-    }
-    if (this.interactive) {
-      result.push('interactive');
-    }
-    if (this.disabled) {
-      result.push('disabled');
-    }
-    if (this.noAnimate) {
-      result.push('no-animate');
-    }
-    return result.join(' ');
+  protected _computeClasses(): Record<string, boolean> {
+    return {
+      spacer: this.spacer,
+      shadow: !this.noShadow && !this.altShadow,
+      'alt-shadow': !this.noShadow && this.altShadow,
+      interactive: this.interactive,
+      disabled: this.disabled,
+      'no-animate': this.noAnimate
+    };
   }
 
   private setProperties(props: Record<string, any>) {
@@ -320,7 +290,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 
   override render(): TemplateResult {
     return html`
-      <div id="outer" class="${this._computeClasses()}" @click="${this.handleTap}" style="${this._outerStyle}">
+      <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}">
         <div id="inner">
           <slot></slot>
         </div>
