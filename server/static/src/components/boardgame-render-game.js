@@ -230,14 +230,15 @@ class BoardgameRenderGame extends PolymerElement {
     //notifyPath. Bug in Polymer 2?
     this.renderer.notifyPath(record.path);
     if (record.path == "state" && !stateWasNull) {
-      //Call animate. When all of the things that will be animating have
-      //started, check to see if no animations have been registered; if htey
+      //Call animateFlip. When all of the things that will be animating have
+      //started, check to see if no animations have been registered; if they
       //haven't, then we can advance to the next state immediately.
-      this.$.animator.animate().then(() => this._nextStateIfNoAnimations())
+      // Note: Renamed from animate() to animateFlip() due to Web Animations API conflict
+      this.$.animator.animateFlip().then(() => this._nextStateIfNoAnimations())
       //TODO: technically it's possible that no animations fire, but
-      //this.$.animator.animate() returns immediately but schedules work in a
+      //this.$.animator.animateFlip() returns immediately but schedules work in a
       //rAF call back. We used to check for this._activeAnimations.length == 0
-      //and then bail, but that always triggered becauase animate() returns
+      //and then bail, but that always triggered because animateFlip() returns
       //immediately.
     }
   }
