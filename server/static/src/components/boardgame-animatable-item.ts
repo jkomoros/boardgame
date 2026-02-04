@@ -135,7 +135,9 @@ export class BoardgameAnimatableItem extends LitElement {
     const path = e.composedPath();
     if (!path || path.length < 1) return;
 
-    const ele = path[0] as HTMLElement;
+    const target = path[0];
+    if (!(target instanceof HTMLElement)) return;
+    const ele = target;
 
     const changeMade = this._removeExpectedTransition(ele, e.propertyName);
 
