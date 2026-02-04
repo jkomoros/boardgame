@@ -540,6 +540,7 @@ export class BoardgameComponentStack extends LitElement {
           eleToRemove = hostEle.children[hostEle.children.length - offset - 1];
         } while (!eleToRemove.hasAttribute('boardgame-component'));
 
+        if ((eleToRemove as any).beforeOrphaned) (eleToRemove as any).beforeOrphaned();
         this._componentPool.push(hostEle.removeChild(eleToRemove));
       }
     }
@@ -607,7 +608,9 @@ export class BoardgameComponentStack extends LitElement {
     let spacers = this.shadowRoot!.querySelectorAll('#container>[boardgame-component][spacer]');
 
     while (spacers.length > targetNumSpacers) {
-      this.container.removeChild(spacers[0]);
+      const spacerToRemove = spacers[0];
+      if ((spacerToRemove as any).beforeOrphaned) (spacerToRemove as any).beforeOrphaned();
+      this.container.removeChild(spacerToRemove);
       spacers = this.shadowRoot!.querySelectorAll('#container>[boardgame-component][spacer]');
     }
 
