@@ -18,12 +18,17 @@ This document tracks the incremental migration from Polymer 3 + old lit-element 
 - [x] Phase 0.8: Verify TypeScript compiles with allowJs (✅ npm run type-check passes)
 - [x] Phase 0.9: Commit Phase 0 (COMMITTED: 54ae58bc)
 
-- [x] Phase 1: Type Infrastructure (COMPLETE - Ready to Commit)
+- [x] Phase 1: Type Infrastructure (COMMITTED: e93a0b44)
   - [x] Create Redux store type definitions (store.d.ts)
   - [x] Create component type definitions (components.d.ts)
   - [x] Create event type definitions (events.d.ts)
   - [x] Verify TypeScript compiles (✅ npm run type-check passes)
-- [ ] Phase 2: Migrate Leaf Components
+
+- [ ] Phase 2: Migrate Leaf Components (PARTIAL - Simple components only)
+  - [x] boardgame-404-view.ts - Static error page
+  - [x] boardgame-player-chip.ts - Player avatar with color hash
+  - [ ] boardgame-player-roster-item - DEFERRED (depends on paper-*, needs Phase 5)
+  - [ ] boardgame-player-roster - DEFERRED (depends on paper-dialog, dom-repeat)
 - [ ] Phase 3: Animation System (CRITICAL - ATOMIC)
 - [ ] Phase 4: Orchestration Layer
 - [ ] Phase 5: UI & Form Components
