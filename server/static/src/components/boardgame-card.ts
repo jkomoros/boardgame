@@ -198,7 +198,9 @@ export class BoardgameCard extends BoardgameComponent {
   @query('#front-slot')
   private frontSlot!: HTMLSlotElement;
 
-  connectedCallback() {
+  private _boundFrontChanged?: () => void;
+
+  override connectedCallback() {
     super.connectedCallback();
     this._updateInnerTransform();
   }
@@ -230,8 +232,16 @@ export class BoardgameCard extends BoardgameComponent {
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     this._frontChanged();
+    this._boundFrontChanged = () => this._frontChanged();
     if (this.frontSlot) {
-      this.frontSlot.addEventListener('slotchange', () => this._frontChanged());
+      this.frontSlot.addEventListener('slotchange', this._boundFrontChanged);
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._boundFrontChanged && this.frontSlot) {
+      this.frontSlot.removeEventListener('slotchange', this._boundFrontChanged);
     }
   }
 

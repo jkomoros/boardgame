@@ -118,7 +118,7 @@ export class BoardgameToken extends BoardgameComponent {
     return ['gray', 'green', 'teal', 'purple', 'pink', 'red', 'blue', 'yellow', 'orange', 'black'];
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     this.altShadow = true;
   }

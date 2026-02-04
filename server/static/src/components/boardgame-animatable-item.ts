@@ -8,14 +8,28 @@ export class BoardgameAnimatableItem extends LitElement {
   // Private properties - not decorated because they don't need reactivity
   private _expectedTransitionEnds = new Map<HTMLElement, Map<string, boolean>>();
   private _outstandingTransitonEnds = 0;
+  private _boundTransitionEnded?: (e: Event) => void;
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     this.resetAnimating();
     // CRITICAL: Event listeners must be added in connectedCallback to match Polymer timing
     // Must listen on both light DOM and shadow DOM for transitionend events
-    this.addEventListener('transitionend', (e) => this._transitionEnded(e as TransitionEvent));
-    this.shadowRoot!.addEventListener('transitionend', (e) => this._transitionEnded(e as TransitionEvent));
+    this._boundTransitionEnded = (e: Event) => this._transitionEnded(e as TransitionEvent);
+    this.addEventListener('transitionend', this._boundTransitionEnded);
+    if (this.shadowRoot) {
+      this.shadowRoot.addEventListener('transitionend', this._boundTransitionEnded);
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._boundTransitionEnded) {
+      this.removeEventListener('transitionend', this._boundTransitionEnded);
+      if (this.shadowRoot) {
+        this.shadowRoot.removeEventListener('transitionend', this._boundTransitionEnded);
+      }
+    }
   }
 
   // willNotAnimate says whether based on our current settings we expect this ele

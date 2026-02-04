@@ -3,7 +3,7 @@ import { html, css, CSSResult, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
 
 export class BoardgameComponent extends BoardgameAnimatableItem {
-  static styles: any = css`
+  static override styles: any = css`
     :host {
       --default-component-scale: 1.0;
       --component-aspect-ratio: 1.0;
@@ -234,7 +234,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     this.dispatchEvent(new CustomEvent('component-tapped', { composed: true, detail: { index: this.index } }));
   }
 
-  protected updated(changedProperties: Map<string, any>) {
+  protected override updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
 
     if (changedProperties.has('item')) {
@@ -318,7 +318,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return this._memoizedComposedPropertyDefinition;
   }
 
-  render(): TemplateResult {
+  override render(): TemplateResult {
     return html`
       <div id="outer" class="${this._computeClasses()}" @click="${this.handleTap}" style="${this._outerStyle}">
         <div id="inner">

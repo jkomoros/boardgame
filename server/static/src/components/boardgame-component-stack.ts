@@ -30,7 +30,7 @@ const pseudoRandomValues = [
 const sharedStackList: BoardgameComponentStack[] = [];
 
 export class BoardgameComponentStack extends LitElement {
-  static styles = css`
+  static override styles = css`
     :host {
       width: 100%;
     }
@@ -231,6 +231,8 @@ export class BoardgameComponentStack extends LitElement {
   private _randomRotationOffset = 0;
   private _id = '';
   private _style = '';
+  private _boundSlotChanged?: (firstRender: boolean) => void;
+  private _boundClearAnimatingComponents?: (e: Event) => void;
 
   get _sharedStackList(): BoardgameComponentStack[] {
     return sharedStackList;
@@ -288,12 +290,12 @@ export class BoardgameComponentStack extends LitElement {
     return this.deckDefaults.templateForDeck(this.gameName, this.deckName);
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     sharedStackList.push(this);
   }
 
-  disconnectedCallback() {
+  override disconnectedCallback() {
     super.disconnectedCallback();
     let i = 0;
     while (i < sharedStackList.length) {
@@ -304,11 +306,15 @@ export class BoardgameComponentStack extends LitElement {
         i++;
       }
     }
+    if (this._boundSlotChanged && this.componentsSlot) {
+      this.componentsSlot.removeEventListener('slotchange', () => this._slotChanged(false));
+    }
   }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     this._componentPool = [];
+    this._boundSlotChanged = (firstRender: boolean) => this._slotChanged(firstRender);
     if (this.componentsSlot) {
       this.componentsSlot.addEventListener('slotchange', () => this._slotChanged(false));
     }
@@ -324,7 +330,7 @@ export class BoardgameComponentStack extends LitElement {
     }
   }
 
-  protected updated(changedProperties: Map<string, any>) {
+  protected override updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
 
     if (changedProperties.has('layout') || changedProperties.has('messy')) {
@@ -407,7 +413,10 @@ export class BoardgameComponentStack extends LitElement {
     component.prepareForBeingAnimatingComponent(this);
     this.setUnknownAnimationState(component);
     this.animatingComponentsContainer.appendChild(component);
-    component.addEventListener('transitionend', (e: Event) => this._clearAnimatingComponents(e));
+    if (!this._boundClearAnimatingComponents) {
+      this._boundClearAnimatingComponents = (e: Event) => this._clearAnimatingComponents(e);
+    }
+    component.addEventListener('transitionend', this._boundClearAnimatingComponents);
     return component;
   }
 
@@ -416,6 +425,9 @@ export class BoardgameComponentStack extends LitElement {
     while (container.children.length > 0) {
       const child = container.children[0];
       if ((child as any).beforeOrphaned) (child as any).beforeOrphaned();
+      if (this._boundClearAnimatingComponents) {
+        child.removeEventListener('transitionend', this._boundClearAnimatingComponents);
+      }
       container.removeChild(child);
     }
   }
@@ -785,7 +797,7 @@ export class BoardgameComponentStack extends LitElement {
     return text;
   }
 
-  render(): TemplateResult {
+  override render(): TemplateResult {
     return html`
       <div id="container" class="${this._classes(this.layout, this.noAnimate)}" style="${this._style}">
         <div id="slot-holder">

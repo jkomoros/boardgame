@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go version:*)",
+      "Bash(go build:*)",
+      "Bash(wc:*)",
+      "Bash(git checkout:*)",
+      "Bash(done)",
+      "Bash(tree:*)",
+      "Bash(ls:*)",
+      "Bash(gh issue list:*)",
+      "Bash(grep:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 0: Setup TypeScript build pipeline and Lit 3 foundation\n\n- Add TypeScript 5.3 with lenient configuration \\(allowJs: true\\)\n- Add Vite 5.0 for modern build tooling\n- Add Lit 3.1.0 alongside existing Polymer 3.3.0 for incremental migration\n- Create tsconfig.json \\(lenient\\) and tsconfig.strict.json \\(target\\)\n- Create Polymer bridge type definitions for gradual migration\n- Create animation system type definitions \\(AnimatingComponent, FLIP types\\)\n- Add npm scripts: type-check, type-check:strict, dev, build\n- Update .gitignore for TypeScript build artifacts \\(dist/, *.tsbuildinfo\\)\n- Add MIGRATION_PLAN.md to track progress through 10 phases\n\nNote: Firebase 5.11.1 excluded from installation due to gRPC compilation\nissues on modern Node/ARM64. Listed in package.json for documentation.\nFrontend migration proceeds without Firebase; runtime depends on backend.\n\nVerification: npm run type-check passes with zero errors.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 1: Add comprehensive TypeScript type definitions\n\n- Add Redux store types \\(RootState, AppState, GameState, UserState, ListState\\)\n  - Defines all state slices with proper interfaces\n  - Documents lazy-loaded reducers \\(game, list\\)\n  - Includes UserInfo, PlayerInfo, GameChest interfaces\n\n- Add component interface types \\(BoardgameComponentElement, stacks, animator\\)\n  - BoardgameAnimatableItemElement: Base FLIP animation interface\n  - BoardgameComponentElement: Game component rendering interface\n  - BoardgameCardElement, BoardgameTokenElement: Specific component types\n  - BoardgameComponentStackElement: Stack layout interface\n  - BoardgameComponentAnimatorElement: FLIP orchestration interface\n\n- Add custom event types \\(ProposeMoveEvent, ComponentTapEvent, etc.\\)\n  - Extends global HTMLElementEventMap for type-safe event listeners\n  - Documents event detail structures for all custom events\n\nThese type definitions provide a foundation for type-safe component\nmigration while preserving runtime behavior. All definitions are\nambient \\(.d.ts\\) and don''t affect build output.\n\nVerification: npm run type-check passes with zero errors.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nPhase 2 \\(Partial\\): Migrate simple leaf components to Lit 3 + TypeScript\n\nMigrated components:\n- boardgame-404-view.ts: Static 404 error page\n  - Converted from Polymer PolymerElement to Lit LitElement\n  - Uses @customElement decorator for registration\n  - css`` for styles, html`` for template\n  - Adds HTMLElementTagNameMap declaration for type safety\n\n- boardgame-player-chip.ts: Player avatar with color-hashed background\n  - Converted property observers to updated\\(\\) lifecycle\n  - Uses @property, @query decorators\n  - Maintains color hashing algorithm \\(displayName -> hsl color\\)\n  - Preserves agent/player avatar logic\n\nDeferred components \\(require paper-* dependencies\\):\n- boardgame-player-roster-item: Uses paper-styles, needs Phase 5\n- boardgame-player-roster: Uses paper-dialog, paper-button, dom-repeat\n\nBoth migrated components maintain 100% behavior compatibility.\nOld .js files remain for backward compatibility until full migration.\n\nVerification: npm run type-check passes with zero errors.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
