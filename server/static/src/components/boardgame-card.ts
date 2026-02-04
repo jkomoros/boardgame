@@ -205,6 +205,13 @@ export class BoardgameCard extends BoardgameComponent {
     this._updateInnerTransform();
   }
 
+  // Optimization opportunity: shouldUpdate() could be added here to prevent
+  // unnecessary re-renders during animations. However, cards have complex state
+  // with multiple interdependent properties (faceUp, rotated, basicRotated,
+  // overrideRotated, noContent, tall, aspectRatio) that affect visual output.
+  // Conservative approach: Allow all renders to ensure correctness.
+  // Future optimization: Skip renders when only non-visual properties change.
+
   protected override updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
 

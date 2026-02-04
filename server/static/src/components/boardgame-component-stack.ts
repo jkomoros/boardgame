@@ -349,6 +349,14 @@ export class BoardgameComponentStack extends LitElement {
     }
   }
 
+  protected override shouldUpdate(changedProperties: Map<string, any>): boolean {
+    // Skip render if only noAnimate changed - it's handled via CSS class
+    if (changedProperties.size === 1 && changedProperties.has('noAnimate')) {
+      return false;
+    }
+    return true;
+  }
+
   protected override updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
 
