@@ -187,8 +187,30 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: String })
   layout = 'stack';
 
-  @property({ type: Object })
-  stack: any = null;
+  private _stack: any = null;
+  private _idsLastSeen: any = null;
+
+  set stack(value: any) {
+    const oldValue = this._stack;
+    this._stack = value;
+    this._stackChanged(value);
+    // No need to call requestUpdate() - _stackChanged handles all side effects
+    // and visual updates are triggered by the resulting property changes
+  }
+
+  get stack(): any {
+    return this._stack;
+  }
+
+  set idsLastSeen(value: any) {
+    this._idsLastSeen = value;
+    // No requestUpdate() needed - this is only used for animator tracking
+    // and doesn't affect visual rendering
+  }
+
+  get idsLastSeen(): any {
+    return this._idsLastSeen;
+  }
 
   @property({ type: String })
   deckName = '';
@@ -201,9 +223,6 @@ export class BoardgameComponentStack extends LitElement {
 
   @property({ type: Number })
   messiness = 1.0;
-
-  @property({ type: Object })
-  idsLastSeen: any = null;
 
   @property({ type: Boolean })
   noAnimate = false;
@@ -337,9 +356,8 @@ export class BoardgameComponentStack extends LitElement {
       this._updateComponentClasses();
     }
 
-    if (changedProperties.has('stack')) {
-      this._stackChanged(this.stack);
-    }
+    // stack property change is now handled in the setter directly
+    // No need to handle it here anymore
 
     if (changedProperties.has('gameName')) {
       this._gameNameChanged();
