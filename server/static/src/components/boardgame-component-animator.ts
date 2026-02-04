@@ -291,11 +291,20 @@ export class BoardgameComponentAnimator extends LitElement {
 
         let scaleFactor = record.offsets!.width / record.newOffsets!.width;
 
+        // Defensive check: prevent crashes from zero-width/height calculations
+        if (!isFinite(scaleFactor) || scaleFactor === 0) {
+          scaleFactor = 1.0;
+        }
+
         // If the before and after are rotated differently then the scale
         // factor will need to compare height vs width to get the right
         // scale factor.
         if (component.animationRotates(record.before, record.after)) {
           scaleFactor = record.offsets!.height / record.newOffsets!.width;
+          // Defensive check: prevent crashes from zero-width/height calculations
+          if (!isFinite(scaleFactor) || scaleFactor === 0) {
+            scaleFactor = 1.0;
+          }
         }
 
         // The containing box has physically shrunk (or grown), and the
@@ -378,10 +387,19 @@ export class BoardgameComponentAnimator extends LitElement {
 
       let scaleFactor = oldLocation.width / stackLocation.width;
 
+      // Defensive check: prevent crashes from zero-width/height calculations
+      if (!isFinite(scaleFactor) || scaleFactor === 0) {
+        scaleFactor = 1.0;
+      }
+
       if (component.animationRotates(record.before, record.after)) {
         // The before and after are different rotations which means the
         // invert top and left have to be tweaked.
         scaleFactor = oldLocation.height / stackLocation.width;
+        // Defensive check: prevent crashes from zero-width/height calculations
+        if (!isFinite(scaleFactor) || scaleFactor === 0) {
+          scaleFactor = 1.0;
+        }
       }
 
       // We used to only bother setting transforms for items that had
@@ -413,7 +431,11 @@ export class BoardgameComponentAnimator extends LitElement {
     }
 
     // CRITICAL: Wait for styles to be set, then schedule PLAY phase in RAF
-    window.requestAnimationFrame(() => this._startAnimations(resolve, reject));
+    // Polyfill for older browsers
+    const raf = window.requestAnimationFrame ||
+                (window as any).webkitRequestAnimationFrame ||
+                ((cb: FrameRequestCallback) => window.setTimeout(cb, 16));
+    raf(() => this._startAnimations(resolve, reject));
   }
 
   private _startAnimations(resolve: () => void, reject: () => void) {

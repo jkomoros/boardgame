@@ -17,6 +17,7 @@ export class BoardgameAnimatableItem extends LitElement {
     // Must listen on both light DOM and shadow DOM for transitionend events
     this._boundTransitionEnded = (e: Event) => this._transitionEnded(e as TransitionEvent);
     this.addEventListener('transitionend', this._boundTransitionEnded);
+    // Defensive check: shadowRoot may not exist yet
     if (this.shadowRoot) {
       this.shadowRoot.addEventListener('transitionend', this._boundTransitionEnded);
     }
@@ -26,6 +27,7 @@ export class BoardgameAnimatableItem extends LitElement {
     super.disconnectedCallback();
     if (this._boundTransitionEnded) {
       this.removeEventListener('transitionend', this._boundTransitionEnded);
+      // Defensive check: shadowRoot may not exist
       if (this.shadowRoot) {
         this.shadowRoot.removeEventListener('transitionend', this._boundTransitionEnded);
       }
@@ -132,6 +134,12 @@ export class BoardgameAnimatableItem extends LitElement {
     if (e.propertyName !== 'transform' && e.propertyName !== 'opacity') return;
 
     // CRITICAL: Use composedPath() instead of deprecated e.path
+    // Defensive check: composedPath() may not be supported in older browsers
+    if (typeof e.composedPath !== 'function') {
+      console.warn('composedPath not supported');
+      return;
+    }
+
     const path = e.composedPath();
     if (!path || path.length < 1) return;
 
