@@ -55,13 +55,8 @@ class BoardgameFadingText extends LitElement {
   @property({ type: String })
   autoMessage = 'fixed';
 
-<<<<<<< HEAD
-  @property({ type: Boolean })
-  private _animating = false;
-=======
   @property({ type: Boolean, attribute: false })
   protected _animating = false;
->>>>>>> migrate-example-games
 
   @query('#message')
   private _messageElement?: HTMLElement;
@@ -98,11 +93,7 @@ class BoardgameFadingText extends LitElement {
     this._animating = false;
   }
 
-<<<<<<< HEAD
-  animate() {
-=======
   animateFade(): void {
->>>>>>> migrate-example-games
     this._animating = true;
   }
 
@@ -142,11 +133,7 @@ class BoardgameFadingText extends LitElement {
         break;
     }
 
-<<<<<<< HEAD
-    this.animate();
-=======
     this.animateFade();
->>>>>>> migrate-example-games
   }
 
   private _classes(_animating: boolean): string {
