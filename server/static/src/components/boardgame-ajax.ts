@@ -2,6 +2,9 @@ import '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
 import { GamePathMixin } from './boardgame-game-path.js';
 
+// Declare global API_HOST (defined in index.html or build config)
+declare const API_HOST: string;
+
 // Get the IronAjax constructor
 const IronAjaxElement = customElements.get('iron-ajax') as any;
 
@@ -89,6 +92,4 @@ class BoardgameAjax extends GamePathMixin(IronAjaxElement) {
   }
 }
 
-customElements.define(BoardgameAjax.is, BoardgameAjax);
-
-export { BoardgameAjax };
+customElements.define(BoardgameAjax.is, BoardgameAjax as any);
