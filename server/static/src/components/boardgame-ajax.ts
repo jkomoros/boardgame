@@ -16,7 +16,7 @@ const IronAjaxElement = customElements.get('iron-ajax') as any;
  * - For general API calls: set `path` property (e.g., "auth")
  * - For game-specific calls: set `gamePath` property (e.g., "move")
  */
-class BoardgameAjax extends GamePathMixin(IronAjaxElement) {
+export class BoardgameAjax extends GamePathMixin(IronAjaxElement) {
   static get is(): string {
     return 'boardgame-ajax';
   }

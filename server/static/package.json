@@ -29,6 +29,7 @@
   },
   "author": "The Polymer Authors",
   "dependencies": {
+    "@material/web": "^1.0.0",
     "@polymer/app-layout": "^3.1.0",
     "@polymer/app-route": "^3.0.2",
     "@polymer/iron-ajax": "^3.0.1",
@@ -58,7 +59,7 @@
     "@polymer/paper-toggle-button": "^3.0.1",
     "@polymer/polymer": "^3.3.0",
     "@webcomponents/webcomponentsjs": "^2.3.0",
-    "firebase": "^5.11.1",
+    "firebase": "^10.0.0",
     "lit-element": "^2.3.1",
     "pwa-helpers": "^0.9.1",
     "redux": "^4.0.5",

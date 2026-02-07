@@ -20,7 +20,18 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(git commit:*)",
-      "Bash(npm run tsc:*)"
+      "Bash(npm run tsc:*)",
+      "Bash(find:*)",
+      "Bash(for game in /Users/jkomoros/Code/boardgame/examples/*/client/boardgame-render-game-*.js)",
+      "Bash(do basename \"$game\")",
+      "Bash(git merge:*)",
+      "WebSearch",
+      "WebFetch(domain:shoelace.style)",
+      "WebFetch(domain:github.com)",
+      "Bash(du -sh:*)",
+      "WebFetch(domain:bennypowers.dev)",
+      "WebFetch(domain:lit.dev)",
+      "WebFetch(domain:material-web.dev)"
     ]
   }
 }

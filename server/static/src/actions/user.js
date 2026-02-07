@@ -10,8 +10,8 @@ export const UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE = "UPDATE_SIGN_IN_DIALOG_SELECT
 export const SHOW_SIGN_IN_DIALOG_EMAIL_PAGE = "SHOW_SIGN_IN_DIALOG_EMAIL_PAGE";
 
 // This import loads the firebase namespace along with all its type information.
-import firebase from '@firebase/app';
-import '@firebase/auth';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
 
 import {
     selectUser,
