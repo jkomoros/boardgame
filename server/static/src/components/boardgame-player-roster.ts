@@ -16,11 +16,13 @@ import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import './boardgame-configure-game-properties.js';
 import './boardgame-player-roster-item.js';
-import './boardgame-ajax.ts';
 import './shared-styles.js';
 
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import { store } from '../store.js';
+import { joinGame } from '../actions/game.js';
+
 import type { MdDialog } from '@material/web/dialog/dialog.js';
-import type { BoardgameAjax } from './boardgame-ajax.ts';
 
 interface PlayerInfo {
   IsEmpty: boolean;
@@ -30,18 +32,12 @@ interface PlayerInfo {
 }
 
 interface GameRoute {
-  name?: string;
-  id?: string;
-}
-
-interface ApiResponse {
-  Status?: string;
-  Error?: string;
-  FriendlyError?: string;
+  name: string;
+  id: string;
 }
 
 @customElement('boardgame-player-roster')
-export class BoardgamePlayerRoster extends LitElement {
+export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   static styles = css`
     :host {
       display: block;
@@ -128,17 +124,11 @@ export class BoardgamePlayerRoster extends LitElement {
   @property({ type: Boolean })
   loggedIn = false;
 
-  @property({ type: Object })
-  response: ApiResponse | null = null;
-
   @property({ type: Boolean })
   rendererLoaded = false;
 
   @query('#join')
   private joinDialog!: MdDialog;
-
-  @query('#request')
-  private requestAjax!: BoardgameAjax;
 
   private readonly OBSERVER_PLAYER_INDEX = -1;
   private readonly ADMIN_PLAYER_INDEX = -2;
@@ -160,10 +150,6 @@ export class BoardgamePlayerRoster extends LitElement {
   protected updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('gameRoute')) {
       this._gameRouteChanged(this.gameRoute);
-    }
-
-    if (changedProperties.has('response')) {
-      this._responseChanged(this.response);
     }
   }
 
@@ -201,7 +187,7 @@ export class BoardgamePlayerRoster extends LitElement {
     this.doJoin();
   }
 
-  private doJoin(): void {
+  private async doJoin(): Promise<void> {
     if (!this.loggedIn) {
       this.dispatchEvent(new CustomEvent('show-login', {
         composed: true,
@@ -209,7 +195,25 @@ export class BoardgamePlayerRoster extends LitElement {
       }));
       return;
     }
-    this.requestAjax.generateRequest();
+
+    if (!this.gameRoute) return;
+
+    const response = await store.dispatch(joinGame(this.gameRoute));
+
+    if (response.error) {
+      // Dispatch error event
+      this.dispatchEvent(new CustomEvent("show-error", {
+        composed: true,
+        detail: {
+          message: response.error,
+          friendlyMessage: response.friendlyError,
+          title: "Couldn't Join"
+        }
+      }));
+    } else {
+      // Tell game-view to fetch data now
+      this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
+    }
   }
 
   private _gameRouteChanged(newValue: GameRoute | null): void {
@@ -221,24 +225,6 @@ export class BoardgamePlayerRoster extends LitElement {
 
   private _rendererLoaded(): void {
     this.rendererLoaded = true;
-  }
-
-  private _responseChanged(newValue: ApiResponse | null): void {
-    if (!newValue) return;
-
-    if (newValue.Status === "Success") {
-      // Tell game-view to fetch data now
-      this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
-    } else {
-      this.dispatchEvent(new CustomEvent("show-error", {
-        composed: true,
-        detail: {
-          message: newValue.Error,
-          friendlyMessage: newValue.FriendlyError,
-          title: "Couldn't Join"
-        }
-      }));
-    }
   }
 
   render() {
@@ -302,14 +288,6 @@ export class BoardgamePlayerRoster extends LitElement {
           </md-filled-button>
         </div>
       </md-dialog>
-      <boardgame-ajax
-        id="request"
-        game-path="join"
-        .gameRoute="${this.gameRoute}"
-        handle-as="json"
-        method="POST"
-        .lastResponse="${this.response}">
-      </boardgame-ajax>
     `;
   }
 }

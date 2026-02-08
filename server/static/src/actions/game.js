@@ -25,6 +25,9 @@ export const UPDATE_GAME_CURRENT_STATE = "UPDATE_GAME_CURRENT_STATE";
 export const CONFIGURE_GAME_REQUEST = 'CONFIGURE_GAME_REQUEST';
 export const CONFIGURE_GAME_SUCCESS = 'CONFIGURE_GAME_SUCCESS';
 export const CONFIGURE_GAME_FAILURE = 'CONFIGURE_GAME_FAILURE';
+export const JOIN_GAME_REQUEST = 'JOIN_GAME_REQUEST';
+export const JOIN_GAME_SUCCESS = 'JOIN_GAME_SUCCESS';
+export const JOIN_GAME_FAILURE = 'JOIN_GAME_FAILURE';
 
 export const updateGameRoute = (pageExtra) => {
     const pieces = pageExtra.split("/");
@@ -276,6 +279,29 @@ export const configureGame = (gameRoute, open, visible, admin) => async (dispatc
     return response; // Return response for component to handle
   } else {
     dispatch({ type: CONFIGURE_GAME_SUCCESS });
+    return response; // Return success response
+  }
+};
+
+/**
+ * Join a game as a player
+ * @param {Object} gameRoute - Game route with name and id
+ */
+export const joinGame = (gameRoute) => async (dispatch) => {
+  dispatch({ type: JOIN_GAME_REQUEST });
+
+  const url = buildGameUrl(gameRoute.name, gameRoute.id, 'join');
+  const response = await apiPost(url, {}, 'application/x-www-form-urlencoded');
+
+  if (response.error) {
+    dispatch({
+      type: JOIN_GAME_FAILURE,
+      error: response.error,
+      friendlyError: response.friendlyError
+    });
+    return response; // Return response for component to handle
+  } else {
+    dispatch({ type: JOIN_GAME_SUCCESS });
     return response; // Return success response
   }
 };
