@@ -34,10 +34,7 @@ import {
   selectSignInDialogSelectedPage
 } from '../selectors.js';
 
-interface User {
-  PhotoURL: string;
-  DisplayName: string;
-}
+import type { UserInfo } from '../types/store';
 
 @customElement('boardgame-user')
 export class BoardgameUser extends connect(store)(LitElement) {
@@ -140,7 +137,7 @@ export class BoardgameUser extends connect(store)(LitElement) {
   private _verifyingAuth = false;
 
   @property({ type: Object })
-  private _user: User | null = null;
+  private _user: UserInfo | null = null;
 
   @property({ type: String })
   private _errorMessage = '';
@@ -191,14 +188,14 @@ export class BoardgameUser extends connect(store)(LitElement) {
         <div id="offline"></div>
         <div class="horizontal">
           <boardgame-player-chip
-            .photoUrl="${this._user ? this._user.PhotoURL : ''}"
-            .displayName="${this._user ? this._user.DisplayName : ''}">
+            .photoUrl="${this._user ? this._user.photoURL : ''}"
+            .displayName="${this._user ? this._user.displayName : ''}">
           </boardgame-player-chip>
           <div class="vertical">
             ${when(
               this._user,
               () => html`
-                <div>${this._user!.DisplayName}</div>
+                <div>${this._user!.displayName}</div>
                 <a @click="${() => store.dispatch(signOut())}">Sign Out</a>
               `,
               () => html`
