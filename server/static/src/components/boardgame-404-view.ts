@@ -12,14 +12,14 @@ import { customElement } from 'lit/decorators.js';
 
 @customElement('boardgame-404-view')
 export class Boardgame404View extends LitElement {
-  static styles = css`
+  static override styles = css`
     :host {
       display: block;
       padding: 10px 20px;
     }
   `;
 
-  render() {
+  override render() {
     return html`
       <!--
         If deploying in a folder replace href="/" with the full path to your site.
