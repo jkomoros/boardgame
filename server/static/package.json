@@ -17,6 +17,7 @@
     "build": "tsc && vite build",
     "type-check": "tsc --noEmit",
     "type-check:strict": "tsc --noEmit -p tsconfig.strict.json",
+    "type-check:strict-migration": "tsc --noEmit -p tsconfig.strict-migration.json",
     "lint": "eslint . --ext js,html,ts --ignore-path .gitignore",
     "test": "npm run lint && polymer test"
   },

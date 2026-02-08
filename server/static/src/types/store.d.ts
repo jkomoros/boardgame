@@ -40,6 +40,9 @@ export interface AppState {
  */
 export interface ErrorState {
   message: string;
+  friendlyMessage: string;
+  title: string;
+  showing: boolean;
 }
 
 /**
@@ -147,10 +150,32 @@ export interface PlayerInfo {
  * List view state containing games list and filters.
  */
 export interface ListState {
-  /** List of games */
-  games: GameListItem[];
-  /** Whether list is currently loading */
-  loading: boolean;
+  /** Game type filter */
+  gameTypeFilter: string;
+  /** Index of selected game manager */
+  selectedManagerIndex: number;
+  /** Number of players for new game */
+  numPlayers: number;
+  /** Agent names for each player slot */
+  agents: string[];
+  /** Variant options for new game */
+  variantOptions: number[];
+  /** Whether new game should be visible */
+  visible: boolean;
+  /** Whether new game should be open */
+  open: boolean;
+  /** Available game managers */
+  managers: any[]; // TODO: Define GameManager type
+  /** All games */
+  allGames: GameListItem[];
+  /** Games user is participating in (active) */
+  participatingActiveGames: GameListItem[];
+  /** Games user participated in (finished) */
+  participatingFinishedGames: GameListItem[];
+  /** Visible active games */
+  visibleActiveGames: GameListItem[];
+  /** Visible games that can be joined */
+  visibleJoinableGames: GameListItem[];
 }
 
 /**

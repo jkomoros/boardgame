@@ -35,7 +35,8 @@
       "Bash(test:*)",
       "Bash(go mod init:*)",
       "Bash(/tmp/test_alias)",
-      "Bash(npm prune:*)"
+      "Bash(npm prune:*)",
+      "Bash(npm run type-check:strict-migration:*)"
     ]
   }
 }

@@ -24,7 +24,7 @@ export const selectAllGames = (state: RootState): any[] => state.list ? state.li
 export const selectErrorMessage = (state: RootState): string => state.error ? state.error.message : "";
 export const selectErrorFriendlyMessage = (state: RootState): string => state.error ? state.error.friendlyMessage : "";
 export const selectErrorTitle = (state: RootState): string => state.error ? state.error.title : "";
-export const selectErrorShowing = (state: RootState): string => state.error ? state.error.showing : "";
+export const selectErrorShowing = (state: RootState): boolean => state.error ? state.error.showing : false;
 
 // User selectors
 export const selectUser = (state: RootState): UserInfo | null => state.user ? state.user.user : null;
