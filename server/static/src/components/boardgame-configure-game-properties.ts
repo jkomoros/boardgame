@@ -1,24 +1,19 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators.js';
 import '@material/web/iconbutton/icon-button.js';
 import '@material/web/icon/icon.js';
-import './boardgame-ajax.ts';
 
-import type { BoardgameAjax } from './boardgame-ajax.ts';
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import { store } from '../store.js';
+import { configureGame } from '../actions/game.js';
 
 interface GameRoute {
-  name?: string;
-  id?: string;
-}
-
-interface ApiResponse {
-  Status?: string;
-  Error?: string;
-  FriendlyError?: string;
+  name: string;
+  id: string;
 }
 
 @customElement('boardgame-configure-game-properties')
-export class BoardgameConfigureGameProperties extends LitElement {
+export class BoardgameConfigureGameProperties extends connect(store)(LitElement) {
   static styles = css`
     :host {
       display: inline-flex;
@@ -44,20 +39,8 @@ export class BoardgameConfigureGameProperties extends LitElement {
   @property({ type: Boolean })
   configurable = false;
 
-  @property({ type: Object })
-  private _response: ApiResponse | null = null;
-
-  @query('#ajax')
-  private ajax!: BoardgameAjax;
-
   get disabled(): boolean {
     return !(this.admin || this.isOwner || this.configurable);
-  }
-
-  protected updated(changedProperties: Map<string, unknown>): void {
-    if (changedProperties.has('_response')) {
-      this._responseChanged(this._response);
-    }
   }
 
   private _visibleIcon(gameVisible: boolean): string {
@@ -88,30 +71,26 @@ export class BoardgameConfigureGameProperties extends LitElement {
     this._submit(this.gameOpen, !this.gameVisible);
   }
 
-  private _submit(open: boolean, visible: boolean): void {
-    this.ajax.body = {
-      "open": open ? 1 : 0,
-      "visible": visible ? 1 : 0,
-      "admin": this.admin ? 1 : 0
-    };
-    this.ajax.generateRequest();
-  }
+  private async _submit(open: boolean, visible: boolean): Promise<void> {
+    if (!this.gameRoute) return;
 
-  private _responseChanged(newValue: ApiResponse | null): void {
-    if (!newValue) return;
+    const response = await store.dispatch(
+      configureGame(this.gameRoute, open, visible, this.admin)
+    );
 
-    if (newValue.Status === "Success") {
-      // Tell game-view to fetch data now
-      this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
-    } else {
+    if (response.error) {
+      // Dispatch error event
       this.dispatchEvent(new CustomEvent("show-error", {
         composed: true,
         detail: {
-          message: newValue.Error,
-          friendlyMessage: newValue.FriendlyError,
+          message: response.error,
+          friendlyMessage: response.friendlyError,
           title: "Couldn't toggle"
         }
       }));
+    } else {
+      // Tell game-view to fetch data now
+      this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
     }
   }
 
@@ -129,14 +108,6 @@ export class BoardgameConfigureGameProperties extends LitElement {
         title="${this._visibleAlt(this.gameVisible)}">
         <md-icon>${this._visibleIcon(this.gameVisible)}</md-icon>
       </md-icon-button>
-      <boardgame-ajax
-        id="ajax"
-        game-path="configure"
-        .gameRoute="${this.gameRoute}"
-        method="POST"
-        content-type="application/x-www-form-urlencoded"
-        .lastResponse="${this._response}">
-      </boardgame-ajax>
     `;
   }
 }

@@ -14,9 +14,17 @@ import {
   setPropertyInClone
 } from '../util.js';
 
+import {
+  buildGameUrl,
+  apiPost
+} from '../api.ts';
+
 export const UPDATE_GAME_ROUTE = 'UPDATE_GAME_ROUTE';
 export const UPDATE_GAME_STATIC_INFO = "UPDATE_GAME_STATIC_INFO";
 export const UPDATE_GAME_CURRENT_STATE = "UPDATE_GAME_CURRENT_STATE";
+export const CONFIGURE_GAME_REQUEST = 'CONFIGURE_GAME_REQUEST';
+export const CONFIGURE_GAME_SUCCESS = 'CONFIGURE_GAME_SUCCESS';
+export const CONFIGURE_GAME_FAILURE = 'CONFIGURE_GAME_FAILURE';
 
 export const updateGameRoute = (pageExtra) => {
     const pieces = pageExtra.split("/");
@@ -241,3 +249,33 @@ const tick = () => {
 
   store.dispatch(updateGameState(newState, newPaths, originalWallClockStartTime));
 }
+
+/**
+ * Configure game properties (open/visible status)
+ * @param {Object} gameRoute - Game route with name and id
+ * @param {boolean} open - Whether game is open for new players
+ * @param {boolean} visible - Whether game is publicly visible
+ * @param {boolean} admin - Whether request is from admin
+ */
+export const configureGame = (gameRoute, open, visible, admin) => async (dispatch) => {
+  dispatch({ type: CONFIGURE_GAME_REQUEST });
+
+  const url = buildGameUrl(gameRoute.name, gameRoute.id, 'configure');
+  const response = await apiPost(url, {
+    open: open ? 1 : 0,
+    visible: visible ? 1 : 0,
+    admin: admin ? 1 : 0
+  }, 'application/x-www-form-urlencoded');
+
+  if (response.error) {
+    dispatch({
+      type: CONFIGURE_GAME_FAILURE,
+      error: response.error,
+      friendlyError: response.friendlyError
+    });
+    return response; // Return response for component to handle
+  } else {
+    dispatch({ type: CONFIGURE_GAME_SUCCESS });
+    return response; // Return success response
+  }
+};
