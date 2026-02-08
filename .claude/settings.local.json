@@ -32,7 +32,10 @@
       "WebFetch(domain:bennypowers.dev)",
       "WebFetch(domain:lit.dev)",
       "WebFetch(domain:material-web.dev)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(go mod init:*)",
+      "Bash(/tmp/test_alias)",
+      "Bash(npm prune:*)"
     ]
   }
 }
