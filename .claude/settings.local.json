@@ -31,7 +31,8 @@
       "Bash(du -sh:*)",
       "WebFetch(domain:bennypowers.dev)",
       "WebFetch(domain:lit.dev)",
-      "WebFetch(domain:material-web.dev)"
+      "WebFetch(domain:material-web.dev)",
+      "Bash(test:*)"
     ]
   }
 }
