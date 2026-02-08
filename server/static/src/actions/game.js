@@ -16,7 +16,8 @@ import {
 
 import {
   buildGameUrl,
-  apiPost
+  apiPost,
+  apiGet
 } from '../api.ts';
 
 export const UPDATE_GAME_ROUTE = 'UPDATE_GAME_ROUTE';
@@ -31,6 +32,12 @@ export const JOIN_GAME_FAILURE = 'JOIN_GAME_FAILURE';
 export const SUBMIT_MOVE_REQUEST = 'SUBMIT_MOVE_REQUEST';
 export const SUBMIT_MOVE_SUCCESS = 'SUBMIT_MOVE_SUCCESS';
 export const SUBMIT_MOVE_FAILURE = 'SUBMIT_MOVE_FAILURE';
+export const FETCH_GAME_INFO_REQUEST = 'FETCH_GAME_INFO_REQUEST';
+export const FETCH_GAME_INFO_SUCCESS = 'FETCH_GAME_INFO_SUCCESS';
+export const FETCH_GAME_INFO_FAILURE = 'FETCH_GAME_INFO_FAILURE';
+export const FETCH_GAME_VERSION_REQUEST = 'FETCH_GAME_VERSION_REQUEST';
+export const FETCH_GAME_VERSION_SUCCESS = 'FETCH_GAME_VERSION_SUCCESS';
+export const FETCH_GAME_VERSION_FAILURE = 'FETCH_GAME_VERSION_FAILURE';
 
 export const updateGameRoute = (pageExtra) => {
     const pieces = pageExtra.split("/");
@@ -331,4 +338,156 @@ export const submitMove = (gameRoute, moveData) => async (dispatch) => {
     dispatch({ type: SUBMIT_MOVE_SUCCESS });
     return response; // Return success response
   }
+};
+
+/**
+ * Expand move form fields with enum values from chest
+ * @param {Array} moveForms - Move forms to expand
+ * @param {Object} chest - Game chest containing enums
+ * @returns {Array} Expanded move forms
+ */
+const expandMoveForms = (moveForms, chest) => {
+  if (!moveForms) return null;
+
+  const expanded = JSON.parse(JSON.stringify(moveForms)); // Deep copy
+
+  for (let i = 0; i < expanded.length; i++) {
+    const form = expanded[i];
+    // Some forms don't have fields and that's OK.
+    if (!form.Fields) continue;
+    for (let j = 0; j < form.Fields.length; j++) {
+      const field = form.Fields[j];
+      if (field.EnumName) {
+        field.Enum = chest.Enums[field.EnumName];
+      }
+    }
+  }
+  return expanded;
+};
+
+/**
+ * Fetch initial game info including static info and first state bundle
+ * @param {Object} gameRoute - Game route with name and id
+ * @param {number} requestedPlayer - Player index to view as
+ * @param {boolean} admin - Whether viewing as admin
+ * @param {number} lastFetchedVersion - Last fetched version (for from= param)
+ */
+export const fetchGameInfo = (gameRoute, requestedPlayer, admin, lastFetchedVersion) => async (dispatch) => {
+  dispatch({ type: FETCH_GAME_INFO_REQUEST });
+
+  const url = buildGameUrl(
+    gameRoute.name,
+    gameRoute.id,
+    'info',
+    {
+      player: requestedPlayer,
+      admin: admin ? 1 : 0,
+      from: lastFetchedVersion
+    }
+  );
+
+  const response = await apiGet(url);
+
+  if (response.error) {
+    dispatch({
+      type: FETCH_GAME_INFO_FAILURE,
+      error: response.error,
+      friendlyError: response.friendlyError
+    });
+    return response;
+  }
+
+  const data = response.data;
+
+  // Expand move forms with enum values
+  const expandedForms = expandMoveForms(data.Forms, data.Chest);
+
+  dispatch({
+    type: FETCH_GAME_INFO_SUCCESS,
+    chest: data.Chest,
+    playersInfo: data.Players,
+    hasEmptySlots: data.HasEmptySlots,
+    open: data.GameOpen,
+    visible: data.GameVisible,
+    isOwner: data.IsOwner,
+    game: data.Game,
+    forms: expandedForms,
+    viewingAsPlayer: data.ViewingAsPlayer,
+    stateVersion: data.StateVersion
+  });
+
+  return response;
+};
+
+/**
+ * Fetch game version bundles for animation playback
+ * @param {Object} gameRoute - Game route with name and id
+ * @param {number} targetVersion - Version to fetch
+ * @param {number} requestedPlayer - Player index to view as
+ * @param {boolean} admin - Whether viewing as admin
+ * @param {boolean} autoCurrentPlayer - Whether to auto-select current player
+ * @param {number} lastFetchedVersion - Last fetched version
+ * @param {number} gameVersion - Current game version
+ */
+export const fetchGameVersion = (
+  gameRoute,
+  targetVersion,
+  requestedPlayer,
+  admin,
+  autoCurrentPlayer,
+  lastFetchedVersion,
+  gameVersion
+) => async (dispatch, getState) => {
+  // Skip if we already have this version
+  if (lastFetchedVersion === gameVersion) {
+    return { data: null };
+  }
+
+  dispatch({ type: FETCH_GAME_VERSION_REQUEST });
+
+  const url = buildGameUrl(
+    gameRoute.name,
+    gameRoute.id,
+    `version/${targetVersion}`,
+    {
+      player: requestedPlayer,
+      admin: admin ? 1 : 0,
+      current: autoCurrentPlayer ? 1 : 0,
+      from: lastFetchedVersion
+    }
+  );
+
+  const response = await apiGet(url);
+
+  if (response.error) {
+    dispatch({
+      type: FETCH_GAME_VERSION_FAILURE,
+      error: response.error,
+      friendlyError: response.friendlyError
+    });
+    return response;
+  }
+
+  const data = response.data;
+
+  if (data.Error) {
+    console.log('Version getter returned error: ' + data.Error);
+    return response;
+  }
+
+  // Expand move forms in each bundle
+  const state = getState();
+  const chest = selectGameChest(state);
+
+  const expandedBundles = data.Bundles.map(serverBundle => ({
+    ...serverBundle,
+    Forms: expandMoveForms(serverBundle.Forms, chest)
+  }));
+
+  dispatch({
+    type: FETCH_GAME_VERSION_SUCCESS,
+    bundles: expandedBundles
+  });
+
+  return response;
 };
