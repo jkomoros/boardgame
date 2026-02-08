@@ -369,7 +369,7 @@ export class BoardgameComponentAnimator extends LitElement {
       this._animatingComponents.push({
         stack: anonRecord.stack,
         component: component,
-        after: record.after,
+        after: record.after || {},
         afterTransform: component.style.transform,
         afterOpacity: component.style.opacity
       });

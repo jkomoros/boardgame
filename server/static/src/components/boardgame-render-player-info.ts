@@ -167,8 +167,10 @@ class BoardgameRenderPlayerInfo extends LitElement {
     this.rendererGameName = this.gameName;
 
     // Listen for chip property changes from the renderer
-    this.renderer.addEventListener('chip-text-changed', (e: Event) => this._chipTextChanged(e as CustomEvent));
-    this.renderer.addEventListener('chip-color-changed', (e: Event) => this._chipColorChanged(e as CustomEvent));
+    if (this.renderer) {
+      this.renderer.addEventListener('chip-text-changed', (e: Event) => this._chipTextChanged(e as CustomEvent));
+      this.renderer.addEventListener('chip-color-changed', (e: Event) => this._chipColorChanged(e as CustomEvent));
+    }
 
     this._container.appendChild(ele);
   }
