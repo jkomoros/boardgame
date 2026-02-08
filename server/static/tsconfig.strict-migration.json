@@ -13,6 +13,7 @@
   "include": [
     "src/api.ts",
     "src/types/**/*.d.ts",
-    "src/selectors.ts"
+    "src/selectors.ts",
+    "src/actions/game.ts"
   ]
 }
