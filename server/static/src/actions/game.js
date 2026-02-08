@@ -28,6 +28,9 @@ export const CONFIGURE_GAME_FAILURE = 'CONFIGURE_GAME_FAILURE';
 export const JOIN_GAME_REQUEST = 'JOIN_GAME_REQUEST';
 export const JOIN_GAME_SUCCESS = 'JOIN_GAME_SUCCESS';
 export const JOIN_GAME_FAILURE = 'JOIN_GAME_FAILURE';
+export const SUBMIT_MOVE_REQUEST = 'SUBMIT_MOVE_REQUEST';
+export const SUBMIT_MOVE_SUCCESS = 'SUBMIT_MOVE_SUCCESS';
+export const SUBMIT_MOVE_FAILURE = 'SUBMIT_MOVE_FAILURE';
 
 export const updateGameRoute = (pageExtra) => {
     const pieces = pageExtra.split("/");
@@ -302,6 +305,30 @@ export const joinGame = (gameRoute) => async (dispatch) => {
     return response; // Return response for component to handle
   } else {
     dispatch({ type: JOIN_GAME_SUCCESS });
+    return response; // Return success response
+  }
+};
+
+/**
+ * Submit a move to the game
+ * @param {Object} gameRoute - Game route with name and id
+ * @param {Object} moveData - Move data including MoveType, fields, admin, player
+ */
+export const submitMove = (gameRoute, moveData) => async (dispatch) => {
+  dispatch({ type: SUBMIT_MOVE_REQUEST });
+
+  const url = buildGameUrl(gameRoute.name, gameRoute.id, 'move');
+  const response = await apiPost(url, moveData, 'application/x-www-form-urlencoded');
+
+  if (response.error) {
+    dispatch({
+      type: SUBMIT_MOVE_FAILURE,
+      error: response.error,
+      friendlyError: response.friendlyError
+    });
+    return response; // Return response for component to handle
+  } else {
+    dispatch({ type: SUBMIT_MOVE_SUCCESS });
     return response; // Return success response
   }
 };

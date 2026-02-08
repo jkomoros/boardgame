@@ -8,12 +8,14 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 */
 import { LitElement, html, css } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { when } from 'lit/directives/when.js';
 import './shared-styles.js';
-import './boardgame-ajax.ts';
-import type { BoardgameAjax } from './boardgame-ajax.ts';
+
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import { store } from '../store.js';
+import { submitMove } from '../actions/game.js';
 
 interface MoveField {
   Name: string;
@@ -30,17 +32,13 @@ interface MoveConfig {
   Fields?: MoveField[];
 }
 
-interface FormResponse {
-  Error?: string;
-  FriendlyError?: string;
-}
-
 interface GameRoute {
-  name?: string;
+  name: string;
+  id: string;
 }
 
 @customElement('boardgame-move-form')
-export class BoardgameMoveForm extends LitElement {
+export class BoardgameMoveForm extends connect(store)(LitElement) {
   static styles = css`
     :host {
       display: block;
@@ -67,18 +65,6 @@ export class BoardgameMoveForm extends LitElement {
 
   @property({ type: Number })
   moveAsPlayer = 0;
-
-  @property({ type: Object })
-  formResponse: FormResponse | null = null;
-
-  @query('#ajax')
-  private ajax!: BoardgameAjax;
-
-  protected updated(changedProperties: Map<string, unknown>): void {
-    if (changedProperties.has('formResponse')) {
-      this._formResponseChanged(this.formResponse);
-    }
-  }
 
   private boolToInt(bool: boolean): string {
     return bool ? "1" : "0";
@@ -181,7 +167,9 @@ export class BoardgameMoveForm extends LitElement {
     }
   }
 
-  private submitForm(formEle: HTMLFormElement): void {
+  private async submitForm(formEle: HTMLFormElement): Promise<void> {
+    if (!this.gameRoute) return;
+
     const body: Record<string, string> = {};
     const eles = formEle.elements;
     for (let i = 0; i < eles.length; i++) {
@@ -190,25 +178,23 @@ export class BoardgameMoveForm extends LitElement {
         body[ele.name] = ele.value;
       }
     }
-    this.ajax.body = body;
-    this.ajax.generateRequest();
-  }
 
-  private _normalizeID(str: string): string {
-    return str.split(" ").join("");
-  }
+    const response = await store.dispatch(submitMove(this.gameRoute, body));
 
-  private _formResponseChanged(newValue: FormResponse | null): void {
-    if (newValue?.Error) {
+    if (response.error) {
       this.dispatchEvent(new CustomEvent("show-error", {
         composed: true,
         detail: {
-          message: newValue.Error,
-          friendlyMessage: newValue.FriendlyError,
+          message: response.error,
+          friendlyMessage: response.friendlyError,
           title: "Couldn't make move"
         }
       }));
     }
+  }
+
+  private _normalizeID(str: string): string {
+    return str.split(" ").join("");
   }
 
   render() {
@@ -249,14 +235,6 @@ export class BoardgameMoveForm extends LitElement {
             </form>
           </details>
         `)}
-        <boardgame-ajax
-          id="ajax"
-          game-path="move"
-          .gameRoute="${this.gameRoute}"
-          method="POST"
-          .lastResponse="${this.formResponse}"
-          content-type="application/x-www-form-urlencoded">
-        </boardgame-ajax>
       </div>
     `;
   }
