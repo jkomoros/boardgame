@@ -1,10 +1,11 @@
 import { BoardgameComponent } from './boardgame-component.js';
-import { html, css, TemplateResult } from 'lit';
-import { property } from 'lit/decorators.js';
+import { html, css, CSSResult, TemplateResult } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
+@customElement('boardgame-token')
 export class BoardgameToken extends BoardgameComponent {
-  static override styles = [
+  static override styles: any = [
     BoardgameComponent.styles,
     css`
       #inner {
@@ -25,8 +26,7 @@ export class BoardgameToken extends BoardgameComponent {
         --component-aspect-ratio: 1.25;
       }
 
-      #outer.active #inner,
-      #outer.highlighted #inner {
+      #outer.active #inner, #outer.highlighted #inner {
         animation-name: throb;
         animation-duration: 1s;
         animation-timing-function: ease-in-out;
@@ -35,18 +35,18 @@ export class BoardgameToken extends BoardgameComponent {
       }
 
       #outer.active #inner {
-        --throb-color-from: rgba(136, 136, 38, 1.0);
-        --throb-color-to: rgba(136, 136, 38, 0.5);
+        --throb-color-from: rgba(136,136,38,1.0);
+        --throb-color-to: rgba(136,136,38,0.5);
       }
 
       #outer.highlighted #inner {
-        --throb-color-from: rgba(0, 0, 0, 1.0);
-        --throb-color-to: rgba(0, 0, 0, 0.5);
+        --throb-color-from: rgba(0,0,0,1.0);
+        --throb-color-to: rgba(0,0,0,0.5);
       }
 
       #outer.active.highlighted #inner {
-        --throb-color-from: rgba(255, 255, 0, 1.0);
-        --throb-color-to: rgba(255, 255, 0, 0.0);
+        --throb-color-from: rgba(255,255,0,1.0);
+        --throb-color-to: rgba(255,255,0,0.0);
       }
 
       @keyframes throb {
@@ -99,33 +99,52 @@ export class BoardgameToken extends BoardgameComponent {
     `
   ];
 
+  // Color to set. One of the colors returned by legalColors.
   @property({ type: String })
   color = 'red';
 
+  // Active changes the styling to make it clear the thing is selected
   @property({ type: Boolean })
   active = false;
 
+  // highlighted has a different visual style than active. Different
+  // games will use it for different things.
   @property({ type: Boolean })
   highlighted = false;
 
+  // The type of token. Supported values: "token" (default), "chip",
+  // "cube", "pawn", "meeple"
   @property({ type: String })
   type = 'token';
 
   get legalTypes(): string[] {
-    return ['token', 'chip', 'cube', 'pawn', 'meeple'];
+    return [
+      'token',
+      'chip',
+      'cube',
+      'pawn',
+      'meeple',
+    ];
   }
 
   get legalColors(): string[] {
-    return ['gray', 'green', 'teal', 'purple', 'pink', 'red', 'blue', 'yellow', 'orange', 'black'];
+    return [
+      'gray',
+      'green',
+      'teal',
+      'purple',
+      'pink',
+      'red',
+      'blue',
+      'yellow',
+      'orange',
+      'black',
+    ];
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
+    super.firstUpdated(_changedProperties);
     this.altShadow = true;
-  }
-
-  protected override updated(changedProperties: Map<string, any>) {
-    super.updated(changedProperties);
   }
 
   private _computeAsset(type: string): string {
@@ -134,8 +153,9 @@ export class BoardgameToken extends BoardgameComponent {
 
   // Override _computeClasses and add some more.
   protected override _computeClasses(): Record<string, boolean> {
+    const result = super._computeClasses();
     return {
-      ...super._computeClasses(),
+      ...result,
       [this.color]: true,
       active: this.active,
       highlighted: this.highlighted,
@@ -146,13 +166,17 @@ export class BoardgameToken extends BoardgameComponent {
   override render(): TemplateResult {
     const asset = this._computeAsset(this.type);
     return html`
-      <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}">
+      <div id="outer" class="${classMap(this._computeClasses())}" @click="${(e: Event) => this.handleTap(e)}" style="${this._outerStyle}">
         <div id="inner">
-          <img src="${asset}" />
+          <img src="${asset}">
         </div>
       </div>
     `;
   }
 }
 
-customElements.define('boardgame-token', BoardgameToken);
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-token': BoardgameToken;
+  }
+}
