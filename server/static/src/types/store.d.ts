@@ -106,6 +106,10 @@ export interface GameState {
   pathsToTick: string[];
   /** Original wall clock time when state was loaded */
   originalWallClockTime: number;
+  /** Whether a fetch operation is in progress */
+  loading: boolean;
+  /** Last error message from fetch operations (null if no error) */
+  error: string | null;
 }
 
 /**
