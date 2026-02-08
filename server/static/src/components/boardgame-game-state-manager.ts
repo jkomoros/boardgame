@@ -1,6 +1,8 @@
 import { LitElement, html } from 'lit';
-import { property, query } from 'lit/decorators.js';
-import './boardgame-ajax.js';
+import { property } from 'lit/decorators.js';
+
+import { store } from '../store.js';
+import { fetchGameInfo, fetchGameVersion } from '../actions/game.js';
 
 /**
  * StateManager keeps track of fetching state bundles from the server and
@@ -63,12 +65,6 @@ class BoardgameGameStateManager extends LitElement {
   @property({ type: Number })
   lastFetchedVersion = 0;
 
-  @property({ type: Object, attribute: false })
-  infoData: any = null;
-
-  @property({ type: Object, attribute: false })
-  versionData: any = null;
-
   @property({ type: Boolean, attribute: true })
   socketActive = false;
 
@@ -86,12 +82,8 @@ class BoardgameGameStateManager extends LitElement {
 
   private _pendingStateBundles: any[] = [];
   private _lastFiredBundle: any = null;
-
-  @query('#version')
-  private _versionAjax?: any;
-
-  @query('#info')
-  private _infoAjax?: any;
+  private _fetchingInfo = false;
+  private _fetchingVersion = false;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -148,14 +140,6 @@ class BoardgameGameStateManager extends LitElement {
     if (changedProperties.has('_socketUrl')) {
       this._socketUrlChanged(this._socketUrl);
     }
-
-    if (changedProperties.has('infoData')) {
-      this._infoDataChanged(this.infoData, changedProperties.get('infoData') as any);
-    }
-
-    if (changedProperties.has('versionData')) {
-      this._versionDataChanged(this.versionData);
-    }
   }
 
   private _computeEffectiveGameVersionPath(gameVersionPath: string, lastFetchedVersion: number, version: number): string {
@@ -183,8 +167,11 @@ class BoardgameGameStateManager extends LitElement {
   private _computeSocketUrl(active: boolean, infoInstalled: boolean): string {
     if (!active) return '';
     if (!infoInstalled) return '';
-    if (!this._versionAjax) return '';
-    let result = this._versionAjax.gameBasePath + 'socket';
+    if (!this.gameRoute) return '';
+
+    // Construct the socket URL from gameRoute
+    const host = typeof (window as any).API_HOST !== 'undefined' ? (window as any).API_HOST : '';
+    let result = `${host}/api/game/${this.gameRoute.name}/${this.gameRoute.id}/socket`;
     result = result.split('http:').join('ws:');
     result = result.split('https:').join('wss:');
     return result;
@@ -205,15 +192,53 @@ class BoardgameGameStateManager extends LitElement {
     }
   }
 
-  private _gameVersionPathChanged(newValue: string, oldValue: string) {
+  private async _gameVersionPathChanged(newValue: string, oldValue: string) {
     if (!newValue) return;
 
     if (this.autoCurrentPlayer && this.requestedPlayer === this.viewingAsPlayer && this.targetVersion === this.gameVersion) {
       return;
     }
 
+    // Compute effective path to check if we should fetch
+    const effectivePath = this._computeEffectiveGameVersionPath(newValue, this.lastFetchedVersion, this.gameVersion);
+    this.effectiveGameVersionPath = effectivePath;
+
+    if (!effectivePath) {
+      return; // Skip if already have this version
+    }
+
+    if (this._fetchingVersion) {
+      return;
+    }
+
+    if (!this.gameRoute) {
+      return;
+    }
+
+    this._fetchingVersion = true;
+
     // TODO: the autoCurrent player stuff has to be done here...
-    requestAnimationFrame(() => this._versionAjax?.generateRequest());
+    requestAnimationFrame(async () => {
+      try {
+        const response = await store.dispatch(
+          fetchGameVersion(
+            this.gameRoute!,
+            this.targetVersion,
+            this.requestedPlayer,
+            this.admin,
+            this.autoCurrentPlayer,
+            this.lastFetchedVersion,
+            this.gameVersion
+          )
+        );
+
+        if (response.data) {
+          this._handleVersionData(response.data);
+        }
+      } finally {
+        this._fetchingVersion = false;
+      }
+    });
   }
 
   private _socketUrlChanged(newValue: string) {
@@ -276,7 +301,6 @@ class BoardgameGameStateManager extends LitElement {
   // When we should do a soft reset; that is, when we haven't flipped out and
   // back; it's still the same game we're viewing as before.
   softReset() {
-    this.infoData = null;
     this._infoInstalled = false;
     window.requestAnimationFrame(() => this.updateData());
   }
@@ -289,8 +313,8 @@ class BoardgameGameStateManager extends LitElement {
     this.softReset();
   }
 
-  fetchInfo() {
-    if (this._infoAjax?.loading) {
+  async fetchInfo() {
+    if (this._fetchingInfo) {
       return;
     }
 
@@ -302,7 +326,25 @@ class BoardgameGameStateManager extends LitElement {
       // The URL will be junk
       return;
     }
-    this._infoAjax?.generateRequest();
+
+    this._fetchingInfo = true;
+
+    try {
+      const response = await store.dispatch(
+        fetchGameInfo(
+          this.gameRoute,
+          this.requestedPlayer,
+          this.admin,
+          this.lastFetchedVersion
+        )
+      );
+
+      if (response.data) {
+        this._handleInfoData(response.data);
+      }
+    } finally {
+      this._fetchingInfo = false;
+    }
   }
 
   private _prepareStateBundle(game: any, moveForms: any, viewingAsPlayer: number, move: any): any {
@@ -412,49 +454,48 @@ class BoardgameGameStateManager extends LitElement {
     if (this._pendingStateBundles.length === 1) this._scheduleNextStateBundle();
   }
 
-  private _infoDataChanged(newValue: any, oldValue: any) {
-    if (!newValue) {
-      // Sometimes we set null, like when we select the view.
+  private _handleInfoData(data: any) {
+    if (!data) {
       return;
     }
 
-    this.chest = newValue.Chest;
+    this.chest = data.Chest;
 
     const gameInfo = {
-      chest: newValue.Chest,
-      playersInfo: newValue.Players,
-      hasEmptySlots: newValue.HasEmptySlots,
-      open: newValue.GameOpen,
-      visible: newValue.GameVisible,
-      isOwner: newValue.IsOwner,
+      chest: data.Chest,
+      playersInfo: data.Players,
+      hasEmptySlots: data.HasEmptySlots,
+      open: data.GameOpen,
+      visible: data.GameVisible,
+      isOwner: data.IsOwner,
     };
 
     this.dispatchEvent(new CustomEvent('install-game-static-info', { composed: true, detail: gameInfo }));
 
-    const bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer, null);
+    const bundle = this._prepareStateBundle(data.Game, data.Forms, data.ViewingAsPlayer, null);
     this._enqueueStateBundle(bundle);
 
     this._infoInstalled = true;
 
-    // We don't use newValue.Game.Version, because in some cases the current
+    // We don't use data.Game.Version, because in some cases the current
     // state we're returning is not actually current state, but an old one to
     // force us to play animations for moves that are made before a player move
     // is. The server ships down this information in a special field.
-    this.lastFetchedVersion = newValue.StateVersion;
-    this.targetVersion = newValue.Game.Version;
+    this.lastFetchedVersion = data.StateVersion;
+    this.targetVersion = data.Game.Version;
   }
 
-  private _versionDataChanged(newValue: any) {
-    if (!newValue) return;
-    if (newValue.Error) {
-      console.log('Version getter returned error: ' + newValue.Error);
+  private _handleVersionData(data: any) {
+    if (!data) return;
+    if (data.Error) {
+      console.log('Version getter returned error: ' + data.Error);
       return;
     }
 
     let lastServerBundle: any = {};
 
-    for (let i = 0; i < newValue.Bundles.length; i++) {
-      const serverBundle = newValue.Bundles[i];
+    for (let i = 0; i < data.Bundles.length; i++) {
+      const serverBundle = data.Bundles[i];
       const bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer, serverBundle.Move);
       this._enqueueStateBundle(bundle);
       lastServerBundle = serverBundle;
@@ -464,24 +505,8 @@ class BoardgameGameStateManager extends LitElement {
   }
 
   override render() {
-    return html`
-      <boardgame-ajax
-        id="version"
-        .gamePath="${this.effectiveGameVersionPath}"
-        .gameRoute="${this.gameRoute}"
-        handle-as="json"
-        .lastResponse="${this.versionData}"
-        @last-response-changed="${(e: CustomEvent) => { this.versionData = e.detail.value; }}">
-      </boardgame-ajax>
-      <boardgame-ajax
-        id="info"
-        .gamePath="${this.gameViewPath}"
-        .gameRoute="${this.gameRoute}"
-        handle-as="json"
-        .lastResponse="${this.infoData}"
-        @last-response-changed="${(e: CustomEvent) => { this.infoData = e.detail.value; }}">
-      </boardgame-ajax>
-    `;
+    // Component manages fetching via Redux thunks, no template needed
+    return html``;
   }
 }
 
