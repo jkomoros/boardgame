@@ -2,6 +2,44 @@ import { Dispatch } from 'redux';
 import { store } from '../store.js';
 import type { RootState, GameChest, PlayerInfo } from '../types/store';
 import type { ApiResponse } from '../api';
+import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
+import type {
+  UpdateGameRouteAction,
+  UpdateGameStaticInfoAction,
+  ConfigureGameRequestAction,
+  ConfigureGameSuccessAction,
+  ConfigureGameFailureAction,
+  JoinGameRequestAction,
+  JoinGameSuccessAction,
+  JoinGameFailureAction,
+  SubmitMoveRequestAction,
+  SubmitMoveSuccessAction,
+  SubmitMoveFailureAction,
+  FetchGameInfoRequestAction,
+  FetchGameInfoSuccessAction,
+  FetchGameInfoFailureAction,
+  FetchGameVersionRequestAction,
+  FetchGameVersionSuccessAction,
+  FetchGameVersionFailureAction,
+  EnqueueStateBundleAction,
+  DequeueStateBundleAction,
+  ClearStateBundlesAction,
+  MarkAnimationStartedAction,
+  MarkAnimationCompletedAction,
+  SetCurrentVersionAction,
+  SetTargetVersionAction,
+  SetLastFetchedVersionAction,
+  SocketConnectedAction,
+  SocketDisconnectedAction,
+  SocketErrorAction,
+  UpdateViewStateAction,
+  SetViewingAsPlayerAction,
+  SetRequestedPlayerAction,
+  SetAutoCurrentPlayerAction,
+  UpdateMoveFormsAction,
+  ClearFetchedInfoAction,
+  ClearFetchedVersionAction
+} from '../types/actions';
 
 import {
   selectGameCurrentState,
@@ -24,11 +62,6 @@ import {
 interface GameRoute {
   name: string;
   id: string;
-}
-
-interface TimerInfo {
-  TimeLeft: number;
-  [key: string]: any;
 }
 
 export const UPDATE_GAME_ROUTE = 'UPDATE_GAME_ROUTE';
@@ -68,7 +101,7 @@ export const UPDATE_MOVE_FORMS = 'UPDATE_MOVE_FORMS';
 export const CLEAR_FETCHED_INFO = 'CLEAR_FETCHED_INFO';
 export const CLEAR_FETCHED_VERSION = 'CLEAR_FETCHED_VERSION';
 
-export const updateGameRoute = (pageExtra: string) => {
+export const updateGameRoute = (pageExtra: string): UpdateGameRouteAction | null => {
     const pieces = pageExtra.split("/");
     //remove the trailing slash
     if (!pieces[pieces.length - 1]) pieces.pop();
@@ -90,7 +123,7 @@ export const updateGameStaticInfo = (
   open: boolean,
   visible: boolean,
   isOwner: boolean
-) => {
+): UpdateGameStaticInfoAction => {
   return {
     type: UPDATE_GAME_STATIC_INFO,
     chest,
@@ -109,7 +142,7 @@ export const updateGameStaticInfo = (
 //in Redux, and selectors will expand it on-the-fly. This also sets up callbacks
 //to update timer.TimeLeft for any timers in the state automatically.
 export const installGameState = (
-  currentState: any,
+  currentState: RawGameState,
   timerInfos: Record<string, TimerInfo>,
   originalWallClockTime: number
 ) => (dispatch: Dispatch, getState: () => RootState) => {
@@ -135,11 +168,11 @@ export const installGameState = (
 }
 
 const updateGameState = (
-  rawCurrentState: any,
+  rawCurrentState: RawGameState,
   timerInfos: Record<string, TimerInfo> | null,
   pathsToTick: (string | number)[][],
   originalWallClockTime: number
-) => {
+): { type: typeof UPDATE_GAME_CURRENT_STATE; currentState: RawGameState; timerInfos: Record<string, TimerInfo> | null; pathsToTick: (string | number)[][]; originalWallClockTime: number } => {
   return {
     type: UPDATE_GAME_CURRENT_STATE,
     currentState: rawCurrentState,  // Store RAW state
@@ -154,7 +187,7 @@ const updateGameState = (
  * Walks the state tree and finds all timers that need ticking.
  * Returns array of paths like [["Game", "Timer"], ["Players", "0", "Timer"]].
  */
-const extractTimerPaths = (currentState: any, timerInfos: Record<string, TimerInfo> | null): (string | number)[][] => {
+const extractTimerPaths = (currentState: RawGameState, timerInfos: Record<string, TimerInfo> | null): (string | number)[][] => {
   const pathsToTick: (string | number)[][] = [];
 
   if (!currentState) return pathsToTick;
@@ -482,7 +515,7 @@ export const fetchGameVersion = (
 /**
  * Enqueue a state bundle for animation playback
  */
-export const enqueueStateBundle = (bundle: any) => {
+export const enqueueStateBundle = (bundle: any): EnqueueStateBundleAction => {
   return {
     type: ENQUEUE_STATE_BUNDLE,
     bundle
@@ -492,7 +525,7 @@ export const enqueueStateBundle = (bundle: any) => {
 /**
  * Dequeue the next state bundle (after it's been installed)
  */
-export const dequeueStateBundle = () => {
+export const dequeueStateBundle = (): DequeueStateBundleAction => {
   return {
     type: DEQUEUE_STATE_BUNDLE
   };
@@ -501,7 +534,7 @@ export const dequeueStateBundle = () => {
 /**
  * Clear all pending state bundles (on reset)
  */
-export const clearStateBundles = () => {
+export const clearStateBundles = (): ClearStateBundlesAction => {
   return {
     type: CLEAR_STATE_BUNDLES
   };
@@ -510,7 +543,7 @@ export const clearStateBundles = () => {
 /**
  * Mark an animation as started (for tracking)
  */
-export const markAnimationStarted = (animationId: string) => {
+export const markAnimationStarted = (animationId: string): MarkAnimationStartedAction => {
   return {
     type: MARK_ANIMATION_STARTED,
     animationId
@@ -520,7 +553,7 @@ export const markAnimationStarted = (animationId: string) => {
 /**
  * Mark an animation as completed (for tracking)
  */
-export const markAnimationCompleted = (animationId: string) => {
+export const markAnimationCompleted = (animationId: string): MarkAnimationCompletedAction => {
   return {
     type: MARK_ANIMATION_COMPLETED,
     animationId
@@ -534,7 +567,7 @@ export const markAnimationCompleted = (animationId: string) => {
 /**
  * Set the current game version (from installed state)
  */
-export const setCurrentVersion = (version: number) => {
+export const setCurrentVersion = (version: number): SetCurrentVersionAction => {
   return {
     type: SET_CURRENT_VERSION,
     version
@@ -544,7 +577,7 @@ export const setCurrentVersion = (version: number) => {
 /**
  * Set the target version to fetch (from WebSocket or navigation)
  */
-export const setTargetVersion = (version: number) => {
+export const setTargetVersion = (version: number): SetTargetVersionAction => {
   return {
     type: SET_TARGET_VERSION,
     version
@@ -554,7 +587,7 @@ export const setTargetVersion = (version: number) => {
 /**
  * Set the last successfully fetched version
  */
-export const setLastFetchedVersion = (version: number) => {
+export const setLastFetchedVersion = (version: number): SetLastFetchedVersionAction => {
   return {
     type: SET_LAST_FETCHED_VERSION,
     version
@@ -568,7 +601,7 @@ export const setLastFetchedVersion = (version: number) => {
 /**
  * Mark WebSocket as connected
  */
-export const socketConnected = () => {
+export const socketConnected = (): SocketConnectedAction => {
   return {
     type: SOCKET_CONNECTED
   };
@@ -577,7 +610,7 @@ export const socketConnected = () => {
 /**
  * Mark WebSocket as disconnected
  */
-export const socketDisconnected = () => {
+export const socketDisconnected = (): SocketDisconnectedAction => {
   return {
     type: SOCKET_DISCONNECTED
   };
@@ -586,7 +619,7 @@ export const socketDisconnected = () => {
 /**
  * Record WebSocket error
  */
-export const socketError = (error: string) => {
+export const socketError = (error: string): SocketErrorAction => {
   return {
     type: SOCKET_ERROR,
     error
@@ -605,7 +638,7 @@ export const updateViewState = (
   game: any,
   viewingAsPlayer: number,
   moveForms: any[] | null
-) => {
+): UpdateViewStateAction => {
   return {
     type: UPDATE_VIEW_STATE,
     game,
@@ -617,7 +650,7 @@ export const updateViewState = (
 /**
  * Set which player we're viewing as
  */
-export const setViewingAsPlayer = (playerIndex: number) => {
+export const setViewingAsPlayer = (playerIndex: number): SetViewingAsPlayerAction => {
   return {
     type: SET_VIEWING_AS_PLAYER,
     playerIndex
@@ -627,7 +660,7 @@ export const setViewingAsPlayer = (playerIndex: number) => {
 /**
  * Set the requested player index
  */
-export const setRequestedPlayer = (playerIndex: number) => {
+export const setRequestedPlayer = (playerIndex: number): SetRequestedPlayerAction => {
   return {
     type: SET_REQUESTED_PLAYER,
     playerIndex
@@ -637,7 +670,7 @@ export const setRequestedPlayer = (playerIndex: number) => {
 /**
  * Set whether to auto-follow current player
  */
-export const setAutoCurrentPlayer = (autoFollow: boolean) => {
+export const setAutoCurrentPlayer = (autoFollow: boolean): SetAutoCurrentPlayerAction => {
   return {
     type: SET_AUTO_CURRENT_PLAYER,
     autoFollow
@@ -647,7 +680,7 @@ export const setAutoCurrentPlayer = (autoFollow: boolean) => {
 /**
  * Update move forms for the current state
  */
-export const updateMoveForms = (moveForms: any[] | null) => {
+export const updateMoveForms = (moveForms: any[] | null): UpdateMoveFormsAction => {
   return {
     type: UPDATE_MOVE_FORMS,
     moveForms
@@ -657,7 +690,7 @@ export const updateMoveForms = (moveForms: any[] | null) => {
 /**
  * Clear fetched info after it's been processed
  */
-export const clearFetchedInfo = () => {
+export const clearFetchedInfo = (): ClearFetchedInfoAction => {
   return {
     type: CLEAR_FETCHED_INFO
   };
@@ -666,7 +699,7 @@ export const clearFetchedInfo = () => {
 /**
  * Clear fetched version after it's been processed
  */
-export const clearFetchedVersion = () => {
+export const clearFetchedVersion = (): ClearFetchedVersionAction => {
   return {
     type: CLEAR_FETCHED_VERSION
   };

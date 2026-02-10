@@ -37,7 +37,10 @@ import {
 	CLEAR_FETCHED_VERSION
 } from '../actions/game.js';
 
-const INITIAL_STATE = {
+import type { GameAction } from '../types/actions';
+import type { GameState } from '../types/store';
+
+const INITIAL_STATE: GameState = {
     id: '',
 	name: '',
 	chest: null,
@@ -89,7 +92,7 @@ const INITIAL_STATE = {
 	error: null
 };
 
-const app = (state = INITIAL_STATE, action) => {
+const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 	switch (action.type) {
 	case UPDATE_GAME_ROUTE:
 		return {
@@ -320,4 +323,4 @@ const app = (state = INITIAL_STATE, action) => {
 	}
 };
 
-export default app;
+export default gameReducer;
