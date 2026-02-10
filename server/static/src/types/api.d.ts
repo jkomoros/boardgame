@@ -93,6 +93,10 @@ export interface MoveFormField {
   EnumOptions?: any[];
   /** Default value */
   Default?: any;
+  /** Name of the enum (used for expansion) */
+  EnumName?: string;
+  /** Expanded enum values (populated during expansion) */
+  Enum?: any;
 }
 
 /**

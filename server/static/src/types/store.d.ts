@@ -5,6 +5,9 @@
  * while game and list are loaded on-demand when navigating to those views.
  */
 
+import type { RawGameState, TimerInfo, StateBundle } from './game-state';
+import type { MoveForm } from './api';
+
 /**
  * Root Redux state containing all slices.
  * Game and list are optional as they're lazily loaded.
@@ -83,21 +86,7 @@ export interface UserInfo {
   photoURL?: string;
 }
 
-/**
- * State bundle containing game state, forms, and metadata for animation playback.
- */
-export interface StateBundle {
-  /** Wall clock time when bundle was created */
-  originalWallClockStartTime: number;
-  /** Game data from server */
-  game: any;
-  /** Move that triggered this state (null for initial state) */
-  move: any | null;
-  /** Expanded move forms for this state */
-  moveForms: any[] | null;
-  /** Player index viewing this state */
-  viewingAsPlayer: number;
-}
+// StateBundle is now imported from './game-state'
 
 /**
  * Animation state for managing state bundle playback queue.
@@ -148,7 +137,7 @@ export interface ViewState {
   /** Whether to automatically follow the current player */
   autoCurrentPlayer: boolean;
   /** Move forms for the current state */
-  moveForms: any[] | null;
+  moveForms: MoveForm[] | null;
 }
 
 /**
@@ -172,9 +161,9 @@ export interface GameState {
   /** Whether current user is the game owner */
   isOwner: boolean;
   /** Current RAW game state from server (unexpanded - use selectExpandedGameState selector to get expanded version) */
-  currentState: any | null;
-  /** Timer metadata for expansion (maps timer ID to TimeLeft) */
-  timerInfos: Record<string, any> | null;
+  currentState: RawGameState | null;
+  /** Timer metadata for expansion (maps timer ID to TimerInfo) */
+  timerInfos: Record<string, TimerInfo> | null;
   /** Paths in state that need timer ticks (can contain strings and numbers for array indices) */
   pathsToTick: (string | number)[][];
   /** Original wall clock time when state was loaded */

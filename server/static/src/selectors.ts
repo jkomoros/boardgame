@@ -1,5 +1,7 @@
 import { createSelector } from 'reselect';
 import type { RootState, GameChest, PlayerInfo, ExpandedGameState, UserInfo } from './types/store';
+import type { RawGameState, TimerInfo, StateBundle } from './types/game-state';
+import type { MoveForm } from './types/api';
 
 // Stable default objects to prevent creating new objects on every selector call
 const DEFAULT_ANIMATION_STATE = {
@@ -83,7 +85,7 @@ export const selectGameOpen = (state: RootState): boolean => state.game ? state.
 export const selectGameVisible = (state: RootState): boolean => state.game ? state.game.visible : false;
 export const selectGameIsOwner = (state: RootState): boolean => state.game ? state.game.isOwner : false;
 // Returns raw game state (not expanded) - use selectExpandedGameState for expanded version
-export const selectGameCurrentState = (state: RootState): any | null => state.game ? state.game.currentState : null;
+export const selectGameCurrentState = (state: RootState): RawGameState | null => state.game ? state.game.currentState : null;
 export const selectGameLoading = (state: RootState): boolean => state.game ? state.game.loading : false;
 export const selectGameError = (state: RootState): string | null => state.game ? state.game.error : null;
 
@@ -107,10 +109,10 @@ export const selectAnimationState = (state: RootState) =>
 // Memoized to prevent creating new array references on every call
 export const selectPendingBundles = createSelector(
     [selectAnimationState],
-    (animationState): any[] => animationState.pendingBundles
+    (animationState): StateBundle[] => animationState.pendingBundles
 );
 
-export const selectLastFiredBundle = (state: RootState): any | null => selectAnimationState(state).lastFiredBundle;
+export const selectLastFiredBundle = (state: RootState): StateBundle | null => selectAnimationState(state).lastFiredBundle;
 export const selectActiveAnimations = (state: RootState): string[] => selectAnimationState(state).activeAnimations;
 
 // Memoized to prevent recomputation on every render
@@ -122,7 +124,7 @@ export const selectHasPendingBundles = createSelector(
 // Memoized to prevent unnecessary recalculations
 export const selectNextBundle = createSelector(
     [selectPendingBundles],
-    (bundles): any | null => bundles.length > 0 ? bundles[0] : null
+    (bundles): StateBundle | null => bundles.length > 0 ? bundles[0] : null
 );
 
 // Version selectors
@@ -146,10 +148,10 @@ export const selectGame = (state: RootState): any | null => selectViewState(stat
 export const selectViewingAsPlayer = (state: RootState): number => selectViewState(state).viewingAsPlayer;
 export const selectRequestedPlayer = (state: RootState): number => selectViewState(state).requestedPlayer;
 export const selectAutoCurrentPlayer = (state: RootState): boolean => selectViewState(state).autoCurrentPlayer;
-export const selectMoveForms = (state: RootState): any[] | null => selectViewState(state).moveForms;
+export const selectMoveForms = (state: RootState): MoveForm[] | null => selectViewState(state).moveForms;
 
 // Internal selector for timer infos (will be added to state)
-const selectGameTimerInfos = (state: RootState): Record<string, any> | null =>
+const selectGameTimerInfos = (state: RootState): Record<string, TimerInfo> | null =>
     state.game?.timerInfos || null;
 
 /**
