@@ -238,7 +238,10 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
 
   private _handleSliderValueChanged(e: Event): void {
     const slider = e.target as MdSlider;
-    store.dispatch(updateNumPlayers(slider.value));
+    const value = slider.value;
+    if (value !== undefined) {
+      store.dispatch(updateNumPlayers(value));
+    }
   }
 
   private get _managerHasAgents(): boolean {

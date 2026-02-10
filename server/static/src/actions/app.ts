@@ -1,3 +1,6 @@
+import type { ThunkAction } from 'redux-thunk';
+import type { RootState } from '../types/store';
+
 export const UPDATE_PAGE = 'UPDATE_PAGE';
 export const UPDATE_OFFLINE = 'UPDATE_OFFLINE';
 export const OPEN_SNACKBAR = 'OPEN_SNACKBAR';
@@ -15,8 +18,47 @@ import {
 
 export const OFFLINE_DEV_MODE = CONFIG ? CONFIG.offline_dev_mode || false : false;
 
+// Action type definitions
+interface UpdatePageAction {
+	type: typeof UPDATE_PAGE;
+	location: string;
+	page: string;
+	pageExtra: string;
+}
+
+interface UpdateOfflineAction {
+	type: typeof UPDATE_OFFLINE;
+	offline: boolean;
+}
+
+interface OpenSnackbarAction {
+	type: typeof OPEN_SNACKBAR;
+}
+
+interface CloseSnackbarAction {
+	type: typeof CLOSE_SNACKBAR;
+}
+
+interface OpenHeaderPanelAction {
+	type: typeof OPEN_HEADER_PANEL;
+}
+
+interface CloseHeaderPanelAction {
+	type: typeof CLOSE_HEADER_PANEL;
+}
+
+export type AppAction =
+	| UpdatePageAction
+	| UpdateOfflineAction
+	| OpenSnackbarAction
+	| CloseSnackbarAction
+	| OpenHeaderPanelAction
+	| CloseHeaderPanelAction;
+
+type AppThunk<ReturnType = void> = ThunkAction<ReturnType, RootState, unknown, AppAction>;
+
 //if silent is true, then just passively updates the URL to reflect what it should be.
-export const navigatePathTo = (path, silent) => (dispatch, getState) => {
+export const navigatePathTo = (path: string, silent: boolean): AppThunk => (dispatch, getState) => {
 	const state = getState();
 	if (silent) {
 		window.history.replaceState({}, '', path);
@@ -26,12 +68,12 @@ export const navigatePathTo = (path, silent) => (dispatch, getState) => {
 	dispatch(navigated(decodeURIComponent(path), decodeURIComponent(location.search)));
 };
 
-export const navigateToGame = (gameName, gameID) => (dispatch) => {
+export const navigateToGame = (gameName: string, gameID: string): AppThunk => (dispatch) => {
 	//Do I need dispatch here, or could I just return?
 	dispatch(navigatePathTo(gamePath(gameName, gameID), false));
 }
 
-export const navigated = (path, query) => (dispatch) => {
+export const navigated = (path: string, query: string): AppThunk => (dispatch) => {
 
 	// Extract the page name from path.
 	const page = path === '/' ? PAGE_DEFAULT : path.slice(1);
@@ -42,7 +84,7 @@ export const navigated = (path, query) => (dispatch) => {
 
 };
 
-const loadPage = (pathname, query) => (dispatch) => {
+const loadPage = (pathname: string, query: string): AppThunk => (dispatch) => {
 
 	//pathname is the whole path minus starting '/', like 'c/VIEW_ID'
 	let pieces = pathname.split('/');
@@ -70,7 +112,7 @@ const loadPage = (pathname, query) => (dispatch) => {
 	dispatch(updatePage(pathname, page, pageExtra));
 };
 
-const updatePage = (location, page, pageExtra) => {
+const updatePage = (location: string, page: string, pageExtra: string): UpdatePageAction => {
 	return {
 		type: UPDATE_PAGE,
 		location,
@@ -79,9 +121,9 @@ const updatePage = (location, page, pageExtra) => {
 	};
 };
 
-let snackbarTimer;
+let snackbarTimer: number;
 
-export const showSnackbar = () => (dispatch) => {
+export const showSnackbar = (): AppThunk => (dispatch) => {
 	dispatch({
 		type: OPEN_SNACKBAR
 	});
@@ -90,7 +132,7 @@ export const showSnackbar = () => (dispatch) => {
 		dispatch({ type: CLOSE_SNACKBAR }), 3000);
 };
 
-export const updateOffline = (offline) => (dispatch, getState) => {
+export const updateOffline = (offline: boolean): AppThunk => (dispatch, getState) => {
 	// Show the snackbar only if offline status changes.
 	if (offline !== getState().app.offline) {
 		dispatch(showSnackbar());
@@ -101,13 +143,13 @@ export const updateOffline = (offline) => (dispatch, getState) => {
 	});
 };
 
-export const openHeaderPanel = () => {
+export const openHeaderPanel = (): OpenHeaderPanelAction => {
 	return {
 		type: OPEN_HEADER_PANEL
 	};
 };
 
-export const closeHeaderPanel = () => {
+export const closeHeaderPanel = (): CloseHeaderPanelAction => {
 	return {
 		type: CLOSE_HEADER_PANEL
 	};

@@ -1,3 +1,6 @@
+import type { Reducer } from 'redux';
+import type { AppState } from '../types/store';
+import type { AppAction } from '../actions/app.js';
 import {
 	UPDATE_PAGE,
 	UPDATE_OFFLINE,
@@ -8,7 +11,7 @@ import {
 } from '../actions/app.js';
 
 
-const INITIAL_STATE = {
+const INITIAL_STATE: AppState = {
 	location: '',
 	page: '',
 	pageExtra: '',
@@ -17,7 +20,7 @@ const INITIAL_STATE = {
 	headerPanelOpen: false,
 };
 
-const app = (state = INITIAL_STATE, action) => {
+const app: Reducer<AppState, AppAction> = (state = INITIAL_STATE, action): AppState => {
 	switch (action.type) {
 	case UPDATE_PAGE:
 		return {
@@ -46,7 +49,7 @@ const app = (state = INITIAL_STATE, action) => {
 			...state,
 			headerPanelOpen: true
 		};
-	case CLOSE_HEADER_PANEL: 
+	case CLOSE_HEADER_PANEL:
 		return {
 			...state,
 			headerPanelOpen: false

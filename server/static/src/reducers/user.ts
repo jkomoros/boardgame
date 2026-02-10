@@ -1,3 +1,6 @@
+import type { Reducer } from 'redux';
+import type { UserState } from '../types/store';
+import type { UserAction } from '../actions/user.js';
 import {
     UPDATE_USER,
     VERIFYING_AUTH,
@@ -10,7 +13,7 @@ import {
     SHOW_SIGN_IN_DIALOG_EMAIL_PAGE
 } from '../actions/user.js';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: UserState = {
     admin: false,
     adminAllowed: false,
     loggedIn: false,
@@ -26,7 +29,7 @@ const INITIAL_STATE = {
     dialogSelectedPage: 0,
 };
 
-const user = (state = INITIAL_STATE, action) => {
+const user: Reducer<UserState, UserAction> = (state = INITIAL_STATE, action): UserState => {
 	switch (action.type) {
 	case UPDATE_USER:
         const loggedIn = action.user ? true : false;
@@ -79,7 +82,7 @@ const user = (state = INITIAL_STATE, action) => {
             ...state,
             dialogPassword: action.password
         }
-    case SHOW_SIGN_IN_DIALOG_EMAIL_PAGE: 
+    case SHOW_SIGN_IN_DIALOG_EMAIL_PAGE:
         return {
             ...state,
             dialogIsCreate: action.isCreate,

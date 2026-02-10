@@ -1,3 +1,6 @@
+import type { Reducer } from 'redux';
+import type { ListState } from '../types/store';
+import type { ListAction } from '../actions/list.js';
 import {
     UPDATE_MANAGERS,
     UPDATE_GAMES_LIST,
@@ -10,7 +13,7 @@ import {
     UPDATE_CREATE_GAME_OPEN
 } from '../actions/list.js';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: ListState = {
     gameTypeFilter: "",
     selectedManagerIndex: -1,
     numPlayers: 0,
@@ -26,7 +29,7 @@ const INITIAL_STATE = {
     visibleJoinableGames: [],
 };
 
-const app = (state = INITIAL_STATE, action) => {
+const list: Reducer<ListState, ListAction> = (state = INITIAL_STATE, action): ListState => {
 	switch (action.type) {
 	case UPDATE_MANAGERS:
         const newNumPlayers = action.managers[0].DefaultNumPlayers || 0
@@ -106,4 +109,4 @@ const app = (state = INITIAL_STATE, action) => {
 	}
 };
 
-export default app;
+export default list;
