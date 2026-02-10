@@ -92,27 +92,6 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Object, attribute: false })
   moveForms: any = null;
 
-  @property({ type: Object })
-  _currentState: any = null;
-
-  @property({ type: Object })
-  _chest: any = null;
-
-  @property({ type: Array })
-  _playersInfo: any[] = [];
-
-  @property({ type: Boolean })
-  _hasEmptySlots = false;
-
-  @property({ type: Boolean })
-  _open = false;
-
-  @property({ type: Boolean })
-  _visible = false;
-
-  @property({ type: Boolean })
-  _isOwner = false;
-
   @property({ type: Boolean })
   selected = false;
 
@@ -130,21 +109,6 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean })
   _firstStateBundle = true;
 
-  @property({ type: String })
-  _pageExtra = '';
-
-  @property({ type: Object })
-  _gameRoute: any = null;
-
-  @property({ type: Boolean })
-  _loggedIn = false;
-
-  @property({ type: Boolean })
-  _admin = false;
-
-  @property({ type: String })
-  _page = '';
-
   @query('#manager')
   private _managerEle: any;
 
@@ -156,6 +120,55 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   @query('#player')
   private _playerEle: any;
+
+  // Computed properties - read directly from Redux selectors
+  private get _currentState() {
+    return selectExpandedGameState(store.getState());
+  }
+
+  private get _chest() {
+    return selectGameChest(store.getState());
+  }
+
+  private get _playersInfo() {
+    return selectGamePlayersInfo(store.getState());
+  }
+
+  private get _hasEmptySlots() {
+    return selectGameHasEmptySlots(store.getState());
+  }
+
+  private get _open() {
+    return selectGameOpen(store.getState());
+  }
+
+  private get _visible() {
+    return selectGameVisible(store.getState());
+  }
+
+  private get _isOwner() {
+    return selectGameIsOwner(store.getState());
+  }
+
+  private get _pageExtra() {
+    return selectPageExtra(store.getState());
+  }
+
+  private get _gameRoute() {
+    return selectGameRoute(store.getState());
+  }
+
+  private get _loggedIn() {
+    return selectLoggedIn(store.getState());
+  }
+
+  private get _admin() {
+    return selectAdmin(store.getState());
+  }
+
+  private get _page() {
+    return selectPage(store.getState());
+  }
 
   constructor() {
     super();
@@ -243,20 +256,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   // action creators then it should be fine.
 
   stateChanged(state: any) {
-    this._page = selectPage(state);
-    this._pageExtra = selectPageExtra(state);
-    this._gameRoute = selectGameRoute(state);
-    this._loggedIn = selectLoggedIn(state);
-    this._admin = selectAdmin(state);
-    this._chest = selectGameChest(state);
-    this._playersInfo = selectGamePlayersInfo(state);
-    this._hasEmptySlots = selectGameHasEmptySlots(state);
-    this._open = selectGameOpen(state);
-    this._visible = selectGameVisible(state);
-    this._isOwner = selectGameIsOwner(state);
-    this._currentState = selectExpandedGameState(state);
-
     // Sync view state from Redux
+    // All other properties are accessed via getters that read directly from selectors
     this.game = selectGame(state);
     this.viewingAsPlayer = selectViewingAsPlayer(state);
     this.requestedPlayer = selectRequestedPlayer(state);
@@ -332,17 +333,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _resetState() {
+    // Reset view state properties only
+    // Computed properties (_currentState, _chest, etc.) are read from Redux selectors
     this.game = null;
-    this._currentState = null;
     this.moveForms = null;
     this.viewingAsPlayer = 0;
-    this._firstStateBundle = true;
-    this._chest = null;
-    this._playersInfo = [];
-    this._hasEmptySlots = false;
-    this._open = false;
-    this._visible = false;
-    this._isOwner = false;
     this._firstStateBundle = true;
   }
 
