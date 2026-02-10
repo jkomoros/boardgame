@@ -2,6 +2,21 @@ import {
 	UPDATE_GAME_ROUTE,
 	UPDATE_GAME_STATIC_INFO,
 	UPDATE_GAME_CURRENT_STATE,
+	CONFIGURE_GAME_REQUEST,
+	CONFIGURE_GAME_SUCCESS,
+	CONFIGURE_GAME_FAILURE,
+	JOIN_GAME_REQUEST,
+	JOIN_GAME_SUCCESS,
+	JOIN_GAME_FAILURE,
+	SUBMIT_MOVE_REQUEST,
+	SUBMIT_MOVE_SUCCESS,
+	SUBMIT_MOVE_FAILURE,
+	FETCH_GAME_INFO_REQUEST,
+	FETCH_GAME_INFO_SUCCESS,
+	FETCH_GAME_INFO_FAILURE,
+	FETCH_GAME_VERSION_REQUEST,
+	FETCH_GAME_VERSION_SUCCESS,
+	FETCH_GAME_VERSION_FAILURE,
 	ENQUEUE_STATE_BUNDLE,
 	DEQUEUE_STATE_BUNDLE,
 	CLEAR_STATE_BUNDLES,
@@ -63,7 +78,10 @@ const INITIAL_STATE = {
 		requestedPlayer: 0,
 		autoCurrentPlayer: false,
 		moveForms: null
-	}
+	},
+	// Loading/error state for async operations
+	loading: false,
+	error: null
 };
 
 const app = (state = INITIAL_STATE, action) => {
@@ -226,6 +244,36 @@ const app = (state = INITIAL_STATE, action) => {
 				...state.view,
 				moveForms: action.moveForms
 			}
+		};
+	// Loading/error state handlers for async operations
+	case CONFIGURE_GAME_REQUEST:
+	case JOIN_GAME_REQUEST:
+	case SUBMIT_MOVE_REQUEST:
+	case FETCH_GAME_INFO_REQUEST:
+	case FETCH_GAME_VERSION_REQUEST:
+		return {
+			...state,
+			loading: true,
+			error: null
+		};
+	case CONFIGURE_GAME_SUCCESS:
+	case JOIN_GAME_SUCCESS:
+	case SUBMIT_MOVE_SUCCESS:
+	case FETCH_GAME_INFO_SUCCESS:
+	case FETCH_GAME_VERSION_SUCCESS:
+		return {
+			...state,
+			loading: false
+		};
+	case CONFIGURE_GAME_FAILURE:
+	case JOIN_GAME_FAILURE:
+	case SUBMIT_MOVE_FAILURE:
+	case FETCH_GAME_INFO_FAILURE:
+	case FETCH_GAME_VERSION_FAILURE:
+		return {
+			...state,
+			loading: false,
+			error: action.friendlyError || action.error || 'An error occurred'
 		};
 	default:
 		return state;
