@@ -16,6 +16,8 @@ import './shared-styles.js';
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
 import { submitMove } from '../actions/game.js';
+import { selectGameError } from '../selectors.js';
+import type { RootState } from '../types/store';
 
 interface MoveField {
   Name: string;
@@ -65,6 +67,26 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
 
   @property({ type: Number })
   moveAsPlayer = 0;
+
+  private _lastError: string | null = null;
+
+  stateChanged(state: RootState): void {
+    const error = selectGameError(state);
+    // Show error if it changed and is new
+    if (error && error !== this._lastError) {
+      this._lastError = error;
+      this.dispatchEvent(new CustomEvent("show-error", {
+        composed: true,
+        detail: {
+          message: error,
+          friendlyMessage: error,
+          title: "Couldn't make move"
+        }
+      }));
+    } else if (!error) {
+      this._lastError = null;
+    }
+  }
 
   private boolToInt(bool: boolean): string {
     return bool ? "1" : "0";
@@ -167,7 +189,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
     }
   }
 
-  private async submitForm(formEle: HTMLFormElement): Promise<void> {
+  private submitForm(formEle: HTMLFormElement): void {
     if (!this.gameRoute) return;
 
     const body: Record<string, string> = {};
@@ -179,18 +201,8 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       }
     }
 
-    const response = await store.dispatch(submitMove(this.gameRoute, body));
-
-    if (response.error) {
-      this.dispatchEvent(new CustomEvent("show-error", {
-        composed: true,
-        detail: {
-          message: response.error,
-          friendlyMessage: response.friendlyError,
-          title: "Couldn't make move"
-        }
-      }));
-    }
+    // Dispatch action - errors will be handled via Redux state in stateChanged()
+    store.dispatch(submitMove(this.gameRoute, body));
   }
 
   private _normalizeID(str: string): string {

@@ -187,6 +187,10 @@ export interface GameState {
   socket: SocketState;
   /** View state (game object, viewing player, move forms) */
   view: ViewState;
+  /** Fetched info data from fetchGameInfo (null when not available or after processing) */
+  fetchedInfo: any | null;
+  /** Fetched version data from fetchGameVersion (null when not available or after processing) */
+  fetchedVersion: any | null;
   /** Whether a fetch operation is in progress */
   loading: boolean;
   /** Last error message from fetch operations (null if no error) */

@@ -6,6 +6,8 @@ import '@material/web/icon/icon.js';
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
 import { configureGame } from '../actions/game.js';
+import { selectGameError } from '../selectors.js';
+import type { RootState } from '../types/store';
 
 interface GameRoute {
   name: string;
@@ -39,8 +41,28 @@ export class BoardgameConfigureGameProperties extends connect(store)(LitElement)
   @property({ type: Boolean })
   configurable = false;
 
+  private _lastError: string | null = null;
+
   get disabled(): boolean {
     return !(this.admin || this.isOwner || this.configurable);
+  }
+
+  stateChanged(state: RootState): void {
+    const error = selectGameError(state);
+    // Show error if it changed and is new
+    if (error && error !== this._lastError) {
+      this._lastError = error;
+      this.dispatchEvent(new CustomEvent("show-error", {
+        composed: true,
+        detail: {
+          message: error,
+          friendlyMessage: error,
+          title: "Couldn't toggle"
+        }
+      }));
+    } else if (!error) {
+      this._lastError = null;
+    }
   }
 
   private _visibleIcon(gameVisible: boolean): string {
@@ -71,27 +93,14 @@ export class BoardgameConfigureGameProperties extends connect(store)(LitElement)
     this._submit(this.gameOpen, !this.gameVisible);
   }
 
-  private async _submit(open: boolean, visible: boolean): Promise<void> {
+  private _submit(open: boolean, visible: boolean): void {
     if (!this.gameRoute) return;
 
-    const response = await store.dispatch(
-      configureGame(this.gameRoute, open, visible, this.admin)
-    );
+    // Dispatch action - errors will be handled via Redux state in stateChanged()
+    store.dispatch(configureGame(this.gameRoute, open, visible, this.admin));
 
-    if (response.error) {
-      // Dispatch error event
-      this.dispatchEvent(new CustomEvent("show-error", {
-        composed: true,
-        detail: {
-          message: response.error,
-          friendlyMessage: response.friendlyError,
-          title: "Couldn't toggle"
-        }
-      }));
-    } else {
-      // Tell game-view to fetch data now
-      this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
-    }
+    // Tell game-view to fetch data now
+    this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
   }
 
   render() {

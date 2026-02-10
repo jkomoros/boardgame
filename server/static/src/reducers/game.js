@@ -32,7 +32,9 @@ import {
 	SET_VIEWING_AS_PLAYER,
 	SET_REQUESTED_PLAYER,
 	SET_AUTO_CURRENT_PLAYER,
-	UPDATE_MOVE_FORMS
+	UPDATE_MOVE_FORMS,
+	CLEAR_FETCHED_INFO,
+	CLEAR_FETCHED_VERSION
 } from '../actions/game.js';
 
 const INITIAL_STATE = {
@@ -79,6 +81,9 @@ const INITIAL_STATE = {
 		autoCurrentPlayer: false,
 		moveForms: null
 	},
+	// Fetched data from async operations
+	fetchedInfo: null,
+	fetchedVersion: null,
 	// Loading/error state for async operations
 	loading: false,
 	error: null
@@ -245,6 +250,16 @@ const app = (state = INITIAL_STATE, action) => {
 				moveForms: action.moveForms
 			}
 		};
+	case CLEAR_FETCHED_INFO:
+		return {
+			...state,
+			fetchedInfo: null
+		};
+	case CLEAR_FETCHED_VERSION:
+		return {
+			...state,
+			fetchedVersion: null
+		};
 	// Loading/error state handlers for async operations
 	case CONFIGURE_GAME_REQUEST:
 	case JOIN_GAME_REQUEST:
@@ -259,11 +274,36 @@ const app = (state = INITIAL_STATE, action) => {
 	case CONFIGURE_GAME_SUCCESS:
 	case JOIN_GAME_SUCCESS:
 	case SUBMIT_MOVE_SUCCESS:
-	case FETCH_GAME_INFO_SUCCESS:
-	case FETCH_GAME_VERSION_SUCCESS:
 		return {
 			...state,
 			loading: false
+		};
+	case FETCH_GAME_INFO_SUCCESS:
+		return {
+			...state,
+			loading: false,
+			// Store in server format for component handlers
+			fetchedInfo: {
+				Chest: action.chest,
+				Players: action.playersInfo,
+				HasEmptySlots: action.hasEmptySlots,
+				GameOpen: action.open,
+				GameVisible: action.visible,
+				IsOwner: action.isOwner,
+				Game: action.game,
+				Forms: action.forms,
+				ViewingAsPlayer: action.viewingAsPlayer,
+				StateVersion: action.stateVersion
+			}
+		};
+	case FETCH_GAME_VERSION_SUCCESS:
+		return {
+			...state,
+			loading: false,
+			// Store in server format for component handlers
+			fetchedVersion: {
+				Bundles: action.bundles
+			}
 		};
 	case CONFIGURE_GAME_FAILURE:
 	case JOIN_GAME_FAILURE:

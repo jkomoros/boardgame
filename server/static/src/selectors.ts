@@ -50,6 +50,10 @@ export const selectGameCurrentState = (state: RootState): ExpandedGameState | nu
 export const selectGameLoading = (state: RootState): boolean => state.game ? state.game.loading : false;
 export const selectGameError = (state: RootState): string | null => state.game ? state.game.error : null;
 
+// Fetched data selectors (for async thunk responses)
+export const selectFetchedInfo = (state: RootState): any | null => state.game?.fetchedInfo || null;
+export const selectFetchedVersion = (state: RootState): any | null => state.game?.fetchedVersion || null;
+
 const selectGameID = (state: RootState): string => state.game ? state.game.id : '';
 export const selectGameName = (state: RootState): string => state.game ? state.game.name : '';
 

@@ -13,7 +13,9 @@ import {
   setLastFetchedVersion,
   socketConnected,
   socketDisconnected,
-  socketError
+  socketError,
+  clearFetchedInfo,
+  clearFetchedVersion
 } from '../actions/game.js';
 import {
   selectPendingBundles,
@@ -23,7 +25,10 @@ import {
   selectCurrentVersion,
   selectTargetVersion,
   selectLastFetchedVersion,
-  selectSocketConnected
+  selectSocketConnected,
+  selectFetchedInfo,
+  selectFetchedVersion,
+  selectGameLoading
 } from '../selectors.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
@@ -114,8 +119,16 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Object, attribute: false })
   private _lastFiredBundle: any = null;
 
-  private _fetchingInfo = false;
-  private _fetchingVersion = false;
+  // Fetched data - synced from Redux
+  @property({ type: Object, attribute: false })
+  private _fetchedInfo: any = null;
+
+  @property({ type: Object, attribute: false })
+  private _fetchedVersion: any = null;
+
+  // Loading state - synced from Redux
+  @property({ type: Boolean, attribute: false })
+  private _loading = false;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -135,6 +148,29 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     // Sync Redux socket state
     this.socketActive = selectSocketConnected(state);
+
+    // Sync Redux loading state
+    this._loading = selectGameLoading(state);
+
+    // Sync Redux fetched data
+    const prevFetchedInfo = this._fetchedInfo;
+    const prevFetchedVersion = this._fetchedVersion;
+    this._fetchedInfo = selectFetchedInfo(state);
+    this._fetchedVersion = selectFetchedVersion(state);
+
+    // Process fetched info when it becomes available
+    if (this._fetchedInfo && this._fetchedInfo !== prevFetchedInfo) {
+      this._handleInfoData(this._fetchedInfo);
+      // Clear after processing to prevent re-processing
+      store.dispatch(clearFetchedInfo());
+    }
+
+    // Process fetched version when it becomes available
+    if (this._fetchedVersion && this._fetchedVersion !== prevFetchedVersion) {
+      this._handleVersionData(this._fetchedVersion);
+      // Clear after processing to prevent re-processing
+      store.dispatch(clearFetchedVersion());
+    }
 
     // Handle version changes (replaces property watcher)
     if (prevTarget !== this.targetVersion && this.targetVersion >= 0) {
@@ -253,7 +289,8 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       return;
     }
 
-    if (this._fetchingVersion) {
+    // Use Redux loading state instead of local flag
+    if (this._loading) {
       return;
     }
 
@@ -261,28 +298,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       return;
     }
 
-    this._fetchingVersion = true;
-
-    requestAnimationFrame(async () => {
-      try {
-        const response = await store.dispatch(
-          fetchGameVersion(
-            this.gameRoute!,
-            this.targetVersion,
-            this.requestedPlayer,
-            this.admin,
-            this.autoCurrentPlayer,
-            this.lastFetchedVersion,
-            this.gameVersion
-          )
-        );
-
-        if (response.data) {
-          this._handleVersionData(response.data);
-        }
-      } finally {
-        this._fetchingVersion = false;
-      }
+    // Dispatch the thunk - data will be processed via stateChanged when it arrives
+    requestAnimationFrame(() => {
+      store.dispatch(
+        fetchGameVersion(
+          this.gameRoute!,
+          this.targetVersion,
+          this.requestedPlayer,
+          this.admin,
+          this.autoCurrentPlayer,
+          this.lastFetchedVersion,
+          this.gameVersion
+        )
+      );
     });
   }
 
@@ -359,8 +387,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     this.softReset();
   }
 
-  async fetchInfo() {
-    if (this._fetchingInfo) {
+  fetchInfo() {
+    // Use Redux loading state instead of local flag
+    if (this._loading) {
       return;
     }
 
@@ -373,24 +402,15 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       return;
     }
 
-    this._fetchingInfo = true;
-
-    try {
-      const response = await store.dispatch(
-        fetchGameInfo(
-          this.gameRoute,
-          this.requestedPlayer,
-          this.admin,
-          this.lastFetchedVersion
-        )
-      );
-
-      if (response.data) {
-        this._handleInfoData(response.data);
-      }
-    } finally {
-      this._fetchingInfo = false;
-    }
+    // Dispatch the thunk - data will be processed via stateChanged when it arrives
+    store.dispatch(
+      fetchGameInfo(
+        this.gameRoute,
+        this.requestedPlayer,
+        this.admin,
+        this.lastFetchedVersion
+      )
+    );
   }
 
   private _prepareStateBundle(game: any, moveForms: any, viewingAsPlayer: number, move: any): any {

@@ -65,6 +65,8 @@ export const SET_VIEWING_AS_PLAYER = 'SET_VIEWING_AS_PLAYER';
 export const SET_REQUESTED_PLAYER = 'SET_REQUESTED_PLAYER';
 export const SET_AUTO_CURRENT_PLAYER = 'SET_AUTO_CURRENT_PLAYER';
 export const UPDATE_MOVE_FORMS = 'UPDATE_MOVE_FORMS';
+export const CLEAR_FETCHED_INFO = 'CLEAR_FETCHED_INFO';
+export const CLEAR_FETCHED_VERSION = 'CLEAR_FETCHED_VERSION';
 
 export const updateGameRoute = (pageExtra: string) => {
     const pieces = pageExtra.split("/");
@@ -264,7 +266,7 @@ export const configureGame = (
   open: boolean,
   visible: boolean,
   admin: boolean
-) => async (dispatch: Dispatch): Promise<ApiResponse<any>> => {
+) => async (dispatch: Dispatch): Promise<void> => {
   dispatch({ type: CONFIGURE_GAME_REQUEST });
 
   const url = buildGameUrl(gameRoute.name, gameRoute.id, 'configure');
@@ -280,17 +282,15 @@ export const configureGame = (
       error: response.error,
       friendlyError: response.friendlyError
     });
-    return response; // Return response for component to handle
   } else {
     dispatch({ type: CONFIGURE_GAME_SUCCESS });
-    return response; // Return success response
   }
 };
 
 /**
  * Join a game as a player
  */
-export const joinGame = (gameRoute: GameRoute) => async (dispatch: Dispatch): Promise<ApiResponse<any>> => {
+export const joinGame = (gameRoute: GameRoute) => async (dispatch: Dispatch): Promise<void> => {
   dispatch({ type: JOIN_GAME_REQUEST });
 
   const url = buildGameUrl(gameRoute.name, gameRoute.id, 'join');
@@ -302,10 +302,8 @@ export const joinGame = (gameRoute: GameRoute) => async (dispatch: Dispatch): Pr
       error: response.error,
       friendlyError: response.friendlyError
     });
-    return response; // Return response for component to handle
   } else {
     dispatch({ type: JOIN_GAME_SUCCESS });
-    return response; // Return success response
   }
 };
 
@@ -315,7 +313,7 @@ export const joinGame = (gameRoute: GameRoute) => async (dispatch: Dispatch): Pr
 export const submitMove = (
   gameRoute: GameRoute,
   moveData: Record<string, string>
-) => async (dispatch: Dispatch): Promise<ApiResponse<any>> => {
+) => async (dispatch: Dispatch): Promise<void> => {
   dispatch({ type: SUBMIT_MOVE_REQUEST });
 
   const url = buildGameUrl(gameRoute.name, gameRoute.id, 'move');
@@ -327,10 +325,8 @@ export const submitMove = (
       error: response.error,
       friendlyError: response.friendlyError
     });
-    return response; // Return response for component to handle
   } else {
     dispatch({ type: SUBMIT_MOVE_SUCCESS });
-    return response; // Return success response
   }
 };
 
@@ -364,7 +360,7 @@ export const fetchGameInfo = (
   requestedPlayer: number,
   admin: boolean,
   lastFetchedVersion: number
-) => async (dispatch: Dispatch): Promise<ApiResponse<any>> => {
+) => async (dispatch: Dispatch): Promise<void> => {
   dispatch({ type: FETCH_GAME_INFO_REQUEST });
 
   const url = buildGameUrl(
@@ -386,7 +382,7 @@ export const fetchGameInfo = (
       error: response.error,
       friendlyError: response.friendlyError
     });
-    return response;
+    return;
   }
 
   const data = response.data as any;
@@ -407,8 +403,6 @@ export const fetchGameInfo = (
     viewingAsPlayer: data.ViewingAsPlayer,
     stateVersion: data.StateVersion
   });
-
-  return response;
 };
 
 /**
@@ -422,10 +416,10 @@ export const fetchGameVersion = (
   autoCurrentPlayer: boolean,
   lastFetchedVersion: number,
   gameVersion: number
-) => async (dispatch: Dispatch, getState: () => RootState): Promise<ApiResponse<any>> => {
+) => async (dispatch: Dispatch, getState: () => RootState): Promise<void> => {
   // Skip if we already have this version
   if (lastFetchedVersion === gameVersion) {
-    return { data: null, status: 200 };
+    return;
   }
 
   dispatch({ type: FETCH_GAME_VERSION_REQUEST });
@@ -450,14 +444,19 @@ export const fetchGameVersion = (
       error: response.error,
       friendlyError: response.friendlyError
     });
-    return response;
+    return;
   }
 
   const data = response.data as any;
 
   if (data.Error) {
     console.log('Version getter returned error: ' + data.Error);
-    return response;
+    dispatch({
+      type: FETCH_GAME_VERSION_FAILURE,
+      error: data.Error,
+      friendlyError: data.Error
+    });
+    return;
   }
 
   // Expand move forms in each bundle
@@ -473,8 +472,6 @@ export const fetchGameVersion = (
     type: FETCH_GAME_VERSION_SUCCESS,
     bundles: expandedBundles
   });
-
-  return response;
 };
 
 /**
@@ -653,5 +650,23 @@ export const updateMoveForms = (moveForms: any[] | null) => {
   return {
     type: UPDATE_MOVE_FORMS,
     moveForms
+  };
+};
+
+/**
+ * Clear fetched info after it's been processed
+ */
+export const clearFetchedInfo = () => {
+  return {
+    type: CLEAR_FETCHED_INFO
+  };
+};
+
+/**
+ * Clear fetched version after it's been processed
+ */
+export const clearFetchedVersion = () => {
+  return {
+    type: CLEAR_FETCHED_VERSION
   };
 };

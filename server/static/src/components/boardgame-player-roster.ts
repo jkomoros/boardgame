@@ -21,6 +21,8 @@ import './shared-styles.js';
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
 import { joinGame } from '../actions/game.js';
+import { selectGameError } from '../selectors.js';
+import type { RootState } from '../types/store';
 
 import type { MdDialog } from '@material/web/dialog/dialog.js';
 
@@ -133,6 +135,26 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   private readonly OBSERVER_PLAYER_INDEX = -1;
   private readonly ADMIN_PLAYER_INDEX = -2;
 
+  private _lastError: string | null = null;
+
+  stateChanged(state: RootState): void {
+    const error = selectGameError(state);
+    // Show error if it changed and is new
+    if (error && error !== this._lastError) {
+      this._lastError = error;
+      this.dispatchEvent(new CustomEvent("show-error", {
+        composed: true,
+        detail: {
+          message: error,
+          friendlyMessage: error,
+          title: "Couldn't Join"
+        }
+      }));
+    } else if (!error) {
+      this._lastError = null;
+    }
+  }
+
   get isObserver(): boolean {
     return this.viewingAsPlayer === this.OBSERVER_PLAYER_INDEX;
   }
@@ -187,7 +209,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     this.doJoin();
   }
 
-  private async doJoin(): Promise<void> {
+  private doJoin(): void {
     if (!this.loggedIn) {
       this.dispatchEvent(new CustomEvent('show-login', {
         composed: true,
@@ -198,22 +220,11 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
 
     if (!this.gameRoute) return;
 
-    const response = await store.dispatch(joinGame(this.gameRoute));
+    // Dispatch action - errors will be handled via Redux state in stateChanged()
+    store.dispatch(joinGame(this.gameRoute));
 
-    if (response.error) {
-      // Dispatch error event
-      this.dispatchEvent(new CustomEvent("show-error", {
-        composed: true,
-        detail: {
-          message: response.error,
-          friendlyMessage: response.friendlyError,
-          title: "Couldn't Join"
-        }
-      }));
-    } else {
-      // Tell game-view to fetch data now
-      this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
-    }
+    // Tell game-view to fetch data now
+    this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
   }
 
   private _gameRouteChanged(newValue: GameRoute | null): void {
