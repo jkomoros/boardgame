@@ -26,7 +26,8 @@ import {
   selectViewingAsPlayer,
   selectRequestedPlayer,
   selectAutoCurrentPlayer,
-  selectMoveForms
+  selectMoveForms,
+  selectLastFetchedVersion
 } from '../selectors.js';
 
 import {
@@ -39,7 +40,8 @@ import {
   installGameState,
   updateViewState,
   setRequestedPlayer,
-  setAutoCurrentPlayer
+  setAutoCurrentPlayer,
+  fetchGameInfo
 } from '../actions/game.js';
 
 import game from '../reducers/game.js';
@@ -266,7 +268,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleRefreshData(e: Event) {
-    this._managerEle.fetchInfo();
+    // Dispatch Redux action directly instead of calling component method
+    const gameRoute = this._gameRoute;
+    const requestedPlayer = this.requestedPlayer;
+    const admin = this._admin;
+    const lastFetchedVersion = selectLastFetchedVersion(store.getState());
+
+    if (gameRoute) {
+      store.dispatch(fetchGameInfo(gameRoute, requestedPlayer, admin, lastFetchedVersion));
+    }
   }
 
   private _handleRequestedPlayerChanged(e: CustomEvent) {
@@ -286,7 +296,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleProposeMove(e: CustomEvent) {
-    this._adminEle.proposeMove(e.detail.name, e.detail.arguments);
+    // Forward the propose-move event to the admin controls element
+    // The admin element will handle it and forward to the move form
+    if (this._adminEle) {
+      this._adminEle.dispatchEvent(new CustomEvent('propose-move', {
+        detail: { name: e.detail.name, arguments: e.detail.arguments },
+        bubbles: true,
+        composed: true
+      }));
+    }
   }
 
   override updated(changedProps: Map<PropertyKey, unknown>) {
@@ -316,7 +334,14 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleAllAnimationsDone(e: Event) {
-    this._managerEle.readyForNextState();
+    // Dispatch custom event for animation coordination
+    // The manager element will listen for this and handle it
+    if (this._managerEle) {
+      this._managerEle.dispatchEvent(new CustomEvent('ready-for-next-state', {
+        bubbles: true,
+        composed: true
+      }));
+    }
   }
 
   private _handleSetAnimationLength(e: CustomEvent) {

@@ -120,6 +120,12 @@ export class BoardgameAdminControls extends LitElement {
   private readonly OBSERVER_PLAYER_INDEX = -1;
   private readonly ADMIN_PLAYER_INDEX = -2;
 
+  constructor() {
+    super();
+    // Listen for propose-move events to forward to the move form
+    this.addEventListener('propose-move', (e: Event) => this._handleProposeMove(e as CustomEvent));
+  }
+
   get requestedPlayer(): number {
     if (!this.active) return this.viewingAsPlayer;
     switch (this.viewAs) {
@@ -161,12 +167,15 @@ export class BoardgameAdminControls extends LitElement {
     return JSON.stringify(this.chest, null, 2);
   }
 
-  proposeMove(moveName: string, moveArguments: Record<string, string | number>): void {
+  private _handleProposeMove(e: CustomEvent): void {
+    const { name, arguments: moveArguments } = e.detail;
     if (!this.movesElement) {
       console.warn("propose-move fired, but no moves element to forward to.");
       return;
     }
-    this.movesElement.proposeMove(moveName, moveArguments);
+    this.movesElement.proposeMove(name, moveArguments);
+    // Stop propagation since we've handled it
+    e.stopPropagation();
   }
 
   private _handleViewAsChange(e: Event): void {

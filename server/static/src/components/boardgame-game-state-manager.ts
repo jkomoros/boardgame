@@ -114,6 +114,17 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _prevGameVersion = 0;
   private _prevLastFetchedVersion = 0;
 
+  constructor() {
+    super();
+    // Listen for ready-for-next-state event from game-view
+    this.addEventListener('ready-for-next-state', (e: Event) => this._handleReadyForNextState(e));
+  }
+
+  private _handleReadyForNextState(e: Event) {
+    this.readyForNextState();
+    e.stopPropagation();
+  }
+
   // Computed properties - read directly from Redux selectors
   private get targetVersion(): number {
     return selectTargetVersion(store.getState());
