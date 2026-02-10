@@ -68,20 +68,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Boolean })
   loggedIn = false;
 
-  // Version tracking - synced from Redux
-  @property({ type: Number, attribute: false })
-  targetVersion = -1;
-
-  @property({ type: Number, attribute: false })
-  gameVersion = 0;
-
-  @property({ type: Number, attribute: false })
-  lastFetchedVersion = 0;
-
-  // Socket state - synced from Redux
-  @property({ type: Boolean, attribute: false })
-  socketActive = false;
-
   @property({ type: String, attribute: false })
   gameVersionPath = '';
 
@@ -112,13 +98,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Object, attribute: false })
   private _socket: WebSocket | null = null;
 
-  // Animation state now in Redux - accessed via selectors in stateChanged()
-  @property({ type: Array, attribute: false })
-  private _pendingBundles: any[] = [];
-
-  @property({ type: Object, attribute: false })
-  private _lastFiredBundle: any = null;
-
   // Fetched data - synced from Redux
   @property({ type: Object, attribute: false })
   private _fetchedInfo: any = null;
@@ -130,29 +109,46 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Boolean, attribute: false })
   private _loading = false;
 
+  // Track previous values for change detection
+  private _prevTargetVersion = -1;
+  private _prevGameVersion = 0;
+  private _prevLastFetchedVersion = 0;
+
+  // Computed properties - read directly from Redux selectors
+  private get targetVersion(): number {
+    return selectTargetVersion(store.getState());
+  }
+
+  private get gameVersion(): number {
+    return selectCurrentVersion(store.getState());
+  }
+
+  private get lastFetchedVersion(): number {
+    return selectLastFetchedVersion(store.getState());
+  }
+
+  private get socketActive(): boolean {
+    return selectSocketConnected(store.getState());
+  }
+
+  private get _pendingBundles(): any[] {
+    return selectPendingBundles(store.getState());
+  }
+
+  private get _lastFiredBundle(): any {
+    return selectLastFiredBundle(store.getState());
+  }
+
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     this.updateData();
   }
 
   stateChanged(state: RootState) {
-    // Sync Redux animation state to local properties
-    this._pendingBundles = selectPendingBundles(state);
-    this._lastFiredBundle = selectLastFiredBundle(state);
-
-    // Sync Redux version state to local properties
-    const prevTarget = this.targetVersion;
-    this.targetVersion = selectTargetVersion(state);
-    this.gameVersion = selectCurrentVersion(state);
-    this.lastFetchedVersion = selectLastFetchedVersion(state);
-
-    // Sync Redux socket state
-    this.socketActive = selectSocketConnected(state);
-
-    // Sync Redux loading state
+    // Sync Redux loading state (non-duplicated, used for local logic)
     this._loading = selectGameLoading(state);
 
-    // Sync Redux fetched data
+    // Sync Redux fetched data (non-duplicated, used for one-time processing)
     const prevFetchedInfo = this._fetchedInfo;
     const prevFetchedVersion = this._fetchedVersion;
     this._fetchedInfo = selectFetchedInfo(state);
@@ -172,39 +168,48 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       store.dispatch(clearFetchedVersion());
     }
 
-    // Handle version changes (replaces property watcher)
-    if (prevTarget !== this.targetVersion && this.targetVersion >= 0) {
+    // Detect changes in computed properties and trigger handlers
+    const currentTargetVersion = selectTargetVersion(state);
+    const currentGameVersion = selectCurrentVersion(state);
+    const currentLastFetchedVersion = selectLastFetchedVersion(state);
+
+    // Handle targetVersion changes
+    if (this._prevTargetVersion !== currentTargetVersion && currentTargetVersion >= 0) {
       this._handleTargetVersionChanged();
     }
+
+    // Trigger requestUpdate if computed properties changed (for updated() lifecycle)
+    if (this._prevTargetVersion !== currentTargetVersion ||
+        this._prevGameVersion !== currentGameVersion ||
+        this._prevLastFetchedVersion !== currentLastFetchedVersion) {
+      this.requestUpdate();
+    }
+
+    // Update previous values for next change detection
+    this._prevTargetVersion = currentTargetVersion;
+    this._prevGameVersion = currentGameVersion;
+    this._prevLastFetchedVersion = currentLastFetchedVersion;
   }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
 
-    // Handle computed properties
-    if (changedProperties.has('active') ||
-        changedProperties.has('requestedPlayer') ||
-        changedProperties.has('admin') ||
-        changedProperties.has('targetVersion') ||
-        changedProperties.has('autoCurrentPlayer')) {
-      this.gameVersionPath = this._computeGameVersionPath(
-        this.active, this.requestedPlayer, this.admin, this.targetVersion, this.autoCurrentPlayer
-      );
-    }
+    // Get current values from computed properties (reading from Redux)
+    const currentTargetVersion = this.targetVersion;
+    const currentGameVersion = this.gameVersion;
+    const currentLastFetchedVersion = this.lastFetchedVersion;
 
-    if (changedProperties.has('requestedPlayer') ||
-        changedProperties.has('admin') ||
-        changedProperties.has('lastFetchedVersion')) {
-      this.gameViewPath = this._computeGameViewPath(this.requestedPlayer, this.admin, this.lastFetchedVersion);
-    }
+    // Recompute dependent properties when inputs change
+    // Note: stateChanged() triggers requestUpdate() when computed properties change
+    this.gameVersionPath = this._computeGameVersionPath(
+      this.active, this.requestedPlayer, this.admin, currentTargetVersion, this.autoCurrentPlayer
+    );
 
-    if (changedProperties.has('gameVersionPath') ||
-        changedProperties.has('lastFetchedVersion') ||
-        changedProperties.has('gameVersion')) {
-      this.effectiveGameVersionPath = this._computeEffectiveGameVersionPath(
-        this.gameVersionPath, this.lastFetchedVersion, this.gameVersion
-      );
-    }
+    this.gameViewPath = this._computeGameViewPath(this.requestedPlayer, this.admin, currentLastFetchedVersion);
+
+    this.effectiveGameVersionPath = this._computeEffectiveGameVersionPath(
+      this.gameVersionPath, currentLastFetchedVersion, currentGameVersion
+    );
 
     if (changedProperties.has('active') || changedProperties.has('_infoInstalled')) {
       this._socketUrl = this._computeSocketUrl(this.active, this._infoInstalled);
