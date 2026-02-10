@@ -21,7 +21,12 @@ import {
   selectGameOpen,
   selectGameVisible,
   selectGameIsOwner,
-  selectExpandedGameState
+  selectExpandedGameState,
+  selectGame,
+  selectViewingAsPlayer,
+  selectRequestedPlayer,
+  selectAutoCurrentPlayer,
+  selectMoveForms
 } from '../selectors.js';
 
 import {
@@ -32,6 +37,9 @@ import {
   updateGameRoute,
   updateGameStaticInfo,
   installGameState,
+  updateViewState,
+  setRequestedPlayer,
+  setAutoCurrentPlayer
 } from '../actions/game.js';
 
 import game from '../reducers/game.js';
@@ -68,11 +76,21 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     }
   `;
 
-  @property({ type: Number })
+  // View state - synced from Redux
+  @property({ type: Number, attribute: false })
   requestedPlayer = 0;
 
-  @property({ type: Object })
+  @property({ type: Object, attribute: false })
   game: any = null;
+
+  @property({ type: Number, attribute: false })
+  viewingAsPlayer = 0;
+
+  @property({ type: Boolean, attribute: false })
+  autoCurrentPlayer = false;
+
+  @property({ type: Object, attribute: false })
+  moveForms: any = null;
 
   @property({ type: Object })
   _currentState: any = null;
@@ -96,24 +114,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _isOwner = false;
 
   @property({ type: Boolean })
-  autoCurrentPlayer = false;
-
-  @property({ type: Boolean })
   selected = false;
 
   @property({ type: Boolean })
   promptedToJoin = false;
 
-  @property({ type: Number })
-  viewingAsPlayer = 0;
-
   // The current renderer, passed up from the gameRenderer, so we can pass
   // it to stateGameManager and readyForNextState.
   @property({ type: Object })
   activeRenderer: any = null;
-
-  @property({ type: Object })
-  moveForms: any = null;
 
   @property({ type: Boolean })
   socketActive = false;
@@ -246,6 +255,13 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._visible = selectGameVisible(state);
     this._isOwner = selectGameIsOwner(state);
     this._currentState = selectExpandedGameState(state);
+
+    // Sync view state from Redux
+    this.game = selectGame(state);
+    this.viewingAsPlayer = selectViewingAsPlayer(state);
+    this.requestedPlayer = selectRequestedPlayer(state);
+    this.autoCurrentPlayer = selectAutoCurrentPlayer(state);
+    this.moveForms = selectMoveForms(state);
   }
 
   private _handleRefreshData(e: Event) {
@@ -253,11 +269,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleRequestedPlayerChanged(e: CustomEvent) {
-    this.requestedPlayer = e.detail.value;
+    store.dispatch(setRequestedPlayer(e.detail.value));
   }
 
   private _handleAutoCurrentPlayerChanged(e: CustomEvent) {
-    this.autoCurrentPlayer = e.detail.value;
+    store.dispatch(setAutoCurrentPlayer(e.detail.value));
   }
 
   private _handleSocketActiveChanged(e: CustomEvent) {
@@ -333,10 +349,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   private _installStateBundle(bundle: any) {
     store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
 
-    // We only rerender once despite setting multiple properties at once
-    this.game = bundle.game;
-    this.moveForms = bundle.moveForms;
-    this.viewingAsPlayer = bundle.viewingAsPlayer;
+    // Update view state in Redux (replaces direct property assignment)
+    store.dispatch(updateViewState(bundle.game, bundle.viewingAsPlayer, bundle.moveForms));
 
     if (this._firstStateBundle) {
       this._firstStateBundleInstalled();

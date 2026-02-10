@@ -136,6 +136,22 @@ export interface SocketState {
 }
 
 /**
+ * View state for the current game view.
+ */
+export interface ViewState {
+  /** Full game object from server */
+  game: any | null;
+  /** Player index currently viewing as */
+  viewingAsPlayer: number;
+  /** Player index requested (before applying auto-current-player) */
+  requestedPlayer: number;
+  /** Whether to automatically follow the current player */
+  autoCurrentPlayer: boolean;
+  /** Move forms for the current state */
+  moveForms: any[] | null;
+}
+
+/**
  * Game state containing game data, players, and current state.
  */
 export interface GameState {
@@ -169,6 +185,8 @@ export interface GameState {
   versions: VersionState;
   /** WebSocket connection state */
   socket: SocketState;
+  /** View state (game object, viewing player, move forms) */
+  view: ViewState;
   /** Whether a fetch operation is in progress */
   loading: boolean;
   /** Last error message from fetch operations (null if no error) */

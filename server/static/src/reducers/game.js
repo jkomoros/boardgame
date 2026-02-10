@@ -12,7 +12,12 @@ import {
 	SET_LAST_FETCHED_VERSION,
 	SOCKET_CONNECTED,
 	SOCKET_DISCONNECTED,
-	SOCKET_ERROR
+	SOCKET_ERROR,
+	UPDATE_VIEW_STATE,
+	SET_VIEWING_AS_PLAYER,
+	SET_REQUESTED_PLAYER,
+	SET_AUTO_CURRENT_PLAYER,
+	UPDATE_MOVE_FORMS
 } from '../actions/game.js';
 
 const INITIAL_STATE = {
@@ -50,6 +55,14 @@ const INITIAL_STATE = {
 		connected: false,
 		connectionAttempts: 0,
 		lastError: null
+	},
+	// View state
+	view: {
+		game: null,
+		viewingAsPlayer: 0,
+		requestedPlayer: 0,
+		autoCurrentPlayer: false,
+		moveForms: null
 	}
 };
 
@@ -170,6 +183,48 @@ const app = (state = INITIAL_STATE, action) => {
 			socket: {
 				...state.socket,
 				lastError: action.error
+			}
+		};
+	case UPDATE_VIEW_STATE:
+		return {
+			...state,
+			view: {
+				...state.view,
+				game: action.game,
+				viewingAsPlayer: action.viewingAsPlayer,
+				moveForms: action.moveForms
+			}
+		};
+	case SET_VIEWING_AS_PLAYER:
+		return {
+			...state,
+			view: {
+				...state.view,
+				viewingAsPlayer: action.playerIndex
+			}
+		};
+	case SET_REQUESTED_PLAYER:
+		return {
+			...state,
+			view: {
+				...state.view,
+				requestedPlayer: action.playerIndex
+			}
+		};
+	case SET_AUTO_CURRENT_PLAYER:
+		return {
+			...state,
+			view: {
+				...state.view,
+				autoCurrentPlayer: action.autoFollow
+			}
+		};
+	case UPDATE_MOVE_FORMS:
+		return {
+			...state,
+			view: {
+				...state.view,
+				moveForms: action.moveForms
 			}
 		};
 	default:

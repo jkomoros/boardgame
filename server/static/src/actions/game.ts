@@ -60,6 +60,11 @@ export const SET_LAST_FETCHED_VERSION = 'SET_LAST_FETCHED_VERSION';
 export const SOCKET_CONNECTED = 'SOCKET_CONNECTED';
 export const SOCKET_DISCONNECTED = 'SOCKET_DISCONNECTED';
 export const SOCKET_ERROR = 'SOCKET_ERROR';
+export const UPDATE_VIEW_STATE = 'UPDATE_VIEW_STATE';
+export const SET_VIEWING_AS_PLAYER = 'SET_VIEWING_AS_PLAYER';
+export const SET_REQUESTED_PLAYER = 'SET_REQUESTED_PLAYER';
+export const SET_AUTO_CURRENT_PLAYER = 'SET_AUTO_CURRENT_PLAYER';
+export const UPDATE_MOVE_FORMS = 'UPDATE_MOVE_FORMS';
 
 export const updateGameRoute = (pageExtra: string) => {
     const pieces = pageExtra.split("/");
@@ -587,5 +592,66 @@ export const socketError = (error: string) => {
   return {
     type: SOCKET_ERROR,
     error
+  };
+};
+
+/**
+ * View State Actions
+ */
+
+/**
+ * Update full view state (game, viewingAsPlayer, moveForms)
+ * Used when installing a state bundle
+ */
+export const updateViewState = (
+  game: any,
+  viewingAsPlayer: number,
+  moveForms: any[] | null
+) => {
+  return {
+    type: UPDATE_VIEW_STATE,
+    game,
+    viewingAsPlayer,
+    moveForms
+  };
+};
+
+/**
+ * Set which player we're viewing as
+ */
+export const setViewingAsPlayer = (playerIndex: number) => {
+  return {
+    type: SET_VIEWING_AS_PLAYER,
+    playerIndex
+  };
+};
+
+/**
+ * Set the requested player index
+ */
+export const setRequestedPlayer = (playerIndex: number) => {
+  return {
+    type: SET_REQUESTED_PLAYER,
+    playerIndex
+  };
+};
+
+/**
+ * Set whether to auto-follow current player
+ */
+export const setAutoCurrentPlayer = (autoFollow: boolean) => {
+  return {
+    type: SET_AUTO_CURRENT_PLAYER,
+    autoFollow
+  };
+};
+
+/**
+ * Update move forms for the current state
+ */
+export const updateMoveForms = (moveForms: any[] | null) => {
+  return {
+    type: UPDATE_MOVE_FORMS,
+    moveForms
   };
 };

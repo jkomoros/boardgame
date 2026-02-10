@@ -94,6 +94,20 @@ export const selectSocketConnected = (state: RootState): boolean => selectSocket
 export const selectSocketConnectionAttempts = (state: RootState): number => selectSocketState(state).connectionAttempts;
 export const selectSocketError = (state: RootState): string | null => selectSocketState(state).lastError;
 
+// View selectors
+export const selectViewState = (state: RootState) => state.game?.view || {
+    game: null,
+    viewingAsPlayer: 0,
+    requestedPlayer: 0,
+    autoCurrentPlayer: false,
+    moveForms: null
+};
+export const selectGame = (state: RootState): any | null => selectViewState(state).game;
+export const selectViewingAsPlayer = (state: RootState): number => selectViewState(state).viewingAsPlayer;
+export const selectRequestedPlayer = (state: RootState): number => selectViewState(state).requestedPlayer;
+export const selectAutoCurrentPlayer = (state: RootState): boolean => selectViewState(state).autoCurrentPlayer;
+export const selectMoveForms = (state: RootState): any[] | null => selectViewState(state).moveForms;
+
 // Internal selector for timer infos (will be added to state)
 const selectGameTimerInfos = (state: RootState): Record<string, any> | null =>
     state.game?.timerInfos || null;
