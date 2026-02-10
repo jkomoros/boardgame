@@ -82,7 +82,8 @@ export const selectGameHasEmptySlots = (state: RootState): boolean => state.game
 export const selectGameOpen = (state: RootState): boolean => state.game ? state.game.open : false;
 export const selectGameVisible = (state: RootState): boolean => state.game ? state.game.visible : false;
 export const selectGameIsOwner = (state: RootState): boolean => state.game ? state.game.isOwner : false;
-export const selectGameCurrentState = (state: RootState): ExpandedGameState | null => state.game ? state.game.currentState : null;
+// Returns raw game state (not expanded) - use selectExpandedGameState for expanded version
+export const selectGameCurrentState = (state: RootState): any | null => state.game ? state.game.currentState : null;
 export const selectGameLoading = (state: RootState): boolean => state.game ? state.game.loading : false;
 export const selectGameError = (state: RootState): string | null => state.game ? state.game.error : null;
 
