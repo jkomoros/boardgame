@@ -187,7 +187,8 @@ const extractTimerPathsFromLeaf = (
     if (val && typeof val === 'object' && (val as any).IsTimer) {
       // Found a timer - check if it has time remaining
       const timerID = (val as any).ID;
-      if (timerInfos?.[timerID]?.TimeLeft > 0) {
+      const timerInfo = timerInfos?.[timerID];
+      if (timerInfo && timerInfo.TimeLeft > 0) {
         pathsToTick.push([...pathToLeaf, key]);
       }
     }
