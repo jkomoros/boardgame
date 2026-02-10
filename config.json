@@ -1,0 +1,39 @@
+{
+  "base": {
+    "defaultStorageType": "bolt",
+    "googleAnalytics": "",
+    "firebase": {
+      "apiKey": "AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM",
+      "authDomain": "example-boardgame.firebaseapp.com",
+      "databaseURL": "https://example-boardgame.firebaseio.com",
+      "projectId": "example-boardgame",
+      "storageBucket": "example-boardgame.appspot.com",
+      "messagingSenderId": "138149526364"
+    },
+    "games": {
+      "github.com/jkomoros/boardgame/examples": [
+        "blackjack",
+        "checkers",
+        "debuganimations",
+        "memory",
+        "pig",
+        "tictactoe"
+      ],
+      "github.com/jkomoros/boardgame/games": []
+    }
+  },
+  "dev": {
+    "allowedOrigins": "http://localhost:8080",
+    "disableAdminChecking": true,
+    "storage": {
+      "bolt": "./dev.db"
+    }
+  },
+  "prod": {
+    "allowedOrigins": "https://www.yourdomain.com",
+    "adminUserIds": [],
+    "storage": {
+      "bolt": "./prod.db"
+    }
+  }
+}

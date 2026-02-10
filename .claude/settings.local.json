@@ -53,7 +53,30 @@
       "Bash(printf:*)",
       "Bash(git reset:*)",
       "Bash(git rm:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "mcp__playwright__browser_navigate",
+      "Bash(npm run dev:*)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_close",
+      "Bash(boardgame-util serve:*)",
+      "Bash(node --version:*)",
+      "Bash(nvm list:*)",
+      "Bash(source:*)",
+      "Bash(nvm use:*)",
+      "Bash(boardgame-util clean:*)",
+      "Bash(brew list:*)",
+      "Bash(git cherry-pick:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }

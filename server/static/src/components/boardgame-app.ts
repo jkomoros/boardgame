@@ -43,8 +43,6 @@ import {
 export class BoardgameApp extends connect(store)(LitElement) {
   static styles = css`
     :host {
-      --app-primary-color: #4285f4;
-      --app-secondary-color: black;
       display: block;
       height: 100vh;
       display: flex;
@@ -60,13 +58,14 @@ export class BoardgameApp extends connect(store)(LitElement) {
       width: 100%;
       height: 100%;
       position: relative;
+      background-color: var(--md-sys-color-background);
     }
 
-    /* Drawer styles */
+    /* Drawer styles - Material Design 3 */
     .drawer {
-      width: 256px;
-      background: white;
-      border-right: 1px solid #e0e0e0;
+      width: 280px;
+      background: var(--md-sys-color-surface-container-low);
+      border-right: 1px solid var(--md-sys-color-outline-variant);
       display: flex;
       flex-direction: column;
       overflow-y: auto;
@@ -75,8 +74,9 @@ export class BoardgameApp extends connect(store)(LitElement) {
       top: 0;
       bottom: 0;
       transform: translateX(-100%);
-      transition: transform 0.3s ease-in-out;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 100;
+      box-shadow: var(--md-sys-elevation-2);
     }
 
     .drawer.open {
@@ -89,7 +89,8 @@ export class BoardgameApp extends connect(store)(LitElement) {
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: var(--md-sys-color-scrim);
+      opacity: 0.32;
       z-index: 99;
       display: none;
     }
@@ -100,36 +101,56 @@ export class BoardgameApp extends connect(store)(LitElement) {
 
     /* Admin toggle */
     .admin-toggle {
-      padding: 0 16px;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      font-family: var(--md-sys-typescale-body-medium-font);
+      font-size: var(--md-sys-typescale-body-medium-size);
+      line-height: var(--md-sys-typescale-body-medium-line-height);
+      color: var(--md-sys-color-on-surface);
     }
 
     .drawer-toolbar {
-      padding: 16px;
-      font-size: 20px;
-      font-weight: 500;
-      border-bottom: 1px solid #e0e0e0;
+      padding: 24px 16px 16px 16px;
+      font-family: var(--md-sys-typescale-title-large-font);
+      font-size: var(--md-sys-typescale-title-large-size);
+      line-height: var(--md-sys-typescale-title-large-line-height);
+      font-weight: var(--md-sys-typescale-title-large-weight);
+      color: var(--md-sys-color-on-surface);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
     }
 
-    /* Navigation list */
+    /* Navigation list - Material Design 3 */
     .drawer-list {
-      margin: 0 20px;
+      margin: 8px;
+      padding: 0;
     }
 
     .drawer-list a {
-      display: block;
-      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      margin: 4px 0;
       text-decoration: none;
-      color: var(--app-secondary-color);
-      line-height: 40px;
+      color: var(--md-sys-color-on-surface);
+      font-family: var(--md-sys-typescale-label-large-font);
+      font-size: var(--md-sys-typescale-label-large-size);
+      line-height: var(--md-sys-typescale-label-large-line-height);
+      font-weight: var(--md-sys-typescale-label-large-weight);
+      border-radius: 28px;
       cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .drawer-list a:hover {
+      background-color: var(--md-sys-color-surface-container-highest);
     }
 
     .drawer-list a.selected {
-      color: black;
-      font-weight: bold;
+      background-color: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      font-weight: 700;
     }
 
     /* Main content area */
@@ -140,11 +161,11 @@ export class BoardgameApp extends connect(store)(LitElement) {
       width: 100%;
     }
 
-    /* Header styles */
+    /* Header styles - Material Design 3 Top App Bar */
     .app-header {
-      background-color: var(--app-primary-color);
-      color: #fff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      background-color: var(--md-sys-color-surface);
+      color: var(--md-sys-color-on-surface);
+      box-shadow: var(--md-sys-elevation-2);
       position: sticky;
       top: 0;
       z-index: 10;
@@ -158,13 +179,16 @@ export class BoardgameApp extends connect(store)(LitElement) {
     }
 
     .app-toolbar md-icon-button {
-      --md-icon-button-icon-color: white;
+      --md-icon-button-icon-color: var(--md-sys-color-on-surface);
     }
 
     .app-title {
       flex: 1;
-      font-size: 20px;
-      font-weight: 500;
+      font-family: var(--md-sys-typescale-title-large-font);
+      font-size: var(--md-sys-typescale-title-large-size);
+      line-height: var(--md-sys-typescale-title-large-line-height);
+      font-weight: var(--md-sys-typescale-title-large-weight);
+      color: var(--md-sys-color-on-surface);
       margin-left: 16px;
     }
 
@@ -173,6 +197,7 @@ export class BoardgameApp extends connect(store)(LitElement) {
       flex: 1;
       overflow-y: auto;
       position: relative;
+      background-color: var(--md-sys-color-background);
     }
 
     /* Page visibility */
@@ -186,20 +211,29 @@ export class BoardgameApp extends connect(store)(LitElement) {
 
     /* Error dialog styles */
     md-dialog {
-      --md-dialog-container-color: white;
+      --md-dialog-container-color: var(--md-sys-color-surface-container-high);
     }
 
     md-dialog h2 {
       margin: 0 0 16px 0;
+      font-family: var(--md-sys-typescale-headline-small-font);
+      font-size: var(--md-sys-typescale-headline-small-size);
+      line-height: var(--md-sys-typescale-headline-small-line-height);
+      font-weight: var(--md-sys-typescale-headline-small-weight);
+      color: var(--md-sys-color-on-surface);
     }
 
     md-dialog p {
       margin: 8px 0;
+      font-family: var(--md-sys-typescale-body-medium-font);
+      font-size: var(--md-sys-typescale-body-medium-size);
+      line-height: var(--md-sys-typescale-body-medium-line-height);
+      color: var(--md-sys-color-on-surface);
     }
 
     md-dialog p.detail {
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 12px;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--md-sys-typescale-body-small-size);
     }
 
     md-dialog .buttons {

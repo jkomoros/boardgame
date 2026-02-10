@@ -83,31 +83,36 @@ const EMPTY_MANAGER: ManagerInfo = {
 @customElement('boardgame-create-game')
 export class BoardgameCreateGame extends connect(store)(LitElement) {
   static styles = css`
+    :host {
+      display: block;
+    }
+
     .card {
-      background: white;
-      padding: 16px;
-      margin: 8px 0;
-      border-radius: 4px;
-      box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-                  0 1px 5px 0 rgba(0, 0, 0, 0.12),
-                  0 3px 1px -2px rgba(0, 0, 0, 0.2);
+      background: var(--md-sys-color-surface-container-low);
+      padding: 20px;
+      margin: 12px 0;
+      border-radius: 12px;
+      box-shadow: var(--md-sys-elevation-1);
     }
 
     md-switch {
-      margin-right: 1em;
+      margin-right: 12px;
     }
 
     .secondary {
-      font-size: 12px;
-      color: var(--secondary-text-color, #757575);
+      font-family: var(--md-sys-typescale-body-small-font);
+      font-size: var(--md-sys-typescale-body-small-size);
+      line-height: var(--md-sys-typescale-body-small-line-height);
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 4px;
     }
 
     .game .secondary {
-      margin-bottom: -1em;
+      margin-bottom: -8px;
     }
 
     .variant > div {
-      margin-right: 1em;
+      margin-right: 12px;
     }
 
     [hidden] {
@@ -116,6 +121,7 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
 
     .layout {
       display: flex;
+      gap: 16px;
     }
 
     .vertical {
@@ -143,17 +149,42 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
     }
 
     md-slider {
-      width: 200px;
+      width: 250px;
+      --md-slider-active-track-color: var(--md-sys-color-primary);
+      --md-slider-handle-color: var(--md-sys-color-primary);
     }
 
     [role="radiogroup"] {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
+      margin: 12px 0;
     }
 
     md-icon {
-      margin-right: 4px;
+      margin-right: 8px;
+      --md-icon-size: 20px;
+    }
+
+    md-filled-button {
+      --md-filled-button-container-height: 40px;
+    }
+
+    /* Typography for labels and headings */
+    label, .label-text {
+      font-family: var(--md-sys-typescale-label-large-font);
+      font-size: var(--md-sys-typescale-label-large-size);
+      line-height: var(--md-sys-typescale-label-large-line-height);
+      font-weight: var(--md-sys-typescale-label-large-weight);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .player-count {
+      font-family: var(--md-sys-typescale-body-large-font);
+      font-size: var(--md-sys-typescale-body-large-size);
+      line-height: var(--md-sys-typescale-body-large-line-height);
+      color: var(--md-sys-color-on-surface);
+      font-weight: 600;
     }
   `;
 

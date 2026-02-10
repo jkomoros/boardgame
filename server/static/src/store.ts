@@ -5,8 +5,7 @@ import {
 	combineReducers,
 	Store
 } from 'redux';
-import type { ThunkDispatch } from 'redux-thunk';
-import thunk from 'redux-thunk';
+import { thunk, type ThunkDispatch } from 'redux-thunk';
 import { lazyReducerEnhancer } from 'pwa-helpers/lazy-reducer-enhancer.js';
 import type { RootState } from './types/store';
 

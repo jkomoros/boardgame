@@ -50,25 +50,32 @@ export class BoardgameListGamesView extends connect(store)(LitElement) {
   static styles = css`
     :host {
       display: block;
-      padding: 10px;
+      padding: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     h2 {
-      margin: 0 24px;
-      font-size: 20px;
-      font-weight: 500;
-      letter-spacing: 0.005em;
-      color: var(--primary-text-color, #212121);
+      margin: 24px 16px 12px 16px;
+      font-family: var(--md-sys-typescale-headline-small-font);
+      font-size: var(--md-sys-typescale-headline-small-size);
+      line-height: var(--md-sys-typescale-headline-small-line-height);
+      font-weight: var(--md-sys-typescale-headline-small-weight);
+      color: var(--md-sys-color-on-background);
+      letter-spacing: 0;
     }
 
     .card {
-      background: white;
-      padding: 16px;
-      margin: 8px;
-      border-radius: 4px;
-      box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-                  0 1px 5px 0 rgba(0, 0, 0, 0.12),
-                  0 3px 1px -2px rgba(0, 0, 0, 0.2);
+      background: var(--md-sys-color-surface-container-low);
+      padding: 20px;
+      margin: 12px;
+      border-radius: 12px;
+      box-shadow: var(--md-sys-elevation-1);
+      transition: box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--md-sys-elevation-2);
     }
 
     md-filled-select {
