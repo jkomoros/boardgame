@@ -13,7 +13,11 @@ const INITIAL_STATE = {
 	open: false,
 	visible: false,
 	isOwner: false,
+	// currentState is now RAW state from server (unexpanded)
+	// Use selectExpandedGameState selector to get expanded version
 	currentState: null,
+	// Timer metadata for selector expansion
+	timerInfos: null,
 	//note that pathsToTick and originalWallClockTime are accessed directly
 	//(without selectors) in actions/game.js
 	pathsToTick: [],
@@ -42,6 +46,7 @@ const app = (state = INITIAL_STATE, action) => {
 		return {
 			...state,
 			currentState: action.currentState,
+			timerInfos: action.timerInfos,
 			pathsToTick: action.pathsToTick,
 			originalWallClockTime: action.originalWallClockTime
 		};

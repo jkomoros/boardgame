@@ -21,7 +21,7 @@ import {
   selectGameOpen,
   selectGameVisible,
   selectGameIsOwner,
-  selectGameCurrentState
+  selectExpandedGameState
 } from '../selectors.js';
 
 import {
@@ -245,7 +245,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._open = selectGameOpen(state);
     this._visible = selectGameVisible(state);
     this._isOwner = selectGameIsOwner(state);
-    this._currentState = selectGameCurrentState(state);
+    this._currentState = selectExpandedGameState(state);
   }
 
   private _handleRefreshData(e: Event) {

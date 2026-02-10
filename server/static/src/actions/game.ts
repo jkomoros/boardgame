@@ -87,146 +87,93 @@ export const updateGameStaticInfo = (
 //currentState should be the unexpanded state (as passed in from server). Timer
 //infos should be game.ActiveTimers. originalWallClockTime should be the time
 //the state was received from the server (so that we can compute how much time
-//has elapsed from what the server reported). This will install the currentState
-//in, but also set up callbacks to update timer.TimeLeft for any timers in the
-//state automatically.
+//has elapsed from what the server reported). This will install the RAW currentState
+//in Redux, and selectors will expand it on-the-fly. This also sets up callbacks
+//to update timer.TimeLeft for any timers in the state automatically.
 export const installGameState = (
   currentState: any,
   timerInfos: Record<string, TimerInfo>,
   originalWallClockTime: number
 ) => (dispatch: Dispatch, getState: () => RootState) => {
 
-  const state = getState();
-  const chest = selectGameChest(state);
-  const gameName = selectGameName(state);
+  // Extract paths to tick WITHOUT mutating state
+  const pathsToTick = extractTimerPaths(currentState, timerInfos);
 
-  let [expandedState, pathsToTick] = expandState(currentState, timerInfos, chest, gameName);
+  // Augment timer infos with originalTimeLeft (preserve the initial value)
+  const augmentedTimerInfos: Record<string, TimerInfo> = {};
+  if (timerInfos) {
+    Object.keys(timerInfos).forEach(timerID => {
+      augmentedTimerInfos[timerID] = {
+        ...timerInfos[timerID],
+        originalTimeLeft: timerInfos[timerID].TimeLeft
+      };
+    });
+  }
 
-  dispatch(updateGameState(expandedState, pathsToTick, originalWallClockTime));
+  // Store RAW state directly - expansion happens in selectors!
+  dispatch(updateGameState(currentState, augmentedTimerInfos, pathsToTick, originalWallClockTime));
 
   if (pathsToTick.length) window.requestAnimationFrame(doTick);
 }
 
-const updateGameState = (expandedCurrentState: any, pathsToTick: any[], originalWallClockTime: number) => {
+const updateGameState = (
+  rawCurrentState: any,
+  timerInfos: Record<string, TimerInfo> | null,
+  pathsToTick: (string | number)[][],
+  originalWallClockTime: number
+) => {
   return {
     type: UPDATE_GAME_CURRENT_STATE,
-    currentState: expandedCurrentState,
+    currentState: rawCurrentState,  // Store RAW state
+    timerInfos,                      // Store timer metadata for selectors
     pathsToTick,
     originalWallClockTime
   }
 }
 
-//return [expandedState, pathsToTick]
-const expandState = (currentState: any, timerInfos: any, chest: any, gameName: string): [any, any[]] => {
-  //Takes the currentState and returns an object where all of the Stacks are replaced by actual references to the component they reference.
+/**
+ * PURE function to extract timer paths from state without mutation.
+ * Walks the state tree and finds all timers that need ticking.
+ * Returns array of paths like [["Game", "Timer"], ["Players", "0", "Timer"]].
+ */
+const extractTimerPaths = (currentState: any, timerInfos: Record<string, TimerInfo> | null): (string | number)[][] => {
+  const pathsToTick: (string | number)[][] = [];
 
-  const pathsToTick: any[] = [];
+  if (!currentState) return pathsToTick;
 
-  let newState = deepCopy(currentState);
+  // Extract from Game
+  extractTimerPathsFromLeaf(currentState.Game, ["Game"], pathsToTick, timerInfos);
 
-  expandLeafState(newState, newState.Game, ["Game"], pathsToTick, timerInfos, chest, gameName)
-  for (var i = 0; i < newState.Players.length; i++) {
-    expandLeafState(newState, newState.Players[i], ["Players", i], pathsToTick, timerInfos, chest, gameName)
+  // Extract from Players
+  if (currentState.Players) {
+    for (let i = 0; i < currentState.Players.length; i++) {
+      extractTimerPathsFromLeaf(currentState.Players[i], ["Players", i], pathsToTick, timerInfos);
+    }
   }
 
-  return [newState, pathsToTick];
-
+  return pathsToTick;
 }
 
-const expandLeafState = (wholeState: any, leafState: any, pathToLeaf: any[], pathsToTick: any[], timerInfos: any, chest: any, gameName: string): void => {
-  //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
+/**
+ * Helper to extract timer paths from a leaf state object.
+ */
+const extractTimerPathsFromLeaf = (
+  leafState: any,
+  pathToLeaf: (string | number)[],
+  pathsToTick: (string | number)[][],
+  timerInfos: Record<string, TimerInfo> | null
+): void => {
+  if (!leafState) return;
 
-  var entries = Object.entries(leafState);
-  for (var i = 0; i < entries.length; i++) {
-    let item = entries[i];
-    let key = item[0];
-    let val = item[1];
-    //Note: null is typeof "object"
-    if (val && typeof val == "object") {
-      if ((val as any).Deck) {
-        expandStack(val, wholeState, chest, gameName);
-      } else if ((val as any).IsTimer) {
-        expandTimer(val, pathToLeaf.concat([key]), pathsToTick, timerInfos);
+  Object.entries(leafState).forEach(([key, val]) => {
+    if (val && typeof val === 'object' && (val as any).IsTimer) {
+      // Found a timer - check if it has time remaining
+      const timerID = (val as any).ID;
+      if (timerInfos?.[timerID]?.TimeLeft > 0) {
+        pathsToTick.push([...pathToLeaf, key]);
       }
     }
-  }
-
-  //Copy in Player computed state if it exists, for convenience. Do it after expanding properties
-  if (pathToLeaf && pathToLeaf.length == 2 && pathToLeaf[0] == "Players") {
-    if (wholeState.Computed && wholeState.Computed.Players && wholeState.Computed.Players.length) {
-      leafState.Computed = wholeState.Computed.Players[pathToLeaf[1]];
-    }
-  }
-}
-
-const expandStack = (stack: any, wholeState: any, chest: any, gameName: string): void => {
-  if (!stack.Deck) {
-    //Meh, I guess it's not a stack
-    return;
-  }
-
-  let components = Array(stack.Indexes.length).fill(null);
-
-  for (var i = 0; i < stack.Indexes.length; i++) {
-    let index = stack.Indexes[i];
-    if (index == -1) {
-      components[i] = null;
-      continue;
-    }
-
-    //TODO: this should be a constant
-    if(index == -2) {
-      //TODO: to handle this appropriately we'd need to know how to
-      //produce a GenericComponent for each Deck clientside.
-      components[i] = {};
-    } else {
-      components[i] = componentForDeckAndIndex(stack.Deck, index, wholeState, chest);
-    }
-
-    if (stack.IDs) {
-      components[i].ID = stack.IDs[i];
-    }
-    components[i].Deck = stack.Deck;
-    components[i].GameName = gameName;
-  }
-
-  stack.GameName = gameName;
-  stack.Components = components;
-
-}
-
-const expandTimer = (timer: any, pathToLeaf: any[], pathsToTick: any[], timerInfo: any): void => {
-
-  //Always make sure these default to a number so databinding can use them.
-  timer.TimeLeft = 0;
-  timer.originalTimeLeft = 0;
-
-  if (!timerInfo) return;
-
-  let info = timerInfo[timer.ID];
-
-  if (!info) return;
-  timer.TimeLeft = info.TimeLeft;
-  timer.originalTimeLeft = timer.TimeLeft;
-  pathsToTick.push(pathToLeaf);
-}
-
-
-const componentForDeckAndIndex = (deckName: string, index: number, wholeState: any, chest: any): any => {
-  let deck = chest.Decks[deckName];
-
-  if (!deck) return null;
-
-  let result = {...deck[index]};
-
-  if (wholeState && wholeState.Components) {
-    if (wholeState.Components[deckName]) {
-      result.DynamicValues = wholeState.Components[deckName][index];
-    }
-  }
-
-  return result
-
+  });
 }
 
 const doTick = (): void => {
@@ -241,48 +188,56 @@ const doTick = (): void => {
 const tick = (): void => {
 
   const state = store.getState();
-  const currentState = selectGameCurrentState(state);
+  const rawState = selectGameCurrentState(state);  // This is now raw state
+  const timerInfos = state.game?.timerInfos;
 
-  if (!currentState) return;
+  if (!rawState || !timerInfos) return;
 
   const pathsToTick = state.game ? state.game.pathsToTick : [];
   const originalWallClockStartTime = state.game ? state.game.originalWallClockTime : 0;
 
   if (pathsToTick.length == 0) return;
 
-  let newPaths = [];
+  const now = Date.now();
+  const elapsed = now - originalWallClockStartTime;
 
-  //We'll use util.setPropertyInClone, so the newState will diverge from
-  //currentState as we write to it, but can start out the same.
-  let newState = currentState;
-
+  // Update timer infos (not the state itself!)
+  const newTimerInfos = { ...timerInfos };
+  const newPaths: (string | number)[][] = [];
 
   for (let i = 0; i < pathsToTick.length; i++) {
-    let currentPath = pathsToTick[i];
+    const currentPath = pathsToTick[i];
 
-    let timer = getProperty(newState, currentPath);
+    // Get the timer from raw state
+    const timer = getProperty(rawState, currentPath);
+    if (!timer?.ID) continue;
 
-    let now = Date.now();
-    let difference = now - originalWallClockStartTime;
+    const timerID = timer.ID;
+    const originalInfo = timerInfos[timerID];
+    if (!originalInfo) continue;
 
-    let result = Math.max(0, timer.originalTimeLeft - difference);
+    // Calculate new TimeLeft based on elapsed time since original wall clock time
+    // originalInfo.TimeLeft is the time left when the state was first received
+    const newTimeLeft = Math.max(0, originalInfo.TimeLeft - elapsed);
 
-    newState = setPropertyInClone(newState, currentPath.concat(["TimeLeft"]), result);
+    // Update timer info (preserve originalTimeLeft, update TimeLeft)
+    newTimerInfos[timerID] = {
+      ...originalInfo,
+      TimeLeft: newTimeLeft
+    };
 
-    //If we still have time to tick on this, then make sure it's still
-    //in the list of things to tick.
-    if (timer.TimeLeft > 0) {
+    // Keep in tick list if still has time
+    if (newTimeLeft > 0) {
       newPaths.push(currentPath);
     }
   }
 
-  if (newPaths.length == pathsToTick.length) {
-    //If the length of pathsToTick didn't change, don't change it, so that
-    //strict equality matches in the new state will work.
-    newPaths = pathsToTick;
-  }
+  // Optimize: only update if something changed
+  const pathsChanged = newPaths.length !== pathsToTick.length;
+  const finalPaths = pathsChanged ? newPaths : pathsToTick;
 
-  store.dispatch(updateGameState(newState, newPaths, originalWallClockStartTime));
+  // Dispatch with updated timer infos (raw state stays the same!)
+  store.dispatch(updateGameState(rawState, newTimerInfos, finalPaths, originalWallClockStartTime));
 }
 
 /**

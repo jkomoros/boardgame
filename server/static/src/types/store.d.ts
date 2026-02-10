@@ -103,10 +103,12 @@ export interface GameState {
   visible: boolean;
   /** Whether current user is the game owner */
   isOwner: boolean;
-  /** Current expanded game state (null if not loaded) */
-  currentState: ExpandedGameState | null;
-  /** Paths in state that need timer ticks */
-  pathsToTick: string[];
+  /** Current RAW game state from server (unexpanded - use selectExpandedGameState selector to get expanded version) */
+  currentState: any | null;
+  /** Timer metadata for expansion (maps timer ID to TimeLeft) */
+  timerInfos: Record<string, any> | null;
+  /** Paths in state that need timer ticks (can contain strings and numbers for array indices) */
+  pathsToTick: (string | number)[][];
   /** Original wall clock time when state was loaded */
   originalWallClockTime: number;
   /** Whether a fetch operation is in progress */
