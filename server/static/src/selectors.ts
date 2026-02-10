@@ -152,19 +152,22 @@ const selectGameTimerInfos = (state: RootState): Record<string, any> | null =>
     state.game?.timerInfos || null;
 
 /**
- * Memoized selector that expands raw game state.
- * Expansion adds synthetic properties (Components, GameName, TimeLeft) without mutating.
- * This is the PURE version - returns new objects, never mutates inputs.
+ * PERFORMANCE CRITICAL: Base expanded game state WITHOUT timer expansion.
+ * This selector does NOT depend on timerInfos, which updates 60+ times/second.
+ * By excluding timer expansion here, we prevent full game state re-expansion
+ * on every timer tick, which would cause massive performance overhead.
+ *
+ * Use this for most game state access where live timer updates aren't needed.
  */
-export const selectExpandedGameState = createSelector(
-    [selectGameCurrentState, selectGameChest, selectGameName, selectGameTimerInfos],
-    (rawState, chest, gameName, timerInfos): ExpandedGameState | null => {
+export const selectExpandedGameStateWithoutTimers = createSelector(
+    [selectGameCurrentState, selectGameChest, selectGameName],
+    (rawState, chest, gameName): ExpandedGameState | null => {
         if (!rawState || !chest) return null;
 
-        // Pure expansion - returns new object tree
-        const expandedGame = expandLeafState(rawState, rawState.Game, chest, gameName, timerInfos);
+        // Pure expansion - returns new object tree, skips timer expansion
+        const expandedGame = expandLeafState(rawState, rawState.Game, chest, gameName, null, true);
         const expandedPlayers = rawState.Players.map((player: any) =>
-            expandLeafState(rawState, player, chest, gameName, timerInfos)
+            expandLeafState(rawState, player, chest, gameName, null, true)
         );
 
         return {
@@ -176,15 +179,52 @@ export const selectExpandedGameState = createSelector(
 );
 
 /**
+ * PERFORMANCE CRITICAL: Expanded game state WITH timer updates.
+ * This selector depends on timerInfos (updates 60+ times/second) and should
+ * ONLY be used by components that need live timer countdowns.
+ *
+ * Most components should use selectExpandedGameStateWithoutTimers instead
+ * to avoid unnecessary re-renders on every timer tick.
+ */
+export const selectTimerExpandedGameState = createSelector(
+    [selectGameCurrentState, selectGameChest, selectGameName, selectGameTimerInfos],
+    (rawState, chest, gameName, timerInfos): ExpandedGameState | null => {
+        if (!rawState || !chest) return null;
+
+        // Pure expansion with timer info included
+        const expandedGame = expandLeafState(rawState, rawState.Game, chest, gameName, timerInfos, false);
+        const expandedPlayers = rawState.Players.map((player: any) =>
+            expandLeafState(rawState, player, chest, gameName, timerInfos, false)
+        );
+
+        return {
+            ...rawState,
+            Game: expandedGame,
+            Players: expandedPlayers,
+        };
+    }
+);
+
+/**
+ * Main game state selector - uses the non-timer version by default.
+ * This prevents the common case (displaying game state) from re-rendering
+ * 60+ times/second due to timer ticks.
+ */
+export const selectExpandedGameState = selectExpandedGameStateWithoutTimers;
+
+/**
  * Pure function to expand a leaf state object.
  * Walks properties and expands stacks and timers inline.
+ *
+ * @param skipTimers - If true, timer objects are left unexpanded (performance optimization)
  */
 const expandLeafState = (
     wholeState: any,
     leafState: any,
     chest: GameChest,
     gameName: string,
-    timerInfos: Record<string, any> | null
+    timerInfos: Record<string, any> | null,
+    skipTimers: boolean = false
 ): any => {
     const result = { ...leafState };
 
@@ -196,8 +236,8 @@ const expandLeafState = (
         if ((val as any).Deck) {
             result[key] = expandStack(val, wholeState, chest, gameName);
         }
-        // Expand timers (objects with IsTimer property)
-        else if ((val as any).IsTimer) {
+        // Expand timers (objects with IsTimer property) - skip if requested
+        else if ((val as any).IsTimer && !skipTimers) {
             result[key] = expandTimer(val, timerInfos);
         }
     });
