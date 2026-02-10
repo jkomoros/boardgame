@@ -251,9 +251,9 @@ export class BoardgameApp extends connect(store)(LitElement) {
   private _drawerOpen = false;
 
   firstUpdated() {
-    this.addEventListener('navigate-to', (e: CustomEvent) => this._handleNavigateTo(e));
-    this.addEventListener('show-error', (e: CustomEvent) => this._handleShowError(e));
-    this.addEventListener('show-login', (e: CustomEvent) => this._handleShowLogIn(e));
+    this.addEventListener('navigate-to', (e: Event) => this._handleNavigateTo(e as CustomEvent));
+    this.addEventListener('show-error', (e: Event) => this._handleShowError(e as CustomEvent));
+    this.addEventListener('show-login', (e: Event) => this._handleShowLogIn(e as CustomEvent));
     installRouter((location) => store.dispatch(navigated(decodeURIComponent(location.pathname), decodeURIComponent(location.search))));
   }
 

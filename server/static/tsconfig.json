@@ -10,6 +10,11 @@
     "strict": false,
     "noImplicitAny": true,
     "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
 
     "allowJs": true,
     "checkJs": false,
