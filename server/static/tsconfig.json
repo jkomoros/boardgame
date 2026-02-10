@@ -8,7 +8,7 @@
     "useDefineForClassFields": false,
 
     "strict": false,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictNullChecks": true,
 
     "allowJs": true,
