@@ -84,6 +84,34 @@ export interface UserInfo {
 }
 
 /**
+ * State bundle containing game state, forms, and metadata for animation playback.
+ */
+export interface StateBundle {
+  /** Wall clock time when bundle was created */
+  originalWallClockStartTime: number;
+  /** Game data from server */
+  game: any;
+  /** Move that triggered this state (null for initial state) */
+  move: any | null;
+  /** Expanded move forms for this state */
+  moveForms: any[] | null;
+  /** Player index viewing this state */
+  viewingAsPlayer: number;
+}
+
+/**
+ * Animation state for managing state bundle playback queue.
+ */
+export interface AnimationState {
+  /** Queue of state bundles waiting to be played */
+  pendingBundles: StateBundle[];
+  /** Last bundle that was fired/installed */
+  lastFiredBundle: StateBundle | null;
+  /** IDs of currently active animations */
+  activeAnimations: string[];
+}
+
+/**
  * Game state containing game data, players, and current state.
  */
 export interface GameState {
@@ -111,6 +139,8 @@ export interface GameState {
   pathsToTick: (string | number)[][];
   /** Original wall clock time when state was loaded */
   originalWallClockTime: number;
+  /** Animation system state (bundle queue and playback) */
+  animation: AnimationState;
   /** Whether a fetch operation is in progress */
   loading: boolean;
   /** Last error message from fetch operations (null if no error) */

@@ -59,6 +59,21 @@ export const selectGameRoute = createSelector(
     (id, name): { id: string; name: string } | null => id ? {id, name} : null
 );
 
+// Animation selectors
+export const selectAnimationState = (state: RootState) => state.game?.animation || {
+    pendingBundles: [],
+    lastFiredBundle: null,
+    activeAnimations: []
+};
+export const selectPendingBundles = (state: RootState): any[] => selectAnimationState(state).pendingBundles;
+export const selectLastFiredBundle = (state: RootState): any | null => selectAnimationState(state).lastFiredBundle;
+export const selectActiveAnimations = (state: RootState): string[] => selectAnimationState(state).activeAnimations;
+export const selectHasPendingBundles = (state: RootState): boolean => selectPendingBundles(state).length > 0;
+export const selectNextBundle = (state: RootState): any | null => {
+    const bundles = selectPendingBundles(state);
+    return bundles.length > 0 ? bundles[0] : null;
+};
+
 // Internal selector for timer infos (will be added to state)
 const selectGameTimerInfos = (state: RootState): Record<string, any> | null =>
     state.game?.timerInfos || null;

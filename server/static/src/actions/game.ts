@@ -49,6 +49,11 @@ export const FETCH_GAME_INFO_FAILURE = 'FETCH_GAME_INFO_FAILURE';
 export const FETCH_GAME_VERSION_REQUEST = 'FETCH_GAME_VERSION_REQUEST';
 export const FETCH_GAME_VERSION_SUCCESS = 'FETCH_GAME_VERSION_SUCCESS';
 export const FETCH_GAME_VERSION_FAILURE = 'FETCH_GAME_VERSION_FAILURE';
+export const ENQUEUE_STATE_BUNDLE = 'ENQUEUE_STATE_BUNDLE';
+export const DEQUEUE_STATE_BUNDLE = 'DEQUEUE_STATE_BUNDLE';
+export const CLEAR_STATE_BUNDLES = 'CLEAR_STATE_BUNDLES';
+export const MARK_ANIMATION_STARTED = 'MARK_ANIMATION_STARTED';
+export const MARK_ANIMATION_COMPLETED = 'MARK_ANIMATION_COMPLETED';
 
 export const updateGameRoute = (pageExtra: string) => {
     const pieces = pageExtra.split("/");
@@ -459,4 +464,56 @@ export const fetchGameVersion = (
   });
 
   return response;
+};
+
+/**
+ * Animation Actions
+ */
+
+/**
+ * Enqueue a state bundle for animation playback
+ */
+export const enqueueStateBundle = (bundle: any) => {
+  return {
+    type: ENQUEUE_STATE_BUNDLE,
+    bundle
+  };
+};
+
+/**
+ * Dequeue the next state bundle (after it's been installed)
+ */
+export const dequeueStateBundle = () => {
+  return {
+    type: DEQUEUE_STATE_BUNDLE
+  };
+};
+
+/**
+ * Clear all pending state bundles (on reset)
+ */
+export const clearStateBundles = () => {
+  return {
+    type: CLEAR_STATE_BUNDLES
+  };
+};
+
+/**
+ * Mark an animation as started (for tracking)
+ */
+export const markAnimationStarted = (animationId: string) => {
+  return {
+    type: MARK_ANIMATION_STARTED,
+    animationId
+  };
+};
+
+/**
+ * Mark an animation as completed (for tracking)
+ */
+export const markAnimationCompleted = (animationId: string) => {
+  return {
+    type: MARK_ANIMATION_COMPLETED,
+    animationId
+  };
 };

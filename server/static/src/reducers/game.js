@@ -1,7 +1,12 @@
 import {
 	UPDATE_GAME_ROUTE,
 	UPDATE_GAME_STATIC_INFO,
-	UPDATE_GAME_CURRENT_STATE
+	UPDATE_GAME_CURRENT_STATE,
+	ENQUEUE_STATE_BUNDLE,
+	DEQUEUE_STATE_BUNDLE,
+	CLEAR_STATE_BUNDLES,
+	MARK_ANIMATION_STARTED,
+	MARK_ANIMATION_COMPLETED
 } from '../actions/game.js';
 
 const INITIAL_STATE = {
@@ -21,7 +26,13 @@ const INITIAL_STATE = {
 	//note that pathsToTick and originalWallClockTime are accessed directly
 	//(without selectors) in actions/game.js
 	pathsToTick: [],
-	originalWallClockTime: 0
+	originalWallClockTime: 0,
+	// Animation system state
+	animation: {
+		pendingBundles: [],
+		lastFiredBundle: null,
+		activeAnimations: []
+	}
 };
 
 const app = (state = INITIAL_STATE, action) => {
@@ -49,6 +60,48 @@ const app = (state = INITIAL_STATE, action) => {
 			timerInfos: action.timerInfos,
 			pathsToTick: action.pathsToTick,
 			originalWallClockTime: action.originalWallClockTime
+		};
+	case ENQUEUE_STATE_BUNDLE:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				pendingBundles: [...state.animation.pendingBundles, action.bundle]
+			}
+		};
+	case DEQUEUE_STATE_BUNDLE:
+		const [firedBundle, ...remainingBundles] = state.animation.pendingBundles;
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				pendingBundles: remainingBundles,
+				lastFiredBundle: firedBundle || state.animation.lastFiredBundle
+			}
+		};
+	case CLEAR_STATE_BUNDLES:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				pendingBundles: []
+			}
+		};
+	case MARK_ANIMATION_STARTED:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				activeAnimations: [...state.animation.activeAnimations, action.animationId]
+			}
+		};
+	case MARK_ANIMATION_COMPLETED:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				activeAnimations: state.animation.activeAnimations.filter(id => id !== action.animationId)
+			}
 		};
 	default:
 		return state;

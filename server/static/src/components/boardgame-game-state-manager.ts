@@ -2,7 +2,22 @@ import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
 import { store } from '../store.js';
-import { fetchGameInfo, fetchGameVersion } from '../actions/game.js';
+import {
+  fetchGameInfo,
+  fetchGameVersion,
+  enqueueStateBundle,
+  dequeueStateBundle,
+  clearStateBundles
+} from '../actions/game.js';
+import {
+  selectPendingBundles,
+  selectLastFiredBundle,
+  selectNextBundle,
+  selectHasPendingBundles
+} from '../selectors.js';
+
+import { connect } from 'pwa-helpers/connect-mixin.js';
+import type { RootState } from '../types/store';
 
 /**
  * StateManager keeps track of fetching state bundles from the server and
@@ -16,7 +31,7 @@ import { fetchGameInfo, fetchGameVersion } from '../actions/game.js';
  * receive updates about when the state increases. When the state version
  * increases, that increments TargetVersion, which changes the URL to fetch.
  */
-class BoardgameGameStateManager extends LitElement {
+class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Object })
   gameRoute: { name: string; id: string } | null = null;
 
@@ -80,16 +95,25 @@ class BoardgameGameStateManager extends LitElement {
   @property({ type: Object, attribute: false })
   private _socket: WebSocket | null = null;
 
-  private _pendingStateBundles: any[] = [];
+  // Animation state now in Redux - accessed via selectors in stateChanged()
+  @property({ type: Array, attribute: false })
+  private _pendingBundles: any[] = [];
+
+  @property({ type: Object, attribute: false })
   private _lastFiredBundle: any = null;
+
   private _fetchingInfo = false;
   private _fetchingVersion = false;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
-    this._pendingStateBundles = [];
-    this._lastFiredBundle = null;
     this.updateData();
+  }
+
+  stateChanged(state: RootState) {
+    // Sync Redux animation state to local properties
+    this._pendingBundles = selectPendingBundles(state);
+    this._lastFiredBundle = selectLastFiredBundle(state);
   }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -309,7 +333,7 @@ class BoardgameGameStateManager extends LitElement {
   reset() {
     this.lastFetchedVersion = 0;
     this.targetVersion = -1;
-    this._resetPendingStateBundles();
+    store.dispatch(clearStateBundles());
     this.softReset();
   }
 
@@ -385,13 +409,13 @@ class BoardgameGameStateManager extends LitElement {
   // state bundle. renderer might be a reference to the underlying renderer, or
   // null.
   private _scheduleNextStateBundle() {
-    if (!this._pendingStateBundles.length) return;
+    if (!this._pendingBundles.length) return;
 
     const renderer = this.activeRenderer;
 
     // If we were given a renderer that knows how to delay animations, consult it.
     if (renderer) {
-      const nextBundle = this._pendingStateBundles[0];
+      const nextBundle = this._pendingBundles[0];
       const lastBundle = this._lastFiredBundle;
       const nextMove = nextBundle ? nextBundle.move : null;
       const lastMove = lastBundle ? lastBundle.move : null;
@@ -401,9 +425,9 @@ class BoardgameGameStateManager extends LitElement {
           // If the length is negative, that's the signal to skip binding this one.
           if (length < 0) {
             // We always render the last bundle to install
-            if (this._pendingStateBundles.length > 1) {
-              // Skip this bundle.
-              this._lastFiredBundle = this._pendingStateBundles.shift();
+            if (this._pendingBundles.length > 1) {
+              // Skip this bundle by dequeuing it
+              store.dispatch(dequeueStateBundle());
               this._scheduleNextStateBundle();
               return;
             }
@@ -434,24 +458,22 @@ class BoardgameGameStateManager extends LitElement {
     window.requestAnimationFrame(() => this._fireNextStateBundle());
   }
 
-  private _resetPendingStateBundles() {
-    this._pendingStateBundles = [];
-  }
-
   private _fireNextStateBundle() {
     // Called when the next state bundle should be installed NOW.
-    const bundle = this._pendingStateBundles.shift();
-    if (bundle) {
-      this._lastFiredBundle = bundle;
+    // Dequeue from Redux and fire event
+    if (this._pendingBundles.length > 0) {
+      const bundle = this._pendingBundles[0];
+      store.dispatch(dequeueStateBundle());
       this.dispatchEvent(new CustomEvent('install-state-bundle', { composed: true, detail: bundle }));
     }
   }
 
   // Add the next state bundle to the end
   private _enqueueStateBundle(bundle: any) {
-    this._pendingStateBundles.push(bundle);
+    const wasEmpty = this._pendingBundles.length === 0;
+    store.dispatch(enqueueStateBundle(bundle));
     // If that was the first one we added, go ahead and fire it right now.
-    if (this._pendingStateBundles.length === 1) this._scheduleNextStateBundle();
+    if (wasEmpty) this._scheduleNextStateBundle();
   }
 
   private _handleInfoData(data: any) {
