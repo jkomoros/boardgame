@@ -54,6 +54,12 @@ export const DEQUEUE_STATE_BUNDLE = 'DEQUEUE_STATE_BUNDLE';
 export const CLEAR_STATE_BUNDLES = 'CLEAR_STATE_BUNDLES';
 export const MARK_ANIMATION_STARTED = 'MARK_ANIMATION_STARTED';
 export const MARK_ANIMATION_COMPLETED = 'MARK_ANIMATION_COMPLETED';
+export const SET_CURRENT_VERSION = 'SET_CURRENT_VERSION';
+export const SET_TARGET_VERSION = 'SET_TARGET_VERSION';
+export const SET_LAST_FETCHED_VERSION = 'SET_LAST_FETCHED_VERSION';
+export const SOCKET_CONNECTED = 'SOCKET_CONNECTED';
+export const SOCKET_DISCONNECTED = 'SOCKET_DISCONNECTED';
+export const SOCKET_ERROR = 'SOCKET_ERROR';
 
 export const updateGameRoute = (pageExtra: string) => {
     const pieces = pageExtra.split("/");
@@ -515,5 +521,71 @@ export const markAnimationCompleted = (animationId: string) => {
   return {
     type: MARK_ANIMATION_COMPLETED,
     animationId
+  };
+};
+
+/**
+ * Version Actions
+ */
+
+/**
+ * Set the current game version (from installed state)
+ */
+export const setCurrentVersion = (version: number) => {
+  return {
+    type: SET_CURRENT_VERSION,
+    version
+  };
+};
+
+/**
+ * Set the target version to fetch (from WebSocket or navigation)
+ */
+export const setTargetVersion = (version: number) => {
+  return {
+    type: SET_TARGET_VERSION,
+    version
+  };
+};
+
+/**
+ * Set the last successfully fetched version
+ */
+export const setLastFetchedVersion = (version: number) => {
+  return {
+    type: SET_LAST_FETCHED_VERSION,
+    version
+  };
+};
+
+/**
+ * Socket Actions
+ */
+
+/**
+ * Mark WebSocket as connected
+ */
+export const socketConnected = () => {
+  return {
+    type: SOCKET_CONNECTED
+  };
+};
+
+/**
+ * Mark WebSocket as disconnected
+ */
+export const socketDisconnected = () => {
+  return {
+    type: SOCKET_DISCONNECTED
+  };
+};
+
+/**
+ * Record WebSocket error
+ */
+export const socketError = (error: string) => {
+  return {
+    type: SOCKET_ERROR,
+    error
   };
 };

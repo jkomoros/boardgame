@@ -6,7 +6,13 @@ import {
 	DEQUEUE_STATE_BUNDLE,
 	CLEAR_STATE_BUNDLES,
 	MARK_ANIMATION_STARTED,
-	MARK_ANIMATION_COMPLETED
+	MARK_ANIMATION_COMPLETED,
+	SET_CURRENT_VERSION,
+	SET_TARGET_VERSION,
+	SET_LAST_FETCHED_VERSION,
+	SOCKET_CONNECTED,
+	SOCKET_DISCONNECTED,
+	SOCKET_ERROR
 } from '../actions/game.js';
 
 const INITIAL_STATE = {
@@ -32,6 +38,18 @@ const INITIAL_STATE = {
 		pendingBundles: [],
 		lastFiredBundle: null,
 		activeAnimations: []
+	},
+	// Version tracking state
+	versions: {
+		current: 0,
+		target: -1,
+		lastFetched: 0
+	},
+	// WebSocket connection state
+	socket: {
+		connected: false,
+		connectionAttempts: 0,
+		lastError: null
 	}
 };
 
@@ -101,6 +119,57 @@ const app = (state = INITIAL_STATE, action) => {
 			animation: {
 				...state.animation,
 				activeAnimations: state.animation.activeAnimations.filter(id => id !== action.animationId)
+			}
+		};
+	case SET_CURRENT_VERSION:
+		return {
+			...state,
+			versions: {
+				...state.versions,
+				current: action.version
+			}
+		};
+	case SET_TARGET_VERSION:
+		return {
+			...state,
+			versions: {
+				...state.versions,
+				target: action.version
+			}
+		};
+	case SET_LAST_FETCHED_VERSION:
+		return {
+			...state,
+			versions: {
+				...state.versions,
+				lastFetched: action.version
+			}
+		};
+	case SOCKET_CONNECTED:
+		return {
+			...state,
+			socket: {
+				...state.socket,
+				connected: true,
+				connectionAttempts: 0,
+				lastError: null
+			}
+		};
+	case SOCKET_DISCONNECTED:
+		return {
+			...state,
+			socket: {
+				...state.socket,
+				connected: false,
+				connectionAttempts: state.socket.connectionAttempts + 1
+			}
+		};
+	case SOCKET_ERROR:
+		return {
+			...state,
+			socket: {
+				...state.socket,
+				lastError: action.error
 			}
 		};
 	default:

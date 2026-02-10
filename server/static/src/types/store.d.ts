@@ -112,6 +112,30 @@ export interface AnimationState {
 }
 
 /**
+ * Version tracking state for managing game state versions and fetching.
+ */
+export interface VersionState {
+  /** Current game version (from latest installed state) */
+  current: number;
+  /** Target version to fetch (set by WebSocket or manual navigation) */
+  target: number;
+  /** Last version successfully fetched from server */
+  lastFetched: number;
+}
+
+/**
+ * WebSocket connection state.
+ */
+export interface SocketState {
+  /** Whether WebSocket is currently connected */
+  connected: boolean;
+  /** Number of connection attempts (for backoff) */
+  connectionAttempts: number;
+  /** Last error message (null if no error) */
+  lastError: string | null;
+}
+
+/**
  * Game state containing game data, players, and current state.
  */
 export interface GameState {
@@ -141,6 +165,10 @@ export interface GameState {
   originalWallClockTime: number;
   /** Animation system state (bundle queue and playback) */
   animation: AnimationState;
+  /** Version tracking state */
+  versions: VersionState;
+  /** WebSocket connection state */
+  socket: SocketState;
   /** Whether a fetch operation is in progress */
   loading: boolean;
   /** Last error message from fetch operations (null if no error) */

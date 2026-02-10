@@ -74,6 +74,26 @@ export const selectNextBundle = (state: RootState): any | null => {
     return bundles.length > 0 ? bundles[0] : null;
 };
 
+// Version selectors
+export const selectVersionState = (state: RootState) => state.game?.versions || {
+    current: 0,
+    target: -1,
+    lastFetched: 0
+};
+export const selectCurrentVersion = (state: RootState): number => selectVersionState(state).current;
+export const selectTargetVersion = (state: RootState): number => selectVersionState(state).target;
+export const selectLastFetchedVersion = (state: RootState): number => selectVersionState(state).lastFetched;
+
+// Socket selectors
+export const selectSocketState = (state: RootState) => state.game?.socket || {
+    connected: false,
+    connectionAttempts: 0,
+    lastError: null
+};
+export const selectSocketConnected = (state: RootState): boolean => selectSocketState(state).connected;
+export const selectSocketConnectionAttempts = (state: RootState): number => selectSocketState(state).connectionAttempts;
+export const selectSocketError = (state: RootState): string | null => selectSocketState(state).lastError;
+
 // Internal selector for timer infos (will be added to state)
 const selectGameTimerInfos = (state: RootState): Record<string, any> | null =>
     state.game?.timerInfos || null;

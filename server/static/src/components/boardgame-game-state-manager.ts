@@ -7,13 +7,23 @@ import {
   fetchGameVersion,
   enqueueStateBundle,
   dequeueStateBundle,
-  clearStateBundles
+  clearStateBundles,
+  setCurrentVersion,
+  setTargetVersion,
+  setLastFetchedVersion,
+  socketConnected,
+  socketDisconnected,
+  socketError
 } from '../actions/game.js';
 import {
   selectPendingBundles,
   selectLastFiredBundle,
   selectNextBundle,
-  selectHasPendingBundles
+  selectHasPendingBundles,
+  selectCurrentVersion,
+  selectTargetVersion,
+  selectLastFetchedVersion,
+  selectSocketConnected
 } from '../selectors.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
@@ -53,8 +63,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Boolean })
   loggedIn = false;
 
-  @property({ type: Number })
+  // Version tracking - synced from Redux
+  @property({ type: Number, attribute: false })
   targetVersion = -1;
+
+  @property({ type: Number, attribute: false })
+  gameVersion = 0;
+
+  @property({ type: Number, attribute: false })
+  lastFetchedVersion = 0;
+
+  // Socket state - synced from Redux
+  @property({ type: Boolean, attribute: false })
+  socketActive = false;
 
   @property({ type: String, attribute: false })
   gameVersionPath = '';
@@ -73,15 +94,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   @property({ type: Number })
   requestedPlayer = 0;
-
-  @property({ type: Number })
-  gameVersion = 0;
-
-  @property({ type: Number })
-  lastFetchedVersion = 0;
-
-  @property({ type: Boolean, attribute: true })
-  socketActive = false;
 
   @property({ type: Object })
   activeRenderer: any = null;
@@ -114,6 +126,20 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     // Sync Redux animation state to local properties
     this._pendingBundles = selectPendingBundles(state);
     this._lastFiredBundle = selectLastFiredBundle(state);
+
+    // Sync Redux version state to local properties
+    const prevTarget = this.targetVersion;
+    this.targetVersion = selectTargetVersion(state);
+    this.gameVersion = selectCurrentVersion(state);
+    this.lastFetchedVersion = selectLastFetchedVersion(state);
+
+    // Sync Redux socket state
+    this.socketActive = selectSocketConnected(state);
+
+    // Handle version changes (replaces property watcher)
+    if (prevTarget !== this.targetVersion && this.targetVersion >= 0) {
+      this._handleTargetVersionChanged();
+    }
   }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -155,10 +181,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     if (changedProperties.has('active')) {
       this._activeChanged(this.active);
-    }
-
-    if (changedProperties.has('gameVersionPath')) {
-      this._gameVersionPathChanged(this.gameVersionPath, changedProperties.get('gameVersionPath') as string);
     }
 
     if (changedProperties.has('_socketUrl')) {
@@ -216,19 +238,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     }
   }
 
-  private async _gameVersionPathChanged(newValue: string, oldValue: string) {
-    if (!newValue) return;
+  private _handleTargetVersionChanged() {
+    // Replaces _gameVersionPathChanged property watcher
+    // Called explicitly from stateChanged when targetVersion changes
+
+    if (this.targetVersion < 0) return;
 
     if (this.autoCurrentPlayer && this.requestedPlayer === this.viewingAsPlayer && this.targetVersion === this.gameVersion) {
       return;
     }
 
-    // Compute effective path to check if we should fetch
-    const effectivePath = this._computeEffectiveGameVersionPath(newValue, this.lastFetchedVersion, this.gameVersion);
-    this.effectiveGameVersionPath = effectivePath;
-
-    if (!effectivePath) {
-      return; // Skip if already have this version
+    // Skip if already have this version
+    if (this.lastFetchedVersion === this.gameVersion && this.targetVersion === this.gameVersion) {
+      return;
     }
 
     if (this._fetchingVersion) {
@@ -241,7 +263,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     this._fetchingVersion = true;
 
-    // TODO: the autoCurrent player stuff has to be done here...
     requestAnimationFrame(async () => {
       try {
         const response = await store.dispatch(
@@ -293,21 +314,21 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     if (isNaN(version)) {
       return;
     }
-    this.targetVersion = version;
+    store.dispatch(setTargetVersion(version));
   }
 
   private _socketError(e: Event) {
-    // TODO: do something more substantive
     console.warn('Socket error', e);
+    store.dispatch(socketError(e.toString()));
   }
 
   private _socketOpened(e: Event) {
-    this.socketActive = true;
+    store.dispatch(socketConnected());
   }
 
   private _socketClosed(e: CloseEvent) {
     console.warn('Socket closed', e);
-    this.socketActive = false;
+    store.dispatch(socketDisconnected());
     // We always want a socket, so connect. Wait a bit so we don't just
     // busy spin if the server is down.
 
@@ -331,8 +352,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   // When everything should be reset
   reset() {
-    this.lastFetchedVersion = 0;
-    this.targetVersion = -1;
+    store.dispatch(setLastFetchedVersion(0));
+    store.dispatch(setTargetVersion(-1));
+    store.dispatch(setCurrentVersion(0));
     store.dispatch(clearStateBundles());
     this.softReset();
   }
@@ -503,8 +525,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     // state we're returning is not actually current state, but an old one to
     // force us to play animations for moves that are made before a player move
     // is. The server ships down this information in a special field.
-    this.lastFetchedVersion = data.StateVersion;
-    this.targetVersion = data.Game.Version;
+    store.dispatch(setLastFetchedVersion(data.StateVersion));
+    store.dispatch(setTargetVersion(data.Game.Version));
+    store.dispatch(setCurrentVersion(data.Game.Version));
   }
 
   private _handleVersionData(data: any) {
@@ -523,7 +546,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       lastServerBundle = serverBundle;
     }
 
-    this.lastFetchedVersion = lastServerBundle.Game.Version;
+    if (lastServerBundle.Game) {
+      store.dispatch(setLastFetchedVersion(lastServerBundle.Game.Version));
+      store.dispatch(setCurrentVersion(lastServerBundle.Game.Version));
+    }
   }
 
   override render() {
