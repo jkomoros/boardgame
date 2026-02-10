@@ -1,6 +1,33 @@
 import { createSelector } from 'reselect';
 import type { RootState, GameChest, PlayerInfo, ExpandedGameState, UserInfo } from './types/store';
 
+// Stable default objects to prevent creating new objects on every selector call
+const DEFAULT_ANIMATION_STATE = {
+    pendingBundles: [],
+    lastFiredBundle: null,
+    activeAnimations: []
+};
+
+const DEFAULT_VERSION_STATE = {
+    current: 0,
+    target: -1,
+    lastFetched: 0
+};
+
+const DEFAULT_SOCKET_STATE = {
+    connected: false,
+    connectionAttempts: 0,
+    lastError: null
+};
+
+const DEFAULT_VIEW_STATE = {
+    game: null,
+    viewingAsPlayer: 0,
+    requestedPlayer: 0,
+    autoCurrentPlayer: false,
+    moveForms: null
+};
+
 // App selectors
 export const selectPage = (state: RootState): string => state.app ? state.app.page : "";
 export const selectPageExtra = (state: RootState): string => state.app ? state.app.pageExtra : "";
@@ -64,11 +91,8 @@ export const selectGameRoute = createSelector(
 );
 
 // Animation selectors
-export const selectAnimationState = (state: RootState) => state.game?.animation || {
-    pendingBundles: [],
-    lastFiredBundle: null,
-    activeAnimations: []
-};
+export const selectAnimationState = (state: RootState) =>
+    state.game?.animation || DEFAULT_ANIMATION_STATE;
 export const selectPendingBundles = (state: RootState): any[] => selectAnimationState(state).pendingBundles;
 export const selectLastFiredBundle = (state: RootState): any | null => selectAnimationState(state).lastFiredBundle;
 export const selectActiveAnimations = (state: RootState): string[] => selectAnimationState(state).activeAnimations;
@@ -79,33 +103,22 @@ export const selectNextBundle = (state: RootState): any | null => {
 };
 
 // Version selectors
-export const selectVersionState = (state: RootState) => state.game?.versions || {
-    current: 0,
-    target: -1,
-    lastFetched: 0
-};
+export const selectVersionState = (state: RootState) =>
+    state.game?.versions || DEFAULT_VERSION_STATE;
 export const selectCurrentVersion = (state: RootState): number => selectVersionState(state).current;
 export const selectTargetVersion = (state: RootState): number => selectVersionState(state).target;
 export const selectLastFetchedVersion = (state: RootState): number => selectVersionState(state).lastFetched;
 
 // Socket selectors
-export const selectSocketState = (state: RootState) => state.game?.socket || {
-    connected: false,
-    connectionAttempts: 0,
-    lastError: null
-};
+export const selectSocketState = (state: RootState) =>
+    state.game?.socket || DEFAULT_SOCKET_STATE;
 export const selectSocketConnected = (state: RootState): boolean => selectSocketState(state).connected;
 export const selectSocketConnectionAttempts = (state: RootState): number => selectSocketState(state).connectionAttempts;
 export const selectSocketError = (state: RootState): string | null => selectSocketState(state).lastError;
 
 // View selectors
-export const selectViewState = (state: RootState) => state.game?.view || {
-    game: null,
-    viewingAsPlayer: 0,
-    requestedPlayer: 0,
-    autoCurrentPlayer: false,
-    moveForms: null
-};
+export const selectViewState = (state: RootState) =>
+    state.game?.view || DEFAULT_VIEW_STATE;
 export const selectGame = (state: RootState): any | null => selectViewState(state).game;
 export const selectViewingAsPlayer = (state: RootState): number => selectViewState(state).viewingAsPlayer;
 export const selectRequestedPlayer = (state: RootState): number => selectViewState(state).requestedPlayer;
