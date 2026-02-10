@@ -7,14 +7,16 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
 
-    "strict": false,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
+    // Full strict mode enabled after phased migration (Phases 1-3)
+    // This enables all strict type-checking options:
+    // - strictNullChecks: null/undefined checking
+    // - noImplicitAny: explicit types required
+    // - strictBindCallApply: correct bind/call/apply
+    // - strictFunctionTypes: rigorous function checking
+    // - strictPropertyInitialization: class property initialization
+    // - noImplicitThis: explicit 'this' typing
+    // - alwaysStrict: emit "use strict"
+    "strict": true,
 
     "allowJs": true,
     "checkJs": false,
