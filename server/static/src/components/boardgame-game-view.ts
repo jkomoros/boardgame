@@ -44,6 +44,9 @@ import {
   fetchGameInfo
 } from '../actions/game.js';
 
+import type { StateBundle } from '../types/game-state';
+import type { MoveForm } from '../types/api';
+
 import game from '../reducers/game.js';
 store.addReducers({
   game
@@ -92,7 +95,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   autoCurrentPlayer = false;
 
   @property({ type: Object, attribute: false })
-  moveForms: any = null;
+  moveForms: MoveForm[] | null = null;
 
   @property({ type: Boolean })
   selected = false;
@@ -123,54 +126,45 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @query('#player')
   private _playerEle: any;
 
-  // Computed properties - read directly from Redux selectors
-  private get _currentState() {
-    return selectExpandedGameState(store.getState());
-  }
+  // Reactive properties - synced from Redux in stateChanged()
+  @property({ type: Object, attribute: false })
+  _currentState: any = null;
 
-  private get _chest() {
-    return selectGameChest(store.getState());
-  }
+  @property({ type: Object, attribute: false })
+  _chest: any = null;
 
-  private get _playersInfo() {
-    return selectGamePlayersInfo(store.getState());
-  }
+  @property({ type: Array, attribute: false })
+  _playersInfo: any[] = [];
 
-  private get _hasEmptySlots() {
-    return selectGameHasEmptySlots(store.getState());
-  }
+  @property({ type: Boolean, attribute: false })
+  _hasEmptySlots = false;
 
-  private get _open() {
-    return selectGameOpen(store.getState());
-  }
+  @property({ type: Boolean, attribute: false })
+  _open = false;
 
-  private get _visible() {
-    return selectGameVisible(store.getState());
-  }
+  @property({ type: Boolean, attribute: false })
+  _visible = false;
 
-  private get _isOwner() {
-    return selectGameIsOwner(store.getState());
-  }
+  @property({ type: Boolean, attribute: false })
+  _isOwner = false;
 
-  private get _pageExtra() {
-    return selectPageExtra(store.getState());
-  }
+  @property({ type: String, attribute: false })
+  _pageExtra = '';
 
-  private get _gameRoute() {
-    return selectGameRoute(store.getState());
-  }
+  @property({ type: Object, attribute: false })
+  _gameRoute: { id: string; name: string } | null = null;
 
-  private get _loggedIn() {
-    return selectLoggedIn(store.getState());
-  }
+  @property({ type: Boolean, attribute: false })
+  _loggedIn = false;
 
-  private get _admin() {
-    return selectAdmin(store.getState());
-  }
+  @property({ type: Boolean, attribute: false })
+  _admin = false;
 
-  private get _page() {
-    return selectPage(store.getState());
-  }
+  @property({ type: String, attribute: false })
+  _page = '';
+
+  @property({ type: Number, attribute: false })
+  _lastFetchedVersion = 0;
 
   constructor() {
     super();
@@ -259,12 +253,26 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   stateChanged(state: any) {
     // Sync view state from Redux
-    // All other properties are accessed via getters that read directly from selectors
     this.game = selectGame(state);
     this.viewingAsPlayer = selectViewingAsPlayer(state);
     this.requestedPlayer = selectRequestedPlayer(state);
     this.autoCurrentPlayer = selectAutoCurrentPlayer(state);
     this.moveForms = selectMoveForms(state);
+
+    // Sync properties that were previously getters
+    this._currentState = selectExpandedGameState(state);
+    this._chest = selectGameChest(state);
+    this._playersInfo = selectGamePlayersInfo(state);
+    this._hasEmptySlots = selectGameHasEmptySlots(state);
+    this._open = selectGameOpen(state);
+    this._visible = selectGameVisible(state);
+    this._isOwner = selectGameIsOwner(state);
+    this._pageExtra = selectPageExtra(state);
+    this._gameRoute = selectGameRoute(state);
+    this._loggedIn = selectLoggedIn(state);
+    this._admin = selectAdmin(state);
+    this._page = selectPage(state);
+    this._lastFetchedVersion = selectLastFetchedVersion(state);
   }
 
   private _handleRefreshData(e: Event) {
@@ -272,7 +280,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     const gameRoute = this._gameRoute;
     const requestedPlayer = this.requestedPlayer;
     const admin = this._admin;
-    const lastFetchedVersion = selectLastFetchedVersion(store.getState());
+    const lastFetchedVersion = this._lastFetchedVersion;
 
     if (gameRoute) {
       store.dispatch(fetchGameInfo(gameRoute, requestedPlayer, admin, lastFetchedVersion));
@@ -366,7 +374,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._firstStateBundle = true;
   }
 
-  private _installStateBundle(bundle: any) {
+  private _installStateBundle(bundle: StateBundle) {
     store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
 
     // Update view state in Redux (replaces direct property assignment)

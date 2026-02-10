@@ -32,7 +32,9 @@ import {
 } from '../selectors.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
-import type { RootState } from '../types/store';
+import type { RootState, GameChest } from '../types/store';
+import type { RawGameState, StateBundle, TimerInfo } from '../types/game-state';
+import type { MoveForm } from '../types/api';
 
 /**
  * StateManager keeps track of fetching state bundles from the server and
@@ -54,7 +56,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   gameFinished = false;
 
   @property({ type: Object })
-  chest: any = null;
+  chest: GameChest | null = null;
 
   @property({ type: Boolean })
   admin = false;
@@ -114,6 +116,25 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _prevGameVersion = 0;
   private _prevLastFetchedVersion = 0;
 
+  // Reactive properties - synced from Redux in stateChanged()
+  @property({ type: Number, attribute: false })
+  targetVersion = -1;
+
+  @property({ type: Number, attribute: false })
+  gameVersion = 0;
+
+  @property({ type: Number, attribute: false })
+  lastFetchedVersion = 0;
+
+  @property({ type: Boolean, attribute: false })
+  socketActive = false;
+
+  @property({ type: Array, attribute: false })
+  _pendingBundles: StateBundle[] = [];
+
+  @property({ type: Object, attribute: false })
+  _lastFiredBundle: StateBundle | null = null;
+
   constructor() {
     super();
     // Listen for ready-for-next-state event from game-view
@@ -123,31 +144,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _handleReadyForNextState(e: Event) {
     this.readyForNextState();
     e.stopPropagation();
-  }
-
-  // Computed properties - read directly from Redux selectors
-  private get targetVersion(): number {
-    return selectTargetVersion(store.getState());
-  }
-
-  private get gameVersion(): number {
-    return selectCurrentVersion(store.getState());
-  }
-
-  private get lastFetchedVersion(): number {
-    return selectLastFetchedVersion(store.getState());
-  }
-
-  private get socketActive(): boolean {
-    return selectSocketConnected(store.getState());
-  }
-
-  private get _pendingBundles(): any[] {
-    return selectPendingBundles(store.getState());
-  }
-
-  private get _lastFiredBundle(): any {
-    return selectLastFiredBundle(store.getState());
   }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
@@ -165,6 +161,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     this._fetchedInfo = selectFetchedInfo(state);
     this._fetchedVersion = selectFetchedVersion(state);
 
+    // Sync properties that were previously getters
+    this.targetVersion = selectTargetVersion(state);
+    this.gameVersion = selectCurrentVersion(state);
+    this.lastFetchedVersion = selectLastFetchedVersion(state);
+    this.socketActive = selectSocketConnected(state);
+    this._pendingBundles = selectPendingBundles(state);
+    this._lastFiredBundle = selectLastFiredBundle(state);
+
     // Process fetched info when it becomes available
     if (this._fetchedInfo && this._fetchedInfo !== prevFetchedInfo) {
       this._handleInfoData(this._fetchedInfo);
@@ -179,17 +183,17 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       store.dispatch(clearFetchedVersion());
     }
 
-    // Detect changes in computed properties and trigger handlers
-    const currentTargetVersion = selectTargetVersion(state);
-    const currentGameVersion = selectCurrentVersion(state);
-    const currentLastFetchedVersion = selectLastFetchedVersion(state);
+    // Detect changes in properties and trigger handlers
+    const currentTargetVersion = this.targetVersion;
+    const currentGameVersion = this.gameVersion;
+    const currentLastFetchedVersion = this.lastFetchedVersion;
 
     // Handle targetVersion changes
     if (this._prevTargetVersion !== currentTargetVersion && currentTargetVersion >= 0) {
       this._handleTargetVersionChanged();
     }
 
-    // Trigger requestUpdate if computed properties changed (for updated() lifecycle)
+    // Trigger requestUpdate if properties changed (for updated() lifecycle)
     if (this._prevTargetVersion !== currentTargetVersion ||
         this._prevGameVersion !== currentGameVersion ||
         this._prevLastFetchedVersion !== currentLastFetchedVersion) {
@@ -429,8 +433,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     );
   }
 
-  private _prepareStateBundle(game: any, moveForms: any, viewingAsPlayer: number, move: any): any {
-    const bundle: any = {};
+  private _prepareStateBundle(game: any, moveForms: MoveForm[] | null, viewingAsPlayer: number, move: any): StateBundle {
+    const bundle: StateBundle = {
+      originalWallClockStartTime: 0,
+      game: game,
+      move: null,
+      moveForms: null,
+      viewingAsPlayer: 0
+    };
 
     bundle.originalWallClockStartTime = Date.now();
     bundle.game = game;
@@ -441,7 +451,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     return bundle;
   }
 
-  private _expandMoveForms(moveForms: any): any {
+  private _expandMoveForms(moveForms: MoveForm[] | null): MoveForm[] | null {
     if (!moveForms) return null;
     for (let i = 0; i < moveForms.length; i++) {
       const form = moveForms[i];
@@ -527,7 +537,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   // Add the next state bundle to the end
-  private _enqueueStateBundle(bundle: any) {
+  private _enqueueStateBundle(bundle: StateBundle) {
     const wasEmpty = this._pendingBundles.length === 0;
     store.dispatch(enqueueStateBundle(bundle));
     // If that was the first one we added, go ahead and fire it right now.
