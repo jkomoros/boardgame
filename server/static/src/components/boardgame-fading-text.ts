@@ -137,7 +137,7 @@ class BoardgameFadingText extends LitElement {
   }
 
   private _classes(_animating: boolean): string {
-    const classes = [];
+    const classes: string[] = [];
     if (_animating) {
       classes.push('animating');
     }

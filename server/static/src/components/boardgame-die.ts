@@ -228,7 +228,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   private _classes(disabled: boolean): string {
-    const pieces = [];
+    const pieces: string[] = [];
     pieces.push(disabled ? 'disabled' : 'interactive');
     return pieces.join(' ');
   }

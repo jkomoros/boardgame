@@ -452,7 +452,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _expandMoveForms(moveForms: MoveForm[] | null): MoveForm[] | null {
-    if (!moveForms) return null;
+    if (!moveForms || !this.chest) return null;
     for (let i = 0; i < moveForms.length; i++) {
       const form = moveForms[i];
       // Some forms don't have fields and that's OK.
