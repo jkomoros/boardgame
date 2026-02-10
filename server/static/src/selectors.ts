@@ -28,8 +28,11 @@ const DEFAULT_VIEW_STATE = {
     moveForms: null
 };
 
-// App selectors
-export const selectPage = (state: RootState): string => state.app ? state.app.page : "";
+// App selectors - memoized for performance as they're frequently accessed
+export const selectPage = createSelector(
+    [(state: RootState) => state.app?.page],
+    (page): string => page || ""
+);
 export const selectPageExtra = (state: RootState): string => state.app ? state.app.pageExtra : "";
 
 // List selectors
@@ -53,13 +56,19 @@ export const selectErrorFriendlyMessage = (state: RootState): string => state.er
 export const selectErrorTitle = (state: RootState): string => state.error ? state.error.title : "";
 export const selectErrorShowing = (state: RootState): boolean => state.error ? state.error.showing : false;
 
-// User selectors
+// User selectors - memoized for high-frequency checks
 export const selectUser = (state: RootState): UserInfo | null => state.user ? state.user.user : null;
 export const selectVerifyingAuth = (state: RootState): boolean => state.user ? state.user.verifyingAuth : false;
-export const selectLoggedIn = (state: RootState): boolean => state.user ? state.user.loggedIn : false;
+export const selectLoggedIn = createSelector(
+    [(state: RootState) => state.user?.loggedIn],
+    (loggedIn): boolean => loggedIn || false
+);
 export const selectAdminAllowed = (state: RootState): boolean => state.user ? state.user.adminAllowed : false;
 export const selectSignInErrorMessage = (state: RootState): string => state.user ? state.user.errorMessage : "";
-export const selectAdmin = (state: RootState): boolean => state.user ? state.user.admin : false;
+export const selectAdmin = createSelector(
+    [(state: RootState) => state.user?.admin],
+    (admin): boolean => admin || false
+);
 export const selectSignInDialogOpen = (state: RootState): boolean => state.user ? state.user.dialogOpen : false;
 export const selectSignInDialogEmail = (state: RootState): string => state.user ? state.user.dialogEmail : "";
 export const selectSignInDialogPassword = (state: RootState): string => state.user ? state.user.dialogPassword : "";
@@ -90,17 +99,30 @@ export const selectGameRoute = createSelector(
     (id, name): { id: string; name: string } | null => id ? {id, name} : null
 );
 
-// Animation selectors
+// Animation selectors - memoized for performance as they're checked frequently
 export const selectAnimationState = (state: RootState) =>
     state.game?.animation || DEFAULT_ANIMATION_STATE;
-export const selectPendingBundles = (state: RootState): any[] => selectAnimationState(state).pendingBundles;
+
+// Memoized to prevent creating new array references on every call
+export const selectPendingBundles = createSelector(
+    [selectAnimationState],
+    (animationState): any[] => animationState.pendingBundles
+);
+
 export const selectLastFiredBundle = (state: RootState): any | null => selectAnimationState(state).lastFiredBundle;
 export const selectActiveAnimations = (state: RootState): string[] => selectAnimationState(state).activeAnimations;
-export const selectHasPendingBundles = (state: RootState): boolean => selectPendingBundles(state).length > 0;
-export const selectNextBundle = (state: RootState): any | null => {
-    const bundles = selectPendingBundles(state);
-    return bundles.length > 0 ? bundles[0] : null;
-};
+
+// Memoized to prevent recomputation on every render
+export const selectHasPendingBundles = createSelector(
+    [selectPendingBundles],
+    (bundles): boolean => bundles.length > 0
+);
+
+// Memoized to prevent unnecessary recalculations
+export const selectNextBundle = createSelector(
+    [selectPendingBundles],
+    (bundles): any | null => bundles.length > 0 ? bundles[0] : null
+);
 
 // Version selectors
 export const selectVersionState = (state: RootState) =>
