@@ -14,9 +14,13 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true
+    open: true,
+    fs: {
+      // Allow serving files from the root
+      strict: false
+    }
   },
   resolve: {
-    extensions: ['.ts', '.js', '.json']
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
   }
 });
