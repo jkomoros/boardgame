@@ -23,7 +23,7 @@
     }
   },
   "dev": {
-    "allowedOrigins": "http://localhost:8080",
+    "allowedOrigins": "http://localhost:8080, http://localhost:3000",
     "disableAdminChecking": true,
     "storage": {
       "bolt": "./dev.db"
