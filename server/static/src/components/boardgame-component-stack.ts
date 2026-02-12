@@ -258,19 +258,23 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   get deckDefaults(): any {
-    let ele = this.shadowRoot!.querySelector('boardgame-deck-defaults');
+    if (!this.shadowRoot) return null;
+
+    let ele = this.shadowRoot.querySelector('boardgame-deck-defaults');
     if (ele) return ele;
 
     ele = document.createElement('boardgame-deck-defaults');
-    this.shadowRoot!.appendChild(ele);
+    this.shadowRoot.appendChild(ele);
     return ele;
   }
 
   get offsetComponent(): any {
     const components = this._realComponents;
     if (components.length > 0) return components[0];
-    const component = this.shadowRoot!.querySelector('[boardgame-component]');
-    if (component) return component;
+    if (this.shadowRoot) {
+      const component = this.shadowRoot.querySelector('[boardgame-component]');
+      if (component) return component;
+    }
     return this;
   }
 
@@ -306,7 +310,9 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   get templateClass(): any {
-    return this.deckDefaults.templateForDeck(this.gameName, this.deckName);
+    const defaults = this.deckDefaults;
+    if (!defaults) return null;
+    return defaults.templateForDeck(this.gameName, this.deckName);
   }
 
   override connectedCallback() {

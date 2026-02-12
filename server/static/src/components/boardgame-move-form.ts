@@ -213,7 +213,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
     return html`
       <h2>Moves</h2>
       <div id="container">
-        ${repeat(this.config, (item) => item.Name, (item) => html`
+        ${repeat(this.config || [], (item) => item.Name, (item) => html`
           <details id="moves-${this._normalizeID(item.Name)}">
             <summary>Move ${item.Name}</summary>
             <form>

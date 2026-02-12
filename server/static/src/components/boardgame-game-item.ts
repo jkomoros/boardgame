@@ -122,7 +122,7 @@ export class BoardgameGameItem extends GamePathMixin(LitElement) {
           ${this.gameDisplayName}
         </a>
         ${repeat(
-          this.item.Players,
+          this.item.Players || [],
           (player) => player.DisplayName || 'empty',
           (player) => html`
             <boardgame-player-chip
