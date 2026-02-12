@@ -1,0 +1,87 @@
+[      55ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:22
+[      57ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:93
+[     112ms] TypeError: Cannot set property autoCurrentPlayer of #<BoardgameAdminControls> which has only a getter
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:940:8)
+    at HTMLElement.update (http://localhost:8080/node_modules/.vite/deps/chunk-GTV6AHWJ.js?v=3c7ec3eb:52:24)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:756:14)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:674:25)
+[     426ms] TypeError: Cannot set property autoCurrentPlayer of #<BoardgameAdminControls> which has only a getter
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:940:8)
+    at HTMLElement.update (http://localhost:8080/node_modules/.vite/deps/chunk-GTV6AHWJ.js?v=3c7ec3eb:52:24)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:756:14)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:674:25)
+[     426ms] TypeError: Cannot set property autoCurrentPlayer of #<BoardgameAdminControls> which has only a getter
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:940:8)
+    at HTMLElement.update (http://localhost:8080/node_modules/.vite/deps/chunk-GTV6AHWJ.js?v=3c7ec3eb:52:24)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:756:14)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:674:25)
+[   18948ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:22
+[   18949ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:93
+[   18990ms] [WARNING] Element boardgame-game-view scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:93
+[   18995ms] [WARNING] Element boardgame-render-game scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:93
+[   18999ms] [WARNING] Element boardgame-game-state-manager scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:93
+[   19003ms] [WARNING] No template class to auto stamp @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-component-stack.ts:526
+[   19021ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=3c7ec3eb:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=3c7ec3eb:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-ZVI3QJ4F.js?v=3c7ec3eb:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-GTV6AHWJ.js?v=3c7ec3eb:52:24)
+[   19021ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=3c7ec3eb:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=3c7ec3eb:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-ZVI3QJ4F.js?v=3c7ec3eb:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-GTV6AHWJ.js?v=3c7ec3eb:52:24)
+[   19023ms] Error: Unknown variable dynamic import: ../../game-src/memory/boardgame-render-game-memory.js
+    at http://localhost:8080/@id/__x00__vite/dynamic-import-helper.js:10:9
+    at new Promise (<anonymous>)
+    at default (http://localhost:8080/@id/__x00__vite/dynamic-import-helper.js:6:10)
+    at BoardgameRenderGame._gameNameChanged (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-render-game.ts:203:5)
+    at BoardgameRenderGame.updated (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-render-game.ts:108:12)
+    at BoardgameRenderGame._$didUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:804:10)
+    at BoardgameRenderGame.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:766:12)
+    at BoardgameRenderGame.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:698:25)
+    at BoardgameRenderGame.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=3c7ec3eb:674:25)
+[   19010ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/game-src/memory/boardgame-render-player-info-memory.js:0
+[   19030ms] Failed to fetch dynamically imported module: http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/game-src/memory/boardgame-render-player-info-memory.js
+[   19062ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=3c7ec3eb:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=3c7ec3eb:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-ZVI3QJ4F.js?v=3c7ec3eb:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=3c7ec3eb:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-GTV6AHWJ.js?v=3c7ec3eb:52:24)
+[   19273ms] [WARNING] Socket closed CloseEvent @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-game-state-manager.ts?t=1770909455224:239

@@ -223,9 +223,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         .gameRoute=${this._gameRoute}
         .chest=${this._chest}
         .currentState=${this._currentState}
-        .requestedPlayer=${this.requestedPlayer}
         @requested-player-changed=${this._handleRequestedPlayerChanged}
-        .autoCurrentPlayer=${this.autoCurrentPlayer}
         @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}>
       </boardgame-admin-controls>
       <boardgame-game-state-manager
