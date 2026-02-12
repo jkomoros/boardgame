@@ -14,7 +14,7 @@ export const PAGE_404 = 'view404';
 
 import {
 	gamePath
-} from '../util.js';
+} from '../util.ts';
 
 export const OFFLINE_DEV_MODE = CONFIG ? CONFIG.offline_dev_mode || false : false;
 
@@ -96,17 +96,17 @@ const loadPage = (pathname: string, query: string): AppThunk => (dispatch) => {
 
 	switch(page) {
 	case PAGE_DEFAULT:
-		import('../components/boardgame-list-games-view.js').then(() => {
+		import('../components/boardgame-list-games-view.ts').then(() => {
 			// Put code in here that you want to run every time when
 			// navigating to view1 after my-view1.js is loaded.
 		});
 		break;
 	case PAGE_GAME:
-		import('../components/boardgame-game-view.js');
+		import('../components/boardgame-game-view.ts');
         break;
     default:
 		page = PAGE_404;
-		import('../components/boardgame-404-view.js');
+		import('../components/boardgame-404-view.ts');
 	}
 
 	dispatch(updatePage(pathname, page, pageExtra));
