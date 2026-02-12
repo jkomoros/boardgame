@@ -1,0 +1,6 @@
+[GET] http://localhost:8888/api/list/manager => [200] OK
+[GET] http://localhost:8888/api/list/game?name=&admin=0 => [200] OK
+[GET] http://localhost:8888/api/list/manager => [200] OK
+[GET] http://localhost:8888/api/list/game?name=&admin=0 => [200] OK
+[GET] http://localhost:8888/api/list/manager => [200] OK
+[GET] http://localhost:8888/api/list/game?name=&admin=0 => [200] OK

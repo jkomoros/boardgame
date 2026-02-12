@@ -35,7 +35,7 @@ import {
 	UPDATE_MOVE_FORMS,
 	CLEAR_FETCHED_INFO,
 	CLEAR_FETCHED_VERSION
-} from '../actions/game.js';
+} from '../actions/game.ts';
 
 import type { GameAction } from '../types/actions';
 import type { GameState } from '../types/store';

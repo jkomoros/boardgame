@@ -1,11 +1,11 @@
 import type { Reducer } from 'redux';
 import type { ErrorState } from '../types/store';
-import type { ErrorAction } from '../actions/error.js';
+import type { ErrorAction } from '../actions/error.ts';
 import {
     SHOW_ERROR,
     UPDATE_ERROR,
     HIDE_ERROR
-} from '../actions/error.js';
+} from '../actions/error.ts';
 
 const INITIAL_STATE: ErrorState = {
     title: '',

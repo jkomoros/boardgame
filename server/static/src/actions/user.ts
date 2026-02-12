@@ -21,16 +21,16 @@ import {
     selectSignInDialogEmail,
     selectSignInDialogPassword,
     selectSignInDialogIsCreate
-} from '../selectors.js';
+} from '../selectors.ts';
 
 import {
     apiPath,
     postFetchParams
-} from '../util.js';
+} from '../util.ts';
 
 import {
     OFFLINE_DEV_MODE
-} from './app.js';
+} from './app.ts';
 
 // Action type definitions
 interface UpdateUserAction {

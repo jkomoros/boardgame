@@ -2,7 +2,7 @@ import '@material/web/iconbutton/icon-button.js';
 import '@material/web/dialog/dialog.js';
 import '@material/web/button/filled-button.js';
 import '@material/web/switch/switch.js';
-import './boardgame-user.ts';
+import './boardgame-user.js';
 import './my-icons.js';
 
 import { LitElement, html, css } from 'lit';

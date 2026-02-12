@@ -161,6 +161,34 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
       margin: 12px 0;
     }
 
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .radio-label span {
+      font-family: var(--md-sys-typescale-body-medium-font);
+      font-size: var(--md-sys-typescale-body-medium-size);
+      line-height: var(--md-sys-typescale-body-medium-line-height);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .switch-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .switch-label span {
+      font-family: var(--md-sys-typescale-body-medium-font);
+      font-size: var(--md-sys-typescale-body-medium-size);
+      line-height: var(--md-sys-typescale-body-medium-line-height);
+      color: var(--md-sys-color-on-surface);
+    }
+
     md-icon {
       margin-right: 8px;
       --md-icon-size: 20px;
@@ -376,21 +404,25 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
               <div class="vertical layout">
                 Player ${index}
                 <div role="radiogroup" aria-label="Agent for player ${index}" @change="${this._handleAgentSelectedChanged}">
-                  <md-radio
-                    name="agent-player-${index}"
-                    value=""
-                    data-player-index="${index}"
-                    ?checked="${item === ''}">
-                    Real Live Human
-                  </md-radio>
-                  ${repeat(this._selectedManager.Agents, (agent) => agent.Name, (agent) => html`
+                  <label class="radio-label">
                     <md-radio
                       name="agent-player-${index}"
-                      value="${agent.Name}"
+                      value=""
                       data-player-index="${index}"
-                      ?checked="${item === agent.Name}">
-                      ${agent.DisplayName}
+                      ?checked="${item === ''}">
                     </md-radio>
+                    <span>Real Live Human</span>
+                  </label>
+                  ${repeat(this._selectedManager.Agents, (agent) => agent.Name, (agent) => html`
+                    <label class="radio-label">
+                      <md-radio
+                        name="agent-player-${index}"
+                        value="${agent.Name}"
+                        data-player-index="${index}"
+                        ?checked="${item === agent.Name}">
+                      </md-radio>
+                      <span>${agent.DisplayName}</span>
+                    </label>
                   `)}
                 </div>
               </div>
@@ -420,20 +452,24 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
         </div>
 
         <div class="horizontal layout">
-          <md-switch
-            name="visible"
-            ?selected="${this._visible}"
-            @change="${this._handleVisibleChanged}">
-            <md-icon slot="icon">visibility</md-icon>
-            Allow strangers to find the game
-          </md-switch>
-          <md-switch
-            name="open"
-            ?selected="${this._open}"
-            @change="${this._handleOpenChanged}">
-            <md-icon slot="icon">people</md-icon>
-            Allow anyone who can view the game to join
-          </md-switch>
+          <label class="switch-label">
+            <md-switch
+              name="visible"
+              ?selected="${this._visible}"
+              @change="${this._handleVisibleChanged}">
+              <md-icon slot="icon">visibility</md-icon>
+            </md-switch>
+            <span>Allow strangers to find the game</span>
+          </label>
+          <label class="switch-label">
+            <md-switch
+              name="open"
+              ?selected="${this._open}"
+              @change="${this._handleOpenChanged}">
+              <md-icon slot="icon">people</md-icon>
+            </md-switch>
+            <span>Allow anyone who can view the game to join</span>
+          </label>
         </div>
       </div>
     `;

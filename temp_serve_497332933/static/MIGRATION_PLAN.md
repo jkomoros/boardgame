@@ -1,0 +1,1 @@
+../../server/static/MIGRATION_PLAN.md

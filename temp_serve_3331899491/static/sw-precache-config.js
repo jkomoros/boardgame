@@ -1,0 +1,1 @@
+../../server/static/sw-precache-config.js

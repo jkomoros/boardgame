@@ -9,9 +9,9 @@ import { thunk, type ThunkDispatch } from 'redux-thunk';
 import { lazyReducerEnhancer } from 'pwa-helpers/lazy-reducer-enhancer.js';
 import type { RootState } from './types/store';
 
-import app from './reducers/app.js';
-import error from './reducers/error.js';
-import user from './reducers/user.js';
+import app from './reducers/app.ts';
+import error from './reducers/error.ts';
+import user from './reducers/user.ts';
 
 // Extend window for Redux DevTools
 declare global {
@@ -51,7 +51,7 @@ store.addReducers({
 //Connect it up so the reselect-tools extension will show the selector graph.
 //https://github.com/skortchmark9/reselect-tools for how to install the
 //extension
-import * as selectors from './selectors.js';
+import * as selectors from './selectors.ts';
 //TODO: why can I not use the basic import? The es build output doesn't have any
 //export keywords, maybe it's configured wrong?
 import {

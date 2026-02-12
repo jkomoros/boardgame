@@ -1,0 +1,31 @@
+[      48ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/client_config.js:0
+[      64ms] ReferenceError: CONFIG is not defined
+    at http://localhost:8080/:62:7
+[      50ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/node_modules/web-animations-js/web-animations-next.min.js:0
+[      54ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js:0
+[      73ms] ReferenceError: CONFIG is not defined
+    at http://localhost:8080/:111:20
+[      76ms] Invalid or unexpected token
+[   19606ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8080/:0
+[   20667ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/client_config.js:0
+[   20673ms] ReferenceError: CONFIG is not defined
+    at http://localhost:8080/:62:7
+[   20693ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/node_modules/web-animations-js/web-animations-next.min.js:0
+[   20697ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js:0
+[   20721ms] ReferenceError: CONFIG is not defined
+    at http://localhost:8080/:111:20
+[   20725ms] Invalid or unexpected token
+[   29809ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8080/:0
+[   30869ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/client_config.js:0
+[   30877ms] ReferenceError: CONFIG is not defined
+    at http://localhost:8080/:62:7
+[   30922ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/node_modules/web-animations-js/web-animations-next.min.js:0
+[   30925ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js:0
+[   30987ms] ReferenceError: CONFIG is not defined
+    at http://localhost:8080/:111:20
+[   31001ms] Invalid or unexpected token
+[   53145ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8080/:0
+[   54241ms] Invalid or unexpected token
+[   61227ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8080/:0
+[   61299ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ chrome-error://chromewebdata/:0
+[  563489ms] Invalid or unexpected token

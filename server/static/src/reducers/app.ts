@@ -1,6 +1,6 @@
 import type { Reducer } from 'redux';
 import type { AppState } from '../types/store';
-import type { AppAction } from '../actions/app.js';
+import type { AppAction } from '../actions/app.ts';
 import {
 	UPDATE_PAGE,
 	UPDATE_OFFLINE,
@@ -8,7 +8,7 @@ import {
 	CLOSE_SNACKBAR,
 	OPEN_HEADER_PANEL,
 	CLOSE_HEADER_PANEL,
-} from '../actions/app.js';
+} from '../actions/app.ts';
 
 
 const INITIAL_STATE: AppState = {

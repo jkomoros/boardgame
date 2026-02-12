@@ -1,5 +1,5 @@
 import { Dispatch } from 'redux';
-import { store } from '../store.js';
+import { store } from '../store.ts';
 import type { RootState, GameChest, PlayerInfo } from '../types/store';
 import type { ApiResponse } from '../api';
 import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
@@ -45,13 +45,13 @@ import {
   selectGameCurrentState,
   selectGameChest,
   selectGameName
-} from '../selectors.js';
+} from '../selectors.ts';
 
 import {
   deepCopy,
   getProperty,
   setPropertyInClone
-} from '../util.js';
+} from '../util.ts';
 
 import {
   buildGameUrl,
