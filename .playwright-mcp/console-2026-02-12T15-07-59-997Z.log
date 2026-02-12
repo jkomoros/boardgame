@@ -1,0 +1,6 @@
+[     171ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://example-boardgame.firebaseapp.com/favicon.ico:0
+[     390ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://example-boardgame.firebaseapp.com/__/firebase/init.json:0
+[     171ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://example-boardgame.firebaseapp.com/favicon.ico:0
+[     390ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://example-boardgame.firebaseapp.com/__/firebase/init.json:0
+[   23177ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.frames call. @ https://example-boardgame.firebaseapp.com/__/auth/handler.js:544
+[   23177ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.frames call. @ https://example-boardgame.firebaseapp.com/__/auth/handler.js:544

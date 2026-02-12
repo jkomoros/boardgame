@@ -80,10 +80,12 @@ export interface UserState {
  * User information returned from backend.
  */
 export interface UserInfo {
-  id: string;
-  displayName?: string;
-  email?: string;
-  photoURL?: string;
+  ID: string;
+  DisplayName?: string;
+  Email?: string;
+  PhotoURL?: string;
+  Created?: number;
+  LastSeen?: number;
 }
 
 // StateBundle is now imported from './game-state'

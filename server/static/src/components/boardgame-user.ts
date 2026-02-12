@@ -188,14 +188,14 @@ export class BoardgameUser extends connect(store)(LitElement) {
         <div id="offline"></div>
         <div class="horizontal">
           <boardgame-player-chip
-            .photoUrl="${this._user ? this._user.photoURL : ''}"
-            .displayName="${this._user ? this._user.displayName : ''}">
+            .photoUrl="${this._user ? this._user.PhotoURL : ''}"
+            .displayName="${this._user ? this._user.DisplayName : ''}">
           </boardgame-player-chip>
           <div class="vertical">
             ${when(
               this._user,
               () => html`
-                <div>${this._user!.displayName}</div>
+                <div>${this._user!.DisplayName}</div>
                 <a @click="${() => store.dispatch(signOut())}">Sign Out</a>
               `,
               () => html`
