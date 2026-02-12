@@ -1,5 +1,9 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   root: '.',
@@ -16,11 +20,18 @@ export default defineConfig({
     port: 3000,
     open: true,
     fs: {
-      // Allow serving files from the root
-      strict: false
+      // Allow serving files from the root and follow symlinks
+      strict: false,
+      allow: ['..']
     }
   },
   resolve: {
-    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+    // Preserve symlinks to ensure correct path resolution for game renderers
+    preserveSymlinks: true,
+    alias: {
+      // Allow game renderers to import from a clean path
+      '/@server-static': resolve(__dirname, '.')
+    }
   }
 });

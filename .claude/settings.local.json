@@ -100,7 +100,9 @@
       "Bash(go doc:*)",
       "Bash(go list:*)",
       "Bash(go mod download:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(pgrep:*)",
+      "Bash(ln:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

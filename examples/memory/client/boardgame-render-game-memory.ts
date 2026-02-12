@@ -1,10 +1,10 @@
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-progress/paper-progress.js';
-import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
-import '../../../server/static/src/components/boardgame-card.js';
-import '../../../server/static/src/components/boardgame-component-stack.js';
-import '../../../server/static/src/components/boardgame-fading-text.js';
-import '../../../server/static/src/components/boardgame-deck-defaults.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import '../../src/components/boardgame-card.js';
+import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-fading-text.js';
+import '../../src/components/boardgame-deck-defaults.js';
 import { html, css } from 'lit';
 
 class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {

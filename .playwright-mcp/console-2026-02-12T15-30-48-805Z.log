@@ -1,0 +1,8 @@
+[      63ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=99889d62:22
+[      80ms] ReferenceError: JSCompiler_renameProperty is not defined
+    at get observedAttributes (http://localhost:8080/node_modules/.vite/deps/chunk-N6634RCH.js?v=99889d62:4163:17)
+    at http://localhost:8080/node_modules/.vite/deps/chunk-65WSDUE5.js?v=99889d62:1205:16
+[   47196ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=99889d62:22
+[   47214ms] ReferenceError: JSCompiler_renameProperty is not defined
+    at get observedAttributes (http://localhost:8080/node_modules/.vite/deps/chunk-N6634RCH.js?v=99889d62:4163:17)
+    at http://localhost:8080/node_modules/.vite/deps/chunk-65WSDUE5.js?v=99889d62:1205:16

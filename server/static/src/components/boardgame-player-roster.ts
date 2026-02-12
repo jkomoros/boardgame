@@ -227,11 +227,17 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
   }
 
-  private _gameRouteChanged(newValue: GameRoute | null): void {
+  private async _gameRouteChanged(newValue: GameRoute | null): Promise<void> {
     if (!newValue) return;
     this.rendererLoaded = false;
-    import("../../game-src/" + newValue.name + "/boardgame-render-player-info-" + newValue.name + ".js")
-      .then(() => this._rendererLoaded(), null);
+
+    try {
+      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode
+      await import(/* @vite-ignore */ `../../game-src/${newValue.name}/boardgame-render-player-info-${newValue.name}.ts`);
+      this._rendererLoaded();
+    } catch (error) {
+      console.error(`Failed to load player info renderer for ${newValue.name}:`, error);
+    }
   }
 
   private _rendererLoaded(): void {

@@ -83,6 +83,11 @@
           NODE_ENV: 'production'
         }
       };
+
+      // Polymer legacy support: Define JSCompiler_renameProperty before any Polymer code loads
+      window.JSCompiler_renameProperty = function(prop, obj) {
+        return prop;
+      };
     </script>
 
     <!-- Modern browsers don't need these polyfills - commented out for Vite compatibility -->

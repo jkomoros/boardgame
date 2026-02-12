@@ -262,7 +262,7 @@ class BoardgameRenderGame extends LitElement {
     (this.renderer as any).chest = newValue;
   }
 
-  private _gameNameChanged(newValue: string) {
+  private async _gameNameChanged(newValue: string) {
     // If there was a state, it might be for a different game type which would
     // cause a render error
     this.state = null;
@@ -271,8 +271,13 @@ class BoardgameRenderGame extends LitElement {
 
     if (!newValue) return;
 
-    import(`../../game-src/${newValue}/boardgame-render-game-${newValue}.js`)
-      .then(() => this._instantiateRenderer(), null);
+    try {
+      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode
+      await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}.ts`);
+      this._instantiateRenderer();
+    } catch (error) {
+      console.error(`Failed to load game renderer for ${newValue}:`, error);
+    }
   }
 
   private _removeRenderer() {

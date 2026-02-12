@@ -1,3 +1,4 @@
+import '@polymer/polymer/lib/utils/boot.js';
 import '@polymer/polymer/polymer-legacy.js';
 const $_documentContainer = document.createElement('template');
 
