@@ -1,4 +1,4 @@
-import '@polymer/paper-button/paper-button.js';
+import '@material/web/button/filled-button.js';
 import '../../../server/static/src/components/boardgame-component-stack.js';
 import '../../../server/static/src/components/boardgame-card.js';
 import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
@@ -51,8 +51,8 @@ class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
           component-propose-move="Current Player Hit">
         </boardgame-component-stack>
         <div class="flex">
-          <paper-button raised propose-move="Current Player Hit" ?disabled="${!this.isCurrentPlayer}">Hit</paper-button>
-          <paper-button raised propose-move="Current Player Stand" ?disabled="${!this.isCurrentPlayer}">Stand</paper-button>
+          <md-filled-button propose-move="Current Player Hit" ?disabled="${!this.isCurrentPlayer}">Hit</md-filled-button>
+          <md-filled-button propose-move="Current Player Stand" ?disabled="${!this.isCurrentPlayer}">Stand</md-filled-button>
         </div>
         <boardgame-component-stack
           .stack="${this.state?.Game?.DiscardStack}"

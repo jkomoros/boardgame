@@ -1,4 +1,4 @@
-import '@polymer/paper-button/paper-button.js';
+import '@material/web/button/filled-button.js';
 import '../../../server/static/src/components/boardgame-die.js';
 import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
 import '../../../server/static/src/components/boardgame-fading-text.js';
@@ -34,12 +34,11 @@ class BoardgameRenderGamePig extends BoardgameBaseGameRenderer {
           ?disabled="${!this.isCurrentPlayer}">
         </boardgame-die>
         <div class="flex"></div>
-        <paper-button
+        <md-filled-button
           propose-move="Done Turn"
-          ?disabled="${!this.isCurrentPlayer}"
-          raised>
+          ?disabled="${!this.isCurrentPlayer}">
           Done
-        </paper-button>
+        </md-filled-button>
       </div>
       <boardgame-fading-text
         .trigger="${this.isCurrentPlayer}"
