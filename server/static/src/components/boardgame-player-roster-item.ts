@@ -152,7 +152,7 @@ export class BoardgamePlayerRosterItem extends LitElement {
   private _styleForChip(chipColor: string, finished: boolean, winner: boolean): string {
     if (finished) {
       return "box-shadow: none; background-color: " +
-        (winner ? "var(--paper-green-800, #2e7d32)" : "var(--paper-red-300, #e57373)");
+        (winner ? "#2e7d32" : "#e57373"); // Material green-800 / red-300
     }
     if (!chipColor) return "box-shadow: none";
     return "background-color: " + chipColor;

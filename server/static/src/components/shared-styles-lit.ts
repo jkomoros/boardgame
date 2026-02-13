@@ -22,11 +22,6 @@ export const sharedStyles = css`
     }
   }
 
-  paper-button[default]:not([disabled]) {
-    background-color: var(--paper-button-default-color);
-    color: var(--paper-button-default-foreground-color);
-  }
-
   .circle {
     display: inline-block;
     width: 64px;
