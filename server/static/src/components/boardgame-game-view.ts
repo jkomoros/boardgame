@@ -4,7 +4,7 @@ import './boardgame-player-roster.js';
 import './boardgame-render-game.js';
 import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
-import { SharedStyles } from './shared-styles-lit.js';
+import { sharedStyles } from './shared-styles-lit.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -54,32 +54,35 @@ store.addReducers({
 
 @customElement('boardgame-game-view')
 export class BoardgameGameView extends connect(store)(LitElement) {
-  static override styles = css`
-    :host {
-      display: block;
-      --animation-length: 0.5s;
-    }
+  static override styles = [
+    sharedStyles,
+    css`
+      :host {
+        display: block;
+        --animation-length: 0.5s;
+      }
 
-    [hidden] {
-      display: none !important;
-    }
+      [hidden] {
+        display: none !important;
+      }
 
-    #moves > details {
-      margin-left: 1em;
-    }
+      #moves > details {
+        margin-left: 1em;
+      }
 
-    .admin > div:first-child {
-      margin-left: 0;
-    }
+      .admin > div:first-child {
+        margin-left: 0;
+      }
 
-    .admin > div {
-      margin-left: 1em;
-    }
+      .admin > div {
+        margin-left: 1em;
+      }
 
-    .card {
-      position: relative;
-    }
-  `;
+      .card {
+        position: relative;
+      }
+    `
+  ];
 
   // View state - synced from Redux
   @property({ type: Number, attribute: false })
@@ -179,7 +182,6 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   override render() {
     return html`
-      ${SharedStyles}
       <div class="card">
         <boardgame-player-roster
           id="player"
