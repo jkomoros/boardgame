@@ -1,9 +1,11 @@
-import '@polymer/paper-button/paper-button.js';
-import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
-import '@polymer/paper-listbox/paper-listbox.js';
-import '@polymer/paper-item/paper-item.js';
-import '@polymer/paper-toggle-button/paper-toggle-button.js';
-import '@polymer/paper-slider/paper-slider.js';
+import '@material/web/button/filled-button.js';
+import '@material/web/select/filled-select.js';
+import '@material/web/select/select-option.js';
+import '@material/web/switch/switch.js';
+import '@material/web/slider/slider.js';
+import type { MdSwitch } from '@material/web/switch/switch.js';
+import type { MdSlider } from '@material/web/slider/slider.js';
+import type { MdFilledSelect } from '@material/web/select/filled-select.js';
 import '../../../server/static/src/components/boardgame-deck-defaults.js';
 import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
 import '../../../server/static/src/components/boardgame-card.js';
@@ -163,44 +165,40 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
       </boardgame-deck-defaults>
       <div id="container" class="${this._classes()}">
         <div id="controls">
-          <paper-toggle-button
-            ?checked="${this.fromStackRotated}"
-            @checked-changed="${(e: CustomEvent) => { this.fromStackRotated = e.detail.value; }}">
-            From Rotated
-          </paper-toggle-button>
-          <paper-toggle-button
-            ?checked="${this.toStackRotated}"
-            @checked-changed="${(e: CustomEvent) => { this.toStackRotated = e.detail.value; }}">
-            To Rotated
-          </paper-toggle-button>
-          <paper-toggle-button
-            ?checked="${this.messy}"
-            @checked-changed="${(e: CustomEvent) => { this.messy = e.detail.value; }}">
-            Messy
-          </paper-toggle-button>
-          <paper-toggle-button
-            ?checked="${this.slowAnimations}"
-            @checked-changed="${(e: CustomEvent) => { this.slowAnimations = e.detail.value; }}">
-            Slow Animation
-          </paper-toggle-button>
+          <label><md-switch
+            ?selected="${this.fromStackRotated}"
+            @change="${(e: Event) => { this.fromStackRotated = (e.target as MdSwitch).selected; }}">
+          </md-switch> From Rotated</label>
+          <label><md-switch
+            ?selected="${this.toStackRotated}"
+            @change="${(e: Event) => { this.toStackRotated = (e.target as MdSwitch).selected; }}">
+          </md-switch> To Rotated</label>
+          <label><md-switch
+            ?selected="${this.messy}"
+            @change="${(e: Event) => { this.messy = (e.target as MdSwitch).selected; }}">
+          </md-switch> Messy</label>
+          <label><md-switch
+            ?selected="${this.slowAnimations}"
+            @change="${(e: Event) => { this.slowAnimations = (e.target as MdSwitch).selected; }}">
+          </md-switch> Slow Animation</label>
           From scale:
-          <paper-slider
+          <md-slider
             min="0.5"
             max="2.0"
-            value="${this.fromCardScale}"
-            @value-changed="${(e: CustomEvent) => { this.fromCardScale = e.detail.value; }}"
-            pin
-            step=".05">
-          </paper-slider>
+            .value="${this.fromCardScale}"
+            @change="${(e: Event) => { this.fromCardScale = (e.target as MdSlider).value; }}"
+            labeled
+            step="0.05">
+          </md-slider>
           To Scale:
-          <paper-slider
+          <md-slider
             min="0.5"
             max="2.0"
-            value="${this.toCardScale}"
-            @value-changed="${(e: CustomEvent) => { this.toCardScale = e.detail.value; }}"
-            pin
-            step=".05">
-          </paper-slider>
+            .value="${this.toCardScale}"
+            @change="${(e: Event) => { this.toCardScale = (e.target as MdSlider).value; }}"
+            labeled
+            step="0.05">
+          </md-slider>
         </div>
         <div id="shortstacks">
           <boardgame-component-stack
@@ -215,7 +213,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             .stack="${this.state?.Game?.SecondShortStack}"
             component-propose-move="Move Card Between Short Stacks">
           </boardgame-component-stack>
-          <paper-button propose-move="Move Card Between Short Stacks">Swap</paper-button>
+          <md-filled-button propose-move="Move Card Between Short Stacks">Swap</md-filled-button>
         </div>
 
         <div id="draw">
@@ -231,7 +229,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.DiscardStack}">
           </boardgame-component-stack>
-          <paper-button propose-move="Move Card Between Draw And Discard Stacks">Draw</paper-button>
+          <md-filled-button propose-move="Move Card Between Draw And Discard Stacks">Draw</md-filled-button>
           <boardgame-fading-text
             .trigger="${this.state?.Game?.DrawStack?.Components?.length}"
             auto-message="diff">
@@ -244,7 +242,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.Card}">
           </boardgame-component-stack>
-          <paper-button propose-move="Flip Card Between Hidden and Revealed">Flip</paper-button>
+          <md-filled-button propose-move="Flip Card Between Hidden and Revealed">Flip</md-filled-button>
         </div>
 
         <div id="fan">
@@ -264,24 +262,31 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?component-rotated="${this.toStackRotated}">
           </boardgame-component-stack>
           <div class="controls">
-            <paper-button propose-move="Move Fan Card">Draw</paper-button>
-            <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
-            <paper-button propose-move="Shuffle">Shuffle</paper-button>
-            <paper-button propose-move="Shuffle Hidden">Shuffle Hidden</paper-button>
+            <md-filled-button propose-move="Move Fan Card">Draw</md-filled-button>
+            <md-filled-button propose-move="Visible Shuffle">Public Shuffle</md-filled-button>
+            <md-filled-button propose-move="Shuffle">Shuffle</md-filled-button>
+            <md-filled-button propose-move="Shuffle Hidden">Shuffle Hidden</md-filled-button>
             <boardgame-status-text>${this.state?.Game?.FanShuffleCount}</boardgame-status-text>
-            <paper-dropdown-menu label="Layout">
-              <paper-listbox
-                slot="dropdown-content"
-                selected="${this.fromStackLayout}"
-                @selected-changed="${(e: CustomEvent) => { this.fromStackLayout = e.detail.value; }}"
-                attr-for-selected="value">
-                <paper-item value="fan">fan</paper-item>
-                <paper-item value="spread">spread</paper-item>
-                <paper-item value="stack">stack</paper-item>
-                <paper-item value="grid">grid</paper-item>
-                <paper-item value="pile">pile</paper-item>
-              </paper-listbox>
-            </paper-dropdown-menu>
+            <md-filled-select
+              label="Layout"
+              .value="${this.fromStackLayout}"
+              @change="${(e: Event) => { this.fromStackLayout = (e.target as MdFilledSelect).value; }}">
+              <md-select-option value="fan">
+                <div slot="headline">fan</div>
+              </md-select-option>
+              <md-select-option value="spread">
+                <div slot="headline">spread</div>
+              </md-select-option>
+              <md-select-option value="stack">
+                <div slot="headline">stack</div>
+              </md-select-option>
+              <md-select-option value="grid">
+                <div slot="headline">grid</div>
+              </md-select-option>
+              <md-select-option value="pile">
+                <div slot="headline">pile</div>
+              </md-select-option>
+            </md-filled-select>
           </div>
         </div>
 
@@ -301,7 +306,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             faux-components="5"
             ?component-rotated="${this.toStackRotated}">
           </boardgame-component-stack>
-          <paper-button propose-move="Move Between Hidden">Draw</paper-button>
+          <md-filled-button propose-move="Move Between Hidden">Draw</md-filled-button>
         </div>
 
         <div id="all">
@@ -315,8 +320,8 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.AllHiddenStack}">
           </boardgame-component-stack>
-          <paper-button propose-move="Start Move All Components To Hidden">To Hidden</paper-button>
-          <paper-button propose-move="Start Move All Components To Visible">To Visible</paper-button>
+          <md-filled-button propose-move="Start Move All Components To Hidden">To Hidden</md-filled-button>
+          <md-filled-button propose-move="Start Move All Components To Visible">To Visible</md-filled-button>
         </div>
 
         <div id="token">
@@ -327,38 +332,34 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             type="${this.tokenType}">
           </boardgame-token>
           <div class="flex"></div>
-          <paper-toggle-button
-            ?checked="${this.tokenHighlighted}"
-            @checked-changed="${(e: CustomEvent) => { this.tokenHighlighted = e.detail.value; }}">
-            Token Highlighted
-          </paper-toggle-button>
-          <paper-toggle-button
-            ?checked="${this.tokenActive}"
-            @checked-changed="${(e: CustomEvent) => { this.tokenActive = e.detail.value; }}">
-            Token Active
-          </paper-toggle-button>
-          <paper-dropdown-menu label="Type">
-            <paper-listbox
-              slot="dropdown-content"
-              selected="${this.tokenType}"
-              @selected-changed="${(e: CustomEvent) => { this.tokenType = e.detail.value; }}"
-              attr-for-selected="value">
-              ${repeat(this.legalTokenTypes, (item) => item, (item) => html`
-                <paper-item value="${item}">${item}</paper-item>
-              `)}
-            </paper-listbox>
-          </paper-dropdown-menu>
-          <paper-dropdown-menu label="Color">
-            <paper-listbox
-              slot="dropdown-content"
-              selected="${this.tokenColor}"
-              @selected-changed="${(e: CustomEvent) => { this.tokenColor = e.detail.value; }}"
-              attr-for-selected="value">
-              ${repeat(this.legalTokenColors, (item) => item, (item) => html`
-                <paper-item value="${item}">${item}</paper-item>
-              `)}
-            </paper-listbox>
-          </paper-dropdown-menu>
+          <label><md-switch
+            ?selected="${this.tokenHighlighted}"
+            @change="${(e: Event) => { this.tokenHighlighted = (e.target as MdSwitch).selected; }}">
+          </md-switch> Token Highlighted</label>
+          <label><md-switch
+            ?selected="${this.tokenActive}"
+            @change="${(e: Event) => { this.tokenActive = (e.target as MdSwitch).selected; }}">
+          </md-switch> Token Active</label>
+          <md-filled-select
+            label="Type"
+            .value="${this.tokenType}"
+            @change="${(e: Event) => { this.tokenType = (e.target as MdFilledSelect).value; }}">
+            ${repeat(this.legalTokenTypes, (item) => item, (item) => html`
+              <md-select-option value="${item}">
+                <div slot="headline">${item}</div>
+              </md-select-option>
+            `)}
+          </md-filled-select>
+          <md-filled-select
+            label="Color"
+            .value="${this.tokenColor}"
+            @change="${(e: Event) => { this.tokenColor = (e.target as MdFilledSelect).value; }}">
+            ${repeat(this.legalTokenColors, (item) => item, (item) => html`
+              <md-select-option value="${item}">
+                <div slot="headline">${item}</div>
+              </md-select-option>
+            `)}
+          </md-filled-select>
         </div>
 
         <div id="tokens">
@@ -376,7 +377,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             component-color="${this.tokenColor}"
             component-type="${this.tokenType}">
           </boardgame-component-stack>
-          <paper-button propose-move="Move Token">Swap</paper-button>
+          <md-filled-button propose-move="Move Token">Swap</md-filled-button>
         </div>
 
         <div id="tokens-sanitized">
@@ -395,7 +396,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             component-color="${this.tokenColor}"
             component-type="${this.tokenType}">
           </boardgame-component-stack>
-          <paper-button propose-move="Move Token Sanitized">Swap</paper-button>
+          <md-filled-button propose-move="Move Token Sanitized">Swap</md-filled-button>
         </div>
       </div>
     `;
