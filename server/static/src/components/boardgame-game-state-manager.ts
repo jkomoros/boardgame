@@ -230,6 +230,15 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this._socketUrl = this._computeSocketUrl(this.active, this._infoInstalled);
     }
 
+    // Emit event when socketActive changes so parent can update
+    if (changedProperties.has('socketActive')) {
+      this.dispatchEvent(new CustomEvent('socket-active-changed', {
+        composed: true,
+        bubbles: true,
+        detail: { value: this.socketActive }
+      }));
+    }
+
     // Handle observers
     if (changedProperties.has('loggedIn')) {
       this._loggedInChanged(this.loggedIn);
