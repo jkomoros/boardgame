@@ -1,5 +1,5 @@
-import '@polymer/paper-button/paper-button.js';
-import '@polymer/paper-progress/paper-progress.js';
+import '@material/web/button/filled-button.js';
+import '@material/web/progress/linear-progress.js';
 import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-component-stack.js';
@@ -11,7 +11,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
-      paper-progress {
+      md-linear-progress {
         width: 100%;
       }
 
@@ -93,18 +93,17 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
           component-disabled>
         </boardgame-component-stack>
       </div>
-      <paper-button
+      <md-filled-button
         id="hide"
         propose-move="Hide Cards"
-        raised
         ?disabled="${this.state?.Computed?.Global?.CurrentPlayerHasCardsToReveal}">
         Hide Cards
-      </paper-button>
-      <paper-progress
+      </md-filled-button>
+      <md-linear-progress
         id="timeleft"
-        value="${this.state?.Game?.HideCardsTimer?.TimeLeft}"
-        max="${this.maxTimeLeft}">
-      </paper-progress>
+        .value="${(this.state?.Game?.HideCardsTimer?.TimeLeft || 0) / (this.maxTimeLeft || 1)}"
+        .max="${1}">
+      </md-linear-progress>
       <boardgame-fading-text
         .trigger="${this.isCurrentPlayer}"
         message="Your Turn"
