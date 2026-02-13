@@ -36,3 +36,8 @@ server/static/src/**/*.d.ts
 *.prof
 
 *.SECRET.*
+
+# Playwright
+test-results/
+playwright-report/
+server/static/screenshots/

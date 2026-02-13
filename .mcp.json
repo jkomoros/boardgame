@@ -7,7 +7,9 @@
         "-y",
         "@playwright/mcp@latest"
       ],
-      "env": {}
+      "env": {
+        "PLAYWRIGHT_CONFIG": "./server/static/playwright.config.ts"
+      }
     }
   }
 }
