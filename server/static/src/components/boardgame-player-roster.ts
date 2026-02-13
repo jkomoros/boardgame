@@ -16,7 +16,6 @@ import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import './boardgame-configure-game-properties.js';
 import './boardgame-player-roster-item.js';
-import './shared-styles.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';

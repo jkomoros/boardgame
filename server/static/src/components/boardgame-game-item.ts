@@ -1,7 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
-import './shared-styles.js';
 import './boardgame-configure-game-properties.ts';
 import './boardgame-player-chip.ts';
 import { GamePathMixin } from './boardgame-game-path.js';

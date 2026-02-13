@@ -4,7 +4,6 @@ import { when } from 'lit/directives/when.js';
 import '@material/web/radio/radio.js';
 import '@material/web/checkbox/checkbox.js';
 import './boardgame-move-form.ts';
-import './shared-styles.js';
 
 import type { MdRadio } from '@material/web/radio/radio.js';
 import type { MdCheckbox } from '@material/web/checkbox/checkbox.js';
