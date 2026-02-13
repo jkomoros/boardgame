@@ -17,8 +17,14 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
+    port: 8080,
     open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8888',
+        changeOrigin: true
+      }
+    },
     fs: {
       // Allow serving files from the root and follow symlinks
       strict: false,
