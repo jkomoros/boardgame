@@ -194,8 +194,7 @@ export class BoardgameComponentStack extends LitElement {
     const oldValue = this._stack;
     this._stack = value;
     this._stackChanged(value);
-    // No need to call requestUpdate() - _stackChanged handles all side effects
-    // and visual updates are triggered by the resulting property changes
+    this.requestUpdate('stack', oldValue);
   }
 
   get stack(): any {
@@ -399,21 +398,99 @@ export class BoardgameComponentStack extends LitElement {
       return this._componentPool.pop();
     }
 
-    const templateClass = this.templateClass;
+    const templateFunction = this.templateClass;
 
-    if (templateClass) {
-      const instance = new templateClass({});
-      for (const child of instance.children) {
-        if (child.nodeType !== 1) continue;
-        (child as any).instance = instance;
-        return child;
+    if (templateFunction) {
+      // Call the function to get a cloned DocumentFragment
+      const fragment = templateFunction();
+
+      // Find the first element child in the fragment
+      for (const child of fragment.childNodes) {
+        if (child.nodeType === 1) { // Element node
+          const element = child as HTMLElement;
+
+          // Set up a property observer to handle Polymer-style template binding
+          // when the item property changes
+          this._setupTemplateBinding(element);
+
+          return element;
+        }
       }
-      console.warn('None of the nodes printed by the template are an actual node.');
+      console.warn('None of the nodes in the template are an element node.');
       return null;
     }
 
     console.warn('No template class to auto stamp');
     return null;
+  }
+
+  private _setupTemplateBinding(element: HTMLElement) {
+    // Store the original template content with {{...}} patterns
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
+    const nodesToBind: Array<{node: Text, pattern: string}> = [];
+
+    let node: Text | null;
+    while ((node = walker.nextNode() as Text | null)) {
+      const text = node.textContent || '';
+      if (text.includes('{{') && text.includes('}}')) {
+        nodesToBind.push({node, pattern: text});
+      }
+    }
+
+    // If there are bindings, set up an observer
+    if (nodesToBind.length > 0) {
+      // Override the setter for the item property to update bindings
+      const originalDescriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'item');
+      let itemValue: any = null;
+
+      Object.defineProperty(element, 'item', {
+        get() {
+          return itemValue;
+        },
+        set(newValue: any) {
+          itemValue = newValue;
+
+          // Call the original setter if it exists
+          if (originalDescriptor && originalDescriptor.set) {
+            originalDescriptor.set.call(this, newValue);
+          }
+
+          // Update all bound text nodes
+          for (const binding of nodesToBind) {
+            const pattern = binding.pattern;
+            let result = pattern;
+
+            // Replace all {{...}} patterns
+            const matches = pattern.match(/\{\{([^}]+)\}\}/g);
+            if (matches && newValue) {
+              for (const match of matches) {
+                const path = match.replace(/\{\{|\}\}/g, '').trim();
+                const value = this._evaluatePath(newValue, path);
+                result = result.replace(match, value !== undefined ? value : '');
+              }
+            }
+
+            binding.node.textContent = result;
+          }
+        },
+        configurable: true,
+        enumerable: true
+      });
+    }
+  }
+
+  private _evaluatePath(obj: any, path: string): any {
+    const parts = path.split('.');
+    let current = obj;
+
+    for (const part of parts) {
+      if (current === null || current === undefined) {
+        return undefined;
+      }
+      current = current[part];
+    }
+
+    return current;
   }
 
   stackDefault(propName: string): any {
