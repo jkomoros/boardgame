@@ -1,7 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import './boardgame-component-animator.js';
-import '@polymer/paper-spinner/paper-spinner-lite.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -41,10 +40,18 @@ class BoardgameRenderGame extends LitElement {
       justify-content: center;
     }
 
-    paper-spinner-lite {
-      height: 100px;
+    .spinner {
       width: 100px;
-      --paper-spinner-stroke-width: 10px;
+      height: 100px;
+      border: 10px solid #e0e0e0;
+      border-top: 10px solid var(--md-sys-color-primary, #6750a4);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   `;
 
@@ -338,7 +345,7 @@ class BoardgameRenderGame extends LitElement {
 
       <div id="loading" ?active="${!this.socketActive}">
         <div>
-          <paper-spinner-lite ?active="${!this.socketActive}"></paper-spinner-lite>
+          <div class="spinner"></div>
         </div>
       </div>
     `;
