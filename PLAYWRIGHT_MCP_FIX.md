@@ -36,14 +36,19 @@ New configuration file at project root that tells Playwright MCP to launch an is
 
 ### 2. Updated `.mcp.json`
 
-Added `MCP_CONFIG_FILE` environment variable to reference the new config:
+Added `--config` command-line argument and `--isolated` flag to reference the new config:
 
 ```json
-"env": {
-  "PLAYWRIGHT_CONFIG": "./server/static/playwright.config.ts",
-  "MCP_CONFIG_FILE": "./.playwright-mcp-config.json"
-}
+"args": [
+  "-y",
+  "@playwright/mcp@latest",
+  "--config",
+  "./.playwright-mcp-config.json",
+  "--isolated"
+]
 ```
+
+**Note:** The config file must be passed via `--config` CLI argument, not an environment variable.
 
 ## Next Steps
 
