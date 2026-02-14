@@ -438,9 +438,11 @@ export class BoardgameComponentAnimator extends LitElement {
     raf(() => this._startAnimations(resolve, reject));
   }
 
-  private _startAnimations(resolve: () => void, reject: () => void) {
+  private async _startAnimations(resolve: () => void, reject: () => void) {
     const collections = this.stackElement._sharedStackList;
 
+    // First pass: Remove noAnimate from all components
+    const componentsToAnimate: any[] = [];
     for (let i = 0; i < collections.length; i++) {
       const collection = collections[i];
       collection.noAnimate = false;
@@ -451,15 +453,23 @@ export class BoardgameComponentAnimator extends LitElement {
         const record = this._infoById[component.id];
         if (!record) continue;
         component.noAnimate = false;
-        component.startAnimation(record.after, record.afterTransform, record.afterOpacity);
+        componentsToAnimate.push({ component, record });
       }
     }
 
     for (let i = 0; i < this._animatingComponents.length; i++) {
       const record = this._animatingComponents[i];
       record.component.noAnimate = false;
+      componentsToAnimate.push({ component: record.component, record });
+    }
 
-      record.component.startAnimation(record.after, record.afterTransform, record.afterOpacity);
+    // CRITICAL: Wait for Lit to complete its async update cycle
+    // This ensures the .no-animate class is removed from DOM before reading styles
+    await Promise.all(componentsToAnimate.map(item => item.component.updateComplete));
+
+    // Second pass: Start animations with transitions now active
+    for (const item of componentsToAnimate) {
+      item.component.startAnimation(item.record.after, item.record.afterTransform, item.record.afterOpacity);
     }
 
     resolve();
