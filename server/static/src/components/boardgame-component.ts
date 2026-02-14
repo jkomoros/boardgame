@@ -246,6 +246,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       this.spacer = true;
       return;
     }
+    this.spacer = false;
     this.id = newValue.ID || '';
   }
 
