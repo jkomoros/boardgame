@@ -103,6 +103,32 @@ var filesToExclude = map[string]bool{
 	//generate our own we'll overwrite original.
 	clientConfigJsFileName: true,
 	".DS_Store":            true,
+	// Documentation files
+	"BREAKING_CHANGES.md":        true,
+	"CRITIQUE_FIXES_SUMMARY.md":  true,
+	"GAME_RENDERER_MIGRATION.md": true,
+	"IMPROVEMENT_PLAN.md":        true,
+	"MIGRATION_CRITIQUE.md":      true,
+	"MIGRATION_PLAN.md":          true,
+	"MIGRATION_SUMMARY.md":       true,
+	"PHASE3_MIGRATION_SUMMARY.md": true,
+	// Logs
+	"server.log":     true,
+	"vite.log":       true,
+	"vite-server.log": true,
+	// Test artifacts
+	"playwright-report":  true,
+	"playwright.config.ts": true,
+	"test-results":      true,
+	"screenshots":       true,
+	"tests":             true,
+	// Build artifacts
+	"dist": true,
+	// Legacy files
+	"sw-precache-config.js": true,
+	// Not needed at runtime
+	"tsconfig.strict.json":           true,
+	"tsconfig.strict-migration.json": true,
 }
 
 //Server runs a static server. directory is the folder that the `static`

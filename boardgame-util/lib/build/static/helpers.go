@@ -2,7 +2,6 @@ package static
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -57,13 +56,13 @@ func copyFile(remote, local string) error {
 		return errors.New("Couldn't get info for remote: " + err.Error())
 	}
 
-	contents, err := ioutil.ReadFile(remote)
+	contents, err := os.ReadFile(remote)
 
 	if err != nil {
 		return errors.New("Couldn't read file " + remote + ": " + err.Error())
 	}
 
-	if err := ioutil.WriteFile(local, contents, info.Mode()); err != nil {
+	if err := os.WriteFile(local, contents, info.Mode()); err != nil {
 		return errors.New("Couldn't write file: " + err.Error())
 	}
 
