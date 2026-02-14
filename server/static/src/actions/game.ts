@@ -460,8 +460,8 @@ export const fetchGameVersion = (
   lastFetchedVersion: number,
   gameVersion: number
 ) => async (dispatch: Dispatch, getState: () => RootState): Promise<void> => {
-  // Skip if we already have this version
-  if (lastFetchedVersion === gameVersion) {
+  // Skip if we've already installed the target version or beyond
+  if (gameVersion >= targetVersion) {
     return;
   }
 
@@ -515,6 +515,29 @@ export const fetchGameVersion = (
     type: FETCH_GAME_VERSION_SUCCESS,
     bundles: expandedBundles
   });
+
+  // Install the first bundle's game state immediately so animations can work
+  // This ensures components have state available before the animation queue processes
+  console.log('[fetchGameVersion] Bundles received:', expandedBundles.length);
+  if (expandedBundles.length > 0) {
+    console.log('[fetchGameVersion] First bundle keys:', Object.keys(expandedBundles[0]));
+    console.log('[fetchGameVersion] First bundle.game:', expandedBundles[0].game);
+    console.log('[fetchGameVersion] First bundle.Game:', expandedBundles[0].Game);
+
+    const firstBundle = expandedBundles[0];
+    const gameData = firstBundle.game || firstBundle.Game;
+
+    if (gameData?.CurrentState) {
+      console.log('[fetchGameVersion] Installing state from bundle');
+      dispatch(installGameState(
+        gameData.CurrentState,
+        gameData.ActiveTimers || {},
+        firstBundle.originalWallClockStartTime || firstBundle.OriginalWallClockStartTime || Date.now()
+      ));
+    } else {
+      console.warn('[fetchGameVersion] No CurrentState found in bundle', firstBundle);
+    }
+  }
 };
 
 /**

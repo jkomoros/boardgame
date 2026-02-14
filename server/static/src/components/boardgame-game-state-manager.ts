@@ -115,6 +115,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _prevTargetVersion = -1;
   private _prevGameVersion = 0;
   private _prevLastFetchedVersion = 0;
+  private _prevLoading = false;
 
   // Reactive properties - synced from Redux in stateChanged()
   @property({ type: Number, attribute: false })
@@ -153,6 +154,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   stateChanged(state: RootState) {
     // Sync Redux loading state (non-duplicated, used for local logic)
+    const prevLoading = this._loading;
     this._loading = selectGameLoading(state);
 
     // Sync Redux fetched data (non-duplicated, used for one-time processing)
@@ -193,6 +195,12 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this._handleTargetVersionChanged();
     }
 
+    // Handle loading completion - retry fetch if we have a pending target
+    if (prevLoading && !this._loading && currentTargetVersion > currentGameVersion) {
+      console.log('[stateChanged] Loading completed, retrying fetch for version:', currentTargetVersion);
+      this._handleTargetVersionChanged();
+    }
+
     // Trigger requestUpdate if properties changed (for updated() lifecycle)
     if (this._prevTargetVersion !== currentTargetVersion ||
         this._prevGameVersion !== currentGameVersion ||
@@ -204,6 +212,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     this._prevTargetVersion = currentTargetVersion;
     this._prevGameVersion = currentGameVersion;
     this._prevLastFetchedVersion = currentLastFetchedVersion;
+    this._prevLoading = this._loading;
   }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -226,8 +235,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this.gameVersionPath, currentLastFetchedVersion, currentGameVersion
     );
 
+    // Only update socket URL if active or _infoInstalled changes
+    // gameRoute changes are handled via those dependencies
     if (changedProperties.has('active') || changedProperties.has('_infoInstalled')) {
-      this._socketUrl = this._computeSocketUrl(this.active, this._infoInstalled);
+      console.log('[WebSocket] Recomputing socket URL. active:', this.active, '_infoInstalled:', this._infoInstalled, 'gameRoute:', this.gameRoute);
+      const newSocketUrl = this._computeSocketUrl(this.active, this._infoInstalled);
+      // Only update if the URL actually changed
+      // This prevents redundant reconnections during property update cycles
+      if (newSocketUrl !== this._socketUrl) {
+        console.log('[WebSocket] Computed new socket URL:', newSocketUrl, 'Previous:', this._socketUrl);
+        this._socketUrl = newSocketUrl;
+      } else {
+        console.log('[WebSocket] Socket URL unchanged, keeping existing connection');
+      }
     }
 
     // Emit event when socketActive changes so parent can update
@@ -306,27 +326,45 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _handleTargetVersionChanged() {
     // Replaces _gameVersionPathChanged property watcher
     // Called explicitly from stateChanged when targetVersion changes
+    console.log('[_handleTargetVersionChanged] Called with:', {
+      targetVersion: this.targetVersion,
+      gameVersion: this.gameVersion,
+      lastFetchedVersion: this.lastFetchedVersion,
+      autoCurrentPlayer: this.autoCurrentPlayer,
+      requestedPlayer: this.requestedPlayer,
+      viewingAsPlayer: this.viewingAsPlayer,
+      loading: this._loading,
+      gameRoute: this.gameRoute
+    });
 
-    if (this.targetVersion < 0) return;
+    if (this.targetVersion < 0) {
+      console.log('[_handleTargetVersionChanged] BLOCKED: targetVersion < 0');
+      return;
+    }
 
     if (this.autoCurrentPlayer && this.requestedPlayer === this.viewingAsPlayer && this.targetVersion === this.gameVersion) {
+      console.log('[_handleTargetVersionChanged] BLOCKED: autoCurrentPlayer condition');
       return;
     }
 
     // Skip if already have this version
     if (this.lastFetchedVersion === this.gameVersion && this.targetVersion === this.gameVersion) {
+      console.log('[_handleTargetVersionChanged] BLOCKED: already have version');
       return;
     }
 
     // Use Redux loading state instead of local flag
     if (this._loading) {
+      console.log('[_handleTargetVersionChanged] BLOCKED: loading');
       return;
     }
 
     if (!this.gameRoute) {
+      console.log('[_handleTargetVersionChanged] BLOCKED: no gameRoute');
       return;
     }
 
+    console.log('[_handleTargetVersionChanged] Dispatching fetchGameVersion');
     // Dispatch the thunk - data will be processed via stateChanged when it arrives
     requestAnimationFrame(() => {
       store.dispatch(
@@ -344,7 +382,17 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _socketUrlChanged(newValue: string) {
+    console.log('[WebSocket] URL changed to:', newValue);
+
+    // Don't tear down an existing connection if the new URL is empty
+    // This can happen during property update cycles
+    if (this._socket && !newValue) {
+      console.log('[WebSocket] Ignoring transition to empty URL - keeping existing connection');
+      return;
+    }
+
     if (this._socket) {
+      console.log('[WebSocket] Closing existing socket before reconnecting');
       this._socket.close();
       this._socket = null;
     }
@@ -358,6 +406,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     // If there's no URL, don't establish a socket.
     if (!theUrl) return;
 
+    console.log('[WebSocket] Connecting to:', theUrl);
     this._socket = new WebSocket(theUrl);
 
     this._socket.onclose = (e) => this._socketClosed(e);
@@ -367,10 +416,13 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _socketMessage(e: MessageEvent) {
+    console.log('[WebSocket] Received message:', e.data);
     const version = parseInt(e.data);
     if (isNaN(version)) {
+      console.warn('[WebSocket] Message was not a valid version number:', e.data);
       return;
     }
+    console.log('[WebSocket] Setting target version to:', version);
     store.dispatch(setTargetVersion(version));
   }
 
@@ -380,11 +432,12 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _socketOpened(e: Event) {
+    console.log('[WebSocket] Connected successfully');
     store.dispatch(socketConnected());
   }
 
   private _socketClosed(e: CloseEvent) {
-    console.warn('Socket closed', e);
+    console.warn('[WebSocket] Closed. Code:', e.code, 'Reason:', e.reason || '(no reason)', 'Clean:', e.wasClean);
     store.dispatch(socketDisconnected());
     // We always want a socket, so connect. Wait a bit so we don't just
     // busy spin if the server is down.
