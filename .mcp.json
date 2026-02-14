@@ -8,7 +8,8 @@
         "@playwright/mcp@latest"
       ],
       "env": {
-        "PLAYWRIGHT_CONFIG": "./server/static/playwright.config.ts"
+        "PLAYWRIGHT_CONFIG": "./server/static/playwright.config.ts",
+        "MCP_CONFIG_FILE": "./.playwright-mcp-config.json"
       }
     }
   }
