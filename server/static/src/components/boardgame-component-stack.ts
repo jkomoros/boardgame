@@ -492,9 +492,44 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   newAnimatingComponent(): any {
-    const component = this.newComponent();
+    // CRITICAL: Don't use the component pool for animating components.
+    // Pooled components are cloned from templates and are plain HTMLElements
+    // without custom element methods like prepareForBeingAnimatingComponent().
+    // Instead, create a fresh custom element that has the full prototype chain.
+
+    let component = null;
+
+    // Extract the component tag name from the template
+    const templateFunction = this.templateClass;
+
+    if (templateFunction) {
+      // Call the function to get a cloned DocumentFragment
+      const fragment = templateFunction();
+
+      // Find the first element child to determine the tag name
+      for (const child of fragment.childNodes) {
+        if (child.nodeType === 1) { // Element node
+          const tagName = (child as HTMLElement).tagName.toLowerCase();
+
+          // Create a fresh custom element instead of using the cloned template
+          component = document.createElement(tagName);
+          break;
+        }
+      }
+    }
+
+    if (!component) {
+      console.warn('Could not create animating component');
+      return null;
+    }
+
     component.noAnimate = true;
-    component.prepareForBeingAnimatingComponent(this);
+
+    // Defensive check: Only call if method exists (safety net)
+    if (typeof component.prepareForBeingAnimatingComponent === 'function') {
+      component.prepareForBeingAnimatingComponent(this);
+    }
+
     this.setUnknownAnimationState(component);
     this.animatingComponentsContainer.appendChild(component);
     if (!this._boundClearAnimatingComponents) {
