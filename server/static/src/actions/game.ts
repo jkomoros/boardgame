@@ -437,6 +437,15 @@ export const fetchGameInfo = (
     viewingAsPlayer: data.ViewingAsPlayer,
     stateVersion: data.StateVersion
   });
+
+  // Install the initial game state so animations can work
+  if (data.Game?.CurrentState) {
+    dispatch(installGameState(
+      data.Game.CurrentState,
+      data.Game.ActiveTimers || {},
+      Date.now()
+    ));
+  }
 };
 
 /**
