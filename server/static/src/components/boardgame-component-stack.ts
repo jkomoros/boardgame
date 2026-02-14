@@ -390,6 +390,8 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   returnComponent(ele: any) {
+    // Reset spacer property to prevent pooled components from staying invisible
+    ele.spacer = false;
     this._componentPool.push(ele);
   }
 

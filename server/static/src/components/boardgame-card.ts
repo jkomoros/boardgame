@@ -8,6 +8,9 @@ export class BoardgameCard extends BoardgameComponent {
     BoardgameComponent.styles,
     css`
       :host {
+        /* Override component width for cards */
+        --default-component-width: 100px;
+
         /* Shadow elevation styles for rotated cards */
         --shadow-elevation-normal-rotated: 2px 0 2px 0 rgba(0, 0, 0, 0.14),
                                             1px 0 5px 0 rgba(0, 0, 0, 0.12),
@@ -27,7 +30,6 @@ export class BoardgameCard extends BoardgameComponent {
       }
 
       #outer {
-        --default-component-width: 100px;
         --card-effective-border-radius: 5px;
       }
 
