@@ -43,9 +43,8 @@ import {
 export class BoardgameApp extends connect(store)(LitElement) {
   static styles = css`
     :host {
-      display: block;
-      height: 100vh;
       display: flex;
+      height: 100vh;
     }
 
     [hidden] {
@@ -195,6 +194,7 @@ export class BoardgameApp extends connect(store)(LitElement) {
     /* Content area */
     .content-area {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       position: relative;
       background-color: var(--md-sys-color-background);
