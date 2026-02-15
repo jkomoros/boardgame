@@ -223,8 +223,18 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   messiness = 1.0;
 
-  @property({ type: Boolean })
-  noAnimate = false;
+  private _noAnimate = false;
+
+  get noAnimate(): boolean {
+    return this._noAnimate;
+  }
+
+  set noAnimate(value: boolean) {
+    this._noAnimate = value;
+    if (this.container) {
+      this.container.classList.toggle('no-animate', value);
+    }
+  }
 
   @property({ type: Boolean })
   noDefaultSpacer = false;

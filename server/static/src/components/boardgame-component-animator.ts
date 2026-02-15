@@ -467,6 +467,11 @@ export class BoardgameComponentAnimator extends LitElement {
     // This ensures the .no-animate class is removed from DOM before reading styles
     await Promise.all(componentsToAnimate.map(item => item.component.updateComplete));
 
+    // Force browser to compute inverted transforms as actual styles.
+    // Without this, the browser batches inverted + final transform writes
+    // and sees no net change for stack layouts.
+    this.offsetHeight;
+
     // Second pass: Start animations with transitions now active
     for (const item of componentsToAnimate) {
       item.component.startAnimation(item.record.after, item.record.afterTransform, item.record.afterOpacity);

@@ -65,8 +65,9 @@ export default defineConfig({
     // How long to wait for the server to be ready (2 minutes)
     timeout: 120000,
 
-    // Don't try to start a command - server is already running
-    command: undefined,
+    // Placeholder command - with reuseExistingServer, Playwright checks
+    // the URL first and skips launching if the server is already running
+    command: 'echo "Waiting for server"',
   },
 
   // Configure projects for major browsers
