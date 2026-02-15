@@ -35,13 +35,12 @@ export class BoardgameGameItem extends GamePathMixin(LitElement) {
     }
 
     .card {
-      background: white;
+      background: var(--md-sys-color-surface-container-low, #f7f2fa);
       padding: 16px;
       margin: 8px;
-      border-radius: 4px;
-      box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-                  0 1px 5px 0 rgba(0, 0, 0, 0.12),
-                  0 3px 1px -2px rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
+      color: var(--md-sys-color-on-surface, #1c1b1f);
     }
 
     .layout {
@@ -63,7 +62,7 @@ export class BoardgameGameItem extends GamePathMixin(LitElement) {
     .minor {
       font-size: 12px;
       font-weight: 400;
-      color: var(--secondary-text-color, #757575);
+      color: var(--md-sys-color-on-surface-variant, #49454f);
       margin-left: 8px;
     }
 

@@ -36,10 +36,10 @@ export class BoardgamePlayerRosterItem extends LitElement {
     }
 
     strong {
-      font-size: 20px;
-      font-weight: 500;
+      font-size: var(--md-sys-typescale-title-medium-size, 16px);
+      font-weight: var(--md-sys-typescale-title-medium-weight, 500);
       letter-spacing: 0.005em;
-      color: var(--primary-text-color, #212121);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
     }
 
     boardgame-player-chip {
@@ -57,7 +57,7 @@ export class BoardgamePlayerRosterItem extends LitElement {
     strong.chip {
       font-size: 12px;
       font-weight: 400;
-      background-color: var(--disabled-text-color, #9e9e9e);
+      background-color: var(--md-sys-color-outline, #79747e);
       color: white;
       padding: 0.25em;
       height: 1em;
@@ -78,9 +78,9 @@ export class BoardgamePlayerRosterItem extends LitElement {
     }
 
     span {
-      font-size: 12px;
+      font-size: var(--md-sys-typescale-body-small-size, 12px);
       font-weight: 400;
-      color: var(--secondary-text-color, #757575);
+      color: var(--md-sys-color-on-surface-variant, #49454f);
     }
 
     .viewing span {

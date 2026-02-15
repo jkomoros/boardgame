@@ -6,19 +6,19 @@ export const sharedStyles = css`
     .card {
       margin: 24px;
       padding: 16px;
-      color: #757575;
-      border-radius: 5px;
-      background-color: #fff;
-      box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      border-radius: 12px;
+      background-color: var(--md-sys-color-surface-container-low, #f7f2fa);
+      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
     }
   }
 
   @media (max-width:940px) {
     .card {
       padding: 16px;
-      color: #757575;
-      background-color: #fff;
-      border-bottom:1px solid #CCCCCC;
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      background-color: var(--md-sys-color-surface-container-low, #f7f2fa);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
     }
   }
 
@@ -27,7 +27,7 @@ export const sharedStyles = css`
     width: 64px;
     height: 64px;
     text-align: center;
-    color: #555;
+    color: var(--md-sys-color-on-surface-variant, #555);
     border-radius: 50%;
     background: #ddd;
     font-size: 30px;
@@ -36,7 +36,7 @@ export const sharedStyles = css`
 
   h1 {
     margin: 16px 0;
-    color: #212121;
+    color: var(--md-sys-color-on-surface, #212121);
     font-size: 22px;
   }
 `;

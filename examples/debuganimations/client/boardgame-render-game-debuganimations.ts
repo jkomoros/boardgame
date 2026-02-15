@@ -1,4 +1,5 @@
 import '@material/web/button/filled-button.js';
+import '@material/web/button/outlined-button.js';
 import '@material/web/select/filled-select.js';
 import '@material/web/select/select-option.js';
 import '@material/web/switch/switch.js';
@@ -26,14 +27,25 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
         --animation-length: 5s;
       }
 
+      #container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+      }
+
       #shortstacks {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
       }
 
       #draw {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
       }
 
       #shortstacks boardgame-card > div {
@@ -46,6 +58,8 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
       #fan {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
       }
 
       #fan boardgame-component-stack:first-child {
@@ -59,36 +73,67 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
       .controls {
         display: flex;
         flex-direction: column;
+        gap: 8px;
       }
 
       #hidden {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
       }
 
       #controls {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        background: var(--md-sys-color-surface-container-low, #f7f2fa);
+        border-radius: 12px;
       }
 
       #all {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
       }
 
       #token {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
       }
 
       #tokens {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
       }
 
       #tokens-sanitized {
         display: flex;
         flex-direction: row;
+        gap: 16px;
+        align-items: center;
+      }
+
+      md-filled-button,
+      md-outlined-button {
+        align-self: center;
+      }
+
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+        font-size: var(--md-sys-typescale-body-medium-size, 14px);
+        color: var(--md-sys-color-on-surface, #1c1b1f);
       }
     `
   ];
@@ -263,9 +308,9 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
           </boardgame-component-stack>
           <div class="controls">
             <md-filled-button propose-move="Move Fan Card">Draw</md-filled-button>
-            <md-filled-button propose-move="Visible Shuffle">Public Shuffle</md-filled-button>
-            <md-filled-button propose-move="Shuffle">Shuffle</md-filled-button>
-            <md-filled-button propose-move="Shuffle Hidden">Shuffle Hidden</md-filled-button>
+            <md-outlined-button propose-move="Visible Shuffle">Public Shuffle</md-outlined-button>
+            <md-outlined-button propose-move="Shuffle">Shuffle</md-outlined-button>
+            <md-outlined-button propose-move="Shuffle Hidden">Shuffle Hidden</md-outlined-button>
             <boardgame-status-text>${this.state?.Game?.FanShuffleCount}</boardgame-status-text>
             <md-filled-select
               label="Layout"
@@ -320,8 +365,8 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.AllHiddenStack}">
           </boardgame-component-stack>
-          <md-filled-button propose-move="Start Move All Components To Hidden">To Hidden</md-filled-button>
-          <md-filled-button propose-move="Start Move All Components To Visible">To Visible</md-filled-button>
+          <md-outlined-button propose-move="Start Move All Components To Hidden">To Hidden</md-outlined-button>
+          <md-outlined-button propose-move="Start Move All Components To Visible">To Visible</md-outlined-button>
         </div>
 
         <div id="token">

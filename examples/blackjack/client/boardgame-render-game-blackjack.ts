@@ -1,4 +1,5 @@
 import '@material/web/button/filled-button.js';
+import '@material/web/button/outlined-button.js';
 import '../../../server/static/src/components/boardgame-component-stack.js';
 import '../../../server/static/src/components/boardgame-card.js';
 import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
@@ -52,7 +53,7 @@ class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
         </boardgame-component-stack>
         <div class="flex">
           <md-filled-button propose-move="Current Player Hit" ?disabled="${!this.isCurrentPlayer}">Hit</md-filled-button>
-          <md-filled-button propose-move="Current Player Stand" ?disabled="${!this.isCurrentPlayer}">Stand</md-filled-button>
+          <md-outlined-button propose-move="Current Player Stand" ?disabled="${!this.isCurrentPlayer}">Stand</md-outlined-button>
         </div>
         <boardgame-component-stack
           .stack="${this.state?.Game?.DiscardStack}"

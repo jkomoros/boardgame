@@ -11,6 +11,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { when } from 'lit/directives/when.js';
+import '@material/web/button/filled-button.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -52,6 +53,54 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
     h2 {
       margin-top: 0;
       margin-bottom: 0;
+      font-family: var(--md-sys-typescale-title-large-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-title-large-size, 22px);
+      font-weight: var(--md-sys-typescale-title-large-weight, 400);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+    }
+
+    details {
+      margin-bottom: 8px;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-body-large-size, 16px);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      background: var(--md-sys-color-surface-container, #f0edf1);
+    }
+
+    summary:hover {
+      background: var(--md-sys-color-surface-container-high, #e6e0e9);
+    }
+
+    form {
+      padding: 8px 12px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input:not([type]) {
+      padding: 8px 12px;
+      border: 1px solid var(--md-sys-color-outline, #79747e);
+      border-radius: 4px;
+      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-body-medium-size, 14px);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      background: var(--md-sys-color-surface, #fffbfe);
+    }
+
+    select {
+      padding: 8px 12px;
+      border: 1px solid var(--md-sys-color-outline, #79747e);
+      border-radius: 4px;
+      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-body-medium-size, 14px);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      background: var(--md-sys-color-surface, #fffbfe);
     }
   `;
 
@@ -242,7 +291,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
               <div ?hidden="${item.Fields && item.Fields.length > 0}">
                 <em>No modifiable fields</em><br>
               </div>
-              <input type="button" @click="${this.doSubmitForm}" value="Make Move">
+              <md-filled-button @click="${this.doSubmitForm}">Make Move</md-filled-button>
             </form>
           </details>
         `)}

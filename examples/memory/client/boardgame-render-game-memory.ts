@@ -1,4 +1,5 @@
 import '@material/web/button/filled-button.js';
+import '@material/web/button/outlined-button.js';
 import '@material/web/progress/linear-progress.js';
 import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
 import '../../src/components/boardgame-card.js';
@@ -93,12 +94,12 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
           component-disabled>
         </boardgame-component-stack>
       </div>
-      <md-filled-button
+      <md-outlined-button
         id="hide"
         propose-move="Hide Cards"
         ?disabled="${this.state?.Computed?.Global?.CurrentPlayerHasCardsToReveal}">
         Hide Cards
-      </md-filled-button>
+      </md-outlined-button>
       <md-linear-progress
         id="timeleft"
         .value="${(this.state?.Game?.HideCardsTimer?.TimeLeft || 0) / (this.maxTimeLeft || 1)}"

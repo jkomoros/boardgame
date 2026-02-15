@@ -51,13 +51,12 @@ export class BoardgameAdminControls extends LitElement {
     }
 
     .card {
-      background: white;
+      background: var(--md-sys-color-surface-container-low, #f7f2fa);
       padding: 16px;
       margin: 8px 0;
-      border-radius: 4px;
-      box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-                  0 1px 5px 0 rgba(0, 0, 0, 0.12),
-                  0 3px 1px -2px rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
+      color: var(--md-sys-color-on-surface, #1c1b1f);
     }
 
     .admin {
@@ -65,21 +64,69 @@ export class BoardgameAdminControls extends LitElement {
     }
 
     md-radio {
-      margin-right: 8px;
+      margin-right: 4px;
+    }
+
+    label.radio-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-body-medium-size, 14px);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      cursor: pointer;
     }
 
     input[type="number"] {
       width: 60px;
       margin-left: 8px;
-      padding: 4px 8px;
-      border: 1px solid #ccc;
+      padding: 8px 12px;
+      border: 1px solid var(--md-sys-color-outline, #79747e);
       border-radius: 4px;
+      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      background: var(--md-sys-color-surface, #fffbfe);
     }
 
     [role="radiogroup"] {
       display: inline-flex;
-      gap: 16px;
+      gap: 12px;
       margin-left: 8px;
+    }
+
+    .view-as-label {
+      font-family: var(--md-sys-typescale-label-large-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-label-large-size, 14px);
+      font-weight: var(--md-sys-typescale-label-large-weight, 500);
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+    }
+
+    details {
+      margin-bottom: 4px;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-body-large-size, 16px);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      background: var(--md-sys-color-surface-container, #f0edf1);
+    }
+
+    summary:hover {
+      background: var(--md-sys-color-surface-container-high, #e6e0e9);
+    }
+
+    pre {
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--md-sys-color-surface-container, #f0edf1);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
+      font-size: 12px;
+      overflow: auto;
+      max-height: 400px;
     }
   `;
 
@@ -219,20 +266,24 @@ export class BoardgameAdminControls extends LitElement {
       <div ?hidden="${!this.active}">
         <div class="card horizontal layout admin center">
           <div class="flex">
-            View as
+            <span class="view-as-label">View as</span>
             <div role="radiogroup" aria-label="View as" @change="${this._handleViewAsChange}">
-              <md-radio name="viewAs" value="admin" ?checked="${this.viewAs === 'admin'}">
+              <label class="radio-label">
+                <md-radio name="viewAs" value="admin" ?checked="${this.viewAs === 'admin'}"></md-radio>
                 Admin
-              </md-radio>
-              <md-radio name="viewAs" value="observer" ?checked="${this.viewAs === 'observer'}">
+              </label>
+              <label class="radio-label">
+                <md-radio name="viewAs" value="observer" ?checked="${this.viewAs === 'observer'}"></md-radio>
                 Observer
-              </md-radio>
-              <md-radio name="viewAs" value="current" ?checked="${this.viewAs === 'current'}">
+              </label>
+              <label class="radio-label">
+                <md-radio name="viewAs" value="current" ?checked="${this.viewAs === 'current'}"></md-radio>
                 Current Player
-              </md-radio>
-              <md-radio name="viewAs" value="custom" ?checked="${this.viewAs === 'custom'}">
+              </label>
+              <label class="radio-label">
+                <md-radio name="viewAs" value="custom" ?checked="${this.viewAs === 'custom'}"></md-radio>
                 Custom
-              </md-radio>
+              </label>
             </div>
             <input
               type="number"
