@@ -29,6 +29,11 @@ const pseudoRandomValues = [
 
 const sharedStackList: BoardgameComponentStack[] = [];
 
+// WeakMaps to store original template text for re-evaluation on component reuse.
+// Keyed by DOM nodes, so they survive component pooling and auto-cleanup on GC.
+const originalTextTemplates = new WeakMap<Text, string>();
+const originalAttrTemplates = new WeakMap<Element, Map<string, string>>();
+
 export class BoardgameComponentStack extends LitElement {
   static override styles = css`
     :host {
@@ -431,40 +436,84 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   /**
-   * Update template bindings in an element with the given item data
-   * This replaces {{...}} patterns in text nodes with actual values
+   * Update template bindings in an element with the given item data.
+   * Replaces {{...}} patterns in both text nodes and attributes with actual values.
+   * Stores original templates in WeakMaps so bindings survive component pooling.
    */
   private _updateTemplateBindings(element: HTMLElement, itemData: any) {
     if (!itemData) return;
 
-    // Walk through all text nodes in the element
+    // --- Text node bindings ---
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
     let node: Text | null;
 
     while ((node = walker.nextNode() as Text | null)) {
-      const text = node.textContent || '';
+      // Retrieve stored original template, or capture it on first encounter
+      let templateText = originalTextTemplates.get(node);
+      if (templateText === undefined) {
+        const text = node.textContent || '';
+        if (text.includes('{{') && text.includes('}}')) {
+          templateText = text;
+          originalTextTemplates.set(node, text);
+        } else {
+          continue;
+        }
+      }
 
-      // Check if this text node has template bindings
-      if (text.includes('{{') && text.includes('}}')) {
-        let result = text;
+      // Re-evaluate from the original template every time
+      let result = templateText;
+      const matches = templateText.match(/\{\{([^}]+)\}\}/g);
+      if (matches) {
+        for (const match of matches) {
+          const path = match.replace(/\{\{|\}\}/g, '').trim();
+          const value = this._evaluatePath(itemData, path);
+          result = result.replace(match, value !== undefined ? String(value) : '');
+        }
+      }
+      node.textContent = result;
+    }
 
-        // Find all {{...}} patterns and replace them
-        const matches = text.match(/\{\{([^}]+)\}\}/g);
+    // --- Attribute bindings ---
+    const elements = [element, ...element.querySelectorAll('*')];
+    for (const el of elements) {
+      // Retrieve stored original attribute templates, or capture on first encounter
+      let attrMap = originalAttrTemplates.get(el);
+      if (attrMap === undefined) {
+        attrMap = new Map();
+        for (const attr of el.attributes) {
+          if (attr.value.includes('{{') && attr.value.includes('}}')) {
+            attrMap.set(attr.name, attr.value);
+          }
+        }
+        originalAttrTemplates.set(el, attrMap);
+      }
+      if (attrMap.size === 0) continue;
+
+      for (const [attrName, templateValue] of attrMap) {
+        let result = templateValue;
+        const matches = templateValue.match(/\{\{([^}]+)\}\}/g);
         if (matches) {
           for (const match of matches) {
             const path = match.replace(/\{\{|\}\}/g, '').trim();
             const value = this._evaluatePath(itemData, path);
-            result = result.replace(match, value !== undefined ? value : '');
+            result = result.replace(match, value !== undefined ? String(value) : '');
           }
         }
-
-        // Update the text node with resolved values
-        node.textContent = result;
+        el.setAttribute(attrName, result);
+        // Also set property for Lit reactive system
+        if (attrName in el) {
+          (el as any)[attrName] = result;
+        }
       }
     }
   }
 
   private _evaluatePath(obj: any, path: string): any {
+    // In Polymer's dom-repeat, `item` was the loop variable. Now data is
+    // passed directly, so strip the `item.` prefix if present.
+    if (path.startsWith('item.')) {
+      path = path.substring(5);
+    }
     const parts = path.split('.');
     let current = obj;
 
