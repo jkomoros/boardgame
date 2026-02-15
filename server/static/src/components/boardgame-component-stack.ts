@@ -649,8 +649,17 @@ export class BoardgameComponentStack extends LitElement {
 
       if (!ele.hasAttribute('boardgame-component')) continue;
 
+      // Ensure the item has an ID from the stack's IDs array.
+      // Sanitized components have empty item objects ({}) without an ID field,
+      // but the stack-level IDs array still tracks them for FLIP animations.
+      let item = componentsInfo[componentIndex];
+      const stackIds = this.stack?.IDs;
+      if (stackIds && stackIds[componentIndex] && item && !item.ID) {
+        item.ID = stackIds[componentIndex];
+      }
+
       // Set the item and index properties
-      ele.item = componentsInfo[componentIndex];
+      ele.item = item;
       ele.index = componentIndex;
 
       // Update template bindings directly after setting item
