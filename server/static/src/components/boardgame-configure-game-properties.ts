@@ -54,6 +54,7 @@ export class BoardgameConfigureGameProperties extends connect(store)(LitElement)
       this._lastError = error;
       this.dispatchEvent(new CustomEvent("show-error", {
         composed: true,
+        bubbles: true,
         detail: {
           message: error,
           friendlyMessage: error,
@@ -100,7 +101,7 @@ export class BoardgameConfigureGameProperties extends connect(store)(LitElement)
     store.dispatch(configureGame(this.gameRoute, open, visible, this.admin));
 
     // Tell game-view to fetch data now
-    this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
+    this.dispatchEvent(new CustomEvent("refresh-info", { composed: true, bubbles: true }));
   }
 
   render() {

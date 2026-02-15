@@ -721,6 +721,16 @@ export class BoardgameComponentStack extends LitElement {
       ele.item = item;
       ele.index = componentIndex;
 
+      // Set ID synchronously for FLIP animation tracking.
+      // Lit's async update cycle (updated() → _itemChanged()) may not
+      // update the element's id before _doAnimate() reads it, causing
+      // FLIP inversions to be zero (same element, same position, old ID).
+      if (item && item.ID) {
+        ele.id = item.ID;
+      } else if (item === null || item === undefined) {
+        ele.id = '';
+      }
+
       // Update template bindings directly after setting item
       // This handles Polymer-style {{...}} template bindings in Lit-rendered elements
       this._updateTemplateBindings(ele, componentsInfo[componentIndex]);

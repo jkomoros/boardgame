@@ -219,7 +219,7 @@ class BoardgameRenderGame extends LitElement {
   private _notifyAnimationsDone() {
     if (this._allAnimationsDoneFired) return;
     this._allAnimationsDoneFired = true;
-    this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true }));
+    this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true, bubbles: true }));
   }
 
   private _defaultAnimationLengthChanged(newValue: number) {

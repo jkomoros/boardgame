@@ -69,7 +69,7 @@ export class BoardgameDeckDefaults extends LitElement {
     }
   }
 
-  templateForDeck(gameName: string, deckName: string): HTMLTemplateElement | null {
+  templateForDeck(gameName: string, deckName: string): (() => DocumentFragment) | null {
     const templateKey = `${gameName}-${deckName}`;
 
     if (!deckName) {
@@ -78,7 +78,10 @@ export class BoardgameDeckDefaults extends LitElement {
       return null;
     }
 
-    if (templatesByName[templateKey]) return templatesByName[templateKey];
+    if (templatesByName[templateKey]) {
+      // Return a function that clones the template content
+      return () => templatesByName[templateKey].content.cloneNode(true) as DocumentFragment;
+    }
 
     let template: HTMLTemplateElement | null = null;
 
@@ -99,11 +102,11 @@ export class BoardgameDeckDefaults extends LitElement {
 
     if (!template) return null;
 
-    // In Lit, we don't need to templatize - we just store the template element
-    // and it can be cloned when needed
+    // Store the template element
     templatesByName[templateKey] = template;
 
-    return template;
+    // Return a function that clones the template content
+    return () => template!.content.cloneNode(true) as DocumentFragment;
   }
 }
 

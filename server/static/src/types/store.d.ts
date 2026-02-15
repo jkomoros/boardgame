@@ -182,8 +182,14 @@ export interface GameState {
   fetchedInfo: any | null;
   /** Fetched version data from fetchGameVersion (null when not available or after processing) */
   fetchedVersion: any | null;
-  /** Whether a fetch operation is in progress */
-  loading: boolean;
+  /** Whether a move submission is in progress */
+  moveSubmitting: boolean;
+  /** Whether a game version fetch is in progress */
+  versionFetching: boolean;
+  /** Whether a game info fetch is in progress */
+  infoFetching: boolean;
+  /** Whether a configure/join operation is in progress */
+  configuring: boolean;
   /** Last error message from fetch operations (null if no error) */
   error: string | null;
 }

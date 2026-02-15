@@ -146,6 +146,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
       this._lastError = error;
       this.dispatchEvent(new CustomEvent("show-error", {
         composed: true,
+        bubbles: true,
         detail: {
           message: error,
           friendlyMessage: error,
@@ -215,6 +216,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     if (!this.loggedIn) {
       this.dispatchEvent(new CustomEvent('show-login', {
         composed: true,
+        bubbles: true,
         detail: { nextAction: this.doJoin.bind(this) }
       }));
       return;
@@ -226,7 +228,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     store.dispatch(joinGame(this.gameRoute));
 
     // Tell game-view to fetch data now
-    this.dispatchEvent(new CustomEvent("refresh-info", { composed: true }));
+    this.dispatchEvent(new CustomEvent("refresh-info", { composed: true, bubbles: true }));
   }
 
   private async _gameRouteChanged(newValue: GameRoute | null): Promise<void> {

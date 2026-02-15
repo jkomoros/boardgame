@@ -9,8 +9,11 @@ interface ComponentRecord {
   before?: Record<string, any>;
   after?: Record<string, any>;
   beforeTransform?: string;
+  beforeInlineTransform?: string;
   afterTransform?: string;
   afterOpacity?: string;
+  needsHostTransition?: boolean;
+  needsAnimation?: boolean;
 }
 
 interface OffsetRect {
@@ -33,6 +36,7 @@ interface AnimatingComponentRecord {
   after: Record<string, any>;
   afterTransform: string;
   afterOpacity: string;
+  needsHostTransition: boolean;
 }
 
 export class BoardgameComponentAnimator extends LitElement {
@@ -124,6 +128,7 @@ export class BoardgameComponentAnimator extends LitElement {
         }
 
         record.before = component.animatingPropValues();
+        record.beforeInlineTransform = component.style.transform;
 
         if (component.cloneContent) {
           const newNodes: Node[] = [];
@@ -288,7 +293,6 @@ export class BoardgameComponentAnimator extends LitElement {
         // CRITICAL: Transform composition order - invert + external + scale
         const invertTop = record.offsets!.top - record.newOffsets!.top;
         const invertLeft = record.offsets!.left - record.newOffsets!.left;
-
         let scaleFactor = record.offsets!.width / record.newOffsets!.width;
 
         // Defensive check: prevent crashes from zero-width/height calculations
@@ -313,6 +317,37 @@ export class BoardgameComponentAnimator extends LitElement {
         let adjustedInvertTop = invertTop - (record.newOffsets!.height - record.offsets!.height) / 2;
         let adjustedInvertLeft = invertLeft - (record.newOffsets!.width - record.offsets!.width) / 2;
 
+        // Determine whether the host element's CSS transform will actually
+        // change during the FLIP animation. The browser only fires
+        // transitionend when the computed value differs between the inverted
+        // and final states. For components that didn't move position and whose
+        // inline transform (e.g. messy stack rotation) is unchanged, the
+        // inversion is effectively identity and the target matches — so no
+        // transition fires and we must not expect one.
+        const hasPositionChange = Math.abs(adjustedInvertTop) > 0.5 ||
+          Math.abs(adjustedInvertLeft) > 0.5 || Math.abs(scaleFactor - 1) > 0.01;
+        const hasInlineTransformChange =
+          (record.beforeInlineTransform || '') !== (record.afterTransform || '');
+        record.needsHostTransition = hasPositionChange || hasInlineTransformChange;
+
+        // Check if any animating properties changed (e.g. faceUp, rotated)
+        const beforeProps = record.before || {};
+        const afterProps = record.after!;
+        let propsChanged = false;
+        for (const propName of component.animatingProperties) {
+          if (beforeProps[propName] !== afterProps[propName]) {
+            propsChanged = true;
+            break;
+          }
+        }
+
+        // Check opacity change
+        const beforeOpacity = parseFloat(component.style.opacity || '1');
+        const afterOpacity = parseFloat(record.afterOpacity || '1');
+        const opacityChanged = Math.abs(beforeOpacity - afterOpacity) > 0.01;
+
+        record.needsAnimation = record.needsHostTransition || propsChanged || opacityChanged;
+
         // We used to only bother setting transforms for items that had
         // physically moved. However, the browser is smart enough to ignore
         // transforms that are basically no ops. And if we don't set it
@@ -324,23 +359,28 @@ export class BoardgameComponentAnimator extends LitElement {
         const scaleTransform = `scale(${scaleFactor})`;
         const beforeInvertedTransform = `${transform} ${record.beforeTransform} ${scaleTransform}`;
 
-        // TODO: what should opacity be?
-        component.prepareAnimation(record.before, beforeInvertedTransform, '1.0');
+        // Only prepare animation (set inverted transform, clone content) for
+        // components that actually need animation. Non-animating components
+        // skip the entire FLIP pipeline, avoiding spurious will-animate events.
+        if (record.needsAnimation) {
+          // TODO: what should opacity be?
+          component.prepareAnimation(record.before, beforeInvertedTransform, '1.0');
 
-        const clonedNodes = this._lastSeenNodesById.get(component.id);
+          const clonedNodes = this._lastSeenNodesById.get(component.id);
 
-        if (clonedNodes && clonedNodes.length > 0) {
-          // Clear out old nodes.
-          for (let k = 0; k < component.children.length; k++) {
-            const child = component.children[k];
-            if ((child as HTMLElement).slot === 'fallback') {
-              component.removeChild(child);
+          if (clonedNodes && clonedNodes.length > 0) {
+            // Clear out old nodes.
+            for (let k = 0; k < component.children.length; k++) {
+              const child = component.children[k];
+              if ((child as HTMLElement).slot === 'fallback') {
+                component.removeChild(child);
+              }
             }
-          }
-          for (let k = 0; k < clonedNodes.length; k++) {
-            const node = clonedNodes[k];
-            (node as HTMLElement).slot = 'fallback';
-            component.appendChild(node);
+            for (let k = 0; k < clonedNodes.length; k++) {
+              const node = clonedNodes[k];
+              (node as HTMLElement).slot = 'fallback';
+              component.appendChild(node);
+            }
           }
         }
       }
@@ -371,7 +411,8 @@ export class BoardgameComponentAnimator extends LitElement {
         component: component,
         after: record.after || {},
         afterTransform: component.style.transform,
-        afterOpacity: component.style.opacity
+        afterOpacity: component.style.opacity,
+        needsHostTransition: true
       });
 
       const stackLocation = collectionOffsets.get(anonRecord.stack.id);
@@ -441,8 +482,8 @@ export class BoardgameComponentAnimator extends LitElement {
   private async _startAnimations(resolve: () => void, reject: () => void) {
     const collections = this.stackElement._sharedStackList;
 
-    // First pass: Remove noAnimate from all components
-    const componentsToAnimate: any[] = [];
+    // Phase 1: Restore noAnimate on ALL components (required — was set during measurement)
+    const allComponents: any[] = [];
     for (let i = 0; i < collections.length; i++) {
       const collection = collections[i];
       collection.noAnimate = false;
@@ -450,31 +491,50 @@ export class BoardgameComponentAnimator extends LitElement {
       for (let j = 0; j < components.length; j++) {
         const component = components[j];
         if (component.id === '') continue;
-        const record = this._infoById[component.id];
-        if (!record) continue;
         component.noAnimate = false;
+        allComponents.push(component);
+      }
+    }
+
+    // Also restore noAnimate on animating components (cross-stack overlays)
+    for (const ac of this._animatingComponents) {
+      ac.component.noAnimate = false;
+      allComponents.push(ac.component);
+    }
+
+    // Phase 2: Wait for Lit to process noAnimate changes
+    await Promise.all(allComponents.map(c => c.updateComplete));
+
+    // Phase 3: Build filtered list of components that actually need animation
+    const componentsToAnimate: any[] = [];
+    for (let i = 0; i < collections.length; i++) {
+      const components = collections[i].Components;
+      for (let j = 0; j < components.length; j++) {
+        const component = components[j];
+        if (component.id === '') continue;
+        const record = this._infoById[component.id];
+        if (!record || !record.needsAnimation) continue;
         componentsToAnimate.push({ component, record });
       }
     }
 
-    for (let i = 0; i < this._animatingComponents.length; i++) {
-      const record = this._animatingComponents[i];
-      record.component.noAnimate = false;
-      componentsToAnimate.push({ component: record.component, record });
+    // Animating components (cross-stack) always animate
+    for (const ac of this._animatingComponents) {
+      componentsToAnimate.push({ component: ac.component, record: ac });
     }
 
-    // CRITICAL: Wait for Lit to complete its async update cycle
-    // This ensures the .no-animate class is removed from DOM before reading styles
-    await Promise.all(componentsToAnimate.map(item => item.component.updateComplete));
+    // Phase 4: Restore transitions and start animations on filtered set only
+    for (const item of componentsToAnimate) {
+      item.component.style.transition = '';
+    }
 
     // Force browser to compute inverted transforms as actual styles.
     // Without this, the browser batches inverted + final transform writes
     // and sees no net change for stack layouts.
     this.offsetHeight;
 
-    // Second pass: Start animations with transitions now active
     for (const item of componentsToAnimate) {
-      item.component.startAnimation(item.record.after, item.record.afterTransform, item.record.afterOpacity);
+      item.component.startAnimation(item.record.after, item.record.afterTransform, item.record.afterOpacity, item.record.needsHostTransition ?? true);
     }
 
     resolve();

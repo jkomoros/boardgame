@@ -63,6 +63,7 @@ class BoardgameBoard extends LitElement {
     const c = target.getAttribute('c');
     this.dispatchEvent(new CustomEvent('region-tapped', {
       composed: true,
+      bubbles: true,
       detail: { index: [parseInt(r || '0'), parseInt(c || '0')] }
     }));
   }

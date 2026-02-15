@@ -14,6 +14,12 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       --component-effective-height: calc(var(--component-effective-width) * var(--component-aspect-ratio));
     }
 
+    /* FLIP animation: host element carries the position transform */
+    :host {
+      transition: transform var(--animation-length, 0.25s) ease-in-out,
+                  opacity var(--animation-length, 0.25s) ease-in-out;
+    }
+
     /* Shadow elevation styles - copied from paper-styles */
     :host {
       --shadow-elevation-normal: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
@@ -170,6 +176,8 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   prepareAnimation(beforeProps: Record<string, any>, transform: string, opacity: string) {
     const props = this.computeAnimationProps(false, beforeProps);
     this.setProperties(props);
+    // Disable host transition so FLIP inversion is applied instantly
+    this.style.transition = 'none';
     this.style.transform = transform;
     this.style.opacity = opacity;
   }
@@ -179,14 +187,26 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   // to set, which is an override point for subClasses. afterProps is what
   // this element--or one like it--returned from animatingPropValues() after
   // the databinding happened. transform and opacity are the final values for
-  // those two properties in their final location.
-  startAnimation(afterProps: Record<string, any>, transform: string, opacity: string) {
+  // those two properties in their final location. needsHostTransition is
+  // computed by the animator based on whether the FLIP inversion or inline
+  // transform actually changed — if false, we skip registering a host
+  // transform expectation since the browser won't fire transitionend.
+  startAnimation(afterProps: Record<string, any>, transform: string, opacity: string, needsHostTransition = true) {
     const props = this.computeAnimationProps(true, afterProps);
     this.setProperties(props);
+
     this.style.transform = transform;
-    this._expectTransitionEnd(this, 'transform');
-    if (this.style.opacity !== opacity) {
-      this.style.opacity = opacity;
+    if (needsHostTransition) {
+      this._expectTransitionEnd(this, 'transform');
+    }
+
+    // Compare opacity numerically: inline style '' and '1' and '1.0' all
+    // compute to the same rendered opacity of 1. Only expect a transition
+    // when the rendered value will actually change.
+    const currentOpacity = parseFloat(this.style.opacity || '1');
+    const targetOpacity = parseFloat(opacity || '1');
+    this.style.opacity = opacity;
+    if (Math.abs(currentOpacity - targetOpacity) > 0.01) {
       this._expectTransitionEnd(this, 'opacity');
     }
   }
@@ -229,7 +249,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     if (!this.interactive) {
       return;
     }
-    this.dispatchEvent(new CustomEvent('component-tapped', { composed: true, detail: { index: this.index } }));
+    this.dispatchEvent(new CustomEvent('component-tapped', { composed: true, bubbles: true, detail: { index: this.index } }));
   }
 
   protected override updated(changedProperties: Map<string, any>) {

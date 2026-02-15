@@ -99,7 +99,7 @@ export class BoardgameAnimatableItem extends LitElement {
 
     if (this._outstandingTransitonEnds === 1) {
       // This was the first one, fire a will-animate.
-      this.dispatchEvent(new CustomEvent('will-animate', { composed: true, detail: { ele: this } }));
+      this.dispatchEvent(new CustomEvent('will-animate', { bubbles: true, composed: true, detail: { ele: this } }));
     }
   }
 
@@ -122,7 +122,7 @@ export class BoardgameAnimatableItem extends LitElement {
   }
 
   private _notifyAnimationDone() {
-    this.dispatchEvent(new CustomEvent('animation-done', { composed: true, detail: { ele: this } }));
+    this.dispatchEvent(new CustomEvent('animation-done', { bubbles: true, composed: true, detail: { ele: this } }));
   }
 
   // _transitionEnded is the handler for transitionend. It will fire for _any_

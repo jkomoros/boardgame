@@ -86,7 +86,14 @@ export const selectGameVisible = (state: RootState): boolean => state.game ? sta
 export const selectGameIsOwner = (state: RootState): boolean => state.game ? state.game.isOwner : false;
 // Returns raw game state (not expanded) - use selectExpandedGameState for expanded version
 export const selectGameCurrentState = (state: RootState): RawGameState | null => state.game ? state.game.currentState : null;
-export const selectGameLoading = (state: RootState): boolean => state.game ? state.game.loading : false;
+// Per-operation loading selectors
+export const selectMoveSubmitting = (state: RootState): boolean => state.game ? state.game.moveSubmitting : false;
+export const selectVersionFetching = (state: RootState): boolean => state.game ? state.game.versionFetching : false;
+export const selectInfoFetching = (state: RootState): boolean => state.game ? state.game.infoFetching : false;
+export const selectConfiguring = (state: RootState): boolean => state.game ? state.game.configuring : false;
+// Combined loading selector for backward compatibility
+export const selectGameLoading = (state: RootState): boolean =>
+    state.game ? (state.game.moveSubmitting || state.game.versionFetching || state.game.infoFetching || state.game.configuring) : false;
 export const selectGameError = (state: RootState): string | null => state.game ? state.game.error : null;
 
 // Fetched data selectors (for async thunk responses)

@@ -70,4 +70,20 @@ test.describe('Homepage', () => {
     // Verify no critical console errors
     expect(criticalErrors).toHaveLength(0);
   });
+
+  test('can navigate to game from homepage', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('boardgame-app');
+
+    // Find first game link (e.g., "Memory")
+    const gameLink = page.locator('a[href*="/game/"]').first();
+
+    if (await gameLink.count() > 0) {
+      await gameLink.click();
+      await page.waitForLoadState('networkidle');
+
+      // Verify we're on a game page
+      await expect(page.locator('boardgame-render-game')).toBeVisible({ timeout: 10000 });
+    }
+  });
 });

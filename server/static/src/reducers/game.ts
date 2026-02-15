@@ -87,8 +87,11 @@ const INITIAL_STATE: GameState = {
 	// Fetched data from async operations
 	fetchedInfo: null,
 	fetchedVersion: null,
-	// Loading/error state for async operations
-	loading: false,
+	// Loading/error state for async operations (per-operation flags)
+	moveSubmitting: false,
+	versionFetching: false,
+	infoFetching: false,
+	configuring: false,
 	error: null
 };
 
@@ -263,28 +266,47 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 			...state,
 			fetchedVersion: null
 		};
-	// Loading/error state handlers for async operations
-	case CONFIGURE_GAME_REQUEST:
-	case JOIN_GAME_REQUEST:
+	// Loading/error state handlers for async operations (per-operation flags)
 	case SUBMIT_MOVE_REQUEST:
-	case FETCH_GAME_INFO_REQUEST:
+		return {
+			...state,
+			moveSubmitting: true,
+			error: null
+		};
 	case FETCH_GAME_VERSION_REQUEST:
 		return {
 			...state,
-			loading: true,
+			versionFetching: true,
 			error: null
 		};
-	case CONFIGURE_GAME_SUCCESS:
-	case JOIN_GAME_SUCCESS:
+	case FETCH_GAME_INFO_REQUEST:
+		return {
+			...state,
+			infoFetching: true,
+			error: null
+		};
+	case CONFIGURE_GAME_REQUEST:
+	case JOIN_GAME_REQUEST:
+		return {
+			...state,
+			configuring: true,
+			error: null
+		};
 	case SUBMIT_MOVE_SUCCESS:
 		return {
 			...state,
-			loading: false
+			moveSubmitting: false
+		};
+	case CONFIGURE_GAME_SUCCESS:
+	case JOIN_GAME_SUCCESS:
+		return {
+			...state,
+			configuring: false
 		};
 	case FETCH_GAME_INFO_SUCCESS:
 		return {
 			...state,
-			loading: false,
+			infoFetching: false,
 			// Store in server format for component handlers
 			fetchedInfo: {
 				Chest: action.chest,
@@ -302,20 +324,35 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 	case FETCH_GAME_VERSION_SUCCESS:
 		return {
 			...state,
-			loading: false,
+			versionFetching: false,
 			// Store in server format for component handlers
 			fetchedVersion: {
 				Bundles: action.bundles
 			}
 		};
-	case CONFIGURE_GAME_FAILURE:
-	case JOIN_GAME_FAILURE:
 	case SUBMIT_MOVE_FAILURE:
-	case FETCH_GAME_INFO_FAILURE:
+		return {
+			...state,
+			moveSubmitting: false,
+			error: action.friendlyError || action.error || 'An error occurred'
+		};
 	case FETCH_GAME_VERSION_FAILURE:
 		return {
 			...state,
-			loading: false,
+			versionFetching: false,
+			error: action.friendlyError || action.error || 'An error occurred'
+		};
+	case FETCH_GAME_INFO_FAILURE:
+		return {
+			...state,
+			infoFetching: false,
+			error: action.friendlyError || action.error || 'An error occurred'
+		};
+	case CONFIGURE_GAME_FAILURE:
+	case JOIN_GAME_FAILURE:
+		return {
+			...state,
+			configuring: false,
 			error: action.friendlyError || action.error || 'An error occurred'
 		};
 	default:

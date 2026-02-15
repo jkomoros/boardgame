@@ -328,8 +328,14 @@ export class BoardgameCard extends BoardgameComponent {
       (this.overrideRotated ? this.basicRotated : this.rotated) ? 'rotate(90deg)' : 'rotate(0deg)'
     );
     const transform = transformPieces.join(' ') || 'none';
+    // Only expect a transition if the transform actually changes.
+    // For non-flipping cards, the transform string is identical before and
+    // after, so the browser won't fire transitionend.
+    const changed = this.innerElement.style.transform !== transform;
     this.innerElement.style.transform = transform;
-    this._expectTransitionEnd(this.innerElement, 'transform');
+    if (changed) {
+      this._expectTransitionEnd(this.innerElement, 'transform');
+    }
   }
 
   protected override _itemChanged(newValue: any) {

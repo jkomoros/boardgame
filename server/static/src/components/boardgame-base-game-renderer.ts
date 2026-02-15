@@ -101,6 +101,7 @@ export class BoardgameBaseGameRenderer extends LitElement {
 
     this.dispatchEvent(new CustomEvent('propose-move', {
       composed: true,
+      bubbles: true,
       detail: { name: moveName, arguments: args }
     }));
   }

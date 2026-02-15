@@ -125,6 +125,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       this._lastError = error;
       this.dispatchEvent(new CustomEvent("show-error", {
         composed: true,
+        bubbles: true,
         detail: {
           message: error,
           friendlyMessage: error,
