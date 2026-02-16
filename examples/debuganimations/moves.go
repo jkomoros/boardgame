@@ -56,12 +56,17 @@ type moveMoveTokenSanitized struct {
 
 //boardgame:codegen
 type moveStartMoveAllComponentsToHidden struct {
-	moves.Done
+	moves.Default
 }
 
 //boardgame:codegen
 type moveStartMoveAllComponentsToVisible struct {
-	moves.Done
+	moves.Default
+}
+
+//boardgame:codegen
+type moveShuffleHidden struct {
+	moves.Default
 }
 
 /**************************************************
@@ -463,19 +468,37 @@ func (m *moveMoveTokenSanitized) Apply(state boardgame.State) error {
  *
  **************************************************/
 
+func (m *moveStartMoveAllComponentsToHidden) HelpText() string {
+	return "Moves all components from visible to hidden"
+}
+
 func (m *moveStartMoveAllComponentsToHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	//TODO: it's kind of weird that this has to be above the m.Done.Legal
-	//check, right? Does that imply a bug in group matching logic?
+	if err := m.Default.Legal(state, proposer); err != nil {
+		return err
+	}
 
 	game := state.ImmutableGameState().(*gameState)
+
+	if game.AllVisibleStack.NumComponents() < 1 {
+		return errors.New("No components in visible stack to move")
+	}
 
 	if game.AllHiddenStack.NumComponents() > 0 {
 		return errors.New("The hidden stack already has items. Use the 'To Visible' move")
 	}
 
-	if err := m.Done.Legal(state, proposer); err != nil {
-		return err
+	return nil
+}
+
+func (m *moveStartMoveAllComponentsToHidden) Apply(state boardgame.State) error {
+
+	game, _ := concreteStates(state)
+
+	for game.AllVisibleStack.NumComponents() > 0 {
+		if err := game.AllVisibleStack.First().MoveToNextSlot(game.AllHiddenStack); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -487,19 +510,76 @@ func (m *moveStartMoveAllComponentsToHidden) Legal(state boardgame.ImmutableStat
  *
  **************************************************/
 
+func (m *moveStartMoveAllComponentsToVisible) HelpText() string {
+	return "Moves all components from hidden to visible"
+}
+
 func (m *moveStartMoveAllComponentsToVisible) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	//TODO: it's kind of weird that this has to be above the m.Done.Legal check, right?
+	if err := m.Default.Legal(state, proposer); err != nil {
+		return err
+	}
 
 	game := state.ImmutableGameState().(*gameState)
+
+	if game.AllHiddenStack.NumComponents() < 1 {
+		return errors.New("No components in hidden stack to move")
+	}
 
 	if game.AllVisibleStack.NumComponents() > 0 {
 		return errors.New("The visible stack already has items. Use the 'To Hidden' move")
 	}
 
-	if err := m.Done.Legal(state, proposer); err != nil {
+	return nil
+}
+
+func (m *moveStartMoveAllComponentsToVisible) Apply(state boardgame.State) error {
+
+	game, _ := concreteStates(state)
+
+	for game.AllHiddenStack.NumComponents() > 0 {
+		if err := game.AllHiddenStack.First().MoveToNextSlot(game.AllVisibleStack); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+/**************************************************
+ *
+ * moveShuffleHidden Implementation
+ *
+ **************************************************/
+
+func (m *moveShuffleHidden) HelpText() string {
+	return "Shuffles the fan discard pile and increments the shuffle count"
+}
+
+func (m *moveShuffleHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
+
+	game := state.ImmutableGameState().(*gameState)
+
+	if game.FanDiscard.NumComponents() < 1 {
+		return errors.New("FanDiscard has no cards to shuffle")
+	}
+
+	return nil
+}
+
+func (m *moveShuffleHidden) Apply(state boardgame.State) error {
+
+	game, _ := concreteStates(state)
+
+	if err := game.FanDiscard.Shuffle(); err != nil {
+		return err
+	}
+
+	game.FanShuffleCount++
 
 	return nil
 }
