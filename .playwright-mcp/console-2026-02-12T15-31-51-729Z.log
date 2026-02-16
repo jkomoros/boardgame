@@ -1,0 +1,132 @@
+[      55ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:22
+[      56ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=1149749c:93
+[     102ms] [WARNING] Element boardgame-game-view scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=1149749c:93
+[     105ms] [WARNING] Element boardgame-render-game scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=1149749c:93
+[     106ms] [WARNING] Element boardgame-game-state-manager scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-OKIDZSTV.js?v=1149749c:93
+[     109ms] [WARNING] No template class to auto stamp @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-component-stack.ts:526
+[     159ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=1149749c:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=1149749c:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-ZVI3QJ4F.js?v=1149749c:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-SQLMDUVR.js?v=1149749c:52:24)
+[     159ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=1149749c:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=1149749c:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-ZVI3QJ4F.js?v=1149749c:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-SQLMDUVR.js?v=1149749c:52:24)
+[     118ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/game-src/memory/boardgame-render-player-info-memory.ts:0
+[     118ms] [ERROR] Failed to load player info renderer for memory: TypeError: Failed to fetch dynamically imported module: http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/game-src/memory/boardgame-render-player-info-memory.ts @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-player-roster.ts?t=1770910295889:135
+[     126ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/game-src/memory/boardgame-render-game-memory.ts:0
+[     126ms] [ERROR] Failed to load game renderer for memory: TypeError: Failed to fetch dynamically imported module: http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/game-src/memory/boardgame-render-game-memory.ts @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-render-game.ts?t=1770910241573:209
+[     162ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=1149749c:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=1149749c:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-ZVI3QJ4F.js?v=1149749c:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-AVK3S6PW.js?v=1149749c:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-SQLMDUVR.js?v=1149749c:52:24)
+[     444ms] [WARNING] Socket closed CloseEvent @ http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-game-state-manager.ts?t=1770910295889:239
+[   13571ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8080/:0
+[   14801ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=2dfcc784:93
+[   14803ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=2dfcc784:93
+[   14865ms] [WARNING] Element boardgame-game-view scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=2dfcc784:93
+[   14869ms] [WARNING] Element boardgame-render-game scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=2dfcc784:93
+[   14871ms] [WARNING] Element boardgame-game-state-manager scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=2dfcc784:93
+[   14874ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[   14880ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=5e4fff96:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=5e4fff96:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=2dfcc784:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=2dfcc784:52:24)
+[   14880ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=5e4fff96:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=5e4fff96:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=2dfcc784:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=2dfcc784:52:24)
+[   14878ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:8080/game-src/memory/boardgame-render-game-memory.ts:0
+[   14879ms] [ERROR] Failed to load game renderer for memory: TypeError: Failed to fetch dynamically imported module: http://localhost:8080/game-src/memory/boardgame-render-game-memory.ts @ http://localhost:8080/src/components/boardgame-render-game.ts:209
+[   14885ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:8080/game-src/memory/boardgame-render-player-info-memory.ts:0
+[   14886ms] [ERROR] Failed to load player info renderer for memory: TypeError: Failed to fetch dynamically imported module: http://localhost:8080/game-src/memory/boardgame-render-player-info-memory.ts @ http://localhost:8080/src/components/boardgame-player-roster.ts:135
+[   14901ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=5e4fff96:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=5e4fff96:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=2dfcc784:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=2dfcc784:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=2dfcc784:52:24)
+[   15237ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:22
+[   15239ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=dc70c22a:93
+[   15305ms] [WARNING] Element boardgame-game-view scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=dc70c22a:93
+[   15309ms] [WARNING] Element boardgame-render-game scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=dc70c22a:93
+[   15310ms] [WARNING] Element boardgame-game-state-manager scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=dc70c22a:93
+[   15314ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[   15319ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=dc70c22a:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=dc70c22a:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=dc70c22a:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=dc70c22a:52:24)
+[   15319ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=dc70c22a:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=dc70c22a:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=dc70c22a:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=dc70c22a:52:24)
+[   15318ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:8080/game-src/memory/boardgame-render-game-memory.ts:0
+[   15318ms] [ERROR] Failed to load game renderer for memory: TypeError: Failed to fetch dynamically imported module: http://localhost:8080/game-src/memory/boardgame-render-game-memory.ts @ http://localhost:8080/src/components/boardgame-render-game.ts:209
+[   15322ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:8080/game-src/memory/boardgame-render-player-info-memory.ts:0
+[   15322ms] [ERROR] Failed to load player info renderer for memory: TypeError: Failed to fetch dynamically imported module: http://localhost:8080/game-src/memory/boardgame-render-player-info-memory.ts @ http://localhost:8080/src/components/boardgame-player-roster.ts:135
+[   15335ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=dc70c22a:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=dc70c22a:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=dc70c22a:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=dc70c22a:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=dc70c22a:52:24)
+[   15587ms] [WARNING] Socket closed CloseEvent @ http://localhost:8080/src/components/boardgame-game-state-manager.ts:239

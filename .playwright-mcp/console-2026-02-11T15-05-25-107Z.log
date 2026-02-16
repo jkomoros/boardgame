@@ -1,0 +1,50 @@
+[      52ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:93
+[      53ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:93
+[      86ms] [ERROR] Access to fetch at 'http://localhost:8888/api/list/manager' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8080/:0
+[      86ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8888/api/list/manager:0
+[      86ms] [ERROR] Access to fetch at 'http://localhost:8888/api/list/game?name=&admin=0' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8080/:0
+[      86ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8888/api/list/game?name=&admin=0:0
+[      92ms] TypeError: Failed to fetch
+    at http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/actions/list.ts:32:24
+    at Object.dispatch (http://localhost:8080/node_modules/.vite/deps/redux-thunk.js?v=90595444:7:14)
+    at HTMLElement.updated (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:68:13)
+    at HTMLElement._$didUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:804:10)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:766:12)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:674:25)
+[      92ms] TypeError: Failed to fetch
+    at http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/actions/list.ts:50:24
+    at Object.dispatch (http://localhost:8080/node_modules/.vite/deps/redux-thunk.js?v=90595444:7:14)
+    at HTMLElement._fetchGamesList (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:80:11)
+    at HTMLElement.updated (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:69:12)
+    at HTMLElement._$didUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:804:10)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:766:12)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=90595444:674:25)
+[  374563ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8080/:0
+[  374634ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ chrome-error://chromewebdata/:0
+[ 1232747ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=89c4c152:93
+[ 1232751ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=89c4c152:93
+[ 1233159ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:93
+[ 1233161ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:93
+[ 1233212ms] [ERROR] Access to fetch at 'http://localhost:8888/api/list/game?name=&admin=0' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8080/:0
+[ 1233212ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8888/api/list/game?name=&admin=0:0
+[ 1233212ms] [ERROR] Access to fetch at 'http://localhost:8888/api/list/manager' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8080/:0
+[ 1233212ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8888/api/list/manager:0
+[ 1233214ms] TypeError: Failed to fetch
+    at http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/actions/list.ts:50:24
+    at Object.dispatch (http://localhost:8080/node_modules/.vite/deps/redux-thunk.js?v=70744191:7:14)
+    at HTMLElement._fetchGamesList (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:80:11)
+    at HTMLElement.updated (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:69:12)
+    at HTMLElement._$didUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:804:10)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:766:12)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:674:25)
+[ 1233214ms] TypeError: Failed to fetch
+    at http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/actions/list.ts:32:24
+    at Object.dispatch (http://localhost:8080/node_modules/.vite/deps/redux-thunk.js?v=70744191:7:14)
+    at HTMLElement.updated (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:68:13)
+    at HTMLElement._$didUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:804:10)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:766:12)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=70744191:674:25)

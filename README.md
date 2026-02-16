@@ -1,6 +1,6 @@
 boardgame is a work-in-progress package that aspires to make it easy to define multi-player boardgames that can be easily hosted in a high-quality web app with minimal configuration.
 
-You formally define the rules and logic of your boardgame in **Go** by defining a state object and a series of moves that can be made. You also define a simple **Polymer-based web component** that renders a given game state client-side.
+You formally define the rules and logic of your boardgame in **Go** by defining a state object and a series of moves that can be made. You also define a simple **Lit 3 web component** that renders a given game state client-side.
 
 boardgame is under active development as a hobby project and different components of it vary in their completeness and polish.
 
@@ -36,5 +36,9 @@ The library is currently relativley full-featured. Here are a few of the known g
 - **Smooth Upgrading** (Issue #184) If you change the shape of the state objects in your game, there's currently no way to handle older versions of the game stored in your database.
 
 Many more small things are still rough or not implemented. Please file issues or comment on existing issues in the tracker for things you're missing!
+
+### Recent Updates
+
+**Lit 3 Migration (February 2026):** The frontend has been migrated from Polymer 3 to modern Lit 3 with TypeScript support. All example games have been updated. External games will need to be migrated - see [server/static/GAME_RENDERER_MIGRATION.md](server/static/GAME_RENDERER_MIGRATION.md) for a complete guide and [server/static/BREAKING_CHANGES.md](server/static/BREAKING_CHANGES.md) for breaking changes.
 
 

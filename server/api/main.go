@@ -340,7 +340,7 @@ func (s *Server) gameFromID(gameID, gameName string) *boardgame.Game {
 	manager := s.managers[gameName].manager
 
 	if manager == nil {
-		s.logger.Errorln("Couldnt' find manager for", gameName)
+		s.logger.Errorln("Couldn't find manager for", gameName)
 		return nil
 	}
 
@@ -1266,12 +1266,6 @@ func (s *Server) Start() {
 		return
 	}
 
-	s.logger.Infoln("Environment Variables")
-	//Dbug print out the current environment
-	for _, config := range os.Environ() {
-		s.logger.Infoln("Environ:", config)
-	}
-
 	if v := os.Getenv("GIN_MODE"); v == "release" {
 		s.logger.Infoln("Using release mode config")
 		s.config = config.Prod
@@ -1295,7 +1289,7 @@ func (s *Server) Start() {
 	s.logger.Infoln("Connecting to storage", name, "with config '"+storageConfig+"'")
 
 	if err := s.storage.Connect(storageConfig); err != nil {
-		s.logger.Fatalln("Couldnt' connect to storage manager: ", err)
+		s.logger.Fatalln("Couldn't connect to storage manager: ", err)
 		return
 	}
 

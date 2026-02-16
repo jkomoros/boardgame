@@ -169,7 +169,7 @@ func (s *Server) getRequestCookie(c *gin.Context) string {
 	result, err := c.Cookie(cookieName)
 
 	if err != nil {
-		s.logger.Errorln("Couldnt' get cookie:", err)
+		s.logger.Debugln("Couldn't get cookie:", err)
 		return ""
 	}
 

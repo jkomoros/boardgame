@@ -148,66 +148,27 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	auto := moves.NewAutoConfigurer(g)
 
-	return moves.Combine(
-		moves.Add(
-			auto.MustConfig(new(moveMoveCardBetweenShortStacks)),
-			auto.MustConfig(new(moveMoveCardBetweenDrawAndDiscardStacks)),
-			auto.MustConfig(new(moveFlipHiddenCard),
-				moves.WithMoveName("Flip Card Between Hidden and Revealed")),
-			auto.MustConfig(new(moveMoveCardBetweenFanStacks),
-				moves.WithMoveName("Move Fan Card"),
-			),
-			auto.MustConfig(new(moveVisibleShuffleCards),
-				moves.WithMoveName("Visible Shuffle"),
-			),
-			auto.MustConfig(new(moveShuffleCards),
-				moves.WithMoveName("Shuffle"),
-			),
-			auto.MustConfig(new(moveMoveBetweenHidden)),
-			auto.MustConfig(new(moveMoveToken)),
-			auto.MustConfig(new(moveMoveTokenSanitized)),
+	return moves.Add(
+		auto.MustConfig(new(moveMoveCardBetweenShortStacks)),
+		auto.MustConfig(new(moveMoveCardBetweenDrawAndDiscardStacks)),
+		auto.MustConfig(new(moveFlipHiddenCard),
+			moves.WithMoveName("Flip Card Between Hidden and Revealed")),
+		auto.MustConfig(new(moveMoveCardBetweenFanStacks),
+			moves.WithMoveName("Move Fan Card"),
 		),
-		moves.AddOrderedForPhase(phaseNormal,
-			//Signaling if the button should move to or from visible (for
-			//example with a moves.MoveAllCompoennts wrapped in a struct that
-			//auto-selects the Source/Destination stack) is non-trivial since
-			//it changes in the middle of the move run. So just have two
-			//serial groups, and hope the player plays the right ones.
-			moves.Repeat(moves.CountInfinite(),
-				moves.Parallel(
-					moves.Serial(
-						auto.MustConfig(new(moveStartMoveAllComponentsToHidden)),
-						auto.MustConfig(new(moves.MoveAllComponents),
-							moves.WithSourceProperty("AllVisibleStack"),
-							moves.WithDestinationProperty("AllHiddenStack"),
-						),
-					),
-					moves.Serial(
-						auto.MustConfig(new(moveStartMoveAllComponentsToVisible)),
-						auto.MustConfig(new(moves.MoveAllComponents),
-							moves.WithSourceProperty("AllHiddenStack"),
-							moves.WithDestinationProperty("AllVisibleStack"),
-						),
-					),
-				),
-			),
-			//We want to have some auto-applied moves after the shuffle, to
-			//trigger a bad animation case that wedges.
-			moves.Repeat(moves.CountInfinite(),
-				moves.Serial(
-					auto.MustConfig(new(moves.Done),
-						moves.WithMoveName("Shuffle Hidden"),
-					),
-					auto.MustConfig(new(moves.ShuffleStack),
-						moves.WithSourceProperty("FanDiscard"),
-					),
-					auto.MustConfig(new(moves.Increment),
-						moves.WithGameProperty("FanShuffleCount"),
-					),
-				),
-			),
-			//Override that this skipping of StartPhase is intentional
-			auto.MustConfig(new(moves.NoOp)),
+		auto.MustConfig(new(moveVisibleShuffleCards),
+			moves.WithMoveName("Visible Shuffle"),
+		),
+		auto.MustConfig(new(moveShuffleCards),
+			moves.WithMoveName("Shuffle"),
+		),
+		auto.MustConfig(new(moveMoveBetweenHidden)),
+		auto.MustConfig(new(moveMoveToken)),
+		auto.MustConfig(new(moveMoveTokenSanitized)),
+		auto.MustConfig(new(moveStartMoveAllComponentsToHidden)),
+		auto.MustConfig(new(moveStartMoveAllComponentsToVisible)),
+		auto.MustConfig(new(moveShuffleHidden),
+			moves.WithMoveName("Shuffle Hidden"),
 		),
 	)
 }

@@ -83,26 +83,21 @@
           NODE_ENV: 'production'
         }
       };
+
+      // Polymer legacy support: Define JSCompiler_renameProperty before any Polymer code loads
+      window.JSCompiler_renameProperty = function(prop, obj) {
+        return prop;
+      };
     </script>
 
-    <!-- This shim was added to fix a bug in the drop-down menus, as written at https://github.com/PolymerElements/paper-swatch-picker/issues/36 -->
-    <script src="./node_modules/web-animations-js/web-animations-next.min.js"></script>
+    <!-- Modern browsers don't need these polyfills - commented out for Vite compatibility -->
+    <!-- <script src="./node_modules/web-animations-js/web-animations-next.min.js"></script> -->
+    <!-- <script src="./node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script> -->
 
-    <!-- Load webcomponents-loader.js to check and load any polyfills your browser needs -->
-    <script src="./node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+    <!-- Material Design 3 Theme -->
+    <link rel="stylesheet" href="/src/styles/md3-theme.css">
 
-
-    <script type="module" src="/src/components/boardgame-app.js"></script>
-
-    <style>
-      body {
-        margin: 0;
-        font-family: 'Roboto', 'Noto', sans-serif;
-        line-height: 1.5;
-        min-height: 100vh;
-        background-color: #eeeeee;
-      }
-    </style>
+    <script type="module" src="/src/components/boardgame-app.ts"></script>
   </head>
   <body>
     <boardgame-app></boardgame-app>

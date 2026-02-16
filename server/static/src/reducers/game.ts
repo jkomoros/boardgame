@@ -1,0 +1,363 @@
+import {
+	UPDATE_GAME_ROUTE,
+	UPDATE_GAME_STATIC_INFO,
+	UPDATE_GAME_CURRENT_STATE,
+	CONFIGURE_GAME_REQUEST,
+	CONFIGURE_GAME_SUCCESS,
+	CONFIGURE_GAME_FAILURE,
+	JOIN_GAME_REQUEST,
+	JOIN_GAME_SUCCESS,
+	JOIN_GAME_FAILURE,
+	SUBMIT_MOVE_REQUEST,
+	SUBMIT_MOVE_SUCCESS,
+	SUBMIT_MOVE_FAILURE,
+	FETCH_GAME_INFO_REQUEST,
+	FETCH_GAME_INFO_SUCCESS,
+	FETCH_GAME_INFO_FAILURE,
+	FETCH_GAME_VERSION_REQUEST,
+	FETCH_GAME_VERSION_SUCCESS,
+	FETCH_GAME_VERSION_FAILURE,
+	ENQUEUE_STATE_BUNDLE,
+	DEQUEUE_STATE_BUNDLE,
+	CLEAR_STATE_BUNDLES,
+	MARK_ANIMATION_STARTED,
+	MARK_ANIMATION_COMPLETED,
+	SET_CURRENT_VERSION,
+	SET_TARGET_VERSION,
+	SET_LAST_FETCHED_VERSION,
+	SOCKET_CONNECTED,
+	SOCKET_DISCONNECTED,
+	SOCKET_ERROR,
+	UPDATE_VIEW_STATE,
+	SET_VIEWING_AS_PLAYER,
+	SET_REQUESTED_PLAYER,
+	SET_AUTO_CURRENT_PLAYER,
+	UPDATE_MOVE_FORMS,
+	CLEAR_FETCHED_INFO,
+	CLEAR_FETCHED_VERSION
+} from '../actions/game.ts';
+
+import type { GameAction } from '../types/actions';
+import type { GameState } from '../types/store';
+
+const INITIAL_STATE: GameState = {
+    id: '',
+	name: '',
+	chest: null,
+	playersInfo: [],
+	hasEmptySlots: false,
+	open: false,
+	visible: false,
+	isOwner: false,
+	// currentState is now RAW state from server (unexpanded)
+	// Use selectExpandedGameState selector to get expanded version
+	currentState: null,
+	// Timer metadata for selector expansion
+	timerInfos: null,
+	//note that pathsToTick and originalWallClockTime are accessed directly
+	//(without selectors) in actions/game.js
+	pathsToTick: [],
+	originalWallClockTime: 0,
+	// Animation system state
+	animation: {
+		pendingBundles: [],
+		lastFiredBundle: null,
+		activeAnimations: []
+	},
+	// Version tracking state
+	versions: {
+		current: 0,
+		target: -1,
+		lastFetched: 0
+	},
+	// WebSocket connection state
+	socket: {
+		connected: false,
+		connectionAttempts: 0,
+		lastError: null
+	},
+	// View state
+	view: {
+		game: null,
+		viewingAsPlayer: 0,
+		requestedPlayer: 0,
+		autoCurrentPlayer: false,
+		moveForms: null
+	},
+	// Fetched data from async operations
+	fetchedInfo: null,
+	fetchedVersion: null,
+	// Loading/error state for async operations (per-operation flags)
+	moveSubmitting: false,
+	versionFetching: false,
+	infoFetching: false,
+	configuring: false,
+	error: null
+};
+
+const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
+	switch (action.type) {
+	case UPDATE_GAME_ROUTE:
+		return {
+			...state,
+            id: action.id,
+            name: action.name
+		};
+	case UPDATE_GAME_STATIC_INFO:
+		return {
+			...state,
+			chest: action.chest,
+			playersInfo: action.playersInfo,
+			hasEmptySlots: action.hasEmptySlots,
+			open: action.open,
+			visible: action.visible,
+			isOwner: action.isOwner
+		};
+	case UPDATE_GAME_CURRENT_STATE:
+		return {
+			...state,
+			currentState: action.currentState,
+			timerInfos: action.timerInfos,
+			pathsToTick: action.pathsToTick,
+			originalWallClockTime: action.originalWallClockTime
+		};
+	case ENQUEUE_STATE_BUNDLE:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				pendingBundles: [...state.animation.pendingBundles, action.bundle]
+			}
+		};
+	case DEQUEUE_STATE_BUNDLE:
+		const [firedBundle, ...remainingBundles] = state.animation.pendingBundles;
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				pendingBundles: remainingBundles,
+				lastFiredBundle: firedBundle || state.animation.lastFiredBundle
+			}
+		};
+	case CLEAR_STATE_BUNDLES:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				pendingBundles: []
+			}
+		};
+	case MARK_ANIMATION_STARTED:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				activeAnimations: [...state.animation.activeAnimations, action.animationId]
+			}
+		};
+	case MARK_ANIMATION_COMPLETED:
+		return {
+			...state,
+			animation: {
+				...state.animation,
+				activeAnimations: state.animation.activeAnimations.filter(id => id !== action.animationId)
+			}
+		};
+	case SET_CURRENT_VERSION:
+		return {
+			...state,
+			versions: {
+				...state.versions,
+				current: action.version
+			}
+		};
+	case SET_TARGET_VERSION:
+		return {
+			...state,
+			versions: {
+				...state.versions,
+				target: action.version
+			}
+		};
+	case SET_LAST_FETCHED_VERSION:
+		return {
+			...state,
+			versions: {
+				...state.versions,
+				lastFetched: action.version
+			}
+		};
+	case SOCKET_CONNECTED:
+		return {
+			...state,
+			socket: {
+				...state.socket,
+				connected: true,
+				connectionAttempts: 0,
+				lastError: null
+			}
+		};
+	case SOCKET_DISCONNECTED:
+		return {
+			...state,
+			socket: {
+				...state.socket,
+				connected: false,
+				connectionAttempts: state.socket.connectionAttempts + 1
+			}
+		};
+	case SOCKET_ERROR:
+		return {
+			...state,
+			socket: {
+				...state.socket,
+				lastError: action.error
+			}
+		};
+	case UPDATE_VIEW_STATE:
+		return {
+			...state,
+			view: {
+				...state.view,
+				game: action.game,
+				viewingAsPlayer: action.viewingAsPlayer,
+				moveForms: action.moveForms
+			}
+		};
+	case SET_VIEWING_AS_PLAYER:
+		return {
+			...state,
+			view: {
+				...state.view,
+				viewingAsPlayer: action.playerIndex
+			}
+		};
+	case SET_REQUESTED_PLAYER:
+		return {
+			...state,
+			view: {
+				...state.view,
+				requestedPlayer: action.playerIndex
+			}
+		};
+	case SET_AUTO_CURRENT_PLAYER:
+		return {
+			...state,
+			view: {
+				...state.view,
+				autoCurrentPlayer: action.autoFollow
+			}
+		};
+	case UPDATE_MOVE_FORMS:
+		return {
+			...state,
+			view: {
+				...state.view,
+				moveForms: action.moveForms
+			}
+		};
+	case CLEAR_FETCHED_INFO:
+		return {
+			...state,
+			fetchedInfo: null
+		};
+	case CLEAR_FETCHED_VERSION:
+		return {
+			...state,
+			fetchedVersion: null
+		};
+	// Loading/error state handlers for async operations (per-operation flags)
+	case SUBMIT_MOVE_REQUEST:
+		return {
+			...state,
+			moveSubmitting: true,
+			error: null
+		};
+	case FETCH_GAME_VERSION_REQUEST:
+		return {
+			...state,
+			versionFetching: true,
+			error: null
+		};
+	case FETCH_GAME_INFO_REQUEST:
+		return {
+			...state,
+			infoFetching: true,
+			error: null
+		};
+	case CONFIGURE_GAME_REQUEST:
+	case JOIN_GAME_REQUEST:
+		return {
+			...state,
+			configuring: true,
+			error: null
+		};
+	case SUBMIT_MOVE_SUCCESS:
+		return {
+			...state,
+			moveSubmitting: false
+		};
+	case CONFIGURE_GAME_SUCCESS:
+	case JOIN_GAME_SUCCESS:
+		return {
+			...state,
+			configuring: false
+		};
+	case FETCH_GAME_INFO_SUCCESS:
+		return {
+			...state,
+			infoFetching: false,
+			// Store in server format for component handlers
+			fetchedInfo: {
+				Chest: action.chest,
+				Players: action.playersInfo,
+				HasEmptySlots: action.hasEmptySlots,
+				GameOpen: action.open,
+				GameVisible: action.visible,
+				IsOwner: action.isOwner,
+				Game: action.game,
+				Forms: action.forms,
+				ViewingAsPlayer: action.viewingAsPlayer,
+				StateVersion: action.stateVersion
+			}
+		};
+	case FETCH_GAME_VERSION_SUCCESS:
+		return {
+			...state,
+			versionFetching: false,
+			// Store in server format for component handlers
+			fetchedVersion: {
+				Bundles: action.bundles
+			}
+		};
+	case SUBMIT_MOVE_FAILURE:
+		return {
+			...state,
+			moveSubmitting: false,
+			error: action.friendlyError || action.error || 'An error occurred'
+		};
+	case FETCH_GAME_VERSION_FAILURE:
+		return {
+			...state,
+			versionFetching: false,
+			error: action.friendlyError || action.error || 'An error occurred'
+		};
+	case FETCH_GAME_INFO_FAILURE:
+		return {
+			...state,
+			infoFetching: false,
+			error: action.friendlyError || action.error || 'An error occurred'
+		};
+	case CONFIGURE_GAME_FAILURE:
+	case JOIN_GAME_FAILURE:
+		return {
+			...state,
+			configuring: false,
+			error: action.friendlyError || action.error || 'An error occurred'
+		};
+	default:
+		return state;
+	}
+};
+
+export default gameReducer;

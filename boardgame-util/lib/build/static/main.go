@@ -61,17 +61,9 @@ automatically; if you are not using modules and you have not yet `go get` the
 given game imports or a containg package, it will error. This step is
 encapsulated by LinkGameClientFolders.
 
-Next, it generates a `static/polymer.json`, which contains fragments entries for
-each dynamic import--specifically, the `game-src/GAMENAME
-/boardgame-render-game-GAMENAME.js` and `game-src/GAMENAME/boardgame-
-render-player-info-GAMENAME.js`, if it exists. It identifes the fragments to
-include by walking through all of the game directories in `game-src`, meaning it
-relies on the output of the previous step. It then saves this generated file to
-`static/polymer.json`. This step is encapsulated by CreatePolymerJson.
-
-The static build is now mostly complete. Optionally, BuildPolymer can be called
-to run `polymer build` on the generated static dir. This step is encapsulated by
-BuildPolymer.
+The static build is now mostly complete. Optionally, BuildVite can be called
+to run `vite build` on the generated static dir. This step is encapsulated by
+BuildVite.
 
 Typically direct users of this package use Build(), which automatically runs
 these steps in the proper order.
@@ -82,10 +74,9 @@ LinkNodeModules also might create (or update) a shared cache directory of
 node_modules on the system, and CleanCache() removes that cache.
 
 Server() is a simple development server that makes the static resources
-available at `localhost:PORT`. Polymer requires that imports use bare module
-specifiers, which means that a naive local serve is not sufficient because the
-import URLs must be lightly rewritten, so this Server() is necessary. Under the
-covers it uses `polymer serve`.
+available at `localhost:PORT`. Vite handles module resolution and provides
+fast Hot Module Replacement (HMR) for development. Under the covers it uses
+Vite's dev server.
 
 Typically you don't use this package directly, but use `boardgame-util build
 static` or `boardgame-util serve`.
@@ -107,33 +98,54 @@ import (
 var filesToExclude = map[string]bool{
 	".gitignore":      true,
 	"README.md":       true,
-	polymerConfig:     true,
 	nodeModulesFolder: true,
 	//Don't copy over because we'll generate our own; if we copy over and
 	//generate our own we'll overwrite original.
 	clientConfigJsFileName: true,
 	".DS_Store":            true,
+	// Documentation files
+	"BREAKING_CHANGES.md":        true,
+	"CRITIQUE_FIXES_SUMMARY.md":  true,
+	"GAME_RENDERER_MIGRATION.md": true,
+	"IMPROVEMENT_PLAN.md":        true,
+	"MIGRATION_CRITIQUE.md":      true,
+	"MIGRATION_PLAN.md":          true,
+	"MIGRATION_SUMMARY.md":       true,
+	"PHASE3_MIGRATION_SUMMARY.md": true,
+	// Logs
+	"server.log":     true,
+	"vite.log":       true,
+	"vite-server.log": true,
+	// Test artifacts
+	"playwright-report":  true,
+	"playwright.config.ts": true,
+	"test-results":      true,
+	"screenshots":       true,
+	"tests":             true,
+	// Build artifacts
+	"dist": true,
+	// Legacy files
+	"sw-precache-config.js": true,
+	// Not needed at runtime
+	"tsconfig.strict.json":           true,
+	"tsconfig.strict-migration.json": true,
 }
 
 //Server runs a static server. directory is the folder that the `static`
 //folder is contained within. If no error is returned, runs until the program
-//exits. Under the cover uses `polymer serve` because imports use bare module
-//specifiers that must be rewritten.
+//exits. Uses Vite's dev server to serve the modern TypeScript/Lit frontend.
 func Server(directory string, port string) error {
-
-	if err := verifyPolymer(directory); err != nil {
-		return err
-	}
 
 	staticDir := filepath.Join(directory, staticSubFolder)
 
-	cmd := exec.Command("polymer", "serve", "--port="+port)
+	// Check if vite is available via npx
+	cmd := exec.Command("npx", "vite", "--port", port, "--host", "localhost")
 	cmd.Dir = staticDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return errors.New("Couldn't `polymer serve`: " + err.Error())
+		return errors.New("Couldn't start vite dev server: " + err.Error())
 	}
 
 	return nil
@@ -160,10 +172,10 @@ Build creates a folder of static resources for a server in the given
 directory. It is the primary entrypoint for this package. It has no logic of
 its own but serves to call all of the build steps in the correct order.
 
-Specificlaly, it calls: CopyStaticResources, passing copyFiles;
+Specifically, it calls: CopyStaticResources, passing copyFiles;
 LinkNodeModules, passing skipNodeUpdate; CreateClientConfigJs, passing c;
-LinkGameClientFolders, passing gameImports; CreatePolymerJson, passing false.
-If prodBuild is true, also calls BuildPolymer.
+LinkGameClientFolders, passing gameImports.
+If prodBuild is true, also calls BuildVite.
 
 See the package doc for more about the specific build steps and what they do.
 
@@ -195,20 +207,38 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 		return "", errors.New("Couldn't create " + gameSrcSubFolder + ": " + err.Error())
 	}
 
-	fmt.Println("Creating " + polymerConfig)
-	if err := CreatePolymerJSON(directory, false); err != nil {
-		return "", errors.New("Couldn't create " + polymerConfig + ": " + err.Error())
-	}
-
 	if prodBuild {
-		fmt.Println("Building bundled resources with `polymer build`")
-		if err := BuildPolymer(directory); err != nil {
+		fmt.Println("Building bundled resources with Vite")
+		if err := BuildVite(directory); err != nil {
 			return "", errors.New("Couldn't build bundled resources: " + err.Error())
 		}
 	}
 
 	return staticDir, nil
 
+}
+
+// BuildVite runs `vite build` to create the production bundle in a given
+// build directory. Requires that vite.config.ts exists in the static directory.
+func BuildVite(dir string) error {
+	staticDir := filepath.Join(dir, staticSubFolder)
+
+	// Verify vite.config.ts exists
+	viteConfig := filepath.Join(staticDir, "vite.config.ts")
+	if _, err := os.Stat(viteConfig); os.IsNotExist(err) {
+		return errors.New("vite.config.ts does not exist in " + staticDir)
+	}
+
+	cmd := exec.Command("npx", "vite", "build")
+	cmd.Dir = staticDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return errors.New("Couldn't run `vite build`: " + err.Error())
+	}
+
+	return nil
 }
 
 //Clean removes all of the things created in the static subfolder within

@@ -1,0 +1,102 @@
+[      70ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:22
+[      71ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=0be99390:93
+[     103ms] [WARNING] Element boardgame-game-view scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=0be99390:93
+[     106ms] [WARNING] Element boardgame-render-game scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=0be99390:93
+[     107ms] [WARNING] Element boardgame-game-state-manager scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=0be99390:93
+[     109ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[     131ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=0be99390:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=0be99390:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=0be99390:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=0be99390:52:24)
+[     132ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=0be99390:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=0be99390:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=0be99390:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=0be99390:52:24)
+[     117ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[     117ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[     117ms] [WARNING] Element boardgame-card scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-O5TE7N4R.js?v=0be99390:93
+[     118ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[     118ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[     118ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[     118ms] [WARNING] No template class to auto stamp @ http://localhost:8080/src/components/boardgame-component-stack.ts:526
+[     149ms] TypeError: templateClass is not a constructor
+    at BoardgameComponentStack.newComponent (http://localhost:8080/src/components/boardgame-component-stack.ts:518:24)
+    at BoardgameComponentStack._insertNodes (http://localhost:8080/src/components/boardgame-component-stack.ts:628:26)
+    at BoardgameComponentStack._generateChildren (http://localhost:8080/src/components/boardgame-component-stack.ts:680:10)
+    at BoardgameComponentStack._stackChanged (http://localhost:8080/src/components/boardgame-component-stack.ts:593:10)
+    at set stack (http://localhost:8080/src/components/boardgame-component-stack.ts:396:10)
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:591:29)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)
+[     150ms] TypeError: items is not iterable
+    at RepeatDirective._getValuesAndKeys (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=0be99390:43:24)
+    at RepeatDirective.update (http://localhost:8080/node_modules/.vite/deps/lit_directives_repeat__js.js?v=0be99390:58:55)
+    at RepeatDirective._$resolve (http://localhost:8080/node_modules/.vite/deps/chunk-RMSEGTBR.js?v=0be99390:30:17)
+    at resolveDirective (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:335:53)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:472:13)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:604:16)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)
+    at render (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:940:8)
+    at BoardgameMoveForm.update (http://localhost:8080/node_modules/.vite/deps/chunk-ESZSYLXS.js?v=0be99390:52:24)
+[     477ms] [WARNING] Socket closed CloseEvent @ http://localhost:8080/src/components/boardgame-game-state-manager.ts:239
+[     497ms] TypeError: templateClass is not a constructor
+    at BoardgameComponentStack.newComponent (http://localhost:8080/src/components/boardgame-component-stack.ts:518:24)
+    at BoardgameComponentStack._insertNodes (http://localhost:8080/src/components/boardgame-component-stack.ts:628:26)
+    at BoardgameComponentStack._generateChildren (http://localhost:8080/src/components/boardgame-component-stack.ts:680:10)
+    at BoardgameComponentStack._stackChanged (http://localhost:8080/src/components/boardgame-component-stack.ts:593:10)
+    at set stack (http://localhost:8080/src/components/boardgame-component-stack.ts:396:10)
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:591:29)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)
+[     497ms] TypeError: templateClass is not a constructor
+    at BoardgameComponentStack.newComponent (http://localhost:8080/src/components/boardgame-component-stack.ts:518:24)
+    at BoardgameComponentStack._insertNodes (http://localhost:8080/src/components/boardgame-component-stack.ts:628:26)
+    at BoardgameComponentStack._generateChildren (http://localhost:8080/src/components/boardgame-component-stack.ts:680:10)
+    at BoardgameComponentStack._stackChanged (http://localhost:8080/src/components/boardgame-component-stack.ts:593:10)
+    at set stack (http://localhost:8080/src/components/boardgame-component-stack.ts:396:10)
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:591:29)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)
+[     502ms] TypeError: templateClass is not a constructor
+    at BoardgameComponentStack.newComponent (http://localhost:8080/src/components/boardgame-component-stack.ts:518:24)
+    at BoardgameComponentStack._insertNodes (http://localhost:8080/src/components/boardgame-component-stack.ts:628:26)
+    at BoardgameComponentStack._generateChildren (http://localhost:8080/src/components/boardgame-component-stack.ts:680:10)
+    at BoardgameComponentStack._stackChanged (http://localhost:8080/src/components/boardgame-component-stack.ts:593:10)
+    at set stack (http://localhost:8080/src/components/boardgame-component-stack.ts:396:10)
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:591:29)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)
+[     502ms] TypeError: templateClass is not a constructor
+    at BoardgameComponentStack.newComponent (http://localhost:8080/src/components/boardgame-component-stack.ts:518:24)
+    at BoardgameComponentStack._insertNodes (http://localhost:8080/src/components/boardgame-component-stack.ts:628:26)
+    at BoardgameComponentStack._generateChildren (http://localhost:8080/src/components/boardgame-component-stack.ts:680:10)
+    at BoardgameComponentStack._stackChanged (http://localhost:8080/src/components/boardgame-component-stack.ts:593:10)
+    at set stack (http://localhost:8080/src/components/boardgame-component-stack.ts:396:10)
+    at PropertyPart._commitValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:807:29)
+    at PropertyPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:762:12)
+    at TemplateInstance._update (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:401:16)
+    at _ChildPart._commitTemplateResult (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:591:29)
+    at _ChildPart._$setValue (http://localhost:8080/node_modules/.vite/deps/chunk-4GAJ4SHH.js?v=0be99390:490:12)

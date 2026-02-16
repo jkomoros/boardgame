@@ -1,0 +1,19 @@
+{
+  "browser": {
+    "type": "chromium",
+    "isolated": true,
+    "headless": false,
+    "launchArgs": [
+      "--user-data-dir=/tmp/playwright-mcp-profile",
+      "--no-default-browser-check",
+      "--disable-extensions",
+      "--disable-infobars"
+    ]
+  },
+  "contextOptions": {
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    }
+  }
+}

@@ -148,7 +148,7 @@ func (c *ȧutoGeneratedCardValueReader) ImmutableTimerProp(name string) (boardga
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for cardValue
+// Reader returns an autp-generated boardgame.PropertyReader for cardValue
 func (c *cardValue) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedCardValueReader{c}
 }
@@ -614,17 +614,17 @@ func (m *ȧutoGeneratedMoveMoveCardBetweenShortStacksReader) TimerProp(name stri
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveMoveCardBetweenShortStacks
+// Reader returns an autp-generated boardgame.PropertyReader for moveMoveCardBetweenShortStacks
 func (m *moveMoveCardBetweenShortStacks) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveMoveCardBetweenShortStacksReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveCardBetweenShortStacks
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveCardBetweenShortStacks
 func (m *moveMoveCardBetweenShortStacks) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveMoveCardBetweenShortStacksReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveCardBetweenShortStacks
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveCardBetweenShortStacks
 func (m *moveMoveCardBetweenShortStacks) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveMoveCardBetweenShortStacksReader{m}
 }
@@ -1090,17 +1090,17 @@ func (m *ȧutoGeneratedMoveMoveCardBetweenDrawAndDiscardStacksReader) TimerProp(
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveMoveCardBetweenDrawAndDiscardStacks
+// Reader returns an autp-generated boardgame.PropertyReader for moveMoveCardBetweenDrawAndDiscardStacks
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveMoveCardBetweenDrawAndDiscardStacksReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveCardBetweenDrawAndDiscardStacks
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveCardBetweenDrawAndDiscardStacks
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveMoveCardBetweenDrawAndDiscardStacksReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveCardBetweenDrawAndDiscardStacks
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveCardBetweenDrawAndDiscardStacks
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveMoveCardBetweenDrawAndDiscardStacksReader{m}
 }
@@ -1549,17 +1549,17 @@ func (m *ȧutoGeneratedMoveFlipHiddenCardReader) TimerProp(name string) (boardga
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveFlipHiddenCard
+// Reader returns an autp-generated boardgame.PropertyReader for moveFlipHiddenCard
 func (m *moveFlipHiddenCard) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveFlipHiddenCardReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveFlipHiddenCard
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveFlipHiddenCard
 func (m *moveFlipHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveFlipHiddenCardReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveFlipHiddenCard
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveFlipHiddenCard
 func (m *moveFlipHiddenCard) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveFlipHiddenCardReader{m}
 }
@@ -2008,17 +2008,17 @@ func (m *ȧutoGeneratedMoveMoveCardBetweenFanStacksReader) TimerProp(name string
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveMoveCardBetweenFanStacks
+// Reader returns an autp-generated boardgame.PropertyReader for moveMoveCardBetweenFanStacks
 func (m *moveMoveCardBetweenFanStacks) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveMoveCardBetweenFanStacksReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveCardBetweenFanStacks
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveCardBetweenFanStacks
 func (m *moveMoveCardBetweenFanStacks) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveMoveCardBetweenFanStacksReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveCardBetweenFanStacks
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveCardBetweenFanStacks
 func (m *moveMoveCardBetweenFanStacks) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveMoveCardBetweenFanStacksReader{m}
 }
@@ -2467,17 +2467,17 @@ func (m *ȧutoGeneratedMoveVisibleShuffleCardsReader) TimerProp(name string) (bo
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveVisibleShuffleCards
+// Reader returns an autp-generated boardgame.PropertyReader for moveVisibleShuffleCards
 func (m *moveVisibleShuffleCards) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveVisibleShuffleCardsReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveVisibleShuffleCards
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveVisibleShuffleCards
 func (m *moveVisibleShuffleCards) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveVisibleShuffleCardsReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveVisibleShuffleCards
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveVisibleShuffleCards
 func (m *moveVisibleShuffleCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveVisibleShuffleCardsReader{m}
 }
@@ -2926,17 +2926,17 @@ func (m *ȧutoGeneratedMoveShuffleCardsReader) TimerProp(name string) (boardgame
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveShuffleCards
+// Reader returns an autp-generated boardgame.PropertyReader for moveShuffleCards
 func (m *moveShuffleCards) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveShuffleCardsReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveShuffleCards
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveShuffleCards
 func (m *moveShuffleCards) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveShuffleCardsReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveShuffleCards
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveShuffleCards
 func (m *moveShuffleCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveShuffleCardsReader{m}
 }
@@ -3385,17 +3385,17 @@ func (m *ȧutoGeneratedMoveMoveBetweenHiddenReader) TimerProp(name string) (boar
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveMoveBetweenHidden
+// Reader returns an autp-generated boardgame.PropertyReader for moveMoveBetweenHidden
 func (m *moveMoveBetweenHidden) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveMoveBetweenHiddenReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveBetweenHidden
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveBetweenHidden
 func (m *moveMoveBetweenHidden) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveMoveBetweenHiddenReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveBetweenHidden
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveBetweenHidden
 func (m *moveMoveBetweenHidden) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveMoveBetweenHiddenReader{m}
 }
@@ -3844,17 +3844,17 @@ func (m *ȧutoGeneratedMoveMoveTokenReader) TimerProp(name string) (boardgame.Ti
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveMoveToken
+// Reader returns an autp-generated boardgame.PropertyReader for moveMoveToken
 func (m *moveMoveToken) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveMoveTokenReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveToken
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveToken
 func (m *moveMoveToken) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveMoveTokenReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveToken
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveToken
 func (m *moveMoveToken) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveMoveTokenReader{m}
 }
@@ -4303,17 +4303,17 @@ func (m *ȧutoGeneratedMoveMoveTokenSanitizedReader) TimerProp(name string) (boa
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveMoveTokenSanitized
+// Reader returns an autp-generated boardgame.PropertyReader for moveMoveTokenSanitized
 func (m *moveMoveTokenSanitized) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveMoveTokenSanitizedReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveTokenSanitized
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveMoveTokenSanitized
 func (m *moveMoveTokenSanitized) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveMoveTokenSanitizedReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveTokenSanitized
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveMoveTokenSanitized
 func (m *moveMoveTokenSanitized) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveMoveTokenSanitizedReader{m}
 }
@@ -4762,17 +4762,17 @@ func (m *ȧutoGeneratedMoveStartMoveAllComponentsToHiddenReader) TimerProp(name 
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveStartMoveAllComponentsToHidden
+// Reader returns an autp-generated boardgame.PropertyReader for moveStartMoveAllComponentsToHidden
 func (m *moveStartMoveAllComponentsToHidden) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveStartMoveAllComponentsToHiddenReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartMoveAllComponentsToHidden
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartMoveAllComponentsToHidden
 func (m *moveStartMoveAllComponentsToHidden) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveStartMoveAllComponentsToHiddenReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartMoveAllComponentsToHidden
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartMoveAllComponentsToHidden
 func (m *moveStartMoveAllComponentsToHidden) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveStartMoveAllComponentsToHiddenReader{m}
 }
@@ -5221,19 +5221,478 @@ func (m *ȧutoGeneratedMoveStartMoveAllComponentsToVisibleReader) TimerProp(name
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveStartMoveAllComponentsToVisible
+// Reader returns an autp-generated boardgame.PropertyReader for moveStartMoveAllComponentsToVisible
 func (m *moveStartMoveAllComponentsToVisible) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveStartMoveAllComponentsToVisibleReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartMoveAllComponentsToVisible
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartMoveAllComponentsToVisible
 func (m *moveStartMoveAllComponentsToVisible) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveStartMoveAllComponentsToVisibleReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartMoveAllComponentsToVisible
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartMoveAllComponentsToVisible
 func (m *moveStartMoveAllComponentsToVisible) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveStartMoveAllComponentsToVisibleReader{m}
+}
+
+// Implementation for moveShuffleHidden
+
+var ȧutoGeneratedMoveShuffleHiddenReaderProps = map[string]boardgame.PropertyType{}
+
+type ȧutoGeneratedMoveShuffleHiddenReader struct {
+	data *moveShuffleHidden
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) Props() map[string]boardgame.PropertyType {
+	return ȧutoGeneratedMoveShuffleHiddenReaderProps
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) Prop(name string) (interface{}, error) {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return m.IntProp(name)
+	case boardgame.TypeBool:
+		return m.BoolProp(name)
+	case boardgame.TypeString:
+		return m.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return m.PlayerIndexProp(name)
+	case boardgame.TypeEnum:
+		return m.ImmutableEnumProp(name)
+	case boardgame.TypeIntSlice:
+		return m.IntSliceProp(name)
+	case boardgame.TypeBoolSlice:
+		return m.BoolSliceProp(name)
+	case boardgame.TypeStringSlice:
+		return m.StringSliceProp(name)
+	case boardgame.TypePlayerIndexSlice:
+		return m.PlayerIndexSliceProp(name)
+	case boardgame.TypeStack:
+		return m.ImmutableStackProp(name)
+	case boardgame.TypeBoard:
+		return m.ImmutableBoardProp(name)
+	case boardgame.TypeTimer:
+		return m.ImmutableTimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetProp(name string, value interface{}) error {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return m.SetIntProp(name, val)
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return m.SetBoolProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return m.SetStringProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexProp(name, val)
+	case boardgame.TypeEnum:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return m.SetBoolSliceProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return m.SetStringSliceProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeStack:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureProp(name string, value interface{}) error {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return m.SetIntProp(name, val)
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return m.SetBoolProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return m.SetStringProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexProp(name, val)
+	case boardgame.TypeEnum:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.Val)
+			if !ok {
+				return errors.New("Provided value was not of type enum.Val")
+			}
+			return m.ConfigureEnumProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableVal)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableVal")
+		}
+		return m.ConfigureImmutableEnumProp(name, val)
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return m.SetBoolSliceProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return m.SetStringSliceProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeStack:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Stack)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Stack")
+			}
+			return m.ConfigureStackProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableStack)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableStack")
+		}
+		return m.ConfigureImmutableStackProp(name, val)
+	case boardgame.TypeBoard:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return m.ConfigureBoardProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableBoard)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableBoard")
+		}
+		return m.ConfigureImmutableBoardProp(name, val)
+	case boardgame.TypeTimer:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Timer)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Timer")
+			}
+			return m.ConfigureTimerProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableTimer)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
+		}
+		return m.ConfigureImmutableTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureEnumProp(name string, value enum.Val) error {
+
+	return errors.New("No such Enum prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
+
+	return errors.New("No such ImmutableEnum prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) EnumProp(name string) (enum.Val, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) IntSliceProp(name string) ([]int, error) {
+
+	return []int{}, errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetIntSliceProp(name string, value []int) error {
+
+	return errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) BoolSliceProp(name string) ([]bool, error) {
+
+	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetBoolSliceProp(name string, value []bool) error {
+
+	return errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) StringSliceProp(name string) ([]string, error) {
+
+	return []string{}, errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetStringSliceProp(name string, value []string) error {
+
+	return errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+
+	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureStackProp(name string, value boardgame.Stack) error {
+
+	return errors.New("No such Stack prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
+
+	return errors.New("No such ImmutableStack prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) StackProp(name string) (boardgame.Stack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
+
+	return errors.New("No such ImmutableBoard prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
+
+	return errors.New("No such ImmutableTimer prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMoveShuffleHiddenReader) TimerProp(name string) (boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for moveShuffleHidden
+func (m *moveShuffleHidden) Reader() boardgame.PropertyReader {
+	return &ȧutoGeneratedMoveShuffleHiddenReader{m}
+}
+
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveShuffleHidden
+func (m *moveShuffleHidden) ReadSetter() boardgame.PropertyReadSetter {
+	return &ȧutoGeneratedMoveShuffleHiddenReader{m}
+}
+
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveShuffleHidden
+func (m *moveShuffleHidden) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &ȧutoGeneratedMoveShuffleHiddenReader{m}
 }
 
 // Implementation for gameState
@@ -5973,17 +6432,17 @@ func (g *ȧutoGeneratedGameStateReader) TimerProp(name string) (boardgame.Timer,
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for gameState
+// Reader returns an autp-generated boardgame.PropertyReader for gameState
 func (g *gameState) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedGameStateReader{g}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for gameState
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for gameState
 func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedGameStateReader{g}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for gameState
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for gameState
 func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedGameStateReader{g}
 }
@@ -6461,17 +6920,17 @@ func (p *ȧutoGeneratedPlayerStateReader) TimerProp(name string) (boardgame.Time
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for playerState
+// Reader returns an autp-generated boardgame.PropertyReader for playerState
 func (p *playerState) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for playerState
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for playerState
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for playerState
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for playerState
 func (p *playerState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }

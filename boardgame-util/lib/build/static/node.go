@@ -10,6 +10,7 @@ import (
 
 const nodeModulesFolder = "node_modules"
 const packageJSONFileName = "package.json"
+const packageLockJSONFileName = "package-lock.json"
 
 //The name of the direcotry within os.UserCacheDir() that node_modules should
 //be created within.
@@ -85,6 +86,14 @@ func updateNodeModules(absPackageJSONPath string, skipUpdate bool) (string, erro
 		return "", errors.New("Couldn't copy over package.json: " + err.Error())
 	}
 
+	//Copy over package-lock.json if it exists
+	packageLockPath := filepath.Join(filepath.Dir(absPackageJSONPath), packageLockJSONFileName)
+	if _, err := os.Stat(packageLockPath); err == nil {
+		if err := copyFile(packageLockPath, filepath.Join(cacheDir, packageLockJSONFileName)); err != nil {
+			return "", errors.New("Couldn't copy over package-lock.json: " + err.Error())
+		}
+	}
+
 	nodeCacheDir := filepath.Join(cacheDir, nodeModulesFolder)
 
 	nodeCacheExists := true
@@ -93,40 +102,40 @@ func updateNodeModules(absPackageJSONPath string, skipUpdate bool) (string, erro
 		fmt.Println("Downloading initial npm modules. This might take awhile, but future builds can skip it...")
 		nodeCacheExists = false
 	} else if err == nil {
-		fmt.Println("node_modules already exists, doing quick `npm up` to make sure it's up to date...")
+		fmt.Println("node_modules already exists, doing quick `npm ci` to make sure it's up to date...")
 	}
 
 	if skipUpdate {
 		if !nodeCacheExists {
 			return "", errors.New("node cache didn't exist, but we were told not to update node. Aborting build")
 		}
-		fmt.Println("node_modules existed, but we were told not to update so skipping `npm up`")
+		fmt.Println("node_modules existed, but we were told not to update so skipping `npm ci`")
 		return nodeCacheDir, nil
 	}
 
-	//call `npm up`, warning if it fails
-	cmd := exec.Command("npm", "up")
+	//call `npm ci`, warning if it fails. Use ci instead of up/update to respect package-lock.json
+	cmd := exec.Command("npm", "ci")
 	cmd.Dir = cacheDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	npmUpErrored := false
+	npmCiErrored := false
 
 	if err := cmd.Run(); err != nil {
 		//Don't quit because it's not NECESSARILY an error, if node_modules
 		//already existed. For example, if they're on an airplane without wifi
 		//and have node_modules already (even if out of date) it's OK.
-		fmt.Println("WARNING: npm up failed: " + err.Error())
-		npmUpErrored = true
+		fmt.Println("WARNING: npm ci failed: " + err.Error())
+		npmCiErrored = true
 	}
 
 	if _, err := os.Stat(nodeCacheDir); os.IsNotExist(err) {
-		//As long as node_modules exists, even if `npm up` failed (perhaps
+		//As long as node_modules exists, even if `npm ci` failed (perhaps
 		//because the user is not on wifi), then it's fine.
 		return "", errors.New("node_modules cache could not be created, aborting build")
 	} else if err != nil {
 		return "", errors.New("Unexpected error: " + err.Error())
-	} else if npmUpErrored {
+	} else if npmCiErrored {
 		fmt.Println("An older version of " + nodeModulesFolder + " still existed, so proceeding...")
 	}
 

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -18,9 +17,6 @@ const gameSrcSubFolder = "game-src"
 
 //TODO: remove this, rely only on gamepkg.ClientFolder().
 const clientSubFolder = "client"
-
-const clientGameRendererFileName = "boardgame-render-game-%s.js"
-const clientPlayerInfoRendererFileName = "boardgame-render-player-info-%s.js"
 
 //CopyStaticResources copies all of the top-level files into the build
 //directory given by dir. If copyFiles is true, it copies them, otherwise it
@@ -43,7 +39,7 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 		return errors.New("Can't get working directory: " + err.Error())
 	}
 
-	infos, err := ioutil.ReadDir(fullPkgPath)
+	infos, err := os.ReadDir(fullPkgPath)
 
 	if err != nil {
 		return errors.New("Couldn't list files in remote directory: " + err.Error())
@@ -188,7 +184,7 @@ func CreateClientConfigJs(dir string, c *config.ClientConfig) error {
 
 	fileContents := "var CONFIG = " + string(clientBlob)
 
-	if err := ioutil.WriteFile(path, []byte(fileContents), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(fileContents), 0644); err != nil {
 		return errors.New("Couldn't create file: " + err.Error())
 	}
 

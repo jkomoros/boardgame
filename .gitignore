@@ -22,11 +22,22 @@ _testmain.go
 bower_components/
 build/
 node_modules/
+dist/
 
 .DS_Store
+
+# TypeScript
+*.tsbuildinfo
+server/static/src/**/*.d.ts
+!server/static/src/types/**/*.d.ts
 
 *.exe
 *.test
 *.prof
 
 *.SECRET.*
+
+# Playwright
+test-results/
+playwright-report/
+server/static/screenshots/

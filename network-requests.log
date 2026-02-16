@@ -1,0 +1,11 @@
+[GET] http://localhost:8080/ => [200] OK
+[GET] http://localhost:8080/@vite/client => [200] OK
+[GET] http://localhost:8080/client_config.js => [200] OK
+[GET] http://localhost:8080/node_modules/web-animations-js/web-animations-next.min.js => [200] OK
+[GET] http://localhost:8080/node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js => [200] OK
+[GET] http://localhost:8080/src/styles/md3-theme.css => [200] OK
+[GET] http://localhost:8080/src/components/boardgame-app.ts => [200] OK
+[GET] http://localhost:8080/@fs/Users/jkomoros/Library/Caches/com.github.jkomoros.boardgame/node_modules/vite/dist/client/env.mjs => [200] OK
+[GET] https://www.google-analytics.com/analytics.js => [200] 
+[GET] http://localhost:8080/manifest.json => [200] OK
+[GET] http://localhost:8080/images/manifest/icon-192x192.png => [200] OK

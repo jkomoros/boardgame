@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -84,11 +85,24 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 		staticPort = s.StaticPort
 	}
 
+	// Start Vite dev server from the temp directory
+	// This ensures Vite serves the generated client_config.js with correct settings
 	go func() {
-		fmt.Println("Starting up asset server at " + staticPort)
-		if err := static.Server(dir, staticPort); err != nil {
+		fmt.Println("Starting up Vite dev server on port " + staticPort)
+
+		// Use the temp directory's static folder
+		// The temp dir contains symlinks to original source files (for HMR)
+		// plus generated files like client_config.js
+		staticDir := filepath.Join(dir, "static")
+
+		// Run npm run dev from temp directory's static folder
+		cmd := exec.Command("npm", "run", "dev")
+		cmd.Dir = staticDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
 			//TODO: when this happens we should quit the whole program
-			fmt.Println("ERROR: couldn't start static server: " + err.Error())
+			fmt.Println("ERROR: couldn't start Vite dev server: " + err.Error())
 		}
 	}()
 

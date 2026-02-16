@@ -1,0 +1,30 @@
+[      71ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=685624fb:93
+[      75ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=685624fb:93
+[     369ms] [WARNING] Multiple versions of Lit loaded. Loading multiple versions is not recommended. See https://lit.dev/msg/multiple-versions for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-ZLHWBRP7.js?v=d60cc09e:22
+[     384ms] NotSupportedError: Failed to execute 'define' on 'CustomElementRegistry': the name "md-filled-field" has already been used with this registry
+    at http://localhost:8080/node_modules/.vite/deps/chunk-6PAUIPAZ.js?v=d60cc09e:13:20
+    at __decorate (http://localhost:8080/node_modules/.vite/deps/chunk-BFHBSOFV.js?v=d60cc09e:16:93)
+    at http://localhost:8080/node_modules/.vite/deps/chunk-OIO2V3R3.js?v=d60cc09e:340:17
+[     435ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:93
+[     438ms] [WARNING] Element boardgame-app scheduled an update (generally because a property was set) after an update completed, causing a new update to be scheduled. This is inefficient and should be avoided unless the next update can only be scheduled as a side effect of the previous update. See https://lit.dev/msg/change-in-update for more information. @ http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:93
+[     487ms] [ERROR] Access to fetch at 'http://localhost:8888/api/list/manager' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8080/:0
+[     487ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8888/api/list/manager:0
+[     487ms] [ERROR] Access to fetch at 'http://localhost:8888/api/list/game?name=&admin=0' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:8080/:0
+[     487ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8888/api/list/game?name=&admin=0:0
+[     488ms] TypeError: Failed to fetch
+    at http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/actions/list.ts:32:24
+    at Object.dispatch (http://localhost:8080/node_modules/.vite/deps/redux-thunk.js?v=d60cc09e:7:14)
+    at HTMLElement.updated (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:68:13)
+    at HTMLElement._$didUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:804:10)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:766:12)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:674:25)
+[     488ms] TypeError: Failed to fetch
+    at http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/actions/list.ts:50:24
+    at Object.dispatch (http://localhost:8080/node_modules/.vite/deps/redux-thunk.js?v=d60cc09e:7:14)
+    at HTMLElement._fetchGamesList (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:80:11)
+    at HTMLElement.updated (http://localhost:8080/@fs/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/src/components/boardgame-list-games-view.ts:69:12)
+    at HTMLElement._$didUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:804:10)
+    at HTMLElement.performUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:766:12)
+    at HTMLElement.scheduleUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:698:25)
+    at HTMLElement.__enqueueUpdate (http://localhost:8080/node_modules/.vite/deps/chunk-6I53ZR2N.js?v=d60cc09e:674:25)
