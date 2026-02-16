@@ -70,8 +70,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
           layout="grid"
           messy
           .stack="${this.state?.Game?.Cards}"
-          component-propose-move="Reveal Card"
-          component-index-attributes="data-arg-card-index">
+          .componentAttrs=${{ proposeMove: 'Reveal Card', indexAttributes: 'data-arg-card-index' }}>
         </boardgame-component-stack>
         <boardgame-fading-text
           message="Match"
@@ -83,7 +82,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
           layout="stack"
           .stack="${this.state?.Players?.[0]?.WonCards}"
           messy
-          component-disabled>
+          .componentAttrs=${{ disabled: true }}>
         </boardgame-component-stack>
         <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
         <boardgame-card spacer></boardgame-card>
@@ -91,7 +90,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
           layout="stack"
           messy
           .stack="${this.state?.Players?.[1]?.WonCards}"
-          component-disabled>
+          .componentAttrs=${{ disabled: true }}>
         </boardgame-component-stack>
       </div>
       <md-outlined-button

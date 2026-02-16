@@ -259,6 +259,12 @@ export class BoardgameComponentStack extends LitElement {
   @query('#animating-components')
   private animatingComponentsContainer!: HTMLElement;
 
+  // Attributes to forward to child components. Keys are camelCase property
+  // names (e.g., 'color', 'type', 'rotated', 'proposeMove'), values are
+  // set directly as properties on each child component element.
+  @property({ type: Object, attribute: false })
+  componentAttrs: Record<string, any> = {};
+
   private _componentPool: any[] = [];
   private _pileScaleFactor = 1.0;
   private _randomRotationOffset = 0;
@@ -361,12 +367,6 @@ export class BoardgameComponentStack extends LitElement {
     this._randomRotationOffset = Math.floor(Math.random() * 21);
     this._id = this._randomId(8);
 
-    const attrs = this._attributesForComponents();
-    for (const key of attrs.keys()) {
-      const titleKey = key[0].toUpperCase() + key.slice(1, key.length);
-      // TODO: Implement property observer equivalent for Lit
-      // this._createPropertyObserver('component' + titleKey, '_componentPropChanged');
-    }
   }
 
   protected override shouldUpdate(changedProperties: Map<string, any>): boolean {
@@ -393,6 +393,10 @@ export class BoardgameComponentStack extends LitElement {
 
     if (changedProperties.has('_pileScaleFactor')) {
       this._style = this._computeStyle(this._pileScaleFactor);
+    }
+
+    if (changedProperties.has('componentAttrs')) {
+      this._applyComponentAttrsToChildren();
     }
   }
 
@@ -652,27 +656,35 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private _attributesForComponents(): Map<string, any> {
-    const result = new Map();
+    return new Map(Object.entries(this.componentAttrs));
+  }
 
-    for (const name of Object.getOwnPropertyNames(this)) {
-      if (!name.startsWith('component')) {
-        continue;
+  /**
+   * Re-apply component attributes to all existing child components.
+   * Called when the reactive componentAttrs property changes, so that
+   * existing children immediately reflect the new values without
+   * waiting for a stack data change from the server.
+   */
+  private _applyComponentAttrsToChildren() {
+    const attrs = this._attributesForComponents();
+
+    const applyToElement = (ele: Element) => {
+      for (const [key, val] of attrs) {
+        if (key === 'indexAttributes') continue;
+        (ele as any)[key] = val;
       }
-      let finalName = name.replace('component', '');
-      finalName = finalName[0].toLowerCase() + finalName.slice(1, finalName.length);
-      result.set(finalName, (this as any)[name]);
+    };
+
+    for (const ele of this.querySelectorAll('[boardgame-component]')) {
+      applyToElement(ele);
     }
 
-    for (const attr of this.attributes) {
-      if (!attr.name.startsWith('component-')) {
-        continue;
+    // Also update faux components in shadow DOM
+    if (this.fauxComponentsContainer) {
+      for (const ele of this.fauxComponentsContainer.querySelectorAll('[boardgame-component]')) {
+        applyToElement(ele);
       }
-      const name = attr.name.replace('component-', '');
-      const finalName = dashToCamelCase(name);
-      result.set(finalName, attr.value);
     }
-
-    return result;
   }
 
   private _insertNodes(componentsInfo: any[], hostEle: HTMLElement) {
@@ -715,8 +727,7 @@ export class BoardgameComponentStack extends LitElement {
     }
 
     const attrs = this._attributesForComponents();
-    const indexAttrs = 'indexAttributes';
-    const attributesToIndex = attrs.get(indexAttrs) ? attrs.get(indexAttrs).split(',') : [];
+    const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
 
     let componentIndex = 0;
 
@@ -757,14 +768,9 @@ export class BoardgameComponentStack extends LitElement {
         ele.instance.index = componentIndex;
       }
 
-      for (const key of attrs.keys()) {
-        if (key === indexAttrs) continue;
-        let valToSet = attrs.get(key);
-        const propConfigs = ele._composedPropertyDefinition;
-        if (propConfigs[key] && propConfigs[key].type === Boolean && valToSet === '') {
-          valToSet = true;
-        }
-        ele[key] = valToSet;
+      for (const [key, val] of attrs) {
+        if (key === 'indexAttributes') continue;
+        ele[key] = val;
       }
 
       for (const name of attributesToIndex) {

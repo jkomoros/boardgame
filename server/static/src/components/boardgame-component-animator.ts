@@ -348,7 +348,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
         record.needsAnimation = record.needsHostTransition || propsChanged || opacityChanged;
 
-        // We used to only bother setting transforms for items that had
+            // We used to only bother setting transforms for items that had
         // physically moved. However, the browser is smart enough to ignore
         // transforms that are basically no ops. And if we don't set it
         // then cards that don't physically move but do have transform
@@ -523,16 +523,31 @@ export class BoardgameComponentAnimator extends LitElement {
       componentsToAnimate.push({ component: ac.component, record: ac });
     }
 
-    // Phase 4: Restore transitions and start animations on filtered set only
+    // Phase 4: FLIP Play phase
+    // CRITICAL ORDERING for CSS transitions to fire:
+    //
+    // prepareAnimation() set `style.transition = 'none'` and the inverted
+    // transform on each component's host element. For the browser to animate
+    // from the inverted position to the final position, it must:
+    //   1. Commit the inverted position while transitions are disabled
+    //   2. Re-enable transitions
+    //   3. Set the final transform — browser sees the change and animates
+    //
+    // A reflow between steps 1-2 and 2-3 ensures the browser doesn't batch
+    // the writes and skip the animation.
+
+    // Step 1: Force layout to commit inverted transforms (transition: none still in effect)
+    this.offsetHeight;
+
+    // Step 2: Re-enable CSS transitions on the host element
     for (const item of componentsToAnimate) {
       item.component.style.transition = '';
     }
 
-    // Force browser to compute inverted transforms as actual styles.
-    // Without this, the browser batches inverted + final transform writes
-    // and sees no net change for stack layouts.
+    // Step 3: Force layout so browser registers transition is now active
     this.offsetHeight;
 
+    // Step 4: Set final transforms — browser sees change and animates
     for (const item of componentsToAnimate) {
       item.component.startAnimation(item.record.after, item.record.afterTransform, item.record.afterOpacity, item.record.needsHostTransition ?? true);
     }

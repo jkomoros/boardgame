@@ -49,7 +49,7 @@ class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
           .stack="${this.state?.Game?.DrawStack}"
           layout="stack"
           messy
-          component-propose-move="Current Player Hit">
+          .componentAttrs=${{ proposeMove: 'Current Player Hit' }}>
         </boardgame-component-stack>
         <div class="flex">
           <md-filled-button propose-move="Current Player Hit" ?disabled="${!this.isCurrentPlayer}">Hit</md-filled-button>
@@ -69,7 +69,7 @@ class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
               .stack="${player.Hand}"
               layout="fan"
               messy
-              component-rotated>
+              .componentAttrs=${{ rotated: true }}>
               <boardgame-fading-text .trigger="${player.Busted}" message="Busted!"></boardgame-fading-text>
               <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
             </boardgame-component-stack>
