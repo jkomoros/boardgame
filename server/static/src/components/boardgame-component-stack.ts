@@ -424,14 +424,26 @@ export class BoardgameComponentStack extends LitElement {
       // Find the first element child in the fragment
       for (const child of fragment.childNodes) {
         if (child.nodeType === 1) { // Element node
-          return child as HTMLElement;
+          const ele = child as HTMLElement;
+          // Lit's reflect: true for boardgame-component is async (microtask),
+          // but _insertNodes needs the attribute synchronously to find and
+          // configure components. Set it immediately.
+          if (!ele.hasAttribute('boardgame-component')) {
+            ele.setAttribute('boardgame-component', '');
+          }
+          return ele;
         }
       }
       console.warn('None of the nodes in the template are an element node.');
       return null;
     }
 
-    console.warn('No template class to auto stamp');
+    // Only warn if we have both gameName and deckName set (i.e., we've received
+    // real stack data). During initial startup, templates aren't registered yet
+    // and _stackChanged fires before deck-defaults has connected — that's normal.
+    if (this.gameName && this.deckName) {
+      console.warn('No template class to auto stamp');
+    }
     return null;
   }
 
@@ -572,6 +584,11 @@ export class BoardgameComponentStack extends LitElement {
 
           // Create a fresh custom element instead of using the cloned template
           component = document.createElement(tagName);
+          // Ensure boardgame-component attribute is set synchronously
+          // (Lit's reflect: true is async)
+          if (!component.hasAttribute('boardgame-component')) {
+            component.setAttribute('boardgame-component', '');
+          }
           break;
         }
       }
@@ -760,7 +777,20 @@ export class BoardgameComponentStack extends LitElement {
     }
   }
 
+  private _pendingGenerateRetry: number | null = null;
+
   private _generateChildren() {
+    // If templates aren't registered yet (common during startup when
+    // deck-defaults hasn't connected), retry after a short delay.
+    if (!this.templateClass && this.stack?.Components?.length && this._componentPool.length === 0) {
+      if (!this._pendingGenerateRetry) {
+        this._pendingGenerateRetry = requestAnimationFrame(() => {
+          this._pendingGenerateRetry = null;
+          this._generateChildren();
+        });
+      }
+      return;
+    }
     this._insertNodes(this.stack ? this.stack.Components : [], this);
   }
 
