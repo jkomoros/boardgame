@@ -494,17 +494,17 @@ func (t *ȧutoGeneratedTestStructReader) TimerProp(name string) (boardgame.Timer
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for testStruct
+// Reader returns an autp-generated boardgame.PropertyReader for testStruct
 func (t *testStruct) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedTestStructReader{t}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for testStruct
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for testStruct
 func (t *testStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedTestStructReader{t}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for testStruct
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for testStruct
 func (t *testStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedTestStructReader{t}
 }

@@ -1254,6 +1254,28 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 The legality info includes three fields per move: `LegalForPlayer` (is it legal for this player?), `LegalForPlayerError` (the error message if not), and `LegalForAnyone` (is it legal for anyone?). These are server-authoritative — no game logic duplication needed in the client.
 
+#### Generated Move Name Constants
+
+When you run `boardgame-util serve` (or `boardgame-util emit-move-names`), the tool generates a `client/_move_names.ts` file for each game package. This file exports typed constants for all player-proposable move names:
+
+```typescript
+// Auto-generated — DO NOT EDIT.
+export const MoveNames = {
+  RevealCard: "Reveal Card",
+  HideCards: "Hide Cards",
+} as const;
+
+export type MoveName = typeof MoveNames[keyof typeof MoveNames];
+```
+
+Import this in your renderer to get type safety and autocomplete instead of error-prone hardcoded strings:
+
+```typescript
+import { MoveNames } from './_move_names.js';
+```
+
+These files follow the same convention as `auto_reader.go` and `auto_enum.go`: they are regenerated on each serve but should be committed to source control. Only non-FixUp moves (i.e., player-proposable moves) are included.
+
 #### Worked Example
 
 In general your renderer is mostly concerned with stamping out stacks and buttons. With the move legality API, you no longer need to duplicate game logic on the client to decide when buttons should be active — the server tells you.
@@ -1274,7 +1296,7 @@ Here's the renderer for Memory:
     <div>
       <boardgame-component-stack layout="grid" messy
         .stack="${this.state?.Game?.Cards}"
-        .componentAttrs=${{ proposeMove: 'Reveal Card', indexAttributes: 'data-arg-card-index' }}>
+        .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
       </boardgame-component-stack>
       <boardgame-fading-text message="Match"
         .trigger="${this.state?.Game?.Cards?.NumComponents}">
@@ -1291,13 +1313,13 @@ Here's the renderer for Memory:
         .componentAttrs=${{ disabled: true }}>
       </boardgame-component-stack>
     </div>
-    <md-outlined-button propose-move="Hide Cards"
-      ?disabled="${!this.isMoveCurrentlyLegal('Hide Cards')}">
+    <md-outlined-button propose-move="${MoveNames.HideCards}"
+      ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.HideCards)}">
       Hide Cards
     </md-outlined-button>
 ```
 
-Notice that the Hide Cards button uses `isMoveCurrentlyLegal('Hide Cards')` instead of binding to a computed property. The server's `Legal()` check already knows whether the current player has cards to reveal, so the client doesn't need to duplicate that logic.
+Notice that the Hide Cards button uses `isMoveCurrentlyLegal(MoveNames.HideCards)` instead of a hardcoded string. The `MoveNames` constants are generated from the server's actual move definitions, so they're guaranteed to be correct. The server's `Legal()` check already knows whether the current player has cards to reveal, so the client doesn't need to duplicate that logic.
 
 The flow is: server computes `Legal()` for each non-FixUp move against the final state → ships legality in the state bundle → client receives it via the `moveLegality` property → renderers use `isMoveCurrentlyLegal()` / `isMovePossible()` convenience methods.
 

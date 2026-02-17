@@ -13,15 +13,16 @@ import (
 
 type boardgameUtil struct {
 	baseSubCommand
-	Help    help
-	Db      db
-	Codegen codegen
-	Build   build
-	Clean   clean
-	Serve   serve
-	Config  configCmd
-	Stub    stubCmd
-	Golden  goldenCmd
+	Help          help
+	Db            db
+	Codegen       codegen
+	Build         build
+	Clean         clean
+	Serve         serve
+	Config        configCmd
+	Stub          stubCmd
+	Golden        goldenCmd
+	EmitMoveNames emitMoveNames
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -91,6 +92,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Build,
 		&b.Clean,
 		&b.Golden,
+		&b.EmitMoveNames,
 	}
 }
 

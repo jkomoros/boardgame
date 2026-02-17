@@ -7,6 +7,7 @@ import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-fading-text.js';
 import '../../src/components/boardgame-deck-defaults.js';
 import { html, css } from 'lit';
+import { MoveNames } from './_move_names.js';
 
 class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
   static override styles = [
@@ -70,7 +71,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
           layout="grid"
           messy
           .stack="${this.state?.Game?.Cards}"
-          .componentAttrs=${{ proposeMove: 'Reveal Card', indexAttributes: 'data-arg-card-index' }}>
+          .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
         </boardgame-component-stack>
         <boardgame-fading-text
           message="Match"
@@ -95,8 +96,8 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
       </div>
       <md-outlined-button
         id="hide"
-        propose-move="Hide Cards"
-        ?disabled="${!this.isMoveCurrentlyLegal('Hide Cards')}">
+        propose-move="${MoveNames.HideCards}"
+        ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.HideCards)}">
         Hide Cards
       </md-outlined-button>
       <md-linear-progress

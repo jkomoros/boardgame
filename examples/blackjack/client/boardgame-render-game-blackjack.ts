@@ -7,6 +7,7 @@ import '../../../server/static/src/components/boardgame-fading-text.js';
 import '../../../server/static/src/components/boardgame-deck-defaults.js';
 import { html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { MoveNames } from './_move_names.js';
 
 class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
   static override styles = [
@@ -49,11 +50,11 @@ class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
           .stack="${this.state?.Game?.DrawStack}"
           layout="stack"
           messy
-          .componentAttrs=${{ proposeMove: 'Current Player Hit' }}>
+          .componentAttrs=${{ proposeMove: MoveNames.CurrentPlayerHit }}>
         </boardgame-component-stack>
         <div class="flex">
-          <md-filled-button propose-move="Current Player Hit" ?disabled="${!this.isMoveCurrentlyLegal('Current Player Hit')}">Hit</md-filled-button>
-          <md-outlined-button propose-move="Current Player Stand" ?disabled="${!this.isMoveCurrentlyLegal('Current Player Stand')}">Stand</md-outlined-button>
+          <md-filled-button propose-move="${MoveNames.CurrentPlayerHit}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerHit)}">Hit</md-filled-button>
+          <md-outlined-button propose-move="${MoveNames.CurrentPlayerStand}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerStand)}">Stand</md-outlined-button>
         </div>
         <boardgame-component-stack
           .stack="${this.state?.Game?.DiscardStack}"

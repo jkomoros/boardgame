@@ -15,23 +15,23 @@ import (
 
 var enums = enum.NewSet()
 
-//ConfigureEnums simply returns enums, the auto-generated Enums variable. This
-//is output because gameDelegate appears to be a struct that implements
-//boardgame.GameDelegate, and does not already have a ConfigureEnums
-//explicitly defined.
+// ConfigureEnums simply returns enums, the auto-generated Enums variable. This
+// is output because gameDelegate appears to be a struct that implements
+// boardgame.GameDelegate, and does not already have a ConfigureEnums
+// explicitly defined.
 func (g *gameDelegate) ConfigureEnums() *enum.Set {
 	return enums
 }
 
-//ConfigureEnums simply returns enums, the auto-generated Enums variable. This
-//is output because secondGameDelegate appears to be a struct that implements
-//boardgame.GameDelegate, and does not already have a ConfigureEnums
-//explicitly defined.
+// ConfigureEnums simply returns enums, the auto-generated Enums variable. This
+// is output because secondGameDelegate appears to be a struct that implements
+// boardgame.GameDelegate, and does not already have a ConfigureEnums
+// explicitly defined.
 func (s *secondGameDelegate) ConfigureEnums() *enum.Set {
 	return enums
 }
 
-//colorEnum is the enum.Enum for color
+// colorEnum is the enum.Enum for color
 var colorEnum = enums.MustAdd("color", map[int]string{
 	colorBlue:    "Blue",
 	colorGreen:   "Green",
@@ -39,14 +39,14 @@ var colorEnum = enums.MustAdd("color", map[int]string{
 	colorUnknown: "Unknown",
 })
 
-//phaseEnum is the enum.Enum for phase
+// phaseEnum is the enum.Enum for phase
 var phaseEnum = enums.MustAdd("phase", map[int]string{
 	phaseMultiWord:    "Multi Word",
 	phaseUnknown:      "Unknown",
 	phaseVeryLongName: "Very Long Name",
 })
 
-//fooEnum is the enum.Enum for foo
+// fooEnum is the enum.Enum for foo
 var fooEnum = enums.MustAdd("foo", map[int]string{
 	fooBlue:           "Blue",
 	fooOverride:       "Green",
@@ -54,7 +54,7 @@ var fooEnum = enums.MustAdd("foo", map[int]string{
 	fooOverrideQuoted: "My name is \"Blue\"",
 })
 
-//transformExampleEnum is the enum.Enum for transformExample
+// transformExampleEnum is the enum.Enum for transformExample
 var transformExampleEnum = enums.MustAdd("transformExample", map[int]string{
 	transformExampleLowerCase:                 "lower case",
 	transformExampleNormalConfiguredTransform: "Normal Configured Transform",
@@ -62,14 +62,14 @@ var transformExampleEnum = enums.MustAdd("transformExample", map[int]string{
 	transformExampleUpperCase:                 "UPPER CASE",
 })
 
-//defaultTransformEnum is the enum.Enum for defaultTransform
+// defaultTransformEnum is the enum.Enum for defaultTransform
 var defaultTransformEnum = enums.MustAdd("defaultTransform", map[int]string{
 	defaultTransformBlue:  "BLUE",
 	defaultTransformGreen: "GREEN",
 	defaultTransformRed:   "Red",
 })
 
-//treeEnum is the enum.Enum for tree
+// treeEnum is the enum.Enum for tree
 var treeEnum = enums.MustAddTree("tree", map[int]string{
 	tree:      "",
 	treeBlue:  "Blue",
@@ -82,7 +82,7 @@ var treeEnum = enums.MustAddTree("tree", map[int]string{
 	treeRed:   tree,
 })
 
-//blamEnum is the enum.Enum for blam
+// blamEnum is the enum.Enum for blam
 var blamEnum = enums.MustAddTree("blam", map[int]string{
 	blam:          "",
 	blamOne:       "One",
@@ -101,13 +101,13 @@ var blamEnum = enums.MustAddTree("blam", map[int]string{
 	blamTwo010One: blamTwo,
 })
 
-//PublicEnum is the enum.Enum for Public
+// PublicEnum is the enum.Enum for Public
 var PublicEnum = enums.MustAdd("Public", map[int]string{
 	PublicBlue:  "Blue",
 	PublicGreen: "Green",
 })
 
-//exampleEnum is the enum.Enum for example
+// exampleEnum is the enum.Enum for example
 var exampleEnum = enums.MustAddTree("example", map[int]string{
 	example:          "",
 	exampleOne:       "One",
@@ -122,13 +122,13 @@ var exampleEnum = enums.MustAddTree("example", map[int]string{
 	exampleTwo:       example,
 })
 
-//Implicitly created constants for multiWordTree
+// Implicitly created constants for multiWordTree
 const (
 	multiWordTreeBlueGreenOne = iota - 9223372036854775808
 	multiWordTreeBlueGreenThree
 )
 
-//multiWordTreeEnum is the enum.Enum for multiWordTree
+// multiWordTreeEnum is the enum.Enum for multiWordTree
 var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[int]string{
 	multiWordTree:                   "",
 	multiWordTreeBlueGreen:          "Blue Green",
@@ -149,12 +149,12 @@ var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[int]string{
 	multiWordTreeBlueGreenTwoA:      multiWordTreeBlueGreen,
 })
 
-//Implicitly created constants for skipNode
+// Implicitly created constants for skipNode
 const (
 	skipNodeRed = iota - 9223372036854775808
 )
 
-//skipNodeEnum is the enum.Enum for skipNode
+// skipNodeEnum is the enum.Enum for skipNode
 var skipNodeEnum = enums.MustAddTree("skipNode", map[int]string{
 	skipNode:             "",
 	skipNodeRed:          "Red",
@@ -165,23 +165,23 @@ var skipNodeEnum = enums.MustAddTree("skipNode", map[int]string{
 	skipNodeRed010Circle: skipNodeRed,
 })
 
-//prefixBugEnum is the enum.Enum for prefixBug
+// prefixBugEnum is the enum.Enum for prefixBug
 var prefixBugEnum = enums.MustAdd("prefixBug", map[int]string{
 	prefixBugGreenprefixBug: "Greenprefix Bug",
 	prefixBugWhite:          "White",
 })
 
-//blargoEnum is the enum.Enum for blargo
+// blargoEnum is the enum.Enum for blargo
 var blargoEnum = enums.MustAdd("blargo", map[int]string{
 	blargoA: "A",
 	blargoB: "B",
 })
 
-//flargoEnum is the enum.Enum for flargo
+// flargoEnum is the enum.Enum for flargo
 var flargoEnum = enums.MustAdd("flargo", map[int]string{
 	flargoC: "C",
 	flargoD: "D",
 })
 
-//groupEnum is the combined enum.Enum for group
+// groupEnum is the combined enum.Enum for group
 var groupEnum = enums.MustCombine("group", blargoEnum, flargoEnum)

@@ -3,6 +3,7 @@ import '../../../server/static/src/components/boardgame-die.js';
 import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
 import '../../../server/static/src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
+import { MoveNames } from './_move_names.js';
 
 class BoardgameRenderGamePig extends BoardgameBaseGameRenderer {
   static override styles = [
@@ -29,14 +30,14 @@ class BoardgameRenderGamePig extends BoardgameBaseGameRenderer {
     return html`
       <div class="container">
         <boardgame-die
-          propose-move="Roll Dice"
+          propose-move="${MoveNames.RollDice}"
           .item="${this.state?.Game?.Die?.Components?.[0]}"
-          ?disabled="${!this.isMoveCurrentlyLegal('Roll Dice')}">
+          ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.RollDice)}">
         </boardgame-die>
         <div class="flex"></div>
         <md-filled-button
-          propose-move="Done Turn"
-          ?disabled="${!this.isMoveCurrentlyLegal('Done Turn')}">
+          propose-move="${MoveNames.DoneTurn}"
+          ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.DoneTurn)}">
           Done
         </md-filled-button>
       </div>
