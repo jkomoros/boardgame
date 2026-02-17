@@ -31,12 +31,12 @@ class BoardgameRenderGamePig extends BoardgameBaseGameRenderer {
         <boardgame-die
           propose-move="Roll Dice"
           .item="${this.state?.Game?.Die?.Components?.[0]}"
-          ?disabled="${!this.isCurrentPlayer}">
+          ?disabled="${!this.isMoveCurrentlyLegal('Roll Dice')}">
         </boardgame-die>
         <div class="flex"></div>
         <md-filled-button
           propose-move="Done Turn"
-          ?disabled="${!this.isCurrentPlayer}">
+          ?disabled="${!this.isMoveCurrentlyLegal('Done Turn')}">
           Done
         </md-filled-button>
       </div>

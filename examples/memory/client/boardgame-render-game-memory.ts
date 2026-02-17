@@ -96,7 +96,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
       <md-outlined-button
         id="hide"
         propose-move="Hide Cards"
-        ?disabled="${this.state?.Computed?.Global?.CurrentPlayerHasCardsToReveal}">
+        ?disabled="${!this.isMoveCurrentlyLegal('Hide Cards')}">
         Hide Cards
       </md-outlined-button>
       <md-linear-progress

@@ -52,8 +52,8 @@ class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
           .componentAttrs=${{ proposeMove: 'Current Player Hit' }}>
         </boardgame-component-stack>
         <div class="flex">
-          <md-filled-button propose-move="Current Player Hit" ?disabled="${!this.isCurrentPlayer}">Hit</md-filled-button>
-          <md-outlined-button propose-move="Current Player Stand" ?disabled="${!this.isCurrentPlayer}">Stand</md-outlined-button>
+          <md-filled-button propose-move="Current Player Hit" ?disabled="${!this.isMoveCurrentlyLegal('Current Player Hit')}">Hit</md-filled-button>
+          <md-outlined-button propose-move="Current Player Stand" ?disabled="${!this.isMoveCurrentlyLegal('Current Player Stand')}">Stand</md-outlined-button>
         </div>
         <boardgame-component-stack
           .stack="${this.state?.Game?.DiscardStack}"
