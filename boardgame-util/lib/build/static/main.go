@@ -102,6 +102,9 @@ var filesToExclude = map[string]bool{
 	//Don't copy over because we'll generate our own; if we copy over and
 	//generate our own we'll overwrite original.
 	clientConfigJsFileName: true,
+	//Don't symlink game-src; LinkGameClientFolders creates it as a real
+	//directory so game symlinks resolve relative paths correctly.
+	gameSrcSubFolder: true,
 	".DS_Store":            true,
 	// Documentation files
 	"BREAKING_CHANGES.md":        true,
