@@ -642,17 +642,17 @@ func (m *ȧutoGeneratedMyStructReader) TimerProp(name string) (boardgame.Timer, 
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for myStruct
+// Reader returns an autp-generated boardgame.PropertyReader for myStruct
 func (m *myStruct) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMyStructReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for myStruct
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for myStruct
 func (m *myStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMyStructReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for myStruct
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for myStruct
 func (m *myStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMyStructReader{m}
 }
@@ -1166,17 +1166,17 @@ func (r *ȧutoGeneratedRoundRobinStructReader) TimerProp(name string) (boardgame
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for roundRobinStruct
+// Reader returns an autp-generated boardgame.PropertyReader for roundRobinStruct
 func (r *roundRobinStruct) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedRoundRobinStructReader{r}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for roundRobinStruct
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for roundRobinStruct
 func (r *roundRobinStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedRoundRobinStructReader{r}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for roundRobinStruct
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for roundRobinStruct
 func (r *roundRobinStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedRoundRobinStructReader{r}
 }
@@ -1706,17 +1706,17 @@ func (s *ȧutoGeneratedStructWithManyKeysReader) TimerProp(name string) (boardga
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for structWithManyKeys
+// Reader returns an autp-generated boardgame.PropertyReader for structWithManyKeys
 func (s *structWithManyKeys) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedStructWithManyKeysReader{s}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for structWithManyKeys
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for structWithManyKeys
 func (s *structWithManyKeys) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedStructWithManyKeysReader{s}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for structWithManyKeys
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for structWithManyKeys
 func (s *structWithManyKeys) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedStructWithManyKeysReader{s}
 }
@@ -2198,17 +2198,17 @@ func (e *ȧutoGeneratedEmbeddedStructReader) TimerProp(name string) (boardgame.T
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for embeddedStruct
+// Reader returns an autp-generated boardgame.PropertyReader for embeddedStruct
 func (e *embeddedStruct) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedEmbeddedStructReader{e}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for embeddedStruct
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for embeddedStruct
 func (e *embeddedStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedEmbeddedStructReader{e}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for embeddedStruct
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for embeddedStruct
 func (e *embeddedStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedEmbeddedStructReader{e}
 }
@@ -2690,17 +2690,17 @@ func (d *ȧutoGeneratedDoubleEmbeddedStructReader) TimerProp(name string) (board
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for doubleEmbeddedStruct
+// Reader returns an autp-generated boardgame.PropertyReader for doubleEmbeddedStruct
 func (d *doubleEmbeddedStruct) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedDoubleEmbeddedStructReader{d}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for doubleEmbeddedStruct
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for doubleEmbeddedStruct
 func (d *doubleEmbeddedStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedDoubleEmbeddedStructReader{d}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for doubleEmbeddedStruct
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for doubleEmbeddedStruct
 func (d *doubleEmbeddedStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedDoubleEmbeddedStructReader{d}
 }
@@ -3194,17 +3194,17 @@ func (m *ȧutoGeneratedMyOtherStructReader) TimerProp(name string) (boardgame.Ti
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for myOtherStruct
+// Reader returns an autp-generated boardgame.PropertyReader for myOtherStruct
 func (m *myOtherStruct) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMyOtherStructReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for myOtherStruct
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for myOtherStruct
 func (m *myOtherStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMyOtherStructReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for myOtherStruct
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for myOtherStruct
 func (m *myOtherStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMyOtherStructReader{m}
 }
@@ -3340,7 +3340,7 @@ func (o *ȧutoGeneratedOnlyReaderReader) ImmutableTimerProp(name string) (boardg
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for onlyReader
+// Reader returns an autp-generated boardgame.PropertyReader for onlyReader
 func (o *onlyReader) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedOnlyReaderReader{o}
 }
@@ -3910,17 +3910,17 @@ func (i *ȧutoGeneratedIncludesImmutableReader) TimerProp(name string) (boardgam
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for includesImmutable
+// Reader returns an autp-generated boardgame.PropertyReader for includesImmutable
 func (i *includesImmutable) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedIncludesImmutableReader{i}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for includesImmutable
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for includesImmutable
 func (i *includesImmutable) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedIncludesImmutableReader{i}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for includesImmutable
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for includesImmutable
 func (i *includesImmutable) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedIncludesImmutableReader{i}
 }
@@ -4215,12 +4215,12 @@ func (u *ȧutoGeneratedUpToReadSetterReader) TimerProp(name string) (boardgame.T
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for upToReadSetter
+// Reader returns an autp-generated boardgame.PropertyReader for upToReadSetter
 func (u *upToReadSetter) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedUpToReadSetterReader{u}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for upToReadSetter
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for upToReadSetter
 func (u *upToReadSetter) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedUpToReadSetterReader{u}
 }
@@ -4718,17 +4718,17 @@ func (s *ȧutoGeneratedSizedStackExampleReader) TimerProp(name string) (boardgam
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for sizedStackExample
+// Reader returns an autp-generated boardgame.PropertyReader for sizedStackExample
 func (s *sizedStackExample) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedSizedStackExampleReader{s}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for sizedStackExample
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for sizedStackExample
 func (s *sizedStackExample) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedSizedStackExampleReader{s}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for sizedStackExample
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for sizedStackExample
 func (s *sizedStackExample) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedSizedStackExampleReader{s}
 }
@@ -5210,17 +5210,17 @@ func (m *ȧutoGeneratedMergedStackExampleReader) TimerProp(name string) (boardga
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for mergedStackExample
+// Reader returns an autp-generated boardgame.PropertyReader for mergedStackExample
 func (m *mergedStackExample) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMergedStackExampleReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for mergedStackExample
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for mergedStackExample
 func (m *mergedStackExample) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMergedStackExampleReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for mergedStackExample
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for mergedStackExample
 func (m *mergedStackExample) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMergedStackExampleReader{m}
 }
@@ -5718,17 +5718,17 @@ func (r *ȧutoGeneratedRangeValExampleReader) TimerProp(name string) (boardgame.
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for rangeValExample
+// Reader returns an autp-generated boardgame.PropertyReader for rangeValExample
 func (r *rangeValExample) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedRangeValExampleReader{r}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for rangeValExample
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for rangeValExample
 func (r *rangeValExample) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedRangeValExampleReader{r}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for rangeValExample
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for rangeValExample
 func (r *rangeValExample) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedRangeValExampleReader{r}
 }
@@ -6226,17 +6226,17 @@ func (t *ȧutoGeneratedTreeValExampleReader) TimerProp(name string) (boardgame.T
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for treeValExample
+// Reader returns an autp-generated boardgame.PropertyReader for treeValExample
 func (t *treeValExample) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedTreeValExampleReader{t}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for treeValExample
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for treeValExample
 func (t *treeValExample) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedTreeValExampleReader{t}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for treeValExample
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for treeValExample
 func (t *treeValExample) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedTreeValExampleReader{t}
 }

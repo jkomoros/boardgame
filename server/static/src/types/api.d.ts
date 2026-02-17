@@ -77,6 +77,12 @@ export interface MoveForm {
   HelpText: string;
   /** Form fields for move parameters */
   Fields?: MoveFormField[];
+  /** Whether this move is legal for the viewing player right now */
+  LegalForPlayer?: boolean;
+  /** Error message from Legal() if the move is not legal for this player */
+  LegalForPlayerError?: string;
+  /** Whether this move is structurally legal (legal for any player / admin) */
+  LegalForAnyone?: boolean;
 }
 
 /**

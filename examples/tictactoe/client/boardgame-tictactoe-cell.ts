@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { property } from 'lit/decorators.js';
+import { MoveNames } from './_move_names.js';
 
 class BoardgameTictactoeCell extends LitElement {
   static override styles = css`
@@ -57,7 +58,7 @@ class BoardgameTictactoeCell extends LitElement {
     return html`
       <div
         class="cell"
-        propose-move="Place Token"
+        propose-move="${MoveNames.PlaceToken}"
         data-arg-slot="${this.index}"
       >
         ${this.value}

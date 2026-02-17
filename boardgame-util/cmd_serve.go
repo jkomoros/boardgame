@@ -63,6 +63,11 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 		apiOptions.OverrideOfflineDevMode = true
 	}
 
+	fmt.Println("Generating move name constants")
+	if err := emitMoveNamesForPackages(s.Base(), pkgs); err != nil {
+		fmt.Println("Warning: couldn't generate move names: " + err.Error())
+	}
+
 	fmt.Println("Creating temporary binary")
 	apiPath, err := api.Build(dir, pkgs, storage, apiOptions)
 

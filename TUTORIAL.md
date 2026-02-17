@@ -1243,15 +1243,44 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 ##### boardgame-base-game-renderer
 
-`boardgame-base-game-renderer` is a superclass that it generally makes sense for your renderer to subclass. The primary thing it adds (currently) is machinery to propose moves based on mark-up.
+`boardgame-base-game-renderer` is a superclass that it generally makes sense for your renderer to subclass. It provides two main capabilities: move proposal via markup, and server-authoritative move legality.
 
-In particular, if an interface element is tapped that has a `propose-move="MOVENAME"`, then it will automatically dispatch a move to the engine to propose that move. You can also define keys/values to be packaged up with the move as attributes in the format `data-arg-my-arg$="val"`, which will result in the ProposeMove event having an arguments bundle of `{MyArg:"val"}`.
+**Move Proposal:** If an interface element is tapped that has a `propose-move="MOVENAME"`, then it will automatically dispatch a move to the engine to propose that move. You can also define keys/values to be packaged up with the move as attributes in the format `data-arg-my-arg$="val"`, which will result in the ProposeMove event having an arguments bundle of `{MyArg:"val"}`.
+
+**Move Legality:** The server computes `Legal()` for each non-FixUp move against the current state and ships the result to the client. Your renderer receives this via the `moveLegality` property (set automatically by the framework), and can use two convenience methods:
+
+- `isMoveCurrentlyLegal(moveName)` — returns `true` if the move is legal for the viewing player right now. Use this to **disable** buttons (e.g. when it's not your turn).
+- `isMovePossible(moveName)` — returns `true` if the move is structurally legal (legal for any player / admin). Use this to **hide** buttons entirely (e.g. when the move doesn't apply in the current game phase).
+
+The legality info includes three fields per move: `LegalForPlayer` (is it legal for this player?), `LegalForPlayerError` (the error message if not), and `LegalForAnyone` (is it legal for anyone?). These are server-authoritative — no game logic duplication needed in the client.
+
+#### Generated Move Name Constants
+
+When you run `boardgame-util serve` (or `boardgame-util emit-move-names`), the tool generates a `client/_move_names.ts` file for each game package. This file exports typed constants for all player-proposable move names:
+
+```typescript
+// Auto-generated — DO NOT EDIT.
+export const MoveNames = {
+  RevealCard: "Reveal Card",
+  HideCards: "Hide Cards",
+} as const;
+
+export type MoveName = typeof MoveNames[keyof typeof MoveNames];
+```
+
+Import this in your renderer to get type safety and autocomplete instead of error-prone hardcoded strings:
+
+```typescript
+import { MoveNames } from './_move_names.js';
+```
+
+These files follow the same convention as `auto_reader.go` and `auto_enum.go`: they are regenerated on each serve but should be committed to source control. Only non-FixUp moves (i.e., player-proposable moves) are included.
 
 #### Worked Example
 
-In general your renderer is mostly concerned with telling the data-binding system where and how to stamp out stacks and buttons. This is one reasons Computed Properties (see the "Other Important Concepts" section below) are useful, because they allow you to define your semantic logic almost entirely on the server and allow the client to be almost entirely about data-binding.
+In general your renderer is mostly concerned with stamping out stacks and buttons. With the move legality API, you no longer need to duplicate game logic on the client to decide when buttons should be active — the server tells you.
 
-Here's the data-binding for Memory:
+Here's the renderer for Memory:
 
 ```html
     <boardgame-deck-defaults>
@@ -1265,24 +1294,36 @@ Here's the data-binding for Memory:
     </boardgame-deck-defaults>
     <h2>Memory</h2>
     <div>
-      <boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
+      <boardgame-component-stack layout="grid" messy
+        .stack="${this.state?.Game?.Cards}"
+        .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
       </boardgame-component-stack>
-       <boardgame-fading-text message="Match" trigger="{{state.Game.Cards.NumComponents}}"></boardgame-fading-text>
+      <boardgame-fading-text message="Match"
+        .trigger="${this.state?.Game?.Cards?.NumComponents}">
+      </boardgame-fading-text>
     </div>
-    <div class="layout horizontal around-justified discards">
-      <boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
+    <div class="discards">
+      <boardgame-component-stack layout="stack" messy
+        .stack="${this.state?.Players?.[0]?.WonCards}"
+        .componentAttrs=${{ disabled: true }}>
       </boardgame-component-stack>
-      <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
       <boardgame-card spacer></boardgame-card>
-      <boardgame-component-stack layout="stack" messy stack="{{state.Players.1.WonCards}}" component-disabled>
+      <boardgame-component-stack layout="stack" messy
+        .stack="${this.state?.Players?.[1]?.WonCards}"
+        .componentAttrs=${{ disabled: true }}>
       </boardgame-component-stack>
     </div>
-    <paper-button id="hide" propose-move="Hide Cards" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
-    <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
-    <boardgame-fading-text trigger="{{isCurrentPlayer}}" message="Your Turn" suppress="falsey"></boardgame-fading-text>
+    <md-outlined-button propose-move="${MoveNames.HideCards}"
+      ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.HideCards)}">
+      Hide Cards
+    </md-outlined-button>
 ```
 
-It looks like a lot, but it's mostly just abouts stamping out stacks.
+Notice that the Hide Cards button uses `isMoveCurrentlyLegal(MoveNames.HideCards)` instead of a hardcoded string. The `MoveNames` constants are generated from the server's actual move definitions, so they're guaranteed to be correct. The server's `Legal()` check already knows whether the current player has cards to reveal, so the client doesn't need to duplicate that logic.
+
+The flow is: server computes `Legal()` for each non-FixUp move against the final state → ships legality in the state bundle → client receives it via the `moveLegality` property → renderers use `isMoveCurrentlyLegal()` / `isMovePossible()` convenience methods.
+
+It looks like a lot, but it's mostly just about stamping out stacks.
 
 #### Player-info
 

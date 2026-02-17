@@ -16,6 +16,7 @@ import '../../src/components/boardgame-status-text.js';
 import '../../src/components/boardgame-token.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
+import { MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
@@ -250,15 +251,15 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             layout="stack"
             .stack="${this.state?.Game?.FirstShortStack}"
             ?messy="${this.messy}"
-            .componentAttrs=${{ proposeMove: 'Move Card Between Short Stacks' }}>
+            .componentAttrs=${{ proposeMove: MoveNames.MoveCardBetweenShortStacks }}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.SecondShortStack}"
-            .componentAttrs=${{ proposeMove: 'Move Card Between Short Stacks' }}>
+            .componentAttrs=${{ proposeMove: MoveNames.MoveCardBetweenShortStacks }}>
           </boardgame-component-stack>
-          <md-filled-button propose-move="Move Card Between Short Stacks">Swap</md-filled-button>
+          <md-filled-button propose-move="${MoveNames.MoveCardBetweenShortStacks}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveCardBetweenShortStacks)}">Swap</md-filled-button>
         </div>
 
         <div id="draw">
@@ -273,7 +274,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.DiscardStack}">
           </boardgame-component-stack>
-          <md-filled-button propose-move="Move Card Between Draw And Discard Stacks">Draw</md-filled-button>
+          <md-filled-button propose-move="${MoveNames.MoveCardBetweenDrawAndDiscardStacks}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveCardBetweenDrawAndDiscardStacks)}">Draw</md-filled-button>
           <boardgame-fading-text
             .trigger="${this.state?.Game?.DrawStack?.Components?.length}"
             auto-message="diff">
@@ -286,7 +287,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.Card}">
           </boardgame-component-stack>
-          <md-filled-button propose-move="Flip Card Between Hidden and Revealed">Flip</md-filled-button>
+          <md-filled-button propose-move="${MoveNames.FlipCardBetweenHiddenAndRevealed}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.FlipCardBetweenHiddenAndRevealed)}">Flip</md-filled-button>
         </div>
 
         <div id="fan">
@@ -306,10 +307,10 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             .componentAttrs=${{ rotated: this.toStackRotated }}>
           </boardgame-component-stack>
           <div class="controls">
-            <md-filled-button propose-move="Move Fan Card">Draw</md-filled-button>
-            <md-outlined-button propose-move="Visible Shuffle">Public Shuffle</md-outlined-button>
-            <md-outlined-button propose-move="Shuffle">Shuffle</md-outlined-button>
-            <md-outlined-button propose-move="Shuffle Hidden">Shuffle Hidden</md-outlined-button>
+            <md-filled-button propose-move="${MoveNames.MoveFanCard}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveFanCard)}">Draw</md-filled-button>
+            <md-outlined-button propose-move="${MoveNames.VisibleShuffle}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.VisibleShuffle)}">Public Shuffle</md-outlined-button>
+            <md-outlined-button propose-move="${MoveNames.Shuffle}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.Shuffle)}">Shuffle</md-outlined-button>
+            <md-outlined-button propose-move="${MoveNames.ShuffleHidden}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.ShuffleHidden)}">Shuffle Hidden</md-outlined-button>
             <boardgame-status-text>${this.state?.Game?.FanShuffleCount}</boardgame-status-text>
             <md-filled-select
               label="Layout"
@@ -350,7 +351,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             faux-components="5"
             .componentAttrs=${{ rotated: this.toStackRotated }}>
           </boardgame-component-stack>
-          <md-filled-button propose-move="Move Between Hidden">Draw</md-filled-button>
+          <md-filled-button propose-move="${MoveNames.MoveBetweenHidden}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveBetweenHidden)}">Draw</md-filled-button>
         </div>
 
         <div id="all">
@@ -364,8 +365,8 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.AllHiddenStack}">
           </boardgame-component-stack>
-          <md-outlined-button propose-move="Start Move All Components To Hidden">To Hidden</md-outlined-button>
-          <md-outlined-button propose-move="Start Move All Components To Visible">To Visible</md-outlined-button>
+          <md-outlined-button propose-move="${MoveNames.StartMoveAllComponentsToHidden}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.StartMoveAllComponentsToHidden)}">To Hidden</md-outlined-button>
+          <md-outlined-button propose-move="${MoveNames.StartMoveAllComponentsToVisible}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.StartMoveAllComponentsToVisible)}">To Visible</md-outlined-button>
         </div>
 
         <div id="token">
@@ -419,7 +420,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             .stack="${this.state?.Game?.TokensTo}"
             .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
           </boardgame-component-stack>
-          <md-filled-button propose-move="Move Token">Swap</md-filled-button>
+          <md-filled-button propose-move="${MoveNames.MoveToken}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveToken)}">Swap</md-filled-button>
         </div>
 
         <div id="tokens-sanitized">
@@ -436,7 +437,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
             faux-components="5"
             .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
           </boardgame-component-stack>
-          <md-filled-button propose-move="Move Token Sanitized">Swap</md-filled-button>
+          <md-filled-button propose-move="${MoveNames.MoveTokenSanitized}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveTokenSanitized)}">Swap</md-filled-button>
         </div>
       </div>
     `;

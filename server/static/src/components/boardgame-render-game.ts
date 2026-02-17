@@ -1,6 +1,8 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import './boardgame-component-animator.js';
+import type { MoveForm } from '../types/api.js';
+import type { MoveLegalityInfo } from '../selectors.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -85,6 +87,9 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Boolean })
   socketActive = false;
 
+  @property({ type: Array, attribute: false })
+  moveForms: MoveForm[] | null = null;
+
   @property({ type: Number })
   defaultAnimationLength = 0;
 
@@ -102,6 +107,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
+  private _animationWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -121,6 +127,11 @@ class BoardgameRenderGame extends LitElement {
     }
     if (this._boundComponentAnimationDone) {
       this.removeEventListener('animation-done', this._boundComponentAnimationDone);
+    }
+    // Clean up watchdog timer to prevent firing after element is removed.
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
     }
   }
 
@@ -153,6 +164,10 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('defaultAnimationLength')) {
       this._defaultAnimationLengthChanged(this.defaultAnimationLength);
+    }
+
+    if (changedProperties.has('moveForms')) {
+      this._moveFormsChanged(this.moveForms);
     }
 
     if (changedProperties.has('state')) {
@@ -190,9 +205,33 @@ class BoardgameRenderGame extends LitElement {
   }
 
   private _resetAnimating() {
+    // Clear any existing watchdog timer from a previous animation cycle.
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
+    }
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
+    // Start a watchdog timer. If animations complete normally,
+    // _notifyAnimationsDone() will clear it before it fires.
+    this._animationWatchdogTimer = setTimeout(() => {
+      this._animationWatchdogTimer = null;
+      if (this._allAnimationsDoneFired) return;
+      const pendingComponents: string[] = [];
+      if (this._activeAnimations) {
+        for (const [ele] of this._activeAnimations) {
+          const tag = ele?.tagName?.toLowerCase() ?? 'unknown';
+          const id = ele?.id ? `#${ele.id}` : '';
+          pendingComponents.push(`${tag}${id}`);
+        }
+      }
+      console.error(
+        `[boardgame-render-game] Animation watchdog timeout: animations did not complete within 15s. ` +
+        `Force-firing all-animations-done. Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
+      );
+      this._notifyAnimationsDone();
+    }, 15000);
   }
 
   private _componentWillAnimate(e: CustomEvent) {
@@ -218,6 +257,11 @@ class BoardgameRenderGame extends LitElement {
 
   private _notifyAnimationsDone() {
     if (this._allAnimationsDoneFired) return;
+    // Animations completed normally — cancel the watchdog timer.
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
+    }
     this._allAnimationsDoneFired = true;
     this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true, bubbles: true }));
   }
@@ -269,6 +313,24 @@ class BoardgameRenderGame extends LitElement {
     (this.renderer as any).chest = newValue;
   }
 
+  private _moveFormsChanged(moveForms: MoveForm[] | null) {
+    if (!this.renderer) return;
+    (this.renderer as any).moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
+  }
+
+  private static _deriveLegality(moveForms: MoveForm[] | null): Record<string, MoveLegalityInfo> {
+    const result: Record<string, MoveLegalityInfo> = {};
+    if (!moveForms) return result;
+    for (const form of moveForms) {
+      result[form.Name] = {
+        legalForPlayer: form.LegalForPlayer ?? false,
+        legalForAnyone: form.LegalForAnyone ?? false,
+        error: form.LegalForPlayerError,
+      };
+    }
+    return result;
+  }
+
   private async _gameNameChanged(newValue: string) {
     // If there was a state, it might be for a different game type which would
     // cause a render error
@@ -305,6 +367,7 @@ class BoardgameRenderGame extends LitElement {
     ele.viewingAsPlayer = this.viewingAsPlayer;
     ele.currentPlayerIndex = this.currentPlayerIndex;
     ele.chest = this.chest;
+    ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
 
     this.renderer = ele;
 

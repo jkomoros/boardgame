@@ -213,7 +213,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .socketActive=${this.socketActive}
           .active=${this.selected}
-          .chest=${this._chest}>
+          .chest=${this._chest}
+          .moveForms=${this.moveForms}>
         </boardgame-render-game>
       </div>
       <boardgame-admin-controls
