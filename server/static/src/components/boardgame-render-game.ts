@@ -102,6 +102,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
+  private _animationWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -121,6 +122,11 @@ class BoardgameRenderGame extends LitElement {
     }
     if (this._boundComponentAnimationDone) {
       this.removeEventListener('animation-done', this._boundComponentAnimationDone);
+    }
+    // Clean up watchdog timer to prevent firing after element is removed.
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
     }
   }
 
@@ -190,9 +196,33 @@ class BoardgameRenderGame extends LitElement {
   }
 
   private _resetAnimating() {
+    // Clear any existing watchdog timer from a previous animation cycle.
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
+    }
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
+    // Start a watchdog timer. If animations complete normally,
+    // _notifyAnimationsDone() will clear it before it fires.
+    this._animationWatchdogTimer = setTimeout(() => {
+      this._animationWatchdogTimer = null;
+      if (this._allAnimationsDoneFired) return;
+      const pendingComponents: string[] = [];
+      if (this._activeAnimations) {
+        for (const [ele] of this._activeAnimations) {
+          const tag = ele?.tagName?.toLowerCase() ?? 'unknown';
+          const id = ele?.id ? `#${ele.id}` : '';
+          pendingComponents.push(`${tag}${id}`);
+        }
+      }
+      console.error(
+        `[boardgame-render-game] Animation watchdog timeout: animations did not complete within 15s. ` +
+        `Force-firing all-animations-done. Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
+      );
+      this._notifyAnimationsDone();
+    }, 15000);
   }
 
   private _componentWillAnimate(e: CustomEvent) {
@@ -218,6 +248,11 @@ class BoardgameRenderGame extends LitElement {
 
   private _notifyAnimationsDone() {
     if (this._allAnimationsDoneFired) return;
+    // Animations completed normally — cancel the watchdog timer.
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
+    }
     this._allAnimationsDoneFired = true;
     this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true, bubbles: true }));
   }
