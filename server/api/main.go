@@ -53,9 +53,12 @@ type renderer struct {
 }
 
 type moveForm struct {
-	Name     string
-	HelpText string
-	Fields   []*moveFormField
+	Name                string
+	HelpText            string
+	Fields              []*moveFormField
+	LegalForPlayer      bool   `json:",omitempty"`
+	LegalForPlayerError string `json:",omitempty"`
+	LegalForAnyone      bool   `json:",omitempty"`
 }
 
 type moveFormFieldType int
@@ -850,11 +853,22 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 
 		//If state is nil, JSONForPlayer will basically treat it as just "give the
 		//current version" which is a reasonable fallback.
+
+		// Only compute legality for the last bundle (the state the player
+		// will interact with). Intermediate animation bundles use plain
+		// forms without legality — zero extra cost.
+		var forms []*moveForm
+		if i == len(moves)-1 {
+			forms = s.generateFormsWithLegality(game, state, playerIndex)
+		} else {
+			forms = s.generateForms(game)
+		}
+
 		bundle := gin.H{
 			"Game":            gameJSON,
 			"Move":            move,
 			"ViewingAsPlayer": playerIndex,
-			"Forms":           s.generateForms(game),
+			"Forms":           forms,
 		}
 
 		bundles = append(bundles, bundle)
@@ -1117,7 +1131,7 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 
 	args := gin.H{
 		"Chest":           game.Manager().Chest(),
-		"Forms":           s.generateForms(game),
+		"Forms":           s.generateFormsWithLegality(game, state, playerIndex),
 		"Game":            gameJSON,
 		"Error":           s.lastErrorMessage,
 		"Players":         s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
@@ -1209,6 +1223,44 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 			HelpText: move.HelpText(),
 			Fields:   formFields(move),
 		}
+		result = append(result, moveItem)
+	}
+
+	return result
+}
+
+// generateFormsWithLegality is like generateForms but also computes legality
+// information for each move against the given state and player. This tells the
+// client which moves are currently legal (for enabling/disabling buttons) and
+// which are structurally possible (for showing/hiding buttons).
+func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex) []*moveForm {
+	var result []*moveForm
+
+	for _, move := range game.Moves() {
+		if base.IsFixUp(move) {
+			continue
+		}
+
+		moveItem := &moveForm{
+			Name:     move.Info().Name(),
+			HelpText: move.HelpText(),
+			Fields:   formFields(move),
+		}
+
+		// Legality for viewing player
+		if playerIndex != boardgame.ObserverPlayerIndex {
+			if err := move.Legal(state, playerIndex); err != nil {
+				moveItem.LegalForPlayerError = err.Error()
+			} else {
+				moveItem.LegalForPlayer = true
+			}
+		}
+
+		// Structural legality (admin bypasses proposer checks)
+		if err := move.Legal(state, boardgame.AdminPlayerIndex); err == nil {
+			moveItem.LegalForAnyone = true
+		}
+
 		result = append(result, moveItem)
 	}
 

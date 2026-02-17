@@ -1,5 +1,6 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
+import type { MoveLegalityInfo } from '../selectors.js';
 
 export class BoardgameBaseGameRenderer extends LitElement {
   @property({ type: Object })
@@ -17,9 +18,35 @@ export class BoardgameBaseGameRenderer extends LitElement {
   @property({ type: Number })
   currentPlayerIndex = 0;
 
+  /**
+   * Map of move name → legality info, set by boardgame-render-game from the
+   * Redux store. Renderers should use the convenience helpers
+   * isMoveCurrentlyLegal() and isMovePossible() instead of reading this
+   * directly.
+   */
+  @property({ type: Object })
+  moveLegality: Record<string, MoveLegalityInfo> = {};
+
   get isCurrentPlayer(): boolean {
     if (this.viewingAsPlayer === -2) return true;
     return this.currentPlayerIndex === this.viewingAsPlayer;
+  }
+
+  /**
+   * Returns true if the named move is legal for the viewing player right now.
+   * Use this to disable buttons when a move can't be made (e.g. not your turn).
+   */
+  isMoveCurrentlyLegal(moveName: string): boolean {
+    return this.moveLegality[moveName]?.legalForPlayer ?? false;
+  }
+
+  /**
+   * Returns true if the named move is structurally possible right now (legal
+   * for any player / admin). Use this to hide buttons entirely when a move
+   * isn't applicable in the current game phase.
+   */
+  isMovePossible(moveName: string): boolean {
+    return this.moveLegality[moveName]?.legalForAnyone ?? false;
   }
 
   private _boundHandleButtonTapped?: (e: Event) => void;

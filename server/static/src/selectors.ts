@@ -157,6 +157,32 @@ export const selectRequestedPlayer = (state: RootState): number => selectViewSta
 export const selectAutoCurrentPlayer = (state: RootState): boolean => selectViewState(state).autoCurrentPlayer;
 export const selectMoveForms = (state: RootState): MoveForm[] | null => selectViewState(state).moveForms;
 
+/**
+ * Memoized selector deriving a legality map from move forms.
+ * Returns a record keyed by move name with legality info for each move.
+ */
+export interface MoveLegalityInfo {
+    legalForPlayer: boolean;
+    legalForAnyone: boolean;
+    error?: string;
+}
+
+export const selectMoveLegality = createSelector(
+    [selectMoveForms],
+    (moveForms): Record<string, MoveLegalityInfo> => {
+        const result: Record<string, MoveLegalityInfo> = {};
+        if (!moveForms) return result;
+        for (const form of moveForms) {
+            result[form.Name] = {
+                legalForPlayer: form.LegalForPlayer ?? false,
+                legalForAnyone: form.LegalForAnyone ?? false,
+                error: form.LegalForPlayerError,
+            };
+        }
+        return result;
+    }
+);
+
 // Internal selector for timer infos (will be added to state)
 const selectGameTimerInfos = (state: RootState): Record<string, TimerInfo> | null =>
     state.game?.timerInfos || null;

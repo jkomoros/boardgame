@@ -1,6 +1,8 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import './boardgame-component-animator.js';
+import type { MoveForm } from '../types/api.js';
+import type { MoveLegalityInfo } from '../selectors.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -85,6 +87,9 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Boolean })
   socketActive = false;
 
+  @property({ type: Array, attribute: false })
+  moveForms: MoveForm[] | null = null;
+
   @property({ type: Number })
   defaultAnimationLength = 0;
 
@@ -159,6 +164,10 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('defaultAnimationLength')) {
       this._defaultAnimationLengthChanged(this.defaultAnimationLength);
+    }
+
+    if (changedProperties.has('moveForms')) {
+      this._moveFormsChanged(this.moveForms);
     }
 
     if (changedProperties.has('state')) {
@@ -304,6 +313,24 @@ class BoardgameRenderGame extends LitElement {
     (this.renderer as any).chest = newValue;
   }
 
+  private _moveFormsChanged(moveForms: MoveForm[] | null) {
+    if (!this.renderer) return;
+    (this.renderer as any).moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
+  }
+
+  private static _deriveLegality(moveForms: MoveForm[] | null): Record<string, MoveLegalityInfo> {
+    const result: Record<string, MoveLegalityInfo> = {};
+    if (!moveForms) return result;
+    for (const form of moveForms) {
+      result[form.Name] = {
+        legalForPlayer: form.LegalForPlayer ?? false,
+        legalForAnyone: form.LegalForAnyone ?? false,
+        error: form.LegalForPlayerError,
+      };
+    }
+    return result;
+  }
+
   private async _gameNameChanged(newValue: string) {
     // If there was a state, it might be for a different game type which would
     // cause a render error
@@ -340,6 +367,7 @@ class BoardgameRenderGame extends LitElement {
     ele.viewingAsPlayer = this.viewingAsPlayer;
     ele.currentPlayerIndex = this.currentPlayerIndex;
     ele.chest = this.chest;
+    ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
 
     this.renderer = ele;
 
