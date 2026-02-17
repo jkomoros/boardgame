@@ -117,7 +117,9 @@ class BoardgameRenderGame extends LitElement {
 
     this.addEventListener('will-animate', this._boundComponentWillAnimate);
     this.addEventListener('animation-done', this._boundComponentAnimationDone);
-    this._resetAnimating();
+    this._activeAnimations = null;
+    this._ensureActiveAnimations();
+    this._allAnimationsDoneFired = false;
   }
 
   override disconnectedCallback() {
