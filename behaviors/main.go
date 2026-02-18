@@ -34,6 +34,18 @@ Connectable behaviors that are not connected will error when their
 ValidConfiguration is called, and the main library will notice that while
 NewGameManager is being executed, which will fail with a descriptive error.
 
+LocationBehavior
+
+LocationBehavior tracks the position of a token within a SizedStack (where
+each slot represents a space on the board). Embed it in a playerState or
+gameState to gain LocationIndex(), MoveTo(), and graph-based helpers like
+Neighbors(), ShortestPathTo(), and DistanceTo(). It is a Connectable behavior;
+in FinishStateSetUp, call ConnectBehavior, ConnectLocationStack, and optionally
+ConnectGraph. LocationBehavior also stores a LocRemainingPath field used by
+the moves.HopAlongPath FixUp for animated multi-hop movement. See the
+LocationBehavior type documentation and the spatial game API section of the
+tutorial for more.
+
 Seats, Inactivity, and Players
 
 This package defines two behaviors, InactivePlayer and Seat, whose use isn't

@@ -3,11 +3,18 @@
 Package graph is a simple package that provides facilities for creating simple
 graphs where each Node is a particular value in an enum.
 
-graph is useful for modeling adjacency of spaces in a gameboard.
+graph is useful for modeling adjacency of spaces in a gameboard. In addition to
+basic adjacency queries (Connected, Neighbors), it supports weighted shortest
+path computation via ShortestPath and Distance, which use Dijkstra's algorithm.
+Edge weights default to 1 when not explicitly set via SetEdgeWeight, so
+unweighted graphs behave as BFS.
 
 NewGridConnectedness is a graph creator that connects all spaces in a grid that
 are neighbors, with the ability to filter to only include some types of
 neighbors.
+
+See also behaviors.LocationBehavior and moves.MoveOnGraph, which build on
+graphs to provide reusable spatial game mechanics.
 
 */
 package graph
