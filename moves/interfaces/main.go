@@ -182,3 +182,44 @@ type SeatPlayerSignaler interface {
 	//The callback that should be called when the move is committed
 	Committed()
 }
+
+//SpaceValidator is optionally implemented by moves that embed MoveOnGraph.
+//Called during MoveOnGraph.Legal() for each space in the computed path. The
+//playerState has access to the full state via ImmutableState().
+type SpaceValidator interface {
+	SpaceIsLegal(playerState boardgame.ImmutableSubState, spaceIndex int) error
+}
+
+//MovementBudgeter is optionally implemented by moves that embed MoveOnGraph.
+//Controls movement budget checking (Legal) and decrementing (Apply).
+type MovementBudgeter interface {
+	MovesRemaining(playerState boardgame.ImmutableSubState) int
+	ConsumeMovement(playerState boardgame.SubState, pathLength int) error
+}
+
+//FreeMovePredicate is optionally implemented by moves that embed MoveOnGraph.
+//If a target satisfies IsFreeMove, the framework skips budget and adjacency
+//checks and moves the token directly (teleport).
+type FreeMovePredicate interface {
+	IsFreeMove(playerState boardgame.ImmutableSubState, targetSpaceIndex int) bool
+}
+
+//FreeMoveApplier is optionally implemented by moves that embed MoveOnGraph.
+//When a free move is made, ApplyFreeMove is called to handle game-specific
+//cleanup (e.g., resetting a card-based MoveToRoom value).
+type FreeMoveApplier interface {
+	ApplyFreeMove(playerState boardgame.SubState, targetSpaceIndex int) error
+}
+
+//AdvanceCondition is optionally implemented by moves that embed AdvanceToken.
+//It gates whether the advancement should happen.
+type AdvanceCondition interface {
+	ShouldAdvance(state boardgame.ImmutableState) error
+}
+
+//PostAdvanceHandler is optionally implemented by moves that embed
+//AdvanceToken. It runs game-specific side effects after the token has been
+//advanced.
+type PostAdvanceHandler interface {
+	AfterAdvance(state boardgame.State, previousIndex, newIndex int) error
+}

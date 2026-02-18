@@ -461,17 +461,17 @@ func (m *ȧutoGeneratedMoveShuffleStackReader) TimerProp(name string) (boardgame
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveShuffleStack
+// Reader returns an autp-generated boardgame.PropertyReader for moveShuffleStack
 func (m *moveShuffleStack) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveShuffleStackReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveShuffleStack
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveShuffleStack
 func (m *moveShuffleStack) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveShuffleStackReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveShuffleStack
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveShuffleStack
 func (m *moveShuffleStack) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveShuffleStackReader{m}
 }
@@ -920,17 +920,17 @@ func (m *ȧutoGeneratedMoveNoOpFixUpReader) TimerProp(name string) (boardgame.Ti
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveNoOpFixUp
+// Reader returns an autp-generated boardgame.PropertyReader for moveNoOpFixUp
 func (m *moveNoOpFixUp) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveNoOpFixUpReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveNoOpFixUp
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveNoOpFixUp
 func (m *moveNoOpFixUp) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveNoOpFixUpReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveNoOpFixUp
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveNoOpFixUp
 func (m *moveNoOpFixUp) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveNoOpFixUpReader{m}
 }
@@ -1379,17 +1379,17 @@ func (m *ȧutoGeneratedMoveNoOpFixUpMultiReader) TimerProp(name string) (boardga
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveNoOpFixUpMulti
+// Reader returns an autp-generated boardgame.PropertyReader for moveNoOpFixUpMulti
 func (m *moveNoOpFixUpMulti) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveNoOpFixUpMultiReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveNoOpFixUpMulti
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveNoOpFixUpMulti
 func (m *moveNoOpFixUpMulti) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveNoOpFixUpMultiReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveNoOpFixUpMulti
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveNoOpFixUpMulti
 func (m *moveNoOpFixUpMulti) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveNoOpFixUpMultiReader{m}
 }
@@ -1979,17 +1979,17 @@ func (g *ȧutoGeneratedGameStateReader) TimerProp(name string) (boardgame.Timer,
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for gameState
+// Reader returns an autp-generated boardgame.PropertyReader for gameState
 func (g *gameState) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedGameStateReader{g}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for gameState
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for gameState
 func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedGameStateReader{g}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for gameState
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for gameState
 func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedGameStateReader{g}
 }
@@ -2523,17 +2523,17 @@ func (p *ȧutoGeneratedPlayerStateReader) TimerProp(name string) (boardgame.Time
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for playerState
+// Reader returns an autp-generated boardgame.PropertyReader for playerState
 func (p *playerState) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for playerState
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for playerState
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for playerState
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for playerState
 func (p *playerState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }
@@ -2982,17 +2982,17 @@ func (m *ȧutoGeneratedMoveDealCardsReader) TimerProp(name string) (boardgame.Ti
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveDealCards
+// Reader returns an autp-generated boardgame.PropertyReader for moveDealCards
 func (m *moveDealCards) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveDealCardsReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveDealCards
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveDealCards
 func (m *moveDealCards) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveDealCardsReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveDealCards
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveDealCards
 func (m *moveDealCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveDealCardsReader{m}
 }
@@ -3441,17 +3441,17 @@ func (m *ȧutoGeneratedMoveDealOtherCardsReader) TimerProp(name string) (boardga
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveDealOtherCards
+// Reader returns an autp-generated boardgame.PropertyReader for moveDealOtherCards
 func (m *moveDealOtherCards) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveDealOtherCardsReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveDealOtherCards
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveDealOtherCards
 func (m *moveDealOtherCards) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveDealOtherCardsReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveDealOtherCards
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveDealOtherCards
 func (m *moveDealOtherCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveDealOtherCardsReader{m}
 }
@@ -3917,17 +3917,17 @@ func (m *ȧutoGeneratedMoveCurrentPlayerDrawReader) TimerProp(name string) (boar
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveCurrentPlayerDraw
+// Reader returns an autp-generated boardgame.PropertyReader for moveCurrentPlayerDraw
 func (m *moveCurrentPlayerDraw) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveCurrentPlayerDrawReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveCurrentPlayerDraw
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveCurrentPlayerDraw
 func (m *moveCurrentPlayerDraw) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveCurrentPlayerDrawReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveCurrentPlayerDraw
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveCurrentPlayerDraw
 func (m *moveCurrentPlayerDraw) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveCurrentPlayerDrawReader{m}
 }
@@ -4376,17 +4376,17 @@ func (m *ȧutoGeneratedMoveStartPhaseDrawAgainReader) TimerProp(name string) (bo
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveStartPhaseDrawAgain
+// Reader returns an autp-generated boardgame.PropertyReader for moveStartPhaseDrawAgain
 func (m *moveStartPhaseDrawAgain) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveStartPhaseDrawAgainReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartPhaseDrawAgain
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartPhaseDrawAgain
 func (m *moveStartPhaseDrawAgain) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveStartPhaseDrawAgainReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartPhaseDrawAgain
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartPhaseDrawAgain
 func (m *moveStartPhaseDrawAgain) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveStartPhaseDrawAgainReader{m}
 }
@@ -4835,17 +4835,17 @@ func (m *ȧutoGeneratedMoveStartPhaseIllegalReader) TimerProp(name string) (boar
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for moveStartPhaseIllegal
+// Reader returns an autp-generated boardgame.PropertyReader for moveStartPhaseIllegal
 func (m *moveStartPhaseIllegal) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMoveStartPhaseIllegalReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartPhaseIllegal
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for moveStartPhaseIllegal
 func (m *moveStartPhaseIllegal) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMoveStartPhaseIllegalReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartPhaseIllegal
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for moveStartPhaseIllegal
 func (m *moveStartPhaseIllegal) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMoveStartPhaseIllegalReader{m}
 }

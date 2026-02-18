@@ -1,0 +1,161 @@
+package moves
+
+import (
+	"errors"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/moves/interfaces"
+)
+
+//LocationProvider should be implemented by moves that embed MoveOnGraph. It
+//returns the LocationBehavior for a given player state. This interface is
+//defined here (rather than in moves/interfaces) to avoid an import cycle with
+//the behaviors package.
+type LocationProvider interface {
+	PlayerLocationBehavior(playerState boardgame.ImmutableSubState) *behaviors.LocationBehavior
+}
+
+/*
+MoveOnGraph is a player-facing move for spatial games. The player specifies a
+TargetLocation, and the framework computes the shortest path via the graph
+associated with the player's LocationBehavior. The path is stored on the
+behavior's LocRemainingPath for the HopAlongPath FixUp to execute hop-by-hop.
+
+The embedding move must implement LocationProvider to tell MoveOnGraph how to
+find the player's LocationBehavior.
+
+Optionally, the embedding move may implement:
+  - interfaces.SpaceValidator: validate each space in the path
+  - interfaces.MovementBudgeter: check and consume a movement budget
+  - interfaces.FreeMovePredicate: allow teleportation for certain targets
+  - interfaces.FreeMoveApplier: game-specific cleanup after a free move
+
+boardgame:codegen
+*/
+type MoveOnGraph struct {
+	CurrentPlayer
+	TargetLocation int
+}
+
+//Legal validates the move: checks turn, destination validity, path existence,
+//space legality, and movement budget.
+func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	locProvider, ok := m.TopLevelStruct().(LocationProvider)
+	if !ok {
+		return errors.New("MoveOnGraph: embedding move must implement LocationProvider")
+	}
+
+	playerState := state.ImmutablePlayerStates()[m.TargetPlayerIndex]
+	behavior := locProvider.PlayerLocationBehavior(playerState)
+
+	if behavior == nil {
+		return errors.New("MoveOnGraph: PlayerLocationBehavior returned nil")
+	}
+
+	currentIndex := behavior.LocationIndex()
+
+	if currentIndex == m.TargetLocation {
+		return errors.New("already at the target location")
+	}
+
+	// Check for free move (teleport)
+	if freePred, ok := m.TopLevelStruct().(interfaces.FreeMovePredicate); ok {
+		if freePred.IsFreeMove(playerState, m.TargetLocation) {
+			return nil
+		}
+	}
+
+	// Compute shortest path
+	path, err := behavior.ShortestPathTo(m.TargetLocation)
+	if err != nil {
+		return errors.New("no valid path to target: " + err.Error())
+	}
+
+	// Validate each space in the path (skip start)
+	if validator, ok := m.TopLevelStruct().(interfaces.SpaceValidator); ok {
+		for _, spaceIndex := range path[1:] {
+			if err := validator.SpaceIsLegal(playerState, spaceIndex); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Check movement budget
+	if budgeter, ok := m.TopLevelStruct().(interfaces.MovementBudgeter); ok {
+		hops := len(path) - 1
+		remaining := budgeter.MovesRemaining(playerState)
+		if hops > remaining {
+			return errors.New("not enough moves remaining")
+		}
+	}
+
+	return nil
+}
+
+//Apply stores the path on the LocationBehavior for HopAlongPath to execute,
+//and consumes the movement budget.
+func (m *MoveOnGraph) Apply(state boardgame.State) error {
+
+	locProvider, ok := m.TopLevelStruct().(LocationProvider)
+	if !ok {
+		return errors.New("MoveOnGraph: embedding move must implement LocationProvider")
+	}
+
+	playerState := state.PlayerStates()[m.TargetPlayerIndex]
+	// Get behavior from the immutable view (same underlying struct)
+	behavior := locProvider.PlayerLocationBehavior(playerState.(boardgame.ImmutableSubState))
+
+	if behavior == nil {
+		return errors.New("MoveOnGraph: PlayerLocationBehavior returned nil")
+	}
+
+	// Check for free move
+	if freePred, ok := m.TopLevelStruct().(interfaces.FreeMovePredicate); ok {
+		if freePred.IsFreeMove(playerState.(boardgame.ImmutableSubState), m.TargetLocation) {
+			// Move directly
+			if err := behavior.MoveTo(m.TargetLocation); err != nil {
+				return err
+			}
+			// Handle game-specific free move cleanup
+			if applier, ok := m.TopLevelStruct().(interfaces.FreeMoveApplier); ok {
+				return applier.ApplyFreeMove(playerState, m.TargetLocation)
+			}
+			return nil
+		}
+	}
+
+	// Compute path
+	path, err := behavior.ShortestPathTo(m.TargetLocation)
+	if err != nil {
+		return errors.New("no valid path to target: " + err.Error())
+	}
+
+	// Store path for HopAlongPath
+	behavior.LocRemainingPath = path
+
+	// Consume movement budget
+	if budgeter, ok := m.TopLevelStruct().(interfaces.MovementBudgeter); ok {
+		hops := len(path) - 1
+		if err := budgeter.ConsumeMovement(playerState, hops); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+//FallbackName returns "Move On Graph"
+func (m *MoveOnGraph) FallbackName(mgr *boardgame.GameManager) string {
+	return "Move On Graph"
+}
+
+//FallbackHelpText returns a description of the move.
+func (m *MoveOnGraph) FallbackHelpText() string {
+	return "Move a token to a target location along the shortest path."
+}
