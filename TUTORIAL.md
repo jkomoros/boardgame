@@ -1554,6 +1554,122 @@ blackLegalMoves := graph.NewGridConnectedness(chessBoard, DirectionDiagonal, Dir
 redLegalMoves := graph.NewGridConnectedness(chessBoard, DirectionDiagonal, DirectionDown)
 ```
 
+Graphs also support `ShortestPath(start, end)` and `Distance(start, end)`, which use Dijkstra's algorithm. Edge weights default to 1 when not explicitly set via `SetEdgeWeight`. These are used by the spatial game moves described below.
+
+### Spatial Game API
+
+Many board games have a map or board with spaces that tokens move between. The framework provides reusable building blocks for these "spatial" games: `behaviors.LocationBehavior` tracks a token's position, `enum/graph` provides adjacency and pathfinding, and the `moves` package provides `MoveOnGraph`, `HopAlongPath`, and `AdvanceToken` for common movement patterns.
+
+#### LocationBehavior
+
+`behaviors.LocationBehavior` is a behavior (like `PlayerColor` or `RoundRobin`) designed to be embedded in a `playerState` or `gameState`. It tracks which slot in a `SizedStack` a token occupies.
+
+To use it, embed it in your state struct and wire it up in `FinishStateSetUp`:
+
+```go
+type playerState struct {
+    base.SubState
+    behaviors.LocationBehavior
+    // Location is a SizedStack with one slot per space on the board.
+    // Exactly one slot holds the player's token component.
+    Location boardgame.SizedStack `sizedstack:"tokens,NUM_SPACES"`
+}
+
+func (p *playerState) FinishStateSetUp() {
+    p.LocationBehavior.ConnectBehavior(p)
+    p.LocationBehavior.ConnectLocationStack(p.Location)
+    p.LocationBehavior.ConnectGraph(myConnectivityGraph)
+}
+```
+
+Once wired up, `LocationBehavior` provides:
+
+- `LocationIndex() int` -- returns the index of the slot containing the token
+- `MoveTo(targetIndex int) error` -- swaps the token to a different slot
+- `Neighbors() []int` -- spaces adjacent to the current position (requires graph)
+- `IsConnectedTo(target int) bool` -- whether a space is adjacent (requires graph)
+- `ShortestPathTo(target int) ([]int, error)` -- shortest path via Dijkstra (requires graph)
+- `DistanceTo(target int) (int, error)` -- distance via Dijkstra (requires graph)
+
+`LocationBehavior` also stores a `LocRemainingPath []int` field that is used internally by `HopAlongPath` for multi-hop animated movement. You generally don't interact with this field directly.
+
+#### MoveOnGraph
+
+`moves.MoveOnGraph` is a player-facing move (embeds `CurrentPlayer`) for moving a token to a destination on the board. The player specifies a `TargetLocation` (an integer index); the framework computes the shortest path, validates it, and stores the path on the player's `LocationBehavior` for animated execution.
+
+Your move struct embeds `MoveOnGraph` and implements the `LocationProvider` interface to tell the framework which `LocationBehavior` to use:
+
+```go
+//boardgame:codegen
+type MoveMoveToken struct {
+    moves.MoveOnGraph
+}
+
+func (m *MoveMoveToken) PlayerLocationBehavior(pState boardgame.ImmutableSubState) *behaviors.LocationBehavior {
+    return &pState.(*playerState).LocationBehavior
+}
+```
+
+You may also implement optional interfaces to customize the behavior:
+
+- `SpaceValidator` -- reject certain spaces (e.g., closed or blocked spaces)
+- `MovementBudgeter` -- limit how far the player can move per turn
+- `FreeMovePredicate` -- allow teleportation to specific spaces (skips adjacency and budget checks)
+- `FreeMoveApplier` -- run cleanup after a free move (e.g., discard the card that granted it)
+
+#### HopAlongPath
+
+`moves.HopAlongPath` is a framework-provided FixUp that executes one hop of the stored path per application. Each hop produces a separate game version, giving the client a distinct animation frame for each step of movement (similar to how `DealCountComponents` animates one card at a time).
+
+Register it in your `ConfigureMoves()` before other FixUps that might depend on movement being complete:
+
+```go
+auto.MustConfig(
+    new(moves.HopAlongPath),
+    moves.WithHelpText("Execute one hop of a multi-hop movement path."),
+),
+```
+
+You don't need to implement any interfaces for `HopAlongPath`. It automatically finds whichever `LocationBehavior` has a remaining path and executes the next hop.
+
+#### AdvanceToken
+
+`moves.AdvanceToken` is a FixUp for deterministic, non-player-driven token movement -- for example, an NPC that patrols a fixed route. The embedding move implements the `TokenAdvancer` interface:
+
+```go
+//boardgame:codegen
+type MoveMoveNPC struct {
+    moves.AdvanceToken
+}
+
+func (m *MoveMoveNPC) AdvancableLocation(state boardgame.State) *behaviors.LocationBehavior {
+    return &state.GameState().(*gameState).LocationBehavior
+}
+
+func (m *MoveMoveNPC) NextAdvanceIndex(state boardgame.ImmutableState, currentIndex int) int {
+    // Simple patrol: advance to the next space, wrapping around
+    next := currentIndex + 1
+    if next > maxSpace {
+        next = 1
+    }
+    return next
+}
+```
+
+Optionally implement `AdvanceCondition` (to gate when the token should advance) and `PostAdvanceHandler` (for side effects after the token moves, such as changing whose turn it is).
+
+#### Client: boardgame-spatial-board
+
+For the client side, `boardgame-spatial-board` is a shared web component that loads an SVG map and provides spatial queries and interaction. It handles:
+
+- Loading SVG from a configurable URL (`svgUrl`)
+- Identifying space elements by a configurable ID prefix (`spacePrefix`, default `"Space-"`)
+- Firing `space-tapped` events when a space is clicked
+- Disabling spaces visually via a `disabledSpaces` array
+- Computing token positions with deterministic jitter via `tokenPosition(spaceIndex, tokenIndex, tokenSize)`
+
+Your game's board component can either use `boardgame-spatial-board` directly or wrap it in a thin component that maps game-specific properties (like wing closures) to `disabledSpaces`.
+
 ### Phases
 
 At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` is called after every move is applied, and any move that is returned is applied. `base.GameDelegate`'s default implementation simply cycles through every move in order, and returns the first one whose `IsFixUp()` returns true, and who is Legal with defaults set for the current state. 

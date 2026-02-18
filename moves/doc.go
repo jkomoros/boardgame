@@ -198,6 +198,7 @@ each has on the one above it. See the documentation for each struct for more.
         * Default - Substantial base logic, including base property overriding for with and especially in Legal() around move progressions and phases.
             * Done - A simple move that does nothing in its Apply and has no extra Legal() logic, meaning it's primarily a non-fix-up move applied by a player to move out of a move progression.
             * CurrentPlayer - Defaults to the GameDelegate.CurrentPlayerIndex, and only lets the move be made if it's on behalf of that player.
+                * MoveOnGraph - Player picks a destination on a graph; computes shortest path, validates spaces, checks movement budget, and stores the path for HopAlongPath to execute hop-by-hop.
             * SeatPlayer - A special move that the server package uses to tell the game logic that a new player has been added to the game.
             * FixUp - Overrides IsFixUp() to always return true, making the move eligible for base.GameDelegate.ProposeFixUpMove.
                 * NoOp - A move that does nothing. Useful for specific edge cases of MoveProessionMatching, and also to signal to AddOrderedForPhase that the lack of a StartPhase move was intentional.
@@ -205,6 +206,8 @@ each has on the one above it. See the documentation for each struct for more.
                 * ShuffleStack - Shuffles the stack at SourceProperty. Useful to run automatically at a certain time in a MoveProgression.
                 * StartPhase - Calls BeforeLeavePhase, then BeforeEnterPhase, then SetCurrentPhase. Generally you have one of these at the end of an AddOrderedForPhase.
                 * FinishTurn - Checks if State.CurrentPlayer().TurnDone() is true, and if so increments CurrentPlayerIndex to the next player, calling playerState.ResetForTurnEnd() and then ResetForTurnStart.
+                * HopAlongPath - Executes one hop of a multi-hop path per application. Legal when any LocationBehavior has remaining path. Each hop is a separate version for animation.
+                * AdvanceToken - Deterministic NPC/token advancement. Embedding move implements TokenAdvancer to control where the token goes next. Optionally gated by AdvanceCondition and followed by PostAdvanceHandler.
                 * WaitForEnoughPlayers - Is illegal until enough players are seated; used to hold up a phase progression to wait for enough players to join
                 * FixUpMulti - Overrides AllowMultipleInProgression() to true, meaning multiple of the same move are legal to apply in a row according to Deafult.Legal()
                     * DefaultComponent - Looks at each component in SourceStack() and sees which one's method of Legal() returns nil, selecting that component for you to operate on in your own Apply.
@@ -321,6 +324,38 @@ when used in configuration you can avoid needing to wrap your children list with
 Move names must be unique, but sometimes you want to use the same underlying
 move at multiple points in a progression. WithMoveNameSuffix is useful for that
 case.
+
+Spatial Game Moves
+
+This package provides three move types for games with spatial mechanics (boards
+with spaces, tokens that move between spaces, NPC patrol routes, etc.).
+
+MoveOnGraph is a player-facing move (embeds CurrentPlayer) for moving a
+player's token to a destination on a graph. The player specifies a
+TargetLocation; the framework computes the shortest path via Dijkstra and
+stores it on the player's behaviors.LocationBehavior.LocRemainingPath. The
+embedding move must implement interfaces.LocationProvider to identify which
+LocationBehavior to use. It may optionally implement interfaces.SpaceValidator
+(to reject certain spaces), interfaces.MovementBudgeter (to limit movement
+distance), interfaces.FreeMovePredicate (for teleport/card-based movement that
+bypasses adjacency), and interfaces.FreeMoveApplier (for cleanup after a free
+move).
+
+HopAlongPath is a FixUp that executes one hop of the stored path per
+application. Each hop produces a separate game version, giving the client
+a distinct animation frame for each step of movement (similar to how
+DealCountComponents animates one card at a time). Register HopAlongPath before
+other FixUps in ConfigureMoves() so hops complete before other FixUps fire.
+
+AdvanceToken is a FixUp for deterministic, non-player-driven token movement
+(e.g., an NPC that patrols a route). The embedding move must implement
+interfaces.TokenAdvancer (AdvancableLocation and NextAdvanceIndex). It may
+optionally implement interfaces.AdvanceCondition (to gate when advancement
+occurs) and interfaces.PostAdvanceHandler (for side effects after the token
+moves).
+
+See the spatial game API section of the tutorial for a worked example using
+these moves with LocationBehavior and enum/graph.
 
 Seats and Inactive Players
 

@@ -53,3 +53,43 @@ func TestSeater(t *testing.T) {
 	_, ok := b.(interfaces.Seater)
 	assert.For(t).ThatActual(ok).IsTrue()
 }
+
+func TestLocationBehavior(t *testing.T) {
+	var b interface{}
+	b = &LocationBehavior{}
+	_, ok := b.(Connectable)
+	assert.For(t).ThatActual(ok).IsTrue()
+
+	// ValidConfiguration should fail before connection
+	l := &LocationBehavior{}
+	err := l.ValidConfiguration(nil)
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	// LocationIndex returns 0 when no stack connected
+	assert.For(t).ThatActual(l.LocationIndex()).Equals(0)
+
+	// Neighbors returns nil when no graph connected
+	assert.For(t).ThatActual(len(l.Neighbors())).Equals(0)
+
+	// IsConnectedTo returns false when no graph connected
+	assert.For(t).ThatActual(l.IsConnectedTo(1)).IsFalse()
+
+	// ShortestPathTo returns error when no graph connected
+	_, err = l.ShortestPathTo(1)
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	// DistanceTo returns error when no graph connected
+	d, err := l.DistanceTo(1)
+	assert.For(t).ThatActual(err).IsNotNil()
+	assert.For(t).ThatActual(d).Equals(-1)
+
+	// Graph returns nil when no graph connected
+	assert.For(t).ThatActual(l.Graph()).IsNil()
+
+	// Token returns nil when no stack connected
+	assert.For(t).ThatActual(l.Token()).IsNil()
+
+	// Note: more substantive testing of LocationBehavior (with a real game
+	// state, SizedStack, and graph) is done in moves/game_test.go since
+	// testing those requires a whole test game.
+}

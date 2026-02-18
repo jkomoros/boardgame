@@ -68,6 +68,9 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(CloseEmptySeat)
 	m = new(InactivateEmptySeat)
 	m = new(WaitForEnoughPlayers)
+	m = new(MoveOnGraph)
+	m = new(HopAlongPath)
+	m = new(AdvanceToken)
 	if m != nil {
 		return
 	}
