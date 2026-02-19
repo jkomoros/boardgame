@@ -168,6 +168,24 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				return errors.New(propName + " could not get mutable enum on output: " + err.Error())
 			}
 			outputEnum.SetValue(enumConst.Value())
+		case TypeEnumSlice:
+			enumSliceVal, err := input.EnumSliceProp(propName)
+			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
+				return errors.New(propName + " did not return an EnumSlice as expected: " + err.Error())
+			}
+			outputEnumSlice, err := outputContainer.EnumSliceProp(propName)
+			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
+				return errors.New(propName + " could not get mutable enum slice on output: " + err.Error())
+			}
+			outputEnumSlice.SetValues(enumSliceVal.Values())
 		case TypeStack:
 			stackVal, err := input.StackProp(propName)
 			if err != nil {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 func TestNewDeck(t *testing.T) {
@@ -66,9 +67,9 @@ func checkExpectedRun(deck *boardgame.Deck, startingIndex int, t *testing.T) {
 		t.Error("Deck didn't have enough items")
 	}
 
-	suits := []int{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
+	suits := []enum.EnumKey{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
 
-	expectedRank := RankAce
+	expectedRank := enum.EnumKey(RankAce)
 	expectedSuitIndex := 0
 	expectedSuit := suits[expectedSuitIndex]
 

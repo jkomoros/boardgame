@@ -30,7 +30,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
-func (g *gameState) SetCurrentPhase(phase int) {
+func (g *gameState) SetCurrentPhase(phase enum.EnumKey) {
 	g.Phase.SetValue(phase)
 }
 

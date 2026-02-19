@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -58,29 +59,39 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 		return errors.New("MoveOnGraph: PlayerLocationBehavior returned nil")
 	}
 
-	currentIndex := behavior.LocationIndex()
+	locationEnum := behavior.LocationEnum()
+	if locationEnum == nil {
+		return errors.New("MoveOnGraph: LocationBehavior has no graph connected")
+	}
 
-	if currentIndex == m.TargetLocation {
+	currentIndex := behavior.LocationIndex()
+	targetKey := enum.EnumKey(m.TargetLocation)
+	targetVal, err := locationEnum.NewImmutableVal(targetKey)
+	if err != nil {
+		return errors.New("MoveOnGraph: invalid target location: " + err.Error())
+	}
+
+	if currentIndex != nil && currentIndex.Value() == targetKey {
 		return errors.New("already at the target location")
 	}
 
 	// Check for free move (teleport)
 	if freePred, ok := m.TopLevelStruct().(interfaces.FreeMovePredicate); ok {
-		if freePred.IsFreeMove(playerState, m.TargetLocation) {
+		if freePred.IsFreeMove(playerState, targetVal) {
 			return nil
 		}
 	}
 
 	// Compute shortest path
-	path, err := behavior.ShortestPathTo(m.TargetLocation)
+	path, err := behavior.ShortestPathTo(targetVal)
 	if err != nil {
 		return errors.New("no valid path to target: " + err.Error())
 	}
 
 	// Validate each space in the path (skip start)
 	if validator, ok := m.TopLevelStruct().(interfaces.SpaceValidator); ok {
-		for _, spaceIndex := range path[1:] {
-			if err := validator.SpaceIsLegal(playerState, spaceIndex); err != nil {
+		for _, spaceVal := range path[1:] {
+			if err := validator.SpaceIsLegal(playerState, spaceVal); err != nil {
 				return err
 			}
 		}
@@ -115,29 +126,44 @@ func (m *MoveOnGraph) Apply(state boardgame.State) error {
 		return errors.New("MoveOnGraph: PlayerLocationBehavior returned nil")
 	}
 
+	locationEnum := behavior.LocationEnum()
+	if locationEnum == nil {
+		return errors.New("MoveOnGraph: LocationBehavior has no graph connected")
+	}
+
+	targetKey := enum.EnumKey(m.TargetLocation)
+	targetVal, err := locationEnum.NewImmutableVal(targetKey)
+	if err != nil {
+		return errors.New("MoveOnGraph: invalid target location: " + err.Error())
+	}
+
 	// Check for free move
 	if freePred, ok := m.TopLevelStruct().(interfaces.FreeMovePredicate); ok {
-		if freePred.IsFreeMove(playerState.(boardgame.ImmutableSubState), m.TargetLocation) {
+		if freePred.IsFreeMove(playerState.(boardgame.ImmutableSubState), targetVal) {
 			// Move directly
 			if err := behavior.MoveTo(m.TargetLocation); err != nil {
 				return err
 			}
 			// Handle game-specific free move cleanup
 			if applier, ok := m.TopLevelStruct().(interfaces.FreeMoveApplier); ok {
-				return applier.ApplyFreeMove(playerState, m.TargetLocation)
+				return applier.ApplyFreeMove(playerState, targetVal)
 			}
 			return nil
 		}
 	}
 
 	// Compute path
-	path, err := behavior.ShortestPathTo(m.TargetLocation)
+	path, err := behavior.ShortestPathTo(targetVal)
 	if err != nil {
 		return errors.New("no valid path to target: " + err.Error())
 	}
 
-	// Store path for HopAlongPath
-	behavior.LocRemainingPath = path
+	// Store path for HopAlongPath (convert []ImmutableVal to []int)
+	intPath := make([]int, len(path))
+	for i, v := range path {
+		intPath[i] = int(v.Value())
+	}
+	behavior.LocRemainingPath = intPath
 
 	// Consume movement budget
 	if budgeter, ok := m.TopLevelStruct().(interfaces.MovementBudgeter); ok {

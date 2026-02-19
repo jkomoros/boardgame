@@ -30,13 +30,13 @@ In components.go:
 
     var enums = enum.NewSet()
 
-    var colorEnum = enums.MustAdd("color", map[int]string{
+    var colorEnum = enums.MustAdd("color", map[enum.EnumKey]string{
         colorRed: "Red",
         colorBlue: "Blue",
         colorGreen: "Green",
     })
 
-    var cardEnum = enums.MustAdd("card", map[int]string{
+    var cardEnum = enums.MustAdd("card", map[enum.EnumKey]string{
         cardSpade: "Spade",
         cardHeart: "Heart",
         cardDiamond: "Diamond",
@@ -249,8 +249,13 @@ import (
 	"strings"
 )
 
+//EnumKey is a type-safe alias for int, used for all enum values (keys).
+//This provides clarity in APIs and prevents accidentally mixing up enum keys
+//with other integer values.
+type EnumKey int
+
 //IllegalValue is the senitnel value that will be returned for illegal values.
-const IllegalValue = math.MaxInt64
+const IllegalValue EnumKey = math.MaxInt64
 
 const rangedValueSeparator = "_"
 
@@ -268,33 +273,33 @@ type Set struct {
 type Enum interface {
 	//Values returns all values that are in this enum--all values for which
 	//enum.Valid(val) would return true.
-	Values() []int
+	Values() []EnumKey
 	//DefaultValue returns the default value for this enum (the lowest valid
 	//value in it). TreeEnums will instead return BranchDefaultValue for 0, to
 	//ensure that the DefaultValue is a leaf.z
-	DefaultValue() int
+	DefaultValue() EnumKey
 	//RandomValue returns a random value that is Valid() for this enum. r is
 	//the source of randomness to use; almost always a good idea to pass
 	//state.Rand() so the calculations can be deterministic. If r is nil a
 	//fallback will be used.
-	RandomValue(r *rand.Rand) int
+	RandomValue(r *rand.Rand) EnumKey
 	//MaxValue is the highest valid integer value in the enum. Note that values
 	//need not be sequential, so this number might be very different than
 	//len(Values()) - 1.
-	MaxValue() int
+	MaxValue() EnumKey
 	//Valid returns whether the given value is a valid member of this enum.
-	Valid(val int) bool
+	Valid(val EnumKey) bool
 	//String returns the string value associated with the given value.
-	String(val int) string
+	String(val EnumKey) string
 	//Name returns the name of this enum; if set is the set this enum is part of,
 	//set.Enum(enum.Name()) == enum will be true.
 	Name() string
 	//ValueFromString returns the enum value that corresponds to the given string,
 	//or IllegalValue if no value has that string.
-	ValueFromString(in string) int
+	ValueFromString(in string) EnumKey
 	//NewVal returns an enum.Val that is permanently set to the provided
 	//val. If that value is not valid for this enum, it will error.
-	NewImmutableVal(val int) (ImmutableVal, error)
+	NewImmutableVal(val EnumKey) (ImmutableVal, error)
 	NewVal() Val
 	//NewMutableVal returns a new EnumValue associated with this enum, set to the
 	//Enum's DefaultValue to start.
@@ -307,11 +312,18 @@ type Enum interface {
 	//instead. It's convenient for initial set up where the whole app should fail
 	//to startup if it can't be configured anyway, and dealing with errors would
 	//be a lot of boilerplate.
-	MustNewImmutableVal(val int) ImmutableVal
-	MustNewVal(val int) Val
+	MustNewImmutableVal(val EnumKey) ImmutableVal
+	MustNewVal(val EnumKey) Val
 
-	//SubsetOf returns true if every int key in this enum is also present in
-	//other, and the string values for each int key are the same.
+	//NewEnumSlice returns a new empty EnumSlice associated with this enum.
+	NewEnumSlice() EnumSlice
+
+	//NewMembershipSet returns a new MembershipSet for this enum containing
+	//the given members.
+	NewMembershipSet(members ...EnumKey) MembershipSet
+
+	//SubsetOf returns true if every EnumKey in this enum is also present in
+	//other, and the string values for each EnumKey are the same.
 	SubsetOf(other Enum) bool
 
 	//RangeEnum will return a version of this Enum that satisifies the
@@ -326,27 +338,27 @@ type Enum interface {
 //enum is the underlying type we use to implement Enum.
 type enum struct {
 	name         string
-	values       map[int]string
-	defaultValue int
-	maxValue     int
+	values       map[EnumKey]string
+	defaultValue EnumKey
+	maxValue     EnumKey
 	dimensions   []int
 	//parents is the direct map passed to us to start.
-	parents map[int]int
+	parents map[EnumKey]EnumKey
 	//children is created based on the parents map we got.
-	children map[int][]int
+	children map[EnumKey][]EnumKey
 }
 
 //variable is the underlying type we'll return for both Value and Constant.
 type variable struct {
 	enum Enum
-	val  int
+	val  EnumKey
 }
 
 //ImmutableVal is an instantiation of an Enum that cannot be changed. You retrieve it
 //from enum.NewImmutableVal(val).
 type ImmutableVal interface {
 	Enum() Enum
-	Value() int
+	Value() EnumKey
 	String() string
 	ImmutableCopy() ImmutableVal
 	Copy() Val
@@ -368,7 +380,7 @@ type Val interface {
 	//SetValue changes the value. Returns true if successful. Will fail if the
 	//value is locked or the val you want to set is not a valid number for the
 	//enum this value is associated with.
-	SetValue(val int) error
+	SetValue(val EnumKey) error
 	//SetStringValue sets the value to the value associated with that string.
 	SetStringValue(str string) error
 
@@ -379,6 +391,128 @@ type Val interface {
 	//TreeVal returns a version of this Val that implements TreeVal, if that's
 	//possible, nil otherwise.
 	TreeVal() TreeVal
+}
+
+//ImmutableEnumSlice is an immutable slice of enum values associated with a
+//particular enum. It is the read-only counterpart of EnumSlice.
+type ImmutableEnumSlice interface {
+	//Enum returns the Enum this slice is associated with.
+	Enum() Enum
+	//Values returns a copy of all values in the slice.
+	Values() []EnumKey
+	//Len returns the number of elements in the slice.
+	Len() int
+	//Value returns the value at index i. Panics if i is out of range.
+	Value(i int) EnumKey
+	//ImmutableCopy returns an immutable copy of this slice.
+	ImmutableCopy() ImmutableEnumSlice
+	//Copy returns a mutable copy of this slice.
+	Copy() EnumSlice
+}
+
+//EnumSlice is a mutable slice of enum values associated with a particular
+//enum. Get one from an Enum's NewEnumSlice method.
+type EnumSlice interface {
+	ImmutableEnumSlice
+	//SetValues replaces the entire contents of the slice.
+	SetValues(vals []EnumKey)
+	//SetValue sets the value at index i. Panics if i is out of range.
+	SetValue(i int, val EnumKey)
+	//Append adds values to the end of the slice.
+	Append(vals ...EnumKey)
+	//Truncate shortens the slice to the given length. Panics if length is
+	//negative or greater than Len().
+	Truncate(length int)
+}
+
+//enumSlice is the unexported implementation of ImmutableEnumSlice and
+//EnumSlice.
+type enumSlice struct {
+	enum Enum
+	vals []EnumKey
+}
+
+func (e *enumSlice) Enum() Enum {
+	return e.enum
+}
+
+func (e *enumSlice) Values() []EnumKey {
+	result := make([]EnumKey, len(e.vals))
+	copy(result, e.vals)
+	return result
+}
+
+func (e *enumSlice) Len() int {
+	return len(e.vals)
+}
+
+func (e *enumSlice) Value(i int) EnumKey {
+	return e.vals[i]
+}
+
+func (e *enumSlice) ImmutableCopy() ImmutableEnumSlice {
+	result := make([]EnumKey, len(e.vals))
+	copy(result, e.vals)
+	return &enumSlice{
+		enum: e.enum,
+		vals: result,
+	}
+}
+
+func (e *enumSlice) Copy() EnumSlice {
+	result := make([]EnumKey, len(e.vals))
+	copy(result, e.vals)
+	return &enumSlice{
+		enum: e.enum,
+		vals: result,
+	}
+}
+
+func (e *enumSlice) SetValues(vals []EnumKey) {
+	result := make([]EnumKey, len(vals))
+	copy(result, vals)
+	e.vals = result
+}
+
+func (e *enumSlice) SetValue(i int, val EnumKey) {
+	e.vals[i] = val
+}
+
+func (e *enumSlice) Append(vals ...EnumKey) {
+	e.vals = append(e.vals, vals...)
+}
+
+func (e *enumSlice) Truncate(length int) {
+	e.vals = e.vals[:length]
+}
+
+//MarshalJSON marshals the enum slice as a JSON array of string values for
+//readability, similar to how Val marshals as a string.
+func (e *enumSlice) MarshalJSON() ([]byte, error) {
+	strs := make([]string, len(e.vals))
+	for i, v := range e.vals {
+		strs[i] = e.enum.String(v)
+	}
+	return json.Marshal(strs)
+}
+
+//UnmarshalJSON expects a JSON array of string values. Each string must
+//correspond to a valid value in this enum.
+func (e *enumSlice) UnmarshalJSON(blob []byte) error {
+	var strs []string
+	if err := json.Unmarshal(blob, &strs); err != nil {
+		return err
+	}
+	vals := make([]EnumKey, len(strs))
+	for i, str := range strs {
+		val := e.enum.ValueFromString(str)
+		if val == IllegalValue {
+			return errors.New("string value " + str + " had no enum in the value")
+		}
+		vals[i] = val
+	}
+	e.vals = vals
+	return nil
 }
 
 //NewSet returns a new Set. Generally you'll call this once in a
@@ -449,7 +583,7 @@ func (e *Set) Enum(name string) Enum {
 //MustAdd is like Add, but instead of an error it will panic if the enum
 //cannot be added. This is useful for defining your enums at the package level
 //outside of an init().
-func (e *Set) MustAdd(enumName string, values map[int]string) Enum {
+func (e *Set) MustAdd(enumName string, values map[EnumKey]string) Enum {
 	result, err := e.Add(enumName, values)
 
 	if err != nil {
@@ -476,11 +610,11 @@ func (e *Set) MustCombine(name string, enums ...Enum) Enum {
 //The enums need not be in this set. Will error if the combined enum is invalid
 //(e.g. overlapping index or strings)
 func (e *Set) Combine(name string, enums ...Enum) (Enum, error) {
-	values := make(map[int]string)
+	values := make(map[EnumKey]string)
 	for _, en := range enums {
 		for _, n := range en.Values() {
 			if _, ok := values[n]; ok {
-				return nil, errors.New(strconv.Itoa(n) + " (" + en.String(n) + ") from enum named " + en.Name() + " was already in the set from another enum")
+				return nil, errors.New(strconv.Itoa(int(n)) + " (" + en.String(n) + ") from enum named " + en.Name() + " was already in the set from another enum")
 			}
 			values[n] = en.String(n)
 		}
@@ -493,19 +627,19 @@ Add ads an enum with the given name and values to the enum manager. Will error
 if that name has already been added or if the config you provide has more than
 one string with the same value.
 */
-func (e *Set) Add(enumName string, values map[int]string) (Enum, error) {
+func (e *Set) Add(enumName string, values map[EnumKey]string) (Enum, error) {
 	return e.addEnumImpl(enumName, values)
 }
 
-func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error) {
+func (e *Set) addEnumImpl(enumName string, values map[EnumKey]string) (*enum, error) {
 	if len(values) == 0 {
 		return nil, errors.New("No values provided")
 	}
 
 	enum := &enum{
 		enumName,
-		make(map[int]string),
-		math.MaxInt64,
+		make(map[EnumKey]string),
+		IllegalValue,
 		//We'll set this to the real maxValue later.
 		0,
 		nil,
@@ -513,14 +647,14 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 		nil,
 	}
 
-	maxSeenVal := 0
+	var maxSeenVal EnumKey
 	seenValues := make(map[string]bool)
 
 	for v, s := range values {
 
 		normalizedS := normalizeStringKey(s)
 
-		numString := strconv.Itoa(v)
+		numString := strconv.Itoa(int(v))
 
 		if seenValues[numString] {
 			return nil, errors.New("The string value of " + numString + " was already in the enum")
@@ -586,8 +720,8 @@ func (e *enum) RangeEnum() RangeEnum {
 	return nil
 }
 
-func (e *enum) Values() []int {
-	result := make([]int, len(e.values))
+func (e *enum) Values() []EnumKey {
+	result := make([]EnumKey, len(e.values))
 	counter := 0
 	for key := range e.values {
 		result[counter] = key
@@ -610,16 +744,16 @@ func (e *enum) SubsetOf(other Enum) bool {
 	return true
 }
 
-func (e *enum) DefaultValue() int {
+func (e *enum) DefaultValue() EnumKey {
 	return e.defaultValue
 }
 
-func (e *enum) MaxValue() int {
+func (e *enum) MaxValue() EnumKey {
 	return e.maxValue
 }
 
-func (e *enum) RandomValue(r *rand.Rand) int {
-	keys := make([]int, len(e.values))
+func (e *enum) RandomValue(r *rand.Rand) EnumKey {
+	keys := make([]EnumKey, len(e.values))
 
 	i := 0
 	for key := range e.values {
@@ -638,12 +772,12 @@ func (e *enum) RandomValue(r *rand.Rand) int {
 	return keys[index]
 }
 
-func (e *enum) Valid(val int) bool {
+func (e *enum) Valid(val EnumKey) bool {
 	_, ok := e.values[val]
 	return ok
 }
 
-func (e *enum) String(val int) string {
+func (e *enum) String(val EnumKey) string {
 	return e.values[val]
 }
 
@@ -655,7 +789,7 @@ func normalizeStringKey(in string) string {
 	return strings.TrimSpace(strings.ToLower(in))
 }
 
-func (e *enum) ValueFromString(in string) int {
+func (e *enum) ValueFromString(in string) EnumKey {
 	normalizedIn := normalizeStringKey(in)
 	for v, str := range e.values {
 		if normalizeStringKey(str) == normalizedIn {
@@ -665,8 +799,8 @@ func (e *enum) ValueFromString(in string) int {
 	//Hmmm... see if they gave us the string equivalent of the int?
 	num, err := strconv.Atoi(in)
 	if err == nil {
-		if _, ok := e.values[num]; ok {
-			return num
+		if _, ok := e.values[EnumKey(num)]; ok {
+			return EnumKey(num)
 		}
 	}
 	return IllegalValue
@@ -692,7 +826,7 @@ func (e *enum) NewVal() Val {
 	return e.NewRangeVal()
 }
 
-func (e *enum) MustNewVal(val int) Val {
+func (e *enum) MustNewVal(val EnumKey) Val {
 	enu := e.NewVal()
 	if err := enu.SetValue(val); err != nil {
 		panic("Couldn't create mutable val: " + err.Error())
@@ -700,7 +834,7 @@ func (e *enum) MustNewVal(val int) Val {
 	return enu
 }
 
-func (e *enum) MustNewImmutableVal(val int) ImmutableVal {
+func (e *enum) MustNewImmutableVal(val EnumKey) ImmutableVal {
 	result, err := e.NewImmutableVal(val)
 	if err != nil {
 		panic("Couldn't create constant: " + err.Error())
@@ -716,12 +850,19 @@ func (e *enum) NewDefaultVal() ImmutableVal {
 	return c
 }
 
-func (e *enum) NewImmutableVal(val int) (ImmutableVal, error) {
+func (e *enum) NewImmutableVal(val EnumKey) (ImmutableVal, error) {
 	variable := e.NewVal()
 	if err := variable.SetValue(val); err != nil {
 		return nil, err
 	}
 	return variable, nil
+}
+
+func (e *enum) NewEnumSlice() EnumSlice {
+	return &enumSlice{
+		enum: e,
+		vals: nil,
+	}
 }
 
 func (e *enum) MarshalJSON() ([]byte, error) {
@@ -764,7 +905,7 @@ func (e *variable) Enum() Enum {
 	return e.enum
 }
 
-func (e *variable) Value() int {
+func (e *variable) Value() EnumKey {
 	return e.val
 }
 
@@ -772,7 +913,7 @@ func (e *variable) String() string {
 	return e.enum.String(e.val)
 }
 
-func (e *variable) SetValue(val int) error {
+func (e *variable) SetValue(val EnumKey) error {
 	if !e.enum.Valid(val) {
 		return errors.New("That value is not valid for this enum")
 	}

@@ -32,7 +32,7 @@ func (s *secondGameDelegate) ConfigureEnums() *enum.Set {
 }
 
 // colorEnum is the enum.Enum for color
-var colorEnum = enums.MustAdd("color", map[int]string{
+var colorEnum = enums.MustAdd("color", map[enum.EnumKey]string{
 	colorBlue:    "Blue",
 	colorGreen:   "Green",
 	colorRed:     "Red",
@@ -40,14 +40,14 @@ var colorEnum = enums.MustAdd("color", map[int]string{
 })
 
 // phaseEnum is the enum.Enum for phase
-var phaseEnum = enums.MustAdd("phase", map[int]string{
+var phaseEnum = enums.MustAdd("phase", map[enum.EnumKey]string{
 	phaseMultiWord:    "Multi Word",
 	phaseUnknown:      "Unknown",
 	phaseVeryLongName: "Very Long Name",
 })
 
 // fooEnum is the enum.Enum for foo
-var fooEnum = enums.MustAdd("foo", map[int]string{
+var fooEnum = enums.MustAdd("foo", map[enum.EnumKey]string{
 	fooBlue:           "Blue",
 	fooOverride:       "Green",
 	fooOverrideBlank:  "",
@@ -55,7 +55,7 @@ var fooEnum = enums.MustAdd("foo", map[int]string{
 })
 
 // transformExampleEnum is the enum.Enum for transformExample
-var transformExampleEnum = enums.MustAdd("transformExample", map[int]string{
+var transformExampleEnum = enums.MustAdd("transformExample", map[enum.EnumKey]string{
 	transformExampleLowerCase:                 "lower case",
 	transformExampleNormalConfiguredTransform: "Normal Configured Transform",
 	transformExampleNormalTransform:           "Normal Transform",
@@ -63,19 +63,19 @@ var transformExampleEnum = enums.MustAdd("transformExample", map[int]string{
 })
 
 // defaultTransformEnum is the enum.Enum for defaultTransform
-var defaultTransformEnum = enums.MustAdd("defaultTransform", map[int]string{
+var defaultTransformEnum = enums.MustAdd("defaultTransform", map[enum.EnumKey]string{
 	defaultTransformBlue:  "BLUE",
 	defaultTransformGreen: "GREEN",
 	defaultTransformRed:   "Red",
 })
 
 // treeEnum is the enum.Enum for tree
-var treeEnum = enums.MustAddTree("tree", map[int]string{
+var treeEnum = enums.MustAddTree("tree", map[enum.EnumKey]string{
 	tree:      "",
 	treeBlue:  "Blue",
 	treeGreen: "Green",
 	treeRed:   "Red",
-}, map[int]int{
+}, map[enum.EnumKey]enum.EnumKey{
 	tree:      tree,
 	treeBlue:  tree,
 	treeGreen: tree,
@@ -83,7 +83,7 @@ var treeEnum = enums.MustAddTree("tree", map[int]string{
 })
 
 // blamEnum is the enum.Enum for blam
-var blamEnum = enums.MustAddTree("blam", map[int]string{
+var blamEnum = enums.MustAddTree("blam", map[enum.EnumKey]string{
 	blam:          "",
 	blamOne:       "One",
 	blamOne010One: "One",
@@ -91,7 +91,7 @@ var blamEnum = enums.MustAddTree("blam", map[int]string{
 	blamThree:     "Three",
 	blamTwo:       "Two",
 	blamTwo010One: "One",
-}, map[int]int{
+}, map[enum.EnumKey]enum.EnumKey{
 	blam:          blam,
 	blamOne:       blam,
 	blamOne010One: blamOne,
@@ -102,19 +102,19 @@ var blamEnum = enums.MustAddTree("blam", map[int]string{
 })
 
 // PublicEnum is the enum.Enum for Public
-var PublicEnum = enums.MustAdd("Public", map[int]string{
+var PublicEnum = enums.MustAdd("Public", map[enum.EnumKey]string{
 	PublicBlue:  "Blue",
 	PublicGreen: "Green",
 })
 
 // exampleEnum is the enum.Enum for example
-var exampleEnum = enums.MustAddTree("example", map[int]string{
+var exampleEnum = enums.MustAddTree("example", map[enum.EnumKey]string{
 	example:          "",
 	exampleOne:       "One",
 	exampleOne010Two: "Two",
 	exampleOneOne:    "One",
 	exampleTwo:       "Two",
-}, map[int]int{
+}, map[enum.EnumKey]enum.EnumKey{
 	example:          example,
 	exampleOne:       example,
 	exampleOne010Two: exampleOne,
@@ -124,12 +124,12 @@ var exampleEnum = enums.MustAddTree("example", map[int]string{
 
 // Implicitly created constants for multiWordTree
 const (
-	multiWordTreeBlueGreenOne = iota - 9223372036854775808
+	multiWordTreeBlueGreenOne enum.EnumKey = iota - 9223372036854775808
 	multiWordTreeBlueGreenThree
 )
 
 // multiWordTreeEnum is the enum.Enum for multiWordTree
-var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[int]string{
+var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[enum.EnumKey]string{
 	multiWordTree:                   "",
 	multiWordTreeBlueGreen:          "Blue Green",
 	multiWordTreeBlueGreenOne:       "One",
@@ -138,7 +138,7 @@ var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[int]string{
 	multiWordTreeBlueGreenThree:     "Three",
 	multiWordTreeBlueGreenThree010A: "A",
 	multiWordTreeBlueGreenTwoA:      "Two A",
-}, map[int]int{
+}, map[enum.EnumKey]enum.EnumKey{
 	multiWordTree:                   multiWordTree,
 	multiWordTreeBlueGreen:          multiWordTree,
 	multiWordTreeBlueGreenOne:       multiWordTreeBlueGreen,
@@ -151,34 +151,34 @@ var multiWordTreeEnum = enums.MustAddTree("multiWordTree", map[int]string{
 
 // Implicitly created constants for skipNode
 const (
-	skipNodeRed = iota - 9223372036854775808
+	skipNodeRed enum.EnumKey = iota - 9223372036854775808
 )
 
 // skipNodeEnum is the enum.Enum for skipNode
-var skipNodeEnum = enums.MustAddTree("skipNode", map[int]string{
+var skipNodeEnum = enums.MustAddTree("skipNode", map[enum.EnumKey]string{
 	skipNode:             "",
 	skipNodeRed:          "Red",
 	skipNodeRed010Circle: "Circle",
-}, map[int]int{
+}, map[enum.EnumKey]enum.EnumKey{
 	skipNode:             skipNode,
 	skipNodeRed:          skipNode,
 	skipNodeRed010Circle: skipNodeRed,
 })
 
 // prefixBugEnum is the enum.Enum for prefixBug
-var prefixBugEnum = enums.MustAdd("prefixBug", map[int]string{
+var prefixBugEnum = enums.MustAdd("prefixBug", map[enum.EnumKey]string{
 	prefixBugGreenprefixBug: "Greenprefix Bug",
 	prefixBugWhite:          "White",
 })
 
 // blargoEnum is the enum.Enum for blargo
-var blargoEnum = enums.MustAdd("blargo", map[int]string{
+var blargoEnum = enums.MustAdd("blargo", map[enum.EnumKey]string{
 	blargoA: "A",
 	blargoB: "B",
 })
 
 // flargoEnum is the enum.Enum for flargo
-var flargoEnum = enums.MustAdd("flargo", map[int]string{
+var flargoEnum = enums.MustAdd("flargo", map[enum.EnumKey]string{
 	flargoC: "C",
 	flargoD: "D",
 })

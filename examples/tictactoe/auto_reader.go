@@ -64,6 +64,8 @@ func (p *ȧutoGeneratedPlayerTokenReader) Prop(name string) (interface{}, error)
 		return p.ImmutableBoardProp(name)
 	case boardgame.TypeTimer:
 		return p.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return p.ImmutableEnumSliceProp(name)
 
 	}
 
@@ -148,7 +150,13 @@ func (p *ȧutoGeneratedPlayerTokenReader) ImmutableTimerProp(name string) (board
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for playerToken
+func (p *ȧutoGeneratedPlayerTokenReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for playerToken
 func (p *playerToken) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedPlayerTokenReader{p}
 }
@@ -201,6 +209,8 @@ func (m *ȧutoGeneratedMovePlaceTokenReader) Prop(name string) (interface{}, err
 		return m.ImmutableBoardProp(name)
 	case boardgame.TypeTimer:
 		return m.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return m.ImmutableEnumSliceProp(name)
 
 	}
 
@@ -282,6 +292,8 @@ func (m *ȧutoGeneratedMovePlaceTokenReader) SetProp(name string, value interfac
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeEnumSlice:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 
 	}
@@ -406,6 +418,21 @@ func (m *ȧutoGeneratedMovePlaceTokenReader) ConfigureProp(name string, value in
 			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
 		}
 		return m.ConfigureImmutableTimerProp(name, val)
+	case boardgame.TypeEnumSlice:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.EnumSlice)
+			if !ok {
+				return errors.New("Provided value was not of type enum.EnumSlice")
+			}
+			return m.ConfigureEnumSliceProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableEnumSlice)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableEnumSlice")
+		}
+		return m.ConfigureImmutableEnumSliceProp(name, val)
 
 	}
 
@@ -630,17 +657,41 @@ func (m *ȧutoGeneratedMovePlaceTokenReader) TimerProp(name string) (boardgame.T
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for movePlaceToken
+func (m *ȧutoGeneratedMovePlaceTokenReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMovePlaceTokenReader) ConfigureEnumSliceProp(name string, value enum.EnumSlice) error {
+
+	return errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMovePlaceTokenReader) ConfigureImmutableEnumSliceProp(name string, value enum.ImmutableEnumSlice) error {
+
+	return errors.New("No such ImmutableEnumSlice prop: " + name)
+
+}
+
+func (m *ȧutoGeneratedMovePlaceTokenReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for movePlaceToken
 func (m *movePlaceToken) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedMovePlaceTokenReader{m}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for movePlaceToken
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for movePlaceToken
 func (m *movePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedMovePlaceTokenReader{m}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for movePlaceToken
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for movePlaceToken
 func (m *movePlaceToken) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedMovePlaceTokenReader{m}
 }
@@ -694,6 +745,8 @@ func (g *ȧutoGeneratedGameStateReader) Prop(name string) (interface{}, error) {
 		return g.ImmutableBoardProp(name)
 	case boardgame.TypeTimer:
 		return g.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return g.ImmutableEnumSliceProp(name)
 
 	}
 
@@ -777,6 +830,8 @@ func (g *ȧutoGeneratedGameStateReader) SetProp(name string, value interface{}) 
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeEnumSlice:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 
 	}
@@ -901,6 +956,21 @@ func (g *ȧutoGeneratedGameStateReader) ConfigureProp(name string, value interfa
 			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
 		}
 		return g.ConfigureImmutableTimerProp(name, val)
+	case boardgame.TypeEnumSlice:
+		if g.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.EnumSlice)
+			if !ok {
+				return errors.New("Provided value was not of type enum.EnumSlice")
+			}
+			return g.ConfigureEnumSliceProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableEnumSlice)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableEnumSlice")
+		}
+		return g.ConfigureImmutableEnumSliceProp(name, val)
 
 	}
 
@@ -1166,17 +1236,41 @@ func (g *ȧutoGeneratedGameStateReader) TimerProp(name string) (boardgame.Timer,
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for gameState
+func (g *ȧutoGeneratedGameStateReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (g *ȧutoGeneratedGameStateReader) ConfigureEnumSliceProp(name string, value enum.EnumSlice) error {
+
+	return errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (g *ȧutoGeneratedGameStateReader) ConfigureImmutableEnumSliceProp(name string, value enum.ImmutableEnumSlice) error {
+
+	return errors.New("No such ImmutableEnumSlice prop: " + name)
+
+}
+
+func (g *ȧutoGeneratedGameStateReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for gameState
 func (g *gameState) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedGameStateReader{g}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for gameState
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for gameState
 func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedGameStateReader{g}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for gameState
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for gameState
 func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedGameStateReader{g}
 }
@@ -1230,6 +1324,8 @@ func (p *ȧutoGeneratedPlayerStateReader) Prop(name string) (interface{}, error)
 		return p.ImmutableBoardProp(name)
 	case boardgame.TypeTimer:
 		return p.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return p.ImmutableEnumSliceProp(name)
 
 	}
 
@@ -1313,6 +1409,8 @@ func (p *ȧutoGeneratedPlayerStateReader) SetProp(name string, value interface{}
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeEnumSlice:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 
 	}
@@ -1437,6 +1535,21 @@ func (p *ȧutoGeneratedPlayerStateReader) ConfigureProp(name string, value inter
 			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
 		}
 		return p.ConfigureImmutableTimerProp(name, val)
+	case boardgame.TypeEnumSlice:
+		if p.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.EnumSlice)
+			if !ok {
+				return errors.New("Provided value was not of type enum.EnumSlice")
+			}
+			return p.ConfigureEnumSliceProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableEnumSlice)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableEnumSlice")
+		}
+		return p.ConfigureImmutableEnumSliceProp(name, val)
 
 	}
 
@@ -1686,17 +1799,41 @@ func (p *ȧutoGeneratedPlayerStateReader) TimerProp(name string) (boardgame.Time
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for playerState
+func (p *ȧutoGeneratedPlayerStateReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (p *ȧutoGeneratedPlayerStateReader) ConfigureEnumSliceProp(name string, value enum.EnumSlice) error {
+
+	return errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (p *ȧutoGeneratedPlayerStateReader) ConfigureImmutableEnumSliceProp(name string, value enum.ImmutableEnumSlice) error {
+
+	return errors.New("No such ImmutableEnumSlice prop: " + name)
+
+}
+
+func (p *ȧutoGeneratedPlayerStateReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for playerState
 func (p *playerState) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }
 
-//ReadSetter returns an autp-generated boardgame.PropertyReadSetter for playerState
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for playerState
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }
 
-//ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for playerState
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for playerState
 func (p *playerState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedPlayerStateReader{p}
 }

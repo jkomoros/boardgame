@@ -1,7 +1,5 @@
 /*
-
 Package checkers implements a game that is a classic game for two players where you advance across the board, capturing the other player's pawns
-
 */
 package checkers
 
@@ -89,8 +87,8 @@ func (g *gameDelegate) MaxNumPlayers() int {
 	return 4
 }
 
-//NewDelegate is the primary entrypoint to the package. It implements a
-//boardgame.GameDelegate that configures a game of checkers
+// NewDelegate is the primary entrypoint to the package. It implements a
+// boardgame.GameDelegate that configures a game of checkers
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

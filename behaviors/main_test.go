@@ -3,6 +3,7 @@ package behaviors
 import (
 	"testing"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 
 	"github.com/workfit/tester/assert"
@@ -65,26 +66,31 @@ func TestLocationBehavior(t *testing.T) {
 	err := l.ValidConfiguration(nil)
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	// LocationIndex returns 0 when no stack connected
-	assert.For(t).ThatActual(l.LocationIndex()).Equals(0)
+	// LocationIndex returns nil when no stack/graph connected
+	assert.For(t).ThatActual(l.LocationIndex() == nil).IsTrue()
+
+	// LocationIndexKey returns (0, false) when no stack connected
+	key, found := l.LocationIndexKey()
+	assert.For(t).ThatActual(key).Equals(enum.EnumKey(0))
+	assert.For(t).ThatActual(found).IsFalse()
 
 	// Neighbors returns nil when no graph connected
 	assert.For(t).ThatActual(len(l.Neighbors())).Equals(0)
 
 	// IsConnectedTo returns false when no graph connected
-	assert.For(t).ThatActual(l.IsConnectedTo(1)).IsFalse()
+	assert.For(t).ThatActual(l.IsConnectedTo(nil)).IsFalse()
 
 	// ShortestPathTo returns error when no graph connected
-	_, err = l.ShortestPathTo(1)
+	_, err = l.ShortestPathTo(nil)
 	assert.For(t).ThatActual(err).IsNotNil()
 
 	// DistanceTo returns error when no graph connected
-	d, err := l.DistanceTo(1)
+	d, err := l.DistanceTo(nil)
 	assert.For(t).ThatActual(err).IsNotNil()
 	assert.For(t).ThatActual(d).Equals(-1)
 
 	// Graph returns nil when no graph connected
-	assert.For(t).ThatActual(l.Graph()).IsNil()
+	assert.For(t).ThatActual(l.Graph() == nil).IsTrue()
 
 	// Token returns nil when no stack connected
 	assert.For(t).ThatActual(l.Token()).IsNil()

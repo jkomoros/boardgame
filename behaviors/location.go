@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/enum/graph"
 )
 
@@ -31,7 +32,7 @@ type LocationBehavior struct {
 	// Unexported runtime fields (not serialized)
 	container     boardgame.SubState
 	locationStack boardgame.SizedStack
-	locGraph      graph.Graph
+	locGraph      *graph.EnumGraph
 
 	// Exported serializable field
 	LocRemainingPath []int
@@ -48,10 +49,10 @@ func (l *LocationBehavior) ConnectLocationStack(stack boardgame.SizedStack) {
 	l.locationStack = stack
 }
 
-//ConnectGraph associates a graph for adjacency and pathfinding operations.
-//This is optional; if not connected, methods like Neighbors, IsConnectedTo,
-//ShortestPathTo, and DistanceTo will return errors.
-func (l *LocationBehavior) ConnectGraph(g graph.Graph) {
+//ConnectGraph associates an EnumGraph for adjacency and pathfinding
+//operations. This is optional; if not connected, methods like Neighbors,
+//IsConnectedTo, ShortestPathTo, and DistanceTo will return errors.
+func (l *LocationBehavior) ConnectGraph(g *graph.EnumGraph) {
 	l.locGraph = g
 }
 
@@ -67,19 +68,46 @@ func (l *LocationBehavior) ValidConfiguration(example boardgame.State) error {
 	return nil
 }
 
+//LocationEnum returns the enum associated with the connected graph, or nil if
+//no graph has been connected. This is useful for constructing ImmutableVals
+//from location indices.
+func (l *LocationBehavior) LocationEnum() enum.Enum {
+	if l.locGraph == nil {
+		return nil
+	}
+	return l.locGraph.Enum()
+}
+
 //LocationIndex scans the connected SizedStack for the first non-nil component
-//and returns its slot index. Returns 0 if no component is found.
-func (l *LocationBehavior) LocationIndex() int {
-	if l.locationStack == nil {
-		return 0
+//and returns its slot index as an enum.ImmutableVal. Returns nil if no graph
+//is connected or no component is found.
+func (l *LocationBehavior) LocationIndex() enum.ImmutableVal {
+	if l.locationStack == nil || l.locGraph == nil {
+		return nil
 	}
 	for i, c := range l.locationStack.Components() {
 		if c == nil {
 			continue
 		}
-		return i
+		return l.locGraph.Enum().MustNewImmutableVal(enum.EnumKey(i))
 	}
-	return 0
+	return nil
+}
+
+//LocationIndexKey is a convenience method that returns the raw EnumKey of the
+//current location. Returns (0, false) if no component is found or no stack is
+//connected.
+func (l *LocationBehavior) LocationIndexKey() (enum.EnumKey, bool) {
+	if l.locationStack == nil {
+		return 0, false
+	}
+	for i, c := range l.locationStack.Components() {
+		if c == nil {
+			continue
+		}
+		return enum.EnumKey(i), true
+	}
+	return 0, false
 }
 
 //MoveTo moves the token from its current position to the target slot index by
@@ -88,49 +116,75 @@ func (l *LocationBehavior) MoveTo(targetIndex int) error {
 	if l.locationStack == nil {
 		return errors.New("LocationBehavior: locationStack not connected")
 	}
-	return l.locationStack.SwapComponents(l.LocationIndex(), targetIndex)
+	currentKey, ok := l.LocationIndexKey()
+	if !ok {
+		return errors.New("LocationBehavior: no component found in location stack")
+	}
+	return l.locationStack.SwapComponents(int(currentKey), targetIndex)
 }
 
 //Neighbors returns the indices of all spaces adjacent to the current location
-//in the connected graph. Returns nil if no graph is connected.
-func (l *LocationBehavior) Neighbors() []int {
+//in the connected graph as ImmutableVals. Returns nil if no graph is connected.
+func (l *LocationBehavior) Neighbors() []enum.ImmutableVal {
 	if l.locGraph == nil {
 		return nil
 	}
-	return l.locGraph.Neighbors(l.LocationIndex())
+	idx := l.LocationIndex()
+	if idx == nil {
+		return nil
+	}
+	return l.locGraph.Neighbors(idx)
 }
 
 //IsConnectedTo returns whether the current location is directly connected to
 //the target in the graph. Returns false if no graph is connected.
-func (l *LocationBehavior) IsConnectedTo(target int) bool {
-	if l.locGraph == nil {
+func (l *LocationBehavior) IsConnectedTo(target enum.ImmutableVal) bool {
+	if l.locGraph == nil || target == nil {
 		return false
 	}
-	return l.locGraph.Connected(l.LocationIndex(), target)
+	idx := l.LocationIndex()
+	if idx == nil {
+		return false
+	}
+	return l.locGraph.Connected(idx, target)
 }
 
 //ShortestPathTo returns the shortest path from the current location to the
-//target, inclusive of both endpoints. Returns an error if no graph is connected
-//or no path exists.
-func (l *LocationBehavior) ShortestPathTo(target int) ([]int, error) {
+//target, inclusive of both endpoints, as ImmutableVals. Returns an error if
+//no graph is connected or no path exists.
+func (l *LocationBehavior) ShortestPathTo(target enum.ImmutableVal) ([]enum.ImmutableVal, error) {
 	if l.locGraph == nil {
 		return nil, errors.New("LocationBehavior: no graph connected")
 	}
-	return l.locGraph.ShortestPath(l.LocationIndex(), target)
+	if target == nil {
+		return nil, errors.New("LocationBehavior: target is nil")
+	}
+	idx := l.LocationIndex()
+	if idx == nil {
+		return nil, errors.New("LocationBehavior: no component found in location stack")
+	}
+	return l.locGraph.ShortestPath(idx, target)
 }
 
 //DistanceTo returns the total weight of the shortest path from the current
 //location to the target. Returns -1 and an error if no graph is connected or
 //no path exists.
-func (l *LocationBehavior) DistanceTo(target int) (int, error) {
+func (l *LocationBehavior) DistanceTo(target enum.ImmutableVal) (int, error) {
 	if l.locGraph == nil {
 		return -1, errors.New("LocationBehavior: no graph connected")
 	}
-	return l.locGraph.Distance(l.LocationIndex(), target)
+	if target == nil {
+		return -1, errors.New("LocationBehavior: target is nil")
+	}
+	idx := l.LocationIndex()
+	if idx == nil {
+		return -1, errors.New("LocationBehavior: no component found in location stack")
+	}
+	return l.locGraph.Distance(idx, target)
 }
 
-//Graph returns the connected graph, or nil if none.
-func (l *LocationBehavior) Graph() graph.Graph {
+//Graph returns the connected EnumGraph, or nil if none.
+func (l *LocationBehavior) Graph() *graph.EnumGraph {
 	return l.locGraph
 }
 
@@ -140,7 +194,11 @@ func (l *LocationBehavior) Token() boardgame.ComponentInstance {
 	if l.locationStack == nil {
 		return nil
 	}
-	return l.locationStack.ComponentAt(l.LocationIndex())
+	currentKey, ok := l.LocationIndexKey()
+	if !ok {
+		return nil
+	}
+	return l.locationStack.ComponentAt(int(currentKey))
 }
 
 //GetLocationBehavior returns the LocationBehavior itself. This method exists

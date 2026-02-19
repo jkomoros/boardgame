@@ -65,6 +65,8 @@ func (t *ȧutoGeneratedTestStructReader) Prop(name string) (interface{}, error) 
 		return t.ImmutableBoardProp(name)
 	case boardgame.TypeTimer:
 		return t.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return t.ImmutableEnumSliceProp(name)
 
 	}
 
@@ -146,6 +148,8 @@ func (t *ȧutoGeneratedTestStructReader) SetProp(name string, value interface{})
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeEnumSlice:
 		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
 
 	}
@@ -270,6 +274,21 @@ func (t *ȧutoGeneratedTestStructReader) ConfigureProp(name string, value interf
 			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
 		}
 		return t.ConfigureImmutableTimerProp(name, val)
+	case boardgame.TypeEnumSlice:
+		if t.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.EnumSlice)
+			if !ok {
+				return errors.New("Provided value was not of type enum.EnumSlice")
+			}
+			return t.ConfigureEnumSliceProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableEnumSlice)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableEnumSlice")
+		}
+		return t.ConfigureImmutableEnumSliceProp(name, val)
 
 	}
 
@@ -491,6 +510,30 @@ func (t *ȧutoGeneratedTestStructReader) ConfigureImmutableTimerProp(name string
 func (t *ȧutoGeneratedTestStructReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (t *ȧutoGeneratedTestStructReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (t *ȧutoGeneratedTestStructReader) ConfigureEnumSliceProp(name string, value enum.EnumSlice) error {
+
+	return errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (t *ȧutoGeneratedTestStructReader) ConfigureImmutableEnumSliceProp(name string, value enum.ImmutableEnumSlice) error {
+
+	return errors.New("No such ImmutableEnumSlice prop: " + name)
+
+}
+
+func (t *ȧutoGeneratedTestStructReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
 
 }
 

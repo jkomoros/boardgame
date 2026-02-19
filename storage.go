@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/jkomoros/boardgame/enum"
 )
 
 //StateStorageRecord is a record representing a state that can be written to
@@ -26,7 +28,7 @@ type MoveStorageRecord struct {
 	//was in before it was applied. This is captured in this field because
 	//moves in the moves package need to quickly inspect this value without
 	//fully inflating the move structs.
-	Phase int
+	Phase enum.EnumKey
 	//The player index of the proposer of the move.
 	Proposer  PlayerIndex
 	Timestamp time.Time

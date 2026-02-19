@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -302,12 +303,12 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	//Verify that all of the int values returned by GroupMembership are part of
 	//groupEnum. a nil return value is fine.
 	if groupMembership := result.delegate.GroupMembership(exampleState.ImmutablePlayerStates()[0]); groupMembership != nil {
-		if len(groupMembership) > 0 && groupEnum == nil {
+		if groupMembership.Len() > 0 && groupEnum == nil {
 			return nil, errors.New("delegate.GroupMembership returned keys but groupEnum was nil")
 		}
-		for k := range groupMembership {
+		for _, k := range groupMembership.Members() {
 			if !groupEnum.Valid(k) {
-				return nil, errors.New("delegate.GroupMembership returned an int not in GroupEnum: " + strconv.Itoa(k))
+				return nil, errors.New("delegate.GroupMembership returned a key not in GroupEnum: " + strconv.Itoa(int(k)))
 			}
 		}
 	}
@@ -541,7 +542,7 @@ func (g *GameManager) setUpValidators() error {
 //states. player is the player state being prepared, and viewingAsPlayer is the
 //state for the viewing as player, or an empty map if the viewingAsPlayer is
 //obdserver.
-func (g *GameManager) computedPlayerGroupMembership(groupName string, player, viewingAsPlayer PlayerIndex, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
+func (g *GameManager) computedPlayerGroupMembership(groupName string, player, viewingAsPlayer PlayerIndex, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) (bool, error) {
 	if groupName == sanitizationGroupSelf {
 		if player == viewingAsPlayer {
 			return true, nil

@@ -15,7 +15,7 @@ var allValidTypes []propertyType
 var typeNamesToFieldInfo map[string]fieldInfo
 
 //highestProperty is the highest enum in the PropertyType enum.
-const highestProperty = boardgame.TypeTimer
+const highestProperty = boardgame.TypeEnumSlice
 
 func init() {
 	//Only need space for highestProperty because we skip TypeIllegal.
@@ -97,7 +97,7 @@ func (t propertyType) TypePackagePrefix() string {
 	switch base {
 	case boardgame.TypePlayerIndex, boardgame.TypeStack, boardgame.TypeBoard, boardgame.TypeTimer:
 		return "boardgame."
-	case boardgame.TypeEnum:
+	case boardgame.TypeEnum, boardgame.TypeEnumSlice:
 		return "enum."
 	}
 	return ""
@@ -123,6 +123,8 @@ func (t propertyType) ImmutableGoType() string {
 		return "boardgame.PlayerIndex"
 	case boardgame.TypeEnum:
 		return "enum.ImmutableVal"
+	case boardgame.TypeEnumSlice:
+		return "enum.ImmutableEnumSlice"
 	case boardgame.TypeStack:
 		return "boardgame.ImmutableStack"
 	case boardgame.TypeBoard:

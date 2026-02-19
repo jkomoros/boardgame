@@ -2,7 +2,7 @@ package base
 
 import (
 	"math"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/jkomoros/boardgame/behaviors"
@@ -129,19 +129,18 @@ func (g *GameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardg
 	return index.EnsureValid(state)
 }
 
-//CurrentPhase by default with return the value of gameState.Phase, if it is
-//an enum. If it is not, it will return -1 instead, to make it more clear that
-//it's an invalid CurrentPhase (phase 0 is often valid).
-func (g *GameDelegate) CurrentPhase(state boardgame.ImmutableState) int {
+//CurrentPhase by default returns the ImmutableVal for gameState.Phase. If the
+//Phase property doesn't exist or isn't an enum, it returns nil.
+func (g *GameDelegate) CurrentPhase(state boardgame.ImmutableState) enum.ImmutableVal {
 
-	phaseEnum, err := state.ImmutableGameState().Reader().ImmutableEnumProp("Phase")
+	phaseVal, err := state.ImmutableGameState().Reader().ImmutableEnumProp("Phase")
 
 	if err != nil {
 		//Guess it wasn't there
-		return -1
+		return nil
 	}
 
-	return phaseEnum.Value()
+	return phaseVal
 
 }
 
@@ -182,11 +181,11 @@ func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 //are. This handles many common cases correctly. For example, if you use
 //behaviors.Color, and your color enum is combined into the enum called 'group',
 //then this will automatically report that membership for the player.
-func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) map[int]bool {
+func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) enum.ImmutableMembershipSet {
 
 	//Calculating which properties to include is expensive, so only do it once.
 	if playerState != nil && g.cachedGroupMembershipProperties == nil {
-		//use manager.delegate to ensure we're getting any structs that embed usoupEnum := g.Manager().Delegate().GroupEnum()
+		//use manager.delegate to ensure we're getting any structs that embed us
 		groupEnum := g.Manager().Delegate().GroupEnum()
 		if groupEnum == nil {
 			return nil
@@ -212,15 +211,16 @@ func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) 
 	if len(g.cachedGroupMembershipProperties) == 0 {
 		return nil
 	}
-	result := make(map[int]bool, len(g.cachedGroupMembershipProperties))
+	groupEnum := g.Manager().Delegate().GroupEnum()
+	members := make([]enum.EnumKey, 0, len(g.cachedGroupMembershipProperties))
 	for _, propName := range g.cachedGroupMembershipProperties {
 		enumVal, err := playerState.Reader().ImmutableEnumProp(propName)
 		if err != nil {
 			continue
 		}
-		result[enumVal.Value()] = true
+		members = append(members, enumVal.Value())
 	}
-	return result
+	return groupEnum.NewMembershipSet(members...)
 }
 
 const computedGroupNameDelimiter = "-"
@@ -236,10 +236,10 @@ var legalComputedGroupNameFunctions = map[string]bool{
 }
 
 //fun will be one of legalComputedGroupNameFunctions. e will not be nil, and will be known to be a subset of GroupEnum.
-func doComputedGroupMembership(fun string, e enum.Enum, playerMembership, viewingAsPlayerMembership map[int]bool) bool {
+func doComputedGroupMembership(fun string, e enum.Enum, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) bool {
 	for _, key := range e.Values() {
-		p := playerMembership[key]
-		v := viewingAsPlayerMembership[key]
+		p := playerMembership != nil && playerMembership.Contains(key)
+		v := viewingAsPlayerMembership != nil && viewingAsPlayerMembership.Contains(key)
 		switch fun {
 		case computedGroupNameFunctionSame:
 			//all of p and v must be the same
@@ -284,7 +284,7 @@ Example: 'same-color': true if the two players are precisely the same color as
 returned by GroupMembership.
 
 */
-func (g *GameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
+func (g *GameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) (bool, error) {
 
 	parts := strings.Split(groupName, computedGroupNameDelimiter)
 
@@ -354,7 +354,7 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 		return boardgame.PolicyVisible
 	}
 
-	sort.Ints(applicablePolicies)
+	slices.Sort(applicablePolicies)
 
 	return boardgame.Policy(applicablePolicies[0])
 

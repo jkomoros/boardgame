@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 )
 
@@ -821,7 +822,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return errors.NewFriendly(err.Error())
 	}
 
-	currentPhase := g.manager.delegate.CurrentPhase(currentState)
+	currentPhaseVal := g.manager.delegate.CurrentPhase(currentState)
+	currentPhase := enum.EnumKey(-1)
+	if currentPhaseVal != nil {
+		currentPhase = currentPhaseVal.Value()
+	}
 
 	newState, err := currentState.copy(false)
 

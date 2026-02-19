@@ -24,12 +24,12 @@ type RangeEnum interface {
 	//given value. A simple convenience wrapper around
 	//enum.MutableNewVal(val).RangeValues(), except it won't panic if that
 	//value isn't legal.
-	ValueToRange(val int) []int
+	ValueToRange(val EnumKey) []int
 
-	//RangeToValue takes multi-dimensional indexes and returns the int value
+	//RangeToValue takes multi-dimensional indexes and returns the EnumKey
 	//associated with those indexes. Will return IllegalValue if it wasn't
 	//legal.
-	RangeToValue(indexes ...int) int
+	RangeToValue(indexes ...int) EnumKey
 }
 
 //ImmutableRangeVal is a Val that comes from a RangeEnum.
@@ -119,11 +119,11 @@ func (e *Set) AddRange(enumName string, dimensionSize ...int) (RangeEnum, error)
 		numValues *= dimension
 	}
 
-	values := make(map[int]string, numValues)
+	values := make(map[EnumKey]string, numValues)
 	indexes := make([]int, len(dimensionSize))
 
 	for i := 0; i < numValues; i++ {
-		values[i] = keyForIndexes(indexes...)
+		values[EnumKey(i)] = keyForIndexes(indexes...)
 
 		//Now, increment indexes.
 
@@ -154,11 +154,11 @@ func (e *enum) RangeDimensions() []int {
 	return e.dimensions
 }
 
-func (e *enum) ValueToRange(val int) []int {
+func (e *enum) ValueToRange(val EnumKey) []int {
 	return indexesForKey(e.String(val))
 }
 
-func (e *enum) RangeToValue(indexes ...int) int {
+func (e *enum) RangeToValue(indexes ...int) EnumKey {
 	return e.ValueFromString(keyForIndexes(indexes...))
 }
 

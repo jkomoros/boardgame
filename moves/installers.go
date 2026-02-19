@@ -2,8 +2,10 @@ package moves
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame"
 	"strconv"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
@@ -35,7 +37,7 @@ func Add(moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 //WithLegalPhases() on the config for each config passed in, so that those
 //moves will only be Legal() in that phase. It's a convenience to make it less
 //error-prone and more clear what the intent is for phase-locked moves.
-func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
+func AddForPhase(phase enum.EnumKey, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 
 	phaseInstaller := WithLegalPhases(phase)
 
@@ -85,7 +87,7 @@ func (e *errorMove) ValidConfiguration(exampleState boardgame.State) error {
 //the last Move enumerated is a StartPhase move, which is almost always what
 //you want, and omission is likely an error. Check out the package doc for an
 //example of using groups in this function.
-func AddOrderedForPhase(phase int, groups ...MoveProgressionGroup) []boardgame.MoveConfig {
+func AddOrderedForPhase(phase enum.EnumKey, groups ...MoveProgressionGroup) []boardgame.MoveConfig {
 
 	//Technically it's illegal to attach a move progression to a non-leaf
 	//phase enum val, but at this point we don't have a reference to delegate
@@ -117,7 +119,7 @@ func AddOrderedForPhase(phase int, groups ...MoveProgressionGroup) []boardgame.M
 
 			//TODO: in the future it'd be nice if we could use the human-
 			//readable name for the phase here.
-			message := "The end of your phase run for phase " + strconv.Itoa(phase) + " did not end with a StartPhase move, which is typical. If this was intentional, end that phase with a moves.NoOp to override this error."
+			message := "The end of your phase run for phase " + strconv.Itoa(int(phase)) + " did not end with a StartPhase move, which is typical. If this was intentional, end that phase with a moves.NoOp to override this error."
 
 			return []boardgame.MoveConfig{
 				boardgame.NewMoveConfig("AddOrderedForPhase Error", errorMoveWithMessage(message), nil),

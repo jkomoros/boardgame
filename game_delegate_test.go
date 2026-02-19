@@ -3,7 +3,7 @@ package boardgame
 import (
 	"errors"
 	"math"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 
@@ -132,19 +132,18 @@ func (d *defaultGameDelegate) CurrentPlayerIndex(state ImmutableState) PlayerInd
 	return index
 }
 
-//CurrentPhase by default with return the value of gameState.Phase, if it is
-//an enum. If it is not, it will return -1 instead, to make it more clear that
-//it's an invalid CurrentPhase (phase 0 is often valid).
-func (d *defaultGameDelegate) CurrentPhase(state ImmutableState) int {
+//CurrentPhase by default returns the ImmutableVal for gameState.Phase. If the
+//Phase property doesn't exist or isn't an enum, it returns nil.
+func (d *defaultGameDelegate) CurrentPhase(state ImmutableState) enum.ImmutableVal {
 
-	phaseEnum, err := state.ImmutableGameState().Reader().ImmutableEnumProp("Phase")
+	phaseVal, err := state.ImmutableGameState().Reader().ImmutableEnumProp("Phase")
 
 	if err != nil {
 		//Guess it wasn't there
-		return -1
+		return nil
 	}
 
-	return phaseEnum.Value()
+	return phaseVal
 
 }
 
@@ -162,7 +161,7 @@ func (d *defaultGameDelegate) DistributeComponentToStarterStack(state ImmutableS
 	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
-func (d *defaultGameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error) {
+func (d *defaultGameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) (bool, error) {
 	return false, errors.New("Unsupported group name: " + groupName)
 }
 
@@ -203,7 +202,7 @@ func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 		return PolicyVisible
 	}
 
-	sort.Ints(applicablePolicies)
+	slices.Sort(applicablePolicies)
 
 	return Policy(applicablePolicies[0])
 
@@ -371,7 +370,7 @@ func (d *defaultGameDelegate) Variants() VariantConfig {
 	return VariantConfig{}
 }
 
-func (d *defaultGameDelegate) GroupMembership(pState ImmutableSubState) map[int]bool {
+func (d *defaultGameDelegate) GroupMembership(pState ImmutableSubState) enum.ImmutableMembershipSet {
 	return nil
 }
 

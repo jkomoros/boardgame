@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
@@ -326,7 +327,7 @@ func (m *moveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
 		Name:      m.Name,
 		Version:   int(m.Version),
 		Initiator: int(m.Initiator),
-		Phase:     int(m.Phase),
+		Phase:     enum.EnumKey(m.Phase),
 		Proposer:  boardgame.PlayerIndex(m.Proposer),
 		Timestamp: time.Unix(0, m.Timestamp),
 		Blob:      []byte(m.Blob),

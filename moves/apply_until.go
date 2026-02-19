@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -199,7 +200,11 @@ func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableS
 	}
 
 	targetName := topLevelStruct.Info().Name()
-	targetPhase := state.Manager().Delegate().CurrentPhase(state)
+	targetPhaseVal := state.Manager().Delegate().CurrentPhase(state)
+	var targetPhase enum.EnumKey
+	if targetPhaseVal != nil {
+		targetPhase = targetPhaseVal.Value()
+	}
 
 	count := 0
 

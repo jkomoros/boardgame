@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
@@ -14,7 +15,7 @@ import (
 //import cycle with the behaviors package.
 type TokenAdvancer interface {
 	AdvancableLocation(state boardgame.State) *behaviors.LocationBehavior
-	NextAdvanceIndex(state boardgame.ImmutableState, currentIndex int) int
+	NextAdvanceIndex(state boardgame.ImmutableState, currentIndex enum.ImmutableVal) enum.EnumKey
 }
 
 /*
@@ -66,15 +67,30 @@ func (a *AdvanceToken) Apply(state boardgame.State) error {
 		return errors.New("AdvanceToken: AdvancableLocation returned nil")
 	}
 
-	currentIndex := behavior.LocationIndex()
-	nextIndex := advancer.NextAdvanceIndex(state, currentIndex)
+	locationEnum := behavior.LocationEnum()
 
-	if err := behavior.MoveTo(nextIndex); err != nil {
+	currentVal := behavior.LocationIndex()
+
+	if currentVal == nil && locationEnum != nil {
+		return errors.New("AdvanceToken: no component found in location stack")
+	}
+
+	nextIndex := advancer.NextAdvanceIndex(state, currentVal)
+
+	if err := behavior.MoveTo(int(nextIndex)); err != nil {
 		return err
 	}
 
 	if handler, ok := a.TopLevelStruct().(interfaces.PostAdvanceHandler); ok {
-		if err := handler.AfterAdvance(state, currentIndex, nextIndex); err != nil {
+		var newVal enum.ImmutableVal
+		if locationEnum != nil {
+			var err error
+			newVal, err = locationEnum.NewImmutableVal(nextIndex)
+			if err != nil {
+				return errors.New("AdvanceToken: could not create val for new index: " + err.Error())
+			}
+		}
+		if err := handler.AfterAdvance(state, currentVal, newVal); err != nil {
 			return err
 		}
 	}

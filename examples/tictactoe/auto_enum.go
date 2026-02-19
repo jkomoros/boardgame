@@ -24,7 +24,7 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 }
 
 //phaseEnum is the enum.Enum for phase
-var phaseEnum = enums.MustAdd("phase", map[int]string{
+var phaseEnum = enums.MustAdd("phase", map[enum.EnumKey]string{
 	phaseAfterFirstMove:  "After First Move",
 	phaseBeforeFirstMove: "Before First Move",
 })

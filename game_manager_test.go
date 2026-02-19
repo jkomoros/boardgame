@@ -17,7 +17,7 @@ const (
 
 var testEnums = enum.NewSet()
 
-var testColorEnum = testEnums.MustAdd("color", map[int]string{
+var testColorEnum = testEnums.MustAdd("color", map[enum.EnumKey]string{
 	colorRed:   "Red",
 	colorBlue:  "Blue",
 	colorGreen: "Green",
@@ -33,7 +33,7 @@ const (
 )
 
 var testPhaseEnum = testEnums.MustAddTree("phase",
-	map[int]string{
+	map[enum.EnumKey]string{
 		phase:                   "",
 		phaseSetUp:              "Set Up",
 		phaseNormal:             "Normal",
@@ -41,7 +41,7 @@ var testPhaseEnum = testEnums.MustAddTree("phase",
 		phaseNormalPlayerStart:  "Player Start",
 		phaseScoring:            "Scoring",
 	},
-	map[int]int{
+	map[enum.EnumKey]enum.EnumKey{
 		phase:                   phase,
 		phaseSetUp:              phase,
 		phaseNormal:             phase,

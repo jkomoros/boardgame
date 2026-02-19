@@ -41,8 +41,8 @@ const boardSize = boardWidth * boardWidth
 
 var spacesEnum = enums.MustAddRange("spaces", boardWidth, boardWidth)
 
-var graphDownward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionDown, graph.DirectionDiagonal)
-var graphUpward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionUp, graph.DirectionDiagonal)
+var graphDownward = graph.MustNewEnumGridConnectedness(spacesEnum, graph.DirectionDown, graph.DirectionDiagonal)
+var graphUpward = graph.MustNewEnumGridConnectedness(spacesEnum, graph.DirectionUp, graph.DirectionDiagonal)
 
 const tokenDeckName = "Tokens"
 
@@ -76,7 +76,7 @@ func (t *token) Dynamic(state boardgame.ImmutableState) *tokenDynamic {
 	return t.ContainingComponent().ImmutableInstance(state).ImmutableDynamicValues().(*tokenDynamic)
 }
 
-func (t *token) Legal(state boardgame.ImmutableState, legalType int) error {
+func (t *token) Legal(state boardgame.ImmutableState, legalType enum.ImmutableVal) error {
 	//Red starts at top, moves towards bottom
 	targetRow := boardWidth - 1
 
@@ -91,7 +91,7 @@ func (t *token) Legal(state boardgame.ImmutableState, legalType int) error {
 		return errors.New("Component's position could not be found: " + err.Error())
 	}
 
-	indexes := spacesEnum.ValueToRange(slotIndex)
+	indexes := spacesEnum.ValueToRange(enum.EnumKey(slotIndex))
 
 	if indexes[0] != targetRow {
 		//Not in the target row
@@ -108,13 +108,13 @@ func (t *token) Legal(state boardgame.ImmutableState, legalType int) error {
 	return nil
 }
 
-//FreeNextSpaces is like AllNextSpaces, but spaces taht are occupied won't be returned.
+//FreeNextSpaces is like AllNextSpaces, but spaces that are occupied won't be returned.
 func (t *token) FreeNextSpaces(state boardgame.ImmutableState, componentIndex int) []int {
 
 	spaces := state.ImmutableGameState().(*gameState).Spaces
 
 	var result []int
-	for _, space := range t.FreeNextSpaces(state, componentIndex) {
+	for _, space := range t.AllNextSpaces(state, componentIndex) {
 		if spaces.ComponentAt(space) == nil {
 			result = append(result, space)
 		}
@@ -148,13 +148,13 @@ func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int
 		oppositeG = graphUpward
 	}
 
-	for _, val := range g.Neighbors(componentIndex) {
-		nextSpaces = append(nextSpaces, val)
+	for _, val := range g.Inner().Neighbors(enum.EnumKey(componentIndex)) {
+		nextSpaces = append(nextSpaces, int(val))
 	}
 
 	if crowned {
-		for _, val := range oppositeG.Neighbors(componentIndex) {
-			nextSpaces = append(nextSpaces, val)
+		for _, val := range oppositeG.Inner().Neighbors(enum.EnumKey(componentIndex)) {
+			nextSpaces = append(nextSpaces, int(val))
 		}
 	}
 
@@ -186,8 +186,8 @@ func (t *token) LegalCaptureSpaces(state boardgame.ImmutableState, componentInde
 		//The item at space is a legal capture. What's the spot one beyond it,
 		//and is it taken?
 
-		startIndexes := spacesEnum.ValueToRange(componentIndex)
-		endIndexes := spacesEnum.ValueToRange(space)
+		startIndexes := spacesEnum.ValueToRange(enum.EnumKey(componentIndex))
+		endIndexes := spacesEnum.ValueToRange(enum.EnumKey(space))
 
 		diff := []int{
 			endIndexes[0] - startIndexes[0],
@@ -206,9 +206,9 @@ func (t *token) LegalCaptureSpaces(state boardgame.ImmutableState, componentInde
 			continue
 		}
 
-		if spaces.ComponentAt(finalSpace) == nil {
+		if spaces.ComponentAt(int(finalSpace)) == nil {
 			//An empty, real space!
-			result = append(result, finalSpace)
+			result = append(result, int(finalSpace))
 		}
 
 	}

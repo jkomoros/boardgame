@@ -35,6 +35,7 @@ type PropertyReader interface {
 	//in a Reader context, even if the underlying objects are mutable
 	//versions.
 	ImmutableEnumProp(name string) (enum.ImmutableVal, error)
+	ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error)
 	ImmutableStackProp(name string) (ImmutableStack, error)
 	ImmutableBoardProp(naem string) (ImmutableBoard, error)
 	ImmutableTimerProp(name string) (ImmutableTimer, error)
@@ -77,6 +78,8 @@ const (
 	TypeBoard
 	//TypeTimer is a Timer.
 	TypeTimer
+	//TypeEnumSlice represents an enum.EnumSlice or enum.ImmutableEnumSlice.
+	TypeEnumSlice
 
 	//NOTE: when adding a new item to the end of this list, also update 1) the
 	//functions attached to PropertyType here, like IsSlice(), and 2) all
@@ -119,6 +122,7 @@ type PropertyReadSetter interface {
 	//immutable variant (that is, PropMutable returns false for that prop
 	//name).
 	EnumProp(name string) (enum.Val, error)
+	EnumSliceProp(name string) (enum.EnumSlice, error)
 	StackProp(name string) (Stack, error)
 	BoardProp(name string) (Board, error)
 	TimerProp(name string) (Timer, error)
@@ -186,6 +190,7 @@ type PropertyReadSetConfigurer interface {
 	//Configure*Prop allows you to set the named property to the given
 	//container value. Use this if PropMutable(name) returns true.
 	ConfigureEnumProp(name string, value enum.Val) error
+	ConfigureEnumSliceProp(name string, value enum.EnumSlice) error
 	ConfigureStackProp(name string, value Stack) error
 	ConfigureBoardProp(name string, value Board) error
 	ConfigureTimerProp(name string, value Timer) error
@@ -193,6 +198,7 @@ type PropertyReadSetConfigurer interface {
 	//ConfigureImmutable*Prop allows you to set the container for container values for
 	//whom MutableProp(name) returns false.
 	ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error
+	ConfigureImmutableEnumSliceProp(name string, value enum.ImmutableEnumSlice) error
 	ConfigureImmutableStackProp(name string, value ImmutableStack) error
 	ConfigureImmutableBoardProp(name string, value ImmutableBoard) error
 	ConfigureImmutableTimerProp(name string, value ImmutableTimer) error
@@ -232,6 +238,8 @@ func (t PropertyType) String() string {
 		return "TypeBoard"
 	case TypeTimer:
 		return "TypeTimer"
+	case TypeEnumSlice:
+		return "TypeEnumSlice"
 	default:
 		return "TypeIllegal"
 	}
@@ -240,7 +248,7 @@ func (t PropertyType) String() string {
 //IsInterface outputs true if the underlying type is an "interface" type, that is
 //Enum, Stack, Board, or Timer. Most useful for the codegen package.
 func (t PropertyType) IsInterface() bool {
-	return t == TypeEnum || t == TypeStack || t == TypeBoard || t == TypeTimer
+	return t == TypeEnum || t == TypeEnumSlice || t == TypeStack || t == TypeBoard || t == TypeTimer
 }
 
 //IsSlice returns true if the type represents a slice (e.g. TypeBoolSlice). Most
@@ -457,6 +465,11 @@ func (d *defaultReader) propsImpl() (types map[string]PropertyType, mutable map[
 				} else if strings.Contains(interfaceType, "ImmutableBoard") {
 					pType = TypeBoard
 					isMutable = false
+				} else if strings.Contains(interfaceType, "ImmutableEnumSlice") {
+					pType = TypeEnumSlice
+					isMutable = false
+				} else if strings.Contains(interfaceType, "EnumSlice") {
+					pType = TypeEnumSlice
 				} else if strings.Contains(interfaceType, "Timer") {
 					pType = TypeTimer
 				} else if strings.Contains(interfaceType, "ImmutableTimer") {
@@ -551,6 +564,24 @@ func (d *defaultReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error
 		return nil, nil
 	}
 	result := field.Interface().(enum.Val)
+	return result, nil
+}
+
+func (d *defaultReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeEnumSlice {
+		return nil, errors.New("That property is not an EnumSlice: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(enum.EnumSlice)
 	return result, nil
 }
 
@@ -836,6 +867,28 @@ func (d *defaultReader) EnumProp(name string) (enum.Val, error) {
 	return result, nil
 }
 
+func (d *defaultReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeEnumSlice {
+		return nil, errors.New("That property is not an EnumSlice: " + name)
+	}
+
+	if !d.PropMutable(name) {
+		return nil, ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(enum.EnumSlice)
+	return result, nil
+}
+
 func (d *defaultReader) SetIntSliceProp(name string, val []int) (err error) {
 	props := d.Props()
 
@@ -1040,6 +1093,36 @@ func (d *defaultReader) ConfigureImmutableEnumProp(name string, val enum.Immutab
 	return nil
 }
 
+func (d *defaultReader) ConfigureImmutableEnumSliceProp(name string, val enum.ImmutableEnumSlice) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeEnumSlice {
+		return errors.New("That property is not a settable enum slice")
+	}
+
+	if d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+}
+
 func (d *defaultReader) ConfigureImmutableStackProp(name string, val ImmutableStack) (err error) {
 	props := d.Props()
 
@@ -1135,6 +1218,37 @@ func (d *defaultReader) ConfigureEnumProp(name string, val enum.Val) (err error)
 
 	if props[name] != TypeEnum {
 		return errors.New("That property is not a settable enum var")
+	}
+
+	if !d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) ConfigureEnumSliceProp(name string, val enum.EnumSlice) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeEnumSlice {
+		return errors.New("That property is not a settable enum slice")
 	}
 
 	if !d.PropMutable(name) {
@@ -1278,7 +1392,7 @@ func (d *defaultReader) setProp(name string, val interface{}, allowInterface boo
 	}
 
 	if !allowInterface {
-		if propType == TypeStack || propType == TypeBoard || propType == TypeEnum || propType == TypeTimer {
+		if propType == TypeStack || propType == TypeBoard || propType == TypeEnum || propType == TypeEnumSlice || propType == TypeTimer {
 			return errors.New("SetProp on an interface type is not supported. Use ConfigureProp instead")
 		}
 	}
@@ -1444,6 +1558,26 @@ func (g *genericReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error
 	return val.(enum.Val), nil
 }
 
+func (g *genericReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeEnumSlice {
+		return nil, errors.New(name + "was expected to be TypeEnumSlice but was not")
+	}
+
+	return val.(enum.EnumSlice), nil
+}
+
 func (g *genericReader) IntSliceProp(name string) ([]int, error) {
 	val, err := g.Prop(name)
 
@@ -1601,7 +1735,7 @@ func (g *genericReader) setProp(name string, val interface{}, allowInterface boo
 	}
 
 	if !allowInterface {
-		if propType == TypeTimer || propType == TypeBoard || propType == TypeEnum || propType == TypeStack {
+		if propType == TypeTimer || propType == TypeBoard || propType == TypeEnum || propType == TypeEnumSlice || propType == TypeStack {
 			return errors.New("SetProp on interface types is not allowed. Use ConfigureProp instead")
 		}
 	}
@@ -1682,6 +1816,26 @@ func (g *genericReader) EnumProp(name string) (enum.Val, error) {
 	}
 
 	return val.(enum.Val), nil
+}
+
+func (g *genericReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeEnumSlice {
+		return nil, errors.New(name + "was expected to be TypeEnumSlice but was not")
+	}
+
+	return val.(enum.EnumSlice), nil
 }
 
 func (g *genericReader) SetIntSliceProp(name string, val []int) error {
@@ -1804,6 +1958,32 @@ func (g *genericReader) ConfigureEnumProp(name string, val enum.Val) error {
 	}
 
 	g.types[name] = TypeEnum
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) ConfigureEnumSliceProp(name string, val enum.EnumSlice) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeEnumSlice {
+		return errors.New("That property was already set but was not an enum slice")
+	}
+
+	g.types[name] = TypeEnumSlice
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) ConfigureImmutableEnumSliceProp(name string, val enum.ImmutableEnumSlice) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeEnumSlice {
+		return errors.New("That property was already set but was not an enum slice")
+	}
+
+	g.types[name] = TypeEnumSlice
 	g.values[name] = val
 
 	return nil

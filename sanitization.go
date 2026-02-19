@@ -192,19 +192,16 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) (ImmutableState, error) {
 	return sanitized, nil
 }
 
-func groupMembershipForPlayerState(playerState ImmutableSubState) (map[int]bool, map[string]bool) {
-	groupMembership := make(map[int]bool)
+func groupMembershipForPlayerState(playerState ImmutableSubState) (enum.ImmutableMembershipSet, map[string]bool) {
+	var groupMembership enum.ImmutableMembershipSet
 	stringGroupMembership := make(map[string]bool)
 	if playerState != nil {
 		delegate := playerState.ImmutableState().Manager().Delegate()
 		groupMembership = delegate.GroupMembership(playerState)
-		if groupMembership == nil {
-			groupMembership = make(map[int]bool)
-		}
 		groupEnum := delegate.GroupEnum()
-		if groupEnum != nil {
-			for k, v := range groupMembership {
-				stringGroupMembership[groupEnum.String(k)] = v
+		if groupMembership != nil && groupEnum != nil {
+			for _, k := range groupMembership.Members() {
+				stringGroupMembership[groupEnum.String(k)] = true
 			}
 		}
 	}
@@ -523,6 +520,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		e := input.(enum.Val).ImmutableCopy()
 		res, _ := e.Enum().NewImmutableVal(e.Enum().DefaultValue())
 		return res
+	case TypeEnumSlice:
+		return applySanitizationPolicyEnumSlice(policy, input.(enum.EnumSlice))
 	}
 
 	//Now the ones that are non-stack containers
@@ -636,6 +635,36 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 	//if we get to here it's either PolicyHidden, or an unknown policy. If the
 	//latter, it's better to fail by being restrictive.
 	return make([]PlayerIndex, 0)
+}
+
+func applySanitizationPolicyEnumSlice(policy Policy, input enum.EnumSlice) enum.EnumSlice {
+	if policy == PolicyVisible {
+		return input
+	}
+
+	result := input.Enum().NewEnumSlice()
+
+	if policy == PolicyLen || policy == PolicyOrder {
+		//Return slice of same length but with default values
+		defaultVal := input.Enum().DefaultValue()
+		vals := make([]enum.EnumKey, input.Len())
+		for i := range vals {
+			vals[i] = defaultVal
+		}
+		result.SetValues(vals)
+		return result
+	}
+
+	if policy == PolicyNonEmpty {
+		if input.Len() > 0 {
+			result.Append(input.Enum().DefaultValue())
+		}
+		return result
+	}
+
+	//if we get to here it's either PolicyHidden, or an unknown policy. If the
+	//latter, it's better to fail by being restrictive.
+	return result
 }
 
 func (b *board) applySanitizationPolicy(policy Policy) {

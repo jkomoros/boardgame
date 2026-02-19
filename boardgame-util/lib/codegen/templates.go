@@ -368,10 +368,10 @@ func ({{firstLetter .delegateName}} *{{.delegateName}}) ConfigureEnums() *enum.S
 
 `
 
-const enumItemTemplateText = `{{if .firstNewKey}} 
+const enumItemTemplateText = `{{if .firstNewKey}}
 //Implicitly created constants for {{.prefix}}
 const (
-	{{.firstNewKey}} = iota - 9223372036854775808
+	{{.firstNewKey}} enum.EnumKey = iota - 9223372036854775808
 {{range .restNewKeys -}}
 	{{.}}
 {{- end -}}
@@ -379,12 +379,12 @@ const (
 
 {{ end -}}
 //{{.prefix}}Enum is the enum.Enum for {{.prefix}}
-var {{.prefix}}Enum = enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[int]string{
+var {{.prefix}}Enum = enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[enum.EnumKey]string{
 	{{ $prefix := .prefix -}}
 	{{range $name, $value := .values -}}
 	{{$name}}: "{{$value}}",
 	{{end}}
-{{if .parents -}} }, map[int]int{ 
+{{if .parents -}} }, map[enum.EnumKey]enum.EnumKey{
 	{{ $prefix := .prefix -}}
 	{{range $name, $value := .parents -}}
 	{{$name}}: {{$value}},

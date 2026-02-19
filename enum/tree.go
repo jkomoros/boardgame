@@ -2,7 +2,7 @@ package enum
 
 import (
 	"errors"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -19,34 +19,34 @@ type TreeEnum interface {
 
 	//IsLeaf returns true if the given value in the enum represents a leaf (as
 	//opposed to branch)
-	IsLeaf(val int) bool
+	IsLeaf(val EnumKey) bool
 
 	//Parent returns the value of the node who is the direct parent. The root
 	//will return itself.
-	Parent(val int) int
+	Parent(val EnumKey) EnumKey
 
 	//Ancestors returns the path from the root down to the given value,
 	//INCLUDING the value itself.
-	Ancestors(val int) []int
+	Ancestors(val EnumKey) []EnumKey
 
 	//Children returns all of the val beneath this branch that are direct
 	//descendents, either including or excluding non-leaf nodes.
-	Children(node int, includeBranches bool) []int
+	Children(node EnumKey, includeBranches bool) []EnumKey
 
 	//Descendants returns all enumvals beneath this point, recursively.
-	Descendants(node int, includeBranches bool) []int
+	Descendants(node EnumKey, includeBranches bool) []EnumKey
 
 	//BranchDefaultValue is like DefaultVal, but only for nodes underneath
 	//this node. It returns the left-most leaf node under this node. If node
 	//is a leaf, it returns itself. Otherwise, it returns the
 	//BranchDefaultValue of its first child.
-	BranchDefaultValue(node int) int
+	BranchDefaultValue(node EnumKey) EnumKey
 
-	NewImmutableTreeVal(val int) (ImmutableTreeVal, error)
+	NewImmutableTreeVal(val EnumKey) (ImmutableTreeVal, error)
 	NewTreeVal() TreeVal
 
-	MustNewImmutableTreeVal(val int) ImmutableTreeVal
-	MustNewTreeVal(val int) TreeVal
+	MustNewImmutableTreeVal(val EnumKey) ImmutableTreeVal
+	MustNewTreeVal(val EnumKey) TreeVal
 }
 
 //TreeValGetters is the collection of methods that TreeVals have beyodn normal
@@ -57,20 +57,20 @@ type TreeValGetters interface {
 	IsLeaf() bool
 
 	//Parent is a convenience for val.Enum().TreeEnum().Parent(val).
-	Parent() int
+	Parent() EnumKey
 
 	//Ancestors is a convenience for val.Enum().TreeEnum().Ancestors(val).
-	Ancestors() []int
+	Ancestors() []EnumKey
 
 	//Children is a convenience for val.Enum().TreeEnum().Children(val).
-	Children(includeBranches bool) []int
+	Children(includeBranches bool) []EnumKey
 
 	//Descendants is a convenience for val.Enum().TreeEnum().Descendents(val).
-	Descendants(includeBranches bool) []int
+	Descendants(includeBranches bool) []EnumKey
 
 	//BranchDefaultValue is a convenience for
 	//val.Enum().TreeEnum().BranchDefaulValue(val).
-	BranchDefaultValue() int
+	BranchDefaultValue() EnumKey
 
 	//NodeString returns the name of this specific node, whereas String
 	//returns the fully qualified name. So whereas String() might return
@@ -93,7 +93,7 @@ type TreeVal interface {
 //MustAddTree is like AddTree, but instead of an error it will panic if the
 //enum cannot be added. This is useful for defining your enums at the package
 //level outside of an init().
-func (s *Set) MustAddTree(enumName string, values map[int]string, parents map[int]int) TreeEnum {
+func (s *Set) MustAddTree(enumName string, values map[EnumKey]string, parents map[EnumKey]EnumKey) TreeEnum {
 	result, err := s.AddTree(enumName, values, parents)
 
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *Set) MustAddTree(enumName string, values map[int]string, parents map[in
 //qualified name (including all of the ancestors' node names) are unique.
 //Typically you rely on `boardgame-util codegen` to create these on your
 //behalf, because the initial set-up is finicky with the two maps.
-func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]int) (TreeEnum, error) {
+func (s *Set) AddTree(enumName string, values map[EnumKey]string, parents map[EnumKey]EnumKey) (TreeEnum, error) {
 
 	str, ok := values[0]
 
@@ -138,26 +138,26 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 	//Verify that values and parents inclue the same keys--that is, each item denotes its parent.
 	for val := range values {
 		if _, ok := parents[val]; !ok {
-			return nil, errors.New("In " + enumName + " missing parent information for key: " + strconv.Itoa(val))
+			return nil, errors.New("In " + enumName + " missing parent information for key: " + strconv.Itoa(int(val)))
 		}
 	}
 	for parent := range parents {
 		if _, ok := values[parent]; !ok {
-			return nil, errors.New("In " + enumName + " parent information provided for " + strconv.Itoa(parent) + " but no corresponding value provided.")
+			return nil, errors.New("In " + enumName + " parent information provided for " + strconv.Itoa(int(parent)) + " but no corresponding value provided.")
 		}
 	}
 
 	//Verify that each parent corresponds to a value in the values map.
 	for child, parent := range parents {
 		if _, ok := values[parent]; !ok {
-			return nil, errors.New("In " + enumName + " entry in parent map names a parent that is not in the enum: " + strconv.Itoa(parent) + "," + strconv.Itoa(child))
+			return nil, errors.New("In " + enumName + " entry in parent map names a parent that is not in the enum: " + strconv.Itoa(int(parent)) + "," + strconv.Itoa(int(child)))
 		}
 	}
 
 	//Verify that the string values don't contain the delimiter sequence
 	for val, str := range values {
 		if strings.Contains(str, TreeNodeDelimiter) {
-			return nil, errors.New("In " + enumName + " the node string value for " + strconv.Itoa(val) + " contains the delimiter expression, which is illegal")
+			return nil, errors.New("In " + enumName + " the node string value for " + strconv.Itoa(int(val)) + " contains the delimiter expression, which is illegal")
 		}
 	}
 
@@ -167,7 +167,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 			continue
 		}
 		if child == parent {
-			return nil, errors.New("In " + enumName + " a non-root node had itself as its own parent: " + strconv.Itoa(child))
+			return nil, errors.New("In " + enumName + " a non-root node had itself as its own parent: " + strconv.Itoa(int(child)))
 		}
 	}
 
@@ -175,7 +175,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 	//We know the root connects to itself since we already verfied that. So
 	//keep track of each number and whether it connects to root.
-	connectedToRoot := make(map[int]bool, len(parents))
+	connectedToRoot := make(map[EnumKey]bool, len(parents))
 
 	for child, parent := range parents {
 		if connectedToRoot[child] {
@@ -190,7 +190,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 			continue
 		}
 		//OK, haven't seen either, we need to walk up until we get to root.
-		visitedNodes := make(map[int]bool, len(parents))
+		visitedNodes := make(map[EnumKey]bool, len(parents))
 		currentNode := child
 		for currentNode != 0 {
 			visitedNodes[currentNode] = true
@@ -206,7 +206,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 	}
 
 	//Preprocess to create the tree map
-	childrenMap := make(map[int][]int, len(parents))
+	childrenMap := make(map[EnumKey][]EnumKey, len(parents))
 	for child, parent := range parents {
 		if child == 0 {
 			continue
@@ -214,20 +214,19 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 		childrenMap[parent] = append(childrenMap[parent], child)
 	}
 	for node := range childrenMap {
-		//TODO: verify that this actually sorts in place
-		sort.Ints(childrenMap[node])
+		slices.Sort(childrenMap[node])
 	}
 
 	//values is things like "Normal" and "Deal Cards", but we need to provide
 	//things like "Nomral - Deal Cards" to the underlying enum.
-	fullyQualifiedValues := make(map[int]string, len(values))
+	fullyQualifiedValues := make(map[EnumKey]string, len(values))
 	for node := range values {
 
-		var nonRootAncestors []int
+		var nonRootAncestors []EnumKey
 
 		currentNode := node
 		for currentNode != 0 {
-			nonRootAncestors = append([]int{currentNode}, nonRootAncestors...)
+			nonRootAncestors = append([]EnumKey{currentNode}, nonRootAncestors...)
 			currentNode = parents[currentNode]
 		}
 
@@ -253,7 +252,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 }
 
-func (e *enum) IsLeaf(val int) bool {
+func (e *enum) IsLeaf(val EnumKey) bool {
 	if e.children == nil {
 		return false
 	}
@@ -261,26 +260,26 @@ func (e *enum) IsLeaf(val int) bool {
 	return len(e.children[val]) == 0
 }
 
-func (e *enum) Parent(val int) int {
+func (e *enum) Parent(val EnumKey) EnumKey {
 	return e.parents[val]
 }
 
-func (e *enum) Ancestors(val int) []int {
+func (e *enum) Ancestors(val EnumKey) []EnumKey {
 	//Base case
 	if val == 0 {
-		return []int{0}
+		return []EnumKey{0}
 	}
 
 	return append(e.Ancestors(e.Parent(val)), val)
 
 }
 
-func (e *enum) Children(node int, includeBranches bool) []int {
+func (e *enum) Children(node EnumKey, includeBranches bool) []EnumKey {
 	if e.children == nil {
 		return nil
 	}
 
-	var result []int
+	var result []EnumKey
 
 	for _, val := range e.children[node] {
 		if !includeBranches && !e.IsLeaf(val) {
@@ -292,15 +291,15 @@ func (e *enum) Children(node int, includeBranches bool) []int {
 	return result
 }
 
-func (e *enum) Descendants(node int, includeBranches bool) []int {
+func (e *enum) Descendants(node EnumKey, includeBranches bool) []EnumKey {
 	if e.children == nil {
 		return nil
 	}
 	if e.IsLeaf(node) {
-		return []int{}
+		return []EnumKey{}
 	}
 
-	var result []int
+	var result []EnumKey
 
 	for _, child := range e.Children(node, true) {
 		result = append(result, e.descendantsRecursive(child, includeBranches)...)
@@ -309,19 +308,19 @@ func (e *enum) Descendants(node int, includeBranches bool) []int {
 	return result
 }
 
-func (e *enum) descendantsRecursive(node int, includeBranches bool) []int {
+func (e *enum) descendantsRecursive(node EnumKey, includeBranches bool) []EnumKey {
 	if e.children == nil {
 		return nil
 	}
 
 	if e.IsLeaf(node) {
-		return []int{node}
+		return []EnumKey{node}
 	}
 
-	var result []int
+	var result []EnumKey
 
 	if includeBranches {
-		result = []int{node}
+		result = []EnumKey{node}
 	}
 
 	for _, val := range e.Children(node, true) {
@@ -332,7 +331,7 @@ func (e *enum) descendantsRecursive(node int, includeBranches bool) []int {
 
 }
 
-func (e *enum) BranchDefaultValue(node int) int {
+func (e *enum) BranchDefaultValue(node EnumKey) EnumKey {
 	if e.children == nil {
 		return e.DefaultValue()
 	}
@@ -344,7 +343,7 @@ func (e *enum) BranchDefaultValue(node int) int {
 	return e.BranchDefaultValue(e.Children(node, true)[0])
 }
 
-func (e *enum) NewImmutableTreeVal(val int) (ImmutableTreeVal, error) {
+func (e *enum) NewImmutableTreeVal(val EnumKey) (ImmutableTreeVal, error) {
 	v := e.NewTreeVal()
 	if err := v.SetValue(val); err != nil {
 		return nil, err
@@ -359,11 +358,11 @@ func (e *enum) NewTreeVal() TreeVal {
 	}
 }
 
-func (e *enum) MustNewImmutableTreeVal(val int) ImmutableTreeVal {
+func (e *enum) MustNewImmutableTreeVal(val EnumKey) ImmutableTreeVal {
 	return e.MustNewTreeVal(val)
 }
 
-func (e *enum) MustNewTreeVal(val int) TreeVal {
+func (e *enum) MustNewTreeVal(val EnumKey) TreeVal {
 	v := e.NewTreeVal()
 	if err := v.SetValue(val); err != nil {
 		panic("Couldn't set string value: " + err.Error())
@@ -375,23 +374,23 @@ func (v *variable) IsLeaf() bool {
 	return v.Enum().TreeEnum().IsLeaf(v.Value())
 }
 
-func (v *variable) Parent() int {
+func (v *variable) Parent() EnumKey {
 	return v.Enum().TreeEnum().Parent(v.Value())
 }
 
-func (v *variable) Ancestors() []int {
+func (v *variable) Ancestors() []EnumKey {
 	return v.Enum().TreeEnum().Ancestors(v.Value())
 }
 
-func (v *variable) Children(includeBranches bool) []int {
+func (v *variable) Children(includeBranches bool) []EnumKey {
 	return v.Enum().TreeEnum().Children(v.Value(), includeBranches)
 }
 
-func (v *variable) Descendants(includeBranches bool) []int {
+func (v *variable) Descendants(includeBranches bool) []EnumKey {
 	return v.Enum().TreeEnum().Descendants(v.Value(), includeBranches)
 }
 
-func (v *variable) BranchDefaultValue() int {
+func (v *variable) BranchDefaultValue() EnumKey {
 	return v.Enum().TreeEnum().BranchDefaultValue(v.Value())
 }
 

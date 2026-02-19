@@ -14,7 +14,7 @@ import (
 //already has a base PhaseToStart, and to keep the number of interfaces
 //smaller.
 type phaseToStarter interface {
-	PhaseToStart(currentPhase int) int
+	PhaseToStart(currentPhase enum.EnumKey) enum.EnumKey
 }
 
 //StartPhase is a simple move that, when it's its turn in the phase move
@@ -48,7 +48,12 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 
 	delegate := exampleState.Manager().Delegate()
 
-	phaseToStart := phaseStarter.PhaseToStart(delegate.CurrentPhase(exampleState))
+	currentPhaseVal := delegate.CurrentPhase(exampleState)
+	var currentPhaseKey enum.EnumKey
+	if currentPhaseVal != nil {
+		currentPhaseKey = currentPhaseVal.Value()
+	}
+	phaseToStart := phaseStarter.PhaseToStart(currentPhaseKey)
 
 	if phaseStarter.PhaseToStart(phaseToStart) < 0 {
 		return errors.New("Phase to start returned a negative value, which signals an error. Did you call WithPhaseToStart?")
@@ -80,17 +85,17 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 //PhaseToStart uses the Phase provided via StartPhaseMoveConfig constructor
 //(or 0 if NewStartPhaseConfig wasn't used). If you want a different behavior,
 //override PhaseToStart in your embedding move.
-func (s *StartPhase) PhaseToStart(currentPhase int) int {
+func (s *StartPhase) PhaseToStart(currentPhase enum.EnumKey) enum.EnumKey {
 	config := s.CustomConfiguration()
 	val, ok := config[configPropStartPhase]
 	if !ok {
 		return -1
 	}
-	intVal, ok := val.(int)
+	keyVal, ok := val.(enum.EnumKey)
 	if !ok {
 		return -1
 	}
-	return intVal
+	return keyVal
 }
 
 //Apply call BeforeLeavePhase() (if it exists), then BeforeEnterPhase() (if it
@@ -104,9 +109,15 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 		return errors.New("The embedding move does not have PhaseToStart()")
 	}
 
-	currentPhase := state.Manager().Delegate().CurrentPhase(state)
+	delegate := state.Manager().Delegate()
 
-	phaseToEnter := phaseEnterer.PhaseToStart(currentPhase)
+	currentPhaseVal := delegate.CurrentPhase(state)
+	var currentPhaseKey enum.EnumKey
+	if currentPhaseVal != nil {
+		currentPhaseKey = currentPhaseVal.Value()
+	}
+
+	phaseToEnter := phaseEnterer.PhaseToStart(currentPhaseKey)
 
 	phaseSetter, ok := state.GameState().(interfaces.CurrentPhaseSetter)
 
@@ -117,7 +128,11 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 	beforeLeaver, ok := state.GameState().(interfaces.BeforeLeavePhaser)
 
 	if ok {
-		if err := beforeLeaver.BeforeLeavePhase(currentPhase, state); err != nil {
+		// currentPhaseVal is already an ImmutableVal from delegate.CurrentPhase
+		if currentPhaseVal == nil {
+			return errors.New("Before Leave Phase: current phase is nil")
+		}
+		if err := beforeLeaver.BeforeLeavePhase(currentPhaseVal, state); err != nil {
 			return errors.New("Before Leave Phase errored: " + err.Error())
 		}
 	}
@@ -125,7 +140,15 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 	beforeEnterer, ok := state.GameState().(interfaces.BeforeEnterPhaser)
 
 	if ok {
-		if err := beforeEnterer.BeforeEnterPhase(phaseToEnter, state); err != nil {
+		phaseEnum := delegate.PhaseEnum()
+		if phaseEnum == nil {
+			return errors.New("Before Enter Phase: no phase enum configured")
+		}
+		phaseToEnterVal, err := phaseEnum.NewImmutableVal(phaseToEnter)
+		if err != nil {
+			return errors.New("Before Enter Phase: could not create val for phase: " + err.Error())
+		}
+		if err := beforeEnterer.BeforeEnterPhase(phaseToEnterVal, state); err != nil {
 			return errors.New("Before Enter Phase errored: " + err.Error())
 		}
 	}
@@ -167,16 +190,16 @@ func (s *StartPhase) phaseStringValue() string {
 		return "InvalidPhase"
 	}
 
-	intVal, ok := val.(int)
+	keyVal, ok := val.(enum.EnumKey)
 
 	if !ok {
 		return "InvalidPhase"
 	}
 
 	if phaseEnum != nil {
-		return phaseEnum.String(intVal)
+		return phaseEnum.String(keyVal)
 	}
 
-	return strconv.Itoa(intVal)
+	return strconv.Itoa(int(keyVal))
 
 }
