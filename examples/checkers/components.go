@@ -148,12 +148,12 @@ func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int
 		oppositeG = graphUpward
 	}
 
-	for _, val := range g.Inner().Neighbors(enum.EnumKey(componentIndex)) {
+	for _, val := range g.NeighborsByKey(enum.EnumKey(componentIndex)) {
 		nextSpaces = append(nextSpaces, int(val))
 	}
 
 	if crowned {
-		for _, val := range oppositeG.Inner().Neighbors(enum.EnumKey(componentIndex)) {
+		for _, val := range oppositeG.NeighborsByKey(enum.EnumKey(componentIndex)) {
 			nextSpaces = append(nextSpaces, int(val))
 		}
 	}
@@ -206,7 +206,7 @@ func (t *token) LegalCaptureSpaces(state boardgame.ImmutableState, componentInde
 			continue
 		}
 
-		if spaces.ComponentAt(int(finalSpace)) == nil {
+		if spaces.ComponentAtKey(finalSpace) == nil {
 			//An empty, real space!
 			result = append(result, int(finalSpace))
 		}

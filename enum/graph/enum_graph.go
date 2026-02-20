@@ -162,3 +162,32 @@ func (eg *EnumGraph) AddEdgesByKey(from enum.EnumKey, to ...enum.EnumKey) error 
 func (eg *EnumGraph) SetEdgeWeightByKey(from, to enum.EnumKey, weight int) error {
 	return eg.inner.SetEdgeWeight(from, to, weight)
 }
+
+//ConnectedByKey returns whether from is directly connected to to, using
+//EnumKey values directly.
+func (eg *EnumGraph) ConnectedByKey(from, to enum.EnumKey) bool {
+	return eg.inner.Connected(from, to)
+}
+
+//NeighborsByKey returns all nodes adjacent to start as EnumKey values.
+func (eg *EnumGraph) NeighborsByKey(start enum.EnumKey) []enum.EnumKey {
+	return eg.inner.Neighbors(start)
+}
+
+//ShortestPathByKey returns the shortest path between start and end as
+//EnumKey values.
+func (eg *EnumGraph) ShortestPathByKey(start, end enum.EnumKey) ([]enum.EnumKey, error) {
+	return eg.inner.ShortestPath(start, end)
+}
+
+//DistanceByKey returns the total weight of the shortest path between start
+//and end, using EnumKey values directly.
+func (eg *EnumGraph) DistanceByKey(start, end enum.EnumKey) (int, error) {
+	return eg.inner.Distance(start, end)
+}
+
+//EdgeWeightByKey returns the weight of the edge between two nodes, using
+//EnumKey values directly.
+func (eg *EnumGraph) EdgeWeightByKey(from, to enum.EnumKey) int {
+	return eg.inner.EdgeWeight(from, to)
+}

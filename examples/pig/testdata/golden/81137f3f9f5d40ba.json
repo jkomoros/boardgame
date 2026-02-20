@@ -21,7 +21,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:00.000803Z",
 			"Blob": {
@@ -32,7 +32,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:00.001886Z",
 			"Blob": {}
@@ -41,7 +41,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:11.403758Z",
 			"Blob": {
@@ -52,7 +52,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:11.40676Z",
 			"Blob": {
@@ -63,7 +63,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:12.173547Z",
 			"Blob": {
@@ -74,7 +74,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:12.174435Z",
 			"Blob": {
@@ -85,7 +85,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:13.040634Z",
 			"Blob": {
@@ -96,7 +96,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:13.042591Z",
 			"Blob": {
@@ -107,7 +107,7 @@
 			"Name": "Done Turn",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:13.94322Z",
 			"Blob": {
@@ -118,7 +118,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:13.944165Z",
 			"Blob": {}
@@ -127,7 +127,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:15.076622Z",
 			"Blob": {
@@ -138,7 +138,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:15.077542Z",
 			"Blob": {
@@ -149,7 +149,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:15.74681Z",
 			"Blob": {
@@ -160,7 +160,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:15.748395Z",
 			"Blob": {
@@ -171,7 +171,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:16.388358Z",
 			"Blob": {
@@ -182,7 +182,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:16.389917Z",
 			"Blob": {
@@ -193,7 +193,7 @@
 			"Name": "Done Turn",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:17.341772Z",
 			"Blob": {
@@ -204,7 +204,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:17.342868Z",
 			"Blob": {}
@@ -213,7 +213,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:18.654431Z",
 			"Blob": {
@@ -224,7 +224,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:18.655309Z",
 			"Blob": {
@@ -235,7 +235,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -2,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:18.656403Z",
 			"Blob": {}
@@ -244,7 +244,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:19.308943Z",
 			"Blob": {
@@ -255,7 +255,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:19.310695Z",
 			"Blob": {
@@ -266,7 +266,7 @@
 			"Name": "Roll Dice",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:19.900344Z",
 			"Blob": {
@@ -277,7 +277,7 @@
 			"Name": "Count Die",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:19.902473Z",
 			"Blob": {
@@ -288,7 +288,7 @@
 			"Name": "Done Turn",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:20.897559Z",
 			"Blob": {
@@ -299,7 +299,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:20.898903Z",
 			"Blob": {}

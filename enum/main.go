@@ -249,7 +249,7 @@ import (
 	"strings"
 )
 
-//EnumKey is a type-safe alias for int, used for all enum values (keys).
+//EnumKey is a defined type based on int, used for all enum values (keys).
 //This provides clarity in APIs and prevents accidentally mixing up enum keys
 //with other integer values.
 type EnumKey int
@@ -469,17 +469,30 @@ func (e *enumSlice) Copy() EnumSlice {
 }
 
 func (e *enumSlice) SetValues(vals []EnumKey) {
-	result := make([]EnumKey, len(vals))
-	copy(result, vals)
-	e.vals = result
+	filtered := make([]EnumKey, 0, len(vals))
+	for _, v := range vals {
+		if e.enum != nil && !e.enum.Valid(v) {
+			continue
+		}
+		filtered = append(filtered, v)
+	}
+	e.vals = filtered
 }
 
 func (e *enumSlice) SetValue(i int, val EnumKey) {
+	if e.enum != nil && !e.enum.Valid(val) {
+		return
+	}
 	e.vals[i] = val
 }
 
 func (e *enumSlice) Append(vals ...EnumKey) {
-	e.vals = append(e.vals, vals...)
+	for _, v := range vals {
+		if e.enum != nil && !e.enum.Valid(v) {
+			continue
+		}
+		e.vals = append(e.vals, v)
+	}
 }
 
 func (e *enumSlice) Truncate(length int) {

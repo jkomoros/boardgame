@@ -67,7 +67,7 @@ func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 		return errors.New("No more components to place")
 	}
 
-	if game.Spaces.ComponentAt(int(m.TargetIndex.Value())) != nil {
+	if game.Spaces.ComponentAtKey(m.TargetIndex.Value()) != nil {
 		return errors.New("That space is already filled")
 	}
 
@@ -99,7 +99,7 @@ func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	g := state.ImmutableGameState().(*gameState)
 
-	c := g.Spaces.ComponentAt(int(m.TokenIndexToMove.Value()))
+	c := g.Spaces.ComponentAtKey(m.TokenIndexToMove.Value())
 
 	if c == nil {
 		return errors.New("That space does not have a component in it")
@@ -115,7 +115,7 @@ func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 		return errors.New("you can only move to spaces that are black")
 	}
 
-	if g.Spaces.ComponentAt(int(m.SpaceIndex.Value())) != nil {
+	if g.Spaces.ComponentAtKey(m.SpaceIndex.Value()) != nil {
 		return errors.New("the space you're trying to move to is occupied")
 	}
 
@@ -142,7 +142,7 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
 
 	p := state.CurrentPlayer().(*playerState)
 
-	if err := g.Spaces.SwapComponents(int(m.TokenIndexToMove.Value()), int(m.SpaceIndex.Value())); err != nil {
+	if err := g.Spaces.SwapComponentsByKey(m.TokenIndexToMove.Value(), m.SpaceIndex.Value()); err != nil {
 		return errors.New("Couldn't move token: " + err.Error())
 	}
 
@@ -169,7 +169,7 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
 		return errors.New("Invalid result from range to value")
 	}
 
-	c := g.Spaces.ComponentAt(int(middleSpace))
+	c := g.Spaces.ComponentAtKey(middleSpace)
 
 	tokenCaptured := false
 
@@ -179,7 +179,7 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
 
 		if !tokenValues.Color.Equals(p.Color) {
 			tokenCaptured = true
-			if err := g.Spaces.ComponentAt(int(middleSpace)).MoveToLastSlot(p.CapturedTokens); err != nil {
+			if err := g.Spaces.ComponentAtKey(middleSpace).MoveToLastSlot(p.CapturedTokens); err != nil {
 				return errors.New("Couldn't capture token: " + err.Error())
 			}
 		}
@@ -192,7 +192,7 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
 	} else {
 		//The turn is also over if there isn't another cpature space to move
 		//to.
-		t := g.Spaces.ComponentAt(int(m.SpaceIndex.Value())).Values().(*token)
+		t := g.Spaces.ComponentAtKey(m.SpaceIndex.Value()).Values().(*token)
 		if len(t.LegalCaptureSpaces(state, int(m.SpaceIndex.Value()))) == 0 {
 			p.FinishedTurn = true
 		}

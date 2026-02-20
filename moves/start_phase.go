@@ -127,11 +127,7 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 
 	beforeLeaver, ok := state.GameState().(interfaces.BeforeLeavePhaser)
 
-	if ok {
-		// currentPhaseVal is already an ImmutableVal from delegate.CurrentPhase
-		if currentPhaseVal == nil {
-			return errors.New("Before Leave Phase: current phase is nil")
-		}
+	if ok && currentPhaseVal != nil {
 		if err := beforeLeaver.BeforeLeavePhase(currentPhaseVal, state); err != nil {
 			return errors.New("Before Leave Phase errored: " + err.Error())
 		}
@@ -141,15 +137,14 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 
 	if ok {
 		phaseEnum := delegate.PhaseEnum()
-		if phaseEnum == nil {
-			return errors.New("Before Enter Phase: no phase enum configured")
-		}
-		phaseToEnterVal, err := phaseEnum.NewImmutableVal(phaseToEnter)
-		if err != nil {
-			return errors.New("Before Enter Phase: could not create val for phase: " + err.Error())
-		}
-		if err := beforeEnterer.BeforeEnterPhase(phaseToEnterVal, state); err != nil {
-			return errors.New("Before Enter Phase errored: " + err.Error())
+		if phaseEnum != nil {
+			phaseToEnterVal, err := phaseEnum.NewImmutableVal(phaseToEnter)
+			if err != nil {
+				return errors.New("Before Enter Phase: could not create val for phase: " + err.Error())
+			}
+			if err := beforeEnterer.BeforeEnterPhase(phaseToEnterVal, state); err != nil {
+				return errors.New("Before Enter Phase errored: " + err.Error())
+			}
 		}
 	}
 

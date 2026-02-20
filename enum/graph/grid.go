@@ -25,7 +25,7 @@ func DirectionUp(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 func DirectionDown(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
-	return fromIndexes[0] > toIndexes[0]
+	return fromIndexes[0] < toIndexes[0]
 }
 
 //DirectionLeft will return true if to is in a strictly lower-indexed col then
@@ -41,7 +41,7 @@ func DirectionLeft(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 func DirectionRight(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
-	return fromIndexes[1] > toIndexes[1]
+	return fromIndexes[1] < toIndexes[1]
 }
 
 //DirectionPerpendicular will return true if to is perpendicular to from (in the

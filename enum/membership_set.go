@@ -17,6 +17,10 @@ type ImmutableMembershipSet interface {
 	Members() []EnumKey
 	//Len returns the number of members in the set.
 	Len() int
+	//ImmutableCopy returns an immutable copy of this membership set.
+	ImmutableCopy() ImmutableMembershipSet
+	//Copy returns a mutable copy of this membership set.
+	Copy() MembershipSet
 }
 
 //MembershipSet represents a mutable set of enum values from a particular enum.
@@ -87,4 +91,16 @@ func (m *membershipSet) Add(val EnumKey) {
 
 func (m *membershipSet) Remove(val EnumKey) {
 	delete(m.data, val)
+}
+
+func (m *membershipSet) Copy() MembershipSet {
+	data := make(map[EnumKey]bool, len(m.data))
+	for k, v := range m.data {
+		data[k] = v
+	}
+	return &membershipSet{enum: m.enum, data: data}
+}
+
+func (m *membershipSet) ImmutableCopy() ImmutableMembershipSet {
+	return m.Copy()
 }

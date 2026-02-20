@@ -466,6 +466,46 @@ func TestEnumSlice(t *testing.T) {
 	assert.For(t).ThatActual(s2.Values()).Equals(s.Values())
 }
 
+func TestEnumSliceValidation(t *testing.T) {
+	set := NewSet()
+
+	const (
+		ColorBlue = iota
+		ColorGreen
+		ColorRed
+	)
+
+	colorEnum, err := set.Add("Color", map[EnumKey]string{
+		ColorBlue:  "Blue",
+		ColorGreen: "Green",
+		ColorRed:   "Red",
+	})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	s := colorEnum.NewEnumSlice()
+
+	// Append with invalid values should silently skip them
+	s.Append(ColorBlue, 99, ColorRed)
+	assert.For(t).ThatActual(s.Len()).Equals(2)
+	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorBlue))
+	assert.For(t).ThatActual(s.Value(1)).Equals(EnumKey(ColorRed))
+
+	// SetValue with invalid value should be a no-op
+	s.SetValue(0, 99)
+	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorBlue))
+
+	// SetValue with valid value should work
+	s.SetValue(0, ColorGreen)
+	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorGreen))
+
+	// SetValues with invalid values should filter them out
+	s.SetValues([]EnumKey{ColorRed, 99, ColorBlue, 100})
+	assert.For(t).ThatActual(s.Len()).Equals(2)
+	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorRed))
+	assert.For(t).ThatActual(s.Value(1)).Equals(EnumKey(ColorBlue))
+}
+
 func TestMembershipSet(t *testing.T) {
 	set := NewSet()
 
@@ -534,4 +574,27 @@ func TestMembershipSet(t *testing.T) {
 	assert.For(t).ThatActual(withInvalid.Len()).Equals(2)
 	assert.For(t).ThatActual(withInvalid.Contains(GroupA)).IsTrue()
 	assert.For(t).ThatActual(withInvalid.Contains(GroupB)).IsTrue()
+
+	// Copy returns an independent mutable copy
+	original := e.NewMembershipSet(GroupA, GroupB)
+	copied := original.Copy()
+	assert.For(t).ThatActual(copied.Len()).Equals(2)
+	assert.For(t).ThatActual(copied.Contains(GroupA)).IsTrue()
+	assert.For(t).ThatActual(copied.Contains(GroupB)).IsTrue()
+
+	// Mutating the copy does not affect the original
+	copied.Remove(GroupA)
+	copied.Add(GroupC)
+	assert.For(t).ThatActual(copied.Len()).Equals(2)
+	assert.For(t).ThatActual(copied.Contains(GroupA)).IsFalse()
+	assert.For(t).ThatActual(copied.Contains(GroupC)).IsTrue()
+	assert.For(t).ThatActual(original.Len()).Equals(2)
+	assert.For(t).ThatActual(original.Contains(GroupA)).IsTrue()
+	assert.For(t).ThatActual(original.Contains(GroupC)).IsFalse()
+
+	// ImmutableCopy returns an independent immutable copy
+	immCopy := original.ImmutableCopy()
+	assert.For(t).ThatActual(immCopy.Len()).Equals(2)
+	assert.For(t).ThatActual(immCopy.Contains(GroupA)).IsTrue()
+	assert.For(t).ThatActual(immCopy.Contains(GroupB)).IsTrue()
 }

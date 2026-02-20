@@ -177,6 +177,9 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				}
 				return errors.New(propName + " did not return an EnumSlice as expected: " + err.Error())
 			}
+			if enumSliceVal == nil {
+				return errors.New(propName + " returned nil enum slice on input")
+			}
 			outputEnumSlice, err := outputContainer.EnumSliceProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
@@ -184,6 +187,9 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 					continue
 				}
 				return errors.New(propName + " could not get mutable enum slice on output: " + err.Error())
+			}
+			if outputEnumSlice == nil {
+				return errors.New(propName + " returned nil enum slice on output")
 			}
 			outputEnumSlice.SetValues(enumSliceVal.Values())
 		case TypeStack:

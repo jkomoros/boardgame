@@ -823,7 +823,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	currentPhaseVal := g.manager.delegate.CurrentPhase(currentState)
-	currentPhase := enum.EnumKey(-1)
+	var currentPhase enum.EnumKey
 	if currentPhaseVal != nil {
 		currentPhase = currentPhaseVal.Value()
 	}

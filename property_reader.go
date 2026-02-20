@@ -1472,7 +1472,7 @@ func (g *genericReader) IntProp(name string) (int, error) {
 	}
 
 	if propType != TypeInt {
-		return 0, errors.New(name + "was expected to be TypeInt but was not")
+		return 0, errors.New(name + " was expected to be TypeInt but was not")
 	}
 
 	return val.(int), nil
@@ -1492,7 +1492,7 @@ func (g *genericReader) BoolProp(name string) (bool, error) {
 	}
 
 	if propType != TypeBool {
-		return false, errors.New(name + "was expected to be TypeBool but was not")
+		return false, errors.New(name + " was expected to be TypeBool but was not")
 	}
 
 	return val.(bool), nil
@@ -1512,7 +1512,7 @@ func (g *genericReader) StringProp(name string) (string, error) {
 	}
 
 	if propType != TypeString {
-		return "", errors.New(name + "was expected to be TypeString but was not")
+		return "", errors.New(name + " was expected to be TypeString but was not")
 	}
 
 	return val.(string), nil
@@ -1532,7 +1532,7 @@ func (g *genericReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 	}
 
 	if propType != TypePlayerIndex {
-		return 0, errors.New(name + "was expected to be TypePlayerIndex but was not")
+		return 0, errors.New(name + " was expected to be TypePlayerIndex but was not")
 	}
 
 	return val.(PlayerIndex), nil
@@ -1552,7 +1552,7 @@ func (g *genericReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error
 	}
 
 	if propType != TypeEnum {
-		return nil, errors.New(name + "was expected to be TypeEnum but was not")
+		return nil, errors.New(name + " was expected to be TypeEnum but was not")
 	}
 
 	return val.(enum.Val), nil
@@ -1572,7 +1572,7 @@ func (g *genericReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumS
 	}
 
 	if propType != TypeEnumSlice {
-		return nil, errors.New(name + "was expected to be TypeEnumSlice but was not")
+		return nil, errors.New(name + " was expected to be TypeEnumSlice but was not")
 	}
 
 	return val.(enum.EnumSlice), nil
@@ -1592,7 +1592,7 @@ func (g *genericReader) IntSliceProp(name string) ([]int, error) {
 	}
 
 	if propType != TypeIntSlice {
-		return nil, errors.New(name + "was expected to be TypeIntSlice but was not")
+		return nil, errors.New(name + " was expected to be TypeIntSlice but was not")
 	}
 
 	return val.([]int), nil
@@ -1612,7 +1612,7 @@ func (g *genericReader) BoolSliceProp(name string) ([]bool, error) {
 	}
 
 	if propType != TypeBoolSlice {
-		return nil, errors.New(name + "was expected to be TypeBoolSlice but was not")
+		return nil, errors.New(name + " was expected to be TypeBoolSlice but was not")
 	}
 
 	return val.([]bool), nil
@@ -1632,7 +1632,7 @@ func (g *genericReader) StringSliceProp(name string) ([]string, error) {
 	}
 
 	if propType != TypeStringSlice {
-		return nil, errors.New(name + "was expected to be TypeStringSlice but was not")
+		return nil, errors.New(name + " was expected to be TypeStringSlice but was not")
 	}
 
 	return val.([]string), nil
@@ -1652,7 +1652,7 @@ func (g *genericReader) PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	}
 
 	if propType != TypePlayerIndexSlice {
-		return nil, errors.New(name + "was expected to be TypePlayerIndexSlice but was not")
+		return nil, errors.New(name + " was expected to be TypePlayerIndexSlice but was not")
 	}
 
 	return val.([]PlayerIndex), nil
@@ -1672,7 +1672,7 @@ func (g *genericReader) ImmutableStackProp(name string) (ImmutableStack, error) 
 	}
 
 	if propType != TypeStack {
-		return nil, errors.New(name + "was expected to be TypeStack but was not")
+		return nil, errors.New(name + " was expected to be TypeStack but was not")
 	}
 
 	return val.(Stack), nil
@@ -1692,7 +1692,7 @@ func (g *genericReader) ImmutableBoardProp(name string) (ImmutableBoard, error) 
 	}
 
 	if propType != TypeBoard {
-		return nil, errors.New(name + "was expected to be TypeBoard but was not")
+		return nil, errors.New(name + " was expected to be TypeBoard but was not")
 	}
 
 	return val.(Board), nil
@@ -1712,7 +1712,7 @@ func (g *genericReader) TimerProp(name string) (Timer, error) {
 	}
 
 	if propType != TypeTimer {
-		return nil, errors.New(name + "was expected to be TypeTimer but was not")
+		return nil, errors.New(name + " was expected to be TypeTimer but was not")
 	}
 
 	return val.(Timer), nil
@@ -1812,7 +1812,7 @@ func (g *genericReader) EnumProp(name string) (enum.Val, error) {
 	}
 
 	if propType != TypeEnum {
-		return nil, errors.New(name + "was expected to be TypeEnum but was not")
+		return nil, errors.New(name + " was expected to be TypeEnum but was not")
 	}
 
 	return val.(enum.Val), nil
@@ -1832,7 +1832,7 @@ func (g *genericReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
 	}
 
 	if propType != TypeEnumSlice {
-		return nil, errors.New(name + "was expected to be TypeEnumSlice but was not")
+		return nil, errors.New(name + " was expected to be TypeEnumSlice but was not")
 	}
 
 	return val.(enum.EnumSlice), nil
@@ -1904,7 +1904,7 @@ func (g *genericReader) StackProp(name string) (Stack, error) {
 	}
 
 	if propType != TypeStack {
-		return nil, errors.New(name + "was expected to be TypeStack but was not")
+		return nil, errors.New(name + " was expected to be TypeStack but was not")
 	}
 
 	return val.(Stack), nil
@@ -1924,7 +1924,7 @@ func (g *genericReader) BoardProp(name string) (Board, error) {
 	}
 
 	if propType != TypeBoard {
-		return nil, errors.New(name + "was expected to be TypeBoard but was not")
+		return nil, errors.New(name + " was expected to be TypeBoard but was not")
 	}
 
 	return val.(Board), nil
@@ -1944,7 +1944,7 @@ func (g *genericReader) ImmutableTimerProp(name string) (ImmutableTimer, error) 
 	}
 
 	if propType != TypeTimer {
-		return nil, errors.New(name + "was expected to be TypeTimer but was not")
+		return nil, errors.New(name + " was expected to be TypeTimer but was not")
 	}
 
 	return val.(ImmutableTimer), nil

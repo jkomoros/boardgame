@@ -449,6 +449,57 @@ func TestEnumGraphWrap(t *testing.T) {
 	assert.For(t).ThatActual(eg.Connected(v0, v1)).IsTrue()
 }
 
+func TestEnumGraphByKeyQueries(t *testing.T) {
+	g := makeSimpleEnumGraph(t)
+
+	// ConnectedByKey
+	assert.For(t).ThatActual(g.ConnectedByKey(0, 1)).IsTrue()
+	assert.For(t).ThatActual(g.ConnectedByKey(1, 0)).IsTrue()
+	assert.For(t).ThatActual(g.ConnectedByKey(0, 2)).IsFalse()
+
+	// NeighborsByKey
+	neighbors := g.NeighborsByKey(0)
+	slices.Sort(neighbors)
+	assert.For(t).ThatActual(neighbors).Equals([]enum.EnumKey{1, 3})
+
+	// ShortestPathByKey
+	path, err := g.ShortestPathByKey(0, 2)
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(len(path)).Equals(3)
+	assert.For(t).ThatActual(path[0]).Equals(enum.EnumKey(0))
+	assert.For(t).ThatActual(path[len(path)-1]).Equals(enum.EnumKey(2))
+
+	// DistanceByKey
+	d, err := g.DistanceByKey(0, 1)
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(d).Equals(1)
+
+	d, err = g.DistanceByKey(0, 5)
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(d).Equals(3)
+
+	// EdgeWeightByKey (default weight 0)
+	w := g.EdgeWeightByKey(0, 1)
+	assert.For(t).ThatActual(w).Equals(0)
+}
+
+func TestEnumGraphSetEdgeWeightByKey(t *testing.T) {
+	set := enum.NewSet()
+	e := set.MustAdd("nodes", map[enum.EnumKey]string{
+		0: "N0", 1: "N1", 2: "N2",
+	})
+
+	g := NewEnumGraph(e)
+	assert.For(t).ThatActual(g.AddEdgeByKey(0, 1)).IsNil()
+	assert.For(t).ThatActual(g.AddEdgeByKey(1, 2)).IsNil()
+	assert.For(t).ThatActual(g.SetEdgeWeightByKey(0, 1, 5)).IsNil()
+
+	assert.For(t).ThatActual(g.EdgeWeightByKey(0, 1)).Equals(5)
+	assert.For(t).ThatActual(g.EdgeWeightByKey(1, 2)).Equals(0)
+
+	g.Finish()
+}
+
 func TestNewDirectedEnumGraph(t *testing.T) {
 	set := enum.NewSet()
 	e := set.MustAdd("spaces", map[enum.EnumKey]string{
