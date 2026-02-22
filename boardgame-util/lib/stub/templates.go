@@ -610,7 +610,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 }
 
 {{if not .SuppressPhase }}
-func (g *gameState) SetCurrentPhase(phase int) {
+func (g *gameState) SetCurrentPhase(phase enum.EnumKey) {
 	g.Phase.SetValue(phase)
 }
 

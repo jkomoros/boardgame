@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
 )
 
@@ -11,10 +12,10 @@ func TestEnum(t *testing.T) {
 	assert.For(t).ThatActual(enums).IsNotNil()
 	assert.For(t).ThatActual(colorEnum).IsNotNil()
 
-	assert.For(t).ThatActual(colorEnum.ValueFromString("Unknown")).Equals(colorUnknown)
-	assert.For(t).ThatActual(colorEnum.ValueFromString("Red")).Equals(colorRed)
-	assert.For(t).ThatActual(colorEnum.ValueFromString("Green")).Equals(colorGreen)
-	assert.For(t).ThatActual(colorEnum.ValueFromString("Blue")).Equals(colorBlue)
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Unknown")).Equals(enum.EnumKey(colorUnknown))
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Red")).Equals(enum.EnumKey(colorRed))
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Green")).Equals(enum.EnumKey(colorGreen))
+	assert.For(t).ThatActual(colorEnum.ValueFromString("Blue")).Equals(enum.EnumKey(colorBlue))
 
 }
 

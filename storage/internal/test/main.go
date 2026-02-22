@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/server/api"
 
 	"github.com/jkomoros/boardgame"
@@ -157,7 +158,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 		assert.For(t, i).ThatActual(move.Version > lastVersion).IsTrue()
 		lastVersion = move.Version
 		if i > 0 {
-			assert.For(t).ThatActual(move.Phase).Equals(1)
+			assert.For(t).ThatActual(move.Phase).Equals(enum.EnumKey(1))
 		}
 	}
 

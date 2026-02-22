@@ -1,11 +1,13 @@
 package blackjack
 
 import (
+	"testing"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/workfit/tester/assert"
-	"testing"
 )
 
 func TestHandValue(t *testing.T) {
@@ -49,7 +51,7 @@ func TestHandValue(t *testing.T) {
 	}
 }
 
-func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) []boardgame.ImmutableComponentInstance {
+func createHand(t *testing.T, deck *boardgame.Deck, ranks ...enum.EnumKey) []boardgame.ImmutableComponentInstance {
 	var result []boardgame.ImmutableComponentInstance
 
 	givenCards := make(map[int]bool)

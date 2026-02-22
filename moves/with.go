@@ -22,6 +22,7 @@ const configPropIsFixUp = fullyQualifiedPackageName + "IsFixUp"
 const configPropLegalPhases = fullyQualifiedPackageName + "LegalPhases"
 const configPropLegalMoveProgression = fullyQualifiedPackageName + "LegalMoveProgression"
 const configPropLegalType = fullyQualifiedPackageName + "LegalType"
+const configPropLegalTypeEnum = fullyQualifiedPackageName + "LegalTypeEnum"
 const configPropAmount = fullyQualifiedPackageName + "Amount"
 
 //CustomConfigurationOption is a function that takes a PropertyCollection and
@@ -32,14 +33,18 @@ const configPropAmount = fullyQualifiedPackageName + "Amount"
 type CustomConfigurationOption func(boardgame.PropertyCollection)
 
 //WithLegalType returns a function configuration option suitable for being
-//passed to auto.Config. The legalType will be bassed to the components' Legal()
-//method. Idiomatically this should be a value from an enum that is related to
-//the legalType for that type of component. However, if you only have one
-//DefaultComponent move for that type of component, it's fine to just skip this
-//to use 0 instead.
-func WithLegalType(legalType int) CustomConfigurationOption {
+//passed to auto.Config. The legalType will be passed to the components' Legal()
+//method as an ImmutableVal. Idiomatically this should be a value from an enum
+//that is related to the legalType for that type of component. The optional
+//legalTypeEnum, if provided, will be used to construct the ImmutableVal passed
+//to Legal(); if not provided, nil will be passed. If you only have one
+//DefaultComponent move for that type of component, it's fine to just skip this.
+func WithLegalType(legalType enum.EnumKey, optionalLegalTypeEnum ...enum.Enum) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropLegalType] = legalType
+		if len(optionalLegalTypeEnum) > 0 {
+			config[configPropLegalTypeEnum] = optionalLegalTypeEnum[0]
+		}
 	}
 }
 
@@ -84,12 +89,12 @@ func WithHelpText(helpText string) CustomConfigurationOption {
 //passed before. move.Base will use the result of this to determine if a given
 //move is legal in the current phase. Typically you don't use this directly, and
 //instead use moves.AddForPhase to use this implicitly.
-func WithLegalPhases(legalPhases ...int) CustomConfigurationOption {
+func WithLegalPhases(legalPhases ...enum.EnumKey) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		previousLegalPhases := config[configPropLegalPhases]
 
-		if ints, ok := previousLegalPhases.([]int); ok {
-			legalPhases = append(ints, legalPhases...)
+		if keys, ok := previousLegalPhases.([]enum.EnumKey); ok {
+			legalPhases = append(keys, legalPhases...)
 		}
 
 		config[configPropLegalPhases] = legalPhases
@@ -127,7 +132,7 @@ func WithIsFixUp(isFixUp bool) CustomConfigurationOption {
 //and phaseToStart is the value within that phase to start. The phaseEnum is
 //optional; if not provided, the name of the move and help text will just use
 //the int value of the phase instead.
-func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) CustomConfigurationOption {
+func WithPhaseToStart(phaseToStart enum.EnumKey, optionalPhaseEnum enum.Enum) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropStartPhase] = phaseToStart
 		config[configPropStartPhaseEnum] = optionalPhaseEnum

@@ -47,12 +47,14 @@ Inflate() and PropertySanitizationPolicy().
 
 */
 type StructInflater struct {
-	autoEnumFields        map[string]enum.Enum
-	autoMutableEnumFields map[string]enum.Enum
-	autoStackFields       map[string]*autoStackConfig
-	autoMergedStackFields map[string]*autoMergedStackConfig
-	sanitizationPolicy    map[string]map[string]Policy
-	illegalTypes          map[PropertyType]bool
+	autoEnumFields             map[string]enum.Enum
+	autoMutableEnumFields      map[string]enum.Enum
+	autoEnumSliceFields        map[string]enum.Enum
+	autoMutableEnumSliceFields map[string]enum.Enum
+	autoStackFields            map[string]*autoStackConfig
+	autoMergedStackFields      map[string]*autoMergedStackConfig
+	sanitizationPolicy         map[string]map[string]Policy
+	illegalTypes               map[PropertyType]bool
 }
 
 //NewStructInflater returns a new StructInflater configured for use based on
@@ -97,6 +99,8 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 	autoEnumFields := make(map[string]enum.Enum)
 	autoMutableEnumFields := make(map[string]enum.Enum)
+	autoEnumSliceFields := make(map[string]enum.Enum)
+	autoMutableEnumSliceFields := make(map[string]enum.Enum)
 	autoStackFields := make(map[string]*autoStackConfig)
 	autoMergedStackFields := make(map[string]*autoMergedStackConfig)
 	sanitizationPolicy := make(map[string]map[string]Policy)
@@ -275,6 +279,33 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 					autoEnumFields[propName] = theEnum
 				}
 			}
+		case TypeEnumSlice:
+			enumSlice, err := exampleReader.ImmutableEnumSliceProp(propName)
+			if err != nil {
+				return nil, errors.New("Couldn't fetch enum slice prop: " + propName)
+			}
+			if enumSlice != nil {
+				//This enum slice prop is already non-nil, so we don't need to do
+				//any processing to tell how to inflate it.
+				continue
+			}
+			if enumName := structTagForField(exampleObj, propName, enumStructTag); enumName != "" {
+				theEnum := chest.Enums().Enum(enumName)
+				if theEnum == nil {
+					return nil, errors.New(propName + " was a nil enum.EnumSlice and the struct tag named " + enumName + " was not a valid enum.")
+				}
+				//Found one!
+				if exampleReadSetter != nil {
+					if exampleReadSetter.PropMutable(propName) {
+						autoMutableEnumSliceFields[propName] = theEnum
+					} else {
+						autoEnumSliceFields[propName] = theEnum
+					}
+				} else {
+					//Just assume they're immutable
+					autoEnumSliceFields[propName] = theEnum
+				}
+			}
 		}
 
 	}
@@ -282,6 +313,8 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 	result := &StructInflater{
 		autoEnumFields,
 		autoMutableEnumFields,
+		autoEnumSliceFields,
+		autoMutableEnumSliceFields,
 		autoStackFields,
 		autoMergedStackFields,
 		sanitizationPolicy,
@@ -578,6 +611,40 @@ func (s *StructInflater) Inflate(obj ReadSetConfigurer, st ImmutableState) error
 		}
 	}
 
+	for propName, enumType := range s.autoEnumSliceFields {
+		enumSlice, err := readSetConfigurer.ImmutableEnumSliceProp(propName)
+		if enumSlice != nil {
+			//Guess it was already set!
+			continue
+		}
+		if err != nil {
+			return errors.New(propName + " had error fetching EnumSlice: " + err.Error())
+		}
+		if enumType == nil {
+			return errors.New("The enum for " + propName + " was unexpectedly nil")
+		}
+		if err := readSetConfigurer.ConfigureImmutableEnumSliceProp(propName, enumType.NewEnumSlice()); err != nil {
+			return errors.New("Couldn't set " + propName + " to NewEnumSlice: " + err.Error())
+		}
+	}
+
+	for propName, enumType := range s.autoMutableEnumSliceFields {
+		enumSlice, err := readSetConfigurer.EnumSliceProp(propName)
+		if enumSlice != nil {
+			//Guess it was already set!
+			continue
+		}
+		if err != nil {
+			return errors.New(propName + " had error fetching EnumSlice: " + err.Error())
+		}
+		if enumType == nil {
+			return errors.New("The enum for " + propName + " was unexpectedly nil")
+		}
+		if err := readSetConfigurer.ConfigureEnumSliceProp(propName, enumType.NewEnumSlice()); err != nil {
+			return errors.New("Couldn't set " + propName + " to NewEnumSlice: " + err.Error())
+		}
+	}
+
 	for propName, propType := range readSetConfigurer.Props() {
 		switch propType {
 		case TypeTimer:
@@ -689,6 +756,14 @@ func (s *StructInflater) Valid(obj Reader) error {
 			}
 			if err != nil {
 				return errors.New("EnumProp " + propName + " had unexpected error: " + err.Error())
+			}
+		case TypeEnumSlice:
+			val, err := reader.ImmutableEnumSliceProp(propName)
+			if val == nil {
+				return errors.New("EnumSliceProp " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("EnumSliceProp " + propName + " had unexpected error: " + err.Error())
 			}
 		}
 

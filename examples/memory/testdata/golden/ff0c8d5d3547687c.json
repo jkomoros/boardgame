@@ -23,7 +23,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:01.312133Z",
 			"Blob": {
@@ -35,7 +35,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:02.022587Z",
 			"Blob": {
@@ -47,7 +47,7 @@
 			"Name": "Start Hide Cards Timer",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:02.032436Z",
 			"Blob": {}
@@ -56,7 +56,7 @@
 			"Name": "Hide Cards",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:06.182019Z",
 			"Blob": {
@@ -67,7 +67,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:06.1942Z",
 			"Blob": {}
@@ -76,7 +76,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:10.952598Z",
 			"Blob": {
@@ -88,7 +88,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:11.697995Z",
 			"Blob": {
@@ -100,7 +100,7 @@
 			"Name": "Start Hide Cards Timer",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:11.70845Z",
 			"Blob": {}
@@ -109,7 +109,7 @@
 			"Name": "Hide Cards",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:15.791407Z",
 			"Blob": {
@@ -120,7 +120,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:15.801982Z",
 			"Blob": {}
@@ -129,7 +129,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:19.052922Z",
 			"Blob": {
@@ -141,7 +141,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:20.271151Z",
 			"Blob": {
@@ -153,7 +153,7 @@
 			"Name": "Start Hide Cards Timer",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:20.281433Z",
 			"Blob": {}
@@ -162,7 +162,7 @@
 			"Name": "Hide Cards",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:24.397356Z",
 			"Blob": {
@@ -173,7 +173,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:24.408078Z",
 			"Blob": {}
@@ -182,7 +182,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:25.185378Z",
 			"Blob": {
@@ -194,7 +194,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:26.444472Z",
 			"Blob": {
@@ -206,7 +206,7 @@
 			"Name": "Start Hide Cards Timer",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:26.454647Z",
 			"Blob": {}
@@ -215,7 +215,7 @@
 			"Name": "Hide Cards",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:28.26861Z",
 			"Blob": {
@@ -226,7 +226,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:28.278951Z",
 			"Blob": {}
@@ -235,7 +235,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:31.101673Z",
 			"Blob": {
@@ -247,7 +247,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 0,
 			"Timestamp": "0001-01-01T00:00:31.753849Z",
 			"Blob": {
@@ -259,7 +259,7 @@
 			"Name": "Capture Cards",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:31.763811Z",
 			"Blob": {}
@@ -268,7 +268,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -2,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:31.774862Z",
 			"Blob": {}
@@ -277,7 +277,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:35.062747Z",
 			"Blob": {
@@ -289,7 +289,7 @@
 			"Name": "Reveal Card",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:35.770012Z",
 			"Blob": {
@@ -301,7 +301,7 @@
 			"Name": "Start Hide Cards Timer",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:35.780511Z",
 			"Blob": {}
@@ -310,7 +310,7 @@
 			"Name": "Hide Cards",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": 1,
 			"Timestamp": "0001-01-01T00:00:37.800592Z",
 			"Blob": {
@@ -321,7 +321,7 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": -1,
+			"Phase": 0,
 			"Proposer": -2,
 			"Timestamp": "0001-01-01T00:00:37.811013Z",
 			"Blob": {}

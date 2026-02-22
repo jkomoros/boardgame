@@ -18,6 +18,6 @@ type PhaseBehavior struct {
 //SetCurrentPhase sets the phase value to the given value. This
 //satisfies the moves/interfaces.CurrentPhaseSetter interface, allowing you to
 //use moves.StartPhase.
-func (p *PhaseBehavior) SetCurrentPhase(phase int) {
+func (p *PhaseBehavior) SetCurrentPhase(phase enum.EnumKey) {
 	p.Phase.SetValue(phase)
 }

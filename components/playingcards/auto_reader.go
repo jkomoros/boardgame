@@ -65,6 +65,8 @@ func (c *ȧutoGeneratedCardReader) Prop(name string) (interface{}, error) {
 		return c.ImmutableBoardProp(name)
 	case boardgame.TypeTimer:
 		return c.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return c.ImmutableEnumSliceProp(name)
 
 	}
 
@@ -151,7 +153,13 @@ func (c *ȧutoGeneratedCardReader) ImmutableTimerProp(name string) (boardgame.Im
 
 }
 
-//Reader returns an autp-generated boardgame.PropertyReader for Card
+func (c *ȧutoGeneratedCardReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for Card
 func (c *Card) Reader() boardgame.PropertyReader {
 	return &ȧutoGeneratedCardReader{c}
 }

@@ -1,10 +1,11 @@
 package graph
 
 import (
+	"slices"
+	"testing"
+
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
-	"sort"
-	"testing"
 )
 
 /*
@@ -31,9 +32,9 @@ func TestNewGridConnectedness(t *testing.T) {
 
 	n := g.Neighbors(6)
 
-	sort.Ints(n)
+	slices.Sort(n)
 
-	assert.For(t).ThatActual(n).Equals([]int{1, 2, 3, 5, 7, 9, 10, 11})
+	assert.For(t).ThatActual(n).Equals([]enum.EnumKey{1, 2, 3, 5, 7, 9, 10, 11})
 
 	g, err = NewGridConnectedness(e, DirectionUp, DirectionDiagonal)
 
@@ -41,8 +42,8 @@ func TestNewGridConnectedness(t *testing.T) {
 
 	n = g.Neighbors(6)
 
-	sort.Ints(n)
+	slices.Sort(n)
 
-	assert.For(t).ThatActual(n).Equals([]int{1, 3})
+	assert.For(t).ThatActual(n).Equals([]enum.EnumKey{1, 3})
 
 }

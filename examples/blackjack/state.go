@@ -81,7 +81,7 @@ func handValue(components []boardgame.ImmutableComponentInstance) int {
 		case playingcards.RankJack, playingcards.RankQueen, playingcards.RankKing:
 			currentValue += 10
 		default:
-			currentValue += card.Rank.Value()
+			currentValue += card.Rank.Value().Int()
 		}
 	}
 

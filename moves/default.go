@@ -113,10 +113,10 @@ func (d *Default) ValidConfiguration(exampleState boardgame.State) error {
 			return errors.New("WithLegalMoveProgression configuration provided, but without WithLegalPhases")
 		}
 
-		legalPhases, ok := legalPhasesRaw.([]int)
+		legalPhases, ok := legalPhasesRaw.([]enum.EnumKey)
 
 		if !ok {
-			return errors.New("Legal Phases unexpectedly were not ints")
+			return errors.New("Legal Phases unexpectedly were not EnumKeys")
 		}
 
 		delegate := exampleState.Manager().Delegate()
@@ -338,13 +338,13 @@ func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.Playe
 
 }
 
-func (d *Default) legalPhases() []int {
+func (d *Default) legalPhases() []enum.EnumKey {
 	val := d.CustomConfiguration()[configPropLegalPhases]
-	ints, ok := val.([]int)
+	keys, ok := val.([]enum.EnumKey)
 	if !ok {
 		return nil
 	}
-	return ints
+	return keys
 }
 
 type legalMoveProgressioner interface {
@@ -360,8 +360,19 @@ func (d *Default) legalMoveProgression() MoveProgressionGroup {
 	return group
 }
 
+//currentPhaseInfo extracts both the ImmutableVal and EnumKey from the
+//delegate's CurrentPhase. If CurrentPhase returns nil (no phase configured),
+//returns (nil, 0).
+func currentPhaseInfo(state boardgame.ImmutableState) (enum.ImmutableVal, enum.EnumKey) {
+	val := state.Manager().Delegate().CurrentPhase(state)
+	if val == nil {
+		return nil, 0
+	}
+	return val, val.Value()
+}
+
 //legalInPhase will return a descriptive error if this move is not legal in
-//the current phase of hte game.
+//the current phase of the game.
 func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 
 	legalPhases := d.legalPhases()
@@ -372,20 +383,18 @@ func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 		return nil
 	}
 
-	delegate := state.Manager().Delegate()
-
-	phaseEnum := delegate.PhaseEnum()
+	currentPhaseVal, currentPhase := currentPhaseInfo(state)
 
 	var treeEnum enum.TreeEnum
-	if phaseEnum != nil {
-		treeEnum = phaseEnum.TreeEnum()
+	if currentPhaseVal != nil {
+		if e := currentPhaseVal.Enum(); e != nil {
+			treeEnum = e.TreeEnum()
+		}
 	}
 
-	currentPhase := delegate.CurrentPhase(state)
-
 	//totalCurrentPhases is all of the current phases we could be considered
-	//to be in. Deafaults to an []int with just the current phase.
-	totalCurrentPhases := []int{currentPhase}
+	//to be in. Defaults to an []EnumKey with just the current phase.
+	totalCurrentPhases := []enum.EnumKey{currentPhase}
 
 	if treeEnum != nil {
 		//If PhaseEnum is a tree, then the phase we're in for this purpose is
@@ -401,16 +410,16 @@ func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 		}
 	}
 
-	phaseName := strconv.Itoa(currentPhase)
+	phaseName := strconv.Itoa(currentPhase.Int())
 
-	if phaseEnum != nil {
-		phaseName = phaseEnum.String(currentPhase)
+	if currentPhaseVal != nil {
+		phaseName = currentPhaseVal.String()
 	}
 
 	return errors.New("Move is not legal in phase " + phaseName)
 }
 
-func (d *Default) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase int) []*boardgame.MoveStorageRecord {
+func (d *Default) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase enum.EnumKey) []*boardgame.MoveStorageRecord {
 
 	moves := game.MoveRecords(upToVersion)
 
@@ -509,7 +518,7 @@ func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, propose
 		return nil
 	}
 
-	currentPhase := state.Manager().Delegate().CurrentPhase(state)
+	_, currentPhase := currentPhaseInfo(state)
 
 	historicalMoves := d.historicalMovesSincePhaseTransition(state.Game(), state.Version(), currentPhase)
 

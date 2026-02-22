@@ -45,9 +45,7 @@ func TestOverrideCode(t *testing.T) {
 }
 
 var apiExpected = `/*
-
 A server binary generated automatically by 'boardgame-util/lib/build/api/Build()'
-
 */
 package main
 
@@ -72,9 +70,7 @@ func main() {
 `
 
 var apiOverrideExpected = `/*
-
 A server binary generated automatically by 'boardgame-util/lib/build/api/Build()'
-
 */
 package main
 

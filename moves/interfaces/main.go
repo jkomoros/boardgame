@@ -11,6 +11,7 @@ package interfaces
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 //AllowMultipleInProgression is an interface that moves should implement if they
@@ -33,7 +34,7 @@ type LegalComponent interface {
 	//value in an enum created for the purpose of disambiguating different
 	//move types to check for legality for. Legal should return nil if it is
 	//legal, or an error if the component is not legal.
-	Legal(state boardgame.ImmutableState, legalType int) error
+	Legal(state boardgame.ImmutableState, legalType enum.ImmutableVal) error
 }
 
 //PlayerStacker should be implemented by your embedding Move if you embed
@@ -130,19 +131,19 @@ type RoundRobinActioner interface {
 //CurrentPhase. Must be implemented if you use the StartPhase move type.
 //behaviors.PhaseBehavior implements this.
 type CurrentPhaseSetter interface {
-	SetCurrentPhase(int)
+	SetCurrentPhase(enum.EnumKey)
 }
 
 //BeforeLeavePhaser is an interface to implement on GameState if you want to
 //do some action on state before leaving the given phase.
 type BeforeLeavePhaser interface {
-	BeforeLeavePhase(phase int, state boardgame.State) error
+	BeforeLeavePhase(phase enum.ImmutableVal, state boardgame.State) error
 }
 
 //BeforeEnterPhaser is an interface to implement on GameState if you want to
 //do some action on state just before entering the givenn state.
 type BeforeEnterPhaser interface {
-	BeforeEnterPhase(phase int, state boardgame.State) error
+	BeforeEnterPhase(phase enum.ImmutableVal, state boardgame.State) error
 }
 
 //PlayerInactiver is for PlayerStates that encode whether that player is
@@ -187,7 +188,7 @@ type SeatPlayerSignaler interface {
 //Called during MoveOnGraph.Legal() for each space in the computed path. The
 //playerState has access to the full state via ImmutableState().
 type SpaceValidator interface {
-	SpaceIsLegal(playerState boardgame.ImmutableSubState, spaceIndex int) error
+	SpaceIsLegal(playerState boardgame.ImmutableSubState, spaceIndex enum.ImmutableVal) error
 }
 
 //MovementBudgeter is optionally implemented by moves that embed MoveOnGraph.
@@ -201,14 +202,14 @@ type MovementBudgeter interface {
 //If a target satisfies IsFreeMove, the framework skips budget and adjacency
 //checks and moves the token directly (teleport).
 type FreeMovePredicate interface {
-	IsFreeMove(playerState boardgame.ImmutableSubState, targetSpaceIndex int) bool
+	IsFreeMove(playerState boardgame.ImmutableSubState, targetSpaceIndex enum.ImmutableVal) bool
 }
 
 //FreeMoveApplier is optionally implemented by moves that embed MoveOnGraph.
 //When a free move is made, ApplyFreeMove is called to handle game-specific
 //cleanup (e.g., resetting a card-based MoveToRoom value).
 type FreeMoveApplier interface {
-	ApplyFreeMove(playerState boardgame.SubState, targetSpaceIndex int) error
+	ApplyFreeMove(playerState boardgame.SubState, targetSpaceIndex enum.ImmutableVal) error
 }
 
 //AdvanceCondition is optionally implemented by moves that embed AdvanceToken.
@@ -221,5 +222,5 @@ type AdvanceCondition interface {
 //AdvanceToken. It runs game-specific side effects after the token has been
 //advanced.
 type PostAdvanceHandler interface {
-	AfterAdvance(state boardgame.State, previousIndex, newIndex int) error
+	AfterAdvance(state boardgame.State, previousIndex, newIndex enum.ImmutableVal) error
 }

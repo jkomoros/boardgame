@@ -220,14 +220,13 @@ type GameDelegate interface {
 	//result of this method is used to power state.CurrentPlayer.
 	CurrentPlayerIndex(state ImmutableState) PlayerIndex
 
-	//CurrentPhase returns the phase that the game state is currently in.
-	//Phase is a formalized convention used in moves.Default to make it easier
-	//to write fix-up moves that only apply in certain phases, like SetUp. The
-	//return result is primarily used in moves.Default to check whether it is
-	//one of the phases in a give Move's LegalPhases. See moves.Default for
-	//more information. The only use of this method in the main library is
-	//when generating a MoveStorageRecord.
-	CurrentPhase(state ImmutableState) int
+	//CurrentPhase returns the phase that the game state is currently in as
+	//an ImmutableVal. This carries both the enum key and the enum itself,
+	//which lets callers get the TreeEnum, string name, etc. without a
+	//separate PhaseEnum() lookup. Phase is a formalized convention used in
+	//moves.Default to make it easier to write fix-up moves that only apply
+	//in certain phases, like SetUp. Returns nil if no phase property exists.
+	CurrentPhase(state ImmutableState) enum.ImmutableVal
 
 	//PhaseEnum returns the enum for game phases (the return values of
 	//CurrentPhase are expected to be valid enums within that enum). If this
@@ -247,7 +246,7 @@ type GameDelegate interface {
 	//be passed into SanitizationPolicy after being transformed to have string
 	//keys, and extended with 'all', and any built ins like self or other, and
 	//ComputedPlayerGroupMembership . A nil return value is legal.
-	GroupMembership(playerState ImmutableSubState) map[int]bool
+	GroupMembership(playerState ImmutableSubState) enum.ImmutableMembershipSet
 
 	//ComputedPlayerGroupMembership is an opportunity for your game's
 	//sanitization logic to handle more complex group membership that is tied to
@@ -256,11 +255,12 @@ type GameDelegate interface {
 	//base.GameDelegate does lots of special behavior e.g. 'same-ENUMNAME' via
 	//overriding this method. playerMembership and viewingAsPlayerMembership
 	//will be the return values of delegate.GroupMembership for the different
-	//player states. Note that viewingAsPlayerMembership might be a zero-entry
-	//map if the viewingAsPlayer is ObserverPlayerIndex. Your method should
-	//return an error if the groupName is not one it knows how to process. This
-	//is only applied on players, and not other types of subStates currently.
-	ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership map[int]bool) (bool, error)
+	//player states. Note that viewingAsPlayerMembership might be a nil
+	//ImmutableMembershipSet if the viewingAsPlayer is ObserverPlayerIndex.
+	//Your method should return an error if the groupName is not one it knows
+	//how to process. This is only applied on players, and not other types of
+	//subStates currently.
+	ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) (bool, error)
 
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is a

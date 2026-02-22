@@ -219,8 +219,8 @@ func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubSta
 	}
 }
 
-//NewDelegate is the primary entrypoint to the package. It implements a
-//boardgame.GameDelegate that configures a game of CHECKERS!!!
+// NewDelegate is the primary entrypoint to the package. It implements a
+// boardgame.GameDelegate that configures a game of CHECKERS!!!
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

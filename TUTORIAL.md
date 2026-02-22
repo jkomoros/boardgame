@@ -1646,9 +1646,9 @@ func (m *MoveMoveNPC) AdvancableLocation(state boardgame.State) *behaviors.Locat
     return &state.GameState().(*gameState).LocationBehavior
 }
 
-func (m *MoveMoveNPC) NextAdvanceIndex(state boardgame.ImmutableState, currentIndex int) int {
+func (m *MoveMoveNPC) NextAdvanceIndex(state boardgame.ImmutableState, currentIndex enum.ImmutableVal) enum.EnumKey {
     // Simple patrol: advance to the next space, wrapping around
-    next := currentIndex + 1
+    next := currentIndex.Value() + 1
     if next > maxSpace {
         next = 1
     }
@@ -1682,7 +1682,7 @@ It'd be a mess!
 
 For that reason, a convention of "Phases" is used. A game can have multiple phases. Moves are only legal to apply in certain phases. In some phases, moves are applied in a specific, prescribed order only.
 
-The concept of Phases is barely represented in the core library at all. Delegates have `CurrentPhase() int` and `PhaseEnum() *enum.Enum`, but other than that the notion of Phases is implemented entirely in the (technically optional) `moves` package.
+The concept of Phases is barely represented in the core library at all. Delegates have `CurrentPhase() enum.ImmutableVal` and `PhaseEnum() enum.Enum`, but other than that the notion of Phases is implemented entirely in the (technically optional) `moves` package.
 
 At the core, the notion of Phases is implmented by `moves.Default`'s Legal method--which is why it's so important to always call your super's `Legal` method! `moves.Default` will first check to make sure that the current phase of the game is one that is legal for this move, and then check to see if playing this move at this point in the phase is legal. All other methods and machinery for representing Phases are just about giving moves.Default the information it needs to make this determination.
 
@@ -1721,9 +1721,9 @@ It's convention to name your phase enum as "phase", and `moves.Default` will rel
 Now we have to tell the engine what the current phase is. We do this by overriding a method on our gamedelegate, much like we do for CurrentPlayerIndex:
 
 ```go
-func (g *gameDelegate) CurrentPhase(state boardgame.ImmutableState) int {
+func (g *gameDelegate) CurrentPhase(state boardgame.ImmutableState) enum.ImmutableVal {
 	game, _ := concreteStates(state)
-	return game.Phase.Value()
+	return game.Phase
 }
 ```
 
@@ -1733,7 +1733,7 @@ there and returns it.
 
 Now the core engine knows about what phase it is. `moves.Default` will consult that information it is Legal method. But how do we tell `moves.Deafult` which phases a move is legal in?
 
-Moves that are based on `moves.Default` have a `LegalPhases() []int` method that `moves.Default` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `moves.AutoConfigurer` with `WithLegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
+Moves that are based on `moves.Default` have a `LegalPhases() []EnumKey` method that `moves.Default` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `moves.AutoConfigurer` with `WithLegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
 
 That's why the `moves` package defines `Add`, `AddForPhase`, and `AddOrderedForPhase`, which automatically call the right `WithLegalPhases` and `WithLegalMoveProgression` methods for you. In addition, the `moves` package defines `moves.Combine`, a convenience wrapper to use in your `ConfigureMoves` when you have phases.
 

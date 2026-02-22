@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
 )
 
@@ -60,8 +61,8 @@ type moveStartPhaseDrawAgain struct {
 	StartPhase
 }
 
-func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
-	return phaseDrawAgain
+func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, error) {
+	return phaseDrawAgain, nil
 }
 
 //boardgame:codegen
@@ -69,9 +70,9 @@ type moveStartPhaseIllegal struct {
 	StartPhase
 }
 
-func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase int) int {
+func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, error) {
 	//normal play is not a leaf node; should error
-	return phaseNormalPlay
+	return phaseNormalPlay, nil
 }
 
 func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
@@ -175,7 +176,7 @@ func TestGeneral(t *testing.T) {
 	gameState, playerStates := concreteStates(game.CurrentState())
 
 	assert.For(t).ThatActual(gameState.DrawStack.NumComponents()).Equals(52 - 20)
-	assert.For(t).ThatActual(gameState.Phase.Value()).Equals(phaseNormalPlayDrawCard)
+	assert.For(t).ThatActual(gameState.Phase.Value()).Equals(enum.EnumKey(phaseNormalPlayDrawCard))
 
 	for i, player := range playerStates {
 		assert.For(t, i).ThatActual(player.Hand.NumComponents()).Equals(2)
@@ -210,7 +211,7 @@ func TestGeneral(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(manager.Delegate().CurrentPhase(game.CurrentState())).Equals(phaseDrawAgain)
+	assert.For(t).ThatActual(manager.Delegate().CurrentPhase(game.CurrentState()).Value()).Equals(enum.EnumKey(phaseDrawAgain))
 
 	//3 additional moves, but skipping the one player who already had 3 in
 	//their hand, plus the one terminal no op.

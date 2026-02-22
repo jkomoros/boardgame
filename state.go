@@ -924,7 +924,13 @@ func (s *state) validateBeforeSave() error {
 
 	delegate := s.Manager().Delegate()
 
-	e := delegate.PhaseEnum()
+	currentPhaseVal := delegate.CurrentPhase(s)
+
+	if currentPhaseVal == nil {
+		return nil
+	}
+
+	e := currentPhaseVal.Enum()
 
 	if e == nil {
 		return nil
@@ -936,7 +942,7 @@ func (s *state) validateBeforeSave() error {
 		return nil
 	}
 
-	if t.IsLeaf(delegate.CurrentPhase(s)) {
+	if t.IsLeaf(currentPhaseVal.Value()) {
 		return nil
 	}
 

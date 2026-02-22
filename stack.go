@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 )
 
@@ -44,6 +45,11 @@ type ImmutableStack interface {
 	//ImmutableComponentAt retrieves the component at the given index in the
 	//stack. See also Stack.ComponentAt.
 	ImmutableComponentAt(index int) ImmutableComponentInstance
+
+	//ImmutableComponentAtKey is a convenience for
+	//ImmutableComponentAt(int(key)), for use when stack slots are keyed by
+	//enum values (e.g. spatial game boards).
+	ImmutableComponentAtKey(key enum.EnumKey) ImmutableComponentInstance
 
 	//ImmutableComponents returns all of the components. Equivalent to calling
 	//ImmutableComponentAt from 0 to Len(). See also Stack.Components().
@@ -247,6 +253,10 @@ type Stack interface {
 	//the same behavior but returns an ImmutableComponentInstance.
 	ComponentAt(componentIndex int) ComponentInstance
 
+	//ComponentAtKey is a convenience for ComponentAt(int(key)), for use when
+	//stack slots are keyed by enum values (e.g. spatial game boards).
+	ComponentAtKey(key enum.EnumKey) ComponentInstance
+
 	//Components returns all of the ComponentInstances. Equivalent to calling
 	//ComponentAt from 0 to Len().  The index of each ComponentInstance will
 	//correspond to the index you could fetch that item at via
@@ -300,6 +310,10 @@ type Stack interface {
 	//swap empty slots). i,j must be between [0, stack.Len()). This is like a
 	//ComponentInstance.MoveTo, except within the same stack.
 	SwapComponents(i, j int) error
+
+	//SwapComponentsByKey is a convenience for SwapComponents(int(i), int(j)),
+	//for use when stack slots are keyed by enum values.
+	SwapComponentsByKey(i, j enum.EnumKey) error
 
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
@@ -1751,6 +1765,34 @@ func (g *growableStack) SwapComponents(i, j int) error {
 
 	return nil
 
+}
+
+func (g *growableStack) ImmutableComponentAtKey(key enum.EnumKey) ImmutableComponentInstance {
+	return g.ImmutableComponentAt(int(key))
+}
+
+func (g *growableStack) ComponentAtKey(key enum.EnumKey) ComponentInstance {
+	return g.ComponentAt(int(key))
+}
+
+func (g *growableStack) SwapComponentsByKey(i, j enum.EnumKey) error {
+	return g.SwapComponents(int(i), int(j))
+}
+
+func (s *sizedStack) ImmutableComponentAtKey(key enum.EnumKey) ImmutableComponentInstance {
+	return s.ImmutableComponentAt(int(key))
+}
+
+func (s *sizedStack) ComponentAtKey(key enum.EnumKey) ComponentInstance {
+	return s.ComponentAt(int(key))
+}
+
+func (s *sizedStack) SwapComponentsByKey(i, j enum.EnumKey) error {
+	return s.SwapComponents(int(i), int(j))
+}
+
+func (m *mergedStack) ImmutableComponentAtKey(key enum.EnumKey) ImmutableComponentInstance {
+	return m.ImmutableComponentAt(int(key))
 }
 
 func (s *sizedStack) SwapComponents(i, j int) error {

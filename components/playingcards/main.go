@@ -94,8 +94,8 @@ func NewDeck(withJokers bool) *boardgame.Deck {
 }
 
 func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
-	ranks := []int{RankAce, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Rank10, RankJack, RankQueen, RankKing}
-	suits := []int{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
+	ranks := []enum.EnumKey{RankAce, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Rank10, RankJack, RankQueen, RankKing}
+	suits := []enum.EnumKey{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
 
 	for _, suit := range suits {
 		for _, rank := range ranks {

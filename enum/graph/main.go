@@ -30,31 +30,33 @@ import (
 //Graph is the primary type of this package. It represents a directed graph
 //where the nodes are all values in an enum.
 type Graph interface {
+	//Enum returns the enum associated with this graph.
+	Enum() enum.Enum
 	//AddEdge adds the edge to the graph if it doesn't exist, and if the graph
 	//isn't finished yet. Will error if from or to aren't in the given enum.
-	AddEdge(from, to int) error
+	AddEdge(from, to enum.EnumKey) error
 	//AddEdges is a convenience wrapper around AddEdge, with multiple to
 	//nodes. Will error if adding any errors.
-	AddEdges(from int, to ...int) error
-	Connected(from, to int) bool
-	Neighbors(start int) []int
+	AddEdges(from enum.EnumKey, to ...enum.EnumKey) error
+	Connected(from, to enum.EnumKey) bool
+	Neighbors(start enum.EnumKey) []enum.EnumKey
 
 	//Defaults to 0 for edges that haven't had SetEdgeWeight called.
-	EdgeWeight(from, to int) int
+	EdgeWeight(from, to enum.EnumKey) int
 	//SetEdgeWeight sets the weight between the two nodes. Errors if the graph
 	//is already finished, or if those two nodes aren't connected.
-	SetEdgeWeight(from, to int, weight int) error
+	SetEdgeWeight(from, to enum.EnumKey, weight int) error
 
 	//ShortestPath returns the shortest path from start to end (inclusive of
 	//both endpoints) using Dijkstra's algorithm. Edge weights default to 1 if
 	//not explicitly set via SetEdgeWeight. Returns nil and an error if no path
 	//exists or if start/end are not valid nodes.
-	ShortestPath(start, end int) ([]int, error)
+	ShortestPath(start, end enum.EnumKey) ([]enum.EnumKey, error)
 
 	//Distance returns the total weight of the shortest path between start and
 	//end. Returns -1 and an error if no path exists or if start/end are not
 	//valid nodes.
-	Distance(start, end int) (int, error)
+	Distance(start, end enum.EnumKey) (int, error)
 
 	//After finish is called, no modifications may be made to the graph.
 	Finish()
@@ -64,28 +66,32 @@ type graph struct {
 	undirected  bool
 	finished    bool
 	theEnum     enum.Enum
-	edges       map[int]map[int]bool
+	edges       map[enum.EnumKey]map[enum.EnumKey]bool
 	edgeWeights map[string]int
 }
 
 //New returns a new, unfinished graph based on the given enum, where each node
 //in the graph is one of the values in the Enum. If undirected is true, then
 //adding an edge from -> to also adds the edge to -> from automatically.
-func New(undirected bool, enum enum.Enum) Graph {
+func New(undirected bool, theEnum enum.Enum) Graph {
 	return &graph{
 		undirected,
 		false,
-		enum,
-		make(map[int]map[int]bool, len(enum.Values())),
+		theEnum,
+		make(map[enum.EnumKey]map[enum.EnumKey]bool, len(theEnum.Values())),
 		make(map[string]int),
 	}
+}
+
+func (g *graph) Enum() enum.Enum {
+	return g.theEnum
 }
 
 func (g *graph) Finish() {
 	g.finished = true
 }
 
-func (g *graph) AddEdge(from, to int) error {
+func (g *graph) AddEdge(from, to enum.EnumKey) error {
 	if err := g.addEdgeImpl(from, to); err != nil {
 		return err
 	}
@@ -95,7 +101,7 @@ func (g *graph) AddEdge(from, to int) error {
 	return nil
 }
 
-func (g *graph) AddEdges(from int, to ...int) error {
+func (g *graph) AddEdges(from enum.EnumKey, to ...enum.EnumKey) error {
 	for i, item := range to {
 		if err := g.AddEdge(from, item); err != nil {
 			return errors.New("Couldn't add " + strconv.Itoa(i) + " edge: " + err.Error())
@@ -104,7 +110,7 @@ func (g *graph) AddEdges(from int, to ...int) error {
 	return nil
 }
 
-func (g *graph) addEdgeImpl(from, to int) error {
+func (g *graph) addEdgeImpl(from, to enum.EnumKey) error {
 	if !g.theEnum.Valid(from) {
 		return errors.New("from value is not legal in that enum")
 	}
@@ -116,14 +122,14 @@ func (g *graph) addEdgeImpl(from, to int) error {
 	}
 	edgeMap := g.edges[from]
 	if edgeMap == nil {
-		edgeMap = make(map[int]bool)
+		edgeMap = make(map[enum.EnumKey]bool)
 		g.edges[from] = edgeMap
 	}
 	edgeMap[to] = true
 	return nil
 }
 
-func (g *graph) Connected(from, to int) bool {
+func (g *graph) Connected(from, to enum.EnumKey) bool {
 	edgeMap := g.edges[from]
 	if edgeMap == nil {
 		return false
@@ -131,12 +137,12 @@ func (g *graph) Connected(from, to int) bool {
 	return edgeMap[to]
 }
 
-func (g *graph) Neighbors(start int) []int {
+func (g *graph) Neighbors(start enum.EnumKey) []enum.EnumKey {
 	edgeMap := g.edges[start]
 	if edgeMap == nil {
 		return nil
 	}
-	result := make([]int, len(edgeMap))
+	result := make([]enum.EnumKey, len(edgeMap))
 	counter := 0
 	for key := range edgeMap {
 		result[counter] = key
@@ -145,16 +151,16 @@ func (g *graph) Neighbors(start int) []int {
 	return result
 }
 
-func keyForEdge(from, to int) string {
-	return strconv.Itoa(from) + "-" + strconv.Itoa(to)
+func keyForEdge(from, to enum.EnumKey) string {
+	return strconv.Itoa(int(from)) + "-" + strconv.Itoa(int(to))
 }
 
-func (g *graph) EdgeWeight(from, to int) int {
+func (g *graph) EdgeWeight(from, to enum.EnumKey) int {
 	//If the edge doesn't exist, the default of 0 is fine
 	return g.edgeWeights[keyForEdge(from, to)]
 }
 
-func (g *graph) SetEdgeWeight(from, to int, weight int) error {
+func (g *graph) SetEdgeWeight(from, to enum.EnumKey, weight int) error {
 	if !g.Connected(from, to) {
 		return errors.New("from and to do not share an edge")
 	}
@@ -165,7 +171,7 @@ func (g *graph) SetEdgeWeight(from, to int, weight int) error {
 	return nil
 }
 
-func (g *graph) effectiveWeight(from, to int) int {
+func (g *graph) effectiveWeight(from, to enum.EnumKey) int {
 	w := g.EdgeWeight(from, to)
 	if w == 0 {
 		return 1
@@ -173,7 +179,7 @@ func (g *graph) effectiveWeight(from, to int) int {
 	return w
 }
 
-func (g *graph) ShortestPath(start, end int) ([]int, error) {
+func (g *graph) ShortestPath(start, end enum.EnumKey) ([]enum.EnumKey, error) {
 	if !g.theEnum.Valid(start) {
 		return nil, errors.New("start is not a valid node in the graph")
 	}
@@ -181,14 +187,14 @@ func (g *graph) ShortestPath(start, end int) ([]int, error) {
 		return nil, errors.New("end is not a valid node in the graph")
 	}
 	if start == end {
-		return []int{start}, nil
+		return []enum.EnumKey{start}, nil
 	}
 
 	const inf = int(^uint(0) >> 1) // max int
 
-	dist := make(map[int]int)
-	prev := make(map[int]int)
-	visited := make(map[int]bool)
+	dist := make(map[enum.EnumKey]int)
+	prev := make(map[enum.EnumKey]enum.EnumKey)
+	visited := make(map[enum.EnumKey]bool)
 
 	for _, v := range g.theEnum.Values() {
 		dist[v] = inf
@@ -226,11 +232,11 @@ func (g *graph) ShortestPath(start, end int) ([]int, error) {
 	}
 
 	if dist[end] == inf {
-		return nil, errors.New("no path exists between " + strconv.Itoa(start) + " and " + strconv.Itoa(end))
+		return nil, errors.New("no path exists between " + strconv.Itoa(int(start)) + " and " + strconv.Itoa(int(end)))
 	}
 
 	// Reconstruct path from end to start
-	var path []int
+	var path []enum.EnumKey
 	for cur := end; cur != start; cur = prev[cur] {
 		path = append(path, cur)
 	}
@@ -244,7 +250,7 @@ func (g *graph) ShortestPath(start, end int) ([]int, error) {
 	return path, nil
 }
 
-func (g *graph) Distance(start, end int) (int, error) {
+func (g *graph) Distance(start, end enum.EnumKey) (int, error) {
 	path, err := g.ShortestPath(start, end)
 	if err != nil {
 		return -1, err
@@ -259,7 +265,7 @@ func (g *graph) Distance(start, end int) (int, error) {
 
 // pqItem is an item in the priority queue for Dijkstra.
 type pqItem struct {
-	node  int
+	node  enum.EnumKey
 	dist  int
 	index int // index in the heap
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 )
 
@@ -292,7 +293,7 @@ type ConfigurationValidator interface {
 
 //StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
 //itself since Moves are provided by users of the library.
-func StorageRecordForMove(move Move, currentPhase int, proposer PlayerIndex) *MoveStorageRecord {
+func StorageRecordForMove(move Move, currentPhase enum.EnumKey, proposer PlayerIndex) *MoveStorageRecord {
 
 	blob, err := json.MarshalIndent(move, "", "\t")
 

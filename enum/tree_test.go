@@ -25,7 +25,7 @@ func TestBasicTree(t *testing.T) {
 
 	*/
 
-	values := map[int]string{
+	values := map[EnumKey]string{
 		1: "A",
 		2: "B",
 		3: "C",
@@ -41,7 +41,7 @@ func TestBasicTree(t *testing.T) {
 		11: "BBB",
 	}
 
-	parents := map[int]int{
+	parents := map[EnumKey]EnumKey{
 		1:  0,
 		2:  0,
 		3:  0,
@@ -60,34 +60,34 @@ func TestBasicTree(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(tree).IsNotNil()
 
-	assert.For(t).ThatActual(tree.Parent(0)).Equals(0)
+	assert.For(t).ThatActual(tree.Parent(0)).Equals(EnumKey(0))
 	assert.For(t).ThatActual(tree.String(0)).Equals("")
 
-	assert.For(t).ThatActual(tree.Parent(10)).Equals(6)
+	assert.For(t).ThatActual(tree.Parent(10)).Equals(EnumKey(6))
 
-	assert.For(t).ThatActual(tree.Ancestors(11)).Equals([]int{0, 2, 6, 11})
+	assert.For(t).ThatActual(tree.Ancestors(11)).Equals([]EnumKey{0, 2, 6, 11})
 
-	assert.For(t).ThatActual(tree.Children(2, false)).Equals([]int{5, 7})
-	assert.For(t).ThatActual(tree.Children(2, true)).Equals([]int{5, 6, 7})
-	assert.For(t).ThatActual(tree.Children(0, true)).Equals([]int{1, 2, 3})
+	assert.For(t).ThatActual(tree.Children(2, false)).Equals([]EnumKey{5, 7})
+	assert.For(t).ThatActual(tree.Children(2, true)).Equals([]EnumKey{5, 6, 7})
+	assert.For(t).ThatActual(tree.Children(0, true)).Equals([]EnumKey{1, 2, 3})
 
 	assert.For(t).ThatActual(tree.IsLeaf(10)).IsTrue()
 	assert.For(t).ThatActual(tree.IsLeaf(0)).IsFalse()
 	assert.For(t).ThatActual(tree.IsLeaf(2)).IsFalse()
 
-	assert.For(t).ThatActual(tree.Descendants(2, false)).Equals([]int{5, 10, 11, 7})
-	assert.For(t).ThatActual(tree.Descendants(2, true)).Equals([]int{5, 6, 10, 11, 7})
+	assert.For(t).ThatActual(tree.Descendants(2, false)).Equals([]EnumKey{5, 10, 11, 7})
+	assert.For(t).ThatActual(tree.Descendants(2, true)).Equals([]EnumKey{5, 6, 10, 11, 7})
 
-	assert.For(t).ThatActual(tree.BranchDefaultValue(0)).Equals(4)
-	assert.For(t).ThatActual(tree.BranchDefaultValue(2)).Equals(5)
-	assert.For(t).ThatActual(tree.BranchDefaultValue(6)).Equals(10)
-	assert.For(t).ThatActual(tree.BranchDefaultValue(10)).Equals(10)
+	assert.For(t).ThatActual(tree.BranchDefaultValue(0)).Equals(EnumKey(4))
+	assert.For(t).ThatActual(tree.BranchDefaultValue(2)).Equals(EnumKey(5))
+	assert.For(t).ThatActual(tree.BranchDefaultValue(6)).Equals(EnumKey(10))
+	assert.For(t).ThatActual(tree.BranchDefaultValue(10)).Equals(EnumKey(10))
 
-	assert.For(t).ThatActual(tree.DefaultValue()).Equals(4)
+	assert.For(t).ThatActual(tree.DefaultValue()).Equals(EnumKey(4))
 
 	assert.For(t).ThatActual(tree.String(2)).Equals("B")
 	assert.For(t).ThatActual(tree.String(10)).Equals("B > BB > BBA")
-	assert.For(t).ThatActual(tree.ValueFromString("B > BB > BBA")).Equals(10)
+	assert.For(t).ThatActual(tree.ValueFromString("B > BB > BBA")).Equals(EnumKey(10))
 
 	assert.For(t).ThatActual(tree.MustNewTreeVal(10).NodeString()).Equals("BBA")
 	assert.For(t).ThatActual(tree.MustNewTreeVal(0).NodeString()).Equals("")
@@ -97,121 +97,121 @@ func TestBasicTree(t *testing.T) {
 
 func TestBadTreeConfig(t *testing.T) {
 	tests := []struct {
-		values              map[int]string
-		parents             map[int]int
+		values              map[EnumKey]string
+		parents             map[EnumKey]EnumKey
 		expectedErrorString string
 	}{
 		{
-			map[int]string{
+			map[EnumKey]string{
 				0: "not ''",
 				1: "foo",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				0: 0,
 				1: 0,
 			},
 			"In test the root node's value must be ''",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				0: "",
 				1: "foo",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				0: 0,
 				1: 0,
 			},
 			"",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				0: "",
 				1: "foo",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				0: 1,
 				1: 0,
 			},
 			"In test the root node's parent must be itself",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				0: 0,
 				1: 0,
 			},
 			"",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 0,
 			},
 			"",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 				2: "bar",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 0,
 			},
 			"In test missing parent information for key: 2",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 				2: "bar",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 2,
 				2: 0,
 			},
 			"",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 0,
 				2: 1,
 			},
 			"In test parent information provided for 2 but no corresponding value provided.",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 				2: "bar",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 0,
 				2: 3,
 			},
 			"In test entry in parent map names a parent that is not in the enum: 3,2",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo > bar",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 0,
 			},
 			"In test the node string value for 1 contains the delimiter expression, which is illegal",
 		},
 		{
 			//Check maximally stretched case for cycle test
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 				2: "bar",
 				3: "baz",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 0,
 				2: 1,
 				3: 2,
@@ -219,12 +219,12 @@ func TestBadTreeConfig(t *testing.T) {
 			"",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 				2: "bar",
 				3: "baz",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 3,
 				2: 1,
 				3: 2,
@@ -232,13 +232,13 @@ func TestBadTreeConfig(t *testing.T) {
 			"In test detected a cycle in the parent definitions",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 				2: "bar",
 				3: "baz",
 				4: "slam",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 3,
 				2: 1,
 				3: 2,
@@ -247,12 +247,12 @@ func TestBadTreeConfig(t *testing.T) {
 			"In test detected a cycle in the parent definitions",
 		},
 		{
-			map[int]string{
+			map[EnumKey]string{
 				1: "foo",
 				2: "bar",
 				3: "baz",
 			},
-			map[int]int{
+			map[EnumKey]EnumKey{
 				1: 1,
 				2: 1,
 				3: 2,

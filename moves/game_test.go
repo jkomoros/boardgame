@@ -29,14 +29,14 @@ const (
 
 var enums = enum.NewSet()
 
-var phaseEnum = enums.MustAddTree("phase", map[int]string{
+var phaseEnum = enums.MustAddTree("phase", map[enum.EnumKey]string{
 	phase:                       "",
 	phaseSetUp:                  "Set Up",
 	phaseNormalPlay:             "Normal Play",
 	phaseNormalPlayDrawCard:     "Draw Card",
 	phaseNormalPlayActivateCard: "Activate Card",
 	phaseDrawAgain:              "Draw Again",
-}, map[int]int{
+}, map[enum.EnumKey]enum.EnumKey{
 	phase:                       phase,
 	phaseSetUp:                  phase,
 	phaseNormalPlay:             phase,
@@ -45,7 +45,7 @@ var phaseEnum = enums.MustAddTree("phase", map[int]string{
 	phaseDrawAgain:              phase,
 })
 
-var colorEnum = enums.MustAdd("color", map[int]string{
+var colorEnum = enums.MustAdd("color", map[enum.EnumKey]string{
 	colorRed:   "Red",
 	colorGreen: "Green",
 	colorBlue:  "Blue",
