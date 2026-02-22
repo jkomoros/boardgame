@@ -254,6 +254,10 @@ import (
 //with other integer values.
 type EnumKey int
 
+//Int returns the underlying int value of the EnumKey. This is a convenience
+//to avoid the casting noise of int(key) at call sites.
+func (e EnumKey) Int() int { return int(e) }
+
 //IllegalValue is the senitnel value that will be returned for illegal values.
 const IllegalValue EnumKey = math.MaxInt64
 
@@ -414,12 +418,17 @@ type ImmutableEnumSlice interface {
 //enum. Get one from an Enum's NewEnumSlice method.
 type EnumSlice interface {
 	ImmutableEnumSlice
-	//SetValues replaces the entire contents of the slice.
-	SetValues(vals []EnumKey)
+	//SetValues replaces the entire contents of the slice with vals. Returns
+	//an error if any value is not valid for this enum (in that case the
+	//slice is not modified).
+	SetValues(vals []EnumKey) error
 	//SetValue sets the value at index i. Panics if i is out of range.
-	SetValue(i int, val EnumKey)
-	//Append adds values to the end of the slice.
-	Append(vals ...EnumKey)
+	//Returns an error if val is not valid for this enum.
+	SetValue(i int, val EnumKey) error
+	//Append adds values to the end of the slice. Returns an error if any
+	//value is not valid for this enum (in that case the slice is not
+	//modified).
+	Append(vals ...EnumKey) error
 	//Truncate shortens the slice to the given length. Panics if length is
 	//negative or greater than Len().
 	Truncate(length int)
@@ -468,31 +477,38 @@ func (e *enumSlice) Copy() EnumSlice {
 	}
 }
 
-func (e *enumSlice) SetValues(vals []EnumKey) {
-	filtered := make([]EnumKey, 0, len(vals))
-	for _, v := range vals {
-		if e.enum != nil && !e.enum.Valid(v) {
-			continue
+func (e *enumSlice) SetValues(vals []EnumKey) error {
+	if e.enum != nil {
+		for _, v := range vals {
+			if !e.enum.Valid(v) {
+				return errors.New("value " + strconv.Itoa(int(v)) + " is not valid for this enum")
+			}
 		}
-		filtered = append(filtered, v)
 	}
-	e.vals = filtered
+	result := make([]EnumKey, len(vals))
+	copy(result, vals)
+	e.vals = result
+	return nil
 }
 
-func (e *enumSlice) SetValue(i int, val EnumKey) {
+func (e *enumSlice) SetValue(i int, val EnumKey) error {
 	if e.enum != nil && !e.enum.Valid(val) {
-		return
+		return errors.New("value " + strconv.Itoa(int(val)) + " is not valid for this enum")
 	}
 	e.vals[i] = val
+	return nil
 }
 
-func (e *enumSlice) Append(vals ...EnumKey) {
-	for _, v := range vals {
-		if e.enum != nil && !e.enum.Valid(v) {
-			continue
+func (e *enumSlice) Append(vals ...EnumKey) error {
+	if e.enum != nil {
+		for _, v := range vals {
+			if !e.enum.Valid(v) {
+				return errors.New("value " + strconv.Itoa(int(v)) + " is not valid for this enum")
+			}
 		}
-		e.vals = append(e.vals, v)
 	}
+	e.vals = append(e.vals, vals...)
+	return nil
 }
 
 func (e *enumSlice) Truncate(length int) {

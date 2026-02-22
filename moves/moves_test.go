@@ -61,8 +61,8 @@ type moveStartPhaseDrawAgain struct {
 	StartPhase
 }
 
-func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase enum.EnumKey) enum.EnumKey {
-	return phaseDrawAgain
+func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, error) {
+	return phaseDrawAgain, nil
 }
 
 //boardgame:codegen
@@ -70,9 +70,9 @@ type moveStartPhaseIllegal struct {
 	StartPhase
 }
 
-func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase enum.EnumKey) enum.EnumKey {
+func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, error) {
 	//normal play is not a leaf node; should error
-	return phaseNormalPlay
+	return phaseNormalPlay, nil
 }
 
 func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {

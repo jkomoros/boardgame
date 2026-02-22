@@ -651,13 +651,15 @@ func applySanitizationPolicyEnumSlice(policy Policy, input enum.EnumSlice) enum.
 		for i := range vals {
 			vals[i] = defaultVal
 		}
-		result.SetValues(vals)
+		//Values are DefaultValue, which is always valid; error is impossible.
+		_ = result.SetValues(vals)
 		return result
 	}
 
 	if policy == PolicyNonEmpty {
 		if input.Len() > 0 {
-			result.Append(input.Enum().DefaultValue())
+			//DefaultValue is always valid; error is impossible.
+			_ = result.Append(input.Enum().DefaultValue())
 		}
 		return result
 	}

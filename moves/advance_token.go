@@ -77,7 +77,7 @@ func (a *AdvanceToken) Apply(state boardgame.State) error {
 
 	nextIndex := advancer.NextAdvanceIndex(state, currentVal)
 
-	if err := behavior.MoveTo(int(nextIndex)); err != nil {
+	if err := behavior.MoveTo(nextIndex.Int()); err != nil {
 		return err
 	}
 

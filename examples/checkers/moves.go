@@ -71,7 +71,7 @@ func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 		return errors.New("That space is already filled")
 	}
 
-	if !spaceIsBlack(int(m.TargetIndex.Value())) {
+	if !spaceIsBlack(m.TargetIndex.Value().Int()) {
 		return errors.New("The proposed space is not black")
 	}
 
@@ -80,7 +80,7 @@ func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 
 func (m *movePlaceToken) Apply(state boardgame.State) error {
 	game := state.GameState().(*gameState)
-	return game.UnusedTokens.First().MoveTo(game.Spaces, int(m.TargetIndex.Value()))
+	return game.UnusedTokens.First().MoveTo(game.Spaces, m.TargetIndex.Value().Int())
 }
 
 //boardgame:codegen
@@ -111,7 +111,7 @@ func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 		return errors.New("that token isn't your token to move")
 	}
 
-	if !spaceIsBlack(int(m.SpaceIndex.Value())) {
+	if !spaceIsBlack(m.SpaceIndex.Value().Int()) {
 		return errors.New("you can only move to spaces that are black")
 	}
 
@@ -120,14 +120,14 @@ func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 	}
 
 	//If it's one of the legal spaces, great.
-	for _, space := range t.FreeNextSpaces(state, int(m.TokenIndexToMove.Value())) {
-		if int(m.SpaceIndex.Value()) == space {
+	for _, space := range t.FreeNextSpaces(state, m.TokenIndexToMove.Value().Int()) {
+		if m.SpaceIndex.Value().Int() == space {
 			return nil
 		}
 	}
 
-	for _, space := range t.LegalCaptureSpaces(state, int(m.TokenIndexToMove.Value())) {
-		if int(m.SpaceIndex.Value()) == space {
+	for _, space := range t.LegalCaptureSpaces(state, m.TokenIndexToMove.Value().Int()) {
+		if m.SpaceIndex.Value().Int() == space {
 			return nil
 		}
 	}
@@ -193,7 +193,7 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
 		//The turn is also over if there isn't another cpature space to move
 		//to.
 		t := g.Spaces.ComponentAtKey(m.SpaceIndex.Value()).Values().(*token)
-		if len(t.LegalCaptureSpaces(state, int(m.SpaceIndex.Value()))) == 0 {
+		if len(t.LegalCaptureSpaces(state, m.SpaceIndex.Value().Int())) == 0 {
 			p.FinishedTurn = true
 		}
 	}

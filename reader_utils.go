@@ -191,7 +191,9 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			if outputEnumSlice == nil {
 				return errors.New(propName + " returned nil enum slice on output")
 			}
-			outputEnumSlice.SetValues(enumSliceVal.Values())
+			if err := outputEnumSlice.SetValues(enumSliceVal.Values()); err != nil {
+				return errors.New(propName + " could not set enum slice values: " + err.Error())
+			}
 		case TypeStack:
 			stackVal, err := input.StackProp(propName)
 			if err != nil {

@@ -119,7 +119,7 @@ func AddOrderedForPhase(phase enum.EnumKey, groups ...MoveProgressionGroup) []bo
 
 			//TODO: in the future it'd be nice if we could use the human-
 			//readable name for the phase here.
-			message := "The end of your phase run for phase " + strconv.Itoa(int(phase)) + " did not end with a StartPhase move, which is typical. If this was intentional, end that phase with a moves.NoOp to override this error."
+			message := "The end of your phase run for phase " + strconv.Itoa(phase.Int()) + " did not end with a StartPhase move, which is typical. If this was intentional, end that phase with a moves.NoOp to override this error."
 
 			return []boardgame.MoveConfig{
 				boardgame.NewMoveConfig("AddOrderedForPhase Error", errorMoveWithMessage(message), nil),

@@ -7,6 +7,17 @@ import (
 	"github.com/workfit/tester/assert"
 )
 
+func TestEnumKeyInt(t *testing.T) {
+	var k EnumKey = 42
+	assert.For(t).ThatActual(k.Int()).Equals(42)
+
+	var zero EnumKey
+	assert.For(t).ThatActual(zero.Int()).Equals(0)
+
+	var neg EnumKey = -1
+	assert.For(t).ThatActual(neg.Int()).Equals(-1)
+}
+
 func TestRangedEnum(t *testing.T) {
 
 	tests := []struct {
@@ -419,7 +430,8 @@ func TestEnumSlice(t *testing.T) {
 	assert.For(t).ThatActual(s.Enum()).Equals(colorEnum)
 
 	// Append and access
-	s.Append(ColorRed, ColorBlue)
+	err = s.Append(ColorRed, ColorBlue)
+	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(s.Len()).Equals(2)
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorRed))
 	assert.For(t).ThatActual(s.Value(1)).Equals(EnumKey(ColorBlue))
@@ -431,11 +443,13 @@ func TestEnumSlice(t *testing.T) {
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorRed))
 
 	// SetValue
-	s.SetValue(0, ColorGreen)
+	err = s.SetValue(0, ColorGreen)
+	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorGreen))
 
 	// SetValues replaces entirely
-	s.SetValues([]EnumKey{ColorBlue, ColorGreen, ColorRed})
+	err = s.SetValues([]EnumKey{ColorBlue, ColorGreen, ColorRed})
+	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(s.Len()).Equals(3)
 	assert.For(t).ThatActual(s.Value(2)).Equals(EnumKey(ColorRed))
 
@@ -445,10 +459,12 @@ func TestEnumSlice(t *testing.T) {
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorBlue))
 
 	// Copy returns an independent mutable copy
-	s.Append(ColorRed)
+	err = s.Append(ColorRed)
+	assert.For(t).ThatActual(err).IsNil()
 	c := s.Copy()
 	assert.For(t).ThatActual(c.Len()).Equals(2)
-	c.SetValue(0, ColorGreen)
+	err = c.SetValue(0, ColorGreen)
+	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorBlue)) // original unchanged
 
 	// ImmutableCopy returns an independent immutable copy
@@ -485,22 +501,35 @@ func TestEnumSliceValidation(t *testing.T) {
 
 	s := colorEnum.NewEnumSlice()
 
-	// Append with invalid values should silently skip them
-	s.Append(ColorBlue, 99, ColorRed)
-	assert.For(t).ThatActual(s.Len()).Equals(2)
-	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorBlue))
-	assert.For(t).ThatActual(s.Value(1)).Equals(EnumKey(ColorRed))
+	// Append with invalid values should return error and not modify slice
+	err = s.Append(ColorBlue, 99, ColorRed)
+	assert.For(t).ThatActual(err).IsNotNil()
+	assert.For(t).ThatActual(s.Len()).Equals(0) // unchanged
 
-	// SetValue with invalid value should be a no-op
-	s.SetValue(0, 99)
-	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorBlue))
+	// Append with all valid values should work
+	err = s.Append(ColorBlue, ColorRed)
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(s.Len()).Equals(2)
+
+	// SetValue with invalid value should return error
+	err = s.SetValue(0, 99)
+	assert.For(t).ThatActual(err).IsNotNil()
+	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorBlue)) // unchanged
 
 	// SetValue with valid value should work
-	s.SetValue(0, ColorGreen)
+	err = s.SetValue(0, ColorGreen)
+	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorGreen))
 
-	// SetValues with invalid values should filter them out
-	s.SetValues([]EnumKey{ColorRed, 99, ColorBlue, 100})
+	// SetValues with invalid values should return error and not modify slice
+	err = s.SetValues([]EnumKey{ColorRed, 99, ColorBlue, 100})
+	assert.For(t).ThatActual(err).IsNotNil()
+	assert.For(t).ThatActual(s.Len()).Equals(2) // unchanged from before
+	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorGreen)) // still the old value
+
+	// SetValues with all valid values should work
+	err = s.SetValues([]EnumKey{ColorRed, ColorBlue})
+	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(s.Len()).Equals(2)
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorRed))
 	assert.For(t).ThatActual(s.Value(1)).Equals(EnumKey(ColorBlue))

@@ -360,6 +360,17 @@ func (d *Default) legalMoveProgression() MoveProgressionGroup {
 	return group
 }
 
+//currentPhaseInfo extracts both the ImmutableVal and EnumKey from the
+//delegate's CurrentPhase. If CurrentPhase returns nil (no phase configured),
+//returns (nil, 0).
+func currentPhaseInfo(state boardgame.ImmutableState) (enum.ImmutableVal, enum.EnumKey) {
+	val := state.Manager().Delegate().CurrentPhase(state)
+	if val == nil {
+		return nil, 0
+	}
+	return val, val.Value()
+}
+
 //legalInPhase will return a descriptive error if this move is not legal in
 //the current phase of the game.
 func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
@@ -372,12 +383,7 @@ func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 		return nil
 	}
 
-	currentPhaseVal := state.Manager().Delegate().CurrentPhase(state)
-
-	var currentPhase enum.EnumKey
-	if currentPhaseVal != nil {
-		currentPhase = currentPhaseVal.Value()
-	}
+	currentPhaseVal, currentPhase := currentPhaseInfo(state)
 
 	var treeEnum enum.TreeEnum
 	if currentPhaseVal != nil {
@@ -404,7 +410,7 @@ func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 		}
 	}
 
-	phaseName := strconv.Itoa(int(currentPhase))
+	phaseName := strconv.Itoa(currentPhase.Int())
 
 	if currentPhaseVal != nil {
 		phaseName = currentPhaseVal.String()
@@ -512,11 +518,7 @@ func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, propose
 		return nil
 	}
 
-	currentPhaseVal := state.Manager().Delegate().CurrentPhase(state)
-	var currentPhase enum.EnumKey
-	if currentPhaseVal != nil {
-		currentPhase = currentPhaseVal.Value()
-	}
+	_, currentPhase := currentPhaseInfo(state)
 
 	historicalMoves := d.historicalMovesSincePhaseTransition(state.Game(), state.Version(), currentPhase)
 

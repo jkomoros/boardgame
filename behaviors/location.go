@@ -120,7 +120,7 @@ func (l *LocationBehavior) MoveTo(targetIndex int) error {
 	if !ok {
 		return errors.New("LocationBehavior: no component found in location stack")
 	}
-	return l.locationStack.SwapComponents(int(currentKey), targetIndex)
+	return l.locationStack.SwapComponents(currentKey.Int(), targetIndex)
 }
 
 //Neighbors returns the indices of all spaces adjacent to the current location
@@ -198,7 +198,7 @@ func (l *LocationBehavior) Token() boardgame.ComponentInstance {
 	if !ok {
 		return nil
 	}
-	return l.locationStack.ComponentAt(int(currentKey))
+	return l.locationStack.ComponentAt(currentKey.Int())
 }
 
 //GetLocationBehavior returns the LocationBehavior itself. This method exists

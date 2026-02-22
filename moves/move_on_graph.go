@@ -161,7 +161,7 @@ func (m *MoveOnGraph) Apply(state boardgame.State) error {
 	// Store path for HopAlongPath (convert []ImmutableVal to []int)
 	intPath := make([]int, len(path))
 	for i, v := range path {
-		intPath[i] = int(v.Value())
+		intPath[i] = v.Value().Int()
 	}
 	behavior.LocRemainingPath = intPath
 

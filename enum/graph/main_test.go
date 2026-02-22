@@ -517,3 +517,74 @@ func TestNewDirectedEnumGraph(t *testing.T) {
 
 	g.Finish()
 }
+
+func TestDirectionFilters(t *testing.T) {
+	// Use a 4x4 grid to test direction filters.
+	//
+	// | 0 | 1 | 2 | 3 |
+	// | 4 | 5 | 6 | 7 |
+	// | 8 | 9 |10 |11 |
+	// |12 |13 |14 |15 |
+	set := enum.NewSet()
+	e := set.MustAddRange("grid", 4, 4)
+
+	// DirectionDown: neighbors should have strictly higher row index.
+	// Cell 5 is at row 1, col 1. Its Down neighbors should be in row 2.
+	downNeighbors := []enum.EnumKey{}
+	for _, n := range neighbors(e, 5) {
+		if DirectionDown(e, 5, n) {
+			downNeighbors = append(downNeighbors, n)
+		}
+	}
+	slices.Sort(downNeighbors)
+	// Row 2, cols 0-2: cells 8, 9, 10
+	assert.For(t).ThatActual(downNeighbors).Equals([]enum.EnumKey{8, 9, 10})
+
+	// DirectionUp: neighbors should have strictly lower row index.
+	// Cell 5 is at row 1. Its Up neighbors should be in row 0.
+	upNeighbors := []enum.EnumKey{}
+	for _, n := range neighbors(e, 5) {
+		if DirectionUp(e, 5, n) {
+			upNeighbors = append(upNeighbors, n)
+		}
+	}
+	slices.Sort(upNeighbors)
+	// Row 0, cols 0-2: cells 0, 1, 2
+	assert.For(t).ThatActual(upNeighbors).Equals([]enum.EnumKey{0, 1, 2})
+
+	// DirectionRight: neighbors should have strictly higher col index.
+	// Cell 5 is at row 1, col 1. Its Right neighbors should be in col 2.
+	rightNeighbors := []enum.EnumKey{}
+	for _, n := range neighbors(e, 5) {
+		if DirectionRight(e, 5, n) {
+			rightNeighbors = append(rightNeighbors, n)
+		}
+	}
+	slices.Sort(rightNeighbors)
+	// Col 2, rows 0-2: cells 2, 6, 10
+	assert.For(t).ThatActual(rightNeighbors).Equals([]enum.EnumKey{2, 6, 10})
+
+	// DirectionLeft: neighbors should have strictly lower col index.
+	// Cell 5 is at row 1, col 1. Its Left neighbors should be in col 0.
+	leftNeighbors := []enum.EnumKey{}
+	for _, n := range neighbors(e, 5) {
+		if DirectionLeft(e, 5, n) {
+			leftNeighbors = append(leftNeighbors, n)
+		}
+	}
+	slices.Sort(leftNeighbors)
+	// Col 0, rows 0-2: cells 0, 4, 8
+	assert.For(t).ThatActual(leftNeighbors).Equals([]enum.EnumKey{0, 4, 8})
+
+	// Test grid connectedness with DirectionDown + DirectionDiagonal filter
+	// (used by checkers for downward movement).
+	graph, err := NewGridConnectedness(e, DirectionDown, DirectionDiagonal)
+	assert.For(t).ThatActual(err).IsNil()
+
+	// Cell 0 (row 0, col 0) should connect to cell 5 (row 1, col 1) — down-right diagonal
+	assert.For(t).ThatActual(graph.Connected(0, 5)).IsTrue()
+	// Cell 0 should NOT connect to cell 1 (same row, not down)
+	assert.For(t).ThatActual(graph.Connected(0, 1)).IsFalse()
+	// Cell 0 should NOT connect to cell 4 (down but not diagonal — perpendicular)
+	assert.For(t).ThatActual(graph.Connected(0, 4)).IsFalse()
+}
