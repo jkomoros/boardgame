@@ -6,4 +6,4 @@ If you are looking to just make modifications for your own specific instantiatio
 
 ## Adding a top-level view
 
-If you add a new top-level view to the app, make sure to update polymer.json to include that fragment.
+If you add a new top-level view to the app, make sure it is properly imported so Vite can discover it during the build.

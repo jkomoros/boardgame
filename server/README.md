@@ -9,7 +9,7 @@ Sitting in a folder that has a valid config file in it or one of its ancestors, 
 
 ## Writing your client-side views
 
-boardgame-render-game-GAMENAME is the Polymer element that will be instantiated and passed state (where state.Game.Stack.Components is an expanded view of your components for convenience). Your view should render that to the screen in whatever way is reasonable.
+boardgame-render-game-GAMENAME is the web component that will be instantiated and passed state (where state.Game.Stack.Components is an expanded view of your components for convenience). Your view should render that to the screen in whatever way is reasonable.
 
 That view can fire events of the type "propose-move", with a detail containing "name" for the precise name of the Move to make, and "arguments", which is an object containing the non-default arguments for the move. When that move is emitted, it will effectively fill in the corresponding form fileds for that move (ignoring, and thus leaving at their default, any fields that were not explicitly listed in the arguments object), and then submit the move.
 
@@ -19,7 +19,7 @@ If you define an element in your GAMENAME/ folder called boardgame-render-player
 
 if your player-info renderer contains a property called chipText that is a string and has notify:true, that text will be used in the chip on the player picture (a single character is best). If "" is returned, that chip's text will default to just being the index of the player. Similarly, you can define chipColor in a similar way, which should return a valid CSS color. If provided, it will be used instead of the normal colors.
 
-If you don't, don't forget to add it to the polymer.json fragments list above.
+If you create a new renderer component, make sure it's properly imported so the build system can find it.
 
 ### Optional: boardgame-card
 
@@ -101,15 +101,15 @@ You can use boardgame-status-text to render text that will also show the fading 
 
 If your game renderer inherits from BoardgameBaseGameRenderer, you'll get a few convenience goodies.
 
-Elements that have a propose-move attribute on them anywhere below will, when tapped, fire a propose-move event with that name. It will also include as arguments to that move any attributes named like `data-arg-my-foo`, where the argument would be represnted in the event as `MyFoo`. If you data-bind to that attribute, remember to use `$=` so that Polymer binds them as attributes, not as properties.
+Elements that have a propose-move attribute on them anywhere below will, when tapped, fire a propose-move event with that name. It will also include as arguments to that move any attributes named like `data-arg-my-foo`, where the argument would be represnted in the event as `MyFoo`. If you data-bind to that attribute, remember to bind them as attributes, not as properties.
 
 BoardgameBaseGameRenderer also defines a few extra properties, like isCurrentPlayer. 
 
 ## Adding new views
 
-You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the polymer element that is the root of your game rendering.
+You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the web component that is the root of your game rendering.
 
-If you need new bower depenencies, just add them as normal from the command line, sitting in mygame/server/webapp. This will modify your bower.json file, which is correct.
+If you need new npm dependencies, just add them as normal from the command line using `npm install`.
 
 If you want to modify config-src, manifest.json, or index.html just remove the symlink and copy in the example folder from boardgame/server/static/webapp.
 
@@ -129,24 +129,8 @@ config.json.
 
 ## Installing dependencies
 
-1. Install Node.js
-2. Install bower:
-
-```sh
-npm install -g bower
-```
-
-1. Install polymer CLI:
-
-```sh
-npm install -g polymer-cli
-```
-
-If you have a fresh checkout, cd into boardgame/server/webapp and run:
-
-```sh
-bower install
-```
+1. Install Node.js (which includes npm)
+2. Run `npm install` in the `boardgame/server/static` directory to install all JavaScript dependencies
 
 Install the [https://cloud.google.com/sdk/docs/](Google Cloud SDK).
 

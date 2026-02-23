@@ -36,17 +36,9 @@ The `boardgame-util` command looks for configuration in json files when it runs 
 
 The quickest way to get a server running is via the `boardgame-util serve` command. 
 
-The command requires you have `npm` and the `polymer` cli installed. 
+The command requires you have `npm` installed. You can install npm by following the instructions to install node: https://nodejs.org/en/
 
-You can install npm by following the instructions to install node: https://nodejs.org/en/
-
-Once you have npm installed, run:
-
-```sh
-npm install -g polymer-cli
-```
-
-*There's currently a bug in its installation, so if the installation fails, you might have to pass `--unsafe-perm` to install it.*
+That's the only JavaScript prerequisite — all other dependencies (including the Vite dev server) are installed automatically via `npm install`.
 
 Now you have the prerequisites installed and can use the `boardgame-util serve` command.
 
