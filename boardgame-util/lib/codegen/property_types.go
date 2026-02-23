@@ -7,14 +7,14 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//allValidTypes is an enumeration of all types in order.
+// allValidTypes is an enumeration of all types in order.
 var allValidTypes []propertyType
 
-//typeNamesForFieldInfo is where we store the values to power
-//fieldInfoForTypeName
+// typeNamesForFieldInfo is where we store the values to power
+// fieldInfoForTypeName
 var typeNamesToFieldInfo map[string]fieldInfo
 
-//highestProperty is the highest enum in the PropertyType enum.
+// highestProperty is the highest enum in the PropertyType enum.
 const highestProperty = boardgame.TypeEnumSlice
 
 func init() {
@@ -64,9 +64,9 @@ func buildTypeNameMap() map[string]fieldInfo {
 	return result
 }
 
-//fieldInfo returns a field info for the given field type name (as reported by
-//model, which notably does not include "[]" prefix for slices), as well as
-//whether it's a slice.
+// fieldInfo returns a field info for the given field type name (as reported by
+// model, which notably does not include "[]" prefix for slices), as well as
+// whether it's a slice.
 func fieldInfoForTypeName(fieldTypeName string, isSlice bool) fieldInfo {
 	key := fieldTypeName
 	if isSlice {
@@ -75,22 +75,22 @@ func fieldInfoForTypeName(fieldTypeName string, isSlice bool) fieldInfo {
 	return typeNamesToFieldInfo[key]
 }
 
-//propertyType is a simple wrapper around boardgame.PropertyType that extends it
-//with methods that are only useful for codegen and thus don't belong in the
-//main package. We can't just alias the type in this package because we need the
-//methods. Note one oddity, to compare what type it is, you have to compare
-//t.PropertyType == boardgame.TypeInt. Luckily the typechecker will complain if
-//you do it wrong.
+// propertyType is a simple wrapper around boardgame.PropertyType that extends it
+// with methods that are only useful for codegen and thus don't belong in the
+// main package. We can't just alias the type in this package because we need the
+// methods. Note one oddity, to compare what type it is, you have to compare
+// t.PropertyType == boardgame.TypeInt. Luckily the typechecker will complain if
+// you do it wrong.
 type propertyType struct {
 	boardgame.PropertyType
 }
 
-//TypePackagePrefix returns a string representing the package prefix of the go
-//type that is represented by this property type. For example, "boardgame." for
-//TypeStack, and "" for TypeInt. Using strings.TrimPrefix() with this prefix
-//applied to the return value of for example ImmutableGoType and others will
-//strip away the package qualifier, if it exists. Most useful for the codegen
-//package.
+// TypePackagePrefix returns a string representing the package prefix of the go
+// type that is represented by this property type. For example, "boardgame." for
+// TypeStack, and "" for TypeInt. Using strings.TrimPrefix() with this prefix
+// applied to the return value of for example ImmutableGoType and others will
+// strip away the package qualifier, if it exists. Most useful for the codegen
+// package.
 func (t propertyType) TypePackagePrefix() string {
 	//Strip away any slices so we have fewer conditions to test for
 	base := t.BaseType()
@@ -103,9 +103,9 @@ func (t propertyType) TypePackagePrefix() string {
 	return ""
 }
 
-//ImmutableGoType emits strings like 'bool', 'boardgame.PlayerIndex'. It
-//represents the type of this property for the immutable/getter contexts. Most
-//useful for codegen package.
+// ImmutableGoType emits strings like 'bool', 'boardgame.PlayerIndex'. It
+// represents the type of this property for the immutable/getter contexts. Most
+// useful for codegen package.
 func (t propertyType) ImmutableGoType() string {
 
 	if t.IsSlice() {
@@ -136,22 +136,22 @@ func (t propertyType) ImmutableGoType() string {
 	}
 }
 
-//MutableGoType emits a string representing the golang type for the property
-//when in mutable/setter contexts, e.g 'int', 'boardgame.Stack'. Most useful for
-//the codegen package.
+// MutableGoType emits a string representing the golang type for the property
+// when in mutable/setter contexts, e.g 'int', 'boardgame.Stack'. Most useful for
+// the codegen package.
 func (t propertyType) MutableGoType() string {
 	return strings.Replace(t.ImmutableGoType(), "Immutable", "", -1)
 }
 
-//Key returns the part of the PropertyReader method signature for this type. For
-//example, "Bool" for TypeBool, "Timer" for "TypeTimer". Most useful for the
-//codegen package.
+// Key returns the part of the PropertyReader method signature for this type. For
+// example, "Bool" for TypeBool, "Timer" for "TypeTimer". Most useful for the
+// codegen package.
 func (t propertyType) Key() string {
 	return strings.TrimPrefix(t.String(), "Type")
 }
 
-//ImmutableSubTypeConverters will return the names of hte converters to convert
-//to the various valid subtypes, e.g. "ImmutableSizedStack" for TypeStack.
+// ImmutableSubTypeConverters will return the names of hte converters to convert
+// to the various valid subtypes, e.g. "ImmutableSizedStack" for TypeStack.
 func (t propertyType) ImmutableSubTypeConverters() []string {
 	switch t.PropertyType {
 	case boardgame.TypeStack:
@@ -162,8 +162,8 @@ func (t propertyType) ImmutableSubTypeConverters() []string {
 	return nil
 }
 
-//MutableSubTypeConverters will return the names of hte converters to convert
-//to the various valid subtypes, e.g. "ImmutableSizedStack" for TypeStack.
+// MutableSubTypeConverters will return the names of hte converters to convert
+// to the various valid subtypes, e.g. "ImmutableSizedStack" for TypeStack.
 func (t propertyType) MutableSubTypeConverters() []string {
 	switch t.PropertyType {
 	case boardgame.TypeStack:
@@ -174,8 +174,8 @@ func (t propertyType) MutableSubTypeConverters() []string {
 	return nil
 }
 
-//ImmutableSubTypes returns the sub type fully qualitfied type strings for
-//sub-types, e.g. "enum.ImmutableRangeVal" for boardgame.TypeEnum.
+// ImmutableSubTypes returns the sub type fully qualitfied type strings for
+// sub-types, e.g. "enum.ImmutableRangeVal" for boardgame.TypeEnum.
 func (t propertyType) ImmutableSubTypes() []string {
 	//Since the convertesr by convention are literally just the name of the type
 	//(minus the package qualifier) we can just strip the package name.
@@ -187,8 +187,8 @@ func (t propertyType) ImmutableSubTypes() []string {
 	return result
 }
 
-//MutableSubTypes returns the sub type fully qualitfied type strings for
-//sub-types, e.g. "enum.ImmutableRangeVal" for boardgame.TypeEnum.
+// MutableSubTypes returns the sub type fully qualitfied type strings for
+// sub-types, e.g. "enum.ImmutableRangeVal" for boardgame.TypeEnum.
 func (t propertyType) MutableSubTypes() []string {
 	//Since the convertesr by convention are literally just the name of the type
 	//(minus the package qualifier) we can just strip the package name.
@@ -200,9 +200,9 @@ func (t propertyType) MutableSubTypes() []string {
 	return result
 }
 
-//ZeroValue returns the string representing the zeroValue for this type, e.g.
-//"0" for TypeInt and "[]boardgame.PlayerIndex{}" for TypePlayerIndexSlice. Most
-//useful for codgen package.
+// ZeroValue returns the string representing the zeroValue for this type, e.g.
+// "0" for TypeInt and "[]boardgame.PlayerIndex{}" for TypePlayerIndexSlice. Most
+// useful for codgen package.
 func (t propertyType) ZeroValue() string {
 
 	switch t.PropertyType {

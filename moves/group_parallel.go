@@ -21,14 +21,13 @@ erroring. It continues going through until all are met, or no more un-
 triggered items can consume more items. If at any point more than one item
 could match at the given point in the tape, it chooses the match that consumes
 the most tape.
-
 */
 func Parallel(children ...MoveProgressionGroup) MoveProgressionGroup {
 	return ParallelCount(CountAll(), children...)
 }
 
-//matchInfo reflects a match that was found while doing a run through of
-//groups, for example in a Parallel group.
+// matchInfo reflects a match that was found while doing a run through of
+// groups, for example in a Parallel group.
 type matchInfo struct {
 	//The index within the containing group of the group that mached
 	index int
@@ -39,8 +38,8 @@ type matchInfo struct {
 	length int
 }
 
-//tapeLength returns the length between from and to, if they're in the same
-//tape. If to cannot be reached from from, math.MaxInt64 is returned.
+// tapeLength returns the length between from and to, if they're in the same
+// tape. If to cannot be reached from from, math.MaxInt64 is returned.
 func tapeLength(from, to *MoveGroupHistoryItem) int {
 
 	count := 0
@@ -59,10 +58,10 @@ func tapeLength(from, to *MoveGroupHistoryItem) int {
 
 }
 
-//ParallelCount is a version of Parallel, but where the target count of number
-//of children to match before being satisfied is given by Count. The length
-//argument to Count will be the number of Groups who are children. See
-//ValidCounter in this package for multiple counters you can pass.
+// ParallelCount is a version of Parallel, but where the target count of number
+// of children to match before being satisfied is given by Count. The length
+// argument to Count will be the number of Groups who are children. See
+// ValidCounter in this package for multiple counters you can pass.
 func ParallelCount(count ValidCounter, children ...MoveProgressionGroup) MoveProgressionGroup {
 	return &parallelCount{
 		children,

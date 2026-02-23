@@ -19,8 +19,8 @@ const (
 	TestDbName = "TEMPORARY_DATABASE_boardgame_test"
 )
 
-//Db creates the Database handle. If testMode is true, then dbName will be
-//TestDbName.
+// Db creates the Database handle. If testMode is true, then dbName will be
+// TestDbName.
 func Db(dsn string, testMode bool, createDb bool) (*sql.DB, error) {
 
 	dbName := "boardgame"
@@ -79,7 +79,7 @@ func doCreateDb(dsn string, dbName string) error {
 	return nil
 }
 
-//Migrations returns the Migrate object to migrate a database.
+// Migrations returns the Migrate object to migrate a database.
 func Migrations(db *sql.DB) (*migrate.Migrate, error) {
 	path := os.ExpandEnv(pathToMigrations)
 
@@ -100,7 +100,7 @@ func Migrations(db *sql.DB) (*migrate.Migrate, error) {
 	return m, nil
 }
 
-//DropTestDb is called to delete the test database. Will fail if the database name isn't TestDbName
+// DropTestDb is called to delete the test database. Will fail if the database name isn't TestDbName
 func DropTestDb(dsn string) error {
 
 	parsedDSN, err := dsnparser.ParseDSN(dsn)

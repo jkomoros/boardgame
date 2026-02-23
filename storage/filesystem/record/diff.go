@@ -99,7 +99,7 @@ func (d *diffEncoderImpl) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame
 	return blob, nil
 }
 
-//Note: this only works if examplePatch is the first one now.
+// Note: this only works if examplePatch is the first one now.
 func (d *diffEncoderImpl) Matches(examplePatch []byte) error {
 
 	//We match if the patch has a version string who is an int.

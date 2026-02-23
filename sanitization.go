@@ -11,35 +11,34 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 )
 
-//sanitizationTransformation contains which policy to apply for every property
-//in the state. Missing properties will be treated as PolicyVisible.
+// sanitizationTransformation contains which policy to apply for every property
+// in the state. Missing properties will be treated as PolicyVisible.
 type sanitizationTransformation struct {
 	Game                   subStateSanitizationTransformation
 	Players                []subStateSanitizationTransformation
 	DynamicComponentValues map[string]subStateSanitizationTransformation
 }
 
-//Map of policy to apply for each propname in this sub-state
+// Map of policy to apply for each propname in this sub-state
 type subStateSanitizationTransformation map[string]Policy
 
-//SanitizationDefaultGroup is the implied sanitization group name if no group
-//name is included. See StructInflater.PropertySanitizationPolicy for more on
-//sanitization policy groups.
+// SanitizationDefaultGroup is the implied sanitization group name if no group
+// name is included. See StructInflater.PropertySanitizationPolicy for more on
+// sanitization policy groups.
 const SanitizationDefaultGroup = "all"
 
-//SanitizationDefaultPlayerGroup is the implied sanitization group name if no group
-//name is included for player states. See
-//StructInflater.PropertySanitizationPolicy for more on sanitization policy
-//groups.
+// SanitizationDefaultPlayerGroup is the implied sanitization group name if no group
+// name is included for player states. See
+// StructInflater.PropertySanitizationPolicy for more on sanitization policy
+// groups.
 const SanitizationDefaultPlayerGroup = "other"
 
-//the only part of machinery that treats these specially is
-//gameManager.computedPlayerGroupMembership.
+// the only part of machinery that treats these specially is
+// gameManager.computedPlayerGroupMembership.
 const sanitizationGroupSelf = "self"
 const sanitizationGroupOther = SanitizationDefaultPlayerGroup
 
 /*
-
 Policy is the type that reprsents a sanitization policy.
 
 A sanitization policy reflects how to tranform a given State property when
@@ -76,14 +75,13 @@ this hapepns)
 Different Sanitization Policies will do different things to Ids and IdsLastSeen,
 according to the following table:
 
-    | Policy         | Values Behavior                                                  | Ids()                       | IdsLastSeen() | ShuffleCount() |Notes                                                                                                  |
-    |----------------|------------------------------------------------------------------|-----------------------------|---------------|----------------|-------------------------------------------------------------------------------------------------------|
-    | PolicyVisible  | All values visible                                               | Present                     | Present       | Present        | Visible is effectively no transformation                                                              |
-    | PolicyOrder    | All values replaced by generic component                         | Present                     | Present       | Present        | PolicyOrder is similar to PolicyLen, but the order of components is observable                        |
-    | PolicyLen      | All values replaced by generic component                         | Sorted Lexicographically    | Present       | Present        | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
-    | PolicyNonEmpty | Values will be either 0 components or a single generic component | Absent                      | Present       | Absent         | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
-    | PolicyHidden   | Values are completely empty                                      | Absent                      | Absent        | Absent         | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
-
+	| Policy         | Values Behavior                                                  | Ids()                       | IdsLastSeen() | ShuffleCount() |Notes                                                                                                  |
+	|----------------|------------------------------------------------------------------|-----------------------------|---------------|----------------|-------------------------------------------------------------------------------------------------------|
+	| PolicyVisible  | All values visible                                               | Present                     | Present       | Present        | Visible is effectively no transformation                                                              |
+	| PolicyOrder    | All values replaced by generic component                         | Present                     | Present       | Present        | PolicyOrder is similar to PolicyLen, but the order of components is observable                        |
+	| PolicyLen      | All values replaced by generic component                         | Sorted Lexicographically    | Present       | Present        | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
+	| PolicyNonEmpty | Values will be either 0 components or a single generic component | Absent                      | Present       | Absent         | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
+	| PolicyHidden   | Values are completely empty                                      | Absent                      | Absent        | Absent         | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
 
 However, in some cases it is not possible to keep track of the precise order of
 components, even with perfect observation. The canonical example is when a stack
@@ -107,7 +105,6 @@ Note that DynamicComponentValues behave slightly differently than values in
 other SubStates; all properties in them are effectively PolicyHidden unless the
 component they are attached to is PolicyVisible (either directly, or
 transatively)--in which case their configured policy is used.
-
 */
 type Policy int
 
@@ -209,8 +206,8 @@ func groupMembershipForPlayerState(playerState ImmutableSubState) (enum.Immutabl
 	return groupMembership, stringGroupMembership
 }
 
-//generateSanitizationTransformation creates a sanitizationTransformation by
-//consulting the delegate for each property on each sub-state.
+// generateSanitizationTransformation creates a sanitizationTransformation by
+// consulting the delegate for each property on each sub-state.
 func (s *state) generateSanitizationTransformation(player PlayerIndex) (*sanitizationTransformation, error) {
 
 	result := &sanitizationTransformation{}
@@ -284,11 +281,11 @@ func generateSubStateSanitizationTransformation(subState ImmutableSubState, prop
 
 }
 
-//applySanitizationTransformation takes a generated sanitizationTransformation
-//and applies it to the given tate, returning a new state that has been
-//transformed accordingly. The DynamicComponentValues transformations are set
-//to Hidden (instead of how they are configured) unless the stacks that
-//contain them in Game and Player states resolve to PolicyVisible.
+// applySanitizationTransformation takes a generated sanitizationTransformation
+// and applies it to the given tate, returning a new state that has been
+// transformed accordingly. The DynamicComponentValues transformations are set
+// to Hidden (instead of how they are configured) unless the stacks that
+// contain them in Game and Player states resolve to PolicyVisible.
 func (s *state) applySanitizationTransformation(transformation *sanitizationTransformation) (State, error) {
 
 	sanitized, err := s.copy(true)
@@ -343,11 +340,11 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 
 }
 
-//sanitizeStateObj applies the given sanitizationTransformation to the given
-//sub-state. It also keeps track of which components within it resolve to
-//PolicyVisible, so later that information can be used to only reveal that
-//information in DynamicComponentValues if the components they're related to
-//were visible.
+// sanitizeStateObj applies the given sanitizationTransformation to the given
+// sub-state. It also keeps track of which components within it resolve to
+// PolicyVisible, so later that information can be used to only reveal that
+// information in DynamicComponentValues if the components they're related to
+// were visible.
 func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformation subStateSanitizationTransformation, visibleDynamic map[string]map[int]bool) error {
 
 	for propName, propType := range readSetConfigurer.Props() {
@@ -398,9 +395,9 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 
 }
 
-//transitivelyMarkDynamicComponentsAsVisible expands which
-//dynamiccomponentvalues are visible by extending the visibility throughout
-//any items that are in stacks on dynamiccomponentvalues that are visible.
+// transitivelyMarkDynamicComponentsAsVisible expands which
+// dynamiccomponentvalues are visible by extending the visibility throughout
+// any items that are in stacks on dynamiccomponentvalues that are visible.
 func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]ConfigurableSubState, visibleComponents map[string]map[int]bool) {
 
 	//All dynamic component values are hidden, except for ones that currently
@@ -457,10 +454,10 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	}
 }
 
-//sanitizeDynamicComponentValues is more complex than just applying a
-//straightforward sanitizationTransformation because the components should
-//only folow the configured property if the component they're affiliated with
-//was PolicyVisible.
+// sanitizeDynamicComponentValues is more complex than just applying a
+// straightforward sanitizationTransformation because the components should
+// only folow the configured property if the component they're affiliated with
+// was PolicyVisible.
 func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]ConfigurableSubState, visibleComponents map[string]map[int]bool, transformation map[string]subStateSanitizationTransformation) error {
 
 	for name, slice := range dynamicComponentValues {
@@ -744,14 +741,14 @@ func overrideIDsForLen(stack Stack) []string {
 	return ids
 }
 
-//returns a random permutation of size stack.Len(). The permutation will be
-//predictable given this exact stack and its state, but unpredictable in
-//general. This makes it give predictable results for testing but still be
-//unguessable if you don't have the stack's game's SecretSalt. This method
-//exists even though state has a soruce of randomness because this library
-//should only use state.Rand() as a source if it's deterministically called,
-//whereas any given state might have multiple sanitizated states created
-//implicitly.
+// returns a random permutation of size stack.Len(). The permutation will be
+// predictable given this exact stack and its state, but unpredictable in
+// general. This makes it give predictable results for testing but still be
+// unguessable if you don't have the stack's game's SecretSalt. This method
+// exists even though state has a soruce of randomness because this library
+// should only use state.Rand() as a source if it's deterministically called,
+// whereas any given state might have multiple sanitizated states created
+// implicitly.
 func randPermForStack(stack Stack) []int {
 
 	//We want this to be deterministic for two reasons: to have stable goldens

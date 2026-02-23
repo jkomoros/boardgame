@@ -15,13 +15,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//GameManager defines the logic and machinery for a given game type. It is the
-//core game object that represents a game type in the engine. GameManager is a
-//struct provided by the core engine; think of your GameDelegate as the game-
-//type specific brain that will be plugged into the generic GameManager to
-//imbue it with life. GameManagers manage fetching specific games from
-//storage, proposing moves, and other lifecycle methods. All games of a
-//certain type on a certain computer use the same GameManager.
+// GameManager defines the logic and machinery for a given game type. It is the
+// core game object that represents a game type in the engine. GameManager is a
+// struct provided by the core engine; think of your GameDelegate as the game-
+// type specific brain that will be plugged into the generic GameManager to
+// imbue it with life. GameManagers manage fetching specific games from
+// storage, proposing moves, and other lifecycle methods. All games of a
+// certain type on a certain computer use the same GameManager.
 type GameManager struct {
 	delegate                  GameDelegate
 	gameValidator             *StructInflater
@@ -41,49 +41,49 @@ type GameManager struct {
 	variantConfig             VariantConfig
 }
 
-//Internals returns a ManagerInternals for this manager. All of the methods on
-//a ManagerInternals are designed to be used only in very specific conditions;
-//users of this package should almost never do anything with these
+// Internals returns a ManagerInternals for this manager. All of the methods on
+// a ManagerInternals are designed to be used only in very specific conditions;
+// users of this package should almost never do anything with these
 func (g *GameManager) Internals() *ManagerInternals {
 	return &ManagerInternals{
 		g,
 	}
 }
 
-//ManagerInternals is a special struct that has debug-only methods hanging off
-//of it. Some methods need to be exposed outside of the package due to how the
-//sub-packages are organized. All of the methods off of this object are
-//designed to be used only by other sub-packages, and should be used at your
-//own risk.
+// ManagerInternals is a special struct that has debug-only methods hanging off
+// of it. Some methods need to be exposed outside of the package due to how the
+// sub-packages are organized. All of the methods off of this object are
+// designed to be used only by other sub-packages, and should be used at your
+// own risk.
 type ManagerInternals struct {
 	manager *GameManager
 }
 
-//RecreateGame creates a new game that has the same properties as the provided
-//GameStorageRecord. It is very rarely what you want; see NewGame(), Game(),
-//and ModifiableGame(). RecreateGame is most useful in debugging or testing
-//scenarios where you want a game to have the same ID and SecretSalt as a
-//previously created game, so the moves can be applied deterministically with
-//the same input. rec generally should be a GameStorageRecord representing a
-//game that was created in a different storage pool; if a game with that ID
-//already exists in this storage pool RecreateGame will error.
+// RecreateGame creates a new game that has the same properties as the provided
+// GameStorageRecord. It is very rarely what you want; see NewGame(), Game(),
+// and ModifiableGame(). RecreateGame is most useful in debugging or testing
+// scenarios where you want a game to have the same ID and SecretSalt as a
+// previously created game, so the moves can be applied deterministically with
+// the same input. rec generally should be a GameStorageRecord representing a
+// game that was created in a different storage pool; if a game with that ID
+// already exists in this storage pool RecreateGame will error.
 func (m *ManagerInternals) RecreateGame(rec *GameStorageRecord) (*Game, error) {
 	return m.manager.recreateGame(rec)
 }
 
-//ForceNextTimer forces the next timer to fire even if it's not supposed to
-//fire yet. Will return true if there was a timer that was fired, false
-//otherwise.
+// ForceNextTimer forces the next timer to fire even if it's not supposed to
+// fire yet. Will return true if there was a timer that was fired, false
+// otherwise.
 func (m *ManagerInternals) ForceNextTimer() bool {
 	return m.manager.timers.ForceNextTimer()
 }
 
-//ForceFixUp forces the engine to check if a FixUp move applies, even if no
-//player move is waiting to apply. Typically moves are only legal based on the
-//state, so if a move hasn't been applied they can't be legal. But in some
-//cases, like for server seating players, there's some outside state that might
-//have changed that could cause a move to be legal even though the game state
-//didn't change.
+// ForceFixUp forces the engine to check if a FixUp move applies, even if no
+// player move is waiting to apply. Typically moves are only legal based on the
+// state, so if a move hasn't been applied they can't be legal. But in some
+// cases, like for server seating players, there's some outside state that might
+// have changed that could cause a move to be legal even though the game state
+// didn't change.
 func (m *ManagerInternals) ForceFixUp(game *Game) DelayedError {
 	if game == nil {
 		delayed := make(DelayedError, 1)
@@ -93,13 +93,13 @@ func (m *ManagerInternals) ForceFixUp(game *Game) DelayedError {
 	return game.triggerFixUp()
 }
 
-//AddCommittedCallback adds a function that will be called once the state is
-//successfully saved. Typically you'd do something with this in your Move's
-//Apply() method if you wanted to note in some external system whether the move
-//had actually been successfully committed or not. Will be called back
-//immediately after the state is successfully saved to the database and before
-//any other fixup moves are called. This is only designed to be called from
-//within a move's Apply function.
+// AddCommittedCallback adds a function that will be called once the state is
+// successfully saved. Typically you'd do something with this in your Move's
+// Apply() method if you wanted to note in some external system whether the move
+// had actually been successfully committed or not. Will be called back
+// immediately after the state is successfully saved to the database and before
+// any other fixup moves are called. This is only designed to be called from
+// within a move's Apply function.
 func (m *ManagerInternals) AddCommittedCallback(st State, callback func()) error {
 	s, ok := st.(*state)
 	if !ok {
@@ -109,10 +109,10 @@ func (m *ManagerInternals) AddCommittedCallback(st State, callback func()) error
 	return nil
 }
 
-//StructInflater returns the autp-created StructInflater for the given type of
-//property in your state, allowing you to retrieve the inflater in use to
-//inspect for e.g. SanitizationPolicy configuration. Typically you don't use
-//this directly--it's primarily provided for base.GameDelegate to use.
+// StructInflater returns the autp-created StructInflater for the given type of
+// property in your state, allowing you to retrieve the inflater in use to
+// inspect for e.g. SanitizationPolicy configuration. Typically you don't use
+// this directly--it's primarily provided for base.GameDelegate to use.
 func (m *ManagerInternals) StructInflater(propRef StatePropertyRef) *StructInflater {
 
 	manager := m.manager
@@ -131,10 +131,10 @@ func (m *ManagerInternals) StructInflater(propRef StatePropertyRef) *StructInfla
 
 }
 
-//InflateMoveStorageRecord takes a move storage record and turns it into a
-//move associated with that game, if possible. Returns nil if not possible.
-//You rarely need this; it's exposed primarily for the use of boardgame
-///boardgame-util/lib/golden.
+// InflateMoveStorageRecord takes a move storage record and turns it into a
+// move associated with that game, if possible. Returns nil if not possible.
+// You rarely need this; it's exposed primarily for the use of boardgame
+// /boardgame-util/lib/golden.
 func (m *ManagerInternals) InflateMoveStorageRecord(rec *MoveStorageRecord, game *Game) (Move, error) {
 	if rec == nil {
 		return nil, nil
@@ -144,10 +144,10 @@ func (m *ManagerInternals) InflateMoveStorageRecord(rec *MoveStorageRecord, game
 
 const baseLibraryName = "github.com/jkomoros/boardgame"
 
-//gamePkgMatchesDelegateName checks, via reflection, that the delegate's
-//package name is the same as the delegate.Name(), because many systems assume
-//that is the case. If the delegate comes from this package (i.e. it's a test)
-//then it returns nil.
+// gamePkgMatchesDelegateName checks, via reflection, that the delegate's
+// package name is the same as the delegate.Name(), because many systems assume
+// that is the case. If the delegate comes from this package (i.e. it's a test)
+// then it returns nil.
 func gamePkgMatchesDelegateName(delegate GameDelegate) error {
 
 	path := reflect.ValueOf(delegate).Elem().Type().PkgPath()
@@ -170,12 +170,12 @@ func gamePkgMatchesDelegateName(delegate GameDelegate) error {
 
 }
 
-//NewGameManager creates a new game manager with the given GameDelegate. It
-//will validate that the various sub-states are reasonable, and will call
-//ConfigureMoves and ConfigureAgents and then check that all tiems are
-//configured reaasonably. It does a large amount of verification and wiring up
-//of your game type to get it ready for use, and will error if any part of the
-//configuration appears suspect.
+// NewGameManager creates a new game manager with the given GameDelegate. It
+// will validate that the various sub-states are reasonable, and will call
+// ConfigureMoves and ConfigureAgents and then check that all tiems are
+// configured reaasonably. It does a large amount of verification and wiring up
+// of your game type to get it ready for use, and will error if any part of the
+// configuration appears suspect.
 func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager, error) {
 	if delegate == nil {
 		return nil, errors.New("No delegate provided")
@@ -343,10 +343,10 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	return result, nil
 }
 
-//verifyValidConfigurationOnStruct verifies that if there are any sub-structs
-//that have been embedded that satisfy ValidConfiguration that they have that
-//checked. This is an expensive method that uses reflection and so should not be
-//called except during NewGameManager.
+// verifyValidConfigurationOnStruct verifies that if there are any sub-structs
+// that have been embedded that satisfy ValidConfiguration that they have that
+// checked. This is an expensive method that uses reflection and so should not be
+// called except during NewGameManager.
 func verifyValidConfigurationOnStruct(state State, strct interface{}) error {
 
 	v := reflect.ValueOf(strct).Elem()
@@ -421,9 +421,9 @@ func verifySubStatesConnectedAndValid(exampleState State) error {
 	return nil
 }
 
-//Variants returns the VariantConfig for this game type. A simple wrapper
-//around gameDelegate.Variants() that calls Initialize() on that result and
-//also memoizes it for performance.
+// Variants returns the VariantConfig for this game type. A simple wrapper
+// around gameDelegate.Variants() that calls Initialize() on that result and
+// also memoizes it for performance.
 func (g *GameManager) Variants() VariantConfig {
 	return g.variantConfig
 }
@@ -538,10 +538,10 @@ func (g *GameManager) setUpValidators() error {
 	return nil
 }
 
-//computedPlayerGroupMembership is how we compute special group names for player
-//states. player is the player state being prepared, and viewingAsPlayer is the
-//state for the viewing as player, or an empty map if the viewingAsPlayer is
-//obdserver.
+// computedPlayerGroupMembership is how we compute special group names for player
+// states. player is the player state being prepared, and viewingAsPlayer is the
+// state for the viewing as player, or an empty map if the viewingAsPlayer is
+// obdserver.
 func (g *GameManager) computedPlayerGroupMembership(groupName string, player, viewingAsPlayer PlayerIndex, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) (bool, error) {
 	if groupName == sanitizationGroupSelf {
 		if player == viewingAsPlayer {
@@ -558,18 +558,18 @@ func (g *GameManager) computedPlayerGroupMembership(groupName string, player, vi
 	return g.Delegate().ComputedPlayerGroupMembership(groupName, playerMembership, viewingAsPlayerMembership)
 }
 
-//Logger returns the logrus.Logger that is in use for this game. This is a
-//reasonable place to emit info or debug information specific to your game.
-//This is initialized to a default logger when NewGameManager is called, and
-//calls to SetLogger will fail if the logger is nil, so this will always
-//return a non-nil logger. Change the logger in use for this GameManager via
-//SetLogger().
+// Logger returns the logrus.Logger that is in use for this game. This is a
+// reasonable place to emit info or debug information specific to your game.
+// This is initialized to a default logger when NewGameManager is called, and
+// calls to SetLogger will fail if the logger is nil, so this will always
+// return a non-nil logger. Change the logger in use for this GameManager via
+// SetLogger().
 func (g *GameManager) Logger() *logrus.Logger {
 	return g.logger
 }
 
-//SetLogger configures the manager to use the given logger (which can be
-//accessed via GameManager.Logger()) Will fail if logger is nil.
+// SetLogger configures the manager to use the given logger (which can be
+// accessed via GameManager.Logger()) Will fail if logger is nil.
 func (g *GameManager) SetLogger(logger *logrus.Logger) {
 	if logger == nil {
 		return
@@ -577,18 +577,18 @@ func (g *GameManager) SetLogger(logger *logrus.Logger) {
 	g.logger = logger
 }
 
-//NewDefaultGame returns a NewGame with everything set to default. Simple
-//sugar for NewGame(0, nil, nil).
+// NewDefaultGame returns a NewGame with everything set to default. Simple
+// sugar for NewGame(0, nil, nil).
 func (g *GameManager) NewDefaultGame() (*Game, error) {
 	return g.NewGame(0, nil, nil)
 }
 
-//NewGame returns a new specific game instation that is set up with these
-//options, persisted to the datastore, starter state created, first round of
-//fix up moves applied, and in general ready for the first move to be
-//proposed. The variant will be passed to delegate.Variant().NewVariant(). If
-//the game you want to access has already been created, use GameManager.Game()
-//or ModifiableGame().
+// NewGame returns a new specific game instation that is set up with these
+// options, persisted to the datastore, starter state created, first round of
+// fix up moves applied, and in general ready for the first move to be
+// proposed. The variant will be passed to delegate.Variant().NewVariant(). If
+// the game you want to access has already been created, use GameManager.Game()
+// or ModifiableGame().
 func (g *GameManager) NewGame(numPlayers int, variantValues map[string]string, agentNames []string) (*Game, error) {
 	return g.createGame("", "", numPlayers, variantValues, agentNames)
 }
@@ -607,8 +607,8 @@ func (g *GameManager) createGame(id, secretSalt string, numPlayers int, variantV
 	return result, nil
 }
 
-//recreateGame is designed to be called by Internals().RecreateGame. See its
-//documentation.
+// recreateGame is designed to be called by Internals().RecreateGame. See its
+// documentation.
 func (g *GameManager) recreateGame(rec *GameStorageRecord) (*Game, error) {
 
 	if rec == nil {
@@ -631,8 +631,8 @@ func (g *GameManager) recreateGame(rec *GameStorageRecord) (*Game, error) {
 
 }
 
-//newGameImpl is NewGame, but without calling SetUp. Broken out only for tests
-//internal to this package.
+// newGameImpl is NewGame, but without calling SetUp. Broken out only for tests
+// internal to this package.
 func (g *GameManager) newGameImpl(id, secretSalt string) (*Game, error) {
 	result := g.newGame(id, secretSalt)
 
@@ -643,10 +643,10 @@ func (g *GameManager) newGameImpl(id, secretSalt string) (*Game, error) {
 	return result, nil
 }
 
-//newGame is the inner portion of creating a valid game object, but we don't
-//yet tell the system that it exists because we expect to throw it out before
-//saving it. You almost never want this, use NewGame instead. If id or
-//secretSalt are "", then reasonable ones will be created automatically.
+// newGame is the inner portion of creating a valid game object, but we don't
+// yet tell the system that it exists because we expect to throw it out before
+// saving it. You almost never want this, use NewGame instead. If id or
+// secretSalt are "", then reasonable ones will be created automatically.
 func (g *GameManager) newGame(id, secretSalt string) *Game {
 	if g == nil {
 		return nil
@@ -695,9 +695,9 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 	}
 }
 
-//modifiableGameCreated lets Manager know that a modifiable game was created
-//with the given ID, so that manager can vend that later if necessary. It is
-//designed to only be called from NewGame.
+// modifiableGameCreated lets Manager know that a modifiable game was created
+// with the given ID, so that manager can vend that later if necessary. It is
+// designed to only be called from NewGame.
 func (g *GameManager) modifiableGameCreated(game *Game) error {
 	if !g.initialized {
 		return errors.New("Game is not setup yet")
@@ -720,19 +720,19 @@ func (g *GameManager) modifiableGameCreated(game *Game) error {
 	return nil
 }
 
-//ModifiableGame returns a modifiable Game with the given ID. Either it
-//returns one it already knows about that is resident in memory, or it creates
-//a modifiable version from storage (if one is stored in storage). If a game
-//cannot be created from those ways, it will return nil. The primary way to
-//avoid race conditions with the same underlying game being stored to the
-//store is that only one modifiable copy of a Game should exist at a time. It
-//is up to the specific user of boardgame to ensure that is the case. As long
-//as manager.Game is used, a single manager in a given application binary will
-//not allow multiple modifiable versions of a single game to be "checked out".
-//However, if there could be multiple managers loaded up at the same time for
-//the same store, it's possible to have a race condition. For example, it
-//makes sense to have only a single server that takes in proposed moves from a
-//queue and then applies them to a modifiable version of the given game.
+// ModifiableGame returns a modifiable Game with the given ID. Either it
+// returns one it already knows about that is resident in memory, or it creates
+// a modifiable version from storage (if one is stored in storage). If a game
+// cannot be created from those ways, it will return nil. The primary way to
+// avoid race conditions with the same underlying game being stored to the
+// store is that only one modifiable copy of a Game should exist at a time. It
+// is up to the specific user of boardgame to ensure that is the case. As long
+// as manager.Game is used, a single manager in a given application binary will
+// not allow multiple modifiable versions of a single game to be "checked out".
+// However, if there could be multiple managers loaded up at the same time for
+// the same store, it's possible to have a race condition. For example, it
+// makes sense to have only a single server that takes in proposed moves from a
+// queue and then applies them to a modifiable version of the given game.
 func (g *GameManager) ModifiableGame(id string) *Game {
 
 	id = strings.ToUpper(id)
@@ -772,10 +772,10 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 }
 
-//Game fetches a new non-modifiable copy of the given game from storage. If
-//you want a modifiable version, see ModifiableGame. You'd use this method
-//instead of ModifiableGame in situations where you're on a read-only servant
-//binary.
+// Game fetches a new non-modifiable copy of the given game from storage. If
+// you want a modifiable version, see ModifiableGame. You'd use this method
+// instead of ModifiableGame in situations where you're on a read-only servant
+// binary.
 func (g *GameManager) Game(id string) *Game {
 	record, err := g.storage.Game(id)
 
@@ -794,8 +794,8 @@ type refriedState struct {
 	Version         int
 }
 
-//playerStateConstructor is a simple wrapper around
-//delegate.PlayerStateConstructor that just verifies that stacks are inflated.
+// playerStateConstructor is a simple wrapper around
+// delegate.PlayerStateConstructor that just verifies that stacks are inflated.
 func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (ConfigurableSubState, error) {
 
 	playerState := g.delegate.PlayerStateConstructor(player)
@@ -816,8 +816,8 @@ func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (
 
 }
 
-//GameStateConstructor is a simple wrapper around
-//delegate.GameStateConstructor that just verifies that stacks are inflated.
+// GameStateConstructor is a simple wrapper around
+// delegate.GameStateConstructor that just verifies that stacks are inflated.
 func (g *GameManager) gameStateConstructor(state *state) (ConfigurableSubState, error) {
 
 	gameState := g.delegate.GameStateConstructor()
@@ -897,10 +897,10 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 	return result, nil
 }
 
-//StateFromBlob takes a state that was serialized in storage and reinflates
-//it. Storage sub-packages should call this to recover a real State object
-//given a serialized state blob. Note: the state that is returned does not
-//have its game property set.
+// StateFromBlob takes a state that was serialized in storage and reinflates
+// it. Storage sub-packages should call this to recover a real State object
+// given a serialized state blob. Note: the state that is returned does not
+// have its game property set.
 func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*state, error) {
 	//At this point, no extra state is stored in the blob other than in props.
 
@@ -964,11 +964,11 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*
 
 }
 
-//proposeMoveOnGame is how non-modifiable games should tell the manager they
-//have a move they want to make on a given move ID. For now it's just a simple
-//wrapper around ModifiableGame, but in multi-server situations, in the future
-//it would conceivably do an RPC or something. Note that game.triggerFixUp()
-//also does this kind of dispatching.
+// proposeMoveOnGame is how non-modifiable games should tell the manager they
+// have a move they want to make on a given move ID. For now it's just a simple
+// wrapper around ModifiableGame, but in multi-server situations, in the future
+// it would conceivably do an RPC or something. Note that game.triggerFixUp()
+// also does this kind of dispatching.
 func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, proposer PlayerIndex) DelayedError {
 
 	//The chan that the core logic will tell us the move is done in.
@@ -1008,11 +1008,11 @@ func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, prop
 
 }
 
-//ExampleState will return a fully-constructed state for this game, with a
-//single player and no specific game object associated. This is a convenient
-//way to inspect the final shape of your State objects using your various
-//Constructor() methods and after tag-based inflation. Primarily useful for
-//meta- programming approaches, used often in the moves package.
+// ExampleState will return a fully-constructed state for this game, with a
+// single player and no specific game object associated. This is a convenient
+// way to inspect the final shape of your State objects using your various
+// Constructor() methods and after tag-based inflation. Primarily useful for
+// meta- programming approaches, used often in the moves package.
 func (g *GameManager) ExampleState() ImmutableState {
 	state, err := g.emptyState(1)
 	if err != nil {
@@ -1021,9 +1021,9 @@ func (g *GameManager) ExampleState() ImmutableState {
 	return state
 }
 
-//emptyState returns an empty state for this game with this number of players.
-//This is the canonical way to create a new state object with all of the right
-//auto-inflation and everything.
+// emptyState returns an empty state for this game with this number of players.
+// This is the canonical way to create a new state object with all of the right
+// auto-inflation and everything.
 func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 	stateCopy := &state{
 		manager: g,
@@ -1098,9 +1098,9 @@ func (g *GameManager) addMove(config MoveConfig) error {
 	return nil
 }
 
-//ExampleMoves returns a list of example moves, which are moves not initalized
-//based on a state. The list of moves is based on what your
-//GameDelegate.ConfigureMoves() returned.
+// ExampleMoves returns a list of example moves, which are moves not initalized
+// based on a state. The list of moves is based on what your
+// GameDelegate.ConfigureMoves() returned.
 func (g *GameManager) ExampleMoves() []Move {
 
 	mTypes := g.moveTypes()
@@ -1119,8 +1119,8 @@ func (g *GameManager) ExampleMoves() []Move {
 
 }
 
-//ExampleMoveByName returns an example move with that name, but without
-//initializing it with a state. See also ExampleMoves().
+// ExampleMoveByName returns an example move with that name, but without
+// initializing it with a state. See also ExampleMoves().
 func (g *GameManager) ExampleMoveByName(name string) Move {
 
 	mType := g.moveTypeByName(name)
@@ -1132,8 +1132,8 @@ func (g *GameManager) ExampleMoveByName(name string) Move {
 	return mType.NewMove(nil)
 }
 
-//Agents returns a slice of all agents configured on this Manager via
-//GameDelegate.ConfigureAgents.
+// Agents returns a slice of all agents configured on this Manager via
+// GameDelegate.ConfigureAgents.
 func (g *GameManager) Agents() []Agent {
 	if !g.initialized {
 		return nil
@@ -1142,9 +1142,9 @@ func (g *GameManager) Agents() []Agent {
 	return g.agents
 }
 
-//MoveTypes returns all moves that are valid in this game: all of the Moves
-//that have been added via AddMove during initalization. Returns nil until
-//game.SetUp() has been called.
+// MoveTypes returns all moves that are valid in this game: all of the Moves
+// that have been added via AddMove during initalization. Returns nil until
+// game.SetUp() has been called.
 func (g *GameManager) moveTypes() []*moveType {
 	if !g.initialized {
 		return nil
@@ -1153,8 +1153,8 @@ func (g *GameManager) moveTypes() []*moveType {
 	return g.moves
 }
 
-//AgentByName will return the agent with the given name, or nil if one doesn't
-//exist. See also Agents()
+// AgentByName will return the agent with the given name, or nil if one doesn't
+// exist. See also Agents()
 func (g *GameManager) AgentByName(name string) Agent {
 
 	if !g.initialized {
@@ -1166,8 +1166,8 @@ func (g *GameManager) AgentByName(name string) Agent {
 	return g.agentsByName[name]
 }
 
-//MoveTypeByName returns the MoveType of that name from game.MoveTypes(), if
-//it exists. Names are considered without regard to case.  Will return a copy.
+// MoveTypeByName returns the MoveType of that name from game.MoveTypes(), if
+// it exists. Names are considered without regard to case.  Will return a copy.
 func (g *GameManager) moveTypeByName(name string) *moveType {
 	if !g.initialized {
 		return nil
@@ -1182,19 +1182,19 @@ func (g *GameManager) moveTypeByName(name string) *moveType {
 	return move
 }
 
-//Chest is the ComponentChest in use for this game.
+// Chest is the ComponentChest in use for this game.
 func (g *GameManager) Chest() *ComponentChest {
 	return g.chest
 }
 
-//Storage is the StorageManager games that was associated with this
-//GameManager in NewGameManager.
+// Storage is the StorageManager games that was associated with this
+// GameManager in NewGameManager.
 func (g *GameManager) Storage() StorageManager {
 	return g.storage
 }
 
-//Delegate returns the GameDelegate configured for these games, that was
-//associated with this GameManager in NewGameManager.
+// Delegate returns the GameDelegate configured for these games, that was
+// associated with this GameManager in NewGameManager.
 func (g *GameManager) Delegate() GameDelegate {
 	return g.delegate
 }

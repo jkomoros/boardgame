@@ -10,16 +10,16 @@ import (
 	"math/rand"
 )
 
-//DefaultMemoryLength is how much the default agent should be able to remember.
+// DefaultMemoryLength is how much the default agent should be able to remember.
 const DefaultMemoryLength = 6
 
-//DefaultMemoryFuzziness is how likely the agent is to forget each thing it
-//remembers.
+// DefaultMemoryFuzziness is how likely the agent is to forget each thing it
+// remembers.
 const DefaultMemoryFuzziness = 0.03
 
 const debugMode = false
 
-//Agent represents an agent capable of playing memory.
+// Agent represents an agent capable of playing memory.
 type Agent struct{}
 
 type agentCardInfo struct {
@@ -36,17 +36,17 @@ type agentState struct {
 	MemoryFuzziness float32
 }
 
-//Name returns "ai"
+// Name returns "ai"
 func (a *Agent) Name() string {
 	return "ai"
 }
 
-//DisplayName returns "Robby the Robot"
+// DisplayName returns "Robby the Robot"
 func (a *Agent) DisplayName() string {
 	return "Robby the Robot"
 }
 
-//SetUpForGame configures a default agent.
+// SetUpForGame configures a default agent.
 func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex) []byte {
 	agent := &agentState{
 		MemoryLength:    DefaultMemoryLength,
@@ -67,7 +67,7 @@ func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex)
 	return blob
 }
 
-//ProposeMove is the primary logic of the memory Agent.
+// ProposeMove is the primary logic of the memory Agent.
 func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, aState []byte) (move boardgame.Move, newState []byte) {
 
 	agent := &agentState{}
@@ -166,7 +166,7 @@ func (a *agentState) PerhapsForgetCard() bool {
 	return false
 }
 
-//CullInvalidCards removes any remembered cards that no longer exist.
+// CullInvalidCards removes any remembered cards that no longer exist.
 func (a *agentState) CullInvalidCards(gameState *gameState) bool {
 	i := 0
 	cardsCulled := false
@@ -184,8 +184,8 @@ func (a *agentState) CullInvalidCards(gameState *gameState) bool {
 	return cardsCulled
 }
 
-//CardSeen is called when a card is visible. If will return true if that was
-//new information, or false if not.
+// CardSeen is called when a card is visible. If will return true if that was
+// new information, or false if not.
 func (a *agentState) CardSeen(value string, index int) bool {
 
 	//Is this card currently in the known set of cards?
@@ -213,7 +213,7 @@ func (a *agentState) CardSeen(value string, index int) bool {
 
 }
 
-//FlippedCard should be -1 if no cards are currently flipped.
+// FlippedCard should be -1 if no cards are currently flipped.
 func (a *agentState) FirstCardToFlip(gameState *gameState) int {
 	//In our memory is there a pair?
 

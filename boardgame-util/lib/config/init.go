@@ -35,9 +35,9 @@ func defaultGamesNode() *GameNode {
 	return NewGameNode(fullList...)
 }
 
-//DefaultStarterConfig returns the default starting config, which is most
-//appropriate starting point. dirOrFile will be used to give the path name,
-//using DefaultFileNames. Leave "" for default.
+// DefaultStarterConfig returns the default starting config, which is most
+// appropriate starting point. dirOrFile will be used to give the path name,
+// using DefaultFileNames. Leave "" for default.
 func DefaultStarterConfig(dirOrFile string) *Config {
 
 	base := &RawConfigMode{
@@ -61,9 +61,9 @@ func DefaultStarterConfig(dirOrFile string) *Config {
 	return starterConfig(dirOrFile, base, dev, nil)
 }
 
-//SampleStarterConfig returns a full sample starting config, which is also
-//provided in `boardgame/config.SAMPLE.json`. dirOrFile will be used to give the
-//path name, using DefaultFileNames. Leave "" for default.
+// SampleStarterConfig returns a full sample starting config, which is also
+// provided in `boardgame/config.SAMPLE.json`. dirOrFile will be used to give the
+// path name, using DefaultFileNames. Leave "" for default.
 func SampleStarterConfig(dirOrFile string) *Config {
 
 	base := &RawConfigMode{
@@ -102,9 +102,9 @@ func SampleStarterConfig(dirOrFile string) *Config {
 
 }
 
-//MinimalStarterConfig returns a minimal config starter point, with minimal
-//settings you might want to set. dirOrFile will be used to give the path
-//name, using DefaultFileNames. Leave "" for default.
+// MinimalStarterConfig returns a minimal config starter point, with minimal
+// settings you might want to set. dirOrFile will be used to give the path
+// name, using DefaultFileNames. Leave "" for default.
 func MinimalStarterConfig(dirOrFile string) *Config {
 	base := &RawConfigMode{
 		ModeCommon: ModeCommon{

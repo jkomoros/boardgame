@@ -1,8 +1,6 @@
 /*
-
 Package playingcards is a convenience package that helps define and work with a
 set of american playing cards.
-
 */
 package playingcards
 
@@ -51,8 +49,9 @@ const (
 	RankJoker
 )
 
-//Card is a struct, ready for use in your own package without modification, that
-//encodes the notion of a typical playing card.
+// Card is a struct, ready for use in your own package without modification, that
+// encodes the notion of a typical playing card.
+//
 //boardgame:codegen reader
 type Card struct {
 	base.ComponentValues
@@ -64,9 +63,9 @@ func (c *Card) String() string {
 	return fmt.Sprintf("%s %s", c.Suit.String(), c.Rank.String())
 }
 
-//NewDeckMulti is like NewDeck, but returns count normal decks together, in
-//canonical order. Useful for e.g. casino games where there might be four
-//decks shuffled together for the draw stack.
+// NewDeckMulti is like NewDeck, but returns count normal decks together, in
+// canonical order. Useful for e.g. casino games where there might be four
+// decks shuffled together for the draw stack.
 func NewDeckMulti(count int, withJokers bool) *boardgame.Deck {
 
 	if count < 1 {
@@ -83,8 +82,8 @@ func NewDeckMulti(count int, withJokers bool) *boardgame.Deck {
 
 }
 
-//NewDeck returns a new deck of playing cards with or without Jokers in a
-//canonical, stable order, ready for being added to a chest.
+// NewDeck returns a new deck of playing cards with or without Jokers in a
+// canonical, stable order, ready for being added to a chest.
 func NewDeck(withJokers bool) *boardgame.Deck {
 	cards := boardgame.NewDeck()
 

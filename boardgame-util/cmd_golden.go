@@ -8,8 +8,8 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
 )
 
-//goldenCmd is named that instead of golden to avoid conflicting with the golden
-//package.
+// goldenCmd is named that instead of golden to avoid conflicting with the golden
+// package.
 type goldenCmd struct {
 	serve
 }

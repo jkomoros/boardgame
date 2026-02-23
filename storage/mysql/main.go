@@ -1,9 +1,7 @@
 /*
-
 Package mysql provides a mysql-backed database that implements both
 boardgame.StorageManager and boardgame/server.StorageManager. See the README.md
 for more information on how to configure and use it.
-
 */
 package mysql
 
@@ -60,7 +58,7 @@ const combinedNotPlayerOpenSlotsQuery = combinedNotPlayerFilterQuery + " and " +
 
 const combinedNotPlayerNoOpenSlotsQuery = combinedNotPlayerFilterQuery + " and (not " + emptySlotsQuery + " or e.Open = 0)"
 
-//StorageManager is the primary type in this package.
+// StorageManager is the primary type in this package.
 type StorageManager struct {
 	db       *sql.DB
 	dbMap    *gorp.DbMap
@@ -70,11 +68,11 @@ type StorageManager struct {
 	connected bool
 }
 
-//NewStorageManager returns a new storage manager. Does most of its set-up
-//work in Connect(), which is when the database configuration information is
-//passed. testMode is whether or not the storage manager is being run in the
-//context of a test; if false, then calls to CleanUp (which drops the entire
-//database) won't do anything.
+// NewStorageManager returns a new storage manager. Does most of its set-up
+// work in Connect(), which is when the database configuration information is
+// passed. testMode is whether or not the storage manager is being run in the
+// context of a test; if false, then calls to CleanUp (which drops the entire
+// database) won't do anything.
 func NewStorageManager(testMode bool) *StorageManager {
 	//We actually don't do much; we do more of our work in Connect()
 	return &StorageManager{
@@ -83,7 +81,7 @@ func NewStorageManager(testMode bool) *StorageManager {
 
 }
 
-//Connect connects to the database using the given DSN config string.
+// Connect connects to the database using the given DSN config string.
 func (s *StorageManager) Connect(config string) error {
 
 	db, err := connect.Db(config, s.testMode, s.testMode)
@@ -126,7 +124,7 @@ func (s *StorageManager) Connect(config string) error {
 
 }
 
-//Close closes out the connection to the database.
+// Close closes out the connection to the database.
 func (s *StorageManager) Close() {
 	if s.db == nil {
 		return
@@ -137,7 +135,7 @@ func (s *StorageManager) Close() {
 	s.connected = false
 }
 
-//CleanUp drops the test DB, but only if it was created in TestMode.
+// CleanUp drops the test DB, but only if it was created in TestMode.
 func (s *StorageManager) CleanUp() {
 	if !s.testMode {
 		return
@@ -146,12 +144,12 @@ func (s *StorageManager) CleanUp() {
 	connect.DropTestDb(s.config)
 }
 
-//Name returns 'mysql'
+// Name returns 'mysql'
 func (s *StorageManager) Name() string {
 	return "mysql"
 }
 
-//State returns the given state
+// State returns the given state
 func (s *StorageManager) State(gameID string, version int) (boardgame.StateStorageRecord, error) {
 
 	if !s.connected {
@@ -173,7 +171,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 	return (&state).ToStorageRecord(), nil
 }
 
-//Moves returns the given moves
+// Moves returns the given moves
 func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
 
 	if !s.connected {
@@ -206,7 +204,7 @@ func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*bo
 
 }
 
-//Move returns the given Move
+// Move returns the given Move
 func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorageRecord, error) {
 	if !s.connected {
 		return nil, errors.New("Database not connected yet")
@@ -227,7 +225,7 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 	return (&move).ToStorageRecord(), nil
 }
 
-//Game returns the given Game
+// Game returns the given Game
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	if !s.connected {
@@ -249,7 +247,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return (&game).ToStorageRecord(), nil
 }
 
-//ExtendedGame returns the given ExtendedGame
+// ExtendedGame returns the given ExtendedGame
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
 	if !s.connected {
 		return nil, errors.New("Database not connected yet")
@@ -266,7 +264,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 	return (&record).ToStorageRecord(), nil
 }
 
-//CombinedGame returns the given CombinedGame
+// CombinedGame returns the given CombinedGame
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 
 	if !s.connected {
@@ -284,7 +282,7 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	return (&record).ToStorageRecord(), nil
 }
 
-//SaveGameAndCurrentState saves the given game and current state.
+// SaveGameAndCurrentState saves the given game and current state.
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	if !s.connected {
@@ -349,7 +347,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	return nil
 }
 
-//AgentState returns the given AgentState
+// AgentState returns the given AgentState
 func (s *StorageManager) AgentState(gameID string, player boardgame.PlayerIndex) ([]byte, error) {
 
 	if !s.connected {
@@ -372,7 +370,7 @@ func (s *StorageManager) AgentState(gameID string, player boardgame.PlayerIndex)
 
 }
 
-//SaveAgentState saves the given agent state
+// SaveAgentState saves the given agent state
 func (s *StorageManager) SaveAgentState(gameID string, player boardgame.PlayerIndex, state []byte) error {
 	if !s.connected {
 		return errors.New("Database not connected yet")
@@ -389,7 +387,7 @@ func (s *StorageManager) SaveAgentState(gameID string, player boardgame.PlayerIn
 	return nil
 }
 
-//UpdateExtendedGame updates the given extended game properties
+// UpdateExtendedGame updates the given extended game properties
 func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
 
 	if !s.connected {
@@ -404,7 +402,7 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 	return err
 }
 
-//ListGames lists the given games
+// ListGames lists the given games
 func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 
 	if !s.connected {
@@ -474,7 +472,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userID string, ga
 	return result
 }
 
-//SetPlayerForGame affiliates the given user in the given game to the given player
+// SetPlayerForGame affiliates the given user in the given game to the given player
 func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
 
 	if !s.connected {
@@ -537,7 +535,7 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 
 }
 
-//UserIDsForGame returns the given UserIds
+// UserIDsForGame returns the given UserIds
 func (s *StorageManager) UserIDsForGame(gameID string) []string {
 
 	if !s.connected {
@@ -586,7 +584,7 @@ func (s *StorageManager) UserIDsForGame(gameID string) []string {
 
 }
 
-//UpdateUser updates the given user
+// UpdateUser updates the given user
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	userRecord := newUserStorageRecord(user)
 
@@ -615,7 +613,7 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	return nil
 }
 
-//GetUserByID gets the given user
+// GetUserByID gets the given user
 func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 	if !s.connected {
 		return nil
@@ -638,7 +636,7 @@ func (s *StorageManager) GetUserByID(uid string) *users.StorageRecord {
 	return (&user).ToStorageRecord()
 }
 
-//GetUserByCookie gets the given user
+// GetUserByCookie gets the given user
 func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 	if !s.connected {
@@ -663,7 +661,7 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 }
 
-//ConnectCookieToUser affiliates the given cookie to the given user
+// ConnectCookieToUser affiliates the given cookie to the given user
 func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
 
 	if !s.connected {
@@ -721,19 +719,19 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	return nil
 }
 
-//PlayerMoveApplied does nothing
+// PlayerMoveApplied does nothing
 func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
 	return nil
 }
 
-//FetchInjectedDataForGame can just return nil
+// FetchInjectedDataForGame can just return nil
 func (s *StorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
 	//Don't need to do anything
 	return nil
 }
 
-//WithManagers does nothing
+// WithManagers does nothing
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing
 }

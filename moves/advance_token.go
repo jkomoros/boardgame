@@ -9,10 +9,10 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//TokenAdvancer is required for moves that embed AdvanceToken. It provides the
-//LocationBehavior to advance and the logic for computing the next position.
-//This interface is defined here (rather than in moves/interfaces) to avoid an
-//import cycle with the behaviors package.
+// TokenAdvancer is required for moves that embed AdvanceToken. It provides the
+// LocationBehavior to advance and the logic for computing the next position.
+// This interface is defined here (rather than in moves/interfaces) to avoid an
+// import cycle with the behaviors package.
 type TokenAdvancer interface {
 	AdvancableLocation(state boardgame.State) *behaviors.LocationBehavior
 	NextAdvanceIndex(state boardgame.ImmutableState, currentIndex enum.ImmutableVal) enum.EnumKey
@@ -33,7 +33,7 @@ type AdvanceToken struct {
 	FixUp
 }
 
-//Legal checks the base FixUp legality and then the optional AdvanceCondition.
+// Legal checks the base FixUp legality and then the optional AdvanceCondition.
 func (a *AdvanceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := a.FixUp.Legal(state, proposer); err != nil {
@@ -53,8 +53,8 @@ func (a *AdvanceToken) Legal(state boardgame.ImmutableState, proposer boardgame.
 	return nil
 }
 
-//Apply advances the token using the TokenAdvancer and calls PostAdvanceHandler
-//if implemented.
+// Apply advances the token using the TokenAdvancer and calls PostAdvanceHandler
+// if implemented.
 func (a *AdvanceToken) Apply(state boardgame.State) error {
 
 	advancer, ok := a.TopLevelStruct().(TokenAdvancer)
@@ -98,12 +98,12 @@ func (a *AdvanceToken) Apply(state boardgame.State) error {
 	return nil
 }
 
-//FallbackName returns "Advance Token"
+// FallbackName returns "Advance Token"
 func (a *AdvanceToken) FallbackName(m *boardgame.GameManager) string {
 	return "Advance Token"
 }
 
-//FallbackHelpText returns a description of the FixUp.
+// FallbackHelpText returns a description of the FixUp.
 func (a *AdvanceToken) FallbackHelpText() string {
 	return "Advance a token to its next position deterministically."
 }

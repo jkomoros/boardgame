@@ -4,47 +4,47 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//FixUp is a simple move type that just wraps moves.Default. Its primary effect
-//is to have the default IsFixUp for auto.Config to default to true. When you
-//have a custom fix up move, it's best to embed this, because otherwise it's
-//easy to forget to pass moves.WithIsFixUp to auto.Config.
+// FixUp is a simple move type that just wraps moves.Default. Its primary effect
+// is to have the default IsFixUp for auto.Config to default to true. When you
+// have a custom fix up move, it's best to embed this, because otherwise it's
+// easy to forget to pass moves.WithIsFixUp to auto.Config.
 //
 //boardgame:codegen
 type FixUp struct {
 	Default
 }
 
-//FallbackName returns FixUp Move"
+// FallbackName returns FixUp Move"
 func (f *FixUp) FallbackName(m *boardgame.GameManager) string {
 	return "FixUp Move"
 }
 
-//FallbackHelpText returns "A move that is applied automatically to
-//fix up the state after a player makes a move."
+// FallbackHelpText returns "A move that is applied automatically to
+// fix up the state after a player makes a move."
 func (f *FixUp) FallbackHelpText() string {
 	return "A move that is applied automatically to fix up the state after a player makes a move."
 }
 
-//IsFixUp will return the value passed with WithFixUp, falling back on
-//returning true. The returning of true is the primary result of embedding
-//this move type.
+// IsFixUp will return the value passed with WithFixUp, falling back on
+// returning true. The returning of true is the primary result of embedding
+// this move type.
 func (f *FixUp) IsFixUp() bool {
 	config := f.CustomConfiguration()
 	return overrideIsFixUp(config, true)
 }
 
-//FixUpMulti is a simple move type that just wraps move.FixUp. Its primary
-//effect is to have AllowMultipleInProgression() return true, which means that
-//the logic for ordered move progressions within a phase will allow multiple
-//in a row, until its Legal returns an error.
+// FixUpMulti is a simple move type that just wraps move.FixUp. Its primary
+// effect is to have AllowMultipleInProgression() return true, which means that
+// the logic for ordered move progressions within a phase will allow multiple
+// in a row, until its Legal returns an error.
 //
 //boardgame:codegen
 type FixUpMulti struct {
 	FixUp
 }
 
-//AllowMultipleInProgression returns true because the move is applied until
-//ConditionMet returns nil.
+// AllowMultipleInProgression returns true because the move is applied until
+// ConditionMet returns nil.
 func (f *FixUpMulti) AllowMultipleInProgression() bool {
 	return true
 }

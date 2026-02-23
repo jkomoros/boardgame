@@ -1,5 +1,4 @@
 /*
-
 Package api is a package that can create and cleanup api server binaries. Its
 cousin is the build/static package, which contains considerably more logic.
 
@@ -22,30 +21,29 @@ For a config json that has a defaultstoragetype of bolt and lists the games
 `github.com/jkomoros/boardgame/examples/pig` it would output (with the package
 doc comment omitted):
 
-    package main
+	package main
 
-    import (
-        "github.com/jkomoros/boardgame/examples/checkers"
-        "github.com/jkomoros/boardgame/examples/memory"
-        "github.com/jkomoros/boardgame/examples/pig"
-        "github.com/jkomoros/boardgame/server/api"
-        "github.com/jkomoros/boardgame/storage/bolt"
-    )
+	import (
+	    "github.com/jkomoros/boardgame/examples/checkers"
+	    "github.com/jkomoros/boardgame/examples/memory"
+	    "github.com/jkomoros/boardgame/examples/pig"
+	    "github.com/jkomoros/boardgame/server/api"
+	    "github.com/jkomoros/boardgame/storage/bolt"
+	)
 
-    func main() {
+	func main() {
 
-        storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
-        defer storage.Close()
-        api.NewServer(storage,
-            checkers.NewDelegate(),
-            memory.NewDelegate(),
-            pig.NewDelegate(),
-        ).Start()
-    }
+	    storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
+	    defer storage.Close()
+	    api.NewServer(storage,
+	        checkers.NewDelegate(),
+	        memory.NewDelegate(),
+	        pig.NewDelegate(),
+	    ).Start()
+	}
 
 Typically it is not used directly, but via the `boardgame-util build api
 `,`boardgame-util cleanup api`, and `boardgame-util serve` commands.
-
 */
 package api
 
@@ -55,8 +53,8 @@ import (
 	"text/template"
 )
 
-//StorageType denotes one of the storage managers this package knows how to
-//generate code for.
+// StorageType denotes one of the storage managers this package knows how to
+// generate code for.
 type StorageType int
 
 const (
@@ -78,9 +76,9 @@ func init() {
 	apiTemplate = template.Must(template.New("api").Parse(apiTemplateText))
 }
 
-//ValidStorageTypeStrings returns an array of strings that are the normal
-//(i.e. not invalid) strings that would return useful values if passed to
-//StorageTypeFromString.
+// ValidStorageTypeStrings returns an array of strings that are the normal
+// (i.e. not invalid) strings that would return useful values if passed to
+// StorageTypeFromString.
 func ValidStorageTypeStrings() []string {
 	return []string{
 		StorageMemory.String(),
@@ -90,8 +88,8 @@ func ValidStorageTypeStrings() []string {
 	}
 }
 
-//StorageTypeFromString returns the right storage type for the given string.
-//"" returns StorageDefault, and any unknown types return StorageInvalid.
+// StorageTypeFromString returns the right storage type for the given string.
+// "" returns StorageDefault, and any unknown types return StorageInvalid.
 func StorageTypeFromString(in string) StorageType {
 	in = strings.ToLower(in)
 	in = strings.TrimSpace(in)
@@ -126,19 +124,19 @@ func (s StorageType) String() string {
 	return "invalid"
 }
 
-//Import is the string denting the import path for this storage type, e.g.
-//"github.com/jkomoros/boardgame/storage/mysql"
+// Import is the string denting the import path for this storage type, e.g.
+// "github.com/jkomoros/boardgame/storage/mysql"
 func (s StorageType) Import() string {
 
 	base := "github.com/jkomoros/boardgame/storage"
 	return filepath.Join(base, s.String())
 }
 
-//Constructor is a string representing a default constructor for this storage
-//type, e.g. `bolt.NewStorageManager(".database")`. optionalLiteralArgs will
-//be passed literally within the `()` of the storage constructor, so valid
-//strings are "\".database\"" etc. If not provided, will fall back on
-//reasonable defaults for that type.
+// Constructor is a string representing a default constructor for this storage
+// type, e.g. `bolt.NewStorageManager(".database")`. optionalLiteralArgs will
+// be passed literally within the `()` of the storage constructor, so valid
+// strings are "\".database\"" etc. If not provided, will fall back on
+// reasonable defaults for that type.
 func (s StorageType) Constructor(optionalLiteralArgs string) string {
 
 	args := ""

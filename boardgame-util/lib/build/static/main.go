@@ -1,5 +1,4 @@
 /*
-
 Package static is a library that helps automate creating the static directory of
 files for the webapp to function. It, along with lib/build/api, is one half of
 the build process to produce a functioning webapp given a config.json
@@ -80,7 +79,6 @@ Vite's dev server.
 
 Typically you don't use this package directly, but use `boardgame-util build
 static` or `boardgame-util serve`.
-
 */
 package static
 
@@ -105,26 +103,26 @@ var filesToExclude = map[string]bool{
 	//Don't symlink game-src; LinkGameClientFolders creates it as a real
 	//directory so game symlinks resolve relative paths correctly.
 	gameSrcSubFolder: true,
-	".DS_Store":            true,
+	".DS_Store":      true,
 	// Documentation files
-	"BREAKING_CHANGES.md":        true,
-	"CRITIQUE_FIXES_SUMMARY.md":  true,
-	"GAME_RENDERER_MIGRATION.md": true,
-	"IMPROVEMENT_PLAN.md":        true,
-	"MIGRATION_CRITIQUE.md":      true,
-	"MIGRATION_PLAN.md":          true,
-	"MIGRATION_SUMMARY.md":       true,
+	"BREAKING_CHANGES.md":         true,
+	"CRITIQUE_FIXES_SUMMARY.md":   true,
+	"GAME_RENDERER_MIGRATION.md":  true,
+	"IMPROVEMENT_PLAN.md":         true,
+	"MIGRATION_CRITIQUE.md":       true,
+	"MIGRATION_PLAN.md":           true,
+	"MIGRATION_SUMMARY.md":        true,
 	"PHASE3_MIGRATION_SUMMARY.md": true,
 	// Logs
-	"server.log":     true,
-	"vite.log":       true,
+	"server.log":      true,
+	"vite.log":        true,
 	"vite-server.log": true,
 	// Test artifacts
-	"playwright-report":  true,
+	"playwright-report":    true,
 	"playwright.config.ts": true,
-	"test-results":      true,
-	"screenshots":       true,
-	"tests":             true,
+	"test-results":         true,
+	"screenshots":          true,
+	"tests":                true,
 	// Build artifacts
 	"dist": true,
 	// Legacy files
@@ -134,9 +132,9 @@ var filesToExclude = map[string]bool{
 	"tsconfig.strict-migration.json": true,
 }
 
-//Server runs a static server. directory is the folder that the `static`
-//folder is contained within. If no error is returned, runs until the program
-//exits. Uses Vite's dev server to serve the modern TypeScript/Lit frontend.
+// Server runs a static server. directory is the folder that the `static`
+// folder is contained within. If no error is returned, runs until the program
+// exits. Uses Vite's dev server to serve the modern TypeScript/Lit frontend.
 func Server(directory string, port string) error {
 
 	staticDir := filepath.Join(directory, staticSubFolder)
@@ -155,8 +153,8 @@ func Server(directory string, port string) error {
 
 }
 
-//CleanCache clears the central cache the build system uses (currently just
-//node_modules). If that cache doesn't exist, is a no op.
+// CleanCache clears the central cache the build system uses (currently just
+// node_modules). If that cache doesn't exist, is a no op.
 func CleanCache() error {
 
 	cacheDir, err := buildCachePath()
@@ -170,7 +168,6 @@ func CleanCache() error {
 }
 
 /*
-
 Build creates a folder of static resources for a server in the given
 directory. It is the primary entrypoint for this package. It has no logic of
 its own but serves to call all of the build steps in the correct order.
@@ -181,7 +178,6 @@ LinkGameClientFolders, passing gameImports.
 If prodBuild is true, also calls BuildVite.
 
 See the package doc for more about the specific build steps and what they do.
-
 */
 func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBuild bool, copyFiles bool, skipNodeUpdate bool) (assetRoot string, err error) {
 
@@ -244,8 +240,8 @@ func BuildVite(dir string) error {
 	return nil
 }
 
-//Clean removes all of the things created in the static subfolder within
-//directory.
+// Clean removes all of the things created in the static subfolder within
+// directory.
 func Clean(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, staticSubFolder))
 }

@@ -96,7 +96,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 	}
 }
 
-//Do any cleanup tasks as program exits.
+// Do any cleanup tasks as program exits.
 func (b *boardgameUtil) Cleanup() {
 
 	for _, dir := range b.tempDirs {
@@ -117,7 +117,7 @@ func (b *boardgameUtil) msgAndQuit(message string) {
 	os.Exit(0)
 }
 
-//NewTempDir will vend a new temporary dir that will be remove when program exits.
+// NewTempDir will vend a new temporary dir that will be remove when program exits.
 func (b *boardgameUtil) NewTempDir(prefix string) string {
 	dir, err := ioutil.TempDir(".", prefix)
 
@@ -152,10 +152,10 @@ func (b *boardgameUtil) starterConfigForType(typ string) (*config.Config, error)
 	}
 }
 
-//GetConfig fetches the config, finding it from disk if it hasn't yet. If
-//finding the config errors for any reason, program will quit. That is, when
-//you call this method we assume that it's required for operation of that
-//command.
+// GetConfig fetches the config, finding it from disk if it hasn't yet. If
+// finding the config errors for any reason, program will quit. That is, when
+// you call this method we assume that it's required for operation of that
+// command.
 func (b *boardgameUtil) GetConfig(createIfNotExist bool) *config.Config {
 	if b.config != nil {
 		return b.config

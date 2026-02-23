@@ -16,7 +16,7 @@ const (
 	pathToMigrations = "$GOPATH/src/github.com/jkomoros/boardgame/storage/mysql/migrations/"
 )
 
-//If outputTables is true, then will print create_tables.sql
+// If outputTables is true, then will print create_tables.sql
 const outputTables = false
 
 func TestOutputTables(t *testing.T) {

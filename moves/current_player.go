@@ -7,7 +7,6 @@ import (
 )
 
 /*
-
 CurrentPlayer is a convenience embeddable move that represents a move made by
 the CurrentPlayer.
 
@@ -29,9 +28,9 @@ type CurrentPlayer struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
-//Legal will return an error if the TargetPlayerIndex is not the
-//CurrentPlayerIndex, if the TargetPlayerIndex is not equivalent to the
-//proposer, or if the TargetPlayerIndex is not one of the players.
+// Legal will return an error if the TargetPlayerIndex is not the
+// CurrentPlayerIndex, if the TargetPlayerIndex is not equivalent to the
+// proposer, or if the TargetPlayerIndex is not one of the players.
 func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := c.Default.Legal(state, proposer); err != nil {
@@ -62,17 +61,17 @@ func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame
 
 }
 
-//DefaultsForState will set the TargetPlayerIndex to be the CurrentPlayerIndex.
+// DefaultsForState will set the TargetPlayerIndex to be the CurrentPlayerIndex.
 func (c *CurrentPlayer) DefaultsForState(state boardgame.ImmutableState) {
 	c.TargetPlayerIndex = state.CurrentPlayerIndex().EnsureValid(state)
 }
 
-//FallbackName returns "Current Player Move"
+// FallbackName returns "Current Player Move"
 func (c *CurrentPlayer) FallbackName(m *boardgame.GameManager) string {
 	return "Current Player Move"
 }
 
-//FallbackHelpText returns "A move by the current player."
+// FallbackHelpText returns "A move by the current player."
 func (c *CurrentPlayer) FallbackHelpText() string {
 	return "A move by the current player."
 }

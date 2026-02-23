@@ -9,29 +9,29 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//phaseToStarter should be implemented by moves that embed moves.StartPhase to
-//configure which phase to enter. It's a private interface because StartPhase
-//already has a base PhaseToStart, and to keep the number of interfaces
-//smaller.
+// phaseToStarter should be implemented by moves that embed moves.StartPhase to
+// configure which phase to enter. It's a private interface because StartPhase
+// already has a base PhaseToStart, and to keep the number of interfaces
+// smaller.
 type phaseToStarter interface {
 	PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, error)
 }
 
-//StartPhase is a simple move that, when it's its turn in the phase move
-//progression, will set the current phase of the game to the given value. When
-//you use this, you almost always want ot use moves.AutoConfig, and make sure
-//to pass the moves.WithPhaseToStart config object, so that the move has
-//enough information to know which phase to enter.
+// StartPhase is a simple move that, when it's its turn in the phase move
+// progression, will set the current phase of the game to the given value. When
+// you use this, you almost always want ot use moves.AutoConfig, and make sure
+// to pass the moves.WithPhaseToStart config object, so that the move has
+// enough information to know which phase to enter.
 //
 //boardgame:codegen
 type StartPhase struct {
 	FixUp
 }
 
-//ValidConfiguration checks that the embedding move implements PhaseToStart
-//which returns a non-negative value, and that GameState implements
-//interfaces.CurrentPhaseStarter, and that PhaseEnum exists and if it's a
-//TreeEnum, that the phaseToStart is a leaf enum value.
+// ValidConfiguration checks that the embedding move implements PhaseToStart
+// which returns a non-negative value, and that GameState implements
+// interfaces.CurrentPhaseStarter, and that PhaseEnum exists and if it's a
+// TreeEnum, that the phaseToStart is a leaf enum value.
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 
 	if err := s.FixUp.ValidConfiguration(exampleState); err != nil {
@@ -78,9 +78,9 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 	return nil
 }
 
-//PhaseToStart uses the Phase provided via StartPhaseMoveConfig constructor
-//(or 0 if NewStartPhaseConfig wasn't used). If you want a different behavior,
-//override PhaseToStart in your embedding move.
+// PhaseToStart uses the Phase provided via StartPhaseMoveConfig constructor
+// (or 0 if NewStartPhaseConfig wasn't used). If you want a different behavior,
+// override PhaseToStart in your embedding move.
 func (s *StartPhase) PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, error) {
 	config := s.CustomConfiguration()
 	val, ok := config[configPropStartPhase]
@@ -94,9 +94,9 @@ func (s *StartPhase) PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, erro
 	return keyVal, nil
 }
 
-//Apply call BeforeLeavePhase() (if it exists), then BeforeEnterPhase() (if it
-//exists),then SetCurrentPhase to the phase index returned by PhaseToStart
-//from this move type.
+// Apply call BeforeLeavePhase() (if it exists), then BeforeEnterPhase() (if it
+// exists),then SetCurrentPhase to the phase index returned by PhaseToStart
+// from this move type.
 func (s *StartPhase) Apply(state boardgame.State) error {
 
 	phaseEnterer, ok := s.TopLevelStruct().(phaseToStarter)
@@ -149,17 +149,17 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 	return nil
 }
 
-//FallbackName returns "Start Phase PHASENAME" where PHASENAME is the
-//string value of the phase to start that was passed via WithPhaseToStart, or
-//the int value if no enum was passed.
+// FallbackName returns "Start Phase PHASENAME" where PHASENAME is the
+// string value of the phase to start that was passed via WithPhaseToStart, or
+// the int value if no enum was passed.
 func (s *StartPhase) FallbackName(m *boardgame.GameManager) string {
 
 	return "Start Phase " + s.phaseStringValue()
 }
 
-//FallbackHelpText returns "Enters phase PHASENAME" where PHASENAME is the
-//string value of the phase to start that was passed via WithPhaseToStart, or
-//the int value if no enum was passed.
+// FallbackHelpText returns "Enters phase PHASENAME" where PHASENAME is the
+// string value of the phase to start that was passed via WithPhaseToStart, or
+// the int value if no enum was passed.
 func (s *StartPhase) FallbackHelpText() string {
 	return "Enters phase " + s.phaseStringValue()
 }

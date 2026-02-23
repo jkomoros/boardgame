@@ -20,14 +20,14 @@ type memoizedEmbeddedStructKey struct {
 
 var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]fieldsInfo
 
-//fieldsInfo is a collection of field names in a struct and the info about each
-//field.
+// fieldsInfo is a collection of field names in a struct and the info about each
+// field.
 type fieldsInfo map[string]fieldInfo
 
-//fieldInfo is a collection of information about the specific field in a given
-//struct, including their boardgame.PropertyType, whether they're the mutable
-//version, and if they're actually a higher type in the hierarchy (e.g.
-//MergedStack instead of just a STack).
+// fieldInfo is a collection of information about the specific field in a given
+// struct, including their boardgame.PropertyType, whether they're the mutable
+// version, and if they're actually a higher type in the hierarchy (e.g.
+// MergedStack instead of just a STack).
 type fieldInfo struct {
 	Name string
 	//Types is the type of the given named field
@@ -46,7 +46,6 @@ func init() {
 }
 
 /*
-
 ProcessReaders operates on the package at the given relative location, and
 produces two strings, one that is appropriate to be saved in auto_reader.go,
 and one that is appropriate to be saved in auto_reader_test.go.
@@ -72,7 +71,6 @@ The outputted readers, readsetters, and readsetconfigurers use a hard-
 coded list of fields for performance (reflection would be about 30% slower
 under normal usage). You should re-generate output every time you add a
 struct or modify the fields on a struct.
-
 */
 func ProcessReaders(location string) (output string, testOutput string, err error) {
 
@@ -150,8 +148,8 @@ func doProcessStructs(sources model.ParsedSources, location string, testFiles bo
 	return output, nil
 }
 
-//fieldNamePossibleEmbeddedStruct returns true if it's possible that the field
-//is an embedded struct.
+// fieldNamePossibleEmbeddedStruct returns true if it's possible that the field
+// is an embedded struct.
 func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 
 	theTypeParts := strings.Split(theField.TypeName, ".")
@@ -217,10 +215,10 @@ func structFields(location string, theStruct model.Struct, allStructs []model.St
 	return result
 }
 
-//typeforPossibleEmbeddedStruct should be called when we think that an unknown
-//field MIGHT be an embedded struct. If it is, we will identify the package it
-//appears to be built from, parse those structs, try to find the struct, and
-//return a map of property types in it.
+// typeforPossibleEmbeddedStruct should be called when we think that an unknown
+// field MIGHT be an embedded struct. If it is, we will identify the package it
+// appears to be built from, parse those structs, try to find the struct, and
+// return a map of property types in it.
 func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) fieldsInfo {
 
 	targetTypeParts := strings.Split(theField.TypeName, ".")

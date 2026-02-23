@@ -4,8 +4,8 @@ import (
 	"strings"
 )
 
-//ModeField denotes the field in a RawConfigMode. Used to pass to the
-//UpdateConfig family of function factories.
+// ModeField denotes the field in a RawConfigMode. Used to pass to the
+// UpdateConfig family of function factories.
 type ModeField string
 
 const (
@@ -37,8 +37,8 @@ const (
 	FieldGames = "Games"
 )
 
-//ModeFieldType is the type of field in RawConfigMode. Different UpdateConfig
-//function factories only work on certain types of fields.
+// ModeFieldType is the type of field in RawConfigMode. Different UpdateConfig
+// function factories only work on certain types of fields.
 type ModeFieldType int
 
 const (
@@ -58,7 +58,7 @@ const (
 	FieldTypeGameNode
 )
 
-//FieldTypes maps each ConfigModeField to its ConfigModeFieldType.
+// FieldTypes maps each ConfigModeField to its ConfigModeFieldType.
 var FieldTypes = map[ModeField]ModeFieldType{
 	FieldInvalid:              FieldTypeInvalid,
 	FieldAllowedOrigins:       FieldTypeString,
@@ -75,9 +75,9 @@ var FieldTypes = map[ModeField]ModeFieldType{
 	FieldGames:                FieldTypeGameNode,
 }
 
-//ModeCommon is the values that both ConfigMode and RawConfigMode share
-//directly, factored out for convenience so they can be anonymously embedded in
-//ConfigMdoe and RawConfigMode.
+// ModeCommon is the values that both ConfigMode and RawConfigMode share
+// directly, factored out for convenience so they can be anonymously embedded in
+// ConfigMdoe and RawConfigMode.
 type ModeCommon struct {
 	AllowedOrigins    string   `json:"allowedOrigins,omitempty"`
 	DefaultPort       string   `json:"defaultPort,omitempty"`
@@ -101,7 +101,7 @@ type ModeCommon struct {
 	APIHost string `json:"apiHost,omitempty"`
 }
 
-//FieldFromString returns a ModeField by doing fuzzing matching.
+// FieldFromString returns a ModeField by doing fuzzing matching.
 func FieldFromString(s string) ModeField {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)

@@ -8,18 +8,18 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//StateStorageRecord is a record representing a state that can be written to
-//storage and later returned. It is an encoded json blob, and can be written
-//directly to storage with no modification. Typically you don't use this
-//representation directly, instead fetching a game from the GameManager and
-//then using State() for a fully-inflated state.
+// StateStorageRecord is a record representing a state that can be written to
+// storage and later returned. It is an encoded json blob, and can be written
+// directly to storage with no modification. Typically you don't use this
+// representation directly, instead fetching a game from the GameManager and
+// then using State() for a fully-inflated state.
 type StateStorageRecord json.RawMessage
 
-//MoveStorageRecord is a record representing the Move that was made to get the
-//game to its most recent version. It pops out various fields that
-//StorageManagers could conceivably want to understand. Typically you don't
-//use this directly, but instead fetch information for moves from game.Moves()
-//and game.Move().
+// MoveStorageRecord is a record representing the Move that was made to get the
+// game to its most recent version. It pops out various fields that
+// StorageManagers could conceivably want to understand. Typically you don't
+// use this directly, but instead fetch information for moves from game.Moves()
+// and game.Move().
 type MoveStorageRecord struct {
 	Name      string
 	Version   int
@@ -36,8 +36,8 @@ type MoveStorageRecord struct {
 	Blob json.RawMessage
 }
 
-//Inflate takes a move storage record and turns it into a move associated with
-//that game, if possible. Returns nil if not possible.
+// Inflate takes a move storage record and turns it into a move associated with
+// that game, if possible. Returns nil if not possible.
 func (m *MoveStorageRecord) inflate(game *Game) (Move, error) {
 
 	if game == nil {
@@ -61,13 +61,13 @@ func (m *MoveStorageRecord) inflate(game *Game) (Move, error) {
 	return move, nil
 }
 
-//GameStorageRecord is a simple struct with public fields representing the
-//important aspects of a game that should be serialized to storage. The fields
-//are broken out specifically so that the storage layer can understand these
-//properties in queries. Typically you don't use this struct directly, instead
-//getting an inflated version via something like GameManager.ModifiableGame()
-//and then using the associated methods on the struct to get at the undelying
-//values.
+// GameStorageRecord is a simple struct with public fields representing the
+// important aspects of a game that should be serialized to storage. The fields
+// are broken out specifically so that the storage layer can understand these
+// properties in queries. Typically you don't use this struct directly, instead
+// getting an inflated version via something like GameManager.ModifiableGame()
+// and then using the associated methods on the struct to get at the undelying
+// values.
 type GameStorageRecord struct {
 	//Name is the type of the game, from its manager. Used for sanity
 	//checking.
@@ -92,13 +92,13 @@ type GameStorageRecord struct {
 	Variant    Variant
 }
 
-//StorageManager is the interface that storage layers implement. The core
-//engine expects one of these to be passed in via NewGameManager as the place
-//to store and retrieve game information. A number of different
-//implementations are available in boardgame/storage that can all be used.
-//Typically you don't use this interface directly--it's defined just to
-//formalize the interface between the core engine and the underlying storage
-//layer.
+// StorageManager is the interface that storage layers implement. The core
+// engine expects one of these to be passed in via NewGameManager as the place
+// to store and retrieve game information. A number of different
+// implementations are available in boardgame/storage that can all be used.
+// Typically you don't use this interface directly--it's defined just to
+// formalize the interface between the core engine and the underlying storage
+// layer.
 type StorageManager interface {
 	//State returns the StateStorageRecord for the game at the given version,
 	//or nil.

@@ -1,10 +1,9 @@
 /*
-
 Package golden is a package designed to make it possible to compare a game to a
 golden run for testing purposes. It takes a record saved in storage/filesystem
 format and compares it.
 
-Typical Use
+# Typical Use
 
 Typically you generate a new set of goldens by cd'ing into the package
 containing the game you want to test. Then you run `boardgame-util
@@ -34,7 +33,7 @@ You can also add a "Description" top-level field in the json to describe what
 the game is testing, which is useful to keep track of goldens that test various
 edge cases.
 
-Remastering Goldens
+# Remastering Goldens
 
 Typically you record a golden, and then every time you test the game package, it
 will just verify the game logic still applies the same moves in the right order,
@@ -77,7 +76,6 @@ state patches to match, or the max Version of the Game section. Then, run `go
 test -update-golden` and verify the output looks correct. Note that your manual
 splice will now have been overwritten, which means that if the output was wrong,
 you'll need to reset it, manually modify again, and then remaster.
-
 */
 package golden
 
@@ -99,17 +97,17 @@ import (
 	"github.com/yudai/gojsondiff/formatter"
 )
 
-//Compare is the primary method in the package. It takes a game delegate and a
-//filename denoting a record to compare against. delegate shiould be a fresh
-//delegate not yet affiliated with a manager. It compares every version and move
-//in the history (ignoring things that shouldn't be the same, like timestamps)
-//and reports the first place they divrge. Any time it finds a move not proposed
-//by AdminPlayerIndex it will propose that move. As long as your game uses
-//state.Rand() for all randomness and is otherwise deterministic then everything
-//should work. If updateOnDifferent is true, instead of erroring, it will
-//instead overwrite the existing golden with a new one. The boardgame-util
-//create-goldens tool will output a test that will look for a `-update-golden`
-//flag and pass in that variable here.
+// Compare is the primary method in the package. It takes a game delegate and a
+// filename denoting a record to compare against. delegate shiould be a fresh
+// delegate not yet affiliated with a manager. It compares every version and move
+// in the history (ignoring things that shouldn't be the same, like timestamps)
+// and reports the first place they divrge. Any time it finds a move not proposed
+// by AdminPlayerIndex it will propose that move. As long as your game uses
+// state.Rand() for all randomness and is otherwise deterministic then everything
+// should work. If updateOnDifferent is true, instead of erroring, it will
+// instead overwrite the existing golden with a new one. The boardgame-util
+// create-goldens tool will output a test that will look for a `-update-golden`
+// flag and pass in that variable here.
 func Compare(delegate boardgame.GameDelegate, recFilename string, updateOnDifferent bool) error {
 
 	storage := newStorageManager()
@@ -132,9 +130,9 @@ func Compare(delegate boardgame.GameDelegate, recFilename string, updateOnDiffer
 
 }
 
-//CompareFolder is like Compare, except it will iterate through any file in
-//recFolder that ends in .json. Errors if any of those files cannot be parsed
-//into recs. See Compare for more documentation.
+// CompareFolder is like Compare, except it will iterate through any file in
+// recFolder that ends in .json. Errors if any of those files cannot be parsed
+// into recs. See Compare for more documentation.
 func CompareFolder(delegate boardgame.GameDelegate, recFolder string, updateOnDifferent bool) error {
 
 	storage := newStorageManager()

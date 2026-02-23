@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-//ImmutableTimer is a Timer that does not have any mutator methods. See Timer
-//for more.
+// ImmutableTimer is a Timer that does not have any mutator methods. See Timer
+// for more.
 type ImmutableTimer interface {
 	//Active returns true if the given timer has been Start()'d and has not
 	//yet fired or been canceled.
@@ -19,9 +19,9 @@ type ImmutableTimer interface {
 	setState(*state)
 }
 
-//Timer is a type of property that can be used in states that represents a
-//countdown. Timers must exist in a given SubState in your state, and must
-//always be non-nil, even if they aren't actively being used.
+// Timer is a type of property that can be used in states that represents a
+// countdown. Timers must exist in a given SubState in your state, and must
+// always be non-nil, even if they aren't actively being used.
 type Timer interface {
 	ImmutableTimer
 	//Start begins a timer that will automatically call game.ProposeMove(Move,
@@ -44,12 +44,12 @@ type timer struct {
 	statePtr *state
 }
 
-//NewTimer returns a new blank timer, ready for use. Typically this would be
-//used inside of GameDelegate.GameStateConstructor and friends. In practice
-//however this is not necessary because the auto-crated StructInflaters for
-//your structs will install a non-nil Timer even if not struct tags are
-//provided, because no configuration is necessary. See StructInflater for
-//more.
+// NewTimer returns a new blank timer, ready for use. Typically this would be
+// used inside of GameDelegate.GameStateConstructor and friends. In practice
+// however this is not necessary because the auto-crated StructInflaters for
+// your structs will install a non-nil Timer even if not struct tags are
+// provided, because no configuration is necessary. See StructInflater for
+// more.
 func NewTimer() Timer {
 	return &timer{}
 }
@@ -81,19 +81,19 @@ func (t *timer) MarshalJSON() ([]byte, error) {
 	return DefaultMarshalJSON(obj)
 }
 
-//Active returns true if the timer is active and counting down.
+// Active returns true if the timer is active and counting down.
 func (t *timer) Active() bool {
 	return t.statePtr.game.manager.timers.TimerActive(t.ID)
 }
 
-//TimeLeft returns the number of nanoseconds left until this timer fires.
+// TimeLeft returns the number of nanoseconds left until this timer fires.
 func (t *timer) TimeLeft() time.Duration {
 	return t.statePtr.game.manager.timers.GetTimerRemaining(t.ID)
 }
 
-//Start starts the timer. After duration has passed, the Move will be proposed
-//via proposeMove. If the timer is already active, it will be canceled before
-//the new timer is configured.
+// Start starts the timer. After duration has passed, the Move will be proposed
+// via proposeMove. If the timer is already active, it will be canceled before
+// the new timer is configured.
 func (t *timer) Start(duration time.Duration, move Move) {
 
 	if t.Active() {
@@ -108,9 +108,9 @@ func (t *timer) Start(duration time.Duration, move Move) {
 	t.statePtr.timersToStart = append(t.statePtr.timersToStart, t.ID)
 }
 
-//Cancel cancels an active timer. If the timer is not active, it has no
-//effect. Returns true if the timer was active and canceled, false if the
-//timer was not active.
+// Cancel cancels an active timer. If the timer is not active, it has no
+// effect. Returns true if the timer was active and canceled, false if the
+// timer was not active.
 func (t *timer) Cancel() bool {
 
 	wasActive := t.Active()
@@ -201,9 +201,9 @@ func (t *timerManager) ActiveTimersForGame(gameID string) map[string]*timerRecor
 	return result
 }
 
-//PrepareTimer creates a timer entry and gets it ready and an Id allocated.
-//However, the timer doesn't actually start counting down until
-//manager.StartTimer(id) is called.
+// PrepareTimer creates a timer entry and gets it ready and an Id allocated.
+// However, the timer doesn't actually start counting down until
+// manager.StartTimer(id) is called.
 func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move Move) string {
 
 	record := &timerRecord{
@@ -225,8 +225,8 @@ func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move M
 	return record.id
 }
 
-//StartTimer actually triggers a timer that was previously PrepareTimer'd to
-//start counting down.
+// StartTimer actually triggers a timer that was previously PrepareTimer'd to
+// start counting down.
 func (t *timerManager) StartTimer(id string) {
 
 	if t.TimerActive(id) {
@@ -245,7 +245,7 @@ func (t *timerManager) StartTimer(id string) {
 	heap.Fix(&t.records, record.index)
 }
 
-//TimerActive returns if the timer is active and counting down.
+// TimerActive returns if the timer is active and counting down.
 func (t *timerManager) TimerActive(id string) bool {
 	record := t.recordsByID[id]
 
@@ -285,9 +285,9 @@ func (t *timerManager) CancelTimer(id string) {
 
 }
 
-//ForceNextTimer is designed to force fire the next timer no matter when it's
-//_supposed_ to fire. Will return true if a timer was fired. Primarily exists
-//for debug purposes.
+// ForceNextTimer is designed to force fire the next timer no matter when it's
+// _supposed_ to fire. Will return true if a timer was fired. Primarily exists
+// for debug purposes.
 func (t *timerManager) ForceNextTimer() bool {
 	record := t.popNext(true)
 	if record == nil {
@@ -299,8 +299,8 @@ func (t *timerManager) ForceNextTimer() bool {
 	return true
 }
 
-//Should be called regularly by the manager to tell this to check and see if
-//any timers have fired, and execute them if so.
+// Should be called regularly by the manager to tell this to check and see if
+// any timers have fired, and execute them if so.
 func (t *timerManager) Tick() {
 	for t.nextTimerFired() {
 		record := t.popNext(false)
@@ -315,7 +315,7 @@ func (t *timerManager) Tick() {
 	}
 }
 
-//Whether the next timer in the queue is already fired
+// Whether the next timer in the queue is already fired
 func (t *timerManager) nextTimerFired() bool {
 	if len(t.records) == 0 {
 		return false
@@ -360,7 +360,7 @@ func (t timerQueue) Swap(i, j int) {
 	t[j].index = j
 }
 
-//DO NOT USE THIS DIRECTLY. Use heap.Push(t)
+// DO NOT USE THIS DIRECTLY. Use heap.Push(t)
 func (t *timerQueue) Push(x interface{}) {
 	n := len(*t)
 	item := x.(*timerRecord)
@@ -368,7 +368,7 @@ func (t *timerQueue) Push(x interface{}) {
 	*t = append(*t, item)
 }
 
-//DO NOT USE THIS DIRECTLY. Use heap.Pop()
+// DO NOT USE THIS DIRECTLY. Use heap.Pop()
 func (t *timerQueue) Pop() interface{} {
 	old := *t
 	n := len(old)

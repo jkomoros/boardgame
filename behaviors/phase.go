@@ -15,9 +15,9 @@ type PhaseBehavior struct {
 	Phase enum.Val `enum:"phase"`
 }
 
-//SetCurrentPhase sets the phase value to the given value. This
-//satisfies the moves/interfaces.CurrentPhaseSetter interface, allowing you to
-//use moves.StartPhase.
+// SetCurrentPhase sets the phase value to the given value. This
+// satisfies the moves/interfaces.CurrentPhaseSetter interface, allowing you to
+// use moves.StartPhase.
 func (p *PhaseBehavior) SetCurrentPhase(phase enum.EnumKey) {
 	p.Phase.SetValue(phase)
 }

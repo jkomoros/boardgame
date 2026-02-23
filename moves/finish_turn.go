@@ -8,7 +8,6 @@ import (
 )
 
 /*
-
 FinishTurn is designed to be used as a FixUp move that advances the
 CurrentPlayer to the next player when the current player's turn is done. Your
 game's playerStates should implement the PlayerTurnFinisher interface, and your
@@ -17,9 +16,9 @@ by using behaviors.CurrentPlayerBehavior). In practice because most of the logic
 is contained on your game and playerStates, you can often use this move directly
 in your game, with no configuration override or embedding, like so:
 
-    auto.MustConfig(
-        new(moves.FinishTurn),
-    )
+	auto.MustConfig(
+	    new(moves.FinishTurn),
+	)
 
 boardgame:codegen
 */
@@ -27,9 +26,9 @@ type FinishTurn struct {
 	FixUp
 }
 
-//ValidConfiguration verfies that GameState implements
-//interfaces.CurrentPlayerSetter and the PlayerState implements
-//PlayerTurnFinisher.
+// ValidConfiguration verfies that GameState implements
+// interfaces.CurrentPlayerSetter and the PlayerState implements
+// PlayerTurnFinisher.
 func (f *FinishTurn) ValidConfiguration(exampleState boardgame.State) error {
 
 	if _, ok := exampleState.GameState().(interfaces.CurrentPlayerSetter); !ok {
@@ -43,7 +42,7 @@ func (f *FinishTurn) ValidConfiguration(exampleState boardgame.State) error {
 	return f.FixUp.ValidConfiguration(exampleState)
 }
 
-//Legal checks if the game's CurrentPlayer's TurnDone() returns true.
+// Legal checks if the game's CurrentPlayer's TurnDone() returns true.
 func (f *FinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := f.Default.Legal(state, proposer); err != nil {
@@ -76,9 +75,9 @@ func (f *FinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 
 }
 
-//Apply resets the current player via ResetForTurnEnd, then advances to the
-//next player (using game.SetCurrentPlayer), then calls ResetForTurnStart on
-//the new player.
+// Apply resets the current player via ResetForTurnEnd, then advances to the
+// next player (using game.SetCurrentPlayer), then calls ResetForTurnStart on
+// the new player.
 func (f *FinishTurn) Apply(state boardgame.State) error {
 	currentPlayer := state.PlayerStates()[state.CurrentPlayerIndex()]
 
@@ -118,14 +117,14 @@ func (f *FinishTurn) Apply(state boardgame.State) error {
 
 }
 
-//FallbackName returns "Finish Turn". In many cases you only have one
-//FinishTurn move in a game, so this name does not need to be overriden.
+// FallbackName returns "Finish Turn". In many cases you only have one
+// FinishTurn move in a game, so this name does not need to be overriden.
 func (f *FinishTurn) FallbackName(m *boardgame.GameManager) string {
 	return "Finish Turn"
 }
 
-//FallbackHelpText returns "Advances to the next player when the
-//current player's turn is done."
+// FallbackHelpText returns "Advances to the next player when the
+// current player's turn is done."
 func (f *FinishTurn) FallbackHelpText() string {
 	return "Advances to the next player when the current player's turn is done."
 }

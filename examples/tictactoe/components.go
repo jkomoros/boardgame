@@ -10,8 +10,8 @@ const (
 	phaseAfterFirstMove
 )
 
-//TODO: this should use enums, and then PlayerStateConstructor should just use
-//new(playerState).
+// TODO: this should use enums, and then PlayerStateConstructor should just use
+// new(playerState).
 const (
 	//X represents the x player
 	X = "X"

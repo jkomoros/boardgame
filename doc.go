@@ -1,5 +1,4 @@
 /*
-
 Package boardgame is a framework that makes it possible to build boardgames
 with minimial fuss.
 
@@ -22,6 +21,5 @@ tour of the main concepts, see TUTORIAL.md.
 The primary entry point for use of this package is defining your own
 GameDelegate. The methods and documentation from there will point to other
 parts of this package.
-
 */
 package boardgame

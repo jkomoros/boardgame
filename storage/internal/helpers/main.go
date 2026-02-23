@@ -14,16 +14,16 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 )
 
-//AllGamesStorageManager wraps normal storage manager but also has an AllGames
-//method.
+// AllGamesStorageManager wraps normal storage manager but also has an AllGames
+// method.
 type AllGamesStorageManager interface {
 	api.StorageManager
 	//AllGames simply returns all games
 	AllGames() []*boardgame.GameStorageRecord
 }
 
-//MovesHelper is an implementation for Moves() if the underlying storage
-//manager can't do any better than just repeated calls to Move() anyway.
+// MovesHelper is an implementation for Moves() if the underlying storage
+// manager can't do any better than just repeated calls to Move() anyway.
 func MovesHelper(s boardgame.StorageManager, gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
 
 	//There's no efficiency boost for fetching multiple moves at once so just wrap around Move()
@@ -46,9 +46,9 @@ func MovesHelper(s boardgame.StorageManager, gameID string, fromVersion, toVersi
 	return result, nil
 }
 
-//ListGamesHelper is an implementation for ListGames() if the underlying
-//storage manager can't do any better than walking through each game anyway.
-//Note that your StorageManager must implement AllGames().
+// ListGamesHelper is an implementation for ListGames() if the underlying
+// storage manager can't do any better than walking through each game anyway.
+// Note that your StorageManager must implement AllGames().
 func ListGamesHelper(s AllGamesStorageManager, max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 
 	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userID == "" {

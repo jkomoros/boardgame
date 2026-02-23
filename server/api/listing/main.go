@@ -1,12 +1,10 @@
 /*
-
 Package listing is a simple package of constants for listing of games, primarily
 in a separate package to avoid circular dependencies.
-
 */
 package listing
 
-//Type is an enum of the type of list that should be returned.
+// Type is an enum of the type of list that should be returned.
 type Type int
 
 const (

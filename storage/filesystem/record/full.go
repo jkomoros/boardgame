@@ -11,7 +11,7 @@ import (
 
 var fullEncoder = &fullEncoderImpl{}
 
-//This encoder is so easy!
+// This encoder is so easy!
 type fullEncoderImpl struct{}
 
 func (f *fullEncoderImpl) CreatePatch(lastState, state boardgame.StateStorageRecord) ([]byte, error) {
@@ -43,7 +43,7 @@ func (f *fullEncoderImpl) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame
 	return patchBlob, nil
 }
 
-//Note: this only works if examplePatch is the first one now.
+// Note: this only works if examplePatch is the first one now.
 func (f *fullEncoderImpl) Matches(examplePatch []byte) error {
 
 	//We match if the patch has a version string who is an int.

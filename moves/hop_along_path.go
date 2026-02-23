@@ -28,7 +28,7 @@ type HopAlongPath struct {
 	FixUp
 }
 
-//Legal returns nil if there is a LocationBehavior with remaining hops.
+// Legal returns nil if there is a LocationBehavior with remaining hops.
 func (h *HopAlongPath) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := h.FixUp.Legal(state, proposer); err != nil {
@@ -43,7 +43,7 @@ func (h *HopAlongPath) Legal(state boardgame.ImmutableState, proposer boardgame.
 	return nil
 }
 
-//Apply moves the token one hop along the remaining path.
+// Apply moves the token one hop along the remaining path.
 func (h *HopAlongPath) Apply(state boardgame.State) error {
 
 	behavior := findBehaviorWithRemainingPath(state)
@@ -63,12 +63,12 @@ func (h *HopAlongPath) Apply(state boardgame.State) error {
 	return nil
 }
 
-//FallbackName returns "Hop Along Path"
+// FallbackName returns "Hop Along Path"
 func (h *HopAlongPath) FallbackName(m *boardgame.GameManager) string {
 	return "Hop Along Path"
 }
 
-//FallbackHelpText returns a description of the FixUp.
+// FallbackHelpText returns a description of the FixUp.
 func (h *HopAlongPath) FallbackHelpText() string {
 	return "Execute one hop of a multi-hop movement path."
 }

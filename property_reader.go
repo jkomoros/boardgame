@@ -13,9 +13,9 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 )
 
-//PropertyReader is a version of PropertyReadSetConfigurer that has no
-//mutating methods. See PropertyReadSetConfigurer for more about this
-//interface hierarchy.
+// PropertyReader is a version of PropertyReadSetConfigurer that has no
+// mutating methods. See PropertyReadSetConfigurer for more about this
+// interface hierarchy.
 type PropertyReader interface {
 	//Props returns a list of all property names that are defined for this
 	//object.
@@ -44,10 +44,10 @@ type PropertyReader interface {
 	Prop(name string) (interface{}, error)
 }
 
-//PropertyType is an enumeration of the types that are legal to have on an
-//underyling object that can return a Reader. This ensures that State objects
-//are not overly complex and can be reasoned about cleanly. See
-//PropertyReadSetConfigurer and ConfigurableSubState for more.
+// PropertyType is an enumeration of the types that are legal to have on an
+// underyling object that can return a Reader. This ensures that State objects
+// are not overly complex and can be reasoned about cleanly. See
+// PropertyReadSetConfigurer and ConfigurableSubState for more.
 type PropertyType int
 
 const (
@@ -86,15 +86,15 @@ const (
 	//methods and highestType in boardgame-util/lib/codegen/property_types.go
 )
 
-//ErrPropertyImmutable should be returned by PropertyReadSetters'
-//Mutable{Enum,Stack,Timer}Prop when the underlying property is actually an
-//immutable variant of that type of object, or for when Configure*Prop (the
-//immutable variant) is used on mutable properties.
+// ErrPropertyImmutable should be returned by PropertyReadSetters'
+// Mutable{Enum,Stack,Timer}Prop when the underlying property is actually an
+// immutable variant of that type of object, or for when Configure*Prop (the
+// immutable variant) is used on mutable properties.
 var ErrPropertyImmutable = errors.New("that property is an immutable type in the underlying object")
 
-//PropertyReadSetter is a version of PropertyReadSetConfigurer that has no
-//Configuration methods. See PropertyReadSetConfigurer for more about this
-//interface hierarchy.
+// PropertyReadSetter is a version of PropertyReadSetConfigurer that has no
+// Configuration methods. See PropertyReadSetConfigurer for more about this
+// interface hierarchy.
 type PropertyReadSetter interface {
 	//All PropertyReadSetters have read interfaces
 	PropertyReader
@@ -136,7 +136,6 @@ type PropertyReadSetter interface {
 }
 
 /*
-
 PropertyReadSetConfigurer is a core interface that the engine uses to interact
 with user-provided structs of unknown shape, to read, set, and configure their
 properties. The PropertyReadSetConfigurer interface is used to interact with
@@ -179,7 +178,6 @@ tedious and error prone. `boardgame-util codegen` is a powerful utility that
 will automatically generate the code for you based on a magic comment in the
 documentation for your struct. In this way we get the best of reflection
 (flexibility) and the best of hard-coded (performance).
-
 */
 type PropertyReadSetConfigurer interface {
 
@@ -209,7 +207,7 @@ type PropertyReadSetConfigurer interface {
 	ConfigureProp(name string, value interface{}) error
 }
 
-//String outputs things like "TypeInt" for TypeInt.
+// String outputs things like "TypeInt" for TypeInt.
 func (t PropertyType) String() string {
 	switch t {
 	case TypeIllegal:
@@ -245,20 +243,20 @@ func (t PropertyType) String() string {
 	}
 }
 
-//IsInterface outputs true if the underlying type is an "interface" type, that is
-//Enum, Stack, Board, or Timer. Most useful for the codegen package.
+// IsInterface outputs true if the underlying type is an "interface" type, that is
+// Enum, Stack, Board, or Timer. Most useful for the codegen package.
 func (t PropertyType) IsInterface() bool {
 	return t == TypeEnum || t == TypeEnumSlice || t == TypeStack || t == TypeBoard || t == TypeTimer
 }
 
-//IsSlice returns true if the type represents a slice (e.g. TypeBoolSlice). Most
-//useful for the codegen package.
+// IsSlice returns true if the type represents a slice (e.g. TypeBoolSlice). Most
+// useful for the codegen package.
 func (t PropertyType) IsSlice() bool {
 	return t == TypeBoolSlice || t == TypeIntSlice || t == TypeStringSlice || t == TypePlayerIndexSlice
 }
 
-//BaseType returns the non-slice version for slice types. e.g. TypeInt for
-//TypeIntSlice, and TypeEnum for TypeEnum. Most useful for codegen package.
+// BaseType returns the non-slice version for slice types. e.g. TypeInt for
+// TypeIntSlice, and TypeEnum for TypeEnum. Most useful for codegen package.
 func (t PropertyType) BaseType() PropertyType {
 	if !t.IsSlice() {
 		return t
@@ -278,7 +276,7 @@ func (t PropertyType) BaseType() PropertyType {
 	}
 }
 
-//TODO: protect access to this with a mutex.
+// TODO: protect access to this with a mutex.
 var defaultReaderCacheLock sync.RWMutex
 var defaultReaderCache map[interface{}]*defaultReader
 
@@ -288,8 +286,8 @@ func init() {
 	defaultReaderCacheLock.Unlock()
 }
 
-//genericReader is a generic PropertyReadSetter that allows users to Set
-//various properties and have them configed.
+// genericReader is a generic PropertyReadSetter that allows users to Set
+// various properties and have them configed.
 type genericReader struct {
 	types  map[string]PropertyType
 	values map[string]interface{}
@@ -301,12 +299,12 @@ type defaultReader struct {
 	mutable map[string]bool
 }
 
-//DefaultReader returns an object that satisfies the PropertyReader interface
-//for the given concrete object, using reflection. Make it easy to implement
-//the Reader method in a line. It will return an existing wrapper or create a
-//new one if necessary. This used to be public, but it never really made sense
-//to expose and doesn't understand embedded types, so it's now just used for
-//testing within the package.
+// DefaultReader returns an object that satisfies the PropertyReader interface
+// for the given concrete object, using reflection. Make it easy to implement
+// the Reader method in a line. It will return an existing wrapper or create a
+// new one if necessary. This used to be public, but it never really made sense
+// to expose and doesn't understand embedded types, so it's now just used for
+// testing within the package.
 func getDefaultReader(i interface{}) PropertyReader {
 	return getDefaultReadSetter(i)
 }
@@ -315,12 +313,12 @@ func getDefaultReadSetter(i interface{}) PropertyReadSetter {
 	return getDefaultReadSetConfigurer(i)
 }
 
-//DefaultReadSetter returns an object that satisfies the PropertyReadSetter
-//interface for the given concrete object, using reflection. Make it easy to
-//implement the Reader method in a line. It will return an existing wrapper or
-//create a new one if necessary. This used to be public, but it never really
-//made sense to expose and doesn't understand embedded types, so it's now just
-//used for testing within the package.
+// DefaultReadSetter returns an object that satisfies the PropertyReadSetter
+// interface for the given concrete object, using reflection. Make it easy to
+// implement the Reader method in a line. It will return an existing wrapper or
+// create a new one if necessary. This used to be public, but it never really
+// made sense to expose and doesn't understand embedded types, so it's now just
+// used for testing within the package.
 func getDefaultReadSetConfigurer(i interface{}) PropertyReadSetConfigurer {
 
 	defaultReaderCacheLock.RLock()
@@ -1430,8 +1428,8 @@ func newGenericReader() *genericReader {
 	}
 }
 
-//Implement reader so we can be used directly or in e.g.
-//ComputedPropertyCollection.
+// Implement reader so we can be used directly or in e.g.
+// ComputedPropertyCollection.
 func (g *genericReader) ReadSetter() PropertyReadSetter {
 	return g
 }

@@ -8,11 +8,11 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 )
 
-//MoveType represents a type of a move in a game, and information about that
-//MoveType. New Moves are constructed by calling its NewMove() method. Fields
-//are hidden to prevent modifying them once a game has been SetUp. New ones
-//cannot be created directly; they are created via
-//GameManager.AddMoveType(moveTypeConfig).
+// MoveType represents a type of a move in a game, and information about that
+// MoveType. New Moves are constructed by calling its NewMove() method. Fields
+// are hidden to prevent modifying them once a game has been SetUp. New ones
+// cannot be created directly; they are created via
+// GameManager.AddMoveType(moveTypeConfig).
 type moveType struct {
 	name                string
 	constructor         func() Move
@@ -21,13 +21,13 @@ type moveType struct {
 	manager             *GameManager
 }
 
-//MoveConfig is a collection of information used to create a Move. Your
-//delegate's ConfigureMoves() will emit a slice of them to define which moves
-//are valid for your game. Typically you'll use moves.Combine, moves.Add,
-//moves.AddWithPhase, combined with moves.AutoConfigurer.Configure() to
-//generate these. This is an interface and not a concrete struct because other
-//packages, like moves, add more behavior to the ones they return. If you want
-//just a vanilla one without using the moves package, use NewMoveConfig.
+// MoveConfig is a collection of information used to create a Move. Your
+// delegate's ConfigureMoves() will emit a slice of them to define which moves
+// are valid for your game. Typically you'll use moves.Combine, moves.Add,
+// moves.AddWithPhase, combined with moves.AutoConfigurer.Configure() to
+// generate these. This is an interface and not a concrete struct because other
+// packages, like moves, add more behavior to the ones they return. If you want
+// just a vanilla one without using the moves package, use NewMoveConfig.
 type MoveConfig interface {
 	//Name is the name for this type of move. No other Move structs
 	//in use in this game should have the same name, but it should be human-
@@ -82,9 +82,9 @@ func (d defaultMoveConfig) CustomConfiguration() PropertyCollection {
 	return d.customConfiguration
 }
 
-//NewMoveConfig returns a simple MoveConfig that will return the provided
-//parameters from its getters. Typically you don't use this, but rather use
-//the output of moves.AutoConfigurer.Config().
+// NewMoveConfig returns a simple MoveConfig that will return the provided
+// parameters from its getters. Typically you don't use this, but rather use
+// the output of moves.AutoConfigurer.Config().
 func NewMoveConfig(name string, constructor func() Move, customConfiguration PropertyCollection) MoveConfig {
 	return defaultMoveConfig{
 		name,
@@ -95,10 +95,10 @@ func NewMoveConfig(name string, constructor func() Move, customConfiguration Pro
 
 const newMoveTypeErrNoManagerPassed = "No manager passed, so we can'd do validation"
 
-//NewMoveType takes a MoveConfig and returns a MoveType associated with
-//the given manager. The returned move type will not yet have been added to
-//the manager in question. In general you don't call this directly, and
-//instead use manager.AddMove, which accepts a MoveConfig.
+// NewMoveType takes a MoveConfig and returns a MoveType associated with
+// the given manager. The returned move type will not yet have been added to
+// the manager in question. In general you don't call this directly, and
+// instead use manager.AddMove, which accepts a MoveConfig.
 func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 	if config == nil {
 		return nil, errors.New("No config provided")
@@ -151,10 +151,10 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 
 }
 
-//OrphanExampleMove returns a move from the config that will be similar to a
-//real move, in terms of struct-based auto-inflation, etc. This is exposed
-//primarily for moves.AutoConfigrer, and generally shouldn't be used by
-//others.
+// OrphanExampleMove returns a move from the config that will be similar to a
+// real move, in terms of struct-based auto-inflation, etc. This is exposed
+// primarily for moves.AutoConfigrer, and generally shouldn't be used by
+// others.
 func (m *ManagerInternals) OrphanExampleMove(config MoveConfig) (Move, error) {
 	throwAwayMoveType, err := newMoveType(config, nil)
 
@@ -167,8 +167,8 @@ func (m *ManagerInternals) OrphanExampleMove(config MoveConfig) (Move, error) {
 	return throwAwayMoveType.NewMove(nil), nil
 }
 
-//MoveInfo is an object that contains meta-information about a move. It is
-//fetched via move.Info().
+// MoveInfo is an object that contains meta-information about a move. It is
+// fetched via move.Info().
 type MoveInfo struct {
 	moveType  *moveType
 	version   int
@@ -177,16 +177,16 @@ type MoveInfo struct {
 	timestamp time.Time
 }
 
-//Move is the struct that are how all modifications are made to States after
-//initialization. Packages define structs that implement different Moves for all
-//types of valid modifications. Moves are objects your own packages will
-//returen. Use base.Move or moves.Default for a convenient composable base Move
-//that will allow you to skip most of the boilerplate overhead. Your Move is
-//similar to a SubState in that all of the persistable properties must be one of
-//the enumerated types in PropertyType, excluding a few types. Your Moves are
-//installed based on what your GameDelegate returns from ConfigureMoves(). See
-//MoveConfig for more about things that must be true about structs you return.
-//The two primary methods for your game logic are Legal() and Apply().
+// Move is the struct that are how all modifications are made to States after
+// initialization. Packages define structs that implement different Moves for all
+// types of valid modifications. Moves are objects your own packages will
+// returen. Use base.Move or moves.Default for a convenient composable base Move
+// that will allow you to skip most of the boilerplate overhead. Your Move is
+// similar to a SubState in that all of the persistable properties must be one of
+// the enumerated types in PropertyType, excluding a few types. Your Moves are
+// installed based on what your GameDelegate returns from ConfigureMoves(). See
+// MoveConfig for more about things that must be true about structs you return.
+// The two primary methods for your game logic are Legal() and Apply().
 type Move interface {
 
 	//Legal returns nil if this proposed move is legal at the given state, or
@@ -273,26 +273,26 @@ type Move interface {
 	ReadSetConfigurer
 }
 
-//ConfigurationValidator is an interface that certain types must implement.
-//These will be called typically during NewGameManager set up, and are an
-//opportunity for the structs to report configuration errors that can only be
-//discovered at runtime. If an error is reported then NewGameManager will fail,
-//which means that the misconfiguration can be detected early almost
-//guaranteeing it will be detected by the game package author. For example, many
-//moves in the moves package must be embedded in structs that contain particular
-//methods in the embedding struct, and that can only be validated at runtime.
-//Typically you don't need to implement this yourself; the types of structs that
-//have it will have a stub implementation in the base package, and the primary
-//beneficiaries of this are more complex embeddable library structs like those
-//found in the moves package.
+// ConfigurationValidator is an interface that certain types must implement.
+// These will be called typically during NewGameManager set up, and are an
+// opportunity for the structs to report configuration errors that can only be
+// discovered at runtime. If an error is reported then NewGameManager will fail,
+// which means that the misconfiguration can be detected early almost
+// guaranteeing it will be detected by the game package author. For example, many
+// moves in the moves package must be embedded in structs that contain particular
+// methods in the embedding struct, and that can only be validated at runtime.
+// Typically you don't need to implement this yourself; the types of structs that
+// have it will have a stub implementation in the base package, and the primary
+// beneficiaries of this are more complex embeddable library structs like those
+// found in the moves package.
 type ConfigurationValidator interface {
 	//ValidConfiguration will be checked when the NewGameManager is being set
 	//up, and if it returns an error the manager will fail to be created.
 	ValidConfiguration(exampleState State) error
 }
 
-//StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
-//itself since Moves are provided by users of the library.
+// StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
+// itself since Moves are provided by users of the library.
 func StorageRecordForMove(move Move, currentPhase enum.EnumKey, proposer PlayerIndex) *MoveStorageRecord {
 
 	blob, err := json.MarshalIndent(move, "", "\t")
@@ -312,27 +312,27 @@ func StorageRecordForMove(move Move, currentPhase enum.EnumKey, proposer PlayerI
 	}
 }
 
-//Name returns the name of the move type that this move is, based on the value
-//passed in the affiliated MoveConfig from your GameDelegate.ConfigureMoves().
-//Calling manager.ExampleMove() with that string value will return a similar
-//struct.
+// Name returns the name of the move type that this move is, based on the value
+// passed in the affiliated MoveConfig from your GameDelegate.ConfigureMoves().
+// Calling manager.ExampleMove() with that string value will return a similar
+// struct.
 func (m *MoveInfo) Name() string {
 	return m.name
 }
 
-//Version returns the version of this move--or the version that it will be
-//when successfully committed.
+// Version returns the version of this move--or the version that it will be
+// when successfully committed.
 func (m *MoveInfo) Version() int {
 	return m.version
 }
 
-//Timestamp returns the time that the given move was made.
+// Timestamp returns the time that the given move was made.
 func (m *MoveInfo) Timestamp() time.Time {
 	return m.timestamp
 }
 
-//CustomConfiguration returns the configuration object associated with this
-//move when it was installed from its MoveConfig.CustomConfiguration().
+// CustomConfiguration returns the configuration object associated with this
+// move when it was installed from its MoveConfig.CustomConfiguration().
 func (m *MoveInfo) CustomConfiguration() PropertyCollection {
 	if m.moveType == nil {
 		return nil
@@ -340,12 +340,12 @@ func (m *MoveInfo) CustomConfiguration() PropertyCollection {
 	return m.moveType.customConfiguration
 }
 
-//Initiator returns the move version that initiated this causal chain: the
-//player Move that was applied that led to this chain of fix up moves as
-//proposed by GameDelegate.ProposeFixUpMove. The Initiator of a PlayerMove is
-//its own version, so this value will be less than or equal to its own
-//version. The value of Initator is unspecified until after the move has been
-//successfully committed.
+// Initiator returns the move version that initiated this causal chain: the
+// player Move that was applied that led to this chain of fix up moves as
+// proposed by GameDelegate.ProposeFixUpMove. The Initiator of a PlayerMove is
+// its own version, so this value will be less than or equal to its own
+// version. The value of Initator is unspecified until after the move has been
+// successfully committed.
 func (m *MoveInfo) Initiator() int {
 	return m.initiator
 }
@@ -356,13 +356,13 @@ var moveTypeIllegalPropTypes = map[PropertyType]bool{
 	TypeTimer: true,
 }
 
-//Name returns the unique name for this type of move.
+// Name returns the unique name for this type of move.
 func (m *moveType) Name() string {
 	return m.name
 }
 
-//NewMove returns a new move of this type, with defaults set for the given
-//state. If state is nil, then DefaultsForState will not be called.
+// NewMove returns a new move of this type, with defaults set for the given
+// state. If state is nil, then DefaultsForState will not be called.
 func (m *moveType) NewMove(state ImmutableState) Move {
 	move := m.constructor()
 	if move == nil {
@@ -402,14 +402,14 @@ func (m *moveType) NewMove(state ImmutableState) Move {
 	return move
 }
 
-//We implement a private stub of base.Move in this package just for the
-//convience of our own test structs.
+// We implement a private stub of base.Move in this package just for the
+// convience of our own test structs.
 type baseMove struct {
 	info           MoveInfo
 	topLevelStruct Move
 }
 
-//baseFixUpMove is same as baseMove but returns true for IsFixUp.
+// baseFixUpMove is same as baseMove but returns true for IsFixUp.
 type baseFixUpMove struct {
 	baseMove
 }
@@ -442,12 +442,12 @@ func (d *baseFixUpMove) IsFixUp() bool {
 	return true
 }
 
-//DefaultsForState doesn't do anything
+// DefaultsForState doesn't do anything
 func (d *baseMove) DefaultsForState(state ImmutableState) {
 	return
 }
 
-//Description defaults to returning the Type's HelpText()
+// Description defaults to returning the Type's HelpText()
 func (d *baseMove) Description() string {
 	return d.TopLevelStruct().HelpText()
 }

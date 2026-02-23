@@ -1,5 +1,4 @@
 /*
-
 Package record is a package to open, read, and save game records stored in
 filesystem's format.
 
@@ -16,7 +15,6 @@ maintains a cache of records by filename that it returns, for a considerable
 performance boost. This means that changes in the filesystem while the storage
 layer is running that aren't mediated by this controller will cause undefined
 behavior.
-
 */
 package record
 
@@ -38,7 +36,7 @@ import (
 
 const randomStringChars = "ABCDEF0123456789"
 
-//if the time is before this in a MoveStorageRecord, then it's relative time.
+// if the time is before this in a MoveStorageRecord, then it's relative time.
 var relativeTimeCutoff = time.Date(2000, time.January, 0, 0, 0, 0, 0, time.UTC)
 
 var recCache map[string]*Record
@@ -48,9 +46,9 @@ func init() {
 	recCache = make(map[string]*Record, 16)
 }
 
-//Record is a record of moves, states, and game. Get a new one based on the
-//contents of a file with New(). If you want a new blank one you can just use
-//a zero value of this.
+// Record is a record of moves, states, and game. Get a new one based on the
+// contents of a file with New(). If you want a new blank one you can just use
+// a zero value of this.
 type Record struct {
 	path              string
 	data              *storageRecord
@@ -76,7 +74,7 @@ type storageRecord struct {
 	StatePatches []json.RawMessage
 }
 
-//encoder is the thing that actually does the encoding
+// encoder is the thing that actually does the encoding
 type encoder interface {
 	//CreatePatch returns the patch object to save. Doesn't have to confirm;
 	//we'll call that automatically.
@@ -94,9 +92,9 @@ type encoder interface {
 	Matches(examplePatch []byte) error
 }
 
-//EmptyWithFullStateEncoding returns a record that will default to full state
-//encoding and will never automatically try to reduce down to
-//fullstateencoding. Primarily useful for testing.
+// EmptyWithFullStateEncoding returns a record that will default to full state
+// encoding and will never automatically try to reduce down to
+// fullstateencoding. Primarily useful for testing.
 func EmptyWithFullStateEncoding() *Record {
 	return &Record{
 		fullStateEncoding:       true,
@@ -122,10 +120,10 @@ func stateWithoutVersion(blob boardgame.StateStorageRecord) (boardgame.StateStor
 	return blob, nil
 }
 
-//New returns a new record with the data encoded in the file. If you want one
-//that does not yet have a file backing it, you can just use an empty value of
-//Record. If a record with that filename has already been saved, it will
-//return that record.
+// New returns a new record with the data encoded in the file. If you want one
+// that does not yet have a file backing it, you can just use an empty value of
+// Record. If a record with that filename has already been saved, it will
+// return that record.
 func New(filename string) (*Record, error) {
 
 	if cachedRec := recCache[filename]; cachedRec != nil {
@@ -179,9 +177,9 @@ func New(filename string) (*Record, error) {
 	return result, nil
 }
 
-//Path returns the string represeting the filename that this record represents
-//(the filename that was passed to New()). Note that if you call Save() on a
-//record, it doesn't update this value.
+// Path returns the string represeting the filename that this record represents
+// (the filename that was passed to New()). Note that if you call Save() on a
+// record, it doesn't update this value.
 func (r *Record) Path() string {
 	return r.path
 }
@@ -193,14 +191,14 @@ func (r *Record) encoder() encoder {
 	return diffEncoder
 }
 
-//FullStateEncoding returns whether the record is using full state encoding
-//instead of the default diff.
+// FullStateEncoding returns whether the record is using full state encoding
+// instead of the default diff.
 func (r *Record) FullStateEncoding() bool {
 	return r.fullStateEncoding
 }
 
-//Compress converts from full state encoding to diff encoding, if possible.
-//Noop if already diff encoded.
+// Compress converts from full state encoding to diff encoding, if possible.
+// Noop if already diff encoded.
 func (r *Record) Compress() error {
 
 	if !r.FullStateEncoding() {
@@ -217,8 +215,8 @@ func (r *Record) Compress() error {
 
 }
 
-//Expand converts from diff state encoding to full encoding, if possible.
-//Noop if already full encoded.
+// Expand converts from diff state encoding to full encoding, if possible.
+// Noop if already full encoded.
 func (r *Record) Expand() error {
 	if r.FullStateEncoding() {
 		return nil
@@ -232,11 +230,11 @@ func (r *Record) Expand() error {
 	return nil
 }
 
-//reencode converts the given contents to the new encoding, returning
-//an error if that's not possible. You still need to re-save to disk if you
-//want to save the new contents. If error is non nil, the contents of the
-//record won't have been modified. If newEncoding is the same as current encoding,
-//will be a no op.
+// reencode converts the given contents to the new encoding, returning
+// an error if that's not possible. You still need to re-save to disk if you
+// want to save the new contents. If error is non nil, the contents of the
+// record won't have been modified. If newEncoding is the same as current encoding,
+// will be a no op.
 func (r *Record) reencode(targetEncoder encoder) error {
 
 	if r.data == nil {
@@ -284,7 +282,7 @@ func (r *Record) reencode(targetEncoder encoder) error {
 
 }
 
-//compare ensures that this and the other contain the same information
+// compare ensures that this and the other contain the same information
 func (r *Record) compare(other *Record) error {
 
 	if r.data == nil {
@@ -339,7 +337,7 @@ func (r *Record) compare(other *Record) error {
 
 }
 
-//Game returns the GameStorageRecord in that record.
+// Game returns the GameStorageRecord in that record.
 func (r *Record) Game() *boardgame.GameStorageRecord {
 	if r.data == nil {
 		return nil
@@ -347,7 +345,7 @@ func (r *Record) Game() *boardgame.GameStorageRecord {
 	return r.data.Game
 }
 
-//SetDescription allows you to set the description that will be written.
+// SetDescription allows you to set the description that will be written.
 func (r *Record) SetDescription(description string) {
 	if r.data == nil {
 		return
@@ -355,8 +353,8 @@ func (r *Record) SetDescription(description string) {
 	r.data.Description = description
 }
 
-//Description returns the top-level description string set in the json file. You
-//can call SetDescription to set it.
+// Description returns the top-level description string set in the json file. You
+// can call SetDescription to set it.
 func (r *Record) Description() string {
 	if r.data == nil {
 		return ""
@@ -364,10 +362,10 @@ func (r *Record) Description() string {
 	return r.data.Description
 }
 
-//RawMoves returns the actual raw MoveStorageRecords, which golden needs access
-//to to align timestamps. The moves are 1-indexed, and their Initator, Version,
-//and Timestamp fields might be in relative values that will trip up other logic
-//outside of this package.
+// RawMoves returns the actual raw MoveStorageRecords, which golden needs access
+// to to align timestamps. The moves are 1-indexed, and their Initator, Version,
+// and Timestamp fields might be in relative values that will trip up other logic
+// outside of this package.
 func (r *Record) RawMoves() []*boardgame.MoveStorageRecord {
 	if r.data == nil {
 		return nil
@@ -375,8 +373,8 @@ func (r *Record) RawMoves() []*boardgame.MoveStorageRecord {
 	return r.data.Moves
 }
 
-//Move returns the move for that version from that record. Note that it might be
-//a copy from the underlying value.
+// Move returns the move for that version from that record. Note that it might be
+// a copy from the underlying value.
 func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 	if r.data == nil {
 		return nil, errors.New("No data")
@@ -422,7 +420,7 @@ func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 	return recCopy, nil
 }
 
-//randomString returns a random string of the given length.
+// randomString returns a random string of the given length.
 func randomString(length int) string {
 	var result = ""
 
@@ -464,9 +462,9 @@ func safeOvewritefile(path string, blob []byte) error {
 
 }
 
-//Save saves to the given path. Always try to Compress() if possible. If
-//fullEncodingErrors is true then we'll error if we can't compress, otherwise
-//we'll be OK with saving a full encoded version.
+// Save saves to the given path. Always try to Compress() if possible. If
+// fullEncodingErrors is true then we'll error if we can't compress, otherwise
+// we'll be OK with saving a full encoded version.
 func (r *Record) Save(filename string, fullEncodingErrors bool) error {
 
 	if err := r.Compress(); err != nil {
@@ -491,12 +489,12 @@ func (r *Record) Save(filename string, fullEncodingErrors bool) error {
 	return nil
 }
 
-//AddGameAndCurrentState adds the game, state, and move (if non-nil), ready
-//for saving. Designed to be used in a SaveGameAndCurrentState method. If the
-//state cannot be succcesfully encoded as a diffed encoding (due to an
-//underlying issue in the diffing library, for example, that gives an invalid
-//diff) then this will automatically expand the record into a
-//FullStateEncoding mode.
+// AddGameAndCurrentState adds the game, state, and move (if non-nil), ready
+// for saving. Designed to be used in a SaveGameAndCurrentState method. If the
+// state cannot be succcesfully encoded as a diffed encoding (due to an
+// underlying issue in the diffing library, for example, that gives an invalid
+// diff) then this will automatically expand the record into a
+// FullStateEncoding mode.
 func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	if r.data == nil {
@@ -567,8 +565,8 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 
 }
 
-//State fetches the State object at that version. It can return an error
-//because under the covers it has to apply serialized patches.
+// State fetches the State object at that version. It can return an error
+// because under the covers it has to apply serialized patches.
 func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 
 	if r.data == nil {

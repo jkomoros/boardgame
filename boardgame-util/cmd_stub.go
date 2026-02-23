@@ -10,8 +10,8 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/stub"
 )
 
-//stubCmd is named that instead of stub to avoid conflicting with the stub
-//package.
+// stubCmd is named that instead of stub to avoid conflicting with the stub
+// package.
 type stubCmd struct {
 	baseSubCommand
 

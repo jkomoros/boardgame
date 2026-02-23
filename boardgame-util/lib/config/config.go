@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-//ModeType defines which sub-mode (Base, Dev, or Prod) we're referring to.
+// ModeType defines which sub-mode (Base, Dev, or Prod) we're referring to.
 type ModeType int
 
 const (
@@ -18,8 +18,8 @@ const (
 	TypeProd
 )
 
-//Config represents the derived config values. It is based on RawConfigs. This
-//is the object you generally use directly in your application.
+// Config represents the derived config values. It is based on RawConfigs. This
+// is the object you generally use directly in your application.
 type Config struct {
 	Dev             *Mode
 	Prod            *Mode
@@ -28,10 +28,10 @@ type Config struct {
 	overriders      []OptionOverrider
 }
 
-//NewConfig returns a new, derived config object based on the given raw
-//configs, using primarily mode.Extend, mode.Derive in the right order to
-//produce the result. Both raw and rawSecret may be nil. In general you don't
-//use this directly, but use Get().
+// NewConfig returns a new, derived config object based on the given raw
+// configs, using primarily mode.Extend, mode.Derive in the right order to
+// produce the result. Both raw and rawSecret may be nil. In general you don't
+// use this directly, but use Get().
 func NewConfig(raw, rawSecret *RawConfig) *Config {
 	result := &Config{
 		rawPublicConfig: raw,
@@ -41,15 +41,15 @@ func NewConfig(raw, rawSecret *RawConfig) *Config {
 	return result
 }
 
-//OptionOverrider is a class of function that is the primary option that
-//config.AddOverride takes. They take a configmode and modify some number of
-//properties. prodMode is true if it's being called on the prod option, false if
-//on dev. A few are defined as conveniences in this package.
+// OptionOverrider is a class of function that is the primary option that
+// config.AddOverride takes. They take a configmode and modify some number of
+// properties. prodMode is true if it's being called on the prod option, false if
+// on dev. A few are defined as conveniences in this package.
 type OptionOverrider func(prodMode bool, c *Mode)
 
-//EnableOfflineDevMode returns an OptionOverrider that can be passed to
-//config.AddOverride. It simply sets OfflineDevMode to true. It will not
-//modify ProdMode, since that value is unsafe in prod mode.
+// EnableOfflineDevMode returns an OptionOverrider that can be passed to
+// config.AddOverride. It simply sets OfflineDevMode to true. It will not
+// modify ProdMode, since that value is unsafe in prod mode.
 func EnableOfflineDevMode() OptionOverrider {
 	//Return a closure mainly just so that EnableOfflineDevMode nests under OptionOverrider in godoc.
 	return func(prodMode bool, c *Mode) {
@@ -61,23 +61,23 @@ func EnableOfflineDevMode() OptionOverrider {
 	}
 }
 
-//AddOverride takes an OptionOverrider. Overrides are applied to the final Dev
-//and Prod configModes after they are derived, passing prodMode of true for
-//the prod mode. If you want an override to only apply to dev or prod, the
-//OptionOverrider you pass should filter based on prodMode. The changes are
-//temporary and will not be persisted to disk when Save() is called. If you
-//want changes that will be persisted, see Update.
+// AddOverride takes an OptionOverrider. Overrides are applied to the final Dev
+// and Prod configModes after they are derived, passing prodMode of true for
+// the prod mode. If you want an override to only apply to dev or prod, the
+// OptionOverrider you pass should filter based on prodMode. The changes are
+// temporary and will not be persisted to disk when Save() is called. If you
+// want changes that will be persisted, see Update.
 func (c *Config) AddOverride(o OptionOverrider) {
 	c.overriders = append(c.overriders, o)
 	c.derive()
 }
 
-//Update modifies the config in a specified way. typ and secret select the
-//RawConfigMode to modify (creating one if necessary) and then updater applies
-//the update. See Set* functions in this package for factories for common
-//Updater. After the update, the Config has all of its values rederived to
-//reflect the change. If you want changes that will not be persisted, see
-//AddOverride.
+// Update modifies the config in a specified way. typ and secret select the
+// RawConfigMode to modify (creating one if necessary) and then updater applies
+// the update. See Set* functions in this package for factories for common
+// Updater. After the update, the Config has all of its values rederived to
+// reflect the change. If you want changes that will not be persisted, see
+// AddOverride.
 func (c *Config) Update(typ ModeType, secret bool, updater Updater) error {
 
 	if updater == nil {
@@ -193,8 +193,8 @@ func (c *Config) derive() {
 
 }
 
-//Save saves the two underlying RawConfigs back to disk. Convenience wrapper
-//around RawConfig().Save(), RawSecretConfig.Save()
+// Save saves the two underlying RawConfigs back to disk. Convenience wrapper
+// around RawConfig().Save(), RawSecretConfig.Save()
 func (c *Config) Save() error {
 	config := c.RawConfig()
 	if config != nil {
@@ -214,20 +214,20 @@ func (c *Config) Save() error {
 	return nil
 }
 
-//RawConfig returns the underlying, non-secret config that this derived config
-//is based on.
+// RawConfig returns the underlying, non-secret config that this derived config
+// is based on.
 func (c *Config) RawConfig() *RawConfig {
 	return c.rawPublicConfig
 }
 
-//RawSecretConfig returns the underlying secret config that this derived
-//config is based on, or nil if there is no secret component.
+// RawSecretConfig returns the underlying secret config that this derived
+// config is based on, or nil if there is no secret component.
 func (c *Config) RawSecretConfig() *RawConfig {
 	return c.rawSecretConfig
 }
 
-//Path returns the path that this config's public components were loaded from.
-//Convenience wrapper around c.RawConfig().Path().
+// Path returns the path that this config's public components were loaded from.
+// Convenience wrapper around c.RawConfig().Path().
 func (c *Config) Path() string {
 	raw := c.rawPublicConfig
 	if raw == nil {
@@ -236,9 +236,9 @@ func (c *Config) Path() string {
 	return raw.Path()
 }
 
-//SecretPath returns the path that this config's secret components were loaded
-//from, or "" if no secret components. Convenience wrapper around
-//c.RawSecretConfig().Path().
+// SecretPath returns the path that this config's secret components were loaded
+// from, or "" if no secret components. Convenience wrapper around
+// c.RawSecretConfig().Path().
 func (c *Config) SecretPath() string {
 	raw := c.rawSecretConfig
 	if raw == nil {

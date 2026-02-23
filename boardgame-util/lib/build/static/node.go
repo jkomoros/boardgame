@@ -12,18 +12,18 @@ const nodeModulesFolder = "node_modules"
 const packageJSONFileName = "package.json"
 const packageLockJSONFileName = "package-lock.json"
 
-//The name of the direcotry within os.UserCacheDir() that node_modules should
-//be created within.
+// The name of the direcotry within os.UserCacheDir() that node_modules should
+// be created within.
 const nodeModulesCacheDir = "com.github.jkomoros.boardgame"
 
-//LinkNodeModules symlinks a node_modules folder into the build directory
-//given by dir, that is fully up to date based on the resources required.
-//node_modules is cached in a known cache on the system, and only topped up as
-//necessary, so only the first call to this on a given system should be
-//particularly expensive (or after CleanCache()) has been called. Returns an
-//error if node_modules can't be updated or if it can't be linked in. If
-//skipUpdate is true, then if node_modules exists we won't try to update.
-//Useful if you're in an offline context.
+// LinkNodeModules symlinks a node_modules folder into the build directory
+// given by dir, that is fully up to date based on the resources required.
+// node_modules is cached in a known cache on the system, and only topped up as
+// necessary, so only the first call to this on a given system should be
+// particularly expensive (or after CleanCache()) has been called. Returns an
+// error if node_modules can't be updated or if it can't be linked in. If
+// skipUpdate is true, then if node_modules exists we won't try to update.
+// Useful if you're in an offline context.
 func LinkNodeModules(dir string, skipUpdate bool) error {
 
 	staticDir, err := staticBuildDir(dir)
@@ -51,12 +51,12 @@ func LinkNodeModules(dir string, skipUpdate bool) error {
 	return nil
 }
 
-//updateNodeModules returns an absolute path to where on disk the node_modules
-//folder for the static resources is. Takes an absolute path to the
-//package.json to use. If it doesn't exist it will create it and update. It
-//will call `npm up` on it even if it already exists to ensure it is up to
-//date. The node_modules will be stored in a user cache dir. If skipUpdate is
-//true, then if the folder already exists it will skip it.
+// updateNodeModules returns an absolute path to where on disk the node_modules
+// folder for the static resources is. Takes an absolute path to the
+// package.json to use. If it doesn't exist it will create it and update. It
+// will call `npm up` on it even if it already exists to ensure it is up to
+// date. The node_modules will be stored in a user cache dir. If skipUpdate is
+// true, then if the folder already exists it will skip it.
 func updateNodeModules(absPackageJSONPath string, skipUpdate bool) (string, error) {
 
 	_, err := exec.LookPath("npm")

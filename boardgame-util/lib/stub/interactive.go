@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-//InteractiveOptions renders an interactve prompt at out, in to generate an
-//Options from the user. If in or out are nil, StdIn or StdOut will be used
-//implicitly.
+// InteractiveOptions renders an interactve prompt at out, in to generate an
+// Options from the user. If in or out are nil, StdIn or StdOut will be used
+// implicitly.
 func InteractiveOptions(in, out *os.File, gameName string) *Options {
 
 	if in == nil {

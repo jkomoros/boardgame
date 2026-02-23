@@ -31,7 +31,6 @@ type autoMergedStackConfig struct {
 }
 
 /*
-
 StructInflater is an object that inspects structs for tags with instructions
 using reflection. Later, it can use what it learned to auto-inflate nil
 interface properties (e.g. Timers, Stacks, and Enums) on those structs using
@@ -44,7 +43,6 @@ struct tags. Get a new one from NewStructInflater. For more about the precise
 configuration of struct tags that StructInlater understands, see the
 documenation for the methods on StructInflater that make use of it, including
 Inflate() and PropertySanitizationPolicy().
-
 */
 type StructInflater struct {
 	autoEnumFields             map[string]enum.Enum
@@ -57,25 +55,25 @@ type StructInflater struct {
 	illegalTypes               map[PropertyType]bool
 }
 
-//NewStructInflater returns a new StructInflater configured for use based on
-//the given object. NewStructInflater does all of the reflection necessary to
-//do auto-inflation later, meaning that although this is a bit slow, later
-//calls on the StructInflater don't need to use reflection again. Chest must
-//be non-nil, so that we can validate that the tag-based configuration denotes
-//valid properties. If illegalTypes is non-nil, then this constructor, and
-//calls to this StructInflater's Valid() method, will error if the struct has
-//any of those fields defined.
+// NewStructInflater returns a new StructInflater configured for use based on
+// the given object. NewStructInflater does all of the reflection necessary to
+// do auto-inflation later, meaning that although this is a bit slow, later
+// calls on the StructInflater don't need to use reflection again. Chest must
+// be non-nil, so that we can validate that the tag-based configuration denotes
+// valid properties. If illegalTypes is non-nil, then this constructor, and
+// calls to this StructInflater's Valid() method, will error if the struct has
+// any of those fields defined.
 //
-//NewStructInflater checks for any number of illegal or nonsensical
-//conditions, including checking Valid() on the return value, as well as
-//verifying that if the exampleObj also has a ReadSetter that things like
-//MergedStacksa are not accesible from mutable reader accessors, retuning an
-//error and a nil StructInflater if anything is invalid.
+// NewStructInflater checks for any number of illegal or nonsensical
+// conditions, including checking Valid() on the return value, as well as
+// verifying that if the exampleObj also has a ReadSetter that things like
+// MergedStacksa are not accesible from mutable reader accessors, retuning an
+// error and a nil StructInflater if anything is invalid.
 //
-//You typically do not use this directly; the base library will automatically
-//create ones for you for its own use to infalte your gameStates,
-//playerStates, dynamicComponentValueStates, and Moves, and which you can get
-//access to via manager.Internals().StructInflater().
+// You typically do not use this directly; the base library will automatically
+// create ones for you for its own use to infalte your gameStates,
+// playerStates, dynamicComponentValueStates, and Moves, and which you can get
+// access to via manager.Internals().StructInflater().
 func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*StructInflater, error) {
 
 	if chest == nil {
@@ -364,8 +362,8 @@ func policyFromStructTag(tag string, defaultGroup string) map[string]Policy {
 
 }
 
-//sanitizationPolicyGroupNames returns a map of all sanitization group names
-//used in this inflater.
+// sanitizationPolicyGroupNames returns a map of all sanitization group names
+// used in this inflater.
 func (s *StructInflater) sanitizationPolicyGroupNames(groupEnum enum.Enum) map[string]bool {
 	result := make(map[string]bool)
 	for _, policyMap := range s.sanitizationPolicy {
@@ -387,7 +385,6 @@ func (s *StructInflater) sanitizationPolicyGroupNames(groupEnum enum.Enum) map[s
 }
 
 /*
-
 PropertySanitizationPolicy returns the policy (map[string]Policy) based on the
 struct tags from the example struct given originally to NewStructInflater. It
 does not use reflection, relying on reflection at the time of creation of the
@@ -419,24 +416,22 @@ view their own hands, and no one else can.
 
 This means all of the following are valid:
 
-    type myPlayerState struct {
-        base.SubState
-        playerIndex boardgame.PlayerIndex
-        VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
-        HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.
-        OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
-    }
+	type myPlayerState struct {
+	    base.SubState
+	    playerIndex boardgame.PlayerIndex
+	    VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
+	    HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.
+	    OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
+	}
 
 Missing policy configuration is interpreted for that property as though it said
 `sanitize:"all:visible"`
-
 */
 func (s *StructInflater) PropertySanitizationPolicy(propName string) map[string]Policy {
 	return s.sanitizationPolicy[propName]
 }
 
 /*
-
 Inflate uses tag-based configuration it detected when this StructInflater
 was created in order to fill in instantiated values for nil Interface
 properties (e.g. Stacks, Timers, and Enums). It skips any properties that
@@ -477,7 +472,6 @@ For every integer-based property described above, you can replace the int in
 the struct value with the name of a constant value that is defined on this
 ComponentChest. We'll fetch that constant and use that for the int (erroring
 if it's not an int).
-
 */
 func (s *StructInflater) Inflate(obj ReadSetConfigurer, st ImmutableState) error {
 
@@ -684,11 +678,11 @@ func (s *StructInflater) verifyNoIllegalProps(reader PropertyReader) error {
 	return nil
 }
 
-//Valid will return an error if the object has any properties defined of a
-//type that is part of the illegalTypes passed to the StructInflater
-//constructor, or if any Interface property (e.g. Stack, Timer, Enum) is
-//currently nil. Valid can help ensure that a given object has been fully
-//inflated.
+// Valid will return an error if the object has any properties defined of a
+// type that is part of the illegalTypes passed to the StructInflater
+// constructor, or if any Interface property (e.g. Stack, Timer, Enum) is
+// currently nil. Valid can help ensure that a given object has been fully
+// inflated.
 func (s *StructInflater) Valid(obj Reader) error {
 
 	reader := obj.Reader()
@@ -840,8 +834,8 @@ func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error)
 
 }
 
-//intEffectiveValue either returns the integer encoded by the string, or if
-//the string encodes the name of a constant in chest that is an int, that.
+// intEffectiveValue either returns the integer encoded by the string, or if
+// the string encodes the name of a constant in chest that is an int, that.
 func intEffectiveValue(str string, chest *ComponentChest) (int, error) {
 	str = strings.TrimSpace(str)
 
@@ -866,9 +860,9 @@ func intEffectiveValue(str string, chest *ComponentChest) (int, error) {
 	return intVal, nil
 }
 
-//structTagForField will use reflection to fetch the named field from the
-//object and return the value of its `enum` field. Works even if fieldName is
-//in an embedded struct.
+// structTagForField will use reflection to fetch the named field from the
+// object and return the value of its `enum` field. Works even if fieldName is
+// in an embedded struct.
 func structTagForField(obj interface{}, fieldName string, structTag string) string {
 	result := structTagsForField(obj, fieldName, []string{structTag})
 	return result[structTag]

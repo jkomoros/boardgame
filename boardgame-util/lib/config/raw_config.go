@@ -7,9 +7,9 @@ import (
 	"os"
 )
 
-//RawConfig corresponds to the raw input/output from disk without any
-//modifications. The derived Config object will use RawConfig's and combine
-//them to create the overall Config.
+// RawConfig corresponds to the raw input/output from disk without any
+// modifications. The derived Config object will use RawConfig's and combine
+// them to create the overall Config.
 type RawConfig struct {
 	Base *RawConfigMode `json:"base,omitempty"`
 	Dev  *RawConfigMode `json:"dev,omitempty"`
@@ -18,10 +18,10 @@ type RawConfig struct {
 	path string
 }
 
-//NewRawConfig loads up a raw config given a config.json file on disk.
-//Generally you don't use this directly, but instead use Get(). If create is
-//true, then if the file doesn't exist on disk it's not an error, and a blank
-//config with that name will be returned.
+// NewRawConfig loads up a raw config given a config.json file on disk.
+// Generally you don't use this directly, but instead use Get(). If create is
+// true, then if the file doesn't exist on disk it's not an error, and a blank
+// config with that name will be returned.
 func NewRawConfig(filename string, create bool) (*RawConfig, error) {
 	if filename == "" {
 		return nil, nil
@@ -60,7 +60,7 @@ func NewRawConfig(filename string, create bool) (*RawConfig, error) {
 	return &config, nil
 }
 
-//HasContent returns true if there is any content in the RawConfig at all.
+// HasContent returns true if there is any content in the RawConfig at all.
 func (r *RawConfig) HasContent() bool {
 	if r.Base != nil {
 		return true
@@ -74,14 +74,14 @@ func (r *RawConfig) HasContent() bool {
 	return false
 }
 
-//Path returns the filename of the file that this RawConfig represents on
-//disk.
+// Path returns the filename of the file that this RawConfig represents on
+// disk.
 func (r *RawConfig) Path() string {
 	return r.path
 }
 
-//Save saves RawConfig back to disk at Path(). If HasContent() returns false
-//and Path() doesn't exist yet, no file is saved and a nil error is returned.
+// Save saves RawConfig back to disk at Path(). If HasContent() returns false
+// and Path() doesn't exist yet, no file is saved and a nil error is returned.
 func (r *RawConfig) Save() error {
 
 	if r.Path() == "" {

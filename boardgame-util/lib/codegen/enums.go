@@ -24,11 +24,11 @@ var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
 
 type transform int
 
-//This used to be "_" which was clearer, but then the constant names would have
-//"_" in them, which golint doesn't like. It was going to be "0" but that
-//legitimately shows up in some cases, like in components/playingcards/Rank10.
-//So instead use "010" which, because of the leading "0" is way less likely to
-//show up.
+// This used to be "_" which was clearer, but then the constant names would have
+// "_" in them, which golint doesn't like. It was going to be "0" but that
+// legitimately shows up in some cases, like in components/playingcards/Rank10.
+// So instead use "010" which, because of the leading "0" is way less likely to
+// show up.
 const explicitTreeCharacter = "010"
 const oldExplicitTreeCharacter = "_"
 
@@ -60,8 +60,8 @@ type enum struct {
 	combineName string
 }
 
-//findDelegateName looks through the given package to find the name of the
-//struct that appears to represent the gameDelegate type, and returns its name.
+// findDelegateName looks through the given package to find the name of the
+// struct that appears to represent the gameDelegate type, and returns its name.
 func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 
 	var result []string
@@ -151,8 +151,8 @@ func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 	return result, nil
 }
 
-//filterDelegateNames takes delegate names we may want to export, and filters
-//out any that already have a ConfigureEnums outputted.
+// filterDelegateNames takes delegate names we may want to export, and filters
+// out any that already have a ConfigureEnums outputted.
 func filterDelegateNames(candidates []string, packageASTs map[string]*ast.Package) []string {
 
 	candidateMap := make(map[string]bool, len(candidates))
@@ -278,8 +278,8 @@ func newEnum(packageName string, defaultTransform transform) *enum {
 	}
 }
 
-//findEnums processes the package at packageName and returns a list of enums
-//that should be processed (that is, they have the magic comment)
+// findEnums processes the package at packageName and returns a list of enums
+// that should be processed (that is, they have the magic comment)
 func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 	for packageName, theAST := range packageASTs {
@@ -345,7 +345,7 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 var spaceReducer *regexp.Regexp
 var titleCaseReplacer *strings.Replacer
 
-//titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
+// titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
 func titleCaseToWords(in string) string {
 
 	//substantially recreated in moves/base.go
@@ -374,7 +374,6 @@ func titleCaseToWords(in string) string {
 }
 
 /*
-
 ProcessEnums processes the given package and outputs the contents of a file
 representing the auto-generated boilerplate for those enums. If it finds a
 const() block at the top-level decorated with the magic comment
@@ -407,7 +406,6 @@ combine name is combined together. As a special case, if the name is 'group'
 included into the group. Remember that enums that are combined can't overlap in
 any int or string keys. It's idiomatic to start the nth enum not with iota but
 `lastEnumMaxVal + 1 + iota` to automatically ensure no overlap.
-
 */
 func ProcessEnums(packageName string) (enumOutput string, err error) {
 
@@ -585,8 +583,8 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 	return false, ""
 }
 
-//Process should be called after all items ahve been added. Does lots of
-//processing.
+// Process should be called after all items ahve been added. Does lots of
+// processing.
 func (e *enum) Process() error {
 
 	if e.processed {
@@ -624,9 +622,9 @@ func (e *enum) Process() error {
 	return nil
 }
 
-//bakeStringValues takes Key, Transform, DefaultTransform,
-//OverrideDisplayValue and converts to a baked string value. Baked() must be
-//false. Will fail if e.Legal() returns an error. Should only be called from within Process().
+// bakeStringValues takes Key, Transform, DefaultTransform,
+// OverrideDisplayValue and converts to a baked string value. Baked() must be
+// false. Will fail if e.Legal() returns an error. Should only be called from within Process().
 func (e *enum) bakeStringValues() error {
 
 	if e.bakedStringValues != nil {
@@ -653,12 +651,12 @@ func (e *enum) bakeStringValues() error {
 	return nil
 }
 
-//Baked returnst true if BakeStringValues has been called.
+// Baked returnst true if BakeStringValues has been called.
 func (e *enum) baked() bool {
 	return e.bakedStringValues != nil
 }
 
-//AddTransformKey adds a key to an enum that hasn't been baked yet.
+// AddTransformKey adds a key to an enum that hasn't been baked yet.
 func (e *enum) AddTransformKey(key string, overrideDisplay bool, overrideDisplayName string, transform transform) error {
 
 	if e.baked() {
@@ -680,8 +678,8 @@ func (e *enum) AddTransformKey(key string, overrideDisplay bool, overrideDisplay
 	return nil
 }
 
-//addBakedKey adds keys after bakeStringValues has been called. Should only be
-//called between baking and being fully processed.
+// addBakedKey adds keys after bakeStringValues has been called. Should only be
+// called between baking and being fully processed.
 func (e *enum) addBakedKey(key string, val string) error {
 
 	if e.processed {
@@ -710,8 +708,8 @@ func (e *enum) addBakedKey(key string, val string) error {
 	return nil
 }
 
-//NewKeys returns a list of new keys that were implied in this tree enum but
-//need to be explciitly created in auto_enum.
+// NewKeys returns a list of new keys that were implied in this tree enum but
+// need to be explciitly created in auto_enum.
 func (e *enum) NewKeys() []string {
 	sort.Strings(e.newKeys)
 	return e.newKeys
@@ -730,7 +728,7 @@ func (e *enum) Parents() map[string]string {
 	return e.parents
 }
 
-//Output is the text to put into the final output in auto_enum.go
+// Output is the text to put into the final output in auto_enum.go
 func (e *enum) Output() (string, error) {
 
 	if !e.processed {
@@ -759,7 +757,7 @@ func (e *enum) ReverseValueMap() map[string]string {
 	return result
 }
 
-//StringValue does all of the calulations and returns final value
+// StringValue does all of the calulations and returns final value
 func (e *enum) StringValue(key string) string {
 
 	if e.bakedStringValues != nil {
@@ -790,7 +788,7 @@ func (e *enum) StringValue(key string) string {
 
 }
 
-//TreeEnum is whether or not we should output a TreeEnum.
+// TreeEnum is whether or not we should output a TreeEnum.
 func (e *enum) TreeEnum() bool {
 	key := e.Prefix()
 	if !e.HasKey(key) {
@@ -832,7 +830,7 @@ func (e *enum) Prefix() string {
 
 }
 
-//Legal will return an error if the enum isn't legal and shouldn't be output.
+// Legal will return an error if the enum isn't legal and shouldn't be output.
 func (e *enum) Legal() error {
 
 	if len(e.Keys()) == 0 {
@@ -889,9 +887,9 @@ type delimiterTree struct {
 	terminalKey string
 }
 
-//addString goes through and adds addChild down the whole way. If it consumes
-//a ">" off the front, then it does manuallyCreated = true. The last item has
-//addChild with a terminalKey of the passed terminalKey.
+// addString goes through and adds addChild down the whole way. If it consumes
+// a ">" off the front, then it does manuallyCreated = true. The last item has
+// addChild with a terminalKey of the passed terminalKey.
 func (t *delimiterTree) addString(names []string, terminalKey string, lastItemWasDelimiter bool) error {
 
 	delimiter := strings.TrimSpace(enumpkg.TreeNodeDelimiter)
@@ -916,9 +914,9 @@ func (t *delimiterTree) addString(names []string, terminalKey string, lastItemWa
 
 }
 
-//addChild adds a child node, if one doesn't already exist. manuallyCreated is
-//always the OR of existing value on the ndoe. terminalKey should only be
-//non-"" if this is literally the end of the string.
+// addChild adds a child node, if one doesn't already exist. manuallyCreated is
+// always the OR of existing value on the ndoe. terminalKey should only be
+// non-"" if this is literally the end of the string.
 func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey string) error {
 
 	var child *delimiterTree
@@ -957,8 +955,8 @@ func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey 
 	return nil
 }
 
-//elideSingleParents, if this node has only one child, and was not
-//manuallyCreated, elides itself.
+// elideSingleParents, if this node has only one child, and was not
+// manuallyCreated, elides itself.
 func (t *delimiterTree) elideSingleParents() error {
 
 	if t.parent != nil {
@@ -983,7 +981,7 @@ func (t *delimiterTree) elideSingleParents() error {
 	return nil
 }
 
-//mergeDown is called when this node should merge downward to its child.
+// mergeDown is called when this node should merge downward to its child.
 func (t *delimiterTree) mergeDown() error {
 
 	if t.parent == nil {
@@ -1034,7 +1032,7 @@ func (t *delimiterTree) mergeDown() error {
 
 }
 
-//value returns the string value by walking parents
+// value returns the string value by walking parents
 func (t *delimiterTree) value() string {
 	if t.parent == nil {
 		return ""
@@ -1062,7 +1060,7 @@ func (t *delimiterTree) value() string {
 	return parentValue + enumpkg.TreeNodeDelimiter + nameInParent
 }
 
-//keyValues returns the key -> value mapping encoded in this tree, recursively
+// keyValues returns the key -> value mapping encoded in this tree, recursively
 func (t *delimiterTree) keyValues() map[string]string {
 
 	result := make(map[string]string)
@@ -1082,8 +1080,8 @@ func (t *delimiterTree) keyValues() map[string]string {
 
 }
 
-//autoAddDelimiters should only be called by Process. It adds delimiters to
-//string values at implied breaks.
+// autoAddDelimiters should only be called by Process. It adds delimiters to
+// string values at implied breaks.
 func (e *enum) autoAddDelimiters() error {
 
 	//The general approach to this is that we'll create a tree of nodes and
@@ -1124,8 +1122,8 @@ func (e *enum) autoAddDelimiters() error {
 
 }
 
-//createMissingParents should only be called within Process. Creates any
-//parent nodes that are implied but not explicitly provided.
+// createMissingParents should only be called within Process. Creates any
+// parent nodes that are implied but not explicitly provided.
 func (e *enum) createMissingParents() error {
 
 	index := e.ReverseValueMap()
@@ -1164,9 +1162,9 @@ func (e *enum) createMissingParents() error {
 
 }
 
-//reduceNewKey is given a proposed key, like "PhaseBlueGreen0One". It returns
-//a string that has as many of the "010" elided as makes sense. Currently this
-//is done by just mimicking whatever the explicit constants do.
+// reduceNewKey is given a proposed key, like "PhaseBlueGreen0One". It returns
+// a string that has as many of the "010" elided as makes sense. Currently this
+// is done by just mimicking whatever the explicit constants do.
 func (e *enum) reduceProposedKey(proposedKey string) string {
 
 	for _, option := range reducedKeyPermutations(proposedKey) {
@@ -1181,8 +1179,8 @@ func (e *enum) reduceProposedKey(proposedKey string) string {
 	return proposedKey
 }
 
-//reducedKeypermutations returns all possible versions of this key with 0 to n
-//of the "010" replaced with "" (but does not return the proposedKey itself).
+// reducedKeypermutations returns all possible versions of this key with 0 to n
+// of the "010" replaced with "" (but does not return the proposedKey itself).
 func reducedKeyPermutations(proposedKey string) []string {
 	pieces := strings.Split(proposedKey, explicitTreeCharacter)
 	if len(pieces) == 1 {
@@ -1206,7 +1204,7 @@ func reducedKeyPermutations(proposedKey string) []string {
 
 }
 
-//maskPermutations returns all possible bitmasks of length k
+// maskPermutations returns all possible bitmasks of length k
 func maskPermuations(k int) [][]bool {
 	total := int(math.Pow(2, float64(k)))
 	result := make([][]bool, total)
@@ -1234,7 +1232,7 @@ func maskPermuations(k int) [][]bool {
 	return result
 }
 
-//makeParents should only be called by e.Process(). It creates the parents relationship.
+// makeParents should only be called by e.Process(). It creates the parents relationship.
 func (e *enum) makeParents() error {
 
 	if e.parents != nil {
@@ -1266,8 +1264,8 @@ func (e *enum) makeParents() error {
 
 }
 
-//reduceNodeStringValues should only be called by e.Process(). Reduces the
-//display name to be just the last bit of the name.
+// reduceNodeStringValues should only be called by e.Process(). Reduces the
+// display name to be just the last bit of the name.
 func (e *enum) reduceNodeStringValues() {
 
 	for key, value := range e.ValueMap() {

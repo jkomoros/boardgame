@@ -98,7 +98,7 @@ func handValue(components []boardgame.ImmutableComponentInstance) int {
 	return currentValue
 }
 
-//HandValue returns the value of the player's hand.
+// HandValue returns the value of the player's hand.
 func (p *playerState) HandValue() int {
 	return handValue(p.Hand.ImmutableComponents())
 }

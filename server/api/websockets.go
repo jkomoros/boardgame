@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (

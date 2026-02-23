@@ -76,7 +76,7 @@ func (s *Server) getRequestGameVersion(c *gin.Context) int {
 	return result
 }
 
-//getRequestVariant will get the various config
+// getRequestVariant will get the various config
 func (s *Server) getRequestVariant(c *gin.Context, variants boardgame.VariantConfig) map[string]string {
 	result := make(map[string]string)
 
@@ -403,8 +403,8 @@ func (s *Server) getRequestAutoCurrentPlayer(c *gin.Context) bool {
 	return c.PostForm(qryAutoCurrentPlayerKey) == "1"
 }
 
-//returns true if the request asserts the user is an admin, and the user is
-//allowed to be an admin.
+// returns true if the request asserts the user is an admin, and the user is
+// allowed to be an admin.
 func (s *Server) getAdminAllowed(c *gin.Context) bool {
 	obj, ok := c.Get(ctxAdminAllowedKey)
 

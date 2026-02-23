@@ -6,14 +6,14 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
-//Updater is a function that takes a rawConfig and makes a modifcation
-//in place on that object. It should return a non-nil error if it wasn't able
-//to do the modification for some reason. These are one of the primary objects
-//to config.Update(). This package defines a number of factories for these.
+// Updater is a function that takes a rawConfig and makes a modifcation
+// in place on that object. It should return a non-nil error if it wasn't able
+// to do the modification for some reason. These are one of the primary objects
+// to config.Update(). This package defines a number of factories for these.
 type Updater func(r *RawConfigMode, typ ModeType) error
 
-//SetString returns a function to set the given rawconfig string property to
-//the given value. field must be of FieldTypeString.
+// SetString returns a function to set the given rawconfig string property to
+// the given value. field must be of FieldTypeString.
 func SetString(field ModeField, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
@@ -39,14 +39,14 @@ func SetString(field ModeField, val string) Updater {
 	}
 }
 
-//DeleteString returns a function to unset the given config string
-//propert, as long as field is of type FieldTypeString.
+// DeleteString returns a function to unset the given config string
+// propert, as long as field is of type FieldTypeString.
 func DeleteString(field ModeField) Updater {
 	return SetString(field, "")
 }
 
-//AddString adds the given string, if it doesn't exist, to the []string type
-//ModeField. Field must be of FieldTypeStringSlice.
+// AddString adds the given string, if it doesn't exist, to the []string type
+// ModeField. Field must be of FieldTypeStringSlice.
 func AddString(field ModeField, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
@@ -67,9 +67,9 @@ func AddString(field ModeField, val string) Updater {
 
 }
 
-//RemoveString removes the given string, if it exists, from the []string type
-//ModeField. If it was the last item to remove, sets that field to nil.
-//Field must be of FieldTypeStringSlice.
+// RemoveString removes the given string, if it exists, from the []string type
+// ModeField. If it was the last item to remove, sets that field to nil.
+// Field must be of FieldTypeStringSlice.
 func RemoveString(field ModeField, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
@@ -92,9 +92,9 @@ func RemoveString(field ModeField, val string) Updater {
 
 }
 
-//AddGame adds the given value to the Games node. Val can be a path or import;
-//in either case it's looked up via gamepkg, and its Import() is used if the
-//package is valid. Returns an error if the package isn't valid.
+// AddGame adds the given value to the Games node. Val can be a path or import;
+// in either case it's looked up via gamepkg, and its Import() is used if the
+// package is valid. Returns an error if the package isn't valid.
 func AddGame(val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
@@ -113,7 +113,7 @@ func AddGame(val string) Updater {
 
 }
 
-//RemoveGame removes the given value from the Games node.
+// RemoveGame removes the given value from the Games node.
 func RemoveGame(val string) Updater {
 	return func(r *RawConfigMode, typ ModeType) error {
 		r.Games = r.Games.RemoveGame(val)
@@ -121,10 +121,10 @@ func RemoveGame(val string) Updater {
 	}
 }
 
-//SetStringKey adds the given key and val to the map[string]string field
-//denoted by field. If that key is already set, it updates it to the new
-//value. If the map is nil, creates one. Field must be of FieldTypeStringMap.
-//If val is "" then the key will be deleted.
+// SetStringKey adds the given key and val to the map[string]string field
+// denoted by field. If that key is already set, it updates it to the new
+// value. If the map is nil, creates one. Field must be of FieldTypeStringMap.
+// If val is "" then the key will be deleted.
 func SetStringKey(field ModeField, key, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {
@@ -148,8 +148,8 @@ func SetStringKey(field ModeField, key, val string) Updater {
 
 }
 
-//SetBool sets the field denoted by field to the val. Field must be of type
-//FieldTypeBool.
+// SetBool sets the field denoted by field to the val. Field must be of type
+// FieldTypeBool.
 func SetBool(field ModeField, val bool) Updater {
 	return func(r *RawConfigMode, typ ModeType) error {
 		fieldType := FieldTypes[field]
@@ -182,8 +182,8 @@ func SetBool(field ModeField, val bool) Updater {
 	}
 }
 
-//SetFirebaseKey sets the key denoted by FirebaseKey to val. Implicitly
-//operates only on the FieldFirebase field. If Firebase is nil, initalizes it.
+// SetFirebaseKey sets the key denoted by FirebaseKey to val. Implicitly
+// operates only on the FieldFirebase field. If Firebase is nil, initalizes it.
 func SetFirebaseKey(key FirebaseKey, val string) Updater {
 
 	return func(r *RawConfigMode, typ ModeType) error {

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-//If upddateGolden is true, save new goldens in testdata
+// If upddateGolden is true, save new goldens in testdata
 const updateGolden = false
 
 type initialConfigConstructor func(string) *Config

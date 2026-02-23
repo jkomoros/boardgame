@@ -59,18 +59,18 @@ type NoOp struct {
 	FixUp
 }
 
-//Apply is a no-op; it makes no change to state and alwasy returns nil.
+// Apply is a no-op; it makes no change to state and alwasy returns nil.
 func (n *NoOp) Apply(state boardgame.State) error {
 	return nil
 }
 
-//FallbackName returns "No Op"
+// FallbackName returns "No Op"
 func (n *NoOp) FallbackName(m *boardgame.GameManager) string {
 	return "No Op"
 }
 
-//FallbackHelpText returns "A move that does nothing and is primarily used in
-//specific move progression situations."
+// FallbackHelpText returns "A move that does nothing and is primarily used in
+// specific move progression situations."
 func (n *NoOp) FallbackHelpText() string {
 	return "A move that does nothing and is primarily used in specific move progression situations."
 }
@@ -79,7 +79,7 @@ type isNoOper interface {
 	isNoOp() bool
 }
 
-//Quick way to check for a no op move
+// Quick way to check for a no op move
 func (n *NoOp) isNoOp() bool {
 	return true
 }
@@ -98,18 +98,18 @@ type Done struct {
 	Default
 }
 
-//Apply is a no-op; it makes no change to state and alwasy returns nil.
+// Apply is a no-op; it makes no change to state and alwasy returns nil.
 func (d *Done) Apply(state boardgame.State) error {
 	return nil
 }
 
-//FallbackName returns "Done"
+// FallbackName returns "Done"
 func (d *Done) FallbackName(m *boardgame.GameManager) string {
 	return "Done"
 }
 
-//FallbackHelpText returns "The player has signaled that they are done
-//applying moves in this group and are ready to move on."
+// FallbackHelpText returns "The player has signaled that they are done
+// applying moves in this group and are ready to move on."
 func (d *Done) FallbackHelpText() string {
 	return "The player has signaled that they are done applying moves in this group and are ready to move on."
 }

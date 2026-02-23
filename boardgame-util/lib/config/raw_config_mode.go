@@ -4,21 +4,21 @@ import (
 	"encoding/json"
 )
 
-//RawConfigMode is the leaf of RawConfig, where all of the actual values are
-//stored.
+// RawConfigMode is the leaf of RawConfig, where all of the actual values are
+// stored.
 type RawConfigMode struct {
 	//ConfigMode is primarily just the common config mode values
 	ModeCommon
 	Games *GameNode `json:"games,omitempty"`
 }
 
-//Derive tells the RawConfigMode to create a new, fully derived ConfigMode
-//based on the current properties of this RawConfigMode, setting defaults as
-//necessary. parentConfig is the Config that this configMode will be part of.
-//prodMode is whether the ConfigMode being derived is for a Prod or Dev slot
-//in Config. Will always return a reasonably defaulted ConfigMode even if the
-//RawcConfigMode itself is nil. Generally you don't call this, but use
-//NewConfig() instead.
+// Derive tells the RawConfigMode to create a new, fully derived ConfigMode
+// based on the current properties of this RawConfigMode, setting defaults as
+// necessary. parentConfig is the Config that this configMode will be part of.
+// prodMode is whether the ConfigMode being derived is for a Prod or Dev slot
+// in Config. Will always return a reasonably defaulted ConfigMode even if the
+// RawcConfigMode itself is nil. Generally you don't call this, but use
+// NewConfig() instead.
 func (c *RawConfigMode) Derive(parentConfig *Config, prodMode bool) *Mode {
 
 	var result *Mode
@@ -100,7 +100,7 @@ func (c *RawConfigMode) String() string {
 	return string(blob)
 }
 
-//Copy returns a deep copy of the RawConfigMode.
+// Copy returns a deep copy of the RawConfigMode.
 func (c *RawConfigMode) Copy() *RawConfigMode {
 
 	if c == nil {
@@ -124,8 +124,8 @@ func (c *RawConfigMode) Copy() *RawConfigMode {
 
 }
 
-//mergedStrList returns a list where base is concatenated with the non-
-//duplicates in other.
+// mergedStrList returns a list where base is concatenated with the non-
+// duplicates in other.
 func mergedStrList(base, other []string) []string {
 
 	if base == nil {
@@ -158,11 +158,11 @@ func mergedStrList(base, other []string) []string {
 	return result
 }
 
-//Extend takes a given base config mode, extends it with properties set in
-//other (with any non-zero value overwriting the base values, and with Games
-//and string lists being merged and de-duped) and returns a *new* config
-//representing the merged one. Normally you don't call this directly but use
-//NewConfig instead.
+// Extend takes a given base config mode, extends it with properties set in
+// other (with any non-zero value overwriting the base values, and with Games
+// and string lists being merged and de-duped) and returns a *new* config
+// representing the merged one. Normally you don't call this directly but use
+// NewConfig instead.
 func (c *RawConfigMode) Extend(other *RawConfigMode) *RawConfigMode {
 
 	if c == nil && other != nil {

@@ -8,8 +8,8 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//We can keep these private because embedders already will have the interface
-//satisfied so don't need to be confused by them.
+// We can keep these private because embedders already will have the interface
+// satisfied so don't need to be confused by them.
 type roundRobinStarterPlayer interface {
 	RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex
 }
@@ -57,7 +57,6 @@ is over.
 */
 
 /*
-
 RoundRobin is a type of move that goes around every player one by one and does
 some action. Other moves in this package embed RoundRobin, and it's more
 common to use those directly.
@@ -84,18 +83,18 @@ type RoundRobin struct {
 	ApplyUntil
 }
 
-//RoundRobinStarterPlayer by default will return delegate.CurrentPlayer.
-//Override this method if you want a different starter.
+// RoundRobinStarterPlayer by default will return delegate.CurrentPlayer.
+// Override this method if you want a different starter.
 func (r *RoundRobin) RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex {
 	return state.Manager().Delegate().CurrentPlayerIndex(state).EnsureValid(state)
 }
 
-//ConditionMet  goes around and returns nil if all players have had their
-//player condition met, meaning that there are no more legal players to
-//select. Because this condition is almost always an important base no matter
-//the other conditions you are considering (it's not possible to select
-//players who have already had their player condition met), if you override
-//CondtionMet you should also call this implementation.
+// ConditionMet  goes around and returns nil if all players have had their
+// player condition met, meaning that there are no more legal players to
+// select. Because this condition is almost always an important base no matter
+// the other conditions you are considering (it's not possible to select
+// players who have already had their player condition met), if you override
+// CondtionMet you should also call this implementation.
 func (r *RoundRobin) ConditionMet(state boardgame.ImmutableState) error {
 	conditionsMet, ok := r.TopLevelStruct().(playerConditionMet)
 
@@ -113,18 +112,18 @@ func (r *RoundRobin) ConditionMet(state boardgame.ImmutableState) error {
 	return nil
 }
 
-//PlayerConditionMet is called for each playerState. When advancing
-//to the next player, round robin will only pick a player whose condition has
-//not yet been met. Once all players have their PlayerconditionMet, then the
-//RoundRobin's ConditionMet will return nil, signaling that the RoundRobin is
-//done. By default this will return false. If you will use RoundRobin directly
-//(as opposed to RoundRobinNumRounds) you will want to override this otherwise
-//it will get in an infinite loop.
+// PlayerConditionMet is called for each playerState. When advancing
+// to the next player, round robin will only pick a player whose condition has
+// not yet been met. Once all players have their PlayerconditionMet, then the
+// RoundRobin's ConditionMet will return nil, signaling that the RoundRobin is
+// done. By default this will return false. If you will use RoundRobin directly
+// (as opposed to RoundRobinNumRounds) you will want to override this otherwise
+// it will get in an infinite loop.
 func (r *RoundRobin) PlayerConditionMet(playerState boardgame.ImmutableSubState) bool {
 	return false
 }
 
-//roundRobinHasStarted returns true if the gameState RoundRobin properties are not their sentinel values.
+// roundRobinHasStarted returns true if the gameState RoundRobin properties are not their sentinel values.
 func (r *RoundRobin) roundRobinHasStarted(state boardgame.ImmutableState) bool {
 	roundRobiner, ok := state.ImmutableGameState().(interfaces.RoundRobinProperties)
 
@@ -135,7 +134,7 @@ func (r *RoundRobin) roundRobinHasStarted(state boardgame.ImmutableState) bool {
 	return roundRobiner.RoundRobinHasStarted()
 }
 
-//startRoundRobin should be called if roundRobinHasStarted is false.
+// startRoundRobin should be called if roundRobinHasStarted is false.
 func (r *RoundRobin) startRoundRobin(state boardgame.State) error {
 
 	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
@@ -162,7 +161,7 @@ func (r *RoundRobin) startRoundRobin(state boardgame.State) error {
 	return nil
 }
 
-//finishRoundRobin should be called in the Apply method of the last round robin move.
+// finishRoundRobin should be called in the Apply method of the last round robin move.
 func (r *RoundRobin) finishRoundRobin(state boardgame.State) error {
 	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
@@ -175,10 +174,10 @@ func (r *RoundRobin) finishRoundRobin(state boardgame.State) error {
 	return nil
 }
 
-//nextPlayerIndex returns the next playerIndex that the round robin will
-//operate on.  Also returns roundSkip true if the player we end on is the
-//first player in the round robin, or if we skipped over them to find the next
-//valid player.
+// nextPlayerIndex returns the next playerIndex that the round robin will
+// operate on.  Also returns roundSkip true if the player we end on is the
+// first player in the round robin, or if we skipped over them to find the next
+// valid player.
 func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boardgame.PlayerIndex, roundSkip bool) {
 
 	var currentPlayer boardgame.PlayerIndex
@@ -247,9 +246,9 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boa
 
 }
 
-//ValidConfiguration verifies that GameState implements
-//interfaces.RoundRobinProperties, and that move implements PlayerConditionMet,
-//as well as RoundRobinActioner.
+// ValidConfiguration verifies that GameState implements
+// interfaces.RoundRobinProperties, and that move implements PlayerConditionMet,
+// as well as RoundRobinActioner.
 func (r *RoundRobin) ValidConfiguration(exampleState boardgame.State) error {
 
 	if err := r.ApplyUntil.ValidConfiguration(exampleState); err != nil {
@@ -277,7 +276,7 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.State) error {
 	return nil
 }
 
-//lastMoveName returns the name of the last move that was applied to this game.
+// lastMoveName returns the name of the last move that was applied to this game.
 func (r *RoundRobin) lastMoveName(state boardgame.ImmutableState) string {
 	moves := state.Game().MoveRecords(state.Version())
 
@@ -288,8 +287,8 @@ func (r *RoundRobin) lastMoveName(state boardgame.ImmutableState) string {
 	return moves[len(moves)-1].Name
 }
 
-//Legal is a complex implementation because it needs to figure out when to
-//start the round robin. In general you do not want to override this.
+// Legal is a complex implementation because it needs to figure out when to
+// start the round robin. In general you do not want to override this.
 func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	//We run the base legal first to see if this phase is even legal for us.
@@ -324,9 +323,9 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	return nil
 }
 
-//Apply is a complex implementation because it needs to figure out when the
-//round is already over and handle complicated signalling about who the next
-//player is. In general you do not want to override this.
+// Apply is a complex implementation because it needs to figure out when the
+// round is already over and handle complicated signalling about who the next
+// player is. In general you do not want to override this.
 func (r *RoundRobin) Apply(state boardgame.State) error {
 
 	if !r.roundRobinHasStarted(state) {
@@ -383,13 +382,13 @@ func (r *RoundRobin) Apply(state boardgame.State) error {
 
 }
 
-//FallbackName returns "Round Robin"
+// FallbackName returns "Round Robin"
 func (r *RoundRobin) FallbackName(m *boardgame.GameManager) string {
 	return "Round Robin"
 }
 
-//FallbackHelpText returns "A round robin move that continues until
-//every player's condition is met."
+// FallbackHelpText returns "A round robin move that continues until
+// every player's condition is met."
 func (r *RoundRobin) FallbackHelpText() string {
 	return "A round robin move that continues until every player's condition is met."
 }
@@ -398,18 +397,18 @@ type numRoundser interface {
 	NumRounds(state boardgame.ImmutableState) int
 }
 
-//RoundRobinNumRounds is a subclass of RoundRobin whose ConditionMet checks
-//whether RoundRobinRoundCount is greater than or equal to NumRounds(), and if
-//it is ends immediately. NumRounds() defaults to 1; if you want to have
-//multiple rounds, override NumRounds().
+// RoundRobinNumRounds is a subclass of RoundRobin whose ConditionMet checks
+// whether RoundRobinRoundCount is greater than or equal to NumRounds(), and if
+// it is ends immediately. NumRounds() defaults to 1; if you want to have
+// multiple rounds, override NumRounds().
 //
 //boardgame:codegen
 type RoundRobinNumRounds struct {
 	RoundRobin
 }
 
-//ValidConfiguration verifies that NumRound exists and does not return a
-//negative value.
+// ValidConfiguration verifies that NumRound exists and does not return a
+// negative value.
 func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) error {
 	if err := r.RoundRobin.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -428,10 +427,10 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) e
 	return nil
 }
 
-//NumRounds should return the RoundRobinRoundCount that we are targeting. As
-//soon as that RoundCount is reached, our ConditionMet will start returning
-//nil, signaling the Round Robin is over. Will return the value passed via
-//WithNumRounds to auto.Config, or 1 by default.
+// NumRounds should return the RoundRobinRoundCount that we are targeting. As
+// soon as that RoundCount is reached, our ConditionMet will start returning
+// nil, signaling the Round Robin is over. Will return the value passed via
+// WithNumRounds to auto.Config, or 1 by default.
 func (r *RoundRobinNumRounds) NumRounds(state boardgame.ImmutableState) int {
 	config := r.CustomConfiguration()
 
@@ -452,9 +451,9 @@ func (r *RoundRobinNumRounds) NumRounds(state boardgame.ImmutableState) int {
 	return intVal
 }
 
-//ConditionMet will check if the round count has been reached; if it has it
-//will return nil immediately. Otherwise it will fall back on RoundRobin's
-//base ConditionMet, returning nil if no players are left to act upon.
+// ConditionMet will check if the round count has been reached; if it has it
+// will return nil immediately. Otherwise it will fall back on RoundRobin's
+// base ConditionMet, returning nil if no players are left to act upon.
 func (r *RoundRobinNumRounds) ConditionMet(state boardgame.ImmutableState) error {
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 
@@ -477,8 +476,8 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.ImmutableState) error
 
 }
 
-//FallbackName returns "Round Robin INT Rounds", where INT is
-//NumRounds().
+// FallbackName returns "Round Robin INT Rounds", where INT is
+// NumRounds().
 func (r *RoundRobinNumRounds) FallbackName(m *boardgame.GameManager) string {
 
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
@@ -490,8 +489,8 @@ func (r *RoundRobinNumRounds) FallbackName(m *boardgame.GameManager) string {
 	return "Round Robin " + strconv.Itoa(numRounds.NumRounds(m.ExampleState())) + " Rounds"
 }
 
-//FallbackHelpText returns "A round robin move that makes INT
-//circuits.", where INT is NumRounds().
+// FallbackHelpText returns "A round robin move that makes INT
+// circuits.", where INT is NumRounds().
 func (r *RoundRobinNumRounds) FallbackHelpText() string {
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 

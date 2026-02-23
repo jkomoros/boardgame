@@ -7,20 +7,20 @@ import (
 	"strconv"
 )
 
-//A Component represents a movable resource in the game. Cards, dice, meeples,
-//resource tokens, etc are all components. You don't define these yourself;
-//it's an interface because the core engine uses different underlying structs
-//in different cases. Values is a struct that stores the specific values for
-//the component, as defined in your ConfigureDecks method on GameDelegate.
-//Components are the same across all games of this type. Component is a
-//generic notion of that type of obejct; see also ComponentInstance and
-//ImmutableComponentInstance for a notion of a SPECIFIC instantiation of a
-//given type of component within a specific game. Component references should
-//not be compared directly for equality, as sometimes different underlying
-//objects will represent the same notional component (in order to satisfy both
-//the Component and ComponentInstance interfaces simultaneously). Instead, use
-//Equivalent() to test that two Components refer to the same conceptual
-//Component.
+// A Component represents a movable resource in the game. Cards, dice, meeples,
+// resource tokens, etc are all components. You don't define these yourself;
+// it's an interface because the core engine uses different underlying structs
+// in different cases. Values is a struct that stores the specific values for
+// the component, as defined in your ConfigureDecks method on GameDelegate.
+// Components are the same across all games of this type. Component is a
+// generic notion of that type of obejct; see also ComponentInstance and
+// ImmutableComponentInstance for a notion of a SPECIFIC instantiation of a
+// given type of component within a specific game. Component references should
+// not be compared directly for equality, as sometimes different underlying
+// objects will represent the same notional component (in order to satisfy both
+// the Component and ComponentInstance interfaces simultaneously). Instead, use
+// Equivalent() to test that two Components refer to the same conceptual
+// Component.
 type Component interface {
 
 	//Values returns the ComponentValues struct that you associated with this
@@ -64,18 +64,18 @@ type Component interface {
 	ptr() *component
 }
 
-//ImmutableComponentInstance is a specific instantiation of a component as it
-//exists in the particular State it is associated with. They are like a
-//ComponentInstance, but without mutating methods.
-//ImmutableComponentInstances also implement all of the Component information,
-//as a convenience you often need both bits of inforamation.  The downside of
-//this is that two Component values can't be compared directly for equality
-//because they may be different underlying objects and wrappers. If you want
-//to see if two Components that might be from different states refer to the
-//same underlying conceptual Component, use Equivalent(). However,
-//ImmutableComponentInstances compared with another ImmutableComponentInstance
-//for the same component in the same state will be equal. See also
-//ComponentInstance, which extends this interface with mutators as well.
+// ImmutableComponentInstance is a specific instantiation of a component as it
+// exists in the particular State it is associated with. They are like a
+// ComponentInstance, but without mutating methods.
+// ImmutableComponentInstances also implement all of the Component information,
+// as a convenience you often need both bits of inforamation.  The downside of
+// this is that two Component values can't be compared directly for equality
+// because they may be different underlying objects and wrappers. If you want
+// to see if two Components that might be from different states refer to the
+// same underlying conceptual Component, use Equivalent(). However,
+// ImmutableComponentInstances compared with another ImmutableComponentInstance
+// for the same component in the same state will be equal. See also
+// ComponentInstance, which extends this interface with mutators as well.
 type ImmutableComponentInstance interface {
 	//ImmutableComponentInstances have all of the information of a base Component, as
 	//often that's the information you most need.
@@ -120,11 +120,11 @@ type ImmutableComponentInstance interface {
 //state, it must remain that way, because it can't be moved from a Stack to a
 //ImmutableStack.
 
-//ComponentInstance is a mutable instantiation of a specific type of component
-//in a particular state of a particular game. You generally get these from a
-//Stack that contains them. The instance contains many methods to move the
-//component to other stacks or locations. See also ImmutableComponentInstance,
-//which is similar but lacks mutator methods.
+// ComponentInstance is a mutable instantiation of a specific type of component
+// in a particular state of a particular game. You generally get these from a
+// Stack that contains them. The instance contains many methods to move the
+// component to other stacks or locations. See also ImmutableComponentInstance,
+// which is similar but lacks mutator methods.
 type ComponentInstance interface {
 
 	//ComponentInstance can be used anywhere that ImmutableComponentInstance
@@ -208,10 +208,10 @@ type component struct {
 	deckIndex int
 }
 
-//componentInstance has value method receivers so two that are configured the
-//same will test as equal even if they were created separately, and because we
-//never need to mutate the values within--all of the mutable state is handled
-//on the state object.
+// componentInstance has value method receivers so two that are configured the
+// same will test as equal even if they were created separately, and because we
+// never need to mutate the values within--all of the mutable state is handled
+// on the state object.
 type componentInstance struct {
 	*component
 	statePtr *state
@@ -285,13 +285,13 @@ func (c *component) Instance(st State) ComponentInstance {
 	}
 }
 
-//ComponentValues is the interface that the Values property of a Component
-//must implement. You define your own ComponentValues to describe the
-//immutable properties of the components in your game type. You associate a
-//given ComponentValues struct with a given Component in deck.AddComponent.
-//base.ComponentValues is designed to be anonymously embedded in your
-//component to implement the latter part of the interface. 'boardgame- util
-//codegen' can be used to implement Reader.
+// ComponentValues is the interface that the Values property of a Component
+// must implement. You define your own ComponentValues to describe the
+// immutable properties of the components in your game type. You associate a
+// given ComponentValues struct with a given Component in deck.AddComponent.
+// base.ComponentValues is designed to be anonymously embedded in your
+// component to implement the latter part of the interface. 'boardgame- util
+// codegen' can be used to implement Reader.
 type ComponentValues interface {
 	//Reader is the way that the engine will enumerate and extract properties
 	//on the ComponentValues.
@@ -345,8 +345,8 @@ func (c componentInstance) ID() string {
 	return fmt.Sprintf("%x", hash)
 }
 
-//secretMoveCount returns the secret move count for this component in the
-//given state.
+// secretMoveCount returns the secret move count for this component in the
+// given state.
 func (c componentInstance) secretMoveCount() int {
 
 	if c == c.Deck().GenericComponent() {
@@ -379,7 +379,7 @@ func (c componentInstance) secretMoveCount() int {
 	return deckMoveCount[c.DeckIndex()]
 }
 
-//movedSecretly increments the secretMoveCount for this component.
+// movedSecretly increments the secretMoveCount for this component.
 func (c componentInstance) movedSecretly() {
 	if c.Equivalent(c.Deck().GenericComponent()) {
 		return

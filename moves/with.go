@@ -25,20 +25,20 @@ const configPropLegalType = fullyQualifiedPackageName + "LegalType"
 const configPropLegalTypeEnum = fullyQualifiedPackageName + "LegalTypeEnum"
 const configPropAmount = fullyQualifiedPackageName + "Amount"
 
-//CustomConfigurationOption is a function that takes a PropertyCollection and
-//modifies a key on it. This package defines a number of functions that return
-//funcs that satisfy this interface and can be used in auto.Config to pass in
-//configuration to the base moves without requiring verbose embedding and
-//method overriding. All of those functions in this package start with "With".
+// CustomConfigurationOption is a function that takes a PropertyCollection and
+// modifies a key on it. This package defines a number of functions that return
+// funcs that satisfy this interface and can be used in auto.Config to pass in
+// configuration to the base moves without requiring verbose embedding and
+// method overriding. All of those functions in this package start with "With".
 type CustomConfigurationOption func(boardgame.PropertyCollection)
 
-//WithLegalType returns a function configuration option suitable for being
-//passed to auto.Config. The legalType will be passed to the components' Legal()
-//method as an ImmutableVal. Idiomatically this should be a value from an enum
-//that is related to the legalType for that type of component. The optional
-//legalTypeEnum, if provided, will be used to construct the ImmutableVal passed
-//to Legal(); if not provided, nil will be passed. If you only have one
-//DefaultComponent move for that type of component, it's fine to just skip this.
+// WithLegalType returns a function configuration option suitable for being
+// passed to auto.Config. The legalType will be passed to the components' Legal()
+// method as an ImmutableVal. Idiomatically this should be a value from an enum
+// that is related to the legalType for that type of component. The optional
+// legalTypeEnum, if provided, will be used to construct the ImmutableVal passed
+// to Legal(); if not provided, nil will be passed. If you only have one
+// DefaultComponent move for that type of component, it's fine to just skip this.
 func WithLegalType(legalType enum.EnumKey, optionalLegalTypeEnum ...enum.Enum) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropLegalType] = legalType
@@ -48,47 +48,47 @@ func WithLegalType(legalType enum.EnumKey, optionalLegalTypeEnum ...enum.Enum) C
 	}
 }
 
-//WithMoveName returns a function configuration option suitable for being passed
-//to auto.Config. moves.Default uses this, if provided, to power MoveTypeName,
-//which means that auto.Config will use this name whenever it is passed. If
-//you're passing a move struct that not's from this package, the auto-generated
-//move name is likely sufficient and you don't need this. See the documentation
-//for moves.Default.MoveTypeName for more information.
+// WithMoveName returns a function configuration option suitable for being passed
+// to auto.Config. moves.Default uses this, if provided, to power MoveTypeName,
+// which means that auto.Config will use this name whenever it is passed. If
+// you're passing a move struct that not's from this package, the auto-generated
+// move name is likely sufficient and you don't need this. See the documentation
+// for moves.Default.MoveTypeName for more information.
 func WithMoveName(moveName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropMoveName] = moveName
 	}
 }
 
-//WithMoveNameSuffix returns a function configuration option suitable for being
-//passed to auto.Config. The suffix, if provided, will be appended to whatever
-//the Move's name would have been (see the behavior for DeriveName on
-//move.Default). This is useful because every move must have a unique name, but
-//sometimes you have the same underlying move struct who is legal in different
-//points in different progressions. This makes it easy to provide a suffix for
-//subsequent uses of the same move to ensure the names are all unique.
+// WithMoveNameSuffix returns a function configuration option suitable for being
+// passed to auto.Config. The suffix, if provided, will be appended to whatever
+// the Move's name would have been (see the behavior for DeriveName on
+// move.Default). This is useful because every move must have a unique name, but
+// sometimes you have the same underlying move struct who is legal in different
+// points in different progressions. This makes it easy to provide a suffix for
+// subsequent uses of the same move to ensure the names are all unique.
 func WithMoveNameSuffix(suffix string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropMoveNameSuffix] = suffix
 	}
 }
 
-//WithHelpText returns a function configuration option suitable for being passed
-//to auto.Config. moves.Default uses this, if provided, to power
-//MoveTypeHelpText, which means that auto.Config will use this text whenever it
-//is passed. See the documentation for moves.Default.MoveTypeHelpText for more
-//information.
+// WithHelpText returns a function configuration option suitable for being passed
+// to auto.Config. moves.Default uses this, if provided, to power
+// MoveTypeHelpText, which means that auto.Config will use this text whenever it
+// is passed. See the documentation for moves.Default.MoveTypeHelpText for more
+// information.
 func WithHelpText(helpText string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropHelpText] = helpText
 	}
 }
 
-//WithLegalPhases returns a function configuration option suitable for being
-//passed to auto.Config. legalPhases will extend whatever has already been
-//passed before. move.Base will use the result of this to determine if a given
-//move is legal in the current phase. Typically you don't use this directly, and
-//instead use moves.AddForPhase to use this implicitly.
+// WithLegalPhases returns a function configuration option suitable for being
+// passed to auto.Config. legalPhases will extend whatever has already been
+// passed before. move.Base will use the result of this to determine if a given
+// move is legal in the current phase. Typically you don't use this directly, and
+// instead use moves.AddForPhase to use this implicitly.
 func WithLegalPhases(legalPhases ...enum.EnumKey) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		previousLegalPhases := config[configPropLegalPhases]
@@ -101,37 +101,37 @@ func WithLegalPhases(legalPhases ...enum.EnumKey) CustomConfigurationOption {
 	}
 }
 
-//WithLegalMoveProgression returns a function configuration option suitable for
-//being passed to auto.Config. moves.Default's Legal() will use this for this
-//move type to determine if the move is legal in the order it's being applied.
-//Typically you don't use this directly, and instead use
-//moves.AddOrderedForPhase to use this implicitly.
+// WithLegalMoveProgression returns a function configuration option suitable for
+// being passed to auto.Config. moves.Default's Legal() will use this for this
+// move type to determine if the move is legal in the order it's being applied.
+// Typically you don't use this directly, and instead use
+// moves.AddOrderedForPhase to use this implicitly.
 func WithLegalMoveProgression(group MoveProgressionGroup) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropLegalMoveProgression] = group
 	}
 }
 
-//WithIsFixUp returns a function configuration option suitable for being passed
-//to auto.Config. moves.Default uses this, if provided, to power
-//MoveTypeIsFixUp, which means that auto.Config will use this if it is passed.
-//See the documentation for moves.Default.IsFixUp for more information. All
-//moves in this package will return reasonable values for IsFixUp on their own,
-//so it is much more rare to use this than other config options in this package.
-//In general, instead of using this option you should simply embed FixUp (or a
-//move that itself embedds IsFixUp), so you don't have to remember to pass
-//WithIsFixUp, which is easy to forget.
+// WithIsFixUp returns a function configuration option suitable for being passed
+// to auto.Config. moves.Default uses this, if provided, to power
+// MoveTypeIsFixUp, which means that auto.Config will use this if it is passed.
+// See the documentation for moves.Default.IsFixUp for more information. All
+// moves in this package will return reasonable values for IsFixUp on their own,
+// so it is much more rare to use this than other config options in this package.
+// In general, instead of using this option you should simply embed FixUp (or a
+// move that itself embedds IsFixUp), so you don't have to remember to pass
+// WithIsFixUp, which is easy to forget.
 func WithIsFixUp(isFixUp bool) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropIsFixUp] = isFixUp
 	}
 }
 
-//WithPhaseToStart returns a function configuration option suitable for being
-//passed to auto.Config. PhaseEnum should be the enum that is used for phases,
-//and phaseToStart is the value within that phase to start. The phaseEnum is
-//optional; if not provided, the name of the move and help text will just use
-//the int value of the phase instead.
+// WithPhaseToStart returns a function configuration option suitable for being
+// passed to auto.Config. PhaseEnum should be the enum that is used for phases,
+// and phaseToStart is the value within that phase to start. The phaseEnum is
+// optional; if not provided, the name of the move and help text will just use
+// the int value of the phase instead.
 func WithPhaseToStart(phaseToStart enum.EnumKey, optionalPhaseEnum enum.Enum) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropStartPhase] = phaseToStart
@@ -139,62 +139,62 @@ func WithPhaseToStart(phaseToStart enum.EnumKey, optionalPhaseEnum enum.Enum) Cu
 	}
 }
 
-//WithSourceProperty returns a function configuration option suitable for being
-//passed to auto.Config. The stackPropName is assumed to be on the GameState
-//object. If it isn't, you'll need to embed the move and override SourceStack
-//yourself.
+// WithSourceProperty returns a function configuration option suitable for being
+// passed to auto.Config. The stackPropName is assumed to be on the GameState
+// object. If it isn't, you'll need to embed the move and override SourceStack
+// yourself.
 func WithSourceProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropSourceProperty] = stackPropName
 	}
 }
 
-//WithDestinationProperty returns a function configuration option suitable for
-//being passed to auto.Config. The stackPropName is assumed to be on the
-//GameState object. If it isn't, you'll need to embed the move and override
-//DestinationStack yourself.
+// WithDestinationProperty returns a function configuration option suitable for
+// being passed to auto.Config. The stackPropName is assumed to be on the
+// GameState object. If it isn't, you'll need to embed the move and override
+// DestinationStack yourself.
 func WithDestinationProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropDestinationProperty] = stackPropName
 	}
 }
 
-//WithGameProperty returns a function configuration option suitable for being
-//passed to auto.Config. Often used to configure what a move's GameStack() will
-//return, but other moves use it for non-stack properties.
+// WithGameProperty returns a function configuration option suitable for being
+// passed to auto.Config. Often used to configure what a move's GameStack() will
+// return, but other moves use it for non-stack properties.
 func WithGameProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropGameProperty] = stackPropName
 	}
 }
 
-//WithPlayerProperty returns a function configuration option suitable for being
-//passed to auto.Config. Often used to configure what a move's PlayerStack()
-//will return, but other moves use it for non-stack properties.
+// WithPlayerProperty returns a function configuration option suitable for being
+// passed to auto.Config. Often used to configure what a move's PlayerStack()
+// will return, but other moves use it for non-stack properties.
 func WithPlayerProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropPlayerProperty] = stackPropName
 	}
 }
 
-//WithNumRounds returns a function configuration option suitable for being
-//passed to auto.Config.
+// WithNumRounds returns a function configuration option suitable for being
+// passed to auto.Config.
 func WithNumRounds(numRounds int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropNumRounds] = numRounds
 	}
 }
 
-//WithTargetCount returns a function configuration option suitable for being
-//passed to auto.Config.
+// WithTargetCount returns a function configuration option suitable for being
+// passed to auto.Config.
 func WithTargetCount(targetCount int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropTargetCount] = targetCount
 	}
 }
 
-//WithAmount returns a function configuration option suitable for being passed
-//to auto.Config.
+// WithAmount returns a function configuration option suitable for being passed
+// to auto.Config.
 func WithAmount(amount int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropAmount] = amount

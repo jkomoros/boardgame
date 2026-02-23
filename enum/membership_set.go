@@ -2,9 +2,9 @@ package enum
 
 import "slices"
 
-//ImmutableMembershipSet represents a read-only set of enum values from a
-//particular enum. It is used to represent which groups a player belongs to,
-//for example in sanitization logic.
+// ImmutableMembershipSet represents a read-only set of enum values from a
+// particular enum. It is used to represent which groups a player belongs to,
+// for example in sanitization logic.
 type ImmutableMembershipSet interface {
 	//Enum returns the Enum this membership set is associated with.
 	Enum() Enum
@@ -23,7 +23,7 @@ type ImmutableMembershipSet interface {
 	Copy() MembershipSet
 }
 
-//MembershipSet represents a mutable set of enum values from a particular enum.
+// MembershipSet represents a mutable set of enum values from a particular enum.
 type MembershipSet interface {
 	ImmutableMembershipSet
 	//Add adds the given EnumKey to the set.
@@ -32,15 +32,15 @@ type MembershipSet interface {
 	Remove(val EnumKey)
 }
 
-//membershipSet is the unexported implementation of ImmutableMembershipSet and
-//MembershipSet.
+// membershipSet is the unexported implementation of ImmutableMembershipSet and
+// MembershipSet.
 type membershipSet struct {
 	enum Enum
 	data map[EnumKey]bool
 }
 
-//NewMembershipSet creates a new MembershipSet for this enum containing the
-//given members. Any members not valid for this enum are silently ignored.
+// NewMembershipSet creates a new MembershipSet for this enum containing the
+// given members. Any members not valid for this enum are silently ignored.
 func (e *enum) NewMembershipSet(members ...EnumKey) MembershipSet {
 	data := make(map[EnumKey]bool, len(members))
 	for _, m := range members {

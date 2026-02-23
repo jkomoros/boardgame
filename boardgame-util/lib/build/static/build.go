@@ -15,12 +15,12 @@ import (
 const clientConfigJsFileName = "client_config.js"
 const gameSrcSubFolder = "game-src"
 
-//TODO: remove this, rely only on gamepkg.ClientFolder().
+// TODO: remove this, rely only on gamepkg.ClientFolder().
 const clientSubFolder = "client"
 
-//CopyStaticResources copies all of the top-level files into the build
-//directory given by dir. If copyFiles is true, it copies them, otherwise it
-//symlinks them.
+// CopyStaticResources copies all of the top-level files into the build
+// directory given by dir. If copyFiles is true, it copies them, otherwise it
+// symlinks them.
 func CopyStaticResources(dir string, copyFiles bool) error {
 
 	staticDir, err := staticBuildDir(dir)
@@ -92,9 +92,9 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 	return nil
 }
 
-//LinkGameClientFolders creates a game-src directory and for each import listed
-//in pkgs, finds a copy of that game on disk and symlinks its client directory
-//into game-src.
+// LinkGameClientFolders creates a game-src directory and for each import listed
+// in pkgs, finds a copy of that game on disk and symlinks its client directory
+// into game-src.
 func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 
 	staticDir, err := staticBuildDir(dir)
@@ -164,9 +164,9 @@ func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 
 }
 
-//CreateClientConfigJs creates and saves a client_config.js corresponding to
-//the given Clientconfig object, into the given build directory. You should use
-//config.Client() to generate the ClientConfig.
+// CreateClientConfigJs creates and saves a client_config.js corresponding to
+// the given Clientconfig object, into the given build directory. You should use
+// config.Client() to generate the ClientConfig.
 func CreateClientConfigJs(dir string, c *config.ClientConfig) error {
 
 	staticDir, err := staticBuildDir(dir)

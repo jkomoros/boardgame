@@ -1,8 +1,6 @@
 /*
-
 Package memory is a simple example game based on memory--where players take turn
 flipping over two cards, and keeping them if they match.
-
 */
 package memory
 
@@ -345,8 +343,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-//NewDelegate is the primary entrypoint to this package. It returns a
-//GameDelegate that configures a memory game.
+// NewDelegate is the primary entrypoint to this package. It returns a
+// GameDelegate that configures a memory game.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

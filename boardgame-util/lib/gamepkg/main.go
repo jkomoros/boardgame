@@ -1,8 +1,6 @@
 /*
-
 Package gamepkg is a package that helps locate, validate, and modify game
 package imports.
-
 */
 package gamepkg
 
@@ -22,14 +20,14 @@ import (
 
 const clientSubFolder = "client"
 
-//RandMagicComment is the string the tool looks for. If this comment is included
-//in a source file, then pkg will not error will even if that file does import
-//math.Rand(). This comment asserts that the package is using math/rand for some
-//reason other than game logic, because game logic is supposed to use
-//state.Rand() in order to be predictable.
+// RandMagicComment is the string the tool looks for. If this comment is included
+// in a source file, then pkg will not error will even if that file does import
+// math.Rand(). This comment asserts that the package is using math/rand for some
+// reason other than game logic, because game logic is supposed to use
+// state.Rand() in order to be predictable.
 const RandMagicComment = "boardgame:assert(rand_use_deterministic)"
 
-//Pkg represents a Package that may or may not be a GamePkg.
+// Pkg represents a Package that may or may not be a GamePkg.
 type Pkg struct {
 	//Every contstructo sets absolutePath to something that at least exists on
 	//disk.
@@ -43,11 +41,11 @@ type Pkg struct {
 	memoizedHasMathRand   error
 }
 
-//Packages is a convenience func that takes a list of arguments to pass to
-//New() (paths or imports) and returns a list of all of the valid packages.
-//Any packages that errored for any reason will have their error contained in
-//the map of errors. If len(errors) == 0 then no packages errored.
-//optionalBasePath will be passed on to New().
+// Packages is a convenience func that takes a list of arguments to pass to
+// New() (paths or imports) and returns a list of all of the valid packages.
+// Any packages that errored for any reason will have their error contained in
+// the map of errors. If len(errors) == 0 then no packages errored.
+// optionalBasePath will be passed on to New().
 func Packages(inputs []string, optionalBasePath string) ([]*Pkg, map[string]error) {
 	var result []*Pkg
 	errs := make(map[string]error)
@@ -68,8 +66,8 @@ func Packages(inputs []string, optionalBasePath string) ([]*Pkg, map[string]erro
 	return result, errs
 }
 
-//AllPackages is a wrapper around Packages that will return a single error and
-//no packages if any of the packages was invalid.
+// AllPackages is a wrapper around Packages that will return a single error and
+// no packages if any of the packages was invalid.
 func AllPackages(inputs []string, optionalBasePath string) ([]*Pkg, error) {
 	pkgs, errs := Packages(inputs, optionalBasePath)
 
@@ -85,10 +83,10 @@ func AllPackages(inputs []string, optionalBasePath string) ([]*Pkg, error) {
 	return nil, errors.New("At least one package failed to load: " + strings.Join(errorStrings, "; "))
 }
 
-//New is a wrapper around NewFromImport and NewFromPath. First, it tries to
-//interpret the input as an import. If that files, tries to interpret it as a
-//path (rel or absolute), and if that fails, bails. optionalBasePath is what
-//to pass to NewFromPath if that is used.
+// New is a wrapper around NewFromImport and NewFromPath. First, it tries to
+// interpret the input as an import. If that files, tries to interpret it as a
+// path (rel or absolute), and if that fails, bails. optionalBasePath is what
+// to pass to NewFromPath if that is used.
 func New(importOrPath string, optionalBasePath string) (*Pkg, error) {
 	pkg, tryPath, err := newFromImport(importOrPath)
 	if err == nil {
@@ -100,11 +98,11 @@ func New(importOrPath string, optionalBasePath string) (*Pkg, error) {
 	return NewFromPath(importOrPath, optionalBasePath)
 }
 
-//NewFromPath takes path (either relative or absolute path) and returns a new
-//Pkg. Will error if the given path does not appear to denote a valid game
-//package for any reason. If the path is not absolute, will join wiht
-//optionalBasePath (can be either a rel or absolute path). If optionalBasePath
-//is "" it will be set to current working directory automatically.
+// NewFromPath takes path (either relative or absolute path) and returns a new
+// Pkg. Will error if the given path does not appear to denote a valid game
+// package for any reason. If the path is not absolute, will join wiht
+// optionalBasePath (can be either a rel or absolute path). If optionalBasePath
+// is "" it will be set to current working directory automatically.
 func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 
 	if !filepath.IsAbs(path) {
@@ -129,9 +127,9 @@ func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 
 }
 
-//NewFromImport will return a new Pkg pointing to that import. Will error
-//if the given path does not appear to denote a valid game package for any
-//reason.
+// NewFromImport will return a new Pkg pointing to that import. Will error
+// if the given path does not appear to denote a valid game package for any
+// reason.
 func NewFromImport(importPath string) (*Pkg, error) {
 	p, _, e := newFromImport(importPath)
 	return p, e
@@ -148,7 +146,7 @@ func newFromImport(importPath string) (pack *Pkg, tryPath bool, err error) {
 	return newPkg(absPath, importPath)
 }
 
-//tryPath means, if we fail, should we try using the input as a path?
+// tryPath means, if we fail, should we try using the input as a path?
 func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 
 	result := &Pkg{
@@ -196,15 +194,15 @@ func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 	return result, true, nil
 }
 
-//AbsolutePath returns the absolute path where the package in question resides
-//on disk. All constructors will have errored if AbsolutePath doesn't at the
-//very least point to a valid location on disk. For example, "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory"
+// AbsolutePath returns the absolute path where the package in question resides
+// on disk. All constructors will have errored if AbsolutePath doesn't at the
+// very least point to a valid location on disk. For example, "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory"
 func (p *Pkg) AbsolutePath() string {
 	return p.absolutePath
 }
 
-//ReadOnly returns true if the package appears to be in a read-only location
-//(e.g. a cached module checkout)
+// ReadOnly returns true if the package appears to be in a read-only location
+// (e.g. a cached module checkout)
 func (p *Pkg) ReadOnly() bool {
 
 	absPath := p.AbsolutePath()
@@ -217,7 +215,7 @@ func (p *Pkg) ReadOnly() bool {
 
 }
 
-//EnsureDir ensures the given directory, relative to package root, exists.
+// EnsureDir ensures the given directory, relative to package root, exists.
 func (p *Pkg) EnsureDir(relPath string) error {
 
 	dir := filepath.Join(p.AbsolutePath(), relPath)
@@ -238,9 +236,9 @@ func (p *Pkg) EnsureDir(relPath string) error {
 
 }
 
-//WriteFile writes the given relPath contents with 0644 perms. If overwite is
-//true will overwrite; if overwrite is false and the file already exists will
-//fail.
+// WriteFile writes the given relPath contents with 0644 perms. If overwite is
+// true will overwrite; if overwrite is false and the file already exists will
+// fail.
 func (p *Pkg) WriteFile(relPath string, contents []byte, overwrite bool) error {
 	if p.ReadOnly() {
 		return errors.New("Package is readonly")
@@ -257,8 +255,8 @@ func (p *Pkg) WriteFile(relPath string, contents []byte, overwrite bool) error {
 
 }
 
-//RemoveFile removes the given path, relative to the base of the package, from
-//the package if possible.
+// RemoveFile removes the given path, relative to the base of the package, from
+// the package if possible.
 func (p *Pkg) RemoveFile(relPath string) error {
 	if p.ReadOnly() {
 		return errors.New("Package is readonly")
@@ -270,7 +268,7 @@ func (p *Pkg) RemoveFile(relPath string) error {
 	return os.Remove(path)
 }
 
-//RemoveDirIfEmpty removes the given dir if it contains no items.
+// RemoveDirIfEmpty removes the given dir if it contains no items.
 func (p *Pkg) RemoveDirIfEmpty(relPath string) error {
 	if !p.Has(relPath) {
 		return nil
@@ -295,8 +293,8 @@ func (p *Pkg) RemoveDirIfEmpty(relPath string) error {
 	return os.Remove(dir)
 }
 
-//ClientFolder returns the absolute path to this game package's folder of
-//client assets, or "" if this game does not have a client folder. Example: "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory/client"
+// ClientFolder returns the absolute path to this game package's folder of
+// client assets, or "" if this game does not have a client folder. Example: "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory/client"
 func (p *Pkg) ClientFolder() string {
 	path := filepath.Join(p.AbsolutePath(), clientSubFolder)
 	if p.Has(clientSubFolder) {
@@ -305,8 +303,8 @@ func (p *Pkg) ClientFolder() string {
 	return ""
 }
 
-//Has returns whether the given relPath (directory or file) exists relative to
-//this package.
+// Has returns whether the given relPath (directory or file) exists relative to
+// this package.
 func (p *Pkg) Has(relPath string) bool {
 	path := filepath.Join(p.AbsolutePath(), relPath)
 
@@ -317,8 +315,8 @@ func (p *Pkg) Has(relPath string) bool {
 	return true
 }
 
-//goPkg validates that the absolutePath denotes a package with at least one go
-//file. If there's an error will default to false.
+// goPkg validates that the absolutePath denotes a package with at least one go
+// file. If there's an error will default to false.
 func (p *Pkg) goPkg() bool {
 
 	infos, _ := ioutil.ReadDir(p.AbsolutePath())
@@ -333,29 +331,29 @@ func (p *Pkg) goPkg() bool {
 
 }
 
-//Import returns the string that could be used in your source to import this
-//package, for exampjle "github.com/jkomoros/boardgame/examples/memory"
+// Import returns the string that could be used in your source to import this
+// package, for exampjle "github.com/jkomoros/boardgame/examples/memory"
 func (p *Pkg) Import() string {
 
 	return p.importPath
 }
 
-//Name returns the package name, according to a static analysis of the source.
-//Technically it's possible that this differs from the package's delegate's
-//Name(), however in practice that's extremely unlikely because the core
-//library will fail to create a GameManager if the package and delegate name
-//don't match. That means that the return value of this method can effectively
-//be used as though it equals the delegate's Name().
+// Name returns the package name, according to a static analysis of the source.
+// Technically it's possible that this differs from the package's delegate's
+// Name(), however in practice that's extremely unlikely because the core
+// library will fail to create a GameManager if the package and delegate name
+// don't match. That means that the return value of this method can effectively
+// be used as though it equals the delegate's Name().
 func (p *Pkg) Name() string {
 	return p.name
 }
 
-//RandUseSafe returns nil if the package either doesn't use math/rand or if it
-//asserts that its use is safe via an override.  Naive use of math/rand is
-//likely to be an error because game logic is supposed to use state.Rand() for
-//all randomness so games can be deterministic. If the math/rand import
-//includes RAND_MAGIC_COMMENT in the documentation line then the usage will be
-//considered safe.
+// RandUseSafe returns nil if the package either doesn't use math/rand or if it
+// asserts that its use is safe via an override.  Naive use of math/rand is
+// likely to be an error because game logic is supposed to use state.Rand() for
+// all randomness so games can be deterministic. If the math/rand import
+// includes RAND_MAGIC_COMMENT in the documentation line then the usage will be
+// considered safe.
 func (p *Pkg) randUseSafe() error {
 	if !p.calculatedHasMathRand {
 		p.memoizedHasMathRand = p.calculateUnsafeRandUse()
@@ -416,8 +414,8 @@ func (p *Pkg) calculateUnsafeRandUse() error {
 
 }
 
-//isPkg verifies that the package appears to be a valid game package.
-//Specifically it checks for
+// isPkg verifies that the package appears to be a valid game package.
+// Specifically it checks for
 func (p *Pkg) isGamePkg() (bool, error) {
 	if !p.calculatedIsGamePkg {
 		p.memoizedIsGamePkg, p.memoizedIsGamePkgErr = p.calculateIsGamePkg()

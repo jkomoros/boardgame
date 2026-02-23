@@ -8,7 +8,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//targetCountString is a simple helper that returns the string of the target count.
+// targetCountString is a simple helper that returns the string of the target count.
 func targetCountString(topLevelStruct boardgame.Move) string {
 	moveCounter, ok := topLevelStruct.(interfaces.TargetCounter)
 
@@ -24,17 +24,17 @@ func targetCountString(topLevelStruct boardgame.Move) string {
 
 }
 
-//ApplyUntil is a simple move that is legal to apply in succession until its
-//ConditionMet returns nil. You need to implement
-//interfaces.ConditionMetter by implementing a ConditionMet method.
+// ApplyUntil is a simple move that is legal to apply in succession until its
+// ConditionMet returns nil. You need to implement
+// interfaces.ConditionMetter by implementing a ConditionMet method.
 //
 //boardgame:codegen
 type ApplyUntil struct {
 	FixUpMulti
 }
 
-//ValidConfiguration verifies the Move this is embedded in implements
-//interfaces.ConditionMetter.
+// ValidConfiguration verifies the Move this is embedded in implements
+// interfaces.ConditionMetter.
 func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
 
 	if _, ok := a.TopLevelStruct().(interfaces.ConditionMetter); !ok {
@@ -44,7 +44,7 @@ func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
 	return a.FixUpMulti.ValidConfiguration(exampleState)
 }
 
-//Legal returns an error until ConditionMet returns nil.
+// Legal returns an error until ConditionMet returns nil.
 func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := a.Default.Legal(state, proposer); err != nil {
 		return err
@@ -66,12 +66,12 @@ func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 
 }
 
-//FallbackName simply returns "Apply Until"
+// FallbackName simply returns "Apply Until"
 func (a *ApplyUntil) FallbackName(m *boardgame.GameManager) string {
 	return "Apply Until"
 }
 
-//FallbackHelpText simply returns "Applies the move until a condition is met."
+// FallbackHelpText simply returns "Applies the move until a condition is met."
 func (a *ApplyUntil) FallbackHelpText() string {
 	return "Applies the move until a condition is met."
 }
@@ -81,18 +81,19 @@ type counter interface {
 	interfaces.TargetCounter
 }
 
-//ApplyUntilCount is a subclass of ApplyUntil that is legal until Count() is
-//equal to TargetCount(). (This presumes that each time the move is applied it
-//gets the TargetCount one closer to Count and never overshoots). At the
-//minimum you'll want to provide your own Count() and Apply() methods, or use
-//the moves that subclass from this, like MoveComponentsUntilCountReached.
+// ApplyUntilCount is a subclass of ApplyUntil that is legal until Count() is
+// equal to TargetCount(). (This presumes that each time the move is applied it
+// gets the TargetCount one closer to Count and never overshoots). At the
+// minimum you'll want to provide your own Count() and Apply() methods, or use
+// the moves that subclass from this, like MoveComponentsUntilCountReached.
+//
 //boardgame:codegen
 type ApplyUntilCount struct {
 	ApplyUntil
 }
 
-//ValidConfiguration verifes the top level move implements Count() and
-//interfaces.TargetCounter, and that TargetCount doesn't return below 0.
+// ValidConfiguration verifes the top level move implements Count() and
+// interfaces.TargetCounter, and that TargetCount doesn't return below 0.
 func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.State) error {
 	if err := a.ApplyUntil.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -115,15 +116,15 @@ func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.State) error
 	return nil
 }
 
-//Count is consulted in ConditionMet to see what the current count is. Simply
-//returns 1 by default. You almost certainly want to override this.
+// Count is consulted in ConditionMet to see what the current count is. Simply
+// returns 1 by default. You almost certainly want to override this.
 func (a *ApplyUntilCount) Count(state boardgame.ImmutableState) int {
 	return 1
 }
 
-//TargetCount should return the count that you want to target. Will return the
-//configuration option passed via WithTargetCount in DefaultConfig, or 1 if
-//that wasn't provided.
+// TargetCount should return the count that you want to target. Will return the
+// configuration option passed via WithTargetCount in DefaultConfig, or 1 if
+// that wasn't provided.
 func (a *ApplyUntilCount) TargetCount(state boardgame.ImmutableState) int {
 
 	config := a.CustomConfiguration()
@@ -146,11 +147,11 @@ func (a *ApplyUntilCount) TargetCount(state boardgame.ImmutableState) int {
 
 }
 
-//ConditionMet returns nil once Count() is equal to TargetCount(). Note this
-//presumes that repeated applciations of this move move Count one closer to
-//TargetCount, and that it never overshoots, otherwise this could never
-//terminate. In general you override Count() and TargetCount() to customize
-//behavior instead of overriding this.
+// ConditionMet returns nil once Count() is equal to TargetCount(). Note this
+// presumes that repeated applciations of this move move Count one closer to
+// TargetCount, and that it never overshoots, otherwise this could never
+// terminate. In general you override Count() and TargetCount() to customize
+// behavior instead of overriding this.
 func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 
 	embeddingMove := a.TopLevelStruct()
@@ -173,23 +174,23 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 
 }
 
-//FallbackName returns "Apply Until Count of INT", where INT is the
-//target count.
+// FallbackName returns "Apply Until Count of INT", where INT is the
+// target count.
 func (a *ApplyUntilCount) FallbackName(m *boardgame.GameManager) string {
 
 	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
 }
 
-//FallbackHelpText returns "Applies the move until a target count of
-//INT is met.", where INT is the target count.
+// FallbackHelpText returns "Applies the move until a target count of
+// INT is met.", where INT is the target count.
 func (a *ApplyUntilCount) FallbackHelpText() string {
 	return "Applies the move until a target count of " + targetCountString(a.TopLevelStruct()) + " is met."
 }
 
-//countMovesApplied is where the majority of logic for the count method of
-//ApplyUntilCount goes. It makes it easy to plug in the logic in multiple
-//types of moves that have the same type of behavior for Count() but can't
-//directly subclass one another.
+// countMovesApplied is where the majority of logic for the count method of
+// ApplyUntilCount goes. It makes it easy to plug in the logic in multiple
+// types of moves that have the same type of behavior for Count() but can't
+// directly subclass one another.
 func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableState) int {
 
 	records := state.Game().MoveRecords(state.Version())
@@ -220,31 +221,31 @@ func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableS
 	return count
 }
 
-//ApplyCountTimes subclasses ApplyUntilCount. It applies the move until
-//TargetCount() number of this move have been applied in a row within the
-//current phase. Override TargetCount() to return the number of moves you
-//actually want to apply. You'll need to provide your own Apply() method.
+// ApplyCountTimes subclasses ApplyUntilCount. It applies the move until
+// TargetCount() number of this move have been applied in a row within the
+// current phase. Override TargetCount() to return the number of moves you
+// actually want to apply. You'll need to provide your own Apply() method.
 //
 //boardgame:codegen
 type ApplyCountTimes struct {
 	ApplyUntilCount
 }
 
-//Count returns the number of times this move has been applied in a row in the
-//immediate past in the current phase.
+// Count returns the number of times this move has been applied in a row in the
+// immediate past in the current phase.
 func (a *ApplyCountTimes) Count(state boardgame.ImmutableState) int {
 	return countMovesApplied(a.TopLevelStruct(), state)
 }
 
-//FallbackName returns "Apply INT Times", where INT is the target
-//count.
+// FallbackName returns "Apply INT Times", where INT is the target
+// count.
 func (a *ApplyCountTimes) FallbackName(m *boardgame.GameManager) string {
 
 	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
 }
 
-//FallbackHelpText returns "Applies the move INT times in a row.",
-//where INT is the target count.
+// FallbackHelpText returns "Applies the move INT times in a row.",
+// where INT is the target count.
 func (a *ApplyCountTimes) FallbackHelpText() string {
 	return "Applies the move " + targetCountString(a.TopLevelStruct()) + " times in a row."
 }

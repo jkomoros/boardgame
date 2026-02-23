@@ -1,5 +1,4 @@
 /*
-
 Package build is comprised of two sub-packages, api and static, that are two
 halves of building a functioning webapp given a config.json.
 
@@ -25,6 +24,5 @@ clean`, and `boardgame-util serve`.\
 
 This build package contains only this documentation and no code. All code is in
 the api and static sub-packages. See their package doc for more about each one.
-
 */
 package build

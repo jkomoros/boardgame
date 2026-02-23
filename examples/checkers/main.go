@@ -1,8 +1,6 @@
 /*
-
 Package checkers is a simple example of the classic checkers game. It exercises
 a grid-like board.
-
 */
 package checkers
 
@@ -137,8 +135,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-//NewDelegate is the primary entrypoint of the package, returning a new delegate
-//that configures a game of checkers.
+// NewDelegate is the primary entrypoint of the package, returning a new delegate
+// that configures a game of checkers.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

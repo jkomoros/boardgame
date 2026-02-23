@@ -1,7 +1,5 @@
 /*
-
 Package pig is a very simple game involving dice rolls.
-
 */
 package pig
 
@@ -164,8 +162,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-//NewDelegate is the primary entrypoint of the package. It returns a delegate
-//that configures a game of pig.
+// NewDelegate is the primary entrypoint of the package. It returns a delegate
+// that configures a game of pig.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

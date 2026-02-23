@@ -10,11 +10,11 @@ import (
 
 const testdataFolder = "testdata"
 
-//GameRecordsFolder is the Path relative to package root where goldens should be
-//stored
+// GameRecordsFolder is the Path relative to package root where goldens should be
+// stored
 const GameRecordsFolder = "testdata/golden"
 
-//GoldenTestFile is the name of the test file to create
+// GoldenTestFile is the name of the test file to create
 const GoldenTestFile = "golden_test.go"
 
 var goldenTestTemplate *template.Template
@@ -23,8 +23,8 @@ func init() {
 	goldenTestTemplate = template.Must(template.New("golden").Parse(goldenTestTemplateText))
 }
 
-//MakeGoldenTest ensures that GameRecordFolder exists and creates
-//golden_test.go in the root of the package if it doesn't yet exist.
+// MakeGoldenTest ensures that GameRecordFolder exists and creates
+// golden_test.go in the root of the package if it doesn't yet exist.
 func MakeGoldenTest(pkg *gamepkg.Pkg) error {
 
 	if pkg == nil {
@@ -50,8 +50,8 @@ func MakeGoldenTest(pkg *gamepkg.Pkg) error {
 
 }
 
-//CleanGoldenTest sees if GameRecordsFolder contains any tests. If it doesn't,
-//removes that folder structure and golden_test.go
+// CleanGoldenTest sees if GameRecordsFolder contains any tests. If it doesn't,
+// removes that folder structure and golden_test.go
 func CleanGoldenTest(pkg *gamepkg.Pkg) error {
 
 	if pkg.ReadOnly() {

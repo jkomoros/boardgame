@@ -1,8 +1,6 @@
 /*
-
 Package dice is a simple package that defines die components with variable
 numbers of sides.
-
 */
 package dice
 
@@ -15,8 +13,8 @@ import (
 
 //go:generate boardgame-util codegen
 
-//Value is the value component of a dice, encoding what the allowable values
-//are.
+// Value is the value component of a dice, encoding what the allowable values
+// are.
 //
 //boardgame:codegen
 type Value struct {
@@ -24,7 +22,7 @@ type Value struct {
 	Faces []int
 }
 
-//DynamicValue encodes which face is currently selected.
+// DynamicValue encodes which face is currently selected.
 //
 //boardgame:codegen
 type DynamicValue struct {
@@ -34,12 +32,12 @@ type DynamicValue struct {
 	SelectedFace int
 }
 
-//DefaultDie returns a die configured as as a typical six-sided die.
+// DefaultDie returns a die configured as as a typical six-sided die.
 func DefaultDie() *Value {
 	return BasicDie(1, 6)
 }
 
-//BasicDie returns a die with a face each for min through max, inclusive.
+// BasicDie returns a die with a face each for min through max, inclusive.
 func BasicDie(min, max int) *Value {
 
 	if min >= max {
@@ -55,7 +53,7 @@ func BasicDie(min, max int) *Value {
 	}
 }
 
-//Min returns the lowest value face for this die
+// Min returns the lowest value face for this die
 func (v *Value) Min() int {
 	min := math.MaxInt64
 	for _, face := range v.Faces {
@@ -66,7 +64,7 @@ func (v *Value) Min() int {
 	return min
 }
 
-//Max returns the maximum value face for this die
+// Max returns the maximum value face for this die
 func (v *Value) Max() int {
 	max := math.MinInt64
 	for _, face := range v.Faces {
@@ -77,11 +75,11 @@ func (v *Value) Max() int {
 	return max
 }
 
-//Roll sets the Value of the Die randomly to a new value that is legal for the
-//die Value it is associated with. Accepts a source of randomness it will use.
-//You almost always should pass state.Rand() for this to have outcomes that
-//are deterministic for this state (which can be useful for testing
-//scenarios). If r is nil, a generic source of randomness will be used.
+// Roll sets the Value of the Die randomly to a new value that is legal for the
+// die Value it is associated with. Accepts a source of randomness it will use.
+// You almost always should pass state.Rand() for this to have outcomes that
+// are deterministic for this state (which can be useful for testing
+// scenarios). If r is nil, a generic source of randomness will be used.
 func (d *DynamicValue) Roll(r *rand.Rand) {
 
 	values, ok := d.ContainingComponent().Values().(*Value)

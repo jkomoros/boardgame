@@ -14,12 +14,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//GameDelegate is a struct that implements stubs for all of GameDelegate's
-//methods. This makes it easy to override just one or two methods by creating
-//your own struct that anonymously embeds this one. Name,
-//GameStateConstructor, PlayerStateConstructor, and ConfigureMoves are not
-//implemented, since those almost certainly must be overridden for your
-//particular game.
+// GameDelegate is a struct that implements stubs for all of GameDelegate's
+// methods. This makes it easy to override just one or two methods by creating
+// your own struct that anonymously embeds this one. Name,
+// GameStateConstructor, PlayerStateConstructor, and ConfigureMoves are not
+// implemented, since those almost certainly must be overridden for your
+// particular game.
 type GameDelegate struct {
 	manager *boardgame.GameManager
 	//the names of properties on playerStates that should be used in
@@ -27,47 +27,47 @@ type GameDelegate struct {
 	cachedGroupMembershipProperties []string
 }
 
-//Diagram returns the string "This should be overriden to render a reasonable state here"
+// Diagram returns the string "This should be overriden to render a reasonable state here"
 func (g *GameDelegate) Diagram(state boardgame.ImmutableState) string {
 	return "This should be overriden to render a reasonable state here"
 }
 
-//DisplayName by default just returns the title-case of Name() that is
-//returned from the delegate in use.
+// DisplayName by default just returns the title-case of Name() that is
+// returned from the delegate in use.
 func (g *GameDelegate) DisplayName() string {
 	return strings.Title(g.Manager().Delegate().Name())
 }
 
-//Description defaults to "" if not overriden.
+// Description defaults to "" if not overriden.
 func (g *GameDelegate) Description() string {
 	return ""
 }
 
-//Manager returns the manager object that was provided to SetManager.
+// Manager returns the manager object that was provided to SetManager.
 func (g *GameDelegate) Manager() *boardgame.GameManager {
 	return g.manager
 }
 
-//SetManager keeps a reference to the passed manager, and returns it when
-//Manager() is called.
+// SetManager keeps a reference to the passed manager, and returns it when
+// Manager() is called.
 func (g *GameDelegate) SetManager(manager *boardgame.GameManager) {
 	g.manager = manager
 }
 
-//DynamicComponentValuesConstructor returns nil, as not all games have
-//DynamicComponentValues. Override this if your game does require
-//DynamicComponentValues.
+// DynamicComponentValuesConstructor returns nil, as not all games have
+// DynamicComponentValues. Override this if your game does require
+// DynamicComponentValues.
 func (g *GameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.ConfigurableSubState {
 	return nil
 }
 
-//ProposeFixUpMove runs through all moves in Moves, in order, and returns the
-//first one that returns true from IsFixUp and is legal at the current state. In
-//many cases, this behavior should be suficient and need not be overwritten. Be
-//extra sure that your FixUpMoves have a conservative Legal function, otherwise
-//you could get a panic from applying too many FixUp moves. Wil emit debug
-//information about why certain fixup moves didn't apply if the Manager's log
-//level is Debug or higher.
+// ProposeFixUpMove runs through all moves in Moves, in order, and returns the
+// first one that returns true from IsFixUp and is legal at the current state. In
+// many cases, this behavior should be suficient and need not be overwritten. Be
+// extra sure that your FixUpMoves have a conservative Legal function, otherwise
+// you could get a panic from applying too many FixUp moves. Wil emit debug
+// information about why certain fixup moves didn't apply if the Manager's log
+// level is Debug or higher.
 func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgame.Move {
 
 	isDebug := g.Manager().Logger().Level >= logrus.DebugLevel
@@ -115,9 +115,9 @@ func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgam
 	return nil
 }
 
-//CurrentPlayerIndex returns gameState.CurrentPlayer, if that is a PlayerIndex
-//property. If not, returns ObserverPlayerIndex. If you use
-//behaviors.CurrentPlayerBehavior it works well with this. Will use EnsureValid.
+// CurrentPlayerIndex returns gameState.CurrentPlayer, if that is a PlayerIndex
+// property. If not, returns ObserverPlayerIndex. If you use
+// behaviors.CurrentPlayerBehavior it works well with this. Will use EnsureValid.
 func (g *GameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
 	index, err := state.ImmutableGameState().Reader().PlayerIndexProp("CurrentPlayer")
 
@@ -129,8 +129,8 @@ func (g *GameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardg
 	return index.EnsureValid(state)
 }
 
-//CurrentPhase by default returns the ImmutableVal for gameState.Phase. If the
-//Phase property doesn't exist or isn't an enum, it returns nil.
+// CurrentPhase by default returns the ImmutableVal for gameState.Phase. If the
+// Phase property doesn't exist or isn't an enum, it returns nil.
 func (g *GameDelegate) CurrentPhase(state boardgame.ImmutableState) enum.ImmutableVal {
 
 	phaseVal, err := state.ImmutableGameState().Reader().ImmutableEnumProp("Phase")
@@ -144,9 +144,9 @@ func (g *GameDelegate) CurrentPhase(state boardgame.ImmutableState) enum.Immutab
 
 }
 
-//PhaseEnum defaults to the enum named "phase" (or "Phase", if that doesn't
-//exist) which is the convention for the name of the Phase enum. moves.Default
-//will handle cases where that isn't a valid enum gracefully.
+// PhaseEnum defaults to the enum named "phase" (or "Phase", if that doesn't
+// exist) which is the convention for the name of the Phase enum. moves.Default
+// will handle cases where that isn't a valid enum gracefully.
 func (g *GameDelegate) PhaseEnum() enum.Enum {
 	result := g.Manager().Chest().Enums().Enum("phase")
 	if result != nil {
@@ -157,18 +157,18 @@ func (g *GameDelegate) PhaseEnum() enum.Enum {
 
 const defaultGroupsName = "group"
 
-//GroupEnum will return the enum named 'group', if it exists, otherwise nil.
-//'group' is the name of the special combine group that codegen treats specially
-//and combines with boardgame.BaseGroupEnum.
+// GroupEnum will return the enum named 'group', if it exists, otherwise nil.
+// 'group' is the name of the special combine group that codegen treats specially
+// and combines with boardgame.BaseGroupEnum.
 func (g *GameDelegate) GroupEnum() enum.Enum {
 	return g.Manager().Chest().Enums().Enum(defaultGroupsName)
 }
 
-//DistributeComponentToStarterStack does nothing any returns an error. If your
-//game has components, it should override this to tell the engine where to stash
-//the components to start. If your game doesn't have any components, then this
-//won't be called on GameManager boot up, and this stub will have prevented you
-//from needing to define a no-op.
+// DistributeComponentToStarterStack does nothing any returns an error. If your
+// game has components, it should override this to tell the engine where to stash
+// the components to start. If your game doesn't have any components, then this
+// won't be called on GameManager boot up, and this stub will have prevented you
+// from needing to define a no-op.
 func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
@@ -176,11 +176,11 @@ func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
-//GroupMembership will look for any Enum properties on playerState, and if any
-//of them are part of GroupEnum(), will return true for the values that they
-//are. This handles many common cases correctly. For example, if you use
-//behaviors.Color, and your color enum is combined into the enum called 'group',
-//then this will automatically report that membership for the player.
+// GroupMembership will look for any Enum properties on playerState, and if any
+// of them are part of GroupEnum(), will return true for the values that they
+// are. This handles many common cases correctly. For example, if you use
+// behaviors.Color, and your color enum is combined into the enum called 'group',
+// then this will automatically report that membership for the player.
 func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) enum.ImmutableMembershipSet {
 
 	//Calculating which properties to include is expensive, so only do it once.
@@ -225,8 +225,8 @@ func (g *GameDelegate) GroupMembership(playerState boardgame.ImmutableSubState) 
 
 const computedGroupNameDelimiter = "-"
 
-//TODO: also support 'overlapping' and 'nonoverlapping' (note the latter cant
-//have a dash as that's the delimiter)
+// TODO: also support 'overlapping' and 'nonoverlapping' (note the latter cant
+// have a dash as that's the delimiter)
 const computedGroupNameFunctionSame = "same"
 const computedGroupNameFunctionsDifferent = "different"
 
@@ -235,7 +235,7 @@ var legalComputedGroupNameFunctions = map[string]bool{
 	computedGroupNameFunctionsDifferent: true,
 }
 
-//fun will be one of legalComputedGroupNameFunctions. e will not be nil, and will be known to be a subset of GroupEnum.
+// fun will be one of legalComputedGroupNameFunctions. e will not be nil, and will be known to be a subset of GroupEnum.
 func doComputedGroupMembership(fun string, e enum.Enum, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) bool {
 	for _, key := range e.Values() {
 		p := playerMembership != nil && playerMembership.Contains(key)
@@ -282,7 +282,6 @@ and viewingAsPlayerMembership are different.
 
 Example: 'same-color': true if the two players are precisely the same color as
 returned by GroupMembership.
-
 */
 func (g *GameDelegate) ComputedPlayerGroupMembership(groupName string, playerMembership, viewingAsPlayerMembership enum.ImmutableMembershipSet) (bool, error) {
 
@@ -317,11 +316,11 @@ func (g *GameDelegate) ComputedPlayerGroupMembership(groupName string, playerMem
 	return false, errors.New("Unsupported group name: " + groupName)
 }
 
-//SanitizationPolicy uses struct tags to identify the right policy to apply
-//(see the package doc on SanitizationPolicy for how to configure those tags).
-//It sees which policies apply given the provided group membership, and then
-//returns the LEAST restrictive policy that applies. This behavior is almost
-//always what you want; it is rare to need to override this method.
+// SanitizationPolicy uses struct tags to identify the right policy to apply
+// (see the package doc on SanitizationPolicy for how to configure those tags).
+// It sees which policies apply given the provided group membership, and then
+// returns the LEAST restrictive policy that applies. This behavior is almost
+// always what you want; it is rare to need to override this method.
 func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, groupMembership map[string]bool) boardgame.Policy {
 
 	manager := g.Manager()
@@ -360,52 +359,52 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 
 }
 
-//ComputedGlobalProperties returns nil.
+// ComputedGlobalProperties returns nil.
 func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
 	return nil
 }
 
-//ComputedPlayerProperties returns nil.
+// ComputedPlayerProperties returns nil.
 func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 	return nil
 }
 
-//BeginSetUp does not do anything and returns nil.
+// BeginSetUp does not do anything and returns nil.
 func (g *GameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
 	//Don't need to do anything by default
 	return nil
 }
 
-//FinishSetUp doesn't do anything and returns nil.
+// FinishSetUp doesn't do anything and returns nil.
 func (g *GameDelegate) FinishSetUp(state boardgame.State) error {
 	//Don't need to do anything by default
 	return nil
 }
 
-//defaultCheckGameFinishedDelegate can be private because
-//DefaultGameFinished implements the methods by default.
+// defaultCheckGameFinishedDelegate can be private because
+// DefaultGameFinished implements the methods by default.
 type defaultCheckGameFinishedDelegate interface {
 	GameEndConditionMet(state boardgame.ImmutableState) bool
 	PlayerScore(pState boardgame.ImmutableSubState) int
 	LowScoreWins() bool
 }
 
-//PlayerGameScorer is an optional interface that can be implemented by
-//PlayerSubStates. If it is implemented, base.GameDelegate's default
-//PlayerScore() method will return it.
+// PlayerGameScorer is an optional interface that can be implemented by
+// PlayerSubStates. If it is implemented, base.GameDelegate's default
+// PlayerScore() method will return it.
 type PlayerGameScorer interface {
 	//Score returns the overall score for the game for the player at this
 	//point in time.
 	GameScore() int
 }
 
-//CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
-//then it fetches delegate.PlayerScore() for each player and returns all players
-//who have the highest score as winners. (If delegate.LowScoreWins() is true,
-//instead of highest score, it does lowest score.) It skips any players who are
-//Inactive (according to behaviors.PlayerIsInactive). To use this implementation
-//simply implement those methods. This is sufficient for many games, but not
-//all, so sometimes needs to be overriden.
+// CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
+// then it fetches delegate.PlayerScore() for each player and returns all players
+// who have the highest score as winners. (If delegate.LowScoreWins() is true,
+// instead of highest score, it does lowest score.) It skips any players who are
+// Inactive (according to behaviors.PlayerIsInactive). To use this implementation
+// simply implement those methods. This is sufficient for many games, but not
+// all, so sometimes needs to be overriden.
 func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finished bool, winners []boardgame.PlayerIndex) {
 
 	if g.Manager() == nil {
@@ -468,27 +467,27 @@ func (g *GameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 
 }
 
-//LowScoreWins is used in base.GameDelegate's CheckGameFinished. If false
-//(default) higher scores are better. If true, however, then lower scores win
-//(similar to golf), and all of the players with the lowest score win.
+// LowScoreWins is used in base.GameDelegate's CheckGameFinished. If false
+// (default) higher scores are better. If true, however, then lower scores win
+// (similar to golf), and all of the players with the lowest score win.
 func (g *GameDelegate) LowScoreWins() bool {
 	return false
 }
 
-//GameEndConditionMet is used in the default CheckGameFinished implementation.
-//It should return true when the game is over and ready for scoring.
-//CheckGameFinished uses this by default; if you override CheckGameFinished
-//you don't need to override this. The default implementation of this simply
-//returns false.
+// GameEndConditionMet is used in the default CheckGameFinished implementation.
+// It should return true when the game is over and ready for scoring.
+// CheckGameFinished uses this by default; if you override CheckGameFinished
+// you don't need to override this. The default implementation of this simply
+// returns false.
 func (g *GameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	return false
 }
 
-//PlayerScore is used in the default CheckGameFinished implementation. It
-//should return the score for the given player. CheckGameFinished uses this by
-//default; if you override CheckGameFinished you don't need to override this.
-//The default implementation returns pState.GameScore() (if pState implements
-//the PlayerGameScorer interface), or 0 otherwise.
+// PlayerScore is used in the default CheckGameFinished implementation. It
+// should return the score for the given player. CheckGameFinished uses this by
+// default; if you override CheckGameFinished you don't need to override this.
+// The default implementation returns pState.GameScore() (if pState implements
+// the PlayerGameScorer interface), or 0 otherwise.
 func (g *GameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	if scorer, ok := pState.(PlayerGameScorer); ok {
 		return scorer.GameScore()
@@ -496,9 +495,9 @@ func (g *GameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	return 0
 }
 
-//NumSeatedActivePlayers returns the number of players who are both seated and
-//active. This is typically the number you want to decide how many 'real'
-//players there are at the moment. See boardgame/behaviors package doc for more.
+// NumSeatedActivePlayers returns the number of players who are both seated and
+// active. This is typically the number you want to decide how many 'real'
+// players there are at the moment. See boardgame/behaviors package doc for more.
 func (g *GameDelegate) NumSeatedActivePlayers(state boardgame.ImmutableState) int {
 	count := 0
 	for _, p := range state.ImmutablePlayerStates() {
@@ -515,9 +514,9 @@ func (g *GameDelegate) NumSeatedActivePlayers(state boardgame.ImmutableState) in
 	return count
 }
 
-//NumActivePlayers returns the number of players who are active (whether or not
-//they are seated). See also NumSeatedActivePlayers, which is typically what you
-//want. See boardgame/behaviors package doc for more.
+// NumActivePlayers returns the number of players who are active (whether or not
+// they are seated). See also NumSeatedActivePlayers, which is typically what you
+// want. See boardgame/behaviors package doc for more.
 func (g *GameDelegate) NumActivePlayers(state boardgame.ImmutableState) int {
 	count := 0
 	for _, p := range state.ImmutablePlayerStates() {
@@ -529,9 +528,9 @@ func (g *GameDelegate) NumActivePlayers(state boardgame.ImmutableState) int {
 	return count
 }
 
-//NumSeatedPlayers returns the number of players who are seated (whether or not
-//they are active.) See also NumSeatedActivePlayers, which is typically what you
-//want. See boardgame/behaviors package doc for more.
+// NumSeatedPlayers returns the number of players who are seated (whether or not
+// they are active.) See also NumSeatedActivePlayers, which is typically what you
+// want. See boardgame/behaviors package doc for more.
 func (g *GameDelegate) NumSeatedPlayers(state boardgame.ImmutableState) int {
 	count := 0
 	for _, p := range state.ImmutablePlayerStates() {
@@ -545,25 +544,25 @@ func (g *GameDelegate) NumSeatedPlayers(state boardgame.ImmutableState) int {
 	return count
 }
 
-//DefaultNumPlayers returns 2.
+// DefaultNumPlayers returns 2.
 func (g *GameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-//MinNumPlayers returns 1
+// MinNumPlayers returns 1
 func (g *GameDelegate) MinNumPlayers() int {
 	return 1
 }
 
-//MaxNumPlayers returns 16
+// MaxNumPlayers returns 16
 func (g *GameDelegate) MaxNumPlayers() int {
 	return 16
 }
 
-//LegalNumPlayers checks that the number of players is between MinNumPlayers
-//and MaxNumPlayers, inclusive. You'd only want to override this if some
-//player numbers in that range are not legal, for example a game where only
-//even numbers of players may play.
+// LegalNumPlayers checks that the number of players is between MinNumPlayers
+// and MaxNumPlayers, inclusive. You'd only want to override this if some
+// player numbers in that range are not legal, for example a game where only
+// even numbers of players may play.
 func (g *GameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 	min := g.Manager().Delegate().MinNumPlayers()
@@ -573,40 +572,40 @@ func (g *GameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 }
 
-//PlayerMayBeActive returns true for all players, unless they implement
-//moves/interfaces.PlayerInactiverer, in which case IsInactive is consulted, and
-//if it's true then this returns false. Designed to work well with behaviors.InactivePlayer
+// PlayerMayBeActive returns true for all players, unless they implement
+// moves/interfaces.PlayerInactiverer, in which case IsInactive is consulted, and
+// if it's true then this returns false. Designed to work well with behaviors.InactivePlayer
 func (g *GameDelegate) PlayerMayBeActive(player boardgame.ImmutableSubState) bool {
 	return !behaviors.PlayerIsInactive(player)
 }
 
-//Variants returns a VariantConfig with no entries.
+// Variants returns a VariantConfig with no entries.
 func (g *GameDelegate) Variants() boardgame.VariantConfig {
 	return boardgame.VariantConfig{}
 }
 
-//ConfigureAgents by default returns nil. If you want agents in your game,
-//override this.
+// ConfigureAgents by default returns nil. If you want agents in your game,
+// override this.
 func (g *GameDelegate) ConfigureAgents() []boardgame.Agent {
 	return nil
 }
 
-//ConfigureEnums simply returns nil. In general you want to override this with
-//a body of `return Enums`, if you're using `boardgame-util config` to
-//generate your enum set.
+// ConfigureEnums simply returns nil. In general you want to override this with
+// a body of `return Enums`, if you're using `boardgame-util config` to
+// generate your enum set.
 func (g *GameDelegate) ConfigureEnums() *enum.Set {
 	return nil
 }
 
-//ConfigureDecks returns a zero-entry map. You want to override this if you
-//have any components in your game (which the vast majority of games do)
+// ConfigureDecks returns a zero-entry map. You want to override this if you
+// have any components in your game (which the vast majority of games do)
 func (g *GameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	return make(map[string]*boardgame.Deck)
 }
 
-//ConfigureConstants returns a zero-entry map. If you have any constants you
-//wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
-//to override this.
+// ConfigureConstants returns a zero-entry map. If you have any constants you
+// wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
+// to override this.
 func (g *GameDelegate) ConfigureConstants() boardgame.PropertyCollection {
 	return nil
 }

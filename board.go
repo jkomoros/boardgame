@@ -6,8 +6,8 @@ import (
 	"strconv"
 )
 
-//ImmutableBoard is a version of a Board without any of the mutator methods.
-//See Board for more.
+// ImmutableBoard is a version of a Board without any of the mutator methods.
+// See Board for more.
 type ImmutableBoard interface {
 	ImmutableSpaces() []ImmutableStack
 	ImmutableSpaceAt(index int) ImmutableStack
@@ -16,12 +16,12 @@ type ImmutableBoard interface {
 	setState(st *state)
 }
 
-//Board represents an array of growable Stacks. They're useful for
-//representing spaces on a board, which may allow unlimited components to
-//reside in them, or have a maxium number of occupants. If each board's space
-//only allows a single item, it's often equivalent--and simpler--to just use a
-//single Stack of a FixedSize. Get one from deck.NewBoard(). See also
-//ImmutableBiard, which is the same, but without mutator methods.
+// Board represents an array of growable Stacks. They're useful for
+// representing spaces on a board, which may allow unlimited components to
+// reside in them, or have a maxium number of occupants. If each board's space
+// only allows a single item, it's often equivalent--and simpler--to just use a
+// single Stack of a FixedSize. Get one from deck.NewBoard(). See also
+// ImmutableBiard, which is the same, but without mutator methods.
 type Board interface {
 	ImmutableBoard
 	Spaces() []Stack
@@ -36,15 +36,15 @@ type board struct {
 	spaces []*growableStack
 }
 
-//NewBoard returns a new board associated with the given deck. length is the
-//number of spaces to create. maxSize is the maximum size for each growable
-//Stack in the board. 0 means "no limitation". If you pass maxSize of 1,
-//consider simply using a sized Stack for that property instead, as those are
-//semantically equivalent, and a sized Stack is simpler. Typically you'd use
-//this in your GameDelegate's GameStateConstructor() and other similar
-//methods; although in practice it is much more common to use struct-tag based
-//inflation, making direct use of this constructor unnecessary. See
-//StructInflater for more.
+// NewBoard returns a new board associated with the given deck. length is the
+// number of spaces to create. maxSize is the maximum size for each growable
+// Stack in the board. 0 means "no limitation". If you pass maxSize of 1,
+// consider simply using a sized Stack for that property instead, as those are
+// semantically equivalent, and a sized Stack is simpler. Typically you'd use
+// this in your GameDelegate's GameStateConstructor() and other similar
+// methods; although in practice it is much more common to use struct-tag based
+// inflation, making direct use of this constructor unnecessary. See
+// StructInflater for more.
 func (d *Deck) NewBoard(length int, maxSize int) Board {
 	if length <= 0 {
 		return nil

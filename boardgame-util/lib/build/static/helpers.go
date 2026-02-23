@@ -8,10 +8,10 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 )
 
-//The main import for the main library
+// The main import for the main library
 const mainPackage = "github.com/jkomoros/boardgame"
 
-//The path, relative to mainPackage, where the static files are
+// The path, relative to mainPackage, where the static files are
 const staticServerPath = "server/static"
 
 const staticSubFolder = "static"
@@ -28,8 +28,8 @@ func absoluteStaticServerPath() (string, error) {
 
 }
 
-//staticBuildDir returns the static build directory within dir, creating it
-//if it doesn't exist. For example, for dir="temp", returns "temp/static".
+// staticBuildDir returns the static build directory within dir, creating it
+// if it doesn't exist. For example, for dir="temp", returns "temp/static".
 func staticBuildDir(dir string) (string, error) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return "", errors.New(dir + " did not already exist.")
@@ -46,8 +46,8 @@ func staticBuildDir(dir string) (string, error) {
 	return staticDir, nil
 }
 
-//copyFile copies the file at location remote to location local, copying
-//cotents and perms.
+// copyFile copies the file at location remote to location local, copying
+// cotents and perms.
 func copyFile(remote, local string) error {
 
 	info, err := os.Stat(remote)
@@ -70,8 +70,8 @@ func copyFile(remote, local string) error {
 
 }
 
-//buildCachePath returns where we store our build cache (or where we WOULD if
-//it existed).
+// buildCachePath returns where we store our build cache (or where we WOULD if
+// it existed).
 func buildCachePath() (string, error) {
 	userCacheDir, err := os.UserCacheDir()
 

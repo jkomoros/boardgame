@@ -12,10 +12,10 @@ import (
 
 const emptyIndexSentinel = -1
 
-//ImmutableStack is a flavor of Stack, but minus any methods that can be used
-//to mutate anything. See the documentation for Stack for more about the
-//hierarchy of Stack-based types. ImmutableStack is the lowest-common-
-//denominator that all Stack types implement.
+// ImmutableStack is a flavor of Stack, but minus any methods that can be used
+// to mutate anything. See the documentation for Stack for more about the
+// hierarchy of Stack-based types. ImmutableStack is the lowest-common-
+// denominator that all Stack types implement.
 type ImmutableStack interface {
 
 	//Deck returns the Deck associated with this stack.
@@ -121,12 +121,12 @@ type ImmutableStack interface {
 	lastComponentIndex() int
 }
 
-//ImmutableSizedStack is a specific type of Stack that has a specific number
-//of slots, any of which may be nil. Although very few methods are added, the
-//basic behavior of the Stack methods is quite different for these kinds of
-//stacks. See also SizedStack, which adds mutator methods to this definition.
-//See the documentation for Stack for more about the hierarchy of Stack
-//objects.
+// ImmutableSizedStack is a specific type of Stack that has a specific number
+// of slots, any of which may be nil. Although very few methods are added, the
+// basic behavior of the Stack methods is quite different for these kinds of
+// stacks. See also SizedStack, which adds mutator methods to this definition.
+// See the documentation for Stack for more about the hierarchy of Stack
+// objects.
 type ImmutableSizedStack interface {
 	//An ImmutableSizedStack can be used everywhere a normal ImmutableStack
 	//can. Note the behavior of an ImmutableSizedStack's base ImmutableStack
@@ -141,10 +141,10 @@ type ImmutableSizedStack interface {
 	LastComponentIndex() int
 }
 
-//MergedStack is a special variant of ImmutableStack that is actually formed
-//from multiple underlying stacks combined. MergedStacks can never be mutated
-//directly; instead, mutate the underlying stacks.  See the documentation for
-//Stack for more about the hierarchy of Stack types.
+// MergedStack is a special variant of ImmutableStack that is actually formed
+// from multiple underlying stacks combined. MergedStacks can never be mutated
+// directly; instead, mutate the underlying stacks.  See the documentation for
+// Stack for more about the hierarchy of Stack types.
 type MergedStack interface {
 	//A MergedStack can be used anywhere an ImmutableStack can be.
 	ImmutableStack
@@ -164,7 +164,6 @@ type MergedStack interface {
 }
 
 /*
-
 Stack is one of the fundamental types in the engine. Stacks model things like
 a stack of cards, a collection of resource tokens, etc. Each component in each
 deck must reside in precisely one stack in each state, the so called
@@ -190,11 +189,11 @@ how to initialize them for you. See StructInflater for more.
 There are a hierarchy of different types for Stacks, with diferent behavior
 for these methods.
 
-	* ImmutableStack
-		* Stack
-			* SizedStack
-		* ImmutableSizedStack
-		* MergedStack
+  - ImmutableStack
+  - Stack
+  - SizedStack
+  - ImmutableSizedStack
+  - MergedStack
 
 The default Stack is known as a "growable" stack. The number of slots it has
 is precisely the number of ComponentInstaces it contains, and when a new
@@ -240,7 +239,6 @@ they don't have any mutators, so they extend the ImmutableStack interface, and
 don't implement the Stack interface. ImmutableStack is thus the lowest common
 denominator: the interface that all Stack objects implement. See MergedStack
 for more.
-
 */
 type Stack interface {
 	//A Stack can be used anywhere an ImmutableStack can be.
@@ -418,11 +416,11 @@ type Stack interface {
 	lastSlot() int
 }
 
-//SizedStack is Stack, but with SizedStack related methods. See the
-//documentation for Stack for more about how SizedStacks are different than
-//Stacks. Note that although a SizedStack has only a few more methods than a
-//normal Stack, its Stack methods will also have different methods than a
-//"normal" stack.
+// SizedStack is Stack, but with SizedStack related methods. See the
+// documentation for Stack for more about how SizedStacks are different than
+// Stacks. Note that although a SizedStack has only a few more methods than a
+// normal Stack, its Stack methods will also have different methods than a
+// "normal" stack.
 type SizedStack interface {
 	//SizedStack can be used anywhere a Stack can be.
 	Stack
@@ -448,9 +446,9 @@ type SizedStack interface {
 	LastSlot() int
 }
 
-//growableStack is a Stack that has a variable number of slots, none of which
-//may be empty. It can optionally have a max size. Create a new one with
-//deck.NewGrowableStack.
+// growableStack is a Stack that has a variable number of slots, none of which
+// may be empty. It can optionally have a max size. Create a new one with
+// deck.NewGrowableStack.
 type growableStack struct {
 	//Deck is the deck that we're a part of. This will be nil if we aren't
 	//inflated.
@@ -480,8 +478,8 @@ type growableStack struct {
 	boardIndex int
 }
 
-//sizedStack is a Stack that has a fixed number of slots, any of which may be
-//empty. Create a new one with deck.NewSizedStack.
+// sizedStack is a Stack that has a fixed number of slots, any of which may be
+// empty. Create a new one with deck.NewSizedStack.
 type sizedStack struct {
 	//Deck is the deck we're a part of. This will be nil if we aren't inflated.
 	deckPtr *Deck
@@ -507,15 +505,15 @@ type sizedStack struct {
 	statePtr *state
 }
 
-//mergedStack is a derived stack that is made of two stacks, either in
-//concatenate mode (default) or overlap mode.
+// mergedStack is a derived stack that is made of two stacks, either in
+// concatenate mode (default) or overlap mode.
 type mergedStack struct {
 	stacks  []ImmutableStack
 	overlap bool
 }
 
-//stackJSONObj is an internal struct that we populate and use to implement
-//MarshalJSON so stacks can be saved in output JSON with minimum fuss.
+// stackJSONObj is an internal struct that we populate and use to implement
+// MarshalJSON so stacks can be saved in output JSON with minimum fuss.
 type stackJSONObj struct {
 	Deck         string
 	Indexes      []int
@@ -526,13 +524,13 @@ type stackJSONObj struct {
 	MaxSize      int `json:",omitempty"`
 }
 
-//NewConcatenatedStack returns a new merged stack where all of the components
-//in the first stack will show up, then all of the components in the second
-//stack, and on down the list of stacks. In practice this is useful as a
-//computed property when you have a logical stack made up of components that
-//are santiized followed by components that are not sanitized, like in a
-//blackjack hand. All stacks must be from the same deck, or Valid() will
-//error.
+// NewConcatenatedStack returns a new merged stack where all of the components
+// in the first stack will show up, then all of the components in the second
+// stack, and on down the list of stacks. In practice this is useful as a
+// computed property when you have a logical stack made up of components that
+// are santiized followed by components that are not sanitized, like in a
+// blackjack hand. All stacks must be from the same deck, or Valid() will
+// error.
 func NewConcatenatedStack(stack ...ImmutableStack) MergedStack {
 	return &mergedStack{
 		stacks:  stack,
@@ -540,13 +538,13 @@ func NewConcatenatedStack(stack ...ImmutableStack) MergedStack {
 	}
 }
 
-//NewOverlappedStack returns a new merged stack where any gaps in the first
-//stack will be filled with whatever is in the same position in the second
-//stack, and so on down the line. In practice this is useful as a computed
-//property when you have a logical stack made up of components where some are
-//sanitized and some are not, like the grid of cards in Memory. All stacks
-//must be from the same deck, and return non-nil objects from
-//ImmutableSizedStack() for all, otherwise Valid() will error.
+// NewOverlappedStack returns a new merged stack where any gaps in the first
+// stack will be filled with whatever is in the same position in the second
+// stack, and so on down the line. In practice this is useful as a computed
+// property when you have a logical stack made up of components where some are
+// sanitized and some are not, like the grid of cards in Memory. All stacks
+// must be from the same deck, and return non-nil objects from
+// ImmutableSizedStack() for all, otherwise Valid() will error.
 func NewOverlappedStack(stack ...ImmutableStack) MergedStack {
 
 	return &mergedStack{
@@ -556,7 +554,7 @@ func NewOverlappedStack(stack ...ImmutableStack) MergedStack {
 
 }
 
-//NewGrowableStack creates a new growable stack with the given Deck and Cap.
+// NewGrowableStack creates a new growable stack with the given Deck and Cap.
 func newGrowableStack(deck *Deck, maxSize int) *growableStack {
 
 	if maxSize < 0 {
@@ -572,8 +570,8 @@ func newGrowableStack(deck *Deck, maxSize int) *growableStack {
 	}
 }
 
-//NewSizedStack creates a new SizedStack for the given deck, with the
-//specified size.
+// NewSizedStack creates a new SizedStack for the given deck, with the
+// specified size.
 func newSizedStack(deck *Deck, size int) *sizedStack {
 	if size < 0 {
 		size = 0
@@ -650,8 +648,8 @@ func (s *sizedStack) ImmutableSizedStack() ImmutableSizedStack {
 	return s
 }
 
-//SizedStack returns a SizedStack if all of the sub-stacks are themselves
-//sized.
+// SizedStack returns a SizedStack if all of the sub-stacks are themselves
+// sized.
 func (m *mergedStack) ImmutableSizedStack() ImmutableSizedStack {
 	for _, stack := range m.stacks {
 		if stack.ImmutableSizedStack() == nil {
@@ -801,12 +799,12 @@ func (m *mergedStack) lastComponentIndex() int {
 	return -1
 }
 
-//Len returns the number of items in the stack.
+// Len returns the number of items in the stack.
 func (g *growableStack) Len() int {
 	return len(g.indexes)
 }
 
-//Len returns the number of slots in the stack. It will always equal Size.
+// Len returns the number of slots in the stack. It will always equal Size.
 func (s *sizedStack) Len() int {
 	return len(s.indexes)
 }
@@ -1043,8 +1041,8 @@ func (g *growableStack) ImmutableComponentAt(index int) ImmutableComponentInstan
 	return g.ComponentAt(index)
 }
 
-//ComponentAt fetches the component object representing the n-th object in
-//this stack.
+// ComponentAt fetches the component object representing the n-th object in
+// this stack.
 func (g *growableStack) ComponentAt(index int) ComponentInstance {
 
 	//Substantially recreated in SizedStack.ComponentAt()
@@ -1071,8 +1069,8 @@ func (s *sizedStack) ImmutableComponentAt(index int) ImmutableComponentInstance 
 	return s.ComponentAt(index)
 }
 
-//ComponentAt fetches the component object representing the n-th object in
-//this stack.
+// ComponentAt fetches the component object representing the n-th object in
+// this stack.
 func (s *sizedStack) ComponentAt(index int) ComponentInstance {
 
 	//Substantially recreated in GrowableStack.ComponentAt()
@@ -1262,8 +1260,8 @@ func (s *sizedStack) scrambleIds() {
 	}
 }
 
-//SlotsRemaining returns the count of slots left in this stack. If Cap is 0
-//(inifinite) this will be MaxInt64.
+// SlotsRemaining returns the count of slots left in this stack. If Cap is 0
+// (inifinite) this will be MaxInt64.
 func (g *growableStack) SlotsRemaining() int {
 	if g.maxSize <= 0 {
 		return math.MaxInt64
@@ -1271,7 +1269,7 @@ func (g *growableStack) SlotsRemaining() int {
 	return g.maxSize - g.Len()
 }
 
-//SlotsRemaining returns the count of unfilled slots in this stack.
+// SlotsRemaining returns the count of unfilled slots in this stack.
 func (s *sizedStack) SlotsRemaining() int {
 	count := 0
 	for _, index := range s.indexes {

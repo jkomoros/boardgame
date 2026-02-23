@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-//TreeNodeDelimiter is the string used to join the individual node names into
-//one (e.g. "Normal > Deal Cards > Deal To First Player")
+// TreeNodeDelimiter is the string used to join the individual node names into
+// one (e.g. "Normal > Deal Cards > Deal To First Player")
 const TreeNodeDelimiter = " > "
 
-//TreeEnum is a special type of Enum where the list of values also have a tree
-//structure that can be interrogated. TreeEnums always have 0 map to "" as the
-//root value.
+// TreeEnum is a special type of Enum where the list of values also have a tree
+// structure that can be interrogated. TreeEnums always have 0 map to "" as the
+// root value.
 type TreeEnum interface {
 	Enum
 
@@ -49,9 +49,9 @@ type TreeEnum interface {
 	MustNewTreeVal(val EnumKey) TreeVal
 }
 
-//TreeValGetters is the collection of methods that TreeVals have beyodn normal
-//Vals. It is factored out into a separate interface to clarify how
-//ImmutableTreeVal and TreeVal differ from their non-treeval types.
+// TreeValGetters is the collection of methods that TreeVals have beyodn normal
+// Vals. It is factored out into a separate interface to clarify how
+// ImmutableTreeVal and TreeVal differ from their non-treeval types.
 type TreeValGetters interface {
 	//IsLeaf is a convenience for val.Enum().TreeEnum().IsLeaf(val.Value())
 	IsLeaf() bool
@@ -78,21 +78,21 @@ type TreeValGetters interface {
 	NodeString() string
 }
 
-//ImmutableTreeVal is a value from a TreeEnum.
+// ImmutableTreeVal is a value from a TreeEnum.
 type ImmutableTreeVal interface {
 	ImmutableVal
 	TreeValGetters
 }
 
-//TreeVal is a value from a tree enum.
+// TreeVal is a value from a tree enum.
 type TreeVal interface {
 	Val
 	TreeValGetters
 }
 
-//MustAddTree is like AddTree, but instead of an error it will panic if the
-//enum cannot be added. This is useful for defining your enums at the package
-//level outside of an init().
+// MustAddTree is like AddTree, but instead of an error it will panic if the
+// enum cannot be added. This is useful for defining your enums at the package
+// level outside of an init().
 func (s *Set) MustAddTree(enumName string, values map[EnumKey]string, parents map[EnumKey]EnumKey) TreeEnum {
 	result, err := s.AddTree(enumName, values, parents)
 
@@ -103,16 +103,16 @@ func (s *Set) MustAddTree(enumName string, values map[EnumKey]string, parents ma
 	return result
 }
 
-//AddTree adds a new tree enum. Unlike a normal enum, you also must pass amap
-//of value to its parent. Every value in values must also be present in
-//parents. In a TreeEnum, the root is always value 0 and always has string
-//value "". You may omit the root value if you choose because it is implied.
-//The string value map should be just the name of the node itself. The
-//effective name of the node will be joined all of its ancestors. Unlike
-//normal enums, multiple values can have the same name, as long as the fully
-//qualified name (including all of the ancestors' node names) are unique.
-//Typically you rely on `boardgame-util codegen` to create these on your
-//behalf, because the initial set-up is finicky with the two maps.
+// AddTree adds a new tree enum. Unlike a normal enum, you also must pass amap
+// of value to its parent. Every value in values must also be present in
+// parents. In a TreeEnum, the root is always value 0 and always has string
+// value "". You may omit the root value if you choose because it is implied.
+// The string value map should be just the name of the node itself. The
+// effective name of the node will be joined all of its ancestors. Unlike
+// normal enums, multiple values can have the same name, as long as the fully
+// qualified name (including all of the ancestors' node names) are unique.
+// Typically you rely on `boardgame-util codegen` to create these on your
+// behalf, because the initial set-up is finicky with the two maps.
 func (s *Set) AddTree(enumName string, values map[EnumKey]string, parents map[EnumKey]EnumKey) (TreeEnum, error) {
 
 	str, ok := values[0]

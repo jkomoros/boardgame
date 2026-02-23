@@ -1,9 +1,7 @@
 /*
-
 Package tictactoe is an exceedingly simple game based on boardgame. It serves
 as an example, and also helps verify that the design and implementation of
 boardgame are useful for real games.
-
 */
 package tictactoe
 
@@ -187,8 +185,8 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	return strings.Join(result, "\n")
 }
 
-//state should be a DIM * DIM length string, of the form "XXO XO  O". Winner
-//will be of the form "X" or "O".
+// state should be a DIM * DIM length string, of the form "XXO XO  O". Winner
+// will be of the form "X" or "O".
 func checkGameFinished(state []string) (finished bool, winner string) {
 	/*The following are win conditions:
 
@@ -263,9 +261,9 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 	return true, Empty
 }
 
-//runState should be a string of length DIM, where empty spaces are
-//represented by "", which represents one "run" in the state. The winner will
-//be "X", "O", or "" if no winner in this run.
+// runState should be a string of length DIM, where empty spaces are
+// represented by "", which represents one "run" in the state. The winner will
+// be "X", "O", or "" if no winner in this run.
 func checkRunWon(runState []string) string {
 
 	if len(runState) != dim {
@@ -310,8 +308,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-//NewDelegate is the primary entrypoint for this package. It returns a
-//GameDelegate that configures a game of pig.
+// NewDelegate is the primary entrypoint for this package. It returns a
+// GameDelegate that configures a game of pig.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

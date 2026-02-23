@@ -49,15 +49,15 @@ func TestPolicyFromString(t *testing.T) {
 	}
 }
 
-//Basically has the information that WOULD have been provided by sruct tags
+// Basically has the information that WOULD have been provided by sruct tags
 type sanitizationTestConfig struct {
 	Game                   map[string]string
 	Player                 map[string]string
 	DynamicComponentValues map[string]map[string]string
 }
 
-//Install sets up the given manager's iternal methods as though the config was
-//read in from the struct tags.
+// Install sets up the given manager's iternal methods as though the config was
+// read in from the struct tags.
 func (s *sanitizationTestConfig) Install(manager *GameManager) {
 
 	manager.gameValidator.sanitizationPolicy = s.policyForSubObject(manager.Delegate().GameStateConstructor().Reader(), s.Game, false)

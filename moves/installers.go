@@ -8,10 +8,10 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//Combine takes a series of lists of moveTypeConfigs and flattens them into a
-//single list, appropriate for being retunrned from delegate.ConfigureMoves().
-//It doesn't do anything special, but instead exists entirely as a convenience
-//to make writing your ConfigureMoves easier.
+// Combine takes a series of lists of moveTypeConfigs and flattens them into a
+// single list, appropriate for being retunrned from delegate.ConfigureMoves().
+// It doesn't do anything special, but instead exists entirely as a convenience
+// to make writing your ConfigureMoves easier.
 func Combine(moves ...[]boardgame.MoveConfig) []boardgame.MoveConfig {
 
 	var result []boardgame.MoveConfig
@@ -24,19 +24,19 @@ func Combine(moves ...[]boardgame.MoveConfig) []boardgame.MoveConfig {
 
 }
 
-//Add is designed to be used inside of Combine for moves that can apply in any
-//phase in any order. It is a parallel of AddForPhase and AddOrderedForPhase.
-//It doesn't actually do any processing, and is effectively equivalent to
-//wrapping your config bundles in []boardgame.MoveConfig{}. However, it makes
-//the intent of your move installers clearer.
+// Add is designed to be used inside of Combine for moves that can apply in any
+// phase in any order. It is a parallel of AddForPhase and AddOrderedForPhase.
+// It doesn't actually do any processing, and is effectively equivalent to
+// wrapping your config bundles in []boardgame.MoveConfig{}. However, it makes
+// the intent of your move installers clearer.
 func Add(moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 	return moves
 }
 
-//AddForPhase is designed to be used within Combine. It calls
-//WithLegalPhases() on the config for each config passed in, so that those
-//moves will only be Legal() in that phase. It's a convenience to make it less
-//error-prone and more clear what the intent is for phase-locked moves.
+// AddForPhase is designed to be used within Combine. It calls
+// WithLegalPhases() on the config for each config passed in, so that those
+// moves will only be Legal() in that phase. It's a convenience to make it less
+// error-prone and more clear what the intent is for phase-locked moves.
 func AddForPhase(phase enum.EnumKey, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 
 	phaseInstaller := WithLegalPhases(phase)
@@ -49,8 +49,8 @@ func AddForPhase(phase enum.EnumKey, moves ...boardgame.MoveConfig) []boardgame.
 
 }
 
-//errorMove is a special type of move used entirely to signal an error in
-//ValidConfiguration.
+// errorMove is a special type of move used entirely to signal an error in
+// ValidConfiguration.
 //
 //boardgame:codegen
 type errorMove struct {
@@ -72,21 +72,21 @@ func (e *errorMove) ValidConfiguration(exampleState boardgame.State) error {
 	return errors.New("Error earlier in move processing: " + e.Message)
 }
 
-//AddOrderedForPhase is designed to be used within Combine. It calls
-//WithLegalPhases() and also WithLegalMoveProgression() on the config for each
-//config passed in, which means that the moves' Legal() will only be Legal in
-//that phase, in that point in the move progression. It's a convenience to
-//make it less error-prone and more clear what the intent is for phase-locked,
-//ordered moves. All moveTypes passed must be legal auto-configurable moves.
-//You may pass configs generated from AutoConfigurer.Config(), or any of the
-//MoveProgressionGroup types defined in this package. All of the top level
-//groups passed will be treated implicitly like a single Serial group. All
-//moves contained within the provided groups will be registered. If your
-//PhaseEnum is a Tree, then phase must be a leaf enum value, or the moves will
-//fail to pass the ValidConfiguration check. This will also sanity check that
-//the last Move enumerated is a StartPhase move, which is almost always what
-//you want, and omission is likely an error. Check out the package doc for an
-//example of using groups in this function.
+// AddOrderedForPhase is designed to be used within Combine. It calls
+// WithLegalPhases() and also WithLegalMoveProgression() on the config for each
+// config passed in, which means that the moves' Legal() will only be Legal in
+// that phase, in that point in the move progression. It's a convenience to
+// make it less error-prone and more clear what the intent is for phase-locked,
+// ordered moves. All moveTypes passed must be legal auto-configurable moves.
+// You may pass configs generated from AutoConfigurer.Config(), or any of the
+// MoveProgressionGroup types defined in this package. All of the top level
+// groups passed will be treated implicitly like a single Serial group. All
+// moves contained within the provided groups will be registered. If your
+// PhaseEnum is a Tree, then phase must be a leaf enum value, or the moves will
+// fail to pass the ValidConfiguration check. This will also sanity check that
+// the last Move enumerated is a StartPhase move, which is almost always what
+// you want, and omission is likely an error. Check out the package doc for an
+// example of using groups in this function.
 func AddOrderedForPhase(phase enum.EnumKey, groups ...MoveProgressionGroup) []boardgame.MoveConfig {
 
 	//Technically it's illegal to attach a move progression to a non-leaf

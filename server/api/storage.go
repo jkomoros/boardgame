@@ -9,14 +9,14 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
-//Note: these are also duplicated in moves/seat_player.go
+// Note: these are also duplicated in moves/seat_player.go
 const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
 const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
 
-//StorageManager extends the base boardgame.StorageManager with a few more
-//methods necessary to make server work. When creating a new Server, you need
-//to pass in a ServerStorageManager, which wraps one of these objects and thus
-//implements these methods, too.
+// StorageManager extends the base boardgame.StorageManager with a few more
+// methods necessary to make server work. When creating a new Server, you need
+// to pass in a ServerStorageManager, which wraps one of these objects and thus
+// implements these methods, too.
 type StorageManager interface {
 
 	//StorageManager extends the boardgame.StorageManager interface. Those
@@ -75,15 +75,15 @@ type StorageManager interface {
 	//Note: whenever you add methods here, also add them to boardgame/storage/test/StorageManager
 }
 
-//ServerStorageManager implements the ServerStorage interface by wrapping an
-//object that supports StorageManager.
+// ServerStorageManager implements the ServerStorage interface by wrapping an
+// object that supports StorageManager.
 type ServerStorageManager struct {
 	StorageManager
 	server *Server
 }
 
-//NewServerStorageManager takes an object that implements StorageManager and
-//wraps it.
+// NewServerStorageManager takes an object that implements StorageManager and
+// wraps it.
 func NewServerStorageManager(manager StorageManager) *ServerStorageManager {
 	return &ServerStorageManager{
 		manager,
@@ -91,8 +91,8 @@ func NewServerStorageManager(manager StorageManager) *ServerStorageManager {
 	}
 }
 
-//PlayerMoveApplied notifies all clients connected vie an active WebSocket for
-//that game that the game has been modified.
+// PlayerMoveApplied notifies all clients connected vie an active WebSocket for
+// that game that the game has been modified.
 func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 
 	//Do the wrapped manager's PlayerMoveApplied in case it has one.
@@ -113,8 +113,8 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 
 }
 
-//FetchInjectedDataForGame is where the server signals to SeatPlayer that
-//there's a player to be seated.
+// FetchInjectedDataForGame is where the server signals to SeatPlayer that
+// there's a player to be seated.
 func (s *ServerStorageManager) FetchInjectedDataForGame(gameID string, dataType string) interface{} {
 	if dataType == willSeatPlayerRendevousDataType {
 		//This data type should return anything non-nil to signal, yes, I am a

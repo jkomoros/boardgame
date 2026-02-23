@@ -1,7 +1,5 @@
 /*
-
 unsaferanduse is a simple fake game pacakge that imports math.rand unsafely
-
 */
 package unsaferanduse
 

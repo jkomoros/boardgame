@@ -10,11 +10,11 @@ type isFixUpper interface {
 	IsFixUp() bool
 }
 
-//IsFixUp is a convenience method that takes the given move and returns
-//whehter its IsFixUp method returns true. If no IsFixUp exists, will return
-//false. Used by base.GameDelegate, since IsFixUp() isn't defined in the core
-//library, which means that moves fetched via the GameManager will have to be
-//casted to an interface.
+// IsFixUp is a convenience method that takes the given move and returns
+// whehter its IsFixUp method returns true. If no IsFixUp exists, will return
+// false. Used by base.GameDelegate, since IsFixUp() isn't defined in the core
+// library, which means that moves fetched via the GameManager will have to be
+// casted to an interface.
 func IsFixUp(move boardgame.Move) bool {
 
 	fixUpper, ok := move.(isFixUpper)
@@ -47,33 +47,33 @@ type Move struct {
 	topLevelStruct boardgame.Move
 }
 
-//SetInfo sets the return value of Info.
+// SetInfo sets the return value of Info.
 func (m *Move) SetInfo(info *boardgame.MoveInfo) {
 	m.info = info
 }
 
-//Info simply returns the info set via SetInfo.
+// Info simply returns the info set via SetInfo.
 func (m *Move) Info() *boardgame.MoveInfo {
 	return m.info
 }
 
-//SetTopLevelStruct sets the return value of TopLevelStruct.
+// SetTopLevelStruct sets the return value of TopLevelStruct.
 func (m *Move) SetTopLevelStruct(t boardgame.Move) {
 	m.topLevelStruct = t
 }
 
-//TopLevelStruct returns the object that was set via SetTopLevelStruct.
+// TopLevelStruct returns the object that was set via SetTopLevelStruct.
 func (m *Move) TopLevelStruct() boardgame.Move {
 	return m.topLevelStruct
 }
 
-//DefaultsForState doesn't do anything
+// DefaultsForState doesn't do anything
 func (m *Move) DefaultsForState(state boardgame.ImmutableState) {
 	return
 }
 
-//Name returns the name of this move according to MoveInfo.Name(). A simple
-//convenience wrapper that allows you to avoid a nil check.
+// Name returns the name of this move according to MoveInfo.Name(). A simple
+// convenience wrapper that allows you to avoid a nil check.
 func (m *Move) Name() string {
 	if m.info == nil {
 		return ""
@@ -81,9 +81,9 @@ func (m *Move) Name() string {
 	return m.info.Name()
 }
 
-//CustomConfiguration returns the custom configuration associated with this
-//move, according to MoveInfo.CustomConfiguration(). A simple convenience
-//wrapper that allows you to avoid a nil check.
+// CustomConfiguration returns the custom configuration associated with this
+// move, according to MoveInfo.CustomConfiguration(). A simple convenience
+// wrapper that allows you to avoid a nil check.
 func (m *Move) CustomConfiguration() boardgame.PropertyCollection {
 
 	if m.info == nil {
@@ -94,20 +94,20 @@ func (m *Move) CustomConfiguration() boardgame.PropertyCollection {
 
 }
 
-//HelpText returns ""
+// HelpText returns ""
 func (m *Move) HelpText() string {
 	return ""
 }
 
-//IsFixUp always returns false; it's designed ot be overriden. It is designed
-//to work well with base.IsFixUp, for use in base.GameDelegate.ProposeFixUp.
+// IsFixUp always returns false; it's designed ot be overriden. It is designed
+// to work well with base.IsFixUp, for use in base.GameDelegate.ProposeFixUp.
 func (m *Move) IsFixUp() bool {
 	return false
 }
 
-//ValidConfiguration always returns nil since the base move doesn't require any
-//configuration. Moves in the moves package typcially require more configuration
-//and will override this.
+// ValidConfiguration always returns nil since the base move doesn't require any
+// configuration. Moves in the moves package typcially require more configuration
+// and will override this.
 func (m *Move) ValidConfiguration(exampleState boardgame.State) error {
 	return nil
 }

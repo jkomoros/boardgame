@@ -8,25 +8,25 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//GroupableMoveConfig is a type of MoveConfig that also has enough methods for
-//it to be used as a MoveProgressionGroup in AddOrderedForPhase.
-//AutoConfigurer.Configure() returns these so that they can be nested directly
-//in any of the objects in the moves/groups package.
+// GroupableMoveConfig is a type of MoveConfig that also has enough methods for
+// it to be used as a MoveProgressionGroup in AddOrderedForPhase.
+// AutoConfigurer.Configure() returns these so that they can be nested directly
+// in any of the objects in the moves/groups package.
 type GroupableMoveConfig interface {
 	boardgame.MoveConfig
 	MoveProgressionGroup
 }
 
-//NewGroupableMoveConfig takes a generic boardgame.MoveConfig and makes it
-//satisfy the GroupableMoveConfig interface, so it can be used as a child in
-//the objects in moves/groups. The config returned will simply return a list
-//with a single item of itself for MoveConfigs. For Satisfied, it will consume
-//a move that shares its own name, and, if it implements
-//AllowMultipleInProgression() and returns true from that, it will consume as
-//many of those moves in a row as exist from the front of the tape.
-//AutoConfigurer.Config() returns objects that have been run through this
-//automatically, but it's a public function in case you want to decorate a
-//move config you generated manually and not from AutoConfigurer.Config().
+// NewGroupableMoveConfig takes a generic boardgame.MoveConfig and makes it
+// satisfy the GroupableMoveConfig interface, so it can be used as a child in
+// the objects in moves/groups. The config returned will simply return a list
+// with a single item of itself for MoveConfigs. For Satisfied, it will consume
+// a move that shares its own name, and, if it implements
+// AllowMultipleInProgression() and returns true from that, it will consume as
+// many of those moves in a row as exist from the front of the tape.
+// AutoConfigurer.Config() returns objects that have been run through this
+// automatically, but it's a public function in case you want to decorate a
+// move config you generated manually and not from AutoConfigurer.Config().
 func NewGroupableMoveConfig(config boardgame.MoveConfig) GroupableMoveConfig {
 	return &defaultMoveConfig{
 		config,
@@ -41,8 +41,8 @@ func (d *defaultMoveConfig) MoveConfigs() []boardgame.MoveConfig {
 	return []boardgame.MoveConfig{d.MoveConfig}
 }
 
-//Satisfied checks to see if the move allows multiple. If it does, then it's OK
-//if multiple are in a row. If not, verifies that only 0 or 1 are in a row.
+// Satisfied checks to see if the move allows multiple. If it does, then it's OK
+// if multiple are in a row. If not, verifies that only 0 or 1 are in a row.
 func (d *defaultMoveConfig) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
 
 	if tape == nil {
@@ -101,11 +101,11 @@ func (d *defaultMoveConfig) multipleItemSatisfied(tape *MoveGroupHistoryItem) (*
 	return nil, nil
 }
 
-//AutoConfigurableMove is the interface that moves passed to AutoConfigurer.Config must
-//implement. These methods are interrogated to set the move name,
-//helptext,isFixUp, and legalPhases to good values. moves.Default defines
-//powerful stubs for these, so any moves that embed moves.Default (or embed a
-//move that embeds moves.Default, etc) satisfy this interface.
+// AutoConfigurableMove is the interface that moves passed to AutoConfigurer.Config must
+// implement. These methods are interrogated to set the move name,
+// helptext,isFixUp, and legalPhases to good values. moves.Default defines
+// powerful stubs for these, so any moves that embed moves.Default (or embed a
+// move that embeds moves.Default, etc) satisfy this interface.
 type AutoConfigurableMove interface {
 	//DefaultConfigMoves all must implement all Move methods.
 	boardgame.Move
@@ -114,22 +114,22 @@ type AutoConfigurableMove interface {
 	DeriveName(manager *boardgame.GameManager) string
 }
 
-//AutoConfigurer is an object that makes it easy to configure moves. Get a new
-//one with NewAutoConfigurer. See the package doc for much more on how to use
-//it.
+// AutoConfigurer is an object that makes it easy to configure moves. Get a new
+// one with NewAutoConfigurer. See the package doc for much more on how to use
+// it.
 type AutoConfigurer struct {
 	delegate boardgame.GameDelegate
 }
 
-//NewAutoConfigurer returns a new AutoConfigurer ready for use.
+// NewAutoConfigurer returns a new AutoConfigurer ready for use.
 func NewAutoConfigurer(g boardgame.GameDelegate) *AutoConfigurer {
 	return &AutoConfigurer{
 		delegate: g,
 	}
 }
 
-//MustConfig is a wrapper around Config that if it errors will panic. Only
-//suitable for being used during setup.
+// MustConfig is a wrapper around Config that if it errors will panic. Only
+// suitable for being used during setup.
 func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options ...CustomConfigurationOption) GroupableMoveConfig {
 	result, err := a.Config(exampleStruct, options...)
 
@@ -140,17 +140,17 @@ func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options 
 	return result
 }
 
-//Config is a powerful default MoveConfig generator. In many cases you'll
-//implement moves that are very thin embeddings of moves in this package.
-//Generating a MoveConfig for each is a pain. This method auto- generates the
-//MoveConfig based on an example zero type of your move to install. Moves need
-//a few extra methods that are consulted to generate the move name, helptext,
-//and isFixUp; anything based on moves.Default automatically satisfies the
-//necessary interface. See the package doc for an example of use. Instead of
-//returning a boardgame.MoveConfig, it returns a GroupableMoveConfig
-//equivalent to what you'd get from NewGroupableMoveConfig, which satisfies
-//boardgame.MoveConfig but also adds enough methods to be useable as input to
-//AddOrderedForPhase.
+// Config is a powerful default MoveConfig generator. In many cases you'll
+// implement moves that are very thin embeddings of moves in this package.
+// Generating a MoveConfig for each is a pain. This method auto- generates the
+// MoveConfig based on an example zero type of your move to install. Moves need
+// a few extra methods that are consulted to generate the move name, helptext,
+// and isFixUp; anything based on moves.Default automatically satisfies the
+// necessary interface. See the package doc for an example of use. Instead of
+// returning a boardgame.MoveConfig, it returns a GroupableMoveConfig
+// equivalent to what you'd get from NewGroupableMoveConfig, which satisfies
+// boardgame.MoveConfig but also adds enough methods to be useable as input to
+// AddOrderedForPhase.
 func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...CustomConfigurationOption) (GroupableMoveConfig, error) {
 
 	if a.delegate == nil {

@@ -46,9 +46,9 @@ var graphUpward = graph.MustNewEnumGridConnectedness(spacesEnum, graph.Direction
 
 const tokenDeckName = "Tokens"
 
-//The first space in the upper left is black, and it alternates from there.
-//The red tokens start at the top, and the black tokens are arrayed from the
-//bottom.
+// The first space in the upper left is black, and it alternates from there.
+// The red tokens start at the top, and the black tokens are arrayed from the
+// bottom.
 func spaceIsBlack(spaceIndex int) bool {
 	return spaceIndex%2 == 0
 }
@@ -108,7 +108,7 @@ func (t *token) Legal(state boardgame.ImmutableState, legalType enum.ImmutableVa
 	return nil
 }
 
-//FreeNextSpaces is like AllNextSpaces, but spaces that are occupied won't be returned.
+// FreeNextSpaces is like AllNextSpaces, but spaces that are occupied won't be returned.
 func (t *token) FreeNextSpaces(state boardgame.ImmutableState, componentIndex int) []int {
 
 	spaces := state.ImmutableGameState().(*gameState).Spaces
@@ -123,8 +123,8 @@ func (t *token) FreeNextSpaces(state boardgame.ImmutableState, componentIndex in
 	return result
 }
 
-//AllNextSpaces returns all the spaces that t could move to, if the rest of
-//the board were empty.
+// AllNextSpaces returns all the spaces that t could move to, if the rest of
+// the board were empty.
 func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int) []int {
 
 	//Red starts from top
@@ -161,7 +161,7 @@ func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int
 	return nextSpaces
 }
 
-//LegalCaptureSpaces returns cells that are legal for this cell to capture from there.
+// LegalCaptureSpaces returns cells that are legal for this cell to capture from there.
 func (t *token) LegalCaptureSpaces(state boardgame.ImmutableState, componentIndex int) []int {
 
 	spaces := state.ImmutableGameState().(*gameState).Spaces

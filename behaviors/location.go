@@ -38,26 +38,26 @@ type LocationBehavior struct {
 	LocRemainingPath []int
 }
 
-//ConnectBehavior stores a reference to the containing SubState.
+// ConnectBehavior stores a reference to the containing SubState.
 func (l *LocationBehavior) ConnectBehavior(containingSubState boardgame.SubState) {
 	l.container = containingSubState
 }
 
-//ConnectLocationStack sets the SizedStack that this behavior tracks for
-//position.
+// ConnectLocationStack sets the SizedStack that this behavior tracks for
+// position.
 func (l *LocationBehavior) ConnectLocationStack(stack boardgame.SizedStack) {
 	l.locationStack = stack
 }
 
-//ConnectGraph associates an EnumGraph for adjacency and pathfinding
-//operations. This is optional; if not connected, methods like Neighbors,
-//IsConnectedTo, ShortestPathTo, and DistanceTo will return errors.
+// ConnectGraph associates an EnumGraph for adjacency and pathfinding
+// operations. This is optional; if not connected, methods like Neighbors,
+// IsConnectedTo, ShortestPathTo, and DistanceTo will return errors.
 func (l *LocationBehavior) ConnectGraph(g *graph.EnumGraph) {
 	l.locGraph = g
 }
 
-//ValidConfiguration returns an error if the behavior hasn't been properly
-//connected.
+// ValidConfiguration returns an error if the behavior hasn't been properly
+// connected.
 func (l *LocationBehavior) ValidConfiguration(example boardgame.State) error {
 	if l.container == nil {
 		return errors.New("LocationBehavior: ConnectBehavior hasn't been called. See the behaviors package doc for more on initializing Connectable behaviors")
@@ -68,9 +68,9 @@ func (l *LocationBehavior) ValidConfiguration(example boardgame.State) error {
 	return nil
 }
 
-//LocationEnum returns the enum associated with the connected graph, or nil if
-//no graph has been connected. This is useful for constructing ImmutableVals
-//from location indices.
+// LocationEnum returns the enum associated with the connected graph, or nil if
+// no graph has been connected. This is useful for constructing ImmutableVals
+// from location indices.
 func (l *LocationBehavior) LocationEnum() enum.Enum {
 	if l.locGraph == nil {
 		return nil
@@ -78,9 +78,9 @@ func (l *LocationBehavior) LocationEnum() enum.Enum {
 	return l.locGraph.Enum()
 }
 
-//LocationIndex scans the connected SizedStack for the first non-nil component
-//and returns its slot index as an enum.ImmutableVal. Returns nil if no graph
-//is connected or no component is found.
+// LocationIndex scans the connected SizedStack for the first non-nil component
+// and returns its slot index as an enum.ImmutableVal. Returns nil if no graph
+// is connected or no component is found.
 func (l *LocationBehavior) LocationIndex() enum.ImmutableVal {
 	if l.locationStack == nil || l.locGraph == nil {
 		return nil
@@ -94,9 +94,9 @@ func (l *LocationBehavior) LocationIndex() enum.ImmutableVal {
 	return nil
 }
 
-//LocationIndexKey is a convenience method that returns the raw EnumKey of the
-//current location. Returns (0, false) if no component is found or no stack is
-//connected.
+// LocationIndexKey is a convenience method that returns the raw EnumKey of the
+// current location. Returns (0, false) if no component is found or no stack is
+// connected.
 func (l *LocationBehavior) LocationIndexKey() (enum.EnumKey, bool) {
 	if l.locationStack == nil {
 		return 0, false
@@ -110,8 +110,8 @@ func (l *LocationBehavior) LocationIndexKey() (enum.EnumKey, bool) {
 	return 0, false
 }
 
-//MoveTo moves the token from its current position to the target slot index by
-//swapping components in the SizedStack.
+// MoveTo moves the token from its current position to the target slot index by
+// swapping components in the SizedStack.
 func (l *LocationBehavior) MoveTo(targetIndex int) error {
 	if l.locationStack == nil {
 		return errors.New("LocationBehavior: locationStack not connected")
@@ -123,8 +123,8 @@ func (l *LocationBehavior) MoveTo(targetIndex int) error {
 	return l.locationStack.SwapComponents(currentKey.Int(), targetIndex)
 }
 
-//Neighbors returns the indices of all spaces adjacent to the current location
-//in the connected graph as ImmutableVals. Returns nil if no graph is connected.
+// Neighbors returns the indices of all spaces adjacent to the current location
+// in the connected graph as ImmutableVals. Returns nil if no graph is connected.
 func (l *LocationBehavior) Neighbors() []enum.ImmutableVal {
 	if l.locGraph == nil {
 		return nil
@@ -136,8 +136,8 @@ func (l *LocationBehavior) Neighbors() []enum.ImmutableVal {
 	return l.locGraph.Neighbors(idx)
 }
 
-//IsConnectedTo returns whether the current location is directly connected to
-//the target in the graph. Returns false if no graph is connected.
+// IsConnectedTo returns whether the current location is directly connected to
+// the target in the graph. Returns false if no graph is connected.
 func (l *LocationBehavior) IsConnectedTo(target enum.ImmutableVal) bool {
 	if l.locGraph == nil || target == nil {
 		return false
@@ -149,9 +149,9 @@ func (l *LocationBehavior) IsConnectedTo(target enum.ImmutableVal) bool {
 	return l.locGraph.Connected(idx, target)
 }
 
-//ShortestPathTo returns the shortest path from the current location to the
-//target, inclusive of both endpoints, as ImmutableVals. Returns an error if
-//no graph is connected or no path exists.
+// ShortestPathTo returns the shortest path from the current location to the
+// target, inclusive of both endpoints, as ImmutableVals. Returns an error if
+// no graph is connected or no path exists.
 func (l *LocationBehavior) ShortestPathTo(target enum.ImmutableVal) ([]enum.ImmutableVal, error) {
 	if l.locGraph == nil {
 		return nil, errors.New("LocationBehavior: no graph connected")
@@ -166,9 +166,9 @@ func (l *LocationBehavior) ShortestPathTo(target enum.ImmutableVal) ([]enum.Immu
 	return l.locGraph.ShortestPath(idx, target)
 }
 
-//DistanceTo returns the total weight of the shortest path from the current
-//location to the target. Returns -1 and an error if no graph is connected or
-//no path exists.
+// DistanceTo returns the total weight of the shortest path from the current
+// location to the target. Returns -1 and an error if no graph is connected or
+// no path exists.
 func (l *LocationBehavior) DistanceTo(target enum.ImmutableVal) (int, error) {
 	if l.locGraph == nil {
 		return -1, errors.New("LocationBehavior: no graph connected")
@@ -183,13 +183,13 @@ func (l *LocationBehavior) DistanceTo(target enum.ImmutableVal) (int, error) {
 	return l.locGraph.Distance(idx, target)
 }
 
-//Graph returns the connected EnumGraph, or nil if none.
+// Graph returns the connected EnumGraph, or nil if none.
 func (l *LocationBehavior) Graph() *graph.EnumGraph {
 	return l.locGraph
 }
 
-//Token returns the ComponentInstance at the current location in the SizedStack.
-//Returns nil if no stack is connected or no component is found.
+// Token returns the ComponentInstance at the current location in the SizedStack.
+// Returns nil if no stack is connected or no component is found.
 func (l *LocationBehavior) Token() boardgame.ComponentInstance {
 	if l.locationStack == nil {
 		return nil
@@ -201,16 +201,16 @@ func (l *LocationBehavior) Token() boardgame.ComponentInstance {
 	return l.locationStack.ComponentAt(currentKey.Int())
 }
 
-//GetLocationBehavior returns the LocationBehavior itself. This method exists
-//so that any struct that embeds LocationBehavior automatically satisfies the
-//HasLocationBehavior interface, allowing the HopAlongPath FixUp to find it.
+// GetLocationBehavior returns the LocationBehavior itself. This method exists
+// so that any struct that embeds LocationBehavior automatically satisfies the
+// HasLocationBehavior interface, allowing the HopAlongPath FixUp to find it.
 func (l *LocationBehavior) GetLocationBehavior() *LocationBehavior {
 	return l
 }
 
-//HasLocationBehavior is implemented by any SubState that embeds a
-//LocationBehavior. It allows framework moves like HopAlongPath to find
-//LocationBehaviors by scanning player and game states via type assertion.
+// HasLocationBehavior is implemented by any SubState that embeds a
+// LocationBehavior. It allows framework moves like HopAlongPath to find
+// LocationBehaviors by scanning player and game states via type assertion.
 type HasLocationBehavior interface {
 	GetLocationBehavior() *LocationBehavior
 }

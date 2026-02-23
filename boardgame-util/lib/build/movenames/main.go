@@ -16,16 +16,16 @@ import (
 
 const subFolder = "movenames"
 
-//MoveNameResult is the result of extracting move names for a single game package.
+// MoveNameResult is the result of extracting move names for a single game package.
 type MoveNameResult struct {
 	PackageName string   `json:"packageName"`
 	ImportPath  string   `json:"importPath"`
 	MoveNames   []string `json:"moveNames"`
 }
 
-//Build generates a temporary Go binary that imports all game packages,
-//instantiates GameManagers with in-memory storage, and extracts
-//non-FixUp move names. It returns the results as a slice of MoveNameResult.
+// Build generates a temporary Go binary that imports all game packages,
+// instantiates GameManagers with in-memory storage, and extracts
+// non-FixUp move names. It returns the results as a slice of MoveNameResult.
 func Build(directory string, pkgs []*gamepkg.Pkg) ([]MoveNameResult, error) {
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
@@ -98,8 +98,8 @@ func Build(directory string, pkgs []*gamepkg.Pkg) ([]MoveNameResult, error) {
 	return results, nil
 }
 
-//Code returns the source code for a temporary Go binary that extracts move
-//names from the given game packages.
+// Code returns the source code for a temporary Go binary that extracts move
+// names from the given game packages.
 func Code(pkgs []*gamepkg.Pkg) ([]byte, error) {
 
 	buf := new(bytes.Buffer)
@@ -121,8 +121,8 @@ func Code(pkgs []*gamepkg.Pkg) ([]byte, error) {
 	return formatted, nil
 }
 
-//Clean removes the movenames/ directory that was generated within directory
-//by Build.
+// Clean removes the movenames/ directory that was generated within directory
+// by Build.
 func Clean(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, subFolder))
 }

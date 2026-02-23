@@ -19,6 +19,7 @@ A Leafs that has the value "" means "one key with no additional suffix". This
 allows terminating leafs within a node that is otherwise a mid.
 
 Example valid JSON to ingest for GameNode:
+
 	{
 		"github.com/jkomoros": {
 			"boardgame/examples": [
@@ -38,15 +39,14 @@ Example valid JSON to ingest for GameNode:
 			}
 		}
 	}
-
 */
 type GameNode struct {
 	Leafs []string
 	Mids  map[string]*GameNode
 }
 
-//NewGameNode takes the given values and creates a reduced GameNode tree where
-//all of the common prefixes are factored out.
+// NewGameNode takes the given values and creates a reduced GameNode tree where
+// all of the common prefixes are factored out.
 func NewGameNode(paths ...string) *GameNode {
 
 	if len(paths) == 0 {
@@ -82,17 +82,17 @@ func NewGameNode(paths ...string) *GameNode {
 
 }
 
-//newGameNodeItem returns a very basic initalized gameNode. In particular,
-//mids will not be nil.
+// newGameNodeItem returns a very basic initalized gameNode. In particular,
+// mids will not be nil.
 func newGameNodeItem() *GameNode {
 	return &GameNode{
 		Mids: make(map[string]*GameNode),
 	}
 }
 
-//addPath adds the given split string into this GameNode's mids, creating new
-//sub-game nodes if necessary. Designed to only be called in NewGameNode,
-//because further normalization must happen later.
+// addPath adds the given split string into this GameNode's mids, creating new
+// sub-game nodes if necessary. Designed to only be called in NewGameNode,
+// because further normalization must happen later.
 func (g *GameNode) addPath(path []string) {
 
 	//This shouldn't happen
@@ -121,10 +121,10 @@ func (g *GameNode) addPath(path []string) {
 
 }
 
-//clioSuperTerminals replaces super-terminals with simple terminals. Super-
-//terminals are GameNodes who have a single Mid child at "", and that child
-//has no mids or leafs. These are created for terminals by addPath, just in
-//case other terminals are nested beneath it.
+// clioSuperTerminals replaces super-terminals with simple terminals. Super-
+// terminals are GameNodes who have a single Mid child at "", and that child
+// has no mids or leafs. These are created for terminals by addPath, just in
+// case other terminals are nested beneath it.
 func (g *GameNode) clipSuperTerminals() {
 
 	if len(g.Mids) == 1 && g.Mids[""] != nil {
@@ -145,10 +145,10 @@ func (g *GameNode) clipSuperTerminals() {
 
 }
 
-//reduceTerminals goes through each node and if all of its mids are GameNodes
-//with no Mids or Leafs, then makes this child a Leafs terminal. Designed to
-//be called only at the end of NewGameNode. This expects there to be no Leafs
-//yet.
+// reduceTerminals goes through each node and if all of its mids are GameNodes
+// with no Mids or Leafs, then makes this child a Leafs terminal. Designed to
+// be called only at the end of NewGameNode. This expects there to be no Leafs
+// yet.
 func (g *GameNode) reduceTerminals() {
 
 	if len(g.Mids) == 0 {
@@ -186,8 +186,8 @@ func (g *GameNode) reduceTerminals() {
 
 }
 
-//addPrefix joins the given prefix to the front of all Mids and Leafs in this
-//node.
+// addPrefix joins the given prefix to the front of all Mids and Leafs in this
+// node.
 func (g *GameNode) addPrefix(prefix string) {
 
 	if len(g.Mids) > 0 {
@@ -213,9 +213,9 @@ func (g *GameNode) addPrefix(prefix string) {
 
 }
 
-//elideSimpleMids removes any nodes that have a single child, merging the
-//children with the Mid name and reducing this node. It returns the new root
-//GameNode. Designed to be called as the last step of NewGameNode.
+// elideSimpleMids removes any nodes that have a single child, merging the
+// children with the Mid name and reducing this node. It returns the new root
+// GameNode. Designed to be called as the last step of NewGameNode.
 func (g *GameNode) elideSimpleMids() *GameNode {
 
 	//elideSimpleMids is responsible for eliding itself up into its parent if
@@ -278,7 +278,7 @@ func (g *GameNode) elideSimpleMids() *GameNode {
 
 }
 
-//UnmarshalJSON unpacks the GameNode JSON payload into a valid GameNode.
+// UnmarshalJSON unpacks the GameNode JSON payload into a valid GameNode.
 func (g *GameNode) UnmarshalJSON(raw []byte) error {
 	var strs []string
 	var mids map[string]*GameNode
@@ -304,6 +304,7 @@ List returns a flattened, alphabetized, unique list of paths implied by the
 contents of this node. Mids are joined by filepath.Separator.
 
 Input:
+
 	{
 		"github.com/jkomoros": {
 			"boardgame/examples": [
@@ -325,6 +326,7 @@ Input:
 	}
 
 Output:
+
 	[
 		"github.com/jkomoros/boardgame/examples/blackjack",
 		"github.com/jkomoros/boardgame/examples/checkers",
@@ -332,7 +334,6 @@ Output:
 		"github.com/jkomoros/other-mixed-leaf-mid-repo/leaf",
 		"github.com/jkomoros/other-mixed-leaf-mid-repo/subdir/foo",
 	]
-
 */
 func (g *GameNode) List() []string {
 
@@ -368,8 +369,8 @@ func alphabetizeUnique(in []string) []string {
 	return result
 }
 
-//listRecursive is the main implementaiton of List. prior is the prior part of
-//the path implied so far.
+// listRecursive is the main implementaiton of List. prior is the prior part of
+// the path implied so far.
 func (g *GameNode) listRecursive(prior string) []string {
 
 	if g == nil {
@@ -393,7 +394,7 @@ func (g *GameNode) listRecursive(prior string) []string {
 
 }
 
-//MarshalJSON packs the given GameNode into a JSON payload.
+// MarshalJSON packs the given GameNode into a JSON payload.
 func (g *GameNode) MarshalJSON() ([]byte, error) {
 	if g.Leafs != nil {
 		return json.Marshal(g.Leafs)
@@ -404,7 +405,7 @@ func (g *GameNode) MarshalJSON() ([]byte, error) {
 	return nil, nil
 }
 
-//copy returns a fresh, deep copy of gameNode.
+// copy returns a fresh, deep copy of gameNode.
 func (g *GameNode) copy() *GameNode {
 
 	if g == nil {
@@ -433,14 +434,14 @@ func (g *GameNode) copy() *GameNode {
 
 }
 
-//Normalize returns a GameNode representing the same list of games, but in a
-//canonically normalized tree structure.
+// Normalize returns a GameNode representing the same list of games, but in a
+// canonically normalized tree structure.
 func (g *GameNode) Normalize() *GameNode {
 	return NewGameNode(g.List()...)
 }
 
-//AddGame adds the given game to the list and returns a game node that
-//contains it.
+// AddGame adds the given game to the list and returns a game node that
+// contains it.
 func (g *GameNode) AddGame(game string) *GameNode {
 
 	//g.List will handle if g is nil
@@ -450,7 +451,7 @@ func (g *GameNode) AddGame(game string) *GameNode {
 
 }
 
-//RemoveGame returns a game node that doesn't generate `game`.
+// RemoveGame returns a game node that doesn't generate `game`.
 func (g *GameNode) RemoveGame(game string) *GameNode {
 
 	var newList []string
@@ -474,8 +475,8 @@ func (g *GameNode) RemoveGame(game string) *GameNode {
 
 }
 
-//extend takes an other GameNode and returns a *new* GameNode representing the
-//merging of the two, where the keys in other overwrite the keys in this.
+// extend takes an other GameNode and returns a *new* GameNode representing the
+// merging of the two, where the keys in other overwrite the keys in this.
 func (g *GameNode) extend(other *GameNode) *GameNode {
 
 	if g == nil {

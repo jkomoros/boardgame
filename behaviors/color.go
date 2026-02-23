@@ -25,13 +25,13 @@ type PlayerColor struct {
 	Color     enum.Val `enum:"color"`
 }
 
-//ConnectBehavior stores a reference to the container, which it needs to
-//operate.
+// ConnectBehavior stores a reference to the container, which it needs to
+// operate.
 func (p *PlayerColor) ConnectBehavior(containgSubState boardgame.SubState) {
 	p.container = containgSubState
 }
 
-//ValidConfiguration returns an error if ConnectBehavior hasn't yet been called.
+// ValidConfiguration returns an error if ConnectBehavior hasn't yet been called.
 func (p *PlayerColor) ValidConfiguration(example boardgame.State) error {
 	if p.container == nil {
 		return errors.New("ConnectBehavior hasn't been called. See the behaviors package doc for more on initializing Connectable behaviors")
@@ -39,19 +39,19 @@ func (p *PlayerColor) ValidConfiguration(example boardgame.State) error {
 	return nil
 }
 
-//OwnsToken returns whether this player owns the given token. That is, the given
-//component has a property named Color that is the same enum as our Color
-//property and they are set to the same value.
+// OwnsToken returns whether this player owns the given token. That is, the given
+// component has a property named Color that is the same enum as our Color
+// property and they are set to the same value.
 func (p *PlayerColor) OwnsToken(c boardgame.Component) bool {
 	result, _ := p.ownsTokenImpl(c)
 	return result
 }
 
-//ownsTokenImpl is the main implementation for OwnsToken. It differs in that it
-//also returns whether it is possible for the given player to even conceivably
-//own the given component (i.e. there is a prop named Color that is of the same
-//enum type as ours). If couldOwn is false, then you can safely skip the rest of
-//the components in this deck because it's not possible for any to be owned.
+// ownsTokenImpl is the main implementation for OwnsToken. It differs in that it
+// also returns whether it is possible for the given player to even conceivably
+// own the given component (i.e. there is a prop named Color that is of the same
+// enum type as ours). If couldOwn is false, then you can safely skip the rest of
+// the components in this deck because it's not possible for any to be owned.
 func (p *PlayerColor) ownsTokenImpl(c boardgame.Component) (owns, couldOwn bool) {
 	color, err := c.Values().Reader().ImmutableEnumProp(colorPropertyName)
 	if err != nil {
@@ -70,19 +70,19 @@ func (p *PlayerColor) ownsTokenImpl(c boardgame.Component) (owns, couldOwn bool)
 	return false, true
 }
 
-//TokenSpaceIndex returns the index of the token that it is within its current
-//container. Typically the position of a token within a board has semantic
-//significance, for example in chutes and ladders which other spaces are
-//adjacent, and this method captures that. If it's in a stack that's part of a
-//board, it will return the BoardIndex, but if it's in a normal stack it will
-//return normal index. If there are multiple types of components that might be
-//returned, use TokenSpaceIndexFromDeck instead.
+// TokenSpaceIndex returns the index of the token that it is within its current
+// container. Typically the position of a token within a board has semantic
+// significance, for example in chutes and ladders which other spaces are
+// adjacent, and this method captures that. If it's in a stack that's part of a
+// board, it will return the BoardIndex, but if it's in a normal stack it will
+// return normal index. If there are multiple types of components that might be
+// returned, use TokenSpaceIndexFromDeck instead.
 func (p *PlayerColor) TokenSpaceIndex() int {
 	return p.spaceIndexForInstance(p.Token())
 }
 
-//TokenSpaceIndexFromDeck is like TokenSpaceIndex but when you only want to
-//compare against components that are in a specific deck.
+// TokenSpaceIndexFromDeck is like TokenSpaceIndex but when you only want to
+// compare against components that are in a specific deck.
 func (p *PlayerColor) TokenSpaceIndexFromDeck(deck *boardgame.Deck) int {
 	return p.spaceIndexForInstance(p.TokenFromDeck(deck))
 }
@@ -101,10 +101,10 @@ func (p *PlayerColor) spaceIndexForInstance(instance boardgame.ComponentInstance
 	return slot
 }
 
-//TokenFromDeck searches through the given deck to find a ComponentInstance
-//whose Color matchs this player's color, returning the first one it finds. May
-//return nil if none are found. Typically if only one type of deck has a Color
-//property, you don't need to use this, and can instead use Token().
+// TokenFromDeck searches through the given deck to find a ComponentInstance
+// whose Color matchs this player's color, returning the first one it finds. May
+// return nil if none are found. Typically if only one type of deck has a Color
+// property, you don't need to use this, and can instead use Token().
 func (p *PlayerColor) TokenFromDeck(deck *boardgame.Deck) boardgame.ComponentInstance {
 	if deck == nil {
 		return nil
@@ -133,9 +133,9 @@ func (p *PlayerColor) TokenFromDeck(deck *boardgame.Deck) boardgame.ComponentIns
 	return nil
 }
 
-//Token searches through all decks for a component whose Color property matches
-//this player's color, and then returns a ComponentInstance for it within this
-//state. This may return nil. Typically you can use this instead of TokenFromDeck.
+// Token searches through all decks for a component whose Color property matches
+// this player's color, and then returns a ComponentInstance for it within this
+// state. This may return nil. Typically you can use this instead of TokenFromDeck.
 func (p *PlayerColor) Token() boardgame.ComponentInstance {
 	if p.container == nil {
 		return nil

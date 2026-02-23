@@ -1,8 +1,6 @@
 /*
-
 Package blackjack implements a simple blackjack game. This example is
 interesting because it has hidden state.
-
 */
 package blackjack
 
@@ -236,7 +234,7 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-//NewDelegate is the primary entry point of the package.
+// NewDelegate is the primary entry point of the package.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

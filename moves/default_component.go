@@ -9,20 +9,20 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//legalTyper is the interface that moves that implement DefaultComponent must
-//have.
+// legalTyper is the interface that moves that implement DefaultComponent must
+// have.
 type legalTyper interface {
 	LegalType() enum.EnumKey
 }
 
-//DefaultComponent is a fix up move type that iterates through SourceStac(),
-//and for any non-nil component it encounters that implements
-//interface.LegalComponent, calls Legal(). The first index that
-//returns nil for that method will set ComponentIndex to that index and
-//return. You must provide your own Apply(). This move is convenient for fix
-//up moves that have to be done on given components when something becomes
-//true. For example, it's useful in checkers to automatically crown tokens
-//that make it to the other side of the board.
+// DefaultComponent is a fix up move type that iterates through SourceStac(),
+// and for any non-nil component it encounters that implements
+// interface.LegalComponent, calls Legal(). The first index that
+// returns nil for that method will set ComponentIndex to that index and
+// return. You must provide your own Apply(). This move is convenient for fix
+// up moves that have to be done on given components when something becomes
+// true. For example, it's useful in checkers to automatically crown tokens
+// that make it to the other side of the board.
 //
 //boardgame:codegen
 type DefaultComponent struct {
@@ -47,8 +47,8 @@ func (d *DefaultComponent) legalTypeImpl() (enum.EnumKey, error) {
 	return typer.LegalType(), nil
 }
 
-//legalTypeValImpl returns an ImmutableVal for the configured legalType, or nil
-//if no legalType enum is configured (which is fine when legalType is 0/default).
+// legalTypeValImpl returns an ImmutableVal for the configured legalType, or nil
+// if no legalType enum is configured (which is fine when legalType is 0/default).
 func (d *DefaultComponent) legalTypeValImpl() enum.ImmutableVal {
 	legalType, err := d.legalTypeImpl()
 	if err != nil || legalType == 0 {
@@ -71,10 +71,10 @@ func (d *DefaultComponent) legalTypeValImpl() enum.ImmutableVal {
 	return val
 }
 
-//DefaultsForState iterates through SourceStack() components one by one from
-//start to finish. If the component is non-nil and implments
-//interfaces.LegalComponent, calls Legal. If that returns nil,
-//it sets the ComponentIndex property to that index and returns.
+// DefaultsForState iterates through SourceStack() components one by one from
+// start to finish. If the component is non-nil and implments
+// interfaces.LegalComponent, calls Legal. If that returns nil,
+// it sets the ComponentIndex property to that index and returns.
 func (d *DefaultComponent) DefaultsForState(state boardgame.ImmutableState) {
 
 	//So sorry for this hack. :-(
@@ -110,9 +110,9 @@ func (d *DefaultComponent) DefaultsForState(state boardgame.ImmutableState) {
 	}
 }
 
-//Legal checks that the component specified by the ComponentIndex index within
-//SourceStack implements interfaces.LegalComponent and then returns its return
-//value. Otherwise, it errors.
+// Legal checks that the component specified by the ComponentIndex index within
+// SourceStack implements interfaces.LegalComponent and then returns its return
+// value. Otherwise, it errors.
 func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := d.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
@@ -157,10 +157,10 @@ func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardg
 
 }
 
-//LegalType returns the value that will be passed to the Component's Legal()
-//legalType argument. It will return the value passed to auto.Config with
-//WithLegalType(), or 0 if none was provided. If that behavior isn't
-//sufficient, you may override this method.
+// LegalType returns the value that will be passed to the Component's Legal()
+// legalType argument. It will return the value passed to auto.Config with
+// WithLegalType(), or 0 if none was provided. If that behavior isn't
+// sufficient, you may override this method.
 func (d *DefaultComponent) LegalType() enum.EnumKey {
 	config := d.CustomConfiguration()
 
@@ -179,16 +179,16 @@ func (d *DefaultComponent) LegalType() enum.EnumKey {
 	return legalTypeKey
 }
 
-//SourceStack returns the stack set in configuration by WithSourceProperty on the
-//GameState, or nil. If that is not sufficient for your needs you should
-//override SourceStack yourself.
+// SourceStack returns the stack set in configuration by WithSourceProperty on the
+// GameState, or nil. If that is not sufficient for your needs you should
+// override SourceStack yourself.
 func (d *DefaultComponent) SourceStack(state boardgame.State) boardgame.Stack {
 	return sourceStackFromConfig(d, state)
 }
 
-//ValidConfiguration verifies that there's a SourceStack that returns non-nil,
-//and a valid LegalType, and at least one component in the deck implements
-//interfaces.LegalComponent.
+// ValidConfiguration verifies that there's a SourceStack that returns non-nil,
+// and a valid LegalType, and at least one component in the deck implements
+// interfaces.LegalComponent.
 func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) error {
 	if err := d.FixUpMulti.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -229,8 +229,8 @@ func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) erro
 	return errors.New("no components in the SourceStack's deck implemented LegalComponent")
 }
 
-//FallbackName returns a string based on the stackName passed to
-//WithSourceProperty, and the LegalType.
+// FallbackName returns a string based on the stackName passed to
+// WithSourceProperty, and the LegalType.
 func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 	legalType, _ := d.legalTypeImpl()
 
@@ -242,8 +242,8 @@ func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 	return "Default Component For " + stackName(d, configPropSourceProperty, sourceStack, exampleState) + " LegalType " + strconv.Itoa(int(legalType))
 }
 
-//FallbackHelpText returns a string based on the stackName passed to
-//WithSourceProperty, and the LegalType.
+// FallbackHelpText returns a string based on the stackName passed to
+// WithSourceProperty, and the LegalType.
 func (d *DefaultComponent) FallbackHelpText() string {
 	legalType, _ := d.legalTypeImpl()
 	return "Searches " + stackName(d, configPropSourceProperty, nil, nil) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(int(legalType))

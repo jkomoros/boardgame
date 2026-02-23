@@ -21,7 +21,7 @@ type exampleCardDynamicValues struct {
 	DynamicValue int
 }
 
-//newExampleCardDeck returns a new deck for examplecards.
+// newExampleCardDeck returns a new deck for examplecards.
 func newExampleCardDeck() *boardgame.Deck {
 	deck := boardgame.NewDeck()
 

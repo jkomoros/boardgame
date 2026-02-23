@@ -10,21 +10,21 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 )
 
-//maxRecurseCount is the number of fixUp moves that can be considered normal--
-//anything more than that and we'll return an error because the delegate is
-//likely going to return fixup moves forever.
+// maxRecurseCount is the number of fixUp moves that can be considered normal--
+// anything more than that and we'll return an error because the delegate is
+// likely going to return fixup moves forever.
 const maxRecurseCount = 256
 
 const selfInitiatorSentinel = -1
 
-//ErrTooManyFixUps is returned from game.ProposeMove if too many fix up moves
-//are applied, which implies that there is a FixUp move configured to always
-//be legal, and is evidence of a serious error in your game logic.
+// ErrTooManyFixUps is returned from game.ProposeMove if too many fix up moves
+// are applied, which implies that there is a FixUp move configured to always
+// be legal, and is evidence of a serious error in your game logic.
 var ErrTooManyFixUps = errors.New("we recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal")
 
-//A Game represents a specific game between a collection of Players; an
-//instantiation of a game of the given type. Create a new one with
-//GameManager.NewGame().
+// A Game represents a specific game between a collection of Players; an
+// instantiation of a game of the given type. Create a new one with
+// GameManager.NewGame().
 type Game struct {
 	manager *GameManager
 
@@ -78,10 +78,10 @@ type Game struct {
 
 const gameIDLength = 16
 
-//DelayedError is a chan on which an error (or nil) will be sent at a later
-//time. Primarily returned from game.ProposeMove(), so the method can return
-//immediately even before the move is processed, which might take a long time
-//if there are many moves ahead in the queue.
+// DelayedError is a chan on which an error (or nil) will be sent at a later
+// time. Primarily returned from game.ProposeMove(), so the method can return
+// immediately even before the move is processed, which might take a long time
+// if there are many moves ahead in the queue.
 type DelayedError chan error
 
 type proposedMoveItem struct {
@@ -102,8 +102,8 @@ func init() {
 
 const randomStringChars = "ABCDEF0123456789"
 
-//randomString returns a random string of the given length. If rand is not
-//nil, will use that source. Ohterwise will use a global source.
+// randomString returns a random string of the given length. If rand is not
+// nil, will use that source. Ohterwise will use a global source.
 func randomString(length int, rnd *rand.Rand) string {
 	var result = ""
 
@@ -118,18 +118,18 @@ func randomString(length int, rnd *rand.Rand) string {
 	return result
 }
 
-//Created returns the time stamp when this game was first created.
+// Created returns the time stamp when this game was first created.
 func (g *Game) Created() time.Time {
 	return g.created
 }
 
-//Modified returns the timstamp when the last move was applied to this game.
+// Modified returns the timstamp when the last move was applied to this game.
 func (g *Game) Modified() time.Time {
 	return g.modified
 }
 
-//Variant returns a copy of the Variant passed to NewGame to create this
-//game originally.
+// Variant returns a copy of the Variant passed to NewGame to create this
+// game originally.
 func (g *Game) Variant() Variant {
 
 	if g.variant == nil {
@@ -145,41 +145,41 @@ func (g *Game) Variant() Variant {
 	return result
 }
 
-//Winners is the player indexes who were winners. Typically, this will be
-//one player, but it could be multiple in the case of tie, or 0 in the
-//case of a draw. Will return nil if Finished() is not yet true.
+// Winners is the player indexes who were winners. Typically, this will be
+// one player, but it could be multiple in the case of tie, or 0 in the
+// case of a draw. Will return nil if Finished() is not yet true.
 func (g *Game) Winners() []PlayerIndex {
 	return g.winners
 }
 
-//Finished is whether the came has been completed. If it is over, the Winners
-//will be set. A game is finished when GameDelegate.CheckGameFinished()
-//returns true. Once a game is Finished it may never be un-finished, and no
-//more moves may ever be applied to it.
+// Finished is whether the came has been completed. If it is over, the Winners
+// will be set. A game is finished when GameDelegate.CheckGameFinished()
+// returns true. Once a game is Finished it may never be un-finished, and no
+// more moves may ever be applied to it.
 func (g *Game) Finished() bool {
 	return g.finished
 }
 
-//Manager is a reference to the GameManager that controls this game.
+// Manager is a reference to the GameManager that controls this game.
 func (g *Game) Manager() *GameManager {
 	return g.manager
 }
 
-//NumPlayers returns the number of players for this game, based on how many
-//PlayerStates are in CurrentState. Note that if your game logic is complex,
-//this is likely NOT what you want, instead you might want
-//GameDelegate.NumSeatedActivePlayers. See the package doc of
-//boardgame/behaviors for more.
+// NumPlayers returns the number of players for this game, based on how many
+// PlayerStates are in CurrentState. Note that if your game logic is complex,
+// this is likely NOT what you want, instead you might want
+// GameDelegate.NumSeatedActivePlayers. See the package doc of
+// boardgame/behaviors for more.
 func (g *Game) NumPlayers() int {
 	return g.numPlayers
 }
 
-//JSONForPlayer returns an object appropriate for being json'd via
-//json.Marshal. The object is the equivalent to what MarshalJSON would output,
-//only as an object, and with state sanitized for the current player. State
-//should be a state for this game (e.g. an old version). If state is nil, the
-//game's CurrentState will be used. This is effectively equivalent to
-//state.SanitizeForPlayer().
+// JSONForPlayer returns an object appropriate for being json'd via
+// json.Marshal. The object is the equivalent to what MarshalJSON would output,
+// only as an object, and with state sanitized for the current player. State
+// should be a state for this game (e.g. an old version). If state is nil, the
+// game's CurrentState will be used. This is effectively equivalent to
+// state.SanitizeForPlayer().
 func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) (interface{}, error) {
 
 	if state == nil {
@@ -210,8 +210,8 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) (interfac
 	}, nil
 }
 
-//MarshalJSON returns a marshaled version of the output of JSONForPlayer for
-//AdminPlayerIndex.
+// MarshalJSON returns a marshaled version of the output of JSONForPlayer for
+// AdminPlayerIndex.
 func (g *Game) MarshalJSON() ([]byte, error) {
 	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
 	val, err := g.JSONForPlayer(AdminPlayerIndex, nil)
@@ -221,8 +221,8 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 	return json.Marshal(val)
 }
 
-//StorageRecord returns a GameStorageRecord representing the aspects of this
-//game that should be serialized to storage.
+// StorageRecord returns a GameStorageRecord representing the aspects of this
+// game that should be serialized to storage.
 func (g *Game) StorageRecord() *GameStorageRecord {
 
 	return &GameStorageRecord{
@@ -240,31 +240,31 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 	}
 }
 
-//Name returns the name of this game type. Convenience method for
-//game.Manager().Delegate().Name().
+// Name returns the name of this game type. Convenience method for
+// game.Manager().Delegate().Name().
 func (g *Game) Name() string {
 	return g.manager.Delegate().Name()
 }
 
-//ID returns the unique id string that corresponds to this particular game.
-//The ID is used in URLs and to retrieve this particular game from storage.
+// ID returns the unique id string that corresponds to this particular game.
+// The ID is used in URLs and to retrieve this particular game from storage.
 func (g *Game) ID() string {
 	return g.id
 }
 
-//Agents returns the agent configuration for the game.
+// Agents returns the agent configuration for the game.
 func (g *Game) Agents() []string {
 	return g.agents
 }
 
-//Version returns the version number of the highest State that is stored for
-//this game. This number will increase by one every time a move is applied.
+// Version returns the version number of the highest State that is stored for
+// this game. This number will increase by one every time a move is applied.
 func (g *Game) Version() int {
 	return g.version
 }
 
-//CurrentState returns the state object for the current state. Equivalent,
-//semantically, to game.State(game.Version())
+// CurrentState returns the state object for the current state. Equivalent,
+// semantically, to game.State(game.Version())
 func (g *Game) CurrentState() ImmutableState {
 	if g.cachedCurrentState == nil {
 		g.cachedCurrentState = g.State(g.Version())
@@ -272,8 +272,8 @@ func (g *Game) CurrentState() ImmutableState {
 	return g.cachedCurrentState
 }
 
-//State returns the state of the game at the given version. Because states can
-//only be modffied in moves, the state returned is immutable.
+// State returns the state of the game at the given version. Because states can
+// only be modffied in moves, the state returned is immutable.
 func (g *Game) State(version int) ImmutableState {
 
 	if version < 0 || version > g.Version() {
@@ -300,10 +300,10 @@ func (g *Game) State(version int) ImmutableState {
 
 }
 
-//Move returns the Move that was applied to get the Game to the given version;
-//an inflated version of the MoveStorageRecord. Not to be confused with
-//Moves(), which returns examples of moves that haven't yet been applied, but
-//have their defaults set based on the current state.
+// Move returns the Move that was applied to get the Game to the given version;
+// an inflated version of the MoveStorageRecord. Not to be confused with
+// Moves(), which returns examples of moves that haven't yet been applied, but
+// have their defaults set based on the current state.
 func (g *Game) Move(version int) (Move, error) {
 
 	if version < 0 || version > g.Version() {
@@ -328,10 +328,10 @@ func (g *Game) Move(version int) (Move, error) {
 
 }
 
-//MoveRecords returns all of the move storage records up to upToVersion, in
-//ascending order. If upToVersion is 0 or less, game.Version() will be used
-//for upToVersion. It is cached so repeated calls should be fast. This is a
-//wrapper around game.Manager().Storage().Moves(), cached for performance.
+// MoveRecords returns all of the move storage records up to upToVersion, in
+// ascending order. If upToVersion is 0 or less, game.Version() will be used
+// for upToVersion. It is cached so repeated calls should be fast. This is a
+// wrapper around game.Manager().Storage().Moves(), cached for performance.
 func (g *Game) MoveRecords(upToVersion int) []*MoveStorageRecord {
 
 	if upToVersion < 1 {
@@ -363,8 +363,8 @@ func (g *Game) MoveRecords(upToVersion int) []*MoveStorageRecord {
 
 }
 
-//NumAgentPlayers returns the number of players who have agents configured on
-//them.
+// NumAgentPlayers returns the number of players who have agents configured on
+// them.
 func (g *Game) NumAgentPlayers() int {
 
 	if !g.initalized {
@@ -383,7 +383,7 @@ func (g *Game) NumAgentPlayers() int {
 
 }
 
-//starterState returns a starting, not-yet-saved State that is configured with all moving parts.
+// starterState returns a starting, not-yet-saved State that is configured with all moving parts.
 func (g *Game) starterState(numPlayers int) (State, error) {
 	state, err := g.Manager().emptyState(numPlayers)
 
@@ -396,13 +396,13 @@ func (g *Game) starterState(numPlayers int) (State, error) {
 	return state, nil
 }
 
-//SetUp initializes a specific game object and gets it ready for the first
-//move to apply. SetUp must be called before ProposeMove can be called. Even
-//if an error is returned, the game should be in a consistent state. If
-//numPlayers is 0, we will use delegate.DefaultNumPlayers(). Variant may be
-//nil; the values will be passed to NewVariant if agentNames is not nil, it
-//should have len(numPlayers). The strings in each index represent the agent
-//to install for that player (empty strings mean a human player).
+// SetUp initializes a specific game object and gets it ready for the first
+// move to apply. SetUp must be called before ProposeMove can be called. Even
+// if an error is returned, the game should be in a consistent state. If
+// numPlayers is 0, we will use delegate.DefaultNumPlayers(). Variant may be
+// nil; the values will be passed to NewVariant if agentNames is not nil, it
+// should have len(numPlayers). The strings in each index represent the agent
+// to install for that player (empty strings mean a human player).
 func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames []string) error {
 
 	baseErr := errors.NewFriendly("Game couldn't be set up")
@@ -558,9 +558,9 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 	return nil
 }
 
-//triggerFixUp signals that we want to ensure that a fixUp loop runs even if no
-//moves have been made, because some state that a move relies on outside of game
-//state has changed.
+// triggerFixUp signals that we want to ensure that a fixUp loop runs even if no
+// moves have been made, because some state that a move relies on outside of game
+// state has changed.
 func (g *Game) triggerFixUp() DelayedError {
 	//If we aren't a modifiable copy then we need to dispatch to the one that is
 
@@ -575,9 +575,9 @@ func (g *Game) triggerFixUp() DelayedError {
 	return delayed
 }
 
-//MainLoop should be run in a goroutine. It is what takes moves off of
-//proposedMoves and applies them. It is the only method that may call
-//applyMove.
+// MainLoop should be run in a goroutine. It is what takes moves off of
+// proposedMoves and applies them. It is the only method that may call
+// applyMove.
 func (g *Game) mainLoop() {
 	for {
 		select {
@@ -603,22 +603,22 @@ func (g *Game) mainLoop() {
 	}
 }
 
-//Modifiable returns true if this instantiation of the game can be modified.
-//Games that are created via GameManager.NewGame() or retrieved from
-//GameManager.Game() can be modified directly via ProposeMove, and the game
-//object will be updated as those changes are made. Games that return
-//Modifiable() false can still have ProposeMove called on them; they will
-//simply forward the move to a game for this Id that is modifiable.
+// Modifiable returns true if this instantiation of the game can be modified.
+// Games that are created via GameManager.NewGame() or retrieved from
+// GameManager.Game() can be modified directly via ProposeMove, and the game
+// object will be updated as those changes are made. Games that return
+// Modifiable() false can still have ProposeMove called on them; they will
+// simply forward the move to a game for this Id that is modifiable.
 func (g *Game) Modifiable() bool {
 	return g.modifiable
 }
 
-//Moves returns an array of all Moves with their defaults set for this current
-//state. This method is useful for getting a list of all moves that could
-//possibly be applied to the game at its current state.
-//base.GameDelegate.ProposeFixUpMove uses this. Not to be confused with
-//Move(), which returns an inflated version of a move that has already been
-//succdefully applied to this game in the past.
+// Moves returns an array of all Moves with their defaults set for this current
+// state. This method is useful for getting a list of all moves that could
+// possibly be applied to the game at its current state.
+// base.GameDelegate.ProposeFixUpMove uses this. Not to be confused with
+// Move(), which returns an inflated version of a move that has already been
+// succdefully applied to this game in the past.
 func (g *Game) Moves() []Move {
 
 	if !g.initalized {
@@ -635,9 +635,9 @@ func (g *Game) Moves() []Move {
 	return result
 }
 
-//MoveByName returns a move of the given name set to reasonable defaults for
-//the game at its current state. Moves() is similar to this, but returns all
-//moves.
+// MoveByName returns a move of the given name set to reasonable defaults for
+// the game at its current state. Moves() is similar to this, but returns all
+// moves.
 func (g *Game) MoveByName(name string) Move {
 	if !g.initalized {
 		return nil
@@ -652,17 +652,17 @@ func (g *Game) MoveByName(name string) Move {
 	return moveType.NewMove(g.CurrentState())
 }
 
-//Refresh goes and sets this game object to reflect the current state of the
-//underlying game in Storage. Basically, when you call manager.Game() you get
-//a snapshot of the game in storage at that moment. If you believe that the
-//underlying game in storage has been modified, calling Refresh() will re-load
-//the snapshot, effectively. You only have to do this if you suspect that a
-//modifiable version of this game somewhere in another application binary
-//that's currently running may have changed since this game object was
-//created. You don't need to call this after calling ProposeMove, even on non-
-//modifiable games; it will have been called for you already. If you only have
-//one instance of your application binary running at a time, you never need to
-//call this.
+// Refresh goes and sets this game object to reflect the current state of the
+// underlying game in Storage. Basically, when you call manager.Game() you get
+// a snapshot of the game in storage at that moment. If you believe that the
+// underlying game in storage has been modified, calling Refresh() will re-load
+// the snapshot, effectively. You only have to do this if you suspect that a
+// modifiable version of this game somewhere in another application binary
+// that's currently running may have changed since this game object was
+// created. You don't need to call this after calling ProposeMove, even on non-
+// modifiable games; it will have been called for you already. If you only have
+// one instance of your application binary running at a time, you never need to
+// call this.
 func (g *Game) Refresh() {
 
 	freshGame := g.manager.Game(g.ID())
@@ -675,19 +675,19 @@ func (g *Game) Refresh() {
 
 }
 
-//ProposeMove is the way to propose a move to the game. DelayedError will return
-//an error in the future if the move was unable to be applied, or nil if the
-//move was applied successfully. Proposer is the PlayerIndex of the player who
-//is notionally proposing the move. If you don't know which player is moving it,
-//AdminPlayerIndex is a reasonable default that will generally allow any move to
-//be made. After the move is applied, your GameDelegate's ProposeFixUpMove will
-//be called; if any move is returned it will be applied, repeating the cycle
-//until no moves are returned from ProposeFixUpMove. DelayedError will only
-//resolve once any applicable FixUp moves have been applied already. This is
-//legal to call on a non-modifiable game--the change will be dispatched to a
-//modifiable version of the game with this ID, and afterwards this Game object's
-//state will be updated in place with the new values after the change (by
-//automatically calling Refresh()).
+// ProposeMove is the way to propose a move to the game. DelayedError will return
+// an error in the future if the move was unable to be applied, or nil if the
+// move was applied successfully. Proposer is the PlayerIndex of the player who
+// is notionally proposing the move. If you don't know which player is moving it,
+// AdminPlayerIndex is a reasonable default that will generally allow any move to
+// be made. After the move is applied, your GameDelegate's ProposeFixUpMove will
+// be called; if any move is returned it will be applied, repeating the cycle
+// until no moves are returned from ProposeFixUpMove. DelayedError will only
+// resolve once any applicable FixUp moves have been applied already. This is
+// legal to call on a non-modifiable game--the change will be dispatched to a
+// modifiable version of the game with this ID, and afterwards this Game object's
+// state will be updated in place with the new values after the change (by
+// automatically calling Refresh()).
 func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	if !g.Modifiable() {
@@ -714,7 +714,7 @@ func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 }
 
-//triggerAgents is called after a PlayerMove (and its chain of fixUp moves) is called.
+// triggerAgents is called after a PlayerMove (and its chain of fixUp moves) is called.
 func (g *Game) triggerAgents() error {
 
 	if g.Finished() {
@@ -776,8 +776,8 @@ func (g *Game) delayedProposeMove(move Move, proposer PlayerIndex, low time.Dura
 	}()
 }
 
-//Game applies the move to the state if it is currently legal. May only be
-//called by mainLoop. Propose moves with game.ProposeMove instead.
+// Game applies the move to the state if it is currently legal. May only be
+// called by mainLoop. Propose moves with game.ProposeMove instead.
 func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int, initiator int) error {
 
 	baseErr := errors.NewFriendly("The move could not be made")

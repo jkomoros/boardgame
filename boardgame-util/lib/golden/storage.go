@@ -9,13 +9,13 @@ import (
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 )
 
-//Note: these are also duplicated in moves/seat_player.go and server/api/storage.go
+// Note: these are also duplicated in moves/seat_player.go and server/api/storage.go
 const playerToSeatRendevousDataType = "github.com/jkomoros/boardgame/server/api.PlayerToSeat"
 const willSeatPlayerRendevousDataType = "github.com/jkomoros/boardgame/server/api.WillSeatPlayer"
 
-//by defining the variable type, we verify we actually do implement the
-//interface. Since it flows via FetchInejctedData, there's no type
-//checking otherwise.
+// by defining the variable type, we verify we actually do implement the
+// interface. Since it flows via FetchInejctedData, there's no type
+// checking otherwise.
 var testPlayerSeat interfaces.SeatPlayerSignaler = &player{}
 
 type player struct {
@@ -90,9 +90,9 @@ func (s *storageManager) FetchInjectedDataForGame(gameID string, dataType string
 	return s.StorageManager.FetchInjectedDataForGame(gameID, dataType)
 }
 
-//injectPlayerToSeat is how you make StorageManager tell the SeatPlayer move to
-//seat the player at the given index. You also need to call ForceFixUp after
-//caling this.
+// injectPlayerToSeat is how you make StorageManager tell the SeatPlayer move to
+// seat the player at the given index. You also need to call ForceFixUp after
+// caling this.
 func (s *storageManager) injectPlayerToSeat(index boardgame.PlayerIndex) {
 	s.playerToSeat = &player{
 		index,

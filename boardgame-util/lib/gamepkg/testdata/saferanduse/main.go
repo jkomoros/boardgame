@@ -1,7 +1,5 @@
 /*
-
 saferanduse is a simple fake game pacakge that imports math.rand but with an override to assert it's safe
-
 */
 package saferanduse
 

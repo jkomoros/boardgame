@@ -4,7 +4,7 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-//SubcommandObject is a literal struct that implements a subcommand
+// SubcommandObject is a literal struct that implements a subcommand
 type SubcommandObject interface {
 	//The name the command is registered as
 	Name() string
@@ -212,7 +212,7 @@ func (b *baseSubCommand) Usage() string {
 	return ""
 }
 
-//HelpText defaults to description
+// HelpText defaults to description
 func (b *baseSubCommand) HelpText() string {
 	return b.TopLevelStruct().Description()
 }
@@ -262,9 +262,9 @@ func strMatchesObject(str string, s SubcommandObject) bool {
 	return false
 }
 
-//selectSubcommandObject takes a subcommand object and a path. It verifes the
-//first item is us, then identifies the nexct object to recurse into based on
-//Names of SubcommandObjects.
+// selectSubcommandObject takes a subcommand object and a path. It verifes the
+// first item is us, then identifies the nexct object to recurse into based on
+// Names of SubcommandObjects.
 func selectSubcommandObject(s SubcommandObject, p []string) SubcommandObject {
 
 	if !strMatchesObject(p[0], s) {

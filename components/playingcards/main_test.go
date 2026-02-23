@@ -60,7 +60,7 @@ func TestNewDeck(t *testing.T) {
 
 }
 
-//Checks that the deck, at starting Index, has the 52 main cards in canonical order.
+// Checks that the deck, at starting Index, has the 52 main cards in canonical order.
 func checkExpectedRun(deck *boardgame.Deck, startingIndex int, t *testing.T) {
 
 	if len(deck.Components()) < 52+startingIndex {

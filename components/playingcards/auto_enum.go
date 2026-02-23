@@ -15,7 +15,7 @@ import (
 
 var enums = enum.NewSet()
 
-//SuitEnum is the enum.Enum for Suit
+// SuitEnum is the enum.Enum for Suit
 var SuitEnum = enums.MustAdd("Suit", map[enum.EnumKey]string{
 	SuitClubs:    "\u2663",
 	SuitDiamonds: "\u2666",
@@ -25,7 +25,7 @@ var SuitEnum = enums.MustAdd("Suit", map[enum.EnumKey]string{
 	SuitUnknown:  "\uFFFD",
 })
 
-//RankEnum is the enum.Enum for Rank
+// RankEnum is the enum.Enum for Rank
 var RankEnum = enums.MustAdd("Rank", map[enum.EnumKey]string{
 	Rank10:      "10",
 	Rank2:       "2",

@@ -5,21 +5,20 @@ import (
 	"strings"
 )
 
-//Variant represents a specific configuration of options for a specific game.
-//It is just a map of keys to values that are passed to your game so it can
-//configure different alternate rulesets, for example using a Short variant
-//that uses fewer cards and should play faster, or using a different deck of
-//cards than normal. The variant configuration will be considered legal if it
-//passes GameDelegate.Variants().LegalVariant(), and will be passed to
-//GameDelegate.BeginSetup so that you can set up your game in whatever way
-//makes sense for a given Variant. Your GameDelegate defines what valid keys
-//and values are, and how they should be displayed to end-users, with its
-//return value for GameDelegate.Variants(). See VariantConfig for more on that
-//object type.
+// Variant represents a specific configuration of options for a specific game.
+// It is just a map of keys to values that are passed to your game so it can
+// configure different alternate rulesets, for example using a Short variant
+// that uses fewer cards and should play faster, or using a different deck of
+// cards than normal. The variant configuration will be considered legal if it
+// passes GameDelegate.Variants().LegalVariant(), and will be passed to
+// GameDelegate.BeginSetup so that you can set up your game in whatever way
+// makes sense for a given Variant. Your GameDelegate defines what valid keys
+// and values are, and how they should be displayed to end-users, with its
+// return value for GameDelegate.Variants(). See VariantConfig for more on that
+// object type.
 type Variant map[string]string
 
 /*
-
 VariantConfig defines the legal keys, and their legal values, that a Variant
 may have in this game--that is, the set of alternate rule-sets that can be
 provided for this game type. You return one of these from your GameDelegate's
@@ -51,7 +50,6 @@ initialized.
 See also VariantKey and VariantDisplayInfo.
 
 Here's an example showing a lot of the defaulting in action:
-
 
 	func (g *gameDelegate) Variants() boardgame.VariantConfig {
 
@@ -114,9 +112,9 @@ Here's an example showing a lot of the defaulting in action:
 */
 type VariantConfig map[string]*VariantKey
 
-//VariantKey represents a specific key in your VariantConfig that has a
-//particular meaning for this game type. For example, "color". See
-//VariantConfig for more.
+// VariantKey represents a specific key in your VariantConfig that has a
+// particular meaning for this game type. For example, "color". See
+// VariantConfig for more.
 type VariantKey struct {
 	//VariantKey has a DisplayInfo embedded in it the defines the display name
 	//and description for this configuration key.
@@ -129,10 +127,10 @@ type VariantKey struct {
 	Values map[string]*VariantDisplayInfo
 }
 
-//VariantDisplayInfo is information about a given value and how to display it
-//to end- users, with a DisplayName and Description. It is used as part of
-//VariantKey both to describe the Key itself as well as to give information
-//about the values within the key for each value. See VariantConfig for more.
+// VariantDisplayInfo is information about a given value and how to display it
+// to end- users, with a DisplayName and Description. It is used as part of
+// VariantKey both to describe the Key itself as well as to give information
+// about the values within the key for each value. See VariantConfig for more.
 type VariantDisplayInfo struct {
 	//The string to actually display to the user
 	DisplayName string
@@ -147,12 +145,12 @@ type VariantDisplayInfo struct {
 
 const whitespaceChars = " \n\t"
 
-//Valid returns an error if there is any misconfiguration in this
-//VariantConfig in general. In particular, it verifies that the implied name
-//for each key matches its explicit Name property, and the same for values. It
-//also verifies that if there's a default it denotes a valid value that was
-//explicitly listed. Effectively this checks if Initialize() has been called
-//or not. NewGameManager will check this during creation of a new game type.
+// Valid returns an error if there is any misconfiguration in this
+// VariantConfig in general. In particular, it verifies that the implied name
+// for each key matches its explicit Name property, and the same for values. It
+// also verifies that if there's a default it denotes a valid value that was
+// explicitly listed. Effectively this checks if Initialize() has been called
+// or not. NewGameManager will check this during creation of a new game type.
 func (v VariantConfig) Valid() error {
 	if v == nil {
 		return nil
@@ -198,20 +196,20 @@ func (v VariantConfig) Valid() error {
 	return nil
 }
 
-//Initialize calls initalize on each Key in config, setting reasonable defaults
-//if they weren't provided. Typically your GameDelegate.Variants() doesn't
-//have to call this, as the GameManager will. See the documentation for the
-//VariantConfig struct for more.
+// Initialize calls initalize on each Key in config, setting reasonable defaults
+// if they weren't provided. Typically your GameDelegate.Variants() doesn't
+// have to call this, as the GameManager will. See the documentation for the
+// VariantConfig struct for more.
 func (v VariantConfig) Initialize() {
 	for key, val := range v {
 		val.Initialize(key)
 	}
 }
 
-//Initialize is given the name of this key within its parent's map. The
-//provided name will override whatever Name was already set and also sets the
-//display name. Called by VariantConfig.Initialize, and also calls all Values'
-//Initialize. See VariantConfig for more.
+// Initialize is given the name of this key within its parent's map. The
+// provided name will override whatever Name was already set and also sets the
+// display name. Called by VariantConfig.Initialize, and also calls all Values'
+// Initialize. See VariantConfig for more.
 func (v *VariantKey) Initialize(nameInParent string) {
 	for key, val := range v.Values {
 		if val == nil {
@@ -223,9 +221,9 @@ func (v *VariantKey) Initialize(nameInParent string) {
 	v.VariantDisplayInfo.Initialize(nameInParent)
 }
 
-//Initialize sets the name to the given name. It also sets the display name
-//automatically if one wasn't provided by replacing "_" and "-" with spaces
-//and title casing name. It's called automatically by VariantKey.Initalize.
+// Initialize sets the name to the given name. It also sets the display name
+// automatically if one wasn't provided by replacing "_" and "-" with spaces
+// and title casing name. It's called automatically by VariantKey.Initalize.
 func (d *VariantDisplayInfo) Initialize(nameInParent string) {
 	d.Name = nameInParent
 
@@ -245,11 +243,11 @@ func (d *VariantDisplayInfo) Initialize(nameInParent string) {
 
 }
 
-//NewVariant returns a new variant with the given values set. Any extra keys
-//that are not in VariantConfig will lead to an error, as well as any values
-//that are illegal for their key. Any missing key/value pairs will be set to
-//their default, if the key has a default. Typically you don't call this
-//directly, but it is called for you implicitly within NewGame.
+// NewVariant returns a new variant with the given values set. Any extra keys
+// that are not in VariantConfig will lead to an error, as well as any values
+// that are illegal for their key. Any missing key/value pairs will be set to
+// their default, if the key has a default. Typically you don't call this
+// directly, but it is called for you implicitly within NewGame.
 func (v VariantConfig) NewVariant(variantValues map[string]string) (Variant, error) {
 
 	result := make(Variant, len(variantValues))
@@ -281,12 +279,12 @@ func (v VariantConfig) NewVariant(variantValues map[string]string) (Variant, err
 
 }
 
-//LegalVariant returns whether the given variant has keys and values that are
-//enumerated and legal in this config. In paticular, ensures that every key in
-//variant is defined in this config, and the value for each key is one of the
-//legal values according to the config. Nil configs are OK. The engine calls
-//this autoamtically in NewGame to verify the passed variant is legal for this
-//game type.
+// LegalVariant returns whether the given variant has keys and values that are
+// enumerated and legal in this config. In paticular, ensures that every key in
+// variant is defined in this config, and the value for each key is one of the
+// legal values according to the config. Nil configs are OK. The engine calls
+// this autoamtically in NewGame to verify the passed variant is legal for this
+// game type.
 func (v VariantConfig) LegalVariant(variant Variant) error {
 
 	if v == nil {

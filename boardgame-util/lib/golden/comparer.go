@@ -14,8 +14,8 @@ import (
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 )
 
-//comparer is a struct that manages the process of comparing a given golden to a
-//new game. Typically you create one wiht newComparer, and then call Compare.
+// comparer is a struct that manages the process of comparing a given golden to a
+// new game. Typically you create one wiht newComparer, and then call Compare.
 type comparer struct {
 	manager             *boardgame.GameManager
 	golden              *record.Record
@@ -73,8 +73,8 @@ func (c *comparer) PrintDebug() {
 	fmt.Println(string(jsonBuf))
 }
 
-//ResetDebugLog should be called at the top of the loop, so that PrintDebug()
-//will only print the last turn through the game's worth of logs.
+// ResetDebugLog should be called at the top of the loop, so that PrintDebug()
+// will only print the last turn through the game's worth of logs.
 func (c *comparer) ResetDebugLog() {
 	c.lastBuf = c.buf
 	logger, buf := newLogger()
@@ -82,8 +82,8 @@ func (c *comparer) ResetDebugLog() {
 	c.buf = buf
 }
 
-//GoldenHasRemainingMoves returns whether there are moves beyond what golden
-//contains.
+// GoldenHasRemainingMoves returns whether there are moves beyond what golden
+// contains.
 func (c *comparer) GoldenHasRemainingMoves() bool {
 	return c.golden.Game().Version > c.lastVerifiedVersion
 }
@@ -92,11 +92,11 @@ func (c *comparer) LastVerifiedVersion() int {
 	return c.lastVerifiedVersion
 }
 
-//AdvanceToNextInitiatorMove is like VerifyUnverifiedMoves, but advances
-//LastVerifiedVersion automatically up to the next move whose Initator is
-//itself: that is, that is a Player move, a Timer move, or a SeatPlayer move.
-//This leaves the golden in the state where the next move to make in the new
-//version is the next unverified move.
+// AdvanceToNextInitiatorMove is like VerifyUnverifiedMoves, but advances
+// LastVerifiedVersion automatically up to the next move whose Initator is
+// itself: that is, that is a Player move, a Timer move, or a SeatPlayer move.
+// This leaves the golden in the state where the next move to make in the new
+// version is the next unverified move.
 func (c *comparer) AdvanceToNextInitiatorMove() {
 
 	if c.game.Version() > 0 {
@@ -126,9 +126,9 @@ func (c *comparer) AdvanceToNextInitiatorMove() {
 	}
 }
 
-//VerifyUnverifiedMoves compares moves and states for moves that have been
-//applied but not yet verified. Even if it errors, it may have incremented
-//LastVerifiedVersion().
+// VerifyUnverifiedMoves compares moves and states for moves that have been
+// applied but not yet verified. Even if it errors, it may have incremented
+// LastVerifiedVersion().
 func (c *comparer) VerifyUnverifiedMoves() error {
 	verifiedAtLeastOne := false
 	for c.lastVerifiedVersion < c.game.Version() {
@@ -188,8 +188,8 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 	return nil
 }
 
-//ApplyNextMove will apply the next move, whether it's a player move or a
-//special admin move.
+// ApplyNextMove will apply the next move, whether it's a player move or a
+// special admin move.
 func (c *comparer) ApplyNextMove() (bool, error) {
 	applied, err := c.ApplyNextSpecialAdminMove()
 	if err != nil {
@@ -205,7 +205,7 @@ func (c *comparer) ApplyNextMove() (bool, error) {
 	return applied, nil
 }
 
-//ApplyNextPlayerMove applies the next player move in the sequence.
+// ApplyNextPlayerMove applies the next player move in the sequence.
 func (c *comparer) ApplyNextPlayerMove() (bool, error) {
 
 	nextMoveRec, err := c.golden.Move(c.lastVerifiedVersion + 1)
@@ -233,11 +233,11 @@ func (c *comparer) ApplyNextPlayerMove() (bool, error) {
 	return true, nil
 }
 
-//ApplyNextSpecialAdminMove will return the next special admin move, returning
-//true if one was applied. Typically Admin (FixUp) moves are applied
-//automatically by the engine after a PlayerMove is applied. But two special
-//kinds of moves have to be handeled specially: 1) timers that are queued up but
-//have not fired yet, and 2) SeatPlayer moves.
+// ApplyNextSpecialAdminMove will return the next special admin move, returning
+// true if one was applied. Typically Admin (FixUp) moves are applied
+// automatically by the engine after a PlayerMove is applied. But two special
+// kinds of moves have to be handeled specially: 1) timers that are queued up but
+// have not fired yet, and 2) SeatPlayer moves.
 func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
 	nextMoveRec, err := c.golden.Move(c.lastVerifiedVersion + 1)
 
@@ -289,8 +289,8 @@ func (c *comparer) ApplyNextSpecialAdminMove() (bool, error) {
 	return false, errors.New("At version " + strconv.Itoa(c.lastVerifiedVersion) + " the next player move to apply was not applied by a player. This implies that the fixUp move named " + nextMoveRec.Name + " is erroneously returning an error from its Legal method.")
 }
 
-//RegenerateGolden returns a new golden that has applied the non-fixup moves
-//like the golden that the comparer is based off of.
+// RegenerateGolden returns a new golden that has applied the non-fixup moves
+// like the golden that the comparer is based off of.
 func (c *comparer) RegenerateGolden() (*record.Record, error) {
 
 	c.AdvanceToNextInitiatorMove()
@@ -363,9 +363,9 @@ func (c *comparer) CompareFinished() error {
 	return nil
 }
 
-//alignTimes MODIFIES the given new storage record, specifically trying to
-//minimize diffs between the two, at least due to timeStamps, as much as
-//possible.
+// alignTimes MODIFIES the given new storage record, specifically trying to
+// minimize diffs between the two, at least due to timeStamps, as much as
+// possible.
 func alignTimes(new, golden *record.Record) error {
 	new.Game().Created = golden.Game().Created
 	new.Game().Modified = golden.Game().Modified

@@ -1,5 +1,4 @@
 /*
-
 Package enum allows you to represent enum values.
 
 In a number of cases you have a property that can only have a handful of
@@ -9,56 +8,57 @@ make sure you don't have a typo at compile time instead of run time. It's also
 nice to have them have an order in many cases, and to be serialized with the
 string value so it's easier to read.
 
-Enums are useful for this case. An EnumSet contains multiple enums, and you can
-create an EnumValue which can be used as a property on a PropertyReader object.
+Enums are useful for this case. A [Set] contains multiple enums, and you can
+create a [Val] which can be used as a property on a PropertyReader object.
 
 The idiomatic way to create an enum is the following.
 
 In components.go:
-	const (
-		colorRed = iota
-		colorBlue
-		colorGreen
-    )
 
-    const (
-        cardSpade = iota
-        cardHeart
-        cardDiamond
-        cardClub
-    )
+		const (
+			colorRed = iota
+			colorBlue
+			colorGreen
+	    )
 
-    var enums = enum.NewSet()
+	    const (
+	        cardSpade = iota
+	        cardHeart
+	        cardDiamond
+	        cardClub
+	    )
 
-    var colorEnum = enums.MustAdd("color", map[enum.EnumKey]string{
-        colorRed: "Red",
-        colorBlue: "Blue",
-        colorGreen: "Green",
-    })
+	    var enums = enum.NewSet()
 
-    var cardEnum = enums.MustAdd("card", map[enum.EnumKey]string{
-        cardSpade: "Spade",
-        cardHeart: "Heart",
-        cardDiamond: "Diamond",
-        cardClub: "Club",
-    })
+	    var colorEnum = enums.MustAdd("color", map[enum.EnumKey]string{
+	        colorRed: "Red",
+	        colorBlue: "Blue",
+	        colorGreen: "Green",
+	    })
+
+	    var cardEnum = enums.MustAdd("card", map[enum.EnumKey]string{
+	        cardSpade: "Spade",
+	        cardHeart: "Heart",
+	        cardDiamond: "Diamond",
+	        cardClub: "Club",
+	    })
 
 And then in your main.go:
 
-    func (g *GameDelegate) EmptyGameState() boardgame.ConfigurableSubState {
+	func (g *GameDelegate) EmptyGameState() boardgame.ConfigurableSubState {
 
-        //You could also just return a zero-valued struct if you used struct
-        //tags for the enum. See the Constructors section of boardgame package
-        //doc for more.
-        return &gameState{
-            MyIntProp: 0,
-            MyColorEnumProp: colorEnum.NewVal(),
-        }
-    }
+	    //You could also just return a zero-valued struct if you used struct
+	    //tags for the enum. See the Constructors section of boardgame package
+	    //doc for more.
+	    return &gameState{
+	        MyIntProp: 0,
+	        MyColorEnumProp: colorEnum.NewVal(),
+	    }
+	}
 
-    func (g *GameDelegate) ConfigureEnums() *enum.Set {
-        return enums
-    }
+	func (g *GameDelegate) ConfigureEnums() *enum.Set {
+	    return enums
+	}
 
 This is a fair bit of boilerplate to inlude in your components.go. You can use
 the `boardgame-util codegen` tool to generate the repetitive boilerplate for
@@ -67,20 +67,20 @@ you.
 Instead of the above code for components.go, you'd instead only include the
 following:
 
-    //boardgame:codegen
-    const (
-        colorRed = iota
-        colorBlue
-        colorGreen
-    )
+	//boardgame:codegen
+	const (
+	    colorRed = iota
+	    colorBlue
+	    colorGreen
+	)
 
-    //boardgame:codegen
-    const (
-        cardSpade = iota
-        cardHeart
-        cardDiamond
-        cardClub
-    )
+	//boardgame:codegen
+	const (
+	    cardSpade = iota
+	    cardHeart
+	    cardDiamond
+	    cardClub
+	)
 
 Then, the rest of the example code shown above in components.go would be
 automatically generated, including the ConfigureEnums definition on the structs
@@ -90,22 +90,22 @@ constant block would be used as the name of the enum. codegen has more options
 for controlling the precise way the enums are created; see codegen's package doc
 for more information.
 
-Ranged Enums
+# Ranged Enums
 
-You can also create RangeEnums. These are just normal enums, but with a
+You can also create [RangeEnum] values. These are just normal enums, but with a
 multi-index enumeration translated to and from string values in a known way.
 
 When you create RangeEnums, you don't use codegen, because the values are
 created for you with only minimal configuration.
 
-set.AddRange returns a RangeEnum directly. If you have a normal Enum, you can
-use RangeEnum to get access to the RangeEnum, if valid, or nil otherwise.
-Generally you should store RangeEnumVal directly in your structs if it's a range
+[Set.AddRange] returns a [RangeEnum] directly. If you have a normal [Enum], you can
+use [Enum.RangeEnum] to get access to the [RangeEnum], if valid, or nil otherwise.
+Generally you should store [RangeVal] directly in your structs if it's a range
 value, so you don't have to up-convert.
 
-Tree Enums
+# Tree Enums
 
-You can also create TreeEnums. These are just normal enums, but that
+You can also create [TreeEnum] values. These are just normal enums, but that
 additionally encode a tree structure on top of the values. A tree enum always
 has value 0 as the root node, with string value "", and that all other nodes
 have at the top of their ancestor chain.
@@ -117,11 +117,11 @@ Tree Enum values can be either branches (has 1 or more children) or leaves (have
 no children). Typically a branch node means "all of the values below me," while
 a leaf node means "precisely this value". In some contexts it only makes sense
 for the value to be set to a leaf node. For example, if the PhaseEnum in your
-game is a TreeEnum, then the state will refuse to be saved if the value is not a
-leaf value. BranchDefaulValue is the best way to get the default leaf value
+game is a [TreeEnum], then the state will refuse to be saved if the value is not a
+leaf value. [TreeEnum.BranchDefaultValue] is the best way to get the default leaf value
 within a sub-tree.
 
-Creating Tree Enums with boardgame-util codegen
+# Creating Tree Enums with boardgame-util codegen
 
 `boardgame-util codegen` is able to make TreeEnums for you automatically.
 
@@ -130,78 +130,80 @@ string value evaluates to "". (Theoretically the int value of that "" node
 should also be 0, but the actual constant value for constants in Enums is
 currently ignored due to #631).
 
-    //boardgame:codegen
-    const (
-      //Because the next item's string value is "" (there is no text beyond the shared prefix), this will be a tree enum
-      phase = iota
-      phaseRed
-      phaseBlue
-    )
+	//boardgame:codegen
+	const (
+	  //Because the next item's string value is "" (there is no text beyond the shared prefix), this will be a tree enum
+	  phase = iota
+	  phaseRed
+	  phaseBlue
+	)
 
 Creates a TreeEnum shaped like:
 
-    ""
-      Red
-      Blue
+	""
+	  Red
+	  Blue
 
 Branch nodes are created based on the implicit ordering and structure of the
 final string values, splitting at "> " as the delimeter:
 
-    //boardgame:codegen
-    const (
-      phase = iota
-      phaseRed
-      //display:"Red > Circle"
-      phaseRedCircle
-      phaseBlue
-      //display:"Blue > Circle"
-      phaseBlueCircle
-    )
+	//boardgame:codegen
+	const (
+	  phase = iota
+	  phaseRed
+	  //display:"Red > Circle"
+	  phaseRedCircle
+	  phaseBlue
+	  //display:"Blue > Circle"
+	  phaseBlueCircle
+	)
 
 Creates:
 
-    ""
-      Red
-        Circle
-      Blue
-        Circle
+	""
+	  Red
+	    Circle
+	  Blue
+	    Circle
 
 Of course, writing the display name is annoying, so if the name of the const has
 has an underscore `010` then it will be interpreted as " > " when creating the
 string value:
 
-    //boardgame:codegen
-    const (
-      phase = iota
-      phaseRed
-      //Next line's string value is "Red > Circle"
-      phaseRed010Circle
-      phaseBlue
-      phaseBlue010Circle
-    )
+	//boardgame:codegen
+	const (
+	  phase = iota
+	  phaseRed
+	  //Next line's string value is "Red > Circle"
+	  phaseRed010Circle
+	  phaseBlue
+	  phaseBlue010Circle
+	)
 
 Creates:
 
-    ""
-      Red
-        Circle
-      Blue
-        Circle
+	""
+	  Red
+	    Circle
+	  Blue
+	    Circle
 
 If there are node names that are implied but not explicitly created in your
 code, codegen will define a reasonably-named global constant automatically.
 
-    //boardgame:codegen
-    const (
-        phase = iota
-        //phaseRed is not explicitly created, but it is implied by
-        //phaseRed010Circle; PhaseRed will be created
-        phaseRed10Circle
-    )
+	//boardgame:codegen
+	const (
+	    phase = iota
+	    //phaseRed is not explicitly created, but it is implied by
+	    //phaseRed010Circle; PhaseRed will be created
+	    phaseRed10Circle
+	)
+
 Creates:
-    ""
-        Red
-            Circle
+
+	""
+	    Red
+	        Circle
 
 Supplying underscores in constant names is ugly and error-prone. codegen will
 automatically create tree breaks at word boundaries, combining multiple words in
@@ -213,30 +215,31 @@ default will combine those into one multi-word node: "Blue Green". If you don't
 want that to happen, just be explicit about the node break, either with a
 display value that includes the delimiter there, or by using the underscore.
 
-    //boardgame:codegen
-    const (
-        phase = iota
-        phaseBlueGreen
-        //phaseBlueGreenOne is implied; a constant named phaseBlueGreenOne
-        //will be created
-        phaseBlueGreenOneA
-        phaseBlueGreenOneB
-        //The next item will result in a single child named "Two A"
-        phaseBlueGreenTwoA
-        //The next item will result in a child of Three followed by a child of
-        //A since there's an explicit tree break.
-        phaseBlueGreenThree010A
-    )
-Creates:
-    ""
-        Blue Green
-            One
-                A
-                B
-            Two A
-            Three
-                A
+	//boardgame:codegen
+	const (
+	    phase = iota
+	    phaseBlueGreen
+	    //phaseBlueGreenOne is implied; a constant named phaseBlueGreenOne
+	    //will be created
+	    phaseBlueGreenOneA
+	    phaseBlueGreenOneB
+	    //The next item will result in a single child named "Two A"
+	    phaseBlueGreenTwoA
+	    //The next item will result in a child of Three followed by a child of
+	    //A since there's an explicit tree break.
+	    phaseBlueGreenThree010A
+	)
 
+Creates:
+
+	""
+	    Blue Green
+	        One
+	            A
+	            B
+	        Two A
+	        Three
+	            A
 */
 package enum
 
@@ -249,31 +252,31 @@ import (
 	"strings"
 )
 
-//EnumKey is a defined type based on int, used for all enum values (keys).
-//This provides clarity in APIs and prevents accidentally mixing up enum keys
-//with other integer values.
+// EnumKey is a defined type based on int, used for all enum values (keys).
+// This provides clarity in APIs and prevents accidentally mixing up enum keys
+// with other integer values.
 type EnumKey int
 
-//Int returns the underlying int value of the EnumKey. This is a convenience
-//to avoid the casting noise of int(key) at call sites.
+// Int returns the underlying int value of the EnumKey. This is a convenience
+// to avoid the casting noise of int(key) at call sites.
 func (e EnumKey) Int() int { return int(e) }
 
-//IllegalValue is the senitnel value that will be returned for illegal values.
+// IllegalValue is the senitnel value that will be returned for illegal values.
 const IllegalValue EnumKey = math.MaxInt64
 
 const rangedValueSeparator = "_"
 
-//Set is a set of enums where each Enum's values are unique. Normally you will
-//create one in your package, add enums to it during initalization, and then use
-//it for all managers you create.
+// Set is a set of enums where each Enum's values are unique. Normally you will
+// create one in your package, add enums to it during initalization, and then use
+// it for all managers you create.
 type Set struct {
 	finished bool
 	enums    map[string]Enum
 }
 
-//Enum is a named set of values within a set. Get a new one with
-//enumSet.Add(). It's an interface to better support anonymous-embedding
-//scenarios.
+// Enum is a named set of values within a set. Get a new one with
+// enumSet.Add(). It's an interface to better support anonymous-embedding
+// scenarios.
 type Enum interface {
 	//Values returns all values that are in this enum--all values for which
 	//enum.Valid(val) would return true.
@@ -339,7 +342,7 @@ type Enum interface {
 	TreeEnum() TreeEnum
 }
 
-//enum is the underlying type we use to implement Enum.
+// enum is the underlying type we use to implement Enum.
 type enum struct {
 	name         string
 	values       map[EnumKey]string
@@ -352,14 +355,14 @@ type enum struct {
 	children map[EnumKey][]EnumKey
 }
 
-//variable is the underlying type we'll return for both Value and Constant.
+// variable is the underlying type we'll return for both Value and Constant.
 type variable struct {
 	enum Enum
 	val  EnumKey
 }
 
-//ImmutableVal is an instantiation of an Enum that cannot be changed. You retrieve it
-//from enum.NewImmutableVal(val).
+// ImmutableVal is an instantiation of an Enum that cannot be changed. You retrieve it
+// from enum.NewImmutableVal(val).
 type ImmutableVal interface {
 	Enum() Enum
 	Value() EnumKey
@@ -377,8 +380,8 @@ type ImmutableVal interface {
 	ImmutableTreeVal() ImmutableTreeVal
 }
 
-//Val is an instantiation of a value that must be set to a value in the given
-//enum. You retrieve one from enum.NewMutableVal().
+// Val is an instantiation of a value that must be set to a value in the given
+// enum. You retrieve one from enum.NewMutableVal().
 type Val interface {
 	ImmutableVal
 	//SetValue changes the value. Returns true if successful. Will fail if the
@@ -397,8 +400,8 @@ type Val interface {
 	TreeVal() TreeVal
 }
 
-//ImmutableEnumSlice is an immutable slice of enum values associated with a
-//particular enum. It is the read-only counterpart of EnumSlice.
+// ImmutableEnumSlice is an immutable slice of enum values associated with a
+// particular enum. It is the read-only counterpart of EnumSlice.
 type ImmutableEnumSlice interface {
 	//Enum returns the Enum this slice is associated with.
 	Enum() Enum
@@ -414,8 +417,8 @@ type ImmutableEnumSlice interface {
 	Copy() EnumSlice
 }
 
-//EnumSlice is a mutable slice of enum values associated with a particular
-//enum. Get one from an Enum's NewEnumSlice method.
+// EnumSlice is a mutable slice of enum values associated with a particular
+// enum. Get one from an Enum's NewEnumSlice method.
 type EnumSlice interface {
 	ImmutableEnumSlice
 	//SetValues replaces the entire contents of the slice with vals. Returns
@@ -434,8 +437,8 @@ type EnumSlice interface {
 	Truncate(length int)
 }
 
-//enumSlice is the unexported implementation of ImmutableEnumSlice and
-//EnumSlice.
+// enumSlice is the unexported implementation of ImmutableEnumSlice and
+// EnumSlice.
 type enumSlice struct {
 	enum Enum
 	vals []EnumKey
@@ -515,8 +518,8 @@ func (e *enumSlice) Truncate(length int) {
 	e.vals = e.vals[:length]
 }
 
-//MarshalJSON marshals the enum slice as a JSON array of string values for
-//readability, similar to how Val marshals as a string.
+// MarshalJSON marshals the enum slice as a JSON array of string values for
+// readability, similar to how Val marshals as a string.
 func (e *enumSlice) MarshalJSON() ([]byte, error) {
 	strs := make([]string, len(e.vals))
 	for i, v := range e.vals {
@@ -525,8 +528,8 @@ func (e *enumSlice) MarshalJSON() ([]byte, error) {
 	return json.Marshal(strs)
 }
 
-//UnmarshalJSON expects a JSON array of string values. Each string must
-//correspond to a valid value in this enum.
+// UnmarshalJSON expects a JSON array of string values. Each string must
+// correspond to a valid value in this enum.
 func (e *enumSlice) UnmarshalJSON(blob []byte) error {
 	var strs []string
 	if err := json.Unmarshal(blob, &strs); err != nil {
@@ -544,8 +547,8 @@ func (e *enumSlice) UnmarshalJSON(blob []byte) error {
 	return nil
 }
 
-//NewSet returns a new Set. Generally you'll call this once in a
-//package and create the set during initalization.
+// NewSet returns a new Set. Generally you'll call this once in a
+// package and create the set during initalization.
 func NewSet() *Set {
 	return &Set{
 		false,
@@ -553,8 +556,8 @@ func NewSet() *Set {
 	}
 }
 
-//MustCombineSets wraps CombineEnumSets, but instead of erroring will
-//panic. Useful for package-level declarations outside of init().
+// MustCombineSets wraps CombineEnumSets, but instead of erroring will
+// panic. Useful for package-level declarations outside of init().
 func MustCombineSets(sets ...*Set) *Set {
 	result, err := CombineSets(sets...)
 	if err != nil {
@@ -563,9 +566,9 @@ func MustCombineSets(sets ...*Set) *Set {
 	return result
 }
 
-//CombineSets returns a new EnumSet that contains all of the EnumSets
-//combined into one. The individual enums will literally be the same as the
-//enums from the provided sets, so enum equality will work.
+// CombineSets returns a new EnumSet that contains all of the EnumSets
+// combined into one. The individual enums will literally be the same as the
+// enums from the provided sets, so enum equality will work.
 func CombineSets(sets ...*Set) (*Set, error) {
 	result := NewSet()
 	for i, set := range sets {
@@ -579,21 +582,21 @@ func CombineSets(sets ...*Set) (*Set, error) {
 	return result, nil
 }
 
-//Finish finalizes an EnumSet so that no more enums may be added. After this
-//is called it is safe to use this in a multi-threaded environment. Repeated
-//calls do nothing. ComponenChest automatically calls Finish() on the set you
-//pass it.
+// Finish finalizes an EnumSet so that no more enums may be added. After this
+// is called it is safe to use this in a multi-threaded environment. Repeated
+// calls do nothing. ComponenChest automatically calls Finish() on the set you
+// pass it.
 func (e *Set) Finish() {
 	e.finished = true
 }
 
-//MarshalJSON marshals the enum set in a form appropriate for being transmitted
-//to the client.
+// MarshalJSON marshals the enum set in a form appropriate for being transmitted
+// to the client.
 func (e *Set) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.enums)
 }
 
-//EnumNames returns a list of all names in the Enum.
+// EnumNames returns a list of all names in the Enum.
 func (e *Set) EnumNames() []string {
 	var result []string
 	for key := range e.enums {
@@ -602,16 +605,16 @@ func (e *Set) EnumNames() []string {
 	return result
 }
 
-//Enum returns the Enum with the given name. In general you keep a reference to
-//the enum yourself, but this is useful for programatically enumerating the
-//enums.
+// Enum returns the Enum with the given name. In general you keep a reference to
+// the enum yourself, but this is useful for programatically enumerating the
+// enums.
 func (e *Set) Enum(name string) Enum {
 	return e.enums[name]
 }
 
-//MustAdd is like Add, but instead of an error it will panic if the enum
-//cannot be added. This is useful for defining your enums at the package level
-//outside of an init().
+// MustAdd is like Add, but instead of an error it will panic if the enum
+// cannot be added. This is useful for defining your enums at the package level
+// outside of an init().
 func (e *Set) MustAdd(enumName string, values map[EnumKey]string) Enum {
 	result, err := e.Add(enumName, values)
 
@@ -622,9 +625,9 @@ func (e *Set) MustAdd(enumName string, values map[EnumKey]string) Enum {
 	return result
 }
 
-//MustCombine is like Combine, but if it would have errored it will panic.
-//Suitable for usage at package-level initalization, where any panics will be
-//found during initialization.
+// MustCombine is like Combine, but if it would have errored it will panic.
+// Suitable for usage at package-level initalization, where any panics will be
+// found during initialization.
 func (e *Set) MustCombine(name string, enums ...Enum) Enum {
 	result, err := e.Combine(name, enums...)
 
@@ -635,9 +638,9 @@ func (e *Set) MustCombine(name string, enums ...Enum) Enum {
 	return result
 }
 
-//Combine creates a new enum that is the combination of the enumerated enums.
-//The enums need not be in this set. Will error if the combined enum is invalid
-//(e.g. overlapping index or strings)
+// Combine creates a new enum that is the combination of the enumerated enums.
+// The enums need not be in this set. Will error if the combined enum is invalid
+// (e.g. overlapping index or strings)
 func (e *Set) Combine(name string, enums ...Enum) (Enum, error) {
 	values := make(map[EnumKey]string)
 	for _, en := range enums {
@@ -835,8 +838,8 @@ func (e *enum) ValueFromString(in string) EnumKey {
 	return IllegalValue
 }
 
-//Copy returns a copy of the Value, that is equivalent, but will not be
-//locked.
+// Copy returns a copy of the Value, that is equivalent, but will not be
+// locked.
 func (e *variable) ImmutableCopy() ImmutableVal {
 	return &variable{
 		e.enum,
@@ -911,13 +914,13 @@ func (e *enum) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-//The enum marshals as the string value of the enum so it's more readable.
+// The enum marshals as the string value of the enum so it's more readable.
 func (e *variable) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.String())
 }
 
-//UnmarshalJSON expects the blob to be the string value. Will error if that
-//doesn't correspond to a valid value for this enum.
+// UnmarshalJSON expects the blob to be the string value. Will error if that
+// doesn't correspond to a valid value for this enum.
 func (e *variable) UnmarshalJSON(blob []byte) error {
 	var str string
 	if err := json.Unmarshal(blob, &str); err != nil {
@@ -955,7 +958,7 @@ func (e *variable) SetStringValue(str string) error {
 	return e.SetValue(val)
 }
 
-//Equals returns true if the two Consts are equivalent.
+// Equals returns true if the two Consts are equivalent.
 func (e *variable) Equals(other ImmutableVal) bool {
 	if other == nil {
 		return false

@@ -1,5 +1,4 @@
 /*
-
 Package patchtree is a simple library that knows how to interpret a folder
 structure of jd diffs and apply them on top of a base.
 
@@ -21,7 +20,6 @@ modification.patches to give you the final composed json blob result.
 
 patchtree-helper is a simple cli utility that wraps the functionality in
 this package.
-
 */
 package patchtree
 
@@ -37,20 +35,20 @@ import (
 	jd "github.com/josephburnett/jd/lib"
 )
 
-//BaseJSONName is the name of the base json file at the root of the
-//directory tree.
+// BaseJSONName is the name of the base json file at the root of the
+// directory tree.
 const BaseJSONName = "base.json"
 
-//PatchName is the name of the patch in each sub-folder that modifies the
-//json in the tree above it.
+// PatchName is the name of the patch in each sub-folder that modifies the
+// json in the tree above it.
 const PatchName = "modification.patch"
 
-//ExpandedJSONName is the name of the file that represents the entire
-//expanded json blob at a given part of the tree, created by `expand`.
+// ExpandedJSONName is the name of the file that represents the entire
+// expanded json blob at a given part of the tree, created by `expand`.
 const ExpandedJSONName = "node.expanded.json"
 
-//JSON returns the patched json blob impplied by that directory structure or
-//an error if something doesn't work. See the package doc for more.
+// JSON returns the patched json blob impplied by that directory structure or
+// an error if something doesn't work. See the package doc for more.
 func JSON(path string) ([]byte, error) {
 
 	if strings.HasSuffix(path, "/") {
@@ -67,7 +65,7 @@ func JSON(path string) ([]byte, error) {
 
 }
 
-//MustJSON is the same as JSON, but if it would have returned an error, panics istead.
+// MustJSON is the same as JSON, but if it would have returned an error, panics istead.
 func MustJSON(path string) []byte {
 	result, err := JSON(path)
 	if err != nil {
@@ -119,19 +117,19 @@ func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc directory
 	return numAffectedFiles, nil
 }
 
-//copyJSON returns a copy of the given json node. This is necessary because
-//methods like Patch() actually modify the underlying json node (even though
-//that's unclear!)
+// copyJSON returns a copy of the given json node. This is necessary because
+// methods like Patch() actually modify the underlying json node (even though
+// that's unclear!)
 func copyJSON(node jd.JsonNode) jd.JsonNode {
 	result, _ := jd.ReadJsonString(node.Json())
 
 	return result
 }
 
-//ExpandTree expands all of the nodes in the patchtree, applying the chains of
-//modification and created an node.expanded.json in each node. Used in a
-//workflow to modify base.json: run this commeand, then modify base.json, then
-//run ContractTree.
+// ExpandTree expands all of the nodes in the patchtree, applying the chains of
+// modification and created an node.expanded.json in each node. Used in a
+// workflow to modify base.json: run this commeand, then modify base.json, then
+// run ContractTree.
 func ExpandTree(rootPath string) (affectedFiles int, err error) {
 	return startDirectoryAndWalk(rootPath, expandTreeProcessDirectory)
 }
@@ -199,10 +197,10 @@ func indentJSON(data string) (indented string, err error) {
 
 }
 
-//ContractTree goes through each node in the parse tree and where it finds a
-//node.expanded,json, re-derives and overwrites the "modification.patch". Used
-//as part of a workflow to modify base.json: run ExpandTree, modify base.json,
-//then ContractTree.
+// ContractTree goes through each node in the parse tree and where it finds a
+// node.expanded,json, re-derives and overwrites the "modification.patch". Used
+// as part of a workflow to modify base.json: run ExpandTree, modify base.json,
+// then ContractTree.
 func ContractTree(rootPath string) (numAffectedFiles int, err error) {
 	return startDirectoryAndWalk(rootPath, contractTreeProcessDirectory)
 }
@@ -237,8 +235,8 @@ func contractTreeProcessDirectory(directory string, node jd.JsonNode) (int, erro
 
 }
 
-//CleanTree goes through each node, and if modification.json conceptually
-//matches node.expanded.json, then removes node.expanded.json.
+// CleanTree goes through each node, and if modification.json conceptually
+// matches node.expanded.json, then removes node.expanded.json.
 func CleanTree(rootPath string) (numAffectedFiles int, err error) {
 	return startDirectoryAndWalk(rootPath, cleanTreeProcessDirectory)
 }

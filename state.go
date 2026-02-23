@@ -10,17 +10,17 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 )
 
-//ImmutableState is a version of State, but minus any mutator methods. Because
-//states may not be modified except by moves, in almost every case where a
-//state is passed to game logic you define (whether on your GameDelegate
-//methods, or Legal() on your move structs), an ImmutableState will be passed
-//instead. If an ImmutableState is passed to your method, it's a strong signal
-//that you shouldn't modify the state. Note that idiomatic use (e.g.
-//concreteStates) will cast an ImmutableState to a State immediately in order
-//to retrieve the concrete structs underneath, but if you do that you have to
-//be careful not to inadvertently modify the state because the changes won't
-//be persisted. See the documentation for State for more about states in
-//general.
+// ImmutableState is a version of State, but minus any mutator methods. Because
+// states may not be modified except by moves, in almost every case where a
+// state is passed to game logic you define (whether on your GameDelegate
+// methods, or Legal() on your move structs), an ImmutableState will be passed
+// instead. If an ImmutableState is passed to your method, it's a strong signal
+// that you shouldn't modify the state. Note that idiomatic use (e.g.
+// concreteStates) will cast an ImmutableState to a State immediately in order
+// to retrieve the concrete structs underneath, but if you do that you have to
+// be careful not to inadvertently modify the state because the changes won't
+// be persisted. See the documentation for State for more about states in
+// general.
 type ImmutableState interface {
 
 	//ImmutableGameState is a reference to to the underlying object returned
@@ -117,7 +117,7 @@ type computedProperties struct {
 	Players []PropertyCollection
 }
 
-//StateGroupType is the top-level grouping object used in a StatePropertyRef.
+// StateGroupType is the top-level grouping object used in a StatePropertyRef.
 type StateGroupType int
 
 const (
@@ -133,14 +133,14 @@ const (
 	StateGroupDynamicComponentValues
 )
 
-//A StatePropertyRef is a reference to a particular property or item in a
-//Property in a State, in a structured way. Currently used primarily as an input
-//to your GameDelegate's SanitizationPolicy method. Another idiomatic use is
-//when you need to fetch a value from one of your SubStates via a string
-//property name, and want to easily test whether that property name is valid. In
-//that case, the idiom is to generate a global variable containing the
-//StatePropertyRef, and call its Validate in GameDelegate.BeginSetUp. The
-//zero-value is suitably generic.
+// A StatePropertyRef is a reference to a particular property or item in a
+// Property in a State, in a structured way. Currently used primarily as an input
+// to your GameDelegate's SanitizationPolicy method. Another idiomatic use is
+// when you need to fetch a value from one of your SubStates via a string
+// property name, and want to easily test whether that property name is valid. In
+// that case, the idiom is to generate a global variable containing the
+// StatePropertyRef, and call its Validate in GameDelegate.BeginSetUp. The
+// zero-value is suitably generic.
 type StatePropertyRef struct {
 	//Group is which of Game, Player, or DynamicComponentValues this is a
 	//reference to.
@@ -164,24 +164,24 @@ type StatePropertyRef struct {
 	DeckIndex int
 }
 
-//WithPlayerIndex is a convenience method to return a copy of StatePropertyRef,
-//just with PlayerIndex set to index.
+// WithPlayerIndex is a convenience method to return a copy of StatePropertyRef,
+// just with PlayerIndex set to index.
 func (r StatePropertyRef) WithPlayerIndex(index PlayerIndex) StatePropertyRef {
 	cp := r
 	cp.PlayerIndex = index
 	return cp
 }
 
-//WithDeckIndex is a convenience method to return a copy of StatePropertyRef,
-//just with DeckIndex set to index.
+// WithDeckIndex is a convenience method to return a copy of StatePropertyRef,
+// just with DeckIndex set to index.
 func (r StatePropertyRef) WithDeckIndex(index int) StatePropertyRef {
 	cp := r
 	cp.DeckIndex = index
 	return cp
 }
 
-//Reader fetches the PropertyReader that is selected by this StatePropertyRef,
-//returning an error if it doesn't exist.
+// Reader fetches the PropertyReader that is selected by this StatePropertyRef,
+// returning an error if it doesn't exist.
 func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
 	var reader PropertyReader
 
@@ -242,12 +242,12 @@ func (r StatePropertyRef) Reader(state ImmutableState) (PropertyReader, error) {
 	return reader, nil
 }
 
-//Validate checks to ensure that the StatePropertyRef is configured in a legal
-//way, for example that PlayerIndex is only set to a non-default value when
-//Group is StateGroupPlayer. exampleState is optional--if it is provided, then
-//additional checks are done, for example ensuring that the actual named
-//property exists, and if Index properties are non-default, that they denote a
-//valid index.
+// Validate checks to ensure that the StatePropertyRef is configured in a legal
+// way, for example that PlayerIndex is only set to a non-default value when
+// Group is StateGroupPlayer. exampleState is optional--if it is provided, then
+// additional checks are done, for example ensuring that the actual named
+// property exists, and if Index properties are non-default, that they denote a
+// valid index.
 func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 	if r.Group != StateGroupGame && r.Group != StateGroupPlayer && r.Group != StateGroupComponentValues && r.Group != StateGroupDynamicComponentValues {
 		return errors.New("group is set to an invalid value, must be one of Game, Player, DynamicComponentValues")
@@ -312,40 +312,40 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 	return nil
 }
 
-//PlayerIndex is an int that represents the index of a given player in a game.
-//Normal values are [0, game.NumPlayers). Special values are AdminPlayerIndex
-//and ObserverPlayerIndex. The logic of incrementing or decrementing the indexes
-//and comparing them follows considerable non-trivial logic, so you should NEVER
-//treat them like integers unless you're very sure of what you're doing. Instead
-//use the methods on them, like Next(), Prev(), and Equivalent(). Typically
-//instead of reading these directly, you use the result of p.EnsureValid().
+// PlayerIndex is an int that represents the index of a given player in a game.
+// Normal values are [0, game.NumPlayers). Special values are AdminPlayerIndex
+// and ObserverPlayerIndex. The logic of incrementing or decrementing the indexes
+// and comparing them follows considerable non-trivial logic, so you should NEVER
+// treat them like integers unless you're very sure of what you're doing. Instead
+// use the methods on them, like Next(), Prev(), and Equivalent(). Typically
+// instead of reading these directly, you use the result of p.EnsureValid().
 type PlayerIndex int
 
-//ObserverPlayerIndex is a special PlayerIndex that denotes that the player in
-//question is not one of the normal players, but someone generically watching.
-//All hidden state should be hidden to them, and GroupSelf will never trigger
-//for them.
+// ObserverPlayerIndex is a special PlayerIndex that denotes that the player in
+// question is not one of the normal players, but someone generically watching.
+// All hidden state should be hidden to them, and GroupSelf will never trigger
+// for them.
 const ObserverPlayerIndex PlayerIndex = -1
 
-//AdminPlayerIndex is a special PlayerIndex that denotes the omniscient admin
-//who can see all state and make moves whenever they want. This PlayerIndex is
-//used for example to apply moves that your GameDelegate.ProposeFixUpMove
-//returns, as well as when Timer's fire. It is also used when the server is in
-//debug mode, allowing the given player to operate as the admin.
+// AdminPlayerIndex is a special PlayerIndex that denotes the omniscient admin
+// who can see all state and make moves whenever they want. This PlayerIndex is
+// used for example to apply moves that your GameDelegate.ProposeFixUpMove
+// returns, as well as when Timer's fire. It is also used when the server is in
+// debug mode, allowing the given player to operate as the admin.
 const AdminPlayerIndex PlayerIndex = -2
 
-//State represents the entire semantic state of a game at a given version. For
-//your specific game, GameState and PlayerStates will actually be concrete
-//structs to your particular game. State is a container of gameStates,
-//playerStates, and dynamicComponentValues for your game. Games often define a
-//top-level concreteStates() *myGameState, []*myPlayerState so at the top of
-//methods that accept a State they can quickly get concrete, type-checked
-//types with only a single conversion leap of faith at the top. States contain
-//mutable refrences to their contained SubStates, whereas ImmutableState does
-//not. Most of the methods you define that accept states from the core game
-//engine will be an ImmutableState, because the only time States should be
-//modified is when the game is initally being set up before the first move,
-//and during a move's Apply()  method.
+// State represents the entire semantic state of a game at a given version. For
+// your specific game, GameState and PlayerStates will actually be concrete
+// structs to your particular game. State is a container of gameStates,
+// playerStates, and dynamicComponentValues for your game. Games often define a
+// top-level concreteStates() *myGameState, []*myPlayerState so at the top of
+// methods that accept a State they can quickly get concrete, type-checked
+// types with only a single conversion leap of faith at the top. States contain
+// mutable refrences to their contained SubStates, whereas ImmutableState does
+// not. Most of the methods you define that accept states from the core game
+// engine will be an ImmutableState, because the only time States should be
+// modified is when the game is initally being set up before the first move,
+// and during a move's Apply()  method.
 type State interface {
 	//State contains all of the methods of a read-only state.
 	ImmutableState
@@ -389,10 +389,10 @@ type State interface {
 	containingStack(c Component) (stack Stack, slotIndex int, err error)
 }
 
-//EnsureValid returns either the current value, if it is Valid(), or the next
-//valid index. Typically instead of using a PlayerIndex directly you should use
-//the result of this, which verifies that even if the current player has become
-//invalid since the PlayerIndex was last touched, you still get a valid player index.
+// EnsureValid returns either the current value, if it is Valid(), or the next
+// valid index. Typically instead of using a PlayerIndex directly you should use
+// the result of this, which verifies that even if the current player has become
+// invalid since the PlayerIndex was last touched, you still get a valid player index.
 func (p PlayerIndex) EnsureValid(state ImmutableState) PlayerIndex {
 	if valid := p.Valid(state); valid {
 		return p
@@ -400,10 +400,10 @@ func (p PlayerIndex) EnsureValid(state ImmutableState) PlayerIndex {
 	return p.Next(state)
 }
 
-//WithinBounds returns true if the index is a legal index. That is,
-//ObserverPlayerIndex, AdminPlayerIndex, or between 0 and numPlayers - 1. It
-//does not check whether GameDelegate.PlayerMayBeActive is true. See also
-//Valid().
+// WithinBounds returns true if the index is a legal index. That is,
+// ObserverPlayerIndex, AdminPlayerIndex, or between 0 and numPlayers - 1. It
+// does not check whether GameDelegate.PlayerMayBeActive is true. See also
+// Valid().
 func (p PlayerIndex) WithinBounds(state ImmutableState) bool {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return true
@@ -417,11 +417,11 @@ func (p PlayerIndex) WithinBounds(state ImmutableState) bool {
 	return true
 }
 
-//Valid returns true if the PlayerIndex's value is legal in the context of the
-//current State--that is, it is either AdminPlayerIndex, ObserverPlayerIndex, or
-//between 0 (inclusive) and game.NumPlayers(). It additionaly checks
-//GameDelegate PlayerIndexMayBeActive returns true, for non-special indexes. See
-//also WithinBounds(), which doesn't check whether the player may be active.
+// Valid returns true if the PlayerIndex's value is legal in the context of the
+// current State--that is, it is either AdminPlayerIndex, ObserverPlayerIndex, or
+// between 0 (inclusive) and game.NumPlayers(). It additionaly checks
+// GameDelegate PlayerIndexMayBeActive returns true, for non-special indexes. See
+// also WithinBounds(), which doesn't check whether the player may be active.
 func (p PlayerIndex) Valid(state ImmutableState) bool {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return true
@@ -436,11 +436,11 @@ func (p PlayerIndex) Valid(state ImmutableState) bool {
 	return true
 }
 
-//Next returns the next PlayerIndex, wrapping around back to 0 if it overflows,
-//skipping any players where GameDelegate returns false for PlayerMayBeActive
-//(if all players return false for PlayerMayBeActive it will return the current
-//value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
-//affected.
+// Next returns the next PlayerIndex, wrapping around back to 0 if it overflows,
+// skipping any players where GameDelegate returns false for PlayerMayBeActive
+// (if all players return false for PlayerMayBeActive it will return the current
+// value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
+// affected.
 func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return p
@@ -465,11 +465,11 @@ func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 	return p
 }
 
-//Previous returns the previous PlayerIndex, wrapping around back to len(players
-//-1) if it goes below 0, skipping any players where GameDelegate returns false
-//for PlayerMayBeActive (if all players return false, it will leave at the same
-//value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
-//affected.
+// Previous returns the previous PlayerIndex, wrapping around back to len(players
+// -1) if it goes below 0, skipping any players where GameDelegate returns false
+// for PlayerMayBeActive (if all players return false, it will leave at the same
+// value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
+// affected.
 func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return p
@@ -494,13 +494,13 @@ func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 	return p
 }
 
-//Equivalent checks whether the two playerIndexes are equivalent. For most
-//indexes it checks if both are the same. ObserverPlayerIndex returns false
-//when compared to any other PlayerIndex. AdminPlayerIndex returns true when
-//compared to any other index (other than ObserverPlayerIndex). This method is
-//useful for verifying that a given TargerPlayerIndex is equivalent to the
-//proposer PlayerIndex in a move's Legal method. moves.CurrentPlayer handles
-//that logic for you.
+// Equivalent checks whether the two playerIndexes are equivalent. For most
+// indexes it checks if both are the same. ObserverPlayerIndex returns false
+// when compared to any other PlayerIndex. AdminPlayerIndex returns true when
+// compared to any other index (other than ObserverPlayerIndex). This method is
+// useful for verifying that a given TargerPlayerIndex is equivalent to the
+// proposer PlayerIndex in a move's Legal method. moves.CurrentPlayer handles
+// that logic for you.
 func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 
 	//Sanity check obviously-illegal values
@@ -517,20 +517,20 @@ func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 	return p == other
 }
 
-//String returns the int value of the PlayerIndex.
+// String returns the int value of the PlayerIndex.
 func (p PlayerIndex) String() string {
 	return strconv.Itoa(int(p))
 }
 
-//componentIndexItem represents one item in the componentIndex.s
+// componentIndexItem represents one item in the componentIndex.s
 type componentIndexItem struct {
 	stack     Stack
 	slotIndex int
 }
 
-//state implements both State and MutableState, so it can always be passed for
-//either, and what it's interpreted as is primarily a function of what the
-//method signature is that it's passed to
+// state implements both State and MutableState, so it can always be passed for
+// either, and what it's interpreted as is primarily a function of what the
+// method signature is that it's passed to
 type state struct {
 	gameState              ConfigurableSubState
 	playerStates           []ConfigurableSubState
@@ -646,8 +646,8 @@ func (s *state) containingStack(c Component) (stack Stack, slotIndex int, err er
 	return item.stack, item.slotIndex, nil
 }
 
-//buildComponentIndex creates the component index by force. Should be called
-//if an operation is called on the componentIndex but it's nil.
+// buildComponentIndex creates the component index by force. Should be called
+// if an operation is called on the componentIndex but it's nil.
 func (s *state) buildComponentIndex() {
 	s.componentIndex = make(map[Component]componentIndexItem)
 
@@ -668,9 +668,9 @@ func (s *state) buildComponentIndex() {
 	}
 }
 
-//reportComponnentLocationsForReader goes through the given reader, and for
-//each component it finds, reports its location into the index. Used to help
-//build up the index when it's first created.
+// reportComponnentLocationsForReader goes through the given reader, and for
+// each component it finds, reports its location into the index. Used to help
+// build up the index when it's first created.
 func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter) {
 	for propName, propType := range readSetter.Props() {
 
@@ -717,8 +717,8 @@ func (s *state) componentAddedImpl(c Component, stack Stack, slotIndex int) {
 	}
 }
 
-//componetAdded should be called by stacks when a component is added to them,
-//by non-merged stacks.
+// componetAdded should be called by stacks when a component is added to them,
+// by non-merged stacks.
 func (s *state) componentAdded(c Component, stack Stack, slotIndex int) {
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
@@ -844,9 +844,9 @@ func (s *state) copy(sanitized bool) (*state, error) {
 	return result, nil
 }
 
-//finish should be called when the state has all of its sub-states set. It
-//goes through each subState on s and calls SetState on it, and also sets the
-//mutable*States once.
+// finish should be called when the state has all of its sub-states set. It
+// goes through each subState on s and calls SetState on it, and also sets the
+// mutable*States once.
 func (s *state) setStateForSubStates() error {
 
 	s.gameState.ConnectContainingState(s, StatePropertyRef{
@@ -898,8 +898,8 @@ func (s *state) setStateForSubStates() error {
 	return nil
 }
 
-//validateBeforeSave insures that for all readers, the playerIndexes are
-//valid, and the stacks are too.
+// validateBeforeSave insures that for all readers, the playerIndexes are
+// valid, and the stacks are too.
 func (s *state) validateBeforeSave() error {
 
 	if err := validateReaderBeforeSave(s.GameState().Reader(), "Game", s); err != nil {
@@ -983,10 +983,10 @@ func validateReaderBeforeSave(reader PropertyReader, name string, state State) e
 	return nil
 }
 
-//committed is called right after the state has been committed to the database
-//and we're sure it will stick. This is the time to do any actions that were
-//triggered during the state manipulation. currently that is timers and
-//committed callbacks.
+// committed is called right after the state has been committed to the database
+// and we're sure it will stick. This is the time to do any actions that were
+// triggered during the state manipulation. currently that is timers and
+// committed callbacks.
 func (s *state) committed() {
 	for _, id := range s.timersToStart {
 		s.game.manager.timers.StartTimer(id)
@@ -1095,30 +1095,30 @@ func (s *state) computed() *computedProperties {
 
 //SanitizedForPlayer is in sanitized.go
 
-//Reader is the interface to fetch a PropertyReader from an object. See
-//ConfigurableSubState and PropertyReadSetConfigurer for more.
+// Reader is the interface to fetch a PropertyReader from an object. See
+// ConfigurableSubState and PropertyReadSetConfigurer for more.
 type Reader interface {
 	Reader() PropertyReader
 }
 
-//ReadSetter is the interface to fetch a PropertyReadSetter from an object.
-//See ConfigurableSubState and PropertyReadSetConfigurer for more.
+// ReadSetter is the interface to fetch a PropertyReadSetter from an object.
+// See ConfigurableSubState and PropertyReadSetConfigurer for more.
 type ReadSetter interface {
 	Reader
 	ReadSetter() PropertyReadSetter
 }
 
-//ReadSetConfigurer is the interface to fetch a PropertyReadSetConfigurer from
-//an object. See ConfigurableSubState and PropertyReadSetConfigurer for more.
+// ReadSetConfigurer is the interface to fetch a PropertyReadSetConfigurer from
+// an object. See ConfigurableSubState and PropertyReadSetConfigurer for more.
 type ReadSetConfigurer interface {
 	ReadSetter
 	ReadSetConfigurer() PropertyReadSetConfigurer
 }
 
-//ContainingStateConnector is an interface that is used in SubState and related
-//interfaces. It is the way that the engine will tell the SubState what values
-//to return from StateGetter and other realted interfaces. Typically you use
-//base.SubState to implement this automatically.
+// ContainingStateConnector is an interface that is used in SubState and related
+// interfaces. It is the way that the engine will tell the SubState what values
+// to return from StateGetter and other realted interfaces. Typically you use
+// base.SubState to implement this automatically.
 type ContainingStateConnector interface {
 	//ConnectContainingState is called when the SubState is almost done being
 	//initialized and just needs to be told who its containing State is and what
@@ -1138,10 +1138,10 @@ type ContainingStateConnector interface {
 	FinishStateSetUp()
 }
 
-//ImmutableStateGetter is included in ImmutableSubState, SubState, and
-//ConfigureableSubState as the way to keep track of which ImmutableState a given
-//SubState is part of. See also StateSetter, which adds getters for mutable
-//States. Typically you use base.SubState to implement this automatically.
+// ImmutableStateGetter is included in ImmutableSubState, SubState, and
+// ConfigureableSubState as the way to keep track of which ImmutableState a given
+// SubState is part of. See also StateSetter, which adds getters for mutable
+// States. Typically you use base.SubState to implement this automatically.
 type ImmutableStateGetter interface {
 	//ImmutableState() returns the state that was set via SetState(), but as an
 	//ImmutableState so it has a subset of functionality directly visible.
@@ -1153,32 +1153,32 @@ type ImmutableStateGetter interface {
 	StatePropertyRef() StatePropertyRef
 }
 
-//StateGetter is included in SubState and ConfigureableSubState as the way to
-//keep track of which State a given SubState is part of. See also
-//ImmutableStateGetter, which adds getters for ImmutableStates. Typically you
-//use base.SubState to implement this automatically.
+// StateGetter is included in SubState and ConfigureableSubState as the way to
+// keep track of which State a given SubState is part of. See also
+// ImmutableStateGetter, which adds getters for ImmutableStates. Typically you
+// use base.SubState to implement this automatically.
 type StateGetter interface {
 	ImmutableStateGetter
 	//State should return the state that was set via SetState.
 	State() State
 }
 
-//ImmutableSubState is the interface that all non-modifiable sub-state objects
-//(PlayerStates. GameStates, and DynamicComponentValues) implement. It is like
-//SubState, but minus any mutator methods. See ConfigurableSubState for more
-//on the SubState type hierarchy.
+// ImmutableSubState is the interface that all non-modifiable sub-state objects
+// (PlayerStates. GameStates, and DynamicComponentValues) implement. It is like
+// SubState, but minus any mutator methods. See ConfigurableSubState for more
+// on the SubState type hierarchy.
 type ImmutableSubState interface {
 	ContainingStateConnector
 	ImmutableStateGetter
 	Reader
 }
 
-//SubState is the interface that all sub-state objects (PlayerStates,
-//GameStates, and DynamicComponentValues) implement. it is like
-//ConfigurableSubState, but minus any configure methods. This means they can't
-//be used to configure the substates at creation time but can be used to
-//mutate them, for example in move.Apply(). See ConfigurableSubState for more
-//on the SubState type hierarchy.
+// SubState is the interface that all sub-state objects (PlayerStates,
+// GameStates, and DynamicComponentValues) implement. it is like
+// ConfigurableSubState, but minus any configure methods. This means they can't
+// be used to configure the substates at creation time but can be used to
+// mutate them, for example in move.Apply(). See ConfigurableSubState for more
+// on the SubState type hierarchy.
 type SubState interface {
 	ContainingStateConnector
 	StateGetter
@@ -1186,7 +1186,6 @@ type SubState interface {
 }
 
 /*
-
 ConfigurableSubState is the interface for many types of structs that store
 properties and configuration specific to your game type. The values returned
 from your GameDelegate's GameStateConstructor, PlayerStateConstructor, and
@@ -1221,7 +1220,6 @@ layering on Configure methods.
 Typically your game's sub-states satisfy this interface by embedding
 base.SubState, and then using `boardgame-util codegen` to generate the
 underlying code for the PropertyReadSetConfigurer for your object type.
-
 */
 type ConfigurableSubState interface {
 	//Every SubState should be able to have its containing State set and read
@@ -1242,9 +1240,9 @@ type ConfigurableSubState interface {
 	ReadSetConfigurer
 }
 
-//DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the
-//right defaults set. If your structs need to implement MarshaLJSON to output
-//JSON, use this to encode it.
+// DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the
+// right defaults set. If your structs need to implement MarshaLJSON to output
+// JSON, use this to encode it.
 func DefaultMarshalJSON(obj interface{}) ([]byte, error) {
 	return json.MarshalIndent(obj, "", "  ")
 }

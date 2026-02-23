@@ -14,12 +14,12 @@ import (
 	"github.com/workfit/tester/assert"
 )
 
-//If true, will save out the files generated. Useful for generating new golden
-//output when output is changed. Flip to true, run `go test`, verify the diff
-//looks right, and then flip this back to false before committing.
+// If true, will save out the files generated. Useful for generating new golden
+// output when output is changed. Flip to true, run `go test`, verify the diff
+// looks right, and then flip this back to false before committing.
 const generateNewGolden = false
 
-//The go tool will ignore everything rooted in 'testdata'
+// The go tool will ignore everything rooted in 'testdata'
 const testDir = "testdata"
 
 func TestBasicGenerate(t *testing.T) {
@@ -182,8 +182,8 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 
 }
 
-//fileContentsFromDir loads up filecontents from the given path so they can be
-//compared to the golden.
+// fileContentsFromDir loads up filecontents from the given path so they can be
+// compared to the golden.
 func fileContentsFromDir(path string) (FileContents, error) {
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -200,8 +200,8 @@ func fileContentsFromDir(path string) (FileContents, error) {
 
 }
 
-//basePath is actual dir to list recursively; prefix is the prefix to affix to
-//dir contenst to put in contents.
+// basePath is actual dir to list recursively; prefix is the prefix to affix to
+// dir contenst to put in contents.
 func recursiveListFilesForFileContents(basePath, prefix string, contents FileContents) error {
 
 	infos, err := ioutil.ReadDir(basePath)

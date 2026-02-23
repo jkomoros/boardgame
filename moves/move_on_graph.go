@@ -9,10 +9,10 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//LocationProvider should be implemented by moves that embed MoveOnGraph. It
-//returns the LocationBehavior for a given player state. This interface is
-//defined here (rather than in moves/interfaces) to avoid an import cycle with
-//the behaviors package.
+// LocationProvider should be implemented by moves that embed MoveOnGraph. It
+// returns the LocationBehavior for a given player state. This interface is
+// defined here (rather than in moves/interfaces) to avoid an import cycle with
+// the behaviors package.
 type LocationProvider interface {
 	PlayerLocationBehavior(playerState boardgame.ImmutableSubState) *behaviors.LocationBehavior
 }
@@ -39,8 +39,8 @@ type MoveOnGraph struct {
 	TargetLocation int
 }
 
-//Legal validates the move: checks turn, destination validity, path existence,
-//space legality, and movement budget.
+// Legal validates the move: checks turn, destination validity, path existence,
+// space legality, and movement budget.
 func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
@@ -109,8 +109,8 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	return nil
 }
 
-//Apply stores the path on the LocationBehavior for HopAlongPath to execute,
-//and consumes the movement budget.
+// Apply stores the path on the LocationBehavior for HopAlongPath to execute,
+// and consumes the movement budget.
 func (m *MoveOnGraph) Apply(state boardgame.State) error {
 
 	locProvider, ok := m.TopLevelStruct().(LocationProvider)
@@ -176,12 +176,12 @@ func (m *MoveOnGraph) Apply(state boardgame.State) error {
 	return nil
 }
 
-//FallbackName returns "Move On Graph"
+// FallbackName returns "Move On Graph"
 func (m *MoveOnGraph) FallbackName(mgr *boardgame.GameManager) string {
 	return "Move On Graph"
 }
 
-//FallbackHelpText returns a description of the move.
+// FallbackHelpText returns a description of the move.
 func (m *MoveOnGraph) FallbackHelpText() string {
 	return "Move a token to a target location along the shortest path."
 }

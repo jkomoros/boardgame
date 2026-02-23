@@ -57,7 +57,7 @@ type extendedGameStorageRecord struct {
 	Owner   string `db:",size:128"`
 }
 
-//Used for pulling out of a db with a join
+// Used for pulling out of a db with a join
 type combinedGameStorageRecord struct {
 	Name       string
 	ID         string

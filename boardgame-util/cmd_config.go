@@ -8,8 +8,8 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-//configCmd is named that instead of config to avoid colliding with the config
-//package name.
+// configCmd is named that instead of config to avoid colliding with the config
+// package name.
 type configCmd struct {
 	baseSubCommand
 

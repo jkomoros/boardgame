@@ -14,8 +14,8 @@ import (
 
 const apiSubFolder = "api"
 
-//Options is a struct to pass extra options to Code() and Build(). The
-//defaults are all the zero values.
+// Options is a struct to pass extra options to Code() and Build(). The
+// defaults are all the zero values.
 type Options struct {
 	//If true, installs an overrider in the generated binary that enables
 	//offline dev mode.
@@ -27,14 +27,12 @@ type Options struct {
 }
 
 /*
-
 Build is the primary method in this package. It generates the code for a
 server with the following imported games and given storage type in a folder
 called api/ within the given directory, builds it, and returns the path to the
 compiled binary. The bulk of the logic to generate the code is in Code().
 
 To clean up the binary, call Cleanup and pass the same directory.
-
 */
 func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType, options *Options) (string, error) {
 
@@ -84,8 +82,8 @@ func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType, options *
 	return binaryName, nil
 }
 
-//Code returns the code for the `api/main.go`of a server with the given type.
-//Options may be nil for default options.
+// Code returns the code for the `api/main.go`of a server with the given type.
+// Options may be nil for default options.
 func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, error) {
 
 	if options == nil {
@@ -121,8 +119,8 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, e
 
 }
 
-//Clean removes the api/ directory (code and binary) that was generated
-//within directory by Build.
+// Clean removes the api/ directory (code and binary) that was generated
+// within directory by Build.
 func Clean(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, apiSubFolder))
 }

@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-//stacksForReader returns all stacks in reader, inclduing all StackProps, and all stacks within Boards.
+// stacksForReader returns all stacks in reader, inclduing all StackProps, and all stacks within Boards.
 func stacksForReader(reader PropertyReader) []ImmutableStack {
 	var result []ImmutableStack
 
@@ -71,9 +71,9 @@ func setReaderStatePtr(reader PropertyReader, st ImmutableState) error {
 	return nil
 }
 
-//copyReader assumes input and output container are the same "shape" (that is,
-//outputContainer can have all of input's properties set). It also assumes
-//that the output has all interface types initalized to the right shape.
+// copyReader assumes input and output container are the same "shape" (that is,
+// outputContainer can have all of input's properties set). It also assumes
+// that the output has all interface types initalized to the right shape.
 func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) error {
 
 	for propName, propType := range input.Props() {

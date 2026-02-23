@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-//FirebaseKey denotes a specific key in a firebase object
+// FirebaseKey denotes a specific key in a firebase object
 type FirebaseKey string
 
 const (
@@ -24,7 +24,7 @@ const (
 	FirebaseMessagingSenderID = "messagingSenderId"
 )
 
-//FirebaseKeys enumerates all firebase keys
+// FirebaseKeys enumerates all firebase keys
 var FirebaseKeys = map[FirebaseKey]bool{
 	FirebaseAPIKey:            true,
 	FirebaseAuthDomain:        true,
@@ -34,8 +34,8 @@ var FirebaseKeys = map[FirebaseKey]bool{
 	FirebaseMessagingSenderID: true,
 }
 
-//FirebaseConfig is a sub-struct within ConfigMode that holds values specific
-//to firebase.
+// FirebaseConfig is a sub-struct within ConfigMode that holds values specific
+// to firebase.
 type FirebaseConfig struct {
 	APIKey            string `json:"apiKey"`
 	AuthDomain        string `json:"authDomain"`
@@ -93,8 +93,8 @@ func (f *FirebaseConfig) extend(other *FirebaseConfig) *FirebaseConfig {
 	return result
 }
 
-//FirebaseKeyFromString returns the FirebseKey denoted by key (fuzzy
-//matching).
+// FirebaseKeyFromString returns the FirebseKey denoted by key (fuzzy
+// matching).
 func FirebaseKeyFromString(key string) FirebaseKey {
 
 	key = strings.ToLower(key)

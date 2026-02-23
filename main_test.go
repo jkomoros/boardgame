@@ -46,7 +46,7 @@ func (t *testAgent) ProposeMove(game *Game, player PlayerIndex, agentState []byt
 	return move, nil
 }
 
-//testingComponent is a very basic thing that fufills the Component interface.
+// testingComponent is a very basic thing that fufills the Component interface.
 type testingComponent struct {
 	c       Component
 	String  string
@@ -117,7 +117,7 @@ func (t *testingComponentDynamic) SetContainingComponent(c Component) {
 	t.c = c
 }
 
-//Every game should do such a convenience method. state might be nil.
+// Every game should do such a convenience method. state might be nil.
 func concreteStates(state ImmutableState) (*testGameState, []*testPlayerState) {
 
 	if state == nil {
@@ -698,9 +698,9 @@ func (i *illegalMove) HelpText() string {
 	return "Move that is illegal because it has an illegal property type on it"
 }
 
-//testingComponentValues is designed to be run on a stack.ComponentValues() of
-//a stack of testingComponents, in order to convert them all to the specified
-//underlying struct.
+// testingComponentValues is designed to be run on a stack.ComponentValues() of
+// a stack of testingComponents, in order to convert them all to the specified
+// underlying struct.
 func testingComponentValues(in []Reader) []*testingComponent {
 	result := make([]*testingComponent, len(in))
 	for i := 0; i < len(in); i++ {
@@ -717,7 +717,7 @@ func testDefaultGame(t *testing.T, stableIds bool) *Game {
 	return testGame(t, stableIds, 0, nil, nil)
 }
 
-//testGame returns a Game that has not yet had SetUp() called.
+// testGame returns a Game that has not yet had SetUp() called.
 func testGame(t *testing.T, stableIds bool, numPlayers int, variant Variant, agentNames []string) *Game {
 
 	manager := newTestGameManger(t)

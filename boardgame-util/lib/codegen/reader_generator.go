@@ -7,8 +7,8 @@ import (
 	"github.com/MarcGrol/golangAnnotations/model"
 )
 
-//readerGenerator represents a strucxt in the imported code that had the magic
-//codegen tag attached, meaning that we should generate code for it.
+// readerGenerator represents a strucxt in the imported code that had the magic
+// codegen tag attached, meaning that we should generate code for it.
 type readerGenerator struct {
 	s                       model.Struct
 	outputReader            bool
@@ -18,8 +18,8 @@ type readerGenerator struct {
 	fields fieldsInfo
 }
 
-//newReaderGenerator processes the given struct and then outputs a generator if
-//any code is necessary to be output.
+// newReaderGenerator processes the given struct and then outputs a generator if
+// any code is necessary to be output.
 func newReaderGenerator(s model.Struct, location string, allStructs []model.Struct) *readerGenerator {
 	outputReader, outputReadSetter, outputReadSetConfigurer := structConfig(s.DocLines)
 
@@ -45,7 +45,7 @@ func newReaderGenerator(s model.Struct, location string, allStructs []model.Stru
 
 }
 
-//Output returns the code to append to the output for this struct.
+// Output returns the code to append to the output for this struct.
 func (r *readerGenerator) Output() string {
 	var output string
 
@@ -63,9 +63,9 @@ func (r *readerGenerator) Output() string {
 	return output
 }
 
-//baseReaderGeneratorTemplateArguments are base arguments that are passed to
-//each template for readergeneratorm that is specific to a struct. Designed to
-//be embedded anonymously in other structs passed to templates.
+// baseReaderGeneratorTemplateArguments are base arguments that are passed to
+// each template for readergeneratorm that is specific to a struct. Designed to
+// be embedded anonymously in other structs passed to templates.
 type baseReaderGeneratorTemplateArguments struct {
 	StructName              string
 	FirstLetter             string

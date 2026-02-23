@@ -29,7 +29,6 @@ move methods on ComponentInstance ensure that a component can't ever be copied.
 
 You generally only create decks inside of your GameDelegate's ConfigureDecks()
 method, which is called when the GameManager is being set up.
-
 */
 type Deck struct {
 	chest *ComponentChest
@@ -45,42 +44,42 @@ type Deck struct {
 
 const genericComponentSentinel = -2
 
-//NewDeck returns a new deck, ready to have components added to it. Typically
-//you call this within your GameDelegate's ConfigureDecks() method.
+// NewDeck returns a new deck, ready to have components added to it. Typically
+// you call this within your GameDelegate's ConfigureDecks() method.
 func NewDeck() *Deck {
 	return &Deck{}
 }
 
-//NewStack returns a new default (growable Stack) with the given size based on
-//this deck. The returned stack will allow up to maxSize items to be inserted.
-//If you don't want to set a maxSize on the stack (you often don't) pass 0 for
-//maxSize to allow it to grow without limit. Typically you'd use this in your
-//GameDelegate's GameStateConstructor() and other similar methods; although in
-//practice it is much more common to use struct-tag based inflation, making
-//direct use of this constructor unnecessary. See StructInflater for more.
+// NewStack returns a new default (growable Stack) with the given size based on
+// this deck. The returned stack will allow up to maxSize items to be inserted.
+// If you don't want to set a maxSize on the stack (you often don't) pass 0 for
+// maxSize to allow it to grow without limit. Typically you'd use this in your
+// GameDelegate's GameStateConstructor() and other similar methods; although in
+// practice it is much more common to use struct-tag based inflation, making
+// direct use of this constructor unnecessary. See StructInflater for more.
 func (d *Deck) NewStack(maxSize int) Stack {
 	return newGrowableStack(d, maxSize)
 }
 
-//NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
-//return true) associated with this deck. Typically you'd use this in your
-//GameDelegate's GameStateConstructor() and other similar methods; although in
-//practice it is much more common to use struct-tag based inflation, making
-//direct use of this constructor unnecessary. See StructInflater for more.
+// NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
+// return true) associated with this deck. Typically you'd use this in your
+// GameDelegate's GameStateConstructor() and other similar methods; although in
+// practice it is much more common to use struct-tag based inflation, making
+// direct use of this constructor unnecessary. See StructInflater for more.
 func (d *Deck) NewSizedStack(size int) SizedStack {
 	return newSizedStack(d, size)
 }
 
-//AddComponent adds a new component with the given values to the next spot in
-//the deck. This is where you affiliate the specific immutable properties
-//specific to this component and your game with the component. v may be nil.
-//This method is only legal to be called before the Deck has been installed
-//into a ComponentChest, which is to say generally only within your
-//GameDelegate's ConfigureDecks() method. Although technically there is no
-//problem with using a different underlying struct for different components in
-//the same deck, in practice it is strongly discouraged because often you will
-//blindly cast returned component values for a given deck into the underlying
-//struct.
+// AddComponent adds a new component with the given values to the next spot in
+// the deck. This is where you affiliate the specific immutable properties
+// specific to this component and your game with the component. v may be nil.
+// This method is only legal to be called before the Deck has been installed
+// into a ComponentChest, which is to say generally only within your
+// GameDelegate's ConfigureDecks() method. Although technically there is no
+// problem with using a different underlying struct for different components in
+// the same deck, in practice it is strongly discouraged because often you will
+// blindly cast returned component values for a given deck into the underlying
+// struct.
 func (d *Deck) AddComponent(v ComponentValues) {
 	if d.chest != nil {
 		return
@@ -99,32 +98,32 @@ func (d *Deck) AddComponent(v ComponentValues) {
 	d.components = append(d.components, c)
 }
 
-//Components returns a list of Components in order in this deck, equivalent to
-//calling ComponentAt() from 0 to deck.Len()
+// Components returns a list of Components in order in this deck, equivalent to
+// calling ComponentAt() from 0 to deck.Len()
 func (d *Deck) Components() []Component {
 	return d.components
 }
 
-//Len returns the number of components in this deck.
+// Len returns the number of components in this deck.
 func (d *Deck) Len() int {
 	return len(d.components)
 }
 
-//Chest points back to the chest we're part of.
+// Chest points back to the chest we're part of.
 func (d *Deck) Chest() *ComponentChest {
 	return d.chest
 }
 
-//Name returns the name of this deck; the string by which it could be retrived
-//from the ComponentChest it resides in. This name is implied by the string
-//key the deck was associated with in the return value from
-//GameDelegate.ConfigureDecks().
+// Name returns the name of this deck; the string by which it could be retrived
+// from the ComponentChest it resides in. This name is implied by the string
+// key the deck was associated with in the return value from
+// GameDelegate.ConfigureDecks().
 func (d *Deck) Name() string {
 	return d.name
 }
 
-//ComponentAt returns the component at a given index. It handles empty indexes
-//and shadow indexes correctly.
+// ComponentAt returns the component at a given index. It handles empty indexes
+// and shadow indexes correctly.
 func (d *Deck) ComponentAt(index int) Component {
 	if index >= len(d.components) {
 		return nil
@@ -141,11 +140,11 @@ func (d *Deck) ComponentAt(index int) Component {
 
 }
 
-//SetGenericValues sets the ComponentValues to return for every generic
-//component that is returned via GenericComponent(). May only be set before
-//added to a chest, that is within your GameDelegate's ConfigureDecks method.
-//Should  be the same underlying struct type as the ComponentValues used for
-//other components of this type.
+// SetGenericValues sets the ComponentValues to return for every generic
+// component that is returned via GenericComponent(). May only be set before
+// added to a chest, that is within your GameDelegate's ConfigureDecks method.
+// Should  be the same underlying struct type as the ComponentValues used for
+// other components of this type.
 func (d *Deck) SetGenericValues(v ComponentValues) {
 	if d.chest != nil {
 		return
@@ -153,12 +152,12 @@ func (d *Deck) SetGenericValues(v ComponentValues) {
 	d.genericValues = v
 }
 
-//GenericComponent returns the component that is considereed fully generic for
-//this deck. This is the component that every component will be if a Stack
-//affilated with this deck is sanitized with PolicyLen, for example. If you
-//want to figure out if a Stack was sanitized according to that policy, you
-//can compare the component to this. To override the ComponentValues in this
-//GenericComponent, call SetGenericValues.
+// GenericComponent returns the component that is considereed fully generic for
+// this deck. This is the component that every component will be if a Stack
+// affilated with this deck is sanitized with PolicyLen, for example. If you
+// want to figure out if a Stack was sanitized according to that policy, you
+// can compare the component to this. To override the ComponentValues in this
+// GenericComponent, call SetGenericValues.
 func (d *Deck) GenericComponent() Component {
 
 	if d.vendedGenericComponent == nil {
@@ -185,7 +184,7 @@ var illegalComponentValuesProps = map[PropertyType]bool{
 	TypeEnumSlice: true,
 }
 
-//finish is called when the deck is added to a component chest. It signifies that no more items may be added.
+// finish is called when the deck is added to a component chest. It signifies that no more items may be added.
 func (d *Deck) finish(chest *ComponentChest, name string) error {
 
 	for i, c := range d.components {
@@ -207,7 +206,7 @@ func (d *Deck) finish(chest *ComponentChest, name string) error {
 	return nil
 }
 
-//MarshalJSON marshasl in a format appropriate for use on the client.
+// MarshalJSON marshasl in a format appropriate for use on the client.
 func (d *Deck) MarshalJSON() ([]byte, error) {
 	components := d.Components()
 

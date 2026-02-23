@@ -7,11 +7,11 @@ import (
 	"text/template"
 )
 
-//TemplateSet is a collection of templates that can create a derived and
-//expanded FileContents when given an Options struct.
+// TemplateSet is a collection of templates that can create a derived and
+// expanded FileContents when given an Options struct.
 type TemplateSet map[string]*template.Template
 
-//lowercaseFirst ensures first character is lower case
+// lowercaseFirst ensures first character is lower case
 func lowercaseFirst(in string) string {
 	if len(in) == 0 {
 		return in
@@ -19,7 +19,7 @@ func lowercaseFirst(in string) string {
 	return strings.ToLower(in[0:1]) + in[1:]
 }
 
-//uppercastFirst ensures first characer is upper case
+// uppercastFirst ensures first characer is upper case
 func uppercaseFirst(in string) string {
 	if len(in) == 0 {
 		return in
@@ -27,7 +27,7 @@ func uppercaseFirst(in string) string {
 	return strings.ToUpper(in[0:1]) + in[1:]
 }
 
-//DefaultTemplateSet returns the default template set for this stub.
+// DefaultTemplateSet returns the default template set for this stub.
 func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 
 	if err := opt.Validate(); err != nil {
@@ -95,7 +95,7 @@ var postProcessReplacements = map[string]string{
 	"]]}":          "}}",
 }
 
-//postProcess to replace hard-to-escape literals moves.With different results.
+// postProcess to replace hard-to-escape literals moves.With different results.
 func postProcess(in []byte) []byte {
 
 	str := string(in)
@@ -108,9 +108,9 @@ func postProcess(in []byte) []byte {
 
 }
 
-//Generate generates FileContents based on this TemplateSet, using those
-//options to expand. Names of files will also be run through templates and
-//expanded.
+// Generate generates FileContents based on this TemplateSet, using those
+// options to expand. Names of files will also be run through templates and
+// expanded.
 func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
 
 	if err := opt.Validate(); err != nil {

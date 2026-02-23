@@ -15,9 +15,9 @@ type CurrentPlayerBehavior struct {
 	CurrentPlayer boardgame.PlayerIndex
 }
 
-//SetCurrentPlayer sets the CurrentPlayer value to the given value. This
-//satisfies the moves/interfaces.CurrentPlayerSetter interface, allowing you to
-//use moves.FinishTurn.
+// SetCurrentPlayer sets the CurrentPlayer value to the given value. This
+// satisfies the moves/interfaces.CurrentPlayerSetter interface, allowing you to
+// use moves.FinishTurn.
 func (c *CurrentPlayerBehavior) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 	c.CurrentPlayer = currentPlayer
 }

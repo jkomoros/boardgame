@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//Server is the main server object.
+// Server is the main server object.
 type Server struct {
 	managers managerMap
 
@@ -100,7 +100,6 @@ server.calcFoo takes dependencies and returns a result, with no touching context
 */
 
 /*
-
 NewServer returns a new server. Get it to run by calling Start(). storage
 should a *ServerStorageManager, which can be created either from
 NewServerStorageManager.
@@ -112,7 +111,6 @@ Use it like so:
 		defer storage.Close()
 		server.NewServer(storage, mygame.NewManager(storage)).Start()
 	}
-
 */
 func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegate) *Server {
 
@@ -172,9 +170,9 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 }
 
-//by defining the variable type, we verify we actually do implement the
-//interface. Since it flows via FetchInejctedData, there's no type
-//checking otherwise.
+// by defining the variable type, we verify we actually do implement the
+// interface. Since it flows via FetchInejctedData, there's no type
+// checking otherwise.
 var testPlayerSeat interfaces.SeatPlayerSignaler = &playerToSeat{}
 
 func (p *playerToSeat) SeatIndex() boardgame.PlayerIndex {
@@ -200,9 +198,9 @@ func (p *playerToSeat) Committed() {
 	p.s.playersToSeat[p.gameID] = append(slice[:indexInSlice], slice[indexInSlice+1:]...)
 }
 
-//managerSeatPlayerMoves returns the move names for the given manager that are a
-//seat player move. If len(result) is 0, then the game does not have a seat
-//player move.
+// managerSeatPlayerMoves returns the move names for the given manager that are a
+// seat player move. If len(result) is 0, then the game does not have a seat
+// player move.
 func managerSeatPlayerMoves(manager *boardgame.GameManager) []string {
 	var result []string
 	for _, move := range manager.ExampleMoves() {
@@ -303,9 +301,9 @@ func (r *renderer) writeCookie() {
 	r.c.SetCookie(cookieName, r.cookieValue, int(time.Now().Add(time.Hour*100).Unix()), "", "", false, false)
 }
 
-//SetAuthCookie will set the auth cookie to the specified value. If called
-//multiple times for a single request will only actually write headers for the
-//last one.
+// SetAuthCookie will set the auth cookie to the specified value. If called
+// multiple times for a single request will only actually write headers for the
+// last one.
 func (r *renderer) SetAuthCookie(value string) {
 
 	//We don't write the cookies to the response yet because we might get
@@ -364,9 +362,9 @@ func (s *Server) gameFromID(gameID, gameName string) *boardgame.Game {
 	return game
 }
 
-//closedSeatsForGame will return a slice of bools of equal length to the game's
-//NumPlayers, where each one is set to true if the playerState has a Seat and
-//the seat is marked as closed.
+// closedSeatsForGame will return a slice of bools of equal length to the game's
+// NumPlayers, where each one is set to true if the playerState has a Seat and
+// the seat is marked as closed.
 func (s *Server) closedSeatsForGame(game *boardgame.Game) []bool {
 	result := make([]bool, game.NumPlayers())
 	info := s.managers[game.Manager().Delegate().Name()]
@@ -388,7 +386,7 @@ func (s *Server) closedSeatsForGame(game *boardgame.Game) []bool {
 	return result
 }
 
-//gameAPISetup fetches the game configured in the URL and puts it in context.
+// gameAPISetup fetches the game configured in the URL and puts it in context.
 func (s *Server) gameAPISetup(c *gin.Context) {
 
 	id := s.getRequestGameID(c)
@@ -442,7 +440,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 }
 
-//Checks to make sure the user is logged in, fails if not.
+// Checks to make sure the user is logged in, fails if not.
 func (s *Server) requireLoggedIn(c *gin.Context) {
 
 	r := s.newRenderer(c)
@@ -917,8 +915,8 @@ func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromV
 	})
 }
 
-//AddOverrides defines overrides that will be applied on top of the config we
-//load. We return a reference to ourself to allow chaining of configurations.
+// AddOverrides defines overrides that will be applied on top of the config we
+// load. We return a reference to ourself to allow chaining of configurations.
 func (s *Server) AddOverrides(overrides []config.OptionOverrider) *Server {
 	s.overriders = append(s.overriders, overrides...)
 	return s
@@ -985,8 +983,8 @@ func (s *Server) doConfigureGame(r *renderer, user *users.StorageRecord, isAdmin
 
 }
 
-//gameInfo is the first payload when a game is loaded, including immutables
-//like chest, but also the initial game state payload as a convenience.
+// gameInfo is the first payload when a game is loaded, including immutables
+// like chest, but also the initial game state payload as a convenience.
 func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	game := s.getGame(c)
@@ -1295,8 +1293,8 @@ func formFields(move boardgame.Move) []*moveFormField {
 	return result
 }
 
-//genericHandler doesn't do much. We just register it so we automatically get
-//CORS handlers triggered with the middelware.
+// genericHandler doesn't do much. We just register it so we automatically get
+// CORS handlers triggered with the middelware.
 func (s *Server) genericHandler(c *gin.Context) {
 	r := s.newRenderer(c)
 	r.Success(gin.H{
@@ -1304,7 +1302,7 @@ func (s *Server) genericHandler(c *gin.Context) {
 	})
 }
 
-//Start is where you start the server, and it never returns until it's time to shut down.
+// Start is where you start the server, and it never returns until it's time to shut down.
 func (s *Server) Start() {
 
 	config, err := config.Get("", false)

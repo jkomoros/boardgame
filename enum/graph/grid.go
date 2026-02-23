@@ -7,45 +7,45 @@ import (
 	"strconv"
 )
 
-//EdgeFilter is a type of function that can be passed to filter in edges. Only
-//edges that return true will be kept. This package defines a large number of
-//them, all of which start with "Direction".
+// EdgeFilter is a type of function that can be passed to filter in edges. Only
+// edges that return true will be kept. This package defines a large number of
+// them, all of which start with "Direction".
 type EdgeFilter func(enum enum.RangeEnum, from, to enum.EnumKey) bool
 
-//DirectionUp will return true if to is in a strictly lower-indexed row then
-//from.
+// DirectionUp will return true if to is in a strictly lower-indexed row then
+// from.
 func DirectionUp(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[0] > toIndexes[0]
 }
 
-//DirectionDown will return true if to is in a strictly higher-indexed row
-//then from.
+// DirectionDown will return true if to is in a strictly higher-indexed row
+// then from.
 func DirectionDown(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[0] < toIndexes[0]
 }
 
-//DirectionLeft will return true if to is in a strictly lower-indexed col then
-//from.
+// DirectionLeft will return true if to is in a strictly lower-indexed col then
+// from.
 func DirectionLeft(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[1] > toIndexes[1]
 }
 
-//DirectionRight will return true if to is in a strictly higher-indexed col
-//then from.
+// DirectionRight will return true if to is in a strictly higher-indexed col
+// then from.
 func DirectionRight(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[1] < toIndexes[1]
 }
 
-//DirectionPerpendicular will return true if to is perpendicular to from (in the
-//same row or col).
+// DirectionPerpendicular will return true if to is perpendicular to from (in the
+// same row or col).
 func DirectionPerpendicular(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
@@ -55,14 +55,14 @@ func DirectionPerpendicular(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	return fromIndexes[1] == toIndexes[1]
 }
 
-//DirectionDiagonal will return true if to is non-perpendicular to from.
+// DirectionDiagonal will return true if to is non-perpendicular to from.
 func DirectionDiagonal(enum enum.RangeEnum, from, to enum.EnumKey) bool {
 	return !DirectionPerpendicular(enum, from, to)
 }
 
-//MustNewGridConnectedness is like NewGridConnectedness, but if it would have
-//returned an error, it panics instead. Only appropriate to be called during
-//setup.
+// MustNewGridConnectedness is like NewGridConnectedness, but if it would have
+// returned an error, it panics instead. Only appropriate to be called during
+// setup.
 func MustNewGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter) Graph {
 	graph, err := NewGridConnectedness(ranged2DEnum, filter...)
 
@@ -73,18 +73,18 @@ func MustNewGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter)
 	return graph
 }
 
-//NewGridConnectedness is a helper function to create a finished graph
-//representing the connections between a grid. By default it adds edges
-//between each of the 8 adjacent cells. However, all neighbors must pass the
-//provided filters to be added. This package also defines a number of
-//Direction* EdgeFilters. The enum passed must be a ranged, 2 dimensional enum.
-//	//Returns a graph that has all cells connected to each of their neighbors.
-//	NewGridConnectedness(e)
+// NewGridConnectedness is a helper function to create a finished graph
+// representing the connections between a grid. By default it adds edges
+// between each of the 8 adjacent cells. However, all neighbors must pass the
+// provided filters to be added. This package also defines a number of
+// Direction* EdgeFilters. The enum passed must be a ranged, 2 dimensional enum.
 //
-//  //Returns a graph that creates connections upward and diagonally from each
-//  //cell.
-//	NewGridConnectedness(e, DirectionUp, DirectionDiagonal)
+//		//Returns a graph that has all cells connected to each of their neighbors.
+//		NewGridConnectedness(e)
 //
+//	 //Returns a graph that creates connections upward and diagonally from each
+//	 //cell.
+//		NewGridConnectedness(e, DirectionUp, DirectionDiagonal)
 func NewGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter) (Graph, error) {
 	if len(ranged2DEnum.RangeDimensions()) != 2 {
 		return nil, errors.New("The enum did not have two dimensions")
@@ -118,8 +118,8 @@ func NewGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter) (Gr
 
 }
 
-//assumes that theEnum is a 2d ranged enum, and that start is a valid value in
-//it.
+// assumes that theEnum is a 2d ranged enum, and that start is a valid value in
+// it.
 func neighbors(theEnum enum.RangeEnum, start enum.EnumKey) []enum.EnumKey {
 	var result []enum.EnumKey
 	indexes := theEnum.ValueToRange(start)
@@ -145,9 +145,9 @@ func neighbors(theEnum enum.RangeEnum, start enum.EnumKey) []enum.EnumKey {
 	return result
 }
 
-//NewEnumGridConnectedness is like NewGridConnectedness but returns an
-//*EnumGraph instead of a Graph, wrapping the resulting grid graph with
-//Val-centric methods.
+// NewEnumGridConnectedness is like NewGridConnectedness but returns an
+// *EnumGraph instead of a Graph, wrapping the resulting grid graph with
+// Val-centric methods.
 func NewEnumGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter) (*EnumGraph, error) {
 	g, err := NewGridConnectedness(ranged2DEnum, filter...)
 	if err != nil {
@@ -156,8 +156,8 @@ func NewEnumGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter)
 	return WrapGraph(g), nil
 }
 
-//MustNewEnumGridConnectedness is like NewEnumGridConnectedness, but panics on
-//error. Only appropriate to be called during setup.
+// MustNewEnumGridConnectedness is like NewEnumGridConnectedness, but panics on
+// error. Only appropriate to be called during setup.
 func MustNewEnumGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter) *EnumGraph {
 	eg, err := NewEnumGridConnectedness(ranged2DEnum, filter...)
 	if err != nil {

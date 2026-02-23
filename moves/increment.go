@@ -7,20 +7,20 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//Increment is a simple move that modifies the specified int property by
-//adding Amount() to it. It's often useful to run in a move progression, for
-//example to increment a round count. Its Legal() is just the Legal for FixUp,
-//so this should only be used within a MoveProgression, unless you provide
-//your own Legal method.
+// Increment is a simple move that modifies the specified int property by
+// adding Amount() to it. It's often useful to run in a move progression, for
+// example to increment a round count. Its Legal() is just the Legal for FixUp,
+// so this should only be used within a MoveProgression, unless you provide
+// your own Legal method.
 //
 //boardgame:codegen
 type Increment struct {
 	FixUp
 }
 
-//ValidConfiguration checks to ensure that the specified property (via
-//GameProperty and PlayerProperty) denotes an int property on the given sub-
-//state object.
+// ValidConfiguration checks to ensure that the specified property (via
+// GameProperty and PlayerProperty) denotes an int property on the given sub-
+// state object.
 func (i *Increment) ValidConfiguration(exampleState boardgame.State) error {
 
 	if err := i.FixUp.ValidConfiguration(exampleState); err != nil {
@@ -39,8 +39,8 @@ type gamePlayerProperty interface {
 	Amount() int
 }
 
-//intProp returns the actual prop to use. If state is nil, skips the check of
-//whether that's a valid int prop and assumes it is.
+// intProp returns the actual prop to use. If state is nil, skips the check of
+// whether that's a valid int prop and assumes it is.
 func (i *Increment) intProp(state boardgame.ImmutableState) (isPlayer bool, propName string, amount int, err error) {
 
 	m := i.TopLevelStruct()
@@ -88,8 +88,8 @@ func (i *Increment) intProp(state boardgame.ImmutableState) (isPlayer bool, prop
 
 }
 
-//GameProperty returns the name of the GameProperty provided by
-//WithGameProperty, or "" if that wasn't called.
+// GameProperty returns the name of the GameProperty provided by
+// WithGameProperty, or "" if that wasn't called.
 func (i *Increment) GameProperty() string {
 	config := i.CustomConfiguration()
 	val, ok := config[configPropGameProperty]
@@ -103,8 +103,8 @@ func (i *Increment) GameProperty() string {
 	return strVal
 }
 
-//PlayerProperty returns the name of the property on PlayerState provided by
-//WithPlayerProperty, or "" if that wasn't called.
+// PlayerProperty returns the name of the property on PlayerState provided by
+// WithPlayerProperty, or "" if that wasn't called.
 func (i *Increment) PlayerProperty() string {
 	config := i.CustomConfiguration()
 	val, ok := config[configPropPlayerProperty]
@@ -118,8 +118,8 @@ func (i *Increment) PlayerProperty() string {
 	return strVal
 }
 
-//Amount returns the amount to increment the given property by. Will use the
-//value passed to WithAmount, or 1 if that wasn't used.
+// Amount returns the amount to increment the given property by. Will use the
+// value passed to WithAmount, or 1 if that wasn't used.
 func (i *Increment) Amount() int {
 	config := i.CustomConfiguration()
 	val, ok := config[configPropAmount]
@@ -133,10 +133,10 @@ func (i *Increment) Amount() int {
 	return intVal
 }
 
-//Apply will increment the given property by Amount(). If GameProperty returns
-//a valid int property, will increment that. If GameProperty is not provided
-//but PlayerProperty is, will increment that property on the CurrentPlayer. If
-//the CurrentPlayer is not valid, will error.
+// Apply will increment the given property by Amount(). If GameProperty returns
+// a valid int property, will increment that. If GameProperty is not provided
+// but PlayerProperty is, will increment that property on the CurrentPlayer. If
+// the CurrentPlayer is not valid, will error.
 func (i *Increment) Apply(state boardgame.State) error {
 
 	isPlayer, propName, amount, err := i.intProp(state)
@@ -179,7 +179,7 @@ func (i *Increment) Apply(state boardgame.State) error {
 	return nil
 }
 
-//FallbackName returns "Increment {Game|Player} Property PROPNAME By Amount"
+// FallbackName returns "Increment {Game|Player} Property PROPNAME By Amount"
 func (i *Increment) FallbackName(m *boardgame.GameManager) string {
 	return "Increment " + i.helpTextSuffix()
 }
@@ -196,8 +196,8 @@ func (i *Increment) helpTextSuffix() string {
 	return propType + " Property " + propName + " By " + strconv.Itoa(amount)
 }
 
-//FallbackHelpText returns "Increments {Game|Player} Property PROPNAME By
-//Amount"
+// FallbackHelpText returns "Increments {Game|Player} Property PROPNAME By
+// Amount"
 func (i *Increment) FallbackHelpText() string {
 	return "Increments " + i.helpTextSuffix()
 }

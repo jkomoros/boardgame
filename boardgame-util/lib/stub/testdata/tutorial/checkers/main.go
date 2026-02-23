@@ -161,7 +161,7 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 	return state.ImmutableGameState().(*gameState).CardsDone()
 }
 
-//values for the variant setup
+// values for the variant setup
 const (
 	variantKeyTargetCardsLeft = "target_cards_left"
 )

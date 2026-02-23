@@ -524,7 +524,7 @@ func TestEnumSliceValidation(t *testing.T) {
 	// SetValues with invalid values should return error and not modify slice
 	err = s.SetValues([]EnumKey{ColorRed, 99, ColorBlue, 100})
 	assert.For(t).ThatActual(err).IsNotNil()
-	assert.For(t).ThatActual(s.Len()).Equals(2) // unchanged from before
+	assert.For(t).ThatActual(s.Len()).Equals(2)                      // unchanged from before
 	assert.For(t).ThatActual(s.Value(0)).Equals(EnumKey(ColorGreen)) // still the old value
 
 	// SetValues with all valid values should work

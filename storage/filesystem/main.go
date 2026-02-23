@@ -1,5 +1,4 @@
 /*
-
 Package filesystem is a storage layer that stores information about games as
 JSON files within a given folder, (or somewhere nested in a folder within base
 folder) one per game. It's extremely inefficient and doesn't even persist
@@ -14,7 +13,6 @@ store at  'checkers/a22ffcdef.json'. Folders may be soft- linked from within the
 base folder; often when using the filesystem storage layer to help generate test
 cases you set up soft- links from a central location to a folder for test files
 in each game's sub-directory, so the test files can be in the same place.
-
 */
 package filesystem
 
@@ -32,7 +30,7 @@ import (
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 )
 
-//StorageManager is the primary type for this package.
+// StorageManager is the primary type for this package.
 type StorageManager struct {
 	//Fall back on those methods
 	*helpers.ExtendedMemoryStorageManager
@@ -55,16 +53,16 @@ type StorageManager struct {
 	records map[string]*record.Record
 }
 
-//Store seen ids and remember where the path was
+// Store seen ids and remember where the path was
 var idToPath map[string]string
 
 func init() {
 	idToPath = make(map[string]string)
 }
 
-//NewStorageManager returns a new filesystem storage manager. basePath is the
-//folder, relative to this executable, to have as the root of the storage
-//pool.
+// NewStorageManager returns a new filesystem storage manager. basePath is the
+// folder, relative to this executable, to have as the root of the storage
+// pool.
 func NewStorageManager(basePath string) *StorageManager {
 
 	result := &StorageManager{
@@ -79,12 +77,12 @@ func NewStorageManager(basePath string) *StorageManager {
 	return result
 }
 
-//Name returns 'filesystem'
+// Name returns 'filesystem'
 func (s *StorageManager) Name() string {
 	return "filesystem"
 }
 
-//Connect verifies the given basePath exists.
+// Connect verifies the given basePath exists.
 func (s *StorageManager) Connect(config string) error {
 
 	if _, err := os.Stat(s.basePath); os.IsNotExist(err) {
@@ -96,18 +94,18 @@ func (s *StorageManager) Connect(config string) error {
 	return nil
 }
 
-//WithManagers sets the managers
+// WithManagers sets the managers
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	s.managers = managers
 }
 
-//CleanUp cleans up evertyhing in basePath.
+// CleanUp cleans up evertyhing in basePath.
 func (s *StorageManager) CleanUp() {
 	os.RemoveAll(s.basePath)
 }
 
-//pathForID will look through each sub-folder and look for a file named
-//gameId.json, returning its relative path if it is found, "" otherwise.
+// pathForID will look through each sub-folder and look for a file named
+// gameId.json, returning its relative path if it is found, "" otherwise.
 func pathForID(basePath, gameID string) string {
 
 	if path, ok := idToPath[gameID]; ok {
@@ -135,9 +133,9 @@ func pathForID(basePath, gameID string) string {
 	return ""
 }
 
-//RecordForID returns the *record.Record associated with that gameID, if it
-//exists. This is exposed for debug scenarios; in typical usage of this storage
-//layer you don't need access to it.
+// RecordForID returns the *record.Record associated with that gameID, if it
+// exists. This is exposed for debug scenarios; in typical usage of this storage
+// layer you don't need access to it.
 func (s *StorageManager) RecordForID(gameID string) (*record.Record, error) {
 
 	gameID = strings.ToLower(gameID)
@@ -201,7 +199,7 @@ func (s *StorageManager) saveRecordForID(gameID string, rec *record.Record) erro
 	return nil
 }
 
-//State returns the state for that gameID and version.
+// State returns the state for that gameID and version.
 func (s *StorageManager) State(gameID string, version int) (boardgame.StateStorageRecord, error) {
 	rec, err := s.RecordForID(gameID)
 
@@ -219,7 +217,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 
 }
 
-//Move returns the move for that gameID and version
+// Move returns the move for that gameID and version
 func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorageRecord, error) {
 	rec, err := s.RecordForID(gameID)
 
@@ -230,12 +228,12 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 	return rec.Move(version)
 }
 
-//Moves returns all of the moves
+// Moves returns all of the moves
 func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
 	return helpers.MovesHelper(s, gameID, fromVersion, toVersion)
 }
 
-//Game returns the game storage record for that game.
+// Game returns the game storage record for that game.
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	rec, err := s.RecordForID(id)
@@ -247,7 +245,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return rec.Game(), nil
 }
 
-//SaveGameAndCurrentState saves the game and current state.
+// SaveGameAndCurrentState saves the game and current state.
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 	rec, err := s.RecordForID(game.ID)
 
@@ -268,7 +266,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 }
 
-//CombinedGame returns the combined game
+// CombinedGame returns the combined game
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 	rec, err := s.RecordForID(id)
 
@@ -322,12 +320,12 @@ func (s *StorageManager) recursiveAllGames(basePath string) []*boardgame.GameSto
 	return result
 }
 
-//AllGames returns all games
+// AllGames returns all games
 func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	return s.recursiveAllGames(s.basePath)
 }
 
-//ListGames returns all of the games
+// ListGames returns all of the games
 func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 	return helpers.ListGamesHelper(s, max, list, userID, gameType)
 }

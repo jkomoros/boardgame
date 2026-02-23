@@ -36,7 +36,7 @@ func (p *playerState) GameScore() int {
 	return sum
 }
 
-//TurnDone returns true when this player's turn is done. moves.FinishTurn expects it.
+// TurnDone returns true when this player's turn is done. moves.FinishTurn expects it.
 func (p *playerState) TurnDone() error {
 	if p.HasDrawnCardThisTurn {
 		return nil
@@ -44,15 +44,15 @@ func (p *playerState) TurnDone() error {
 	return errors.New("player hasn't drawn their card yet")
 }
 
-//ResetForTurnStart is called by moves.FinishTurn when the player's turn has
-//just started,
+// ResetForTurnStart is called by moves.FinishTurn when the player's turn has
+// just started,
 func (p *playerState) ResetForTurnStart() error {
 	p.HasDrawnCardThisTurn = false
 	return nil
 }
 
-//ResetForTurnEnd is called by moves.FinishTurn when the player's turn has
-//just finished,
+// ResetForTurnEnd is called by moves.FinishTurn when the player's turn has
+// just finished,
 func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }

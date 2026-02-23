@@ -1,12 +1,12 @@
 package boardgame
 
-//Agent represents an Artificial Intelligence agent that plays as a specific
-//player in a specific game. Agents are created and affiliated with
-//GameManagers, and then when new games are set up they may be asked to play
-//on behalf of a player. After moves are made on a game they are asked if they
-//have a move to propose. In many cases the state of the game is sufficient,
-//but in some cases Agents may need to store additional information; this is
-//handled by the agent marshaling and unmarshaling byte sequences themselves.
+// Agent represents an Artificial Intelligence agent that plays as a specific
+// player in a specific game. Agents are created and affiliated with
+// GameManagers, and then when new games are set up they may be asked to play
+// on behalf of a player. After moves are made on a game they are asked if they
+// have a move to propose. In many cases the state of the game is sufficient,
+// but in some cases Agents may need to store additional information; this is
+// handled by the agent marshaling and unmarshaling byte sequences themselves.
 type Agent interface {
 	//Name is the unique, static name for this type of agent. Many games will
 	//have only one type of agent, but the reason for this field is that some

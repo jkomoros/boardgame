@@ -7,11 +7,11 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//ShuffleStack is a move, typically used in SetUp phases, that simply shuffles
-//a given stack. The struct you embed this in should implement SourceStacker.
+// ShuffleStack is a move, typically used in SetUp phases, that simply shuffles
+// a given stack. The struct you embed this in should implement SourceStacker.
 //
-//In practice it is common to just use this move directly in your game, and
-//pass the stack via WithSourceProperty to auto.Config.
+// In practice it is common to just use this move directly in your game, and
+// pass the stack via WithSourceProperty to auto.Config.
 //
 //boardgame:codegen
 type ShuffleStack struct {
@@ -46,17 +46,17 @@ func sourceStackFromConfig(m moveInfoer, state boardgame.State) boardgame.Stack 
 	return stack
 }
 
-//SourceStack by default just returns the property on GameState with the name
-//passed to DefaultConfig by WithSourceProperty. If that is not sufficient,
-//override this in your embedding struct.
+// SourceStack by default just returns the property on GameState with the name
+// passed to DefaultConfig by WithSourceProperty. If that is not sufficient,
+// override this in your embedding struct.
 func (s *ShuffleStack) SourceStack(state boardgame.State) boardgame.Stack {
 	return sourceStackFromConfig(s, state)
 }
 
 //We don't need a Legal method because the pass-through to moves.Default is sufficient.
 
-//Apply shuffles the stack that the embedding move selects by the return value
-//from SourceStack().
+// Apply shuffles the stack that the embedding move selects by the return value
+// from SourceStack().
 func (s *ShuffleStack) Apply(state boardgame.State) error {
 	embeddingMove := s.TopLevelStruct()
 
@@ -75,8 +75,8 @@ func (s *ShuffleStack) Apply(state boardgame.State) error {
 	return stack.Shuffle()
 }
 
-//ValidConfiguration verifies that the top level move implements
-//interfaces.SourceStacker and returns non-nil stacks.
+// ValidConfiguration verifies that the top level move implements
+// interfaces.SourceStacker and returns non-nil stacks.
 func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 	testMove := s.TopLevelStruct()
 
@@ -93,8 +93,8 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 	return s.FixUp.ValidConfiguration(exampleState)
 }
 
-//FallbackName returns "Shuffle STACK" where STACK is the name of the
-//stack set by WithSourceProperty.
+// FallbackName returns "Shuffle STACK" where STACK is the name of the
+// stack set by WithSourceProperty.
 func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 
 	//This is an ugly hack to make it mutable
@@ -111,8 +111,8 @@ func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 	return "Shuffle " + stackName(s, configPropSourceProperty, stack, exampleState)
 }
 
-//FallbackHelpText returns "Shuffles the STACK stack" where STACK is the name
-//of the stack set by WithSourceProperty.
+// FallbackHelpText returns "Shuffles the STACK stack" where STACK is the name
+// of the stack set by WithSourceProperty.
 func (s *ShuffleStack) FallbackHelpText() string {
 	return "Shuffles " + stackName(s, configPropSourceProperty, nil, nil)
 }

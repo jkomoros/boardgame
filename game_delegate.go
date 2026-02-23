@@ -4,17 +4,17 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//GameDelegate is the key entrypoint for the game logic specific to the game
-//you are defining. Think of it is as the brain that is inserted into the
-//robot shell of GameManager to imbue it with life. Typically your package
-//that defines your game will have one public entrypoint, which is to return a
-//GameDelegate for that packge. All logic specific to your game is configured
-//via the return values of various methods in your GameDelegate. Your
-//GameDelegate defines configuration for the type of game in general (via
-//Configure* methods), as well as lifecycle methods for specific games (e.g.
-//DistributeComponentToStarterStack). base.GameDelegate is a useful base
-//struct to embed in your own GameDelegate, providing reasonable default
-//behavior for nearly every method in GameDelegate.
+// GameDelegate is the key entrypoint for the game logic specific to the game
+// you are defining. Think of it is as the brain that is inserted into the
+// robot shell of GameManager to imbue it with life. Typically your package
+// that defines your game will have one public entrypoint, which is to return a
+// GameDelegate for that packge. All logic specific to your game is configured
+// via the return values of various methods in your GameDelegate. Your
+// GameDelegate defines configuration for the type of game in general (via
+// Configure* methods), as well as lifecycle methods for specific games (e.g.
+// DistributeComponentToStarterStack). base.GameDelegate is a useful base
+// struct to embed in your own GameDelegate, providing reasonable default
+// behavior for nearly every method in GameDelegate.
 type GameDelegate interface {
 
 	//Name is a string that defines the type of game this is. This must return
@@ -297,12 +297,12 @@ type GameDelegate interface {
 	Manager() *GameManager
 }
 
-//PropertyCollection is just an alias for map[string]interface{}. It is used
-//as the return value for a number of things, including
-//GameDelegate.ConfigureConstants, and MoveConfig.CustomConfigration.
+// PropertyCollection is just an alias for map[string]interface{}. It is used
+// as the return value for a number of things, including
+// GameDelegate.ConfigureConstants, and MoveConfig.CustomConfigration.
 type PropertyCollection map[string]interface{}
 
-//Copy returns a shallow copy of PropertyCollection
+// Copy returns a shallow copy of PropertyCollection
 func (p PropertyCollection) Copy() PropertyCollection {
 	result := make(PropertyCollection, len(p))
 	for key, val := range result {

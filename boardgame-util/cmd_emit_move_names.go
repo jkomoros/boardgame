@@ -50,10 +50,10 @@ The generated files follow the same convention as auto_reader.go and auto_enum.g
 they are regenerated each time but should be committed to source control.`
 }
 
-//emitMoveNamesForPackages builds a temporary binary to extract move names from
-//the given game packages and writes _move_names.ts files into each game's
-//client/ directory. It is used by both the emit-move-names command and the
-//serve command.
+// emitMoveNamesForPackages builds a temporary binary to extract move names from
+// the given game packages and writes _move_names.ts files into each game's
+// client/ directory. It is used by both the emit-move-names command and the
+// serve command.
 func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) error {
 
 	dir, err := ioutil.TempDir(".", "temp_movenames_")

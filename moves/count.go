@@ -4,18 +4,18 @@ import (
 	"errors"
 )
 
-//ValidCounter is the signature of objects in the moves/count package. It is
-//expected within groups in the move/groups package for items like
-//ParallelCount. currentCount is the value of the counter in question, and
-//length is the context-specific length of the important item, often the
-//number of children in the parrent group. If ValidCounter returns nil, the
-//count is considered valid and complete; if it is not valid it should return
-//a descriptive error. Typically these functions are closures that close over
-//configuration options.
+// ValidCounter is the signature of objects in the moves/count package. It is
+// expected within groups in the move/groups package for items like
+// ParallelCount. currentCount is the value of the counter in question, and
+// length is the context-specific length of the important item, often the
+// number of children in the parrent group. If ValidCounter returns nil, the
+// count is considered valid and complete; if it is not valid it should return
+// a descriptive error. Typically these functions are closures that close over
+// configuration options.
 type ValidCounter func(currentCount, length int) error
 
-//anyFunc will be returned for Any. Since there are no values to close over,
-//we can return the same item each time.
+// anyFunc will be returned for Any. Since there are no values to close over,
+// we can return the same item each time.
 func anyFunc(currentCount, length int) error {
 	switch currentCount {
 	case 0:
@@ -27,8 +27,8 @@ func anyFunc(currentCount, length int) error {
 	}
 }
 
-//allFunc will be returned from All. Since there are no values to close over,
-//we can return the same item each time and avoid memory allocation.
+// allFunc will be returned from All. Since there are no values to close over,
+// we can return the same item each time and avoid memory allocation.
 func allFunc(currentCount, length int) error {
 	if currentCount < length {
 		return errors.New("Not enough count have occurred")
@@ -39,15 +39,15 @@ func allFunc(currentCount, length int) error {
 	return errors.New("too many count have occurred")
 }
 
-//CountAny will return nil if currentCount is 1, denoting that any item has matched.
-//Equivalent to CountBetween(0,1).
+// CountAny will return nil if currentCount is 1, denoting that any item has matched.
+// Equivalent to CountBetween(0,1).
 func CountAny() ValidCounter {
 	return anyFunc
 }
 
-//CountAll will return nil if currentCount is precisely the same length as
-//length. Equivalent to CountBetween(0,-1). Not to be confused with
-//CountInfinite; CountAll expects to see precisely all children matched.
+// CountAll will return nil if currentCount is precisely the same length as
+// length. Equivalent to CountBetween(0,-1). Not to be confused with
+// CountInfinite; CountAll expects to see precisely all children matched.
 func CountAll() ValidCounter {
 	return allFunc
 }
@@ -56,14 +56,14 @@ func infiniteFunc(currentCount, length int) error {
 	return nil
 }
 
-//CountInfinite always returns nil; that is, any count is legal. Not to be
-//confused with CountAny, which expects any single item to match, and CountAll
-//which expects all children to match.
+// CountInfinite always returns nil; that is, any count is legal. Not to be
+// confused with CountAny, which expects any single item to match, and CountAll
+// which expects all children to match.
 func CountInfinite() ValidCounter {
 	return infiniteFunc
 }
 
-//CountAtLeast will return nil if currentCount is min or greater.
+// CountAtLeast will return nil if currentCount is min or greater.
 func CountAtLeast(min int) ValidCounter {
 	return func(currentCount, length int) error {
 		if currentCount >= min {
@@ -73,9 +73,9 @@ func CountAtLeast(min int) ValidCounter {
 	}
 }
 
-//CountAtMost will return nil as long as currentCount is less than or equal to max. A
-//max argument of less than 0 will be interpreted to mean precisely the length
-//parameter passed into ValidCounter.
+// CountAtMost will return nil as long as currentCount is less than or equal to max. A
+// max argument of less than 0 will be interpreted to mean precisely the length
+// parameter passed into ValidCounter.
 func CountAtMost(max int) ValidCounter {
 	return func(currentCount, length int) error {
 		if max < 0 {
@@ -88,9 +88,9 @@ func CountAtMost(max int) ValidCounter {
 	}
 }
 
-//CountBetween returns nil as long as the value is greater than or equal to min and
-//less than or equal to max. A max argument of less than 0 will be interpreted
-//to mean precise the length parameter passed into ValidCounter.
+// CountBetween returns nil as long as the value is greater than or equal to min and
+// less than or equal to max. A max argument of less than 0 will be interpreted
+// to mean precise the length parameter passed into ValidCounter.
 func CountBetween(min, max int) ValidCounter {
 	return func(currentCount, length int) error {
 		if max < 0 {
@@ -106,8 +106,8 @@ func CountBetween(min, max int) ValidCounter {
 	}
 }
 
-//CountExactly returns nil if currentCount is precisely equaly to targetCount.
-//Equivalent to CountBetween(targetCount,targetCount).
+// CountExactly returns nil if currentCount is precisely equaly to targetCount.
+// Equivalent to CountBetween(targetCount,targetCount).
 func CountExactly(targetCount int) ValidCounter {
 	return func(currentCount, length int) error {
 		if targetCount == currentCount {

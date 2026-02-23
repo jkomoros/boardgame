@@ -7,8 +7,8 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
 
-//configModify isn't used directly but is a super-class for all Config
-//commands that modify the config.
+// configModify isn't used directly but is a super-class for all Config
+// commands that modify the config.
 type configModify struct {
 	baseSubCommand
 
@@ -19,9 +19,9 @@ type configModify struct {
 	Force bool
 }
 
-//If fieldType is one this responds to, should either teturn an updater or
-//errAndQuit. Otherwise, OK to return nil to signal it's not a valid tyep.
-//fieldType won't be TypeInvalid; that will already be screened out.
+// If fieldType is one this responds to, should either teturn an updater or
+// errAndQuit. Otherwise, OK to return nil to signal it's not a valid tyep.
+// fieldType won't be TypeInvalid; that will already be screened out.
 type updateFactory func(base *boardgameUtil, field config.ModeField, fieldType config.ModeFieldType, positional []string) config.Updater
 
 func (c *configModify) RunWithUpdateFactory(p writ.Path, positional []string, factory updateFactory) {

@@ -15,7 +15,7 @@ import (
 
 //go:generate boardgame-util codegen
 
-//game.Name() to set of move types that have no move progression logic
+// game.Name() to set of move types that have no move progression logic
 var noProgressionMoveTypesByGame map[string]map[string]bool
 var noProgressionMoveTypesMutex sync.RWMutex
 
@@ -25,7 +25,7 @@ func init() {
 	noProgressionMoveTypesMutex.Unlock()
 }
 
-//The interface that moves that can be handled by DefaultConfig implement.
+// The interface that moves that can be handled by DefaultConfig implement.
 type autoConfigFallbackMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
@@ -36,7 +36,7 @@ type autoConfigFallbackMoveType interface {
 	FallbackHelpText() string
 }
 
-//A func that will fail to compile if all of the moves don't have a valid fallback.
+// A func that will fail to compile if all of the moves don't have a valid fallback.
 func ensureAllMovesSatisfyFallBack() {
 	var m autoConfigFallbackMoveType
 	m = new(ApplyUntil)
@@ -78,8 +78,8 @@ func ensureAllMovesSatisfyFallBack() {
 
 /*
 Default is an optional, convenience struct designed to be embedded
-anonymously in your own Moves. It builds on base.Move to add to a layer of
-default Legal logic and configuraability.. Apply is not covered, because every
+anonymously in your own Moves. It builds on [base.Move] to add to a layer of
+default Legal logic and configuraability. Apply is not covered, because every
 Move should implement their own, and if this implemented them it would obscure
 errors where for example your Apply() was incorrectly named and thus not used.
 
@@ -88,11 +88,11 @@ this phase, so your own Legal() method should always call Default.Legal() (or th
 Legal method of whichever struct you embedded that in turn calls Default.Legal())
 at the top of its own method.
 
-Default contains a fair bit of logic for generating the values that auto.Config
+Default contains a fair bit of logic for generating the values that [AutoConfigurer.Config]
 will use for the move configuration; see MoveType* methods on Default for more
 information.
 
-It is extremely rare to not use moves.Default either directly, or implicitly
+It is extremely rare to not use Default either directly, or implicitly
 within another sub-class in your move.
 
 boardgame:codegen
@@ -101,7 +101,7 @@ type Default struct {
 	base.Move
 }
 
-//ValidConfiguration ensures that phase progression is configured in sane way.
+// ValidConfiguration ensures that phase progression is configured in sane way.
 func (d *Default) ValidConfiguration(exampleState boardgame.State) error {
 	config := d.CustomConfiguration()
 
@@ -146,7 +146,7 @@ func (d *Default) ValidConfiguration(exampleState boardgame.State) error {
 
 var titleCaseReplacer *strings.Replacer
 
-//titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
+// titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
 func titleCaseToWords(in string) string {
 
 	//substantially recreated in boardgame-util/lib/codegen/enums.go
@@ -169,15 +169,15 @@ func titleCaseToWords(in string) string {
 
 }
 
-//DeriveName is used by auto.Config to generate the name for the move. This
-//implementation is where the majority of MoveName magic logic comes from.
-//First, it will use the configuration passed to auto.Config via WithMoveName,
-//if provided. Next, it checks the name of the topLevelStruct via reflection.
-//If the struct does not come from the moves package, it will create a name
-//like `MoveMyMove` --> `My Move`. Finally, if it's a struct from this
-//package, it will fall back on whatever the FallbackName() method returns.
-//Subclasses generally should not override this. If WithMoveNameSuffix() was
-//used, it will then add " - " + suffix to the end of the move name.
+// DeriveName is used by auto.Config to generate the name for the move. This
+// implementation is where the majority of MoveName magic logic comes from.
+// First, it will use the configuration passed to auto.Config via WithMoveName,
+// if provided. Next, it checks the name of the topLevelStruct via reflection.
+// If the struct does not come from the moves package, it will create a name
+// like `MoveMyMove` --> `My Move`. Finally, if it's a struct from this
+// package, it will fall back on whatever the FallbackName() method returns.
+// Subclasses generally should not override this. If WithMoveNameSuffix() was
+// used, it will then add " - " + suffix to the end of the move name.
 func (d *Default) DeriveName(m *boardgame.GameManager) string {
 
 	config := d.CustomConfiguration()
@@ -200,7 +200,7 @@ func (d *Default) DeriveName(m *boardgame.GameManager) string {
 	return d.baseDeriveName(m) + suffix
 }
 
-//baseDeriveName does most of the name logic, but not the suffix behavior.
+// baseDeriveName does most of the name logic, but not the suffix behavior.
 func (d *Default) baseDeriveName(m *boardgame.GameManager) string {
 
 	config := d.CustomConfiguration()
@@ -249,15 +249,15 @@ func (d *Default) baseDeriveName(m *boardgame.GameManager) string {
 	return ""
 }
 
-//FallbackName is the name that is returned if other higher-priority
-//methods in MoveTypeName fail. For moves.Default returns "Base Move".
+// FallbackName is the name that is returned if other higher-priority
+// methods in MoveTypeName fail. For moves.Default returns "Base Move".
 func (d *Default) FallbackName(m *boardgame.GameManager) string {
 	return "Default Move"
 }
 
-//HelpText will return the value passed via the WithHelpText config option, if
-//it was passed. Otherwise it will fall back on the move's HelpTextFallback
-//method.
+// HelpText will return the value passed via the WithHelpText config option, if
+// it was passed. Otherwise it will fall back on the move's HelpTextFallback
+// method.
 func (d *Default) HelpText() string {
 	config := d.CustomConfiguration()
 
@@ -284,21 +284,21 @@ func (d *Default) HelpText() string {
 
 }
 
-//FallbackHelpText is the help text that will be used by HelpText if nothing
-//was passed via WithHelpText to auto.Config. By default it returns "A default
-//move that does nothing on its own"
+// FallbackHelpText is the help text that will be used by HelpText if nothing
+// was passed via WithHelpText to auto.Config. By default it returns "A default
+// move that does nothing on its own"
 func (d *Default) FallbackHelpText() string {
 	return "A default move that does nothing on its own"
 }
 
-//IsFixUp will return the value passed with WithFixUp, falling back on
-//returning false.
+// IsFixUp will return the value passed with WithFixUp, falling back on
+// returning false.
 func (d *Default) IsFixUp() bool {
 	config := d.CustomConfiguration()
 	return overrideIsFixUp(config, false)
 }
 
-//overrideIsFixUp takes the config and the base fix up value and returns the override if it exists, otherwise defaultIsFixUp
+// overrideIsFixUp takes the config and the base fix up value and returns the override if it exists, otherwise defaultIsFixUp
 func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) bool {
 	overrideIsFixUp, hasOverrideIsFixUp := config[configPropIsFixUp]
 
@@ -313,21 +313,21 @@ func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) b
 	return defaultIsFixUp
 }
 
-//Legal checks whether the game's CurrentPhase (as determined by the delegate)
-//is one of the LegalPhases for this moveType. If the delegate's PhaseEnum is
-//a TreeEnum, it will also pass this test if delegate.CurrentPhase() value's
-//ancestors match the legal move type. A zero-length LegalPhases is
-//interpreted as the move being legal in all phases. The string for the
-//current phase will be based on the enum value of the PhaseEnum named by
-//delegate.PhaseEnumName(), if it exists. Next, it checks to see if the give
-//move is at a legal point in the move progression for this phase, if it
-//exists. Each move in the move progression must show up 1 or more times.
-//(Moves that don't define a progression group are ignored, since they may
-//show up at any time in the phase.) The method checks to see if we were to
-//make this move, would the moves since the last phase change match the
-//pattern? If your move can be made legally multiple times in a row in a given
-//move progression, implement interfaces.AllowMultipleInProgression() and
-//return true.
+// Legal checks whether the game's CurrentPhase (as determined by the delegate)
+// is one of the LegalPhases for this moveType. If the delegate's PhaseEnum is
+// a TreeEnum, it will also pass this test if delegate.CurrentPhase() value's
+// ancestors match the legal move type. A zero-length LegalPhases is
+// interpreted as the move being legal in all phases. The string for the
+// current phase will be based on the enum value of the PhaseEnum named by
+// delegate.PhaseEnumName(), if it exists. Next, it checks to see if the give
+// move is at a legal point in the move progression for this phase, if it
+// exists. Each move in the move progression must show up 1 or more times.
+// (Moves that don't define a progression group are ignored, since they may
+// show up at any time in the phase.) The method checks to see if we were to
+// make this move, would the moves since the last phase change match the
+// pattern? If your move can be made legally multiple times in a row in a given
+// move progression, implement interfaces.AllowMultipleInProgression() and
+// return true.
 func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := d.legalInPhase(state); err != nil {
@@ -360,9 +360,9 @@ func (d *Default) legalMoveProgression() MoveProgressionGroup {
 	return group
 }
 
-//currentPhaseInfo extracts both the ImmutableVal and EnumKey from the
-//delegate's CurrentPhase. If CurrentPhase returns nil (no phase configured),
-//returns (nil, 0).
+// currentPhaseInfo extracts both the ImmutableVal and EnumKey from the
+// delegate's CurrentPhase. If CurrentPhase returns nil (no phase configured),
+// returns (nil, 0).
 func currentPhaseInfo(state boardgame.ImmutableState) (enum.ImmutableVal, enum.EnumKey) {
 	val := state.Manager().Delegate().CurrentPhase(state)
 	if val == nil {
@@ -371,8 +371,8 @@ func currentPhaseInfo(state boardgame.ImmutableState) (enum.ImmutableVal, enum.E
 	return val, val.Value()
 }
 
-//legalInPhase will return a descriptive error if this move is not legal in
-//the current phase of the game.
+// legalInPhase will return a descriptive error if this move is not legal in
+// the current phase of the game.
 func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 
 	legalPhases := d.legalPhases()
@@ -500,15 +500,15 @@ func (d *Default) historicalMovesSincePhaseTransition(game *boardgame.Game, upTo
 
 }
 
-//legalMoveInProgression is NOT an exhaustive check. It simply confirms that
-//this specific point would be legitimate to apply. Note that sometimes this
-//will return nil even when there really should be another move in front of
-//this that could still apply; that other move should actually be applied due
-//to ordering of moves in ProposeFixUpMove. Finally, note that technically for
-//AllowMultipleInProgression moves, this relies on the sub-classes Legal()
-//method terminating, becuase this method won't; because as far as the
-//progression is concerned, it's legal, and it's the sub-class's Legal()
-//method's job to decide it's no longer legal.
+// legalMoveInProgression is NOT an exhaustive check. It simply confirms that
+// this specific point would be legitimate to apply. Note that sometimes this
+// will return nil even when there really should be another move in front of
+// this that could still apply; that other move should actually be applied due
+// to ordering of moves in ProposeFixUpMove. Finally, note that technically for
+// AllowMultipleInProgression moves, this relies on the sub-classes Legal()
+// method terminating, becuase this method won't; because as far as the
+// progression is concerned, it's legal, and it's the sub-class's Legal()
+// method's job to decide it's no longer legal.
 func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	group := d.legalMoveProgression()
@@ -582,8 +582,8 @@ func matchTape(group MoveProgressionGroup, historicalMoves []string) error {
 	return nil
 }
 
-//stackName returns the name of the stack for helpTExt, name, etc based on the
-//configPropName.
+// stackName returns the name of the stack for helpTExt, name, etc based on the
+// configPropName.
 func stackName(move moveInfoer, configPropName string, exampleStack boardgame.ImmutableStack, exampleState boardgame.ImmutableState) string {
 	config := move.CustomConfiguration()
 

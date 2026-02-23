@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//RangeEnum is a special type of Enum that also allows indexing via numbers.
+// RangeEnum is a special type of Enum that also allows indexing via numbers.
 type RangeEnum interface {
 	Enum
 
@@ -32,7 +32,7 @@ type RangeEnum interface {
 	RangeToValue(indexes ...int) EnumKey
 }
 
-//ImmutableRangeVal is a Val that comes from a RangeEnum.
+// ImmutableRangeVal is a Val that comes from a RangeEnum.
 type ImmutableRangeVal interface {
 	ImmutableVal
 
@@ -40,7 +40,7 @@ type ImmutableRangeVal interface {
 	RangeValue() []int
 }
 
-//RangeVal is a MutableVal that comes from a RangeEnum.
+// RangeVal is a MutableVal that comes from a RangeEnum.
 type RangeVal interface {
 	Val
 
@@ -51,9 +51,9 @@ type RangeVal interface {
 	SetRangeValue(indexes ...int) error
 }
 
-//MustAddRange is like AddRange, but instead of an error it will panic if the
-//enum cannot be added. This is useful for defining your enums at the package
-//level outside of an init().
+// MustAddRange is like AddRange, but instead of an error it will panic if the
+// enum cannot be added. This is useful for defining your enums at the package
+// level outside of an init().
 func (e *Set) MustAddRange(enumName string, dimensionSize ...int) RangeEnum {
 	result, err := e.AddRange(enumName, dimensionSize...)
 

@@ -1,7 +1,5 @@
 /*
-
 Package path includes a few simple convenience methods for dealing with paths
-
 */
 package path
 
@@ -14,15 +12,15 @@ import (
 	"strings"
 )
 
-//AbsoluteGoPkgPath takes a pkg import and returns the full path to the pkg on
-//this system. The pkgImport must denote an actual package of go files or it
-//will error. It first looks for the right package in $GOPATH, and returns
-//that if it finds it. If that doesn't work it falls back on `go list`, which
-//will try to download it if it cannot already be satisfied locally. Because
-//this uses the $GOPATH copy first, that allows for example relying on games
-//locally without going through a VCS, which is nice if you're not connected
-//to the internet. If you're trying to load up Game Packages, you should
-//likely use the lib/gamepkg package directly.
+// AbsoluteGoPkgPath takes a pkg import and returns the full path to the pkg on
+// this system. The pkgImport must denote an actual package of go files or it
+// will error. It first looks for the right package in $GOPATH, and returns
+// that if it finds it. If that doesn't work it falls back on `go list`, which
+// will try to download it if it cannot already be satisfied locally. Because
+// this uses the $GOPATH copy first, that allows for example relying on games
+// locally without going through a VCS, which is nice if you're not connected
+// to the internet. If you're trying to load up Game Packages, you should
+// likely use the lib/gamepkg package directly.
 func AbsoluteGoPkgPath(pkgImport string) (string, error) {
 
 	//TODO: look into supporting the "no VCS" use case with replace
@@ -71,8 +69,8 @@ func AbsoluteGoPkgPath(pkgImport string) (string, error) {
 
 }
 
-//RelativizePaths takes two absolute paths and returns a string that is the
-//relative path from from to to.
+// RelativizePaths takes two absolute paths and returns a string that is the
+// relative path from from to to.
 func RelativizePaths(from, to string) (string, error) {
 
 	//TODO: pop this out to another more generic place

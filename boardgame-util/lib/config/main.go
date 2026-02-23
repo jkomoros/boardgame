@@ -1,5 +1,4 @@
 /*
-
 Package config is a simple library that manages config set-up for boardgame-util
 and friends, reading from config.json and config.SECRET.json files. See
 boardgame- util/README.md for more on the structure of config.json files.
@@ -7,7 +6,6 @@ boardgame- util/README.md for more on the structure of config.json files.
 Although a number of the details are exposed in this package, generally you just
 use Get() and then directly read the values of the returned Config's Dev and
 Prod properties.
-
 */
 package config
 
@@ -24,10 +22,10 @@ const (
 	publicConfigFileName  = "config.PUBLIC.json"
 )
 
-//DefaultFileNames returns the publicConfig and privateConfig names for the
-//given path, even if they don't exist. If dirOrFile ends in ".json" then that
-//will be returned, with privateConfig being in the same folder. If it's a
-//dir, it will be the default filenames in that folder.
+// DefaultFileNames returns the publicConfig and privateConfig names for the
+// given path, even if they don't exist. If dirOrFile ends in ".json" then that
+// will be returned, with privateConfig being in the same folder. If it's a
+// dir, it will be the default filenames in that folder.
 func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err error) {
 
 	if dirOrFile == "" {
@@ -52,14 +50,14 @@ func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err
 	return filepath.Join(dirOrFile, publicConfigFileName), filepath.Join(dirOrFile, privateConfigFileName), nil
 }
 
-//FileNames returns the publicConfig filename and privateConfig filename to
-//use given the search path. If dir is a config file itself, loads that (and
-//any private component in same directory). Next it interprets dir as a
-//directory to search within for any config files. If none are found, walks
-//upwards in the directory hierarchy (as long as that's still in $GOPATH)
-//until it finds a folder that appears to work. If dir is "", working
-//directory is assumed. If skipUpwardSearch is true, then if dir is non-blank
-//upward searching in the dir hiearchy will not be done.
+// FileNames returns the publicConfig filename and privateConfig filename to
+// use given the search path. If dir is a config file itself, loads that (and
+// any private component in same directory). Next it interprets dir as a
+// directory to search within for any config files. If none are found, walks
+// upwards in the directory hierarchy (as long as that's still in $GOPATH)
+// until it finds a folder that appears to work. If dir is "", working
+// directory is assumed. If skipUpwardSearch is true, then if dir is non-blank
+// upward searching in the dir hiearchy will not be done.
 func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig string, err error) {
 
 	if dir == "" {
@@ -100,9 +98,9 @@ func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig s
 
 }
 
-//fileNamesToUseWithFile takes a filename of the public component. Returns the
-//string to the publicComponent and also the private component if it exists in
-//that folder.z
+// fileNamesToUseWithFile takes a filename of the public component. Returns the
+// string to the publicComponent and also the private component if it exists in
+// that folder.z
 func fileNamesToUseWithFile(filename string) (publicConfig, privateConfig string, err error) {
 
 	info, err := os.Stat(filename)
@@ -127,7 +125,7 @@ func fileNamesToUseWithFile(filename string) (publicConfig, privateConfig string
 
 }
 
-//fileNamesToUseInDir looks for public/private values precisely in the given folder.
+// fileNamesToUseInDir looks for public/private values precisely in the given folder.
 func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
 
 	possiblePrivateConfig := filepath.Join(dir, privateConfigFileName)
@@ -176,10 +174,10 @@ func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
 
 }
 
-//GetConfig returns a Config for those two named files. publicConfig and
-//privateConfig may both be "" without erroring. If createIfNotExist is true,
-//then NewRawConfig will be told to create the Configs even if they don't
-//exist on disk.
+// GetConfig returns a Config for those two named files. publicConfig and
+// privateConfig may both be "" without erroring. If createIfNotExist is true,
+// then NewRawConfig will be told to create the Configs even if they don't
+// exist on disk.
 func GetConfig(publicConfigFile, privateConfigFile string, createIfNotExist bool) (*Config, error) {
 	publicConfig, err := NewRawConfig(publicConfigFile, createIfNotExist)
 
@@ -196,10 +194,10 @@ func GetConfig(publicConfigFile, privateConfigFile string, createIfNotExist bool
 	return NewConfig(publicConfig, privateConfig), nil
 }
 
-//Get fetches a fully realized config. It is a simple convenience wrapper
-//around FileNames and GetConfig. If createIfNotExist is true, then if the
-//files don't exist on disk we'll generate file names and return raw configs
-//for those filenames.
+// Get fetches a fully realized config. It is a simple convenience wrapper
+// around FileNames and GetConfig. If createIfNotExist is true, then if the
+// files don't exist on disk we'll generate file names and return raw configs
+// for those filenames.
 func Get(dir string, createIfNotExist bool) (*Config, error) {
 	publicConfigName, privateConfigName, err := FileNames(dir, createIfNotExist)
 

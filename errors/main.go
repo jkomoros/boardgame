@@ -1,5 +1,4 @@
 /*
-
 Package errors is a package that implements FriendlyError. FriendlyError
 implements the error interface, but also has a FriendlyError() method that
 returns a message that is reasonable to show to end-users.
@@ -12,20 +11,19 @@ FriendlyErrors also have With* methods that return a copy of the error with the
 given changes. This allows a pattern where a method defines a default
 FriendlyError with the friendly error message to use and then when it needs to
 return an error uses WithError() to add the specific error message.
-
 */
 package errors
 
-//DefaultFriendlyError is the message that will be shown by default unless a
-//more specific friendly value is returned.
+// DefaultFriendlyError is the message that will be shown by default unless a
+// more specific friendly value is returned.
 const DefaultFriendlyError = "An error occurred"
 
-//Fields is the place we store extra field/value information on an error.
+// Fields is the place we store extra field/value information on an error.
 type Fields map[string]interface{}
 
-//Friendly is the core type of the error, representing an error that knows how
-//to render a default string and a "friendly" string, appropriate for showing to
-//end users.
+// Friendly is the core type of the error, representing an error that knows how
+// to render a default string and a "friendly" string, appropriate for showing to
+// end users.
 type Friendly struct {
 	msg         string
 	friendlyMsg string
@@ -33,7 +31,7 @@ type Friendly struct {
 	fields      Fields
 }
 
-//New creates a new errors.Friendly with the given msg.
+// New creates a new errors.Friendly with the given msg.
 func New(msg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		msg:    msg,
@@ -41,7 +39,7 @@ func New(msg string, fields ...Fields) *Friendly {
 	}
 }
 
-//NewFriendly returns a new errors.Friendly with the given FriendlyError.
+// NewFriendly returns a new errors.Friendly with the given FriendlyError.
 func NewFriendly(friendlyMsg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		friendlyMsg: friendlyMsg,
@@ -49,7 +47,7 @@ func NewFriendly(friendlyMsg string, fields ...Fields) *Friendly {
 	}
 }
 
-//NewSecure returns a new errors.Friendly with the given SecureError.
+// NewSecure returns a new errors.Friendly with the given SecureError.
 func NewSecure(secureMsg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		secureMsg: secureMsg,
@@ -57,9 +55,9 @@ func NewSecure(secureMsg string, fields ...Fields) *Friendly {
 	}
 }
 
-//NewWrapped takes a generic error. It returns either a new error with that
-//message or, if nil, returns nil. Returns a generic error so if it returns
-//nil it will no be a nil interface value to a *Friendly.
+// NewWrapped takes a generic error. It returns either a new error with that
+// message or, if nil, returns nil. Returns a generic error so if it returns
+// nil it will no be a nil interface value to a *Friendly.
 func NewWrapped(err error, fields ...Fields) error {
 	if err == nil {
 		return nil
@@ -77,9 +75,9 @@ func combineFields(fields ...Fields) Fields {
 	return result
 }
 
-//SecureError returns the error message that should only be shown in secure
-//contexts, because it may include secret information. If no SecureError
-//message has been provided, will return Error()
+// SecureError returns the error message that should only be shown in secure
+// contexts, because it may include secret information. If no SecureError
+// message has been provided, will return Error()
 func (f *Friendly) SecureError() string {
 	if f.secureMsg == "" {
 		return f.Error()
@@ -87,10 +85,10 @@ func (f *Friendly) SecureError() string {
 	return f.secureMsg
 }
 
-//Error returns the error message, implementing the error interface. If no
-//specific message has been provided, will fall back on FriendlyError(). The
-//Error() value is OK to show in insecure contexts (i.e. on the client) but it
-//just might be confusing to users.
+// Error returns the error message, implementing the error interface. If no
+// specific message has been provided, will fall back on FriendlyError(). The
+// Error() value is OK to show in insecure contexts (i.e. on the client) but it
+// just might be confusing to users.
 func (f *Friendly) Error() string {
 	if f.msg == "" {
 		return f.FriendlyError()
@@ -98,9 +96,9 @@ func (f *Friendly) Error() string {
 	return f.msg
 }
 
-//FriendlyError is the error string that is OK to show in insecure contexts to
-//end-users. It is generally a much simplified version of the message. If no
-//specific FriendlyMessage has been provided, will return DefaultFriendlyError.
+// FriendlyError is the error string that is OK to show in insecure contexts to
+// end-users. It is generally a much simplified version of the message. If no
+// specific FriendlyMessage has been provided, will return DefaultFriendlyError.
 func (f *Friendly) FriendlyError() string {
 	if f.friendlyMsg == "" {
 		return DefaultFriendlyError
@@ -108,17 +106,17 @@ func (f *Friendly) FriendlyError() string {
 	return f.friendlyMsg
 }
 
-//Fields returns the Fields object for this error. Fields should only be used
-//in secure contexts (e.g. logging on a server) because they may contain
-//private information.
+// Fields returns the Fields object for this error. Fields should only be used
+// in secure contexts (e.g. logging on a server) because they may contain
+// private information.
 func (f *Friendly) Fields() Fields {
 	return f.fields
 }
 
-//Extend returns a new FriendlyError where the Error() message is prepended
-//with this new message and a delimiter. If err is an *errors.Friendly then
-//the secure message, friendly message, and fields will all be included
-//unchanged.
+// Extend returns a new FriendlyError where the Error() message is prepended
+// with this new message and a delimiter. If err is an *errors.Friendly then
+// the secure message, friendly message, and fields will all be included
+// unchanged.
 func Extend(err error, msg string, fields ...Fields) *Friendly {
 
 	var base *Friendly
@@ -139,7 +137,7 @@ func Extend(err error, msg string, fields ...Fields) *Friendly {
 	}
 }
 
-//WithFriendly returns a copy of err where the friendlyMsg is set to friendlyMsg
+// WithFriendly returns a copy of err where the friendlyMsg is set to friendlyMsg
 func (f *Friendly) WithFriendly(friendlyMsg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		secureMsg:   f.secureMsg,
@@ -149,8 +147,8 @@ func (f *Friendly) WithFriendly(friendlyMsg string, fields ...Fields) *Friendly 
 	}
 }
 
-//WithError returns a copy of err where the Error() is set to msg. See a;so
-//Extend, which prepends a new message to the front of the existing message.
+// WithError returns a copy of err where the Error() is set to msg. See a;so
+// Extend, which prepends a new message to the front of the existing message.
 func (f *Friendly) WithError(msg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		secureMsg:   f.secureMsg,
@@ -160,7 +158,7 @@ func (f *Friendly) WithError(msg string, fields ...Fields) *Friendly {
 	}
 }
 
-//WithSecure returns a copy of err where the SecureError() is set to secureMsg.
+// WithSecure returns a copy of err where the SecureError() is set to secureMsg.
 func (f *Friendly) WithSecure(secureMsg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		secureMsg:   secureMsg,

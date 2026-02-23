@@ -1,5 +1,4 @@
 /*
-
 Package graph is a simple package that provides facilities for creating simple
 graphs where each Node is a particular value in an enum.
 
@@ -15,7 +14,6 @@ neighbors.
 
 See also behaviors.LocationBehavior and moves.MoveOnGraph, which build on
 graphs to provide reusable spatial game mechanics.
-
 */
 package graph
 
@@ -27,8 +25,8 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//Graph is the primary type of this package. It represents a directed graph
-//where the nodes are all values in an enum.
+// Graph is the primary type of this package. It represents a directed graph
+// where the nodes are all values in an enum.
 type Graph interface {
 	//Enum returns the enum associated with this graph.
 	Enum() enum.Enum
@@ -70,9 +68,9 @@ type graph struct {
 	edgeWeights map[string]int
 }
 
-//New returns a new, unfinished graph based on the given enum, where each node
-//in the graph is one of the values in the Enum. If undirected is true, then
-//adding an edge from -> to also adds the edge to -> from automatically.
+// New returns a new, unfinished graph based on the given enum, where each node
+// in the graph is one of the values in the Enum. If undirected is true, then
+// adding an edge from -> to also adds the edge to -> from automatically.
 func New(undirected bool, theEnum enum.Enum) Graph {
 	return &graph{
 		undirected,

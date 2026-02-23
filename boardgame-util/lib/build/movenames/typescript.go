@@ -5,8 +5,8 @@ import (
 	"unicode"
 )
 
-//GenerateTypeScript produces the contents of a _move_names.ts file given a
-//list of move names.
+// GenerateTypeScript produces the contents of a _move_names.ts file given a
+// list of move names.
 func GenerateTypeScript(moveNames []string) string {
 
 	if len(moveNames) == 0 {
@@ -34,9 +34,9 @@ func GenerateTypeScript(moveNames []string) string {
 	return b.String()
 }
 
-//toPascalCase converts a move name like "Reveal Card" to "RevealCard".
-//It splits on whitespace, strips non-alphanumeric characters, capitalizes the
-//first letter of each word, and joins.
+// toPascalCase converts a move name like "Reveal Card" to "RevealCard".
+// It splits on whitespace, strips non-alphanumeric characters, capitalizes the
+// first letter of each word, and joins.
 func toPascalCase(name string) string {
 	words := strings.Fields(name)
 	var b strings.Builder

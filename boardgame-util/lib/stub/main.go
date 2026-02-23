@@ -1,7 +1,5 @@
 /*
-
 Package stub is a library that helps generate stub code for new games
-
 */
 package stub
 
@@ -16,8 +14,8 @@ import (
 	"strings"
 )
 
-//Options is the default options struct. Name is the only required field; the
-//zero-value of every other field is default.
+// Options is the default options struct. Name is the only required field; the
+// zero-value of every other field is default.
 type Options struct {
 	//The name of the game
 	Name string
@@ -52,18 +50,18 @@ type Options struct {
 	EnableInactivePlayer                bool
 }
 
-//FileContents is the generated contents of the files to later write to the
-//filesystem.
+// FileContents is the generated contents of the files to later write to the
+// filesystem.
 type FileContents map[string][]byte
 
-//SuppressClient sets the options about clients to suppressed.
+// SuppressClient sets the options about clients to suppressed.
 func (o *Options) SuppressClient() {
 	o.SuppressClientRenderGame = true
 	o.SuppressClientRenderPlayerInfo = true
 }
 
-//SuppressExtras sets all of the non-client extras that are on by default to
-//off.
+// SuppressExtras sets all of the non-client extras that are on by default to
+// off.
 func (o *Options) SuppressExtras() {
 	o.SuppressTest = true
 	o.SuppressPhase = true
@@ -72,7 +70,7 @@ func (o *Options) SuppressExtras() {
 	o.SuppressComponentsStubs = true
 }
 
-//EnableTutorials enables all of the off-by-default tutorial options.
+// EnableTutorials enables all of the off-by-default tutorial options.
 func (o *Options) EnableTutorials() {
 	o.EnableExampleDeck = true
 	o.EnableExampleDynamicComponentValues = true
@@ -97,8 +95,8 @@ func nameLegal(gameName string) bool {
 	return matches
 }
 
-//Validate verifies that Options is in a legal state. Makes sure Name exists
-//and ensures it's lowerCase. Repeated calls are OK.
+// Validate verifies that Options is in a legal state. Makes sure Name exists
+// and ensures it's lowerCase. Repeated calls are OK.
 func (o *Options) Validate() error {
 
 	o.Name = strings.TrimSpace(o.Name)
@@ -180,8 +178,8 @@ func (o *Options) Validate() error {
 var spaceReducer *regexp.Regexp
 var titleCaseReplacer *strings.Replacer
 
-//Generate generates FileContents for the given set of options. A convenience
-//wrapper around DefaultTemplateSet, templates.Generate(), and files.Format().
+// Generate generates FileContents for the given set of options. A convenience
+// wrapper around DefaultTemplateSet, templates.Generate(), and files.Format().
 func Generate(opt *Options) (FileContents, error) {
 
 	if err := opt.Validate(); err != nil {
@@ -211,9 +209,9 @@ func Generate(opt *Options) (FileContents, error) {
 	return files, nil
 }
 
-//Format go formats all of the code om FileContents whose path ends in ".go",
-//erroring if the code isn't valid. If an error is returned, then the contents
-//of FileContents will not have been modified.
+// Format go formats all of the code om FileContents whose path ends in ".go",
+// erroring if the code isn't valid. If an error is returned, then the contents
+// of FileContents will not have been modified.
 func (f FileContents) Format() error {
 
 	newContent := make(map[string][]byte)
@@ -239,10 +237,10 @@ func (f FileContents) Format() error {
 	return nil
 }
 
-//Save saves the given FileContents to the filesystem, creating any implied
-//directories. Dir is the prefix to join with each path in FileContents; "" is
-//fine. Will error if overwite is not true and any of the files to create
-//already exist.
+// Save saves the given FileContents to the filesystem, creating any implied
+// directories. Dir is the prefix to join with each path in FileContents; "" is
+// fine. Will error if overwite is not true and any of the files to create
+// already exist.
 func (f FileContents) Save(dir string, overwrite bool) error {
 
 	if !overwrite {

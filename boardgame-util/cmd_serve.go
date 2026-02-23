@@ -27,7 +27,7 @@ type serve struct {
 	OfflineDevMode bool
 }
 
-//if pkgs == nil, will use the game packages from the selected mode.
+// if pkgs == nil, will use the game packages from the selected mode.
 func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, storageLiteralArgs string) {
 
 	c := s.Base().GetConfig(false)

@@ -1,9 +1,7 @@
 /*
-
 Package examplepkg  is just an example package for testing. Note that some of
 the uses of codegen use somewhat odd spacing or capitalization; this is
 primarily just to test how resilient the package is to unexpected input.
-
 */
 package examplepkg
 
@@ -17,8 +15,8 @@ import (
 
 //go:generate boardgame-util codegen
 
-//This is a normal gameDelegate that should have its ConfigureEnums output,
-//because it has ConfigureMoves() but not its own ConfigureEnums.
+// This is a normal gameDelegate that should have its ConfigureEnums output,
+// because it has ConfigureMoves() but not its own ConfigureEnums.
 type gameDelegate struct {
 	base.GameDelegate
 }
@@ -27,7 +25,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return nil
 }
 
-//This is a normal gameDelegate that should also have its ConfigureEnums output.
+// This is a normal gameDelegate that should also have its ConfigureEnums output.
 type secondGameDelegate struct {
 	base.GameDelegate
 }
@@ -36,8 +34,8 @@ func (s *secondGameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return nil
 }
 
-//This delegate already has a manual configureEnums, so shouldn't have one
-//automatically generated.
+// This delegate already has a manual configureEnums, so shouldn't have one
+// automatically generated.
 type alreadyHasEnumsGameDelegate struct {
 	base.GameDelegate
 }
@@ -51,8 +49,8 @@ func (a *alreadyHasEnumsGameDelegate) ConfigureEnums() *enum.Set {
 	return nil
 }
 
-//This delegate shouldn't have ConfigureEnums generated because it has
-//AnotherMethodName, not ConfigureMoves.
+// This delegate shouldn't have ConfigureEnums generated because it has
+// AnotherMethodName, not ConfigureMoves.
 type fakeGameDelegateWrongMethodName struct {
 	base.GameDelegate
 }
@@ -61,8 +59,8 @@ func (f *fakeGameDelegateWrongMethodName) AnotherMethodName() []boardgame.MoveCo
 	return nil
 }
 
-//This delegate shouldn't have ConfigureEnums generated because the return
-//type doesn't match the ConfigureMoves() signature.
+// This delegate shouldn't have ConfigureEnums generated because the return
+// type doesn't match the ConfigureMoves() signature.
 type fakeGameDelegateWrongReturnType struct {
 	base.GameDelegate
 }
@@ -110,8 +108,9 @@ const (
 	transformExampleNormalConfiguredTransform
 )
 
+// transform: upper
+//
 //boardgame:codegen
-//transform: upper
 const (
 	defaultTransformBlue = iota
 	defaultTransformGreen
@@ -227,7 +226,6 @@ type roundRobinStruct struct {
 }
 
 /*
-
 Long comment
 
 boardgame:codegen
@@ -256,7 +254,7 @@ type doubleEmbeddedStruct struct {
 	embeddedStruct
 }
 
-//	 boardgame:codegen
+// boardgame:codegen
 type myOtherStruct struct {
 	blarg           int
 	MyGrowableStack boardgame.Stack
