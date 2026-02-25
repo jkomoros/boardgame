@@ -4,11 +4,23 @@ import (
 	"encoding/json"
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 )
+
+// gameIdleTimeout is how long a modifiable game's mainLoop will wait with no
+// activity before freezing itself (exiting the goroutine and removing itself
+// from the warm cache). A frozen game is transparently reloaded from storage
+// on the next access.
+const gameIdleTimeout = 10 * time.Minute
+
+// maxResidentGames is the maximum number of modifiable games that can be
+// resident in memory (warm cache) at once. When the cache is full and a new
+// game needs to be loaded, the least recently active game is evicted.
+const maxResidentGames = 128
 
 // maxRecurseCount is the number of fixUp moves that can be considered normal--
 // anything more than that and we'll return an error because the delegate is
@@ -60,6 +72,19 @@ type Game struct {
 	proposedMoves chan *proposedMoveItem
 	//How a game can be signaled to trigger a pass of fixups
 	fixUpTriggered chan DelayedError
+
+	//done is closed to signal mainLoop to exit. Used to prevent goroutine
+	//leaks when a game is frozen.
+	done chan struct{}
+	//freezeOnce ensures done is closed exactly once, even if multiple
+	//goroutines try to freeze the game concurrently.
+	freezeOnce sync.Once
+	//frozen is true after the game has been frozen (mainLoop exited, removed
+	//from cache). A frozen game must be reloaded from storage.
+	frozen bool
+	//lastActivity is updated each time a move is proposed or the game is
+	//accessed via ModifiableGame. Used for idle timeout and LRU eviction.
+	lastActivity time.Time
 
 	//if true, we will not wait to propose agent moves (mainly used for
 	//testing.)
@@ -493,6 +518,7 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 
 	g.created = time.Now()
 	g.modified = time.Now()
+	g.lastActivity = time.Now()
 
 	if g.Modifiable() {
 
@@ -568,26 +594,52 @@ func (g *Game) triggerFixUp() DelayedError {
 
 	if !g.modifiable {
 		game := g.manager.ModifiableGame(g.ID())
-		game.fixUpTriggered <- delayed
+		if game == nil {
+			delayed <- errors.New("could not find modifiable game")
+			return delayed
+		}
+		select {
+		case game.fixUpTriggered <- delayed:
+		case <-game.done:
+			delayed <- errors.New("game has been frozen")
+		}
 	} else {
-		g.fixUpTriggered <- delayed
+		select {
+		case g.fixUpTriggered <- delayed:
+		case <-g.done:
+			delayed <- errors.New("game has been frozen")
+		}
 	}
 	return delayed
 }
 
 // MainLoop should be run in a goroutine. It is what takes moves off of
 // proposedMoves and applies them. It is the only method that may call
-// applyMove.
+// applyMove. It will exit after gameIdleTimeout of inactivity, freezing the
+// game and removing it from the warm cache.
 func (g *Game) mainLoop() {
+	idleTimer := time.NewTimer(gameIdleTimeout)
+	defer idleTimer.Stop()
+	resetTimer := func() {
+		if !idleTimer.Stop() {
+			select {
+			case <-idleTimer.C:
+			default:
+			}
+		}
+		idleTimer.Reset(gameIdleTimeout)
+	}
 	for {
 		select {
 		case item := <-g.proposedMoves:
 			if item == nil {
 				return
 			}
+			resetTimer()
 			item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
 			close(item.ch)
 		case delayed := <-g.fixUpTriggered:
+			resetTimer()
 			move := g.manager.delegate.ProposeFixUpMove(g.CurrentState())
 			if move == nil {
 				delayed <- nil
@@ -599,6 +651,22 @@ func (g *Game) mainLoop() {
 					delayed <- (<-proposedDelayed)
 				}()
 			}
+		case <-idleTimer.C:
+			// Double-check no pending work before freezing
+			select {
+			case item := <-g.proposedMoves:
+				if item == nil {
+					return
+				}
+				idleTimer.Reset(gameIdleTimeout)
+				item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
+				close(item.ch)
+			default:
+				g.manager.freezeGame(g)
+				return
+			}
+		case <-g.done:
+			return
 		}
 	}
 }
@@ -611,6 +679,24 @@ func (g *Game) mainLoop() {
 // simply forward the move to a game for this Id that is modifiable.
 func (g *Game) Modifiable() bool {
 	return g.modifiable
+}
+
+// Frozen returns true if this game has been frozen (its mainLoop goroutine
+// has exited and it has been removed from the warm cache). A frozen game
+// will be transparently reloaded from storage on the next access via
+// ModifiableGame.
+func (g *Game) Frozen() bool {
+	return g.frozen
+}
+
+// markFrozen safely marks the game as frozen and closes its done channel.
+// It is safe to call from multiple goroutines concurrently; the done
+// channel will only be closed once.
+func (g *Game) markFrozen() {
+	g.freezeOnce.Do(func() {
+		g.frozen = true
+		close(g.done)
+	})
 }
 
 // Moves returns an array of all Moves with their defaults set for this current
@@ -708,7 +794,19 @@ func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 		return errChan
 	}
 
-	g.proposedMoves <- workItem
+	if g.frozen {
+		errChan <- errors.New("game has been frozen")
+		return errChan
+	}
+
+	g.lastActivity = time.Now()
+
+	select {
+	case g.proposedMoves <- workItem:
+		// queued successfully
+	case <-g.done:
+		errChan <- errors.New("game has been frozen")
+	}
 
 	return errChan
 

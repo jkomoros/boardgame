@@ -108,6 +108,31 @@ func TestTimerManagerMultiple(t *testing.T) {
 
 }
 
+func TestCancelTimersForGame(t *testing.T) {
+	game := testDefaultGame(t, false)
+
+	move := game.MoveByName("Draw Card")
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	timer := newTimerManager(game.manager)
+
+	state := game.CurrentState().(*state)
+
+	firstID := timer.PrepareTimer(time.Duration(50)*time.Millisecond, state, move)
+	timer.StartTimer(firstID)
+	secondID := timer.PrepareTimer(time.Duration(100)*time.Millisecond, state, move)
+	timer.StartTimer(secondID)
+
+	assert.For(t).ThatActual(len(timer.records)).Equals(2)
+	assert.For(t).ThatActual(len(timer.recordsByID)).Equals(2)
+
+	// Cancel all timers for this game
+	timer.CancelTimersForGame(game.ID())
+
+	assert.For(t).ThatActual(len(timer.records)).Equals(0)
+	assert.For(t).ThatActual(len(timer.recordsByID)).Equals(0)
+}
+
 func TestTimerProp(t *testing.T) {
 	game := testDefaultGame(t, false)
 

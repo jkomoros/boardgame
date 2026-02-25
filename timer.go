@@ -270,6 +270,21 @@ func (t *timerManager) GetTimerRemaining(id string) time.Duration {
 	return record.TimeRemaining()
 }
 
+// CancelTimersForGame cancels all active timers associated with the given
+// game ID. This is called when a game is frozen to prevent timers from
+// firing on a stale game instance.
+func (t *timerManager) CancelTimersForGame(gameID string) {
+	var toCancel []string
+	for id, rec := range t.recordsByID {
+		if rec.gameID == gameID {
+			toCancel = append(toCancel, id)
+		}
+	}
+	for _, id := range toCancel {
+		t.CancelTimer(id)
+	}
+}
+
 func (t *timerManager) CancelTimer(id string) {
 	record := t.recordsByID[id]
 

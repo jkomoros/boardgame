@@ -648,3 +648,97 @@ func TestGameState(t *testing.T) {
 	}
 
 }
+
+func TestGameFreeze(t *testing.T) {
+	game := testDefaultGame(t, false)
+
+	assert.For(t).ThatActual(game.Frozen()).IsFalse()
+
+	// Freeze the game
+	game.manager.freezeGame(game)
+
+	// Give mainLoop time to exit after done is closed
+	<-time.After(10 * time.Millisecond)
+
+	assert.For(t).ThatActual(game.Frozen()).IsTrue()
+
+	// Proposing a move on a frozen modifiable game should return an error
+	move := game.MoveByName("Test")
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	err := <-game.ProposeMove(move, AdminPlayerIndex)
+	assert.For(t).ThatActual(err).IsNotNil()
+	assert.For(t).ThatActual(strings.Contains(err.Error(), "frozen")).IsTrue()
+
+	// Calling markFrozen again should not panic (sync.Once protects double-close)
+	game.markFrozen()
+	assert.For(t).ThatActual(game.Frozen()).IsTrue()
+}
+
+func TestFrozenGameReload(t *testing.T) {
+	manager := newTestGameManger(t)
+
+	game, err := manager.NewDefaultGame()
+	assert.For(t).ThatActual(err).IsNil()
+
+	gameID := game.ID()
+	originalVersion := game.Version()
+
+	// Freeze the game
+	manager.freezeGame(game)
+	assert.For(t).ThatActual(game.Frozen()).IsTrue()
+
+	// The frozen game should no longer be in modifiableGames
+	manager.modifiableGamesLock.RLock()
+	_, ok := manager.modifiableGames[strings.ToUpper(gameID)]
+	manager.modifiableGamesLock.RUnlock()
+	assert.For(t).ThatActual(ok).IsFalse()
+
+	// ModifiableGame should transparently reload the game from storage
+	reloadedGame := manager.ModifiableGame(gameID)
+	assert.For(t).ThatActual(reloadedGame).IsNotNil()
+	assert.For(t).ThatActual(reloadedGame.Frozen()).IsFalse()
+	assert.For(t).ThatActual(reloadedGame.Version()).Equals(originalVersion)
+
+	// The reloaded game should be a different object from the frozen one
+	assert.For(t).ThatActual(reloadedGame != game).IsTrue()
+
+	// The reloaded game should be in the cache
+	manager.modifiableGamesLock.RLock()
+	cachedGame := manager.modifiableGames[strings.ToUpper(gameID)]
+	manager.modifiableGamesLock.RUnlock()
+	assert.For(t).ThatActual(cachedGame).Equals(reloadedGame)
+
+	// Should be able to propose moves on the reloaded game
+	move := reloadedGame.MoveByName("Test")
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	moveErr := <-reloadedGame.ProposeMove(move, AdminPlayerIndex)
+	assert.For(t).ThatActual(moveErr).IsNil()
+	// Version increases by more than 1 because fix-up moves are also applied.
+	assert.For(t).ThatActual(reloadedGame.Version() > originalVersion).IsTrue()
+}
+
+func TestGameCacheEviction(t *testing.T) {
+	manager := newTestGameManger(t)
+
+	// Create enough games to fill the cache
+	games := make([]*Game, maxResidentGames+1)
+	for i := 0; i < maxResidentGames+1; i++ {
+		game, err := manager.NewDefaultGame()
+		assert.For(t).ThatActual(err).IsNil()
+		games[i] = game
+
+		// Space out lastActivity so the first game is the oldest
+		games[i].lastActivity = time.Now().Add(time.Duration(i) * time.Millisecond)
+	}
+
+	// The cache should have at most maxResidentGames entries
+	manager.modifiableGamesLock.RLock()
+	cacheLen := len(manager.modifiableGames)
+	manager.modifiableGamesLock.RUnlock()
+	assert.For(t).ThatActual(cacheLen <= maxResidentGames).IsTrue()
+
+	// The first game (oldest lastActivity) should have been evicted
+	assert.For(t).ThatActual(games[0].Frozen()).IsTrue()
+}

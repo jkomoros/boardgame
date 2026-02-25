@@ -666,6 +666,7 @@ func (g *GameManager) newGame(id, secretSalt string) *Game {
 		//Note: this is also set similarly in manager.ModifiableGame
 		proposedMoves:  make(chan *proposedMoveItem, 20),
 		fixUpTriggered: make(chan DelayedError, 10),
+		done:           make(chan struct{}),
 		id:             id,
 		secretSalt:     secretSalt,
 		modifiable:     true,
@@ -705,10 +706,16 @@ func (g *GameManager) modifiableGameCreated(game *Game) error {
 
 	g.modifiableGamesLock.RLock()
 	_, ok := g.modifiableGames[game.ID()]
+	cacheLen := len(g.modifiableGames)
 	g.modifiableGamesLock.RUnlock()
 
 	if ok {
 		return errors.New("modifiableGameCreated collided with existing game")
+	}
+
+	// Evict the least recently used game if the cache is at capacity.
+	if cacheLen >= maxResidentGames {
+		g.evictLeastRecentGame()
 	}
 
 	id := strings.ToUpper(game.ID())
@@ -718,6 +725,39 @@ func (g *GameManager) modifiableGameCreated(game *Game) error {
 	g.modifiableGamesLock.Unlock()
 
 	return nil
+}
+
+// freezeGame removes a game from the warm cache, cancels its timers, and
+// marks it as frozen so its mainLoop goroutine exits. It is safe to call
+// from both mainLoop's idle timeout and LRU eviction.
+func (g *GameManager) freezeGame(game *Game) {
+	id := strings.ToUpper(game.ID())
+	g.modifiableGamesLock.Lock()
+	// Only delete if this is still the cached instance (not already replaced
+	// by a reloaded game).
+	if g.modifiableGames[id] == game {
+		delete(g.modifiableGames, id)
+	}
+	g.modifiableGamesLock.Unlock()
+	g.timers.CancelTimersForGame(id)
+	game.markFrozen()
+}
+
+// evictLeastRecentGame finds the game with the oldest lastActivity and
+// freezes it. Called when the warm cache is at capacity and a new game needs
+// to be loaded.
+func (g *GameManager) evictLeastRecentGame() {
+	g.modifiableGamesLock.RLock()
+	var oldest *Game
+	for _, game := range g.modifiableGames {
+		if oldest == nil || game.lastActivity.Before(oldest.lastActivity) {
+			oldest = game
+		}
+	}
+	g.modifiableGamesLock.RUnlock()
+	if oldest != nil {
+		g.freezeGame(oldest)
+	}
 }
 
 // ModifiableGame returns a modifiable Game with the given ID. Either it
@@ -741,7 +781,8 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	game := g.modifiableGames[id]
 	g.modifiableGamesLock.RUnlock()
 
-	if game != nil {
+	if game != nil && !game.Frozen() {
+		game.lastActivity = time.Now()
 		return game
 	}
 
@@ -754,14 +795,24 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 		return nil
 	}
 
+	// Evict the least recently used game if the cache is at capacity.
+	g.modifiableGamesLock.RLock()
+	cacheLen := len(g.modifiableGames)
+	g.modifiableGamesLock.RUnlock()
+	if cacheLen >= maxResidentGames {
+		g.evictLeastRecentGame()
+	}
+
 	game = g.gameFromStorageRecord(gameRecord)
 
 	//Only SetUp() and us are allowed to kick off a game's mainLoop.
 	game.modifiable = true
+	game.lastActivity = time.Now()
 	//TODO: set the size of chan based on something more reasonable.
 	//Note: this is also set similarly in NewGame
 	game.proposedMoves = make(chan *proposedMoveItem, 20)
 	game.fixUpTriggered = make(chan DelayedError, 10)
+	game.done = make(chan struct{})
 	go game.mainLoop()
 
 	g.modifiableGamesLock.Lock()
@@ -987,21 +1038,28 @@ func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, prop
 	//DelayedError anyway.
 
 	go func() {
-		game := g.ModifiableGame(nonModifiableGame.ID())
+		for retries := 0; retries < 3; retries++ {
+			game := g.ModifiableGame(nonModifiableGame.ID())
 
-		if game == nil {
-			errChan <- errors.New("There was no game with that ID")
-			return
+			if game == nil {
+				errChan <- errors.New("There was no game with that ID")
+				return
+			}
+
+			workItem := &proposedMoveItem{
+				move:     move,
+				ch:       errChan,
+				proposer: proposer,
+			}
+
+			select {
+			case game.proposedMoves <- workItem:
+				return // queued successfully
+			case <-game.done:
+				continue // game was frozen, retry with fresh one
+			}
 		}
-
-		workItem := &proposedMoveItem{
-			move:     move,
-			ch:       errChan,
-			proposer: proposer,
-		}
-
-		game.proposedMoves <- workItem
-
+		errChan <- errors.New("game was repeatedly frozen during move proposal")
 	}()
 
 	return finalErrChan
