@@ -216,8 +216,12 @@ type GameDelegate interface {
 	//given game state--a notion that is game specific (and sometimes
 	//inapplicable). If CurrentPlayer doesn't make sense (perhaps the game
 	//never has a notion of current player, or the type of round that we're in
-	//has no current player), this should return ObserverPlayerIndex. The
-	//result of this method is used to power state.CurrentPlayer.
+	//has no current player), this should return ObserverPlayerIndex. If the
+	//game is in a simultaneous phase where any player may act, return
+	//AnyPlayerIndex. AnyPlayerIndex acts as a wildcard in Equivalent()
+	//checks (like AdminPlayerIndex), but unlike AdminPlayerIndex it does not
+	//grant omniscient access to hidden state. The result of this method is
+	//used to power state.CurrentPlayer.
 	CurrentPlayerIndex(state ImmutableState) PlayerIndex
 
 	//CurrentPhase returns the phase that the game state is currently in as

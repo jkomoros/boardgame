@@ -238,6 +238,11 @@ func TestPlayerIndexNextPrevious(t *testing.T) {
 			ObserverPlayerIndex,
 			ObserverPlayerIndex,
 		},
+		{
+			AnyPlayerIndex,
+			AnyPlayerIndex,
+			AnyPlayerIndex,
+		},
 	}
 
 	for i, test := range tests {
@@ -277,7 +282,12 @@ func TestPlayerIndexValid(t *testing.T) {
 			true,
 		},
 		{
-			AdminPlayerIndex - 1,
+			AnyPlayerIndex,
+			stateThreePlayers,
+			true,
+		},
+		{
+			AnyPlayerIndex - 1,
 			stateThreePlayers,
 			false,
 		},
@@ -345,6 +355,36 @@ func TestPlayerIndexEquivalent(t *testing.T) {
 			ObserverPlayerIndex,
 			ObserverPlayerIndex,
 			false,
+		},
+		{
+			AnyPlayerIndex,
+			0,
+			true,
+		},
+		{
+			0,
+			AnyPlayerIndex,
+			true,
+		},
+		{
+			AnyPlayerIndex,
+			AnyPlayerIndex,
+			true,
+		},
+		{
+			AnyPlayerIndex,
+			ObserverPlayerIndex,
+			false,
+		},
+		{
+			AnyPlayerIndex,
+			AdminPlayerIndex,
+			true,
+		},
+		{
+			AdminPlayerIndex,
+			AnyPlayerIndex,
+			true,
 		},
 	}
 

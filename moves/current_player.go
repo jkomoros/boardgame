@@ -14,8 +14,11 @@ The target player is encoded as TargetPlayerIndex. This is checked to make
 sure it is equivalent to the delegate's CurrentPlayerIndex, as well as to the
 proposer. This means that your Delegate should return a reasonable result from
 CurrentPlayerIndex. If your game has different rounds where no one may move,
-return boardgame.ObserverPlayerIndex. If there are rounds where anyone may
-move, return boardgame.AdminPlayerIndex.
+return boardgame.ObserverPlayerIndex. If there are simultaneous phases where
+anyone may move, return boardgame.AnyPlayerIndex (which acts as a wildcard in
+Equivalent() but does not grant omniscient access to hidden state, unlike
+boardgame.AdminPlayerIndex which should be reserved for engine-initiated
+actions like fix-up moves and timers).
 
 Typically you'd implement your own Legal method that calls
 CurrentPlayer.Legal() first, then do your own specific checking after that,

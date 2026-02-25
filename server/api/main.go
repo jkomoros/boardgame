@@ -839,7 +839,14 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 		if autoCurrentPlayer {
 			newPlayerIndex := game.Manager().Delegate().CurrentPlayerIndex(state)
 			if newPlayerIndex.Valid(state) {
-				playerIndex = newPlayerIndex
+				// AnyPlayerIndex means "any player can act" but there's no
+				// single player whose perspective to show. Fall through to
+				// the observer view instead of using it as a viewing player.
+				if newPlayerIndex == boardgame.AnyPlayerIndex {
+					playerIndex = boardgame.ObserverPlayerIndex
+				} else {
+					playerIndex = newPlayerIndex
+				}
 			}
 		}
 

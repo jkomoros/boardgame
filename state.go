@@ -313,12 +313,13 @@ func (r StatePropertyRef) Validate(exampleState ImmutableState) error {
 }
 
 // PlayerIndex is an int that represents the index of a given player in a game.
-// Normal values are [0, game.NumPlayers). Special values are AdminPlayerIndex
-// and ObserverPlayerIndex. The logic of incrementing or decrementing the indexes
-// and comparing them follows considerable non-trivial logic, so you should NEVER
-// treat them like integers unless you're very sure of what you're doing. Instead
-// use the methods on them, like Next(), Prev(), and Equivalent(). Typically
-// instead of reading these directly, you use the result of p.EnsureValid().
+// Normal values are [0, game.NumPlayers). Special values are AdminPlayerIndex,
+// ObserverPlayerIndex, and AnyPlayerIndex. The logic of incrementing or
+// decrementing the indexes and comparing them follows considerable non-trivial
+// logic, so you should NEVER treat them like integers unless you're very sure of
+// what you're doing. Instead use the methods on them, like Next(), Prev(), and
+// Equivalent(). Typically instead of reading these directly, you use the result
+// of p.EnsureValid().
 type PlayerIndex int
 
 // ObserverPlayerIndex is a special PlayerIndex that denotes that the player in
@@ -333,6 +334,17 @@ const ObserverPlayerIndex PlayerIndex = -1
 // returns, as well as when Timer's fire. It is also used when the server is in
 // debug mode, allowing the given player to operate as the admin.
 const AdminPlayerIndex PlayerIndex = -2
+
+// AnyPlayerIndex is a special PlayerIndex that denotes that any player may
+// act. It is intended to be returned by GameDelegate.CurrentPlayerIndex()
+// during simultaneous phases where there is no single current player. Unlike
+// AdminPlayerIndex, AnyPlayerIndex is NOT omniscient: when used for
+// sanitization it behaves like ObserverPlayerIndex (all hidden state remains
+// hidden). In Equivalent() it behaves like a wildcard, matching any concrete
+// player index (like AdminPlayerIndex does). The actual proposer of a move
+// during a simultaneous phase is still the real player index (0, 1, 2, ...);
+// AnyPlayerIndex only affects what CurrentPlayerIndex() returns.
+const AnyPlayerIndex PlayerIndex = -3
 
 // State represents the entire semantic state of a game at a given version. For
 // your specific game, GameState and PlayerStates will actually be concrete
@@ -401,11 +413,11 @@ func (p PlayerIndex) EnsureValid(state ImmutableState) PlayerIndex {
 }
 
 // WithinBounds returns true if the index is a legal index. That is,
-// ObserverPlayerIndex, AdminPlayerIndex, or between 0 and numPlayers - 1. It
-// does not check whether GameDelegate.PlayerMayBeActive is true. See also
-// Valid().
+// ObserverPlayerIndex, AdminPlayerIndex, AnyPlayerIndex, or between 0 and
+// numPlayers - 1. It does not check whether GameDelegate.PlayerMayBeActive is
+// true. See also Valid().
 func (p PlayerIndex) WithinBounds(state ImmutableState) bool {
-	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex || p == AnyPlayerIndex {
 		return true
 	}
 	if state == nil {
@@ -418,12 +430,13 @@ func (p PlayerIndex) WithinBounds(state ImmutableState) bool {
 }
 
 // Valid returns true if the PlayerIndex's value is legal in the context of the
-// current State--that is, it is either AdminPlayerIndex, ObserverPlayerIndex, or
-// between 0 (inclusive) and game.NumPlayers(). It additionaly checks
-// GameDelegate PlayerIndexMayBeActive returns true, for non-special indexes. See
-// also WithinBounds(), which doesn't check whether the player may be active.
+// current State--that is, it is either AdminPlayerIndex, ObserverPlayerIndex,
+// AnyPlayerIndex, or between 0 (inclusive) and game.NumPlayers(). It
+// additionally checks GameDelegate PlayerIndexMayBeActive returns true, for
+// non-special indexes. See also WithinBounds(), which doesn't check whether
+// the player may be active.
 func (p PlayerIndex) Valid(state ImmutableState) bool {
-	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex || p == AnyPlayerIndex {
 		return true
 	}
 	if withinBounds := p.WithinBounds(state); !withinBounds {
@@ -439,10 +452,10 @@ func (p PlayerIndex) Valid(state ImmutableState) bool {
 // Next returns the next PlayerIndex, wrapping around back to 0 if it overflows,
 // skipping any players where GameDelegate returns false for PlayerMayBeActive
 // (if all players return false for PlayerMayBeActive it will return the current
-// value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
-// affected.
+// value). PlayerIndexes of AdminPlayerIndex, ObserverPlayerIndex, and
+// AnyPlayerIndex will not be affected.
 func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
-	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex || p == AnyPlayerIndex {
 		return p
 	}
 	original := p
@@ -468,10 +481,10 @@ func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 // Previous returns the previous PlayerIndex, wrapping around back to len(players
 // -1) if it goes below 0, skipping any players where GameDelegate returns false
 // for PlayerMayBeActive (if all players return false, it will leave at the same
-// value). PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will not be
-// affected.
+// value). PlayerIndexes of AdminPlayerIndex, ObserverPlayerIndex, and
+// AnyPlayerIndex will not be affected.
 func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
-	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex || p == AnyPlayerIndex {
 		return p
 	}
 	original := p
@@ -496,15 +509,16 @@ func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 
 // Equivalent checks whether the two playerIndexes are equivalent. For most
 // indexes it checks if both are the same. ObserverPlayerIndex returns false
-// when compared to any other PlayerIndex. AdminPlayerIndex returns true when
-// compared to any other index (other than ObserverPlayerIndex). This method is
-// useful for verifying that a given TargerPlayerIndex is equivalent to the
-// proposer PlayerIndex in a move's Legal method. moves.CurrentPlayer handles
-// that logic for you.
+// when compared to any other PlayerIndex. AdminPlayerIndex and AnyPlayerIndex
+// both return true when compared to any other index (other than
+// ObserverPlayerIndex), acting as wildcards. This method is useful for
+// verifying that a given TargetPlayerIndex is equivalent to the proposer
+// PlayerIndex in a move's Legal method. moves.CurrentPlayer handles that
+// logic for you.
 func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 
 	//Sanity check obviously-illegal values
-	if p < AdminPlayerIndex || other < AdminPlayerIndex {
+	if p < AnyPlayerIndex || other < AnyPlayerIndex {
 		return false
 	}
 
@@ -512,6 +526,9 @@ func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 		return false
 	}
 	if p == AdminPlayerIndex || other == AdminPlayerIndex {
+		return true
+	}
+	if p == AnyPlayerIndex || other == AnyPlayerIndex {
 		return true
 	}
 	return p == other
