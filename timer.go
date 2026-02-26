@@ -25,8 +25,9 @@ type ImmutableTimer interface {
 type Timer interface {
 	ImmutableTimer
 	//Start begins a timer that will automatically call game.ProposeMove(Move,
-	//AdminPlayerIndex) after the given duration has elapsed. Generally called
-	//from within a move.Apply() method.
+	//AdminPlayerIndex) after the given duration has elapsed. AdminPlayerIndex
+	//is used because the engine (not a specific player) is initiating the
+	//move. Generally called from within a move.Apply() method.
 	Start(time.Duration, Move)
 	//Cancel cancels a previously Start()'d timer, so that it will no longer
 	//fire. If the timer was not active, it's a no-op. The return value is

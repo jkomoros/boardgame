@@ -28,7 +28,10 @@ export class BoardgameBaseGameRenderer extends LitElement {
   moveLegality: Record<string, MoveLegalityInfo> = {};
 
   get isCurrentPlayer(): boolean {
+    // AdminPlayerIndex (-2): admin can always act
     if (this.viewingAsPlayer === -2) return true;
+    // AnyPlayerIndex (-3): any player can act (simultaneous phase)
+    if (this.currentPlayerIndex === -3) return true;
     return this.currentPlayerIndex === this.viewingAsPlayer;
   }
 

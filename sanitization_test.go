@@ -103,6 +103,24 @@ func TestSanitization(t *testing.T) {
 			"sanitize",
 		},
 		{
+			// AnyPlayerIndex should NOT bypass sanitization like
+			// AdminPlayerIndex does. It should be treated like an observer,
+			// meaning game-level "len" policies are applied.
+			&sanitizationTestConfig{
+				Game: map[string]string{
+					"DrawDeck":           "len",
+					"MyIntSlice":         "len",
+					"MyBoolSlice":        "len",
+					"MyStringSlice":      "len",
+					"MyPlayerIndexSlice": "len",
+					"MyBoard":            "len",
+				},
+			},
+			AnyPlayerIndex,
+			"sanitize",
+			"sanitize/len",
+		},
+		{
 
 			&sanitizationTestConfig{
 				Game: map[string]string{

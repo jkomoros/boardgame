@@ -766,14 +766,18 @@ func (g *Game) Refresh() {
 // move was applied successfully. Proposer is the PlayerIndex of the player who
 // is notionally proposing the move. If you don't know which player is moving it,
 // AdminPlayerIndex is a reasonable default that will generally allow any move to
-// be made. After the move is applied, your GameDelegate's ProposeFixUpMove will
-// be called; if any move is returned it will be applied, repeating the cycle
-// until no moves are returned from ProposeFixUpMove. DelayedError will only
-// resolve once any applicable FixUp moves have been applied already. This is
-// legal to call on a non-modifiable game--the change will be dispatched to a
-// modifiable version of the game with this ID, and afterwards this Game object's
-// state will be updated in place with the new values after the change (by
-// automatically calling Refresh()).
+// be made. Note that AdminPlayerIndex should be used for engine-initiated actions
+// (fix-up moves, timers, debug mode); for simultaneous phases where any player
+// can act, the proposer should still be the actual player index (0, 1, 2, ...),
+// and your CurrentPlayerIndex() should return AnyPlayerIndex. After the move is
+// applied, your GameDelegate's ProposeFixUpMove will be called; if any move is
+// returned it will be applied, repeating the cycle until no moves are returned
+// from ProposeFixUpMove. DelayedError will only resolve once any applicable
+// FixUp moves have been applied already. This is legal to call on a
+// non-modifiable game--the change will be dispatched to a modifiable version of
+// the game with this ID, and afterwards this Game object's state will be updated
+// in place with the new values after the change (by automatically calling
+// Refresh()).
 func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	if !g.Modifiable() {

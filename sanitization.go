@@ -169,7 +169,14 @@ func policyFromString(policyName string) Policy {
 
 func (s *state) SanitizedForPlayer(player PlayerIndex) (ImmutableState, error) {
 
-	//If the playerIndex isn't an actuall player's index, just return self.
+	// AnyPlayerIndex means "any player can act" but should not see hidden
+	// state. Treat it like an observer for sanitization purposes.
+	if player == AnyPlayerIndex {
+		player = ObserverPlayerIndex
+	}
+
+	//If the playerIndex isn't an actual player's index, just return self.
+	//This covers AdminPlayerIndex (omniscient) and out-of-range values.
 	if player < -1 || int(player) >= len(s.playerStates) {
 		return s, nil
 	}

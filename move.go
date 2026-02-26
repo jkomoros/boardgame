@@ -191,14 +191,19 @@ type Move interface {
 
 	//Legal returns nil if this proposed move is legal at the given state, or
 	//an error if the move is not legal. The error message may be shown
-	//directly to the end- user so be sure to make it user friendly. proposer
+	//directly to the end-user so be sure to make it user friendly. proposer
 	//is set to the notional player that is proposing the move. proposer might
 	//be a valid player index, or AdminPlayerIndex (for example, if it is a
 	//FixUpMove it will typically be AdminPlayerIndex). AdminPlayerIndex is
 	//always allowed to make any move. It will never be ObserverPlayerIndex,
-	//because by definition Observers may not make moves. If you want to check
-	//that the person proposing is able to apply the move for the given
-	//player, and that it is their turn, you would do something like test
+	//because by definition Observers may not make moves. Note that during
+	//simultaneous phases where CurrentPlayerIndex() returns AnyPlayerIndex,
+	//the proposer will still be the actual player index (0, 1, 2, ...); the
+	//Equivalent() method treats AnyPlayerIndex as a wildcard, so
+	//m.TargetPlayerIndex.Equivalent(currentPlayer) will return true when
+	//currentPlayer is AnyPlayerIndex. If you want to check that the person
+	//proposing is able to apply the move for the given player, and that it is
+	//their turn, you would do something like test
 	//m.TargetPlayerIndex.Equivalent(proposer),
 	//m.TargetPlayerIndex.Equivalent(game.CurrentPlayer). Legal is one of the
 	//most key parts of logic for your game type. It is important for fix up

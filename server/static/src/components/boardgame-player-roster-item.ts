@@ -182,7 +182,8 @@ export class BoardgamePlayerRosterItem extends LitElement {
     const result: string[] = [];
     if (finished) result.push(winner ? "winner" : "loser");
     if (index === viewingAsPlayer) result.push("viewing");
-    if (index === currentPlayerIndex) result.push("current");
+    // AnyPlayerIndex (-3) means all players are "current" (simultaneous phase)
+    if (currentPlayerIndex === -3 || index === currentPlayerIndex) result.push("current");
     return result.join(" ");
   }
 
