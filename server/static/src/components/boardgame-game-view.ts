@@ -27,7 +27,10 @@ import {
   selectRequestedPlayer,
   selectAutoCurrentPlayer,
   selectMoveForms,
-  selectLastFetchedVersion
+  selectLastFetchedVersion,
+  selectPlayerColors,
+  selectPlayerActivity,
+  selectPlayerOrder
 } from '../selectors.js';
 
 import {
@@ -169,6 +172,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Number, attribute: false })
   _lastFetchedVersion = 0;
 
+  @property({ type: Array, attribute: false })
+  _playerColors: string[] = [];
+
+  @property({ type: Array, attribute: false })
+  _playerActivity: boolean[] = [];
+
+  @property({ type: Array, attribute: false })
+  _playerOrder: number[] | null = null;
+
   constructor() {
     super();
 
@@ -198,6 +210,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .winners=${this.game ? this.game.Winners : []}
           .admin=${this._admin}
           .isOwner=${this._isOwner}
+          .playerColors=${this._playerColors}
+          .playerActivity=${this._playerActivity}
+          .playerOrder=${this._playerOrder}
           .active=${this.selected}>
         </boardgame-player-roster>
       </div>
@@ -274,6 +289,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._admin = selectAdmin(state);
     this._page = selectPage(state);
     this._lastFetchedVersion = selectLastFetchedVersion(state);
+    this._playerColors = selectPlayerColors(state);
+    this._playerActivity = selectPlayerActivity(state);
+    this._playerOrder = selectPlayerOrder(state);
   }
 
   private _handleRefreshData(e: Event) {
@@ -318,6 +336,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   override updated(changedProps: Map<PropertyKey, unknown>) {
     super.updated(changedProps);
+
+    // Set CSS custom properties for player colors so game renderers can use them
+    if (changedProps.has('_playerColors')) {
+      this._playerColors.forEach((color, i) => {
+        if (color) {
+          this.style.setProperty(`--player-${i}-color`, color);
+        }
+      });
+    }
 
     if (changedProps.has('_pageExtra') && this._page === PAGE_GAME) {
       store.dispatch(updateGameRoute(this._pageExtra));

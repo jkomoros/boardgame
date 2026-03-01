@@ -131,11 +131,31 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   @property({ type: Boolean })
   rendererLoaded = false;
 
+  // Framework-computed CSS colors per player (from selectPlayerColors).
+  @property({ type: Array })
+  playerColors: string[] = [];
+
+  // Framework-computed activity per player (from selectPlayerActivity).
+  @property({ type: Array })
+  playerActivity: boolean[] = [];
+
+  // Custom player display order (from selectPlayerOrder), or null for default.
+  @property({ type: Array })
+  playerOrder: number[] | null = null;
+
   @query('#join')
   private joinDialog!: MdDialog;
 
   private readonly OBSERVER_PLAYER_INDEX = -1;
   private readonly ADMIN_PLAYER_INDEX = -2;
+
+  // Returns the order in which players should be displayed.
+  get _orderedIndices(): number[] {
+    if (this.playerOrder && this.playerOrder.length === this.playersInfo.length) {
+      return this.playerOrder;
+    }
+    return Array.from({ length: this.playersInfo.length }, (_, i) => i);
+  }
 
   private _lastError: string | null = null;
 
@@ -262,24 +282,29 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
         </boardgame-configure-game-properties>
       </div>
       <div class="layout horizontal justified players">
-        ${repeat(this.playersInfo, (_, index) => index, (item, index) => html`
+        ${repeat(this._orderedIndices, (idx) => idx, (idx) => {
+          const item = this.playersInfo[idx];
+          if (!item) return html``;
+          return html`
           <boardgame-player-roster-item
             class="flex"
             .state="${this.state}"
             .gameName="${this.gameRoute?.name}"
             ?is-empty="${item.IsEmpty}"
             ?finished="${this.finished}"
-            ?winner="${this._isWinner(index, this.winners)}"
+            ?winner="${this._isWinner(idx, this.winners)}"
             ?is-agent="${item.IsAgent}"
             .photoUrl="${item.PhotoUrl}"
             .displayName="${item.DisplayName}"
-            .playerIndex="${index}"
+            .playerIndex="${idx}"
             .viewingAsPlayer="${this.viewingAsPlayer}"
             .currentPlayerIndex="${this.currentPlayerIndex}"
+            .computedColor="${this.playerColors[idx] || ''}"
+            .mayBeActive="${this.playerActivity[idx] !== false}"
             ?renderer-loaded="${this.rendererLoaded}"
             ?active="${this.active}">
           </boardgame-player-roster-item>
-        `)}
+        `})}
       </div>
       ${when(this.isObserver, () => html`
         <div>
