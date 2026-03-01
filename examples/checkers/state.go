@@ -38,10 +38,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
-func (p *playerState) FinishStateSetUp() {
-	p.PlayerColor.ConnectBehavior(p)
-}
-
 func (p *playerState) TurnDone() error {
 	if !p.FinishedTurn {
 		return errors.New("the player has not yet finished their turn")

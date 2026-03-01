@@ -18742,3 +18742,1007 @@ func (s *StartPhase) ReadSetter() boardgame.PropertyReadSetter {
 func (s *StartPhase) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &ȧutoGeneratedStartPhaseReader{s}
 }
+
+// Implementation for AllPlayersSubmitted
+
+var ȧutoGeneratedAllPlayersSubmittedReaderProps = map[string]boardgame.PropertyType{}
+
+type ȧutoGeneratedAllPlayersSubmittedReader struct {
+	data *AllPlayersSubmitted
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) Props() map[string]boardgame.PropertyType {
+	return ȧutoGeneratedAllPlayersSubmittedReaderProps
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) Prop(name string) (interface{}, error) {
+	props := a.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return a.IntProp(name)
+	case boardgame.TypeBool:
+		return a.BoolProp(name)
+	case boardgame.TypeString:
+		return a.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return a.PlayerIndexProp(name)
+	case boardgame.TypeEnum:
+		return a.ImmutableEnumProp(name)
+	case boardgame.TypeIntSlice:
+		return a.IntSliceProp(name)
+	case boardgame.TypeBoolSlice:
+		return a.BoolSliceProp(name)
+	case boardgame.TypeStringSlice:
+		return a.StringSliceProp(name)
+	case boardgame.TypePlayerIndexSlice:
+		return a.PlayerIndexSliceProp(name)
+	case boardgame.TypeStack:
+		return a.ImmutableStackProp(name)
+	case boardgame.TypeBoard:
+		return a.ImmutableBoardProp(name)
+	case boardgame.TypeTimer:
+		return a.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return a.ImmutableEnumSliceProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetProp(name string, value interface{}) error {
+	props := a.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return a.SetIntProp(name, val)
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return a.SetBoolProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return a.SetStringProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return a.SetPlayerIndexProp(name, val)
+	case boardgame.TypeEnum:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return a.SetIntSliceProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return a.SetBoolSliceProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return a.SetStringSliceProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return a.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeStack:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeEnumSlice:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureProp(name string, value interface{}) error {
+	props := a.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return a.SetIntProp(name, val)
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return a.SetBoolProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return a.SetStringProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return a.SetPlayerIndexProp(name, val)
+	case boardgame.TypeEnum:
+		if a.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.Val)
+			if !ok {
+				return errors.New("Provided value was not of type enum.Val")
+			}
+			return a.ConfigureEnumProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableVal)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableVal")
+		}
+		return a.ConfigureImmutableEnumProp(name, val)
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return a.SetIntSliceProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return a.SetBoolSliceProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return a.SetStringSliceProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return a.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeStack:
+		if a.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Stack)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Stack")
+			}
+			return a.ConfigureStackProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableStack)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableStack")
+		}
+		return a.ConfigureImmutableStackProp(name, val)
+	case boardgame.TypeBoard:
+		if a.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return a.ConfigureBoardProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableBoard)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableBoard")
+		}
+		return a.ConfigureImmutableBoardProp(name, val)
+	case boardgame.TypeTimer:
+		if a.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Timer)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Timer")
+			}
+			return a.ConfigureTimerProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableTimer)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
+		}
+		return a.ConfigureImmutableTimerProp(name, val)
+	case boardgame.TypeEnumSlice:
+		if a.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.EnumSlice)
+			if !ok {
+				return errors.New("Provided value was not of type enum.EnumSlice")
+			}
+			return a.ConfigureEnumSliceProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableEnumSlice)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableEnumSlice")
+		}
+		return a.ConfigureImmutableEnumSliceProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureEnumProp(name string, value enum.Val) error {
+
+	return errors.New("No such Enum prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
+
+	return errors.New("No such ImmutableEnum prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) EnumProp(name string) (enum.Val, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) IntSliceProp(name string) ([]int, error) {
+
+	return []int{}, errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetIntSliceProp(name string, value []int) error {
+
+	return errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) BoolSliceProp(name string) ([]bool, error) {
+
+	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetBoolSliceProp(name string, value []bool) error {
+
+	return errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) StringSliceProp(name string) ([]string, error) {
+
+	return []string{}, errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetStringSliceProp(name string, value []string) error {
+
+	return errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+
+	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureStackProp(name string, value boardgame.Stack) error {
+
+	return errors.New("No such Stack prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
+
+	return errors.New("No such ImmutableStack prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) StackProp(name string) (boardgame.Stack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
+
+	return errors.New("No such ImmutableBoard prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
+
+	return errors.New("No such ImmutableTimer prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) TimerProp(name string) (boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureEnumSliceProp(name string, value enum.EnumSlice) error {
+
+	return errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) ConfigureImmutableEnumSliceProp(name string, value enum.ImmutableEnumSlice) error {
+
+	return errors.New("No such ImmutableEnumSlice prop: " + name)
+
+}
+
+func (a *ȧutoGeneratedAllPlayersSubmittedReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for AllPlayersSubmitted
+func (a *AllPlayersSubmitted) Reader() boardgame.PropertyReader {
+	return &ȧutoGeneratedAllPlayersSubmittedReader{a}
+}
+
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for AllPlayersSubmitted
+func (a *AllPlayersSubmitted) ReadSetter() boardgame.PropertyReadSetter {
+	return &ȧutoGeneratedAllPlayersSubmittedReader{a}
+}
+
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for AllPlayersSubmitted
+func (a *AllPlayersSubmitted) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &ȧutoGeneratedAllPlayersSubmittedReader{a}
+}
+
+// Implementation for ResetAllPlayerSubmissions
+
+var ȧutoGeneratedResetAllPlayerSubmissionsReaderProps = map[string]boardgame.PropertyType{}
+
+type ȧutoGeneratedResetAllPlayerSubmissionsReader struct {
+	data *ResetAllPlayerSubmissions
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) Props() map[string]boardgame.PropertyType {
+	return ȧutoGeneratedResetAllPlayerSubmissionsReaderProps
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) Prop(name string) (interface{}, error) {
+	props := r.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return r.IntProp(name)
+	case boardgame.TypeBool:
+		return r.BoolProp(name)
+	case boardgame.TypeString:
+		return r.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return r.PlayerIndexProp(name)
+	case boardgame.TypeEnum:
+		return r.ImmutableEnumProp(name)
+	case boardgame.TypeIntSlice:
+		return r.IntSliceProp(name)
+	case boardgame.TypeBoolSlice:
+		return r.BoolSliceProp(name)
+	case boardgame.TypeStringSlice:
+		return r.StringSliceProp(name)
+	case boardgame.TypePlayerIndexSlice:
+		return r.PlayerIndexSliceProp(name)
+	case boardgame.TypeStack:
+		return r.ImmutableStackProp(name)
+	case boardgame.TypeBoard:
+		return r.ImmutableBoardProp(name)
+	case boardgame.TypeTimer:
+		return r.ImmutableTimerProp(name)
+	case boardgame.TypeEnumSlice:
+		return r.ImmutableEnumSliceProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetProp(name string, value interface{}) error {
+	props := r.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return r.SetIntProp(name, val)
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return r.SetBoolProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return r.SetStringProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexProp(name, val)
+	case boardgame.TypeEnum:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return r.SetIntSliceProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return r.SetBoolSliceProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return r.SetStringSliceProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeStack:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+	case boardgame.TypeEnumSlice:
+		return errors.New("SetProp does not allow setting mutable types; use ConfigureProp instead")
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureProp(name string, value interface{}) error {
+	props := r.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return r.SetIntProp(name, val)
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return r.SetBoolProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return r.SetStringProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexProp(name, val)
+	case boardgame.TypeEnum:
+		if r.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.Val)
+			if !ok {
+				return errors.New("Provided value was not of type enum.Val")
+			}
+			return r.ConfigureEnumProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableVal)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableVal")
+		}
+		return r.ConfigureImmutableEnumProp(name, val)
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return r.SetIntSliceProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return r.SetBoolSliceProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return r.SetStringSliceProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeStack:
+		if r.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Stack)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Stack")
+			}
+			return r.ConfigureStackProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableStack)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableStack")
+		}
+		return r.ConfigureImmutableStackProp(name, val)
+	case boardgame.TypeBoard:
+		if r.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return r.ConfigureBoardProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableBoard)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableBoard")
+		}
+		return r.ConfigureImmutableBoardProp(name, val)
+	case boardgame.TypeTimer:
+		if r.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.Timer)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Timer")
+			}
+			return r.ConfigureTimerProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(boardgame.ImmutableTimer)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.ImmutableTimer")
+		}
+		return r.ConfigureImmutableTimerProp(name, val)
+	case boardgame.TypeEnumSlice:
+		if r.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(enum.EnumSlice)
+			if !ok {
+				return errors.New("Provided value was not of type enum.EnumSlice")
+			}
+			return r.ConfigureEnumSliceProp(name, val)
+		}
+		//Immutable variant
+		val, ok := value.(enum.ImmutableEnumSlice)
+		if !ok {
+			return errors.New("Provided value was not of type enum.ImmutableEnumSlice")
+		}
+		return r.ConfigureImmutableEnumSliceProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureEnumProp(name string, value enum.Val) error {
+
+	return errors.New("No such Enum prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
+
+	return errors.New("No such ImmutableEnum prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) EnumProp(name string) (enum.Val, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) IntSliceProp(name string) ([]int, error) {
+
+	return []int{}, errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetIntSliceProp(name string, value []int) error {
+
+	return errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) BoolSliceProp(name string) ([]bool, error) {
+
+	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetBoolSliceProp(name string, value []bool) error {
+
+	return errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) StringSliceProp(name string) ([]string, error) {
+
+	return []string{}, errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetStringSliceProp(name string, value []string) error {
+
+	return errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+
+	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureStackProp(name string, value boardgame.Stack) error {
+
+	return errors.New("No such Stack prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
+
+	return errors.New("No such ImmutableStack prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) StackProp(name string) (boardgame.Stack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureImmutableBoardProp(name string, value boardgame.ImmutableBoard) error {
+
+	return errors.New("No such ImmutableBoard prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureTimerProp(name string, value boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureImmutableTimerProp(name string, value boardgame.ImmutableTimer) error {
+
+	return errors.New("No such ImmutableTimer prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) TimerProp(name string) (boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureEnumSliceProp(name string, value enum.EnumSlice) error {
+
+	return errors.New("No such EnumSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) ConfigureImmutableEnumSliceProp(name string, value enum.ImmutableEnumSlice) error {
+
+	return errors.New("No such ImmutableEnumSlice prop: " + name)
+
+}
+
+func (r *ȧutoGeneratedResetAllPlayerSubmissionsReader) EnumSliceProp(name string) (enum.EnumSlice, error) {
+
+	return nil, errors.New("No such EnumSlice prop: " + name)
+
+}
+
+// Reader returns an autp-generated boardgame.PropertyReader for ResetAllPlayerSubmissions
+func (r *ResetAllPlayerSubmissions) Reader() boardgame.PropertyReader {
+	return &ȧutoGeneratedResetAllPlayerSubmissionsReader{r}
+}
+
+// ReadSetter returns an autp-generated boardgame.PropertyReadSetter for ResetAllPlayerSubmissions
+func (r *ResetAllPlayerSubmissions) ReadSetter() boardgame.PropertyReadSetter {
+	return &ȧutoGeneratedResetAllPlayerSubmissionsReader{r}
+}
+
+// ReadSetConfigurer returns an autp-generated boardgame.PropertyReadSetConfigurer for ResetAllPlayerSubmissions
+func (r *ResetAllPlayerSubmissions) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &ȧutoGeneratedResetAllPlayerSubmissionsReader{r}
+}

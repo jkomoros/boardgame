@@ -12,13 +12,12 @@ const colorPropertyName = "Color"
 /*
 PlayerColor is a struct that's designed to be anonymously embedded in your
 playerState. It represents the "color" of that player, and its primary use is
-convenience methods it exposes for you to use. It is a Connectable behavior
-which means it's an error if you use it and don't call ConnectBehavior from
-within your playerState's FinishStateSetUp (see the package doc for
-more).Typically you also embed a ComponentColor in the ComponentValues of the
-components that represent tokens or any other item that are tied to a specific
-player color. PlayerColor expects there to be an enum called 'color' that
-enumerates the valid colors players may be.
+convenience methods it exposes for you to use. It is a [Connectable] behavior
+that is automatically connected by the framework during state setup (see the
+package doc for more). Typically you also embed a ComponentColor in the
+ComponentValues of the components that represent tokens or any other item that
+are tied to a specific player color. PlayerColor expects there to be an enum
+called 'color' that enumerates the valid colors players may be.
 */
 type PlayerColor struct {
 	container boardgame.SubState

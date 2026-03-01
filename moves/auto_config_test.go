@@ -28,7 +28,7 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 		}
 	}
 
-	manager, err := newGameManager(moveInstaller, false)
+	manager, err := newGameManager(moveInstaller)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -55,7 +55,7 @@ func TestDealCardsDefaultConfig(t *testing.T) {
 
 	}
 
-	manager, err := newGameManager(moveInstaller, false)
+	manager, err := newGameManager(moveInstaller)
 
 	assert.For(t).ThatActual(err).IsNil()
 

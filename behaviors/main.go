@@ -14,20 +14,18 @@ behaviors in the generated PropertyReader.
 # Connectable Behaviors
 
 Behaviors often require access to the struct they're embedded within. These
-types of behaviors are called [Connectable], and if they are this type then their
-ConnectBehavior should always be called within the subState's FinishStateSetUp,
-like so:
+types of behaviors are called [Connectable]. The framework automatically
+detects embedded Connectable fields and calls ConnectBehavior on them during
+state setup, before FinishStateSetUp is called. You do not need to call
+ConnectBehavior yourself.
 
-	//FinishStateSetUp is called by the main engine when a State is being created.
-	//ConnectContainingState will have already been called, so State and StatePropertyRef
-	//will be set. The engine doesn't require anything to be done in this method; it's
-	//typically used to connect behaviors.
-	func (g *gameState) FinishStateSetUp() {
-		//PlayerColor is a Connectable, which requires us to call ConnectBehavior
-		//on it, passing a reference to ourselvs (the struct it's embeddded in).
-		g.PlayerColor.ConnectBehavior(g)
-		//If you had ohter Connectable's in this struct, you'd call ConnectBehavior
-		//here, too.
+FinishStateSetUp is only needed for additional wiring beyond the basic
+connection. For example, [LocationBehavior] requires ConnectLocationStack and
+optionally ConnectGraph to be called in FinishStateSetUp:
+
+	func (p *playerState) FinishStateSetUp() {
+		p.LocationBehavior.ConnectLocationStack(p.Location)
+		p.LocationBehavior.ConnectGraph(myConnectivityGraph)
 	}
 
 [Connectable] behaviors that are not connected will error when their
@@ -39,10 +37,11 @@ NewGameManager is being executed, which will fail with a descriptive error.
 [LocationBehavior] tracks the position of a token within a SizedStack (where
 each slot represents a space on the board). Embed it in a playerState or
 gameState to gain LocationIndex(), MoveTo(), and graph-based helpers like
-Neighbors(), ShortestPathTo(), and DistanceTo(). It is a [Connectable] behavior;
-in FinishStateSetUp, call ConnectBehavior, ConnectLocationStack, and optionally
-ConnectGraph. [LocationBehavior] also stores a LocRemainingPath field used by
-the [moves.HopAlongPath] FixUp for animated multi-hop movement. See the
+Neighbors(), ShortestPathTo(), and DistanceTo(). It is a [Connectable] behavior
+(auto-connected by the framework); in FinishStateSetUp, call
+ConnectLocationStack and optionally ConnectGraph to complete the wiring.
+[LocationBehavior] also stores a LocRemainingPath field used by the
+[moves.HopAlongPath] FixUp for animated multi-hop movement. See the
 [LocationBehavior] type documentation and the spatial game API section of the
 tutorial for more.
 
@@ -136,13 +135,15 @@ package behaviors
 import "github.com/jkomoros/boardgame"
 
 // Connectable is the interface that behaviors that are Connectable implements.
-// Connectable behaviors are ones that must have their ConnectBehavior called
-// within their SubState cdontainer's FinishStateSetUp method. The
+// Connectable behaviors need a reference to their containing SubState. The
+// framework automatically calls ConnectBehavior on all embedded Connectable
+// fields during state setup, before FinishStateSetUp is called. The
 // ValidConfiguration method will return an error if they weren't connected,
-// which will help diagnose the problem early if you forget.
+// which will help diagnose the problem early.
 type Connectable interface {
 	//ConnectBehavior lets the behavior have a reference to the struct its
-	//embedded in, as some behaviors need access to the broader state.
+	//embedded in, as some behaviors need access to the broader state. Called
+	//automatically by the framework for embedded behaviors.
 	ConnectBehavior(containgSubState boardgame.SubState)
 
 	//Connectable behaviors should implement ValidConfiguration and return an

@@ -11,9 +11,9 @@ import (
 /*
 LocationBehavior is a struct designed to be anonymously embedded in a SubState
 (typically a playerState or gameState) to represent the position of a token
-within a SizedStack. It is a Connectable behavior, so you must call
-ConnectBehavior from within your SubState's FinishStateSetUp. You must also
-call ConnectLocationStack to point it at the SizedStack that tracks the token's
+within a SizedStack. It is a [Connectable] behavior that is automatically
+connected by the framework. In FinishStateSetUp, you must call
+ConnectLocationStack to point it at the SizedStack that tracks the token's
 position. Optionally, call ConnectGraph to associate a graph for adjacency and
 pathfinding queries.
 
@@ -23,7 +23,6 @@ serialized via TypeIntSlice and is used by the HopAlongPath FixUp move.
 Example wiring:
 
 	func (p *playerState) FinishStateSetUp() {
-	    p.LocationBehavior.ConnectBehavior(p)
 	    p.LocationBehavior.ConnectLocationStack(p.Location)
 	    p.LocationBehavior.ConnectGraph(connectedGraph)
 	}

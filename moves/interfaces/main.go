@@ -144,6 +144,16 @@ type BeforeEnterPhaser interface {
 	BeforeEnterPhase(phase enum.ImmutableVal, state boardgame.State) error
 }
 
+// PlayerSubmitter is for PlayerStates that track whether a player has
+// submitted a selection during a simultaneous play phase. Used by
+// [moves.AllPlayersSubmitted] and [moves.ResetAllPlayerSubmissions].
+// [behaviors.PlayerSubmission] satisfies this interface.
+type PlayerSubmitter interface {
+	HasSubmitted() bool
+	SetPlayerSubmitted()
+	ResetSubmission()
+}
+
 // PlayerInactiver is for PlayerStates that encode whether that player is
 // Inactive and whether that might be changed. See the package doc of
 // [behaviors] for more on the notion of inactive players.

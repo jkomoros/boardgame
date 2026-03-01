@@ -71,6 +71,8 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(MoveOnGraph)
 	m = new(HopAlongPath)
 	m = new(AdvanceToken)
+	m = new(AllPlayersSubmitted)
+	m = new(ResetAllPlayerSubmissions)
 	if m != nil {
 		return
 	}

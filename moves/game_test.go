@@ -1,9 +1,6 @@
 package moves
 
 import (
-	"github.com/workfit/tester/assert"
-	"testing"
-
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/behaviors"
@@ -71,13 +68,6 @@ type playerState struct {
 	Counter   int
 }
 
-func (p *playerState) FinishStateSetUp() {
-	if p.State().Manager().Delegate().(*gameDelegate).skipConnectBehaviors {
-		return
-	}
-	p.PlayerColor.ConnectBehavior(p)
-}
-
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
 	game := state.ImmutableGameState().(*gameState)
 
@@ -92,8 +82,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 type gameDelegate struct {
 	base.GameDelegate
-	moveInstaller        func(manager *boardgame.GameManager) []boardgame.MoveConfig
-	skipConnectBehaviors bool
+	moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveConfig
 }
 
 func (g *gameDelegate) Name() string {
@@ -136,18 +125,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-func newGameManager(moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveConfig, skipConnectBehaviors bool) (*boardgame.GameManager, error) {
+func newGameManager(moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveConfig) (*boardgame.GameManager, error) {
 
-	return boardgame.NewGameManager(&gameDelegate{moveInstaller: moveInstaller, skipConnectBehaviors: skipConnectBehaviors}, memory.NewStorageManager())
+	return boardgame.NewGameManager(&gameDelegate{moveInstaller: moveInstaller}, memory.NewStorageManager())
 
-}
-
-func TestNoBehaviorConnectErrors(t *testing.T) {
-
-	//Tests that if you have a ConnectableBehavior (which
-	//playerState.PlayerColor is) and you don't call ConnectBehavior that the
-	//game manager fails to be created.
-
-	_, err := newGameManager(defaultMoveInstaller, true)
-	assert.For(t).ThatActual(err).IsNotNil()
 }

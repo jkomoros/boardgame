@@ -45,8 +45,9 @@ func (s *SubState) PlayerIndex() boardgame.PlayerIndex {
 	return s.ref.PlayerIndex
 }
 
-// FinishStateSetUp doesn't do anything. Typically if you embed a Connectable behavior, you
-// override this and call ConnectBehavior() within it.
+// FinishStateSetUp doesn't do anything. The framework automatically calls
+// ConnectBehavior on embedded Connectable behaviors before this method runs.
+// Override this for additional wiring, such as ConnectLocationStack or ConnectGraph.
 func (s *SubState) FinishStateSetUp() {
 	//pass
 }

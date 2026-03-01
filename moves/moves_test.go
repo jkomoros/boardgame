@@ -137,7 +137,7 @@ func noStartPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveC
 }
 
 func TestAddOrderedForPhaseEndsWithStartPhase(t *testing.T) {
-	_, err := newGameManager(noStartPhaseMoveInstaller, false)
+	_, err := newGameManager(noStartPhaseMoveInstaller)
 	assert.For(t).ThatActual(err).IsNotNil()
 }
 
@@ -151,7 +151,7 @@ func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveC
 }
 
 func TestPhaseIllegalConfig(t *testing.T) {
-	_, err := newGameManager(illegalPhaseMoveInstaller, false)
+	_, err := newGameManager(illegalPhaseMoveInstaller)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
@@ -161,7 +161,7 @@ func TestPhaseIllegalConfig(t *testing.T) {
 }
 
 func TestGeneral(t *testing.T) {
-	manager, err := newGameManager(defaultMoveInstaller, false)
+	manager, err := newGameManager(defaultMoveInstaller)
 
 	assert.For(t).ThatActual(err).IsNil()
 

@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"log"
 	"math/rand"
+	"reflect"
 	"strconv"
 
 	"github.com/jkomoros/boardgame/errors"
@@ -345,6 +346,15 @@ const AdminPlayerIndex PlayerIndex = -2
 // during a simultaneous phase is still the real player index (0, 1, 2, ...);
 // AnyPlayerIndex only affects what CurrentPlayerIndex() returns.
 const AnyPlayerIndex PlayerIndex = -3
+
+// AutoConnectable is implemented by embedded behavior structs that need a
+// reference to their containing SubState. The framework automatically calls
+// ConnectBehavior on all embedded AutoConnectable fields during state setup,
+// before FinishStateSetUp is called. This eliminates the need to manually
+// call ConnectBehavior in FinishStateSetUp.
+type AutoConnectable interface {
+	ConnectBehavior(containingSubState SubState)
+}
 
 // State represents the entire semantic state of a game at a given version. For
 // your specific game, GameState and PlayerStates will actually be concrete
@@ -861,6 +871,36 @@ func (s *state) copy(sanitized bool) (*state, error) {
 	return result, nil
 }
 
+// autoConnectBehaviors uses reflection to find embedded struct fields that
+// implement AutoConnectable and calls ConnectBehavior on them. This runs
+// before FinishStateSetUp so that behaviors are already connected when
+// user code runs.
+func autoConnectBehaviors(subState SubState) {
+	v := reflect.ValueOf(subState).Elem()
+	t := reflect.TypeOf(v.Interface())
+
+	if t.Kind() != reflect.Struct {
+		return
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if field.Type.Kind() != reflect.Struct {
+			continue
+		}
+		if !v.Field(i).CanInterface() {
+			continue
+		}
+		embeddedStructValue := v.Field(i)
+		if embeddedStructValue.Type().Kind() != reflect.Ptr {
+			embeddedStructValue = embeddedStructValue.Addr()
+		}
+		if connectable, ok := embeddedStructValue.Interface().(AutoConnectable); ok {
+			connectable.ConnectBehavior(subState)
+		}
+	}
+}
+
 // finish should be called when the state has all of its sub-states set. It
 // goes through each subState on s and calls SetState on it, and also sets the
 // mutable*States once.
@@ -870,6 +910,7 @@ func (s *state) setStateForSubStates() error {
 		Group: StateGroupGame,
 	})
 
+	autoConnectBehaviors(s.GameState())
 	s.GameState().FinishStateSetUp()
 
 	playerRef := StatePropertyRef{
@@ -878,6 +919,7 @@ func (s *state) setStateForSubStates() error {
 
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].ConnectContainingState(s, playerRef.WithPlayerIndex(PlayerIndex(i)))
+		autoConnectBehaviors(s.playerStates[i])
 		s.playerStates[i].FinishStateSetUp()
 	}
 
@@ -889,6 +931,7 @@ func (s *state) setStateForSubStates() error {
 		}
 		for i, component := range dynamicComponents {
 			component.ConnectContainingState(s, componentRef.WithDeckIndex(i))
+			autoConnectBehaviors(component)
 			component.FinishStateSetUp()
 		}
 	}
