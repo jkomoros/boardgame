@@ -359,14 +359,41 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 
 }
 
-// ComputedGlobalProperties returns nil.
-func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+// CustomPlayerOrder returns the custom player order from the gameState if it
+// implements moves/interfaces.PlayerOrderer (e.g. by embedding
+// behaviors.PlayerOrderBehavior). Returns nil otherwise, meaning default
+// sequential order.
+func (g *GameDelegate) CustomPlayerOrder(state boardgame.ImmutableState) []boardgame.PlayerIndex {
+	if orderer, ok := state.ImmutableGameState().(interfaces.PlayerOrderer); ok {
+		return orderer.PlayerOrder()
+	}
 	return nil
 }
 
-// ComputedPlayerProperties returns nil.
-func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
+// ComputedGlobalProperties returns framework defaults. Currently returns
+// "PlayerOrder" ([]int) when a PlayerOrderBehavior is embedded in GameState.
+// Override and call super to add game-specific properties.
+func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+	if order := g.Manager().Delegate().CustomPlayerOrder(state); order != nil {
+		intOrder := make([]int, len(order))
+		for i, idx := range order {
+			intOrder[i] = int(idx)
+		}
+		return boardgame.PropertyCollection{
+			"PlayerOrder": intOrder,
+		}
+	}
 	return nil
+}
+
+// ComputedPlayerProperties returns framework defaults: "Color" (CSS color
+// string from the player's Color enum or palette fallback) and "MayBeActive".
+// Override and call super to add game-specific properties.
+func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
+	return boardgame.PropertyCollection{
+		"Color":       behaviors.CSSColorForPlayer(player),
+		"MayBeActive": g.Manager().Delegate().PlayerMayBeActive(player),
+	}
 }
 
 // BeginSetUp does not do anything and returns nil.

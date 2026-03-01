@@ -462,11 +462,15 @@ func (p PlayerIndex) Valid(state ImmutableState) bool {
 // Next returns the next PlayerIndex, wrapping around back to 0 if it overflows,
 // skipping any players where GameDelegate returns false for PlayerMayBeActive
 // (if all players return false for PlayerMayBeActive it will return the current
-// value). PlayerIndexes of AdminPlayerIndex, ObserverPlayerIndex, and
-// AnyPlayerIndex will not be affected.
+// value). If the delegate returns a non-nil CustomPlayerOrder, the order is
+// followed instead of sequential order. PlayerIndexes of AdminPlayerIndex,
+// ObserverPlayerIndex, and AnyPlayerIndex will not be affected.
 func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex || p == AnyPlayerIndex {
 		return p
+	}
+	if order := state.Manager().Delegate().CustomPlayerOrder(state); order != nil {
+		return p.nextInOrder(state, order)
 	}
 	original := p
 	p++
@@ -488,14 +492,45 @@ func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 	return p
 }
 
+// nextInOrder walks the custom order slice forward from the current position,
+// skipping inactive players, wrapping around.
+func (p PlayerIndex) nextInOrder(state ImmutableState, order []PlayerIndex) PlayerIndex {
+	// Find our position in the order
+	pos := -1
+	for i, idx := range order {
+		if idx == p {
+			pos = i
+			break
+		}
+	}
+	if pos == -1 {
+		// Not found in order; fall back to sequential
+		return p
+	}
+	n := len(order)
+	for i := 1; i <= n; i++ {
+		candidate := order[(pos+i)%n]
+		if state.Manager().Delegate().PlayerMayBeActive(state.ImmutablePlayerStates()[candidate]) {
+			return candidate
+		}
+	}
+	// All inactive, return original
+	state.Manager().Logger().Debugln("There were no valid players in custom order, leaving Next at same value")
+	return p
+}
+
 // Previous returns the previous PlayerIndex, wrapping around back to len(players
 // -1) if it goes below 0, skipping any players where GameDelegate returns false
 // for PlayerMayBeActive (if all players return false, it will leave at the same
-// value). PlayerIndexes of AdminPlayerIndex, ObserverPlayerIndex, and
-// AnyPlayerIndex will not be affected.
+// value). If the delegate returns a non-nil CustomPlayerOrder, the order is
+// followed instead of sequential order. PlayerIndexes of AdminPlayerIndex,
+// ObserverPlayerIndex, and AnyPlayerIndex will not be affected.
 func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex || p == AnyPlayerIndex {
 		return p
+	}
+	if order := state.Manager().Delegate().CustomPlayerOrder(state); order != nil {
+		return p.previousInOrder(state, order)
 	}
 	original := p
 	p--
@@ -514,6 +549,31 @@ func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 			return original
 		}
 	}
+	return p
+}
+
+// previousInOrder walks the custom order slice backward from the current
+// position, skipping inactive players, wrapping around.
+func (p PlayerIndex) previousInOrder(state ImmutableState, order []PlayerIndex) PlayerIndex {
+	// Find our position in the order
+	pos := -1
+	for i, idx := range order {
+		if idx == p {
+			pos = i
+			break
+		}
+	}
+	if pos == -1 {
+		return p
+	}
+	n := len(order)
+	for i := 1; i <= n; i++ {
+		candidate := order[(pos-i+n)%n]
+		if state.Manager().Delegate().PlayerMayBeActive(state.ImmutablePlayerStates()[candidate]) {
+			return candidate
+		}
+	}
+	state.Manager().Logger().Debugln("There were no valid players in custom order, leaving Previous at same value")
 	return p
 }
 

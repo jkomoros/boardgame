@@ -282,6 +282,13 @@ type GameDelegate interface {
 	//values of 'all', 'other', and 'self'.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[string]bool) Policy
 
+	//CustomPlayerOrder returns a custom order in which players should be
+	//iterated for Next()/Previous(). If non-nil, it must be a valid
+	//permutation of player indices 0..NumPlayers-1. If nil, the default
+	//sequential order is used. base.GameDelegate auto-detects
+	//behaviors.PlayerOrderBehavior on the gameState. Override for custom logic.
+	CustomPlayerOrder(state ImmutableState) []PlayerIndex
+
 	//If you have computed properties that you want to be included in your
 	//JSON (for example, for use clientside), export them here by creating a
 	//dictionary with their values.
