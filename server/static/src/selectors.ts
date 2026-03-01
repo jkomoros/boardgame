@@ -249,6 +249,40 @@ export const selectTimerExpandedGameState = createSelector(
 export const selectExpandedGameState = selectExpandedGameStateWithoutTimers;
 
 /**
+ * Selector for player colors from computed properties.
+ * Returns an array of CSS color strings, one per player.
+ */
+export const selectPlayerColors = createSelector(
+    [selectExpandedGameStateWithoutTimers],
+    (state): string[] => state?.Players?.map(
+        (p: any) => p?.Computed?.Color || ''
+    ) || []
+);
+
+/**
+ * Selector for player activity from computed properties.
+ * Returns an array of booleans, true if the player may be active.
+ */
+export const selectPlayerActivity = createSelector(
+    [selectExpandedGameStateWithoutTimers],
+    (state): boolean[] => state?.Players?.map(
+        (p: any) => p?.Computed?.MayBeActive !== false
+    ) || []
+);
+
+/**
+ * Selector for custom player order from global computed properties.
+ * Returns an array of player indices in display order, or null if default.
+ */
+export const selectPlayerOrder = createSelector(
+    [selectExpandedGameStateWithoutTimers],
+    (state): number[] | null => {
+        const order = state?.Game?.Computed?.PlayerOrder;
+        return (order && Array.isArray(order)) ? order : null;
+    }
+);
+
+/**
  * Pure function to expand a leaf state object.
  * Walks properties and expands stacks and timers inline.
  *
@@ -278,12 +312,17 @@ const expandLeafState = (
         }
     });
 
-    // Copy in Player computed state if it exists
+    // Copy in computed state if it exists
     const pathToLeaf = getPathToLeaf(wholeState, leafState);
     if (pathToLeaf?.length === 2 && pathToLeaf[0] === 'Players') {
         const playerIndex = pathToLeaf[1];
         if (wholeState.Computed?.Players?.[playerIndex]) {
             result.Computed = wholeState.Computed.Players[playerIndex];
+        }
+    }
+    if (pathToLeaf?.length === 1 && pathToLeaf[0] === 'Game') {
+        if (wholeState.Computed?.Global) {
+            result.Computed = wholeState.Computed.Global;
         }
     }
 
