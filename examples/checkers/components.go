@@ -18,8 +18,8 @@ const (
 
 //boardgame:codegen
 const (
-	colorBlack = iota
-	colorRed
+	colorBlack = behaviors.ColorBlack
+	colorRed   = behaviors.ColorRed
 )
 
 //boardgame:codegen reader

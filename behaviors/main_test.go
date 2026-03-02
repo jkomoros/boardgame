@@ -55,6 +55,63 @@ func TestSeater(t *testing.T) {
 	assert.For(t).ThatActual(ok).IsTrue()
 }
 
+func TestPlayerOrderBehavior(t *testing.T) {
+	// Interface satisfaction: PlayerOrderer
+	var b interface{}
+	b = &PlayerOrderBehavior{}
+	_, ok := b.(interfaces.PlayerOrderer)
+	assert.For(t).ThatActual(ok).IsTrue()
+
+	// Interface satisfaction: Connectable
+	_, ok = b.(Connectable)
+	assert.For(t).ThatActual(ok).IsTrue()
+
+	// ValidConfiguration fails before connection
+	p := &PlayerOrderBehavior{}
+	err := p.ValidConfiguration(nil)
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	// PlayerOrder returns nil when empty
+	result := p.PlayerOrder()
+	assert.For(t).ThatActual(result == nil).IsTrue()
+
+	// SetPlayerOrder fails when not connected
+	err = p.SetPlayerOrder(nil)
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	// ReversePlayerOrder also fails when not connected (requires container)
+	// Note: can't fully test Set/Reverse/PlayerOrder validation without a
+	// real game state, which requires the moves package.
+}
+
+func TestDefaultPlayerColor(t *testing.T) {
+	// Basic colors
+	assert.For(t, "red").ThatActual(DefaultPlayerColor(0)).Equals("#D32F2F")
+	assert.For(t, "blue").ThatActual(DefaultPlayerColor(1)).Equals("#1976D2")
+	assert.For(t, "green").ThatActual(DefaultPlayerColor(2)).Equals("#388E3C")
+
+	// Negative index gets clamped to 0
+	assert.For(t, "negative").ThatActual(DefaultPlayerColor(-1)).Equals("#D32F2F")
+
+	// Cycling past palette length
+	assert.For(t, "wrap 12").ThatActual(DefaultPlayerColor(12)).Equals("#D32F2F")
+	assert.For(t, "wrap 13").ThatActual(DefaultPlayerColor(13)).Equals("#1976D2")
+}
+
+func TestCSSColorForKey(t *testing.T) {
+	// Verify all named constants have entries
+	keys := []enum.EnumKey{ColorRed, ColorBlue, ColorGreen, ColorYellow, ColorBlack, ColorWhite, ColorOrange, ColorPurple, ColorPink, ColorBrown, ColorCyan, ColorGray}
+	for _, key := range keys {
+		css, ok := CSSColorForKey[key]
+		assert.For(t, "key", key).ThatActual(ok).IsTrue()
+		assert.For(t, "key", key).ThatActual(len(css) > 0).IsTrue()
+	}
+
+	// Verify a non-existent key returns false
+	_, ok := CSSColorForKey[999]
+	assert.For(t, "missing key").ThatActual(ok).IsFalse()
+}
+
 func TestLocationBehavior(t *testing.T) {
 	var b interface{}
 	b = &LocationBehavior{}

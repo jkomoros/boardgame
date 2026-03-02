@@ -56,12 +56,10 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 }
 
 func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
-
+	result := g.GameDelegate.ComputedPlayerProperties(player)
 	p := player.(*playerState)
-
-	return boardgame.PropertyCollection{
-		"HandValue": p.HandValue(),
-	}
+	result["HandValue"] = p.HandValue()
+	return result
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {

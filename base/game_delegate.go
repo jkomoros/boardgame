@@ -359,14 +359,52 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 
 }
 
-// ComputedGlobalProperties returns nil.
-func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+// CustomPlayerOrder returns the custom player order from the gameState if it
+// implements moves/interfaces.PlayerOrderer (e.g. by embedding
+// behaviors.PlayerOrderBehavior). Returns nil otherwise, meaning default
+// sequential order.
+func (g *GameDelegate) CustomPlayerOrder(state boardgame.ImmutableState) []boardgame.PlayerIndex {
+	if orderer, ok := state.ImmutableGameState().(interfaces.PlayerOrderer); ok {
+		return orderer.PlayerOrder()
+	}
 	return nil
 }
 
-// ComputedPlayerProperties returns nil.
+// ComputedGlobalProperties returns framework defaults. Currently returns
+// "PlayerOrder" ([]int) when a PlayerOrderBehavior is embedded in GameState.
+// Override and call super to add game-specific properties.
+//
+// MIGRATION NOTE: This method now returns non-nil defaults. If your game
+// overrides ComputedGlobalProperties, you must call
+// g.GameDelegate.ComputedGlobalProperties(state) and merge your properties
+// into the result, or the framework's "PlayerOrder" property will be lost.
+func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+	if order := g.Manager().Delegate().CustomPlayerOrder(state); order != nil {
+		intOrder := make([]int, len(order))
+		for i, idx := range order {
+			intOrder[i] = int(idx)
+		}
+		return boardgame.PropertyCollection{
+			"PlayerOrder": intOrder,
+		}
+	}
+	return boardgame.PropertyCollection{}
+}
+
+// ComputedPlayerProperties returns framework defaults: "Color" (CSS color
+// string from the player's Color enum or palette fallback) and "MayBeActive".
+// Override and call super to add game-specific properties.
+//
+// MIGRATION NOTE: This method now returns non-nil defaults. If your game
+// overrides ComputedPlayerProperties, you must call
+// g.GameDelegate.ComputedPlayerProperties(player) and merge your properties
+// into the result, or the framework's "Color" and "MayBeActive" properties
+// will be lost.
 func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
-	return nil
+	return boardgame.PropertyCollection{
+		"Color":       behaviors.CSSColorForPlayer(player),
+		"MayBeActive": g.Manager().Delegate().PlayerMayBeActive(player),
+	}
 }
 
 // BeginSetUp does not do anything and returns nil.

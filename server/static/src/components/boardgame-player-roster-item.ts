@@ -54,6 +54,11 @@ export class BoardgamePlayerRosterItem extends LitElement {
       filter: saturate(0.5) brightness(1.5) blur(1px);
     }
 
+    .inactive {
+      opacity: 0.4;
+      filter: grayscale(0.6);
+    }
+
     strong.chip {
       font-size: 12px;
       font-weight: 400;
@@ -140,6 +145,19 @@ export class BoardgamePlayerRosterItem extends LitElement {
   @property({ type: String })
   chipColor = '';
 
+  // Framework-computed color from ComputedPlayerProperties.
+  @property({ type: String })
+  computedColor = '';
+
+  // Whether this player may be active (from ComputedPlayerProperties).
+  @property({ type: Boolean })
+  mayBeActive = true;
+
+  // Priority: chipColor (game renderer) > computedColor (framework) > '' (chip hash fallback)
+  private get _effectiveColor(): string {
+    return this.chipColor || this.computedColor || '';
+  }
+
   private nameOrNobody(displayName: string): string {
     return displayName ? displayName : "Nobody";
   }
@@ -166,6 +184,8 @@ export class BoardgamePlayerRosterItem extends LitElement {
   }
 
   private playerDescription(isEmpty: boolean, isAgent: boolean, index: number, viewingAsPlayer: number): string {
+    if (!this.mayBeActive && isEmpty) return "Waiting to be seated";
+    if (!this.mayBeActive && !isEmpty) return "Sitting out";
     if (isEmpty) return "No one";
     if (isAgent) return "Robot";
     if (index === viewingAsPlayer) return "You";
@@ -180,6 +200,7 @@ export class BoardgamePlayerRosterItem extends LitElement {
     winner: boolean
   ): string {
     const result: string[] = [];
+    if (!this.mayBeActive) result.push("inactive");
     if (finished) result.push(winner ? "winner" : "loser");
     if (index === viewingAsPlayer) result.push("viewing");
     // AnyPlayerIndex (-3) means all players are "current" (simultaneous phase)
@@ -200,11 +221,12 @@ export class BoardgamePlayerRosterItem extends LitElement {
           <boardgame-player-chip
             .displayName="${this.displayName}"
             ?is-agent="${this.isAgent}"
-            .photoUrl="${this.photoUrl}">
+            .photoUrl="${this.photoUrl}"
+            .color="${this._effectiveColor}">
           </boardgame-player-chip>
           <strong
             class="chip"
-            style="${this._styleForChip(this.chipColor, this.finished, this.winner)}">
+            style="${this._styleForChip(this._effectiveColor, this.finished, this.winner)}">
             ${this._textForChip(this.chipText, this.playerIndex, this.finished, this.winner)}
           </strong>
         </div>

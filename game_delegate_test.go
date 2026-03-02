@@ -218,6 +218,11 @@ func (d *defaultGameDelegate) ComputedPlayerProperties(player ImmutableSubState)
 	return nil
 }
 
+// CustomPlayerOrder returns nil (default sequential order).
+func (d *defaultGameDelegate) CustomPlayerOrder(state ImmutableState) []PlayerIndex {
+	return nil
+}
+
 // BeginSetUp does not do anything and returns nil.
 func (d *defaultGameDelegate) BeginSetUp(state State, variant Variant) error {
 	//Don't need to do anything by default
@@ -405,6 +410,8 @@ type testGameDelegate struct {
 	//if this is higher than 0, then will craete this many extra comoponents
 	extraComponentsToCreate int
 	moveInstaller           func(manager *GameManager) []MoveConfig
+	customPlayerOrder       []PlayerIndex
+	inactivePlayers         map[PlayerIndex]bool
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -517,6 +524,10 @@ func (t *testGameDelegate) ComputedPlayerProperties(player ImmutableSubState) Pr
 	}
 }
 
+func (t *testGameDelegate) CustomPlayerOrder(state ImmutableState) []PlayerIndex {
+	return t.customPlayerOrder
+}
+
 func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState {
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
@@ -561,6 +572,9 @@ func (t *testGameDelegate) MaxNumPlayers() int {
 }
 
 func (t *testGameDelegate) PlayerMayBeActive(player ImmutableSubState) bool {
+	if t.inactivePlayers != nil {
+		return !t.inactivePlayers[player.StatePropertyRef().PlayerIndex]
+	}
 	return true
 }
 
@@ -645,5 +659,48 @@ func TestTestGameDelegate(t *testing.T) {
 
 	if manager.Delegate().Name() != testGameName {
 		t.Error("Manager.Name() was not overridden")
+	}
+}
+
+func TestPropertyCollectionCopy(t *testing.T) {
+	original := PropertyCollection{
+		"a": 1,
+		"b": "hello",
+		"c": true,
+	}
+
+	copied := original.Copy()
+
+	if len(copied) != len(original) {
+		t.Errorf("Copy() returned %d items, want %d", len(copied), len(original))
+	}
+
+	for key, val := range original {
+		if copied[key] != val {
+			t.Errorf("Copy()[%q] = %v, want %v", key, copied[key], val)
+		}
+	}
+
+	// Verify it's a separate map (mutations don't propagate)
+	copied["d"] = "new"
+	if _, ok := original["d"]; ok {
+		t.Error("Mutating copy affected original")
+	}
+
+	// Nil PropertyCollection returns empty (not nil)
+	var nilPC PropertyCollection
+	nilCopy := nilPC.Copy()
+	if nilCopy == nil {
+		t.Error("Copy() of nil PropertyCollection returned nil, want empty map")
+	}
+	if len(nilCopy) != 0 {
+		t.Errorf("Copy() of nil PropertyCollection returned %d items, want 0", len(nilCopy))
+	}
+
+	// Empty PropertyCollection returns empty
+	emptyPC := PropertyCollection{}
+	emptyCopy := emptyPC.Copy()
+	if len(emptyCopy) != 0 {
+		t.Errorf("Copy() of empty PropertyCollection returned %d items, want 0", len(emptyCopy))
 	}
 }

@@ -17,8 +17,9 @@ export interface RawGameState {
   Game: RawPlayerState;
   /** Per-player states */
   Players: RawPlayerState[];
-  /** Computed values (optional, may include computed player states) */
+  /** Computed values (optional, may include computed global and player states) */
   Computed?: {
+    Global?: Record<string, any>;
     Players?: any[];
   };
   /** Component values indexed by deck name and index */

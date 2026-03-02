@@ -32,11 +32,15 @@ export class BoardgamePlayerChip extends LitElement {
   @property({ type: Boolean })
   isAgent = false;
 
+  // If set, overrides the hash-based background color with this CSS color.
+  @property({ type: String })
+  color = '';
+
   @query('#chip')
   private chip!: HTMLImageElement;
 
   protected updated(changedProperties: Map<string, any>): void {
-    if (changedProperties.has('displayName')) {
+    if (changedProperties.has('displayName') || changedProperties.has('color')) {
       this._updateBackgroundColor();
     }
   }
@@ -49,7 +53,9 @@ export class BoardgamePlayerChip extends LitElement {
   private _updateBackgroundColor(): void {
     let result = 'hsl(0, 0%, 90%)';
 
-    if (this.displayName) {
+    if (this.color) {
+      result = this.color;
+    } else if (this.displayName) {
       const hash = this._hashString(this.displayName);
       // Hash is between Number.MIN_VALUE and Number.MAX_VALUE, but needs to
       // be between 0 and 360

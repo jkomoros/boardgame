@@ -213,6 +213,14 @@ type FreeMovePredicate interface {
 	IsFreeMove(playerState boardgame.ImmutableSubState, targetSpaceIndex enum.ImmutableVal) bool
 }
 
+// PlayerOrderer is implemented by gameStates that want to define a custom
+// player order. When implemented, [boardgame.PlayerIndex.Next] and
+// [boardgame.PlayerIndex.Previous] will follow the custom order instead of
+// sequential order. [behaviors.PlayerOrderBehavior] satisfies this interface.
+type PlayerOrderer interface {
+	PlayerOrder() []boardgame.PlayerIndex
+}
+
 // FreeMoveApplier is optionally implemented by moves that embed [moves.MoveOnGraph].
 // When a free move is made, ApplyFreeMove is called to handle game-specific
 // cleanup (e.g., resetting a card-based MoveToRoom value).

@@ -249,6 +249,77 @@ export const selectTimerExpandedGameState = createSelector(
 export const selectExpandedGameState = selectExpandedGameStateWithoutTimers;
 
 /**
+ * Returns a wrapper that deduplicates array results by shallow comparison.
+ * Prevents unnecessary re-renders when the array contents haven't changed
+ * but createSelector returns a new reference due to input object identity.
+ */
+function stableArray<T>(fn: (state: any) => T[]): (state: any) => T[] {
+    let prev: T[] = [];
+    return (state: any): T[] => {
+        const next = fn(state);
+        if (next.length === prev.length && next.every((v, i) => v === prev[i])) {
+            return prev;
+        }
+        prev = next;
+        return next;
+    };
+}
+
+function stableNullableArray<T>(fn: (state: any) => T[] | null): (state: any) => T[] | null {
+    let prev: T[] | null = null;
+    return (state: any): T[] | null => {
+        const next = fn(state);
+        if (next === null && prev === null) return prev;
+        if (next === null || prev === null) { prev = next; return next; }
+        if (next.length === prev.length && next.every((v, i) => v === prev[i])) {
+            return prev;
+        }
+        prev = next;
+        return next;
+    };
+}
+
+/**
+ * Selector for player colors from computed properties.
+ * Returns an array of CSS color strings, one per player.
+ * Uses stable reference to avoid unnecessary re-renders.
+ */
+const _selectPlayerColors = createSelector(
+    [selectExpandedGameStateWithoutTimers],
+    (state): string[] => state?.Players?.map(
+        (p: any) => p?.Computed?.Color || ''
+    ) || []
+);
+export const selectPlayerColors = stableArray(_selectPlayerColors);
+
+/**
+ * Selector for player activity from computed properties.
+ * Returns an array of booleans, true if the player may be active.
+ * Uses stable reference to avoid unnecessary re-renders.
+ */
+const _selectPlayerActivity = createSelector(
+    [selectExpandedGameStateWithoutTimers],
+    (state): boolean[] => state?.Players?.map(
+        (p: any) => p?.Computed?.MayBeActive !== false
+    ) || []
+);
+export const selectPlayerActivity = stableArray(_selectPlayerActivity);
+
+/**
+ * Selector for custom player order from global computed properties.
+ * Returns an array of player indices in display order, or null if default.
+ * Uses stable reference to avoid unnecessary re-renders.
+ */
+const _selectPlayerOrder = createSelector(
+    [selectExpandedGameStateWithoutTimers],
+    (state): number[] | null => {
+        const order = state?.Game?.Computed?.PlayerOrder;
+        return (order && Array.isArray(order)) ? order : null;
+    }
+);
+export const selectPlayerOrder = stableNullableArray(_selectPlayerOrder);
+
+/**
  * Pure function to expand a leaf state object.
  * Walks properties and expands stacks and timers inline.
  *
@@ -278,12 +349,17 @@ const expandLeafState = (
         }
     });
 
-    // Copy in Player computed state if it exists
+    // Copy in computed state if it exists
     const pathToLeaf = getPathToLeaf(wholeState, leafState);
     if (pathToLeaf?.length === 2 && pathToLeaf[0] === 'Players') {
         const playerIndex = pathToLeaf[1];
         if (wholeState.Computed?.Players?.[playerIndex]) {
             result.Computed = wholeState.Computed.Players[playerIndex];
+        }
+    }
+    if (pathToLeaf?.length === 1 && pathToLeaf[0] === 'Game') {
+        if (wholeState.Computed?.Global) {
+            result.Computed = wholeState.Computed.Global;
         }
     }
 
@@ -381,7 +457,7 @@ const componentForDeckAndIndex = (
  * Helper to determine the path to a leaf state within the whole state.
  * Used to identify Player states for Computed property copying.
  */
-const getPathToLeaf = (wholeState: any, leafState: any): string[] | null => {
+const getPathToLeaf = (wholeState: any, leafState: any): (string | number)[] | null => {
     // Check if it's the Game
     if (wholeState.Game === leafState) {
         return ['Game'];

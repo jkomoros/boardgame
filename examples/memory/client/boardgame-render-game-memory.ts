@@ -6,6 +6,7 @@ import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-fading-text.js';
 import '../../src/components/boardgame-deck-defaults.js';
+import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 
@@ -34,6 +35,13 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
         display: flex;
         flex-direction: row;
         justify-content: space-around;
+      }
+
+      .discard-pile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
       }
     `
   ];
@@ -79,20 +87,26 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
         </boardgame-fading-text>
       </div>
       <div class="discards">
-        <boardgame-component-stack
-          layout="stack"
-          .stack="${this.state?.Players?.[0]?.WonCards}"
-          messy
-          .componentAttrs=${{ disabled: true }}>
-        </boardgame-component-stack>
+        <div class="discard-pile">
+          <boardgame-player-badge player-index="0" compact></boardgame-player-badge>
+          <boardgame-component-stack
+            layout="stack"
+            .stack="${this.state?.Players?.[0]?.WonCards}"
+            messy
+            .componentAttrs=${{ disabled: true }}>
+          </boardgame-component-stack>
+        </div>
         <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
         <boardgame-card spacer></boardgame-card>
-        <boardgame-component-stack
-          layout="stack"
-          messy
-          .stack="${this.state?.Players?.[1]?.WonCards}"
-          .componentAttrs=${{ disabled: true }}>
-        </boardgame-component-stack>
+        <div class="discard-pile">
+          <boardgame-player-badge player-index="1" compact></boardgame-player-badge>
+          <boardgame-component-stack
+            layout="stack"
+            messy
+            .stack="${this.state?.Players?.[1]?.WonCards}"
+            .componentAttrs=${{ disabled: true }}>
+          </boardgame-component-stack>
+        </div>
       </div>
       <md-outlined-button
         id="hide"
