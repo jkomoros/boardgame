@@ -504,7 +504,7 @@ func (p PlayerIndex) nextInOrder(state ImmutableState, order []PlayerIndex) Play
 		}
 	}
 	if pos == -1 {
-		// Not found in order; fall back to sequential
+		// Not found in order; return current index unchanged
 		return p
 	}
 	n := len(order)
@@ -519,7 +519,7 @@ func (p PlayerIndex) nextInOrder(state ImmutableState, order []PlayerIndex) Play
 			return candidate
 		}
 	}
-	// All inactive, return original
+	// All inactive; return current index unchanged
 	state.Manager().Logger().Debugln("There were no valid players in custom order, leaving Next at same value")
 	return p
 }
@@ -569,6 +569,7 @@ func (p PlayerIndex) previousInOrder(state ImmutableState, order []PlayerIndex) 
 		}
 	}
 	if pos == -1 {
+		// Not found in order; return current index unchanged
 		return p
 	}
 	n := len(order)
@@ -583,6 +584,7 @@ func (p PlayerIndex) previousInOrder(state ImmutableState, order []PlayerIndex) 
 			return candidate
 		}
 	}
+	// All inactive; return current index unchanged
 	state.Manager().Logger().Debugln("There were no valid players in custom order, leaving Previous at same value")
 	return p
 }

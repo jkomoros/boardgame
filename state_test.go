@@ -314,10 +314,44 @@ func TestPlayerIndexNextPreviousCustomOrder(t *testing.T) {
 	delegate.customPlayerOrder = []PlayerIndex{0, 1} // only 2 entries for 3 players
 	result := PlayerIndex(2).Next(state)
 	// Player 2 not in order, should return self
-	assert.For(t, "not in order").ThatActual(result).Equals(PlayerIndex(2))
+	assert.For(t, "not in order next").ThatActual(result).Equals(PlayerIndex(2))
+
+	result = PlayerIndex(2).Previous(state)
+	assert.For(t, "not in order prev").ThatActual(result).Equals(PlayerIndex(2))
+
+	// Test: skipping inactive players in custom order
+	delegate.customPlayerOrder = []PlayerIndex{2, 0, 1}
+	delegate.inactivePlayers = map[PlayerIndex]bool{0: true} // player 0 is inactive
+
+	// Next from 2 should skip inactive 0 and land on 1
+	result = PlayerIndex(2).Next(state)
+	assert.For(t, "skip inactive next").ThatActual(result).Equals(PlayerIndex(1))
+
+	// Previous from 1 should skip inactive 0 and land on 2
+	result = PlayerIndex(1).Previous(state)
+	assert.For(t, "skip inactive prev").ThatActual(result).Equals(PlayerIndex(2))
+
+	// Test: multiple inactive players, only one active
+	delegate.inactivePlayers = map[PlayerIndex]bool{0: true, 1: true} // only player 2 active
+
+	result = PlayerIndex(2).Next(state)
+	assert.For(t, "only one active next").ThatActual(result).Equals(PlayerIndex(2))
+
+	result = PlayerIndex(2).Previous(state)
+	assert.For(t, "only one active prev").ThatActual(result).Equals(PlayerIndex(2))
+
+	// Test: all players inactive returns self
+	delegate.inactivePlayers = map[PlayerIndex]bool{0: true, 1: true, 2: true}
+
+	result = PlayerIndex(0).Next(state)
+	assert.For(t, "all inactive next").ThatActual(result).Equals(PlayerIndex(0))
+
+	result = PlayerIndex(0).Previous(state)
+	assert.For(t, "all inactive prev").ThatActual(result).Equals(PlayerIndex(0))
 
 	// Reset for clean state
 	delegate.customPlayerOrder = nil
+	delegate.inactivePlayers = nil
 }
 
 func TestPlayerIndexValid(t *testing.T) {

@@ -85,7 +85,20 @@ export class BoardgamePlayerBadge extends connect(store)(LitElement) {
   }
 
   private get _color(): string {
-    return this._playerColors[this.playerIndex] || '#757575';
+    if (this._playerColors[this.playerIndex]) {
+      return this._playerColors[this.playerIndex];
+    }
+    // Fall back to hash-based HSL color, consistent with boardgame-player-chip
+    const name = this._playerInfo?.DisplayName || '';
+    if (name) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash << 5) - hash) + name.charCodeAt(i);
+        hash |= 0;
+      }
+      return `hsl(${hash % 360}, 100%, 50%)`;
+    }
+    return '#757575';
   }
 
   private get _initial(): string {
@@ -93,16 +106,22 @@ export class BoardgamePlayerBadge extends connect(store)(LitElement) {
     return name ? name[0] : String(this.playerIndex);
   }
 
+  private get _displayName(): string {
+    return this._playerInfo?.DisplayName || `Player ${this.playerIndex}`;
+  }
+
   render() {
     const sizeClass = this.compact ? 'compact' : 'full';
     return html`
       <span
         class="avatar ${sizeClass}"
-        style="background-color: ${this._color}">
+        style="background-color: ${this._color}"
+        role="img"
+        aria-label="${this._displayName}">
         ${this._initial}
       </span>
       ${this.compact ? '' : html`
-        <span class="name">${this._playerInfo?.DisplayName || `Player ${this.playerIndex}`}</span>
+        <span class="name">${this._displayName}</span>
       `}
     `;
   }

@@ -411,6 +411,7 @@ type testGameDelegate struct {
 	extraComponentsToCreate int
 	moveInstaller           func(manager *GameManager) []MoveConfig
 	customPlayerOrder       []PlayerIndex
+	inactivePlayers         map[PlayerIndex]bool
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -571,6 +572,9 @@ func (t *testGameDelegate) MaxNumPlayers() int {
 }
 
 func (t *testGameDelegate) PlayerMayBeActive(player ImmutableSubState) bool {
+	if t.inactivePlayers != nil {
+		return !t.inactivePlayers[player.StatePropertyRef().PlayerIndex]
+	}
 	return true
 }
 
@@ -681,5 +685,22 @@ func TestPropertyCollectionCopy(t *testing.T) {
 	copied["d"] = "new"
 	if _, ok := original["d"]; ok {
 		t.Error("Mutating copy affected original")
+	}
+
+	// Nil PropertyCollection returns empty (not nil)
+	var nilPC PropertyCollection
+	nilCopy := nilPC.Copy()
+	if nilCopy == nil {
+		t.Error("Copy() of nil PropertyCollection returned nil, want empty map")
+	}
+	if len(nilCopy) != 0 {
+		t.Errorf("Copy() of nil PropertyCollection returned %d items, want 0", len(nilCopy))
+	}
+
+	// Empty PropertyCollection returns empty
+	emptyPC := PropertyCollection{}
+	emptyCopy := emptyPC.Copy()
+	if len(emptyCopy) != 0 {
+		t.Errorf("Copy() of empty PropertyCollection returned %d items, want 0", len(emptyCopy))
 	}
 }

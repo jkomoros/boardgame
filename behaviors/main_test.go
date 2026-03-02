@@ -81,7 +81,7 @@ func TestPlayerOrderBehavior(t *testing.T) {
 
 	// ReversePlayerOrder also fails when not connected (requires container)
 	// Note: can't fully test Set/Reverse/PlayerOrder validation without a
-	// real game state, which requires the moves package. See moves/game_test.go.
+	// real game state, which requires the moves package.
 }
 
 func TestDefaultPlayerColor(t *testing.T) {

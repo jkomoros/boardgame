@@ -149,10 +149,19 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   private readonly OBSERVER_PLAYER_INDEX = -1;
   private readonly ADMIN_PLAYER_INDEX = -2;
 
-  // Returns the order in which players should be displayed.
+  // Memoized ordered indices, recomputed only when inputs change.
+  @property({ type: Array, attribute: false })
+  private _orderedIndices: number[] = [];
+
+  protected willUpdate(changedProperties: Map<string, unknown>): void {
+    if (changedProperties.has('playersInfo') || changedProperties.has('playerOrder')) {
+      this._orderedIndices = this._computeOrderedIndices();
+    }
+  }
+
   // Validates that playerOrder contains in-range, unique indices; falls back to
   // default sequential order on any invalid input.
-  get _orderedIndices(): number[] {
+  private _computeOrderedIndices(): number[] {
     const n = this.playersInfo.length;
     if (this.playerOrder && this.playerOrder.length === n) {
       const seen = new Set<number>();

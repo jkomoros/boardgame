@@ -3,7 +3,6 @@ package behaviors
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/jkomoros/boardgame"
 )
@@ -84,8 +83,9 @@ func (p *PlayerOrderBehavior) buildAndValidateOrder() []boardgame.PlayerIndex {
 	}
 
 	numPlayers := len(p.container.State().ImmutablePlayerStates())
+	logger := p.container.State().Manager().Logger()
 	if len(p.OrderSlice) != numPlayers {
-		log.Printf("WARNING: PlayerOrderBehavior.OrderSlice length %d does not match number of players %d; using default order", len(p.OrderSlice), numPlayers)
+		logger.Warnf("PlayerOrderBehavior.OrderSlice length %d does not match number of players %d; using default order", len(p.OrderSlice), numPlayers)
 		return nil
 	}
 
@@ -93,11 +93,11 @@ func (p *PlayerOrderBehavior) buildAndValidateOrder() []boardgame.PlayerIndex {
 	result := make([]boardgame.PlayerIndex, len(p.OrderSlice))
 	for i, v := range p.OrderSlice {
 		if v < 0 || v >= numPlayers {
-			log.Printf("WARNING: PlayerOrderBehavior.OrderSlice contains out-of-range index %d; using default order", v)
+			logger.Warnf("PlayerOrderBehavior.OrderSlice contains out-of-range index %d; using default order", v)
 			return nil
 		}
 		if seen[v] {
-			log.Printf("WARNING: PlayerOrderBehavior.OrderSlice contains duplicate index %d; using default order", v)
+			logger.Warnf("PlayerOrderBehavior.OrderSlice contains duplicate index %d; using default order", v)
 			return nil
 		}
 		seen[v] = true
