@@ -8,7 +8,7 @@ import {
   selectPlayerColors,
 } from '../selectors.js';
 
-import type { RootState, PlayerInfo } from '../types/store';
+import type { RootState } from '../types/store';
 
 /**
  * An inline player identity badge for use in game renderers.
@@ -70,7 +70,7 @@ export class BoardgamePlayerBadge extends connect(store)(LitElement) {
   compact = false;
 
   @property({ type: Array, attribute: false })
-  private _playersInfo: PlayerInfo[] = [];
+  private _playersInfo: any[] = [];
 
   @property({ type: Array, attribute: false })
   private _playerColors: string[] = [];
@@ -80,7 +80,7 @@ export class BoardgamePlayerBadge extends connect(store)(LitElement) {
     this._playerColors = selectPlayerColors(state);
   }
 
-  private get _playerInfo(): PlayerInfo | null {
+  private get _playerInfo(): any | null {
     return this._playersInfo[this.playerIndex] || null;
   }
 
