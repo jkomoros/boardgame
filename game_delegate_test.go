@@ -218,6 +218,11 @@ func (d *defaultGameDelegate) ComputedPlayerProperties(player ImmutableSubState)
 	return nil
 }
 
+// CustomPlayerOrder returns nil (default sequential order).
+func (d *defaultGameDelegate) CustomPlayerOrder(state ImmutableState) []PlayerIndex {
+	return nil
+}
+
 // BeginSetUp does not do anything and returns nil.
 func (d *defaultGameDelegate) BeginSetUp(state State, variant Variant) error {
 	//Don't need to do anything by default
