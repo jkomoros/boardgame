@@ -3,6 +3,7 @@ package behaviors
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/jkomoros/boardgame"
 )
@@ -23,8 +24,13 @@ Example:
 	}
 */
 type PlayerOrderBehavior struct {
-	container  boardgame.SubState
-	OrderSlice []int
+	container boardgame.SubState
+	// OrderSlice is the underlying storage for the custom player order.
+	// Exported for codegen serialization only. Do NOT modify directly; use
+	// SetPlayerOrder instead, which validates the permutation.
+	OrderSlice  []int
+	cachedOrder []boardgame.PlayerIndex
+	cacheBuilt  bool
 }
 
 // ConnectBehavior stores a reference to the container.
@@ -42,12 +48,59 @@ func (p *PlayerOrderBehavior) ValidConfiguration(example boardgame.State) error 
 
 // PlayerOrder returns the custom player order, or nil if not set (meaning
 // default sequential). This satisfies moves/interfaces.PlayerOrderer.
+// The result is validated on first call and cached; subsequent calls return
+// a copy of the cached result until SetPlayerOrder is called.
 func (p *PlayerOrderBehavior) PlayerOrder() []boardgame.PlayerIndex {
 	if len(p.OrderSlice) == 0 {
 		return nil
 	}
+
+	if !p.cacheBuilt {
+		p.cachedOrder = p.buildAndValidateOrder()
+		p.cacheBuilt = true
+	}
+
+	if p.cachedOrder == nil {
+		return nil
+	}
+
+	// Return a copy so callers can't corrupt the cache.
+	result := make([]boardgame.PlayerIndex, len(p.cachedOrder))
+	copy(result, p.cachedOrder)
+	return result
+}
+
+// buildAndValidateOrder converts OrderSlice to []PlayerIndex and validates
+// that values are in-range and unique. Returns nil (meaning default sequential
+// order) if validation fails.
+func (p *PlayerOrderBehavior) buildAndValidateOrder() []boardgame.PlayerIndex {
+	if p.container == nil {
+		// Not connected yet; convert without validation.
+		result := make([]boardgame.PlayerIndex, len(p.OrderSlice))
+		for i, v := range p.OrderSlice {
+			result[i] = boardgame.PlayerIndex(v)
+		}
+		return result
+	}
+
+	numPlayers := len(p.container.State().ImmutablePlayerStates())
+	if len(p.OrderSlice) != numPlayers {
+		log.Printf("WARNING: PlayerOrderBehavior.OrderSlice length %d does not match number of players %d; using default order", len(p.OrderSlice), numPlayers)
+		return nil
+	}
+
+	seen := make(map[int]bool, numPlayers)
 	result := make([]boardgame.PlayerIndex, len(p.OrderSlice))
 	for i, v := range p.OrderSlice {
+		if v < 0 || v >= numPlayers {
+			log.Printf("WARNING: PlayerOrderBehavior.OrderSlice contains out-of-range index %d; using default order", v)
+			return nil
+		}
+		if seen[v] {
+			log.Printf("WARNING: PlayerOrderBehavior.OrderSlice contains duplicate index %d; using default order", v)
+			return nil
+		}
+		seen[v] = true
 		result[i] = boardgame.PlayerIndex(v)
 	}
 	return result
@@ -77,16 +130,19 @@ func (p *PlayerOrderBehavior) SetPlayerOrder(order []boardgame.PlayerIndex) erro
 	for i, idx := range order {
 		p.OrderSlice[i] = int(idx)
 	}
+	// Invalidate cache
+	p.cachedOrder = nil
+	p.cacheBuilt = false
 	return nil
 }
 
 // ReversePlayerOrder is a convenience that sets reverse-sequential order.
-func (p *PlayerOrderBehavior) ReversePlayerOrder(state boardgame.ImmutableState) {
+// Returns the error from SetPlayerOrder (should be nil for valid state).
+func (p *PlayerOrderBehavior) ReversePlayerOrder(state boardgame.ImmutableState) error {
 	n := len(state.ImmutablePlayerStates())
 	order := make([]boardgame.PlayerIndex, n)
 	for i := 0; i < n; i++ {
 		order[i] = boardgame.PlayerIndex(n - 1 - i)
 	}
-	// This should never error since it's a valid permutation
-	p.SetPlayerOrder(order)
+	return p.SetPlayerOrder(order)
 }

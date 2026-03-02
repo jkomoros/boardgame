@@ -440,27 +440,25 @@ func (g *gameDelegate) Variants() boardgame.VariantConfig {
 {{end}}
 {{if .EnableExampleComputedProperties}}
 func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
-	
-	//ComputedProperties are mostly useful when a given state object's
-	//computed property is useful clientside, too.
+
+	//Start with the base properties (e.g. "PlayerOrder") and add your own.
+	result := g.GameDelegate.ComputedGlobalProperties(state)
 
 	game := state.ImmutableGameState().(*gameState)
 
-	return boardgame.PropertyCollection{
-		"CardsDone": game.CardsDone(),
-	}
+	result["CardsDone"] = game.CardsDone()
+	return result
 }
 
 func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 
-	//ComputedProperties are mostly useful when a given state object's
-	//computed property is useful clientside, too.
+	//Start with the base properties ("Color", "MayBeActive") and add your own.
+	result := g.GameDelegate.ComputedPlayerProperties(player)
 
 	p := player.(*playerState)
 
-	return boardgame.PropertyCollection{
-		"GameScore": p.GameScore(),
-	}
+	result["GameScore"] = p.GameScore()
+	return result
 }
 
 {{end}}

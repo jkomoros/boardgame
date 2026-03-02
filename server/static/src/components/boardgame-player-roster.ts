@@ -150,11 +150,26 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   private readonly ADMIN_PLAYER_INDEX = -2;
 
   // Returns the order in which players should be displayed.
+  // Validates that playerOrder contains in-range, unique indices; falls back to
+  // default sequential order on any invalid input.
   get _orderedIndices(): number[] {
-    if (this.playerOrder && this.playerOrder.length === this.playersInfo.length) {
-      return this.playerOrder;
+    const n = this.playersInfo.length;
+    if (this.playerOrder && this.playerOrder.length === n) {
+      const seen = new Set<number>();
+      let valid = true;
+      for (const idx of this.playerOrder) {
+        if (idx < 0 || idx >= n || seen.has(idx)) {
+          valid = false;
+          break;
+        }
+        seen.add(idx);
+      }
+      if (valid) {
+        return this.playerOrder;
+      }
+      console.warn('boardgame-player-roster: invalid playerOrder (out-of-range or duplicate indices), falling back to default order', this.playerOrder);
     }
-    return Array.from({ length: this.playersInfo.length }, (_, i) => i);
+    return Array.from({ length: n }, (_, i) => i);
   }
 
   private _lastError: string | null = null;

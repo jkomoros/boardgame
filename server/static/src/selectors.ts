@@ -420,7 +420,7 @@ const componentForDeckAndIndex = (
  * Helper to determine the path to a leaf state within the whole state.
  * Used to identify Player states for Computed property copying.
  */
-const getPathToLeaf = (wholeState: any, leafState: any): string[] | null => {
+const getPathToLeaf = (wholeState: any, leafState: any): (string | number)[] | null => {
     // Check if it's the Game
     if (wholeState.Game === leafState) {
         return ['Game'];

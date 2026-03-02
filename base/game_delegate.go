@@ -383,7 +383,7 @@ func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 			"PlayerOrder": intOrder,
 		}
 	}
-	return nil
+	return boardgame.PropertyCollection{}
 }
 
 // ComputedPlayerProperties returns framework defaults: "Color" (CSS color

@@ -652,3 +652,29 @@ func TestTestGameDelegate(t *testing.T) {
 		t.Error("Manager.Name() was not overridden")
 	}
 }
+
+func TestPropertyCollectionCopy(t *testing.T) {
+	original := PropertyCollection{
+		"a": 1,
+		"b": "hello",
+		"c": true,
+	}
+
+	copied := original.Copy()
+
+	if len(copied) != len(original) {
+		t.Errorf("Copy() returned %d items, want %d", len(copied), len(original))
+	}
+
+	for key, val := range original {
+		if copied[key] != val {
+			t.Errorf("Copy()[%q] = %v, want %v", key, copied[key], val)
+		}
+	}
+
+	// Verify it's a separate map (mutations don't propagate)
+	copied["d"] = "new"
+	if _, ok := original["d"]; ok {
+		t.Error("Mutating copy affected original")
+	}
+}

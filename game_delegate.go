@@ -289,10 +289,20 @@ type GameDelegate interface {
 	//behaviors.PlayerOrderBehavior on the gameState. Override for custom logic.
 	CustomPlayerOrder(state ImmutableState) []PlayerIndex
 
-	//If you have computed properties that you want to be included in your
-	//JSON (for example, for use clientside), export them here by creating a
-	//dictionary with their values.
+	//ComputedGlobalProperties returns extra properties to include in the
+	//JSON sent to the client under Computed.Global. base.GameDelegate
+	//provides a default that includes "PlayerOrder" when a
+	//PlayerOrderBehavior is embedded in GameState. To add game-specific
+	//properties, override this method, call the base implementation, and
+	//merge your properties into the returned PropertyCollection.
 	ComputedGlobalProperties(state ImmutableState) PropertyCollection
+
+	//ComputedPlayerProperties returns extra per-player properties included
+	//in the JSON sent to the client under Computed.Players[i].
+	//base.GameDelegate provides defaults: "Color" (CSS color string) and
+	//"MayBeActive" (bool). To add game-specific properties, override this
+	//method, call the base implementation, and merge your properties into
+	//the returned PropertyCollection.
 	ComputedPlayerProperties(player ImmutableSubState) PropertyCollection
 
 	//Diagram should return a basic debug rendering of state in multi-line
@@ -316,7 +326,7 @@ type PropertyCollection map[string]interface{}
 // Copy returns a shallow copy of PropertyCollection
 func (p PropertyCollection) Copy() PropertyCollection {
 	result := make(PropertyCollection, len(p))
-	for key, val := range result {
+	for key, val := range p {
 		result[key] = val
 	}
 	return result

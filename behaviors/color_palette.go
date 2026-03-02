@@ -24,6 +24,11 @@ const (
 )
 
 // CSSColorForKey maps each named color constant to its CSS color string.
+// Games must use the behaviors.Color* constants (ColorRed, ColorBlue, etc.)
+// as enum key values in their color enum definition for automatic lookup to
+// work. Codegen-generated enum keys that use a different iota base will not
+// match these constants; in that case, explicitly assign the behaviors
+// constants as values (e.g. `colorBlack = behaviors.ColorBlack`).
 var CSSColorForKey = map[enum.EnumKey]string{
 	ColorRed:    "#D32F2F",
 	ColorBlue:   "#1976D2",

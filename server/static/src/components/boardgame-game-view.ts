@@ -339,6 +339,12 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
     // Set CSS custom properties for player colors so game renderers can use them
     if (changedProps.has('_playerColors')) {
+      // Remove stale properties from previous game (e.g. switching from 6-player to 2-player)
+      const oldColors = changedProps.get('_playerColors') as string[] | undefined;
+      const oldLen = oldColors?.length ?? 0;
+      for (let i = this._playerColors.length; i < oldLen; i++) {
+        this.style.removeProperty(`--player-${i}-color`);
+      }
       this._playerColors.forEach((color, i) => {
         if (color) {
           this.style.setProperty(`--player-${i}-color`, color);
@@ -394,6 +400,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _resetState() {
+    // Clear stale CSS custom properties for player colors
+    for (let i = 0; i < this._playerColors.length; i++) {
+      this.style.removeProperty(`--player-${i}-color`);
+    }
     // Reset view state properties only
     // Computed properties (_currentState, _chest, etc.) are read from Redux selectors
     this.game = null;

@@ -508,8 +508,13 @@ func (p PlayerIndex) nextInOrder(state ImmutableState, order []PlayerIndex) Play
 		return p
 	}
 	n := len(order)
+	numPlayers := len(state.ImmutablePlayerStates())
 	for i := 1; i <= n; i++ {
 		candidate := order[(pos+i)%n]
+		if int(candidate) < 0 || int(candidate) >= numPlayers {
+			state.Manager().Logger().Warnln("Custom order contains out-of-range index", candidate)
+			return p
+		}
 		if state.Manager().Delegate().PlayerMayBeActive(state.ImmutablePlayerStates()[candidate]) {
 			return candidate
 		}
@@ -567,8 +572,13 @@ func (p PlayerIndex) previousInOrder(state ImmutableState, order []PlayerIndex) 
 		return p
 	}
 	n := len(order)
+	numPlayers := len(state.ImmutablePlayerStates())
 	for i := 1; i <= n; i++ {
 		candidate := order[(pos-i+n)%n]
+		if int(candidate) < 0 || int(candidate) >= numPlayers {
+			state.Manager().Logger().Warnln("Custom order contains out-of-range index", candidate)
+			return p
+		}
 		if state.Manager().Delegate().PlayerMayBeActive(state.ImmutablePlayerStates()[candidate]) {
 			return candidate
 		}
