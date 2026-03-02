@@ -12,16 +12,7 @@ class BoardgameRenderPlayerInfoTictactoe extends LitElement {
     return this._computeChipText(this.state, this.playerIndex);
   }
 
-  get chipColor(): string {
-    return this._computeChipColor(this.state, this.playerIndex);
-  }
-
-  private _computeChipColor(state: any, playerIndex: number): string {
-    if (state?.Players?.[playerIndex]?.TokenValue === 'X') {
-      return 'blue';
-    }
-    return 'red';
-  }
+  // chipColor intentionally not overridden - uses framework computed color
 
   private _computeChipText(state: any, playerIndex: number): string {
     return state?.Players?.[playerIndex]?.TokenValue || '';

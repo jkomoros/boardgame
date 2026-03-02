@@ -12,6 +12,12 @@ class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer {
       boardgame-token {
         --component-scale: 1.25;
       }
+      boardgame-token.player-0 {
+        color: var(--player-0-color, #424242);
+      }
+      boardgame-token.player-1 {
+        color: var(--player-1-color, #D32F2F);
+      }
     `
   ];
 
@@ -34,10 +40,10 @@ class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer {
     return html`
       <boardgame-board .rows="${this.size}" .cols="${this.size}">
         ${repeat(this._components, (item, index) => index, () => html`
-          <boardgame-token color="red"></boardgame-token>
+          <boardgame-token class="player-0"></boardgame-token>
         `)}
         ${repeat(this._components, (item, index) => index, () => html`
-          <boardgame-token color="black"></boardgame-token>
+          <boardgame-token class="player-1"></boardgame-token>
         `)}
       </boardgame-board>
     `;
