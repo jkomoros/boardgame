@@ -255,6 +255,71 @@ func TestPlayerIndexNextPrevious(t *testing.T) {
 	}
 }
 
+func TestPlayerIndexNextPreviousCustomOrder(t *testing.T) {
+	game := testGame(t, false, 3, nil, nil)
+	state := game.CurrentState()
+
+	delegate := game.Manager().Delegate().(*testGameDelegate)
+
+	// Custom order: 2, 0, 1 (reversed first player, shifted)
+	delegate.customPlayerOrder = []PlayerIndex{2, 0, 1}
+
+	tests := []struct {
+		description  string
+		p            PlayerIndex
+		expectedNext PlayerIndex
+		expectedPrev PlayerIndex
+	}{
+		{
+			"Player 2 is first in custom order, next is 0",
+			2,
+			0,
+			1,
+		},
+		{
+			"Player 0 is second in custom order, next is 1",
+			0,
+			1,
+			2,
+		},
+		{
+			"Player 1 is last in custom order, wraps to 2",
+			1,
+			2,
+			0,
+		},
+		{
+			"Special indices are unaffected by custom order",
+			AdminPlayerIndex,
+			AdminPlayerIndex,
+			AdminPlayerIndex,
+		},
+		{
+			"Observer is unaffected by custom order",
+			ObserverPlayerIndex,
+			ObserverPlayerIndex,
+			ObserverPlayerIndex,
+		},
+	}
+
+	for i, test := range tests {
+		result := test.p.Next(state)
+		assert.For(t, "custom next", i, test.description).ThatActual(result).Equals(test.expectedNext)
+
+		result = test.p.Previous(state)
+		assert.For(t, "custom prev", i, test.description).ThatActual(result).Equals(test.expectedPrev)
+	}
+
+	// Test: player not found in order falls back to same index
+	delegate.customPlayerOrder = []PlayerIndex{0, 1} // only 2 entries for 3 players
+	result := PlayerIndex(2).Next(state)
+	// Player 2 not in order, should return self
+	assert.For(t, "not in order").ThatActual(result).Equals(PlayerIndex(2))
+
+	// Reset for clean state
+	delegate.customPlayerOrder = nil
+}
+
 func TestPlayerIndexValid(t *testing.T) {
 
 	gameThreePlayers := testGame(t, false, 3, nil, nil)

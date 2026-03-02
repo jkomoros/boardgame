@@ -13,7 +13,7 @@ Offline dev mode allows you to develop and test the boardgame app without requir
 ## Quick Start
 
 ```bash
-cd /Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame
+# From the boardgame project root:
 
 # Kill any existing servers
 ps aux | grep "api/api" | grep -v grep | awk '{print $2}' | xargs kill 2>/dev/null

@@ -373,6 +373,11 @@ func (g *GameDelegate) CustomPlayerOrder(state boardgame.ImmutableState) []board
 // ComputedGlobalProperties returns framework defaults. Currently returns
 // "PlayerOrder" ([]int) when a PlayerOrderBehavior is embedded in GameState.
 // Override and call super to add game-specific properties.
+//
+// MIGRATION NOTE: This method now returns non-nil defaults. If your game
+// overrides ComputedGlobalProperties, you must call
+// g.GameDelegate.ComputedGlobalProperties(state) and merge your properties
+// into the result, or the framework's "PlayerOrder" property will be lost.
 func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
 	if order := g.Manager().Delegate().CustomPlayerOrder(state); order != nil {
 		intOrder := make([]int, len(order))
@@ -389,6 +394,12 @@ func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 // ComputedPlayerProperties returns framework defaults: "Color" (CSS color
 // string from the player's Color enum or palette fallback) and "MayBeActive".
 // Override and call super to add game-specific properties.
+//
+// MIGRATION NOTE: This method now returns non-nil defaults. If your game
+// overrides ComputedPlayerProperties, you must call
+// g.GameDelegate.ComputedPlayerProperties(player) and merge your properties
+// into the result, or the framework's "Color" and "MayBeActive" properties
+// will be lost.
 func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 	return boardgame.PropertyCollection{
 		"Color":       behaviors.CSSColorForPlayer(player),

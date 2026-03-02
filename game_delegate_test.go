@@ -410,6 +410,7 @@ type testGameDelegate struct {
 	//if this is higher than 0, then will craete this many extra comoponents
 	extraComponentsToCreate int
 	moveInstaller           func(manager *GameManager) []MoveConfig
+	customPlayerOrder       []PlayerIndex
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -520,6 +521,10 @@ func (t *testGameDelegate) ComputedPlayerProperties(player ImmutableSubState) Pr
 	return PropertyCollection{
 		"EffectiveMovesLeftThisTurn": effectiveMovesLeftThisTurn,
 	}
+}
+
+func (t *testGameDelegate) CustomPlayerOrder(state ImmutableState) []PlayerIndex {
+	return t.customPlayerOrder
 }
 
 func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState {
