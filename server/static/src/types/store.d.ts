@@ -205,10 +205,13 @@ export interface GameChest {
 /**
  * Expanded game state with all component references resolved.
  * State from server has component indices that get expanded to full objects.
+ *
+ * For type-safe access in game renderers, use the generated _types.ts
+ * in each game's client/ directory (via boardgame-util emit-types).
+ * See also FullGameState in types/boardgame-types.ts.
  */
 export interface ExpandedGameState {
   [key: string]: any;
-  // TODO: Define specific state structure based on game architecture
 }
 
 /**

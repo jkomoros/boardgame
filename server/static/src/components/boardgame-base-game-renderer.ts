@@ -1,13 +1,17 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { MoveLegalityInfo } from '../selectors.js';
+import type { FullGameState } from '../types/boardgame-types.js';
 
-export class BoardgameBaseGameRenderer extends LitElement {
+export class BoardgameBaseGameRenderer<
+  GS extends Record<string, unknown> = Record<string, unknown>,
+  PS extends Record<string, unknown> = Record<string, unknown>
+> extends LitElement {
   @property({ type: Object })
-  state: any = null;
+  state: FullGameState<GS, PS> | null = null;
 
   @property({ type: Object })
-  chest: any = null;
+  chest: Record<string, unknown> | null = null;
 
   @property({ type: String })
   diagram = '';
@@ -76,14 +80,14 @@ export class BoardgameBaseGameRenderer extends LitElement {
   // renderer. Zero will specify default animation length (that is, unset an
   // override style). A negative return value will skip the animation entirely.
   // The default one returns 0 for all combinations. See also delayAnimation.
-  animationLength(fromMove: any, toMove: any): number {
+  animationLength(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     return 0;
   }
 
   // delayAnimation will be consulted when applying an animation. It will delay
   // by the returned number of milliseconds. The default one returns 0 for all
   // combinations. See also animationLength.
-  delayAnimation(fromMove: any, toMove: any): number {
+  delayAnimation(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     return 0;
   }
 
@@ -96,7 +100,7 @@ export class BoardgameBaseGameRenderer extends LitElement {
       if (!(tempEle instanceof Element)) continue;
       if (!tempEle.hasAttribute) continue;
 
-      const proposeMove = (tempEle as any).proposeMove || tempEle.getAttribute('propose-move');
+      const proposeMove = (tempEle as Element & { proposeMove?: string }).proposeMove || tempEle.getAttribute('propose-move');
       if (proposeMove) {
         // found it!
         ele = tempEle as HTMLElement;
@@ -113,11 +117,11 @@ export class BoardgameBaseGameRenderer extends LitElement {
       return;
     }
 
-    const moveName = (ele as any).proposeMove || ele.getAttribute('propose-move');
+    const moveName = (ele as HTMLElement & { proposeMove?: string }).proposeMove || ele.getAttribute('propose-move');
     if (!moveName) return;
 
     const data = ele.dataset;
-    const args: Record<string, any> = {};
+    const args: Record<string, string | undefined> = {};
 
     for (const key in data) {
       if (!Object.prototype.hasOwnProperty.call(data, key)) continue;

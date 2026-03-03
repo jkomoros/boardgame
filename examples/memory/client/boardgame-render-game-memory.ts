@@ -9,8 +9,9 @@ import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
+import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
+class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
@@ -47,10 +48,10 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
   ];
 
   get maxTimeLeft(): number {
-    return this.computeMaxTimeLeft(this.state?.Game?.HideCardsTimer?.originalTimeLeft);
+    return this.computeMaxTimeLeft(this.state?.Game?.HideCardsTimer?.originalTimeLeft ?? 0);
   }
 
-  override delayAnimation(fromMove: any, toMove: any): number {
+  override delayAnimation(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     if (toMove && toMove.Name === 'Capture Cards') {
       // Show the cards for a second before capturing them.
       return 1000;

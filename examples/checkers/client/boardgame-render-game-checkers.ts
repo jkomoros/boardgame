@@ -4,8 +4,9 @@ import '../../../server/static/src/components/boardgame-token.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
+import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer {
+class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, PlayerState> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

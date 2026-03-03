@@ -17,10 +17,11 @@ import '../../src/components/boardgame-token.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
+import type { GameState, PlayerState } from './_types.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
-class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
+class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameState, PlayerState> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
