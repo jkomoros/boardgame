@@ -189,7 +189,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
   override async firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     await this.updateComplete; // CRITICAL: Wait for render
-    const token = this.renderRoot.querySelector('boardgame-token') as any;
+    const token = this.renderRoot.querySelector('boardgame-token') as (HTMLElement & { legalTypes: string[]; legalColors: string[] }) | null;
     if (token) {
       this.legalTokenTypes = token.legalTypes;
       this.legalTokenColors = token.legalColors;

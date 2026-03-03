@@ -5,10 +5,11 @@
 
 /**
  * A single component instance within an expanded stack.
- * Partial<T> handles generic/hidden components (index -2 = {} at runtime).
+ * All fields are optional because hidden components (index -2) are bare {}
+ * objects at runtime, while normal components have Deck, GameName, etc.
  */
 export type Component<T extends Record<string, unknown> = Record<string, unknown>> =
-  Partial<T> & { Deck: string; GameName: string; ID?: string; DynamicValues?: Record<string, unknown> };
+  Partial<T & { Deck: string; GameName: string; ID: string; DynamicValues: Record<string, unknown> }>;
 
 /**
  * An expanded stack as seen by the client after selector expansion.
@@ -19,9 +20,35 @@ export interface ExpandedStack<T extends Record<string, unknown> = Record<string
   Deck: string;
   Indexes: number[];
   IDs: string[];
+  IDsLastSeen: Record<string, number>;
+  ShuffleCount: number;
+  Size?: number;
+  MaxSize?: number;
   GameName: string;
   Components: (Component<T> | null)[];
-  NumComponents: number;
+}
+
+/**
+ * A raw stack as stored on the server, before selector expansion.
+ * Used for stacks nested inside boards (which are not expanded).
+ */
+export interface RawStack {
+  Deck: string;
+  Indexes: number[];
+  IDs: string[];
+  IDsLastSeen: Record<string, number>;
+  ShuffleCount: number;
+  Size?: number;
+  MaxSize?: number;
+}
+
+/**
+ * A board as seen by the client. Boards serialize as an array of spaces,
+ * each of which is a raw (non-expanded) stack. The selector expansion does
+ * not recurse into board spaces.
+ */
+export interface Board {
+  Spaces: RawStack[];
 }
 
 /**
@@ -42,9 +69,8 @@ export interface FullGameState<
   GS extends Record<string, unknown> = Record<string, unknown>,
   PS extends Record<string, unknown> = Record<string, unknown>
 > {
-  Version: number;
   Game: GS;
   Players: PS[];
   Computed?: { Global?: Record<string, unknown>; Players?: Record<string, unknown>[] };
-  Components?: Record<string, Record<number, unknown>>;
+  Components?: Record<string, unknown[]>;
 }

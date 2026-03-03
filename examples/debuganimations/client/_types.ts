@@ -4,7 +4,7 @@
 
 import type { ExpandedStack, FullGameState } from '../../src/types/boardgame-types.js';
 
-export type PhaseValue = "" | "Normal";
+export type PhaseValue = "Normal";
 
 export interface CardsComponentValues {
   Type: string;

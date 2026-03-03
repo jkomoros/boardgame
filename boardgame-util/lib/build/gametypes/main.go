@@ -3,9 +3,8 @@ package gametypes
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"go/format"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -52,27 +51,27 @@ type TypeResult struct {
 func Build(directory string, pkgs []*gamepkg.Pkg) ([]TypeResult, error) {
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		return nil, errors.New("the provided directory, " + directory + " does not exist")
+		return nil, fmt.Errorf("the provided directory %s does not exist", directory)
 	}
 
 	code, err := Code(pkgs)
 
 	if err != nil {
-		return nil, errors.New("couldn't generate code: " + err.Error())
+		return nil, fmt.Errorf("couldn't generate code: %w", err)
 	}
 
 	dir := filepath.Join(directory, subFolder)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if err := os.Mkdir(dir, 0700); err != nil {
-			return nil, errors.New("couldn't create gametypes directory: " + err.Error())
+			return nil, fmt.Errorf("couldn't create gametypes directory: %w", err)
 		}
 	}
 
 	codePath := filepath.Join(dir, "main.go")
 
-	if err := ioutil.WriteFile(codePath, code, 0644); err != nil {
-		return nil, errors.New("couldn't save code: " + err.Error())
+	if err := os.WriteFile(codePath, code, 0644); err != nil {
+		return nil, fmt.Errorf("couldn't save code: %w", err)
 	}
 
 	cmd := exec.Command("go", "build")
@@ -84,18 +83,18 @@ func Build(directory string, pkgs []*gamepkg.Pkg) ([]TypeResult, error) {
 	err = cmd.Run()
 
 	if err != nil {
-		return nil, errors.New("couldn't build gametypes binary: " + err.Error() + ": " + errBuf.String())
+		return nil, fmt.Errorf("couldn't build gametypes binary: %w: %s", err, errBuf.String())
 	}
 
 	binaryName := filepath.Join(dir, subFolder)
 
 	if _, err := os.Stat(binaryName); os.IsNotExist(err) {
-		return nil, errors.New("sanity check failed: binary does not appear to have been created")
+		return nil, fmt.Errorf("sanity check failed: binary does not appear to have been created")
 	}
 
 	absBinaryName, err := filepath.Abs(binaryName)
 	if err != nil {
-		return nil, errors.New("couldn't get absolute path to binary: " + err.Error())
+		return nil, fmt.Errorf("couldn't get absolute path to binary: %w", err)
 	}
 
 	cmd = exec.Command(absBinaryName)
@@ -109,13 +108,13 @@ func Build(directory string, pkgs []*gamepkg.Pkg) ([]TypeResult, error) {
 	err = cmd.Run()
 
 	if err != nil {
-		return nil, errors.New("couldn't run gametypes binary: " + err.Error() + ": " + errBuf.String())
+		return nil, fmt.Errorf("couldn't run gametypes binary: %w: %s", err, errBuf.String())
 	}
 
 	var results []TypeResult
 
 	if err := json.Unmarshal(outBuf.Bytes(), &results); err != nil {
-		return nil, errors.New("couldn't parse gametypes output: " + err.Error())
+		return nil, fmt.Errorf("couldn't parse gametypes output: %w", err)
 	}
 
 	return results, nil
@@ -132,22 +131,16 @@ func Code(pkgs []*gamepkg.Pkg) ([]byte, error) {
 	})
 
 	if err != nil {
-		return nil, errors.New("couldn't execute code template: " + err.Error())
+		return nil, fmt.Errorf("couldn't execute code template: %w", err)
 	}
 
 	formatted, err := format.Source(buf.Bytes())
 
 	if err != nil {
-		return nil, errors.New("couldn't format code output: " + err.Error())
+		return nil, fmt.Errorf("couldn't format code output: %w", err)
 	}
 
 	return formatted, nil
-}
-
-// Clean removes the gametypes/ directory that was generated within directory
-// by Build.
-func Clean(directory string) error {
-	return os.RemoveAll(filepath.Join(directory, subFolder))
 }
 
 var codeTemplate = template.Must(template.New("gametypes").Parse(codeTemplateText))
@@ -225,7 +218,7 @@ func extractFields(reader boardgame.PropertyReader, concreteType reflect.Type) [
 		}
 
 		// Look for struct tags to find deck/enum associations.
-		// Walk the concrete type including embedded structs.
+		// FieldByName handles embedded structs automatically.
 		tag := findStructTag(concreteType, name)
 		if tag != "" {
 			// Parse stack/sizedstack tags for deck name
@@ -256,8 +249,8 @@ func extractFields(reader boardgame.PropertyReader, concreteType reflect.Type) [
 	return fields
 }
 
-// findStructTag searches for a field by name in the given type, including
-// embedded structs, and returns its raw struct tag string.
+// findStructTag searches for a field by name in the given type (including
+// embedded structs via FieldByName) and returns its raw struct tag string.
 func findStructTag(t reflect.Type, fieldName string) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -266,7 +259,6 @@ func findStructTag(t reflect.Type, fieldName string) string {
 		return ""
 	}
 
-	// Direct field lookup
 	if f, ok := t.FieldByName(fieldName); ok {
 		return string(f.Tag)
 	}
@@ -280,10 +272,10 @@ func resolveMergedStackDeck(t reflect.Type, tagValue string) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	parts := strings.Split(tagValue, ",")
-	if len(parts) == 0 {
+	if tagValue == "" {
 		return ""
 	}
+	parts := strings.Split(tagValue, ",")
 	refFieldName := strings.TrimSpace(parts[0])
 	tag := findStructTag(t, refFieldName)
 	if tag == "" {
@@ -319,13 +311,21 @@ func main() {
 
 		// Extract game state fields
 		gameStateConstructor := entry.delegate.GameStateConstructor()
-		gameReader := gameStateConstructor.(boardgame.Reader)
+		gameReader, ok := gameStateConstructor.(boardgame.Reader)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "Warning: GameState for %s does not implement Reader, skipping\n", entry.delegate.Name())
+			continue
+		}
 		gameConcreteType := reflect.TypeOf(gameStateConstructor)
 		gameFields := extractFields(gameReader.Reader(), gameConcreteType)
 
 		// Extract player state fields
 		playerStateConstructor := entry.delegate.PlayerStateConstructor(0)
-		playerReader := playerStateConstructor.(boardgame.Reader)
+		playerReader, ok := playerStateConstructor.(boardgame.Reader)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "Warning: PlayerState for %s does not implement Reader, skipping\n", entry.delegate.Name())
+			continue
+		}
 		playerConcreteType := reflect.TypeOf(playerStateConstructor)
 		playerFields := extractFields(playerReader.Reader(), playerConcreteType)
 
@@ -348,20 +348,10 @@ func main() {
 				if component != nil {
 					vals := component.Values()
 					if vals != nil {
-						valReader := vals.(boardgame.Reader)
-						valProps := valReader.Reader().Props()
-
-						valNames := make([]string, 0, len(valProps))
-						for name := range valProps {
-							valNames = append(valNames, name)
-						}
-						sort.Strings(valNames)
-
-						for _, name := range valNames {
-							di.Fields = append(di.Fields, fieldInfo{
-								Name: name,
-								Type: valProps[name].String(),
-							})
+						valReader, ok := vals.(boardgame.Reader)
+						if ok {
+							valConcreteType := reflect.TypeOf(vals)
+							di.Fields = extractFields(valReader.Reader(), valConcreteType)
 						}
 					}
 				}
@@ -382,6 +372,19 @@ func main() {
 					continue
 				}
 				vals := e.Values()
+
+				// For tree enums, filter to leaf values only.
+				if treeEnum := e.TreeEnum(); treeEnum != nil {
+					n := 0
+					for _, v := range vals {
+						if treeEnum.IsLeaf(v) {
+							vals[n] = v
+							n++
+						}
+					}
+					vals = vals[:n]
+				}
+
 				sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
 
 				var strVals []string

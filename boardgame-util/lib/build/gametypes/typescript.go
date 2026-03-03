@@ -14,18 +14,22 @@ func GenerateTypeScript(result TypeResult) string {
 	b.WriteString(typeScriptHeader)
 
 	// Determine which imports we need
+	needsBoard := false
 	needsExpandedStack := false
 	needsExpandedTimer := false
 
 	for _, f := range result.GameFields {
-		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer)
+		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsBoard)
 	}
 	for _, f := range result.PlayerFields {
-		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer)
+		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsBoard)
 	}
 
-	// Build import line
+	// Build import line (alphabetical order)
 	var imports []string
+	if needsBoard {
+		imports = append(imports, "Board")
+	}
 	if needsExpandedStack {
 		imports = append(imports, "ExpandedStack")
 	}
@@ -41,8 +45,12 @@ func GenerateTypeScript(result TypeResult) string {
 
 	// Generate enum types
 	for _, e := range result.Enums {
+		name := toPascalCase(e.Name)
+		if name == "" {
+			continue
+		}
 		b.WriteString("export type ")
-		b.WriteString(toPascalCase(e.Name))
+		b.WriteString(name)
 		b.WriteString("Value = ")
 		if len(e.Values) == 0 {
 			b.WriteString("string")
@@ -52,7 +60,7 @@ func GenerateTypeScript(result TypeResult) string {
 					b.WriteString(" | ")
 				}
 				b.WriteString("\"")
-				b.WriteString(v)
+				b.WriteString(escapeForTS(v))
 				b.WriteString("\"")
 			}
 		}
@@ -64,7 +72,11 @@ func GenerateTypeScript(result TypeResult) string {
 		if len(deck.Fields) == 0 {
 			continue
 		}
-		interfaceName := toPascalCase(deck.Name) + "ComponentValues"
+		name := toPascalCase(deck.Name)
+		if name == "" {
+			continue
+		}
+		interfaceName := name + "ComponentValues"
 		b.WriteString("export interface ")
 		b.WriteString(interfaceName)
 		b.WriteString(" {\n")
@@ -72,7 +84,7 @@ func GenerateTypeScript(result TypeResult) string {
 			b.WriteString("  ")
 			b.WriteString(f.Name)
 			b.WriteString(": ")
-			b.WriteString(fieldTypeToTS(f, result.Enums))
+			b.WriteString(baseFieldTypeToTS(f, result.Enums))
 			b.WriteString(";\n")
 		}
 		b.WriteString("}\n\n")
@@ -108,17 +120,20 @@ func GenerateTypeScript(result TypeResult) string {
 	return b.String()
 }
 
-func checkFieldImports(f FieldInfo, needsStack, needsTimer *bool) {
+func checkFieldImports(f FieldInfo, needsStack, needsTimer, needsBoard *bool) {
 	switch f.Type {
-	case "TypeStack", "TypeBoard":
+	case "TypeStack":
 		*needsStack = true
+	case "TypeBoard":
+		*needsBoard = true
 	case "TypeTimer":
 		*needsTimer = true
 	}
 }
 
-// stateFieldTypeToTS maps a state field (with deck/enum context) to a TypeScript type string.
-func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string {
+// baseFieldTypeToTS maps a field to a TypeScript type string for basic types
+// (no stack/board/timer support). Used for component value fields.
+func baseFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
 	switch f.Type {
 	case "TypeBool":
 		return "boolean"
@@ -136,9 +151,28 @@ func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string 
 		return "string[]"
 	case "TypePlayerIndexSlice":
 		return "number[]"
+	case "TypeEnum":
+		if f.EnumName != "" {
+			return toPascalCase(f.EnumName) + "Value"
+		}
+		return "string"
+	case "TypeEnumSlice":
+		if f.EnumName != "" {
+			return toPascalCase(f.EnumName) + "Value[]"
+		}
+		return "string[]"
+	default:
+		return "unknown"
+	}
+}
+
+// stateFieldTypeToTS maps a state field (with deck/enum context) to a TypeScript type string.
+// Extends baseFieldTypeToTS with stack, board, and timer support.
+func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string {
+	switch f.Type {
 	case "TypeTimer":
 		return "ExpandedTimer"
-	case "TypeStack", "TypeBoard":
+	case "TypeStack":
 		if f.DeckName != "" {
 			// Check if this deck has component fields
 			for _, d := range decks {
@@ -148,58 +182,29 @@ func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string 
 			}
 		}
 		return "ExpandedStack"
-	case "TypeEnum":
-		if f.EnumName != "" {
-			return toPascalCase(f.EnumName) + "Value"
-		}
-		return "string"
-	case "TypeEnumSlice":
-		if f.EnumName != "" {
-			return toPascalCase(f.EnumName) + "Value[]"
-		}
-		return "string[]"
+	case "TypeBoard":
+		return "Board"
 	default:
-		return "unknown"
+		return baseFieldTypeToTS(f, enums)
 	}
 }
 
-// fieldTypeToTS maps a component value field to a TypeScript type string.
-// Component value fields don't have deck/enum context in their tags.
-func fieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
-	switch f.Type {
-	case "TypeBool":
-		return "boolean"
-	case "TypeInt":
-		return "number"
-	case "TypeString":
-		return "string"
-	case "TypePlayerIndex":
-		return "number"
-	case "TypeIntSlice":
-		return "number[]"
-	case "TypeBoolSlice":
-		return "boolean[]"
-	case "TypeStringSlice":
-		return "string[]"
-	case "TypePlayerIndexSlice":
-		return "number[]"
-	case "TypeEnum":
-		if f.EnumName != "" {
-			return toPascalCase(f.EnumName) + "Value"
-		}
-		return "string"
-	case "TypeEnumSlice":
-		if f.EnumName != "" {
-			return toPascalCase(f.EnumName) + "Value[]"
-		}
-		return "string[]"
-	default:
-		return "unknown"
-	}
+// escapeForTS escapes a string for use inside a TypeScript double-quoted string literal.
+func escapeForTS(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, "\n", `\n`)
+	s = strings.ReplaceAll(s, "\r", `\r`)
+	return s
 }
 
-// toPascalCase converts a name like "playing cards" or "cards" to "PlayingCards" or "Cards".
+// toPascalCase converts a name like "playing cards" or "playing_cards" to "PlayingCards".
+// Splits on whitespace, underscores, and hyphens.
 func toPascalCase(name string) string {
+	// Replace underscores and hyphens with spaces so Fields splits on them
+	name = strings.ReplaceAll(name, "_", " ")
+	name = strings.ReplaceAll(name, "-", " ")
+
 	words := strings.Fields(name)
 	var b strings.Builder
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/bobziuchkovski/writ"
@@ -57,7 +56,7 @@ they are regenerated each time but should be committed to source control.`
 // serve command.
 func emitTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) error {
 
-	dir, err := ioutil.TempDir(".", "temp_gametypes_")
+	dir, err := os.MkdirTemp(".", "temp_gametypes_")
 	if err != nil {
 		return fmt.Errorf("couldn't create temp directory: %w", err)
 	}

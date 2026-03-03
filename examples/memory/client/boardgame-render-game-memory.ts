@@ -84,7 +84,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, Pla
         </boardgame-component-stack>
         <boardgame-fading-text
           message="Match"
-          .trigger="${this.state?.Game?.Cards?.NumComponents}">
+          .trigger="${this.state?.Game?.Cards?.Components?.length}">
         </boardgame-fading-text>
       </div>
       <div class="discards">
