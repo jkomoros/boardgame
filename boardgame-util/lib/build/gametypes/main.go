@@ -25,8 +25,9 @@ type FieldInfo struct {
 
 // DeckInfo describes a deck and its component value fields.
 type DeckInfo struct {
-	Name   string      `json:"name"`
-	Fields []FieldInfo `json:"fields"`
+	Name          string      `json:"name"`
+	Fields        []FieldInfo `json:"fields"`
+	DynamicFields []FieldInfo `json:"dynamicFields,omitempty"`
 }
 
 // EnumInfo describes an enum and its string values.
@@ -161,6 +162,7 @@ import (
 	"strings"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	memorystorage "github.com/jkomoros/boardgame/storage/memory"
 	{{- range .pkgs}}
 	"{{.Import}}"
@@ -175,8 +177,9 @@ type fieldInfo struct {
 }
 
 type deckInfo struct {
-	Name   string      ` + "`" + `json:"name"` + "`" + `
-	Fields []fieldInfo ` + "`" + `json:"fields"` + "`" + `
+	Name          string      ` + "`" + `json:"name"` + "`" + `
+	Fields        []fieldInfo ` + "`" + `json:"fields"` + "`" + `
+	DynamicFields []fieldInfo ` + "`" + `json:"dynamicFields,omitempty"` + "`" + `
 }
 
 type enumInfo struct {
@@ -198,7 +201,40 @@ type delegateEntry struct {
 	importPath string
 }
 
-func extractFields(reader boardgame.PropertyReader, concreteType reflect.Type) []fieldInfo {
+// collectEnum extracts an enum's name and string values, storing them in
+// the discoveredEnums map if not already present.
+func collectEnum(e enum.Enum, discoveredEnums map[string][]string) {
+	name := e.Name()
+	if _, ok := discoveredEnums[name]; ok {
+		return
+	}
+	vals := e.Values()
+
+	// For tree enums, filter to leaf values only.
+	if treeEnum := e.TreeEnum(); treeEnum != nil {
+		n := 0
+		for _, v := range vals {
+			if treeEnum.IsLeaf(v) {
+				vals[n] = v
+				n++
+			}
+		}
+		vals = vals[:n]
+	}
+
+	sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
+
+	var strVals []string
+	for _, v := range vals {
+		strVals = append(strVals, e.String(v))
+	}
+	discoveredEnums[name] = strVals
+}
+
+// extractFields extracts field information from a PropertyReader. Any enum
+// associations discovered at runtime (not from struct tags) are recorded in
+// discoveredEnums so they can be included in the output.
+func extractFields(reader boardgame.PropertyReader, concreteType reflect.Type, discoveredEnums map[string][]string) []fieldInfo {
 	props := reader.Props()
 
 	// Sort field names for deterministic output
@@ -240,6 +276,25 @@ func extractFields(reader boardgame.PropertyReader, concreteType reflect.Type) [
 			// Parse enum tag
 			if enumTag := reflect.StructTag(tag).Get("enum"); enumTag != "" {
 				fi.EnumName = enumTag
+			}
+		}
+
+		// Runtime enum resolution fallback: if no enum tag was found,
+		// read the actual enum association from the inflated value.
+		if fi.EnumName == "" {
+			switch propType {
+			case boardgame.TypeEnum:
+				if val, err := reader.ImmutableEnumProp(name); err == nil && val != nil {
+					e := val.Enum()
+					fi.EnumName = e.Name()
+					collectEnum(e, discoveredEnums)
+				}
+			case boardgame.TypeEnumSlice:
+				if val, err := reader.ImmutableEnumSliceProp(name); err == nil && val != nil {
+					e := val.Enum()
+					fi.EnumName = e.Name()
+					collectEnum(e, discoveredEnums)
+				}
 			}
 		}
 
@@ -309,25 +364,25 @@ func main() {
 			continue
 		}
 
-		// Extract game state fields
-		gameStateConstructor := entry.delegate.GameStateConstructor()
-		gameReader, ok := gameStateConstructor.(boardgame.Reader)
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Warning: GameState for %s does not implement Reader, skipping\n", entry.delegate.Name())
+		// Use ExampleState for fully inflated state (enum vals know their enums)
+		exampleState := manager.ExampleState()
+		if exampleState == nil {
+			fmt.Fprintf(os.Stderr, "Warning: ExampleState() returned nil for %s, skipping\n", entry.delegate.Name())
 			continue
 		}
-		gameConcreteType := reflect.TypeOf(gameStateConstructor)
-		gameFields := extractFields(gameReader.Reader(), gameConcreteType)
 
-		// Extract player state fields
-		playerStateConstructor := entry.delegate.PlayerStateConstructor(0)
-		playerReader, ok := playerStateConstructor.(boardgame.Reader)
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Warning: PlayerState for %s does not implement Reader, skipping\n", entry.delegate.Name())
-			continue
-		}
-		playerConcreteType := reflect.TypeOf(playerStateConstructor)
-		playerFields := extractFields(playerReader.Reader(), playerConcreteType)
+		// discoveredEnums collects enum definitions found via runtime resolution
+		// (e.g. enums from imported component packages like playingcards).
+		discoveredEnums := make(map[string][]string)
+
+		// Extract game state fields
+		gameSubState := exampleState.ImmutableGameState()
+		gameFields := extractFields(gameSubState.Reader(), reflect.TypeOf(gameSubState), discoveredEnums)
+
+		// Extract player state fields (ExampleState always has >= 1 player)
+		playerStates := exampleState.ImmutablePlayerStates()
+		playerSubState := playerStates[0]
+		playerFields := extractFields(playerSubState.Reader(), reflect.TypeOf(playerSubState), discoveredEnums)
 
 		// Extract deck component value fields
 		chest := manager.Chest()
@@ -351,10 +406,17 @@ func main() {
 						valReader, ok := vals.(boardgame.Reader)
 						if ok {
 							valConcreteType := reflect.TypeOf(vals)
-							di.Fields = extractFields(valReader.Reader(), valConcreteType)
+							di.Fields = extractFields(valReader.Reader(), valConcreteType, discoveredEnums)
 						}
 					}
 				}
+			}
+
+			// Extract dynamic component values from ExampleState
+			dynVals := exampleState.ImmutableDynamicComponentValues()[deckName]
+			if len(dynVals) > 0 {
+				dv := dynVals[0]
+				di.DynamicFields = extractFields(dv.Reader(), reflect.TypeOf(dv), discoveredEnums)
 			}
 
 			decks = append(decks, di)
@@ -397,6 +459,26 @@ func main() {
 					Values: strVals,
 				})
 			}
+		}
+
+		// Merge any enums discovered via runtime resolution that aren't
+		// already in the enum set (e.g. from imported component packages).
+		knownEnums := make(map[string]bool)
+		for _, e := range enums {
+			knownEnums[e.Name] = true
+		}
+		var extraNames []string
+		for name := range discoveredEnums {
+			if !knownEnums[name] {
+				extraNames = append(extraNames, name)
+			}
+		}
+		sort.Strings(extraNames)
+		for _, name := range extraNames {
+			enums = append(enums, enumInfo{
+				Name:   name,
+				Values: discoveredEnums[name],
+			})
 		}
 
 		results = append(results, typeResult{

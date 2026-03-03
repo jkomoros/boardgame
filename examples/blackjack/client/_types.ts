@@ -6,9 +6,13 @@ import type { ExpandedStack, FullGameState } from '../../src/types/boardgame-typ
 
 export type PhaseValue = "Initial Deal" | "Normal Play";
 
+export type RankValue = "Unknown" | "Ace" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "Jack" | "Queen" | "King" | "Joker";
+
+export type SuitValue = "�" | "♠" | "♥" | "♣" | "♦" | "Jokers";
+
 export interface CardsComponentValues {
-  Rank: string;
-  Suit: string;
+  Rank: RankValue;
+  Suit: SuitValue;
 }
 
 export interface GameState {

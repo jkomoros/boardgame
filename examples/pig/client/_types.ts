@@ -8,9 +8,14 @@ export interface DiceComponentValues {
   Faces: number[];
 }
 
+export interface DiceDynamicComponentValues {
+  SelectedFace: number;
+  Value: number;
+}
+
 export interface GameState {
   CurrentPlayer: number;
-  Die: ExpandedStack<DiceComponentValues>;
+  Die: ExpandedStack<DiceComponentValues, DiceDynamicComponentValues>;
   TargetScore: number;
   Computed?: Record<string, unknown>;
 }

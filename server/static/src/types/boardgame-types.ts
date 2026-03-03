@@ -8,15 +8,20 @@
  * All fields are optional because hidden components (index -2) are bare {}
  * objects at runtime, while normal components have Deck, GameName, etc.
  */
-export type Component<T extends Record<string, unknown> = Record<string, unknown>> =
-  Partial<T & { Deck: string; GameName: string; ID: string; DynamicValues: Record<string, unknown> }>;
+export type Component<
+  T extends Record<string, unknown> = Record<string, unknown>,
+  D extends Record<string, unknown> = Record<string, unknown>
+> = Partial<T & { Deck: string; GameName: string; ID: string; DynamicValues: D }>;
 
 /**
  * An expanded stack as seen by the client after selector expansion.
  * Stacks in raw server state contain indices; the expansion step resolves
  * those indices into full component objects.
  */
-export interface ExpandedStack<T extends Record<string, unknown> = Record<string, unknown>> {
+export interface ExpandedStack<
+  T extends Record<string, unknown> = Record<string, unknown>,
+  D extends Record<string, unknown> = Record<string, unknown>
+> {
   Deck: string;
   Indexes: number[];
   IDs: string[];
@@ -25,7 +30,7 @@ export interface ExpandedStack<T extends Record<string, unknown> = Record<string
   Size?: number;
   MaxSize?: number;
   GameName: string;
-  Components: (Component<T> | null)[];
+  Components: (Component<T, D> | null)[];
 }
 
 /**

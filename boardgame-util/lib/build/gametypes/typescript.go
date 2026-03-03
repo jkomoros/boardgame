@@ -17,12 +17,21 @@ func GenerateTypeScript(result TypeResult) string {
 	needsBoard := false
 	needsExpandedStack := false
 	needsExpandedTimer := false
+	needsRawStack := false
 
 	for _, f := range result.GameFields {
 		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsBoard)
 	}
 	for _, f := range result.PlayerFields {
 		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsBoard)
+	}
+	// Check dynamic fields for RawStack imports
+	for _, deck := range result.Decks {
+		for _, f := range deck.DynamicFields {
+			if f.Type == "TypeStack" {
+				needsRawStack = true
+			}
+		}
 	}
 
 	// Build import line (alphabetical order)
@@ -37,6 +46,9 @@ func GenerateTypeScript(result TypeResult) string {
 		imports = append(imports, "ExpandedTimer")
 	}
 	imports = append(imports, "FullGameState")
+	if needsRawStack {
+		imports = append(imports, "RawStack")
+	}
 
 	b.WriteString("import type { ")
 	b.WriteString(strings.Join(imports, ", "))
@@ -85,6 +97,29 @@ func GenerateTypeScript(result TypeResult) string {
 			b.WriteString(f.Name)
 			b.WriteString(": ")
 			b.WriteString(baseFieldTypeToTS(f, result.Enums))
+			b.WriteString(";\n")
+		}
+		b.WriteString("}\n\n")
+	}
+
+	// Generate dynamic component value interfaces (one per deck that has dynamic fields)
+	for _, deck := range result.Decks {
+		if len(deck.DynamicFields) == 0 {
+			continue
+		}
+		name := toPascalCase(deck.Name)
+		if name == "" {
+			continue
+		}
+		interfaceName := name + "DynamicComponentValues"
+		b.WriteString("export interface ")
+		b.WriteString(interfaceName)
+		b.WriteString(" {\n")
+		for _, f := range deck.DynamicFields {
+			b.WriteString("  ")
+			b.WriteString(f.Name)
+			b.WriteString(": ")
+			b.WriteString(dynamicFieldTypeToTS(f, result.Enums))
 			b.WriteString(";\n")
 		}
 		b.WriteString("}\n\n")
@@ -166,6 +201,22 @@ func baseFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
 	}
 }
 
+// dynamicFieldTypeToTS maps a dynamic component value field to a TypeScript type string.
+// Like baseFieldTypeToTS but maps TypeStack to RawStack (dynamic value stacks are not
+// expanded by the client selector) and TypeTimer to Record<string, unknown>.
+func dynamicFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
+	switch f.Type {
+	case "TypeStack":
+		return "RawStack"
+	case "TypeTimer":
+		return "Record<string, unknown>"
+	case "TypeBoard":
+		return "Board"
+	default:
+		return baseFieldTypeToTS(f, enums)
+	}
+}
+
 // stateFieldTypeToTS maps a state field (with deck/enum context) to a TypeScript type string.
 // Extends baseFieldTypeToTS with stack, board, and timer support.
 func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string {
@@ -174,11 +225,23 @@ func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string 
 		return "ExpandedTimer"
 	case "TypeStack":
 		if f.DeckName != "" {
-			// Check if this deck has component fields
 			for _, d := range decks {
-				if d.Name == f.DeckName && len(d.Fields) > 0 {
-					return "ExpandedStack<" + toPascalCase(f.DeckName) + "ComponentValues>"
+				if d.Name != f.DeckName {
+					continue
 				}
+				hasStatic := len(d.Fields) > 0
+				hasDynamic := len(d.DynamicFields) > 0
+				name := toPascalCase(f.DeckName)
+
+				switch {
+				case hasStatic && hasDynamic:
+					return "ExpandedStack<" + name + "ComponentValues, " + name + "DynamicComponentValues>"
+				case hasStatic:
+					return "ExpandedStack<" + name + "ComponentValues>"
+				case hasDynamic:
+					return "ExpandedStack<Record<string, unknown>, " + name + "DynamicComponentValues>"
+				}
+				break
 			}
 		}
 		return "ExpandedStack"
