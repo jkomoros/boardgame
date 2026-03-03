@@ -4,8 +4,9 @@ import { BoardgameBaseGameRenderer } from '../../../server/static/src/components
 import '../../../server/static/src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
+import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGamePig extends BoardgameBaseGameRenderer {
+class BoardgameRenderGamePig extends BoardgameBaseGameRenderer<GameState, PlayerState> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

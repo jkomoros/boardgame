@@ -17,10 +17,11 @@ import '../../src/components/boardgame-token.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
+import type { GameState, PlayerState } from './_types.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
-class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
+class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameState, PlayerState> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
@@ -188,7 +189,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
   override async firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     await this.updateComplete; // CRITICAL: Wait for render
-    const token = this.renderRoot.querySelector('boardgame-token') as any;
+    const token = this.renderRoot.querySelector('boardgame-token') as (HTMLElement & { legalTypes: string[]; legalColors: string[] }) | null;
     if (token) {
       this.legalTokenTypes = token.legalTypes;
       this.legalTokenColors = token.legalColors;
