@@ -246,9 +246,11 @@ moves move components between a stack in GameState and a stack in each Player's
 PlayerState. Deal-type moves move components from the game stack to the player
 stack, and Collect-type moves move components from each player to the GameState.
 
-All of these moves define a way to define the source and destination stack. For
-Move-type moves, you define SourceStack() and DestinationStack(). For Deal and
-Collect-type moves, you implement GameStack() and PlayerStack().
+All of these moves define a way to specify the source and destination stack. For
+Move-type moves, you configure these via [WithSourceProperty] and
+[WithDestinationProperty] (or override SourceStack() and DestinationStack()
+directly). For Deal and Collect-type moves, you use [WithGameProperty] and
+[WithPlayerProperty] (or override GameStack() and PlayerStack()).
 
 All moves in this collection implement TargetCount() int, and all of them
 default to 1. Override this if you want a different number of components checked
@@ -256,7 +258,7 @@ for in the end condition.
 
 In practice you'll often use [WithTargetCount], [WithGameProperty], and friends as
 configuration to [AutoConfigurer.Config] instead of overriding those yourself. In
-fact, in many cases configuartion options are powerful enough to allow you to
+fact, in many cases configuration options are powerful enough to allow you to
 use these moves types on their own directly in your game. See the documentation
 in the sections above for more examples.
 
