@@ -41,3 +41,24 @@ server/static/src/**/*.d.ts
 test-results/
 playwright-report/
 server/static/screenshots/
+.playwright-mcp/
+
+# Testing artifacts (screenshots, logs, server output)
+/*.png
+/*.log
+/*.txt
+*.pid
+temp_serve_*/
+research/
+/screenshots/
+
+# Dev server logs in subdirectories
+boardgame-util/*.log
+server/static/*.log
+
+# Generated test directories
+server/static/tests/animations/
+server/static/tests/games/
+
+# Extra compiled binaries
+boardgame-util/boardgame-util-bin
