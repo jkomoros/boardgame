@@ -42,9 +42,12 @@ func (e *emitTypes) Description() string {
 
 func (e *emitTypes) HelpText() string {
 	return e.Name() + ` generates a _types.ts file in each game's client/ directory
-containing typed interfaces for GameState, PlayerState, component values, and enums.
-These types provide type safety and IDE autocomplete when accessing game state in
-client rendering code.
+containing typed interfaces for GameState, PlayerState, component values,
+DynamicComponentValues, and enums. These types provide type safety and IDE
+autocomplete when accessing game state in client rendering code.
+
+Enum fields are resolved at runtime, so even enums from imported packages
+(e.g. playingcards Suit/Rank) are emitted as typed string literal unions.
 
 The generated files follow the same convention as _move_names.ts:
 they are regenerated each time but should be committed to source control.`

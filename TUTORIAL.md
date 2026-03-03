@@ -1268,6 +1268,72 @@ import { MoveNames } from './_move_names.js';
 
 These files follow the same convention as `auto_reader.go` and `auto_enum.go`: they are regenerated on each serve but should be committed to source control. Only non-FixUp moves (i.e., player-proposable moves) are included.
 
+#### Generated Type Definitions
+
+When you run `boardgame-util serve` (or `boardgame-util emit-types`), the tool also generates a `client/_types.ts` file for each game package. This file exports typed interfaces for `GameState`, `PlayerState`, component values, and enums:
+
+```typescript
+// Auto-generated — DO NOT EDIT.
+import type { ExpandedStack, FullGameState } from '../../src/types/boardgame-types.js';
+
+export type PhaseValue = "Setup" | "Playing";
+
+export interface CardsComponentValues {
+  Rank: string;
+  Suit: string;
+}
+
+export interface GameState {
+  CurrentPlayer: number;
+  Phase: PhaseValue;
+  DrawStack: ExpandedStack<CardsComponentValues>;
+  Computed?: Record<string, unknown>;
+}
+
+export interface PlayerState {
+  Hand: ExpandedStack<CardsComponentValues>;
+  Score: number;
+  Computed?: Record<string, unknown>;
+}
+
+export type State = FullGameState<GameState, PlayerState>;
+```
+
+Import these types in your renderer to get full type safety and autocomplete on `this.state`:
+
+```typescript
+import type { GameState, PlayerState } from './_types.js';
+
+class BoardgameRenderGameMyGame extends BoardgameBaseGameRenderer<GameState, PlayerState> {
+  // this.state?.Game?.DrawStack is now typed as ExpandedStack<CardsComponentValues>
+  // this.state?.Players?.[0]?.Score is now typed as number
+}
+```
+
+**Enum types** are generated as string literal unions. If your game or any imported package (like `playingcards`) defines enums, the corresponding fields will use the union type instead of `string`. For example, if your enum has values "Red" and "Blue", the generated type will be `"Red" | "Blue"`.
+
+**Component values** are generated as interfaces matching the fields on your component value structs. Stack fields in your state are typed as `ExpandedStack<YourComponentValues>`, giving you autocomplete on `component.Values.FieldName`.
+
+**Dynamic component values** are also supported. If a deck has dynamic component values (see [Dynamic Component Values](#dynamic-component-values) below), a separate interface is generated and the stack type gains a second generic parameter:
+
+```typescript
+export interface TokensComponentValues {
+  Color: ColorValue;
+}
+
+export interface TokensDynamicComponentValues {
+  Crowned: boolean;
+}
+
+export interface GameState {
+  Spaces: ExpandedStack<TokensComponentValues, TokensDynamicComponentValues>;
+}
+```
+
+This gives you type safety on `component.DynamicValues.Crowned` in addition to `component.Values.Color`.
+
+Like `_move_names.ts`, these files are regenerated on each serve but should be committed to source control.
+
 #### Worked Example
 
 In general your renderer is mostly concerned with stamping out stacks and buttons. With the move legality API, you no longer need to duplicate game logic on the client to decide when buttons should be active — the server tells you.
@@ -1418,7 +1484,7 @@ These use cases are represented by the concept of *Dynamic Component Values*. Fo
 values := c.DynamicValues(state)
 ```
 
-On the client, these dynamic component values will be merged in directly on the component objects in the state passed to your renderer.
+On the client, these dynamic component values will be merged in directly on the component objects in the state passed to your renderer. The generated `_types.ts` file (see [Generated Type Definitions](#generated-type-definitions)) will include a `DynamicComponentValues` interface for each deck that has them, and the corresponding `ExpandedStack` type will include both static and dynamic type parameters.
 
 If you look at the JSON output of a state, you'll see that dynamic component values are stored in a section called "Components", with a key for each deck name that has DynamicComponentValues, and then a slot for values associated with each component in that deck. component.DynamicValues is then just a convenience method that fetches the right component values associated with this component.
 
