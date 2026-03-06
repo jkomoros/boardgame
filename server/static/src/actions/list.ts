@@ -1,8 +1,8 @@
 import type { ThunkAction } from 'redux-thunk';
 import type { RootState, GameListItem } from '../types/store';
-import type { UserAction } from './user.ts';
-import type { AppAction } from './app.ts';
-import type { ErrorAction } from './error.ts';
+import type { UserAction } from './user.js';
+import type { AppAction } from './app.js';
+import type { ErrorAction } from './error.js';
 
 export const UPDATE_MANAGERS = 'UPDATE_MANAGERS';
 export const UPDATE_GAMES_LIST = 'UPDATE_GAMES_LIST';
@@ -17,7 +17,7 @@ export const UPDATE_CREATE_GAME_VISIBLE = "UPDATE_CREATE_GAME_VISIBLE";
 import {
     apiPath,
     postFetchParams
-} from '../util.ts';
+} from '../util.js';
 
 import {
     selectGameTypeFilter,
@@ -25,20 +25,20 @@ import {
     selectLoggedIn,
     selectCreateGameAgents,
     selectCreateGameVariantOptions
-} from '../selectors.ts';
+} from '../selectors.js';
 
 import {
     setSignedInAction,
     showSignInDialog
-} from './user.ts';
+} from './user.js';
 
 import {
     navigateToGame
-} from './app.ts';
+} from './app.js';
 
 import {
     updateAndShowError
-} from './error.ts';
+} from './error.js';
 
 // Action type definitions
 interface UpdateManagersAction {

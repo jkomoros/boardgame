@@ -271,7 +271,7 @@ function stableNullableArray<T>(fn: (state: any) => T[] | null): (state: any) =>
         const next = fn(state);
         if (next === null && prev === null) return prev;
         if (next === null || prev === null) { prev = next; return next; }
-        if (next.length === prev.length && next.every((v, i) => v === prev[i])) {
+        if (next.length === prev!.length && next.every((v, i) => v === prev![i])) {
             return prev;
         }
         prev = next;

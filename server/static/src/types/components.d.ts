@@ -75,6 +75,12 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
   cloneContent: boolean;
 
   /**
+   * Prepare this component for use as an animating (faux) component.
+   * Called after creation in newAnimatingComponent.
+   */
+  prepareForBeingAnimatingComponent(stack: any): void;
+
+  /**
    * Compute properties that should animate between states.
    * Used for complex animations like card flips.
    */

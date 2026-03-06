@@ -1,6 +1,6 @@
 import type { Reducer } from 'redux';
 import type { ListState } from '../types/store';
-import type { ListAction } from '../actions/list.ts';
+import type { ListAction } from '../actions/list.js';
 import {
     UPDATE_MANAGERS,
     UPDATE_GAMES_LIST,
@@ -11,7 +11,7 @@ import {
     UPDATE_VARIANT_OPTION,
     UPDATE_CREATE_GAME_VISIBLE,
     UPDATE_CREATE_GAME_OPEN
-} from '../actions/list.ts';
+} from '../actions/list.js';
 
 const INITIAL_STATE: ListState = {
     gameTypeFilter: "",

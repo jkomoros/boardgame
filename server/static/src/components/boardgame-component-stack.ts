@@ -3,6 +3,7 @@ import { property, query } from 'lit/decorators.js';
 import './boardgame-deck-defaults.js';
 import './boardgame-card.js';
 import { dashToCamelCase } from '../utils/case-map.js';
+import type { BoardgameComponentElement } from '../types/components';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -603,11 +604,12 @@ export class BoardgameComponentStack extends LitElement {
       return null;
     }
 
-    component.noAnimate = true;
+    const typedComponent = component as unknown as BoardgameComponentElement;
+    typedComponent.noAnimate = true;
 
     // Defensive check: Only call if method exists (safety net)
-    if (typeof component.prepareForBeingAnimatingComponent === 'function') {
-      component.prepareForBeingAnimatingComponent(this);
+    if (typeof typedComponent.prepareForBeingAnimatingComponent === 'function') {
+      typedComponent.prepareForBeingAnimatingComponent(this);
     }
 
     this.setUnknownAnimationState(component);

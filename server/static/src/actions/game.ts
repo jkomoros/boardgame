@@ -1,5 +1,6 @@
-import { Dispatch } from 'redux';
-import { store } from '../store.ts';
+import { Dispatch, type UnknownAction } from 'redux';
+import type { ThunkDispatch } from 'redux-thunk';
+import { store } from '../store.js';
 import type { RootState, GameChest, PlayerInfo } from '../types/store';
 import type { ApiResponse } from '../api';
 import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
@@ -45,13 +46,13 @@ import {
   selectGameCurrentState,
   selectGameChest,
   selectGameName
-} from '../selectors.ts';
+} from '../selectors.js';
 
 import {
   deepCopy,
   getProperty,
   setPropertyInClone
-} from '../util.ts';
+} from '../util.js';
 
 import {
   buildGameUrl,
@@ -394,7 +395,7 @@ export const fetchGameInfo = (
   requestedPlayer: number,
   admin: boolean,
   lastFetchedVersion: number
-) => async (dispatch: Dispatch): Promise<void> => {
+) => async (dispatch: ThunkDispatch<RootState, unknown, UnknownAction>): Promise<void> => {
   dispatch({ type: FETCH_GAME_INFO_REQUEST });
 
   const url = buildGameUrl(

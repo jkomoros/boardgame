@@ -1,6 +1,6 @@
 import type { Reducer } from 'redux';
 import type { UserState } from '../types/store';
-import type { UserAction } from '../actions/user.ts';
+import type { UserAction } from '../actions/user.js';
 import {
     UPDATE_USER,
     VERIFYING_AUTH,
@@ -11,7 +11,7 @@ import {
     UPDATE_SIGN_IN_DIALOG_PASSWORD,
     UPDATE_SIGN_IN_DIALOG_SELECTED_PAGE,
     SHOW_SIGN_IN_DIALOG_EMAIL_PAGE
-} from '../actions/user.ts';
+} from '../actions/user.js';
 
 const INITIAL_STATE: UserState = {
     admin: false,
