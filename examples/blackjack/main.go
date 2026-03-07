@@ -7,6 +7,7 @@ package blackjack
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/jkomoros/boardgame"
@@ -18,6 +19,8 @@ import (
 //go:generate boardgame-util codegen
 
 const targetScore = 21
+const defaultMaxRounds = 5
+const variantKeyMaxRounds = "maxrounds"
 
 type gameDelegate struct {
 	base.GameDelegate
@@ -55,6 +58,36 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
+func (g *gameDelegate) Variants() boardgame.VariantConfig {
+	maxRoundsValues := make(map[string]*boardgame.VariantDisplayInfo)
+	for i := 1; i <= 10; i++ {
+		s := strconv.Itoa(i)
+		maxRoundsValues[s] = &boardgame.VariantDisplayInfo{
+			Description: s + " rounds",
+		}
+	}
+	return boardgame.VariantConfig{
+		variantKeyMaxRounds: {
+			VariantDisplayInfo: boardgame.VariantDisplayInfo{
+				DisplayName: "Max Rounds",
+				Description: "Number of rounds to play before the game ends",
+			},
+			Default: strconv.Itoa(defaultMaxRounds),
+			Values:  maxRoundsValues,
+		},
+	}
+}
+
+func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
+	game, _ := concreteStates(state)
+	maxRounds, err := strconv.Atoi(variant[variantKeyMaxRounds])
+	if err != nil {
+		maxRounds = defaultMaxRounds
+	}
+	game.MaxRounds = maxRounds
+	return nil
+}
+
 func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 	result := g.GameDelegate.ComputedPlayerProperties(player)
 	p := player.(*playerState)
@@ -82,6 +115,7 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 
 	var result []string
 
+	result = append(result, fmt.Sprintf("Round: %d/%d", game.RoundsCompleted+1, game.MaxRounds))
 	result = append(result, fmt.Sprintf("Cards left in deck: %d", game.DrawStack.NumComponents()))
 
 	for i, player := range players {
@@ -126,27 +160,12 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 
 func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	player := pState.(*playerState)
-
-	if player.Busted {
-		return 0
-	}
-
-	return player.HandValue()
+	return player.TotalScore
 }
 
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
-	_, players := concreteStates(state)
-
-	for _, player := range players {
-		if player.PlayerInactive {
-			continue
-		}
-		if !player.Busted && !player.Stood {
-			return false
-		}
-	}
-
-	return true
+	game, _ := concreteStates(state)
+	return game.RoundsCompleted >= game.MaxRounds
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
@@ -182,6 +201,11 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			),
 		),
 		moves.AddForPhase(phaseNormalPlay,
+			auto.MustConfig(
+				new(moveStartRoundCleanup),
+				moves.WithHelpText("When all players have finished, transitions to round cleanup."),
+				moves.WithPhaseToStart(phaseRoundCleanup, phaseEnum),
+			),
 			auto.MustConfig(
 				new(moveCurrentPlayerHit),
 				moves.WithHelpText("The current player hits, drawing a card."),
@@ -220,6 +244,29 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moves.StartPhase),
 				moves.WithPhaseToStart(phaseNormalPlay, phaseEnum),
+			),
+		),
+		moves.AddOrderedForPhase(phaseRoundCleanup,
+			auto.MustConfig(
+				new(moveAccumulateScores),
+				moves.WithHelpText("Adds each player's hand value to their total score."),
+			),
+			auto.MustConfig(
+				new(moveCollectCards),
+				moves.WithHelpText("Collects all cards from players back to the discard pile."),
+			),
+			auto.MustConfig(
+				new(moveResetPlayerForNewRound),
+				moves.WithHelpText("Resets player flags for the next round."),
+			),
+			auto.MustConfig(
+				new(moveIncrementRoundsCompleted),
+				moves.WithHelpText("Increments the round counter."),
+			),
+			auto.MustConfig(
+				new(moves.StartPhase),
+				moves.WithMoveName("Start Next Round"),
+				moves.WithPhaseToStart(phaseInitialDeal, phaseEnum),
 			),
 		),
 	)

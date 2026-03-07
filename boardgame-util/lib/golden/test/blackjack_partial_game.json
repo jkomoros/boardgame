@@ -15,7 +15,9 @@
 			"",
 			""
 		],
-		"Variant": null
+		"Variant": {
+			"maxrounds": "5"
+		}
 	},
 	"Moves": [
 		{
@@ -426,11 +428,13 @@
 						],
 						"ShuffleCount": 1
 					},
+					"MaxRounds": 5,
 					"Phase": "Initial Deal",
 					"RRHasStarted": false,
 					"RRLastPlayer": 0,
 					"RRRoundCount": 0,
 					"RRStarterPlayer": 0,
+					"RoundsCompleted": 0,
 					"UnusedCards": {
 						"Deck": "cards",
 						"IDs": [],
@@ -464,6 +468,7 @@
 						"SeatClosed": false,
 						"SeatFilled": false,
 						"Stood": false,
+						"TotalScore": 0,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -494,6 +499,7 @@
 						"SeatClosed": false,
 						"SeatFilled": false,
 						"Stood": false,
+						"TotalScore": 0,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -524,6 +530,7 @@
 						"SeatClosed": false,
 						"SeatFilled": false,
 						"Stood": false,
+						"TotalScore": 0,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -554,6 +561,7 @@
 						"SeatClosed": false,
 						"SeatFilled": false,
 						"Stood": false,
+						"TotalScore": 0,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],

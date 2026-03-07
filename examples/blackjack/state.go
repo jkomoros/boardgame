@@ -13,6 +13,7 @@ import (
 const (
 	phaseInitialDeal = iota
 	phaseNormalPlay
+	phaseRoundCleanup
 )
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -33,9 +34,11 @@ type gameState struct {
 	behaviors.RoundRobin
 	behaviors.CurrentPlayerBehavior
 	behaviors.PhaseBehavior
-	DiscardStack boardgame.Stack `stack:"cards" sanitize:"len"`
-	DrawStack    boardgame.Stack `stack:"cards" sanitize:"len"`
-	UnusedCards  boardgame.Stack `stack:"cards"`
+	DiscardStack    boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack       boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards     boardgame.Stack `stack:"cards"`
+	MaxRounds       int
+	RoundsCompleted int
 }
 
 //boardgame:codegen
@@ -48,6 +51,7 @@ type playerState struct {
 	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
+	TotalScore  int
 }
 
 func (p *playerState) TurnDone() error {
