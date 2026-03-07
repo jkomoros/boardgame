@@ -621,7 +621,11 @@ export class BoardgameComponentStack extends LitElement {
     return component;
   }
 
-  private _clearAnimatingComponents(e: Event) {
+  clearAnimatingComponents() {
+    this._clearAnimatingComponents(null);
+  }
+
+  private _clearAnimatingComponents(e: Event | null) {
     const container = this.animatingComponentsContainer;
     while (container.children.length > 0) {
       const child = container.children[0];

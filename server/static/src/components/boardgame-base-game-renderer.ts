@@ -91,6 +91,15 @@ export class BoardgameBaseGameRenderer<
     return 0;
   }
 
+  // animationOverlap returns a fraction (0-1) of the animation length after
+  // which the next state can be installed, even if the current animation is
+  // still running. 0 (default) = wait for animation to complete (no overlap).
+  // 0.5 = start next animation when this one is halfway done. Values outside
+  // 0-1 are clamped. See also animationLength and delayAnimation.
+  animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+    return 0;
+  }
+
   private _handleButtonTapped(e: Event): void {
     const composedPath = e.composedPath();
     let ele: HTMLElement | null = null;

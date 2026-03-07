@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import './boardgame-component-animator.js';
+import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 
@@ -175,6 +176,12 @@ class BoardgameRenderGame extends LitElement {
     if (changedProperties.has('state')) {
       this._stateChanged(this.state, changedProperties.get('state') as any);
     }
+
+    if (changedProperties.has('renderer')) {
+      this.dispatchEvent(new CustomEvent('renderer-changed', {
+        composed: true, bubbles: true, detail: { value: this.renderer }
+      }));
+    }
   }
 
   private _diagramChanged(newValue: string) {
@@ -204,6 +211,14 @@ class BoardgameRenderGame extends LitElement {
   private _ensureActiveAnimations() {
     if (this._activeAnimations) return;
     this._activeAnimations = new Map();
+  }
+
+  private _clearAllAnimatingComponents() {
+    if (!this._animator) return;
+    const stacks: BoardgameComponentStack[] = this._animator.stackElement?._sharedStackList ?? [];
+    for (const stack of stacks) {
+      stack.clearAnimatingComponents();
+    }
   }
 
   private _resetAnimating() {
@@ -281,6 +296,10 @@ class BoardgameRenderGame extends LitElement {
     const stateWasNull = ((this.renderer as any).state == null);
     if (newState && !stateWasNull) {
       this._resetAnimating();
+      // Clear stale faux animating components from any interrupted animation
+      // cycle before prepare() captures positions. This prevents old faux
+      // components' transitionend from interfering with the new cycle.
+      this._clearAllAnimatingComponents();
       this._animator?.prepare();
     }
 
