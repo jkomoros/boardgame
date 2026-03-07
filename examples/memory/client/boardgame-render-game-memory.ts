@@ -9,9 +9,10 @@ import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
+import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState> {
+class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

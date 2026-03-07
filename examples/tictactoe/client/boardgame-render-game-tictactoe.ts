@@ -2,9 +2,10 @@ import { BoardgameBaseGameRenderer } from '../../../server/static/src/components
 import '../../../server/static/src/components/boardgame-fading-text.js';
 import './boardgame-tictactoe-cell.js';
 import { html, css } from 'lit';
+import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameTictactoe extends BoardgameBaseGameRenderer<GameState, PlayerState> {
+class BoardgameRenderGameTictactoe extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

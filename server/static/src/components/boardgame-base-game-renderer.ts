@@ -5,7 +5,8 @@ import type { FullGameState } from '../types/boardgame-types.js';
 
 export class BoardgameBaseGameRenderer<
   GS extends Record<string, unknown> = Record<string, unknown>,
-  PS extends Record<string, unknown> = Record<string, unknown>
+  PS extends Record<string, unknown> = Record<string, unknown>,
+  MN extends string = string
 > extends LitElement {
   @property({ type: Object })
   state: FullGameState<GS, PS> | null = null;
@@ -43,7 +44,7 @@ export class BoardgameBaseGameRenderer<
    * Returns true if the named move is legal for the viewing player right now.
    * Use this to disable buttons when a move can't be made (e.g. not your turn).
    */
-  isMoveCurrentlyLegal(moveName: string): boolean {
+  isMoveCurrentlyLegal(moveName: MN): boolean {
     return this.moveLegality[moveName]?.legalForPlayer ?? false;
   }
 
@@ -52,7 +53,7 @@ export class BoardgameBaseGameRenderer<
    * for any player / admin). Use this to hide buttons entirely when a move
    * isn't applicable in the current game phase.
    */
-  isMovePossible(moveName: string): boolean {
+  isMovePossible(moveName: MN): boolean {
     return this.moveLegality[moveName]?.legalForAnyone ?? false;
   }
 

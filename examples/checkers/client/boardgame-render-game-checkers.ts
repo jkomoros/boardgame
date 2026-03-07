@@ -4,9 +4,10 @@ import '../../../server/static/src/components/boardgame-token.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
+import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, PlayerState> {
+class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

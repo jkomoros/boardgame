@@ -1260,11 +1260,14 @@ export const MoveNames = {
 export type MoveName = typeof MoveNames[keyof typeof MoveNames];
 ```
 
-Import this in your renderer to get type safety and autocomplete instead of error-prone hardcoded strings:
+Import these in your renderer to get type safety and autocomplete instead of error-prone hardcoded strings:
 
 ```typescript
 import { MoveNames } from './_move_names.js';
+import type { MoveName } from './_move_names.js';
 ```
+
+Pass `MoveName` as the third generic parameter to `BoardgameBaseGameRenderer` so that `isMoveCurrentlyLegal()` and `isMovePossible()` only accept valid move names at compile time (see the class declaration example below).
 
 These files follow the same convention as `auto_reader.go` and `auto_enum.go`: they are regenerated on each serve but should be committed to source control. Only non-FixUp moves (i.e., player-proposable moves) are included.
 
@@ -1303,10 +1306,12 @@ Import these types in your renderer to get full type safety and autocomplete on 
 
 ```typescript
 import type { GameState, PlayerState } from './_types.js';
+import type { MoveName } from './_move_names.js';
 
-class BoardgameRenderGameMyGame extends BoardgameBaseGameRenderer<GameState, PlayerState> {
+class BoardgameRenderGameMyGame extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
   // this.state?.Game?.DrawStack is now typed as ExpandedStack<CardsComponentValues>
   // this.state?.Players?.[0]?.Score is now typed as number
+  // this.isMoveCurrentlyLegal("Bad Name") is a compile error — only valid move names allowed
 }
 ```
 
