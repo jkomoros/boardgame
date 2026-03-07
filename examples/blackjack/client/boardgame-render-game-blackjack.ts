@@ -8,9 +8,10 @@ import '../../../server/static/src/components/boardgame-deck-defaults.js';
 import { html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MoveNames } from './_move_names.js';
+import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer<GameState, PlayerState> {
+class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

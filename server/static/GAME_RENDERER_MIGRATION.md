@@ -99,8 +99,10 @@ customElements.define(MyGameRenderer.is, MyGameRenderer);
 import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
+import type { GameState, PlayerState } from './_types.js';
+import type { MoveName } from './_move_names.js';
 
-class MyGameRenderer extends BoardgameBaseGameRenderer {
+class MyGameRenderer extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
