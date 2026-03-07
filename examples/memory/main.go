@@ -321,6 +321,9 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	hideCardMoveName = hideCardConfig.Name()
 
 	return moves.Add(
+		auto.MustConfig(
+			new(moves.SeatPlayer),
+		),
 		revealCardConfig,
 		hideCardConfig,
 		auto.MustConfig(

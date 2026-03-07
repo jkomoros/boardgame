@@ -57,6 +57,11 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
+		moves.Add(
+			auto.MustConfig(
+				new(moves.SeatPlayer),
+			),
+		),
 		moves.AddOrderedForPhase(phaseSetup,
 			auto.MustConfig(
 				new(movePlaceToken),

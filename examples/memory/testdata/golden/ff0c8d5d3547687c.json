@@ -1108,6 +1108,9 @@
 				[
 					{
 						"CardsLeftToReveal": 2,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],
@@ -1118,6 +1121,9 @@
 					},
 					{
 						"CardsLeftToReveal": 0,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],
@@ -1604,6 +1610,9 @@
 				"0": [
 					{
 						"CardsLeftToReveal": 0,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],
@@ -1616,6 +1625,9 @@
 				"_1": [
 					{
 						"CardsLeftToReveal": 1,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],
@@ -2102,6 +2114,9 @@
 				"0": [
 					{
 						"CardsLeftToReveal": 0,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],
@@ -2114,6 +2129,9 @@
 				"_1": [
 					{
 						"CardsLeftToReveal": 1,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],

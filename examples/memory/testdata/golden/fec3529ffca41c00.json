@@ -674,6 +674,9 @@
 				[
 					{
 						"CardsLeftToReveal": 2,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],
@@ -684,6 +687,9 @@
 					},
 					{
 						"CardsLeftToReveal": 0,
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"WonCards": {
 							"Deck": "cards",
 							"IDs": [],

@@ -2881,6 +2881,9 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 
 var ȧutoGeneratedPlayerStateReaderProps = map[string]boardgame.PropertyType{
 	"CardsLeftToReveal": boardgame.TypeInt,
+	"PlayerInactive":    boardgame.TypeBool,
+	"SeatClosed":        boardgame.TypeBool,
+	"SeatFilled":        boardgame.TypeBool,
 	"WonCards":          boardgame.TypeStack,
 }
 
@@ -2936,6 +2939,12 @@ func (p *ȧutoGeneratedPlayerStateReader) Prop(name string) (interface{}, error)
 func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 	switch name {
 	case "CardsLeftToReveal":
+		return true
+	case "PlayerInactive":
+		return true
+	case "SeatClosed":
+		return true
+	case "SeatFilled":
 		return true
 	case "WonCards":
 		return true
@@ -3182,11 +3191,34 @@ func (p *ȧutoGeneratedPlayerStateReader) SetIntProp(name string, value int) err
 
 func (p *ȧutoGeneratedPlayerStateReader) BoolProp(name string) (bool, error) {
 
+	switch name {
+	case "PlayerInactive":
+		return p.data.PlayerInactive, nil
+	case "SeatClosed":
+		return p.data.SeatClosed, nil
+	case "SeatFilled":
+		return p.data.SeatFilled, nil
+
+	}
+
 	return false, errors.New("No such Bool prop: " + name)
 
 }
 
 func (p *ȧutoGeneratedPlayerStateReader) SetBoolProp(name string, value bool) error {
+
+	switch name {
+	case "PlayerInactive":
+		p.data.PlayerInactive = value
+		return nil
+	case "SeatClosed":
+		p.data.SeatClosed = value
+		return nil
+	case "SeatFilled":
+		p.data.SeatFilled = value
+		return nil
+
+	}
 
 	return errors.New("No such Bool prop: " + name)
 

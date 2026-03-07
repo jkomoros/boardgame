@@ -20,6 +20,8 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
+	behaviors.Seat
+	behaviors.InactivePlayer
 	behaviors.PlayerColor
 	//The tokens of the OTHER player that we've captured.
 	CapturedTokens boardgame.Stack `stack:"Tokens"`

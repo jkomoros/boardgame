@@ -133,6 +133,9 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	return moves.Add(
 		auto.MustConfig(
+			new(moves.SeatPlayer),
+		),
+		auto.MustConfig(
 			new(moveRollDice),
 			moves.WithHelpText("Rolls the dice for the current player"),
 		),

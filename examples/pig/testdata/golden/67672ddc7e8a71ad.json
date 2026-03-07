@@ -2473,14 +2473,20 @@
 						"Busted": false,
 						"DieCounted": false,
 						"Done": false,
+						"PlayerInactive": false,
 						"RoundScore": 0,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TotalScore": 0
 					},
 					{
 						"Busted": false,
 						"DieCounted": false,
 						"Done": false,
+						"PlayerInactive": false,
 						"RoundScore": 0,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TotalScore": 0
 					}
 				]
@@ -2645,7 +2651,10 @@
 						"Busted": false,
 						"DieCounted": true,
 						"Done": false,
+						"PlayerInactive": false,
 						"RoundScore": 0,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TotalScore": 0
 					}
 				],
@@ -2654,7 +2663,10 @@
 						"Busted": true,
 						"DieCounted": true,
 						"Done": false,
+						"PlayerInactive": false,
 						"RoundScore": 12,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TotalScore": 0
 					},
 					0,

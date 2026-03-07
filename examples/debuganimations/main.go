@@ -147,6 +147,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Add(
+		auto.MustConfig(new(moves.SeatPlayer)),
 		auto.MustConfig(new(moveMoveCardBetweenShortStacks)),
 		auto.MustConfig(new(moveMoveCardBetweenDrawAndDiscardStacks)),
 		auto.MustConfig(new(moveFlipHiddenCard),

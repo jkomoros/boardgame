@@ -49,6 +49,8 @@ func rowColToIndex(row, col int) int {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
+	behaviors.Seat
+	behaviors.InactivePlayer
 	TokenValue   string
 	UnusedTokens boardgame.Stack `stack:"tokens"`
 	//How many tokens they have left to place this turn.

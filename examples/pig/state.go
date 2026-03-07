@@ -19,6 +19,8 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
+	behaviors.Seat
+	behaviors.InactivePlayer
 	Busted     bool
 	Done       bool
 	DieCounted bool
