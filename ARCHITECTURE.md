@@ -1590,6 +1590,13 @@ customElements.define(BoardgameRenderGamePig.is, BoardgameRenderGamePig);
        }
        return 0;
    }
+
+   animationOverlap(fromMove, toMove) {
+       if (toMove && toMove.Name == "Deal Card") {
+           return 0.3;  // Start next animation at 30%
+       }
+       return 0;
+   }
    ```
 
 ---
@@ -2890,7 +2897,7 @@ This section documents known limitations, bugs, and areas for improvement.
 
 **Impact:** Less polished user experience, hard to follow rapid changes
 
-**Workaround:** Use `delayAnimation()` in game renderers to slow move application
+**Workaround:** Use `delayAnimation()` and `animationOverlap()` in game renderers to control move application timing
 
 **Solution:** Framework should automatically pause move application until animations complete
 

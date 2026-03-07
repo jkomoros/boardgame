@@ -394,6 +394,33 @@ override delayAnimation(fromMove: any, toMove: any): number {
 }
 ```
 
+### animationOverlap(fromMove, toMove): number
+
+**Purpose:** Allow the next state to be installed before the current animation finishes, creating overlapping animations.
+
+**Return Values:**
+- `0` (default) - Wait for animation to complete before installing next state (no overlap)
+- `0.5` - Install next state when current animation is 50% done
+- `1` - Install next state immediately (full overlap)
+- Values outside 0-1 are clamped
+
+**Use Case:** Cascade effects like dealing cards, where each card starts moving before the previous one has landed.
+
+**Example:**
+```typescript
+override animationOverlap(fromMove: any, toMove: any): number {
+  if (toMove?.Name === 'Deal Card') {
+    return 0.3; // Start next animation after 30% of current one
+  }
+  return 0; // Default: no overlap
+}
+```
+
+**How the three hooks compose:**
+- `animationLength`: How long does this animation take? (or skip with negative value)
+- `delayAnimation`: How long to pause after animation before next state?
+- `animationOverlap`: What fraction of this animation to play before starting the next?
+
 ---
 
 ## Polymer Dependencies Still Required
