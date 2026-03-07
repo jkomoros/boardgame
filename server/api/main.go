@@ -386,6 +386,41 @@ func (s *Server) closedSeatsForGame(game *boardgame.Game) []bool {
 	return result
 }
 
+// autoCloseGameIfFull checks whether every seat in the game is filled (by a
+// human or agent) or closed. If so it marks the game as not-open (3b) and
+// removes any pending players from the seating queue (3a).
+func (s *Server) autoCloseGameIfFull(game *boardgame.Game) {
+	userIds := s.storage.UserIDsForGame(game.ID())
+	closedSeats := s.closedSeatsForGame(game)
+	agents := game.Agents()
+
+	for i, uid := range userIds {
+		if uid == "" && agents[i] == "" && !closedSeats[i] {
+			// There is still an open, unfilled, non-agent slot.
+			return
+		}
+	}
+
+	// All seats are filled, occupied by agents, or closed.
+
+	// 3b: Auto-close the game so no one else tries to join.
+	eGame, err := s.storage.ExtendedGame(game.ID())
+	if err == nil && eGame.Open {
+		eGame.Open = false
+		if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
+			s.logger.Errorln("Failed to auto-close full game:", err)
+		} else {
+			s.logger.Infoln("Auto-closed game", game.ID(), "because all seats are filled or closed")
+		}
+	}
+
+	// 3a: Clean up any pending players that can no longer be seated.
+	if pending, ok := s.playersToSeat[game.ID()]; ok && len(pending) > 0 {
+		s.logger.Warnln("Removing", len(pending), "pending player(s) from full game", game.ID())
+		delete(s.playersToSeat, game.ID())
+	}
+}
+
 // gameAPISetup fetches the game configured in the URL and puts it in context.
 func (s *Server) gameAPISetup(c *gin.Context) {
 
@@ -433,8 +468,13 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		s.setHasEmptySlots(c, false)
 		effectiveViewingAsPlayer = slot
 
+		s.autoCloseGameIfFull(game)
+
 	} else {
 		s.setHasEmptySlots(c, len(emptySlots) != 0)
+		if len(emptySlots) == 0 {
+			s.autoCloseGameIfFull(game)
+		}
 	}
 	s.setViewingAsPlayer(c, effectiveViewingAsPlayer)
 
@@ -554,7 +594,10 @@ func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer b
 
 	if err := s.doSeatPlayer(game, slot, user); err != nil {
 		r.Error(errors.New("Tried to set the user as player " + slot.String() + " but failed: " + err.Error()))
+		return
 	}
+
+	s.autoCloseGameIfFull(game)
 
 	r.Success(nil)
 }
