@@ -50,6 +50,7 @@ export class BoardgameComponentAnimator extends LitElement {
   private _beforeSeenIds = new Set<string>();
   private _animatingComponents: AnimatingComponentRecord[] = [];
   private _beforeCollectionOffsets = new Map<string, OffsetRect>();
+  private _generation = 0;
 
   ancestorOffsetParent: any = null;
 
@@ -85,6 +86,7 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   prepare() {
+    this._generation++;
     const collections = this.stackElement._sharedStackList;
 
     this._beforeCollectionOffsets = new Map();
@@ -168,21 +170,29 @@ export class BoardgameComponentAnimator extends LitElement {
     // visual glitch if you wait until then. As of October 18, Chrome seems to
     // now have the Safari behavior, so just doing that.
 
-    return new Promise((resolve, reject) => {
+    const generation = this._generation;
+
+    return new Promise((resolve) => {
       // CRITICAL: First microtask - Let Polymer dispatch change events
-      Promise.resolve().then(() => this._scheduleAnimate(resolve, reject));
+      Promise.resolve().then(() => {
+        if (this._generation !== generation) { resolve(); return; }
+        this._scheduleAnimate(resolve, generation);
+      });
     });
   }
 
-  private _scheduleAnimate(resolve: () => void, reject: () => void) {
+  private _scheduleAnimate(resolve: () => void, generation: number) {
     // CRITICAL: Second microtask - Ensure ALL databinding cascades complete
     // This bizarre indirection is necessary because by the time the first
     // microtask resolves some databinding won't have been done, so we need to
     // one more time wait until the end of the microtask. See #722 for more.
-    Promise.resolve().then(() => this._doAnimate(resolve, reject));
+    Promise.resolve().then(() => {
+      if (this._generation !== generation) { resolve(); return; }
+      this._doAnimate(resolve, generation);
+    });
   }
 
-  private _doAnimate(resolve: () => void, reject: () => void) {
+  private _doAnimate(resolve: () => void, generation: number) {
     const collections = this.stackElement._sharedStackList;
 
     // The last seen location of a given card ID
@@ -476,10 +486,12 @@ export class BoardgameComponentAnimator extends LitElement {
     const raf = window.requestAnimationFrame ||
                 (window as any).webkitRequestAnimationFrame ||
                 ((cb: FrameRequestCallback) => window.setTimeout(cb, 16));
-    raf(() => this._startAnimations(resolve, reject));
+    raf(() => this._startAnimations(resolve, generation));
   }
 
-  private async _startAnimations(resolve: () => void, reject: () => void) {
+  private async _startAnimations(resolve: () => void, generation: number) {
+    if (this._generation !== generation) { resolve(); return; }
+
     const collections = this.stackElement._sharedStackList;
 
     // Phase 1: Restore noAnimate on ALL components (required — was set during measurement)
@@ -504,6 +516,9 @@ export class BoardgameComponentAnimator extends LitElement {
 
     // Phase 2: Wait for Lit to process noAnimate changes
     await Promise.all(allComponents.map(c => c.updateComplete));
+
+    // Check generation after await — overlap timer may have started a new cycle
+    if (this._generation !== generation) { resolve(); return; }
 
     // Phase 3: Build filtered list of components that actually need animation
     const componentsToAnimate: any[] = [];

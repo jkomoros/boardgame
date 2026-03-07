@@ -37,6 +37,9 @@ import type { RootState, GameChest } from '../types/store';
 import type { RawGameState, StateBundle, TimerInfo } from '../types/game-state';
 import type { MoveForm } from '../types/api';
 
+// Matches --animation-length: 0.5s default in boardgame-game-view.ts
+const DEFAULT_ANIMATION_LENGTH_MS = 500;
+
 /**
  * StateManager keeps track of fetching state bundles from the server and
  * figuring out when it makes sense to have the game-view install them.
@@ -114,6 +117,8 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   @property({ type: Boolean, attribute: false })
   private _infoFetching = false;
+
+  private _overlapTimerId: ReturnType<typeof setTimeout> | null = null;
 
   // Track previous values for change detection
   private _prevTargetVersion = -1;
@@ -434,6 +439,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   // When everything should be reset
   reset() {
+    if (this._overlapTimerId !== null) {
+      clearTimeout(this._overlapTimerId);
+      this._overlapTimerId = null;
+    }
     store.dispatch(setLastFetchedVersion(0));
     store.dispatch(setTargetVersion(-1));
     store.dispatch(setCurrentVersion(0));
@@ -504,6 +513,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   // Called when gameView tells us to pass up the next state if we have one
   // (the animations are done).
   readyForNextState() {
+    if (this._overlapTimerId !== null) {
+      clearTimeout(this._overlapTimerId);
+      this._overlapTimerId = null;
+    }
     this._scheduleNextStateBundle();
   }
 
@@ -514,6 +527,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     if (!this._pendingBundles.length) return;
 
     const renderer = this.activeRenderer;
+    let effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS;
 
     // If we were given a renderer that knows how to delay animations, consult it.
     if (renderer) {
@@ -534,6 +548,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
               return;
             }
           } else {
+            if (length > 0) effectiveAnimationLength = length;
             this.dispatchEvent(new CustomEvent('set-animation-length', { composed: true, bubbles: true, detail: length }));
           }
         }
@@ -544,29 +559,47 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
           }
           // If delay is greater than 0, wait that long before firing
           if (delay > 0) {
-            window.setTimeout(() => this._asyncFireNextStateBundle(), delay);
+            window.setTimeout(() => this._asyncFireNextStateBundle(effectiveAnimationLength), delay);
             return;
           }
         }
       }
     }
 
-    this._asyncFireNextStateBundle();
+    this._asyncFireNextStateBundle(effectiveAnimationLength);
   }
 
-  private _asyncFireNextStateBundle() {
+  private _asyncFireNextStateBundle(effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS) {
     // Not entirely sure why this has to be done this way, but it needs to be
     // done outside of the current task, even when fired from a timeout.
-    window.requestAnimationFrame(() => this._fireNextStateBundle());
+    window.requestAnimationFrame(() => this._fireNextStateBundle(effectiveAnimationLength));
   }
 
-  private _fireNextStateBundle() {
+  private _fireNextStateBundle(effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS) {
     // Called when the next state bundle should be installed NOW.
     // Dequeue from Redux and fire event
     if (this._pendingBundles.length > 0) {
       const bundle = this._pendingBundles[0];
       store.dispatch(dequeueStateBundle());
       this.dispatchEvent(new CustomEvent('install-state-bundle', { composed: true, bubbles: true, detail: bundle }));
+
+      // Check for overlap: start next animation early if renderer requests it
+      if (this._pendingBundles.length > 0) {
+        const renderer = this.activeRenderer;
+        if (renderer?.animationOverlap) {
+          const nextBundle = this._pendingBundles[0];
+          const fraction = Math.max(0, Math.min(1,
+            renderer.animationOverlap(bundle.move, nextBundle?.move ?? null)
+          ));
+          if (fraction > 0 && fraction < 1) {
+            const overlapMs = fraction * effectiveAnimationLength;
+            this._overlapTimerId = setTimeout(() => {
+              this._overlapTimerId = null;
+              this._scheduleNextStateBundle();
+            }, overlapMs);
+          }
+        }
+      }
     }
   }
 

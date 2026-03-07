@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import './boardgame-component-animator.js';
+import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 
@@ -206,6 +207,14 @@ class BoardgameRenderGame extends LitElement {
     this._activeAnimations = new Map();
   }
 
+  private _clearAllAnimatingComponents() {
+    if (!this._animator) return;
+    const stacks: BoardgameComponentStack[] = this._animator.stackElement?._sharedStackList ?? [];
+    for (const stack of stacks) {
+      stack.clearAnimatingComponents();
+    }
+  }
+
   private _resetAnimating() {
     // Clear any existing watchdog timer from a previous animation cycle.
     if (this._animationWatchdogTimer !== null) {
@@ -281,6 +290,10 @@ class BoardgameRenderGame extends LitElement {
     const stateWasNull = ((this.renderer as any).state == null);
     if (newState && !stateWasNull) {
       this._resetAnimating();
+      // Clear stale faux animating components from any interrupted animation
+      // cycle before prepare() captures positions. This prevents old faux
+      // components' transitionend from interfering with the new cycle.
+      this._clearAllAnimatingComponents();
       this._animator?.prepare();
     }
 
