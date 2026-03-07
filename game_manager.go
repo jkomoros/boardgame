@@ -300,6 +300,31 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 
 	}
 
+	// Verify that if any PlayerState implements Seater (e.g. embeds
+	// behaviors.Seat), then at least one move implements SeatPlayerMover.
+	// Without this pairing, the server can't seat players and
+	// NumSeatedActivePlayers() will always return 0. These interfaces are
+	// defined structurally to avoid importing moves/interfaces.
+	type seater interface {
+		SeatIsFilled() bool
+	}
+	type seatPlayerMover interface {
+		IsSeatPlayerMove() bool
+	}
+	if _, ok := exampleState.ImmutablePlayerStates()[0].(seater); ok {
+		hasSeatPlayerMove := false
+		for _, mt := range result.moves {
+			testMove := mt.NewMove(exampleState)
+			if sp, ok := testMove.(seatPlayerMover); ok && sp.IsSeatPlayerMove() {
+				hasSeatPlayerMove = true
+				break
+			}
+		}
+		if !hasSeatPlayerMove {
+			return nil, errors.New("PlayerState implements Seater (e.g. embeds behaviors.Seat) but no move implements IsSeatPlayerMove (e.g. moves.SeatPlayer). Without it, the server cannot seat players and NumSeatedActivePlayers() will always return 0")
+		}
+	}
+
 	//Verify that all of the int values returned by GroupMembership are part of
 	//groupEnum. a nil return value is fine.
 	if groupMembership := result.delegate.GroupMembership(exampleState.ImmutablePlayerStates()[0]); groupMembership != nil {
