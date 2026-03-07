@@ -176,6 +176,12 @@ class BoardgameRenderGame extends LitElement {
     if (changedProperties.has('state')) {
       this._stateChanged(this.state, changedProperties.get('state') as any);
     }
+
+    if (changedProperties.has('renderer')) {
+      this.dispatchEvent(new CustomEvent('renderer-changed', {
+        composed: true, bubbles: true, detail: { value: this.renderer }
+      }));
+    }
   }
 
   private _diagramChanged(newValue: string) {
