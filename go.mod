@@ -17,7 +17,7 @@ require (
 	github.com/josephburnett/jd v0.0.0-20180528105033-720e887018e5
 	github.com/mattes/migrate v3.0.1+incompatible
 	github.com/sirupsen/logrus v1.4.2
-	github.com/workfit/tester v0.0.0-20180414005449-9a064fa40ac3
+	github.com/workfit/tester v0.0.0-20190607030106-6b51fb84166e
 	github.com/yudai/gojsondiff v0.0.0-20170107030110-7b1b7adf999d
 )
 
@@ -29,13 +29,11 @@ require (
 	github.com/docker/docker v1.13.1 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
-	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 // indirect
 	github.com/golang/protobuf v1.1.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c // indirect
 	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/text v0.1.0 // indirect
@@ -49,13 +47,13 @@ require (
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
-	github.com/stevvooe/resumable v0.0.0-20180830230917-22b14a53ba50 // indirect
 	github.com/ugorji/go v1.1.1 // indirect
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
 	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4 // indirect
-	golang.org/x/tools v0.1.0 // indirect
 	gopkg.in/dgrijalva/jwt-go.v3 v3.2.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect

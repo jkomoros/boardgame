@@ -62,3 +62,7 @@ server/static/tests/games/
 
 # Extra compiled binaries
 boardgame-util/boardgame-util-bin
+
+# Go workspaces (local dev only)
+go.work
+go.work.sum
