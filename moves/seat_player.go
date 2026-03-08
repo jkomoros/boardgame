@@ -404,6 +404,93 @@ func (i *InactivateEmptySeat) FallbackName(m *boardgame.GameManager) string {
 	return "Inactivate Empty Seat"
 }
 
+// CloseAllSeats is a player move that closes all currently unfilled, unclosed
+// seats in one action. This is useful for allowing a player to say "let's get
+// started" before all seats are filled, without waiting for more players. It is
+// only legal if there is at least one unfilled, unclosed seat, and if enough
+// players are already seated (at least MinNumPlayers). Unlike CloseEmptySeat
+// (which is a FixUpMulti that closes one seat per application), this move closes
+// all empty seats at once.
+//
+//boardgame:codegen
+type CloseAllSeats struct {
+	Default
+}
+
+// Legal verifies that there is at least one unfilled, unclosed seat, and that
+// the number of seated active players is at least MinNumPlayers.
+func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := c.Default.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	hasOpenSeat := false
+	for _, p := range state.ImmutablePlayerStates() {
+		if seat, ok := p.(interfaces.Seater); ok {
+			if !seat.SeatIsFilled() && !seat.SeatIsClosed() {
+				hasOpenSeat = true
+				break
+			}
+		}
+	}
+	if !hasOpenSeat {
+		return errors.New("No unfilled, unclosed seats to close")
+	}
+
+	activePlayerser, ok := state.Manager().Delegate().(numSeatedActivePlayerser)
+	if !ok {
+		return errors.New("Game delegate didn't implement NumSeatedActivePlayers")
+	}
+
+	minPlayers := state.Manager().Delegate().MinNumPlayers()
+	seatedPlayers := activePlayerser.NumSeatedActivePlayers(state)
+
+	if seatedPlayers < minPlayers {
+		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " players are seated, but at least " + strconv.Itoa(minPlayers) + " are required")
+	}
+
+	return nil
+}
+
+// Apply closes all unfilled, unclosed seats.
+func (c *CloseAllSeats) Apply(state boardgame.State) error {
+	for _, p := range state.ImmutablePlayerStates() {
+		if seat, ok := p.(interfaces.Seater); ok {
+			if !seat.SeatIsFilled() && !seat.SeatIsClosed() {
+				seat.SetSeatClosed()
+			}
+		}
+	}
+	return nil
+}
+
+// ValidConfiguration checks that player states implement interfaces.Seater.
+func (c *CloseAllSeats) ValidConfiguration(exampleState boardgame.State) error {
+	if err := c.Default.ValidConfiguration(exampleState); err != nil {
+		return err
+	}
+	player := exampleState.ImmutablePlayerStates()[0]
+	_, ok := player.(interfaces.Seater)
+	if !ok {
+		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
+	}
+	_, ok = exampleState.Manager().Delegate().(numSeatedActivePlayerser)
+	if !ok {
+		return errors.New("Game delegate didn't implement NumSeatedActivePlayers")
+	}
+	return nil
+}
+
+// FallbackHelpText returns a description of the move.
+func (c *CloseAllSeats) FallbackHelpText() string {
+	return "Closes all unfilled seats so no more players can join and the game can begin"
+}
+
+// FallbackName returns "Close All Seats"
+func (c *CloseAllSeats) FallbackName(m *boardgame.GameManager) string {
+	return "Close All Seats"
+}
+
 type numSeatedActivePlayerser interface {
 	NumSeatedActivePlayers(state boardgame.ImmutableState) int
 }

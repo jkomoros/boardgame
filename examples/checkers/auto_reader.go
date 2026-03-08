@@ -2898,6 +2898,9 @@ var ȧutoGeneratedPlayerStateReaderProps = map[string]boardgame.PropertyType{
 	"CapturedTokens": boardgame.TypeStack,
 	"Color":          boardgame.TypeEnum,
 	"FinishedTurn":   boardgame.TypeBool,
+	"PlayerInactive": boardgame.TypeBool,
+	"SeatClosed":     boardgame.TypeBool,
+	"SeatFilled":     boardgame.TypeBool,
 }
 
 type ȧutoGeneratedPlayerStateReader struct {
@@ -2956,6 +2959,12 @@ func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 	case "Color":
 		return true
 	case "FinishedTurn":
+		return true
+	case "PlayerInactive":
+		return true
+	case "SeatClosed":
+		return true
+	case "SeatFilled":
 		return true
 	}
 
@@ -3190,6 +3199,12 @@ func (p *ȧutoGeneratedPlayerStateReader) BoolProp(name string) (bool, error) {
 	switch name {
 	case "FinishedTurn":
 		return p.data.FinishedTurn, nil
+	case "PlayerInactive":
+		return p.data.PlayerInactive, nil
+	case "SeatClosed":
+		return p.data.SeatClosed, nil
+	case "SeatFilled":
+		return p.data.SeatFilled, nil
 
 	}
 
@@ -3202,6 +3217,15 @@ func (p *ȧutoGeneratedPlayerStateReader) SetBoolProp(name string, value bool) e
 	switch name {
 	case "FinishedTurn":
 		p.data.FinishedTurn = value
+		return nil
+	case "PlayerInactive":
+		p.data.PlayerInactive = value
+		return nil
+	case "SeatClosed":
+		p.data.SeatClosed = value
+		return nil
+	case "SeatFilled":
+		p.data.SeatFilled = value
 		return nil
 
 	}

@@ -343,14 +343,20 @@
 						"Busted": false,
 						"DieCounted": false,
 						"Done": false,
+						"PlayerInactive": false,
 						"RoundScore": 0,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TotalScore": 0
 					},
 					{
 						"Busted": false,
 						"DieCounted": false,
 						"Done": false,
+						"PlayerInactive": false,
 						"RoundScore": 0,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TotalScore": 0
 					}
 				]

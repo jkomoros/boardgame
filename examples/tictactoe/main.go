@@ -138,6 +138,9 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	return moves.Add(
 		auto.MustConfig(
+			new(moves.SeatPlayer),
+		),
+		auto.MustConfig(
 			new(movePlaceToken),
 			moves.WithHelpText("Place a player's token in a specific space."),
 		),

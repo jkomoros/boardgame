@@ -199,6 +199,9 @@
 			"Players": [
 				[
 					{
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TokenValue": "X",
 						"TokensToPlaceThisTurn": 1,
 						"UnusedTokens": {
@@ -228,6 +231,9 @@
 						}
 					},
 					{
+						"PlayerInactive": false,
+						"SeatClosed": false,
+						"SeatFilled": false,
 						"TokenValue": "O",
 						"TokensToPlaceThisTurn": 1,
 						"UnusedTokens": {

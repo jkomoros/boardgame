@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -30,6 +31,163 @@ type moveCurrentPlayerHit struct {
 //boardgame:codegen
 type moveCurrentPlayerStand struct {
 	moves.CurrentPlayer
+}
+
+// moveStartRoundCleanup transitions to phaseRoundCleanup when all active
+// players have either busted or stood.
+//
+//boardgame:codegen
+type moveStartRoundCleanup struct {
+	moves.StartPhase
+}
+
+func (m *moveStartRoundCleanup) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.StartPhase.Legal(state, proposer); err != nil {
+		return err
+	}
+	for _, p := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		player := p.(*playerState)
+		if !player.Busted && !player.Stood {
+			return errors.New("not all active players have finished their turn")
+		}
+	}
+	return nil
+}
+
+// moveAccumulateScores adds each non-busted player's hand value to their
+// TotalScore. Fires once at the start of the cleanup phase.
+//
+//boardgame:codegen
+type moveAccumulateScores struct {
+	moves.FixUp
+}
+
+func (m *moveAccumulateScores) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
+		return err
+	}
+	// Only legal if at least one player has cards in hand (scores not yet collected)
+	for _, p := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		player := p.(*playerState)
+		if player.Hand.NumComponents() > 0 {
+			return nil
+		}
+	}
+	return errors.New("no active players have cards to score")
+}
+
+func (m *moveAccumulateScores) Apply(state boardgame.State) error {
+	for _, p := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		player := p.(*playerState)
+		if !player.Busted {
+			player.TotalScore += player.HandValue()
+		}
+	}
+	return nil
+}
+
+// moveCollectCards moves all cards from all players' hands back to the
+// discard stack.
+//
+//boardgame:codegen
+type moveCollectCards struct {
+	moves.FixUp
+}
+
+func (m *moveCollectCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
+		return err
+	}
+	for _, p := range state.ImmutablePlayerStates() {
+		player := p.(*playerState)
+		if player.HiddenHand.NumComponents() > 0 || player.VisibleHand.NumComponents() > 0 {
+			return nil
+		}
+	}
+	return errors.New("no player has cards to collect")
+}
+
+func (m *moveCollectCards) Apply(state boardgame.State) error {
+	game, players := concreteStates(state)
+	for _, p := range players {
+		p.HiddenHand.MoveAllTo(game.DiscardStack)
+		p.VisibleHand.MoveAllTo(game.DiscardStack)
+	}
+	return nil
+}
+
+// moveResetPlayerForNewRound resets Busted and Stood flags for all players.
+//
+//boardgame:codegen
+type moveResetPlayerForNewRound struct {
+	moves.FixUp
+}
+
+func (m *moveResetPlayerForNewRound) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
+		return err
+	}
+	for _, p := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		player := p.(*playerState)
+		if player.Busted || player.Stood {
+			return nil
+		}
+	}
+	return errors.New("no active players need resetting")
+}
+
+func (m *moveResetPlayerForNewRound) Apply(state boardgame.State) error {
+	_, players := concreteStates(state)
+	for _, p := range players {
+		p.Busted = false
+		p.Stood = false
+	}
+	return nil
+}
+
+// moveIncrementRoundsCompleted increments the RoundsCompleted counter.
+//
+//boardgame:codegen
+type moveIncrementRoundsCompleted struct {
+	moves.FixUp
+}
+
+func (m *moveIncrementRoundsCompleted) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
+		return err
+	}
+	game, _ := concreteStates(state)
+	// Legal only if no player has cards and flags are reset (cleanup already done)
+	for _, p := range state.ImmutablePlayerStates() {
+		player := p.(*playerState)
+		if player.HiddenHand.NumComponents() > 0 || player.VisibleHand.NumComponents() > 0 {
+			return errors.New("cards haven't been collected yet")
+		}
+	}
+	// Check that we haven't already incremented (by looking at whether we're
+	// still in the cleanup phase — the StartPhase move after us will change it)
+	if game.Phase.Value() != phaseRoundCleanup {
+		return errors.New("not in cleanup phase")
+	}
+	return nil
+}
+
+func (m *moveIncrementRoundsCompleted) Apply(state boardgame.State) error {
+	game, _ := concreteStates(state)
+	game.RoundsCompleted++
+	return nil
 }
 
 /**************************************************

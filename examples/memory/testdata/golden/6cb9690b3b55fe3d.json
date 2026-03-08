@@ -1618,6 +1618,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -1628,6 +1631,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -2421,6 +2427,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -2431,6 +2440,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -3226,6 +3238,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -3236,6 +3251,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -4031,6 +4049,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -4041,6 +4062,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -4836,6 +4860,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -4846,6 +4873,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -5641,6 +5671,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -5651,6 +5684,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -6448,6 +6484,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -6458,6 +6497,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -7257,6 +7299,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -7267,6 +7312,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -8066,6 +8114,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -8076,6 +8127,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -8875,6 +8929,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -8885,6 +8942,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -9684,6 +9744,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -9694,6 +9757,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -10495,6 +10561,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -10505,6 +10574,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -11308,6 +11380,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -11318,6 +11393,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -12121,6 +12199,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -12140,6 +12221,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -12943,6 +13027,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -12962,6 +13049,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -13767,6 +13857,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -13786,6 +13879,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -14593,6 +14689,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -14612,6 +14711,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -15419,6 +15521,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -15438,6 +15543,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -16245,6 +16353,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -16264,6 +16375,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -17071,6 +17185,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -17090,6 +17207,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -17899,6 +18019,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -17918,6 +18041,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -18727,6 +18853,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -18746,6 +18875,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -19555,6 +19687,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -19574,6 +19709,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -20383,6 +20521,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -20402,6 +20543,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -21211,6 +21355,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -21230,6 +21377,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -22039,6 +22189,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -22058,6 +22211,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -22867,6 +23023,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -22886,6 +23045,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -23695,6 +23857,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -23714,6 +23879,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -24532,6 +24700,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -24551,6 +24722,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -25369,6 +25543,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -25388,6 +25565,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -26208,6 +26388,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -26227,6 +26410,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -27047,6 +27233,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -27072,6 +27261,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -27892,6 +28084,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -27917,6 +28112,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -28739,6 +28937,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -28764,6 +28965,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -29588,6 +29792,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -29613,6 +29820,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -30437,6 +30647,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -30462,6 +30675,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -31286,6 +31502,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -31311,6 +31530,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -32135,6 +32357,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -32160,6 +32385,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -32986,6 +33214,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -33011,6 +33242,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -33837,6 +34071,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -33862,6 +34099,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -34688,6 +34928,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -34719,6 +34962,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -35545,6 +35791,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -35576,6 +35825,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -36404,6 +36656,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -36435,6 +36690,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -37265,6 +37523,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -37296,6 +37557,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -38126,6 +38390,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -38157,6 +38424,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -38987,6 +39257,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -39018,6 +39291,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -39848,6 +40124,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -39879,6 +40158,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -40709,6 +40991,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -40740,6 +41025,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -41570,6 +41858,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -41601,6 +41892,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -42431,6 +42725,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -42468,6 +42765,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -43298,6 +43598,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -43335,6 +43638,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -44165,6 +44471,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -44202,6 +44511,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -45032,6 +45344,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -45069,6 +45384,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -45899,6 +46217,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -45936,6 +46257,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -46772,6 +47096,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -46809,6 +47136,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -47645,6 +47975,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -47682,6 +48015,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -48518,6 +48854,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -48555,6 +48894,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -49391,6 +49733,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -49428,6 +49773,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -50264,6 +50612,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -50301,6 +50652,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -51137,6 +51491,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -51174,6 +51531,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -52010,6 +52370,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -52047,6 +52410,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -52885,6 +53251,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -52922,6 +53291,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -53760,6 +54132,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -53797,6 +54172,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -54635,6 +55013,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -54672,6 +55053,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -55510,6 +55894,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -55547,6 +55934,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -56387,6 +56777,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -56424,6 +56817,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -57266,6 +57662,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -57303,6 +57702,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -58145,6 +58547,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -58182,6 +58587,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -59024,6 +59432,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -59061,6 +59472,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -59903,6 +60317,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -59940,6 +60357,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -60782,6 +61202,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -60819,6 +61242,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -61661,6 +62087,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -61698,6 +62127,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -62540,6 +62972,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -62577,6 +63012,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -63425,6 +63863,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -63462,6 +63903,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -64312,6 +64756,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -64349,6 +64796,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -65199,6 +65649,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -65236,6 +65689,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -66086,6 +66542,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -66129,6 +66588,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -66979,6 +67441,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -67022,6 +67487,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -67872,6 +68340,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -67915,6 +68386,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -68765,6 +69239,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -68808,6 +69285,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -69658,6 +70138,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -69701,6 +70184,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -70551,6 +71037,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -70594,6 +71083,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -71444,6 +71936,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -71487,6 +71982,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -72337,6 +72835,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -72380,6 +72881,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -73230,6 +73734,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -73273,6 +73780,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -74123,6 +74633,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -74172,6 +74685,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -75022,6 +75538,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -75071,6 +75590,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 2,
 					"WonCards": {
 						"Deck": "cards",
@@ -75921,6 +76443,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -75970,6 +76495,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 1,
 					"WonCards": {
 						"Deck": "cards",
@@ -76822,6 +77350,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -76871,6 +77402,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -77723,6 +78257,9 @@
 			},
 			"Players": [
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",
@@ -77772,6 +78309,9 @@
 					}
 				},
 				{
+					"SeatFilled": false,
+					"SeatClosed": false,
+					"PlayerInactive": false,
 					"CardsLeftToReveal": 0,
 					"WonCards": {
 						"Deck": "cards",

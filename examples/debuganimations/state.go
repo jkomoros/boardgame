@@ -46,5 +46,7 @@ type gameState struct {
 //boardgame:codegen
 type playerState struct {
 	base.SubState
+	behaviors.Seat
+	behaviors.InactivePlayer
 	Hand boardgame.Stack `stack:"cards,1"`
 }
