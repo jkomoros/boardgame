@@ -142,9 +142,11 @@ type GameDelegate interface {
 	//game.Variant(). This is a good place to configure state that will be
 	//necessary for you to make the right decisions in
 	//DistributeComponentToStarterStack, or to transcribe config information
-	//you were passed into properties on your gameState as appropriate. If
-	//error is non-nil, Game setup will be aborted, with the reasoning
-	//including the error message provided.
+	//you were passed into properties on your gameState as appropriate. It is
+	//also the idiomatic place to call Validate() on any global
+	//StatePropertyRef variables, to catch misconfigured property names early
+	//at game creation time. If error is non-nil, Game setup will be aborted,
+	//with the reasoning including the error message provided.
 	BeginSetUp(state State, variant Variant) error
 
 	//FinishSetUp is called during NewGame, *after* components have been
