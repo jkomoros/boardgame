@@ -267,7 +267,26 @@ func compareMoveStorageRecords(one, two boardgame.MoveStorageRecord, skipAbsolut
 	}
 
 	if !reflect.DeepEqual(one, two) {
-		return errors.New("Move storage records differed in base fields: " + strings.Join(deep.Equal(one, two), ", "))
+		var diffs []string
+		if one.Name != two.Name {
+			diffs = append(diffs, fmt.Sprintf("Name: got %q, expected %q", one.Name, two.Name))
+		}
+		if one.Version != two.Version {
+			diffs = append(diffs, fmt.Sprintf("Version: got %d, expected %d", one.Version, two.Version))
+		}
+		if one.Initiator != two.Initiator {
+			diffs = append(diffs, fmt.Sprintf("Initiator: got %d, expected %d", one.Initiator, two.Initiator))
+		}
+		if one.Phase != two.Phase {
+			diffs = append(diffs, fmt.Sprintf("Phase: got %v, expected %v", one.Phase, two.Phase))
+		}
+		if one.Proposer != two.Proposer {
+			diffs = append(diffs, fmt.Sprintf("Proposer: got %v, expected %v", one.Proposer, two.Proposer))
+		}
+		if len(diffs) == 0 {
+			diffs = deep.Equal(one, two)
+		}
+		return errors.New("Move storage records differed in base fields: " + strings.Join(diffs, "; "))
 	}
 
 	return compareJSONBlobs(oneBlob, twoBlob)

@@ -171,7 +171,8 @@ func (c *comparer) VerifyUnverifiedMoves() error {
 
 			//Warning: records are modified by this method
 			if err := compareMoveStorageRecords(*moves[len(moves)-1], *recMove, false); err != nil {
-				return errors.New("Move " + strconv.Itoa(c.lastVerifiedVersion) + " compared differently: " + err.Error())
+				return fmt.Errorf("Move %d (got %q, expected %q) compared differently: %s",
+					c.lastVerifiedVersion, moves[len(moves)-1].Name, recMove.Name, err.Error())
 			}
 		}
 
@@ -353,11 +354,13 @@ func (c *comparer) Compare() error {
 func (c *comparer) CompareFinished() error {
 
 	if c.game.Finished() != c.golden.Game().Finished {
-		return errors.New("Game finished did not match rec")
+		return fmt.Errorf("Game finished did not match: got %v, expected %v",
+			c.game.Finished(), c.golden.Game().Finished)
 	}
 
 	if !reflect.DeepEqual(c.game.Winners(), c.golden.Game().Winners) {
-		return errors.New("Game winners did not match")
+		return fmt.Errorf("Game winners did not match: got %v, expected %v",
+			c.game.Winners(), c.golden.Game().Winners)
 	}
 
 	return nil
