@@ -23,6 +23,8 @@ type autoStackConfig struct {
 	fixedSize bool
 	//If more than 0, then a board config.
 	boardSize int
+	//constraints parsed from struct tags (e.g. max(1)).
+	constraints []StackConstraint
 }
 
 type autoMergedStackConfig struct {
@@ -74,7 +76,7 @@ type StructInflater struct {
 // create ones for you for its own use to infalte your gameStates,
 // playerStates, dynamicComponentValueStates, and Moves, and which you can get
 // access to via manager.Internals().StructInflater().
-func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*StructInflater, error) {
+func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest, constraintConstructors ...map[string]*StackConstraintConstructor) (*StructInflater, error) {
 
 	if chest == nil {
 		return nil, errors.New("Passed nil chest")
@@ -82,6 +84,11 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 	if illegalTypes == nil {
 		illegalTypes = make(map[PropertyType]bool)
+	}
+
+	var ccMap map[string]*StackConstraintConstructor
+	if len(constraintConstructors) > 0 {
+		ccMap = constraintConstructors[0]
 	}
 
 	exampleReader := exampleObj.Reader()
@@ -185,7 +192,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 				if tag != "" {
 
-					deck, size, err := unpackStackStructTag(tag, chest)
+					deck, size, stackConstraints, err := unpackStackStructTag(tag, chest, ccMap)
 
 					if err != nil {
 						return nil, errors.New(propName + " was a nil SizedStack and its struct tag was not valid: " + err.Error())
@@ -202,6 +209,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 						size,
 						isFixed,
 						boardSize,
+						stackConstraints,
 					}
 				} else {
 					if boardSize > 0 {
@@ -532,6 +540,10 @@ func (s *StructInflater) Inflate(obj ReadSetConfigurer, st ImmutableState) error
 			if err := readSetConfigurer.ConfigureStackProp(propName, stack); err != nil {
 				return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
 			}
+
+			for _, c := range config.constraints {
+				stack.AddConstraint(c)
+			}
 		}
 	}
 
@@ -805,11 +817,11 @@ func unpackMergedStackStructTag(tag string, reader PropertyReader) (stackNames [
 
 }
 
-func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error) {
+func unpackStackStructTag(tag string, chest *ComponentChest, ccMap map[string]*StackConstraintConstructor) (*Deck, int, []StackConstraint, error) {
 	pieces := strings.Split(tag, ",")
 
-	if len(pieces) > 2 {
-		return nil, 0, errors.New("There were more fields in the struct tag than expected")
+	if len(pieces) < 1 {
+		return nil, 0, nil, errors.New("No deck name provided in struct tag")
 	}
 
 	deckName := strings.TrimSpace(pieces[0])
@@ -817,21 +829,72 @@ func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error)
 	deck := chest.Deck(deckName)
 
 	if deck == nil {
-		return nil, 0, errors.New("The deck name " + deckName + " was not a valid deck")
+		return nil, 0, nil, errors.New("The deck name " + deckName + " was not a valid deck")
 	}
 
 	size := 0
+	var stackConstraints []StackConstraint
 
-	if len(pieces) > 1 {
-		var err error
-		size, err = intEffectiveValue(pieces[1], chest)
-		if err != nil {
-			return nil, 0, errors.New("The size in the struct tag was not a valid int: " + err.Error())
+	for i := 1; i < len(pieces); i++ {
+		piece := strings.TrimSpace(pieces[i])
+		if piece == "" {
+			continue
+		}
+
+		// Check if this looks like a constraint expression: name(args).
+		if name, args, ok := parseConstraintExpr(piece); ok {
+			if ccMap == nil {
+				return nil, 0, nil, errors.New("constraint " + name + " found in struct tag but no constraint constructors configured")
+			}
+			cc, exists := ccMap[name]
+			if !exists {
+				return nil, 0, nil, errors.New("unknown constraint " + name + " in struct tag")
+			}
+			constraint, err := cc.Constructor(args, chest)
+			if err != nil {
+				return nil, 0, nil, errors.New("constraint " + name + " error: " + err.Error())
+			}
+			stackConstraints = append(stackConstraints, constraint)
+		} else if i == 1 {
+			// Second field (index 1) is the size field, if it's not a constraint.
+			var err error
+			size, err = intEffectiveValue(piece, chest)
+			if err != nil {
+				return nil, 0, nil, errors.New("The size in the struct tag was not a valid int: " + err.Error())
+			}
+		} else {
+			return nil, 0, nil, errors.New("unexpected field in struct tag: " + piece)
 		}
 	}
 
-	return deck, size, nil
+	return deck, size, stackConstraints, nil
 
+}
+
+// parseConstraintExpr checks if s matches the pattern "name(args)" and
+// returns the name and comma-separated args. Returns false if not a match.
+func parseConstraintExpr(s string) (name string, args []string, ok bool) {
+	parenIdx := strings.Index(s, "(")
+	if parenIdx < 0 {
+		return "", nil, false
+	}
+	if !strings.HasSuffix(s, ")") {
+		return "", nil, false
+	}
+	name = s[:parenIdx]
+	if name == "" {
+		return "", nil, false
+	}
+	argStr := s[parenIdx+1 : len(s)-1]
+	if argStr == "" {
+		return name, nil, true
+	}
+	argParts := strings.Split(argStr, ";")
+	args = make([]string, len(argParts))
+	for i, arg := range argParts {
+		args[i] = strings.TrimSpace(arg)
+	}
+	return name, args, true
 }
 
 // intEffectiveValue either returns the integer encoded by the string, or if

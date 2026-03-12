@@ -641,6 +641,15 @@ func (g *GameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	return make(map[string]*boardgame.Deck)
 }
 
+// ConfigureStackConstraintConstructors returns nil, which tells the
+// GameManager to use the default pre-built constraint constructors from the
+// constraints package. Override this to provide a custom set of constructors;
+// to include the defaults, import the constraints package and call
+// constraints.DefaultConstructors().
+func (g *GameDelegate) ConfigureStackConstraintConstructors() []*boardgame.StackConstraintConstructor {
+	return nil
+}
+
 // ConfigureConstants returns a zero-entry map. If you have any constants you
 // wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
 // to override this.

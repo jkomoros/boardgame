@@ -39,6 +39,7 @@ type GameManager struct {
 	initialized               bool
 	logger                    *logrus.Logger
 	variantConfig             VariantConfig
+	constraintConstructors    map[string]*StackConstraintConstructor
 }
 
 // Internals returns a ManagerInternals for this manager. All of the methods on
@@ -240,6 +241,18 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	chest.manager = result
 
 	delegate.SetManager(result)
+
+	// Build the constraint constructor map for struct tag parsing.
+	if ccs := delegate.ConfigureStackConstraintConstructors(); len(ccs) > 0 {
+		constraintConstructors := make(map[string]*StackConstraintConstructor)
+		for _, cc := range ccs {
+			if cc == nil || cc.Name == "" {
+				continue
+			}
+			constraintConstructors[cc.Name] = cc
+		}
+		result.constraintConstructors = constraintConstructors
+	}
 
 	if !delegate.LegalNumPlayers(delegate.DefaultNumPlayers()) {
 		return nil, errors.New("The default number of players is not legal")
@@ -487,7 +500,7 @@ func (g *GameManager) setUpValidators() error {
 
 	exampleGameState.ConnectContainingState(nil, StatePropertyRef{Group: StateGroupGame})
 
-	validator, err := NewStructInflater(exampleGameState, nil, g.chest)
+	validator, err := NewStructInflater(exampleGameState, nil, g.chest, g.constraintConstructors)
 
 	if err != nil {
 		return errors.New("Could not validate empty game state: " + err.Error())
@@ -514,7 +527,7 @@ func (g *GameManager) setUpValidators() error {
 
 	examplePlayerState.ConnectContainingState(nil, StatePropertyRef{Group: StateGroupPlayer})
 
-	validator, err = NewStructInflater(examplePlayerState, nil, g.chest)
+	validator, err = NewStructInflater(examplePlayerState, nil, g.chest, g.constraintConstructors)
 
 	if err != nil {
 		return errors.New("Could not validate empty player state: " + err.Error())
@@ -543,7 +556,7 @@ func (g *GameManager) setUpValidators() error {
 
 		exampleDynamicComponentValue.ConnectContainingState(nil, StatePropertyRef{Group: StateGroupDynamicComponentValues, DeckName: deckName})
 
-		validator, err = NewStructInflater(exampleDynamicComponentValue, nil, g.chest)
+		validator, err = NewStructInflater(exampleDynamicComponentValue, nil, g.chest, g.constraintConstructors)
 
 		if err != nil {
 			return errors.New("Could not validate empty dynamic component state for " + deckName + ": " + err.Error())

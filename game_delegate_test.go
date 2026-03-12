@@ -405,6 +405,10 @@ func (d *defaultGameDelegate) ConfigureConstants() PropertyCollection {
 	return nil
 }
 
+func (d *defaultGameDelegate) ConfigureStackConstraintConstructors() []*StackConstraintConstructor {
+	return nil
+}
+
 type testGameDelegate struct {
 	defaultGameDelegate
 	//if this is higher than 0, then will craete this many extra comoponents

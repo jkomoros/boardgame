@@ -316,6 +316,15 @@ type GameDelegate interface {
 	//given delegate can only be used by a single manager at a time.
 	SetManager(manager *GameManager)
 
+	//ConfigureStackConstraintConstructors returns the set of
+	//StackConstraintConstructors that may be used in struct tags. The
+	//returned constructors' Names are matched against constraint
+	//expressions in stack/sizedstack struct tags (e.g.
+	//`sizedstack:"tokens,9,max(1)"`). The default implementation in
+	//base.GameDelegate returns the pre-built constructors from the
+	//constraints package. Override this to add custom constraint types.
+	ConfigureStackConstraintConstructors() []*StackConstraintConstructor
+
 	//Manager returns the Manager that was set on this delegate.
 	Manager() *GameManager
 }
