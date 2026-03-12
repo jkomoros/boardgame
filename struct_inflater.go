@@ -817,8 +817,34 @@ func unpackMergedStackStructTag(tag string, reader PropertyReader) (stackNames [
 
 }
 
+// splitTagFields splits a struct tag value on commas, but ignores commas
+// inside parentheses so that constraint expressions like "maxdistinct(color,2)"
+// are kept intact.
+func splitTagFields(tag string) []string {
+	var fields []string
+	depth := 0
+	start := 0
+	for i, c := range tag {
+		switch c {
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case ',':
+			if depth == 0 {
+				fields = append(fields, tag[start:i])
+				start = i + 1
+			}
+		}
+	}
+	fields = append(fields, tag[start:])
+	return fields
+}
+
 func unpackStackStructTag(tag string, chest *ComponentChest, ccMap map[string]*StackConstraintConstructor) (*Deck, int, []StackConstraint, error) {
-	pieces := strings.Split(tag, ",")
+	pieces := splitTagFields(tag)
 
 	if len(pieces) < 1 {
 		return nil, 0, nil, errors.New("No deck name provided in struct tag")
@@ -872,7 +898,9 @@ func unpackStackStructTag(tag string, chest *ComponentChest, ccMap map[string]*S
 }
 
 // parseConstraintExpr checks if s matches the pattern "name(args)" and
-// returns the name and semicolon-separated args. Returns false if not a match.
+// returns the name and comma-separated args. Returns false if not a match.
+// Commas inside constraint args are safe because splitTagFields already
+// handles top-level field splitting in a parenthesis-aware way.
 func parseConstraintExpr(s string) (name string, args []string, ok bool) {
 	parenIdx := strings.Index(s, "(")
 	if parenIdx < 0 {
@@ -889,7 +917,7 @@ func parseConstraintExpr(s string) (name string, args []string, ok bool) {
 	if argStr == "" {
 		return name, nil, true
 	}
-	argParts := strings.Split(argStr, ";")
+	argParts := strings.Split(argStr, ",")
 	args = make([]string, len(argParts))
 	for i, arg := range argParts {
 		args[i] = strings.TrimSpace(arg)

@@ -32,13 +32,13 @@ values are compared using fmt.Sprintf("%v", val) for equality.
 # Struct Tag Syntax
 
 Constraint expressions can be added after the deck name (and size, for
-sizedstack) in struct tags. Arguments within a constraint use semicolons
-as separators, because commas already separate the top-level struct tag
-fields:
+sizedstack) in struct tags. Arguments within a constraint use commas,
+just like the top-level tag fields — the tag parser is parenthesis-aware,
+so commas inside parentheses are treated as constraint arguments:
 
 	`stack:"cards,max(3)"`
 	`sizedstack:"cards,5,max(3)"`
-	`sizedstack:"cards,5,maxdistinct(color;2)"`
+	`sizedstack:"cards,5,maxdistinct(color,2)"`
 	`sizedstack:"cards,5,max(3),unique(color)"`
 
 To enable struct-tag constraints, your GameDelegate must return constructors
