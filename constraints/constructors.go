@@ -13,3 +13,11 @@ func DefaultConstructors() []*boardgame.StackConstraintConstructor {
 		MaxDistinctValuesConstructor(),
 	}
 }
+
+// ExtendDefaults returns DefaultConstructors() with the provided custom
+// constructors appended. This is a convenience for
+// GameDelegate.ConfigureStackConstraintConstructors when you want the
+// pre-built constraints plus your own.
+func ExtendDefaults(custom ...*boardgame.StackConstraintConstructor) []*boardgame.StackConstraintConstructor {
+	return append(DefaultConstructors(), custom...)
+}

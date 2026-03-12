@@ -28,5 +28,28 @@ The propPath parameter follows a simple convention:
 
 The property is read via the generic Prop() method on PropertyReader, and
 values are compared using fmt.Sprintf("%v", val) for equality.
+
+# Struct Tag Syntax
+
+Constraint expressions can be added after the deck name (and size, for
+sizedstack) in struct tags. Arguments within a constraint use semicolons
+as separators, because commas already separate the top-level struct tag
+fields:
+
+	`stack:"cards,max(3)"`
+	`sizedstack:"cards,5,max(3)"`
+	`sizedstack:"cards,5,maxdistinct(color;2)"`
+	`sizedstack:"cards,5,max(3),unique(color)"`
+
+To enable struct-tag constraints, your GameDelegate must return constructors
+from ConfigureStackConstraintConstructors. Use DefaultConstructors() to get
+all pre-built constraints, or ExtendDefaults() to add custom types.
+
+# Future Work
+
+Source-side constraints (checked on the stack a component is being removed
+from) are not yet supported. This would enable patterns like "don't allow
+removal below N components." The current constraints are all destination-side:
+they validate the stack after a component is added.
 */
 package constraints

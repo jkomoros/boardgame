@@ -163,3 +163,19 @@ func TestDefaultConstructors(t *testing.T) {
 	assert.For(t).ThatActual(names["same"]).Equals(true)
 	assert.For(t).ThatActual(names["maxdistinct"]).Equals(true)
 }
+
+func TestExtendDefaults(t *testing.T) {
+	custom := &boardgame.StackConstraintConstructor{
+		Name: "custom",
+		Constructor: func(args []string, chest *boardgame.ComponentChest) (boardgame.StackConstraint, error) {
+			return nil, nil
+		},
+	}
+
+	extended := ExtendDefaults(custom)
+	assert.For(t, "extended length").ThatActual(len(extended)).Equals(5)
+	assert.For(t, "custom is last").ThatActual(extended[4].Name).Equals("custom")
+
+	// Verify DefaultConstructors is not mutated.
+	assert.For(t, "defaults unchanged").ThatActual(len(DefaultConstructors())).Equals(4)
+}

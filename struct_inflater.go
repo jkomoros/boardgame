@@ -872,7 +872,7 @@ func unpackStackStructTag(tag string, chest *ComponentChest, ccMap map[string]*S
 }
 
 // parseConstraintExpr checks if s matches the pattern "name(args)" and
-// returns the name and comma-separated args. Returns false if not a match.
+// returns the name and semicolon-separated args. Returns false if not a match.
 func parseConstraintExpr(s string) (name string, args []string, ok bool) {
 	parenIdx := strings.Index(s, "(")
 	if parenIdx < 0 {
@@ -899,6 +899,9 @@ func parseConstraintExpr(s string) (name string, args []string, ok bool) {
 
 // intEffectiveValue either returns the integer encoded by the string, or if
 // the string encodes the name of a constant in chest that is an int, that.
+// NOTE: a near-identical copy exists in constraints/helpers.go. The two
+// cannot be unified because the constraints package imports boardgame,
+// creating an import cycle if boardgame imported constraints.
 func intEffectiveValue(str string, chest *ComponentChest) (int, error) {
 	str = strings.TrimSpace(str)
 

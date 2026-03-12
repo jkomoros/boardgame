@@ -12,6 +12,15 @@ package boardgame
 // justAdded contains the component(s) that were just added.
 // state is the ImmutableState that the stack is part of.
 //
+// Constraints must be pure functions: they must not modify any state or
+// produce side effects. If a constraint rejects a move, only the component
+// move itself is rolled back — any side effects from the constraint function
+// will persist.
+//
+// Constraints must not panic. A panic inside a constraint will prevent the
+// rollback of the tentative component move, leaving the stack in an
+// inconsistent state.
+//
 // Constraints are NOT checked during initial game setup
 // (DistributeComponentToStarterStack), because that uses insertComponentAt
 // directly rather than moveComonentImpl.
