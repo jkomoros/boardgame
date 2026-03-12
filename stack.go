@@ -355,6 +355,20 @@ type Stack interface {
 	//the MutableSizedStack interface, if that's possible, or nil otherwise.
 	SizedStack() SizedStack
 
+	//AddConstraint adds a StackConstraint that will be checked whenever
+	//a component is moved into this stack. If the constraint returns a
+	//non-nil error, the move is rejected and the component is rolled
+	//back to its source position.
+	AddConstraint(c StackConstraint)
+
+	//ClearConstraints removes all constraints from this stack.
+	ClearConstraints()
+
+	//checkConstraints runs all constraints against the stack, passing
+	//the justAdded components. Returns the first error encountered, or
+	//nil if all constraints pass.
+	checkConstraints(justAdded []ImmutableComponentInstance) error
+
 	moveComponent(componentIndex int, destination Stack, slotIndex int) error
 
 	secretMoveComponent(componentIndex int, destination Stack, slotIndex int) error
@@ -476,6 +490,8 @@ type growableStack struct {
 
 	board      Board
 	boardIndex int
+
+	constraints []StackConstraint
 }
 
 // sizedStack is a Stack that has a fixed number of slots, any of which may be
@@ -503,6 +519,8 @@ type sizedStack struct {
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
+
+	constraints []StackConstraint
 }
 
 // mergedStack is a derived stack that is made of two stacks, either in
@@ -614,6 +632,10 @@ func (g *growableStack) copyFrom(other *growableStack) {
 	for key, val := range other.idsLastSeen {
 		g.idsLastSeen[key] = val
 	}
+	if len(other.constraints) > 0 {
+		g.constraints = make([]StackConstraint, len(other.constraints))
+		copy(g.constraints, other.constraints)
+	}
 }
 
 func (s *sizedStack) importFrom(other Stack) error {
@@ -637,6 +659,10 @@ func (s *sizedStack) copyFrom(other *sizedStack) {
 	s.idsLastSeen = make(map[string]int, len(other.idsLastSeen))
 	for key, val := range other.idsLastSeen {
 		s.idsLastSeen[key] = val
+	}
+	if len(other.constraints) > 0 {
+		s.constraints = make([]StackConstraint, len(other.constraints))
+		copy(s.constraints, other.constraints)
 	}
 }
 
@@ -1386,6 +1412,54 @@ func (m *mergedStack) Deck() *Deck {
 	return m.stacks[0].Deck()
 }
 
+func (g *growableStack) AddConstraint(c StackConstraint) {
+	g.constraints = append(g.constraints, c)
+}
+
+func (g *growableStack) ClearConstraints() {
+	g.constraints = nil
+}
+
+func (g *growableStack) checkConstraints(justAdded []ImmutableComponentInstance) error {
+	if len(g.constraints) == 0 {
+		return nil
+	}
+	st := g.state()
+	if st == nil {
+		return nil
+	}
+	for _, c := range g.constraints {
+		if err := c(g, justAdded, st); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *sizedStack) AddConstraint(c StackConstraint) {
+	s.constraints = append(s.constraints, c)
+}
+
+func (s *sizedStack) ClearConstraints() {
+	s.constraints = nil
+}
+
+func (s *sizedStack) checkConstraints(justAdded []ImmutableComponentInstance) error {
+	if len(s.constraints) == 0 {
+		return nil
+	}
+	st := s.state()
+	if st == nil {
+		return nil
+	}
+	for _, c := range s.constraints {
+		if err := c(s, justAdded, st); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (g *growableStack) modificationsAllowed() error {
 	if g.state() == nil {
 		return errors.New("Modifications not allowed: stack's state not set")
@@ -1628,6 +1702,12 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	}
 
 	destination.insertComponentAt(slotIndex, c)
+
+	if err := destination.checkConstraints([]ImmutableComponentInstance{c}); err != nil {
+		destination.removeComponentAt(slotIndex)
+		source.insertComponentAt(componentIndex, c)
+		return errors.New("constraint violation: " + err.Error())
+	}
 
 	return nil
 
