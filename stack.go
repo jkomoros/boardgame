@@ -1667,7 +1667,7 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 		return errors.New("Source doesn't allow modifications: " + err.Error())
 	}
 
-	if err := source.modificationsAllowed(); err != nil {
+	if err := destination.modificationsAllowed(); err != nil {
 		return errors.New("Destination doesn't allow modifications: " + err.Error())
 	}
 
