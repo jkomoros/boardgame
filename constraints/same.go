@@ -9,10 +9,10 @@ import (
 // the destination stack (including the proposed additions) have the same value
 // for the named property. Components that don't have the named property are
 // skipped. A stack with 0 or 1 resolvable components always passes. The
-// destination stack is in its pre-insertion state, so justAdded components are
+// destination stack is in its pre-insertion state, so proposed components are
 // checked separately against the established value.
 func Same(propPath string) boardgame.StackConstraint {
-	return func(dest boardgame.ImmutableStack, justAdded []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
+	return func(dest boardgame.ImmutableStack, proposed []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
 		var firstVal string
 		firstSet := false
 		// Establish the common value from existing components.
@@ -34,7 +34,7 @@ func Same(propPath string) boardgame.StackConstraint {
 			}
 		}
 		// Check proposed additions match the established value.
-		for _, c := range justAdded {
+		for _, c := range proposed {
 			if c == nil {
 				continue
 			}

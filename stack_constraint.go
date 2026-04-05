@@ -11,12 +11,12 @@ package boardgame
 //
 // destination is the stack that the component(s) would be added to, in its
 // pre-insertion state (the proposed components are NOT yet in the stack).
-// justAdded contains the component(s) that are proposed to be added.
+// proposed contains the component(s) that are proposed to be added.
 // state is the ImmutableState that the stack is part of.
 //
-// Constraint implementations must account for the fact that justAdded
+// Constraint implementations must account for the fact that proposed
 // components are not yet in the destination stack. For example, to check a
-// maximum count, use dest.NumComponents() + len(justAdded).
+// maximum count, use dest.NumComponents() + len(proposed).
 //
 // Constraints must be pure functions: they must not modify any state or
 // produce side effects.
@@ -30,7 +30,7 @@ package boardgame
 // Constraints are set at setup time (via struct tags or in FinishSetUp) and
 // don't need individual removal. Use ClearConstraints to reset all
 // constraints on a stack.
-type StackConstraint func(destination ImmutableStack, justAdded []ImmutableComponentInstance, state ImmutableState) error
+type StackConstraint func(destination ImmutableStack, proposed []ImmutableComponentInstance, state ImmutableState) error
 
 // StackConstraintConstructor is used for struct-tag-based constraint
 // configuration. Name is the identifier used in struct tags (e.g. "max" for

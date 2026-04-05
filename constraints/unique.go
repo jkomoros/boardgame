@@ -9,9 +9,9 @@ import (
 // in the destination stack (including the proposed additions) share the same
 // value for the named property. Components that don't have the named property
 // are skipped. The destination stack is in its pre-insertion state, so
-// justAdded components are checked separately against existing values.
+// proposed components are checked separately against existing values.
 func Unique(propPath string) boardgame.StackConstraint {
-	return func(dest boardgame.ImmutableStack, justAdded []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
+	return func(dest boardgame.ImmutableStack, proposed []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
 		seen := make(map[string]bool)
 		// Collect values already in the destination.
 		for _, c := range dest.ImmutableComponents() {
@@ -25,7 +25,7 @@ func Unique(propPath string) boardgame.StackConstraint {
 			seen[val] = true
 		}
 		// Check proposed additions against existing and each other.
-		for _, c := range justAdded {
+		for _, c := range proposed {
 			if c == nil {
 				continue
 			}

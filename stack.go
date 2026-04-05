@@ -116,12 +116,12 @@ type ImmutableStack interface {
 
 	//CheckConstraints checks whether the given components would be accepted
 	//by this stack's constraints without modifying the stack. The destination
-	//stack is in its pre-insertion state (justAdded are NOT in the stack).
+	//stack is in its pre-insertion state (proposed are NOT in the stack).
 	//Returns nil if all constraints pass or if there are no constraints.
 	//This is used automatically by Default.Legal() for moves that implement
 	//SourceStacker/DestinationStacker, so most moves get constraint
 	//checking for free.
-	CheckConstraints(justAdded []ImmutableComponentInstance) error
+	CheckConstraints(proposed []ImmutableComponentInstance) error
 
 	//All stacks have these, even though they aren't exported, because within
 	//this library we iterate trhough a lot of Stacks via readers and it's
@@ -374,9 +374,9 @@ type Stack interface {
 	ClearConstraints()
 
 	//CheckConstraints runs all constraints against the stack, passing
-	//the justAdded components. Returns the first error encountered, or
+	//the proposed components. Returns the first error encountered, or
 	//nil if all constraints pass.
-	CheckConstraints(justAdded []ImmutableComponentInstance) error
+	CheckConstraints(proposed []ImmutableComponentInstance) error
 
 	moveComponent(componentIndex int, destination Stack, slotIndex int) error
 
@@ -1315,7 +1315,7 @@ func (s *sizedStack) SlotsRemaining() int {
 	return count
 }
 
-func (m *mergedStack) CheckConstraints(justAdded []ImmutableComponentInstance) error {
+func (m *mergedStack) CheckConstraints(proposed []ImmutableComponentInstance) error {
 	// MergedStacks are read-only views; components are moved into the
 	// underlying sub-stacks, which have their own constraints. This method
 	// exists only to satisfy the ImmutableStack interface.
@@ -1436,7 +1436,7 @@ func (g *growableStack) ClearConstraints() {
 	g.constraints = nil
 }
 
-func (g *growableStack) CheckConstraints(justAdded []ImmutableComponentInstance) error {
+func (g *growableStack) CheckConstraints(proposed []ImmutableComponentInstance) error {
 	if len(g.constraints) == 0 {
 		return nil
 	}
@@ -1445,7 +1445,7 @@ func (g *growableStack) CheckConstraints(justAdded []ImmutableComponentInstance)
 		return nil
 	}
 	for _, c := range g.constraints {
-		if err := c(g, justAdded, st); err != nil {
+		if err := c(g, proposed, st); err != nil {
 			return err
 		}
 	}
@@ -1460,7 +1460,7 @@ func (s *sizedStack) ClearConstraints() {
 	s.constraints = nil
 }
 
-func (s *sizedStack) CheckConstraints(justAdded []ImmutableComponentInstance) error {
+func (s *sizedStack) CheckConstraints(proposed []ImmutableComponentInstance) error {
 	if len(s.constraints) == 0 {
 		return nil
 	}
@@ -1469,7 +1469,7 @@ func (s *sizedStack) CheckConstraints(justAdded []ImmutableComponentInstance) er
 		return nil
 	}
 	for _, c := range s.constraints {
-		if err := c(s, justAdded, st); err != nil {
+		if err := c(s, proposed, st); err != nil {
 			return err
 		}
 	}

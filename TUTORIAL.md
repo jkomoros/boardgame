@@ -131,7 +131,7 @@ When a memory game starts, most of the cards will be in GameState.HiddenCards. P
 
 #### Stack Constraints
 
-Stacks support **constraints**: functions that are automatically checked whenever a component is moved into a stack. If a constraint returns an error, the move is rolled back and the component is returned to its source.
+Stacks support **constraints**: functions that are automatically checked before a component is moved into a stack. If a constraint returns an error, the move is rejected and the component remains in its source. Constraints are also checked during Legal() for moves that use WithSourceProperty/WithDestinationProperty, giving early feedback before Apply() is even called.
 
 Constraints are useful for expressing invariants like "this hand can hold at most 5 cards" or "all cards in this pile must be the same suit."
 

@@ -19,8 +19,8 @@ concepts wire together. For a high-level overview of how everything works and
 tour of the main concepts, see TUTORIAL.md.
 
 StackConstraints provide a declarative way to express invariants on what a
-stack will accept. Constraint functions are checked automatically whenever
-components move into a stack, and the move is rolled back if violated. See
+stack will accept. Constraint functions are checked automatically before
+components move into a stack, and the move is rejected if violated. See
 StackConstraint for details. The constraints sub-package provides pre-built
 constraints like MaxNumComponents, Unique, Same, and MaxDistinctValues.
 Constraints can be added programmatically via Stack.AddConstraint, or

@@ -11,9 +11,9 @@ import (
 // destination stack (including the proposed additions) has more than max
 // distinct values for the named property. Components that don't have the
 // named property are skipped. The destination stack is in its pre-insertion
-// state, so justAdded components are counted separately.
+// state, so proposed components are counted separately.
 func MaxDistinctValues(propPath string, max int) boardgame.StackConstraint {
-	return func(dest boardgame.ImmutableStack, justAdded []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
+	return func(dest boardgame.ImmutableStack, proposed []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
 		seen := make(map[string]bool)
 		// Collect distinct values from existing components.
 		for _, c := range dest.ImmutableComponents() {
@@ -27,7 +27,7 @@ func MaxDistinctValues(propPath string, max int) boardgame.StackConstraint {
 			seen[val] = true
 		}
 		// Include proposed additions.
-		for _, c := range justAdded {
+		for _, c := range proposed {
 			if c == nil {
 				continue
 			}

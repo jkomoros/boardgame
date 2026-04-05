@@ -23,7 +23,7 @@ func TestConstraintBlocksMoveTo(t *testing.T) {
 	initialDrawCount := drawStack.NumComponents()
 
 	// Add a constraint that always rejects.
-	hand.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		return errors.New("always rejected")
 	})
 
@@ -43,7 +43,7 @@ func TestConstraintAllowsMove(t *testing.T) {
 	hand := playerStates[0].Hand
 
 	// Add a constraint that always passes.
-	hand.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		return nil
 	})
 
@@ -68,7 +68,7 @@ func TestConstraintRollback(t *testing.T) {
 	assert.For(t).ThatActual(firstComponent).IsNotNil()
 
 	// Add a constraint that rejects.
-	hand.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		return errors.New("rejected")
 	})
 
@@ -99,7 +99,7 @@ func TestMoveAllToRespectsConstraints(t *testing.T) {
 	afterFirstMoveHandCount := hand.NumComponents()
 
 	// Now add a constraint that rejects (simulating "hand is full").
-	hand.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		return errors.New("hand full")
 	})
 
@@ -123,7 +123,7 @@ func TestClearConstraints(t *testing.T) {
 	hand := playerStates[0].Hand
 
 	// Add a constraint that always rejects.
-	hand.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		return errors.New("rejected")
 	})
 
@@ -148,7 +148,7 @@ func TestConstraintsSurviveStateCopy(t *testing.T) {
 	hand := playerStates[0].Hand
 
 	// Add a constraint that always rejects.
-	hand.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		return errors.New("rejected")
 	})
 
@@ -202,7 +202,7 @@ func TestConstraintOnGrowableStack(t *testing.T) {
 	initialDrawCount := drawDeck.NumComponents()
 
 	// Add a constraint to the growable draw stack.
-	drawDeck.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	drawDeck.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		return errors.New("no more draws")
 	})
 
@@ -229,9 +229,9 @@ func TestConstraintReceivesCorrectArgs(t *testing.T) {
 	var receivedAdded []ImmutableComponentInstance
 	var receivedState ImmutableState
 
-	hand.AddConstraint(func(dest ImmutableStack, justAdded []ImmutableComponentInstance, st ImmutableState) error {
+	hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
 		receivedDest = dest
-		receivedAdded = justAdded
+		receivedAdded = proposed
 		receivedState = st
 		return nil // allow the move
 	})
