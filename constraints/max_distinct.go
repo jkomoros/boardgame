@@ -53,6 +53,9 @@ func MaxDistinctValuesConstructor() *boardgame.StackConstraintConstructor {
 			if len(args) != 2 {
 				return nil, errors.New("maxdistinct constraint requires exactly 2 arguments: propPath and max")
 			}
+			if err := validatePropPath(args[0], chest); err != nil {
+				return nil, errors.New("maxdistinct constraint: " + err.Error())
+			}
 			max, err := intEffectiveValue(args[1], chest)
 			if err != nil {
 				return nil, errors.New("maxdistinct second argument is not a valid int: " + err.Error())

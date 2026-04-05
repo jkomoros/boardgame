@@ -64,6 +64,9 @@ func SameConstructor() *boardgame.StackConstraintConstructor {
 			if len(args) != 1 {
 				return nil, errors.New("same constraint requires exactly 1 argument")
 			}
+			if err := validatePropPath(args[0], chest); err != nil {
+				return nil, errors.New("same constraint: " + err.Error())
+			}
 			return Same(args[0]), nil
 		},
 	}

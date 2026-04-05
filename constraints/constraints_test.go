@@ -166,6 +166,68 @@ func TestDefaultConstructors(t *testing.T) {
 	assert.For(t).ThatActual(names["maxdistinct"]).Equals(true)
 }
 
+func newTestChest(t *testing.T) *boardgame.ComponentChest {
+	t.Helper()
+	manager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), memory.NewStorageManager())
+	assert.For(t).ThatActual(err).IsNil()
+	return manager.Chest()
+}
+
+func TestPropPathValidation(t *testing.T) {
+	chest := newTestChest(t)
+
+	// --- UniqueConstructor ---
+	uc := constraints.UniqueConstructor()
+
+	// Valid property name should succeed.
+	_, err := uc.Constructor([]string{"Value"}, chest)
+	assert.For(t, "unique with valid prop").ThatActual(err).IsNil()
+
+	// Typo should fail at construction time.
+	_, err = uc.Constructor([]string{"Valeu"}, chest)
+	assert.For(t, "unique with typo").ThatActual(err).IsNotNil()
+
+	// Prefixed valid name should succeed.
+	_, err = uc.Constructor([]string{"component.Value"}, chest)
+	assert.For(t, "unique with component prefix").ThatActual(err).IsNil()
+
+	// Prefixed typo should fail.
+	_, err = uc.Constructor([]string{"component.Valeu"}, chest)
+	assert.For(t, "unique with component prefix typo").ThatActual(err).IsNotNil()
+
+	// Dynamic prefix with nonexistent prop should fail (tictactoe has no dynamic values).
+	_, err = uc.Constructor([]string{"dynamic.Value"}, chest)
+	assert.For(t, "unique with dynamic prefix on game without dynamic values").ThatActual(err).IsNotNil()
+
+	// --- SameConstructor ---
+	sc := constraints.SameConstructor()
+
+	_, err = sc.Constructor([]string{"Value"}, chest)
+	assert.For(t, "same with valid prop").ThatActual(err).IsNil()
+
+	_, err = sc.Constructor([]string{"colour"}, chest)
+	assert.For(t, "same with typo").ThatActual(err).IsNotNil()
+
+	// --- MaxDistinctValuesConstructor ---
+	mdc := constraints.MaxDistinctValuesConstructor()
+
+	_, err = mdc.Constructor([]string{"Value", "2"}, chest)
+	assert.For(t, "maxdistinct with valid prop").ThatActual(err).IsNil()
+
+	_, err = mdc.Constructor([]string{"colour", "2"}, chest)
+	assert.For(t, "maxdistinct with typo").ThatActual(err).IsNotNil()
+
+	// --- nil chest should skip validation (programmatic use) ---
+	_, err = uc.Constructor([]string{"anything"}, nil)
+	assert.For(t, "unique with nil chest skips validation").ThatActual(err).IsNil()
+
+	_, err = sc.Constructor([]string{"anything"}, nil)
+	assert.For(t, "same with nil chest skips validation").ThatActual(err).IsNil()
+
+	_, err = mdc.Constructor([]string{"anything", "3"}, nil)
+	assert.For(t, "maxdistinct with nil chest skips validation").ThatActual(err).IsNil()
+}
+
 func TestExtendDefaults(t *testing.T) {
 	custom := &boardgame.StackConstraintConstructor{
 		Name: "custom",

@@ -51,6 +51,9 @@ func UniqueConstructor() *boardgame.StackConstraintConstructor {
 			if len(args) != 1 {
 				return nil, errors.New("unique constraint requires exactly 1 argument")
 			}
+			if err := validatePropPath(args[0], chest); err != nil {
+				return nil, errors.New("unique constraint: " + err.Error())
+			}
 			return Unique(args[0]), nil
 		},
 	}
