@@ -129,6 +129,35 @@ Each Stack is associated with exactly one deck, and only components that are mem
 
 When a memory game starts, most of the cards will be in GameState.HiddenCards. Players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually three stacks for cards in GameState: HiddenCards, VisibleCards, and Cards. We'll get into why that is later.
 
+#### Stack Constraints
+
+Stacks support **constraints**: functions that are automatically checked before a component is moved into a stack. If a constraint returns an error, the move is rejected and the component remains in its source. Constraints are also checked during Legal() for moves that use WithSourceProperty/WithDestinationProperty, giving early feedback before Apply() is even called.
+
+Constraints are useful for expressing invariants like "this hand can hold at most 5 cards" or "all cards in this pile must be the same suit."
+
+You can add constraints programmatically:
+
+```go
+func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
+    gs := state.GameState().(*gameState)
+    gs.Hand.AddConstraint(constraints.MaxNumComponents(5))
+    return nil
+}
+```
+
+Or via struct tags, if your delegate overrides `ConfigureStackConstraintConstructors` to return the constructors from the `constraints` package:
+
+```go
+type gameState struct {
+    base.SubState
+    Hand boardgame.Stack `stack:"cards,5,max(5)"`
+}
+```
+
+The `constraints` sub-package provides pre-built constraints: `MaxNumComponents`, `Unique`, `Same`, and `MaxDistinctValues`. See the `constraints` package documentation for details on property path syntax and available constraints.
+
+Constraints are **not** checked during initial game setup (when components are distributed via `DistributeComponentToStarterStack`), only during normal gameplay moves.
+
 #### boardgame-util codegen
 
 Both of the State objects also have a cryptic comment above them: `//boardgame:codegen`. These are actually a critical concept to understand about the core engine.

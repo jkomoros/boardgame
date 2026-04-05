@@ -284,6 +284,14 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 		return errors.New("the destination stack doesn't have any slots to move the component to")
 	}
 
+	// Check destination stack constraints with the first source component.
+	first := source.ImmutableFirst()
+	if first != nil {
+		if err := destination.CheckConstraints([]boardgame.ImmutableComponentInstance{first}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

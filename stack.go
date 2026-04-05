@@ -114,6 +114,15 @@ type ImmutableStack interface {
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
 
+	//CheckConstraints checks whether the given components would be accepted
+	//by this stack's constraints without modifying the stack. The destination
+	//stack is in its pre-insertion state (proposed are NOT in the stack).
+	//Returns nil if all constraints pass or if there are no constraints.
+	//This is used automatically by Default.Legal() for moves that implement
+	//SourceStacker/DestinationStacker, so most moves get constraint
+	//checking for free.
+	CheckConstraints(proposed []ImmutableComponentInstance) error
+
 	//All stacks have these, even though they aren't exported, because within
 	//this library we iterate trhough a lot of Stacks via readers and it's
 	//convenient to be able to treat them all the same.
@@ -355,6 +364,16 @@ type Stack interface {
 	//the MutableSizedStack interface, if that's possible, or nil otherwise.
 	SizedStack() SizedStack
 
+	//AddConstraint adds a StackConstraint that will be checked before
+	//a component is moved into this stack. Returns an error if
+	//constraints cannot be modified (e.g. after game setup is complete).
+	AddConstraint(c StackConstraint) error
+
+	//ClearConstraints removes all constraints from this stack. Returns
+	//an error if constraints cannot be modified (e.g. after game setup
+	//is complete).
+	ClearConstraints() error
+
 	moveComponent(componentIndex int, destination Stack, slotIndex int) error
 
 	secretMoveComponent(componentIndex int, destination Stack, slotIndex int) error
@@ -476,6 +495,8 @@ type growableStack struct {
 
 	board      Board
 	boardIndex int
+
+	constraints []StackConstraint
 }
 
 // sizedStack is a Stack that has a fixed number of slots, any of which may be
@@ -503,6 +524,8 @@ type sizedStack struct {
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
+
+	constraints []StackConstraint
 }
 
 // mergedStack is a derived stack that is made of two stacks, either in
@@ -614,6 +637,10 @@ func (g *growableStack) copyFrom(other *growableStack) {
 	for key, val := range other.idsLastSeen {
 		g.idsLastSeen[key] = val
 	}
+	if len(other.constraints) > 0 {
+		g.constraints = make([]StackConstraint, len(other.constraints))
+		copy(g.constraints, other.constraints)
+	}
 }
 
 func (s *sizedStack) importFrom(other Stack) error {
@@ -637,6 +664,10 @@ func (s *sizedStack) copyFrom(other *sizedStack) {
 	s.idsLastSeen = make(map[string]int, len(other.idsLastSeen))
 	for key, val := range other.idsLastSeen {
 		s.idsLastSeen[key] = val
+	}
+	if len(other.constraints) > 0 {
+		s.constraints = make([]StackConstraint, len(other.constraints))
+		copy(s.constraints, other.constraints)
 	}
 }
 
@@ -1280,6 +1311,13 @@ func (s *sizedStack) SlotsRemaining() int {
 	return count
 }
 
+func (m *mergedStack) CheckConstraints(proposed []ImmutableComponentInstance) error {
+	// MergedStacks are read-only views; components are moved into the
+	// underlying sub-stacks, which have their own constraints. This method
+	// exists only to satisfy the ImmutableStack interface.
+	return nil
+}
+
 func (m *mergedStack) SlotsRemaining() int {
 
 	if len(m.stacks) == 0 {
@@ -1384,6 +1422,92 @@ func (m *mergedStack) Deck() *Deck {
 		return nil
 	}
 	return m.stacks[0].Deck()
+}
+
+func (g *growableStack) constraintModificationAllowed() error {
+	st := g.state()
+	if st == nil {
+		return nil
+	}
+	if st.game != nil && st.game.initalized && !st.game.allowMutableConstraints {
+		return errors.New("constraints cannot be modified after game setup is complete")
+	}
+	return nil
+}
+
+func (g *growableStack) AddConstraint(c StackConstraint) error {
+	if err := g.constraintModificationAllowed(); err != nil {
+		return err
+	}
+	g.constraints = append(g.constraints, c)
+	return nil
+}
+
+func (g *growableStack) ClearConstraints() error {
+	if err := g.constraintModificationAllowed(); err != nil {
+		return err
+	}
+	g.constraints = nil
+	return nil
+}
+
+func (g *growableStack) CheckConstraints(proposed []ImmutableComponentInstance) error {
+	if len(g.constraints) == 0 {
+		return nil
+	}
+	st := g.state()
+	if st == nil {
+		return nil
+	}
+	for _, c := range g.constraints {
+		if err := c(g, proposed, st); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *sizedStack) constraintModificationAllowed() error {
+	st := s.state()
+	if st == nil {
+		return nil
+	}
+	if st.game != nil && st.game.initalized && !st.game.allowMutableConstraints {
+		return errors.New("constraints cannot be modified after game setup is complete")
+	}
+	return nil
+}
+
+func (s *sizedStack) AddConstraint(c StackConstraint) error {
+	if err := s.constraintModificationAllowed(); err != nil {
+		return err
+	}
+	s.constraints = append(s.constraints, c)
+	return nil
+}
+
+func (s *sizedStack) ClearConstraints() error {
+	if err := s.constraintModificationAllowed(); err != nil {
+		return err
+	}
+	s.constraints = nil
+	return nil
+}
+
+func (s *sizedStack) CheckConstraints(proposed []ImmutableComponentInstance) error {
+	if len(s.constraints) == 0 {
+		return nil
+	}
+	st := s.state()
+	if st == nil {
+		return nil
+	}
+	for _, c := range s.constraints {
+		if err := c(s, proposed, st); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (g *growableStack) modificationsAllowed() error {
@@ -1593,7 +1717,7 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 		return errors.New("Source doesn't allow modifications: " + err.Error())
 	}
 
-	if err := source.modificationsAllowed(); err != nil {
+	if err := destination.modificationsAllowed(); err != nil {
 		return errors.New("Destination doesn't allow modifications: " + err.Error())
 	}
 
@@ -1621,13 +1745,20 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 		return errors.New("the destination stack does not have any extra slots")
 	}
 
-	c := source.removeComponentAt(componentIndex)
-
+	// Check constraints before modifying any state. The component is still
+	// in source; constraints see the destination in its pre-insertion state.
+	c := source.ComponentAt(componentIndex)
 	if c == nil {
-		return errors.New("unexpected nil component returned from removeComponentAt")
+		return errors.New("The effective index, " + strconv.Itoa(componentIndex) + " does not point to an existing component in Source")
 	}
 
-	destination.insertComponentAt(slotIndex, c)
+	if err := destination.CheckConstraints([]ImmutableComponentInstance{c}); err != nil {
+		return errors.New("constraint violation: " + err.Error())
+	}
+
+	// Constraints passed — perform the actual move.
+	moved := source.removeComponentAt(componentIndex)
+	destination.insertComponentAt(slotIndex, moved)
 
 	return nil
 

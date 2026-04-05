@@ -93,6 +93,10 @@ type Game struct {
 	//Initalized is set to True after SetUp is called.
 	initalized bool
 
+	//allowMutableConstraints bypasses the initalized check for
+	//AddConstraint/ClearConstraints. Set via ManagerInternals for testing.
+	allowMutableConstraints bool
+
 	created  time.Time
 	modified time.Time
 

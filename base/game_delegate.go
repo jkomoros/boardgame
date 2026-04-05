@@ -641,6 +641,16 @@ func (g *GameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	return make(map[string]*boardgame.Deck)
 }
 
+// ConfigureStackConstraintConstructors returns nil, meaning no
+// StackConstraintConstructors are configured for struct tags. If you use
+// constraint expressions in struct tags (e.g. `sizedstack:"tokens,9,max(1)"`),
+// override this and return constraints.DefaultConstructors() to enable the
+// pre-built constraints, or constraints.ExtendDefaults(custom...) to include
+// your own alongside the defaults.
+func (g *GameDelegate) ConfigureStackConstraintConstructors() []*boardgame.StackConstraintConstructor {
+	return nil
+}
+
 // ConfigureConstants returns a zero-entry map. If you have any constants you
 // wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
 // to override this.

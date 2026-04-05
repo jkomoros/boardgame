@@ -11,6 +11,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/constraints"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -132,6 +133,10 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
 	p := pState.(*playerState)
 	return p.CapturedTokens.NumComponents()
+}
+
+func (g *gameDelegate) ConfigureStackConstraintConstructors() []*boardgame.StackConstraintConstructor {
+	return constraints.DefaultConstructors()
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

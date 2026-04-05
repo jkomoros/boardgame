@@ -24,7 +24,7 @@ type playerState struct {
 	behaviors.InactivePlayer
 	behaviors.PlayerColor
 	//The tokens of the OTHER player that we've captured.
-	CapturedTokens boardgame.Stack `stack:"Tokens"`
+	CapturedTokens boardgame.Stack `stack:"Tokens,same(Color)"`
 	FinishedTurn   bool
 }
 
