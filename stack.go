@@ -364,19 +364,15 @@ type Stack interface {
 	//the MutableSizedStack interface, if that's possible, or nil otherwise.
 	SizedStack() SizedStack
 
-	//AddConstraint adds a StackConstraint that will be checked whenever
-	//a component is moved into this stack. If the constraint returns a
-	//non-nil error, the move is rejected and the component is rolled
-	//back to its source position.
-	AddConstraint(c StackConstraint)
+	//AddConstraint adds a StackConstraint that will be checked before
+	//a component is moved into this stack. Returns an error if
+	//constraints cannot be modified (e.g. after game setup is complete).
+	AddConstraint(c StackConstraint) error
 
-	//ClearConstraints removes all constraints from this stack.
-	ClearConstraints()
-
-	//CheckConstraints runs all constraints against the stack, passing
-	//the proposed components. Returns the first error encountered, or
-	//nil if all constraints pass.
-	CheckConstraints(proposed []ImmutableComponentInstance) error
+	//ClearConstraints removes all constraints from this stack. Returns
+	//an error if constraints cannot be modified (e.g. after game setup
+	//is complete).
+	ClearConstraints() error
 
 	moveComponent(componentIndex int, destination Stack, slotIndex int) error
 
@@ -1428,12 +1424,31 @@ func (m *mergedStack) Deck() *Deck {
 	return m.stacks[0].Deck()
 }
 
-func (g *growableStack) AddConstraint(c StackConstraint) {
-	g.constraints = append(g.constraints, c)
+func (g *growableStack) constraintModificationAllowed() error {
+	st := g.state()
+	if st == nil {
+		return nil
+	}
+	if st.game != nil && st.game.initalized && !st.game.allowMutableConstraints {
+		return errors.New("constraints cannot be modified after game setup is complete")
+	}
+	return nil
 }
 
-func (g *growableStack) ClearConstraints() {
+func (g *growableStack) AddConstraint(c StackConstraint) error {
+	if err := g.constraintModificationAllowed(); err != nil {
+		return err
+	}
+	g.constraints = append(g.constraints, c)
+	return nil
+}
+
+func (g *growableStack) ClearConstraints() error {
+	if err := g.constraintModificationAllowed(); err != nil {
+		return err
+	}
 	g.constraints = nil
+	return nil
 }
 
 func (g *growableStack) CheckConstraints(proposed []ImmutableComponentInstance) error {
@@ -1452,12 +1467,31 @@ func (g *growableStack) CheckConstraints(proposed []ImmutableComponentInstance) 
 	return nil
 }
 
-func (s *sizedStack) AddConstraint(c StackConstraint) {
-	s.constraints = append(s.constraints, c)
+func (s *sizedStack) constraintModificationAllowed() error {
+	st := s.state()
+	if st == nil {
+		return nil
+	}
+	if st.game != nil && st.game.initalized && !st.game.allowMutableConstraints {
+		return errors.New("constraints cannot be modified after game setup is complete")
+	}
+	return nil
 }
 
-func (s *sizedStack) ClearConstraints() {
+func (s *sizedStack) AddConstraint(c StackConstraint) error {
+	if err := s.constraintModificationAllowed(); err != nil {
+		return err
+	}
+	s.constraints = append(s.constraints, c)
+	return nil
+}
+
+func (s *sizedStack) ClearConstraints() error {
+	if err := s.constraintModificationAllowed(); err != nil {
+		return err
+	}
 	s.constraints = nil
+	return nil
 }
 
 func (s *sizedStack) CheckConstraints(proposed []ImmutableComponentInstance) error {

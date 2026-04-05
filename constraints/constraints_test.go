@@ -16,6 +16,7 @@ func newTestGame(t *testing.T) *boardgame.Game {
 	assert.For(t).ThatActual(err).IsNil()
 	game, err := manager.NewDefaultGame()
 	assert.For(t).ThatActual(err).IsNil()
+	manager.Internals().AllowMutableConstraints(game)
 	return game
 }
 

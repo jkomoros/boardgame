@@ -60,6 +60,12 @@ type ManagerInternals struct {
 	manager *GameManager
 }
 
+// AllowMutableConstraints sets the given game to allow AddConstraint and
+// ClearConstraints after setup. This is intended for testing only.
+func (m *ManagerInternals) AllowMutableConstraints(game *Game) {
+	game.allowMutableConstraints = true
+}
+
 // RecreateGame creates a new game that has the same properties as the provided
 // GameStorageRecord. It is very rarely what you want; see NewGame(), Game(),
 // and ModifiableGame(). RecreateGame is most useful in debugging or testing

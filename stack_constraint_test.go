@@ -7,8 +7,15 @@ import (
 	"github.com/workfit/tester/assert"
 )
 
-func TestConstraintBlocksMoveTo(t *testing.T) {
+func testGameWithMutableConstraints(t *testing.T) *Game {
+	t.Helper()
 	game := testDefaultGame(t, false)
+	game.Manager().Internals().AllowMutableConstraints(game)
+	return game
+}
+
+func TestConstraintBlocksMoveTo(t *testing.T) {
+	game := testGameWithMutableConstraints(t)
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
@@ -35,7 +42,7 @@ func TestConstraintBlocksMoveTo(t *testing.T) {
 }
 
 func TestConstraintAllowsMove(t *testing.T) {
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
@@ -53,7 +60,7 @@ func TestConstraintAllowsMove(t *testing.T) {
 }
 
 func TestConstraintRollback(t *testing.T) {
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
@@ -84,7 +91,7 @@ func TestConstraintRollback(t *testing.T) {
 }
 
 func TestMoveAllToRespectsConstraints(t *testing.T) {
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
@@ -115,7 +122,7 @@ func TestMoveAllToRespectsConstraints(t *testing.T) {
 }
 
 func TestClearConstraints(t *testing.T) {
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
@@ -141,7 +148,7 @@ func TestClearConstraints(t *testing.T) {
 }
 
 func TestConstraintsSurviveStateCopy(t *testing.T) {
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 
 	_, playerStates := concreteStates(game.CurrentState())
 
@@ -177,7 +184,7 @@ func TestConstraintNotCheckedDuringSetup(t *testing.T) {
 	// even though we can't add constraints before setup. The test is
 	// really just verifying the design: constraints on stacks are only
 	// enforced at move time.
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 	assert.For(t).ThatActual(game).IsNotNil()
 
 	gameState, _ := concreteStates(game.CurrentState())
@@ -186,7 +193,7 @@ func TestConstraintNotCheckedDuringSetup(t *testing.T) {
 }
 
 func TestConstraintOnGrowableStack(t *testing.T) {
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 
 	gameState, _ := concreteStates(game.CurrentState())
 
@@ -218,7 +225,7 @@ func TestConstraintOnGrowableStack(t *testing.T) {
 }
 
 func TestConstraintReceivesCorrectArgs(t *testing.T) {
-	game := testDefaultGame(t, false)
+	game := testGameWithMutableConstraints(t)
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
@@ -246,4 +253,20 @@ func TestConstraintReceivesCorrectArgs(t *testing.T) {
 	assert.For(t, "one component added").ThatActual(len(receivedAdded)).Equals(1)
 	assert.For(t, "added component matches").ThatActual(receivedAdded[0].Deck()).Equals(componentToMove.Deck())
 	assert.For(t, "state is non-nil").ThatActual(receivedState).IsNotNil()
+}
+
+func TestAddConstraintBlockedAfterSetup(t *testing.T) {
+	// Use testDefaultGame directly — no mutable constraints override.
+	game := testDefaultGame(t, false)
+
+	_, playerStates := concreteStates(game.CurrentState())
+	hand := playerStates[0].Hand
+
+	err := hand.AddConstraint(func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+		return nil
+	})
+	assert.For(t, "AddConstraint after setup").ThatActual(err).IsNotNil()
+
+	clearErr := hand.ClearConstraints()
+	assert.For(t, "ClearConstraints after setup").ThatActual(clearErr).IsNotNil()
 }

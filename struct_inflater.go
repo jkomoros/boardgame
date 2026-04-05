@@ -542,7 +542,9 @@ func (s *StructInflater) Inflate(obj ReadSetConfigurer, st ImmutableState) error
 			}
 
 			for _, c := range config.constraints {
-				stack.AddConstraint(c)
+				if err := stack.AddConstraint(c); err != nil {
+					return errors.New("Couldn't add constraint to " + propName + ": " + err.Error())
+				}
 			}
 		}
 	}
