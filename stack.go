@@ -114,6 +114,15 @@ type ImmutableStack interface {
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
 
+	//CheckConstraints checks whether the given components would be accepted
+	//by this stack's constraints without modifying the stack. The destination
+	//stack is in its pre-insertion state (justAdded are NOT in the stack).
+	//Returns nil if all constraints pass or if there are no constraints.
+	//This is used automatically by Default.Legal() for moves that implement
+	//SourceStacker/DestinationStacker, so most moves get constraint
+	//checking for free.
+	CheckConstraints(justAdded []ImmutableComponentInstance) error
+
 	//All stacks have these, even though they aren't exported, because within
 	//this library we iterate trhough a lot of Stacks via readers and it's
 	//convenient to be able to treat them all the same.
@@ -364,10 +373,10 @@ type Stack interface {
 	//ClearConstraints removes all constraints from this stack.
 	ClearConstraints()
 
-	//checkConstraints runs all constraints against the stack, passing
+	//CheckConstraints runs all constraints against the stack, passing
 	//the justAdded components. Returns the first error encountered, or
 	//nil if all constraints pass.
-	checkConstraints(justAdded []ImmutableComponentInstance) error
+	CheckConstraints(justAdded []ImmutableComponentInstance) error
 
 	moveComponent(componentIndex int, destination Stack, slotIndex int) error
 
@@ -1306,6 +1315,13 @@ func (s *sizedStack) SlotsRemaining() int {
 	return count
 }
 
+func (m *mergedStack) CheckConstraints(justAdded []ImmutableComponentInstance) error {
+	// MergedStacks are read-only views; components are moved into the
+	// underlying sub-stacks, which have their own constraints. This method
+	// exists only to satisfy the ImmutableStack interface.
+	return nil
+}
+
 func (m *mergedStack) SlotsRemaining() int {
 
 	if len(m.stacks) == 0 {
@@ -1420,7 +1436,7 @@ func (g *growableStack) ClearConstraints() {
 	g.constraints = nil
 }
 
-func (g *growableStack) checkConstraints(justAdded []ImmutableComponentInstance) error {
+func (g *growableStack) CheckConstraints(justAdded []ImmutableComponentInstance) error {
 	if len(g.constraints) == 0 {
 		return nil
 	}
@@ -1444,7 +1460,7 @@ func (s *sizedStack) ClearConstraints() {
 	s.constraints = nil
 }
 
-func (s *sizedStack) checkConstraints(justAdded []ImmutableComponentInstance) error {
+func (s *sizedStack) CheckConstraints(justAdded []ImmutableComponentInstance) error {
 	if len(s.constraints) == 0 {
 		return nil
 	}
@@ -1695,19 +1711,20 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 		return errors.New("the destination stack does not have any extra slots")
 	}
 
-	c := source.removeComponentAt(componentIndex)
-
+	// Check constraints before modifying any state. The component is still
+	// in source; constraints see the destination in its pre-insertion state.
+	c := source.ComponentAt(componentIndex)
 	if c == nil {
-		return errors.New("unexpected nil component returned from removeComponentAt")
+		return errors.New("The effective index, " + strconv.Itoa(componentIndex) + " does not point to an existing component in Source")
 	}
 
-	destination.insertComponentAt(slotIndex, c)
-
-	if err := destination.checkConstraints([]ImmutableComponentInstance{c}); err != nil {
-		destination.removeComponentAt(slotIndex)
-		source.insertComponentAt(componentIndex, c)
+	if err := destination.CheckConstraints([]ImmutableComponentInstance{c}); err != nil {
 		return errors.New("constraint violation: " + err.Error())
 	}
+
+	// Constraints passed — perform the actual move.
+	moved := source.removeComponentAt(componentIndex)
+	destination.insertComponentAt(slotIndex, moved)
 
 	return nil
 

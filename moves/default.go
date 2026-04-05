@@ -337,8 +337,49 @@ func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.Playe
 		return err
 	}
 
-	return d.legalMoveInProgression(state, proposer)
+	if err := d.legalMoveInProgression(state, proposer); err != nil {
+		return err
+	}
 
+	return d.legalStackConstraints(state)
+
+}
+
+// legalStackConstraints checks stack constraints for moves that declare
+// source and destination stacks via WithSourceProperty/WithDestinationProperty.
+// It reads the stacks by property name from ImmutableGameState, gets the first
+// component from the source, and checks whether the destination's constraints
+// would accept it. This gives early feedback at Legal() time, complementing
+// the safety-net check in moveComponentImpl during Apply().
+func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
+	config := d.CustomConfiguration()
+
+	srcName, ok := config[configPropSourceProperty].(string)
+	if !ok {
+		return nil
+	}
+	dstName, ok := config[configPropDestinationProperty].(string)
+	if !ok {
+		return nil
+	}
+
+	reader := state.ImmutableGameState().Reader()
+
+	srcStack, err := reader.ImmutableStackProp(srcName)
+	if err != nil || srcStack == nil {
+		return nil
+	}
+	dstStack, err := reader.ImmutableStackProp(dstName)
+	if err != nil || dstStack == nil {
+		return nil
+	}
+
+	first := srcStack.ImmutableFirst()
+	if first == nil {
+		return nil
+	}
+
+	return dstStack.CheckConstraints([]boardgame.ImmutableComponentInstance{first})
 }
 
 func (d *Default) legalPhases() []enum.EnumKey {

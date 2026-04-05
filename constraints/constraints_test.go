@@ -1,9 +1,10 @@
-package constraints
+package constraints_test
 
 import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/constraints"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/workfit/tester/assert"
@@ -46,7 +47,7 @@ func TestMaxNumComponents(t *testing.T) {
 	assert.For(t, "slots empty at start").ThatActual(slots.NumComponents()).Equals(0)
 	assert.For(t, "player has tokens").ThatActual(p0Unused.NumComponents() > 0).Equals(true)
 
-	slots.AddConstraint(MaxNumComponents(1))
+	slots.AddConstraint(constraints.MaxNumComponents(1))
 
 	// First move should succeed.
 	err := p0Unused.First().MoveTo(slots, slots.SizedStack().FirstSlot())
@@ -77,7 +78,7 @@ func TestSameConstraint(t *testing.T) {
 	p1Unused := getStack(st, "player", "UnusedTokens", 1)
 
 	// The "Value" property on playerToken distinguishes X from O.
-	slots.AddConstraint(Same("Value"))
+	slots.AddConstraint(constraints.Same("Value"))
 
 	// Move player 0's token (Value="X") in.
 	err := p0Unused.First().MoveTo(slots, 0)
@@ -102,7 +103,7 @@ func TestMaxDistinctValuesConstraint(t *testing.T) {
 	p1Unused := getStack(st, "player", "UnusedTokens", 1)
 
 	// Allow at most 1 distinct value for the "Value" property.
-	slots.AddConstraint(MaxDistinctValues("Value", 1))
+	slots.AddConstraint(constraints.MaxDistinctValues("Value", 1))
 
 	err := p0Unused.First().MoveTo(slots, 0)
 	assert.For(t).ThatActual(err).IsNil()
@@ -124,8 +125,8 @@ func TestUniqueConstraint(t *testing.T) {
 	p0Unused := getStack(st, "player", "UnusedTokens", 0)
 
 	// All of player 0's tokens have the same Value ("X").
-	// So Unique("Value") should reject the second one.
-	slots.AddConstraint(Unique("Value"))
+	// So constraints.Unique("Value") should reject the second one.
+	slots.AddConstraint(constraints.Unique("Value"))
 
 	err := p0Unused.First().MoveTo(slots, 0)
 	assert.For(t).ThatActual(err).IsNil()
@@ -136,7 +137,7 @@ func TestUniqueConstraint(t *testing.T) {
 }
 
 func TestMaxNumComponentsConstructorParsing(t *testing.T) {
-	c := MaxNumComponentsConstructor()
+	c := constraints.MaxNumComponentsConstructor()
 	assert.For(t).ThatActual(c.Name).Equals("max")
 
 	constraint, err := c.Constructor([]string{"3"}, nil)
@@ -151,7 +152,7 @@ func TestMaxNumComponentsConstructorParsing(t *testing.T) {
 }
 
 func TestDefaultConstructors(t *testing.T) {
-	constructors := DefaultConstructors()
+	constructors := constraints.DefaultConstructors()
 	assert.For(t).ThatActual(len(constructors)).Equals(4)
 
 	names := make(map[string]bool)
@@ -172,10 +173,10 @@ func TestExtendDefaults(t *testing.T) {
 		},
 	}
 
-	extended := ExtendDefaults(custom)
+	extended := constraints.ExtendDefaults(custom)
 	assert.For(t, "extended length").ThatActual(len(extended)).Equals(5)
 	assert.For(t, "custom is last").ThatActual(extended[4].Name).Equals("custom")
 
 	// Verify DefaultConstructors is not mutated.
-	assert.For(t, "defaults unchanged").ThatActual(len(DefaultConstructors())).Equals(4)
+	assert.For(t, "defaults unchanged").ThatActual(len(constraints.DefaultConstructors())).Equals(4)
 }

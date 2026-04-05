@@ -52,7 +52,7 @@ type playerState struct {
 	behaviors.Seat
 	behaviors.InactivePlayer
 	TokenValue   string
-	UnusedTokens boardgame.Stack `stack:"tokens"`
+	UnusedTokens boardgame.Stack `stack:"tokens,same(Value)"`
 	//How many tokens they have left to place this turn.
 	TokensToPlaceThisTurn int
 }

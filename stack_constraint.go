@@ -1,29 +1,31 @@
 package boardgame
 
-// StackConstraint is a function checked after component(s) are tentatively
-// inserted into a destination stack. If the function returns a non-nil error,
-// the move is rejected and the component is rolled back to its source
-// position. Constraints are added to a Stack via AddConstraint and are
-// checked automatically whenever components move into that stack through
-// MoveTo, MoveToNextSlot, MoveAllTo, or any other method that uses
-// moveComonentImpl.
+// StackConstraint is a function checked before component(s) are inserted into
+// a destination stack. If the function returns a non-nil error, the move is
+// rejected and the destination stack is left unmodified. Constraints are added
+// to a Stack via AddConstraint and are checked automatically whenever
+// components move into that stack through MoveTo, MoveToNextSlot, MoveAllTo,
+// or any other method that uses moveComponentImpl. They are also checked
+// automatically during Legal() for moves that implement SourceStacker and
+// DestinationStacker interfaces.
 //
-// destination is the stack that the component(s) were just added to.
-// justAdded contains the component(s) that were just added.
+// destination is the stack that the component(s) would be added to, in its
+// pre-insertion state (the proposed components are NOT yet in the stack).
+// justAdded contains the component(s) that are proposed to be added.
 // state is the ImmutableState that the stack is part of.
 //
-// Constraints must be pure functions: they must not modify any state or
-// produce side effects. If a constraint rejects a move, only the component
-// move itself is rolled back — any side effects from the constraint function
-// will persist.
+// Constraint implementations must account for the fact that justAdded
+// components are not yet in the destination stack. For example, to check a
+// maximum count, use dest.NumComponents() + len(justAdded).
 //
-// Constraints must not panic. A panic inside a constraint will prevent the
-// rollback of the tentative component move, leaving the stack in an
-// inconsistent state.
+// Constraints must be pure functions: they must not modify any state or
+// produce side effects.
+//
+// Constraints must not panic.
 //
 // Constraints are NOT checked during initial game setup
 // (DistributeComponentToStarterStack), because that uses insertComponentAt
-// directly rather than moveComonentImpl.
+// directly rather than moveComponentImpl.
 //
 // Constraints are set at setup time (via struct tags or in FinishSetUp) and
 // don't need individual removal. Use ClearConstraints to reset all

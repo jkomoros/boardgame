@@ -6,14 +6,35 @@ import (
 )
 
 // Same returns a StackConstraint that rejects a move if not all components in
-// the destination stack have the same value for the named property. Components
-// that don't have the named property are skipped. A stack with 0 or 1
-// resolvable components always passes.
+// the destination stack (including the proposed additions) have the same value
+// for the named property. Components that don't have the named property are
+// skipped. A stack with 0 or 1 resolvable components always passes. The
+// destination stack is in its pre-insertion state, so justAdded components are
+// checked separately against the established value.
 func Same(propPath string) boardgame.StackConstraint {
 	return func(dest boardgame.ImmutableStack, justAdded []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
 		var firstVal string
 		firstSet := false
+		// Establish the common value from existing components.
 		for _, c := range dest.ImmutableComponents() {
+			if c == nil {
+				continue
+			}
+			val, ok := resolvePropValue(c, propPath)
+			if !ok {
+				continue
+			}
+			if !firstSet {
+				firstVal = val
+				firstSet = true
+				continue
+			}
+			if val != firstVal {
+				return errors.New("property " + propPath + " has mixed values: " + firstVal + " and " + val)
+			}
+		}
+		// Check proposed additions match the established value.
+		for _, c := range justAdded {
 			if c == nil {
 				continue
 			}

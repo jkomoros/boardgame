@@ -6,12 +6,26 @@ import (
 )
 
 // Unique returns a StackConstraint that rejects a move if any two components
-// in the destination stack share the same value for the named property.
-// Components that don't have the named property are skipped.
+// in the destination stack (including the proposed additions) share the same
+// value for the named property. Components that don't have the named property
+// are skipped. The destination stack is in its pre-insertion state, so
+// justAdded components are checked separately against existing values.
 func Unique(propPath string) boardgame.StackConstraint {
 	return func(dest boardgame.ImmutableStack, justAdded []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
 		seen := make(map[string]bool)
+		// Collect values already in the destination.
 		for _, c := range dest.ImmutableComponents() {
+			if c == nil {
+				continue
+			}
+			val, ok := resolvePropValue(c, propPath)
+			if !ok {
+				continue
+			}
+			seen[val] = true
+		}
+		// Check proposed additions against existing and each other.
+		for _, c := range justAdded {
 			if c == nil {
 				continue
 			}

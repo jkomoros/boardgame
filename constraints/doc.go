@@ -47,9 +47,20 @@ all pre-built constraints, or ExtendDefaults() to add custom types.
 
 # Future Work
 
+Constraints use pre-insertion semantics: the destination stack is in its
+original state (the proposed components are NOT yet in the stack), and the
+justAdded parameter contains the components that would be added. Constraint
+implementations must account for this — for example, MaxNumComponents uses
+dest.NumComponents() + len(justAdded) to predict the post-move count.
+
+Constraints are checked automatically in two places:
+  - During Legal(), for moves that declare source/destination via
+    WithSourceProperty/WithDestinationProperty (no move code needed).
+  - During Apply(), inside moveComponentImpl, as a safety net before
+    the component is actually inserted.
+
 Source-side constraints (checked on the stack a component is being removed
 from) are not yet supported. This would enable patterns like "don't allow
-removal below N components." The current constraints are all destination-side:
-they validate the stack after a component is added.
+removal below N components."
 */
 package constraints

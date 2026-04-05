@@ -8,11 +8,14 @@ import (
 )
 
 // MaxDistinctValues returns a StackConstraint that rejects a move if the
-// destination stack has more than max distinct values for the named property.
-// Components that don't have the named property are skipped.
+// destination stack (including the proposed additions) has more than max
+// distinct values for the named property. Components that don't have the
+// named property are skipped. The destination stack is in its pre-insertion
+// state, so justAdded components are counted separately.
 func MaxDistinctValues(propPath string, max int) boardgame.StackConstraint {
 	return func(dest boardgame.ImmutableStack, justAdded []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
 		seen := make(map[string]bool)
+		// Collect distinct values from existing components.
 		for _, c := range dest.ImmutableComponents() {
 			if c == nil {
 				continue
@@ -23,8 +26,19 @@ func MaxDistinctValues(propPath string, max int) boardgame.StackConstraint {
 			}
 			seen[val] = true
 		}
+		// Include proposed additions.
+		for _, c := range justAdded {
+			if c == nil {
+				continue
+			}
+			val, ok := resolvePropValue(c, propPath)
+			if !ok {
+				continue
+			}
+			seen[val] = true
+		}
 		if len(seen) > max {
-			return errors.New("property " + propPath + " has " + strconv.Itoa(len(seen)) + " distinct values, which exceeds max of " + strconv.Itoa(max))
+			return errors.New("property " + propPath + " would have " + strconv.Itoa(len(seen)) + " distinct values, which exceeds max of " + strconv.Itoa(max))
 		}
 		return nil
 	}
