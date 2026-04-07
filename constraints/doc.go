@@ -41,9 +41,10 @@ so commas inside parentheses are treated as constraint arguments:
 	`sizedstack:"cards,5,maxdistinct(color,2)"`
 	`sizedstack:"cards,5,max(3),unique(color)"`
 
-To enable struct-tag constraints, your GameDelegate must return constructors
-from ConfigureStackConstraintConstructors. Use DefaultConstructors() to get
-all pre-built constraints, or ExtendDefaults() to add custom types.
+Struct-tag constraints work out of the box: the default base.GameDelegate
+returns DefaultConstructors() from ConfigureStackConstraintConstructors.
+Override that method only to add custom types via ExtendDefaults(), or
+return nil to disable struct-tag constraints entirely.
 
 # How Constraints Are Checked
 

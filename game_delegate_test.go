@@ -405,6 +405,8 @@ func (d *defaultGameDelegate) ConfigureConstants() PropertyCollection {
 	return nil
 }
 
+// Note: base.GameDelegate returns constraints.DefaultConstructors(), but we
+// can't import constraints here without a cyclic dependency, so return nil.
 func (d *defaultGameDelegate) ConfigureStackConstraintConstructors() []*StackConstraintConstructor {
 	return nil
 }

@@ -12,7 +12,6 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
-	"github.com/jkomoros/boardgame/constraints"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -287,10 +286,6 @@ func checkRunWon(runState []string) string {
 	}
 
 	return targetToken
-}
-
-func (g *gameDelegate) ConfigureStackConstraintConstructors() []*boardgame.StackConstraintConstructor {
-	return constraints.DefaultConstructors()
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

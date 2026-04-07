@@ -24,8 +24,9 @@ components move into a stack, and the move is rejected if violated. See
 StackConstraint for details. The constraints sub-package provides pre-built
 constraints like MaxNumComponents, Unique, Same, and MaxDistinctValues.
 Constraints can be added programmatically via Stack.AddConstraint, or
-declaratively via struct tags if the delegate overrides
-ConfigureStackConstraintConstructors.
+declaratively via struct tags. The default base.GameDelegate includes
+constructors for all pre-built constraints; override
+ConfigureStackConstraintConstructors only to add custom types.
 
 The primary entry point for use of this package is defining your own
 GameDelegate. The methods and documentation from there will point to other

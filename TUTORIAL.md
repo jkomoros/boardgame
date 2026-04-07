@@ -145,7 +145,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 }
 ```
 
-Or via struct tags, if your delegate overrides `ConfigureStackConstraintConstructors` to return the constructors from the `constraints` package:
+Or via struct tags (the default `base.GameDelegate` already includes all pre-built constraint constructors):
 
 ```go
 type gameState struct {

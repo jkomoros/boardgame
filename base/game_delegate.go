@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/constraints"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 
 	"github.com/jkomoros/boardgame"
@@ -641,14 +642,13 @@ func (g *GameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	return make(map[string]*boardgame.Deck)
 }
 
-// ConfigureStackConstraintConstructors returns nil, meaning no
-// StackConstraintConstructors are configured for struct tags. If you use
-// constraint expressions in struct tags (e.g. `sizedstack:"tokens,9,max(1)"`),
-// override this and return constraints.DefaultConstructors() to enable the
-// pre-built constraints, or constraints.ExtendDefaults(custom...) to include
-// your own alongside the defaults.
+// ConfigureStackConstraintConstructors returns constraints.DefaultConstructors(),
+// which provides all pre-built constraint constructors (MaxNumComponents,
+// Unique, Same, MaxDistinctValues) for use in struct tags. Override this only
+// if you need to add custom constructors via constraints.ExtendDefaults(), or
+// return nil to disable struct-tag constraints entirely.
 func (g *GameDelegate) ConfigureStackConstraintConstructors() []*boardgame.StackConstraintConstructor {
-	return nil
+	return constraints.DefaultConstructors()
 }
 
 // ConfigureConstants returns a zero-entry map. If you have any constants you

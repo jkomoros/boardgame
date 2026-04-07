@@ -321,10 +321,10 @@ type GameDelegate interface {
 	//returned constructors' Names are matched against constraint
 	//expressions in stack/sizedstack struct tags (e.g.
 	//`sizedstack:"tokens,9,max(1)"`). The default implementation in
-	//base.GameDelegate returns nil, meaning no struct-tag constraints are
-	//available. To enable the pre-built constraints, override this and
-	//return constraints.DefaultConstructors(), or use
-	//constraints.ExtendDefaults() to add custom types alongside them.
+	//base.GameDelegate returns constraints.DefaultConstructors(), which
+	//includes all pre-built constraints. Override this only if you need
+	//to add custom constructors via constraints.ExtendDefaults(), or
+	//return nil to disable struct-tag constraints entirely.
 	ConfigureStackConstraintConstructors() []*StackConstraintConstructor
 
 	//Manager returns the Manager that was set on this delegate.
