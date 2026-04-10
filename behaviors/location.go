@@ -95,10 +95,16 @@ func (l *LocationBehavior) ConfigureFromTags(tags reflect.StructTag, containingS
 	}
 
 	v := reflect.ValueOf(containingSubState).Elem()
-	fieldVal := v.FieldByName(fieldName)
-	if !fieldVal.IsValid() {
+	t := v.Type()
+
+	// Use Type.FieldByName first to safely detect ambiguous field names
+	// (reflect.Value.FieldByName panics on ambiguous matches).
+	structField, ok := t.FieldByName(fieldName)
+	if !ok {
 		return fmt.Errorf("LocationBehavior: location tag refers to field %q which does not exist on the containing struct", fieldName)
 	}
+
+	fieldVal := v.FieldByIndex(structField.Index)
 
 	if !fieldVal.CanInterface() {
 		return fmt.Errorf("LocationBehavior: field %q is not accessible", fieldName)
@@ -107,6 +113,10 @@ func (l *LocationBehavior) ConfigureFromTags(tags reflect.StructTag, containingS
 	sizedStack, ok := fieldVal.Interface().(boardgame.SizedStack)
 	if !ok {
 		return fmt.Errorf("LocationBehavior: field %q is not a boardgame.SizedStack", fieldName)
+	}
+
+	if sizedStack == nil {
+		return fmt.Errorf("LocationBehavior: field %q is a SizedStack but is nil (was it inflated?)", fieldName)
 	}
 
 	l.ConnectLocationStack(sizedStack)

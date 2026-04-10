@@ -3,11 +3,112 @@ package boardgame
 import (
 	"encoding/json"
 	"io/ioutil"
+	stderrors "errors"
+	"reflect"
+	"strings"
 	"testing"
 
 	jd "github.com/josephburnett/jd/lib"
 	"github.com/workfit/tester/assert"
 )
+
+// TagTestBehavior is a minimal TagConfigurable implementation for testing the
+// autoConnectBehaviors tag-forwarding machinery. Exported so that
+// CanInterface() returns true (matching how real behaviors work).
+type TagTestBehavior struct {
+	Configured bool
+	TagValue   string
+}
+
+func (b *TagTestBehavior) ConfigureFromTags(tags reflect.StructTag, containingSubState SubState) error {
+	b.TagValue = tags.Get("testcfg")
+	if b.TagValue == "error" {
+		return stderrors.New("forced test error")
+	}
+	if b.TagValue != "" {
+		b.Configured = true
+	}
+	return nil
+}
+
+// tagConfigTestState is a minimal SubState embedding TagTestBehavior with a tag.
+type tagConfigTestState struct {
+	state            State
+	ref              StatePropertyRef
+	TagTestBehavior `testcfg:"hello"`
+	Score            int
+}
+
+func (t *tagConfigTestState) Reader() PropertyReader           { return getDefaultReader(t) }
+func (t *tagConfigTestState) ReadSetter() PropertyReadSetter   { return getDefaultReadSetter(t) }
+func (t *tagConfigTestState) ConnectContainingState(state State, ref StatePropertyRef) {
+	t.state = state
+	t.ref = ref
+}
+func (t *tagConfigTestState) FinishStateSetUp()                    {}
+func (t *tagConfigTestState) State() State                         { return t.state }
+func (t *tagConfigTestState) ImmutableState() ImmutableState       { return t.state }
+func (t *tagConfigTestState) StatePropertyRef() StatePropertyRef   { return t.ref }
+
+// tagConfigTestStateNoTag embeds TagTestBehavior without a struct tag.
+type tagConfigTestStateNoTag struct {
+	state            State
+	ref              StatePropertyRef
+	TagTestBehavior // no struct tag
+	Score            int
+}
+
+func (t *tagConfigTestStateNoTag) Reader() PropertyReader           { return getDefaultReader(t) }
+func (t *tagConfigTestStateNoTag) ReadSetter() PropertyReadSetter   { return getDefaultReadSetter(t) }
+func (t *tagConfigTestStateNoTag) ConnectContainingState(state State, ref StatePropertyRef) {
+	t.state = state
+	t.ref = ref
+}
+func (t *tagConfigTestStateNoTag) FinishStateSetUp()                    {}
+func (t *tagConfigTestStateNoTag) State() State                         { return t.state }
+func (t *tagConfigTestStateNoTag) ImmutableState() ImmutableState       { return t.state }
+func (t *tagConfigTestStateNoTag) StatePropertyRef() StatePropertyRef   { return t.ref }
+
+// tagConfigTestStateError embeds TagTestBehavior with a tag that triggers an error.
+type tagConfigTestStateError struct {
+	state            State
+	ref              StatePropertyRef
+	TagTestBehavior `testcfg:"error"`
+	Score            int
+}
+
+func (t *tagConfigTestStateError) Reader() PropertyReader           { return getDefaultReader(t) }
+func (t *tagConfigTestStateError) ReadSetter() PropertyReadSetter   { return getDefaultReadSetter(t) }
+func (t *tagConfigTestStateError) ConnectContainingState(state State, ref StatePropertyRef) {
+	t.state = state
+	t.ref = ref
+}
+func (t *tagConfigTestStateError) FinishStateSetUp()                    {}
+func (t *tagConfigTestStateError) State() State                         { return t.state }
+func (t *tagConfigTestStateError) ImmutableState() ImmutableState       { return t.state }
+func (t *tagConfigTestStateError) StatePropertyRef() StatePropertyRef   { return t.ref }
+
+func TestAutoConnectBehaviorsTagConfigurable(t *testing.T) {
+	// Happy path: tag present and ConfigureFromTags receives it
+	s := &tagConfigTestState{}
+	err := autoConnectBehaviors(s)
+	assert.For(t, "happy path err").ThatActual(err).IsNil()
+	assert.For(t, "configured").ThatActual(s.TagTestBehavior.Configured).IsTrue()
+	assert.For(t, "tag value").ThatActual(s.TagTestBehavior.TagValue).Equals("hello")
+
+	// No tag: ConfigureFromTags is called but tag is empty, so no-op
+	sNoTag := &tagConfigTestStateNoTag{}
+	err = autoConnectBehaviors(sNoTag)
+	assert.For(t, "no tag err").ThatActual(err).IsNil()
+	assert.For(t, "not configured").ThatActual(sNoTag.TagTestBehavior.Configured).IsFalse()
+
+	// Error path: ConfigureFromTags returns an error, which is propagated
+	sErr := &tagConfigTestStateError{}
+	err = autoConnectBehaviors(sErr)
+	assert.For(t, "error propagated").ThatActual(err).IsNotNil()
+	assert.For(t, "error contains field name").ThatActual(strings.Contains(err.Error(), "TagTestBehavior")).IsTrue()
+	assert.For(t, "error contains cause").ThatActual(strings.Contains(err.Error(), "forced test error")).IsTrue()
+}
 
 func TestPlayerIndex(t *testing.T) {
 	game := testDefaultGame(t, false)

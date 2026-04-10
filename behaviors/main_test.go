@@ -1,6 +1,7 @@
 package behaviors
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/jkomoros/boardgame"
@@ -118,6 +119,19 @@ func TestLocationBehaviorTagConfigurable(t *testing.T) {
 	b = &LocationBehavior{}
 	_, ok := b.(boardgame.TagConfigurable)
 	assert.For(t).ThatActual(ok).IsTrue()
+}
+
+func TestConfigureFromTagsEmptyTag(t *testing.T) {
+	// When no location tag is present, ConfigureFromTags should be a no-op.
+	l := &LocationBehavior{}
+	err := l.ConfigureFromTags(reflect.StructTag(""), nil)
+	assert.For(t, "empty tag").ThatActual(err).IsNil()
+
+	err = l.ConfigureFromTags(reflect.StructTag(`unrelated:"foo"`), nil)
+	assert.For(t, "unrelated tag").ThatActual(err).IsNil()
+
+	// locationStack should still be nil since no tag was processed.
+	assert.For(t, "still needs manual config").ThatActual(l.ValidConfiguration(nil)).IsNotNil()
 }
 
 func TestLocationBehavior(t *testing.T) {
