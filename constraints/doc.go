@@ -61,6 +61,11 @@ Constraints are checked automatically in two places:
   - During Apply(), inside moveComponentImpl, as a safety net before
     the component is actually inserted.
 
+For custom moves, use MayMoveTo or MayMoveToSlot in Legal() to check
+constraints along with all other slot-independent or slot-specific
+validation in a single call. See the ImmutableComponentInstance
+documentation for details.
+
 # Future Work
 
 Source-side constraints (checked on the stack a component is being removed
