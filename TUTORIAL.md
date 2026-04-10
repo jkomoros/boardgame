@@ -158,6 +158,41 @@ The `constraints` sub-package provides pre-built constraints: `MaxNumComponents`
 
 Constraints are **not** checked during initial game setup (when components are distributed via `DistributeComponentToStarterStack`), only during normal gameplay moves.
 
+#### Pre-Validating Moves with MayMoveTo
+
+When writing custom `Legal()` methods, you often need to check whether a component can be moved to a destination stack *before* actually doing it in `Apply()`. The framework provides `MayMoveTo` and friends for this purpose:
+
+```go
+func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+        return err
+    }
+
+    game, players := concreteStates(state)
+    p := players[m.TargetPlayerIndex.EnsureValid(state)]
+
+    first := p.UnusedTokens.ImmutableFirst()
+    if first == nil {
+        return errors.New("no tokens left to place")
+    }
+
+    // MayMoveToSlot checks: same deck, slots remaining, constraints,
+    // and that the specific slot is valid and unoccupied.
+    return first.MayMoveToSlot(game.Slots, m.Slot)
+}
+```
+
+This single `MayMoveToSlot` call replaces what would otherwise be several manual checks (bounds checking, slot occupancy, constraint validation, etc.). The key methods are:
+
+- **`component.MayMoveTo(dest)`** — slot-independent check; validates deck match, slots remaining, and all constraints. Covers `MoveToNextSlot`, `MoveToFirstSlot`, `MoveToLastSlot`, and `SecretMoveTo`.
+- **`component.MayMoveToSlot(dest, slotIndex)`** — like `MayMoveTo`, plus validates that the specific slot is in range and (for SizedStacks) unoccupied.
+- **`stack.MayMoveAllTo(dest)`** — validates that *all* components in the source stack could be moved to the destination.
+- **`stack.MaySwapComponents(i, j)`** — validates that a swap would succeed.
+
+If `MayMoveTo` or `MayMoveToSlot` returns nil in `Legal()`, the corresponding `MoveTo` or `MoveToNextSlot` call in `Apply()` is guaranteed to succeed.
+
+The `moves` package (DealCountComponents, MoveCountComponents, etc.) uses `MayMoveTo` internally, so if you use those moves, constraint checking happens automatically. You only need to call `MayMoveTo` explicitly in custom moves.
+
 #### boardgame-util codegen
 
 Both of the State objects also have a cryptic comment above them: `//boardgame:codegen`. These are actually a critical concept to understand about the core engine.
@@ -743,7 +778,7 @@ func (m *moveHideCards) Apply(state boardgame.State) error {
 }
 ```
 
-This is our Apply method. There's not much interesting going on--except to note that calling MoveComponent can fail (for example, if the stack we're moving to is already max size), so we check for that and return an error. If your Move's `Apply` method returns an error than the move will not be applied. In general it is best practice in `Legal` to check for any condition that could cause your `Apply` to fail, so that failures in `Apply` are truly unexpected. But as this example shows, sometimes that's more of a pain than it's worth, as long as you catch those errors in `Apply`. If you didn't catch them in either `Legal` or `Apply` then you could start persisting illegal states to the storage layer, which would get really confusing really fast.
+This is our Apply method. There's not much interesting going on--except to note that calling MoveTo can fail (for example, if the stack we're moving to is already max size), so we check for that and return an error. If your Move's `Apply` method returns an error then the move will not be applied. In general it is best practice in `Legal` to check for any condition that could cause your `Apply` to fail, so that failures in `Apply` are truly unexpected. Use `MayMoveTo` or `MayMoveToSlot` in your `Legal()` method to pre-validate component moves — if they return nil, the corresponding `MoveTo` in `Apply()` is guaranteed to succeed. See the "Pre-Validating Moves with MayMoveTo" section earlier in this tutorial.
 
 ### NewDelegate
 

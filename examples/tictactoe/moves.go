@@ -38,19 +38,12 @@ func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 
 	game, players := concreteStates(state)
 
-	if players[m.TargetPlayerIndex.EnsureValid(state)].UnusedTokens.Len() < 1 {
+	first := players[m.TargetPlayerIndex.EnsureValid(state)].UnusedTokens.ImmutableFirst()
+	if first == nil {
 		return errors.New("there aren't any remaining tokens for the current player to place")
 	}
 
-	if m.Slot < 0 || m.Slot >= game.Slots.Len() {
-		return errors.New("the specified slot is not legal")
-	}
-
-	if game.Slots.ComponentAt(m.Slot) != nil {
-		return errors.New("the specified slot is already taken")
-	}
-
-	return nil
+	return first.MayMoveToSlot(game.Slots, m.Slot)
 
 }
 

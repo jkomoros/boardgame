@@ -63,12 +63,13 @@ func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 
 	game := state.ImmutableGameState().(*gameState)
 
-	if game.UnusedTokens.NumComponents() == 0 {
+	first := game.UnusedTokens.ImmutableFirst()
+	if first == nil {
 		return errors.New("No more components to place")
 	}
 
-	if game.Spaces.ComponentAtKey(m.TargetIndex.Value()) != nil {
-		return errors.New("That space is already filled")
+	if err := first.MayMoveToSlot(game.Spaces, m.TargetIndex.Value().Int()); err != nil {
+		return err
 	}
 
 	if !spaceIsBlack(m.TargetIndex.Value().Int()) {
@@ -99,7 +100,11 @@ func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	g := state.ImmutableGameState().(*gameState)
 
-	c := g.Spaces.ComponentAtKey(m.TokenIndexToMove.Value())
+	if err := g.Spaces.MaySwapComponentsByKey(m.TokenIndexToMove.Value(), m.SpaceIndex.Value()); err != nil {
+		return err
+	}
+
+	c := g.Spaces.ImmutableComponentAtKey(m.TokenIndexToMove.Value())
 
 	if c == nil {
 		return errors.New("That space does not have a component in it")
@@ -113,10 +118,6 @@ func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	if !spaceIsBlack(m.SpaceIndex.Value().Int()) {
 		return errors.New("you can only move to spaces that are black")
-	}
-
-	if g.Spaces.ComponentAtKey(m.SpaceIndex.Value()) != nil {
-		return errors.New("the space you're trying to move to is occupied")
 	}
 
 	//If it's one of the legal spaces, great.

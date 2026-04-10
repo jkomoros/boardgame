@@ -50,18 +50,15 @@ func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgam
 		return errors.New("You have no cards left to reveal this turn")
 	}
 
-	if m.CardIndex < 0 || m.CardIndex >= game.HiddenCards.Len() {
-		return errors.New("illegal card index")
-	}
-
-	if game.HiddenCards.ComponentAt(m.CardIndex) == nil {
-		if game.VisibleCards.ComponentAt(m.CardIndex) == nil {
+	c := game.HiddenCards.ImmutableComponentAt(m.CardIndex)
+	if c == nil {
+		if game.VisibleCards.ImmutableComponentAt(m.CardIndex) == nil {
 			return errors.New("there is no card at that index")
 		}
 		return errors.New("that card has already been revealed")
 	}
 
-	return nil
+	return c.MayMoveToSlot(game.VisibleCards, m.CardIndex)
 }
 
 func (m *moveRevealCard) Apply(state boardgame.State) error {

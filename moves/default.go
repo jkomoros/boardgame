@@ -379,7 +379,7 @@ func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
 		return nil
 	}
 
-	return dstStack.CheckConstraints([]boardgame.ImmutableComponentInstance{first})
+	return first.MayMoveTo(dstStack)
 }
 
 func (d *Default) legalPhases() []enum.EnumKey {

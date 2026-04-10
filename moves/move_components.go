@@ -154,15 +154,12 @@ func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 		return errors.New("Destination was nil")
 	}
 
-	if source.NumComponents() < 1 {
+	first := source.ImmutableFirst()
+	if first == nil {
 		return errors.New("the stack to draw from doesn't have any components to move")
 	}
 
-	if destination.SlotsRemaining() < 1 {
-		return errors.New("the destination stack doesn't have any slots to move the component to")
-	}
-
-	return nil
+	return first.MayMoveTo(destination)
 
 }
 

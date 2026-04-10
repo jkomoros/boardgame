@@ -244,7 +244,12 @@ func (m *moveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer bo
 		return errors.New("Current player is already at target scores")
 	}
 
-	return nil
+	first := game.DrawStack.ImmutableFirst()
+	if first == nil {
+		return errors.New("No cards left in draw stack")
+	}
+
+	return first.MayMoveTo(currentPlayer.VisibleHand)
 }
 
 func (m *moveCurrentPlayerHit) Apply(state boardgame.State) error {
@@ -322,8 +327,13 @@ func (m *moveRevealHiddenCard) Legal(state boardgame.ImmutableState, proposer bo
 
 	p := players[m.TargetPlayerIndex]
 
-	if p.HiddenHand.NumComponents() < 1 {
+	first := p.HiddenHand.ImmutableFirst()
+	if first == nil {
 		return errors.New("Target player has no cards to reveal")
+	}
+
+	if err := first.MayMoveTo(p.VisibleHand); err != nil {
+		return err
 	}
 
 	return nil

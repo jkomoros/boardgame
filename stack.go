@@ -123,6 +123,32 @@ type ImmutableStack interface {
 	//checking for free.
 	CheckConstraints(proposed []ImmutableComponentInstance) error
 
+	//MayMoveAllTo checks whether all components in this stack could be
+	//moved to the destination stack, without actually performing any moves.
+	//It copies the underlying state, finds the corresponding stacks in the
+	//copy, and performs actual moves on the copy to check for errors
+	//(including order-dependent constraint violations). Returns nil if all
+	//moves would succeed, or a descriptive error if any would fail. If the
+	//source stack is empty, returns nil (nothing to move).
+	//
+	//MayMoveAllTo is designed for use in Legal() to pre-validate that
+	//MoveAllTo would succeed in Apply().
+	MayMoveAllTo(dest ImmutableStack) error
+
+	//MaySwapComponents checks whether SwapComponents(i, j) would succeed,
+	//without actually performing the swap. It validates that both indices
+	//are non-negative, within the stack's length, and different from each
+	//other. Returns nil if the swap would be allowed.
+	//
+	//MaySwapComponents is designed for use in Legal() to pre-validate a
+	//SwapComponents call.
+	MaySwapComponents(i, j int) error
+
+	//MaySwapComponentsByKey is a convenience for
+	//MaySwapComponents(int(i), int(j)), for use when stack slots are keyed
+	//by enum values.
+	MaySwapComponentsByKey(i, j enum.EnumKey) error
+
 	//All stacks have these, even though they aren't exported, because within
 	//this library we iterate trhough a lot of Stacks via readers and it's
 	//convenient to be able to treat them all the same.
@@ -1318,6 +1344,174 @@ func (m *mergedStack) CheckConstraints(proposed []ImmutableComponentInstance) er
 	return nil
 }
 
+// maySwapComponentsImpl is the shared validation for MaySwapComponents.
+func maySwapComponentsImpl(s ImmutableStack, i, j int) error {
+	if i < 0 {
+		return errors.New("i must be 0 or greater")
+	}
+	if j < 0 {
+		return errors.New("j must be 0 or greater")
+	}
+	if i >= s.Len() {
+		return errors.New("i must be less than the stack's length")
+	}
+	if j >= s.Len() {
+		return errors.New("j must be less than the stack's length")
+	}
+	if i == j {
+		return errors.New("i and j were the same")
+	}
+	return nil
+}
+
+func (g *growableStack) MaySwapComponents(i, j int) error {
+	return maySwapComponentsImpl(g, i, j)
+}
+
+func (g *growableStack) MaySwapComponentsByKey(i, j enum.EnumKey) error {
+	return g.MaySwapComponents(int(i), int(j))
+}
+
+func (s *sizedStack) MaySwapComponents(i, j int) error {
+	return maySwapComponentsImpl(s, i, j)
+}
+
+func (s *sizedStack) MaySwapComponentsByKey(i, j enum.EnumKey) error {
+	return s.MaySwapComponents(int(i), int(j))
+}
+
+func (m *mergedStack) MaySwapComponents(i, j int) error {
+	return errors.New("MaySwapComponents is not supported on MergedStacks")
+}
+
+func (m *mergedStack) MaySwapComponentsByKey(i, j enum.EnumKey) error {
+	return errors.New("MaySwapComponentsByKey is not supported on MergedStacks")
+}
+
+// findCorrespondingStack locates the mutable Stack in copiedState that
+// corresponds to target in originalState. It iterates all stack properties in
+// all sub-state readers of both states in lockstep, comparing each original
+// stack pointer to target. When found, it returns the corresponding stack from
+// the copied state.
+func findCorrespondingStack(target ImmutableStack, originalState, copiedState *state) (Stack, error) {
+	// Check gameState readers
+	if stack := findStackInReaderPair(target, originalState.gameState.ReadSetter(), copiedState.gameState.ReadSetter()); stack != nil {
+		return stack, nil
+	}
+
+	// Check playerState readers
+	for i := 0; i < len(originalState.playerStates); i++ {
+		if stack := findStackInReaderPair(target, originalState.playerStates[i].ReadSetter(), copiedState.playerStates[i].ReadSetter()); stack != nil {
+			return stack, nil
+		}
+	}
+
+	// Check dynamicComponentValues readers
+	for deckName, origValues := range originalState.dynamicComponentValues {
+		copyValues := copiedState.dynamicComponentValues[deckName]
+		for i := 0; i < len(origValues); i++ {
+			if stack := findStackInReaderPair(target, origValues[i].ReadSetter(), copyValues[i].ReadSetter()); stack != nil {
+				return stack, nil
+			}
+		}
+	}
+
+	return nil, errors.New("could not find corresponding stack in copied state")
+}
+
+// findStackInReaderPair iterates stack properties in two readers in lockstep.
+// If targetStack matches an original stack, returns the corresponding copied
+// stack.
+func findStackInReaderPair(targetStack ImmutableStack, origReader, copyReader PropertyReadSetter) Stack {
+	for propName, propType := range origReader.Props() {
+		if propType != TypeStack {
+			continue
+		}
+		if origReader.PropMutable(propName) {
+			origStack, err := origReader.StackProp(propName)
+			if err != nil {
+				continue
+			}
+			if ImmutableStack(origStack) == targetStack {
+				copyStack, err := copyReader.StackProp(propName)
+				if err != nil {
+					continue
+				}
+				return copyStack
+			}
+		} else {
+			origStack, err := origReader.ImmutableStackProp(propName)
+			if err != nil {
+				continue
+			}
+			if origStack == targetStack {
+				// Immutable stacks (MergedStacks) can't be returned as
+				// mutable; this case shouldn't arise in normal usage.
+				continue
+			}
+		}
+	}
+	return nil
+}
+
+func mayMoveAllToImpl(from ImmutableStack, dest ImmutableStack) error {
+	if dest == nil {
+		return errors.New("destination stack is nil")
+	}
+
+	if from == dest {
+		return errors.New("source and destination are the same stack")
+	}
+
+	if from.Deck() != dest.Deck() {
+		return errors.New("source and destination use different decks")
+	}
+
+	if from.NumComponents() == 0 {
+		return nil
+	}
+
+	if dest.SlotsRemaining() < from.NumComponents() {
+		return errors.New("not enough space in the target stack")
+	}
+
+	// Clone state and simulate actual moves.
+	origState := from.state()
+	if origState == nil {
+		return errors.New("source stack has no associated state")
+	}
+
+	copiedState, err := origState.copy(false)
+	if err != nil {
+		return errors.New("failed to copy state for simulation: " + err.Error())
+	}
+
+	copiedFrom, err := findCorrespondingStack(from, origState, copiedState)
+	if err != nil {
+		return errors.New("failed to find corresponding source stack: " + err.Error())
+	}
+
+	copiedDest, err := findCorrespondingStack(dest, origState, copiedState)
+	if err != nil {
+		return errors.New("failed to find corresponding destination stack: " + err.Error())
+	}
+
+	// Perform actual moves on the clone using the existing moveAllToImpl.
+	return moveAllToImpl(copiedFrom, copiedDest)
+}
+
+func (g *growableStack) MayMoveAllTo(dest ImmutableStack) error {
+	return mayMoveAllToImpl(g, dest)
+}
+
+func (s *sizedStack) MayMoveAllTo(dest ImmutableStack) error {
+	return mayMoveAllToImpl(s, dest)
+}
+
+func (m *mergedStack) MayMoveAllTo(dest ImmutableStack) error {
+	return errors.New("MayMoveAllTo is not supported on MergedStacks")
+}
+
 func (m *mergedStack) SlotsRemaining() int {
 
 	if len(m.stacks) == 0 {
@@ -1709,10 +1903,6 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 		return errors.New("Source is a nil stack")
 	}
 
-	if destination == nil {
-		return errors.New("Destination is a nil stack")
-	}
-
 	if err := source.modificationsAllowed(); err != nil {
 		return errors.New("Source doesn't allow modifications: " + err.Error())
 	}
@@ -1722,41 +1912,25 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	}
 
 	if source == destination {
-		return errors.New("source and desintation stack are the same. Use SwapComponents instead")
+		return errors.New("source and destination stack are the same. Use SwapComponents instead")
 	}
 
-	if source.state() != destination.state() {
-		return errors.New("source and destination are not members of the same state object")
-	}
-
-	if source.Deck() != destination.Deck() {
-		return errors.New("source and destination are affiliated with two different decks")
-	}
-
-	if c := source.ComponentAt(componentIndex); c == nil {
-		return errors.New("The effective index, " + strconv.Itoa(componentIndex) + " does not point to an existing component in Source")
-	}
-
-	if !destination.legalSlot(slotIndex) {
-		return errors.New("The effective slot index, " + strconv.Itoa(slotIndex) + " does not point to a legal slot.")
-	}
-
-	if destination.SlotsRemaining() < 1 {
-		return errors.New("the destination stack does not have any extra slots")
-	}
-
-	// Check constraints before modifying any state. The component is still
-	// in source; constraints see the destination in its pre-insertion state.
 	c := source.ComponentAt(componentIndex)
 	if c == nil {
 		return errors.New("The effective index, " + strconv.Itoa(componentIndex) + " does not point to an existing component in Source")
 	}
 
-	if err := destination.CheckConstraints([]ImmutableComponentInstance{c}); err != nil {
-		return errors.New("constraint violation: " + err.Error())
+	// Delegate slot-independent validation to MayMoveTo (single source of truth).
+	if err := c.MayMoveTo(destination); err != nil {
+		return err
 	}
 
-	// Constraints passed — perform the actual move.
+	// Slot-specific check (not covered by MayMoveTo).
+	if !destination.legalSlot(slotIndex) {
+		return errors.New("The effective slot index, " + strconv.Itoa(slotIndex) + " does not point to a legal slot.")
+	}
+
+	// All checks passed — perform the actual move.
 	moved := source.removeComponentAt(componentIndex)
 	destination.insertComponentAt(slotIndex, moved)
 
@@ -1870,21 +2044,8 @@ func (g *growableStack) SwapComponents(i, j int) error {
 	if err := g.modificationsAllowed(); err != nil {
 		return err
 	}
-	//check i j indexes are legal
-	if i < 0 {
-		return errors.New("i must be 0 or greater")
-	}
-	if j < 0 {
-		return errors.New("j must be 0 or greater")
-	}
-	if i >= g.Len() {
-		return errors.New("i must be less than or equal to the stack's length")
-	}
-	if j >= g.Len() {
-		return errors.New("j must be less than or equal to the stack's length")
-	}
-	if i == j {
-		return errors.New("i and j were the same")
+	if err := g.MaySwapComponents(i, j); err != nil {
+		return err
 	}
 
 	g.indexes[i], g.indexes[j] = g.indexes[j], g.indexes[i]
@@ -1928,21 +2089,8 @@ func (s *sizedStack) SwapComponents(i, j int) error {
 	if err := s.modificationsAllowed(); err != nil {
 		return err
 	}
-	//check i j indexes are legal
-	if i < 0 {
-		return errors.New("i must be 0 or greater")
-	}
-	if j < 0 {
-		return errors.New("j must be 0 or greater")
-	}
-	if i >= s.Len() {
-		return errors.New("i must be less than or equal to the stack's length")
-	}
-	if j >= s.Len() {
-		return errors.New("j must be less than or equal to the stack's length")
-	}
-	if i == j {
-		return errors.New("i and j were the same")
+	if err := s.MaySwapComponents(i, j); err != nil {
+		return err
 	}
 
 	s.indexes[i], s.indexes[j] = s.indexes[j], s.indexes[i]

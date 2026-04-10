@@ -28,6 +28,23 @@ declaratively via struct tags. The default base.GameDelegate includes
 constructors for all pre-built constraints; override
 ConfigureStackConstraintConstructors only to add custom types.
 
+ImmutableComponentInstance provides "May" methods for pre-validating
+component moves in Legal() before actually performing them in Apply():
+
+  - MayMoveTo(dest) checks whether a component could move to the
+    destination stack (slot-independent). It covers all of MoveTo,
+    SecretMoveTo, MoveToFirstSlot, MoveToLastSlot, and MoveToNextSlot.
+  - MayMoveToSlot(dest, slotIndex) additionally checks that a specific
+    slot is valid and available.
+
+ImmutableStack also provides MayMoveAllTo(dest) and MaySwapComponents(i, j)
+for pre-validating those operations.
+
+These methods are designed so that if Legal() passes, Apply() will succeed
+for the corresponding operation. The moves package uses them internally,
+and game authors should use them in custom Legal() methods to replace ad-hoc
+manual checks.
+
 The primary entry point for use of this package is defining your own
 GameDelegate. The methods and documentation from there will point to other
 parts of this package.
