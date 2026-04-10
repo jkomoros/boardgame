@@ -1691,17 +1691,29 @@ Many board games have a map or board with spaces that tokens move between. The f
 
 `behaviors.LocationBehavior` is a behavior (like `PlayerColor` or `RoundRobin`) designed to be embedded in a `playerState` or `gameState`. It tracks which slot in a `SizedStack` a token occupies.
 
-To use it, embed it in your state struct and configure it in `FinishStateSetUp`. The framework automatically calls `ConnectBehavior` for you, so you only need to call `ConnectLocationStack` (and optionally `ConnectGraph`):
+To use it, embed it in your state struct and use the `location` struct tag to point it at the SizedStack field that tracks position:
 
 ```go
 type playerState struct {
     base.SubState
-    behaviors.LocationBehavior
+    behaviors.LocationBehavior `location:"Location"`
     // Location is a SizedStack with one slot per space on the board.
     // Exactly one slot holds the player's token component.
     Location boardgame.SizedStack `sizedstack:"tokens,NUM_SPACES"`
 }
+```
 
+The framework automatically calls `ConnectBehavior` and reads the `location` tag for you. If you also need a graph for adjacency and pathfinding, connect it in `FinishStateSetUp`:
+
+```go
+func (p *playerState) FinishStateSetUp() {
+    p.LocationBehavior.ConnectGraph(myConnectivityGraph)
+}
+```
+
+You can also skip the tag and wire everything manually in `FinishStateSetUp` if you prefer:
+
+```go
 func (p *playerState) FinishStateSetUp() {
     p.LocationBehavior.ConnectLocationStack(p.Location)
     p.LocationBehavior.ConnectGraph(myConnectivityGraph)

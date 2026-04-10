@@ -19,12 +19,29 @@ detects embedded Connectable fields and calls ConnectBehavior on them during
 state setup, before FinishStateSetUp is called. You do not need to call
 ConnectBehavior yourself.
 
-FinishStateSetUp is only needed for additional wiring beyond the basic
-connection. For example, [LocationBehavior] requires ConnectLocationStack and
-optionally ConnectGraph to be called in FinishStateSetUp:
+# Struct Tag Configuration
+
+Some behaviors support declarative configuration via struct tags on the
+embedding site. For example, [LocationBehavior] can be configured with a
+"location" tag that names a SizedStack field on the same struct:
+
+	type playerState struct {
+		base.SubState
+		behaviors.LocationBehavior `location:"Spaces"`
+		Spaces boardgame.SizedStack `sizedstack:"tokens,24"`
+	}
+
+This eliminates the need for a FinishStateSetUp override in the common case.
+Behaviors that support tag-based configuration implement the
+[boardgame.TagConfigurable] interface, and the framework calls
+ConfigureFromTags automatically after ConnectBehavior but before
+FinishStateSetUp.
+
+FinishStateSetUp is still available for wiring that cannot be expressed as
+struct tags. For example, [LocationBehavior] optionally accepts a graph that
+must be connected imperatively:
 
 	func (p *playerState) FinishStateSetUp() {
-		p.LocationBehavior.ConnectLocationStack(p.Location)
 		p.LocationBehavior.ConnectGraph(myConnectivityGraph)
 	}
 
@@ -38,8 +55,9 @@ NewGameManager is being executed, which will fail with a descriptive error.
 each slot represents a space on the board). Embed it in a playerState or
 gameState to gain LocationIndex(), MoveTo(), and graph-based helpers like
 Neighbors(), ShortestPathTo(), and DistanceTo(). It is a [Connectable] behavior
-(auto-connected by the framework); in FinishStateSetUp, call
-ConnectLocationStack and optionally ConnectGraph to complete the wiring.
+(auto-connected by the framework). Use the "location" struct tag to point it at
+a SizedStack field, or call ConnectLocationStack in FinishStateSetUp. Optionally
+call ConnectGraph in FinishStateSetUp to enable graph-based queries.
 [LocationBehavior] also stores a LocRemainingPath field used by the
 [moves.HopAlongPath] FixUp for animated multi-hop movement. See the
 [LocationBehavior] type documentation and the spatial game API section of the

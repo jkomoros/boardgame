@@ -3,6 +3,7 @@ package behaviors
 import (
 	"testing"
 
+	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 
@@ -110,6 +111,13 @@ func TestCSSColorForKey(t *testing.T) {
 	// Verify a non-existent key returns false
 	_, ok := CSSColorForKey[999]
 	assert.For(t, "missing key").ThatActual(ok).IsFalse()
+}
+
+func TestLocationBehaviorTagConfigurable(t *testing.T) {
+	var b interface{}
+	b = &LocationBehavior{}
+	_, ok := b.(boardgame.TagConfigurable)
+	assert.For(t).ThatActual(ok).IsTrue()
 }
 
 func TestLocationBehavior(t *testing.T) {

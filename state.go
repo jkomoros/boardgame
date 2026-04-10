@@ -356,6 +356,22 @@ type AutoConnectable interface {
 	ConnectBehavior(containingSubState SubState)
 }
 
+// TagConfigurable is implemented by embedded behavior structs that can be
+// configured via struct tags on their embedding site. After ConnectBehavior
+// is called on AutoConnectable fields, the framework checks each embedded
+// struct field for TagConfigurable. If found, it passes the reflect.StructTag
+// from the embedding site along with the containing SubState. The behavior
+// can then read tag values and use them to configure itself -- for example,
+// by looking up a SizedStack field on the containing SubState by name.
+//
+// This runs after ConnectBehavior but before FinishStateSetUp, so behaviors
+// are already connected to their container when ConfigureFromTags is called.
+// Manual configuration in FinishStateSetUp takes precedence since it runs
+// afterward and overwrites any tag-based configuration.
+type TagConfigurable interface {
+	ConfigureFromTags(tags reflect.StructTag, containingSubState SubState) error
+}
+
 // State represents the entire semantic state of a game at a given version. For
 // your specific game, GameState and PlayerStates will actually be concrete
 // structs to your particular game. State is a container of gameStates,
@@ -944,15 +960,16 @@ func (s *state) copy(sanitized bool) (*state, error) {
 }
 
 // autoConnectBehaviors uses reflection to find embedded struct fields that
-// implement AutoConnectable and calls ConnectBehavior on them. This runs
-// before FinishStateSetUp so that behaviors are already connected when
-// user code runs.
-func autoConnectBehaviors(subState SubState) {
+// implement AutoConnectable and calls ConnectBehavior on them. It also
+// checks for TagConfigurable and forwards struct tags from the embedding
+// site. This runs before FinishStateSetUp so that behaviors are already
+// connected and configured when user code runs.
+func autoConnectBehaviors(subState SubState) error {
 	v := reflect.ValueOf(subState).Elem()
 	t := reflect.TypeOf(v.Interface())
 
 	if t.Kind() != reflect.Struct {
-		return
+		return nil
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -970,7 +987,13 @@ func autoConnectBehaviors(subState SubState) {
 		if connectable, ok := embeddedStructValue.Interface().(AutoConnectable); ok {
 			connectable.ConnectBehavior(subState)
 		}
+		if configurable, ok := embeddedStructValue.Interface().(TagConfigurable); ok {
+			if err := configurable.ConfigureFromTags(field.Tag, subState); err != nil {
+				return errors.New("field " + field.Name + ": " + err.Error())
+			}
+		}
 	}
+	return nil
 }
 
 // finish should be called when the state has all of its sub-states set. It
@@ -982,7 +1005,9 @@ func (s *state) setStateForSubStates() error {
 		Group: StateGroupGame,
 	})
 
-	autoConnectBehaviors(s.GameState())
+	if err := autoConnectBehaviors(s.GameState()); err != nil {
+		return errors.New("GameState auto-connect: " + err.Error())
+	}
 	s.GameState().FinishStateSetUp()
 
 	playerRef := StatePropertyRef{
@@ -991,7 +1016,9 @@ func (s *state) setStateForSubStates() error {
 
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].ConnectContainingState(s, playerRef.WithPlayerIndex(PlayerIndex(i)))
-		autoConnectBehaviors(s.playerStates[i])
+		if err := autoConnectBehaviors(s.playerStates[i]); err != nil {
+			return errors.New("PlayerState auto-connect: " + err.Error())
+		}
 		s.playerStates[i].FinishStateSetUp()
 	}
 
@@ -1003,7 +1030,9 @@ func (s *state) setStateForSubStates() error {
 		}
 		for i, component := range dynamicComponents {
 			component.ConnectContainingState(s, componentRef.WithDeckIndex(i))
-			autoConnectBehaviors(component)
+			if err := autoConnectBehaviors(component); err != nil {
+				return errors.New("DynamicComponentValues auto-connect: " + err.Error())
+			}
 			component.FinishStateSetUp()
 		}
 	}
