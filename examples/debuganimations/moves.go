@@ -97,15 +97,22 @@ func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.ImmutableState, p
 
 	game, _ := concreteStates(state)
 
-	if game.FirstShortStack.NumComponents() < 1 && m.FromFirst {
-		return errors.New("First short stack has no cards to move")
+	var from boardgame.Stack
+	var to boardgame.Stack
+	if m.FromFirst {
+		from = game.FirstShortStack
+		to = game.SecondShortStack
+	} else {
+		from = game.SecondShortStack
+		to = game.FirstShortStack
 	}
 
-	if game.SecondShortStack.NumComponents() < 1 && !m.FromFirst {
-		return errors.New("Second short stack has no cards to move")
+	first := from.ImmutableFirst()
+	if first == nil {
+		return errors.New("source stack has no cards to move")
 	}
 
-	return nil
+	return first.MayMoveTo(to)
 }
 
 func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.State) error {
@@ -155,15 +162,22 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.Immutabl
 
 	game, _ := concreteStates(state)
 
-	if game.DrawStack.NumComponents() < 1 && m.FromDraw {
-		return errors.New("Draw stack has no cards to move")
+	var from boardgame.Stack
+	var to boardgame.Stack
+	if m.FromDraw {
+		from = game.DrawStack
+		to = game.DiscardStack
+	} else {
+		from = game.DiscardStack
+		to = game.DrawStack
 	}
 
-	if game.DiscardStack.NumComponents() < 1 && !m.FromDraw {
-		return errors.New("Discard stack has no cards to move")
+	first := from.ImmutableFirst()
+	if first == nil {
+		return errors.New("source stack has no cards to move")
 	}
 
-	return nil
+	return first.MayMoveTo(to)
 }
 
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.State) error {

@@ -109,6 +109,34 @@ type ImmutableComponentInstance interface {
 	//with.
 	ImmutableState() ImmutableState
 
+	//MayMoveTo checks whether this component could be moved to the given
+	//destination stack, without actually performing the move. It validates
+	//the slot-independent subset of what MoveTo checks: destination is
+	//non-nil, this component has a containing stack (source), source !=
+	//destination, same deck, destination has slots remaining, and
+	//destination constraints pass. Returns nil if the move would be allowed,
+	//or a descriptive error explaining why not.
+	//
+	//MayMoveTo is designed for use in Legal() to pre-validate that a
+	//component move will succeed in Apply(). Since it does not check
+	//slot-specific conditions, it covers all of MoveTo, SecretMoveTo,
+	//MoveToFirstSlot, MoveToLastSlot, and MoveToNextSlot.
+	//
+	//See also MayMoveToSlot for a variant that additionally validates a
+	//specific slot index.
+	MayMoveTo(dest ImmutableStack) error
+
+	//MayMoveToSlot checks whether this component could be moved to the
+	//given slot in the destination stack, without actually performing the
+	//move. It performs all of the checks of MayMoveTo, plus validates the
+	//specific slot index: for growable stacks the slot must be between 0
+	//and Len() inclusive; for SizedStacks the slot must be in range and
+	//currently empty.
+	//
+	//MayMoveToSlot is designed for use in Legal() to pre-validate an
+	//explicit MoveTo(dest, slotIndex) call.
+	MayMoveToSlot(dest ImmutableStack, slotIndex int) error
+
 	secretMoveCount() int
 	movedSecretly()
 }
@@ -475,6 +503,58 @@ func (c componentInstance) SlideToLastSlot() error {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.moveComponentToEnd(sourceIndex)
+}
+
+func (c componentInstance) MayMoveTo(dest ImmutableStack) error {
+	if dest == nil {
+		return errors.New("destination stack is nil")
+	}
+
+	sourceStack, _, err := c.ContainingImmutableStack()
+	if err != nil {
+		return errors.New("component is not in any stack: " + err.Error())
+	}
+
+	if sourceStack == dest {
+		return errors.New("source and destination are the same stack")
+	}
+
+	if sourceStack.Deck() != dest.Deck() {
+		return errors.New("source and destination use different decks")
+	}
+
+	if dest.SlotsRemaining() < 1 {
+		return errors.New("destination stack has no slots remaining")
+	}
+
+	return dest.CheckConstraints([]ImmutableComponentInstance{c})
+}
+
+func (c componentInstance) MayMoveToSlot(dest ImmutableStack, slotIndex int) error {
+	if err := c.MayMoveTo(dest); err != nil {
+		return err
+	}
+
+	if slotIndex < 0 {
+		return errors.New("slot index must be non-negative")
+	}
+
+	if sizedDest := dest.ImmutableSizedStack(); sizedDest != nil {
+		// SizedStack: slot must be in range and empty
+		if slotIndex >= dest.Len() {
+			return errors.New("slot index " + strconv.Itoa(slotIndex) + " is out of range (stack length " + strconv.Itoa(dest.Len()) + ")")
+		}
+		if dest.ImmutableComponentAt(slotIndex) != nil {
+			return errors.New("slot " + strconv.Itoa(slotIndex) + " is already occupied")
+		}
+	} else {
+		// Growable stack: slot must be valid insertion point [0, Len()]
+		if slotIndex > dest.Len() {
+			return errors.New("slot index " + strconv.Itoa(slotIndex) + " is out of range (stack length " + strconv.Itoa(dest.Len()) + ")")
+		}
+	}
+
+	return nil
 }
 
 func (c componentInstance) ImmutableState() ImmutableState {
