@@ -2144,14 +2144,14 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for playerState
 
 var ȧutoGeneratedPlayerStateReaderProps = map[string]boardgame.PropertyType{
-	"Busted":         boardgame.TypeBool,
 	"DieCounted":     boardgame.TypeBool,
 	"Done":           boardgame.TypeBool,
+	"Eliminated":     boardgame.TypeBool,
 	"PlayerInactive": boardgame.TypeBool,
 	"RoundScore":     boardgame.TypeInt,
+	"Score":          boardgame.TypeInt,
 	"SeatClosed":     boardgame.TypeBool,
 	"SeatFilled":     boardgame.TypeBool,
-	"TotalScore":     boardgame.TypeInt,
 }
 
 type ȧutoGeneratedPlayerStateReader struct {
@@ -2205,21 +2205,21 @@ func (p *ȧutoGeneratedPlayerStateReader) Prop(name string) (interface{}, error)
 
 func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 	switch name {
-	case "Busted":
-		return true
 	case "DieCounted":
 		return true
 	case "Done":
+		return true
+	case "Eliminated":
 		return true
 	case "PlayerInactive":
 		return true
 	case "RoundScore":
 		return true
+	case "Score":
+		return true
 	case "SeatClosed":
 		return true
 	case "SeatFilled":
-		return true
-	case "TotalScore":
 		return true
 	}
 
@@ -2442,8 +2442,8 @@ func (p *ȧutoGeneratedPlayerStateReader) IntProp(name string) (int, error) {
 	switch name {
 	case "RoundScore":
 		return p.data.RoundScore, nil
-	case "TotalScore":
-		return p.data.TotalScore, nil
+	case "Score":
+		return p.data.Score, nil
 
 	}
 
@@ -2457,8 +2457,8 @@ func (p *ȧutoGeneratedPlayerStateReader) SetIntProp(name string, value int) err
 	case "RoundScore":
 		p.data.RoundScore = value
 		return nil
-	case "TotalScore":
-		p.data.TotalScore = value
+	case "Score":
+		p.data.Score = value
 		return nil
 
 	}
@@ -2470,12 +2470,12 @@ func (p *ȧutoGeneratedPlayerStateReader) SetIntProp(name string, value int) err
 func (p *ȧutoGeneratedPlayerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
-	case "Busted":
-		return p.data.Busted, nil
 	case "DieCounted":
 		return p.data.DieCounted, nil
 	case "Done":
 		return p.data.Done, nil
+	case "Eliminated":
+		return p.data.Eliminated, nil
 	case "PlayerInactive":
 		return p.data.PlayerInactive, nil
 	case "SeatClosed":
@@ -2492,14 +2492,14 @@ func (p *ȧutoGeneratedPlayerStateReader) BoolProp(name string) (bool, error) {
 func (p *ȧutoGeneratedPlayerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
-	case "Busted":
-		p.data.Busted = value
-		return nil
 	case "DieCounted":
 		p.data.DieCounted = value
 		return nil
 	case "Done":
 		p.data.Done = value
+		return nil
+	case "Eliminated":
+		p.data.Eliminated = value
 		return nil
 	case "PlayerInactive":
 		p.data.PlayerInactive = value

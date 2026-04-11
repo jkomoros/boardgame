@@ -114,6 +114,147 @@ func TestCSSColorForKey(t *testing.T) {
 	assert.For(t, "missing key").ThatActual(ok).IsFalse()
 }
 
+func TestScoreBehavior(t *testing.T) {
+	s := &ScoreBehavior{Score: 42}
+	assert.For(t, "GameScore returns field value").ThatActual(s.GameScore()).Equals(42)
+
+	s.Score = 0
+	assert.For(t, "GameScore returns zero").ThatActual(s.GameScore()).Equals(0)
+
+	s.Score = -5
+	assert.For(t, "GameScore returns negative").ThatActual(s.GameScore()).Equals(-5)
+}
+
+func TestPlayerElimination(t *testing.T) {
+	var b interface{}
+	b = &PlayerElimination{}
+	_, ok := b.(interfaces.PlayerEliminator)
+	assert.For(t, "satisfies PlayerEliminator").ThatActual(ok).IsTrue()
+
+	p := &PlayerElimination{}
+	assert.For(t, "initially not eliminated").ThatActual(p.IsEliminated()).IsFalse()
+
+	p.SetEliminated()
+	assert.For(t, "eliminated after SetEliminated").ThatActual(p.IsEliminated()).IsTrue()
+
+	p.ClearEliminated()
+	assert.For(t, "not eliminated after ClearEliminated").ThatActual(p.IsEliminated()).IsFalse()
+}
+
+func TestMoveBudget(t *testing.T) {
+	var b interface{}
+	b = &MoveBudget{}
+	_, ok := b.(interfaces.TurnBudgeter)
+	assert.For(t, "satisfies TurnBudgeter").ThatActual(ok).IsTrue()
+
+	m := &MoveBudget{}
+	assert.For(t, "initially no moves").ThatActual(m.HasMovesLeft()).IsFalse()
+
+	m.ResetMovesTo(3)
+	assert.For(t, "has moves after reset").ThatActual(m.HasMovesLeft()).IsTrue()
+	assert.For(t, "3 moves left").ThatActual(m.MovesLeft).Equals(3)
+
+	m.ConsumeMove()
+	assert.For(t, "2 moves left").ThatActual(m.MovesLeft).Equals(2)
+	assert.For(t, "still has moves").ThatActual(m.HasMovesLeft()).IsTrue()
+
+	m.ConsumeMove()
+	m.ConsumeMove()
+	assert.For(t, "0 moves left").ThatActual(m.MovesLeft).Equals(0)
+	assert.For(t, "no moves left").ThatActual(m.HasMovesLeft()).IsFalse()
+
+	// Bool pattern: budget of 1
+	m.ResetMovesTo(1)
+	assert.For(t, "has move (bool pattern)").ThatActual(m.HasMovesLeft()).IsTrue()
+	m.ConsumeMove()
+	assert.For(t, "no move (bool pattern)").ThatActual(m.HasMovesLeft()).IsFalse()
+}
+
+func TestDrawDiscardPair(t *testing.T) {
+	var b interface{}
+	b = &DrawDiscardPair{}
+	_, ok := b.(Connectable)
+	assert.For(t, "satisfies Connectable").ThatActual(ok).IsTrue()
+
+	_, ok = b.(boardgame.TagConfigurable)
+	assert.For(t, "satisfies TagConfigurable").ThatActual(ok).IsTrue()
+
+	// ValidConfiguration should fail before connection
+	d := &DrawDiscardPair{}
+	err := d.ValidConfiguration(nil)
+	assert.For(t, "fails before connect").ThatActual(err).IsNotNil()
+
+	// NeedsReshuffle returns false when not connected
+	assert.For(t, "no reshuffle needed when not connected").ThatActual(d.NeedsReshuffle()).IsFalse()
+
+	// Note: more substantive testing with real stacks requires the moves
+	// package's test game infrastructure.
+}
+
+func TestPlayerTeam(t *testing.T) {
+	var b interface{}
+	b = &PlayerTeam{}
+	_, ok := b.(Connectable)
+	assert.For(t, "satisfies Connectable").ThatActual(ok).IsTrue()
+
+	_, ok = b.(interfaces.TeamMember)
+	assert.For(t, "satisfies TeamMember").ThatActual(ok).IsTrue()
+
+	// ValidConfiguration should fail before connection
+	p := &PlayerTeam{}
+	err := p.ValidConfiguration(nil)
+	assert.For(t, "fails before connect").ThatActual(err).IsNotNil()
+
+	// TeamMembers returns nil when not connected
+	assert.For(t, "nil team members when not connected").ThatActual(p.TeamMembers() == nil).IsTrue()
+
+	// Opponents returns nil when not connected
+	assert.For(t, "nil opponents when not connected").ThatActual(p.Opponents() == nil).IsTrue()
+}
+
+func TestFaceUpMarket(t *testing.T) {
+	var b interface{}
+	b = &FaceUpMarket{}
+	_, ok := b.(Connectable)
+	assert.For(t, "satisfies Connectable").ThatActual(ok).IsTrue()
+
+	_, ok = b.(boardgame.TagConfigurable)
+	assert.For(t, "satisfies TagConfigurable").ThatActual(ok).IsTrue()
+
+	// ValidConfiguration should fail before connection
+	m := &FaceUpMarket{}
+	err := m.ValidConfiguration(nil)
+	assert.For(t, "fails before connect").ThatActual(err).IsNotNil()
+
+	// NeedsReplenish returns false when not connected
+	assert.For(t, "no replenish needed when not connected").ThatActual(m.NeedsReplenish()).IsFalse()
+
+	// SetDisplaySize works
+	m.SetDisplaySize(5)
+	assert.For(t, "display size set").ThatActual(m.DisplaySize()).Equals(5)
+}
+
+func TestConfigureFromTagsSizeValidation(t *testing.T) {
+	m := &FaceUpMarket{}
+
+	// Non-numeric size tag should error
+	err := m.ConfigureFromTags(reflect.StructTag(`size:"abc"`), nil)
+	assert.For(t, "non-numeric size").ThatActual(err).IsNotNil()
+
+	// Negative size tag should error
+	err = m.ConfigureFromTags(reflect.StructTag(`size:"-1"`), nil)
+	assert.For(t, "negative size").ThatActual(err).IsNotNil()
+
+	// Zero size tag should error
+	err = m.ConfigureFromTags(reflect.StructTag(`size:"0"`), nil)
+	assert.For(t, "zero size").ThatActual(err).IsNotNil()
+
+	// Valid size tag should work
+	err = m.ConfigureFromTags(reflect.StructTag(`size:"5"`), nil)
+	assert.For(t, "valid size").ThatActual(err).IsNil()
+	assert.For(t, "size value").ThatActual(m.DisplaySize()).Equals(5)
+}
+
 func TestLocationBehaviorTagConfigurable(t *testing.T) {
 	var b interface{}
 	b = &LocationBehavior{}

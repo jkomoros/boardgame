@@ -129,7 +129,7 @@ func (m *moveCountDie) Apply(state boardgame.State) error {
 
 	if value == 1 {
 		//Bust!
-		p.Busted = true
+		p.Eliminated = true
 	} else {
 		p.RoundScore += value
 	}

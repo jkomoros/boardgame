@@ -21,11 +21,11 @@ type playerState struct {
 	base.SubState
 	behaviors.Seat
 	behaviors.InactivePlayer
-	Busted     bool
+	behaviors.ScoreBehavior
+	behaviors.PlayerElimination
 	Done       bool
 	DieCounted bool
 	RoundScore int
-	TotalScore int
 }
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -45,7 +45,7 @@ func (p *playerState) TurnDone() error {
 		return errors.New("the most recent die roll has not been counted")
 	}
 
-	if !p.Busted && !p.Done {
+	if !p.Eliminated && !p.Done {
 		return errors.New("they have not either busted or signaled that they are done")
 	}
 
@@ -54,7 +54,7 @@ func (p *playerState) TurnDone() error {
 
 func (p *playerState) ResetForTurn() {
 	p.Done = false
-	p.Busted = false
+	p.Eliminated = false
 	p.RoundScore = 0
 	p.DieCounted = true
 }
@@ -66,7 +66,7 @@ func (p *playerState) ResetForTurnStart() error {
 
 func (p *playerState) ResetForTurnEnd() error {
 	if p.Done {
-		p.TotalScore += p.RoundScore
+		p.Score += p.RoundScore
 	}
 	p.ResetForTurn()
 	return nil

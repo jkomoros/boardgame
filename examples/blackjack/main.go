@@ -132,7 +132,7 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 
 		statusLine := fmt.Sprintf("\tValue: %d", handValue)
 
-		if player.Busted {
+		if player.Eliminated {
 			statusLine += " BUSTED"
 		}
 
@@ -156,11 +156,6 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	}
 
 	return strings.Join(result, "\n")
-}
-
-func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
-	player := pState.(*playerState)
-	return player.TotalScore
 }
 
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
@@ -191,7 +186,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Combine(
 		moves.Add(
 			auto.MustConfig(
-				new(moveShuffleDiscardToDraw),
+				new(moves.ShuffleDiscardIntoDraw),
 				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
 			//Players may be seated at any time. Because playerState also has

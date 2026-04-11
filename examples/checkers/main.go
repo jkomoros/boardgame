@@ -130,8 +130,7 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 }
 
 func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
-	p := pState.(*playerState)
-	return p.CapturedTokens.NumComponents()
+	return pState.(*playerState).GameScore()
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

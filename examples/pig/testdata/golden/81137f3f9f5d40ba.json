@@ -340,24 +340,24 @@
 			"Players": [
 				[
 					{
-						"Busted": false,
 						"DieCounted": false,
 						"Done": false,
+						"Eliminated": false,
 						"PlayerInactive": false,
 						"RoundScore": 0,
+						"Score": 0,
 						"SeatClosed": false,
-						"SeatFilled": false,
-						"TotalScore": 0
+						"SeatFilled": false
 					},
 					{
-						"Busted": false,
 						"DieCounted": false,
 						"Done": false,
+						"Eliminated": false,
 						"PlayerInactive": false,
 						"RoundScore": 0,
+						"Score": 0,
 						"SeatClosed": false,
-						"SeatFilled": false,
-						"TotalScore": 0
+						"SeatFilled": false
 					}
 				]
 			]
@@ -365,11 +365,11 @@
 		{
 			"Players": {
 				"0": {
-					"Busted": [
+					"DieCounted": [
 						false,
 						true
 					],
-					"DieCounted": [
+					"Eliminated": [
 						false,
 						true
 					]
@@ -386,7 +386,7 @@
 			},
 			"Players": {
 				"0": {
-					"Busted": [
+					"Eliminated": [
 						true,
 						false
 					]
@@ -536,7 +536,7 @@
 						13,
 						0
 					],
-					"TotalScore": [
+					"Score": [
 						0,
 						13
 					]
@@ -680,7 +680,7 @@
 						8,
 						0
 					],
-					"TotalScore": [
+					"Score": [
 						0,
 						8
 					]
@@ -717,11 +717,11 @@
 		{
 			"Players": {
 				"1": {
-					"Busted": [
+					"DieCounted": [
 						false,
 						true
 					],
-					"DieCounted": [
+					"Eliminated": [
 						false,
 						true
 					]
@@ -738,7 +738,7 @@
 			},
 			"Players": {
 				"1": {
-					"Busted": [
+					"Eliminated": [
 						true,
 						false
 					]
@@ -841,7 +841,7 @@
 						10,
 						0
 					],
-					"TotalScore": [
+					"Score": [
 						8,
 						18
 					]

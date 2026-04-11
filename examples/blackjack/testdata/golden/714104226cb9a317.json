@@ -530,7 +530,7 @@
 			"Players": [
 				[
 					{
-						"Busted": false,
+						"Eliminated": false,
 						"Hand": {
 							"Deck": "cards",
 							"IDs": null,
@@ -548,10 +548,10 @@
 							"ShuffleCount": 0
 						},
 						"PlayerInactive": false,
+						"Score": 0,
 						"SeatClosed": false,
 						"SeatFilled": false,
 						"Stood": false,
-						"TotalScore": 0,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -561,7 +561,7 @@
 						}
 					},
 					{
-						"Busted": false,
+						"Eliminated": false,
 						"Hand": {
 							"Deck": "cards",
 							"IDs": null,
@@ -579,10 +579,10 @@
 							"ShuffleCount": 0
 						},
 						"PlayerInactive": false,
+						"Score": 0,
 						"SeatClosed": false,
 						"SeatFilled": false,
 						"Stood": false,
-						"TotalScore": 0,
 						"VisibleHand": {
 							"Deck": "cards",
 							"IDs": [],
@@ -1301,13 +1301,13 @@
 		{
 			"Players": {
 				"0": {
-					"TotalScore": [
+					"Score": [
 						0,
 						19
 					]
 				},
 				"1": {
-					"TotalScore": [
+					"Score": [
 						0,
 						20
 					]

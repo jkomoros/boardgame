@@ -228,6 +228,30 @@ type FreeMoveApplier interface {
 	ApplyFreeMove(playerState boardgame.SubState, targetSpaceIndex enum.ImmutableVal) error
 }
 
+// PlayerEliminator is for PlayerStates that track whether a player has been
+// eliminated (knocked out) from play. Used by game logic to check elimination
+// status. [behaviors.PlayerElimination] satisfies this interface.
+type PlayerEliminator interface {
+	IsEliminated() bool
+	SetEliminated()
+	ClearEliminated()
+}
+
+// TurnBudgeter is for PlayerStates that track how many actions a player has
+// remaining in their current turn. [behaviors.MoveBudget] satisfies this
+// interface.
+type TurnBudgeter interface {
+	HasMovesLeft() bool
+	ConsumeMove()
+	ResetMovesTo(n int)
+}
+
+// TeamMember is for PlayerStates that track team membership via an enum.
+// [behaviors.PlayerTeam] satisfies this interface.
+type TeamMember interface {
+	IsOnTeam(enum.EnumKey) bool
+}
+
 // AdvanceCondition is optionally implemented by moves that embed [moves.AdvanceToken].
 // It gates whether the advancement should happen.
 type AdvanceCondition interface {
