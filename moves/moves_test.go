@@ -1,10 +1,12 @@
 package moves
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
 )
@@ -217,6 +219,31 @@ func TestGeneral(t *testing.T) {
 	//their hand, plus the one terminal no op.
 	assert.For(t).ThatActual(game.Version()).Equals(27)
 
+}
+
+func TestConfigureFromTagsErrorPaths(t *testing.T) {
+	// Test ConfigureFromTags error branches directly using a bare (uninflated)
+	// playerState. The playerState implements SubState via base.SubState and
+	// codegen, so it satisfies the interface even without full game setup.
+	bare := new(playerState)
+	loc := &behaviors.LocationBehavior{}
+
+	// Field does not exist
+	err := loc.ConfigureFromTags(reflect.StructTag(`location:"NoSuchField"`), bare)
+	assert.For(t, "nonexistent field").ThatActual(err).IsNotNil()
+	assert.For(t, "nonexistent msg").ThatActual(strings.Contains(err.Error(), "NoSuchField")).IsTrue()
+
+	// Field exists but is not a SizedStack (Counter is an int)
+	err = loc.ConfigureFromTags(reflect.StructTag(`location:"Counter"`), bare)
+	assert.For(t, "wrong type").ThatActual(err).IsNotNil()
+	assert.For(t, "wrong type msg").ThatActual(strings.Contains(err.Error(), "Counter")).IsTrue()
+	assert.For(t, "wrong type msg detail").ThatActual(strings.Contains(err.Error(), "SizedStack")).IsTrue()
+
+	// Field is a SizedStack type but nil (uninflated) — a nil interface
+	// doesn't pass the type assertion, so this also reports "not a SizedStack".
+	err = loc.ConfigureFromTags(reflect.StructTag(`location:"TokenLocation"`), bare)
+	assert.For(t, "nil stack").ThatActual(err).IsNotNil()
+	assert.For(t, "nil stack msg").ThatActual(strings.Contains(err.Error(), "SizedStack")).IsTrue()
 }
 
 func TestLocationBehaviorTagWiring(t *testing.T) {
