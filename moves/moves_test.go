@@ -219,6 +219,30 @@ func TestGeneral(t *testing.T) {
 
 }
 
+func TestLocationBehaviorTagWiring(t *testing.T) {
+	// This test verifies that the `location:"TokenLocation"` struct tag on
+	// playerState.LocationBehavior auto-wires ConnectLocationStack during
+	// state setup. NewGameManager calls ValidConfiguration internally, so
+	// if it succeeds, the location tag was processed correctly.
+	manager, err := newGameManager(defaultMoveInstaller)
+	assert.For(t, "NewGameManager").ThatActual(err).IsNil()
+
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "NewDefaultGame").ThatActual(err).IsNil()
+
+	_, playerStates := concreteStates(game.CurrentState())
+
+	for i, player := range playerStates {
+		// Each player should have one token in their TokenLocation stack.
+		assert.For(t, "TokenLocation components", i).ThatActual(player.TokenLocation.NumComponents()).Equals(1)
+
+		// LocationBehavior should be usable (LocationIndexKey returns a valid key).
+		key, found := player.LocationBehavior.LocationIndexKey()
+		assert.For(t, "LocationIndexKey found", i).ThatActual(found).IsTrue()
+		assert.For(t, "LocationIndexKey value", i).ThatActual(int(key)).Equals(0)
+	}
+}
+
 func historicalMovesCount(t *testing.T, moveNames []string, counts []int, records []*boardgame.MoveStorageRecord) {
 	if len(moveNames) != len(counts) {
 		t.Error("MoveNames and counts did not match length")
