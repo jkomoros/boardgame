@@ -63,9 +63,11 @@ type gameState struct {
 type playerState struct {
 	base.SubState
 	behaviors.PlayerColor
-	Hand      boardgame.Stack `stack:"cards"`
-	OtherHand boardgame.Stack `stack:"cards"`
-	Counter   int
+	behaviors.LocationBehavior `location:"TokenLocation"`
+	Hand          boardgame.Stack     `stack:"cards"`
+	OtherHand     boardgame.Stack     `stack:"cards"`
+	TokenLocation boardgame.SizedStack `sizedstack:"tokens,4"`
+	Counter       int
 }
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -90,7 +92,15 @@ func (g *gameDelegate) Name() string {
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
-	game, _ := concreteStates(state)
+	game, players := concreteStates(state)
+
+	if c.Deck().Name() == "tokens" {
+		// Distribute one token per player into slot 0 of their TokenLocation.
+		playerIndex := c.DeckIndex()
+		if playerIndex < len(players) {
+			return players[playerIndex].TokenLocation, nil
+		}
+	}
 
 	return game.DrawStack, nil
 }
@@ -120,8 +130,15 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	tokens := boardgame.NewDeck()
+	// One token per player (DefaultNumPlayers == 4).
+	for i := 0; i < 4; i++ {
+		tokens.AddComponent(nil)
+	}
+
 	return map[string]*boardgame.Deck{
-		"cards": playingcards.NewDeck(false),
+		"cards":  playingcards.NewDeck(false),
+		"tokens": tokens,
 	}
 }
 

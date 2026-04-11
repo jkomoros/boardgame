@@ -2169,10 +2169,12 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for playerState
 
 var ȧutoGeneratedPlayerStateReaderProps = map[string]boardgame.PropertyType{
-	"Color":     boardgame.TypeEnum,
-	"Counter":   boardgame.TypeInt,
-	"Hand":      boardgame.TypeStack,
-	"OtherHand": boardgame.TypeStack,
+	"Color":            boardgame.TypeEnum,
+	"Counter":          boardgame.TypeInt,
+	"Hand":             boardgame.TypeStack,
+	"LocRemainingPath": boardgame.TypeIntSlice,
+	"OtherHand":        boardgame.TypeStack,
+	"TokenLocation":    boardgame.TypeStack,
 }
 
 type ȧutoGeneratedPlayerStateReader struct {
@@ -2232,7 +2234,11 @@ func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 		return true
 	case "Hand":
 		return true
+	case "LocRemainingPath":
+		return true
 	case "OtherHand":
+		return true
+	case "TokenLocation":
 		return true
 	}
 
@@ -2562,11 +2568,24 @@ func (p *ȧutoGeneratedPlayerStateReader) EnumProp(name string) (enum.Val, error
 
 func (p *ȧutoGeneratedPlayerStateReader) IntSliceProp(name string) ([]int, error) {
 
+	switch name {
+	case "LocRemainingPath":
+		return p.data.LocRemainingPath, nil
+
+	}
+
 	return []int{}, errors.New("No such IntSlice prop: " + name)
 
 }
 
 func (p *ȧutoGeneratedPlayerStateReader) SetIntSliceProp(name string, value []int) error {
+
+	switch name {
+	case "LocRemainingPath":
+		p.data.LocRemainingPath = value
+		return nil
+
+	}
 
 	return errors.New("No such IntSlice prop: " + name)
 
@@ -2615,6 +2634,8 @@ func (p *ȧutoGeneratedPlayerStateReader) ImmutableStackProp(name string) (board
 		return p.data.Hand, nil
 	case "OtherHand":
 		return p.data.OtherHand, nil
+	case "TokenLocation":
+		return p.data.TokenLocation, nil
 
 	}
 
@@ -2631,6 +2652,13 @@ func (p *ȧutoGeneratedPlayerStateReader) ConfigureStackProp(name string, value 
 	case "OtherHand":
 		p.data.OtherHand = value
 		return nil
+	case "TokenLocation":
+		slotValue := value.SizedStack()
+		if slotValue == nil {
+			return errors.New("TokenLocation couldn't be upconverted, returned nil")
+		}
+		p.data.TokenLocation = slotValue
+		return nil
 
 	}
 
@@ -2644,6 +2672,8 @@ func (p *ȧutoGeneratedPlayerStateReader) ConfigureImmutableStackProp(name strin
 	case "Hand":
 		return boardgame.ErrPropertyImmutable
 	case "OtherHand":
+		return boardgame.ErrPropertyImmutable
+	case "TokenLocation":
 		return boardgame.ErrPropertyImmutable
 
 	}
@@ -2659,6 +2689,8 @@ func (p *ȧutoGeneratedPlayerStateReader) StackProp(name string) (boardgame.Stac
 		return p.data.Hand, nil
 	case "OtherHand":
 		return p.data.OtherHand, nil
+	case "TokenLocation":
+		return p.data.TokenLocation, nil
 
 	}
 

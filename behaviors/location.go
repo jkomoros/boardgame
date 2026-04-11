@@ -2,6 +2,8 @@ package behaviors
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
@@ -12,20 +14,40 @@ import (
 LocationBehavior is a struct designed to be anonymously embedded in a SubState
 (typically a playerState or gameState) to represent the position of a token
 within a SizedStack. It is a [Connectable] behavior that is automatically
-connected by the framework. In FinishStateSetUp, you must call
-ConnectLocationStack to point it at the SizedStack that tracks the token's
-position. Optionally, call ConnectGraph to associate a graph for adjacency and
-pathfinding queries.
+connected by the framework.
 
-RemainingPath stores the remaining hops during multi-hop movement. It is
-serialized via TypeIntSlice and is used by the HopAlongPath FixUp move.
+The simplest way to configure it is with a struct tag on the embedding site.
+The "location" tag specifies the name of a SizedStack field on the same struct:
 
-Example wiring:
+	type playerState struct {
+	    base.SubState
+	    behaviors.LocationBehavior `location:"Spaces"`
+	    Spaces boardgame.SizedStack `sizedstack:"tokens,24"`
+	}
+
+This eliminates the need for a FinishStateSetUp override. If you also need to
+connect a graph for adjacency and pathfinding queries, use FinishStateSetUp for
+the graph while still using the tag for the stack:
+
+	type playerState struct {
+	    base.SubState
+	    behaviors.LocationBehavior `location:"Spaces"`
+	    Spaces boardgame.SizedStack `sizedstack:"tokens,24"`
+	}
+
+	func (p *playerState) FinishStateSetUp() {
+	    p.LocationBehavior.ConnectGraph(connectedGraph)
+	}
+
+You can also skip the tag entirely and wire everything in FinishStateSetUp:
 
 	func (p *playerState) FinishStateSetUp() {
 	    p.LocationBehavior.ConnectLocationStack(p.Location)
 	    p.LocationBehavior.ConnectGraph(connectedGraph)
 	}
+
+RemainingPath stores the remaining hops during multi-hop movement. It is
+serialized via TypeIntSlice and is used by the HopAlongPath FixUp move.
 */
 type LocationBehavior struct {
 	// Unexported runtime fields (not serialized)
@@ -53,6 +75,52 @@ func (l *LocationBehavior) ConnectLocationStack(stack boardgame.SizedStack) {
 // IsConnectedTo, ShortestPathTo, and DistanceTo will return errors.
 func (l *LocationBehavior) ConnectGraph(g *graph.EnumGraph) {
 	l.locGraph = g
+}
+
+const locationStructTag = "location"
+
+// ConfigureFromTags reads struct tags from the embedding site and configures
+// the behavior. The "location" tag should contain the name of a SizedStack
+// field on the containing SubState that tracks the token's position.
+//
+// Example: `location:"Spaces"` will look up the field named "Spaces" on the
+// containing struct and call ConnectLocationStack with it.
+//
+// If the "location" tag is absent, this method does nothing, allowing manual
+// configuration in FinishStateSetUp instead.
+func (l *LocationBehavior) ConfigureFromTags(tags reflect.StructTag, containingSubState boardgame.SubState) error {
+	fieldName := tags.Get(locationStructTag)
+	if fieldName == "" {
+		return nil
+	}
+
+	v := reflect.ValueOf(containingSubState).Elem()
+	t := v.Type()
+
+	// Use Type.FieldByName first to safely detect ambiguous field names
+	// (reflect.Value.FieldByName panics on ambiguous matches).
+	structField, ok := t.FieldByName(fieldName)
+	if !ok {
+		return fmt.Errorf("LocationBehavior: location tag refers to field %q which does not exist on the containing struct", fieldName)
+	}
+
+	fieldVal := v.FieldByIndex(structField.Index)
+
+	if !fieldVal.CanInterface() {
+		return fmt.Errorf("LocationBehavior: field %q is not accessible", fieldName)
+	}
+
+	sizedStack, ok := fieldVal.Interface().(boardgame.SizedStack)
+	if !ok {
+		return fmt.Errorf("LocationBehavior: field %q is not a boardgame.SizedStack", fieldName)
+	}
+
+	if sizedStack == nil {
+		return fmt.Errorf("LocationBehavior: field %q is a SizedStack but is nil (was it inflated?)", fieldName)
+	}
+
+	l.ConnectLocationStack(sizedStack)
+	return nil
 }
 
 // ValidConfiguration returns an error if the behavior hasn't been properly
