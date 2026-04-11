@@ -56,3 +56,9 @@ func (p *playerState) ResetForTurnEnd() error {
 	//Pass
 	return nil
 }
+
+// GameScore returns the number of captured tokens. This satisfies
+// base.PlayerGameScorer.
+func (p *playerState) GameScore() int {
+	return p.CapturedTokens.NumComponents()
+}

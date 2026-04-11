@@ -9,11 +9,6 @@ import (
 )
 
 //boardgame:codegen
-type moveShuffleDiscardToDraw struct {
-	moves.FixUp
-}
-
-//boardgame:codegen
 type moveFinishTurn struct {
 	moves.FinishTurn
 }
@@ -50,7 +45,7 @@ func (m *moveStartRoundCleanup) Legal(state boardgame.ImmutableState, proposer b
 			continue
 		}
 		player := p.(*playerState)
-		if !player.Busted && !player.Stood {
+		if !player.Eliminated && !player.Stood {
 			return errors.New("not all active players have finished their turn")
 		}
 	}
@@ -88,8 +83,8 @@ func (m *moveAccumulateScores) Apply(state boardgame.State) error {
 			continue
 		}
 		player := p.(*playerState)
-		if !player.Busted {
-			player.TotalScore += player.HandValue()
+		if !player.Eliminated {
+			player.Score += player.HandValue()
 		}
 	}
 	return nil
@@ -141,7 +136,7 @@ func (m *moveResetPlayerForNewRound) Legal(state boardgame.ImmutableState, propo
 			continue
 		}
 		player := p.(*playerState)
-		if player.Busted || player.Stood {
+		if player.Eliminated || player.Stood {
 			return nil
 		}
 	}
@@ -151,7 +146,7 @@ func (m *moveResetPlayerForNewRound) Legal(state boardgame.ImmutableState, propo
 func (m *moveResetPlayerForNewRound) Apply(state boardgame.State) error {
 	_, players := concreteStates(state)
 	for _, p := range players {
-		p.Busted = false
+		p.Eliminated = false
 		p.Stood = false
 	}
 	return nil
@@ -192,36 +187,6 @@ func (m *moveIncrementRoundsCompleted) Apply(state boardgame.State) error {
 
 /**************************************************
  *
- * moveShuffleDiscardToDraw Implementation
- *
- **************************************************/
-
-func (m *moveShuffleDiscardToDraw) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.FixUp.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, _ := concreteStates(state)
-
-	if game.DrawStack.Len() > 0 {
-		return errors.New("The draw stack is not yet empty")
-	}
-
-	return nil
-}
-
-func (m *moveShuffleDiscardToDraw) Apply(state boardgame.State) error {
-	game, _ := concreteStates(state)
-
-	game.DiscardStack.MoveAllTo(game.DrawStack)
-	game.DrawStack.Shuffle()
-
-	return nil
-}
-
-/**************************************************
- *
  * moveCurrentPlayerHit Implementation
  *
  **************************************************/
@@ -236,7 +201,7 @@ func (m *moveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer bo
 
 	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
 
-	if currentPlayer.Busted {
+	if currentPlayer.Eliminated {
 		return errors.New("Current player is busted")
 	}
 
@@ -262,7 +227,7 @@ func (m *moveCurrentPlayerHit) Apply(state boardgame.State) error {
 	handValue := currentPlayer.HandValue()
 
 	if handValue > targetScore {
-		currentPlayer.Busted = true
+		currentPlayer.Eliminated = true
 	}
 
 	if handValue == targetScore {
@@ -288,7 +253,7 @@ func (m *moveCurrentPlayerStand) Legal(state boardgame.ImmutableState, proposer 
 
 	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
 
-	if currentPlayer.Busted {
+	if currentPlayer.Eliminated {
 		return errors.New("the current player has already busted")
 	}
 

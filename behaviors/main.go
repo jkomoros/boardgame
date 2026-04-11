@@ -11,6 +11,53 @@ you can add to your game and player states.
 `boardgame-util codegen` will automatically include the state properties of the
 behaviors in the generated PropertyReader.
 
+# When to Create a Behavior
+
+Not every piece of state deserves to be a behavior. A simple int or bool field
+is fine on its own. Behaviors earn their keep when they serve as Schelling
+points -- standard names and interfaces that multiple parts of the system
+coordinate around. Specifically, a behavior is appropriate when it provides one
+or more of the following:
+
+Companion Interface: The behavior satisfies an interface in [moves/interfaces]
+that moves discover via type assertion. This is the primary value of most
+behaviors. [CurrentPlayerBehavior] satisfies [interfaces.CurrentPlayerSetter],
+which [moves.FinishTurn] casts for. [InactivePlayer] satisfies
+[interfaces.PlayerInactiver], which [moves.ActivateInactivePlayer] casts for.
+Without the interface, each game would need to tell each move where to find
+the relevant state. With it, moves auto-discover the state.
+
+Framework Integration: The behavior plugs into framework machinery beyond
+moves. [InactivePlayer] integrates with [boardgame.PlayerIndex.Next] (skipping
+inactive players), [base.GameDelegate.CheckGameFinished] (excluding inactive
+players from winners), and [base.GameDelegate.PlayerMayBeActive].
+[PlayerOrderBehavior] integrates with [boardgame.PlayerIndex.Next] for custom
+turn order. [ScoreBehavior] integrates with [base.GameDelegate.PlayerScore] and
+[base.GameDelegate.CheckGameFinished] for automatic winner determination.
+
+Non-Trivial Logic: The behavior has methods with real logic, not just getters
+and setters. [LocationBehavior] provides graph-based pathfinding
+([LocationBehavior.ShortestPathTo], [LocationBehavior.Neighbors],
+[LocationBehavior.DistanceTo]). [PlayerColor] provides component ownership
+tracking ([PlayerColor.OwnsToken], [PlayerColor.Token]).
+[Seat.SetSeatFilled] enforces a constraint (filling a seat also closes it).
+[PlayerOrderBehavior.SetPlayerOrder] validates that the order is a valid
+permutation.
+
+Schelling Point: The behavior standardizes a name that multiple systems
+coordinate around. [CurrentPlayerBehavior] standardizes the field name
+CurrentPlayer, which [base.GameDelegate.CurrentPlayerIndex] looks for.
+[PhaseBehavior] standardizes Phase. [PlayerRole] standardizes Role, which
+[base.GameDelegate.GroupMembership] recognizes. Even when a behavior has minimal
+logic, the naming convention it establishes enables framework features.
+
+When NOT to create a behavior: if a piece of state is only used by game-specific
+logic and no move or framework system needs to discover it via type assertion, a
+plain field is simpler and more readable. A behavior that is just a field with
+trivial getters adds indirection without value. The bar for a new behavior is: at
+least one move or framework system will look for its companion interface, or the
+logic it encapsulates would be error-prone to reimplement in each game.
+
 # Connectable Behaviors
 
 Behaviors often require access to the struct they're embedded within. These
@@ -147,6 +194,52 @@ seats aren't there".
 Because of these concepts, when you want to know the number of logical players
 in your game at any moment, Game.NumPlayers() is often not what you want.
 Instead, see boardgame/base.GameDelegate.NumSeatedActivePlayers.
+
+# ScoreBehavior
+
+[ScoreBehavior] tracks the player's game score as a simple int. Embedding it
+provides a GameScore() method that satisfies [base.PlayerGameScorer], which means
+[base.GameDelegate.CheckGameFinished] automatically uses this score to determine
+winners. For games where score is derived from other state (e.g. counting
+components in a stack), implement GameScore() directly on your playerState
+instead of using this behavior.
+
+# DrawDiscardPair
+
+[DrawDiscardPair] tracks a draw stack and a discard stack on a gameState. It is a
+[Connectable], [boardgame.TagConfigurable] behavior. Use the "draw" and "discard"
+struct tags to reference existing Stack fields. The companion move
+[moves.ShuffleDiscardIntoDraw] automatically reshuffles the discard pile into the
+draw pile when it empties.
+
+# PlayerTeam
+
+[PlayerTeam] tracks which team a player belongs to via an enum field. It is a
+[Connectable] behavior. It provides [PlayerTeam.TeamMembers] and
+[PlayerTeam.Opponents] helpers that iterate players and filter by team,
+excluding inactive players.
+
+# FaceUpMarket
+
+[FaceUpMarket] tracks a source deck and a face-up display area on a gameState. It
+is a [Connectable], [boardgame.TagConfigurable] behavior. Use the "source",
+"display", and "size" struct tags to configure it. The companion move
+[moves.ReplenishMarket] automatically fills empty display slots from the source
+deck. Multiple markets are supported via named fields -- the framework's
+autoConnectBehaviors processes all struct fields, not just anonymous ones.
+
+# PlayerElimination
+
+[PlayerElimination] tracks whether a player has been eliminated (knocked out) from
+play. This is distinct from [InactivePlayer]: elimination is a game concept
+(this player has lost), while inactivity controls turn order. The behavior is
+scope-agnostic -- the game decides when to set and clear the flag.
+
+# MoveBudget
+
+[MoveBudget] tracks how many actions a player has remaining in their current
+turn. The bool-action pattern (has this player made their move?) is handled by a
+budget of 1.
 */
 package behaviors
 

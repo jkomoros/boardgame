@@ -287,9 +287,7 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 }
 
 func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
-	player := pState.(*playerState)
-
-	return player.WonCards.NumComponents()
+	return pState.(*playerState).GameScore()
 }
 
 func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {

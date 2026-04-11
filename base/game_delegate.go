@@ -402,10 +402,14 @@ func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 // into the result, or the framework's "Color" and "MayBeActive" properties
 // will be lost.
 func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
-	return boardgame.PropertyCollection{
+	result := boardgame.PropertyCollection{
 		"Color":       behaviors.CSSColorForPlayer(player),
 		"MayBeActive": g.Manager().Delegate().PlayerMayBeActive(player),
 	}
+	if score, ok := behaviors.PlayerGameScore(player); ok {
+		result["GameScore"] = score
+	}
+	return result
 }
 
 // BeginSetUp does not do anything and returns nil.

@@ -66,6 +66,13 @@ func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 
+// GameScore returns the number of won cards. This satisfies
+// base.PlayerGameScorer, allowing the default CheckGameFinished to determine
+// winners automatically.
+func (p *playerState) GameScore() int {
+	return p.WonCards.NumComponents()
+}
+
 func (g *gameState) CurrentPlayerHasCardsToReveal() bool {
 	_, players := concreteStates(g.State())
 

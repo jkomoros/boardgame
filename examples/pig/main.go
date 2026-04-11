@@ -78,16 +78,12 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 	game, players := concreteStates(state)
 
 	for _, player := range players {
-		if player.TotalScore >= game.TargetScore {
+		if player.Score >= game.TargetScore {
 			return true
 		}
 	}
 
 	return false
-}
-
-func (g *gameDelegate) PlayerScore(pState boardgame.ImmutableSubState) int {
-	return pState.(*playerState).TotalScore
 }
 
 func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
@@ -102,7 +98,7 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	parts = append(parts, "\nPlayers")
 
 	for i, player := range players {
-		parts = append(parts, "Player "+strconv.Itoa(i)+": "+strconv.Itoa(player.RoundScore)+", "+strconv.Itoa(player.TotalScore))
+		parts = append(parts, "Player "+strconv.Itoa(i)+": "+strconv.Itoa(player.RoundScore)+", "+strconv.Itoa(player.Score))
 	}
 
 	return strings.Join(parts, "\n")

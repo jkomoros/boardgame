@@ -34,11 +34,12 @@ type gameState struct {
 	behaviors.RoundRobin
 	behaviors.CurrentPlayerBehavior
 	behaviors.PhaseBehavior
-	DiscardStack    boardgame.Stack `stack:"cards" sanitize:"len"`
-	DrawStack       boardgame.Stack `stack:"cards" sanitize:"len"`
-	UnusedCards     boardgame.Stack `stack:"cards"`
-	MaxRounds       int
-	RoundsCompleted int
+	behaviors.DrawDiscardPair `draw:"DrawStack" discard:"DiscardStack"`
+	DiscardStack              boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack                 boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards               boardgame.Stack `stack:"cards"`
+	MaxRounds                 int
+	RoundsCompleted           int
 }
 
 //boardgame:codegen
@@ -46,16 +47,16 @@ type playerState struct {
 	base.SubState
 	behaviors.Seat
 	behaviors.InactivePlayer
+	behaviors.ScoreBehavior
+	behaviors.PlayerElimination
 	HiddenHand  boardgame.Stack       `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.Stack       `stack:"cards"`
 	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`
-	Busted      bool
 	Stood       bool
-	TotalScore  int
 }
 
 func (p *playerState) TurnDone() error {
-	if !p.Busted && !p.Stood {
+	if !p.Eliminated && !p.Stood {
 		return errors.New("they have neither busted nor decided to stand")
 	}
 	return nil
