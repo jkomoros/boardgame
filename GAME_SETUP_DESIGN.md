@@ -1,904 +1,743 @@
-# Game Setup Architecture: Lobby-as-Phase Design
+# Gathering System: Concrete Design
 
-## Problem Statement
+## Principle
 
-The framework has a rigid game creation flow:
+The framework does not have a concept of "lobby" or "setup mode." Instead:
 
-1. Server receives a request with `numPlayers`, `variant`, and `agents` fully specified
-2. `GameManager.NewGame()` calls `Game.setUp()` which validates players/variants, creates state, distributes components, and starts the game
-3. The game is immediately live with all its phase progressions running
-4. Players join afterwards and are seated via `moves.SeatPlayer`
+1. **Move legality is the detection mechanism.** The client shows gathering UI when gathering-related moves are legal, and hides it when they aren't.
+2. **Phases are just phases.** A gathering phase is a normal phase where gathering moves happen to be legal.
+3. **Behaviors trigger auto-detection.** Embed `behaviors.PlayerTeam` in your playerState → the gathering panel auto-shows a team picker.
+4. **Everything is overridable.** CSS custom properties hide individual pieces. A custom `boardgame-render-gathering-GAMENAME` element replaces the whole panel.
 
-This means:
-- **Player count is immutable** after creation. If you create a 4-player game but only 3 friends show up, you're stuck.
-- **Variants must be decided before anyone sees the game.** You can't create a game, invite friends, and let everyone vote on settings.
-- **Team/role assignment has no lobby.** There's no in-game flow for "players pick teams, then admin starts."
-- **Multi-round re-setup is awkward.** After a round, you might want to re-open seats or let new players join, but there's no phase-based pattern for this.
+## Go Changes
 
-### What Already Works
+### 1. `moves.AnyPlayer` — Base Move for Self-Selection
 
-The seating infrastructure is ~95% done (#755):
-- `behaviors.Seat` (SeatFilled, SeatClosed) and `behaviors.InactivePlayer`
-- `moves.SeatPlayer`, `WaitForEnoughPlayers`, `CloseAllSeats`, `InactivateEmptySeat`, `ActivateInactivePlayer`
-- `DefaultRoundSetup(auto, WithManualStart())` for player-initiated game start
-- `base.GameDelegate.NumSeatedActivePlayers()` and `PlayerMayBeActive()`
-- Client roster already shows "Waiting to be seated" / "Sitting out" with proper dimming
-- Server auto-seats first player, has join flow, auto-closes full games
-
-### Related Issues
-
-| Issue | Title | Role in This Design |
-|-------|-------|-------------------|
-| #754 | SetUp phases in server layer | Core of this design |
-| #753 | Variants in server layer, not core | Subsumed into this design |
-| #752 | Complex team selection | Enabled by this design |
-| #755 | Rationalize seats/active players | ~95% complete; foundation |
-| #768 | Manual start | Merged; `WithManualStart()` |
-| #771 | GameAdministrator behavior | Orthogonal; designed here |
-| #774 | Disable SeatPlayer in debug | Small; designed here |
-| #767 | Client SeatPlayer rendering | Partially done; completed here |
-
----
-
-## Design Overview
-
-**Core principle: the lobby IS a game phase.**
-
-A game that wants lobby functionality defines a `SetUp` phase as its first phase. During this phase, special lobby moves (variant selection, team assignment, "Start Game") are legal. The server detects the SetUp phase and shows lobby UI instead of the game renderer. When setup is finalized, the game transitions to its first "real" phase (e.g., InitialDeal).
-
-This reuses all existing machinery: phases, moves, behaviors, state, sanitization. The lobby is just another phase of the game, with its own moves and its own client rendering.
-
-### High-Level Flow
-
-```
- CREATE GAME               SETUP PHASE                    GAMEPLAY
- -----------               -----------                    --------
- NewGame(maxPlayers,   -->  Phase: SetUp              --> Phase: InitialDeal
-   defaultVariant,          - Players join (SeatPlayer)    - Components dealt
-   noAgents)                - Variants tweaked             - Normal game moves
-                            - Teams/roles assigned
-                            - Admin clicks "Start"
-                            - FinalizeSetUp move fires
-                            - Empty seats closed/inactivated
-                            - Transition to first real phase
-```
-
-For multi-round games, the round cleanup phase can transition back to SetUp, re-opening seats and allowing new players.
-
----
-
-## Detailed Design
-
-### 1. Game Creation Changes
-
-#### Current flow (`game_manager.go:636-652`)
-```go
-func (g *GameManager) NewGame(numPlayers int, variant map[string]string, agents []string) (*Game, error) {
-    return g.createGame("", "", numPlayers, variant, agents)
-}
-```
-
-#### Proposed: No changes to NewGame
-
-`NewGame` stays identical. For lobby games, the **server** calls it differently:
+A new base move type, analogous to `CurrentPlayer` but for phases where any seated player can act. Lives in `moves/any_player.go`.
 
 ```go
-// Server creates a lobby game:
-game, err := manager.NewGame(
-    manager.Delegate().MaxNumPlayers(),  // Create max seats; unfilled ones get inactivated
-    nil,                                  // Default variant values
-    nil,                                  // No agents yet (assigned during setup)
-)
-```
-
-The game delegate's `BeginSetUp` detects lobby mode and sets the phase to SetUp:
-
-```go
-func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
-    game := state.GameState().(*gameState)
-
-    // Transcribe variant defaults into game state (as today)
-    game.MaxRounds = variantToMaxRounds(variant)
-
-    // Start in SetUp phase (lobby mode)
-    game.Phase.SetValue(phaseSetUp)
-
-    return nil
-}
-```
-
-**Why no new API?** The existing `NewGame` already handles everything. The differences for lobby games are:
-- Pass `MaxNumPlayers` instead of a specific count
-- Pass `nil` variant (use defaults, can be changed during SetUp)
-- The delegate's `BeginSetUp` sets phase to SetUp
-
-This avoids any core engine changes for game creation.
-
-### 2. The SetUp Phase
-
-#### Phase Definition
-
-Games define a `phaseSetUp` in their phase enum:
-
-```go
-const (
-    phaseSetUp       = iota  // NEW: Lobby/setup phase
-    phaseInitialDeal         // Existing first "real" phase
-    phaseNormalPlay
-    phaseRoundCleanup
-)
-```
-
-#### SetUp Phase Behavior
-
-A new behavior to embed in gameState:
-
-```go
-// behaviors/setup_config.go
-
-// SetUpConfig is designed to be embedded in your gameState when using
-// lobby-style setup. It tracks setup finalization state and provides
-// a signal to the server layer that the game is in setup mode.
-type SetUpConfig struct {
-    SetUpFinalized bool
-}
-
-func (s *SetUpConfig) IsSetUpFinalized() bool {
-    return s.SetUpFinalized
-}
-
-func (s *SetUpConfig) MarkSetUpFinalized() {
-    s.SetUpFinalized = true
-}
-```
-
-This is intentionally minimal. The phase system already tracks what phase we're in. This behavior exists to:
-1. Prevent double-finalization
-2. Give the server a fast signal ("is this game in setup?") without parsing the phase enum
-3. Give moves a clean interface to check
-
-#### Corresponding interface in `moves/interfaces/`
-
-```go
-type SetUpConfigurer interface {
-    IsSetUpFinalized() bool
-    MarkSetUpFinalized()
-}
-```
-
-### 3. New Moves
-
-#### 3a. `moves.FinalizeSetUp`
-
-The "Start Game" button. When applied, it closes empty seats, inactivates them, marks setup as finalized, and triggers the phase transition.
-
-```go
-// moves/finalize_setup.go
-
-type FinalizeSetUp struct {
-    FixUp
-}
-
-func (f *FinalizeSetUp) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-    if err := f.FixUp.Legal(state, proposer); err != nil {
-        return err
-    }
-
-    // Check not already finalized
-    if configurer, ok := state.ImmutableGameState().(interfaces.SetUpConfigurer); ok {
-        if configurer.IsSetUpFinalized() {
-            return errors.New("Setup is already finalized")
-        }
-    }
-
-    // Check enough players
-    del := state.Manager().Delegate()
-    numSeated := base.NumSeatedActivePlayers(state)
-    if numSeated < del.MinNumPlayers() {
-        return errors.New("Need at least " + strconv.Itoa(del.MinNumPlayers()) +
-            " players, but only " + strconv.Itoa(numSeated) + " are seated")
-    }
-
-    // Call delegate validation if it implements it
-    if validator, ok := del.(SetUpValidator); ok {
-        if err := validator.ValidateSetUp(state); err != nil {
-            return err
-        }
-    }
-
-    return nil
-}
-
-func (f *FinalizeSetUp) Apply(state boardgame.State) error {
-    // Mark finalized
-    if configurer, ok := state.GameState().(interfaces.SetUpConfigurer); ok {
-        configurer.MarkSetUpFinalized()
-    }
-
-    // Close and inactivate all empty seats
-    for _, p := range state.PlayerStates() {
-        seater, hasSeat := p.(interfaces.Seater)
-        if !hasSeat {
-            continue
-        }
-        if !seater.SeatIsFilled() {
-            seater.(mutableSeater).SetSeatClosed()
-            if inactiver, ok := p.(interfaces.PlayerInactiver); ok {
-                inactiver.SetPlayerInactive()
-            }
-        }
-    }
-
-    return nil
-}
-```
-
-**Note:** This move replaces the `CloseAllSeats` + `InactivateEmptySeat` + phase transition that `DefaultRoundSetup` currently handles separately. It bundles them into one move for the lobby pattern.
-
-**Open question: Should FinalizeSetUp be a FixUp or a player move?**
-
-- As a **player move**: The admin/creator clicks "Start Game." This is more explicit.
-- As a **FixUp**: It auto-fires when all conditions are met (enough players, all variants set, etc.). This is more like the current `WaitForEnoughPlayers` pattern.
-
-**Recommendation: Player move.** The whole point of the lobby is to give the admin control over when to start. Auto-starting defeats the purpose. `WaitForEnoughPlayers` already handles the auto-start case.
-
-#### 3b. `moves.SetVariantValue`
-
-A player move for changing variant selections during SetUp.
-
-```go
-// moves/set_variant.go
-
-type SetVariantValue struct {
+//boardgame:codegen
+type AnyPlayer struct {
     Default
-    VariantKey   string
-    VariantValue string
+    TargetPlayerIndex boardgame.PlayerIndex
 }
+```
 
-func (s *SetVariantValue) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-    if err := s.Default.Legal(state, proposer); err != nil {
+**`DefaultsForState`:** Sets `TargetPlayerIndex = boardgame.ObserverPlayerIndex` (-1). This is a fail-safe sentinel — if the caller forgets to set it, `Legal` will reject it rather than silently targeting player 0. The client gathering UI components always send `viewingAsPlayer` as `TargetPlayerIndex`. Agents must explicitly set it to their own player index.
+
+**`Legal`:**
+```go
+func (a *AnyPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+    if err := a.Default.Legal(state, proposer); err != nil {
         return err
     }
 
-    // Validate key exists in VariantConfig
-    config := state.Manager().Variants()
-    if config == nil {
-        return errors.New("Game has no variant configuration")
-    }
-    variantKey := config[s.VariantKey]
-    if variantKey == nil {
-        return errors.New("Unknown variant key: " + s.VariantKey)
+    target := a.TargetPlayerIndex
+
+    // Target must be a concrete player index (not a sentinel)
+    if target < 0 {
+        return errors.New("target player must be a seated player, not a special index")
     }
 
-    // Validate value is legal for this key
-    if _, ok := variantKey.Values[s.VariantValue]; !ok {
-        return errors.New("Illegal value '" + s.VariantValue + "' for variant " + s.VariantKey)
+    // Target must be within bounds
+    if int(target) >= len(state.ImmutablePlayerStates()) {
+        return errors.New("target player index is out of bounds")
+    }
+
+    // Proposer must match target (self-selection) OR be admin
+    if !target.Equivalent(proposer) {
+        return errors.New("you can only make this move for yourself")
+    }
+
+    // Target's seat must be filled (if the game uses seating)
+    player := state.ImmutablePlayerStates()[target]
+    if seater, ok := player.(interfaces.Seater); ok {
+        if !seater.SeatIsFilled() {
+            return errors.New("your seat is not yet filled")
+        }
     }
 
     return nil
 }
+```
 
-func (s *SetVariantValue) Apply(state boardgame.State) error {
-    // Delegate to game-specific logic
-    changer, ok := state.Manager().Delegate().(interfaces.VariantApplier)
-    if !ok {
-        return errors.New("Delegate doesn't implement VariantApplier")
-    }
-    return changer.ApplyVariantValue(state, s.VariantKey, s.VariantValue)
+**Key design decisions:**
+- Uses `target.Equivalent(proposer)` instead of `proposer >= 0`. This allows `AdminPlayerIndex` to propose on behalf of any player (since `AdminPlayerIndex` is a wildcard in `Equivalent`), which is essential for the admin debug panel and for `LegalForAnyone` computation. It also naturally rejects `ObserverPlayerIndex`.
+- The seat check is conditional on `interfaces.Seater` — games that don't use seating still work.
+- `TargetPlayerIndex` defaults to `ObserverPlayerIndex` which safely fails, matching the framework convention that defaults should be "safe to fail" rather than "dangerous to succeed."
+
+**`FallbackName`:** Returns `"Any Player"`.
+
+**Key difference from `CurrentPlayer`:** No check against `state.CurrentPlayerIndex()`. Any seated player can propose, regardless of whose turn it is. This means these moves are naturally compatible with `AnyPlayerIndex` phases and with non-turn-based gathering phases.
+
+**Agent compatibility:** Agents must explicitly set `TargetPlayerIndex = playerIndex` when proposing `AnyPlayer` moves. This is a documented deviation from the `CurrentPlayer` pattern (where `DefaultsForState` handles it automatically). The reason: there is no single "current" player during gathering, so the framework cannot guess the target.
+
+---
+
+### 2. `moves.SelectTeam`
+
+Lives in `moves/select_team.go`. Embeds `AnyPlayer`.
+
+```go
+//boardgame:codegen
+type SelectTeam struct {
+    AnyPlayer
+    SelectedTeam enum.Val `enum:"team"`
 }
 ```
 
-#### Corresponding interface
+**`Legal`:** Calls `AnyPlayer.Legal`, then validates `SelectedTeam` is a valid value in the `"team"` enum (not the zero/default value).
+
+**`Apply`:** Sets `player.(HasPlayerTeam).GetPlayerTeam().Team.SetValue(s.SelectedTeam.Value())`.
+
+**`ValidConfiguration`:** Checks that the example player state implements `HasPlayerTeam` and that the `"team"` enum exists in the chest.
+
+**`FallbackName`:** `"Select Team"`. **`FallbackHelpText`:** `"Choose which team to join."`
+
+No uniqueness enforcement. Validation of team balance is the delegate's job via `ReadyToStart`.
+
+---
+
+### 3. `moves.SelectRole`
+
+Lives in `moves/select_role.go`. Same pattern as `SelectTeam`.
 
 ```go
-// moves/interfaces/
-
-// VariantApplier is for game delegates that allow variant values to be
-// changed during the SetUp phase. The delegate should update the relevant
-// game state properties.
-type VariantApplier interface {
-    ApplyVariantValue(state boardgame.State, key, value string) error
+//boardgame:codegen
+type SelectRole struct {
+    AnyPlayer
+    SelectedRole enum.Val `enum:"role"`
 }
 ```
 
-#### Example implementation in memory
+**`Legal`:** Validates `SelectedRole` is valid in the `"role"` enum. If configured with `WithUnique()`, also checks that no other seated player already has this role value.
+
+**`Apply`:** Sets `player.(HasPlayerRole).GetPlayerRole().Role.SetValue(...)`.
+
+**`ValidConfiguration`:** Checks for `HasPlayerRole` interface and `"role"` enum.
+
+**`WithUnique()` option:** A `CustomConfigurationOption` that makes `Legal` reject values already claimed by another seated player. For the Spirit Island pattern (globally unique spirits). Captain Sonar (unique per team but shared across teams) would NOT use this — it would use `ReadyToStart` for per-team uniqueness validation.
+
+---
+
+### 4. `moves.SelectColor`
+
+Lives in `moves/select_color.go`. Same pattern.
 
 ```go
-func (g *gameDelegate) ApplyVariantValue(state boardgame.State, key, value string) error {
-    game, _ := concreteStates(state)
+//boardgame:codegen
+type SelectColor struct {
+    AnyPlayer
+    SelectedColor enum.Val `enum:"color"`
+}
+```
 
-    switch key {
-    case variantKeyCardSet:
-        game.CardSet = value
-    case variantKeyNumCards:
-        switch value {
-        case numCardsSmall:
-            game.NumCards = 10
-        case numCardsMedium:
-            game.NumCards = 20
-        case numCardsLarge:
-            game.NumCards = 40
-        }
-        // Resize stacks to match
-        if err := game.HiddenCards.SetSize(game.NumCards); err != nil {
-            return err
-        }
-        if err := game.VisibleCards.SetSize(game.NumCards); err != nil {
-            return err
-        }
+**`Legal`:** Validates value. **Enforces uniqueness by default** (no two seated players may share a color). This is the safe default — in every real game with player colors, colors are unique. Escape hatch: `WithAllowDuplicates()`.
+
+**`Apply`:** Sets `player.(HasPlayerColor).GetPlayerColor().Color.SetValue(...)`.
+
+---
+
+### 5. Behavior Upgrades
+
+**`behaviors.PlayerRole`** needs interface additions to match the `PlayerTeam` pattern:
+
+```go
+// In behaviors/role.go:
+type HasPlayerRole interface {
+    GetPlayerRole() *PlayerRole
+}
+
+func (p *PlayerRole) GetPlayerRole() *PlayerRole {
+    return p
+}
+```
+
+**`behaviors.PlayerColor`** needs the same:
+
+```go
+// In behaviors/color.go:
+type HasPlayerColor interface {
+    GetPlayerColor() *PlayerColor
+}
+
+func (p *PlayerColor) GetPlayerColor() *PlayerColor {
+    return p
+}
+```
+
+`PlayerTeam` already has `HasPlayerTeam` and `GetPlayerTeam()`.
+
+---
+
+### 6. `GatheringMoves(auto)` Helper
+
+Lives in `moves/gathering.go`. Auto-detects which selection behaviors exist on the player state and returns the corresponding move configs.
+
+```go
+func GatheringMoves(auto *AutoConfigurer) []boardgame.MoveConfig {
+    exampleState := auto.Delegate().Manager().ExampleState()
+    playerState := exampleState.ImmutablePlayerStates()[0]
+
+    var result []boardgame.MoveConfig
+
+    if _, ok := playerState.(HasPlayerTeam); ok {
+        result = append(result, auto.MustConfig(new(SelectTeam)))
     }
+    if _, ok := playerState.(HasPlayerRole); ok {
+        result = append(result, auto.MustConfig(new(SelectRole)))
+    }
+    if _, ok := playerState.(HasPlayerColor); ok {
+        result = append(result, auto.MustConfig(new(SelectColor)))
+    }
+
+    return result
+}
+```
+
+**Usage:** `moves.AddForPhase(phaseGathering, moves.GatheringMoves(auto)...)` — registers the detected moves as legal in any order during the gathering phase.
+
+The function returns `nil` (empty slice) if no selection behaviors are detected. `AddForPhase` with an empty slice is a no-op. So calling `GatheringMoves(auto)` is always safe.
+
+---
+
+### 7. `ReadyToStart(state) error` Delegate Method
+
+Added to `GameDelegate` interface in `game_delegate.go`:
+
+```go
+// ReadyToStart is called to check whether the game's configuration is
+// ready to proceed past the gathering phase. Return nil if ready, or a
+// descriptive error explaining what's still needed (e.g., "each team
+// needs at least 2 players"). The default returns nil.
+//
+// This method must be cheap (O(n) in player count or better) because it
+// is called on every fix-up check cycle.
+ReadyToStart(state ImmutableState) error
+```
+
+Default in `base/game_delegate.go`:
+
+```go
+func (g *GameDelegate) ReadyToStart(state boardgame.ImmutableState) error {
     return nil
 }
 ```
 
-### 4. The Component Distribution Problem
+**Integration points — TWO places, not one:**
 
-This is the hardest design challenge. Currently:
+`ReadyToStart` is checked in both `WaitForEnoughPlayers` and `CloseAllSeats` to prevent a critical deadlock.
 
-1. `BeginSetUp` sizes stacks based on variant values (memory: `HiddenCards.SetSize(game.NumCards)`)
-2. The engine distributes ALL components into stacks via `DistributeComponentToStarterStack`
-3. `FinishSetUp` does final shuffling/arrangement
+**In `WaitForEnoughPlayers.Legal()`** — after the player-count check:
 
-If variants change during SetUp, component distribution may be wrong.
-
-#### Proposed Solution: Deferred Distribution via Phases
-
-For lobby games, **component distribution happens in a phase, not during setUp()**.
-
-**Pattern:**
-1. `BeginSetUp`: Sizes stacks at their MAXIMUM capacity. All variant properties set to defaults.
-2. `DistributeComponentToStarterStack`: Returns a staging stack (e.g., `UnusedCards`) for all components
-3. `FinishSetUp`: Minimal prep (no component arrangement)
-4. **SetUp phase**: Variants can change, resizing stacks as needed
-5. **After FinalizeSetUp**: A "Deal" or "InitialDeal" phase uses moves to distribute components from the staging stack into the right places
-
-This is already the pattern blackjack uses:
-- `FinishSetUp` shuffles the DrawStack
-- `phaseInitialDeal` has `DealCountComponents` moves to deal from DrawStack to players
-
-For memory, this would mean:
-- `FinishSetUp` puts all cards in `UnusedCards` and shuffles
-- After FinalizeSetUp, a new phase deals the right cards from `UnusedCards` to `HiddenCards`
-
-**Key insight: games that want lobby mode need to move their component distribution from `FinishSetUp` into a phase progression.** This is a migration cost but results in a cleaner architecture anyway (setup logic is visible as moves, not hidden in a delegate hook).
-
-#### What About Games That Don't Want Lobbies?
-
-Games that return `SetUpModeNone` (the default) work exactly as they do today. `BeginSetUp`, `DistributeComponentToStarterStack`, `FinishSetUp` are called normally. No changes.
-
-#### Alternative Considered: Engine-Level Deferred Distribution
-
-We considered adding a `Game.DistributeComponents()` method callable from a move's Apply(). This would let the FinalizeSetUp move trigger component distribution after variants are finalized.
-
-**Rejected because:**
-- Requires core engine changes (distribution is currently internal)
-- Component distribution reads from `DistributeComponentToStarterStack` delegate method, which returns one stack per component -- calling it twice would try to double-distribute
-- The phase-based approach is more explicit and testable
-
-### 5. Server Layer Changes
-
-#### Detecting Lobby Mode
-
-The server needs to know if a game is in its SetUp phase to show lobby UI.
-
-**Option A: Check phase name**
 ```go
-func (s *Server) isGameInSetUp(game *boardgame.Game) bool {
-    phase := game.CurrentState().ImmutableGameState()
-    if configurer, ok := phase.(interfaces.SetUpConfigurer); ok {
-        return !configurer.IsSetUpFinalized()
-    }
-    return false
+if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
+    return errors.New("not ready to start: " + err.Error())
 }
 ```
 
-**Option B: Check a delegate method**
-```go
-// On GameDelegate interface:
-SetUpMode() SetUpMode  // returns SetUpModeNone or SetUpModeLobby
-```
-
-**Recommendation: Use both.** `SetUpMode()` on the delegate tells the server "this game type supports lobbies." `IsSetUpFinalized()` on the game state tells the server "this specific game is currently in setup." The delegate method is needed so the server can offer "Create Lobby Game" vs "Create Game" in the UI.
-
-#### New Server Endpoints
-
-```
-POST /api/game/new-lobby
-  Body: { manager: "blackjack" }
-  Creates game with MaxNumPlayers and default variants.
-  Returns: { GameID, GameName }
-
-GET /api/game/{name}/{id}/lobby-info
-  Returns: { InSetUp: true, VariantConfig: {...}, CurrentVariant: {...},
-             Players: [...], MinPlayers: N, MaxPlayers: N }
-  Only works when game is in SetUp phase.
-```
-
-The existing `/api/game/new` continues to work for non-lobby game creation.
-
-#### Server Game View Changes
-
-When the game is in SetUp phase, the server includes extra data in the game info response:
+**In `CloseAllSeats.Legal()`** — when configured via `WithManualStart()`:
 
 ```go
-func (s *Server) gameInfoHandler(c *gin.Context) {
-    // ... existing logic ...
+if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
+    return errors.New("not ready to start: " + err.Error())
+}
+```
 
-    // Add lobby info if game is in SetUp
-    if s.isGameInSetUp(game) {
-        result["InSetUp"] = true
-        result["VariantConfig"] = manager.Variants()
-        // Current variant values are in game state, accessible via
-        // ComputedGlobalProperties
+**Why both?** This prevents a deadlock: without the `CloseAllSeats` check, the admin could click "Start Game" → `CloseAllSeats` closes all empty seats → `WaitForEnoughPlayers` calls `ReadyToStart` which fails → game is stuck (seats are closed, no new players can join, and there's no `SetSeatOpen()` to undo it). By gating `CloseAllSeats` on `ReadyToStart`, the "Start Game" button stays disabled with a visible error until configuration is valid. Seats never close prematurely.
+
+Since `CloseAllSeats` is a player move (extends `Default`, not `FixUp`), its `LegalForPlayerError` is included in the `moveForms` sent to the client. The gathering-start component can display this error next to the disabled "Start Game" button. This solves the error visibility problem — FixUp errors (from `WaitForEnoughPlayers`) are invisible to the client, but player move errors (from `CloseAllSeats`) are visible.
+
+**Error delivery to the client — `ComputedGlobalProperties`:**
+
+In addition to the move-form error on `CloseAllSeats`, the `ReadyToStart` error is also surfaced via `ComputedGlobalProperties` for display in the gathering status area:
+
+```go
+// In base.GameDelegate.ComputedGlobalProperties():
+if err := g.Manager().Delegate().ReadyToStart(state); err != nil {
+    result["ReadyToStartError"] = err.Error()
+}
+```
+
+This ensures the error is visible even in auto-start games (without `WithManualStart`), where there is no `CloseAllSeats` move to carry the error. The gathering-status component displays `ReadyToStartError` as a status message below the player count.
+
+**Why this works:** `WaitForEnoughPlayers` is a FixUp in `DefaultRoundSetup`'s ordered progression. It blocks the progression from advancing. Meanwhile, `SelectTeam`/`SelectRole`/`SelectColor` are registered via `AddForPhase` (unordered, any-time), so they remain legal while the progression is blocked. Players can keep changing their selections until the validation passes.
+
+**Adding `SetSeatOpen()` to `behaviors.Seat`:**
+
+As a safety valve, add a method to reopen a closed seat:
+
+```go
+// In behaviors/seat.go:
+func (s *Seat) SetSeatOpen() {
+    s.SeatClosed = false
+}
+```
+
+This is not needed in normal flow (the `CloseAllSeats` gate prevents premature closing), but provides an escape hatch for game-specific moves that might need to reopen seats.
+
+---
+
+### 8. `ComputedProperties` Extensions
+
+In `base/game_delegate.go`, extend the defaults to auto-detect gathering behaviors:
+
+**ComputedPlayerProperties** — per-player data for the client:
+
+```go
+func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
+    result := boardgame.PropertyCollection{
+        "Color":       behaviors.CSSColorForPlayer(player),
+        "MayBeActive": g.Manager().Delegate().PlayerMayBeActive(player),
+    }
+    if score, ok := behaviors.PlayerGameScore(player); ok {
+        result["GameScore"] = score
+    }
+
+    // Gathering: current selections
+    if th, ok := player.(behaviors.HasPlayerTeam); ok {
+        result["TeamValue"] = th.GetPlayerTeam().Team.String()
+    }
+    if rh, ok := player.(behaviors.HasPlayerRole); ok {
+        result["RoleValue"] = rh.GetPlayerRole().Role.String()
+    }
+    if ch, ok := player.(behaviors.HasPlayerColor); ok {
+        result["ColorValue"] = ch.GetPlayerColor().Color.String()
+    }
+
+    return result
+}
+```
+
+**ComputedGlobalProperties** — available values for pickers + readiness error:
+
+```go
+func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+    result := boardgame.PropertyCollection{}
+
+    // Existing: player order
+    // ... (existing code) ...
+
+    // Gathering: available enum values for pickers
+    chest := g.Manager().Chest()
+    if teamEnum := chest.Enums().Enum("team"); teamEnum != nil {
+        result["AvailableTeams"] = enumValues(teamEnum)
+    }
+    if roleEnum := chest.Enums().Enum("role"); roleEnum != nil {
+        result["AvailableRoles"] = enumValues(roleEnum)
+    }
+    if colorEnum := chest.Enums().Enum("color"); colorEnum != nil {
+        result["AvailableColors"] = enumValues(colorEnum)
+    }
+
+    // Gathering: readiness error for client display
+    if err := g.Manager().Delegate().ReadyToStart(state); err != nil {
+        result["ReadyToStartError"] = err.Error()
+    }
+
+    return result
+}
+
+// enumValues returns a list of {Key, Name} for all values in the enum.
+func enumValues(e enum.Enum) []map[string]interface{} {
+    var result []map[string]interface{}
+    for _, key := range e.Keys() {
+        result = append(result, map[string]interface{}{
+            "Key":  key,
+            "Name": e.String(key),
+        })
+    }
+    return result
+}
+```
+
+The client uses `AvailableTeams`/`AvailableRoles`/`AvailableColors` to populate picker dropdowns, and the per-player `TeamValue`/`RoleValue`/`ColorValue` to show current selections.
+
+---
+
+### 9. Server: Reopen Games When Seats Reopen
+
+In `server/api/main.go`, when a game's state changes and unfilled/unclosed seats exist again (e.g., between rounds when `ActivateEmptySeat` fires), set `eGame.Open = true`.
+
+The simplest hook: in the version-notification handler (when the server detects a new game version), check if the game has open seats and is currently closed. If so, reopen it.
+
+```go
+func (s *Server) maybeReopenGame(game *boardgame.Game) {
+    closedSeats := s.closedSeatsForGame(game)
+    userIds := s.storage.UserIDsForGame(game.ID())
+    agents := game.Agents()
+
+    for i, uid := range userIds {
+        if uid == "" && agents[i] == "" && !closedSeats[i] {
+            // There's an open, unfilled, non-agent slot.
+            eGame, err := s.storage.ExtendedGame(game.ID())
+            if err == nil && !eGame.Open {
+                eGame.Open = true
+                s.storage.UpdateExtendedGame(game.ID(), eGame)
+            }
+            return
+        }
     }
 }
 ```
 
-### 6. Client Layer Changes
+---
 
-#### Lobby UI Component
+## Client Changes
 
-A new component `boardgame-lobby.ts` renders when the game is in SetUp:
+### 10. `boardgame-gathering-panel`
 
+New component: `server/static/src/components/boardgame-gathering-panel.ts`
+
+**Position:** Rendered by `boardgame-game-view` between `boardgame-player-roster` and `boardgame-render-game`. Always in the DOM, but auto-hides when it has nothing to show.
+
+**Detection logic:** Scans `moveForms` for gathering-related move names. Each sub-component independently decides whether to render based on its corresponding move's legality.
+
+**Properties received from `boardgame-game-view`:**
+- `moveForms` — the full move forms array (already computed)
+- `state` — current expanded game state (has Computed.Global and Computed.Players)
+- `viewingAsPlayer` — current player index
+- `hasEmptySlots`, `gameOpen`, `finished` — existing game state flags
+- `isOwner`, `loggedIn` — existing auth state
+- `gameRoute` — for constructing the share URL
+
+**Sub-components:**
+
+| Component | Visible when | What it shows |
+|-----------|-------------|--------------|
+| `boardgame-gathering-status` | `hasEmptySlots && gameOpen && !finished`, OR `Computed.Global.ReadyToStartError` is non-empty | "Waiting for 2 more players" / `ReadyToStartError` text / "Ready to start" |
+| `boardgame-gathering-share` | `hasEmptySlots && gameOpen && !isObserver` | Copy invite link button |
+| `boardgame-gathering-team-picker` | A move with a `SelectedTeam` field (`EnumName: "team"`) exists and `LegalForAnyone` | Dropdown per seated player; interactive for self (if `LegalForPlayer`), read-only for others and observers |
+| `boardgame-gathering-color-picker` | A move with a `SelectedColor` field (`EnumName: "color"`) exists and `LegalForAnyone` | Color swatch per seated player; interactive for self, read-only for others |
+| `boardgame-gathering-role-picker` | A move with a `SelectedRole` field (`EnumName: "role"`) exists and `LegalForAnyone` | Dropdown per seated player; interactive for self, read-only for others |
+| `boardgame-gathering-start` | A move with no non-TargetPlayerIndex fields exists in known start-move names, OR fallback: a `CloseAllSeats`-type move is `LegalForAnyone` | "Start Game" button; enabled when `LegalForPlayer`; shows `LegalForPlayerError` when disabled |
+
+**Move detection — field signatures, not name strings:**
+
+Each sub-component detects its corresponding move by inspecting the `Fields` array on each move form, not by matching the move name. This is robust against game authors subclassing moves or using `WithMoveName()`.
+
+- **Team picker:** Looks for a move form that has a field with `EnumName == "team"` and type `TypeEnum`.
+- **Color picker:** Looks for `EnumName == "color"`.
+- **Role picker:** Looks for `EnumName == "role"`.
+- **Start button:** Looks for a move form where `LegalForAnyone` is true and the move name matches known start names (`"Confirm Players"`, `"Close All Seats"`, `"Start Game"`). As a fallback, any non-FixUp move with zero fields (other than `TargetPlayerIndex`) could be treated as a start candidate.
+
+Field signature detection means: if a game author creates `type MovePickYourSpirit struct { moves.SelectRole }` and it gets named `"Pick Your Spirit"` by `DeriveName`, the gathering panel still detects it as a role picker because it has a `SelectedRole` field with `EnumName: "role"`.
+
+**Observer/spectator behavior:** Sub-components use two signals:
+- `LegalForAnyone` controls **visibility** — should this widget render at all?
+- `LegalForPlayer` controls **interactivity** — should the widget be interactive (dropdown) or read-only (label)?
+
+Observers have `LegalForPlayer = false` for all moves (the server skips legality computation for `ObserverPlayerIndex`). So observers see read-only displays of current team/color/role assignments but cannot interact.
+
+**Auto-hide:** The panel checks if any sub-component has content to render. If none do, it sets `display: none`. This means:
+- Before anyone joins: status + share link visible
+- During gathering with team picking: status + share + team picker + start button visible
+- After game starts: all moves become illegal → all sub-components hide → panel hides
+- Between rounds (if phase cycles back): moves become legal again → panel reappears
+
+---
+
+### 11. How Pickers Work
+
+**Team picker example:**
+
+1. Component reads `Computed.Global.AvailableTeams` → `[{Key: 0, Name: "Red"}, {Key: 1, Name: "Blue"}]`
+2. For each seated player, reads `Computed.Players[i].TeamValue` → current selection (e.g., `"Red"` or `""`)
+3. For the viewing player, renders a `<md-filled-select>` dropdown with the available teams
+4. For other players, renders a read-only label showing their current selection
+5. When the user selects a value, dispatches:
+   ```js
+   this.dispatchEvent(new CustomEvent('propose-move', {
+       composed: true, bubbles: true,
+       detail: {
+           name: 'Select Team',
+           arguments: {
+               TargetPlayerIndex: String(this.viewingAsPlayer),
+               SelectedTeam: selectedTeamName  // e.g., "Red"
+           }
+       }
+   }));
+   ```
+6. The existing move proposal pipeline handles the rest.
+
+**Color picker** is identical but renders color swatches instead of a dropdown. Already-claimed colors are shown with a player avatar or dimmed (since `SelectColor` enforces uniqueness, proposing a taken color would fail with a legality error).
+
+---
+
+### 12. Override System
+
+**Level 0 (zero work):** Game author does nothing. Gathering panel auto-detects from moves. Every game with `DefaultRoundSetup` gets status + share link + start button.
+
+**Level 1 (CSS hide):** Each sub-component respects a CSS custom property:
+```css
+boardgame-gathering-team-picker {
+    display: var(--boardgame-gathering-team-picker-display, block);
+}
 ```
-+----------------------------------------------+
-|  Blackjack Lobby                        [X]  |
-+----------------------------------------------+
-|                                               |
-|  Players (2 of 4-7 needed)                   |
-|  [*] Alice (Host)    [*] Bob                 |
-|  [ ] Empty seat      [ ] Empty seat          |
-|                                               |
-|  Share link: [http://...game/bj/abc ][Copy]  |
-|                                               |
-|  Settings                                     |
-|  Max Rounds: [  5  v]                        |
-|                                               |
-|  [Start Game]  (need 2 more players)         |
-|                                               |
-+----------------------------------------------+
-```
+Game author hides the framework's picker: `--boardgame-gathering-team-picker-display: none;` and renders their own in the game renderer.
 
-**Key client behaviors:**
-- Shows current players and empty seats (from existing roster data)
-- Shows variant selectors (driven by `VariantConfig` from server + current values from game state)
-- "Start Game" button proposes `FinalizeSetUp` move (only enabled when legal)
-- Variant changes propose `SetVariantValue` moves
-- Falls back to normal game rendering after finalization
-
-**Implementation approach:** The existing `boardgame-game-view.ts` checks whether the game is in SetUp:
-
+**Level 2 (full replacement):** Register `boardgame-render-gathering-GAMENAME` as a custom element. `boardgame-game-view` checks for it:
 ```typescript
-// In boardgame-game-view.ts render():
-if (this._inSetUp) {
-    return html`<boardgame-lobby ...></boardgame-lobby>`;
-} else {
-    return html`<boardgame-render-game ...></boardgame-render-game>`;
+const tag = `boardgame-render-gathering-${this._gameRoute.name}`;
+if (customElements.get(tag)) {
+    // Use custom gathering element instead of default panel
 }
 ```
+Same convention as `boardgame-render-game-GAMENAME`.
 
-The `_inSetUp` property comes from computed game properties or a flag in the game info response.
+**Game renderer signal:** `BoardgameBaseGameRenderer` gains a computed `gatheringActive: boolean` property, derived from whether any gathering-related moves are legal. Game renderers can use `if (this.gatheringActive) { ... }` to conditionally render gathering-specific UI (e.g., Codenames' drag-and-drop team picker).
 
-### 7. Permission System (#771)
+---
 
-#### Design
+### 13. `boardgame-player-roster` Enhancements
 
-A new behavior and a move-configuration option:
-
-```go
-// behaviors/permission.go
-
-type Permission struct {
-    PermissionLevel int  // 0 = player, 1 = admin
-}
-
-func (p *Permission) GetPermissionLevel() int {
-    return p.PermissionLevel
-}
-
-func (p *Permission) SetPermissionLevel(level int) {
-    p.PermissionLevel = level
-}
-```
-
-Default initialization: player 0 gets `PermissionLevel = 1` (admin). All others get 0.
-
-This is done in the SeatPlayer move: when seating the first player (index 0), set their permission to admin.
-
-#### Move Configuration
-
-```go
-// moves/with.go
-
-func WithRequiredPermission(level int) CustomConfigurationOption {
-    return func(config boardgame.PropertyCollection) {
-        config[configPropRequiredPermission] = level
-    }
-}
-```
-
-The `Default.Legal()` method checks permission:
-
-```go
-func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-    // ... existing checks ...
-
-    // Permission check
-    if requiredLevel, ok := d.CustomConfiguration()[configPropRequiredPermission]; ok {
-        if proposer == boardgame.AdminPlayerIndex {
-            return nil  // Engine admin always passes
-        }
-        if proposer < 0 {
-            return errors.New("Permission denied: no valid proposer")
-        }
-        player := state.ImmutablePlayerStates()[proposer]
-        if checker, ok := player.(interfaces.PermissionChecker); ok {
-            if checker.GetPermissionLevel() < requiredLevel.(int) {
-                return errors.New("Insufficient permission level")
-            }
-        }
-    }
-
-    return nil
-}
-```
-
-#### Usage
-
-```go
-auto.MustConfig(
-    new(moves.FinalizeSetUp),
-    moves.WithLegalPhases(phaseSetUp, phaseEnum),
-    moves.WithRequiredPermission(1),  // Admin only
-)
-
-auto.MustConfig(
-    new(moves.SetVariantValue),
-    moves.WithLegalPhases(phaseSetUp, phaseEnum),
-    moves.WithRequiredPermission(1),  // Admin only (or 0 for any player)
-)
-```
-
-### 8. Debug Auto-Seating (#774)
-
-When `DisableAdminChecking` is true (dev mode), the server auto-fills all player slots at game creation.
-
-```go
-// In server/api/main.go, after doNewGame creates the game:
-
-func (s *Server) doNewGame(...) {
-    game, err := manager.NewGame(numPlayers, variant, agents)
-    // ... existing logic ...
-
-    // Debug auto-seating: fill remaining slots with synthetic users
-    if s.config.DisableAdminChecking {
-        for i := 1; i < numPlayers; i++ {
-            if agents[i] != "" {
-                continue  // Skip agent slots
-            }
-            debugUser := s.getOrCreateDebugUser(i)
-            if err := s.doSeatPlayer(game, boardgame.PlayerIndex(i), debugUser); err != nil {
-                s.logger.Warnln("Debug auto-seat failed for slot", i, ":", err)
-            }
-        }
-    }
-}
-
-func (s *Server) getOrCreateDebugUser(index int) *users.StorageRecord {
-    id := fmt.Sprintf("debug-player-%d", index)
-    user, err := s.storage.GetUser(id)
-    if err != nil || user == nil {
-        user = &users.StorageRecord{
-            ID:          id,
-            DisplayName: fmt.Sprintf("Debug Player %d", index),
-        }
-        s.storage.UpdateUser(user)
-    }
-    return user
-}
-```
-
-### 9. Client Roster Improvements (#767)
-
-The roster item already shows "Waiting to be seated" and "Sitting out." The remaining gaps:
-
-#### "Waiting for Players" Banner
-
-In `boardgame-player-roster.ts`, update `_bannerText`:
-
+**Banner text change:**
 ```typescript
-private _bannerText(finished: boolean, winners: number[], hasEmptySlots: boolean, inSetUp: boolean): string {
-    if (finished) return "Game Over";
-    if (inSetUp) return "Setting Up";
-    if (hasEmptySlots) return "Waiting for Players";
+private _bannerText(): string {
+    if (this.finished) return "Game Over";
+    if (this.readyToStartError) return "Setting Up";
+    if (this.hasEmptySlots && this.gameOpen) return "Waiting for Players";
     return "Playing";
 }
 ```
 
-#### Share/Invite Link
+The `readyToStartError` comes from `Computed.Global.ReadyToStartError`. When present, the banner says "Setting Up" rather than "Playing" — this handles the case where all seats are filled but configuration isn't valid yet (e.g., not everyone has picked a team). The detailed error message is shown in the gathering-status sub-component, not the banner.
 
-Add a "Copy invite link" button when the game has empty slots:
-
-```typescript
-${when(this.hasEmptySlots && !this.isObserver, () => html`
-    <md-outlined-button @click="${this._copyInviteLink}">
-        Copy invite link
-    </md-outlined-button>
-`)}
-```
+**Per-player gathering metadata:** Each `boardgame-player-roster-item` already receives `state` and `playerIndex`. It can read `Computed.Players[i].TeamValue`, `Computed.Players[i].ColorValue`, etc. to show team badges or color indicators next to player names. This is a small enhancement to the existing roster item rendering.
 
 ---
 
-## How a Game Opts In: Full Example (Blackjack)
+## Conventions
 
-### Before (current)
+### Phase naming
+By convention, the first phase in the enum (iota 0) is the gathering phase. Since `PhaseBehavior.Phase` defaults to 0, the game starts in this phase with no code needed.
+
+### Move organization
+Gathering selection moves go in `AddForPhase` (legal any order, any number of times). The `DefaultRoundSetup` progression goes in `AddOrderedForPhase` for the same phase. Both coexist: the progression gates phase advancement while the selection moves remain freely available.
+
+### Multi-round games
+To reopen gathering between rounds, the round cleanup phase transitions back to the gathering phase. `DefaultRoundSetup` runs again (activating new players, waiting for enough, etc.). The gathering UI naturally reappears because the gathering moves become legal again.
+
+---
+
+## Examples
+
+### Simple card game (zero gathering code)
 
 ```go
 const (
-    phaseInitialDeal = iota
-    phaseNormalPlay
-    phaseRoundCleanup
+    phaseGathering = iota
+    phasePlaying
 )
 
-func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
-    game, _ := concreteStates(state)
-    game.MaxRounds = variantToMaxRounds(variant)
-    return nil
+type playerState struct {
+    base.SubState
+    behaviors.Seat
+    behaviors.InactivePlayer
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+    auto := moves.NewAutoConfigurer(g)
     return moves.Combine(
         moves.Add(
             auto.MustConfig(new(moves.SeatPlayer)),
         ),
-        moves.AddOrderedForPhase(phaseInitialDeal,
-            moves.DefaultRoundSetup(auto),
-            // ... deal moves ...
+        moves.AddOrderedForPhase(phaseGathering,
+            moves.DefaultRoundSetup(auto, moves.WithManualStart()),
             auto.MustConfig(new(moves.StartPhase),
-                moves.WithPhaseToStart(phaseNormalPlay, phaseEnum)),
+                moves.WithPhaseToStart(phasePlaying, phaseEnum)),
+        ),
+        moves.AddForPhase(phasePlaying,
+            // ... game-specific moves ...
+        ),
+    )
+}
+```
+
+**Result:** Gathering panel shows "Waiting for Players," share link, and "Start Game" button. Zero new code beyond what games already write today.
+
+### Codenames (teams + roles + validation)
+
+```go
+const (
+    phaseGathering = iota
+    phaseClueGiving
+    phaseGuessing
+)
+
+type playerState struct {
+    base.SubState
+    behaviors.Seat
+    behaviors.InactivePlayer
+    behaviors.PlayerTeam   // +1 line
+    behaviors.PlayerRole   // +1 line
+}
+
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+    auto := moves.NewAutoConfigurer(g)
+    return moves.Combine(
+        moves.Add(
+            auto.MustConfig(new(moves.SeatPlayer)),
+        ),
+        moves.AddForPhase(phaseGathering,
+            moves.GatheringMoves(auto)...,           // +1 line: auto-detects Team + Role
+        ),
+        moves.AddOrderedForPhase(phaseGathering,
+            moves.DefaultRoundSetup(auto, moves.WithManualStart()),
+            auto.MustConfig(new(moves.StartPhase),
+                moves.WithPhaseToStart(phaseClueGiving, phaseEnum)),
+        ),
+        // ... game phases ...
+    )
+}
+
+func (g *gameDelegate) ReadyToStart(state boardgame.ImmutableState) error {
+    // Game-specific validation
+    _, players := concreteStates(state)
+    redSpymasters, blueSpymasters := 0, 0
+    for _, p := range players {
+        if !p.SeatIsFilled() { continue }
+        if p.Team.Value() == teamUnset {
+            return errors.New("all players must select a team")
+        }
+        if p.Role.Value() == roleUnset {
+            return errors.New("all players must select a role")
+        }
+        if p.Role.Value() == roleSpymaster {
+            if p.Team.Value() == teamRed { redSpymasters++ }
+            if p.Team.Value() == teamBlue { blueSpymasters++ }
+        }
+    }
+    if redSpymasters != 1 { return errors.New("Red team needs exactly 1 spymaster") }
+    if blueSpymasters != 1 { return errors.New("Blue team needs exactly 1 spymaster") }
+    return nil
+}
+```
+
+**Result:** Gathering panel auto-shows team picker + role picker + start button. "Start Game" is disabled with the `ReadyToStart` error message until teams are balanced. Delta from simple game: +2 behavior embeds, +1 `GatheringMoves` line, +1 `ReadyToStart` override.
+
+### Spirit Island (unique roles, cooperative)
+
+```go
+type playerState struct {
+    base.SubState
+    behaviors.Seat
+    behaviors.InactivePlayer
+    behaviors.PlayerRole   // spirit selection
+}
+
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+    auto := moves.NewAutoConfigurer(g)
+    return moves.Combine(
+        moves.Add(auto.MustConfig(new(moves.SeatPlayer))),
+        moves.AddForPhase(phaseGathering,
+            auto.MustConfig(new(moves.SelectRole),
+                moves.WithUnique(),  // no two players can pick the same spirit
+            ),
+        ),
+        moves.AddOrderedForPhase(phaseGathering,
+            moves.DefaultRoundSetup(auto, moves.WithManualStart()),
+            auto.MustConfig(new(moves.StartPhase),
+                moves.WithPhaseToStart(phasePlaying, phaseEnum)),
         ),
         // ...
     )
 }
 ```
 
-### After (with lobby)
+**Note:** Here the game uses `SelectRole` directly with `WithUnique()` instead of `GatheringMoves(auto)`, because it wants the uniqueness option. `GatheringMoves` is a convenience that returns default-configured moves — games can always configure moves manually for more control.
+
+### Poker cash game (recurring gathering, drop-in/drop-out)
 
 ```go
 const (
-    phaseSetUp       = iota   // NEW
-    phaseInitialDeal
-    phaseNormalPlay
-    phaseRoundCleanup
+    phaseGathering = iota
+    phaseDealing
+    phaseBetting
+    phaseShowdown
 )
 
-type gameState struct {
-    base.SubState
-    behaviors.RoundRobin
-    behaviors.CurrentPlayerBehavior
-    behaviors.PhaseBehavior
-    behaviors.SetUpConfig              // NEW
-    // ... existing fields ...
-}
-
-func (g *gameDelegate) SetUpMode() boardgame.SetUpMode {
-    return boardgame.SetUpModeLobby    // NEW
-}
-
-func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
-    game, _ := concreteStates(state)
-    game.MaxRounds = variantToMaxRounds(variant)
-    // Phase starts at phaseSetUp (0, the default iota value)
-    return nil
-}
-
-func (g *gameDelegate) ApplyVariantValue(state boardgame.State, key, value string) error {
-    game, _ := concreteStates(state)
-    if key == variantKeyMaxRounds {
-        maxRounds, err := strconv.Atoi(value)
-        if err != nil {
-            return err
-        }
-        game.MaxRounds = maxRounds
-    }
-    return nil
-}
-
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+    auto := moves.NewAutoConfigurer(g)
     return moves.Combine(
-        // Moves available in all phases
-        moves.Add(
-            auto.MustConfig(new(moves.SeatPlayer)),
-        ),
-        // SetUp phase: lobby moves
-        moves.AddForPhase(phaseSetUp,
-            auto.MustConfig(new(moves.SetVariantValue)),
-            auto.MustConfig(new(moves.FinalizeSetUp),
-                moves.WithMoveName("Start Game"),
-                moves.WithPhaseToStart(phaseInitialDeal, phaseEnum),
-                moves.WithRequiredPermission(1),
-            ),
-        ),
-        // InitialDeal phase: deal cards (unchanged)
-        moves.AddOrderedForPhase(phaseInitialDeal,
-            moves.DefaultRoundSetup(auto),
-            // ... deal moves ...
+        moves.Add(auto.MustConfig(new(moves.SeatPlayer))),
+        // Gathering phase: wait for players, start
+        moves.AddOrderedForPhase(phaseGathering,
+            moves.DefaultRoundSetup(auto),  // auto-start, no manual start needed
             auto.MustConfig(new(moves.StartPhase),
-                moves.WithPhaseToStart(phaseNormalPlay, phaseEnum)),
+                moves.WithPhaseToStart(phaseDealing, phaseEnum)),
         ),
-        // ... remaining phases unchanged ...
+        // ... dealing, betting, showdown phases ...
+        // Showdown transitions back to gathering:
+        moves.AddOrderedForPhase(phaseShowdown,
+            // ... resolve hand ...
+            auto.MustConfig(new(moves.StartPhase),
+                moves.WithPhaseToStart(phaseGathering, phaseEnum)),  // loop back
+        ),
     )
 }
 ```
 
-### What Changed
+**Result:** Between every hand, the game returns to `phaseGathering`. `DefaultRoundSetup` runs: `ActivateInactivePlayer` activates new joiners, `WaitForEnoughPlayers` ensures enough are seated. The gathering panel briefly appears ("Waiting for Players" if a seat opened), then disappears when the next hand starts. The server reopens `eGame.Open` when seats reopen.
 
-1. Added `phaseSetUp` as the first phase constant
-2. Embedded `behaviors.SetUpConfig` in gameState
-3. Added `SetUpMode()` returning `SetUpModeLobby`
-4. Added `ApplyVariantValue()` to handle variant changes
-5. Added `moves.SetVariantValue` and `moves.FinalizeSetUp` for phaseSetUp
-6. Everything else is identical
-
----
-
-## DefaultLobbySetup Helper
-
-Analogous to `DefaultRoundSetup`, a convenience function:
+### Secret role game (Resistance — game-specific assignment)
 
 ```go
-func DefaultLobbySetup(auto *AutoConfigurer, options ...CustomConfigurationOption) []boardgame.MoveConfig {
-    config := boardgame.PropertyCollection{}
-    for _, opt := range options {
-        opt(config)
-    }
-
-    result := []boardgame.MoveConfig{
-        auto.MustConfig(new(SetVariantValue)),
-    }
-
-    // FinalizeSetUp is always included
-    finalizeOpts := []CustomConfigurationOption{}
-    if phase, ok := config[configPropPhaseToStart]; ok {
-        finalizeOpts = append(finalizeOpts, WithPhaseToStart(phase, ...))
-    }
-    if _, ok := config[configPropRequiredPermission]; ok {
-        finalizeOpts = append(finalizeOpts, WithRequiredPermission(...))
-    }
-
-    result = append(result, auto.MustConfig(
-        new(FinalizeSetUp),
-        WithMoveName("Start Game"),
-        finalizeOpts...,
-    ))
-
-    return result
+// No SelectTeam/SelectRole — roles are auto-assigned
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+    auto := moves.NewAutoConfigurer(g)
+    return moves.Combine(
+        moves.Add(auto.MustConfig(new(moves.SeatPlayer))),
+        moves.AddOrderedForPhase(phaseGathering,
+            moves.DefaultRoundSetup(auto),  // auto-start when all seats filled
+            auto.MustConfig(new(moveAssignSecretRoles)),  // game-specific FixUp
+            auto.MustConfig(new(moves.StartPhase),
+                moves.WithPhaseToStart(phaseMission, phaseEnum)),
+        ),
+    )
 }
 ```
 
-Usage:
-```go
-moves.AddForPhase(phaseSetUp,
-    moves.DefaultLobbySetup(auto,
-        moves.WithPhaseToStart(phaseInitialDeal, phaseEnum),
-        moves.WithRequiredPermission(1),
-    )...,
-),
-```
+**Result:** Gathering panel shows only "Waiting for Players" status (no team/role pickers since no selection moves are registered). When all seats fill, `WaitForEnoughPlayers` passes, `moveAssignSecretRoles` fires as a FixUp (randomly assigns roles from a game-specific algorithm), then the game transitions to play.
 
 ---
 
-## Backward Compatibility
+## What's NOT in This Design
 
-**No breaking changes.** Every change is opt-in:
-
-| Component | Non-lobby games | Lobby games |
-|-----------|----------------|-------------|
-| `NewGame()` API | Unchanged | Called with MaxNumPlayers + nil variant |
-| `GameDelegate` interface | New methods with defaults | Override `SetUpMode()`, `ApplyVariantValue()` |
-| `BeginSetUp/FinishSetUp` | Unchanged | Same, but phase starts at phaseSetUp |
-| `VariantConfig` | Unchanged; stays in core | Also used by `SetVariantValue` move |
-| Server endpoints | Unchanged | New `/api/game/new-lobby` endpoint |
-| Client | Unchanged | New `boardgame-lobby` component |
-| Existing example games | No changes needed | Can be migrated incrementally |
-
-### New defaults in `base.GameDelegate`
-
-```go
-func (g *GameDelegate) SetUpMode() boardgame.SetUpMode {
-    return boardgame.SetUpModeNone  // Default: no lobby
-}
-
-func (g *GameDelegate) ApplyVariantValue(state boardgame.State, key, value string) error {
-    return errors.New("Delegate does not support variant changes during setup")
-}
-
-func (g *GameDelegate) ValidateSetUp(state boardgame.ImmutableState) error {
-    return nil  // Default: no extra validation needed
-}
-```
-
----
-
-## Migration Path for Existing Games
-
-### Phase 0: No migration needed
-All existing games continue working identically. No code changes.
-
-### Phase 1: Add lobby to one example game
-Convert blackjack to use lobby mode as a reference implementation. Blackjack is ideal because:
-- Already has multi-round support
-- Already uses `behaviors.Seat` and `behaviors.InactivePlayer`
-- Its variant (MaxRounds) doesn't affect component distribution
-- Its InitialDeal phase already handles component dealing
-
-### Phase 2: Convert games where variants affect distribution
-Memory is the harder case (NumCards variant changes stack sizes). For memory, the card-selection logic currently in `FinishSetUp` would move to a new DealCards phase between SetUp and normal play.
-
-### Phase 3: Add team/role selection
-For games that need it, add `moves.SelectTeam` / `moves.SelectRole` moves legal during phaseSetUp. These use existing `behaviors.PlayerTeam` and `behaviors.PlayerRole`.
-
----
-
-## Risks and Mitigations
-
-### Risk 1: Component distribution timing
-**Problem:** Games like memory size stacks based on variants in `BeginSetUp`. If variants change during SetUp, stacks may need resizing.
-
-**Mitigation:** `ApplyVariantValue` handles stack resizing. For complex cases, the game can store components in a staging stack during SetUp, then distribute them in a post-SetUp phase. Blackjack already does this (DrawStack -> player hands during InitialDeal).
-
-### Risk 2: `Game.NumPlayers()` vs actual player count
-**Problem:** Lobby games create `MaxNumPlayers` slots. `Game.NumPlayers()` returns MaxNumPlayers, but only some seats are filled.
-
-**Mitigation:** This is already handled. Games using `behaviors.Seat` + `behaviors.InactivePlayer` already use `NumSeatedActivePlayers()` for real player count. `PlayerIndex.Next()` already skips inactive players. This is the existing pattern; no new risk.
-
-### Risk 3: Server-side state for pending players
-**Problem:** `playersToSeat` is in-memory. If server restarts while a player is pending, the seating is lost.
-
-**Mitigation:** After server restart, reconcile storage's `UserIDsForGame` against game state's `SeatFilled` flags. Re-inject any users assigned to unfilled seats. (This is an existing bug, not new to this design.)
-
-### Risk 4: Client complexity
-**Problem:** The lobby UI needs to read VariantConfig, propose moves for variant changes, and handle the transition to game view.
-
-**Mitigation:** The lobby component is relatively simple -- it reads game state and proposes moves, like any game renderer. The `VariantConfig` is already available via the manager info endpoint. The transition from lobby to game view is just a re-render when `InSetUp` goes from true to false.
-
-### Risk 5: Blast radius on GameDelegate interface
-**Problem:** Adding `SetUpMode()`, `ApplyVariantValue()`, `ValidateSetUp()` to `GameDelegate` is an interface change.
-
-**Mitigation:** All have default implementations in `base.GameDelegate`. Any delegate embedding `base.GameDelegate` (which is all of them) gets the defaults automatically. No external code breaks.
-
----
+- **No `SetUpMode` / `SetUpConfig` / `FinalizeSetUp`** — no new framework concepts
+- **No `ApplyVariantValue` / `SetVariantValue`** — variants stay fixed at creation time
+- **No `DefaultLobbySetup`** — `DefaultRoundSetup` IS the gathering
+- **No new server endpoints** — existing data is sufficient
+- **No core engine changes** — `game.go`, `game_manager.go` unchanged
+- **No mutable variants** — deferred; can be added later without breaking this design
+- **No tournament/campaign orchestration** — explicitly out of scope (server-layer concern)
+- **No admin-assigns-to-other-player** — game-specific moves for that pattern
 
 ## Implementation Order
 
-```
-Phase 1: Foundation                         Phase 2: Server + Client
-  behaviors/setup_config.go                   server/api/main.go (lobby endpoint)
-  moves/interfaces/ (new interfaces)          server/api/ (lobby detection)
-  moves/finalize_setup.go                     boardgame-lobby.ts
-  moves/set_variant.go                        boardgame-game-view.ts (lobby switch)
-  game_delegate.go (new methods)              boardgame-player-roster.ts (banner)
-  base/game_delegate.go (defaults)
-  moves/with.go (WithRequiredPermission)    Phase 3: Polish + Examples
-  behaviors/permission.go                     Convert blackjack to lobby mode
-                                              Debug auto-seating (#774)
-                                              Tests for all new moves
-```
+### Phase 1: Client-only lobby UX (zero Go changes)
+1. `boardgame-gathering-panel` with status, share link, start button sub-components
+2. Wire into `boardgame-game-view`
+3. Update `boardgame-player-roster` banner text
 
-Phases 1 and 2 can be developed in parallel. Phase 3 depends on both.
+### Phase 2: Go-side selection moves
+1. Upgrade `PlayerRole` and `PlayerColor` behaviors (add interfaces)
+2. Implement `moves.AnyPlayer` base type
+3. Implement `moves.SelectTeam`, `moves.SelectRole`, `moves.SelectColor`
+4. Implement `GatheringMoves(auto)` helper
+5. Add `ReadyToStart` to `GameDelegate` and integrate into `WaitForEnoughPlayers`
+6. Extend `ComputedProperties` with team/role/color data
+7. Run codegen
 
----
+### Phase 3: Client-side pickers
+1. Team picker, role picker, color picker sub-components
+2. Override system (CSS custom properties + custom element detection)
+3. `gatheringActive` signal on base game renderer
 
-## Open Questions
+### Phase 4: Server fix + polish
+1. Reopen `eGame.Open` when seats reopen between rounds
+2. Debug auto-seating (#774)
+3. Convert one example game to demonstrate the pattern
 
-1. **Should `FinalizeSetUp` embed `StartPhase` or be separate?** Currently proposed as a separate move that handles seat closing + finalization, with a separate `StartPhase` move for the phase transition. Alternative: embed `StartPhase` behavior so one move does everything.
-
-2. **Should `SetVariantValue` use enum values or strings?** Currently uses strings (matching `VariantConfig`'s string-based values). Alternative: use enum values for type safety, but this would require each variant key to have its own enum.
-
-3. **How should multi-round re-setup work?** When a round ends and the game transitions back to SetUp, should `SetUpFinalized` be reset? Should new players be able to join? The current design supports this but doesn't prescribe the flow.
-
-4. **Should the server offer BOTH "Create Game" and "Create Lobby Game"?** Or should lobby games be the default for game types that support it? If a game supports lobbies, should the old-style instant creation still be available (useful for single-player testing)?
-
-5. **What lobby information should be sanitized?** In the SetUp phase, should observers see the current variant selections? Probably yes (they need it to decide whether to join). Should they see team assignments? Probably yes. This is different from in-game sanitization.
-
-6. **How do agents interact with lobbies?** Can you assign agents during the SetUp phase? Or only humans? If agents are supported, there should be a `moves.AssignAgent` move during SetUp.
+### Phase 5: Test against PRD scenarios
+Verify coverage of all 26 scenarios in `GATHERING_PRD.md`.
