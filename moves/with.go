@@ -24,6 +24,8 @@ const configPropLegalMoveProgression = fullyQualifiedPackageName + "LegalMovePro
 const configPropLegalType = fullyQualifiedPackageName + "LegalType"
 const configPropLegalTypeEnum = fullyQualifiedPackageName + "LegalTypeEnum"
 const configPropAmount = fullyQualifiedPackageName + "Amount"
+const configPropManualStart = fullyQualifiedPackageName + "ManualStart"
+const configPropRequireExplicitStart = fullyQualifiedPackageName + "RequireExplicitStart"
 
 // CustomConfigurationOption is a function that takes a PropertyCollection and
 // modifies a key on it. This package defines a number of functions that return
@@ -198,5 +200,28 @@ func WithTargetCount(targetCount int) CustomConfigurationOption {
 func WithAmount(amount int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropAmount] = amount
+	}
+}
+
+// WithManualStart returns a function configuration option suitable for being
+// passed to DefaultRoundSetup. When provided, the round setup will include a
+// player-callable CloseAllSeats move (displayed as "Confirm Players") and
+// configure WaitForEnoughPlayers to block until all unfilled seats are closed.
+// This allows players to wait for more people to join before someone explicitly
+// starts the game.
+func WithManualStart() CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropManualStart] = true
+	}
+}
+
+// WithRequireExplicitStart returns a function configuration option suitable for
+// being passed to auto.Config when configuring WaitForEnoughPlayers. When set,
+// WaitForEnoughPlayers will additionally require that all unfilled seats are
+// closed before it fires. This is used internally by DefaultRoundSetup when
+// WithManualStart is provided, but can also be used directly.
+func WithRequireExplicitStart() CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropRequireExplicitStart] = true
 	}
 }

@@ -195,6 +195,7 @@ each has on the one above it. See the documentation for each struct for more.
 	  ├ Done
 	  ├ CurrentPlayer
 	  │ └ MoveOnGraph
+	  ├ CloseAllSeats
 	  ├ SeatPlayer
 	  └ FixUp
 	    ├ NoOp
@@ -208,6 +209,7 @@ each has on the one above it. See the documentation for each struct for more.
 	    └ FixUpMulti
 	      ├ DefaultComponent
 	      ├ ActivateInactivePlayer
+	      ├ ActivateEmptySeat
 	      ├ CloseEmptySeat
 	      ├ InactivateEmptySeat
 	      └ ApplyUntil
