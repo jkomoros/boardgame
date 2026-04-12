@@ -170,6 +170,7 @@ type Seater interface {
 	SeatIsClosed() bool
 	SetSeatFilled()
 	SetSeatClosed()
+	SetSeatOpen()
 }
 
 // SeatPlayerMover should be implemented for moves that are [moves.SeatPlayer] moves,

@@ -1,0 +1,86 @@
+package moves
+
+import (
+	"errors"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/enum"
+)
+
+/*
+SelectTeam is a player move that allows a seated player to choose their team.
+It embeds [AnyPlayer], so any seated player can propose it for themselves during
+any phase where it is legal.
+
+The player state must embed [behaviors.PlayerTeam], and the game must have a
+"team" enum in its chest.
+
+boardgame:codegen
+*/
+type SelectTeam struct {
+	AnyPlayer
+	SelectedTeam enum.Val `enum:"team"`
+}
+
+// Legal verifies the parent AnyPlayer checks pass, and that SelectedTeam is a
+// valid non-default value in the "team" enum.
+func (s *SelectTeam) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := s.AnyPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	if s.SelectedTeam == nil {
+		return errors.New("no team selected")
+	}
+
+	// Must be a non-default value (default/zero typically means "unset")
+	if s.SelectedTeam.Value() == 0 {
+		return errors.New("you must select a team")
+	}
+
+	return nil
+}
+
+// Apply sets the target player's team to the selected value.
+func (s *SelectTeam) Apply(state boardgame.State) error {
+	target := s.TargetPlayerIndex
+	player := state.PlayerStates()[target]
+
+	teamHolder, ok := player.(behaviors.HasPlayerTeam)
+	if !ok {
+		return errors.New("player state does not implement HasPlayerTeam")
+	}
+
+	teamHolder.GetPlayerTeam().Team.SetValue(s.SelectedTeam.Value())
+	return nil
+}
+
+// ValidConfiguration checks that the player state implements HasPlayerTeam and
+// that a "team" enum exists in the chest.
+func (s *SelectTeam) ValidConfiguration(exampleState boardgame.State) error {
+	if err := s.AnyPlayer.ValidConfiguration(exampleState); err != nil {
+		return err
+	}
+
+	playerState := exampleState.ImmutablePlayerStates()[0]
+	if _, ok := playerState.(behaviors.HasPlayerTeam); !ok {
+		return errors.New("player state does not implement HasPlayerTeam. Embed behaviors.PlayerTeam in your player state")
+	}
+
+	if exampleState.Manager().Chest().Enums().Enum("team") == nil {
+		return errors.New("no 'team' enum found in the chest. Define an enum named 'team'")
+	}
+
+	return nil
+}
+
+// FallbackName returns "Select Team"
+func (s *SelectTeam) FallbackName(m *boardgame.GameManager) string {
+	return "Select Team"
+}
+
+// FallbackHelpText returns a description of the move.
+func (s *SelectTeam) FallbackHelpText() string {
+	return "Choose which team to join."
+}

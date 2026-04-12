@@ -74,6 +74,10 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(AdvanceToken)
 	m = new(AllPlayersSubmitted)
 	m = new(ResetAllPlayerSubmissions)
+	m = new(AnyPlayer)
+	m = new(SelectTeam)
+	m = new(SelectRole)
+	m = new(SelectColor)
 	if m != nil {
 		return
 	}

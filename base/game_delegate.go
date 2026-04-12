@@ -380,16 +380,49 @@ func (g *GameDelegate) CustomPlayerOrder(state boardgame.ImmutableState) []board
 // g.GameDelegate.ComputedGlobalProperties(state) and merge your properties
 // into the result, or the framework's "PlayerOrder" property will be lost.
 func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+	result := boardgame.PropertyCollection{}
+
 	if order := g.Manager().Delegate().CustomPlayerOrder(state); order != nil {
 		intOrder := make([]int, len(order))
 		for i, idx := range order {
 			intOrder[i] = int(idx)
 		}
-		return boardgame.PropertyCollection{
-			"PlayerOrder": intOrder,
-		}
+		result["PlayerOrder"] = intOrder
 	}
-	return boardgame.PropertyCollection{}
+
+	// Gathering: available enum values for client pickers
+	chest := g.Manager().Chest()
+	if teamEnum := chest.Enums().Enum("team"); teamEnum != nil {
+		result["AvailableTeams"] = enumValuesForClient(teamEnum)
+	}
+	if roleEnum := chest.Enums().Enum("role"); roleEnum != nil {
+		result["AvailableRoles"] = enumValuesForClient(roleEnum)
+	}
+	if colorEnum := chest.Enums().Enum("color"); colorEnum != nil {
+		result["AvailableColors"] = enumValuesForClient(colorEnum)
+	}
+
+	// Gathering: readiness error for client display. FixUp move errors are
+	// invisible to the client, so this is the primary delivery path for
+	// ReadyToStart error messages.
+	if err := g.Manager().Delegate().ReadyToStart(state); err != nil {
+		result["ReadyToStartError"] = err.Error()
+	}
+
+	return result
+}
+
+// enumValuesForClient returns a list of {Key, Name} objects for all values in
+// the enum, suitable for serialization to the client.
+func enumValuesForClient(e enum.Enum) []map[string]interface{} {
+	var result []map[string]interface{}
+	for _, key := range e.Values() {
+		result = append(result, map[string]interface{}{
+			"Key":  int(key),
+			"Name": e.String(key),
+		})
+	}
+	return result
 }
 
 // ComputedPlayerProperties returns framework defaults: "Color" (CSS color
@@ -408,6 +441,16 @@ func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubSta
 	}
 	if score, ok := behaviors.PlayerGameScore(player); ok {
 		result["GameScore"] = score
+	}
+	// Gathering: current team/role/color selections
+	if th, ok := player.(behaviors.HasPlayerTeam); ok {
+		result["TeamValue"] = th.GetPlayerTeam().Team.String()
+	}
+	if rh, ok := player.(behaviors.HasPlayerRole); ok {
+		result["RoleValue"] = rh.GetPlayerRole().Role.String()
+	}
+	if ch, ok := player.(behaviors.HasPlayerColor); ok {
+		result["ColorValue"] = ch.GetPlayerColor().Color.String()
 	}
 	return result
 }
@@ -613,6 +656,13 @@ func (g *GameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 	return numPlayers >= min && numPlayers <= max
 
+}
+
+// ReadyToStart returns nil, indicating the game is always ready to start once
+// enough players are seated. Override this in your delegate to add custom
+// validation (e.g., team balance, role assignment).
+func (g *GameDelegate) ReadyToStart(state boardgame.ImmutableState) error {
+	return nil
 }
 
 // PlayerMayBeActive returns true for all players, unless they implement

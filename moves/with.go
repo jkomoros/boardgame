@@ -26,6 +26,8 @@ const configPropLegalTypeEnum = fullyQualifiedPackageName + "LegalTypeEnum"
 const configPropAmount = fullyQualifiedPackageName + "Amount"
 const configPropManualStart = fullyQualifiedPackageName + "ManualStart"
 const configPropRequireExplicitStart = fullyQualifiedPackageName + "RequireExplicitStart"
+const configPropUnique = fullyQualifiedPackageName + "Unique"
+const configPropAllowDuplicates = fullyQualifiedPackageName + "AllowDuplicates"
 
 // CustomConfigurationOption is a function that takes a PropertyCollection and
 // modifies a key on it. This package defines a number of functions that return
@@ -223,5 +225,26 @@ func WithManualStart() CustomConfigurationOption {
 func WithRequireExplicitStart() CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropRequireExplicitStart] = true
+	}
+}
+
+// WithUnique returns a function configuration option suitable for being passed
+// to auto.Config when configuring SelectRole. When set, Legal will reject
+// values that are already claimed by another seated player. Useful for games
+// where each player must have a unique role (e.g., Spirit Island spirits).
+func WithUnique() CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropUnique] = true
+	}
+}
+
+// WithAllowDuplicates returns a function configuration option suitable for
+// being passed to auto.Config when configuring SelectColor. By default,
+// SelectColor enforces uniqueness (no two players may share a color).
+// WithAllowDuplicates disables this enforcement for games where duplicate
+// colors are acceptable.
+func WithAllowDuplicates() CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropAllowDuplicates] = true
 	}
 }

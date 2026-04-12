@@ -595,6 +595,14 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " players are seated, but at least " + strconv.Itoa(targetCount) + " are required")
 	}
 
+	// Check delegate readiness to prevent the deadlock where seats close
+	// before configuration is validated. This error surfaces in the client
+	// via LegalForPlayerError on the move form (since CloseAllSeats is a
+	// player move, not a FixUp).
+	if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
+		return errors.New("not ready to start: " + err.Error())
+	}
+
 	return nil
 }
 
@@ -732,6 +740,11 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 				}
 			}
 		}
+	}
+
+	// Check delegate readiness (e.g., team balance, role assignment)
+	if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
+		return errors.New("not ready to start: " + err.Error())
 	}
 
 	return nil

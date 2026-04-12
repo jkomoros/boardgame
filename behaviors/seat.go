@@ -35,3 +35,10 @@ func (s *Seat) SetSeatFilled() {
 func (s *Seat) SetSeatClosed() {
 	s.SeatClosed = true
 }
+
+// SetSeatOpen sets that the seat is open and can be filled by players. This
+// reverses the effect of SetSeatClosed. Useful for reopening seats between
+// rounds in games that allow drop-in/drop-out.
+func (s *Seat) SetSeatOpen() {
+	s.SeatClosed = false
+}
