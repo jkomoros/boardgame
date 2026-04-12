@@ -32,14 +32,58 @@ func gameWillSeatPlayer(state boardgame.ImmutableState) bool {
 
 // DefaultRoundSetup returns a serial move progression appropriate for putting at
 // the beginning of your RoundSetUp phase, if you have a game that uses
-// SeatPlayer. It returns a Optional(ActivateInactivePlayer),
+// SeatPlayer. It returns Optional(ActivateInactivePlayer),
 // WaitForEnoughPlayers, Optional(InactivateEmptySeat). What this does is
 // activate any players who have been seated already but not yet activated, then
 // pause until we have enough players to activate the round, and then mark any
 // unfilled seats as Inactive so the game logic within the actual round doesn't
 // wait for them. This progression is finicky to get right, which is why it's
 // provided as a baked function.
-func DefaultRoundSetup(auto *AutoConfigurer) MoveProgressionGroup {
+//
+// If WithManualStart() is passed as an option, the progression will also include
+// an Optional(CloseAllSeats) move (displayed as "Confirm Players") before
+// WaitForEnoughPlayers. WaitForEnoughPlayers is then configured with
+// WithRequireExplicitStart, meaning it will block until all unfilled seats are
+// closed. This allows players to wait for more people to join before someone
+// explicitly starts the game by proposing the CloseAllSeats move.
+//
+// In non-server contexts (tests, goldens) the explicit start requirement is
+// automatically bypassed, so game logic works the same as without
+// WithManualStart. When all seats are filled, the requirement is trivially
+// satisfied and WaitForEnoughPlayers auto-fires normally.
+func DefaultRoundSetup(auto *AutoConfigurer, options ...CustomConfigurationOption) MoveProgressionGroup {
+	config := boardgame.PropertyCollection{}
+	for _, opt := range options {
+		opt(config)
+	}
+	manualStart, _ := config[configPropManualStart].(bool)
+
+	if manualStart {
+		return Serial(
+			Optional(
+				auto.MustConfig(
+					new(ActivateInactivePlayer),
+				),
+			),
+			Optional(
+				auto.MustConfig(
+					new(CloseAllSeats),
+					WithMoveName("Confirm Players"),
+					WithHelpText("Closes empty seats so the game can begin"),
+				),
+			),
+			auto.MustConfig(
+				new(WaitForEnoughPlayers),
+				WithRequireExplicitStart(),
+			),
+			Optional(
+				auto.MustConfig(
+					new(InactivateEmptySeat),
+				),
+			),
+		)
+	}
+
 	return Serial(
 		Optional(
 			auto.MustConfig(
@@ -500,9 +544,13 @@ func (a *ActivateEmptySeat) FallbackName(m *boardgame.GameManager) string {
 // seats in one action. This is useful for allowing a player to say "let's get
 // started" before all seats are filled, without waiting for more players. It is
 // only legal if there is at least one unfilled, unclosed seat, and if enough
-// players are already seated (at least MinNumPlayers). Unlike CloseEmptySeat
-// (which is a FixUpMulti that closes one seat per application), this move closes
-// all empty seats at once.
+// players are already seated (at least TargetCount, which defaults to
+// MinNumPlayers). Unlike CloseEmptySeat (which is a FixUpMulti that closes one
+// seat per application), this move closes all empty seats at once.
+//
+// When used via DefaultRoundSetup(auto, WithManualStart()), this move is
+// configured with the name "Confirm Players" and placed in the round setup
+// progression so that WaitForEnoughPlayers blocks until a player proposes it.
 //
 //boardgame:codegen
 type CloseAllSeats struct {
@@ -510,7 +558,8 @@ type CloseAllSeats struct {
 }
 
 // Legal verifies that there is at least one unfilled, unclosed seat, and that
-// the number of seated active players is at least MinNumPlayers.
+// the number of seated active players is at least TargetCount (which defaults to
+// MinNumPlayers if not configured via WithTargetCount).
 func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := c.Default.Legal(state, proposer); err != nil {
 		return err
@@ -529,19 +578,47 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 		return errors.New("No unfilled, unclosed seats to close")
 	}
 
+	targetCounter, ok := c.TopLevelStruct().(interfaces.TargetCounter)
+	if !ok {
+		return errors.New("Top level move unexpectedly didn't implement TargetCounter")
+	}
+
 	activePlayerser, ok := state.Manager().Delegate().(numSeatedActivePlayerser)
 	if !ok {
 		return errors.New("Game delegate didn't implement NumSeatedActivePlayers")
 	}
 
-	minPlayers := state.Manager().Delegate().MinNumPlayers()
+	targetCount := targetCounter.TargetCount(state)
 	seatedPlayers := activePlayerser.NumSeatedActivePlayers(state)
 
-	if seatedPlayers < minPlayers {
-		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " players are seated, but at least " + strconv.Itoa(minPlayers) + " are required")
+	if seatedPlayers < targetCount {
+		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " players are seated, but at least " + strconv.Itoa(targetCount) + " are required")
 	}
 
 	return nil
+}
+
+// TargetCount returns the value that was provided via WithTargetCount. If none
+// was provided, it returns your game delegate's MinNumPlayers.
+func (c *CloseAllSeats) TargetCount(state boardgame.ImmutableState) int {
+	config := c.CustomConfiguration()
+
+	val, ok := config[configPropTargetCount]
+
+	if !ok {
+		if state == nil {
+			return 0
+		}
+		return state.Manager().Delegate().MinNumPlayers()
+	}
+
+	intVal, ok := val.(int)
+
+	if !ok {
+		return -1
+	}
+
+	return intVal
 }
 
 // Apply closes all unfilled, unclosed seats.
@@ -556,7 +633,8 @@ func (c *CloseAllSeats) Apply(state boardgame.State) error {
 	return nil
 }
 
-// ValidConfiguration checks that player states implement interfaces.Seater.
+// ValidConfiguration checks that player states implement interfaces.Seater and
+// that the move implements TargetCounter.
 func (c *CloseAllSeats) ValidConfiguration(exampleState boardgame.State) error {
 	if err := c.Default.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -565,6 +643,10 @@ func (c *CloseAllSeats) ValidConfiguration(exampleState boardgame.State) error {
 	_, ok := player.(interfaces.Seater)
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
+	}
+	_, ok = c.TopLevelStruct().(interfaces.TargetCounter)
+	if !ok {
+		return errors.New("Top level move unexpectedly didn't implement TargetCounter")
 	}
 	_, ok = exampleState.Manager().Delegate().(numSeatedActivePlayerser)
 	if !ok {
@@ -596,7 +678,13 @@ type numSeatedActivePlayerser interface {
 // as GameDelegate.NumSeatedActivePlayers is greater than its TargetCount. By
 // default, TargetCount is your game delegate's MinNumPlayers. This move will
 // auto-apply itself in contexts where SeatPlayer won't ever be called (for
-// example, if you're running your game logic outside of an instance of server)
+// example, if you're running your game logic outside of an instance of server).
+//
+// If configured with WithRequireExplicitStart (typically via
+// DefaultRoundSetup(auto, WithManualStart())), this move will additionally
+// require that all unfilled seats are closed before it fires. This allows
+// players to use CloseAllSeats to explicitly start the game rather than
+// auto-starting as soon as MinNumPlayers are seated.
 //
 //boardgame:codegen
 type WaitForEnoughPlayers struct {
@@ -604,15 +692,18 @@ type WaitForEnoughPlayers struct {
 }
 
 // Legal verifies that the GameDelegate's NumSeatedActivePlayers is at least
-// TargetCount.
+// TargetCount. If configured with WithRequireExplicitStart, it additionally
+// verifies that all unfilled seats are closed.
 func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := w.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
 
 	if !gameWillSeatPlayer(state) {
-		//We're in a context that won't ever SeatPlayer, so we should just auto trigger now.
-		//TODO: when this is extended to allow players to flag it, we should likely have different behavior.
+		//We're in a context that won't ever SeatPlayer, so we should just
+		//auto trigger now. The requireExplicitStart check is also skipped
+		//because in non-server contexts there is no player to propose
+		//CloseAllSeats.
 		return nil
 	}
 
@@ -633,7 +724,28 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " are seated, but move requires at least " + strconv.Itoa(targetCount))
 	}
 
+	if w.requireExplicitStart() {
+		for _, p := range state.ImmutablePlayerStates() {
+			if seat, ok := p.(interfaces.Seater); ok {
+				if !seat.SeatIsFilled() && !seat.SeatIsClosed() {
+					return errors.New("there are still open seats; a player must confirm players before the game can start")
+				}
+			}
+		}
+	}
+
 	return nil
+}
+
+// requireExplicitStart returns true if WithRequireExplicitStart was configured.
+func (w *WaitForEnoughPlayers) requireExplicitStart() bool {
+	config := w.CustomConfiguration()
+	val, ok := config[configPropRequireExplicitStart]
+	if !ok {
+		return false
+	}
+	boolVal, ok := val.(bool)
+	return ok && boolVal
 }
 
 // TargetCount returns the value tha twas provided via WithTargetCount. If none
