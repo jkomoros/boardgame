@@ -16,6 +16,9 @@ import type { MoveForm } from '../types/api';
 import './boardgame-gathering-status.js';
 import './boardgame-gathering-share.js';
 import './boardgame-gathering-start.js';
+import './boardgame-gathering-team-picker.js';
+import './boardgame-gathering-role-picker.js';
+import './boardgame-gathering-color-picker.js';
 
 interface PlayerInfo {
   IsEmpty: boolean;
@@ -118,8 +121,21 @@ export class BoardgameGatheringPanel extends LitElement {
     return this.moveForms.find(f => startNames.has(f.Name) && f.LegalForAnyone) ?? null;
   }
 
+  /** Whether any picker move (team/role/color) is present and legal */
+  private get _hasPickerMoves(): boolean {
+    if (!this.moveForms) return false;
+    return this.moveForms.some(f =>
+      f.LegalForAnyone &&
+      f.Fields?.some(field =>
+        field.EnumName === 'team' ||
+        field.EnumName === 'role' ||
+        field.EnumName === 'color'
+      )
+    );
+  }
+
   private get _hasAnythingToShow(): boolean {
-    return this._showStatus || this._showShare || !!this._startMoveForm;
+    return this._showStatus || this._showShare || !!this._startMoveForm || this._hasPickerMoves;
   }
 
   render() {
@@ -159,6 +175,27 @@ export class BoardgameGatheringPanel extends LitElement {
               </boardgame-gathering-start>
             ` : nothing}
           </div>
+
+          <boardgame-gathering-team-picker
+            .moveForms=${this.moveForms}
+            .state=${this.state}
+            .viewingAsPlayer=${this.viewingAsPlayer}
+            .playersInfo=${this.playersInfo}>
+          </boardgame-gathering-team-picker>
+
+          <boardgame-gathering-role-picker
+            .moveForms=${this.moveForms}
+            .state=${this.state}
+            .viewingAsPlayer=${this.viewingAsPlayer}
+            .playersInfo=${this.playersInfo}>
+          </boardgame-gathering-role-picker>
+
+          <boardgame-gathering-color-picker
+            .moveForms=${this.moveForms}
+            .state=${this.state}
+            .viewingAsPlayer=${this.viewingAsPlayer}
+            .playersInfo=${this.playersInfo}>
+          </boardgame-gathering-color-picker>
         </div>
       </div>
     `;

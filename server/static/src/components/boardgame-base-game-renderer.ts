@@ -57,6 +57,29 @@ export class BoardgameBaseGameRenderer<
     return this.moveLegality[moveName]?.legalForAnyone ?? false;
   }
 
+  /**
+   * Returns true if any gathering-related moves (team/role/color selection,
+   * or start-game moves) are currently legal. Game renderers can use
+   * `if (this.gatheringActive) { ... }` to conditionally render
+   * gathering-specific UI.
+   */
+  get gatheringActive(): boolean {
+    for (const name of Object.keys(this.moveLegality)) {
+      const info = this.moveLegality[name];
+      if (!info.legalForAnyone) continue;
+      // Check for known start-move names
+      if (['Confirm Players', 'Close All Seats', 'Start Game', 'Finalize Set Up'].includes(name)) {
+        return true;
+      }
+    }
+    // Also check state for ReadyToStartError (which implies gathering is active)
+    const computed = (this.state as any)?.Game?.Computed?.Global;
+    if (computed?.ReadyToStartError) {
+      return true;
+    }
+    return false;
+  }
+
   private _boundHandleButtonTapped?: (e: Event) => void;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
