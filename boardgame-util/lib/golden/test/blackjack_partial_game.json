@@ -3,7 +3,7 @@
 		"Name": "blackjack",
 		"ID": "92597E5A0EB2CB35",
 		"SecretSalt": "0EBDAFE6D01BB76B",
-		"Version": 18,
+		"Version": 20,
 		"Winners": null,
 		"Finished": false,
 		"Created": "2018-07-24T11:50:25.195895981+01:00",
@@ -21,30 +21,30 @@
 	},
 	"Moves": [
 		{
-			"Name": "Wait For Enough Players",
+			"Name": "Wait For Enough Players - Gathering",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": 1,
+			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.000839542Z",
+			"Timestamp": "0001-01-01T00:00:00.004805208Z",
 			"Blob": {}
 		},
 		{
-			"Name": "Deal Initial Hidden Card",
+			"Name": "Begin Game",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": 1,
+			"Phase": 0,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.00202275Z",
+			"Timestamp": "0001-01-01T00:00:00.004805208Z",
 			"Blob": {}
 		},
 		{
-			"Name": "Deal Initial Hidden Card",
+			"Name": "Wait For Enough Players",
 			"Version": -1,
 			"Initiator": -2,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.003506708Z",
+			"Timestamp": "0001-01-01T00:00:00.004805208Z",
 			"Blob": {}
 		},
 		{
@@ -66,21 +66,21 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Deal Initial Visible Card",
+			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -5,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.007701208Z",
+			"Timestamp": "0001-01-01T00:00:00.007521139Z",
 			"Blob": {}
 		},
 		{
-			"Name": "Deal Initial Visible Card",
+			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -6,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.009059375Z",
+			"Timestamp": "0001-01-01T00:00:00.008961236Z",
 			"Blob": {}
 		},
 		{
@@ -102,21 +102,39 @@
 			"Blob": {}
 		},
 		{
-			"Name": "Start Phase Normal Play",
+			"Name": "Deal Initial Visible Card",
 			"Version": -1,
 			"Initiator": -9,
 			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.013499917Z",
+			"Timestamp": "0001-01-01T00:00:00.012884Z",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Visible Card",
+			"Version": -1,
+			"Initiator": -10,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "0001-01-01T00:00:00.01365375Z",
+			"Blob": {}
+		},
+		{
+			"Name": "Start Phase Normal Play",
+			"Version": -1,
+			"Initiator": -11,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "0001-01-01T00:00:00.0144235Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Reveal Hidden Card",
 			"Version": -1,
-			"Initiator": -10,
+			"Initiator": -12,
 			"Phase": 2,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.014699792Z",
+			"Timestamp": "0001-01-01T00:00:00.01519325Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -429,7 +447,7 @@
 						"ShuffleCount": 1
 					},
 					"MaxRounds": 5,
-					"Phase": "Initial Deal",
+					"Phase": "Gathering",
 					"RRHasStarted": false,
 					"RRLastPlayer": 0,
 					"RRRoundCount": 0,
@@ -634,6 +652,15 @@
 		{},
 		{
 			"Game": {
+				"Phase": [
+					"Gathering",
+					"Initial Deal"
+				]
+			}
+		},
+		{},
+		{
+			"Game": {
 				"DrawStack": {
 					"IDs": {
 						"_0": [
@@ -668,7 +695,7 @@
 						],
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								2
+								4
 							]
 						},
 						"Indexes": {
@@ -687,7 +714,7 @@
 						},
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								2
+								4
 							]
 						},
 						"Indexes": {
@@ -737,7 +764,7 @@
 						],
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								3
+								5
 							]
 						},
 						"Indexes": {
@@ -756,7 +783,7 @@
 						},
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								3
+								5
 							]
 						},
 						"Indexes": {
@@ -806,7 +833,7 @@
 						],
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								4
+								6
 							]
 						},
 						"Indexes": {
@@ -825,7 +852,7 @@
 						},
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								4
+								6
 							]
 						},
 						"Indexes": {
@@ -883,7 +910,7 @@
 						],
 						"IDsLastSeen": {
 							"85e33d7b1618bbfb1c24323e921bedf2d6e48cbd": [
-								5
+								7
 							]
 						},
 						"Indexes": {
@@ -902,7 +929,7 @@
 						},
 						"IDsLastSeen": {
 							"85e33d7b1618bbfb1c24323e921bedf2d6e48cbd": [
-								5
+								7
 							]
 						},
 						"Indexes": {
@@ -960,7 +987,7 @@
 						},
 						"IDsLastSeen": {
 							"d8dd112c55aff9e888725ce4c372e8ac45712999": [
-								6
+								8
 							]
 						},
 						"Indexes": {
@@ -979,7 +1006,7 @@
 						},
 						"IDsLastSeen": {
 							"d8dd112c55aff9e888725ce4c372e8ac45712999": [
-								6
+								8
 							]
 						},
 						"Indexes": {
@@ -1029,7 +1056,7 @@
 						},
 						"IDsLastSeen": {
 							"a076ae88fa7b8bd929bbc7ba6fbb6c3f03543933": [
-								7
+								9
 							]
 						},
 						"Indexes": {
@@ -1048,7 +1075,7 @@
 						},
 						"IDsLastSeen": {
 							"a076ae88fa7b8bd929bbc7ba6fbb6c3f03543933": [
-								7
+								9
 							]
 						},
 						"Indexes": {
@@ -1098,7 +1125,7 @@
 						},
 						"IDsLastSeen": {
 							"328713e7ce4f8957c15b61fc2719b7ed6572ea82": [
-								8
+								10
 							]
 						},
 						"Indexes": {
@@ -1117,7 +1144,7 @@
 						},
 						"IDsLastSeen": {
 							"328713e7ce4f8957c15b61fc2719b7ed6572ea82": [
-								8
+								10
 							]
 						},
 						"Indexes": {
@@ -1175,7 +1202,7 @@
 						},
 						"IDsLastSeen": {
 							"6cefe9064f3f7a583722d7a6235f9d649526b0a5": [
-								9
+								11
 							]
 						},
 						"Indexes": {
@@ -1194,7 +1221,7 @@
 						},
 						"IDsLastSeen": {
 							"6cefe9064f3f7a583722d7a6235f9d649526b0a5": [
-								9
+								11
 							]
 						},
 						"Indexes": {
@@ -1222,8 +1249,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								2,
-								11
+								4,
+								13
 							]
 						}
 					},
@@ -1254,7 +1281,7 @@
 						},
 						"IDsLastSeen": {
 							"7896fae3c3c65f36bd790331b4696e46e8080a8c": [
-								11
+								13
 							]
 						},
 						"Indexes": {
@@ -1300,7 +1327,7 @@
 						},
 						"IDsLastSeen": {
 							"8a1360670fcf7ea0ae25160f077483ad01b7c100": [
-								12
+								14
 							]
 						},
 						"Indexes": {
@@ -1323,7 +1350,7 @@
 						},
 						"IDsLastSeen": {
 							"8a1360670fcf7ea0ae25160f077483ad01b7c100": [
-								12
+								14
 							]
 						},
 						"Indexes": {
@@ -1351,8 +1378,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								3,
-								14
+								5,
+								16
 							]
 						}
 					},
@@ -1383,7 +1410,7 @@
 						},
 						"IDsLastSeen": {
 							"14e7cd7cd75fe79c5b09cb5addf3ab4887dd315c": [
-								14
+								16
 							]
 						},
 						"Indexes": {
@@ -1429,7 +1456,7 @@
 						},
 						"IDsLastSeen": {
 							"f6359ae00346920b61d8d03a4f1f0c88565e939b": [
-								15
+								17
 							]
 						},
 						"Indexes": {
@@ -1448,7 +1475,7 @@
 						},
 						"IDsLastSeen": {
 							"f6359ae00346920b61d8d03a4f1f0c88565e939b": [
-								15
+								17
 							]
 						},
 						"Indexes": {
@@ -1487,8 +1514,8 @@
 					"Hand": {
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								4,
-								18
+								6,
+								20
 							]
 						}
 					},
@@ -1519,7 +1546,7 @@
 						},
 						"IDsLastSeen": {
 							"ec7b4d35b72f146698ec7c18f8edb8f7a3836a57": [
-								18
+								20
 							]
 						},
 						"Indexes": {
