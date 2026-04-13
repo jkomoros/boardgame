@@ -25,9 +25,9 @@
 			"Name": "Seat Player",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.407296555Z",
+			"Timestamp": "0001-01-01T00:00:00.001074542Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -36,9 +36,9 @@
 			"Name": "Activate Inactive Players",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:00.41160642Z",
+			"Timestamp": "0001-01-01T00:00:00.002480167Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -47,9 +47,9 @@
 			"Name": "Seat Player",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.580232012Z",
+			"Timestamp": "0001-01-01T00:00:00.004065625Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -58,9 +58,9 @@
 			"Name": "Activate Inactive Players",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.585189163Z",
+			"Timestamp": "0001-01-01T00:00:00.005359334Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -69,18 +69,18 @@
 			"Name": "Wait For Enough Players",
 			"Version": -1,
 			"Initiator": -2,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.589176824Z",
+			"Timestamp": "0001-01-01T00:00:00.006621917Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Inactivate Empty Seat",
 			"Version": -1,
 			"Initiator": -3,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.593893648Z",
+			"Timestamp": "0001-01-01T00:00:00.008058125Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -89,9 +89,9 @@
 			"Name": "Inactivate Empty Seat",
 			"Version": -1,
 			"Initiator": -4,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.598079042Z",
+			"Timestamp": "0001-01-01T00:00:00.00925625Z",
 			"Blob": {
 				"TargetPlayerIndex": 3
 			}
@@ -100,54 +100,54 @@
 			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -5,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.601990547Z",
+			"Timestamp": "0001-01-01T00:00:00.010603959Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -6,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.606528733Z",
+			"Timestamp": "0001-01-01T00:00:00.012083542Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Deal Initial Visible Card",
 			"Version": -1,
 			"Initiator": -7,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.611068622Z",
+			"Timestamp": "0001-01-01T00:00:00.013370334Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Deal Initial Visible Card",
 			"Version": -1,
 			"Initiator": -8,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.616009277Z",
+			"Timestamp": "0001-01-01T00:00:00.014637375Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Start Phase Normal Play",
 			"Version": -1,
 			"Initiator": -9,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.621881184Z",
+			"Timestamp": "0001-01-01T00:00:00.016191Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Reveal Hidden Card",
 			"Version": -1,
 			"Initiator": -10,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:28.627942614Z",
+			"Timestamp": "0001-01-01T00:00:00.017437292Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -156,9 +156,9 @@
 			"Name": "Current Player Hit",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": 0,
-			"Timestamp": "0001-01-01T00:00:37.160173321Z",
+			"Timestamp": "0001-01-01T00:00:00.018691084Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -167,9 +167,9 @@
 			"Name": "Current Player Hit",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": 0,
-			"Timestamp": "0001-01-01T00:00:39.791535749Z",
+			"Timestamp": "0001-01-01T00:00:00.020281209Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -178,9 +178,9 @@
 			"Name": "Current Player Stand",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": 0,
-			"Timestamp": "0001-01-01T00:00:42.55924713Z",
+			"Timestamp": "0001-01-01T00:00:00.02154925Z",
 			"Blob": {
 				"TargetPlayerIndex": 0
 			}
@@ -189,18 +189,18 @@
 			"Name": "Finish Turn",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:42.564040643Z",
+			"Timestamp": "0001-01-01T00:00:00.023035334Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Reveal Hidden Card",
 			"Version": -1,
 			"Initiator": -2,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:42.568886872Z",
+			"Timestamp": "0001-01-01T00:00:00.024262875Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -209,9 +209,9 @@
 			"Name": "Current Player Stand",
 			"Version": -1,
 			"Initiator": 0,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": 1,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.025560459Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}
@@ -220,63 +220,63 @@
 			"Name": "Start Round Cleanup",
 			"Version": -1,
 			"Initiator": -1,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.027068542Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Accumulate Scores",
 			"Version": -1,
 			"Initiator": -2,
-			"Phase": 2,
+			"Phase": 3,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.028281542Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Collect Cards",
 			"Version": -1,
 			"Initiator": -3,
-			"Phase": 2,
+			"Phase": 3,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.032568875Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Reset Player For New Round",
 			"Version": -1,
 			"Initiator": -4,
-			"Phase": 2,
+			"Phase": 3,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.03393675Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Increment Rounds Completed",
 			"Version": -1,
 			"Initiator": -5,
-			"Phase": 2,
+			"Phase": 3,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.035455042Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Start Next Round",
 			"Version": -1,
 			"Initiator": -6,
-			"Phase": 2,
+			"Phase": 3,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.036637834Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Activate Inactive Players",
 			"Version": -1,
 			"Initiator": -7,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.038096Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -285,9 +285,9 @@
 			"Name": "Activate Inactive Players",
 			"Version": -1,
 			"Initiator": -8,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.039298209Z",
 			"Blob": {
 				"TargetPlayerIndex": 3
 			}
@@ -296,18 +296,18 @@
 			"Name": "Wait For Enough Players",
 			"Version": -1,
 			"Initiator": -9,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.040538584Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Inactivate Empty Seat",
 			"Version": -1,
 			"Initiator": -10,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.041945042Z",
 			"Blob": {
 				"TargetPlayerIndex": 2
 			}
@@ -316,9 +316,9 @@
 			"Name": "Inactivate Empty Seat",
 			"Version": -1,
 			"Initiator": -11,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.043159959Z",
 			"Blob": {
 				"TargetPlayerIndex": 3
 			}
@@ -327,54 +327,54 @@
 			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -12,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.044598375Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Deal Initial Hidden Card",
 			"Version": -1,
 			"Initiator": -13,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.045829459Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Deal Initial Visible Card",
 			"Version": -1,
 			"Initiator": -14,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.047107375Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Deal Initial Visible Card",
 			"Version": -1,
 			"Initiator": -15,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.048675Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Start Phase Normal Play",
 			"Version": -1,
 			"Initiator": -16,
-			"Phase": 0,
+			"Phase": 1,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.049975125Z",
 			"Blob": {}
 		},
 		{
 			"Name": "Reveal Hidden Card",
 			"Version": -1,
 			"Initiator": -17,
-			"Phase": 1,
+			"Phase": 2,
 			"Proposer": -2,
-			"Timestamp": "0001-01-01T00:00:48.321259359Z",
+			"Timestamp": "0001-01-01T00:00:00.051542917Z",
 			"Blob": {
 				"TargetPlayerIndex": 1
 			}

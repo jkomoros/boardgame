@@ -11,7 +11,8 @@ import (
 
 //boardgame:codegen
 const (
-	phaseInitialDeal = iota
+	phaseGathering = iota
+	phaseInitialDeal
 	phaseNormalPlay
 	phaseRoundCleanup
 )

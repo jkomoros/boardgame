@@ -195,6 +195,40 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moves.SeatPlayer),
 			),
 		),
+		// Gathering phase: wait for players, let admin start the game.
+		// The gathering panel will automatically show "Waiting for Players",
+		// a share link, and a "Start Game" button.
+		moves.AddOrderedForPhase(phaseGathering,
+			moves.Optional(
+				auto.MustConfig(
+					new(moves.ActivateInactivePlayer),
+					moves.WithMoveNameSuffix("Gathering"),
+				),
+			),
+			moves.Optional(
+				auto.MustConfig(
+					new(moves.CloseAllSeats),
+					moves.WithMoveName("Confirm Players"),
+					moves.WithHelpText("Closes empty seats so the game can begin"),
+				),
+			),
+			auto.MustConfig(
+				new(moves.WaitForEnoughPlayers),
+				moves.WithMoveNameSuffix("Gathering"),
+				moves.WithRequireExplicitStart(),
+			),
+			moves.Optional(
+				auto.MustConfig(
+					new(moves.InactivateEmptySeat),
+					moves.WithMoveNameSuffix("Gathering"),
+				),
+			),
+			auto.MustConfig(
+				new(moves.StartPhase),
+				moves.WithMoveName("Begin Game"),
+				moves.WithPhaseToStart(phaseInitialDeal, phaseEnum),
+			),
+		),
 		moves.AddForPhase(phaseNormalPlay,
 			auto.MustConfig(
 				new(moveStartRoundCleanup),
