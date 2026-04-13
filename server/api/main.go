@@ -500,8 +500,14 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
 			return
 		}
-		s.setHasEmptySlots(c, false)
 		effectiveViewingAsPlayer = slot
+
+		// Re-check empty slots after seating. The old code always set
+		// hasEmptySlots=false here, but in games with a gathering phase
+		// (where only 1 of N players has been seated), there are still
+		// empty slots remaining.
+		remainingEmptySlots := len(emptySlots) - 1 // we just filled one
+		s.setHasEmptySlots(c, remainingEmptySlots > 0)
 
 		s.autoCloseGameIfFull(game)
 
