@@ -109,6 +109,10 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 	//Notify the web sockets that the game was changed
 	server.notifier.gameChanged(game)
 
+	// Check if seats have reopened (e.g., between rounds) and the game
+	// should be made joinable again.
+	server.maybeReopenGame(game)
+
 	return nil
 
 }

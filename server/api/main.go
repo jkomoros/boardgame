@@ -362,6 +362,41 @@ func (s *Server) gameFromID(gameID, gameName string) *boardgame.Game {
 	return game
 }
 
+// maybeReopenGame checks whether a game that was previously closed has open
+// seats again (e.g., between rounds when ActivateEmptySeat fires). If so, it
+// sets the game back to Open so new players can join.
+func (s *Server) maybeReopenGame(record *boardgame.GameStorageRecord) {
+	managerInfo := s.managers[record.Name]
+	if managerInfo == nil || !managerInfo.playerHasSeat {
+		return
+	}
+
+	game := managerInfo.manager.Game(record.ID)
+	if game == nil {
+		return
+	}
+
+	closedSeats := s.closedSeatsForGame(game)
+	userIds := s.storage.UserIDsForGame(game.ID())
+	agents := game.Agents()
+
+	for i, uid := range userIds {
+		if uid == "" && agents[i] == "" && !closedSeats[i] {
+			// There's an open, unfilled, non-agent slot.
+			eGame, err := s.storage.ExtendedGame(game.ID())
+			if err == nil && !eGame.Open {
+				eGame.Open = true
+				if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
+					s.logger.Errorln("Failed to reopen game:", err)
+				} else {
+					s.logger.Infoln("Reopened game", game.ID(), "because seats are available again")
+				}
+			}
+			return
+		}
+	}
+}
+
 // closedSeatsForGame will return a slice of bools of equal length to the game's
 // NumPlayers, where each one is set to true if the playerState has a Seat and
 // the seat is marked as closed.
