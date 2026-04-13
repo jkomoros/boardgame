@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import './boardgame-player-roster.js';
+import './boardgame-gathering-panel.js';
 import './boardgame-render-game.js';
 import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
@@ -216,6 +217,18 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .active=${this.selected}>
         </boardgame-player-roster>
       </div>
+      <boardgame-gathering-panel
+        .moveForms=${this.moveForms}
+        .state=${this._currentState}
+        .viewingAsPlayer=${this.viewingAsPlayer}
+        .hasEmptySlots=${this._hasEmptySlots}
+        .gameOpen=${this._open}
+        .finished=${this.game ? this.game.Finished : false}
+        .isOwner=${this._isOwner}
+        .loggedIn=${this._loggedIn}
+        .gameRoute=${this._gameRoute}
+        .playersInfo=${this._playersInfo}>
+      </boardgame-gathering-panel>
       <div class="card">
         <boardgame-render-game
           id="render"

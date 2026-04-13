@@ -232,11 +232,22 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     return false;
   }
 
+  private get _readyToStartError(): string {
+    const s = this.state as any;
+    return s?.Game?.Computed?.Global?.ReadyToStartError || '';
+  }
+
   private _bannerText(finished: boolean, winners: number[]): string {
-    if (!finished) {
-      return "Playing";
+    if (finished) {
+      return "Game Over";
     }
-    return "Game Over";
+    if (this._readyToStartError) {
+      return "Setting Up";
+    }
+    if (this.hasEmptySlots && this.gameOpen) {
+      return "Waiting for Players";
+    }
+    return "Playing";
   }
 
   private playerName(viewingAsPlayer: number): string {

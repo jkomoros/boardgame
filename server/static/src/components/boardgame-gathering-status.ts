@@ -1,0 +1,88 @@
+/**
+ * boardgame-gathering-status
+ *
+ * Shows gathering status: "Waiting for N more players", "Ready to start",
+ * or the ReadyToStart error message.
+ */
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import type { MoveForm } from '../types/api';
+
+interface PlayerInfo {
+  IsEmpty: boolean;
+  IsAgent: boolean;
+  PhotoUrl: string;
+  DisplayName: string;
+}
+
+@customElement('boardgame-gathering-status')
+export class BoardgameGatheringStatus extends LitElement {
+  static styles = css`
+    :host {
+      display: inline-block;
+    }
+    .status {
+      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-size: var(--md-sys-typescale-body-medium-size, 14px);
+      color: var(--md-sys-color-on-secondary-container, #1d192b);
+    }
+    .error {
+      color: var(--md-sys-color-error, #b3261e);
+    }
+  `;
+
+  @property({ type: Array })
+  playersInfo: PlayerInfo[] = [];
+
+  @property({ type: Boolean })
+  hasEmptySlots = false;
+
+  @property({ type: Boolean })
+  gameOpen = false;
+
+  @property({ type: Boolean })
+  finished = false;
+
+  @property({ type: String })
+  readyToStartError = '';
+
+  @property({ type: Object })
+  startMoveForm: MoveForm | null = null;
+
+  private get _emptyCount(): number {
+    return this.playersInfo.filter(p => p.IsEmpty && !p.IsAgent).length;
+  }
+
+  private get _statusText(): string {
+    if (this.readyToStartError) {
+      return this.readyToStartError;
+    }
+    if (this.hasEmptySlots && this.gameOpen) {
+      const empty = this._emptyCount;
+      if (empty === 1) {
+        return 'Waiting for 1 more player';
+      }
+      return `Waiting for ${empty} more players`;
+    }
+    if (this.startMoveForm?.LegalForAnyone) {
+      return 'Ready to start';
+    }
+    return '';
+  }
+
+  render() {
+    const text = this._statusText;
+    if (!text) return nothing;
+
+    const isError = !!this.readyToStartError;
+    return html`
+      <span class="status ${isError ? 'error' : ''}">${text}</span>
+    `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-gathering-status': BoardgameGatheringStatus;
+  }
+}
