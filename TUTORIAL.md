@@ -2093,6 +2093,67 @@ You can see idiomatic use of these concepts in the blackjack example.
 
 See the package doc of the behaviors package for more.
 
+### Gathering
+
+The gathering system builds on seats and inactive players to provide a "lobby"
+experience. There is no special lobby mode — a gathering phase is just a normal
+phase where gathering-related moves are legal. The client automatically renders
+appropriate UI (waiting status, share link, team/role/color pickers, start
+button) based on which moves are currently legal.
+
+**Zero-code default:** Any game that uses `moves.DefaultRoundSetup` gets a
+gathering panel for free. The client shows "Waiting for Players" and a share
+link when the game has empty seats. If you use
+`moves.DefaultRoundSetup(auto, moves.WithManualStart())`, a "Start Game" button
+also appears.
+
+**Team/Role/Color selection:** To let players pick their team, role, or color
+during the gathering phase:
+
+1. Embed the corresponding behavior in your playerState:
+   `behaviors.PlayerTeam`, `behaviors.PlayerRole`, or `behaviors.PlayerColor`.
+
+2. Define the enum: `const (teamUnset = iota; teamRed; teamBlue)` with a
+   `//boardgame:codegen` annotation. The first value should be an "unset"
+   sentinel if you want to detect players who haven't picked yet.
+
+3. Register the selection moves for your gathering phase:
+```
+moves.AddForPhase(phaseGathering, moves.GatheringMoves(auto)...)
+```
+   `GatheringMoves` auto-detects which behaviors you've embedded and returns
+   the corresponding move configs (SelectTeam, SelectRole, SelectColor). Use
+   `AddForPhase` (not `AddOrderedForPhase`) so players can pick freely in any
+   order.
+
+4. Optionally validate configuration via `ReadyToStart`:
+```
+func (g *gameDelegate) ReadyToStart(state boardgame.ImmutableState) error {
+    // Return nil when ready, or a descriptive error
+    return errors.New("each team needs at least 2 players")
+}
+```
+   This error surfaces in the client as a status message and disables the
+   "Start Game" button until configuration is valid.
+
+**Uniqueness:** `SelectColor` enforces uniqueness by default (no two players
+can share a color). Use `moves.WithAllowDuplicates()` to disable. `SelectRole`
+allows duplicates by default; use `moves.WithUnique()` to require unique
+selections (e.g., Spirit Island spirits). Both options work on all three moves.
+
+**Multi-round games:** To reopen gathering between rounds, transition your
+cleanup phase back to the gathering phase. `DefaultRoundSetup` will re-activate
+players, and the gathering UI will reappear naturally.
+
+**Client overrides:** Game authors can customize the gathering UI:
+- CSS: set `--boardgame-gathering-team-picker-display: none` to hide the
+  framework's picker and render your own in the game renderer.
+- Game renderer: check `this.gatheringActive` to conditionally render
+  gathering-specific UI alongside the game board.
+
+See the blackjack example for an idiomatic gathering phase, and the moves
+package doc for the full API reference.
+
 ### Variants
 
 Games can often have different variations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
