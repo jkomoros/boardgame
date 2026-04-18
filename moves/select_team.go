@@ -16,6 +16,19 @@ any phase where it is legal.
 The player state must embed [behaviors.PlayerTeam], and the game must have a
 "team" enum in its chest.
 
+Any valid value in the "team" enum is accepted. If your game needs an "unset"
+sentinel to detect players who haven't picked a team yet, define your enum
+with a sentinel first value:
+
+	const (
+	    teamUnset = iota // sentinel: no team selected yet
+	    teamRed
+	    teamBlue
+	)
+
+Then check for the sentinel in your [boardgame.GameDelegate.ReadyToStart]
+implementation.
+
 boardgame:codegen
 */
 type SelectTeam struct {
@@ -23,8 +36,8 @@ type SelectTeam struct {
 	SelectedTeam enum.Val `enum:"team"`
 }
 
-// Legal verifies the parent AnyPlayer checks pass, and that SelectedTeam is a
-// valid non-default value in the "team" enum.
+// Legal verifies the parent AnyPlayer checks pass, that SelectedTeam is set and
+// valid, and that it belongs to the correct enum.
 func (s *SelectTeam) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := s.AnyPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -34,9 +47,18 @@ func (s *SelectTeam) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		return errors.New("no team selected")
 	}
 
-	// Must be a non-default value (default/zero typically means "unset")
-	if s.SelectedTeam.Value() == 0 {
-		return errors.New("you must select a team")
+	// Verify the value belongs to the correct enum (prevents cross-enum corruption)
+	teamEnum := state.Manager().Chest().Enums().Enum("team")
+	if teamEnum == nil {
+		return errors.New("no 'team' enum found")
+	}
+	if s.SelectedTeam.Enum() != teamEnum {
+		return errors.New("selected team value is from a different enum")
+	}
+
+	// Verify the value is valid within the enum
+	if !teamEnum.Valid(s.SelectedTeam.Value()) {
+		return errors.New("selected team is not a valid value")
 	}
 
 	return nil

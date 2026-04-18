@@ -73,7 +73,8 @@ export class BoardgameGatheringRolePicker extends LitElement {
     if (!this.moveForms) return null;
     return this.moveForms.find(f =>
       f.LegalForAnyone &&
-      f.Fields?.some((field: MoveFormField) => field.EnumName === 'role')
+      f.Fields?.some((field: MoveFormField) => field.Name === 'TargetPlayerIndex') &&
+      f.Fields?.some((field: MoveFormField) => field.Name === 'SelectedRole' && field.EnumName === 'role')
     ) ?? null;
   }
 

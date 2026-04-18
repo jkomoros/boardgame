@@ -21,7 +21,10 @@ If configured with [WithUnique], Legal will reject values already claimed by
 another seated player (for games like Spirit Island where each player must have
 a unique spirit/role). By default, duplicate roles are allowed (for games like
 Captain Sonar where roles are unique per team but shared across teams, validated
-via ReadyToStart).
+via [boardgame.GameDelegate.ReadyToStart]).
+
+Any valid value in the "role" enum is accepted. See [SelectTeam] for the
+sentinel convention if your game needs an "unset" value.
 
 boardgame:codegen
 */
@@ -30,8 +33,8 @@ type SelectRole struct {
 	SelectedRole enum.Val `enum:"role"`
 }
 
-// Legal verifies the parent AnyPlayer checks pass, that SelectedRole is valid,
-// and optionally enforces uniqueness.
+// Legal verifies the parent AnyPlayer checks pass, that SelectedRole is set and
+// valid, that it belongs to the correct enum, and optionally enforces uniqueness.
 func (s *SelectRole) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := s.AnyPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -41,8 +44,15 @@ func (s *SelectRole) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		return errors.New("no role selected")
 	}
 
-	if s.SelectedRole.Value() == 0 {
-		return errors.New("you must select a role")
+	roleEnum := state.Manager().Chest().Enums().Enum("role")
+	if roleEnum == nil {
+		return errors.New("no 'role' enum found")
+	}
+	if s.SelectedRole.Enum() != roleEnum {
+		return errors.New("selected role value is from a different enum")
+	}
+	if !roleEnum.Valid(s.SelectedRole.Value()) {
+		return errors.New("selected role is not a valid value")
 	}
 
 	// If WithUnique is configured, check no other seated player has this role
@@ -52,7 +62,6 @@ func (s *SelectRole) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 			if boardgame.PlayerIndex(i) == target {
 				continue
 			}
-			// Only check seated players
 			if seater, ok := p.(interfaces.Seater); ok {
 				if !seater.SeatIsFilled() {
 					continue

@@ -22,6 +22,9 @@ same color. This is the safe default since in virtually every real game with
 player colors, colors are unique. To disable uniqueness enforcement, configure
 with [WithAllowDuplicates].
 
+Any valid value in the "color" enum is accepted. See [SelectTeam] for the
+sentinel convention if your game needs an "unset" value.
+
 boardgame:codegen
 */
 type SelectColor struct {
@@ -29,8 +32,9 @@ type SelectColor struct {
 	SelectedColor enum.Val `enum:"color"`
 }
 
-// Legal verifies the parent AnyPlayer checks pass, that SelectedColor is valid,
-// and enforces uniqueness (unless WithAllowDuplicates is configured).
+// Legal verifies the parent AnyPlayer checks pass, that SelectedColor is set and
+// valid, that it belongs to the correct enum, and enforces uniqueness unless
+// WithAllowDuplicates is configured.
 func (s *SelectColor) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := s.AnyPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -40,8 +44,15 @@ func (s *SelectColor) Legal(state boardgame.ImmutableState, proposer boardgame.P
 		return errors.New("no color selected")
 	}
 
-	if s.SelectedColor.Value() == 0 {
-		return errors.New("you must select a color")
+	colorEnum := state.Manager().Chest().Enums().Enum("color")
+	if colorEnum == nil {
+		return errors.New("no 'color' enum found")
+	}
+	if s.SelectedColor.Enum() != colorEnum {
+		return errors.New("selected color value is from a different enum")
+	}
+	if !colorEnum.Valid(s.SelectedColor.Value()) {
+		return errors.New("selected color is not a valid value")
 	}
 
 	// Enforce uniqueness by default (unless WithAllowDuplicates)
@@ -51,7 +62,6 @@ func (s *SelectColor) Legal(state boardgame.ImmutableState, proposer boardgame.P
 			if boardgame.PlayerIndex(i) == target {
 				continue
 			}
-			// Only check seated players
 			if seater, ok := p.(interfaces.Seater); ok {
 				if !seater.SeatIsFilled() {
 					continue

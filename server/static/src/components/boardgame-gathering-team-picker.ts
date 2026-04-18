@@ -71,12 +71,18 @@ export class BoardgameGatheringTeamPicker extends LitElement {
   @property({ type: Array })
   playersInfo: PlayerInfo[] = [];
 
-  /** Find the team selection move by field signature */
+  /**
+   * Find the team selection move by field signature: must have both a
+   * TargetPlayerIndex field AND a field named SelectedTeam with EnumName "team".
+   * This avoids false positives from unrelated moves that happen to have a
+   * "team" enum field.
+   */
   private get _teamMoveForm(): MoveForm | null {
     if (!this.moveForms) return null;
     return this.moveForms.find(f =>
       f.LegalForAnyone &&
-      f.Fields?.some((field: MoveFormField) => field.EnumName === 'team')
+      f.Fields?.some((field: MoveFormField) => field.Name === 'TargetPlayerIndex') &&
+      f.Fields?.some((field: MoveFormField) => field.Name === 'SelectedTeam' && field.EnumName === 'team')
     ) ?? null;
   }
 

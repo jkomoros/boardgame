@@ -39,10 +39,6 @@ export class BoardgameGatheringPanel extends LitElement {
       display: block;
     }
 
-    :host([hidden]) {
-      display: none !important;
-    }
-
     .panel {
       background: var(--md-sys-color-secondary-container, #e8def8);
       color: var(--md-sys-color-on-secondary-container, #1d192b);
@@ -84,12 +80,6 @@ export class BoardgameGatheringPanel extends LitElement {
   @property({ type: Boolean })
   finished = false;
 
-  @property({ type: Boolean })
-  isOwner = false;
-
-  @property({ type: Boolean })
-  loggedIn = false;
-
   @property({ type: Object })
   gameRoute: GameRoute | null = null;
 
@@ -126,10 +116,11 @@ export class BoardgameGatheringPanel extends LitElement {
     if (!this.moveForms) return false;
     return this.moveForms.some(f =>
       f.LegalForAnyone &&
+      f.Fields?.some(field => field.Name === 'TargetPlayerIndex') &&
       f.Fields?.some(field =>
-        field.EnumName === 'team' ||
-        field.EnumName === 'role' ||
-        field.EnumName === 'color'
+        (field.Name === 'SelectedTeam' && field.EnumName === 'team') ||
+        (field.Name === 'SelectedRole' && field.EnumName === 'role') ||
+        (field.Name === 'SelectedColor' && field.EnumName === 'color')
       )
     );
   }
@@ -140,10 +131,8 @@ export class BoardgameGatheringPanel extends LitElement {
 
   render() {
     if (!this._hasAnythingToShow) {
-      this.setAttribute('hidden', '');
       return nothing;
     }
-    this.removeAttribute('hidden');
 
     return html`
       <div class="panel">

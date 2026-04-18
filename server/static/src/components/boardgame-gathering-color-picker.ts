@@ -66,20 +66,40 @@ export class BoardgameGatheringColorPicker extends LitElement {
       cursor: pointer;
       transition: border-color 0.2s, transform 0.15s;
       position: relative;
+      padding: 0;
+      background: none;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
     }
-    .swatch:hover:not(.disabled):not(.selected) {
+    .swatch:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary, #6750a4);
+      outline-offset: 2px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .swatch { transition: none; }
+    }
+    .swatch:hover:not([aria-disabled="true"]):not([aria-checked="true"]) {
       transform: scale(1.1);
     }
-    .swatch.selected {
+    .swatch[aria-checked="true"] {
       border-color: var(--md-sys-color-on-surface, #1c1b1f);
       transform: scale(1.15);
     }
-    .swatch.claimed {
+    .swatch[aria-checked="true"]::after {
+      content: "✓";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    }
+    .swatch[aria-disabled="true"] {
       opacity: 0.4;
       cursor: not-allowed;
-    }
-    .swatch.disabled {
-      cursor: default;
     }
     .player-color-row {
       display: flex;
@@ -124,7 +144,8 @@ export class BoardgameGatheringColorPicker extends LitElement {
     if (!this.moveForms) return null;
     return this.moveForms.find(f =>
       f.LegalForAnyone &&
-      f.Fields?.some((field: MoveFormField) => field.EnumName === 'color')
+      f.Fields?.some((field: MoveFormField) => field.Name === 'TargetPlayerIndex') &&
+      f.Fields?.some((field: MoveFormField) => field.Name === 'SelectedColor' && field.EnumName === 'color')
     ) ?? null;
   }
 
@@ -154,6 +175,40 @@ export class BoardgameGatheringColorPicker extends LitElement {
     return claimed;
   }
 
+  /** Keyboard navigation for the radiogroup (arrow keys move focus, Enter/Space selects) */
+  private _handleSwatchKeydown(e: KeyboardEvent, colors: EnumValue[], currentName: string): void {
+    const validColors = colors.filter(c => c.Name);
+    const currentIdx = validColors.findIndex(c => c.Name === currentName);
+    let nextIdx = -1;
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        nextIdx = (currentIdx + 1) % validColors.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        nextIdx = (currentIdx - 1 + validColors.length) % validColors.length;
+        break;
+      case ' ':
+      case 'Enter':
+        e.preventDefault();
+        if (!this._claimedColors.has(currentName)) {
+          this._handleColorClick(currentName);
+        }
+        return;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    // Move focus to the next swatch
+    const swatches = this.shadowRoot?.querySelectorAll('.swatch') as NodeListOf<HTMLElement>;
+    if (swatches && swatches[nextIdx]) {
+      swatches[nextIdx].focus();
+    }
+  }
+
   private _handleColorClick(colorName: string): void {
     const moveForm = this._colorMoveForm;
     if (!moveForm || !moveForm.LegalForPlayer) return;
@@ -181,19 +236,24 @@ export class BoardgameGatheringColorPicker extends LitElement {
 
     return html`
       <div>
-        <h4>Color</h4>
+        <h4 id="color-heading">Color</h4>
         ${isInteractive ? html`
-          <div class="swatches">
+          <div class="swatches" role="radiogroup" aria-labelledby="color-heading">
             ${colors.filter(c => c.Name).map(c => {
               const isClaimed = claimed.has(c.Name);
               const isSelected = c.Name === myColor;
               return html`
-                <div
-                  class="swatch ${isSelected ? 'selected' : ''} ${isClaimed ? 'claimed' : ''}"
+                <button
+                  class="swatch"
+                  role="radio"
+                  aria-checked=${isSelected ? 'true' : 'false'}
+                  aria-disabled=${isClaimed ? 'true' : 'false'}
+                  aria-label="${c.Name}${isClaimed ? ' (taken)' : ''}"
+                  tabindex=${isSelected ? 0 : -1}
                   style="background-color: ${colorToCss(c.Name)}"
-                  title="${c.Name}${isClaimed ? ' (taken)' : ''}"
-                  @click=${() => !isClaimed && this._handleColorClick(c.Name)}>
-                </div>
+                  @click=${() => !isClaimed && this._handleColorClick(c.Name)}
+                  @keydown=${(e: KeyboardEvent) => this._handleSwatchKeydown(e, colors, c.Name)}>
+                </button>
               `;
             })}
           </div>
