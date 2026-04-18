@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 /*
@@ -61,7 +62,33 @@ func (s *SelectTeam) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		return errors.New("selected team is not a valid value")
 	}
 
+	// If WithUnique is configured, check no other seated player has this team
+	if s.isUniqueEnforced() {
+		target := s.TargetPlayerIndex
+		for i, p := range state.ImmutablePlayerStates() {
+			if boardgame.PlayerIndex(i) == target {
+				continue
+			}
+			if seater, ok := p.(interfaces.Seater); ok {
+				if !seater.SeatIsFilled() {
+					continue
+				}
+			}
+			if teamHolder, ok := p.(behaviors.HasPlayerTeam); ok {
+				if teamHolder.GetPlayerTeam().Team.Value() == s.SelectedTeam.Value() {
+					return errors.New("another player already has that team")
+				}
+			}
+		}
+	}
+
 	return nil
+}
+
+// isUniqueEnforced returns true if uniqueness should be enforced.
+// SelectTeam defaults to non-unique (multiple players on one team is normal).
+func (s *SelectTeam) isUniqueEnforced() bool {
+	return selectionIsUnique(s.CustomConfiguration(), false)
 }
 
 // Apply sets the target player's team to the selected value.

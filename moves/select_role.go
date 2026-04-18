@@ -56,7 +56,7 @@ func (s *SelectRole) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	}
 
 	// If WithUnique is configured, check no other seated player has this role
-	if s.isUnique() {
+	if s.isUniqueEnforced() {
 		target := s.TargetPlayerIndex
 		for i, p := range state.ImmutablePlayerStates() {
 			if boardgame.PlayerIndex(i) == target {
@@ -78,15 +78,10 @@ func (s *SelectRole) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	return nil
 }
 
-// isUnique returns true if WithUnique was configured.
-func (s *SelectRole) isUnique() bool {
-	config := s.CustomConfiguration()
-	val, ok := config[configPropUnique]
-	if !ok {
-		return false
-	}
-	boolVal, ok := val.(bool)
-	return ok && boolVal
+// isUniqueEnforced returns true if uniqueness should be enforced.
+// SelectRole defaults to non-unique; use WithUnique to enable.
+func (s *SelectRole) isUniqueEnforced() bool {
+	return selectionIsUnique(s.CustomConfiguration(), false)
 }
 
 // Apply sets the target player's role to the selected value.

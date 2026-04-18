@@ -20,6 +20,26 @@ import (
 //
 // For more control over individual move configuration (e.g., WithUnique on
 // SelectRole), configure moves directly instead of using this helper.
+// selectionIsUnique is the shared logic for checking whether uniqueness should
+// be enforced on a selection move. It checks both WithUnique (opt-in) and
+// WithAllowDuplicates (opt-out), with defaultUnique determining behavior when
+// neither is set. This allows both options to work on all selection moves.
+func selectionIsUnique(config boardgame.PropertyCollection, defaultUnique bool) bool {
+	// Explicit WithUnique overrides everything
+	if val, ok := config[configPropUnique]; ok {
+		if boolVal, ok := val.(bool); ok {
+			return boolVal
+		}
+	}
+	// Explicit WithAllowDuplicates overrides default
+	if val, ok := config[configPropAllowDuplicates]; ok {
+		if boolVal, ok := val.(bool); ok {
+			return !boolVal
+		}
+	}
+	return defaultUnique
+}
+
 func GatheringMoves(auto *AutoConfigurer) []boardgame.MoveConfig {
 	exampleState := auto.delegate.Manager().ExampleState()
 	playerState := exampleState.ImmutablePlayerStates()[0]

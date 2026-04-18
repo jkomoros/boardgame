@@ -228,21 +228,23 @@ func WithRequireExplicitStart() CustomConfigurationOption {
 	}
 }
 
-// WithUnique returns a function configuration option suitable for being passed
-// to auto.Config when configuring SelectRole. When set, Legal will reject
-// values that are already claimed by another seated player. Useful for games
-// where each player must have a unique role (e.g., Spirit Island spirits).
+// WithUnique returns a function configuration option for [SelectTeam],
+// [SelectRole], or [SelectColor]. When set, Legal will reject values already
+// claimed by another seated player. Useful for games where each player must
+// have a unique selection (e.g., Spirit Island spirits). SelectColor already
+// defaults to unique, so WithUnique is mainly useful for SelectRole and
+// SelectTeam.
 func WithUnique() CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropUnique] = true
 	}
 }
 
-// WithAllowDuplicates returns a function configuration option suitable for
-// being passed to auto.Config when configuring SelectColor. By default,
-// SelectColor enforces uniqueness (no two players may share a color).
-// WithAllowDuplicates disables this enforcement for games where duplicate
-// colors are acceptable.
+// WithAllowDuplicates returns a function configuration option for [SelectTeam],
+// [SelectRole], or [SelectColor]. It disables uniqueness enforcement, allowing
+// multiple players to select the same value. SelectTeam and SelectRole already
+// default to non-unique, so WithAllowDuplicates is mainly useful for
+// SelectColor (which defaults to unique).
 func WithAllowDuplicates() CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropAllowDuplicates] = true

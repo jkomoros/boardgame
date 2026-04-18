@@ -56,7 +56,7 @@ func (s *SelectColor) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	}
 
 	// Enforce uniqueness by default (unless WithAllowDuplicates)
-	if !s.allowDuplicates() {
+	if s.isUniqueEnforced() {
 		target := s.TargetPlayerIndex
 		for i, p := range state.ImmutablePlayerStates() {
 			if boardgame.PlayerIndex(i) == target {
@@ -78,15 +78,10 @@ func (s *SelectColor) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	return nil
 }
 
-// allowDuplicates returns true if WithAllowDuplicates was configured.
-func (s *SelectColor) allowDuplicates() bool {
-	config := s.CustomConfiguration()
-	val, ok := config[configPropAllowDuplicates]
-	if !ok {
-		return false
-	}
-	boolVal, ok := val.(bool)
-	return ok && boolVal
+// isUniqueEnforced returns true if uniqueness should be enforced.
+// SelectColor defaults to unique; use WithAllowDuplicates to disable.
+func (s *SelectColor) isUniqueEnforced() bool {
+	return selectionIsUnique(s.CustomConfiguration(), true)
 }
 
 // Apply sets the target player's color to the selected value.
