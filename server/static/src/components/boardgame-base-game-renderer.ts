@@ -2,6 +2,7 @@ import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import type { FullGameState } from '../types/boardgame-types.js';
+import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 
 export class BoardgameBaseGameRenderer<
   GS extends Record<string, unknown> = Record<string, unknown>,
@@ -67,14 +68,11 @@ export class BoardgameBaseGameRenderer<
     for (const name of Object.keys(this.moveLegality)) {
       const info = this.moveLegality[name];
       if (!info.legalForAnyone) continue;
-      // Check for known start-move names
-      if (['Confirm Players', 'Close All Seats', 'Start Game', 'Finalize Set Up'].includes(name)) {
+      if (START_MOVE_NAMES.has(name)) {
         return true;
       }
     }
-    // Also check state for ReadyToStartError (which implies gathering is active)
-    const computed = (this.state as any)?.Game?.Computed?.Global;
-    if (computed?.ReadyToStartError) {
+    if (getReadyToStartError(this.state)) {
       return true;
     }
     return false;

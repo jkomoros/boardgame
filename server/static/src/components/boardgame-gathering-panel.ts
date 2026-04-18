@@ -6,12 +6,26 @@
  * and the game renderer. It auto-hides when it has nothing to show.
  *
  * Detection is driven by move form legality and game state — no explicit
- * "lobby mode" flag. Each sub-component independently decides whether to
- * render based on its corresponding move's presence in moveForms.
+ * "lobby mode" flag. The panel detects gathering moves by their field
+ * signatures (TargetPlayerIndex + Selected{Team,Role,Color} fields) and
+ * passes resolved move forms to each sub-component as props.
+ *
+ * Override system:
+ * - CSS: set --boardgame-gathering-{team,role,color}-picker-display: none
+ * - Full: register boardgame-render-gathering-GAMENAME as a custom element
  */
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { MoveForm } from '../types/api';
+import {
+  type PlayerInfo,
+  OBSERVER_PLAYER_INDEX,
+  findStartMoveForm,
+  findTeamMoveForm,
+  findRoleMoveForm,
+  findColorMoveForm,
+  getReadyToStartError,
+} from './gathering-shared.js';
 
 import './boardgame-gathering-status.js';
 import './boardgame-gathering-share.js';
@@ -19,13 +33,6 @@ import './boardgame-gathering-start.js';
 import './boardgame-gathering-team-picker.js';
 import './boardgame-gathering-role-picker.js';
 import './boardgame-gathering-color-picker.js';
-
-interface PlayerInfo {
-  IsEmpty: boolean;
-  IsAgent: boolean;
-  PhotoUrl: string;
-  DisplayName: string;
-}
 
 interface GameRoute {
   name: string;
@@ -45,7 +52,6 @@ export class BoardgameGatheringPanel extends LitElement {
       padding: 16px;
       margin: 8px 0;
       border-radius: 12px;
-      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
     }
 
     .panel-content {
@@ -59,6 +65,10 @@ export class BoardgameGatheringPanel extends LitElement {
       flex-wrap: wrap;
       align-items: center;
       gap: 12px;
+    }
+
+    .spacer {
+      flex: 1;
     }
   `;
 
@@ -86,12 +96,14 @@ export class BoardgameGatheringPanel extends LitElement {
   @property({ type: Array })
   playersInfo: PlayerInfo[] = [];
 
+  // ---- Derived state (centralized detection) ----
+
   private get _readyToStartError(): string {
-    return this.state?.Game?.Computed?.Global?.ReadyToStartError || '';
+    return getReadyToStartError(this.state);
   }
 
   private get _isObserver(): boolean {
-    return this.viewingAsPlayer === -1;
+    return this.viewingAsPlayer === OBSERVER_PLAYER_INDEX;
   }
 
   private get _showStatus(): boolean {
@@ -103,30 +115,27 @@ export class BoardgameGatheringPanel extends LitElement {
     return this.hasEmptySlots && this.gameOpen && !this._isObserver;
   }
 
+  // Centralized move detection — resolve once, pass to children as props
   private get _startMoveForm(): MoveForm | null {
-    if (!this.moveForms) return null;
-    const startNames = new Set([
-      'Confirm Players', 'Close All Seats', 'Start Game', 'Finalize Set Up'
-    ]);
-    return this.moveForms.find(f => startNames.has(f.Name) && f.LegalForAnyone) ?? null;
+    return findStartMoveForm(this.moveForms);
   }
 
-  /** Whether any picker move (team/role/color) is present and legal */
-  private get _hasPickerMoves(): boolean {
-    if (!this.moveForms) return false;
-    return this.moveForms.some(f =>
-      f.LegalForAnyone &&
-      f.Fields?.some(field => field.Name === 'TargetPlayerIndex') &&
-      f.Fields?.some(field =>
-        (field.Name === 'SelectedTeam' && field.EnumName === 'team') ||
-        (field.Name === 'SelectedRole' && field.EnumName === 'role') ||
-        (field.Name === 'SelectedColor' && field.EnumName === 'color')
-      )
-    );
+  private get _teamMoveForm(): MoveForm | null {
+    return findTeamMoveForm(this.moveForms);
+  }
+
+  private get _roleMoveForm(): MoveForm | null {
+    return findRoleMoveForm(this.moveForms);
+  }
+
+  private get _colorMoveForm(): MoveForm | null {
+    return findColorMoveForm(this.moveForms);
   }
 
   private get _hasAnythingToShow(): boolean {
-    return this._showStatus || this._showShare || !!this._startMoveForm || this._hasPickerMoves;
+    return this._showStatus || this._showShare ||
+           !!this._startMoveForm ||
+           !!this._teamMoveForm || !!this._roleMoveForm || !!this._colorMoveForm;
   }
 
   render() {
@@ -149,7 +158,7 @@ export class BoardgameGatheringPanel extends LitElement {
               </boardgame-gathering-status>
             ` : nothing}
 
-            <span style="flex:1"></span>
+            <span class="spacer"></span>
 
             ${this._showShare ? html`
               <boardgame-gathering-share
@@ -165,26 +174,32 @@ export class BoardgameGatheringPanel extends LitElement {
             ` : nothing}
           </div>
 
-          <boardgame-gathering-team-picker
-            .moveForms=${this.moveForms}
-            .state=${this.state}
-            .viewingAsPlayer=${this.viewingAsPlayer}
-            .playersInfo=${this.playersInfo}>
-          </boardgame-gathering-team-picker>
+          ${this._teamMoveForm ? html`
+            <boardgame-gathering-team-picker
+              .moveForm=${this._teamMoveForm}
+              .state=${this.state}
+              .viewingAsPlayer=${this.viewingAsPlayer}
+              .playersInfo=${this.playersInfo}>
+            </boardgame-gathering-team-picker>
+          ` : nothing}
 
-          <boardgame-gathering-role-picker
-            .moveForms=${this.moveForms}
-            .state=${this.state}
-            .viewingAsPlayer=${this.viewingAsPlayer}
-            .playersInfo=${this.playersInfo}>
-          </boardgame-gathering-role-picker>
+          ${this._roleMoveForm ? html`
+            <boardgame-gathering-role-picker
+              .moveForm=${this._roleMoveForm}
+              .state=${this.state}
+              .viewingAsPlayer=${this.viewingAsPlayer}
+              .playersInfo=${this.playersInfo}>
+            </boardgame-gathering-role-picker>
+          ` : nothing}
 
-          <boardgame-gathering-color-picker
-            .moveForms=${this.moveForms}
-            .state=${this.state}
-            .viewingAsPlayer=${this.viewingAsPlayer}
-            .playersInfo=${this.playersInfo}>
-          </boardgame-gathering-color-picker>
+          ${this._colorMoveForm ? html`
+            <boardgame-gathering-color-picker
+              .moveForm=${this._colorMoveForm}
+              .state=${this.state}
+              .viewingAsPlayer=${this.viewingAsPlayer}
+              .playersInfo=${this.playersInfo}>
+            </boardgame-gathering-color-picker>
+          ` : nothing}
         </div>
       </div>
     `;

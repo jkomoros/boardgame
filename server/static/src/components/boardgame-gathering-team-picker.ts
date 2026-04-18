@@ -1,27 +1,20 @@
 /**
  * boardgame-gathering-team-picker
  *
- * Shows team selection UI when a move with a SelectedTeam field (EnumName:
- * "team") is legal. Detects via field signature, not move name.
+ * Shows team selection UI when a SelectTeam move is legal. The parent panel
+ * passes the resolved moveForm as a prop (detection centralized in the panel).
  *
  * Interactive for the viewing player (if LegalForPlayer), read-only for others.
+ *
+ * @fires propose-move - When the user selects a team
+ * @csspart --boardgame-gathering-team-picker-display - Set to 'none' to hide
  */
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import '@material/web/select/filled-select.js';
 import '@material/web/select/select-option.js';
-import type { MoveForm, MoveFormField } from '../types/api';
-
-interface EnumValue {
-  Key: number;
-  Name: string;
-}
-
-interface PlayerInfo {
-  IsEmpty: boolean;
-  IsAgent: boolean;
-  DisplayName: string;
-}
+import type { MoveForm } from '../types/api';
+import { type EnumValue, type PlayerInfo, getAvailableValues, getPlayerComputedValue } from './gathering-shared.js';
 
 @customElement('boardgame-gathering-team-picker')
 export class BoardgameGatheringTeamPicker extends LitElement {
@@ -55,12 +48,12 @@ export class BoardgameGatheringTeamPicker extends LitElement {
       margin: 0 0 8px 0;
       font-size: 14px;
       font-weight: 500;
-      color: var(--md-sys-color-on-secondary-container, #1d192b);
     }
   `;
 
-  @property({ type: Array })
-  moveForms: MoveForm[] | null = null;
+  /** The resolved SelectTeam move form (passed from gathering panel). */
+  @property({ type: Object })
+  moveForm: MoveForm | null = null;
 
   @property({ type: Object })
   state: any = null;
@@ -71,46 +64,24 @@ export class BoardgameGatheringTeamPicker extends LitElement {
   @property({ type: Array })
   playersInfo: PlayerInfo[] = [];
 
-  /**
-   * Find the team selection move by field signature: must have both a
-   * TargetPlayerIndex field AND a field named SelectedTeam with EnumName "team".
-   * This avoids false positives from unrelated moves that happen to have a
-   * "team" enum field.
-   */
-  private get _teamMoveForm(): MoveForm | null {
-    if (!this.moveForms) return null;
-    return this.moveForms.find(f =>
-      f.LegalForAnyone &&
-      f.Fields?.some((field: MoveFormField) => field.Name === 'TargetPlayerIndex') &&
-      f.Fields?.some((field: MoveFormField) => field.Name === 'SelectedTeam' && field.EnumName === 'team')
-    ) ?? null;
-  }
-
   private get _availableTeams(): EnumValue[] {
-    return this.state?.Game?.Computed?.Global?.AvailableTeams || [];
-  }
-
-  private get _isVisible(): boolean {
-    return !!this._teamMoveForm && this._availableTeams.length > 0;
+    return getAvailableValues(this.state, 'AvailableTeams');
   }
 
   private _playerTeamValue(playerIndex: number): string {
-    const players = this.state?.Players;
-    if (!players || !players[playerIndex]) return '';
-    return players[playerIndex]?.Computed?.TeamValue || '';
+    return getPlayerComputedValue(this.state, playerIndex, 'TeamValue');
   }
 
   private _handleTeamChange(e: Event): void {
-    const select = e.target as HTMLSelectElement;
+    const select = e.target as HTMLElement & { value: string };
     const selectedName = select.value;
-    const moveForm = this._teamMoveForm;
-    if (!moveForm || !selectedName) return;
+    if (!this.moveForm || !selectedName) return;
 
     this.dispatchEvent(new CustomEvent('propose-move', {
       composed: true,
       bubbles: true,
       detail: {
-        name: moveForm.Name,
+        name: this.moveForm.Name,
         arguments: {
           TargetPlayerIndex: String(this.viewingAsPlayer),
           SelectedTeam: selectedName,
@@ -120,10 +91,10 @@ export class BoardgameGatheringTeamPicker extends LitElement {
   }
 
   render() {
-    if (!this._isVisible) return nothing;
+    if (!this.moveForm || this._availableTeams.length === 0) return nothing;
 
     const teams = this._availableTeams;
-    const isInteractive = this._teamMoveForm?.LegalForPlayer ?? false;
+    const isInteractive = this.moveForm.LegalForPlayer ?? false;
 
     return html`
       <div>
@@ -139,6 +110,7 @@ export class BoardgameGatheringTeamPicker extends LitElement {
                 <div class="player-team">
                   <span class="player-name">${p.DisplayName || `Player ${i}`}</span>
                   <md-filled-select
+                    label="Team"
                     @change=${this._handleTeamChange}
                     .value=${currentTeam}>
                     <md-select-option value="">

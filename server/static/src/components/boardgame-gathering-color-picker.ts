@@ -1,23 +1,15 @@
 /**
  * boardgame-gathering-color-picker
  *
- * Shows color selection UI when a move with a SelectedColor field (EnumName:
- * "color") is legal. Shows color swatches instead of a dropdown.
+ * Shows color selection as accessible swatches when a SelectColor move is legal.
+ *
+ * @fires propose-move - When the user selects a color
+ * @csspart --boardgame-gathering-color-picker-display - Set to 'none' to hide
  */
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { MoveForm, MoveFormField } from '../types/api';
-
-interface EnumValue {
-  Key: number;
-  Name: string;
-}
-
-interface PlayerInfo {
-  IsEmpty: boolean;
-  IsAgent: boolean;
-  DisplayName: string;
-}
+import type { MoveForm } from '../types/api';
+import { type EnumValue, type PlayerInfo, getAvailableValues, getPlayerComputedValue } from './gathering-shared.js';
 
 // Map common color names to CSS colors. The behaviors.CSSColorForPlayer
 // system handles the actual display colors, but we need a rough mapping
@@ -128,8 +120,9 @@ export class BoardgameGatheringColorPicker extends LitElement {
     }
   `;
 
-  @property({ type: Array })
-  moveForms: MoveForm[] | null = null;
+  /** The resolved SelectColor move form (passed from gathering panel). */
+  @property({ type: Object })
+  moveForm: MoveForm | null = null;
 
   @property({ type: Object })
   state: any = null;
@@ -140,27 +133,16 @@ export class BoardgameGatheringColorPicker extends LitElement {
   @property({ type: Array })
   playersInfo: PlayerInfo[] = [];
 
-  private get _colorMoveForm(): MoveForm | null {
-    if (!this.moveForms) return null;
-    return this.moveForms.find(f =>
-      f.LegalForAnyone &&
-      f.Fields?.some((field: MoveFormField) => field.Name === 'TargetPlayerIndex') &&
-      f.Fields?.some((field: MoveFormField) => field.Name === 'SelectedColor' && field.EnumName === 'color')
-    ) ?? null;
-  }
-
   private get _availableColors(): EnumValue[] {
-    return this.state?.Game?.Computed?.Global?.AvailableColors || [];
+    return getAvailableValues(this.state, 'AvailableColors');
   }
 
   private get _isVisible(): boolean {
-    return !!this._colorMoveForm && this._availableColors.length > 0;
+    return !!this.moveForm && this._availableColors.length > 0;
   }
 
   private _playerColorValue(playerIndex: number): string {
-    const players = this.state?.Players;
-    if (!players || !players[playerIndex]) return '';
-    return players[playerIndex]?.Computed?.ColorValue || '';
+    return getPlayerComputedValue(this.state, playerIndex, 'ColorValue');
   }
 
   /** Get the set of color names claimed by other seated players */
@@ -210,7 +192,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
   }
 
   private _handleColorClick(colorName: string): void {
-    const moveForm = this._colorMoveForm;
+    const moveForm = this.moveForm;
     if (!moveForm || !moveForm.LegalForPlayer) return;
 
     this.dispatchEvent(new CustomEvent('propose-move', {
@@ -230,7 +212,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
     if (!this._isVisible) return nothing;
 
     const colors = this._availableColors;
-    const isInteractive = this._colorMoveForm?.LegalForPlayer ?? false;
+    const isInteractive = this.moveForm?.LegalForPlayer ?? false;
     const myColor = this._playerColorValue(this.viewingAsPlayer);
     const claimed = this._claimedColors;
 

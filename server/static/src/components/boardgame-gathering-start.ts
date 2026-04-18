@@ -9,6 +9,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import '@material/web/button/filled-button.js';
 import type { MoveForm } from '../types/api';
+import { OBSERVER_PLAYER_INDEX } from './gathering-shared.js';
 
 @customElement('boardgame-gathering-start')
 export class BoardgameGatheringStart extends LitElement {
@@ -40,7 +41,7 @@ export class BoardgameGatheringStart extends LitElement {
   }
 
   private get _isObserver(): boolean {
-    return this.viewingAsPlayer === -1;
+    return this.viewingAsPlayer === OBSERVER_PLAYER_INDEX;
   }
 
   private _handleClick(): void {
