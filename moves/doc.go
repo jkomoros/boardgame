@@ -195,6 +195,10 @@ each has on the one above it. See the documentation for each struct for more.
 	  ├ Done
 	  ├ CurrentPlayer
 	  │ └ MoveOnGraph
+	  ├ AnyPlayer
+	  │ ├ SelectTeam
+	  │ ├ SelectRole
+	  │ └ SelectColor
 	  ├ CloseAllSeats
 	  ├ SeatPlayer
 	  └ FixUp
@@ -232,6 +236,49 @@ each has on the one above it. See the documentation for each struct for more.
 	          │   │ └ CollectComponentsUntilGameCountLeft
 	          │   └ CollectCountComponents
 	          └ (your custom ApplyUntilCount subclasses)
+
+# Gathering Phase Moves
+
+The gathering system provides moves for the "lobby" experience — waiting for
+players, team/role/color selection, and starting the game. There is no special
+"lobby mode"; a gathering phase is just a normal phase where these moves are
+legal. The client auto-renders appropriate UI when it detects these moves.
+
+[AnyPlayer] is the base move for self-selection. Like [CurrentPlayer], it has a
+TargetPlayerIndex, but it allows any seated player to propose the move for
+themselves (not just the current player). Use it for any move where the proposer
+acts on their own behalf during a simultaneous phase.
+
+[SelectTeam], [SelectRole], and [SelectColor] embed AnyPlayer and provide
+built-in selection for players who have the corresponding behaviors embedded in
+their playerState ([behaviors.PlayerTeam], [behaviors.PlayerRole],
+[behaviors.PlayerColor]). Each validates the selection against the named enum and
+optionally enforces uniqueness ([WithUnique] / [WithAllowDuplicates]).
+
+[GatheringMoves] is a convenience function that auto-detects which selection
+behaviors are present and returns the corresponding MoveConfigs. Usage:
+
+	moves.AddForPhase(phaseGathering, moves.GatheringMoves(auto)...)
+
+This registers the selection moves as legal in any order during the gathering
+phase. Use [AddForPhase] (not [AddOrderedForPhase]) so players can pick teams,
+roles, and colors freely at any time.
+
+The delegate method ReadyToStart(state) error is called by both
+[WaitForEnoughPlayers] and [CloseAllSeats] to validate that the game's
+configuration is complete before proceeding. The default returns nil. Override
+it to add custom validation (e.g., "each team needs at least 2 players").
+
+If your game needs an "unset" sentinel to detect players who haven't made a
+selection, define your enum with a sentinel first value:
+
+	const (
+	    teamUnset = iota // sentinel: no team selected yet
+	    teamRed
+	    teamBlue
+	)
+
+Then check for the sentinel in your ReadyToStart implementation.
 
 # Move Deal and Collect Component Moves
 

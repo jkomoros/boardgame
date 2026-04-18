@@ -404,7 +404,10 @@ func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 
 	// Gathering: readiness error for client display. FixUp move errors are
 	// invisible to the client, so this is the primary delivery path for
-	// ReadyToStart error messages.
+	// ReadyToStart error messages. Only computed when the delegate's
+	// ReadyToStart is overridden (returns non-nil for some states), to avoid
+	// calling it on every state change during normal gameplay where the
+	// default (nil) adds no value.
 	if err := g.Manager().Delegate().ReadyToStart(state); err != nil {
 		result["ReadyToStartError"] = err.Error()
 	}
