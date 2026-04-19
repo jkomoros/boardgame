@@ -11,26 +11,23 @@ import { customElement, property } from 'lit/decorators.js';
 import type { MoveForm } from '../types/api';
 import { type EnumValue, type PlayerInfo, getAvailableValues, getPlayerComputedValue } from './gathering-shared.js';
 
-// Map common color names to CSS colors. The behaviors.CSSColorForPlayer
-// system handles the actual display colors, but we need a rough mapping
-// for the picker swatches.
-const COLOR_MAP: Record<string, string> = {
-  red: '#e53935',
-  blue: '#1e88e5',
-  green: '#43a047',
-  yellow: '#fdd835',
-  orange: '#fb8c00',
-  purple: '#8e24aa',
-  pink: '#d81b60',
-  brown: '#6d4c41',
-  white: '#fafafa',
-  black: '#212121',
-  cyan: '#00acc1',
-  teal: '#00897b',
-};
+/**
+ * Get the CSS color for a color enum value. Prefers the CSSColor field
+ * sent by the server (from behaviors.CSSColorForKey), which matches
+ * the framework's canonical color mapping. Falls back to a neutral gray
+ * if the server didn't provide a CSS color for this value.
+ */
+function colorToCss(colorValue: EnumValue): string {
+  return colorValue.CSSColor || '#9e9e9e';
+}
 
-function colorToCss(name: string): string {
-  return COLOR_MAP[name.toLowerCase()] || '#9e9e9e';
+/**
+ * Find the CSS color for a color name from the available colors list.
+ * Used for the read-only player summary.
+ */
+function cssColorForName(name: string, availableColors: EnumValue[]): string {
+  const match = availableColors.find(c => c.Name === name);
+  return match?.CSSColor || '#9e9e9e';
 }
 
 @customElement('boardgame-gathering-color-picker')
@@ -232,7 +229,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
                   aria-disabled=${isClaimed ? 'true' : 'false'}
                   aria-label="${c.Name}${isClaimed ? ' (taken)' : ''}"
                   tabindex=${isSelected ? 0 : -1}
-                  style="background-color: ${colorToCss(c.Name)}"
+                  style="background-color: ${colorToCss(c)}"
                   @click=${() => !isClaimed && this._handleColorClick(c.Name)}
                   @keydown=${(e: KeyboardEvent) => this._handleSwatchKeydown(e, colors, c.Name)}>
                 </button>
@@ -249,7 +246,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
                   <span class="player-name">${p.DisplayName || `Player ${i}`}</span>
                   <span class="color-label">
                     ${colorVal ? html`
-                      <span class="color-dot" style="background-color: ${colorToCss(colorVal)}"></span>
+                      <span class="color-dot" style="background-color: ${cssColorForName(colorVal, this._availableColors)}"></span>
                       ${colorVal}
                     ` : 'Not set'}
                   </span>

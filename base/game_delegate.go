@@ -399,7 +399,7 @@ func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 		result["AvailableRoles"] = enumValuesForClient(roleEnum)
 	}
 	if colorEnum := chest.Enums().Enum("color"); colorEnum != nil {
-		result["AvailableColors"] = enumValuesForClient(colorEnum)
+		result["AvailableColors"] = colorEnumValuesForClient(colorEnum)
 	}
 
 	// Gathering: readiness error for client display. FixUp move errors are
@@ -424,6 +424,24 @@ func enumValuesForClient(e enum.Enum) []map[string]interface{} {
 			"Key":  int(key),
 			"Name": e.String(key),
 		})
+	}
+	return result
+}
+
+// colorEnumValuesForClient is like enumValuesForClient but also includes CSS
+// color strings from behaviors.CSSColorForKey, so the client picker can render
+// accurate color swatches without a hardcoded mapping.
+func colorEnumValuesForClient(e enum.Enum) []map[string]interface{} {
+	var result []map[string]interface{}
+	for _, key := range e.Values() {
+		entry := map[string]interface{}{
+			"Key":  int(key),
+			"Name": e.String(key),
+		}
+		if css, ok := behaviors.CSSColorForKey[key]; ok {
+			entry["CSSColor"] = css
+		}
+		result = append(result, entry)
 	}
 	return result
 }

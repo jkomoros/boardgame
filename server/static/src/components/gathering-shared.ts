@@ -21,6 +21,8 @@ export const ANY_PLAYER_INDEX = -3;
 export interface EnumValue {
   Key: number;
   Name: string;
+  /** CSS color string, present only for color enum values. */
+  CSSColor?: string;
 }
 
 export interface PlayerInfo {
