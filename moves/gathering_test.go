@@ -385,3 +385,61 @@ func TestComputedPropertiesIncludeGatheringData(t *testing.T) {
 		t.Error("ComputedPlayerProperties should include RoleValue")
 	}
 }
+
+func TestSelectColorFallbackName(t *testing.T) {
+	move := &SelectColor{}
+	if name := move.FallbackName(nil); name != "Select Color" {
+		t.Errorf("SelectColor.FallbackName: expected 'Select Color', got '%s'", name)
+	}
+	if help := move.FallbackHelpText(); help != "Choose your player color." {
+		t.Errorf("SelectColor.FallbackHelpText: expected 'Choose your player color.', got '%s'", help)
+	}
+}
+
+func TestSelectionIsUnique(t *testing.T) {
+	tests := []struct {
+		name          string
+		config        boardgame.PropertyCollection
+		defaultUnique bool
+		want          bool
+	}{
+		{"default true, no config", boardgame.PropertyCollection{}, true, true},
+		{"default false, no config", boardgame.PropertyCollection{}, false, false},
+		{"WithUnique overrides default false", boardgame.PropertyCollection{configPropUnique: true}, false, true},
+		{"WithUnique false overrides default true", boardgame.PropertyCollection{configPropUnique: false}, true, false},
+		{"WithAllowDuplicates overrides default true", boardgame.PropertyCollection{configPropAllowDuplicates: true}, true, false},
+		{"WithAllowDuplicates false enforces unique", boardgame.PropertyCollection{configPropAllowDuplicates: false}, false, true},
+		{"WithUnique takes precedence over WithAllowDuplicates", boardgame.PropertyCollection{configPropUnique: true, configPropAllowDuplicates: true}, false, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := selectionIsUnique(tt.config, tt.defaultUnique)
+			if got != tt.want {
+				t.Errorf("selectionIsUnique(%v, %v) = %v, want %v", tt.config, tt.defaultUnique, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGatheringMovesPartialBehaviors(t *testing.T) {
+	// Test that GatheringMoves correctly handles partial behavior coverage.
+	// Our test playerState has PlayerTeam + PlayerRole but NOT PlayerColor.
+	manager, _ := newGatheringGameManager(t)
+
+	auto := NewAutoConfigurer(manager.Delegate())
+	moves := GatheringMoves(auto)
+
+	// Should have exactly 2 (Team + Role), not 3 (no Color)
+	if len(moves) != 2 {
+		t.Errorf("GatheringMoves with Team+Role (no Color): expected 2, got %d", len(moves))
+	}
+
+	names := make(map[string]bool)
+	for _, m := range moves {
+		names[m.Name()] = true
+	}
+	if names["Select Color"] {
+		t.Error("GatheringMoves should NOT include Select Color when PlayerColor is not embedded")
+	}
+}
