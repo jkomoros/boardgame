@@ -34,11 +34,18 @@ export interface PlayerInfo {
 
 // ---- Start move detection ----
 
-/** Names recognized as "start game" moves for the gathering start button. */
+/**
+ * Names recognized as "start game" moves for the gathering start button.
+ * This is name-based detection (unlike pickers which use field signatures)
+ * because CloseAllSeats has no distinctive field signature.
+ * If your game uses WithMoveName() on the start move, add the name here
+ * or use the CSS override system to render your own start button.
+ */
 export const START_MOVE_NAMES = new Set([
   'Confirm Players',
   'Close All Seats',
   'Start Game',
+  'Begin Game',
   'Finalize Set Up',
 ]);
 

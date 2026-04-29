@@ -390,16 +390,27 @@ func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 		result["PlayerOrder"] = intOrder
 	}
 
-	// Gathering: available enum values for client pickers
+	// Gathering: available enum values for client pickers.
+	// Only include values for enums whose corresponding behavior is actually
+	// embedded in the player state. This avoids injecting AvailableColors
+	// into games like checkers that have a "color" enum for component
+	// ownership but don't use the gathering selection system.
+	examplePlayer := state.ImmutablePlayerStates()[0]
 	chest := g.Manager().Chest()
-	if teamEnum := chest.Enums().Enum("team"); teamEnum != nil {
-		result["AvailableTeams"] = enumValuesForClient(teamEnum)
+	if _, ok := examplePlayer.(behaviors.HasPlayerTeam); ok {
+		if teamEnum := chest.Enums().Enum("team"); teamEnum != nil {
+			result["AvailableTeams"] = enumValuesForClient(teamEnum)
+		}
 	}
-	if roleEnum := chest.Enums().Enum("role"); roleEnum != nil {
-		result["AvailableRoles"] = enumValuesForClient(roleEnum)
+	if _, ok := examplePlayer.(behaviors.HasPlayerRole); ok {
+		if roleEnum := chest.Enums().Enum("role"); roleEnum != nil {
+			result["AvailableRoles"] = enumValuesForClient(roleEnum)
+		}
 	}
-	if colorEnum := chest.Enums().Enum("color"); colorEnum != nil {
-		result["AvailableColors"] = colorEnumValuesForClient(colorEnum)
+	if _, ok := examplePlayer.(behaviors.HasPlayerColor); ok {
+		if colorEnum := chest.Enums().Enum("color"); colorEnum != nil {
+			result["AvailableColors"] = colorEnumValuesForClient(colorEnum)
+		}
 	}
 
 	// Gathering: readiness error for client display. FixUp move errors are

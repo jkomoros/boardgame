@@ -241,11 +241,13 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     if (finished) {
       return "Game Over";
     }
+    // Only show "Setting Up" when ReadyToStart reports a configuration error
+    // (e.g., teams not balanced). Don't change the banner based on
+    // hasEmptySlots — that would affect drop-in/drop-out games that keep
+    // slots open during active play. The gathering panel's status component
+    // handles "Waiting for N more players" messaging separately.
     if (this._readyToStartError) {
       return "Setting Up";
-    }
-    if (this.hasEmptySlots && this.gameOpen) {
-      return "Waiting for Players";
     }
     return "Playing";
   }

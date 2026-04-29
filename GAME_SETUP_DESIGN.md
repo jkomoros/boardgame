@@ -86,7 +86,7 @@ type SelectTeam struct {
 }
 ```
 
-**`Legal`:** Calls `AnyPlayer.Legal`, then validates `SelectedTeam` is a valid value in the `"team"` enum (not the zero/default value).
+**`Legal`:** Calls `AnyPlayer.Legal`, then validates `SelectedTeam` is set, belongs to the correct enum, and is a valid value within it. Any valid enum value is accepted (including zero) — see the sentinel convention in the doc comment on [SelectTeam] for detecting "unset" players.
 
 **`Apply`:** Sets `player.(HasPlayerTeam).GetPlayerTeam().Team.SetValue(s.SelectedTeam.Value())`.
 
@@ -476,11 +476,11 @@ boardgame-gathering-team-picker {
 ```
 Game author hides the framework's picker: `--boardgame-gathering-team-picker-display: none;` and renders their own in the game renderer.
 
-**Level 2 (full replacement):** Register `boardgame-render-gathering-GAMENAME` as a custom element. `boardgame-game-view` checks for it:
+**Level 2 (full replacement — future):** Register `boardgame-render-gathering-GAMENAME` as a custom element. Not yet implemented; planned for a future release. For now, use the CSS override to hide framework pickers and render custom UI in your game renderer via `gatheringActive`:
 ```typescript
-const tag = `boardgame-render-gathering-${this._gameRoute.name}`;
-if (customElements.get(tag)) {
-    // Use custom gathering element instead of default panel
+// In your game renderer:
+if (this.gatheringActive) {
+    // Render custom gathering UI
 }
 ```
 Same convention as `boardgame-render-game-GAMENAME`.
