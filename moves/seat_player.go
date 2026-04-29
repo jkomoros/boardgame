@@ -557,6 +557,13 @@ type CloseAllSeats struct {
 	Default
 }
 
+// IsGatheringStartMove returns true, satisfying [interfaces.GatheringStartMover].
+// This allows the server to include IsGatheringStart in the move form so the
+// client can render a "Start Game" button without name string matching.
+func (c *CloseAllSeats) IsGatheringStartMove() bool {
+	return true
+}
+
 // Legal verifies that there is at least one unfilled, unclosed seat, and that
 // the number of seated active players is at least TargetCount (which defaults to
 // MinNumPlayers if not configured via WithTargetCount).

@@ -35,11 +35,8 @@ export interface PlayerInfo {
 // ---- Start move detection ----
 
 /**
- * Names recognized as "start game" moves for the gathering start button.
- * This is name-based detection (unlike pickers which use field signatures)
- * because CloseAllSeats has no distinctive field signature.
- * If your game uses WithMoveName() on the start move, add the name here
- * or use the CSS override system to render your own start button.
+ * @deprecated Use IsGatheringStart on MoveForm instead.
+ * Kept as a fallback for servers that haven't been updated yet.
  */
 export const START_MOVE_NAMES = new Set([
   'Confirm Players',
@@ -80,9 +77,14 @@ export function findColorMoveForm(moveForms: MoveForm[] | null): MoveForm | null
   return moveForms.find(f => f.LegalForAnyone && hasSelectionSignature(f, 'SelectedColor', 'color')) ?? null;
 }
 
-/** Find the start/confirm move form by name. */
+/** Find the start/confirm move form, preferring the server-side IsGatheringStart
+ *  marker with a fallback to name matching for backward compatibility. */
 export function findStartMoveForm(moveForms: MoveForm[] | null): MoveForm | null {
   if (!moveForms) return null;
+  // Prefer the server-side marker (no string matching needed)
+  const byMarker = moveForms.find(f => f.IsGatheringStart && f.LegalForAnyone);
+  if (byMarker) return byMarker;
+  // Fallback to name matching for servers that don't yet send IsGatheringStart
   return moveForms.find(f => START_MOVE_NAMES.has(f.Name) && f.LegalForAnyone) ?? null;
 }
 

@@ -59,6 +59,7 @@ type moveForm struct {
 	LegalForPlayer      bool   `json:",omitempty"`
 	LegalForPlayerError string `json:",omitempty"`
 	LegalForAnyone      bool   `json:",omitempty"`
+	IsGatheringStart    bool   `json:",omitempty"`
 }
 
 type moveFormFieldType int
@@ -1312,6 +1313,9 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 			HelpText: move.HelpText(),
 			Fields:   formFields(move),
 		}
+		if starter, ok := move.(interfaces.GatheringStartMover); ok && starter.IsGatheringStartMove() {
+			moveItem.IsGatheringStart = true
+		}
 		result = append(result, moveItem)
 	}
 
@@ -1334,6 +1338,9 @@ func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame
 			Name:     move.Info().Name(),
 			HelpText: move.HelpText(),
 			Fields:   formFields(move),
+		}
+		if starter, ok := move.(interfaces.GatheringStartMover); ok && starter.IsGatheringStartMove() {
+			moveItem.IsGatheringStart = true
 		}
 
 		// Legality for viewing player

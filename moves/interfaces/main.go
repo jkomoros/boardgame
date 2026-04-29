@@ -172,6 +172,14 @@ type Seater interface {
 	SetSeatClosed()
 }
 
+// GatheringStartMover should be implemented for moves that signal "start the game"
+// in a gathering phase (e.g., [moves.CloseAllSeats] with WithManualStart). The
+// server includes IsGatheringStart in the move form so the client can render a
+// "Start Game" button without relying on move name string matching.
+type GatheringStartMover interface {
+	IsGatheringStartMove() bool
+}
+
 // SeatPlayerMover should be implemented for moves that are [moves.SeatPlayer] moves,
 // returing true from IsSeatPlayerMove(). Typically you use [moves.SeatPlayer]
 // directly, which implements this interface, but you might also want to embed
