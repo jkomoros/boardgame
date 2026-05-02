@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -422,6 +423,26 @@ func (s *Server) closedSeatsForGame(game *boardgame.Game) []bool {
 	return result
 }
 
+// getOrCreateDebugUser returns a synthetic user record for debug auto-seating.
+// Creates the user in storage if it doesn't already exist.
+func (s *Server) getOrCreateDebugUser(index int) *users.StorageRecord {
+	id := fmt.Sprintf("debug-player-%d", index)
+	user := s.storage.GetUserByID(id)
+	if user == nil {
+		now := time.Now().UnixNano()
+		user = &users.StorageRecord{
+			ID:          id,
+			DisplayName: fmt.Sprintf("Debug Player %d", index),
+			Created:     now,
+			LastSeen:    now,
+		}
+		if err := s.storage.UpdateUser(user); err != nil {
+			s.logger.Warnln("Couldn't create debug user:", err)
+		}
+	}
+	return user
+}
+
 // autoCloseGameIfFull checks whether every seat in the game is filled (by a
 // human or agent) or closed. If so it marks the game as not-open (3b) and
 // removes any pending players from the seating queue (3a).
@@ -503,11 +524,27 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		}
 		effectiveViewingAsPlayer = slot
 
-		// Re-check empty slots after seating. The old code always set
-		// hasEmptySlots=false here, but in games with a gathering phase
-		// (where only 1 of N players has been seated), there are still
-		// empty slots remaining.
-		remainingEmptySlots := len(emptySlots) - 1 // we just filled one
+		// Debug auto-seating: when DisableAdminChecking is true (dev mode),
+		// auto-fill all remaining empty non-agent slots with synthetic debug
+		// users. This lets developers test multiplayer games without needing
+		// multiple browser sessions. (Issue #774)
+		if s.config.DisableAdminChecking {
+			for _, debugSlot := range emptySlots[1:] { // skip slot 0 (already seated above)
+				if game.Agents()[debugSlot] != "" {
+					continue // skip agent slots
+				}
+				debugUser := s.getOrCreateDebugUser(int(debugSlot))
+				if err := s.doSeatPlayer(game, debugSlot, debugUser); err != nil {
+					s.logger.Warnln("Debug auto-seat failed for slot", debugSlot, ":", err)
+				}
+			}
+		}
+
+		// Re-check empty slots after seating.
+		remainingEmptySlots := 0
+		if !s.config.DisableAdminChecking {
+			remainingEmptySlots = len(emptySlots) - 1 // only the real player was seated
+		}
 		s.setHasEmptySlots(c, remainingEmptySlots > 0)
 
 		s.autoCloseGameIfFull(game)
