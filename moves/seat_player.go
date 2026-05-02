@@ -244,6 +244,20 @@ func (s *SeatPlayer) Apply(state boardgame.State) error {
 	if inactiver, ok := player.(interfaces.PlayerInactiver); ok {
 		inactiver.SetPlayerInactive()
 	}
+	// Auto-assign game admin to the first seated player if the playerState
+	// embeds GameAdministrator and no one is admin yet.
+	if adminHolder, ok := player.(behaviors.HasGameAdministrator); ok {
+		hasAdmin := false
+		for _, ps := range state.ImmutablePlayerStates() {
+			if behaviors.PlayerIsAdmin(ps) {
+				hasAdmin = true
+				break
+			}
+		}
+		if !hasAdmin {
+			adminHolder.GetGameAdministrator().SetGameAdmin()
+		}
+	}
 	return nil
 }
 
@@ -608,6 +622,11 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 	// player move, not a FixUp).
 	if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
 		return errors.New("not ready to start: " + err.Error())
+	}
+
+	// If configured with WithRequireAdmin, only the game admin can start.
+	if err := checkRequireAdmin(c.CustomConfiguration(), state, proposer); err != nil {
+		return err
 	}
 
 	return nil

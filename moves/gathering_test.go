@@ -62,6 +62,7 @@ type gatheringPlayerState struct {
 	behaviors.InactivePlayer
 	behaviors.PlayerTeam
 	behaviors.PlayerRole
+	behaviors.GameAdministrator
 }
 
 type gatheringDelegate struct {
@@ -441,5 +442,80 @@ func TestGatheringMovesPartialBehaviors(t *testing.T) {
 	}
 	if names["Select Color"] {
 		t.Error("GatheringMoves should NOT include Select Color when PlayerColor is not embedded")
+	}
+}
+
+func TestPlayerIsAdminAutoSet(t *testing.T) {
+	manager, _ := newGatheringGameManager(t)
+
+	game, err := manager.NewGame(2, nil, nil)
+	if err != nil {
+		t.Fatal("Couldn't create game:", err)
+	}
+
+	// In a non-server context, SeatPlayer won't fire (no server injection).
+	// But we can check the ComputedPlayerProperties for admin status.
+	// Since no one is seated, no one should be admin.
+	state := game.CurrentState()
+	for i, ps := range state.ImmutablePlayerStates() {
+		if behaviors.PlayerIsAdmin(ps) {
+			t.Errorf("Player %d should not be admin before being seated", i)
+		}
+	}
+}
+
+func TestAdminPlayerFallbacks(t *testing.T) {
+	move := &AdminPlayer{}
+	if name := move.FallbackName(nil); name != "Admin Player Move" {
+		t.Errorf("AdminPlayer.FallbackName: expected 'Admin Player Move', got '%s'", name)
+	}
+	if help := move.FallbackHelpText(); help != "A move that only the game administrator can make." {
+		t.Errorf("AdminPlayer.FallbackHelpText: got '%s'", help)
+	}
+}
+
+func TestCheckRequireAdmin(t *testing.T) {
+	manager, _ := newGatheringGameManager(t)
+
+	game, err := manager.NewGame(2, nil, nil)
+	if err != nil {
+		t.Fatal("Couldn't create game:", err)
+	}
+
+	state := game.CurrentState()
+
+	// Without WithRequireAdmin, any proposer passes
+	configNoAdmin := boardgame.PropertyCollection{}
+	if err := checkRequireAdmin(configNoAdmin, state, boardgame.PlayerIndex(0)); err != nil {
+		t.Errorf("checkRequireAdmin without config should pass, got: %v", err)
+	}
+
+	// With WithRequireAdmin, non-admin proposer fails
+	configWithAdmin := boardgame.PropertyCollection{configPropRequireAdmin: true}
+	err = checkRequireAdmin(configWithAdmin, state, boardgame.PlayerIndex(0))
+	if err == nil {
+		t.Error("checkRequireAdmin should reject non-admin player 0")
+	}
+
+	// AdminPlayerIndex always passes
+	err = checkRequireAdmin(configWithAdmin, state, boardgame.AdminPlayerIndex)
+	if err != nil {
+		t.Errorf("checkRequireAdmin should allow AdminPlayerIndex, got: %v", err)
+	}
+}
+
+func TestComputedPropertiesIncludeIsGameAdmin(t *testing.T) {
+	manager, _ := newGatheringGameManager(t)
+
+	game, err := manager.NewGame(2, nil, nil)
+	if err != nil {
+		t.Fatal("Couldn't create game:", err)
+	}
+
+	// No one is admin initially
+	state := game.CurrentState()
+	computed := manager.Delegate().ComputedPlayerProperties(state.ImmutablePlayerStates()[0])
+	if _, ok := computed["IsGameAdmin"]; ok {
+		t.Error("ComputedPlayerProperties should not include IsGameAdmin when player is not admin")
 	}
 }

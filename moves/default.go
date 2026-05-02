@@ -75,6 +75,7 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(AllPlayersSubmitted)
 	m = new(ResetAllPlayerSubmissions)
 	m = new(AnyPlayer)
+	m = new(AdminPlayer)
 	m = new(SelectTeam)
 	m = new(SelectRole)
 	m = new(SelectColor)
