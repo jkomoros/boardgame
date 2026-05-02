@@ -6,6 +6,7 @@ import './boardgame-render-game.js';
 import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
+import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -334,6 +335,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleProposeMove(e: CustomEvent) {
+    // Validate arguments against the move schema (dev-time safety net)
+    warnOnInvalidMoveArgs(e.detail.name, e.detail.arguments || {}, this.moveForms);
+
     // Forward the propose-move event to the admin controls element
     // The admin element will handle it and forward to the move form
     if (this._adminEle) {
