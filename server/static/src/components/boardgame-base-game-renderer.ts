@@ -7,7 +7,8 @@ import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 export class BoardgameBaseGameRenderer<
   GS extends Record<string, unknown> = Record<string, unknown>,
   PS extends Record<string, unknown> = Record<string, unknown>,
-  MN extends string = string
+  MN extends string = string,
+  MA extends Record<string, Record<string, unknown>> = Record<string, Record<string, unknown>>
 > extends LitElement {
   @property({ type: Object })
   state: FullGameState<GS, PS> | null = null;
@@ -56,6 +57,40 @@ export class BoardgameBaseGameRenderer<
    */
   isMovePossible(moveName: MN): boolean {
     return this.moveLegality[moveName]?.legalForAnyone ?? false;
+  }
+
+  /**
+   * Type-safe move proposal. When your game renderer extends
+   * `BoardgameBaseGameRenderer<GameState, PlayerState, MoveName, MoveArgs>`,
+   * this method provides compile-time checking that the move name is valid
+   * and the arguments match the expected fields.
+   *
+   * Usage in a game renderer:
+   * ```
+   * import { MoveNames, type MoveName } from './_move_names.js';
+   * import type { MoveArgs } from './_move_args.js';
+   *
+   * class MyRenderer extends BoardgameBaseGameRenderer<GS, PS, MoveName, MoveArgs> {
+   *   handleClick() {
+   *     this.proposeMove(MoveNames.RevealCard, { CardIndex: 3 });
+   *   }
+   * }
+   * ```
+   */
+  proposeMove<K extends MN & string>(
+    moveName: K,
+    args: K extends keyof MA ? MA[K] : Record<string, unknown>
+  ): void {
+    // Convert all values to strings for the server (form-encoded submission)
+    const stringArgs: Record<string, string> = {};
+    for (const [key, value] of Object.entries(args)) {
+      stringArgs[key] = String(value);
+    }
+    this.dispatchEvent(new CustomEvent('propose-move', {
+      composed: true,
+      bubbles: true,
+      detail: { name: moveName, arguments: stringArgs }
+    }));
   }
 
   /**
