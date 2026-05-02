@@ -616,17 +616,18 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " players are seated, but at least " + strconv.Itoa(targetCount) + " are required")
 	}
 
+	// Admin check first — non-admins should see "only admin can start" rather
+	// than a ReadyToStart configuration error they can't act on.
+	if err := checkRequireAdmin(c.CustomConfiguration(), state, proposer); err != nil {
+		return err
+	}
+
 	// Check delegate readiness to prevent the deadlock where seats close
 	// before configuration is validated. This error surfaces in the client
 	// via LegalForPlayerError on the move form (since CloseAllSeats is a
 	// player move, not a FixUp).
 	if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
 		return errors.New("not ready to start: " + err.Error())
-	}
-
-	// If configured with WithRequireAdmin, only the game admin can start.
-	if err := checkRequireAdmin(c.CustomConfiguration(), state, proposer); err != nil {
-		return err
 	}
 
 	return nil

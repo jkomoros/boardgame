@@ -253,7 +253,7 @@ func WithAllowDuplicates() CustomConfigurationOption {
 }
 
 // WithRequireAdmin returns a function configuration option for moves like
-// [CloseAllSeats], [SelectTeam], [SelectRole], or [SelectColor]. When set,
+// [CloseAllSeats]. When set,
 // Legal will verify that the proposer is the game administrator (the player
 // whose [behaviors.GameAdministrator].IsAdmin is true). If the playerState
 // does not embed [behaviors.GameAdministrator], the check is skipped.
