@@ -196,6 +196,15 @@ type GameDelegate interface {
 	//numbers of players.
 	LegalNumPlayers(numPlayers int) bool
 
+	// ReadyToStart is called by WaitForEnoughPlayers and CloseAllSeats to
+	// check whether the game's configuration is ready to proceed past the
+	// gathering phase. Return nil if ready, or a descriptive error
+	// explaining what's still needed (e.g., "each team needs at least 2
+	// players"). The default returns nil (always ready once player count is
+	// met). This method must be cheap (O(n) in player count or better)
+	// because it is called on every fix-up check cycle.
+	ReadyToStart(state ImmutableState) error
+
 	//PlayerMayBeActive should return whether the given PlayerIndex may be
 	//"active". In general, this should just return true all of the time,
 	//because any player index that is between 0 and NumPlayers is valid. But

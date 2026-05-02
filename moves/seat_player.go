@@ -557,6 +557,13 @@ type CloseAllSeats struct {
 	Default
 }
 
+// IsGatheringStartMove returns true, satisfying [interfaces.GatheringStartMover].
+// This allows the server to include IsGatheringStart in the move form so the
+// client can render a "Start Game" button without name string matching.
+func (c *CloseAllSeats) IsGatheringStartMove() bool {
+	return true
+}
+
 // Legal verifies that there is at least one unfilled, unclosed seat, and that
 // the number of seated active players is at least TargetCount (which defaults to
 // MinNumPlayers if not configured via WithTargetCount).
@@ -593,6 +600,14 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	if seatedPlayers < targetCount {
 		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " players are seated, but at least " + strconv.Itoa(targetCount) + " are required")
+	}
+
+	// Check delegate readiness to prevent the deadlock where seats close
+	// before configuration is validated. This error surfaces in the client
+	// via LegalForPlayerError on the move form (since CloseAllSeats is a
+	// player move, not a FixUp).
+	if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
+		return errors.New("not ready to start: " + err.Error())
 	}
 
 	return nil
@@ -732,6 +747,11 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 				}
 			}
 		}
+	}
+
+	// Check delegate readiness (e.g., team balance, role assignment)
+	if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
+		return errors.New("not ready to start: " + err.Error())
 	}
 
 	return nil

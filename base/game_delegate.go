@@ -380,16 +380,81 @@ func (g *GameDelegate) CustomPlayerOrder(state boardgame.ImmutableState) []board
 // g.GameDelegate.ComputedGlobalProperties(state) and merge your properties
 // into the result, or the framework's "PlayerOrder" property will be lost.
 func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+	result := boardgame.PropertyCollection{}
+
 	if order := g.Manager().Delegate().CustomPlayerOrder(state); order != nil {
 		intOrder := make([]int, len(order))
 		for i, idx := range order {
 			intOrder[i] = int(idx)
 		}
-		return boardgame.PropertyCollection{
-			"PlayerOrder": intOrder,
+		result["PlayerOrder"] = intOrder
+	}
+
+	// Gathering: available enum values for client pickers.
+	// Only include values for enums whose corresponding behavior is actually
+	// embedded in the player state. This avoids injecting AvailableColors
+	// into games like checkers that have a "color" enum for component
+	// ownership but don't use the gathering selection system.
+	examplePlayer := state.ImmutablePlayerStates()[0]
+	chest := g.Manager().Chest()
+	if _, ok := examplePlayer.(behaviors.HasPlayerTeam); ok {
+		if teamEnum := chest.Enums().Enum("team"); teamEnum != nil {
+			result["AvailableTeams"] = enumValuesForClient(teamEnum)
 		}
 	}
-	return boardgame.PropertyCollection{}
+	if _, ok := examplePlayer.(behaviors.HasPlayerRole); ok {
+		if roleEnum := chest.Enums().Enum("role"); roleEnum != nil {
+			result["AvailableRoles"] = enumValuesForClient(roleEnum)
+		}
+	}
+	if _, ok := examplePlayer.(behaviors.HasPlayerColor); ok {
+		if colorEnum := chest.Enums().Enum("color"); colorEnum != nil {
+			result["AvailableColors"] = colorEnumValuesForClient(colorEnum)
+		}
+	}
+
+	// Gathering: readiness error for client display. FixUp move errors are
+	// invisible to the client, so this is the primary delivery path for
+	// ReadyToStart error messages. Only computed when the delegate's
+	// ReadyToStart is overridden (returns non-nil for some states), to avoid
+	// calling it on every state change during normal gameplay where the
+	// default (nil) adds no value.
+	if err := g.Manager().Delegate().ReadyToStart(state); err != nil {
+		result["ReadyToStartError"] = err.Error()
+	}
+
+	return result
+}
+
+// enumValuesForClient returns a list of {Key, Name} objects for all values in
+// the enum, suitable for serialization to the client.
+func enumValuesForClient(e enum.Enum) []map[string]interface{} {
+	var result []map[string]interface{}
+	for _, key := range e.Values() {
+		result = append(result, map[string]interface{}{
+			"Key":  int(key),
+			"Name": e.String(key),
+		})
+	}
+	return result
+}
+
+// colorEnumValuesForClient is like enumValuesForClient but also includes CSS
+// color strings from behaviors.CSSColorForKey, so the client picker can render
+// accurate color swatches without a hardcoded mapping.
+func colorEnumValuesForClient(e enum.Enum) []map[string]interface{} {
+	var result []map[string]interface{}
+	for _, key := range e.Values() {
+		entry := map[string]interface{}{
+			"Key":  int(key),
+			"Name": e.String(key),
+		}
+		if css, ok := behaviors.CSSColorForKey[key]; ok {
+			entry["CSSColor"] = css
+		}
+		result = append(result, entry)
+	}
+	return result
 }
 
 // ComputedPlayerProperties returns framework defaults: "Color" (CSS color
@@ -408,6 +473,16 @@ func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubSta
 	}
 	if score, ok := behaviors.PlayerGameScore(player); ok {
 		result["GameScore"] = score
+	}
+	// Gathering: current team/role/color selections
+	if th, ok := player.(behaviors.HasPlayerTeam); ok {
+		result["TeamValue"] = th.GetPlayerTeam().Team.String()
+	}
+	if rh, ok := player.(behaviors.HasPlayerRole); ok {
+		result["RoleValue"] = rh.GetPlayerRole().Role.String()
+	}
+	if ch, ok := player.(behaviors.HasPlayerColor); ok {
+		result["ColorValue"] = ch.GetPlayerColor().Color.String()
 	}
 	return result
 }
@@ -613,6 +688,13 @@ func (g *GameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 	return numPlayers >= min && numPlayers <= max
 
+}
+
+// ReadyToStart returns nil, indicating the game is always ready to start once
+// enough players are seated. Override this in your delegate to add custom
+// validation (e.g., team balance, role assignment).
+func (g *GameDelegate) ReadyToStart(state boardgame.ImmutableState) error {
+	return nil
 }
 
 // PlayerMayBeActive returns true for all players, unless they implement

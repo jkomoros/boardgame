@@ -217,7 +217,28 @@ draw pile when it empties.
 [PlayerTeam] tracks which team a player belongs to via an enum field. It is a
 [Connectable] behavior. It provides [PlayerTeam.TeamMembers] and
 [PlayerTeam.Opponents] helpers that iterate players and filter by team,
-excluding inactive players.
+excluding inactive players. The companion move [moves.SelectTeam] lets players
+choose their team during a gathering phase. [HasPlayerTeam] is the interface
+that moves and framework code use to discover the behavior via type assertion.
+
+# PlayerRole
+
+[PlayerRole] tracks which role a player has via an enum field named "role". It is
+used for asymmetric roles like spymaster vs guesser, or unique characters. The
+companion move [moves.SelectRole] lets players choose their role during a
+gathering phase. [HasPlayerRole] is the discovery interface. If your role enum is
+combined with the group enum, [base.GameDelegate.GroupMembership] picks it up
+automatically.
+
+# PlayerColor
+
+[PlayerColor] tracks which color a player has via an enum field named "color". It
+is a [Connectable] behavior that provides [PlayerColor.OwnsToken],
+[PlayerColor.Token], and [PlayerColor.TokenFromDeck] methods for functional
+color ownership (e.g., a player's armies in Risk). The companion move
+[moves.SelectColor] lets players choose their color during a gathering phase.
+[HasPlayerColor] is the discovery interface. SelectColor enforces uniqueness by
+default — use [moves.WithAllowDuplicates] to disable.
 
 # FaceUpMarket
 

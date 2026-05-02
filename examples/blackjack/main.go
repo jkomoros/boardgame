@@ -195,6 +195,34 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moves.SeatPlayer),
 			),
 		),
+		// Gathering phase: wait for players to join.
+		// The gathering panel will automatically show "Waiting for Players"
+		// and a share link. The game auto-starts when MinNumPlayers are seated.
+		// Uses suffixed names to avoid collision with DefaultRoundSetup in
+		// phaseInitialDeal (which handles between-round player re-activation).
+		moves.AddOrderedForPhase(phaseGathering,
+			moves.Optional(
+				auto.MustConfig(
+					new(moves.ActivateInactivePlayer),
+					moves.WithMoveNameSuffix("Gathering"),
+				),
+			),
+			auto.MustConfig(
+				new(moves.WaitForEnoughPlayers),
+				moves.WithMoveNameSuffix("Gathering"),
+			),
+			moves.Optional(
+				auto.MustConfig(
+					new(moves.InactivateEmptySeat),
+					moves.WithMoveNameSuffix("Gathering"),
+				),
+			),
+			auto.MustConfig(
+				new(moves.StartPhase),
+				moves.WithMoveName("Begin Game"),
+				moves.WithPhaseToStart(phaseInitialDeal, phaseEnum),
+			),
+		),
 		moves.AddForPhase(phaseNormalPlay,
 			auto.MustConfig(
 				new(moveStartRoundCleanup),

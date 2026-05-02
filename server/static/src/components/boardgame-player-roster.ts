@@ -232,11 +232,24 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     return false;
   }
 
+  private get _readyToStartError(): string {
+    const s = this.state as any;
+    return s?.Game?.Computed?.Global?.ReadyToStartError || '';
+  }
+
   private _bannerText(finished: boolean, winners: number[]): string {
-    if (!finished) {
-      return "Playing";
+    if (finished) {
+      return "Game Over";
     }
-    return "Game Over";
+    // Only show "Setting Up" when ReadyToStart reports a configuration error
+    // (e.g., teams not balanced). Don't change the banner based on
+    // hasEmptySlots — that would affect drop-in/drop-out games that keep
+    // slots open during active play. The gathering panel's status component
+    // handles "Waiting for N more players" messaging separately.
+    if (this._readyToStartError) {
+      return "Setting Up";
+    }
+    return "Playing";
   }
 
   private playerName(viewingAsPlayer: number): string {

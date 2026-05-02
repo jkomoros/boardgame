@@ -149,6 +149,27 @@ func (p *PlayerColor) Token() boardgame.ComponentInstance {
 	return nil
 }
 
+// GetPlayerColor returns itself, satisfying [HasPlayerColor].
+func (p *PlayerColor) GetPlayerColor() *PlayerColor {
+	return p
+}
+
+// HasPlayerColor is implemented by any SubState that embeds a [PlayerColor]. It
+// allows moves and framework code to find the behavior via type assertion.
+type HasPlayerColor interface {
+	GetPlayerColor() *PlayerColor
+}
+
+// PlayerColorValue is a convenience function that returns the color enum value
+// for the given player state, if it implements [HasPlayerColor]. Returns nil if
+// the player state does not embed PlayerColor.
+func PlayerColorValue(playerState boardgame.ImmutableSubState) enum.ImmutableVal {
+	if color, ok := playerState.(HasPlayerColor); ok {
+		return color.GetPlayerColor().Color
+	}
+	return nil
+}
+
 /*
 ComponentColor is a struct designed to be embedded anonymously in any component
 structs that have a color that ties them to a given player color, and used in

@@ -59,6 +59,7 @@ type moveForm struct {
 	LegalForPlayer      bool   `json:",omitempty"`
 	LegalForPlayerError string `json:",omitempty"`
 	LegalForAnyone      bool   `json:",omitempty"`
+	IsGatheringStart    bool   `json:",omitempty"`
 }
 
 type moveFormFieldType int
@@ -362,6 +363,41 @@ func (s *Server) gameFromID(gameID, gameName string) *boardgame.Game {
 	return game
 }
 
+// maybeReopenGame checks whether a game that was previously closed has open
+// seats again (e.g., between rounds when ActivateEmptySeat fires). If so, it
+// sets the game back to Open so new players can join.
+func (s *Server) maybeReopenGame(record *boardgame.GameStorageRecord) {
+	managerInfo := s.managers[record.Name]
+	if managerInfo == nil || !managerInfo.playerHasSeat {
+		return
+	}
+
+	game := managerInfo.manager.Game(record.ID)
+	if game == nil {
+		return
+	}
+
+	closedSeats := s.closedSeatsForGame(game)
+	userIds := s.storage.UserIDsForGame(game.ID())
+	agents := game.Agents()
+
+	for i, uid := range userIds {
+		if uid == "" && agents[i] == "" && !closedSeats[i] {
+			// There's an open, unfilled, non-agent slot.
+			eGame, err := s.storage.ExtendedGame(game.ID())
+			if err == nil && !eGame.Open {
+				eGame.Open = true
+				if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
+					s.logger.Errorln("Failed to reopen game:", err)
+				} else {
+					s.logger.Infoln("Reopened game", game.ID(), "because seats are available again")
+				}
+			}
+			return
+		}
+	}
+}
+
 // closedSeatsForGame will return a slice of bools of equal length to the game's
 // NumPlayers, where each one is set to true if the playerState has a Seat and
 // the seat is marked as closed.
@@ -465,8 +501,14 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
 			return
 		}
-		s.setHasEmptySlots(c, false)
 		effectiveViewingAsPlayer = slot
+
+		// Re-check empty slots after seating. The old code always set
+		// hasEmptySlots=false here, but in games with a gathering phase
+		// (where only 1 of N players has been seated), there are still
+		// empty slots remaining.
+		remainingEmptySlots := len(emptySlots) - 1 // we just filled one
+		s.setHasEmptySlots(c, remainingEmptySlots > 0)
 
 		s.autoCloseGameIfFull(game)
 
@@ -1271,6 +1313,9 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 			HelpText: move.HelpText(),
 			Fields:   formFields(move),
 		}
+		if starter, ok := move.(interfaces.GatheringStartMover); ok && starter.IsGatheringStartMove() {
+			moveItem.IsGatheringStart = true
+		}
 		result = append(result, moveItem)
 	}
 
@@ -1293,6 +1338,9 @@ func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame
 			Name:     move.Info().Name(),
 			HelpText: move.HelpText(),
 			Fields:   formFields(move),
+		}
+		if starter, ok := move.(interfaces.GatheringStartMover); ok && starter.IsGatheringStartMove() {
+			moveItem.IsGatheringStart = true
 		}
 
 		// Legality for viewing player

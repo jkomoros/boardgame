@@ -370,6 +370,10 @@ func (d *defaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 }
 
+func (d *defaultGameDelegate) ReadyToStart(state ImmutableState) error {
+	return nil
+}
+
 // Variants returns a VariantConfig with no entries.
 func (d *defaultGameDelegate) Variants() VariantConfig {
 	return VariantConfig{}

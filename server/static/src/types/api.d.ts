@@ -83,6 +83,8 @@ export interface MoveForm {
   LegalForPlayerError?: string;
   /** Whether this move is structurally legal (legal for any player / admin) */
   LegalForAnyone?: boolean;
+  /** Whether this move is a gathering "start game" move (e.g., CloseAllSeats) */
+  IsGatheringStart?: boolean;
 }
 
 /**
