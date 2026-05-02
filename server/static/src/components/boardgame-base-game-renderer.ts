@@ -81,10 +81,16 @@ export class BoardgameBaseGameRenderer<
     moveName: K,
     args: K extends keyof MA ? MA[K] : Record<string, unknown>
   ): void {
-    // Convert all values to strings for the server (form-encoded submission)
+    // Convert all values to strings for the server (form-encoded submission).
+    // Booleans must be "1"/"0" (not "true"/"false") because the server uses
+    // strconv.Atoi for boolean fields.
     const stringArgs: Record<string, string> = {};
     for (const [key, value] of Object.entries(args)) {
-      stringArgs[key] = String(value);
+      if (typeof value === 'boolean') {
+        stringArgs[key] = value ? '1' : '0';
+      } else {
+        stringArgs[key] = String(value);
+      }
     }
     this.dispatchEvent(new CustomEvent('propose-move', {
       composed: true,

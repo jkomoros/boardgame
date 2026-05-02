@@ -1,6 +1,7 @@
 package moveargs
 
 import (
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -28,7 +29,14 @@ func GenerateTypeScript(moves []MoveInfo) string {
 
 	var b strings.Builder
 	b.WriteString(typeScriptHeader)
-	b.WriteString("import type { MoveName } from './_move_names.js';\n\n")
+
+	// Sort fields within each move for deterministic output (Go maps iterate
+	// in random order, and we want stable git diffs).
+	for i := range moves {
+		sort.Slice(moves[i].Fields, func(a, c int) bool {
+			return moves[i].Fields[a].Name < moves[i].Fields[c].Name
+		})
+	}
 
 	// Generate an interface per move
 	for _, move := range moves {
@@ -113,7 +121,5 @@ const typeScriptHeader = `/*
 
 `
 
-const typeScriptEmptyBody = `import type { MoveName } from './_move_names.js';
-
-export type MoveArgs = Record<MoveName, Record<string, never>>;
+const typeScriptEmptyBody = `export type MoveArgs = Record<string, Record<string, never>>;
 `
