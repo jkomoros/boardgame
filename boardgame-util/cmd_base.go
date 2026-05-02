@@ -23,6 +23,7 @@ type boardgameUtil struct {
 	Stub          stubCmd
 	Golden        goldenCmd
 	EmitMoveNames emitMoveNames
+	EmitMoveArgs  emitMoveArgs
 	EmitTypes     emitTypes
 
 	ConfigPath            string
@@ -94,6 +95,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Clean,
 		&b.Golden,
 		&b.EmitMoveNames,
+		&b.EmitMoveArgs,
 		&b.EmitTypes,
 	}
 }

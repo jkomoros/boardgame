@@ -68,6 +68,11 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 		fmt.Println("Warning: couldn't generate move names: " + err.Error())
 	}
 
+	fmt.Println("Generating move argument types")
+	if err := emitMoveArgsForPackages(s.Base(), pkgs); err != nil {
+		fmt.Println("Warning: couldn't generate move args: " + err.Error())
+	}
+
 	fmt.Println("Generating type definitions")
 	if err := emitTypesForPackages(s.Base(), pkgs); err != nil {
 		fmt.Println("Warning: couldn't generate type definitions: " + err.Error())
