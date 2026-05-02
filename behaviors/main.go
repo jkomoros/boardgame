@@ -240,6 +240,16 @@ color ownership (e.g., a player's armies in Risk). The companion move
 [HasPlayerColor] is the discovery interface. SelectColor enforces uniqueness by
 default — use [moves.WithAllowDuplicates] to disable.
 
+# GameAdministrator
+
+[GameAdministrator] tracks whether a player has game-admin authority — the
+ability to perform host-like actions such as starting the game, reassigning
+teams, or kicking players. The first player seated is automatically marked as
+admin by [moves.SeatPlayer]. [HasGameAdministrator] is the discovery interface.
+[PlayerIsAdmin] is the convenience function. Moves that should be admin-only can
+embed [moves.AdminPlayer] as their base type, or individual moves can be
+configured with [moves.WithRequireAdmin].
+
 # FaceUpMarket
 
 [FaceUpMarket] tracks a source deck and a face-up display area on a gameState. It

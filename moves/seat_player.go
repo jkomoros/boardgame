@@ -244,6 +244,20 @@ func (s *SeatPlayer) Apply(state boardgame.State) error {
 	if inactiver, ok := player.(interfaces.PlayerInactiver); ok {
 		inactiver.SetPlayerInactive()
 	}
+	// Auto-assign game admin to the first seated player if the playerState
+	// embeds GameAdministrator and no one is admin yet.
+	if adminHolder, ok := player.(behaviors.HasGameAdministrator); ok {
+		hasAdmin := false
+		for _, ps := range state.ImmutablePlayerStates() {
+			if behaviors.PlayerIsAdmin(ps) {
+				hasAdmin = true
+				break
+			}
+		}
+		if !hasAdmin {
+			adminHolder.GetGameAdministrator().SetGameAdmin()
+		}
+	}
 	return nil
 }
 
@@ -600,6 +614,12 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 
 	if seatedPlayers < targetCount {
 		return errors.New("Only " + strconv.Itoa(seatedPlayers) + " players are seated, but at least " + strconv.Itoa(targetCount) + " are required")
+	}
+
+	// Admin check first — non-admins should see "only admin can start" rather
+	// than a ReadyToStart configuration error they can't act on.
+	if err := checkRequireAdmin(c.CustomConfiguration(), state, proposer); err != nil {
+		return err
 	}
 
 	// Check delegate readiness to prevent the deadlock where seats close

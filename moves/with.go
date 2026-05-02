@@ -28,6 +28,7 @@ const configPropManualStart = fullyQualifiedPackageName + "ManualStart"
 const configPropRequireExplicitStart = fullyQualifiedPackageName + "RequireExplicitStart"
 const configPropUnique = fullyQualifiedPackageName + "Unique"
 const configPropAllowDuplicates = fullyQualifiedPackageName + "AllowDuplicates"
+const configPropRequireAdmin = fullyQualifiedPackageName + "RequireAdmin"
 
 // CustomConfigurationOption is a function that takes a PropertyCollection and
 // modifies a key on it. This package defines a number of functions that return
@@ -248,5 +249,17 @@ func WithUnique() CustomConfigurationOption {
 func WithAllowDuplicates() CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropAllowDuplicates] = true
+	}
+}
+
+// WithRequireAdmin returns a function configuration option for moves like
+// [CloseAllSeats]. When set,
+// Legal will verify that the proposer is the game administrator (the player
+// whose [behaviors.GameAdministrator].IsAdmin is true). If the playerState
+// does not embed [behaviors.GameAdministrator], the check is skipped.
+// [AdminPlayerIndex] always passes admin checks.
+func WithRequireAdmin() CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropRequireAdmin] = true
 	}
 }

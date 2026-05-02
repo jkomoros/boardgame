@@ -1,6 +1,8 @@
 package moves
 
 import (
+	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 )
@@ -24,6 +26,40 @@ import (
 // be enforced on a selection move. It checks both WithUnique (opt-in) and
 // WithAllowDuplicates (opt-out), with defaultUnique determining behavior when
 // neither is set. This allows both options to work on all selection moves.
+// checkRequireAdmin verifies that the proposer is the game administrator, if
+// the move was configured with WithRequireAdmin. Returns nil if the check
+// passes or is not configured. Used by CloseAllSeats and selection moves.
+func checkRequireAdmin(config boardgame.PropertyCollection, state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	val, ok := config[configPropRequireAdmin]
+	if !ok {
+		return nil
+	}
+	requireAdmin, ok := val.(bool)
+	if !ok || !requireAdmin {
+		return nil
+	}
+
+	// AdminPlayerIndex always passes (engine-initiated actions)
+	if proposer == boardgame.AdminPlayerIndex {
+		return nil
+	}
+
+	if proposer < 0 {
+		return errors.New("only the game administrator can make this move")
+	}
+
+	player := state.ImmutablePlayerStates()[proposer]
+	// If the playerState doesn't have GameAdministrator, skip the check
+	// (backward compatible with games that don't use admin)
+	if _, ok := player.(behaviors.HasGameAdministrator); !ok {
+		return nil
+	}
+	if !behaviors.PlayerIsAdmin(player) {
+		return errors.New("only the game administrator can make this move")
+	}
+	return nil
+}
+
 func selectionIsUnique(config boardgame.PropertyCollection, defaultUnique bool) bool {
 	// Explicit WithUnique overrides everything
 	if val, ok := config[configPropUnique]; ok {

@@ -196,6 +196,7 @@ each has on the one above it. See the documentation for each struct for more.
 	  ├ CurrentPlayer
 	  │ └ MoveOnGraph
 	  ├ AnyPlayer
+	  │ ├ AdminPlayer
 	  │ ├ SelectTeam
 	  │ ├ SelectRole
 	  │ └ SelectColor
@@ -248,6 +249,14 @@ legal. The client auto-renders appropriate UI when it detects these moves.
 TargetPlayerIndex, but it allows any seated player to propose the move for
 themselves (not just the current player). Use it for any move where the proposer
 acts on their own behalf during a simultaneous phase.
+
+[AdminPlayer] embeds AnyPlayer and additionally requires that the proposer is
+the game administrator (the player whose [behaviors.GameAdministrator].IsAdmin
+is true). Use it for host-only actions like starting the game, kicking players,
+or changing configuration. If the playerState does not embed
+[behaviors.GameAdministrator], AdminPlayer behaves identically to AnyPlayer.
+Individual moves can also be configured with [WithRequireAdmin] for the same
+effect without changing their base type.
 
 [SelectTeam], [SelectRole], and [SelectColor] embed AnyPlayer and provide
 built-in selection for players who have the corresponding behaviors embedded in

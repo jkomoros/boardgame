@@ -3319,6 +3319,7 @@ func (g *gatheringGameState) ReadSetConfigurer() boardgame.PropertyReadSetConfig
 // Implementation for gatheringPlayerState
 
 var ȧutoGeneratedGatheringPlayerStateReaderProps = map[string]boardgame.PropertyType{
+	"IsAdmin":        boardgame.TypeBool,
 	"PlayerInactive": boardgame.TypeBool,
 	"Role":           boardgame.TypeEnum,
 	"SeatClosed":     boardgame.TypeBool,
@@ -3377,6 +3378,8 @@ func (g *ȧutoGeneratedGatheringPlayerStateReader) Prop(name string) (interface{
 
 func (g *ȧutoGeneratedGatheringPlayerStateReader) PropMutable(name string) bool {
 	switch name {
+	case "IsAdmin":
+		return true
 	case "PlayerInactive":
 		return true
 	case "Role":
@@ -3618,6 +3621,8 @@ func (g *ȧutoGeneratedGatheringPlayerStateReader) SetIntProp(name string, value
 func (g *ȧutoGeneratedGatheringPlayerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
+	case "IsAdmin":
+		return g.data.IsAdmin, nil
 	case "PlayerInactive":
 		return g.data.PlayerInactive, nil
 	case "SeatClosed":
@@ -3634,6 +3639,9 @@ func (g *ȧutoGeneratedGatheringPlayerStateReader) BoolProp(name string) (bool, 
 func (g *ȧutoGeneratedGatheringPlayerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
+	case "IsAdmin":
+		g.data.IsAdmin = value
+		return nil
 	case "PlayerInactive":
 		g.data.PlayerInactive = value
 		return nil

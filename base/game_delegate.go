@@ -484,6 +484,9 @@ func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubSta
 	if ch, ok := player.(behaviors.HasPlayerColor); ok {
 		result["ColorValue"] = ch.GetPlayerColor().Color.String()
 	}
+	if behaviors.PlayerIsAdmin(player) {
+		result["IsGameAdmin"] = true
+	}
 	return result
 }
 
