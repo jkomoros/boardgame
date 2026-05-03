@@ -55,7 +55,7 @@ class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, P
     return html`
       <boardgame-deck-defaults>
         <template deck="tokens">
-          <boardgame-token type="chip" color="{{item.Values.Color}}"></boardgame-token>
+          <boardgame-token type="disc" color="{{item.Values.Color}}"></boardgame-token>
         </template>
       </boardgame-deck-defaults>
       <boardgame-game-board

@@ -124,6 +124,7 @@ export class BoardgameToken extends BoardgameComponent {
       'cube',
       'pawn',
       'meeple',
+      'disc',
     ];
   }
 
