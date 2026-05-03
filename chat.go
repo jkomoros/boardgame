@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"log"
 	"time"
 )
 
@@ -82,12 +83,15 @@ type ChatConfig struct {
 // DefaultChatConfig returns a ChatConfig with all features enabled: all-chat,
 // team chat (auto-detected from PlayerTeam), and private DMs between all
 // seated player pairs.
+// DefaultChatConfig returns a ChatConfig with all-chat and team chat enabled.
+// DM chat is disabled by default (not yet fully implemented — planned for a
+// future release). Use WithDMs() to enable when DM support is added.
 func DefaultChatConfig() ChatConfig {
 	return ChatConfig{
 		enabled:  true,
 		allChat:  true,
 		teamChat: true,
-		dmChat:   true,
+		dmChat:   false,
 	}
 }
 
@@ -207,6 +211,12 @@ func EmitSystemMessage(st State, body string) {
 			Body:      body,
 			Timestamp: time.Now(),
 		}
-		chatStorage.SaveChatMessage(msg)
+		// Run async to avoid blocking the fixup chain if storage is slow
+		go func() {
+			if err := chatStorage.SaveChatMessage(msg); err != nil {
+				// Log but don't fail — chat is best-effort
+				log.Println("EmitSystemMessage: failed to save:", err)
+			}
+		}()
 	})
 }

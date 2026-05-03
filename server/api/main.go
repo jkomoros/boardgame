@@ -31,6 +31,9 @@ type Server struct {
 	//map of game ID to players to seat
 	playersToSeat map[string][]*playerToSeat
 
+	//track which games have had "Game over!" system message emitted
+	gameOverEmitted map[string]bool
+
 	storage *ServerStorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
@@ -120,7 +123,8 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 	result := &Server{
 		managers:      make(managerMap),
-		playersToSeat: make(map[string][]*playerToSeat),
+		playersToSeat:   make(map[string][]*playerToSeat),
+		gameOverEmitted: make(map[string]bool),
 		storage:       storage,
 		logger:        logger,
 	}
@@ -1439,7 +1443,8 @@ func (s *Server) genericHandler(c *gin.Context) {
 
 // Start is where you start the server, and it never returns until it's time to shut down.
 // chatStorage returns the ChatStorageManager if the storage backend supports
-// it, or nil if not.
+// it, or nil if not. Checks the underlying storage manager that the
+// ServerStorageManager wraps.
 func (s *Server) chatStorage() boardgame.ChatStorageManager {
 	if cs, ok := s.storage.StorageManager.(boardgame.ChatStorageManager); ok {
 		return cs
@@ -1499,6 +1504,10 @@ func (s *Server) chatSendHandler(c *gin.Context) {
 	}
 	if body == "" {
 		r.Error(errors.NewFriendly("Message cannot be empty"))
+		return
+	}
+	if len(body) > 500 {
+		r.Error(errors.NewFriendly("Message is too long (max 500 characters)"))
 		return
 	}
 
@@ -1589,6 +1598,9 @@ func (s *Server) chatReadHandler(c *gin.Context) {
 	limit := 50
 	if n, err := strconv.Atoi(limitStr); err == nil && n > 0 {
 		limit = n
+	}
+	if limit > 200 {
+		limit = 200 // cap to prevent memory exhaustion
 	}
 
 	// If a specific channel is requested, verify view access

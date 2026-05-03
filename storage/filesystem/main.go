@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
@@ -339,12 +340,16 @@ func (s *StorageManager) chatFilePath(gameID string) string {
 
 // chatCounter tracks per-game message counters in memory.
 var chatCounters = make(map[string]int)
+var chatMu sync.Mutex
 
 // SaveChatMessage implements boardgame.ChatStorageManager.
 func (s *StorageManager) SaveChatMessage(msg *boardgame.ChatMessage) error {
 	if msg.GameID == "" {
 		return errors.New("GameID is required")
 	}
+
+	chatMu.Lock()
+	defer chatMu.Unlock()
 
 	// Auto-increment ID
 	if msg.ID == "" {

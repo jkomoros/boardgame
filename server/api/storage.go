@@ -133,9 +133,10 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 	// should be made joinable again.
 	server.maybeReopenGame(game)
 
-	// Auto-emit system message when game finishes
-	if game.Finished {
+	// Auto-emit system message when game finishes (once per game)
+	if game.Finished && !server.gameOverEmitted[game.ID] {
 		server.emitSystemChatMessage(game.ID, game.Version, "Game over!")
+		server.gameOverEmitted[game.ID] = true
 	}
 
 	return nil

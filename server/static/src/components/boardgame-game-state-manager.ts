@@ -399,6 +399,11 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _socketMessage(e: MessageEvent) {
     const data = e.data as string;
 
+    // Signal that WebSocket is working (chat panel uses this to reduce polling)
+    this.dispatchEvent(new CustomEvent('socket-active', {
+      composed: true, bubbles: true,
+    }));
+
     // Feature-detect JSON framing vs legacy raw version numbers
     if (data.startsWith('{')) {
       try {

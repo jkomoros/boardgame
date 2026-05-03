@@ -249,6 +249,23 @@ export class BoardgameChatPanel extends LitElement {
 
   private _pollInterval: number | null = null;
   private _hasWebSocket = false;
+  private _lastGameRouteId = '';
+
+  protected willUpdate(changedProperties: Map<string, unknown>): void {
+    // Reset chat state when switching games
+    if (changedProperties.has('gameRoute') && this.gameRoute) {
+      const newId = this.gameRoute.id;
+      if (this._lastGameRouteId && this._lastGameRouteId !== newId) {
+        this._messages = [];
+        this._lastMessageID = '';
+        this._unreadCount = 0;
+        this._chatConfig = null;
+        this._viewChannels = [];
+        this._fetchMessages();
+      }
+      this._lastGameRouteId = newId;
+    }
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -259,6 +276,7 @@ export class BoardgameChatPanel extends LitElement {
     }, 3000);
 
     window.addEventListener('chat-notification', this._handleChatNotification as EventListener);
+    window.addEventListener('socket-active', this._handleSocketActive as EventListener);
   }
 
   disconnectedCallback() {
@@ -268,7 +286,12 @@ export class BoardgameChatPanel extends LitElement {
       this._pollInterval = null;
     }
     window.removeEventListener('chat-notification', this._handleChatNotification as EventListener);
+    window.removeEventListener('socket-active', this._handleSocketActive as EventListener);
   }
+
+  private _handleSocketActive = () => {
+    this._hasWebSocket = true; // Stop polling once WebSocket is confirmed working
+  };
 
   private _handleChatNotification = () => {
     this._hasWebSocket = true;
