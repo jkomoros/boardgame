@@ -49,7 +49,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
       font-family: var(--md-sys-typescale-title-medium-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-title-medium-size, 16px);
       font-weight: var(--md-sys-typescale-title-medium-weight, 500);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
 
     .layout {
@@ -77,12 +77,12 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     }
 
     .card {
-      background: var(--md-sys-color-surface-container-low, #f7f2fa);
+      background: var(--md-sys-color-surface-container-low, #F5F0E8);
       padding: 16px;
       margin: 8px 0;
       border-radius: 12px;
       box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
   `;
 

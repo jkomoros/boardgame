@@ -56,7 +56,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       font-family: var(--md-sys-typescale-title-large-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-title-large-size, 22px);
       font-weight: var(--md-sys-typescale-title-large-weight, 400);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
 
     details {
@@ -69,12 +69,12 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       border-radius: 8px;
       font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-body-large-size, 16px);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       background: var(--md-sys-color-surface-container, #f0edf1);
     }
 
     summary:hover {
-      background: var(--md-sys-color-surface-container-high, #e6e0e9);
+      background: var(--md-sys-color-surface-container-high, #E0D9CE);
     }
 
     form {
@@ -89,7 +89,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       border-radius: 4px;
       font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-body-medium-size, 14px);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       background: var(--md-sys-color-surface, #fffbfe);
     }
 
@@ -99,7 +99,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       border-radius: 4px;
       font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-body-medium-size, 14px);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       background: var(--md-sys-color-surface, #fffbfe);
     }
   `;

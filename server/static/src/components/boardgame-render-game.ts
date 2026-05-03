@@ -27,7 +27,7 @@ class BoardgameRenderGame extends LitElement {
       left: 0;
       height: 100%;
       width: 100%;
-      background-color: rgba(255, 255, 255, 0.7);
+      background-color: rgba(250, 246, 240, 0.7);
       z-index: 10;
       visibility: hidden;
       opacity: 0;
@@ -46,8 +46,8 @@ class BoardgameRenderGame extends LitElement {
     .spinner {
       width: 100px;
       height: 100px;
-      border: 10px solid #e0e0e0;
-      border-top: 10px solid var(--md-sys-color-primary, #6750a4);
+      border: 10px solid var(--md-sys-color-outline-variant, #CCC4B8);
+      border-top: 10px solid var(--md-sys-color-primary, #2E6B4F);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }

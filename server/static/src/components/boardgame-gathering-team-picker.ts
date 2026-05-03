@@ -39,7 +39,7 @@ export class BoardgameGatheringTeamPicker extends LitElement {
     }
     .team-label {
       font-size: 14px;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       padding: 8px 12px;
       background: var(--md-sys-color-surface-container, #f3edf7);
       border-radius: 8px;

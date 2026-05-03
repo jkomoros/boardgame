@@ -60,10 +60,10 @@ export class BoardgameApp extends connect(store)(LitElement) {
       background-color: var(--md-sys-color-background);
     }
 
-    /* Drawer styles - Material Design 3 */
+    /* Drawer styles — wood panel surround */
     .drawer {
       width: 280px;
-      background: var(--md-sys-color-surface-container-low);
+      background: var(--md-sys-color-secondary-container);
       border-right: 1px solid var(--md-sys-color-outline-variant);
       display: flex;
       flex-direction: column;
@@ -107,7 +107,7 @@ export class BoardgameApp extends connect(store)(LitElement) {
       font-family: var(--md-sys-typescale-body-medium-font);
       font-size: var(--md-sys-typescale-body-medium-size);
       line-height: var(--md-sys-typescale-body-medium-line-height);
-      color: var(--md-sys-color-on-surface);
+      color: var(--md-sys-color-on-secondary-container);
     }
 
     .drawer-toolbar {
@@ -116,7 +116,7 @@ export class BoardgameApp extends connect(store)(LitElement) {
       font-size: var(--md-sys-typescale-title-large-size);
       line-height: var(--md-sys-typescale-title-large-line-height);
       font-weight: var(--md-sys-typescale-title-large-weight);
-      color: var(--md-sys-color-on-surface);
+      color: var(--md-sys-color-on-secondary-container);
       border-bottom: 1px solid var(--md-sys-color-outline-variant);
     }
 
@@ -132,7 +132,7 @@ export class BoardgameApp extends connect(store)(LitElement) {
       padding: 12px 16px;
       margin: 4px 0;
       text-decoration: none;
-      color: var(--md-sys-color-on-surface);
+      color: var(--md-sys-color-on-secondary-container);
       font-family: var(--md-sys-typescale-label-large-font);
       font-size: var(--md-sys-typescale-label-large-size);
       line-height: var(--md-sys-typescale-label-large-line-height);
@@ -143,12 +143,12 @@ export class BoardgameApp extends connect(store)(LitElement) {
     }
 
     .drawer-list a:hover {
-      background-color: var(--md-sys-color-surface-container-highest);
+      background-color: rgba(0, 0, 0, 0.06);
     }
 
     .drawer-list a.selected {
-      background-color: var(--md-sys-color-secondary-container);
-      color: var(--md-sys-color-on-secondary-container);
+      background-color: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
       font-weight: 700;
     }
 

@@ -98,7 +98,7 @@ export class BoardgamePlayerBadge extends connect(store)(LitElement) {
       }
       return `hsl(${hash % 360}, 100%, 50%)`;
     }
-    return '#757575';
+    return '#857B6E';
   }
 
   private get _initial(): string {

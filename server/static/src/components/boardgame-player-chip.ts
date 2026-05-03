@@ -18,7 +18,7 @@ export class BoardgamePlayerChip extends LitElement {
       width: var(--player-chip-size, 50px);
       border-radius: 50%;
       margin-right: 0.5em;
-      background-color: hsl(0, 0%, 90%);
+      background-color: var(--md-sys-color-surface-container-highest, #E0D9CE);
       transition: background-color 1s ease-in-out;
     }
   `;
@@ -51,7 +51,7 @@ export class BoardgamePlayerChip extends LitElement {
   }
 
   private _updateBackgroundColor(): void {
-    let result = 'hsl(0, 0%, 90%)';
+    let result = '#E0D9CE';
 
     if (this.color) {
       result = this.color;
