@@ -188,6 +188,39 @@ export class BoardgameComponentStack extends LitElement {
       box-sizing: border-box;
       padding: 1em 0;
     }
+
+    /* Board layout: CSS Grid positioning by slot index */
+    #container.board {
+      display: grid;
+      grid-template-columns: repeat(var(--board-cols, 8), 1fr);
+      gap: 0;
+      padding: 0;
+    }
+
+    #container.board #slot-holder {
+      display: contents;
+    }
+
+    /* Prevent faux/animating containers from becoming grid items */
+    #container.board #faux-components,
+    #container.board #animating-components {
+      position: absolute;
+    }
+
+    #container.board ::slotted([boardgame-component]),
+    #container.board [boardgame-component] {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1;
+      min-height: 0;
+      /* Allow clicks to pass through to the cell layer beneath */
+      pointer-events: none;
+      /* Constrain token size to fit within grid cells */
+      max-width: 100%;
+      max-height: 100%;
+    }
   `;
 
   @property({ type: String })
@@ -244,6 +277,9 @@ export class BoardgameComponentStack extends LitElement {
 
   @property({ type: Boolean })
   noDefaultSpacer = false;
+
+  @property({ type: Number })
+  boardCols = 8;
 
   @property({ type: Number })
   fauxComponents = 0;
@@ -367,6 +403,9 @@ export class BoardgameComponentStack extends LitElement {
     this._slotChanged(true);
     this._randomRotationOffset = Math.floor(Math.random() * 21);
     this._id = this._randomId(8);
+    if (this.container) {
+      this.container.style.setProperty('--board-cols', String(this.boardCols));
+    }
 
   }
 
@@ -383,6 +422,10 @@ export class BoardgameComponentStack extends LitElement {
 
     if (changedProperties.has('layout') || changedProperties.has('messy')) {
       this._updateComponentClasses();
+    }
+
+    if (changedProperties.has('boardCols') && this.container) {
+      this.container.style.setProperty('--board-cols', String(this.boardCols));
     }
 
     // stack property change is now handled in the setter directly
@@ -732,6 +775,114 @@ export class BoardgameComponentStack extends LitElement {
       }
     }
 
+    // In board layout mode, reorder DOM elements to preserve element↔ID
+    // identity. This is critical for FLIP animation: the animator tracks
+    // elements by their DOM reference, so moving a token from slot 4 to
+    // slot 0 must physically reorder the DOM element — not just update its
+    // properties in-place. Without this, the element stays at the same DOM
+    // position and FLIP sees zero displacement.
+    if (this.layout === 'board') {
+      this._insertNodesBoardMode(componentsInfo, hostEle);
+      return;
+    }
+
+    this._insertNodesDefault(componentsInfo, hostEle);
+  }
+
+  /**
+   * Board-mode insertion: reorders DOM elements based on component IDs so
+   * that FLIP animation can track physical element movement across grid cells.
+   */
+  private _insertNodesBoardMode(componentsInfo: any[], hostEle: HTMLElement) {
+    const attrs = this._attributesForComponents();
+    const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
+    const stackIds = this.stack?.IDs;
+
+    // Build a map of component ID → existing DOM element
+    const idToElement = new Map<string, Element>();
+    const unassignedElements: Element[] = [];
+    for (let i = 0; i < hostEle.children.length; i++) {
+      const ele = hostEle.children[i];
+      if (!ele.hasAttribute('boardgame-component')) continue;
+      if (ele.id) {
+        idToElement.set(ele.id, ele);
+      } else {
+        unassignedElements.push(ele);
+      }
+    }
+
+    // Find the first non-component element (insertion boundary)
+    let firstNonComponentEle: Element | null = null;
+    for (let i = 0; i < hostEle.children.length; i++) {
+      const ele = hostEle.children[i];
+      if (!ele.hasAttribute('boardgame-component')) {
+        firstNonComponentEle = ele;
+        break;
+      }
+    }
+
+    // For each slot, find the matching element by ID and insert it in order
+    for (let slotIndex = 0; slotIndex < componentsInfo.length; slotIndex++) {
+      let item = componentsInfo[slotIndex];
+
+      // Ensure item has ID from stack's IDs array
+      if (stackIds && stackIds[slotIndex] && item && !item.ID) {
+        item.ID = stackIds[slotIndex];
+      }
+
+      const targetId = item?.ID || '';
+      let ele: Element | undefined;
+
+      if (targetId && idToElement.has(targetId)) {
+        // Reuse the existing element for this component ID
+        ele = idToElement.get(targetId)!;
+        idToElement.delete(targetId);
+      } else {
+        // Use an unassigned element (spacer or new component)
+        ele = unassignedElements.pop();
+      }
+
+      if (!ele) continue;
+
+      // Insert at the correct DOM position (before firstNonComponentEle)
+      hostEle.insertBefore(ele, firstNonComponentEle);
+
+      // Set properties
+      const anyEle = ele as any;
+      anyEle.item = item;
+      anyEle.index = slotIndex;
+
+      if (item && item.ID) {
+        anyEle.id = item.ID;
+      } else if (item === null || item === undefined) {
+        anyEle.id = '';
+      }
+
+      this._updateTemplateBindings(anyEle, item);
+
+      if (anyEle.instance) {
+        anyEle.instance.item = item;
+        anyEle.instance.index = slotIndex;
+      }
+
+      for (const [key, val] of attrs) {
+        if (key === 'indexAttributes') continue;
+        anyEle[key] = val;
+      }
+
+      for (const name of attributesToIndex) {
+        const finalName = dashToCamelCase(name);
+        anyEle[finalName] = slotIndex;
+        anyEle.setAttribute(name, String(slotIndex));
+      }
+    }
+  }
+
+  /**
+   * Default insertion: in-place property assignment (original behavior).
+   * Elements stay in DOM order and receive new item data sequentially.
+   */
+  private _insertNodesDefault(componentsInfo: any[], hostEle: HTMLElement) {
     const attrs = this._attributesForComponents();
     const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
 
@@ -743,30 +894,21 @@ export class BoardgameComponentStack extends LitElement {
       if (!ele.hasAttribute('boardgame-component')) continue;
 
       // Ensure the item has an ID from the stack's IDs array.
-      // Sanitized components have empty item objects ({}) without an ID field,
-      // but the stack-level IDs array still tracks them for FLIP animations.
       let item = componentsInfo[componentIndex];
       const stackIds = this.stack?.IDs;
       if (stackIds && stackIds[componentIndex] && item && !item.ID) {
         item.ID = stackIds[componentIndex];
       }
 
-      // Set the item and index properties
       ele.item = item;
       ele.index = componentIndex;
 
-      // Set ID synchronously for FLIP animation tracking.
-      // Lit's async update cycle (updated() → _itemChanged()) may not
-      // update the element's id before _doAnimate() reads it, causing
-      // FLIP inversions to be zero (same element, same position, old ID).
       if (item && item.ID) {
         ele.id = item.ID;
       } else if (item === null || item === undefined) {
         ele.id = '';
       }
 
-      // Update template bindings directly after setting item
-      // This handles Polymer-style {{...}} template bindings in Lit-rendered elements
       this._updateTemplateBindings(ele, componentsInfo[componentIndex]);
 
       if (ele.instance) {
@@ -868,7 +1010,7 @@ export class BoardgameComponentStack extends LitElement {
       const transformPieces: string[] = [];
       const id = component.id || i.toString();
 
-      if (this.messy && this.layout !== 'pile') {
+      if (this.messy && this.layout !== 'pile' && this.layout !== 'board') {
         transformPieces.push(`rotate(${this._messyRotationForId(id)}deg)`);
       }
 

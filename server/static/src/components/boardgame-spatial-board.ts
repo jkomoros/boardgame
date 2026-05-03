@@ -32,13 +32,35 @@ class BoardgameSpatialBoard extends LitElement {
       display: block;
     }
 
+    #container {
+      background: var(--board-surface, #2D5016);
+      border-radius: 8px;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3),
+                  0 4px 12px rgba(60, 40, 20, 0.2),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 8px;
+      position: relative;
+    }
+
+    #container svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     [data-space] {
       cursor: pointer;
+      transition: filter 0.15s ease;
+    }
+
+    [data-space]:hover {
+      filter: brightness(1.15);
     }
 
     [data-space].disabled {
       fill: var(--md-sys-color-surface-container-highest, #E0D9CE) !important;
       cursor: default !important;
+      filter: none !important;
     }
   `;
 

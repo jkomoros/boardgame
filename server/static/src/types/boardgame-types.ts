@@ -48,12 +48,22 @@ export interface RawStack {
 }
 
 /**
- * A board as seen by the client. Boards serialize as an array of spaces,
- * each of which is a raw (non-expanded) stack. The selector expansion does
- * not recurse into board spaces.
+ * A board as seen by the client before expansion. Boards serialize as an
+ * array of spaces, each of which is a raw (non-expanded) stack.
  */
 export interface Board {
   Spaces: RawStack[];
+}
+
+/**
+ * An expanded board after selector expansion. Each space is a fully
+ * expanded stack with resolved component objects, ready for rendering.
+ */
+export interface ExpandedBoard<
+  T extends Record<string, unknown> = Record<string, unknown>,
+  D extends Record<string, unknown> = Record<string, unknown>
+> {
+  Spaces: ExpandedStack<T, D>[];
 }
 
 /**

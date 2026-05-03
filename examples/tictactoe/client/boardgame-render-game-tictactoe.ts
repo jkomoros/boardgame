@@ -1,7 +1,9 @@
-import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
-import '../../../server/static/src/components/boardgame-fading-text.js';
-import './boardgame-tictactoe-cell.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import '../../src/components/boardgame-token.js';
+import '../../src/components/boardgame-game-board.js';
+import '../../src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
+import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 
@@ -9,58 +11,31 @@ class BoardgameRenderGameTictactoe extends BoardgameBaseGameRenderer<GameState, 
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
-      .row {
-        border-bottom: 2px solid var(--md-sys-color-outline, #857B6E);
-        display: flex;
-        flex-direction: row;
-      }
-
-      .row:last-of-type {
-        border-bottom: 0;
-      }
-
-      boardgame-tictactoe-cell {
-        border-right: 2px solid var(--md-sys-color-outline, #857B6E);
-      }
-
-      boardgame-tictactoe-cell:last-of-type {
-        border-right: 0;
-      }
-
-      .container {
-        display: flex;
-        flex-direction: row;
-      }
-
-      .board {
-        display: flex;
-        flex-direction: column;
+      boardgame-game-board {
+        max-width: 320px;
+        margin: 0 auto;
       }
     `
   ];
 
+  private _onSpaceTapped(e: CustomEvent) {
+    const { index } = e.detail;
+    this.proposeMove(MoveNames.PlaceToken, { Slot: index });
+  }
+
   override render() {
     return html`
       <h2>Tictactoe</h2>
-      <div class="container">
-        <div class="board">
-          <div class="row">
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[0]}" index="0"></boardgame-tictactoe-cell>
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[1]}" index="1"></boardgame-tictactoe-cell>
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[2]}" index="2"></boardgame-tictactoe-cell>
-          </div>
-          <div class="row">
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[3]}" index="3"></boardgame-tictactoe-cell>
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[4]}" index="4"></boardgame-tictactoe-cell>
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[5]}" index="5"></boardgame-tictactoe-cell>
-          </div>
-          <div class="row">
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[6]}" index="6"></boardgame-tictactoe-cell>
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[7]}" index="7"></boardgame-tictactoe-cell>
-            <boardgame-tictactoe-cell .token="${this.state?.Game?.Slots?.Components?.[8]}" index="8"></boardgame-tictactoe-cell>
-          </div>
-        </div>
-      </div>
+      <boardgame-deck-defaults>
+        <template deck="tokens">
+          <boardgame-token type="chip"></boardgame-token>
+        </template>
+      </boardgame-deck-defaults>
+      <boardgame-game-board
+        rows="3" cols="3"
+        .stack="${this.state?.Game?.Slots}"
+        @space-tapped="${this._onSpaceTapped}">
+      </boardgame-game-board>
       <boardgame-fading-text
         .trigger="${this.isCurrentPlayer}"
         message="Your Turn"

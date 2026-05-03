@@ -1,9 +1,10 @@
-import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
-import '../../../server/static/src/components/boardgame-board.js';
-import '../../../server/static/src/components/boardgame-token.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import '../../src/components/boardgame-token.js';
+import '../../src/components/boardgame-game-board.js';
+import '../../src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
-import { repeat } from 'lit/directives/repeat.js';
+import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 
@@ -11,43 +12,63 @@ class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, P
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
-      boardgame-token {
-        --component-scale: 1.25;
-      }
-      boardgame-token.player-0 {
-        color: var(--player-0-color, #3E2723);
-      }
-      boardgame-token.player-1 {
-        color: var(--player-1-color, #8B2500);
+      boardgame-game-board {
+        max-width: 500px;
+        margin: 0 auto;
       }
     `
   ];
 
-  @property({ type: Number })
-  size = 8;
+  @property({ type: Number, attribute: false })
+  private selectedSpace = -1;
 
-  get _components(): boolean[] {
-    return this._computeComponents(this.size);
+  // Reset selection when game state changes (e.g., opponent moved)
+  protected override updated(changedProperties: Map<string, unknown>): void {
+    super.updated(changedProperties);
+    if (changedProperties.has('state') && changedProperties.get('state') !== undefined) {
+      this.selectedSpace = -1;
+    }
   }
 
-  private _computeComponents(size: number): boolean[] {
-    const result: boolean[] = [];
-    for (let i = 0; i < size; i++) {
-      result.push(true);
+  private _onSpaceTapped(e: CustomEvent) {
+    const { index } = e.detail;
+    const component = this.state?.Game?.Spaces?.Components?.[index];
+
+    if (this.selectedSpace < 0) {
+      // No piece selected yet — select this one if occupied
+      if (component) {
+        this.selectedSpace = index;
+      }
+    } else {
+      // A piece is selected — try to move to this cell
+      if (index !== this.selectedSpace) {
+        this.proposeMove(MoveNames.MoveToken, {
+          TokenIndexToMove: this.selectedSpace,
+          SpaceIndex: index,
+        });
+      }
+      this.selectedSpace = -1;
     }
-    return result;
   }
 
   override render() {
     return html`
-      <boardgame-board .rows="${this.size}" .cols="${this.size}">
-        ${repeat(this._components, (item, index) => index, () => html`
-          <boardgame-token class="player-0"></boardgame-token>
-        `)}
-        ${repeat(this._components, (item, index) => index, () => html`
-          <boardgame-token class="player-1"></boardgame-token>
-        `)}
-      </boardgame-board>
+      <boardgame-deck-defaults>
+        <template deck="tokens">
+          <boardgame-token type="disc" color="{{item.Values.Color}}"></boardgame-token>
+        </template>
+      </boardgame-deck-defaults>
+      <boardgame-game-board
+        rows="8" cols="8" checkerboard
+        .stack="${this.state?.Game?.Spaces}"
+        .selectedSpace="${this.selectedSpace}"
+        @space-tapped="${this._onSpaceTapped}">
+      </boardgame-game-board>
+      <boardgame-fading-text
+        .trigger="${this.isCurrentPlayer}"
+        message="Your Turn"
+        suppress="falsey">
+      </boardgame-fading-text>
     `;
   }
 }
