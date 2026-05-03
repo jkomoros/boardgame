@@ -156,7 +156,7 @@ export class BoardgameToken extends BoardgameComponent {
     const result = super._computeClasses();
     return {
       ...result,
-      [this.color]: true,
+      [this.color.toLowerCase()]: true,
       active: this.active,
       highlighted: this.highlighted,
       [this.type]: true
