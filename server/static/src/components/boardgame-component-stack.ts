@@ -188,6 +188,31 @@ export class BoardgameComponentStack extends LitElement {
       box-sizing: border-box;
       padding: 1em 0;
     }
+
+    /* Board layout: CSS Grid positioning by slot index */
+    #container.board {
+      display: grid;
+      grid-template-columns: repeat(var(--board-cols, 8), 1fr);
+      gap: 0;
+      padding: 0;
+    }
+
+    #container.board #slot-holder {
+      display: contents;
+    }
+
+    #container.board ::slotted([boardgame-component]),
+    #container.board [boardgame-component] {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #container.board [boardgame-component]#spacer {
+      aspect-ratio: 1;
+      visibility: hidden;
+    }
   `;
 
   @property({ type: String })
@@ -244,6 +269,9 @@ export class BoardgameComponentStack extends LitElement {
 
   @property({ type: Boolean })
   noDefaultSpacer = false;
+
+  @property({ type: Number })
+  boardCols = 8;
 
   @property({ type: Number })
   fauxComponents = 0;
@@ -367,6 +395,9 @@ export class BoardgameComponentStack extends LitElement {
     this._slotChanged(true);
     this._randomRotationOffset = Math.floor(Math.random() * 21);
     this._id = this._randomId(8);
+    if (this.container) {
+      this.container.style.setProperty('--board-cols', String(this.boardCols));
+    }
 
   }
 
@@ -383,6 +414,10 @@ export class BoardgameComponentStack extends LitElement {
 
     if (changedProperties.has('layout') || changedProperties.has('messy')) {
       this._updateComponentClasses();
+    }
+
+    if (changedProperties.has('boardCols') && this.container) {
+      this.container.style.setProperty('--board-cols', String(this.boardCols));
     }
 
     // stack property change is now handled in the setter directly
@@ -868,7 +903,7 @@ export class BoardgameComponentStack extends LitElement {
       const transformPieces: string[] = [];
       const id = component.id || i.toString();
 
-      if (this.messy && this.layout !== 'pile') {
+      if (this.messy && this.layout !== 'pile' && this.layout !== 'board') {
         transformPieces.push(`rotate(${this._messyRotationForId(id)}deg)`);
       }
 
