@@ -1,25 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Top-down disc for board games. Base color is red; use CSS filter for other colors. -->
-  <defs>
-    <radialGradient id="disc-gradient" cx="40%" cy="38%" r="55%">
-      <stop offset="0%" stop-color="#FF4444"/>
-      <stop offset="60%" stop-color="#CC0000"/>
-      <stop offset="100%" stop-color="#880000"/>
-    </radialGradient>
-    <radialGradient id="disc-highlight" cx="35%" cy="30%" r="30%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </radialGradient>
-  </defs>
-  <!-- Shadow -->
-  <ellipse cx="53" cy="54" rx="42" ry="42" fill="rgba(0,0,0,0.15)"/>
-  <!-- Main disc body -->
-  <circle cx="50" cy="50" r="42" fill="url(#disc-gradient)"/>
-  <!-- Inner ring -->
-  <circle cx="50" cy="50" r="32" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>
-  <!-- Highlight -->
-  <circle cx="50" cy="50" r="42" fill="url(#disc-highlight)"/>
-  <!-- Edge bevel -->
-  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  <!-- Top-down flat disc (checker piece). Flat color with subtle edge
+       bevel and inner ring — like looking straight down at a wooden disc
+       sitting on felt. Base color is red; use CSS filter for other colors. -->
+  <!-- Outer shadow ring -->
+  <circle cx="50" cy="51" r="43" fill="rgba(0,0,0,0.12)"/>
+  <!-- Main disc body — flat, uniform color -->
+  <circle cx="50" cy="50" r="42" fill="#CC0000"/>
+  <!-- Inner ring groove (recessed line) -->
+  <circle cx="50" cy="50" r="32" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="1.2"/>
+  <circle cx="50" cy="50" r="33" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
+  <!-- Top edge highlight (very subtle, just a thin arc at the top) -->
+  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"
+          stroke-dasharray="66 198"/>
+  <!-- Bottom edge shadow (thin arc at the bottom) -->
+  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1"
+          stroke-dasharray="66 198" stroke-dashoffset="-132"/>
 </svg>
