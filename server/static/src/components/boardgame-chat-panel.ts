@@ -201,6 +201,35 @@ export class BoardgameChatPanel extends LitElement {
       opacity: 0.8;
     }
 
+    .message.grouped {
+      margin-bottom: 1px;
+      padding-top: 0;
+    }
+
+    .message.grouped .sender,
+    .message.grouped .time {
+      display: none;
+    }
+
+    .channel-indicator {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 6px;
+      margin-left: 4px;
+      background: var(--md-sys-color-surface-container-highest, #e6e0e9);
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+    }
+
+    .channel-indicator.dm {
+      background: var(--md-sys-color-tertiary-container, #ffd8e4);
+      color: var(--md-sys-color-on-tertiary-container, #31111d);
+    }
+
+    .channel-indicator.team {
+      background: var(--md-sys-color-secondary-container, #e8def8);
+      color: var(--md-sys-color-on-secondary-container, #1d192b);
+    }
+
     .input-area {
       display: flex;
       align-items: center;
@@ -275,6 +304,9 @@ export class BoardgameChatPanel extends LitElement {
   @state()
   private _sending = false;
 
+  @state()
+  private _soundEnabled = false;
+
   @query('.messages')
   private _messagesContainer!: HTMLElement;
 
@@ -303,6 +335,11 @@ export class BoardgameChatPanel extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    // Load sound preference
+    try {
+      this._soundEnabled = localStorage.getItem('boardgame-chat-sound') === '1';
+    } catch { /* ignore */ }
+
     this._fetchMessages();
     // Poll for messages — reduce frequency once WebSocket is working
     this._pollInterval = window.setInterval(() => {
@@ -353,6 +390,14 @@ export class BoardgameChatPanel extends LitElement {
 
         if (this._collapsed) {
           this._unreadCount += newMessages.length;
+        }
+
+        // Play sound for messages from others (not self, not system)
+        const hasOtherMessages = newMessages.some(
+          m => m.sender !== this.viewingAsPlayer && m.sender !== -2
+        );
+        if (hasOtherMessages) {
+          this._playNotificationSound();
         }
 
         this.updateComplete.then(() => {
@@ -481,6 +526,51 @@ export class BoardgameChatPanel extends LitElement {
     this._sendMessage(msg);
   }
 
+  private _toggleSound() {
+    this._soundEnabled = !this._soundEnabled;
+    try {
+      localStorage.setItem('boardgame-chat-sound', this._soundEnabled ? '1' : '0');
+    } catch { /* localStorage not available */ }
+  }
+
+  /** Play a short notification sound via Web Audio API */
+  private _playNotificationSound() {
+    if (!this._soundEnabled) return;
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.setValueAtTime(600, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.15);
+    } catch { /* Audio not available */ }
+  }
+
+  /** Check if a message is grouped with the previous one (same sender within 60s) */
+  private _isGrouped(messages: ChatMessage[], index: number): boolean {
+    if (index === 0) return false;
+    const prev = messages[index - 1];
+    const curr = messages[index];
+    if (curr.sender === -2 || prev.sender === -2) return false; // system messages break groups
+    if (curr.sender !== prev.sender) return false;
+    if (curr.channel !== prev.channel) return false;
+    // Group if within 60 seconds
+    return Math.abs(curr.timestamp - prev.timestamp) < 60000;
+  }
+
+  /** Get the channel indicator badge for a message when viewing "all" */
+  private _channelBadge(channel: string): string {
+    if (channel === 'all') return '';
+    if (channel.startsWith('team/')) return channel.substring(5);
+    if (channel.startsWith('dm/')) return 'DM';
+    return channel;
+  }
+
   render() {
     if (this._chatConfig && !this._chatConfig.Enabled) return nothing;
     if (!this.gameRoute) return nothing;
@@ -500,6 +590,11 @@ export class BoardgameChatPanel extends LitElement {
           ${this._unreadCount > 0 ? html`
             <span class="badge" aria-label="${this._unreadCount} unread messages">${this._unreadCount}</span>
           ` : nothing}
+          <md-icon-button @click=${(e: Event) => { e.stopPropagation(); this._toggleSound(); }}
+                          aria-label="${this._soundEnabled ? 'Mute notifications' : 'Enable sound notifications'}"
+                          title="${this._soundEnabled ? 'Sound on' : 'Sound off'}">
+            <md-icon>${this._soundEnabled ? 'volume_up' : 'volume_off'}</md-icon>
+          </md-icon-button>
           <md-icon class="toggle-icon ${this._collapsed ? 'collapsed' : ''}">expand_less</md-icon>
         </div>
 
@@ -519,14 +614,17 @@ export class BoardgameChatPanel extends LitElement {
           <div class="messages" role="log" aria-live="polite" aria-label="Chat messages">
             ${this._filteredMessages.length === 0 ? html`
               <div class="empty-state">No messages yet. Say hello!</div>
-            ` : this._filteredMessages.map(msg => {
+            ` : this._filteredMessages.map((msg, idx) => {
               const isSelf = msg.sender === this.viewingAsPlayer;
               const isSystem = msg.sender === -2;
+              const grouped = this._isGrouped(this._filteredMessages, idx);
+              const showChannelBadge = this._activeChannel === 'all' && this._hasMultipleChannels;
+              const badge = showChannelBadge ? this._channelBadge(msg.channel) : '';
               return html`
-                <div class="message ${isSystem ? 'system' : isSelf ? 'self' : 'other'}">
+                <div class="message ${isSystem ? 'system' : isSelf ? 'self' : 'other'} ${grouped ? 'grouped' : ''}">
                   ${isSystem
                     ? html`— ${msg.body} —`
-                    : html`<span class="sender">${this._senderName(msg.sender)}</span>${msg.body}<span class="time">${this._formatTime(msg.timestamp)}</span>`
+                    : html`<span class="sender">${this._senderName(msg.sender)}</span>${msg.body}${badge ? html`<span class="channel-indicator ${msg.channel.startsWith('dm/') ? 'dm' : msg.channel.startsWith('team/') ? 'team' : ''}">${badge}</span>` : nothing}<span class="time">${this._formatTime(msg.timestamp)}</span>`
                   }
                 </div>
               `;
