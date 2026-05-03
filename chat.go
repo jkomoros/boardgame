@@ -163,3 +163,50 @@ type ChatPolicy struct {
 	// true. Ignored when PrebakedOnly is false.
 	AllowedMessages []string
 }
+
+// EmitSystemMessage queues a system chat message to be saved when the current
+// move is successfully committed. Call this from within a move's Apply method
+// to generate framework or game-specific system messages like "Player drew a
+// wild card" or "Round 3 starting".
+//
+// The message is buffered on the state — if the move fails or is rolled back,
+// the buffered messages are discarded. System messages have
+// Sender=AdminPlayerIndex and Channel="all".
+//
+// The server layer (or any layer with access to ChatStorageManager) retrieves
+// buffered messages via PendingChatMessages() after a successful commit and
+// persists them.
+//
+//	func (m *MyMove) Apply(state boardgame.State) error {
+//	    // ... game logic ...
+//	    boardgame.EmitSystemMessage(state, "Something happened!")
+//	    return nil
+//	}
+// EmitSystemMessage queues a system chat message to be flushed after the
+// current move is successfully committed. Uses AddCommittedCallback internally
+// so the message is discarded if the move fails.
+//
+// The callback checks if the storage implements ChatStorageManager and saves
+// the message. If chat storage is not available, the message is silently
+// discarded.
+func EmitSystemMessage(st State, body string) {
+	gameID := st.Game().ID()
+	version := st.Version()
+	storage := st.Manager().Storage()
+
+	st.Manager().Internals().AddCommittedCallback(st, func() {
+		chatStorage, ok := storage.(ChatStorageManager)
+		if !ok {
+			return
+		}
+		msg := &ChatMessage{
+			GameID:    gameID,
+			Version:   version,
+			Sender:    AdminPlayerIndex,
+			Channel:   "all",
+			Body:      body,
+			Timestamp: time.Now(),
+		}
+		chatStorage.SaveChatMessage(msg)
+	})
+}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"time"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
@@ -82,6 +83,25 @@ type ServerStorageManager struct {
 	server *Server
 }
 
+// SaveChatMessage delegates to the underlying storage if it implements
+// ChatStorageManager. This allows EmitSystemMessage to work through the
+// ServerStorageManager wrapper.
+func (s *ServerStorageManager) SaveChatMessage(msg *boardgame.ChatMessage) error {
+	if cs, ok := s.StorageManager.(boardgame.ChatStorageManager); ok {
+		return cs.SaveChatMessage(msg)
+	}
+	return nil // silently skip if chat not supported
+}
+
+// ChatMessages delegates to the underlying storage if it implements
+// ChatStorageManager.
+func (s *ServerStorageManager) ChatMessages(gameID string, channel string, sinceID string, limit int) ([]*boardgame.ChatMessage, error) {
+	if cs, ok := s.StorageManager.(boardgame.ChatStorageManager); ok {
+		return cs.ChatMessages(gameID, channel, sinceID, limit)
+	}
+	return nil, nil
+}
+
 // NewServerStorageManager takes an object that implements StorageManager and
 // wraps it.
 func NewServerStorageManager(manager StorageManager) *ServerStorageManager {
@@ -113,8 +133,32 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 	// should be made joinable again.
 	server.maybeReopenGame(game)
 
+	// Auto-emit system message when game finishes
+	if game.Finished {
+		server.emitSystemChatMessage(game.ID, game.Version, "Game over!")
+	}
+
 	return nil
 
+}
+
+// emitSystemChatMessage saves a system chat message if chat storage is available.
+func (s *Server) emitSystemChatMessage(gameID string, version int, body string) {
+	cs := s.chatStorage()
+	if cs == nil {
+		return
+	}
+	msg := &boardgame.ChatMessage{
+		GameID:    gameID,
+		Version:   version,
+		Sender:    boardgame.AdminPlayerIndex,
+		Channel:   "all",
+		Body:      body,
+		Timestamp: time.Now(),
+	}
+	if err := cs.SaveChatMessage(msg); err != nil {
+		s.logger.Warnln("Failed to emit system chat message:", err)
+	}
 }
 
 // FetchInjectedDataForGame is where the server signals to SeatPlayer that
