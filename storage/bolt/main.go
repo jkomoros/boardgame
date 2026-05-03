@@ -38,6 +38,8 @@ var (
 	cookiesBucket       = []byte("Cookies")
 	gameUsersBucket     = []byte("GameUsers")
 	agentStatesBucket   = []byte("AgentStates")
+	chatBucket          = []byte("Chat")
+	chatCounterBucket   = []byte("ChatCounters")
 )
 
 // NewStorageManager returns a new StorageManager ready for use, backed by the
@@ -74,6 +76,12 @@ func NewStorageManager(fileName string) *StorageManager {
 		}
 		if _, err := tx.CreateBucketIfNotExists(agentStatesBucket); err != nil {
 			return errors.New("Cannot create agent states bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(chatBucket); err != nil {
+			return errors.New("Cannot create chat bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(chatCounterBucket); err != nil {
+			return errors.New("Cannot create chat counter bucket" + err.Error())
 		}
 		return nil
 	})
@@ -760,4 +768,73 @@ func (s *StorageManager) FetchInjectedDataForGame(gameID string, dataType string
 // WithManagers  does nothing.
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing
+}
+
+// SaveChatMessage implements boardgame.ChatStorageManager.
+func (s *StorageManager) SaveChatMessage(msg *boardgame.ChatMessage) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(chatBucket)
+
+		// Auto-increment ID if not set
+		if msg.ID == "" {
+			counterBucket := tx.Bucket(chatCounterBucket)
+			counterKey := []byte(msg.GameID)
+			counterVal := counterBucket.Get(counterKey)
+			counter := 0
+			if counterVal != nil {
+				counter, _ = strconv.Atoi(string(counterVal))
+			}
+			counter++
+			msg.ID = strconv.Itoa(counter)
+			counterBucket.Put(counterKey, []byte(strconv.Itoa(counter)))
+		}
+
+		data, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+
+		// Key: gameID/msgID for ordering
+		key := msg.GameID + "/" + msg.ID
+		return b.Put([]byte(key), data)
+	})
+}
+
+// ChatMessages implements boardgame.ChatStorageManager.
+func (s *StorageManager) ChatMessages(gameID string, channel string, sinceID string, limit int) ([]*boardgame.ChatMessage, error) {
+	var result []*boardgame.ChatMessage
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(chatBucket)
+		c := b.Cursor()
+
+		prefix := []byte(gameID + "/")
+		pastSince := sinceID == ""
+
+		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
+			var msg boardgame.ChatMessage
+			if err := json.Unmarshal(v, &msg); err != nil {
+				continue
+			}
+
+			if !pastSince {
+				if msg.ID == sinceID {
+					pastSince = true
+				}
+				continue
+			}
+
+			if channel != "" && msg.Channel != channel {
+				continue
+			}
+
+			result = append(result, &msg)
+			if limit > 0 && len(result) >= limit {
+				break
+			}
+		}
+		return nil
+	})
+
+	return result, err
 }
