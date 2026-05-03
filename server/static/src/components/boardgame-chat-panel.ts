@@ -1,7 +1,7 @@
 /**
  * boardgame-chat-panel
  *
- * Collapsible chat drawer for multiplayer games. Renders a message list,
+ * Collapsible chat panel for multiplayer games. Renders a message list,
  * channel tabs (all/team), and a text input (or chip picker for pre-baked
  * messages).
  *
@@ -10,8 +10,6 @@
  */
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
-import '@material/web/button/filled-button.js';
-import '@material/web/button/outlined-button.js';
 import '@material/web/textfield/filled-text-field.js';
 import '@material/web/icon/icon.js';
 import '@material/web/iconbutton/icon-button.js';
@@ -54,15 +52,27 @@ export class BoardgameChatPanel extends LitElement {
       border-radius: 12px;
       margin: 8px 0;
       overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .chat-header {
       display: flex;
       align-items: center;
-      padding: 8px 12px;
+      gap: 8px;
+      padding: 10px 14px;
       cursor: pointer;
       user-select: none;
       background: var(--md-sys-color-surface-container-high, #ece6f0);
+      transition: background 0.15s;
+    }
+
+    .chat-header:hover {
+      background: var(--md-sys-color-surface-container-highest, #e6e0e9);
+    }
+
+    .chat-header .icon {
+      font-size: 18px;
+      color: var(--md-sys-color-on-surface-variant, #49454f);
     }
 
     .chat-header h4 {
@@ -70,45 +80,85 @@ export class BoardgameChatPanel extends LitElement {
       flex: 1;
       font-size: 14px;
       font-weight: 500;
+      font-family: var(--md-sys-typescale-title-small-font, 'Roboto', sans-serif);
+      color: var(--md-sys-color-on-surface, #1c1b1f);
     }
 
     .badge {
       background: var(--md-sys-color-error, #b3261e);
       color: var(--md-sys-color-on-error, #fff);
       border-radius: 10px;
-      padding: 2px 6px;
+      padding: 2px 7px;
       font-size: 11px;
-      margin-left: 8px;
+      font-weight: 500;
+      min-width: 14px;
+      text-align: center;
+    }
+
+    .toggle-icon {
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+      transition: transform 0.2s;
+    }
+
+    .toggle-icon.collapsed {
+      transform: rotate(180deg);
     }
 
     .chat-body {
-      max-height: 300px;
       display: flex;
       flex-direction: column;
+      max-height: 320px;
+      transition: max-height 0.25s ease-in-out, opacity 0.2s;
+      opacity: 1;
     }
 
     .chat-body.collapsed {
       max-height: 0;
+      opacity: 0;
       overflow: hidden;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .chat-body, .toggle-icon {
+        transition: none;
+      }
     }
 
     .messages {
       flex: 1;
       overflow-y: auto;
-      padding: 8px 12px;
-      max-height: 220px;
-      min-height: 60px;
+      padding: 10px 14px;
+      max-height: 240px;
+      min-height: 50px;
+      scroll-behavior: smooth;
     }
 
     .message {
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      padding: 4px 0;
       font-size: 13px;
-      line-height: 1.4;
+      line-height: 1.5;
+      font-family: var(--md-sys-typescale-body-small-font, 'Roboto', sans-serif);
     }
 
     .message .sender {
-      font-weight: 500;
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .message .time {
+      font-size: 10px;
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+      margin-left: 6px;
+      opacity: 0.7;
+    }
+
+    .message.self .sender {
       color: var(--md-sys-color-primary, #6750a4);
+    }
+
+    .message.other .sender {
+      color: var(--md-sys-color-tertiary, #7d5260);
     }
 
     .message.system {
@@ -116,41 +166,48 @@ export class BoardgameChatPanel extends LitElement {
       color: var(--md-sys-color-on-surface-variant, #49454f);
       font-style: italic;
       font-size: 12px;
+      padding: 6px 0;
+      opacity: 0.8;
     }
 
     .input-area {
       display: flex;
+      align-items: center;
       gap: 4px;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-top: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
     }
 
     .input-area md-filled-text-field {
       flex: 1;
       --md-filled-text-field-container-shape: 20px;
+      --md-filled-text-field-top-space: 8px;
+      --md-filled-text-field-bottom-space: 8px;
     }
 
     .chip-area {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
-      padding: 8px 12px;
+      gap: 6px;
+      padding: 8px 14px;
       border-top: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
     }
 
     .disabled-message {
-      padding: 8px 12px;
+      padding: 10px 14px;
       text-align: center;
       color: var(--md-sys-color-on-surface-variant, #49454f);
       font-size: 12px;
       font-style: italic;
+      border-top: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
     }
 
     .empty-state {
-      padding: 16px;
+      padding: 20px;
       text-align: center;
       color: var(--md-sys-color-on-surface-variant, #49454f);
       font-size: 13px;
+      opacity: 0.6;
     }
   `;
 
@@ -181,18 +238,26 @@ export class BoardgameChatPanel extends LitElement {
   @state()
   private _lastMessageID = '';
 
+  @state()
+  private _sending = false;
+
   @query('.messages')
   private _messagesContainer!: HTMLElement;
 
+  @query('md-filled-text-field')
+  private _inputField!: HTMLElement & { value: string; focus: () => void };
+
   private _pollInterval: number | null = null;
+  private _hasWebSocket = false;
 
   connectedCallback() {
     super.connectedCallback();
     this._fetchMessages();
-    // Poll every 3 seconds for new messages (until WebSocket chat is wired)
-    this._pollInterval = window.setInterval(() => this._fetchMessages(), 3000);
+    // Poll for messages — reduce frequency once WebSocket is working
+    this._pollInterval = window.setInterval(() => {
+      if (!this._hasWebSocket) this._fetchMessages();
+    }, 3000);
 
-    // Listen for WebSocket chat notifications
     window.addEventListener('chat-notification', this._handleChatNotification as EventListener);
   }
 
@@ -205,8 +270,8 @@ export class BoardgameChatPanel extends LitElement {
     window.removeEventListener('chat-notification', this._handleChatNotification as EventListener);
   }
 
-  private _handleChatNotification = (e: CustomEvent) => {
-    // A new chat message arrived via WebSocket — fetch it
+  private _handleChatNotification = () => {
+    this._hasWebSocket = true;
     this._fetchMessages();
   };
 
@@ -226,14 +291,13 @@ export class BoardgameChatPanel extends LitElement {
 
       const newMessages: ChatMessage[] = data.Messages || [];
       if (newMessages.length > 0) {
-        this._messages = [...this._messages, ...newMessages].slice(-100); // keep last 100
+        this._messages = [...this._messages, ...newMessages].slice(-100);
         this._lastMessageID = newMessages[newMessages.length - 1].id;
 
         if (this._collapsed) {
           this._unreadCount += newMessages.length;
         }
 
-        // Auto-scroll to bottom
         this.updateComplete.then(() => {
           if (this._messagesContainer) {
             this._messagesContainer.scrollTop = this._messagesContainer.scrollHeight;
@@ -241,7 +305,7 @@ export class BoardgameChatPanel extends LitElement {
         });
       }
     } catch {
-      // Silently fail — chat is optional
+      // Chat is optional — silent failure
     }
   }
 
@@ -249,6 +313,8 @@ export class BoardgameChatPanel extends LitElement {
     this._collapsed = !this._collapsed;
     if (!this._collapsed) {
       this._unreadCount = 0;
+      // Focus the input when expanding
+      this.updateComplete.then(() => this._inputField?.focus());
     }
   }
 
@@ -260,37 +326,59 @@ export class BoardgameChatPanel extends LitElement {
     return `Player ${senderIndex}`;
   }
 
+  private _formatTime(timestamp: number): string {
+    if (!timestamp) return '';
+    const d = new Date(timestamp);
+    const h = d.getHours();
+    const m = d.getMinutes().toString().padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  }
+
   private async _sendMessage(body: string) {
-    if (!this.gameRoute || !body.trim()) return;
+    if (!this.gameRoute || !body.trim() || this._sending) return;
+    this._sending = true;
 
     try {
       const formData = new URLSearchParams();
       formData.append('channel', 'all');
       formData.append('body', body.trim());
 
-      await fetch(`/api/game/${this.gameRoute.name}/${this.gameRoute.id}/chat`, {
+      const resp = await fetch(`/api/game/${this.gameRoute.name}/${this.gameRoute.id}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString(),
       });
 
-      // Fetch immediately to show our own message
-      await this._fetchMessages();
+      if (resp.ok) {
+        await this._fetchMessages();
+      }
     } catch {
-      // Silently fail
+      // Silent failure
+    } finally {
+      this._sending = false;
     }
   }
 
   private _handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      const input = e.target as HTMLInputElement & { value: string };
-      const body = input.value;
-      if (body.trim()) {
-        this._sendMessage(body);
-        input.value = '';
-      }
+      this._submitInput();
     }
+  }
+
+  private _submitInput() {
+    if (!this._inputField) return;
+    const body = this._inputField.value;
+    if (body.trim()) {
+      this._sendMessage(body);
+      this._inputField.value = '';
+    }
+  }
+
+  private _handleSendClick() {
+    this._submitInput();
   }
 
   private _handleChipClick(msg: string) {
@@ -298,9 +386,7 @@ export class BoardgameChatPanel extends LitElement {
   }
 
   render() {
-    // Don't render if chat is not available
     if (this._chatConfig && !this._chatConfig.Enabled) return nothing;
-    // Don't render until we've fetched config (first fetch may not have happened yet)
     if (!this.gameRoute) return nothing;
 
     const isObserver = this.viewingAsPlayer === -1;
@@ -310,24 +396,33 @@ export class BoardgameChatPanel extends LitElement {
 
     return html`
       <div class="chat-container">
-        <div class="chat-header" @click=${this._toggleCollapsed}>
+        <div class="chat-header" @click=${this._toggleCollapsed}
+             role="button" tabindex="0" aria-expanded=${!this._collapsed}
+             @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this._toggleCollapsed()}>
+          <md-icon class="icon">chat</md-icon>
           <h4>Chat</h4>
-          ${this._unreadCount > 0 ? html`<span class="badge">${this._unreadCount}</span>` : nothing}
-          <md-icon>${this._collapsed ? 'expand_more' : 'expand_less'}</md-icon>
+          ${this._unreadCount > 0 ? html`
+            <span class="badge" aria-label="${this._unreadCount} unread messages">${this._unreadCount}</span>
+          ` : nothing}
+          <md-icon class="toggle-icon ${this._collapsed ? 'collapsed' : ''}">expand_less</md-icon>
         </div>
 
         <div class="chat-body ${this._collapsed ? 'collapsed' : ''}">
-          <div class="messages" role="log" aria-live="polite">
+          <div class="messages" role="log" aria-live="polite" aria-label="Chat messages">
             ${this._messages.length === 0 ? html`
-              <div class="empty-state">No messages yet</div>
-            ` : this._messages.map(msg => html`
-              <div class="message ${msg.sender === -2 ? 'system' : ''}">
-                ${msg.sender === -2
-                  ? html`${msg.body}`
-                  : html`<span class="sender">${this._senderName(msg.sender)}:</span> ${msg.body}`
-                }
-              </div>
-            `)}
+              <div class="empty-state">No messages yet. Say hello!</div>
+            ` : this._messages.map(msg => {
+              const isSelf = msg.sender === this.viewingAsPlayer;
+              const isSystem = msg.sender === -2;
+              return html`
+                <div class="message ${isSystem ? 'system' : isSelf ? 'self' : 'other'}">
+                  ${isSystem
+                    ? html`— ${msg.body} —`
+                    : html`<span class="sender">${this._senderName(msg.sender)}</span>${msg.body}<span class="time">${this._formatTime(msg.timestamp)}</span>`
+                  }
+                </div>
+              `;
+            })}
           </div>
 
           ${isDisabled ? html`
@@ -347,8 +442,15 @@ export class BoardgameChatPanel extends LitElement {
             <div class="input-area">
               <md-filled-text-field
                 placeholder="Type a message..."
-                @keydown=${this._handleKeydown}>
+                @keydown=${this._handleKeydown}
+                ?disabled=${this._sending}
+                aria-label="Chat message">
               </md-filled-text-field>
+              <md-icon-button @click=${this._handleSendClick}
+                              ?disabled=${this._sending}
+                              aria-label="Send message">
+                <md-icon>send</md-icon>
+              </md-icon-button>
             </div>
           `}
         </div>
