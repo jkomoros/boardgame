@@ -70,7 +70,9 @@ export class BoardgameDeckDefaults extends LitElement {
   }
 
   templateForDeck(gameName: string, deckName: string): (() => DocumentFragment) | null {
-    const templateKey = `${gameName}-${deckName}`;
+    // Normalize to lowercase so "Tokens" and "tokens" both match
+    const normalizedDeck = deckName?.toLowerCase() ?? '';
+    const templateKey = `${gameName}-${normalizedDeck}`;
 
     if (!deckName) {
       // This happens often when a new renderer is loaded and we don't yet
@@ -86,8 +88,12 @@ export class BoardgameDeckDefaults extends LitElement {
     let template: HTMLTemplateElement | null = null;
 
     // Find the first defaults-instance that has it.
+    // Case-insensitive match: deck="tokens" matches server's "Tokens".
     for (const instance of defaultsInstances) {
       template = instance.querySelector(`[deck="${deckName}"]`) as HTMLTemplateElement;
+      if (!template) {
+        template = instance.querySelector(`[deck="${normalizedDeck}"]`) as HTMLTemplateElement;
+      }
       if (template) {
         // Verify that it's the right gameName.
         if (instance.effectiveGameName !== gameName) {

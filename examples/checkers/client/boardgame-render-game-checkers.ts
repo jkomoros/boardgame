@@ -46,7 +46,7 @@ class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, P
   override render() {
     return html`
       <boardgame-deck-defaults>
-        <template deck="Tokens">
+        <template deck="tokens">
           <boardgame-token type="chip" color="{{item.Values.Color}}"></boardgame-token>
         </template>
       </boardgame-deck-defaults>
