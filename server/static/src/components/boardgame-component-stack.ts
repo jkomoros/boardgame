@@ -207,11 +207,8 @@ export class BoardgameComponentStack extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    #container.board [boardgame-component]#spacer {
       aspect-ratio: 1;
-      visibility: hidden;
+      min-height: 0;
     }
   `;
 
