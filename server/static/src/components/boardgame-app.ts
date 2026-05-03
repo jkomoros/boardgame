@@ -150,6 +150,8 @@ export class BoardgameApp extends connect(store)(LitElement) {
       background-color: var(--md-sys-color-primary-container);
       color: var(--md-sys-color-on-primary-container);
       font-weight: 700;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06),
+                  0 1px 0 rgba(255, 255, 255, 0.3);
     }
 
     /* Main content area */
@@ -160,11 +162,12 @@ export class BoardgameApp extends connect(store)(LitElement) {
       width: 100%;
     }
 
-    /* Header styles - Material Design 3 Top App Bar */
+    /* Header styles — warm top bar with subtle bottom accent */
     .app-header {
-      background-color: var(--md-sys-color-surface);
+      background: linear-gradient(180deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container-low) 100%);
       color: var(--md-sys-color-on-surface);
-      box-shadow: var(--md-sys-elevation-2);
+      box-shadow: 0 1px 4px 0 rgba(60, 40, 20, 0.08);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
       position: sticky;
       top: 0;
       z-index: 10;

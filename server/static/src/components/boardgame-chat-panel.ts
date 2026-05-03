@@ -52,7 +52,8 @@ export class BoardgameChatPanel extends LitElement {
       border-radius: 12px;
       margin: 8px 0;
       overflow: hidden;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 3px rgba(60, 40, 20, 0.10),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.3);
     }
 
     .chat-header {
@@ -62,8 +63,8 @@ export class BoardgameChatPanel extends LitElement {
       padding: 10px 14px;
       cursor: pointer;
       user-select: none;
-      background: var(--md-sys-color-surface-container-high, #E8E2D8);
-      transition: background 0.15s;
+      background: linear-gradient(180deg, var(--md-sys-color-surface-container-high, #E8E2D8) 0%, var(--md-sys-color-surface-container, #F0EBE3) 100%);
+      transition: background 0.2s ease;
     }
 
     .chat-header:hover {
@@ -179,7 +180,7 @@ export class BoardgameChatPanel extends LitElement {
       background: transparent;
       border: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
       color: var(--md-sys-color-on-surface-variant, #4A4539);
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .channel-tab:hover {
@@ -190,6 +191,7 @@ export class BoardgameChatPanel extends LitElement {
       background: var(--md-sys-color-primary-container, #D4E8DA);
       color: var(--md-sys-color-on-primary-container, #0A2818);
       border-color: var(--md-sys-color-primary, #2E6B4F);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
     }
 
     .message.system {

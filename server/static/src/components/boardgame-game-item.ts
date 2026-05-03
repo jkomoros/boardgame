@@ -35,12 +35,22 @@ export class BoardgameGameItem extends GamePathMixin(LitElement) {
     }
 
     .card {
-      background: var(--md-sys-color-surface-container-low, #F5F0E8);
+      background: linear-gradient(180deg, var(--md-sys-color-surface-container-low, #F5F0E8) 0%, var(--md-sys-color-surface-container, #F0EBE3) 100%);
       padding: 16px;
       margin: 8px;
       border-radius: 12px;
-      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
+      box-shadow: 0 1px 3px 0 rgba(60, 40, 20, 0.10),
+                  0 1px 2px 0 rgba(60, 40, 20, 0.06),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
       color: var(--md-sys-color-on-surface, #1C1810);
+      transition: box-shadow 0.25s ease, transform 0.25s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 12px 0 rgba(60, 40, 20, 0.14),
+                  0 2px 4px 0 rgba(60, 40, 20, 0.08),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      transform: translateY(-2px);
     }
 
     .layout {
@@ -77,11 +87,13 @@ export class BoardgameGameItem extends GamePathMixin(LitElement) {
     a {
       color: var(--accent-color, #8B7432);
       text-decoration: none;
-      font-weight: 500;
+      font-weight: 600;
+      font-family: var(--md-sys-typescale-title-medium-font, 'Source Sans 3', sans-serif);
+      transition: color 0.2s ease;
     }
 
     a:hover {
-      text-decoration: underline;
+      color: var(--md-sys-color-primary, #2E6B4F);
     }
   `;
 
