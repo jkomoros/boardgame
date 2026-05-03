@@ -96,7 +96,7 @@ export class BoardgamePlayerBadge extends connect(store)(LitElement) {
         hash = ((hash << 5) - hash) + name.charCodeAt(i);
         hash |= 0;
       }
-      return `hsl(${hash % 360}, 100%, 50%)`;
+      return `hsl(${hash % 360}, 45%, 40%)`;
     }
     return '#857B6E';
   }

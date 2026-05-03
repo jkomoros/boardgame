@@ -31,13 +31,14 @@ class BoardgameDie extends BoardgameAnimatableItem {
       #main {
         height: var(--effective-die-size);
         width: var(--effective-die-size);
-        border-radius: 2px;
-        background-color: var(--md-sys-color-surface-container-highest, #E0D9CE);
+        border-radius: 6px;
+        background: linear-gradient(135deg, #F5F0E8 0%, #E0D9CE 100%);
         overflow: hidden;
         cursor: pointer;
-        box-shadow: 0 2px 2px 0 rgba(60, 40, 20, 0.14),
+        box-shadow: 0 2px 4px 0 rgba(60, 40, 20, 0.18),
                     0 1px 5px 0 rgba(60, 40, 20, 0.12),
-                    0 3px 1px -2px rgba(60, 40, 20, 0.2);
+                    0 3px 1px -2px rgba(60, 40, 20, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.4);
         transform: scale(var(--effective-die-scale));
         transition: transform var(--animation-length) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
@@ -75,6 +76,8 @@ class BoardgameDie extends BoardgameAnimatableItem {
         border-radius: calc(var(--pip-size) / 2);
         position: absolute;
         display: none;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4),
+                    0 1px 0 rgba(255, 255, 255, 0.2);
       }
 
       .face.one span, .face.two span, .face.three span, .face.four span, .face.five span, .face.six span {

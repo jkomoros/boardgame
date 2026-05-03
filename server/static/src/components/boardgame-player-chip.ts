@@ -60,7 +60,7 @@ export class BoardgamePlayerChip extends LitElement {
       // Hash is between Number.MIN_VALUE and Number.MAX_VALUE, but needs to
       // be between 0 and 360
       const degree = hash % 360;
-      result = `hsl(${degree}, 100%, 50%)`;
+      result = `hsl(${degree}, 45%, 40%)`;
     }
 
     if (this.chip) {

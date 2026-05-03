@@ -141,6 +141,7 @@ export class BoardgameCard extends BoardgameComponent {
 
       #outer #front {
         background-color: var(--card-front-color, #D4E8DA);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
         z-index: 2;
         transform: rotateY(180deg);
       }
@@ -148,6 +149,8 @@ export class BoardgameCard extends BoardgameComponent {
       #outer #back {
         background-color: var(--card-back-color, #2E6B4F);
         color: var(--card-back-text-color, rgba(255, 255, 255, 0.6));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
         transform: rotateY(0deg);
       }
 

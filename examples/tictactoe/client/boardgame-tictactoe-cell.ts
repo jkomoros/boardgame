@@ -23,6 +23,12 @@ class BoardgameTictactoeCell extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(255,255,255,0.03) 100%);
+      transition: background 0.15s;
+    }
+
+    .cell:hover {
+      background: rgba(0, 0, 0, 0.04);
     }
 
     .cell > div {
