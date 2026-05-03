@@ -134,9 +134,14 @@ func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageReco
 	server.maybeReopenGame(game)
 
 	// Auto-emit system message when game finishes (once per game)
-	if game.Finished && !server.gameOverEmitted[game.ID] {
-		server.emitSystemChatMessage(game.ID, game.Version, "Game over!")
+	server.mu.Lock()
+	alreadyEmitted := server.gameOverEmitted[game.ID]
+	if game.Finished && !alreadyEmitted {
 		server.gameOverEmitted[game.ID] = true
+	}
+	server.mu.Unlock()
+	if game.Finished && !alreadyEmitted {
+		server.emitSystemChatMessage(game.ID, game.Version, "Game over!")
 	}
 
 	return nil
@@ -171,10 +176,16 @@ func (s *ServerStorageManager) FetchInjectedDataForGame(gameID string, dataType 
 		return true
 	}
 	if dataType == playerToSeatRendevousDataType {
+		s.server.mu.Lock()
 		slice := s.server.playersToSeat[gameID]
+		var result interface{}
 		if len(slice) > 0 {
 			//The item's Committed() will remove itself from the list.
-			return slice[0]
+			result = slice[0]
+		}
+		s.server.mu.Unlock()
+		if result != nil {
+			return result
 		}
 	}
 	return s.StorageManager.FetchInjectedDataForGame(gameID, dataType)

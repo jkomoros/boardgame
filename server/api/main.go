@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -28,11 +29,16 @@ import (
 type Server struct {
 	managers managerMap
 
-	//map of game ID to players to seat
+	//map of game ID to players to seat. Protected by mu.
 	playersToSeat map[string][]*playerToSeat
 
-	//track which games have had "Game over!" system message emitted
+	//track which games have had "Game over!" system message emitted. Protected by mu.
 	gameOverEmitted map[string]bool
+
+	// mu protects playersToSeat and gameOverEmitted from concurrent access.
+	// These maps are written from game goroutines (via PlayerMoveApplied /
+	// ForceFixUp callbacks) and HTTP handler goroutines simultaneously.
+	mu sync.Mutex
 
 	storage *ServerStorageManager
 	//We store the last error so that next time viewHandler is called we can
@@ -186,6 +192,9 @@ func (p *playerToSeat) SeatIndex() boardgame.PlayerIndex {
 }
 
 func (p *playerToSeat) Committed() {
+	p.s.mu.Lock()
+	defer p.s.mu.Unlock()
+
 	slice := p.s.playersToSeat[p.gameID]
 	if len(slice) == 0 {
 		return
@@ -476,10 +485,13 @@ func (s *Server) autoCloseGameIfFull(game *boardgame.Game) {
 	}
 
 	// 3a: Clean up any pending players that can no longer be seated.
-	if pending, ok := s.playersToSeat[game.ID()]; ok && len(pending) > 0 {
+	s.mu.Lock()
+	pending, hasPending := s.playersToSeat[game.ID()]
+	if hasPending && len(pending) > 0 {
 		s.logger.Warnln("Removing", len(pending), "pending player(s) from full game", game.ID())
 		delete(s.playersToSeat, game.ID())
 	}
+	s.mu.Unlock()
 }
 
 // gameAPISetup fetches the game configured in the URL and puts it in context.
@@ -614,7 +626,9 @@ func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, 
 			slot,
 		}
 
+		s.mu.Lock()
 		s.playersToSeat[gameID] = append(s.playersToSeat[gameID], player)
+		s.mu.Unlock()
 
 		//Now we have information waiting for SeatPlayer. Tell the engine to
 		//check whether fixups need to be applied, becuase we know that
