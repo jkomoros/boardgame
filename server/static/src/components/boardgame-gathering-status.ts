@@ -22,12 +22,12 @@ export class BoardgameGatheringStatus extends LitElement {
       display: inline-block;
     }
     .status {
-      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-medium-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-body-medium-size, 14px);
-      color: var(--md-sys-color-on-secondary-container, #1d192b);
+      color: var(--md-sys-color-on-secondary-container, #271A10);
     }
     .error {
-      color: var(--md-sys-color-error, #b3261e);
+      color: var(--md-sys-color-error, #BA1A1A);
     }
   `;
 

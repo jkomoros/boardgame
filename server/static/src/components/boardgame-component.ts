@@ -22,21 +22,21 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 
     /* Shadow elevation styles - copied from paper-styles */
     :host {
-      --shadow-elevation-normal: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-                                  0 1px 5px 0 rgba(0, 0, 0, 0.12),
-                                  0 3px 1px -2px rgba(0, 0, 0, 0.2);
+      --shadow-elevation-normal: 0 2px 2px 0 rgba(60, 40, 20, 0.14),
+                                  0 1px 5px 0 rgba(60, 40, 20, 0.12),
+                                  0 3px 1px -2px rgba(60, 40, 20, 0.2);
 
-      --shadow-elevation-raised: 0 8px 10px 1px rgba(0, 0, 0, 0.14),
-                                  0 3px 14px 2px rgba(0, 0, 0, 0.12),
-                                  0 5px 5px -3px rgba(0, 0, 0, 0.4);
+      --shadow-elevation-raised: 0 8px 10px 1px rgba(60, 40, 20, 0.14),
+                                  0 3px 14px 2px rgba(60, 40, 20, 0.12),
+                                  0 5px 5px -3px rgba(60, 40, 20, 0.4);
 
-      --alt-shadow-elevation-normal: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.14))
-                                      drop-shadow(0 1px 5px rgba(0, 0, 0, 0.12))
-                                      drop-shadow(0 3px 1px rgba(0, 0, 0, 0.2));
+      --alt-shadow-elevation-normal: drop-shadow(0 2px 2px rgba(60, 40, 20, 0.14))
+                                      drop-shadow(0 1px 5px rgba(60, 40, 20, 0.12))
+                                      drop-shadow(0 3px 1px rgba(60, 40, 20, 0.2));
 
-      --alt-shadow-elevation-raised: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.14))
-                                      drop-shadow(0 3px 14px rgba(0, 0, 0, 0.12))
-                                      drop-shadow(0 5px 5px rgba(0, 0, 0, 0.4));
+      --alt-shadow-elevation-raised: drop-shadow(0 8px 10px rgba(60, 40, 20, 0.14))
+                                      drop-shadow(0 3px 14px rgba(60, 40, 20, 0.12))
+                                      drop-shadow(0 5px 5px rgba(60, 40, 20, 0.4));
     }
 
     .spacer {

@@ -25,7 +25,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, Pla
       }
 
       boardgame-card > div {
-        font-family: 'Roboto', 'Noto', sans-serif;
+        font-family: var(--md-sys-typescale-display-small-font, 'Crimson Text', serif);
         font-size: 34px;
         font-weight: 400;
         letter-spacing: -.01em;

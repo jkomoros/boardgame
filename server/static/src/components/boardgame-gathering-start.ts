@@ -19,7 +19,7 @@ export class BoardgameGatheringStart extends LitElement {
     }
     .error-hint {
       font-size: 12px;
-      color: var(--md-sys-color-error, #b3261e);
+      color: var(--md-sys-color-error, #BA1A1A);
       margin-top: 4px;
       max-width: 250px;
     }

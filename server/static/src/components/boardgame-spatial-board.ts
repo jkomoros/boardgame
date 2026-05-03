@@ -37,7 +37,7 @@ class BoardgameSpatialBoard extends LitElement {
     }
 
     [data-space].disabled {
-      fill: #CCC !important;
+      fill: var(--md-sys-color-surface-container-highest, #E0D9CE) !important;
       cursor: default !important;
     }
   `;

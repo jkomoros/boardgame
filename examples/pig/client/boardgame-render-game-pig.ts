@@ -14,7 +14,6 @@ class BoardgameRenderGamePig extends BoardgameBaseGameRenderer<GameState, Player
       .die {
         height: 100px;
         width: 100px;
-        background-color: #ccc;
       }
 
       .container {

@@ -12,21 +12,21 @@ export class BoardgameCard extends BoardgameComponent {
         --default-component-width: 100px;
 
         /* Shadow elevation styles for rotated cards */
-        --shadow-elevation-normal-rotated: 2px 0 2px 0 rgba(0, 0, 0, 0.14),
-                                            1px 0 5px 0 rgba(0, 0, 0, 0.12),
-                                            3px 0 1px -2px rgba(0, 0, 0, 0.2);
+        --shadow-elevation-normal-rotated: 2px 0 2px 0 rgba(60, 40, 20, 0.14),
+                                            1px 0 5px 0 rgba(60, 40, 20, 0.12),
+                                            3px 0 1px -2px rgba(60, 40, 20, 0.2);
 
-        --shadow-elevation-raised-rotated: 8px 0 10px 1px rgba(0, 0, 0, 0.14),
-                                            3px 0 14px 2px rgba(0, 0, 0, 0.12),
-                                            5px 0 5px -3px rgba(0, 0, 0, 0.4);
+        --shadow-elevation-raised-rotated: 8px 0 10px 1px rgba(60, 40, 20, 0.14),
+                                            3px 0 14px 2px rgba(60, 40, 20, 0.12),
+                                            5px 0 5px -3px rgba(60, 40, 20, 0.4);
 
-        --alt-shadow-elevation-normal-rotated: drop-shadow(2px 0 2px rgba(0, 0, 0, 0.14))
-                                                drop-shadow(1px 0 5px rgba(0, 0, 0, 0.12))
-                                                drop-shadow(3px 0 1px rgba(0, 0, 0, 0.2));
+        --alt-shadow-elevation-normal-rotated: drop-shadow(2px 0 2px rgba(60, 40, 20, 0.14))
+                                                drop-shadow(1px 0 5px rgba(60, 40, 20, 0.12))
+                                                drop-shadow(3px 0 1px rgba(60, 40, 20, 0.2));
 
-        --alt-shadow-elevation-raised-rotated: drop-shadow(8px 0 10px rgba(0, 0, 0, 0.14))
-                                                drop-shadow(3px 0 14px rgba(0, 0, 0, 0.12))
-                                                drop-shadow(5px 0 5px rgba(0, 0, 0, 0.4));
+        --alt-shadow-elevation-raised-rotated: drop-shadow(8px 0 10px rgba(60, 40, 20, 0.14))
+                                                drop-shadow(3px 0 14px rgba(60, 40, 20, 0.12))
+                                                drop-shadow(5px 0 5px rgba(60, 40, 20, 0.4));
       }
 
       #outer {

@@ -80,7 +80,7 @@ export class BoardgameChatPanel extends LitElement {
       flex: 1;
       font-size: 14px;
       font-weight: 500;
-      font-family: var(--md-sys-typescale-title-small-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-title-small-font, 'Source Sans 3', sans-serif);
       color: var(--md-sys-color-on-surface, #1C1810);
     }
 
@@ -138,7 +138,7 @@ export class BoardgameChatPanel extends LitElement {
       padding: 4px 0;
       font-size: 13px;
       line-height: 1.5;
-      font-family: var(--md-sys-typescale-body-small-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-small-font, 'Source Sans 3', sans-serif);
     }
 
     .message .sender {
