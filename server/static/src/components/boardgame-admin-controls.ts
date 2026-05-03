@@ -51,12 +51,12 @@ export class BoardgameAdminControls extends LitElement {
     }
 
     .card {
-      background: var(--md-sys-color-surface-container-low, #f7f2fa);
+      background: var(--md-sys-color-surface-container-low, #F5F0E8);
       padding: 16px;
       margin: 8px 0;
       border-radius: 12px;
       box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
 
     .admin {
@@ -73,7 +73,7 @@ export class BoardgameAdminControls extends LitElement {
       gap: 4px;
       font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-body-medium-size, 14px);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       cursor: pointer;
     }
 
@@ -84,7 +84,7 @@ export class BoardgameAdminControls extends LitElement {
       border: 1px solid var(--md-sys-color-outline, #79747e);
       border-radius: 4px;
       font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       background: var(--md-sys-color-surface, #fffbfe);
     }
 
@@ -98,7 +98,7 @@ export class BoardgameAdminControls extends LitElement {
       font-family: var(--md-sys-typescale-label-large-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-label-large-size, 14px);
       font-weight: var(--md-sys-typescale-label-large-weight, 500);
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
     }
 
     details {
@@ -111,19 +111,19 @@ export class BoardgameAdminControls extends LitElement {
       border-radius: 8px;
       font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
       font-size: var(--md-sys-typescale-body-large-size, 16px);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       background: var(--md-sys-color-surface-container, #f0edf1);
     }
 
     summary:hover {
-      background: var(--md-sys-color-surface-container-high, #e6e0e9);
+      background: var(--md-sys-color-surface-container-high, #E0D9CE);
     }
 
     pre {
       padding: 12px;
       border-radius: 8px;
       background: var(--md-sys-color-surface-container, #f0edf1);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       font-size: 12px;
       overflow: auto;
       max-height: 400px;

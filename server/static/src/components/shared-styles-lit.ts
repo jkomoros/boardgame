@@ -6,19 +6,19 @@ export const sharedStyles = css`
     .card {
       margin: 24px;
       padding: 16px;
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
       border-radius: 12px;
-      background-color: var(--md-sys-color-surface-container-low, #f7f2fa);
-      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
+      background-color: var(--md-sys-color-surface-container-low, #F5F0E8);
+      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 0 rgba(60,40,20,.10), 0 1px 2px 0 rgba(60,40,20,.06));
     }
   }
 
   @media (max-width:940px) {
     .card {
       padding: 16px;
-      color: var(--md-sys-color-on-surface, #1c1b1f);
-      background-color: var(--md-sys-color-surface-container-low, #f7f2fa);
-      border-bottom: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+      color: var(--md-sys-color-on-surface, #1C1810);
+      background-color: var(--md-sys-color-surface-container-low, #F5F0E8);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
     }
   }
 
@@ -27,16 +27,16 @@ export const sharedStyles = css`
     width: 64px;
     height: 64px;
     text-align: center;
-    color: var(--md-sys-color-on-surface-variant, #555);
+    color: var(--md-sys-color-on-surface-variant, #4A4539);
     border-radius: 50%;
-    background: #ddd;
+    background: var(--md-sys-color-surface-container-highest, #E0D9CE);
     font-size: 30px;
     line-height: 64px;
   }
 
   h1 {
     margin: 16px 0;
-    color: var(--md-sys-color-on-surface, #212121);
+    color: var(--md-sys-color-on-surface, #1C1810);
     font-size: 22px;
   }
 `;

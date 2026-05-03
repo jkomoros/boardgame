@@ -21,7 +21,7 @@ export class BoardgameGatheringShare extends LitElement {
     }
     .copied {
       font-size: 12px;
-      color: var(--md-sys-color-primary, #6750a4);
+      color: var(--md-sys-color-primary, #2E6B4F);
       margin-left: 8px;
       opacity: 0;
       transition: opacity 0.3s;

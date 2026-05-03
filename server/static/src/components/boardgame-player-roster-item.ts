@@ -39,7 +39,7 @@ export class BoardgamePlayerRosterItem extends LitElement {
       font-size: var(--md-sys-typescale-title-medium-size, 16px);
       font-weight: var(--md-sys-typescale-title-medium-weight, 500);
       letter-spacing: 0.005em;
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
 
     boardgame-player-chip {
@@ -62,7 +62,7 @@ export class BoardgamePlayerRosterItem extends LitElement {
     strong.chip {
       font-size: 12px;
       font-weight: 400;
-      background-color: var(--md-sys-color-outline, #79747e);
+      background-color: var(--md-sys-color-outline, #857B6E);
       color: white;
       padding: 0.25em;
       height: 1em;
@@ -78,19 +78,19 @@ export class BoardgamePlayerRosterItem extends LitElement {
     }
 
     .current strong.chip {
-      background-color: var(--light-accent-color, #ff4081);
-      box-shadow: 0 0 0 4px var(--light-accent-color, #ff4081);
+      background-color: var(--light-accent-color, var(--md-sys-color-tertiary, #8B7432));
+      box-shadow: 0 0 0 4px var(--light-accent-color, var(--md-sys-color-tertiary, #8B7432));
     }
 
     span {
       font-size: var(--md-sys-typescale-body-small-size, 12px);
       font-weight: 400;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
     }
 
     .viewing span {
       font-weight: bold;
-      color: var(--accent-color, #ff4081);
+      color: var(--accent-color, var(--md-sys-color-tertiary, #8B7432));
     }
 
     boardgame-render-player-info {
@@ -170,7 +170,7 @@ export class BoardgamePlayerRosterItem extends LitElement {
   private _styleForChip(chipColor: string, finished: boolean, winner: boolean): string {
     if (finished) {
       return "box-shadow: none; background-color: " +
-        (winner ? "#2e7d32" : "#e57373"); // Material green-800 / red-300
+        (winner ? "var(--md-sys-color-primary, #2E6B4F)" : "var(--md-sys-color-error, #BA1A1A)");
     }
     if (!chipColor) return "box-shadow: none";
     return "background-color: " + chipColor;

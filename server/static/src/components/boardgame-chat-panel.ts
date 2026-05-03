@@ -48,7 +48,7 @@ export class BoardgameChatPanel extends LitElement {
     }
 
     .chat-container {
-      background: var(--md-sys-color-surface-container, #f3edf7);
+      background: var(--md-sys-color-surface-container, #F0EBE3);
       border-radius: 12px;
       margin: 8px 0;
       overflow: hidden;
@@ -62,17 +62,17 @@ export class BoardgameChatPanel extends LitElement {
       padding: 10px 14px;
       cursor: pointer;
       user-select: none;
-      background: var(--md-sys-color-surface-container-high, #ece6f0);
+      background: var(--md-sys-color-surface-container-high, #E8E2D8);
       transition: background 0.15s;
     }
 
     .chat-header:hover {
-      background: var(--md-sys-color-surface-container-highest, #e6e0e9);
+      background: var(--md-sys-color-surface-container-highest, #E0D9CE);
     }
 
     .chat-header .icon {
       font-size: 18px;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
     }
 
     .chat-header h4 {
@@ -81,11 +81,11 @@ export class BoardgameChatPanel extends LitElement {
       font-size: 14px;
       font-weight: 500;
       font-family: var(--md-sys-typescale-title-small-font, 'Roboto', sans-serif);
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
 
     .badge {
-      background: var(--md-sys-color-error, #b3261e);
+      background: var(--md-sys-color-error, #BA1A1A);
       color: var(--md-sys-color-on-error, #fff);
       border-radius: 10px;
       padding: 2px 7px;
@@ -96,7 +96,7 @@ export class BoardgameChatPanel extends LitElement {
     }
 
     .toggle-icon {
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       transition: transform 0.2s;
     }
 
@@ -148,24 +148,24 @@ export class BoardgameChatPanel extends LitElement {
 
     .message .time {
       font-size: 10px;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       margin-left: 6px;
       opacity: 0.7;
     }
 
     .message.self .sender {
-      color: var(--md-sys-color-primary, #6750a4);
+      color: var(--md-sys-color-primary, #2E6B4F);
     }
 
     .message.other .sender {
-      color: var(--md-sys-color-tertiary, #7d5260);
+      color: var(--md-sys-color-tertiary, #8B7432);
     }
 
     .channel-tabs {
       display: flex;
       gap: 2px;
       padding: 4px 10px;
-      border-bottom: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
       overflow-x: auto;
       flex-shrink: 0;
     }
@@ -177,24 +177,24 @@ export class BoardgameChatPanel extends LitElement {
       cursor: pointer;
       white-space: nowrap;
       background: transparent;
-      border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      border: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       transition: background 0.15s, color 0.15s;
     }
 
     .channel-tab:hover {
-      background: var(--md-sys-color-surface-container-highest, #e6e0e9);
+      background: var(--md-sys-color-surface-container-highest, #E0D9CE);
     }
 
     .channel-tab.active {
-      background: var(--md-sys-color-primary-container, #eaddff);
-      color: var(--md-sys-color-on-primary-container, #21005d);
-      border-color: var(--md-sys-color-primary, #6750a4);
+      background: var(--md-sys-color-primary-container, #D4E8DA);
+      color: var(--md-sys-color-on-primary-container, #0A2818);
+      border-color: var(--md-sys-color-primary, #2E6B4F);
     }
 
     .message.system {
       text-align: center;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       font-style: italic;
       font-size: 12px;
       padding: 6px 0;
@@ -216,18 +216,18 @@ export class BoardgameChatPanel extends LitElement {
       padding: 1px 5px;
       border-radius: 6px;
       margin-left: 4px;
-      background: var(--md-sys-color-surface-container-highest, #e6e0e9);
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      background: var(--md-sys-color-surface-container-highest, #E0D9CE);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
     }
 
     .channel-indicator.dm {
-      background: var(--md-sys-color-tertiary-container, #ffd8e4);
-      color: var(--md-sys-color-on-tertiary-container, #31111d);
+      background: var(--md-sys-color-tertiary-container, #F0E4C4);
+      color: var(--md-sys-color-on-tertiary-container, #2E2508);
     }
 
     .channel-indicator.team {
-      background: var(--md-sys-color-secondary-container, #e8def8);
-      color: var(--md-sys-color-on-secondary-container, #1d192b);
+      background: var(--md-sys-color-secondary-container, #EDDCC8);
+      color: var(--md-sys-color-on-secondary-container, #271A10);
     }
 
     .input-area {
@@ -235,7 +235,7 @@ export class BoardgameChatPanel extends LitElement {
       align-items: center;
       gap: 4px;
       padding: 6px 10px;
-      border-top: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+      border-top: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
     }
 
     .input-area md-filled-text-field {
@@ -250,22 +250,22 @@ export class BoardgameChatPanel extends LitElement {
       flex-wrap: wrap;
       gap: 6px;
       padding: 8px 14px;
-      border-top: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+      border-top: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
     }
 
     .disabled-message {
       padding: 10px 14px;
       text-align: center;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       font-size: 12px;
       font-style: italic;
-      border-top: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+      border-top: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
     }
 
     .empty-state {
       padding: 20px;
       text-align: center;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       font-size: 13px;
       opacity: 0.6;
     }

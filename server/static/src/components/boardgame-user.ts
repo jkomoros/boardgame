@@ -48,7 +48,7 @@ export class BoardgameUser extends connect(store)(LitElement) {
 
     a {
       cursor: pointer;
-      color: var(--accent-color, #ff4081);
+      color: var(--accent-color, #8B7432);
       text-decoration: none;
     }
 
@@ -120,12 +120,12 @@ export class BoardgameUser extends connect(store)(LitElement) {
     }
 
     .card {
-      background: var(--md-sys-color-surface-container-low, #f7f2fa);
+      background: var(--md-sys-color-surface-container-low, #F5F0E8);
       padding: 16px;
       margin: 8px;
       border-radius: 12px;
       box-shadow: var(--md-sys-elevation-1, 0 1px 3px 1px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3));
-      color: var(--md-sys-color-on-surface, #1c1b1f);
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
 
     md-linear-progress {

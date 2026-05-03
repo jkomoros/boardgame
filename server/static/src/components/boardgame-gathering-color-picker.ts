@@ -62,7 +62,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
       appearance: none;
     }
     .swatch:focus-visible {
-      outline: 2px solid var(--md-sys-color-primary, #6750a4);
+      outline: 2px solid var(--md-sys-color-primary, #2E6B4F);
       outline-offset: 2px;
     }
     @media (prefers-reduced-motion: reduce) {
@@ -72,7 +72,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
       transform: scale(1.1);
     }
     .swatch[aria-checked="true"] {
-      border-color: var(--md-sys-color-on-surface, #1c1b1f);
+      border-color: var(--md-sys-color-on-surface, #1C1810);
       transform: scale(1.15);
     }
     .swatch[aria-checked="true"]::after {
@@ -102,7 +102,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
     }
     .color-label {
       font-size: 14px;
-      color: var(--md-sys-color-on-surface-variant, #49454f);
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
       padding: 4px 12px;
       border-radius: 12px;
       display: inline-flex;
