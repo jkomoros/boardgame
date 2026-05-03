@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,6 +12,19 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// socketMessage is the JSON-framed WebSocket message format.
+// Clients should feature-detect: if the message starts with "{", parse as
+// JSON; otherwise treat as a raw version number (legacy).
+type socketMessage struct {
+	Type string      `json:"type"` // "version" or "chat"
+	Data interface{} `json:"data"`
+}
+
+type chatNotification struct {
+	Channel   string `json:"channel"`
+	MessageID string `json:"messageId"`
+}
 
 const (
 	maxMessageSize = 512
@@ -24,11 +38,17 @@ type gameVersionChanged struct {
 	Version int
 }
 
+type chatBroadcast struct {
+	gameID       string
+	notification chatNotification
+}
+
 type versionNotifier struct {
 	sockets       map[string]map[*socket]bool
 	register      chan *socket
 	unregister    chan *socket
 	notifyVersion chan gameVersionChanged
+	notifyChat    chan chatBroadcast
 	doneChan      chan bool
 	server        *Server
 }
@@ -156,7 +176,24 @@ func (s *socket) writePump() {
 }
 
 func (s *socket) SendMessage(message gameVersionChanged) {
-	s.send <- []byte(strconv.Itoa(message.Version))
+	// Send JSON-framed message. Clients feature-detect the format.
+	msg := socketMessage{Type: "version", Data: message.Version}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		// Fallback to raw version number if JSON fails
+		s.send <- []byte(strconv.Itoa(message.Version))
+		return
+	}
+	s.send <- data
+}
+
+func (s *socket) SendChatNotification(notification chatNotification) {
+	msg := socketMessage{Type: "chat", Data: notification}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return
+	}
+	s.send <- data
 }
 
 func newVersionNotifier(s *Server) *versionNotifier {
@@ -165,6 +202,7 @@ func newVersionNotifier(s *Server) *versionNotifier {
 		register:      make(chan *socket),
 		unregister:    make(chan *socket),
 		notifyVersion: make(chan gameVersionChanged),
+		notifyChat:    make(chan chatBroadcast),
 		doneChan:      make(chan bool),
 		server:        s,
 	}
@@ -176,6 +214,16 @@ func (v *versionNotifier) gameChanged(game *boardgame.GameStorageRecord) {
 	v.notifyVersion <- gameVersionChanged{
 		ID:      game.ID,
 		Version: game.Version,
+	}
+}
+
+func (v *versionNotifier) chatMessageSent(gameID, channel, messageID string) {
+	v.notifyChat <- chatBroadcast{
+		gameID: gameID,
+		notification: chatNotification{
+			Channel:   channel,
+			MessageID: messageID,
+		},
 	}
 }
 
@@ -201,6 +249,13 @@ func (v *versionNotifier) workLoop() {
 				//Someone's listening!
 				for socket := range bucket {
 					socket.SendMessage(rec)
+				}
+			}
+		case chat := <-v.notifyChat:
+			bucket, ok := v.sockets[chat.gameID]
+			if ok {
+				for socket := range bucket {
+					socket.SendChatNotification(chat.notification)
 				}
 			}
 		case <-v.doneChan:
