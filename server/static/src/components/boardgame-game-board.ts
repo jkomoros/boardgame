@@ -19,7 +19,8 @@
  * boardgame-component-stack with layout="board". The board wrapper
  * provides two overlaid CSS Grid layers:
  *   1. Cell backgrounds (below) — checkerboard, highlights, click targets
- *   2. Component-stack (above) — the actual game pieces
+ *   2. Component-stack (above) — the actual game pieces (pointer-events: none
+ *      so clicks pass through to the cell layer)
  */
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
@@ -109,10 +110,12 @@ export class BoardgameGameBoard extends LitElement {
       filter: brightness(1.3);
     }
 
-    /* Component stack layer — above the cell backgrounds */
+    /* Component stack layer — above the cell backgrounds.
+       pointer-events: none so all clicks reach the cell layer beneath. */
     boardgame-component-stack {
       position: relative;
       z-index: 1;
+      pointer-events: none;
     }
 
     /* Coordinate labels */
@@ -183,6 +186,19 @@ export class BoardgameGameBoard extends LitElement {
   @property({ type: Boolean })
   labels = false;
 
+  // Precomputed Sets for O(1) lookup in _cellClass
+  private _highlightedSet = new Set<number>();
+  private _disabledSet = new Set<number>();
+
+  protected willUpdate(changedProperties: Map<string, unknown>): void {
+    if (changedProperties.has('highlightedSpaces')) {
+      this._highlightedSet = new Set(this.highlightedSpaces);
+    }
+    if (changedProperties.has('disabledSpaces')) {
+      this._disabledSet = new Set(this.disabledSpaces);
+    }
+  }
+
   private get _numSpaces(): number {
     return this.rows * this.cols;
   }
@@ -192,18 +208,18 @@ export class BoardgameGameBoard extends LitElement {
     const col = index % this.cols;
     const classes: string[] = [];
 
-    // Checkerboard pattern
+    // Checkerboard pattern: (0,0) is dark (standard chess/checkers convention)
     if ((row + col) % 2 === 0) {
-      classes.push('light');
-    } else {
       classes.push('dark');
+    } else {
+      classes.push('light');
     }
 
-    if (this.highlightedSpaces.includes(index)) {
+    if (this._highlightedSet.has(index)) {
       classes.push('highlighted');
     }
 
-    if (this.disabledSpaces.includes(index)) {
+    if (this._disabledSet.has(index)) {
       classes.push('disabled');
     }
 
@@ -215,7 +231,7 @@ export class BoardgameGameBoard extends LitElement {
   }
 
   private _onCellClick(index: number) {
-    if (this.disabledSpaces.includes(index)) return;
+    if (this._disabledSet.has(index)) return;
 
     this.dispatchEvent(new CustomEvent('space-tapped', {
       composed: true,
@@ -238,7 +254,7 @@ export class BoardgameGameBoard extends LitElement {
     const rowLabels = Array.from({ length: this.rows }, (_, i) => i);
 
     return html`
-      <div class="board-surface" style="--board-cols: ${this.cols}">
+      <div class="board-surface">
         <!-- Cell background layer -->
         <div class="cell-layer" style="grid-template-columns: repeat(${this.cols}, 1fr)">
           ${repeat(cells, (i) => i, (i) => html`

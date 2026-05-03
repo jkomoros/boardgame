@@ -22,6 +22,14 @@ class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, P
   @property({ type: Number, attribute: false })
   private selectedSpace = -1;
 
+  // Reset selection when game state changes (e.g., opponent moved)
+  protected override updated(changedProperties: Map<string, unknown>): void {
+    super.updated(changedProperties);
+    if (changedProperties.has('state') && changedProperties.get('state') !== undefined) {
+      this.selectedSpace = -1;
+    }
+  }
+
   private _onSpaceTapped(e: CustomEvent) {
     const { index } = e.detail;
     const component = this.state?.Game?.Spaces?.Components?.[index];
