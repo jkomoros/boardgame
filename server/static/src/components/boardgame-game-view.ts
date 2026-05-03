@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import './boardgame-player-roster.js';
 import './boardgame-gathering-panel.js';
+import './boardgame-chat-panel.js';
 import './boardgame-render-game.js';
 import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
@@ -256,6 +257,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         @requested-player-changed=${this._handleRequestedPlayerChanged}
         @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}>
       </boardgame-admin-controls>
+      <boardgame-chat-panel
+        .gameRoute=${this._gameRoute}
+        .viewingAsPlayer=${this.viewingAsPlayer}
+        .playersInfo=${this._playersInfo}>
+      </boardgame-chat-panel>
       <boardgame-game-state-manager
         id="manager"
         .activeRenderer=${this.activeRenderer}

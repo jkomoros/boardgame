@@ -397,9 +397,34 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _socketMessage(e: MessageEvent) {
-    const version = parseInt(e.data);
+    const data = e.data as string;
+
+    // Feature-detect JSON framing vs legacy raw version numbers
+    if (data.startsWith('{')) {
+      try {
+        const msg = JSON.parse(data);
+        if (msg.type === 'version') {
+          store.dispatch(setTargetVersion(msg.data));
+        } else if (msg.type === 'chat') {
+          // Dispatch chat notification event for the chat panel to handle
+          this.dispatchEvent(new CustomEvent('chat-notification', {
+            composed: true,
+            bubbles: true,
+            detail: msg.data,
+          }));
+        } else {
+          console.warn('Unknown socket message type:', msg.type);
+        }
+      } catch (err) {
+        console.warn('Failed to parse socket JSON message:', data, err);
+      }
+      return;
+    }
+
+    // Legacy: raw version number
+    const version = parseInt(data);
     if (isNaN(version)) {
-      console.warn('Socket message was not a valid version number:', e.data);
+      console.warn('Socket message was not a valid version number:', data);
       return;
     }
     store.dispatch(setTargetVersion(version));
