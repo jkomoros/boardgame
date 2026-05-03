@@ -1,19 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <!-- Top-down flat disc (checker piece). Flat color with subtle edge
-       bevel and inner ring — like looking straight down at a wooden disc
-       sitting on felt. Base color is red; use CSS filter for other colors. -->
-  <!-- Outer shadow ring -->
-  <circle cx="50" cy="51" r="43" fill="rgba(0,0,0,0.12)"/>
-  <!-- Main disc body — flat, uniform color -->
-  <circle cx="50" cy="50" r="42" fill="#CC0000"/>
-  <!-- Inner ring groove (recessed line) -->
-  <circle cx="50" cy="50" r="32" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="1.2"/>
-  <circle cx="50" cy="50" r="33" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
-  <!-- Top edge highlight (very subtle, just a thin arc at the top) -->
-  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"
-          stroke-dasharray="66 198"/>
-  <!-- Bottom edge shadow (thin arc at the bottom) -->
-  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="1"
-          stroke-dasharray="66 198" stroke-dashoffset="-132"/>
+  <!-- Top-down checker disc. All shading uses red-family colors so
+       CSS hue-rotate/brightness filters shift the entire piece uniformly.
+       Light source: upper-left. -->
+  <defs>
+    <radialGradient id="face" cx="48%" cy="44%" r="52%" fx="48%" fy="44%">
+      <stop offset="0%" stop-color="#D40000"/>
+      <stop offset="65%" stop-color="#C20000"/>
+      <stop offset="100%" stop-color="#AA0000"/>
+    </radialGradient>
+    <linearGradient id="bevel" x1="0.3" y1="0.2" x2="0.7" y2="0.8">
+      <stop offset="0%" stop-color="#C80000"/>
+      <stop offset="100%" stop-color="#700000"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Drop shadow (3 concentric dark-red circles for soft blur) -->
+  <circle cx="53" cy="55" r="46" fill="#1A0000"/>
+  <circle cx="52" cy="54" r="44" fill="#280000"/>
+  <circle cx="51" cy="53" r="43" fill="#360000"/>
+
+  <!-- Side wall + bevel ring (gradient: bright upper-left, dark lower-right) -->
+  <circle cx="50" cy="50" r="42" fill="url(#bevel)"/>
+
+  <!-- Top face (gentle dome — NOT a sphere) -->
+  <circle cx="50" cy="50" r="37" fill="url(#face)"/>
+
+  <!-- Molded inner ring — paired shadow/highlight strokes for ridge -->
+  <circle cx="50" cy="50" r="27" fill="none" stroke="#880000" stroke-width="2"/>
+  <circle cx="50" cy="50" r="29" fill="none" stroke="#E00000" stroke-width="1.5"/>
+
+  <!-- Bevel edge highlight arc (upper-left, catching light) -->
+  <circle cx="50" cy="50" r="39.5" fill="none"
+          stroke="#E80000" stroke-width="2.5"
+          stroke-dasharray="62 186" stroke-dashoffset="20"/>
+
+  <!-- Bevel edge shadow arc (lower-right) -->
+  <circle cx="50" cy="50" r="39.5" fill="none"
+          stroke="#580000" stroke-width="2.5"
+          stroke-dasharray="62 186" stroke-dashoffset="-105"/>
 </svg>
