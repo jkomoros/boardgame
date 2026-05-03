@@ -8,8 +8,9 @@ export const sharedStyles = css`
       padding: 16px;
       color: var(--md-sys-color-on-surface, #1C1810);
       border-radius: 12px;
-      background-color: var(--md-sys-color-surface-container-low, #F5F0E8);
-      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 0 rgba(60,40,20,.10), 0 1px 2px 0 rgba(60,40,20,.06));
+      background: linear-gradient(180deg, var(--md-sys-color-surface-container-low, #F5F0E8) 0%, var(--md-sys-color-surface-container, #F0EBE3) 100%);
+      box-shadow: var(--md-sys-elevation-1, 0 1px 3px 0 rgba(60,40,20,.10), 0 1px 2px 0 rgba(60,40,20,.06)),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
   }
 

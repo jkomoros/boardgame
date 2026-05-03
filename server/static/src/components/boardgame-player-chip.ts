@@ -19,7 +19,15 @@ export class BoardgamePlayerChip extends LitElement {
       border-radius: 50%;
       margin-right: 0.5em;
       background-color: var(--md-sys-color-surface-container-highest, #E0D9CE);
-      transition: background-color 1s ease-in-out;
+      transition: background-color 1s ease-in-out, transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 1px 3px rgba(60, 40, 20, 0.15),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .photo:hover {
+      transform: scale(1.08);
+      box-shadow: 0 2px 6px rgba(60, 40, 20, 0.2),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
   `;
 
@@ -60,7 +68,7 @@ export class BoardgamePlayerChip extends LitElement {
       // Hash is between Number.MIN_VALUE and Number.MAX_VALUE, but needs to
       // be between 0 and 360
       const degree = hash % 360;
-      result = `hsl(${degree}, 100%, 50%)`;
+      result = `hsl(${degree}, 45%, 40%)`;
     }
 
     if (this.chip) {

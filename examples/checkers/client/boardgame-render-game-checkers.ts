@@ -15,10 +15,10 @@ class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, P
         --component-scale: 1.25;
       }
       boardgame-token.player-0 {
-        color: var(--player-0-color, #424242);
+        color: var(--player-0-color, #3E2723);
       }
       boardgame-token.player-1 {
-        color: var(--player-1-color, #D32F2F);
+        color: var(--player-1-color, #8B2500);
       }
     `
   ];

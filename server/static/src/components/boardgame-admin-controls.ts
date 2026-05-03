@@ -71,7 +71,7 @@ export class BoardgameAdminControls extends LitElement {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-medium-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-body-medium-size, 14px);
       color: var(--md-sys-color-on-surface, #1C1810);
       cursor: pointer;
@@ -81,11 +81,11 @@ export class BoardgameAdminControls extends LitElement {
       width: 60px;
       margin-left: 8px;
       padding: 8px 12px;
-      border: 1px solid var(--md-sys-color-outline, #79747e);
+      border: 1px solid var(--md-sys-color-outline, #857B6E);
       border-radius: 4px;
-      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-medium-font, 'Source Sans 3', sans-serif);
       color: var(--md-sys-color-on-surface, #1C1810);
-      background: var(--md-sys-color-surface, #fffbfe);
+      background: var(--md-sys-color-surface, #FAF6F0);
     }
 
     [role="radiogroup"] {
@@ -95,7 +95,7 @@ export class BoardgameAdminControls extends LitElement {
     }
 
     .view-as-label {
-      font-family: var(--md-sys-typescale-label-large-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-label-large-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-label-large-size, 14px);
       font-weight: var(--md-sys-typescale-label-large-weight, 500);
       color: var(--md-sys-color-on-surface-variant, #4A4539);
@@ -109,10 +109,10 @@ export class BoardgameAdminControls extends LitElement {
       cursor: pointer;
       padding: 8px 12px;
       border-radius: 8px;
-      font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-large-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-body-large-size, 16px);
       color: var(--md-sys-color-on-surface, #1C1810);
-      background: var(--md-sys-color-surface-container, #f0edf1);
+      background: var(--md-sys-color-surface-container, #F0EBE3);
     }
 
     summary:hover {
@@ -122,7 +122,7 @@ export class BoardgameAdminControls extends LitElement {
     pre {
       padding: 12px;
       border-radius: 8px;
-      background: var(--md-sys-color-surface-container, #f0edf1);
+      background: var(--md-sys-color-surface-container, #F0EBE3);
       color: var(--md-sys-color-on-surface, #1C1810);
       font-size: 12px;
       overflow: auto;

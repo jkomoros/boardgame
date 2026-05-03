@@ -10,7 +10,7 @@ class BoardgameRenderGameTictactoe extends BoardgameBaseGameRenderer<GameState, 
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`
       .row {
-        border-bottom: 1px solid black;
+        border-bottom: 2px solid var(--md-sys-color-outline, #857B6E);
         display: flex;
         flex-direction: row;
       }
@@ -20,7 +20,7 @@ class BoardgameRenderGameTictactoe extends BoardgameBaseGameRenderer<GameState, 
       }
 
       boardgame-tictactoe-cell {
-        border-right: 1px solid black;
+        border-right: 2px solid var(--md-sys-color-outline, #857B6E);
       }
 
       boardgame-tictactoe-cell:last-of-type {

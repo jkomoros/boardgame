@@ -63,19 +63,25 @@ export class BoardgameListGamesView extends connect(store)(LitElement) {
       font-weight: var(--md-sys-typescale-headline-small-weight);
       color: var(--md-sys-color-on-background);
       letter-spacing: 0;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--md-sys-color-primary-container);
+      display: inline-block;
     }
 
     .card {
-      background: var(--md-sys-color-surface-container-low);
+      background: linear-gradient(180deg, var(--md-sys-color-surface-container-low) 0%, var(--md-sys-color-surface-container) 100%);
       padding: 20px;
       margin: 12px;
       border-radius: 12px;
-      box-shadow: var(--md-sys-elevation-1);
-      transition: box-shadow 0.2s ease;
+      box-shadow: var(--md-sys-elevation-1),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      transition: box-shadow 0.25s ease, transform 0.25s ease;
     }
 
     .card:hover {
-      box-shadow: var(--md-sys-elevation-2);
+      box-shadow: var(--md-sys-elevation-2),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      transform: translateY(-1px);
     }
 
     md-filled-select {

@@ -40,7 +40,7 @@ export class BoardgameGatheringColorPicker extends LitElement {
       margin: 0 0 8px 0;
       font-size: 14px;
       font-weight: 500;
-      color: var(--md-sys-color-on-secondary-container, #1d192b);
+      color: var(--md-sys-color-on-secondary-container, #271A10);
     }
     .swatches {
       display: flex;

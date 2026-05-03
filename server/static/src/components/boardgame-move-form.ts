@@ -53,7 +53,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
     h2 {
       margin-top: 0;
       margin-bottom: 0;
-      font-family: var(--md-sys-typescale-title-large-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-title-large-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-title-large-size, 22px);
       font-weight: var(--md-sys-typescale-title-large-weight, 400);
       color: var(--md-sys-color-on-surface, #1C1810);
@@ -67,10 +67,10 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       cursor: pointer;
       padding: 8px 12px;
       border-radius: 8px;
-      font-family: var(--md-sys-typescale-body-large-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-large-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-body-large-size, 16px);
       color: var(--md-sys-color-on-surface, #1C1810);
-      background: var(--md-sys-color-surface-container, #f0edf1);
+      background: var(--md-sys-color-surface-container, #F0EBE3);
     }
 
     summary:hover {
@@ -85,22 +85,22 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
     input[type="number"],
     input:not([type]) {
       padding: 8px 12px;
-      border: 1px solid var(--md-sys-color-outline, #79747e);
+      border: 1px solid var(--md-sys-color-outline, #857B6E);
       border-radius: 4px;
-      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-medium-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-body-medium-size, 14px);
       color: var(--md-sys-color-on-surface, #1C1810);
-      background: var(--md-sys-color-surface, #fffbfe);
+      background: var(--md-sys-color-surface, #FAF6F0);
     }
 
     select {
       padding: 8px 12px;
-      border: 1px solid var(--md-sys-color-outline, #79747e);
+      border: 1px solid var(--md-sys-color-outline, #857B6E);
       border-radius: 4px;
-      font-family: var(--md-sys-typescale-body-medium-font, 'Roboto', sans-serif);
+      font-family: var(--md-sys-typescale-body-medium-font, 'Source Sans 3', sans-serif);
       font-size: var(--md-sys-typescale-body-medium-size, 14px);
       color: var(--md-sys-color-on-surface, #1C1810);
-      background: var(--md-sys-color-surface, #fffbfe);
+      background: var(--md-sys-color-surface, #FAF6F0);
     }
   `;
 

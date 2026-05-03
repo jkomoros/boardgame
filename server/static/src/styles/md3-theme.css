@@ -182,6 +182,37 @@ html {
   --md-dialog-container-color: var(--md-sys-color-surface-container-high);
 }
 
+/* Global button & interactive element polish */
+md-filled-button,
+md-outlined-button,
+md-text-button {
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+md-filled-button:hover {
+  box-shadow: 0 2px 8px rgba(46, 107, 79, 0.3);
+  transform: translateY(-1px);
+}
+
+md-filled-button:active {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 1px 2px rgba(46, 107, 79, 0.2);
+}
+
+md-outlined-button:hover {
+  box-shadow: 0 1px 4px rgba(60, 40, 20, 0.12);
+  transform: translateY(-1px);
+}
+
+md-outlined-button:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+/* Smooth link transitions */
+a {
+  transition: color 0.2s ease;
+}
+
 /* Global body styles */
 body {
   font-family: var(--md-sys-typescale-body-large-font);
@@ -357,3 +388,37 @@ body {
 .padding-small { padding: 8px; }
 .padding-medium { padding: 16px; }
 .padding-large { padding: 24px; }
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Selection color — matches the theme */
+::selection {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+/* Scrollbar styling for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-container-low);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
+}

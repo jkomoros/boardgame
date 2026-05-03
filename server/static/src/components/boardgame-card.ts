@@ -12,21 +12,21 @@ export class BoardgameCard extends BoardgameComponent {
         --default-component-width: 100px;
 
         /* Shadow elevation styles for rotated cards */
-        --shadow-elevation-normal-rotated: 2px 0 2px 0 rgba(0, 0, 0, 0.14),
-                                            1px 0 5px 0 rgba(0, 0, 0, 0.12),
-                                            3px 0 1px -2px rgba(0, 0, 0, 0.2);
+        --shadow-elevation-normal-rotated: 2px 0 2px 0 rgba(60, 40, 20, 0.14),
+                                            1px 0 5px 0 rgba(60, 40, 20, 0.12),
+                                            3px 0 1px -2px rgba(60, 40, 20, 0.2);
 
-        --shadow-elevation-raised-rotated: 8px 0 10px 1px rgba(0, 0, 0, 0.14),
-                                            3px 0 14px 2px rgba(0, 0, 0, 0.12),
-                                            5px 0 5px -3px rgba(0, 0, 0, 0.4);
+        --shadow-elevation-raised-rotated: 8px 0 10px 1px rgba(60, 40, 20, 0.14),
+                                            3px 0 14px 2px rgba(60, 40, 20, 0.12),
+                                            5px 0 5px -3px rgba(60, 40, 20, 0.4);
 
-        --alt-shadow-elevation-normal-rotated: drop-shadow(2px 0 2px rgba(0, 0, 0, 0.14))
-                                                drop-shadow(1px 0 5px rgba(0, 0, 0, 0.12))
-                                                drop-shadow(3px 0 1px rgba(0, 0, 0, 0.2));
+        --alt-shadow-elevation-normal-rotated: drop-shadow(2px 0 2px rgba(60, 40, 20, 0.14))
+                                                drop-shadow(1px 0 5px rgba(60, 40, 20, 0.12))
+                                                drop-shadow(3px 0 1px rgba(60, 40, 20, 0.2));
 
-        --alt-shadow-elevation-raised-rotated: drop-shadow(8px 0 10px rgba(0, 0, 0, 0.14))
-                                                drop-shadow(3px 0 14px rgba(0, 0, 0, 0.12))
-                                                drop-shadow(5px 0 5px rgba(0, 0, 0, 0.4));
+        --alt-shadow-elevation-raised-rotated: drop-shadow(8px 0 10px rgba(60, 40, 20, 0.14))
+                                                drop-shadow(3px 0 14px rgba(60, 40, 20, 0.12))
+                                                drop-shadow(5px 0 5px rgba(60, 40, 20, 0.4));
       }
 
       #outer {
@@ -141,6 +141,7 @@ export class BoardgameCard extends BoardgameComponent {
 
       #outer #front {
         background-color: var(--card-front-color, #D4E8DA);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
         z-index: 2;
         transform: rotateY(180deg);
       }
@@ -148,6 +149,8 @@ export class BoardgameCard extends BoardgameComponent {
       #outer #back {
         background-color: var(--card-back-color, #2E6B4F);
         color: var(--card-back-text-color, rgba(255, 255, 255, 0.6));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
         transform: rotateY(0deg);
       }
 

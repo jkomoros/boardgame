@@ -8,11 +8,12 @@ class BoardgameTictactoeCell extends LitElement {
       height: 100px;
       width: 100px;
       cursor: pointer;
-      font-family: 'Roboto', 'Noto', sans-serif;
+      font-family: var(--md-sys-typescale-display-small-font, 'Crimson Text', serif);
       font-size: 34px;
-      font-weight: 400;
+      font-weight: 600;
       letter-spacing: -.01em;
       line-height: 40px;
+      color: var(--md-sys-color-on-surface, #1C1810);
     }
 
     .cell {
@@ -22,6 +23,12 @@ class BoardgameTictactoeCell extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(255,255,255,0.03) 100%);
+      transition: background 0.15s;
+    }
+
+    .cell:hover {
+      background: rgba(0, 0, 0, 0.04);
     }
 
     .cell > div {

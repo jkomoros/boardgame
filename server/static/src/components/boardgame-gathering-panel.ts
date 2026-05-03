@@ -47,11 +47,13 @@ export class BoardgameGatheringPanel extends LitElement {
     }
 
     .panel {
-      background: var(--md-sys-color-primary-container, #D4E8DA);
+      background: linear-gradient(180deg, var(--md-sys-color-primary-container, #D4E8DA) 0%, #C8DECC 100%);
       color: var(--md-sys-color-on-primary-container, #0A2818);
       padding: 16px;
       margin: 8px 0;
       border-radius: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                  0 1px 3px 0 rgba(60, 40, 20, 0.08);
     }
 
     .panel-content {

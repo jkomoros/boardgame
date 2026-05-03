@@ -31,21 +31,22 @@ class BoardgameDie extends BoardgameAnimatableItem {
       #main {
         height: var(--effective-die-size);
         width: var(--effective-die-size);
-        border-radius: 2px;
-        background-color: #CCC;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #F5F0E8 0%, #E0D9CE 100%);
         overflow: hidden;
         cursor: pointer;
-        box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-                    0 1px 5px 0 rgba(0, 0, 0, 0.12),
-                    0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 4px 0 rgba(60, 40, 20, 0.18),
+                    0 1px 5px 0 rgba(60, 40, 20, 0.12),
+                    0 3px 1px -2px rgba(60, 40, 20, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.4);
         transform: scale(var(--effective-die-scale));
         transition: transform var(--animation-length) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       #main.interactive:hover {
-        box-shadow: 0 8px 10px 1px rgba(0, 0, 0, 0.14),
-                    0 3px 14px 2px rgba(0, 0, 0, 0.12),
-                    0 5px 5px -3px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 8px 10px 1px rgba(60, 40, 20, 0.14),
+                    0 3px 14px 2px rgba(60, 40, 20, 0.12),
+                    0 5px 5px -3px rgba(60, 40, 20, 0.4);
       }
 
       #inner {
@@ -62,19 +63,21 @@ class BoardgameDie extends BoardgameAnimatableItem {
         height: var(--effective-die-size);
         width: var(--effective-die-size);
         position: relative;
-        font-family: 'Roboto', 'Noto', sans-serif;
+        font-family: var(--md-sys-typescale-body-large-font, 'Source Sans 3', sans-serif);
         font-size: 20px;
         font-weight: 500;
         line-height: 28px;
       }
 
       .pip {
-        background-color: black;
+        background-color: var(--md-sys-color-on-surface, #1C1810);
         height: var(--pip-size);
         width: var(--pip-size);
         border-radius: calc(var(--pip-size) / 2);
         position: absolute;
         display: none;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4),
+                    0 1px 0 rgba(255, 255, 255, 0.2);
       }
 
       .face.one span, .face.two span, .face.three span, .face.four span, .face.five span, .face.six span {
