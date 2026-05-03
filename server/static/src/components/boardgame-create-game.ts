@@ -145,13 +145,20 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
     }
 
     md-filled-select {
-      min-width: 250px;
+      min-width: 200px;
+      flex: 1;
     }
 
     md-slider {
-      width: 250px;
+      width: 100%;
+      min-width: 120px;
       --md-slider-active-track-color: var(--md-sys-color-primary);
       --md-slider-handle-color: var(--md-sys-color-primary);
+    }
+
+    /* Wrap game creation row on narrow screens */
+    .game {
+      flex-wrap: wrap;
     }
 
     [role="radiogroup"] {

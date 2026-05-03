@@ -182,6 +182,24 @@ html {
   --md-dialog-container-color: var(--md-sys-color-surface-container-high);
 }
 
+/* Material Symbols icon font — required for md-icon elements */
+md-icon {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga';
+}
+
 /* Global button & interactive element polish */
 md-filled-button,
 md-outlined-button,
