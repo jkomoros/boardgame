@@ -374,6 +374,14 @@ func (d *defaultGameDelegate) ReadyToStart(state ImmutableState) error {
 	return nil
 }
 
+func (d *defaultGameDelegate) ChatConfig() ChatConfig {
+	return DefaultChatConfig()
+}
+
+func (d *defaultGameDelegate) ChatPolicyForPlayer(state ImmutableState, player PlayerIndex) ChatPolicy {
+	return ChatPolicy{Enabled: true, SendChannels: []string{"all"}, ViewChannels: []string{"all"}}
+}
+
 // Variants returns a VariantConfig with no entries.
 func (d *defaultGameDelegate) Variants() VariantConfig {
 	return VariantConfig{}
