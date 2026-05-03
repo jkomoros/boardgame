@@ -9,6 +9,8 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/go-gorp/gorp"
 	"github.com/jkomoros/boardgame"
@@ -27,6 +29,7 @@ const (
 	tableCookies       = "cookies"
 	tablePlayers       = "players"
 	tableAgentStates   = "agentstates"
+	tableChatMessages  = "chatmessages"
 )
 
 const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
@@ -111,6 +114,10 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(playerStorageRecord{}, tablePlayers).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(agentStateStorageRecord{}, tableAgentStates).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(moveStorageRecord{}, tableMoves).SetKeys(true, "ID")
+	s.dbMap.AddTableWithName(chatStorageRecord{}, tableChatMessages).SetKeys(true, "ID")
+
+	// Create chat table if it doesn't exist (auto-migration for chat)
+	s.dbMap.CreateTablesIfNotExists()
 
 	_, err = s.dbMap.SelectInt("select count(*) from " + tableGames)
 
@@ -734,4 +741,67 @@ func (s *StorageManager) FetchInjectedDataForGame(gameID string, dataType string
 // WithManagers does nothing
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing
+}
+
+// SaveChatMessage implements boardgame.ChatStorageManager.
+func (s *StorageManager) SaveChatMessage(msg *boardgame.ChatMessage) error {
+	rec := &chatStorageRecord{
+		GameID:    msg.GameID,
+		Version:   int64(msg.Version),
+		Sender:    int64(msg.Sender),
+		Channel:   msg.Channel,
+		Body:      msg.Body,
+		Timestamp: msg.Timestamp.UnixMilli(),
+	}
+	if err := s.dbMap.Insert(rec); err != nil {
+		return err
+	}
+	msg.ID = strconv.FormatInt(rec.ID, 10)
+	return nil
+}
+
+// ChatMessages implements boardgame.ChatStorageManager.
+func (s *StorageManager) ChatMessages(gameID string, channel string, sinceID string, limit int) ([]*boardgame.ChatMessage, error) {
+	query := "select * from " + tableChatMessages + " where GameID = ?"
+	args := []interface{}{gameID}
+
+	if channel != "" {
+		query += " and Channel = ?"
+		args = append(args, channel)
+	}
+
+	if sinceID != "" {
+		sinceIDInt, err := strconv.ParseInt(sinceID, 10, 64)
+		if err == nil {
+			query += " and ID > ?"
+			args = append(args, sinceIDInt)
+		}
+	}
+
+	query += " order by ID asc"
+
+	if limit > 0 {
+		query += " limit ?"
+		args = append(args, limit)
+	}
+
+	var records []chatStorageRecord
+	if _, err := s.dbMap.Select(&records, query, args...); err != nil {
+		return nil, err
+	}
+
+	var result []*boardgame.ChatMessage
+	for _, rec := range records {
+		result = append(result, &boardgame.ChatMessage{
+			ID:        strconv.FormatInt(rec.ID, 10),
+			GameID:    rec.GameID,
+			Version:   int(rec.Version),
+			Sender:    boardgame.PlayerIndex(rec.Sender),
+			Channel:   rec.Channel,
+			Body:      rec.Body,
+			Timestamp: time.UnixMilli(rec.Timestamp),
+		})
+	}
+
+	return result, nil
 }

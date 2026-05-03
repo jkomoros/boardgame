@@ -9,6 +9,7 @@ package memory
 
 import (
 	"errors"
+	"strconv"
 	"sync"
 
 	"github.com/jkomoros/boardgame"
@@ -24,9 +25,14 @@ type StorageManager struct {
 	moves  map[string]map[int]*boardgame.MoveStorageRecord
 	games  map[string]*boardgame.GameStorageRecord
 
+	// Chat side-channel storage
+	chatMessages map[string][]*boardgame.ChatMessage // keyed by gameID
+	chatCounter  map[string]int                       // per-game message counter for IDs
+
 	statesLock sync.RWMutex
 	movesLock  sync.RWMutex
 	gamesLock  sync.RWMutex
+	chatLock   sync.RWMutex
 
 	*helpers.ExtendedMemoryStorageManager
 }
@@ -36,9 +42,11 @@ func NewStorageManager() *StorageManager {
 	//InMemoryStorageManager is an extremely simple StorageManager that just keeps
 	//track of the objects in memory.
 	result := &StorageManager{
-		states: make(map[string]map[int]boardgame.StateStorageRecord),
-		moves:  make(map[string]map[int]*boardgame.MoveStorageRecord),
-		games:  make(map[string]*boardgame.GameStorageRecord),
+		states:       make(map[string]map[int]boardgame.StateStorageRecord),
+		moves:        make(map[string]map[int]*boardgame.MoveStorageRecord),
+		games:        make(map[string]*boardgame.GameStorageRecord),
+		chatMessages: make(map[string][]*boardgame.ChatMessage),
+		chatCounter:  make(map[string]int),
 	}
 	result.ExtendedMemoryStorageManager = helpers.NewExtendedMemoryStorageManager(result)
 	return result
@@ -209,4 +217,59 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 // ListGames will return game objects for up to max number of games
 func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 	return helpers.ListGamesHelper(s, max, list, userID, gameType)
+}
+
+// SaveChatMessage implements boardgame.ChatStorageManager.
+func (s *StorageManager) SaveChatMessage(msg *boardgame.ChatMessage) error {
+	if msg.GameID == "" {
+		return errors.New("GameID is required")
+	}
+
+	s.chatLock.Lock()
+	defer s.chatLock.Unlock()
+
+	// Assign ID if not set
+	if msg.ID == "" {
+		s.chatCounter[msg.GameID]++
+		msg.ID = strconv.Itoa(s.chatCounter[msg.GameID])
+	}
+
+	s.chatMessages[msg.GameID] = append(s.chatMessages[msg.GameID], msg)
+	return nil
+}
+
+// ChatMessages implements boardgame.ChatStorageManager.
+func (s *StorageManager) ChatMessages(gameID string, channel string, sinceID string, limit int) ([]*boardgame.ChatMessage, error) {
+	s.chatLock.RLock()
+	defer s.chatLock.RUnlock()
+
+	all := s.chatMessages[gameID]
+	if all == nil {
+		return nil, nil
+	}
+
+	// Find the starting point (after sinceID)
+	startIdx := 0
+	if sinceID != "" {
+		for i, msg := range all {
+			if msg.ID == sinceID {
+				startIdx = i + 1
+				break
+			}
+		}
+	}
+
+	var result []*boardgame.ChatMessage
+	for i := startIdx; i < len(all); i++ {
+		msg := all[i]
+		if channel != "" && msg.Channel != channel {
+			continue
+		}
+		result = append(result, msg)
+		if limit > 0 && len(result) >= limit {
+			break
+		}
+	}
+
+	return result, nil
 }

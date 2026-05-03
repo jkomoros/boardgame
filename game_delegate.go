@@ -205,6 +205,33 @@ type GameDelegate interface {
 	// because it is called on every fix-up check cycle.
 	ReadyToStart(state ImmutableState) error
 
+	// ChatConfig returns the game-level chat configuration. Override with a
+	// one-liner to adjust defaults:
+	//
+	//   func (g *myDelegate) ChatConfig() ChatConfig {
+	//       return DefaultChatConfig().WithoutDMs()
+	//   }
+	//
+	// The default enables all channels (all-chat, team chat if PlayerTeam is
+	// embedded, and private DMs between all seated player pairs).
+	ChatConfig() ChatConfig
+
+	// ChatPolicyForPlayer returns what a specific player can do with chat
+	// right now, given the current game state. Called per-request by the
+	// server's chat endpoints. The default implementation reads from
+	// ChatConfig() and auto-derives channels from the state.
+	//
+	// Override for complex rules (phase-gated, role-restricted, dead-player
+	// channels):
+	//
+	//   func (g *myDelegate) ChatPolicyForPlayer(state ImmutableState, player PlayerIndex) ChatPolicy {
+	//       if isNightPhase(state) {
+	//           return ChatPolicy{Enabled: false}
+	//       }
+	//       return g.GameDelegate.ChatPolicyForPlayer(state, player)
+	//   }
+	ChatPolicyForPlayer(state ImmutableState, player PlayerIndex) ChatPolicy
+
 	//PlayerMayBeActive should return whether the given PlayerIndex may be
 	//"active". In general, this should just return true all of the time,
 	//because any player index that is between 0 and NumPlayers is valid. But

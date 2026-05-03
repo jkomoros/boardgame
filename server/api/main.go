@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -28,8 +29,16 @@ import (
 type Server struct {
 	managers managerMap
 
-	//map of game ID to players to seat
+	//map of game ID to players to seat. Protected by mu.
 	playersToSeat map[string][]*playerToSeat
+
+	//track which games have had "Game over!" system message emitted. Protected by mu.
+	gameOverEmitted map[string]bool
+
+	// mu protects playersToSeat and gameOverEmitted from concurrent access.
+	// These maps are written from game goroutines (via PlayerMoveApplied /
+	// ForceFixUp callbacks) and HTTP handler goroutines simultaneously.
+	mu sync.Mutex
 
 	storage *ServerStorageManager
 	//We store the last error so that next time viewHandler is called we can
@@ -120,7 +129,8 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 	result := &Server{
 		managers:      make(managerMap),
-		playersToSeat: make(map[string][]*playerToSeat),
+		playersToSeat:   make(map[string][]*playerToSeat),
+		gameOverEmitted: make(map[string]bool),
 		storage:       storage,
 		logger:        logger,
 	}
@@ -182,6 +192,9 @@ func (p *playerToSeat) SeatIndex() boardgame.PlayerIndex {
 }
 
 func (p *playerToSeat) Committed() {
+	p.s.mu.Lock()
+	defer p.s.mu.Unlock()
+
 	slice := p.s.playersToSeat[p.gameID]
 	if len(slice) == 0 {
 		return
@@ -472,10 +485,13 @@ func (s *Server) autoCloseGameIfFull(game *boardgame.Game) {
 	}
 
 	// 3a: Clean up any pending players that can no longer be seated.
-	if pending, ok := s.playersToSeat[game.ID()]; ok && len(pending) > 0 {
+	s.mu.Lock()
+	pending, hasPending := s.playersToSeat[game.ID()]
+	if hasPending && len(pending) > 0 {
 		s.logger.Warnln("Removing", len(pending), "pending player(s) from full game", game.ID())
 		delete(s.playersToSeat, game.ID())
 	}
+	s.mu.Unlock()
 }
 
 // gameAPISetup fetches the game configured in the URL and puts it in context.
@@ -610,7 +626,9 @@ func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, 
 			slot,
 		}
 
+		s.mu.Lock()
 		s.playersToSeat[gameID] = append(s.playersToSeat[gameID], player)
+		s.mu.Unlock()
 
 		//Now we have information waiting for SeatPlayer. Tell the engine to
 		//check whether fixups need to be applied, becuase we know that
@@ -1437,7 +1455,284 @@ func (s *Server) genericHandler(c *gin.Context) {
 	})
 }
 
+// augmentPolicyWithDMs adds DM channels to a ChatPolicy based on the actual
+// user IDs seated in the game. DM channels are named "dm/userA/userB" with
+// IDs sorted lexicographically so both parties get the same channel name.
+func (s *Server) augmentPolicyWithDMs(policy boardgame.ChatPolicy, game *boardgame.Game, userID string) boardgame.ChatPolicy {
+	config := game.Manager().Delegate().ChatConfig()
+	if !config.DMChatEnabled() {
+		return policy
+	}
+
+	userIDs := s.storage.UserIDsForGame(game.ID())
+	if userIDs == nil || userID == "" {
+		return policy
+	}
+
+	for _, otherID := range userIDs {
+		if otherID == "" || otherID == userID {
+			continue
+		}
+		// Sort lexicographically for canonical channel name
+		a, b := userID, otherID
+		if a > b {
+			a, b = b, a
+		}
+		ch := "dm/" + a + "/" + b
+		policy.SendChannels = append(policy.SendChannels, ch)
+		policy.ViewChannels = append(policy.ViewChannels, ch)
+	}
+
+	return policy
+}
+
 // Start is where you start the server, and it never returns until it's time to shut down.
+// chatStorage returns the ChatStorageManager if the storage backend supports
+// it, or nil if not. Checks the underlying storage manager that the
+// ServerStorageManager wraps.
+func (s *Server) chatStorage() boardgame.ChatStorageManager {
+	if cs, ok := s.storage.StorageManager.(boardgame.ChatStorageManager); ok {
+		return cs
+	}
+	return nil
+}
+
+func (s *Server) chatSendHandler(c *gin.Context) {
+	r := s.newRenderer(c)
+	game := s.getGame(c)
+	if game == nil {
+		r.Error(errors.NewFriendly("No such game"))
+		return
+	}
+
+	cs := s.chatStorage()
+	if cs == nil {
+		r.Error(errors.NewFriendly("Chat is not available"))
+		return
+	}
+
+	user := s.getUser(c)
+	if user == nil {
+		r.Error(errors.NewFriendly("Not logged in"))
+		return
+	}
+
+	// Resolve the player index for this user
+	userIds := s.storage.UserIDsForGame(game.ID())
+	playerIndex := boardgame.ObserverPlayerIndex
+	for i, uid := range userIds {
+		if uid == user.ID {
+			playerIndex = boardgame.PlayerIndex(i)
+			break
+		}
+	}
+
+	if playerIndex == boardgame.ObserverPlayerIndex {
+		r.Error(errors.NewFriendly("Observers cannot send chat messages"))
+		return
+	}
+
+	// Get the chat policy for this player, augmented with DM channels
+	state := game.CurrentState()
+	policy := game.Manager().Delegate().ChatPolicyForPlayer(state, playerIndex)
+	policy = s.augmentPolicyWithDMs(policy, game, user.ID)
+
+	if !policy.Enabled {
+		r.Error(errors.NewFriendly("Chat is not available right now"))
+		return
+	}
+
+	channel := c.PostForm("channel")
+	body := c.PostForm("body")
+
+	if channel == "" {
+		channel = "all"
+	}
+	if body == "" {
+		r.Error(errors.NewFriendly("Message cannot be empty"))
+		return
+	}
+	if len(body) > 500 {
+		r.Error(errors.NewFriendly("Message is too long (max 500 characters)"))
+		return
+	}
+
+	// Validate channel is in SendChannels
+	channelAllowed := false
+	for _, ch := range policy.SendChannels {
+		if ch == channel {
+			channelAllowed = true
+			break
+		}
+	}
+	if !channelAllowed {
+		r.Error(errors.NewFriendly("You cannot send messages to this channel"))
+		return
+	}
+
+	// Validate pre-baked constraint
+	if policy.PrebakedOnly {
+		allowed := false
+		for _, msg := range policy.AllowedMessages {
+			if msg == body {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			r.Error(errors.NewFriendly("That message is not allowed"))
+			return
+		}
+	}
+
+	msg := &boardgame.ChatMessage{
+		GameID:    game.ID(),
+		Version:   game.Version(),
+		Sender:    playerIndex,
+		Channel:   channel,
+		Body:      body,
+		Timestamp: time.Now(),
+	}
+
+	if err := cs.SaveChatMessage(msg); err != nil {
+		r.Error(errors.New("Failed to save chat message: " + err.Error()))
+		return
+	}
+
+	// Notify all connected clients via WebSocket
+	s.notifier.chatMessageSent(game.ID(), channel, msg.ID)
+
+	r.Success(gin.H{
+		"MessageID": msg.ID,
+	})
+}
+
+func (s *Server) chatReadHandler(c *gin.Context) {
+	r := s.newRenderer(c)
+	game := s.getGame(c)
+	if game == nil {
+		r.Error(errors.NewFriendly("No such game"))
+		return
+	}
+
+	cs := s.chatStorage()
+	if cs == nil {
+		r.Error(errors.NewFriendly("Chat is not available"))
+		return
+	}
+
+	// Determine the viewer
+	user := s.getUser(c)
+	playerIndex := boardgame.ObserverPlayerIndex
+	if user != nil {
+		userIds := s.storage.UserIDsForGame(game.ID())
+		for i, uid := range userIds {
+			if uid == user.ID {
+				playerIndex = boardgame.PlayerIndex(i)
+				break
+			}
+		}
+	}
+
+	// Get the chat policy, augmented with DM channels
+	state := game.CurrentState()
+	policy := game.Manager().Delegate().ChatPolicyForPlayer(state, playerIndex)
+	userID := ""
+	if user != nil {
+		userID = user.ID
+	}
+	policy = s.augmentPolicyWithDMs(policy, game, userID)
+
+	channel := c.Query("channel")
+	sinceID := c.Query("since")
+	limitStr := c.DefaultQuery("limit", "50")
+	limit := 50
+	if n, err := strconv.Atoi(limitStr); err == nil && n > 0 {
+		limit = n
+	}
+	if limit > 200 {
+		limit = 200 // cap to prevent memory exhaustion
+	}
+
+	// If a specific channel is requested, verify view access
+	if channel != "" {
+		allowed := false
+		for _, ch := range policy.ViewChannels {
+			if ch == channel {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			r.Error(errors.NewFriendly("You cannot view this channel"))
+			return
+		}
+	}
+
+	// Fetch messages
+	messages, err := cs.ChatMessages(game.ID(), channel, sinceID, limit)
+	if err != nil {
+		r.Error(errors.New("Failed to fetch chat messages: " + err.Error()))
+		return
+	}
+
+	// Filter messages by ViewChannels if no specific channel was requested
+	if channel == "" && policy.ViewChannels != nil {
+		viewSet := make(map[string]bool)
+		for _, ch := range policy.ViewChannels {
+			viewSet[ch] = true
+		}
+		var filtered []*boardgame.ChatMessage
+		for _, msg := range messages {
+			if viewSet[msg.Channel] {
+				filtered = append(filtered, msg)
+			}
+		}
+		messages = filtered
+	}
+
+	// Build response with player display names for convenience
+	type chatMessageResponse struct {
+		ID        string `json:"id"`
+		Channel   string `json:"channel"`
+		Sender    int    `json:"sender"`
+		Body      string `json:"body"`
+		Timestamp int64  `json:"timestamp"`
+	}
+
+	var response []chatMessageResponse
+	for _, msg := range messages {
+		response = append(response, chatMessageResponse{
+			ID:        msg.ID,
+			Channel:   msg.Channel,
+			Sender:    int(msg.Sender),
+			Body:      msg.Body,
+			Timestamp: msg.Timestamp.UnixMilli(),
+		})
+	}
+
+	// Build user ID → player index map for DM channel name resolution
+	userIDMap := make(map[string]int)
+	if uids := s.storage.UserIDsForGame(game.ID()); uids != nil {
+		for i, uid := range uids {
+			if uid != "" {
+				userIDMap[uid] = i
+			}
+		}
+	}
+
+	r.Success(gin.H{
+		"Messages":     response,
+		"ViewChannels": policy.ViewChannels,
+		"UserIDMap":    userIDMap,
+		"ChatConfig": gin.H{
+			"Enabled":         policy.Enabled,
+			"PrebakedOnly":    policy.PrebakedOnly,
+			"AllowedMessages": policy.AllowedMessages,
+		},
+	})
+}
+
 func (s *Server) Start() {
 
 	config, err := config.Get("", false)
@@ -1479,6 +1774,13 @@ func (s *Server) Start() {
 	}
 
 	s.notifier = newVersionNotifier(s)
+
+	// Check if the storage backend supports chat
+	if _, ok := s.storage.StorageManager.(boardgame.ChatStorageManager); ok {
+		s.logger.Infoln("Chat storage available")
+	} else {
+		s.logger.Infoln("Chat storage not available — chat will be disabled")
+	}
 
 	router := gin.New()
 
@@ -1523,7 +1825,11 @@ func (s *Server) Start() {
 			protectedGameAPIGroup.POST("move", s.moveHandler)
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
+			protectedGameAPIGroup.POST("chat", s.chatSendHandler)
 		}
+
+		// Chat read endpoint — available to any user with game access
+		gameAPIGroup.GET("chat", s.chatReadHandler)
 	}
 
 	if p := os.Getenv("PORT"); p != "" {

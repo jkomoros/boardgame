@@ -17,11 +17,14 @@ in each game's sub-directory, so the test files can be in the same place.
 package filesystem
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
@@ -328,4 +331,83 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 // ListGames returns all of the games
 func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 	return helpers.ListGamesHelper(s, max, list, userID, gameType)
+}
+
+// chatFilePath returns the path to the chat JSON file for a game.
+func (s *StorageManager) chatFilePath(gameID string) string {
+	return filepath.Join(s.basePath, "chat_"+gameID+".json")
+}
+
+// chatCounter tracks per-game message counters in memory.
+var chatCounters = make(map[string]int)
+var chatMu sync.Mutex
+
+// SaveChatMessage implements boardgame.ChatStorageManager.
+func (s *StorageManager) SaveChatMessage(msg *boardgame.ChatMessage) error {
+	if msg.GameID == "" {
+		return errors.New("GameID is required")
+	}
+
+	chatMu.Lock()
+	defer chatMu.Unlock()
+
+	// Auto-increment ID
+	if msg.ID == "" {
+		chatCounters[msg.GameID]++
+		msg.ID = fmt.Sprintf("%d", chatCounters[msg.GameID])
+	}
+
+	// Load existing messages
+	messages, _ := s.loadChatMessages(msg.GameID)
+	messages = append(messages, msg)
+
+	// Save back
+	return s.saveChatMessages(msg.GameID, messages)
+}
+
+// ChatMessages implements boardgame.ChatStorageManager.
+func (s *StorageManager) ChatMessages(gameID string, channel string, sinceID string, limit int) ([]*boardgame.ChatMessage, error) {
+	all, err := s.loadChatMessages(gameID)
+	if err != nil {
+		return nil, nil // Not found is fine
+	}
+
+	pastSince := sinceID == ""
+	var result []*boardgame.ChatMessage
+	for _, msg := range all {
+		if !pastSince {
+			if msg.ID == sinceID {
+				pastSince = true
+			}
+			continue
+		}
+		if channel != "" && msg.Channel != channel {
+			continue
+		}
+		result = append(result, msg)
+		if limit > 0 && len(result) >= limit {
+			break
+		}
+	}
+	return result, nil
+}
+
+func (s *StorageManager) loadChatMessages(gameID string) ([]*boardgame.ChatMessage, error) {
+	data, err := ioutil.ReadFile(s.chatFilePath(gameID))
+	if err != nil {
+		return nil, err
+	}
+	var messages []*boardgame.ChatMessage
+	if err := json.Unmarshal(data, &messages); err != nil {
+		return nil, err
+	}
+	return messages, nil
+}
+
+func (s *StorageManager) saveChatMessages(gameID string, messages []*boardgame.ChatMessage) error {
+	data, err := json.MarshalIndent(messages, "", "  ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(s.chatFilePath(gameID), data, 0644)
 }

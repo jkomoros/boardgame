@@ -398,3 +398,13 @@ func newAgentStateStorageRecord(gameID string, player boardgame.PlayerIndex, sta
 		Blob:        string(state),
 	}
 }
+
+type chatStorageRecord struct {
+	ID        int64  `db:",size:20"`
+	GameID    string `db:",size:64"`
+	Version   int64
+	Sender    int64
+	Channel   string `db:",size:128"`
+	Body      string `db:",size:1024"`
+	Timestamp int64
+}
