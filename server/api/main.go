@@ -1441,6 +1441,37 @@ func (s *Server) genericHandler(c *gin.Context) {
 	})
 }
 
+// augmentPolicyWithDMs adds DM channels to a ChatPolicy based on the actual
+// user IDs seated in the game. DM channels are named "dm/userA/userB" with
+// IDs sorted lexicographically so both parties get the same channel name.
+func (s *Server) augmentPolicyWithDMs(policy boardgame.ChatPolicy, game *boardgame.Game, userID string) boardgame.ChatPolicy {
+	config := game.Manager().Delegate().ChatConfig()
+	if !config.DMChatEnabled() {
+		return policy
+	}
+
+	userIDs := s.storage.UserIDsForGame(game.ID())
+	if userIDs == nil || userID == "" {
+		return policy
+	}
+
+	for _, otherID := range userIDs {
+		if otherID == "" || otherID == userID {
+			continue
+		}
+		// Sort lexicographically for canonical channel name
+		a, b := userID, otherID
+		if a > b {
+			a, b = b, a
+		}
+		ch := "dm/" + a + "/" + b
+		policy.SendChannels = append(policy.SendChannels, ch)
+		policy.ViewChannels = append(policy.ViewChannels, ch)
+	}
+
+	return policy
+}
+
 // Start is where you start the server, and it never returns until it's time to shut down.
 // chatStorage returns the ChatStorageManager if the storage backend supports
 // it, or nil if not. Checks the underlying storage manager that the
@@ -1487,9 +1518,10 @@ func (s *Server) chatSendHandler(c *gin.Context) {
 		return
 	}
 
-	// Get the chat policy for this player
+	// Get the chat policy for this player, augmented with DM channels
 	state := game.CurrentState()
 	policy := game.Manager().Delegate().ChatPolicyForPlayer(state, playerIndex)
+	policy = s.augmentPolicyWithDMs(policy, game, user.ID)
 
 	if !policy.Enabled {
 		r.Error(errors.NewFriendly("Chat is not available right now"))
@@ -1588,9 +1620,14 @@ func (s *Server) chatReadHandler(c *gin.Context) {
 		}
 	}
 
-	// Get the chat policy
+	// Get the chat policy, augmented with DM channels
 	state := game.CurrentState()
 	policy := game.Manager().Delegate().ChatPolicyForPlayer(state, playerIndex)
+	userID := ""
+	if user != nil {
+		userID = user.ID
+	}
+	policy = s.augmentPolicyWithDMs(policy, game, userID)
 
 	channel := c.Query("channel")
 	sinceID := c.Query("since")

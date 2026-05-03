@@ -161,6 +161,37 @@ export class BoardgameChatPanel extends LitElement {
       color: var(--md-sys-color-tertiary, #7d5260);
     }
 
+    .channel-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 4px 10px;
+      border-bottom: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .channel-tab {
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      background: transparent;
+      border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+      color: var(--md-sys-color-on-surface-variant, #49454f);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .channel-tab:hover {
+      background: var(--md-sys-color-surface-container-highest, #e6e0e9);
+    }
+
+    .channel-tab.active {
+      background: var(--md-sys-color-primary-container, #eaddff);
+      color: var(--md-sys-color-on-primary-container, #21005d);
+      border-color: var(--md-sys-color-primary, #6750a4);
+    }
+
     .message.system {
       text-align: center;
       color: var(--md-sys-color-on-surface-variant, #49454f);
@@ -228,6 +259,9 @@ export class BoardgameChatPanel extends LitElement {
 
   @state()
   private _viewChannels: string[] = [];
+
+  @state()
+  private _activeChannel = 'all';
 
   @state()
   private _collapsed = false;
@@ -341,6 +375,45 @@ export class BoardgameChatPanel extends LitElement {
     }
   }
 
+  /** Get a human-readable display name for a channel */
+  private _channelDisplayName(channel: string): string {
+    if (channel === 'all') return 'All';
+    if (channel.startsWith('team/')) return channel.substring(5);
+    if (channel.startsWith('dm/')) {
+      // "dm/userA/userB" — show the OTHER user's player name
+      const parts = channel.split('/');
+      // Find which part is not the current user and resolve to a player name
+      for (let i = 0; i < this.playersInfo.length; i++) {
+        const name = this.playersInfo[i]?.DisplayName;
+        if (name && (parts[1] === name || parts[2] === name)) {
+          // Show the other party's name
+          return name;
+        }
+      }
+      // Fallback: show abbreviated IDs
+      return 'DM';
+    }
+    return channel;
+  }
+
+  /** Get messages filtered to the active channel (or all if "all") */
+  private get _filteredMessages(): ChatMessage[] {
+    if (this._activeChannel === 'all') {
+      // Show all messages the user can see
+      return this._messages;
+    }
+    return this._messages.filter(m => m.channel === this._activeChannel);
+  }
+
+  /** Whether we have multiple channels to show tabs for */
+  private get _hasMultipleChannels(): boolean {
+    return this._viewChannels.length > 1;
+  }
+
+  private _selectChannel(channel: string) {
+    this._activeChannel = channel;
+  }
+
   private _senderName(senderIndex: number): string {
     if (senderIndex === -2) return 'System';
     if (senderIndex >= 0 && senderIndex < this.playersInfo.length) {
@@ -365,7 +438,7 @@ export class BoardgameChatPanel extends LitElement {
 
     try {
       const formData = new URLSearchParams();
-      formData.append('channel', 'all');
+      formData.append('channel', this._activeChannel);
       formData.append('body', body.trim());
 
       const resp = await fetch(`/api/game/${this.gameRoute.name}/${this.gameRoute.id}/chat`, {
@@ -431,10 +504,22 @@ export class BoardgameChatPanel extends LitElement {
         </div>
 
         <div class="chat-body ${this._collapsed ? 'collapsed' : ''}">
+          ${this._hasMultipleChannels ? html`
+            <div class="channel-tabs" role="tablist" aria-label="Chat channels">
+              ${this._viewChannels.map(ch => html`
+                <button class="channel-tab ${ch === this._activeChannel ? 'active' : ''}"
+                        role="tab" aria-selected=${ch === this._activeChannel ? 'true' : 'false'}
+                        @click=${() => this._selectChannel(ch)}>
+                  ${this._channelDisplayName(ch)}
+                </button>
+              `)}
+            </div>
+          ` : nothing}
+
           <div class="messages" role="log" aria-live="polite" aria-label="Chat messages">
-            ${this._messages.length === 0 ? html`
+            ${this._filteredMessages.length === 0 ? html`
               <div class="empty-state">No messages yet. Say hello!</div>
-            ` : this._messages.map(msg => {
+            ` : this._filteredMessages.map(msg => {
               const isSelf = msg.sender === this.viewingAsPlayer;
               const isSystem = msg.sender === -2;
               return html`
