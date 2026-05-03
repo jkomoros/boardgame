@@ -293,6 +293,9 @@ export class BoardgameChatPanel extends LitElement {
   private _activeChannel = 'all';
 
   @state()
+  private _userIDMap: Record<string, number> = {};
+
+  @state()
   private _collapsed = false;
 
   @state()
@@ -318,18 +321,22 @@ export class BoardgameChatPanel extends LitElement {
   private _lastGameRouteId = '';
 
   protected willUpdate(changedProperties: Map<string, unknown>): void {
-    // Reset chat state when switching games
+    // Fetch messages on first gameRoute set, and reset state when switching games
     if (changedProperties.has('gameRoute') && this.gameRoute) {
       const newId = this.gameRoute.id;
-      if (this._lastGameRouteId && this._lastGameRouteId !== newId) {
-        this._messages = [];
-        this._lastMessageID = '';
-        this._unreadCount = 0;
-        this._chatConfig = null;
-        this._viewChannels = [];
+      if (this._lastGameRouteId !== newId) {
+        if (this._lastGameRouteId) {
+          // Switching games — reset state
+          this._messages = [];
+          this._lastMessageID = '';
+          this._unreadCount = 0;
+          this._chatConfig = null;
+          this._viewChannels = [];
+          this._activeChannel = 'all';
+        }
+        this._lastGameRouteId = newId;
         this._fetchMessages();
       }
-      this._lastGameRouteId = newId;
     }
   }
 
@@ -382,6 +389,7 @@ export class BoardgameChatPanel extends LitElement {
 
       this._chatConfig = data.ChatConfig || null;
       this._viewChannels = data.ViewChannels || [];
+      this._userIDMap = data.UserIDMap || {};
 
       const newMessages: ChatMessage[] = data.Messages || [];
       if (newMessages.length > 0) {
@@ -425,20 +433,24 @@ export class BoardgameChatPanel extends LitElement {
     if (channel === 'all') return 'All';
     if (channel.startsWith('team/')) return channel.substring(5);
     if (channel.startsWith('dm/')) {
-      // "dm/userA/userB" — show the OTHER user's player name
+      // "dm/userIdA/userIdB" — find the OTHER user's player index via UserIDMap
       const parts = channel.split('/');
-      // Find which part is not the current user and resolve to a player name
-      for (let i = 0; i < this.playersInfo.length; i++) {
-        const name = this.playersInfo[i]?.DisplayName;
-        if (name && (parts[1] === name || parts[2] === name)) {
-          // Show the other party's name
-          return name;
-        }
+      const otherUserID = parts[1] === this._myUserID() ? parts[2] : parts[1];
+      const playerIdx = this._userIDMap[otherUserID];
+      if (playerIdx !== undefined && playerIdx >= 0 && playerIdx < this.playersInfo.length) {
+        return this.playersInfo[playerIdx]?.DisplayName || `Player ${playerIdx}`;
       }
-      // Fallback: show abbreviated IDs
       return 'DM';
     }
     return channel;
+  }
+
+  /** Get the current user's ID from the UserIDMap (the one matching viewingAsPlayer) */
+  private _myUserID(): string {
+    for (const [uid, idx] of Object.entries(this._userIDMap)) {
+      if (idx === this.viewingAsPlayer) return uid;
+    }
+    return '';
   }
 
   /** Get messages filtered to the active channel (or all if "all") */
@@ -548,6 +560,8 @@ export class BoardgameChatPanel extends LitElement {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.15);
+      // Close AudioContext after sound finishes to prevent resource leak
+      osc.onended = () => ctx.close();
     } catch { /* Audio not available */ }
   }
 
@@ -576,7 +590,7 @@ export class BoardgameChatPanel extends LitElement {
     if (!this.gameRoute) return nothing;
 
     const isObserver = this.viewingAsPlayer === -1;
-    const isDisabled = isObserver || (this._chatConfig && !this._chatConfig.Enabled);
+    const isDisabled = isObserver; // if _chatConfig.Enabled were false, we returned nothing above
     const isPrebaked = this._chatConfig?.PrebakedOnly ?? false;
     const allowedMessages = this._chatConfig?.AllowedMessages ?? [];
 

@@ -1697,12 +1697,23 @@ func (s *Server) chatReadHandler(c *gin.Context) {
 		})
 	}
 
+	// Build user ID → player index map for DM channel name resolution
+	userIDMap := make(map[string]int)
+	if uids := s.storage.UserIDsForGame(game.ID()); uids != nil {
+		for i, uid := range uids {
+			if uid != "" {
+				userIDMap[uid] = i
+			}
+		}
+	}
+
 	r.Success(gin.H{
 		"Messages":     response,
 		"ViewChannels": policy.ViewChannels,
+		"UserIDMap":    userIDMap,
 		"ChatConfig": gin.H{
-			"Enabled":      policy.Enabled,
-			"PrebakedOnly": policy.PrebakedOnly,
+			"Enabled":         policy.Enabled,
+			"PrebakedOnly":    policy.PrebakedOnly,
 			"AllowedMessages": policy.AllowedMessages,
 		},
 	})
