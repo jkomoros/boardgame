@@ -221,6 +221,27 @@ export class BoardgameComponentStack extends LitElement {
       max-width: 100%;
       max-height: 100%;
     }
+
+    /* Spatial layout: absolute positioning by coordinate array */
+    #container.spatial {
+      position: relative;
+    }
+
+    #container.spatial #slot-holder {
+      display: contents;
+    }
+
+    #container.spatial #faux-components,
+    #container.spatial #animating-components {
+      position: absolute;
+    }
+
+    #container.spatial ::slotted([boardgame-component]),
+    #container.spatial [boardgame-component] {
+      position: absolute;
+      margin: 0;
+      pointer-events: none;
+    }
   `;
 
   @property({ type: String })
@@ -280,6 +301,10 @@ export class BoardgameComponentStack extends LitElement {
 
   @property({ type: Number })
   boardCols = 8;
+
+  /** Pixel positions for spatial layout. Index i = position for component at slot i. */
+  @property({ type: Array, attribute: false })
+  spatialPositions: Array<{ top: number; left: number } | null> = [];
 
   @property({ type: Number })
   fauxComponents = 0;
@@ -422,6 +447,10 @@ export class BoardgameComponentStack extends LitElement {
 
     if (changedProperties.has('layout') || changedProperties.has('messy')) {
       this._updateComponentClasses();
+    }
+
+    if (changedProperties.has('spatialPositions') && this.layout === 'spatial') {
+      this._applySpatialPositions();
     }
 
     if (changedProperties.has('boardCols') && this.container) {
@@ -781,7 +810,7 @@ export class BoardgameComponentStack extends LitElement {
     // slot 0 must physically reorder the DOM element — not just update its
     // properties in-place. Without this, the element stays at the same DOM
     // position and FLIP sees zero displacement.
-    if (this.layout === 'board') {
+    if (this.layout === 'board' || this.layout === 'spatial') {
       this._insertNodesBoardMode(componentsInfo, hostEle);
       return;
     }
@@ -1010,7 +1039,7 @@ export class BoardgameComponentStack extends LitElement {
       const transformPieces: string[] = [];
       const id = component.id || i.toString();
 
-      if (this.messy && this.layout !== 'pile' && this.layout !== 'board') {
+      if (this.messy && this.layout !== 'pile' && this.layout !== 'board' && this.layout !== 'spatial') {
         transformPieces.push(`rotate(${this._messyRotationForId(id)}deg)`);
       }
 
@@ -1045,6 +1074,30 @@ export class BoardgameComponentStack extends LitElement {
 
     if (this.layout === 'fan') {
       this._fanComponents();
+    }
+
+    if (this.layout === 'spatial') {
+      this._applySpatialPositions();
+    }
+  }
+
+  /**
+   * Apply absolute positions from spatialPositions array to each component.
+   * No CSS transition on top/left — FLIP handles animation via transform.
+   */
+  private _applySpatialPositions() {
+    const components = this.Components;
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i];
+      const pos = this.spatialPositions[i];
+      if (pos && !component.spacer) {
+        component.style.top = `${pos.top}px`;
+        component.style.left = `${pos.left}px`;
+        component.style.visibility = 'visible';
+      } else {
+        // Empty slot or no position — hide
+        component.style.visibility = 'hidden';
+      }
     }
   }
 
