@@ -1,10 +1,30 @@
 # Table + Hand Mode (Per-Person Mobile UI)
 
-Spec date: 2026-05-23 (third revision — opinionated reshape after game-author DX critic pass)
+Spec date: 2026-05-23 (fourth revision — implementability fix-up after code-traced critic pass)
 Ticket: [#759 — Allow remote control / projected mode](https://github.com/jkomoros/boardgame/issues/759)
 Branch: `per-person-mobile-ui`
 
 ## Revision Notes
+
+### Revision 4 (implementability fix-up)
+
+A code-tracing critic pass against the third revision found several places where the spec assumed mechanisms that don't exist in the codebase as described. This revision fixes the concrete gaps:
+
+- **SkipTurn**: corrected `moves.AdvanceCurrentPlayer` → `moves.FinishTurn` (the actual move), and surfaced that `FinishTurn.Legal()` requires `TurnDone() == nil` — meaning a mid-turn dropout breaks vanilla SkipTurn. Spec now adds a new `moves.ForceFinishTurn` variant that bypasses `TurnDone()` and runs the same `ResetForTurnEnd` defensively. Phase-based games (Werewolf-style with `moves.StartPhase`) require a separate `ForceAdvancePhase` companion — documented in §9.3 with limitations.
+- **Filesystem detection**: relocated from the api binary (which has no access to `server/static/game-src/` in either dev or prod) to `boardgame-util/cmd_serve.go` and `cmd_build_static.go`. Capability map emitted into the existing `client_config.js` (already symlinked into the dev temp dir and served in prod). One code path, not the dev/prod split the previous draft described.
+- **Sanitization for Visibility**: respecified to use the framework's existing `sanitize:"…"` struct-tag mechanism (rather than a new `visibility:"…"` namespace), with the default sanitize on `PlayerRole.Role` flipped to `sanitize:"other:hidden"` and a public opt-out wired through `ConfigureFromTags`. Concrete mechanism, not hand-wave.
+- **Fake-deck row animation**: corrected the same-`component.id` collision in `boardgame-component-animator.ts` by using synthetic stub IDs + a new `animateBetween(realId, stubId)` animator API. The animator records the real card's "first" position from the stub's location and animates to/from there.
+- **State push timestamps**: corrected the claim about extending `stateUpdateData` (no such struct; state JSON arrives over a separate HTTP GET, not the WebSocket). Timestamps now ride on the `gameVersionChanged` socket payload (server-controlled), and clients schedule animation start *before* fetching the new state JSON.
+- **`HasPlayerTeam` already exists** at `behaviors/team.go:96-105`. Removed the "framework adds this" claim.
+- **`SupportsTableHandMode` moved to `managerInfo`** in `server/api/main.go:84` (not the core `boardgame.GameManager` type, which is deliberately HTTP-agnostic). Surfaced to the client via the existing `doListManager` response.
+- **Heartbeat plumbing**: surfaces the real edit (threading `playerIndex` into `socket`) and clarifies that the existing 60s `pongWait` is transport-level; the application heartbeat is a new in-band JSON message.
+- **Mode lock**: added a "Switch to solo" host action (§9.6) so a failed projector setup doesn't force a game restart.
+- **Host on phone**: §9.4 clarifies that host privileges require Table surface; a returning Owner on a phone is just a player.
+- **Codenames descoped**: V1 Goals no longer claim Codenames-style games work. Acknowledged as V2 because the spymaster's clue is `(word, number)`, not a card — the fake-deck-row metaphor has no animation target.
+- **Inter-player gift privacy**: added as an explicit tested invariant in §13.1.
+- **Storage extension**: §6.5 now calls out the four-place edit (mysql / bolt / memory + test harness) and rate-limiting being a new piece of middleware.
+
+### Revision 3 (opinionated reshape)
 
 Initial drafts (commits `076f6cd2`, `14472ac1`) were technically thorough but pushed too much per-game configuration onto authors. Both game-author DX critics independently called the spec "configuration dressed as composition" — seven optional extension interfaces, a typed `Anchor` DSL, three required renderer files per game, two silently-failing required moves.
 
@@ -47,6 +67,8 @@ Pairing is anonymous-friendly: the Table view shows a 4-letter room code, phones
 - Upgrading anonymous identity into a persistent Google account post-hoc.
 - Cross-game persistent avatar.
 - Non-card private info animation (hidden numbers, secret meeples — V1 assumes card-shaped private state, which is the dominant case).
+- **Games whose private state isn't a `Stack`** — e.g., Codenames spymasters give a `(word, number)` clue; Spyfall has no private cards at all. The fake-deck-row convention (§8) has no animation target for these games. Their per-player state would still be sanitized correctly and a Hand view could be authored to display it, but the marquee cross-screen animation feature is inert. Acknowledged as a V2 candidate — a "free-form companion" mode where the Hand view doesn't bind to a specific stack.
+- **Simultaneous-action games** (all players act at once via `behaviors.PlayerSubmission`) — SkipTurn doesn't apply when there's no current player. V1 still lets these games adopt Table+Hand mode for the per-player-state-on-phone UX, but the host has no recourse for a dropped player; the game pauses until they reconnect (or someone else uses the V2 Free-Seat).
 
 ## 3. Author Surface — "Do One Thing, Get Cool Behavior"
 
@@ -63,7 +85,7 @@ server/static/game-src/<your-game>/
     boardgame-render-game-<your-game>-hand.ts     # NEW — per-player private view
 ```
 
-The server walks `server/static/game-src/` at boot, notes which games ship both files, and surfaces a "Use shared projector + phones" toggle on the game-creation form. That's the entire opt-in.
+The build (via `boardgame-util serve` in dev, `boardgame-util build static` in prod) walks `server/static/game-src/` and emits the capability map into the already-generated `client_config.js`. The game-creation form reads the map at runtime and surfaces a "Use shared projector + phones" toggle for supporting games. That's the entire opt-in. (Mechanism details in §5.)
 
 ### 3.2 What Each Renderer Receives
 
@@ -118,32 +140,22 @@ That's it. The two renderers render normal Lit. The bases each provide a small n
 
 ### 3.3 Optional: Public Role/Team Visibility
 
-By default, when a game has `behaviors.PlayerRole` or `behaviors.PlayerTeam`, the Table view does NOT show roles — players appear as numbered seats with avatars only. The role/team is revealed only on the Hand view of the holding player.
+By default, when a game has `behaviors.PlayerRole` or `behaviors.PlayerTeam`, the Table view does NOT show roles — players appear as numbered seats with avatars only. The role/team is revealed only on the Hand view of the holding player. This works because the framework now ships `behaviors.PlayerRole.Role` with a default `sanitize:"other:hidden"` tag (see §6.3 for the concrete plumbing); the projector connects as `ObserverPlayerIndex` and naturally sees the property as hidden.
 
-A game where roles are *meant to be public* (Codenames: spymasters are publicly known) opts in by setting a field on the behavior:
-
-```go
-type playerState struct {
-    base.SubState
-    behaviors.PlayerRole `visibility:"public"`  // struct-tag opt-in; default is "private"
-}
-```
-
-Or programmatically:
+A game where roles are *meant to be public* (Codenames: spymasters are publicly known) opts in by overriding the sanitize tag on the embedding site:
 
 ```go
 type playerState struct {
     base.SubState
-    Role behaviors.PlayerRole
-}
-
-func (p *playerState) ConnectBehavior(s boardgame.SubState) {
-    p.Role.Visibility = behaviors.VisibilityPublic
-    p.Role.ConnectBehavior(s)
+    behaviors.PlayerRole `sanitize:"all:visible"`   // override the default "other:hidden"
 }
 ```
+
+The `sanitize:` tag is the framework's existing struct-tag namespace (see `sanitization.go` and existing uses across `examples/*/state.go`); we're just extending which behaviors carry a default. No new tag namespace.
 
 Identical mechanism for `behaviors.PlayerTeam`.
+
+For games that need programmatic control (e.g., visibility changes mid-game), the per-property sanitization policy can be overridden via `base.GameDelegate.SanitizationPolicy()` — this is the existing API at `game_delegate.go:307-321`; no new hook.
 
 ### 3.4 That's the Whole Author Surface
 
@@ -169,7 +181,7 @@ The rest of this spec is **framework internals**. Authors don't need to read pas
 │   • CompanionRoomCode + CompanionLocked on extendedgame row         │
 │   • GameByRoomCode storage lookup                                   │
 │   • seatPresentation table (per-(gameID,playerIndex) avatar+name)   │
-│   • behaviors.Visibility field on PlayerRole / PlayerTeam           │
+│   • Default sanitize:"other:hidden" on PlayerRole.Role/PlayerTeam.Team │
 │   • Heartbeat-based presence in the existing notifier goroutine     │
 │   • ServerSentAt/ServerPlayAt piggybacked on state pushes           │
 │   • Host SkipTurn endpoint                                          │
@@ -198,13 +210,40 @@ Shared (server/static/src/components/):
 
 **Cardinal rule**: the server is agnostic about display surfaces *for state purposes*. The Table view connects as `ObserverPlayerIndex`; each phone as `PlayerIndex(n)`. Existing sanitization machinery handles the privacy story end-to-end — no new sanitization variant.
 
-## 5. Mode Detection (Filesystem Walk)
+## 5. Mode Detection (Build-Time Filesystem Walk)
 
-At server boot, after `boardgame.NewServer(storage, delegates...)` registers each `GameDelegate`, the server walks `server/static/game-src/<delegate.Name()>/` and records on the `GameManager` whether both `boardgame-render-game-<name>-table.ts` AND `boardgame-render-game-<name>-hand.ts` are present. This capability map is exposed by `Manager.SupportsTableHandMode() bool` (read by the game-creation form to show/hide the toggle).
+**The detection runs in `boardgame-util`, NOT in the api binary.** The api binary in dev runs from a randomly-named `temp_serve_XXXX/` (created by `boardgame-util/cmd_serve.go:135`) with no reference to the project's `server/static/game-src/`; in prod it runs on App Engine where that directory doesn't exist at all. So filesystem walks at api-server boot are impossible. The walk has to happen at build time, in the build tool that already knows where the static tree lives.
 
-In dev (`OfflineDevMode`), the walk re-runs on every page load so newly-added games appear without a server restart.
+### 5.1 Where the walk runs
 
-In production (Vite/static-built deployment), the build process emits a manifest file `companion-capability.json` listing the games with both files; the server reads the manifest at boot instead of walking. Same capability map either way.
+Two entry points, both already part of the existing build flow:
+
+- **`boardgame-util/cmd_serve.go`** — for dev. Before `api.Build(...)` (line 82) and `static.Build(...)` (line 91), insert a step that walks `server/static/game-src/<game>/` for each registered `delegate.Name()` and notes whether both `boardgame-render-game-<name>-table.ts` AND `boardgame-render-game-<name>-hand.ts` exist.
+- **`boardgame-util/cmd_build_static.go`** — for prod static builds. Same walk; same output target.
+
+### 5.2 Where the capability map lands
+
+The existing `client_config.js` is already generated by `boardgame-util` for both dev and prod, already gets symlinked into the temp serve dir, and is already served to clients (it's how the client knows the API URL, Firebase config, `OfflineDevMode`, etc.). We add a single new field:
+
+```js
+// client_config.js (already-generated; new field)
+window.CLIENT_CONFIG = {
+    // ... existing fields ...
+    table_hand_supported_games: ["murdermrmonroe", "pass", "valentine"],   // NEW
+};
+```
+
+The game-creation form reads `CLIENT_CONFIG.table_hand_supported_games` to show/hide the toggle. No api-binary code involved.
+
+### 5.3 Server-side capability exposure
+
+The api binary also needs to know per-game whether Table+Hand mode applies (so it can refuse `/api/join`-flow for non-supporting games, and so it can populate per-game metadata in `doListManager`). That happens via the existing `managerInfo` struct at `server/api/main.go:84`: we add a new `supportsTableHandMode bool` field, populated from the same `client_config.js` content (the api binary reads its own config file at boot via the existing config mechanism). The map is plumbed into `doListManager` (which already exposes per-manager flags like `playerHasSeat`).
+
+**Not on `boardgame.GameManager` directly** — that type is in the core library, deliberately HTTP-agnostic and filesystem-agnostic. Per-deployment capability belongs in the server's `managerInfo`, not the core library.
+
+### 5.4 Dev hot-add
+
+In dev mode, when a developer adds new `-table.ts`/`-hand.ts` files for a game, the `boardgame-util serve` watcher re-runs the walk and writes a fresh `client_config.js`. Vite's HMR picks up the new config and refreshes the form. No server restart required.
 
 ## 6. Identity & Pairing
 
@@ -249,7 +288,7 @@ Race resolution: if two phones race for the last seat, the loser receives 409 Co
 
 ### 6.3 Seat Picker for Asymmetric Games
 
-The framework auto-detects asymmetry by type-asserting the game's `playerState` against `behaviors.HasPlayerRole` or `behaviors.HasPlayerTeam`. (The framework adds `behaviors.HasPlayerTeam` as a one-method interface `GetPlayerTeam() *PlayerTeam`, paralleling the existing `HasPlayerRole`; `PlayerTeam` gains a one-line `GetPlayerTeam() *PlayerTeam { return p }` so the assertion works.)
+The framework auto-detects asymmetry by type-asserting the game's `playerState` against `behaviors.HasPlayerRole` or `behaviors.HasPlayerTeam`. Both interfaces and their detection methods (`GetPlayerRole`, `GetPlayerTeam`) **already exist in the codebase** — see `behaviors/role.go:26` and `behaviors/team.go:96-105`. This spec does not add them; it just consumes them.
 
 For asymmetric games, `requiresSeatPicker = true`. The phone calls `GET /api/join/seat-options?gameID=<>` with its Firebase ID token and receives:
 
@@ -264,16 +303,26 @@ For asymmetric games, `requiresSeatPicker = true`. The phone calls `GET /api/joi
 }
 ```
 
-For each slot, the label is computed server-side based on `behaviors.Visibility`:
+For each slot, the label is computed server-side based on whether the role/team property is sanitized as public for the projector. The projector receives sanitization via `ObserverPlayerIndex` (existing machinery); the same sanitization governs the label.
 
-| Visibility on PlayerRole/PlayerTeam | Slot label                     |
-|-------------------------------------|--------------------------------|
-| `Private` (default)                 | "Seat N"                       |
-| `Public`                            | "<Role display name>" (e.g., "Spymaster (Red)") |
+| `sanitize` tag on PlayerRole.Role / PlayerTeam.Team | What `ObserverPlayerIndex` sees | Slot label on phone |
+|-----------------------------------------------------|---------------------------------|---------------------|
+| `sanitize:"other:hidden"` (new default, see §6.3.1) | property hidden                 | "Seat N"            |
+| `sanitize:"all:visible"`                            | property visible                | "<Role display name>" (e.g., "Spymaster (Red)") |
 
 The choice of `seatPick` becomes the player's `playerIndex` on the seat endpoint.
 
-**Why the framework owns label resolution**: the layered alternative (delegate-supplies-label-string) was the source of the projector role-leak issue in earlier drafts. By making visibility a field on the behavior itself, there is no layer-spanning policy to forget.
+### 6.3.1 Concrete Sanitization Plumbing
+
+Sanitization in this framework is property-name keyed and resolved at inflater-construction time — see `struct_inflater.go:438` (`PropertySanitizationPolicy`) and the `sanitize:` struct-tag mini-language in `sanitization.go`. A runtime-mutable `Visibility` field on a behavior cannot directly influence per-property policies (the policy map is precomputed). This spec uses the existing tag mechanism instead:
+
+1. **Default**: this spec changes `behaviors.PlayerRole.Role` to ship with a default `sanitize:"other:hidden"` tag (added to its existing `enum:"role"` tag at `behaviors/role.go:16`). Same change applied to `behaviors.PlayerTeam.Team` at `behaviors/team.go:32`. Effect: `ObserverPlayerIndex` (i.e., the projector) sees these properties as hidden by default; the player's own Hand view still sees them (since "other" excludes self).
+2. **Opt-out at the embedding site**: a game that wants public roles overrides the tag in its own `playerState` struct (as shown in §3.3) via the standard Go struct-tag override mechanism. The inflater walks the *embedding* struct's field tags first, falling back to the embedded field's defaults.
+3. **Programmatic override (rare)**: `base.GameDelegate.SanitizationPolicy()` at `game_delegate.go:307-321` can return a per-property `Policy` based on runtime state. This is the existing API; no new hook.
+
+**Existing-game compatibility**: games that embed `behaviors.PlayerRole` today expect the role property to be visible to observers (since that's the current default — no `sanitize:` tag means `all:visible`). Adding the new default flips that for these games. **Migration**: as part of Phase 2, each existing game embedding `PlayerRole`/`PlayerTeam` is audited and explicitly tagged `sanitize:"all:visible"` if its current behavior is intentional. Examples in `examples/` that don't opt in get the new private default — verified to match game intent in code review. This is captured as a phase-2 task in §14.
+
+**Why no new tag namespace**: the third revision proposed a custom `visibility:"public"` tag; the code-traced critic pointed out this isn't idiomatic (existing tags are `enum:"…"`, `sanitize:"…"`). Reusing `sanitize:` keeps the convention tight and the implementation surface zero.
 
 ### 6.4 Identity Paths
 
@@ -303,6 +352,10 @@ ClearSeatPresentation(gameID string, p PlayerIndex) error
 ```
 
 Per-seat, not per-user, deliberately: a Google user joining game 2 with a different avatar does not mutate game 1's presentation; the user's persistent `StorageRecord` is never written to from the join flow.
+
+**Implementation note — four-place edit**: adding methods to the storage manager interface (`server/api/storage.go:21-77`) forces parallel implementations in `storage/internal/helpers/memory.go`, `storage/bolt/main.go`, `storage/mysql/main.go`, AND the storage test harness referenced from the comment at `server/api/storage.go:76`. MySQL also needs a schema migration. Phase 1 includes all four edits and the migration.
+
+**Rate-limiting middleware**: `/api/join` (and `/api/join/seat`) need per-IP rate limiting. The framework does **not** ship a rate-limiting middleware today; this spec adds a small middleware in `server/api/middleware_ratelimit.go` (token-bucket per IP, configurable limit). Phase 1 includes it.
 
 ### 6.6 Display-Name Validation
 
@@ -398,14 +451,25 @@ The framework provides a single convention for cross-screen card animations that
 
 ### 8.1 The Mechanism
 
-On the Table view, the framework auto-renders a "fake deck row" along the bottom edge (via `renderFakeDeckRow()` when the author calls it, or auto-added as a sibling if not). The row has one stub stack per seated player, in seat order, evenly spaced left-to-right.
+On the Table view, the framework auto-renders a "fake deck row" along the bottom edge. The author opts in by calling `this.renderFakeDeckRow()` from their `render()`; if they don't include it, cross-screen animations to/from player hands are disabled with a one-time console warning (the framework does NOT auto-inject — light-DOM injection into author-controlled markup is too magical and breaks Lit's reactive contract).
 
-Each stub is a hidden stack mirror of that player's private state — same `component.id`s as the player's actual Hand view stack, but rendered off-screen / underneath the avatar at the bottom edge. The FLIP animator on the Table side sees the cards present in the stub when the server pushes a state where they belong to player N's hand.
+The row has one **stub stack** per seated player, in seat order, evenly spaced left-to-right. The stub is rendered hidden (CSS-clipped) but its DOM position is real, so the FLIP animator measures it accurately.
+
+**Critical implementation detail — synthetic component IDs.** A naive "render the same `component.id` in both the player's real hand stack AND the table's fake-deck stub" causes a silent collision in `boardgame-component-animator.ts:113` (the animator's flat `result[component.id] = record` map overwrites one record with the other; only one node gets animated correctly). To avoid this, **stubs render placeholder elements with synthetic IDs derived from the real ID**:
+
+```
+real card id:  "c17"
+stub element id (in fake-deck-3): "stub:p3:c17"
+```
+
+The animator gains a new public method `animateBetween(realId: string, stubId: string)` that records the "first" position from the stub element and the "last" position from the real element (or vice versa), enabling cross-position animation without the flat-map collision.
 
 **Result**:
-- Deal from public deck → player N's hand: card animates from on-screen deck to the bottom-row stub at seat N's position. Visually: card flies down toward the player.
-- Player M plays a card to a public discard: card animates from the bottom-row stub at seat M to the on-screen discard. Visually: card flies up from the player to the table.
-- Card moves from player 3's hand to player 2's hand: card animates between fake-deck-3 and fake-deck-2 along the bottom — horizontally, left or right based on relative seat position. Visually: card slides between players.
+- Deal from public deck → player N's hand: server state moves card `c17` into player N's `Hand` stack. Hand-view client animates `c17` from off-screen-top-edge to the hand position (normal FLIP). Table-view client renders the placeholder `stub:pN:c17` in the fake-deck row for one frame, calls `animateBetween("c17", "stub:pN:c17")` to animate `c17`'s rendered representation from the on-screen deck to the stub position. Visually: card flies down toward player N.
+- Player M plays a card from hand → public discard: reverse of the above. Table renders `stub:pM:c17` for a frame and animates from stub → discard. Visually: card flies up.
+- Card transfers from player 3 → player 2: Table renders both `stub:p3:c17` and `stub:p2:c17` for one frame, calls `animateBetween("stub:p3:c17", "stub:p2:c17")`. Visually: card slides between players along the bottom row.
+
+The synthetic-ID approach is also useful generally — it's a real animator capability that other future features can build on (e.g., "ghost preview" animations).
 
 ### 8.2 On the Hand View Side
 
@@ -427,43 +491,54 @@ V1 commits to the left-to-right-evenly-spaced layout convention. Games that want
 
 ### 8.4 Sync Primitive
 
-Every WebSocket frame includes a server timestamp piggybacked in `Data` for state-push messages:
+**There is no "state push" — there's a version-change notify over WebSocket, followed by a separate HTTP `GET /api/game/:name/:id/version/:version` round-trip for the state JSON** (see `server/api/main.go:944` and `websockets.go:19-22`). The WebSocket `socketMessage.Data` is just the version number (an int) for state changes. So the sync timestamps ride on the `gameVersionChanged` socket payload (server-controlled, no JSON-body change needed), and the client schedules animation start **before** the HTTP fetch completes.
+
+The framework extends `gameVersionChanged` (defined in `server/api/websockets.go:36-39`):
 
 ```go
-type stateUpdateData struct {
-    // ... existing state fields ...
-    ServerSentAt int64 `json:"serverSentAt"`  // ms since epoch, set immediately before write
-    ServerPlayAt int64 `json:"serverPlayAt"`  // ms since epoch; serverSentAt + 250ms default
+type gameVersionChanged struct {
+    gameID       string
+    version      int
+    serverSentAt int64    // NEW — ms since epoch, set at the server-side broadcast site
+    serverPlayAt int64    // NEW — serverSentAt + ANIMATION_LEAD_MS (default 250)
 }
 ```
 
-Client maintains a minimum-wins one-way latency estimator over the last 30 frames:
+Outbound socket frame for the client:
 
-```js
-const oneWayMs = (localRxAsEpochMs) - serverSentAt;
-// minOneWayMs over rolling window is the offset
+```json
+{ "type": "version", "data": { "version": 42, "serverSentAt": 1779712345678, "serverPlayAt": 1779712345928 } }
 ```
 
-Animations schedule via `setTimeout(playFn, localEquivalent(serverPlayAt) - now)`. Falls back to "play immediately on receive" if the play-at instant is already past or fewer than 3 samples have been collected.
+Client logic on receipt:
+
+1. Record `localRxMs = Date.now()` (epoch ms) immediately.
+2. Compute one-way latency sample: `oneWayMs = localRxMs - serverSentAt`. Keep a rolling-30 buffer; the **minimum** of recent samples is the best estimate of pure one-way delivery time (variance only adds, never subtracts).
+3. Compute local equivalent of `serverPlayAt`: `localPlayAt = serverPlayAt + minOneWayMs` (mapped into local clock). Schedule the animation playback with `setTimeout(playFn, localPlayAt - localRxMs)`.
+4. Fire the HTTP state-fetch in parallel. The animation runs against the new state when the fetch resolves; FLIP measures "before" before the state install, "after" after.
+
+If `localPlayAt - localRxMs < 0` (play-at already past) or fewer than 3 samples have been collected, animation plays immediately on state-fetch resolution.
 
 **Documented limitations**:
-- Asymmetric routes (cell + Wi-Fi) bias the estimator but the bias is consistent per surface; visible cross-surface drift is bounded by the asymmetry, not by the variance.
+- Asymmetric routes (cell + Wi-Fi) bias the minimum-wins estimator; bias is consistent per surface, so each surface is self-consistent, but cross-surface drift is bounded by the route asymmetry rather than the variance.
 - JS GC pauses and background-tab throttling can shift `setTimeout` firing by 50-200ms; we accept this in V1.
-- First state push beats the sample window; first deal animation may be visibly uncoordinated.
+- First version-change notify after connect beats the 30-sample window; first deal animation may be visibly uncoordinated.
 
-V1 ships this minimal primitive; future iteration can layer in explicit clock sync rounds if playtests show the median-LAN baseline is insufficient.
+V1 ships this minimal primitive; future iteration can layer in explicit clock-sync rounds if playtests show the median-LAN baseline is insufficient.
 
 ## 9. Presence & Host Controls
 
 ### 9.1 Presence (Heartbeat-Based)
 
-Each Hand-view WebSocket sends a heartbeat ping every 10 seconds. Server tracks `lastHeartbeat map[gameID]map[PlayerIndex]time.Time`. A player is **absent** when `time.Since(lastHeartbeat) > 30s`.
+Each Hand-view WebSocket sends an **application-level heartbeat** (a small JSON message `{"type":"heartbeat"}`) every 10 seconds. This is distinct from the transport-level ping/pong already wired in `websockets.go:128,168` (`pongWait = 60s`); the existing ping/pong keeps the TCP socket alive but does not carry the playerIndex we need to track per-player liveness. We add the application heartbeat as an in-band message type.
 
-Tracking lives inside the existing `versionNotifier`'s goroutine (`server/api/websockets.go:46-54`), alongside `register`/`unregister`/`notifyVersion`. A new `chan heartbeat` is processed in the same select loop — no mutex, matching the framework's channel-based concurrency idiom.
+**Socket struct change**: `websockets.go:56-61` defines `socket` with `gameID` but no `playerIndex`. We add `playerIndex boardgame.PlayerIndex` to the struct, populated at socket-handler entry (`server/api/main.go:1816`) from the existing `effectivePlayerIndex` lookup in `context.go`. This is a real edit, not a no-op; phase 3 includes it.
 
-A periodic ticker (every 5s) scans for stale entries and emits presence-change events. WebSocket read deadlines (30s) close idle sockets so the OS-keepalive default doesn't leave zombies. `lastHeartbeat` evicts game entries when a game reaches `Finished`.
+Server-side tracking: `lastHeartbeat map[gameID]map[PlayerIndex]time.Time`. A player is **absent** when `time.Since(lastHeartbeat) > 30s`. Tracking lives inside the existing `versionNotifier`'s goroutine (`server/api/websockets.go:46-54`), alongside `register`/`unregister`/`notifyVersion`. A new `chan heartbeat` is processed in the same select loop — no mutex, matching the framework's channel-based concurrency idiom.
 
-The state pushed to clients includes `Absent []PlayerIndex` so the Table view can render a "Waiting for Alice…" badge over the absent seat's avatar in the strip.
+A periodic ticker (every 5s, also in the same goroutine) scans `lastHeartbeat` for stale entries and emits presence-change events. `lastHeartbeat` evicts game entries when a game reaches `Finished`.
+
+Clients receive presence as `Absent []PlayerIndex` on the state JSON returned by `gameInfoHandler` (`server/api/main.go:1273`). The Table view renders "Waiting for Alice…" badges over absent seats.
 
 ### 9.2 Host = Game Creator on Table Surface
 
@@ -480,15 +555,58 @@ The only V1 host action.
 `POST /api/game/<id>/hostSkipTurn?player=N` (camelCase to match existing route style at `server/api/main.go:944,1072,1301`):
 
 - Gated on `IsHost(currentUser, gameID)`.
-- Server proposes the existing `moves.AdvanceCurrentPlayer` FixUp move (or equivalent — the framework's standard turn-advance). No game-specific opt-in required.
+- Server proposes the new `moves.ForceFinishTurn` move (described below).
 - Audited.
 - Rate-limited to 1/sec per `(gameID, hostUserID)`.
 
-Games whose turn structure doesn't fit "advance current player" (e.g., simultaneous-action games) have host-SkipTurn surfaced as a no-op for V1; future iterations can plumb in game-specific fallbacks via a single optional delegate method. Most turn-based games work out of the box.
+#### Why a new move, not vanilla `moves.FinishTurn`
+
+The existing `moves.FinishTurn` (`moves/finish_turn.go:25`) is the framework's turn-advance move, BUT `FinishTurn.Legal()` (line 46-76) only permits the move when `TurnDone()` returns `nil` — i.e., the current player has voluntarily satisfied their turn-end condition (played the required card, made the required decision, etc.). A player who drops mid-turn typically has `TurnDone() != nil`, so a host SkipTurn that just proposes `FinishTurn` is rejected as illegal. The game would be stuck — host's button would do nothing.
+
+To fix this without forcing every game author to write game-specific moves, this spec adds:
+
+```go
+// moves/force_finish_turn.go
+type ForceFinishTurn struct {
+    FinishTurn  // embed for behavior reuse
+}
+
+func (f *ForceFinishTurn) Legal(state ImmutableState, proposer PlayerIndex) error {
+    // Bypasses TurnDone() — only requires AdminPlayerIndex proposer
+    if !proposer.Equivalent(AdminPlayerIndex) {
+        return errors.New("ForceFinishTurn can only be proposed by AdminPlayerIndex")
+    }
+    return nil
+}
+
+func (f *ForceFinishTurn) Apply(state State) error {
+    // Defensively call ResetForTurnEnd on the current player to clear partial-turn state
+    if rt, ok := state.CurrentPlayer().(interfaces.RoundRobinResetter); ok {
+        rt.ResetForTurnEnd()
+    }
+    return f.FinishTurn.Apply(state)
+}
+```
+
+Server-side `hostSkipTurn` proposes `ForceFinishTurn` with `proposer = AdminPlayerIndex`. Existing `moves.FinishTurn` is unchanged.
+
+#### Phase-based games (Werewolf etc.)
+
+Games that drive turn order via phases (using `moves.StartPhase`) need phase advancement on absent-player skip, not just current-player advancement. V1 ships a sibling move `moves.ForceAdvancePhase` that the host can invoke through a separate `POST /api/game/<id>/hostForceAdvancePhase` endpoint (the Table view exposes this as a second host button when the game uses `moves.StartPhase`). Detection: server type-asserts the delegate's move set for an existing `StartPhase` move; if present, the second button appears.
+
+Authors of games that have non-standard turn structures (e.g., simultaneous-action games via `behaviors.PlayerSubmission`) where neither `ForceFinishTurn` nor `ForceAdvancePhase` applies will see the host SkipTurn button hidden — V1 has no recourse for that case; the game pauses indefinitely on the absent player. Documented in §2 Non-Goals.
 
 ### 9.4 Host Transfer
 
-If `eGame.Owner` has no heartbeat-fresh Table connection for 30s, any seated player may claim host via `POST /api/game/<id>/claimHost`. First claim wins; ties broken by lowest player index. Subsequent `IsHost` returns true for either the original Owner OR the override. If the original owner returns, both have host powers (audited). The override is durable for the rest of the session.
+**Host privileges require the Table surface** (`surface=table` cookie + connected Table-view socket). A returning Owner who reconnects from a phone (no Table cookie) is just a regular player at that moment, NOT the host. This matters because the original projector may be dead and the Owner is rejoining via mobile.
+
+If `eGame.Owner` has no heartbeat-fresh Table connection for 30s, any seated player with a Table cookie OR any seated player who claims via the Hand view may claim host via `POST /api/game/<id>/claimHost`. First claim wins; ties broken by lowest player index. Successful claim writes `CompanionHostOverride = <claimingUserID>` to `eGame`. The override is durable for the rest of the session.
+
+`IsHost(user, gameID)` returns true if:
+- `surface=table` cookie is present AND (user == eGame.Owner OR user == eGame.CompanionHostOverride), OR
+- (user == eGame.CompanionHostOverride) regardless of surface (a "promoted player" keeps host powers even when reading on their phone).
+
+Note: the original Owner on a phone after their projector dies and a transfer has happened is **NOT** automatically host — they are just a player. They can choose to take a different device to the Table surface (regain table cookie) and then they're co-host with the override.
 
 ### 9.5 Reconnection
 
@@ -497,6 +615,21 @@ Three flavors, all framework-handled:
 - **Same browser, refresh**: cookie still valid → existing `calcViewingAsPlayerAndEmptySlots()` returns same seat. Heartbeat resumes; absent flag clears.
 - **Same browser, new tab**: cookie shared → same seat. Both tabs send heartbeats; presence is live as long as either does.
 - **Truly new browser**: anon UID is gone unless Firebase IndexedDB persistence restores it. If restored, same seat (resolution path checks `if anonUID in UserIDsForGame() → restore` before falling back to next-open-seat). If not restored, phone re-enters the room code and is reassigned to the next open seat.
+
+### 9.6 Switch to Solo (Mode Downgrade)
+
+If the projector setup fails mid-game (HDMI handshake drops, AirPlay disconnect, etc.) and the group wants to fall back to solo-device-per-player without losing state: any host can invoke `POST /api/game/<id>/switchToSolo`.
+
+Effects:
+- Server clears `eGame.CompanionMode = false`.
+- All `surface=table` and `surface=hand` cookies for the game are invalidated (the server tracks them per-game and notifies via the WebSocket).
+- Each connected client refreshes; on reload, the surface cookie is absent, so the loader picks the solo renderer.
+- `seatPresentation` rows are preserved (the avatars still apply in the solo view's "who's playing" UI, even if the metaphor shifts).
+- Phones still bound to seats stay bound — they just now see the solo renderer.
+
+V1 does NOT support the reverse direction (upgrading a solo game into Table+Hand mid-session) because solo-mode players aren't seat-bound the same way.
+
+This is an explicit two-line addition over the third revision; the omission was flagged by the V1-scope critic as a recovery footgun.
 
 ## 10. Avatar / Name Picker
 
@@ -563,15 +696,21 @@ Per Jackbox research, audio cues bridge two screens well but we defer to V2. V1 
 
 - `room_code_test.go`: alphabet, collision retry, recycling.
 - `presence_test.go`: heartbeat staleness, absent flag, reconnect.
-- `visibility_test.go`: `behaviors.Visibility` field affects sanitization correctly for projector vs hand views (this is the security regression test).
-- `host_actions_test.go`: SkipTurn gated on `IsHost`; rate-limited; audited; non-host rejected.
-- `host_transfer_test.go`: claim succeeds after 30s; doesn't succeed if owner is fresh; ties broken by lowest player index.
+- `role_sanitize_default_test.go`: confirms the new `sanitize:"other:hidden"` default on `PlayerRole.Role` and `PlayerTeam.Team` produces the expected projector vs hand-view sanitization difference. Includes a fixture game with PlayerRole, asserts `ObserverPlayerIndex` JSON omits the role property while `PlayerIndex(n)` JSON includes it.
+- `role_sanitize_public_override_test.go`: same fixture but with `sanitize:"all:visible"` override at the embedding site; confirms projector now sees the role.
+- `force_finish_turn_test.go`: confirms `moves.ForceFinishTurn.Legal` accepts `AdminPlayerIndex` proposers and rejects others; confirms `Apply` calls `ResetForTurnEnd` defensively before delegating to `FinishTurn.Apply`.
+- `host_actions_test.go`: SkipTurn gated on `IsHost` (table-surface check included); rate-limited; audited; non-host rejected; phone-only Owner cannot skip.
+- `host_transfer_test.go`: claim succeeds after 30s of stale Owner heartbeat; rejects if Owner is fresh; ties broken by lowest player index; promoted player retains host on Hand surface.
+- `switch_to_solo_test.go`: confirms `switchToSolo` clears `CompanionMode` and invalidates surface cookies; confirms phones reload into solo renderer.
+- **`inter_player_gift_privacy_test.go`** (security regression): set up a 3-player game where each player has a private `Hand` stack with `sanitize:"order:none"` (component IDs hidden from observers). Move a card from player 3's hand to player 2's hand. Confirm the `ObserverPlayerIndex` view of both before and after states sees only obscured component IDs in the fake-deck stub elements — there is no way the Table-view FLIP animation can reveal which specific card was transferred. This regression covers the case where a sanitization mistake on a future game could leak via the cross-screen animation.
 
 ### 13.2 Integration Tests
 
-- Multi-client websocket scenario: Table + 2 Hands connect; one Hand disconnects; presence updates push; SkipTurn advances; Hand reconnects.
-- Anonymous join → seat → state push → move → state push. Compare Table and Hand state JSONs to confirm sanitization differences.
+- Multi-client websocket scenario: Table + 2 Hands connect; one Hand disconnects; presence updates push; SkipTurn advances (via `moves.ForceFinishTurn` rather than vanilla `FinishTurn`); Hand reconnects.
+- Anonymous join → seat → state-version-change notify → state-fetch → move → notify → fetch. Compare Table and Hand state JSONs to confirm sanitization differences.
 - Public-visibility role game: confirm role appears on Table view's seat picker. Private-visibility role game: confirm role does NOT appear on Table view, only on Hand view.
+- WebSocket `gameVersionChanged` payload includes `serverSentAt` and `serverPlayAt`; client schedules animation correctly before the HTTP state-fetch resolves.
+- `animateBetween(realId, stubId)` correctly animates a single card via synthetic-ID stub without colliding with the real `component.id` in the animator's `_infoById` map.
 
 ### 13.3 Browser / E2E (Playwright)
 
@@ -587,30 +726,35 @@ One real session with 4 humans before V1 ships.
 ## 14. Phasing
 
 ### Phase 1 — Foundations (PR 1)
-- `CompanionRoomCode` + `CompanionLocked` fields on `extendedgame.StorageRecord` + `GameByRoomCode` storage method.
-- `/api/join` + `/api/join/seat` endpoints with HTTPS-only, rate limiting, display-name validation.
+- `CompanionRoomCode` + `CompanionLocked` fields on `extendedgame.StorageRecord` + `GameByRoomCode` storage method (with four-place storage implementation: memory/bolt/mysql + test harness; MySQL schema migration).
+- `/api/join` + `/api/join/seat` endpoints with HTTPS-only, display-name validation.
+- New token-bucket rate-limiting middleware (`middleware_ratelimit.go`); apply to `/api/join` and `/api/join/seat`.
 - Firebase anonymous auth flow on the phone.
-- `seatPresentation` storage table + accessors.
-- Filesystem capability walk at server boot.
+- `seatPresentation` storage table + accessors (same four-place implementation).
+- Build-time filesystem capability walk in `boardgame-util/cmd_serve.go` and `cmd_build_static.go`; emit `table_hand_supported_games` field into existing `client_config.js`. Server-side `managerInfo.supportsTableHandMode` surfaced via `doListManager`.
 - Surface cookie routing in `boardgame-render-game.ts`.
-- `BoardgameTableViewBase` + `BoardgameHandViewBase` (minimal — just the typed props + helper renders).
+- `BoardgameTableViewBase` + `BoardgameHandViewBase` (minimal — just typed props + helper renders).
 
 ### Phase 2 — Identity + Seat Picker (PR 2)
-- `behaviors.Visibility` field on `PlayerRole` + `PlayerTeam` (with struct-tag support).
-- `behaviors.HasPlayerTeam` interface + `GetPlayerTeam()` on `PlayerTeam`.
+- Add default `sanitize:"other:hidden"` to `behaviors.PlayerRole.Role` and `behaviors.PlayerTeam.Team`.
+- Audit existing games embedding `PlayerRole`/`PlayerTeam`; add explicit `sanitize:"all:visible"` overrides where the current behavior is intentional (preserves existing-game compatibility).
 - Seat picker UI on phone (`/api/join/seat-options` endpoint).
 - Avatar/name picker (random front door + customize) — depends on the avatar catalog being committed.
 
 ### Phase 3 — Presence + Host (PR 3)
-- Heartbeat-based presence folded into the existing notifier goroutine.
+- Thread `playerIndex` into the `socket` struct (`websockets.go:56-61`); populate from `effectivePlayerIndex` at handler entry.
+- In-band JSON heartbeat message + server-side `lastHeartbeat` map folded into the existing notifier goroutine via a new `chan heartbeat`.
 - "Waiting for Alice…" projector affordance.
-- Host SkipTurn endpoint + UI button.
-- Host transfer + audit log.
+- `moves.ForceFinishTurn` (and `moves.ForceAdvancePhase` for phase-driven games).
+- Host SkipTurn endpoint + UI button. Detection of phase-driven games adds a second host button (`hostForceAdvancePhase`).
+- Host transfer (`claimHost`) + `companionHostAudit` table + audit log writes from host endpoints.
+- Host = table-surface requirement encoded in `IsHost`.
 
 ### Phase 4 — Animations (PR 4)
-- Fake-deck row auto-rendering on Table view base.
-- Top-edge anchor on Hand view base.
-- `ServerSentAt`/`ServerPlayAt` piggybacked on state pushes; client estimator.
+- Fake-deck row helper render on Table view base (synthetic-ID stub elements).
+- New animator API: `animateBetween(realId, stubId)` in `boardgame-component-animator.ts`.
+- Top-edge off-screen anchor on Hand view base.
+- `serverSentAt`/`serverPlayAt` fields on the `gameVersionChanged` WebSocket payload; client-side minimum-wins one-way estimator.
 - MVP game's `*-table.ts` and `*-hand.ts` shipped (likely `murdermrmonroe`).
 - End-to-end deal animation working across surfaces.
 
@@ -618,6 +762,7 @@ One real session with 4 humans before V1 ships.
 - QR code on Table view.
 - Visual polish, dark theme.
 - Room-lock toggle UI.
+- `switchToSolo` host action.
 - 4+ human playtest.
 
 ### Out of V1 (deferred)
@@ -634,24 +779,27 @@ One real session with 4 humans before V1 ships.
 
 ## 15. Open Questions
 
-Most have been resolved by the reshape. Remaining:
+Most have been resolved by the reshape and the implementability fix-up. Remaining:
 
 1. **MVP game**: assumed `murdermrmonroe` based on the untracked `server/static/game-src/murdermrmonroe/` directory. Confirm before Phase 4.
 2. **Avatar primaries catalog**: this spec proposes mirroring word-bloom's `(primary, decoration, corner, tint)` 4-tuple format. The actual catalog content (which 12 primaries? which 12 decorations?) is a separate art-direction task. Phase 2 cannot land until the starter catalog is committed.
-3. **Build-time manifest vs filesystem walk**: §5 describes both paths (dev = walk, prod = manifest). Confirm whether to ship both or just the walk in V1 (recommendation: walk-only for V1; add manifest in V2 when the deployment story is more formal).
-4. **Slur/abuse word filter for display names**: V1 ships with NFKC + ASCII validation only. Hook point exists; deciding whether to add a blocklist before V1 or after first incident.
+3. **Slur/abuse word filter for display names**: V1 ships with NFKC + ASCII validation only. Hook point exists; deciding whether to add a blocklist before V1 or after first incident.
+4. **Existing-game sanitization migration**: Phase 2 audits all games embedding `PlayerRole`/`PlayerTeam` and adds explicit `sanitize:"all:visible"` where current behavior should be preserved. Confirm the audit list before Phase 2: at minimum any examples in `examples/` plus any games under `server/static/game-src/` that use either behavior. Spot-check via grep.
 
 ## 16. Glossary
 
 - **Table view**: the shared screen (laptop, TV, tablet) connected as `ObserverPlayerIndex` with the `-table.ts` renderer.
 - **Hand view**: a phone connected as `PlayerIndex(n)` with the `-hand.ts` renderer, bound to a seat.
-- **Solo mode**: existing single-device-per-player flow. Untouched by this work.
-- **Host**: by default `eGame.Owner` viewing the Table; transferable per §9.4.
-- **Fake deck row**: framework-rendered row of off-screen-anchored stub stacks along the bottom of the Table view, one per seated player in left-to-right seat order. The destination/source for cross-screen card animations.
+- **Solo mode**: existing single-device-per-player flow. Untouched by this work; can be switched into mid-game via Switch-to-Solo (§9.6).
+- **Host**: `eGame.Owner` (or transferred override) viewing on the Table surface. Phone-only Owner is not host (§9.4).
+- **Fake deck row**: framework-rendered row of off-screen-anchored stub stacks along the bottom of the Table view, one per seated player in left-to-right seat order. Stubs use synthetic IDs (`stub:pN:<realId>`) to avoid `component.id` collision in the FLIP animator.
+- **`animateBetween(realId, stubId)`**: new public method on `BoardgameComponentAnimator` that drives cross-position animation using a synthetic-ID stub element as the source or destination anchor.
 - **Room code**: 4-letter code on `extendedgame.StorageRecord`. Resolved via `GameByRoomCode`.
 - **`seatPresentation`**: per-`(gameID, playerIndex)` storage of display name + avatar. Source of truth for what a seat looks like in this game.
-- **`behaviors.Visibility`**: enum `Private | Public` on `PlayerRole` / `PlayerTeam` controlling whether role/team appears on the Table view. Default: `Private`.
-- **`ServerSentAt` / `ServerPlayAt`**: timestamps piggybacked on state pushes; client uses them for cross-screen animation timing.
+- **`sanitize:"other:hidden"`** (default on `PlayerRole.Role` / `PlayerTeam.Team` as of this spec): hides the property from `ObserverPlayerIndex` (Table view) while leaving it visible to the player's own Hand view. Override at the embedding site with `sanitize:"all:visible"` for public-role games.
+- **`moves.ForceFinishTurn`**: new framework move that bypasses `TurnDone()` to advance the current player when a host invokes SkipTurn for an absent player.
+- **`moves.ForceAdvancePhase`**: companion move for phase-driven games (e.g., Werewolf using `moves.StartPhase`).
+- **`serverSentAt` / `serverPlayAt`**: timestamps on the `gameVersionChanged` socket payload (NOT on a state JSON struct — the JSON arrives via separate HTTP fetch). Client uses them to schedule animation start before the state-fetch resolves.
 
 ## 17. What a Game Author Actually Writes — Worked Example
 
@@ -709,6 +857,6 @@ export class HandView extends BoardgameHandViewBase<GameState, PlayerState> {
 }
 ```
 
-3. (If roles should appear on the Table view, which murdermrmonroe doesn't): set `visibility:"public"` on the role behavior. Otherwise: do nothing else.
+3. (If roles should appear on the Table view, which murdermrmonroe doesn't): override the sanitize tag on the embedded behavior — `behaviors.PlayerRole \`sanitize:"all:visible"\`` — at the embedding site in your `playerState` struct. Otherwise: do nothing else.
 
 That's the whole opt-in. Two files, roughly the size of the existing solo renderer combined. The framework handles pairing, identity, sanitization, animations, presence, host controls, sync.
