@@ -69,3 +69,6 @@ go.work.sum
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Superpowers brainstorm session state
+.superpowers/
