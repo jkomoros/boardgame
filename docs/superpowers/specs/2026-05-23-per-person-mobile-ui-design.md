@@ -1,184 +1,291 @@
-# Per-Person Mobile UI (Projected + Companion Mode)
+# Table + Hand Mode (Per-Person Mobile UI)
 
-Spec date: 2026-05-23 (revised same day after critic pass)
+Spec date: 2026-05-23 (third revision — opinionated reshape after game-author DX critic pass)
 Ticket: [#759 — Allow remote control / projected mode](https://github.com/jkomoros/boardgame/issues/759)
 Branch: `per-person-mobile-ui`
 
 ## Revision Notes
 
-Initial draft was reviewed by four critic agents (architecture, idiomatic Go / framework conventions, robustness, security/privacy). This revision addresses every critical and significant finding:
+Initial drafts (commits `076f6cd2`, `14472ac1`) were technically thorough but pushed too much per-game configuration onto authors. Both game-author DX critics independently called the spec "configuration dressed as composition" — seven optional extension interfaces, a typed `Anchor` DSL, three required renderer files per game, two silently-failing required moves.
 
-- **Security**: role/team picker results are now sanitized through new `RolePrivacyDelegate` / `TeamPrivacyDelegate` interfaces so the projector never sees hidden roles; "Free Seat" now triggers a game-defined reset move to prevent the previous player's hand from leaking to the new joiner; HTTPS/`Secure`/`HttpOnly`/`SameSite` cookie requirements made explicit; display-name validation rules specified (NFKC, ASCII, per-game uniqueness); `/api/join` rate-limited per IP; room codes get a 24h grace period before recycling; "Lock room" toggle added.
-- **Storage**: avatar+name moved off the user's `StorageRecord` into a new `seatPresentation` table per `(gameID, playerIndex)` — solves the cross-game mutation problem AND the post-Free-Seat orphan-identity problem.
-- **Architecture**: layout module is now `layoutFor(state, surface)` function returning a typed `LayoutPlan` with anchor variants (stack / offscreen-stack / badge / secret-value) — handles variable player counts, dynamic stacks, and non-card private info; cross-renderer concerns moved into a shared `BoardgameSurfaceRendererBase` mixin; display-surface signal moved from URL query param to a session cookie set at join time; room code lives as a typed field on `extendedgame.StorageRecord` (no in-memory map).
-- **Robustness**: presence is now heartbeat-based (30s timeout), folded into the existing channel-based `versionNotifier` goroutine — no parallel mutex; host transfer promoted from V2 to V1; per-game lock on `/api/join/seat` resolves seat-race ambiguities; clock-sync simplified to a minimum-wins one-way estimator piggybacked on the existing WebSocket message stream, with limitations documented.
-- **Idiomatic**: `CompanionGameDelegate` interface split into one marker (`companion.GameDelegate { UsesCompanionMode() }`) plus seven single-purpose optional extension interfaces, matching the framework's existing `behaviors/` pattern; route names switched to the existing camelCase convention (e.g., `/game/<id>/hostSkipTurn`); `HasPlayerTeam` description clarified.
-- Minor: animation lead time is per-game configurable via `AnimationLeadDelegate`; lint script now also validates `layoutFor` signature and `SurfaceRendererBase` subclassing.
+This revision is opinionated and minimal: **the renderer files ARE the opt-in.** The framework handles everything else by default. A game author writes two normal Lit renderers (and nothing else) and gets cross-screen pairing, animations, presence, and host controls for free.
 
-Most open questions from the initial draft are now resolved inline; remaining items are listed in §16.
+What dropped:
+- The `companion.GameDelegate` marker interface — replaced by filesystem detection at server boot.
+- All seven optional extension interfaces (`SeatAssignment`, `RolePrivacy`, `TeamPrivacy`, `SlotLabel`, `AnimationLead`, `AbsentSeatReset`, `AbsentSkipTurn`).
+- The `layoutFor` function and `Anchor` enum (`stack` / `offscreen-stack` / `badge` / `secret-value`).
+- The `BoardgameSurfaceRendererBase` bundled inheritance.
+- The Free-Seat and Replace-with-AI host actions (deferred — only SkipTurn ships).
+- The lint / build-time check script (filesystem walk replaces it).
+
+What survives unchanged: cookie-driven surface selection, reusing `ObserverPlayerIndex` for the projector, the `seatPresentation` per-game-per-seat storage table, the piggybacked `ServerSentAt`/`ServerPlayAt` animation sync. The wins were preserved.
+
+What's new: role/team visibility is now a field on the existing `behaviors.PlayerRole` / `behaviors.PlayerTeam` (default `Private`); the framework auto-renders a "fake deck" row along the Table view's bottom edge for cross-screen animations.
 
 ## 1. Overview
 
-A new gameplay mode in which one shared screen ("the projector") shows the public game state and each player's phone ("companion") shows their private hand and actions. Cards visually fly off the projector toward a player's seat and arrive on that player's phone (and vice versa). Inspired by the Jackbox model, but applied to turn-based hidden-information board games.
+A new gameplay mode for hidden-information games where one shared screen ("the Table view") shows the public board and each player's phone ("the Hand view") shows their private cards and actions. Cards visibly fly between the two surfaces. Inspired by Jackbox; applied to turn-based board games.
 
-Pairing is anonymous-friendly: the room shows a 4-letter code, phones go to a join URL, type the code, optionally sign in with Google (or stay anonymous), pick an avatar+name, and are bound to a seat for the session.
+Pairing is anonymous-friendly: the Table view shows a 4-letter room code, phones go to a join URL and type the code, optionally sign in with Google (or stay anonymous), pick an avatar+name, and are bound to a seat for the session.
 
 ## 2. Goals & Non-Goals
 
 **Goals**
-- A game declares in code whether it supports companion mode. The game-creation form gates the choice; once set, the session is locked into one mode.
-- The projector reuses the existing `ObserverPlayerIndex` sanitization. The phone reuses the existing per-player sanitization. No new server-side sanitization variant.
-- Players can join without making an account or signing in with Google — Firebase anonymous auth is the default path. Google sign-in remains available.
-- Cards animate between the projector and phones with visibly synchronized timing.
-- A paired player going offline pauses the game on their turn; the host (game creator at the projector) can skip, replace with an Agent, or free the seat.
-- The existing solo-device flow is untouched.
+- A game opts into Table+Hand mode by shipping two TypeScript renderer files. No Go-side opt-in.
+- The existing solo-device flow is unaffected.
+- Players can join without an account — Firebase anonymous auth is the default path. Google sign-in remains available.
+- Cards animate between the Table view and each player's Hand view with visibly synchronized timing.
+- A paired player going offline pauses the game; the host (game creator at the Table) can advance with SkipTurn.
+- Role/team-asymmetric games get a seat picker on the phone automatically — based on existing `behaviors.PlayerRole` / `behaviors.PlayerTeam` detection.
+- Role visibility on the Table view is opt-in per-behavior: hidden by default, public if the author explicitly declares it.
 
-**Non-Goals (deferred)**
-- Multi-projector setups (one game, two TVs).
-- Spectator-on-phone mode (audience members watching, not playing).
-- In-room voice chat (covered by ticket #796).
-- Upgrading anonymous identity into a persistent Google account post-hoc (we'll mint the anon UID in a way that *allows* future upgrade, but the UI is not in scope here).
-- Cross-game persistent avatar (each game session picks fresh).
+**Non-Goals (V1)**
+- Free-Seat and Replace-with-AI host actions.
+- Multi-projector setups (one game, two Table views).
+- Audience/spectator mode beyond existing `ObserverPlayerIndex`.
+- In-room voice chat (ticket #796).
+- Upgrading anonymous identity into a persistent Google account post-hoc.
+- Cross-game persistent avatar.
+- Non-card private info animation (hidden numbers, secret meeples — V1 assumes card-shaped private state, which is the dominant case).
 
-## 3. User-Facing UX Flow
+## 3. Author Surface — "Do One Thing, Get Cool Behavior"
 
-### 3.1 Creating a Companion-Mode Game
+This is the entire author surface for adding Table+Hand mode to a game. Every game-author concept in this spec is in this section; the rest is framework internals.
 
-1. Host opens `/list-games` and picks a game whose `GameDelegate.SupportsCompanionMode()` returns true.
-2. The "Create Game" form shows a new toggle: **"Shared projector + phones"** (default *off* — solo-device is still the default).
-3. With the toggle on, the host sees: "After creating, this device becomes the projector. Players will join from their phones." Confirm.
-4. On submit, server creates the game with `eGame.CompanionMode = true` and generates a 4-letter room code (e.g. `JKLB`).
-5. Server sets a `surface=projector` cookie scoped to the gameID (§7.1) on the host's browser, then redirects to `/game/<name>/<id>`. The client reads the cookie and loads the projected renderer.
+### 3.1 Minimum Opt-In
 
-### 3.2 The Projector View Pre-Game
+Ship two new files in your game's static directory:
 
-- Fullscreen-friendly layout. Big, legible room code (e.g. "Go to **boardgame.app/join** and enter **JKLB**").
-- A QR code linking directly to `/join?code=JKLB`, generated client-side.
-- A "Seats" panel showing N empty avatar slots (N comes from `MinNumPlayers` to `MaxNumPlayers`). As phones join, slots fill with their chosen avatar + name (from `seatPresentation`).
-- A "Start Game" button enabled once `MinNumPlayers` slots are filled. Disabled before then.
-- For asymmetric-role games (see §6), each filled slot shows the player's role *only if* `RoleIsPublic() == true` for that game. For hidden-role games, the slot shows "Seat N" with avatar+name only.
-- A "Lock room" toggle (§5.1) for the host.
+```
+server/static/game-src/<your-game>/
+    boardgame-render-game-<your-game>.ts          # existing solo renderer (untouched)
+    boardgame-render-game-<your-game>-table.ts    # NEW — public board view
+    boardgame-render-game-<your-game>-hand.ts     # NEW — per-player private view
+```
 
-### 3.3 Phone Joining Flow
+The server walks `server/static/game-src/` at boot, notes which games ship both files, and surfaces a "Use shared projector + phones" toggle on the game-creation form. That's the entire opt-in.
 
-1. Phone visits `/join` (or scans the QR), enters the 4-letter code (case-insensitive). Code is validated; failure shows "Room not found".
-2. Server looks up the game by code → returns game metadata to the client.
-3. Phone shows an identity screen: **"Continue as guest"** (primary button) or **"Sign in with Google"** (secondary). Note: code is entered *before* identity is chosen, per design decision.
-4. Guest path: Firebase anonymous sign-in fires under the hood; the client immediately shows the **avatar/name picker** (see §10).
-5. Google path: existing Google sign-in flow; skip avatar picker (use display name + photo URL).
-6. Once identity is resolved, the client requests a seat. Two cases (see §6):
-   - Symmetric game: server auto-assigns the next open seat and returns the assignment.
-   - Asymmetric game: server returns the list of available role slots; phone shows a **role picker** ("Spymaster (red team)", "Operative (blue team)", etc.); selection commits the seat.
-7. Server issues a `surface=companion` cookie scoped to the gameID. Phone navigates to `/game/<name>/<id>`; the client reads the cookie and loads the companion renderer.
+### 3.2 What Each Renderer Receives
 
-### 3.4 In-Game
+```ts
+// boardgame-render-game-<X>-table.ts
+import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.ts';
 
-- Projector renders the public board and an avatar strip showing presence/status per player (e.g., "Alice (thinking…)" with a subtle pulse during her turn).
-- Each phone renders only its player's private hand and the action affordances (e.g., "Play this card", "Pass"). When a card is dealt, it flies off the projector edge toward the seat and arrives on the phone from the corresponding edge. When played, the reverse.
-- Disconnected player: projector shows "Waiting for Alice (1:42)" + host controls (see §9).
+@customElement('boardgame-render-game-<X>-table')
+export class TableView extends BoardgameTableViewBase<MyGameState, MyPlayerState> {
+    // this.state              — public sanitized state (as ObserverPlayerIndex)
+    // this.seatPresentations  — array of { playerIndex, displayName, avatarSlug }
+    // this.absentPlayers      — PlayerIndex[]
+    // this.isHost             — boolean
 
-## 4. Architecture Overview
+    render() {
+        return html`
+            ${this.renderAvatarStrip()}                 /* base provides */
+            ${this.renderHostControls()}                /* base provides; only visible if isHost */
+            <div class="board">
+                <!-- your game's public board markup -->
+            </div>
+            ${this.renderFakeDeckRow()}                 /* base provides — animation anchor */
+        `;
+    }
+}
+```
+
+```ts
+// boardgame-render-game-<X>-hand.ts
+import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.ts';
+
+@customElement('boardgame-render-game-<X>-hand')
+export class HandView extends BoardgameHandViewBase<MyGameState, MyPlayerState> {
+    // this.state           — this player's sanitized state (as PlayerIndex(n))
+    // this.viewingAs       — PlayerIndex
+    // this.playerState     — this.state.Players[this.viewingAs] (convenience)
+
+    render() {
+        return html`
+            <div class="hand">
+                ${this.playerState.Hand.Components.map(card => html`<my-card .card=${card}></my-card>`)}
+            </div>
+            <div class="actions">
+                <!-- "Play", "Pass", etc. -->
+            </div>
+        `;
+    }
+}
+```
+
+That's it. The two renderers render normal Lit. The bases each provide a small number of helper methods (`renderAvatarStrip`, `renderHostControls`, `renderFakeDeckRow`) that handle cross-cutting UI; everything else is ordinary rendering work over the same sanitized state the existing solo renderer uses.
+
+### 3.3 Optional: Public Role/Team Visibility
+
+By default, when a game has `behaviors.PlayerRole` or `behaviors.PlayerTeam`, the Table view does NOT show roles — players appear as numbered seats with avatars only. The role/team is revealed only on the Hand view of the holding player.
+
+A game where roles are *meant to be public* (Codenames: spymasters are publicly known) opts in by setting a field on the behavior:
+
+```go
+type playerState struct {
+    base.SubState
+    behaviors.PlayerRole `visibility:"public"`  // struct-tag opt-in; default is "private"
+}
+```
+
+Or programmatically:
+
+```go
+type playerState struct {
+    base.SubState
+    Role behaviors.PlayerRole
+}
+
+func (p *playerState) ConnectBehavior(s boardgame.SubState) {
+    p.Role.Visibility = behaviors.VisibilityPublic
+    p.Role.ConnectBehavior(s)
+}
+```
+
+Identical mechanism for `behaviors.PlayerTeam`.
+
+### 3.4 That's the Whole Author Surface
+
+No marker interface. No delegate methods. No layout DSL. No required moves. No lint script.
+
+A game author who doesn't care about Table+Hand mode pays zero cost — their existing code is untouched. A game author who opts in writes two normal renderers and (if asymmetric AND public) one struct tag.
+
+---
+
+The rest of this spec is **framework internals**. Authors don't need to read past here unless they're contributing to the framework or debugging.
+
+## 4. Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                              SERVER                                 │
 │                                                                     │
 │  Existing: GameManager, sanitization-per-player, SeatPlayer,        │
-│            WebSocket version notifier (channel-based), Firebase auth │
+│            channel-based versionNotifier, Firebase auth             │
 │                                                                     │
-│  NEW (additive — does not alter existing state pipeline):           │
+│  NEW (additive, no existing pipeline changes):                      │
+│   • Boot-time filesystem walk → capability map per game             │
 │   • CompanionRoomCode + CompanionLocked on extendedgame row         │
-│   • GameByRoomCode lookup (storage method)                          │
+│   • GameByRoomCode storage lookup                                   │
 │   • seatPresentation table (per-(gameID,playerIndex) avatar+name)   │
-│   • Heartbeat-based presence tracker (folded into versionNotifier)  │
-│   • Sanitization-aware role/team visibility on projector            │
-│   • ServerSentAt/ServerPlayAt fields piggybacked on state pushes    │
-│   • Host-action endpoints (skip / agent / free-seat / claim-host)   │
-│   • companionHostAudit log                                          │
+│   • behaviors.Visibility field on PlayerRole / PlayerTeam           │
+│   • Heartbeat-based presence in the existing notifier goroutine     │
+│   • ServerSentAt/ServerPlayAt piggybacked on state pushes           │
+│   • Host SkipTurn endpoint                                          │
+│   • Host transfer (claim if owner heartbeat is stale)               │
 └─────────────────────────────────────────────────────────────────────┘
-                  │              │              │
+              │                  │              │
    ObserverPlayerIndex     PlayerIndex(0)   PlayerIndex(1)
-   + surface=projector cookie   + surface=companion cookie  ...
-                  │              │              │
-       ┌──────────┴──┐     ┌─────┴────┐    ┌────┴─────┐
-       │  PROJECTOR  │     │ PHONE A  │    │ PHONE B  │
-       │             │     │          │    │          │
-       │ host =      │     │ player 0 │    │ player 1 │
-       │ eGame.Owner │     │          │    │          │
-       │ or transfer │     │          │    │          │
-       └─────────────┘     └──────────┘    └──────────┘
+   + surface=table cookie  + surface=hand cookie    ...
+              │                  │              │
+       ┌──────┴───────┐    ┌─────┴────┐    ┌────┴─────┐
+       │  TABLE VIEW  │    │ HAND A   │    │ HAND B   │
+       │  (laptop/TV) │    │          │    │          │
+       │              │    │ player 0 │    │ player 1 │
+       │  host=Owner  │    │          │    │          │
+       └──────────────┘    └──────────┘    └──────────┘
 
-Per companion-supporting game (server/static/game-src/<game>/):
-  • boardgame-render-game-<X>.ts             (existing — solo)
-  • boardgame-render-game-<X>-projected.ts   (NEW — extends SurfaceRendererBase)
-  • boardgame-render-game-<X>-companion.ts   (NEW — extends SurfaceRendererBase)
-  • boardgame-render-game-<X>-layout.ts      (NEW — exports layoutFor function)
+Per game with Table+Hand mode (server/static/game-src/<game>/):
+  • boardgame-render-game-<X>.ts        (existing — solo)
+  • boardgame-render-game-<X>-table.ts  (NEW)
+  • boardgame-render-game-<X>-hand.ts   (NEW)
 
 Shared (server/static/src/components/):
-  • boardgame-surface-renderer-base.ts       (NEW — cross-cutting concerns)
+  • boardgame-table-view-base.ts        (NEW — Table view base class)
+  • boardgame-hand-view-base.ts         (NEW — Hand view base class)
 ```
 
-**Cardinal rule**: the server is agnostic about display surfaces *for state purposes*. The projector connects as `ObserverPlayerIndex`; each phone as `PlayerIndex(n)`. Existing sanitization machinery handles the privacy story.
+**Cardinal rule**: the server is agnostic about display surfaces *for state purposes*. The Table view connects as `ObserverPlayerIndex`; each phone as `PlayerIndex(n)`. Existing sanitization machinery handles the privacy story end-to-end — no new sanitization variant.
 
-What's new is a *coordination layer* (pairing, presence, host actions, sync timestamps) and a per-surface client renderer system — all additive, none altering the existing solo flow or state pipeline.
+## 5. Mode Detection (Filesystem Walk)
 
-## 5. Identity & Pairing
+At server boot, after `boardgame.NewServer(storage, delegates...)` registers each `GameDelegate`, the server walks `server/static/game-src/<delegate.Name()>/` and records on the `GameManager` whether both `boardgame-render-game-<name>-table.ts` AND `boardgame-render-game-<name>-hand.ts` are present. This capability map is exposed by `Manager.SupportsTableHandMode() bool` (read by the game-creation form to show/hide the toggle).
 
-### 5.1 Room Codes
+In dev (`OfflineDevMode`), the walk re-runs on every page load so newly-added games appear without a server restart.
+
+In production (Vite/static-built deployment), the build process emits a manifest file `companion-capability.json` listing the games with both files; the server reads the manifest at boot instead of walking. Same capability map either way.
+
+## 6. Identity & Pairing
+
+### 6.1 Room Codes
 
 - 4 uppercase letters from a confusion-resistant alphabet (omit O/I/L/Z → 22^4 = 234,256 codes).
-- Generated at game-create when `CompanionMode = true`. Stored as a typed field `CompanionRoomCode string` on `extendedgame.StorageRecord` (see `server/api/extendedgame/main.go:15`). **No in-memory registry** — the storage row is the single source of truth.
+- Generated at game-create when Table+Hand mode is chosen. Stored as a typed field `CompanionRoomCode string` on `extendedgame.StorageRecord` (see `server/api/extendedgame/main.go:15`). **No in-memory registry** — the storage row is the single source of truth.
 - **Lookup** via a new storage method `GameByRoomCode(code string) (gameID, error)`, paralleling `UserIDsForGame()` at `server/api/storage.go:58-61`.
-- **Collision handling**: generation retries up to 10 random draws; if all collide (extremely rare until the namespace is near-full), falls back to a 5-letter code. Beyond that, game-create returns an error and the host is told to retry later.
-- **TTL grace period**: codes remain exclusively assigned for 24 hours after `Finished == true` before becoming eligible for recycling. This prevents the "Alice's just-finished phone still holds the code; new host gets the same code; Alice silently joins a stranger's game" race.
-- **Rate limiting**: `/api/join` is rate-limited per IP to 10 lookups/minute with exponential backoff on consecutive 404s. This is the V1 mitigation against namespace enumeration.
-- **Room lock**: the host can flip a "Lock room" toggle on the projector at any time. While locked, no new phones can claim a seat. Open by default to preserve the Jackbox-style lightweight feel for in-person play; the toggle exists as the escape hatch for streamed/public games. The locked-state lives on `eGame` as `CompanionLocked bool`.
+- **Collision handling**: generation retries up to 10 random draws; if all collide, falls back to a 5-letter code.
+- **TTL grace period**: codes remain exclusively assigned for 24h after `Finished == true` before becoming eligible for recycling.
+- **Rate limiting**: `/api/join` is rate-limited per IP to 10 lookups/minute with exponential backoff on consecutive 404s.
+- **Room lock**: the host can flip a "Lock room" toggle on the Table view at any time (`CompanionLocked bool` on `eGame`). Open by default to preserve the Jackbox-style lightweight feel.
 
-### 5.2 Phone Join Endpoint
+### 6.2 Phone Join Endpoint
 
-All endpoints in this section require HTTPS in production (`Strict-Transport-Security` enforced at the reverse proxy).
+All endpoints in this section require HTTPS in production. Cookies set with `Secure; HttpOnly; SameSite=Lax`.
 
 `POST /api/join` with body `{ "code": "JKLB" }`:
 
-1. Rate-limit check (per IP, §5.1).
+1. Rate-limit check (per IP).
 2. Look up game via `GameByRoomCode(code)`. 404 if not found, locked, or `Finished`.
-3. Return `{ gameID, gameName, displayName, minPlayers, maxPlayers, currentPlayers, requiresRolePicker, requiresHostAdmit }`. **The response does *not* include role-slot details** — those come from a separate authenticated request (§6.1) so the response of a brute-force scrape cannot reveal asymmetric-role metadata.
+3. Return `{ gameID, gameName, displayName, minPlayers, maxPlayers, currentPlayers, requiresSeatPicker }`. **No role/team metadata** — those come only after authentication via `/api/join/seat-options` (§6.3) so brute-forcing `/api/join` does not reveal asymmetric structure.
 
-The phone client then runs the identity step (Firebase anonymous or Google), shows the avatar/name picker for anon users, optionally shows the role picker (§6), and finally posts `POST /api/join/seat` with body `{ gameID, roleSlot?, avatarSlug, displayName }` carrying the Firebase ID token. The seat endpoint:
+The phone client then runs the identity step (Firebase anonymous or Google), shows the avatar/name picker for anon users, runs the seat picker if `requiresSeatPicker == true` (§6.3), and finally posts `POST /api/join/seat`:
 
-1. Validates the token.
-2. Validates `displayName` server-side (§5.5).
-3. **Writes `displayName` and `avatarSlug` to a new `seatPresentation` row keyed on `(gameID, playerIndex)` — not to the user's `StorageRecord`.** This is the per-seat identity record (§5.4). The user's `StorageRecord` is *not* mutated by joining a game.
-4. Runs the existing `SeatPlayer` proposal path.
-5. Issues a `companion` session cookie scoped to the gameID with `Secure; HttpOnly; SameSite=Lax`.
+```json
+{ "gameID": "<id>", "seatPick": <playerIndex>?, "avatarSlug": "...", "displayName": "..." }
+```
 
-### 5.5 Display-Name Validation
+(`seatPick` is required iff `requiresSeatPicker == true`.)
 
-Server-side, on `/api/join/seat`:
+The seat endpoint:
 
-- NFKC-normalize the input.
-- Allow only `[A-Za-z0-9 ]`, length 2–24 inclusive after trimming whitespace.
-- Reject zero-width characters, RTL-override, combining diacritics, and any Unicode in the C0/C1 control or surrogate ranges.
-- Reject if the normalized name (lowercased) matches another seat's name in the same `gameID`. The phone client retries with a suggested suffix (e.g., "Alice" → "Alice2"). No global uniqueness; per-game only.
-- No slur catalog in V1; if abuse surfaces, hook in a list-based filter at this validation step.
+1. Validates the Firebase ID token (existing `auth.go:164` path).
+2. Validates `displayName` (§6.6).
+3. Acquires a per-game lock spanning the SeatPlayer proposal.
+4. Writes `displayName` + `avatarSlug` to a new `seatPresentation` row keyed on `(gameID, playerIndex)`.
+5. Runs the existing `SeatPlayer` proposal path.
+6. Issues a `surface=hand` cookie scoped to the gameID.
 
-### 5.3 Identity
+Race resolution: if two phones race for the last seat, the loser receives 409 Conflict + the latest seat-availability snapshot and retries against it.
 
-Two paths:
+### 6.3 Seat Picker for Asymmetric Games
 
-- **Firebase anonymous**: `firebase.auth().signInAnonymously()` on the phone returns a UID. The server, on `/api/join/seat`, validates the ID token using the existing `firebase.VerifyIDToken()` path in `server/api/auth.go:164` (which already works for anon UIDs — `firebase-verify` does not distinguish). A `StorageRecord` for the *user* is created on first contact with empty `Email` and `DisplayName` (the chosen display name goes to `seatPresentation`, not the user record — see §5.4). The user record exists only to anchor existing identity machinery (`UserIDsForGame()`, cookies).
-- **Google sign-in**: existing flow. `StorageRecord` is populated with real email/photo/displayName as today. At the avatar/name picker step (§10), the Google user can optionally override their default name/avatar *for this game*; the override lands in `seatPresentation` without mutating the user record.
+The framework auto-detects asymmetry by type-asserting the game's `playerState` against `behaviors.HasPlayerRole` or `behaviors.HasPlayerTeam`. (The framework adds `behaviors.HasPlayerTeam` as a one-method interface `GetPlayerTeam() *PlayerTeam`, paralleling the existing `HasPlayerRole`; `PlayerTeam` gains a one-line `GetPlayerTeam() *PlayerTeam { return p }` so the assertion works.)
 
-A Firebase anon UID lasts across refreshes on the same device (token persistence). If the phone closes the tab and reopens within the token TTL, the UID restores and they auto-rejoin their seat (see §9.3 Reconnection).
+For asymmetric games, `requiresSeatPicker = true`. The phone calls `GET /api/join/seat-options?gameID=<>` with its Firebase ID token and receives:
 
-### 5.4 Seat Binding & seatPresentation
+```json
+{
+  "slots": [
+    {"playerIndex": 0, "label": "Seat 1", "filled": true,  "avatar": {...}},
+    {"playerIndex": 1, "label": "Seat 2", "filled": false},
+    {"playerIndex": 2, "label": "Seat 3", "filled": false},
+    {"playerIndex": 3, "label": "Seat 4", "filled": true,  "avatar": {...}}
+  ]
+}
+```
 
-On successful `/api/join/seat`, the server runs the existing `SeatPlayer` proposal path (see `moves/seat_player.go`) — with the anon UID treated as a UID string for `UserIDsForGame()` purposes only. Existing sanitization-per-player and `calcViewingAsPlayerAndEmptySlots()` work unchanged.
+For each slot, the label is computed server-side based on `behaviors.Visibility`:
 
-The chosen `displayName` and `avatarSlug` live in a new `seatPresentation` table:
+| Visibility on PlayerRole/PlayerTeam | Slot label                     |
+|-------------------------------------|--------------------------------|
+| `Private` (default)                 | "Seat N"                       |
+| `Public`                            | "<Role display name>" (e.g., "Spymaster (Red)") |
+
+The choice of `seatPick` becomes the player's `playerIndex` on the seat endpoint.
+
+**Why the framework owns label resolution**: the layered alternative (delegate-supplies-label-string) was the source of the projector role-leak issue in earlier drafts. By making visibility a field on the behavior itself, there is no layer-spanning policy to forget.
+
+### 6.4 Identity Paths
+
+- **Firebase anonymous**: `firebase.auth().signInAnonymously()` on the phone returns a UID. Server validates the ID token via existing `firebase.VerifyIDToken()` at `server/api/auth.go:164` (works for anon UIDs unchanged). A user `StorageRecord` is created on first contact with empty Email/DisplayName — the chosen DisplayName goes to `seatPresentation`, not the user record.
+- **Google sign-in**: existing flow. `StorageRecord` populated with real email/photo/displayName as today. At the avatar/name step, Google users can optionally override their default name/avatar *for this game*; the override lands in `seatPresentation` without mutating the user record.
+
+### 6.5 seatPresentation Table
+
+Per-(gameID, playerIndex) storage of display name + avatar. New table:
 
 ```go
-// In a new file, e.g. server/api/seatpresentation/main.go
+// server/api/seatpresentation/main.go
 type StorageRecord struct {
     GameID      string
     PlayerIndex boardgame.PlayerIndex
@@ -187,559 +294,421 @@ type StorageRecord struct {
 }
 ```
 
-Lookup methods on `StorageManager`:
+Storage manager extensions:
 
 ```go
 SeatPresentation(gameID string, p PlayerIndex) (*seatpresentation.StorageRecord, error)
 SetSeatPresentation(rec *seatpresentation.StorageRecord) error
-ClearSeatPresentation(gameID string, p PlayerIndex) error  // called on Free Seat (§9.2)
+ClearSeatPresentation(gameID string, p PlayerIndex) error
 ```
 
-**Per-seat, not per-user**, deliberately:
-- A Google user joining game 2 with a different avatar does not mutate game 1's presentation.
-- "Free Seat" (§9.2) clears the row so the next joiner doesn't inherit the previous player's name/avatar.
-- For Google-signed-in joiners, the row is auto-populated from the user's profile (with the option to override at join time).
+Per-seat, not per-user, deliberately: a Google user joining game 2 with a different avatar does not mutate game 1's presentation; the user's persistent `StorageRecord` is never written to from the join flow.
 
-The `companion` cookie issued at `/api/join/seat` is scoped to the gameID and carries the anon UID. Reloading `/game/<name>/<id>` resolves the surface from the cookie (§7.1) and the player index from existing auth.
+### 6.6 Display-Name Validation
 
-## 6. Seat Assignment: Symmetric vs Asymmetric
+Server-side, on `/api/join/seat`:
 
-The framework decides whether to show a role picker on the phone, based on whether the game's `playerState` has role or team behaviors.
-
-**Detection** (server-side, at join-time): a game is **asymmetric** if its `playerState` satisfies `behaviors.HasPlayerRole` OR `behaviors.HasPlayerTeam`.
-
-- `behaviors.HasPlayerRole` is the existing detection interface in `behaviors/role.go:26`. A `playerState` satisfies it by embedding `behaviors.PlayerRole`.
-- `behaviors.HasPlayerTeam` is **new in this spec**: a one-method interface `GetPlayerTeam() *PlayerTeam`. The existing `behaviors.PlayerTeam` struct (defined today at `behaviors/team.go:29`) gains a one-line `GetPlayerTeam() *PlayerTeam { return p }` method so the type assertion works. The `PlayerTeam` behavior itself is otherwise unchanged.
-
-**Override** is via a separate, single-purpose extension interface on the delegate:
-
-```go
-type CompanionSeatAssignmentDelegate interface {
-    CompanionSeatAssignment() CompanionSeatAssignment
-}
-
-type CompanionSeatAssignment int
-
-const (
-    CompanionSeatAssignmentDefault CompanionSeatAssignment = iota
-    CompanionSeatAssignmentAuto
-    CompanionSeatAssignmentRolePicker
-)
-```
-
-When unimplemented, `CompanionSeatAssignmentDefault` applies: detection by behaviors as above.
-
-### 6.1 Role Picker — Privacy-Preserving Payload
-
-For asymmetric games, the role-picker payload is **not** returned from `/api/join`. It comes from a separate authenticated endpoint `GET /api/join/role-options?gameID=<>` that requires a valid Firebase ID token, ensuring an enumeration attack on `/api/join` cannot reveal the asymmetric structure of a game.
-
-The role-options payload is sanitized through a new `RoleVisibilityPolicy` on `GameDelegate`:
-
-```go
-type CompanionRolePrivacyDelegate interface {
-    RoleIsPublic() bool  // default: false
-}
-```
-
-- If `RoleIsPublic() == true` (e.g., Codenames — teams are public knowledge): the payload labels each slot with its real role, and the projector renders the role on the avatar strip.
-- If `RoleIsPublic() == false` (the default; covers Werewolf, Secret Hitler, Mysterium): the payload labels each slot only with a neutral identifier ("Seat 1", "Seat 2") and a generic team color *only if* `TeamIsPublic() == true`. The phone shows the real role only after the joiner picks a seat — and the role is revealed only to that phone (delivered via the per-player sanitized state, not via the seat-options payload). **The projector never sees the role.**
-
-This means a hidden-role game's projector strictly mirrors what an in-room observer could see: seat positions + chosen avatars/names + presence. No role leak.
-
-### 6.2 Presence Channel Sanitization
-
-The `Absent []PlayerIndex` list (§9) is also sanitized via the same policy. For private-role games where role *and* identity are hidden (rare; usually identity is public), presence is delivered as a per-player sanitized list rather than a global broadcast. By default (identity public, role private), presence is a global field on public state — same as it would be for an in-room observer noting "Alice stepped out."
-
-### 6.3 Slot Label Resolution
-
-Single-purpose extension interface:
-
-```go
-type CompanionSlotLabelDelegate interface {
-    CompanionSlotLabel(playerIndex boardgame.PlayerIndex, state boardgame.ImmutableState) string
-}
-```
-
-When unimplemented, label is derived from the game's `role` enum (or `team` enum if no role) display name. When `RoleIsPublic() == false`, the label is forced to "Seat N" regardless of override.
+- NFKC-normalize the input.
+- Allow only `[A-Za-z0-9 ]`, length 2–24 inclusive after trim.
+- Reject zero-width, RTL-override, combining diacritics, C0/C1 control, surrogate ranges.
+- Reject if the lowercased normalized name matches another seat's name in the same gameID. The phone retries with a suggested suffix (e.g., "Alice" → "Alice2").
+- No slur catalog in V1; hook point exists for one.
 
 ## 7. Renderer Model
 
-Per companion-mode game, files in `server/static/game-src/<game>/`:
+### 7.1 Surface Selection (Cookie-Based)
 
-| File | Purpose |
-|------|---------|
-| `boardgame-render-game-<X>.ts` | Existing solo-device renderer. Untouched. |
-| `boardgame-render-game-<X>-layout.ts` | **NEW.** Module exporting a `layoutFor(state, surface): LayoutPlan` *function* (see §7.2). Imported by both surface-specific renderers below. |
-| `boardgame-render-game-<X>-projected.ts` | **NEW.** Projected view, extending `BoardgameSurfaceRendererBase` (§7.3). |
-| `boardgame-render-game-<X>-companion.ts` | **NEW.** Companion view, extending the same base. |
-
-### 7.1 Surface Selection (Session-Scoped, Not URL-Scoped)
-
-Surface is **decided at join time and stored in the session cookie**, not in a URL query param. The reasons: cookie-bound surface survives refresh, sharing/bookmarking a phone's URL doesn't accidentally put a friend into projector mode, and the server already needs to know surface for presence tracking (§9).
-
-- Creating a companion-mode game issues a `surface=projector` cookie scoped to the gameID to the creating browser.
-- `/api/join/seat` issues a `surface=companion` cookie scoped to the gameID to the joining phone.
-- URL stays clean: `/game/<name>/<id>`. The loader (`boardgame-render-game.ts:365`) reads the cookie to pick the renderer:
+Surface is decided at join/create time and stored in a `surface=table` or `surface=hand` cookie scoped to the gameID. URL stays clean (`/game/<name>/<id>`). The loader (`boardgame-render-game.ts:365`) reads the cookie:
 
 ```ts
-const surface = readSurfaceCookie(gameID);   // 'projector' | 'companion' | null
-const suffix = surface === 'projector' ? '-projected'
-             : surface === 'companion' ? '-companion'
-             : '';
+const surface = readSurfaceCookie(gameID);    // 'table' | 'hand' | null
+const suffix  = surface === 'table' ? '-table'
+              : surface === 'hand'  ? '-hand'
+              : '';
 await import(`../../game-src/${gameName}/boardgame-render-game-${gameName}${suffix}.ts`);
 ```
 
-For dev/debug, a `?display=projected|companion` query param overrides the cookie (no production effect, gated on `OfflineDevMode`).
+If `surface` is null (solo mode) or the suffixed file isn't present, falls back to the solo renderer with a console warning. The filesystem-detection step (§5) is the authoritative check.
 
-If the suffixed file fails to load (deployment error), the loader falls back to the solo renderer with a console warning. The lint check in §14.1.5 catches missing files at build time.
+For dev/debug, a `?display=table|hand` query param overrides the cookie. Production has no query-param override.
 
-### 7.2 Layout as a Function over State
+### 7.2 Table View Base
 
-The layout module exports a single function, not a constant:
-
-```ts
-// boardgame-render-game-<X>-layout.ts
-export type Anchor =
-  | { kind: 'stack';            stackPath: string;  surface: SurfaceID; offset?: {x:number,y:number} }
-  | { kind: 'offscreen-stack';  stackPath: string;  surface: SurfaceID; edge: 'top'|'bottom'|'left'|'right'|'top-left'|... }
-  | { kind: 'badge';            forPlayer: PlayerIndex; surface: SurfaceID; ... }
-  | { kind: 'secret-value';     forPlayer: PlayerIndex; surface: SurfaceID; valuePath: string };
-
-export type LayoutPlan = { anchors: Anchor[] };
-
-export function layoutFor(state: FullGameState, surface: SurfaceID, viewingAsPlayer: PlayerIndex): LayoutPlan { ... }
-```
-
-`layoutFor` is called every render cycle and resolves anchors against the current state. It handles:
-
-- **Variable player counts** — the function reads `state.Players.length` and emits per-player anchors dynamically.
-- **Dynamic stacks** — stacks that exist only during certain phases (e.g., a "current trick" pile) are emitted only when present in state.
-- **Non-card private info** — `kind: 'secret-value'` anchors handle hidden numbers, secret meeples, etc., declaring where their reveal goes and (for projector) what placeholder.
-
-Each renderer takes the `LayoutPlan` and renders only anchors whose `surface` matches its own — *plus* `offscreen-stack` anchors on the *opposite* surface (positioned off-screen at the declared edge, used as the FLIP animation source/destination). Cross-surface card flight then "just works" via the existing FLIP animator: on the projector, the card animates from on-screen `deck` to off-screen `player-hand-0` parked at the south-west edge; on the player-0 phone, it animates from off-screen `deck` parked at the top edge to on-screen `player-hand-0`.
-
-### 7.3 Shared Surface Renderer Base
-
-Cross-cutting concerns — avatar strip, score ribbon, current-player indicator, presence/absent badges, animation timing, FLIP wiring — live in a new `BoardgameSurfaceRendererBase` mixin (a Lit `ReactiveController` or base class):
+`BoardgameTableViewBase` is a thin Lit base class (NOT a god-object — see §7.4 on what it deliberately doesn't bundle).
 
 ```ts
-// server/static/src/components/boardgame-surface-renderer-base.ts
-export class BoardgameSurfaceRendererBase<GS, PS> extends LitElement {
-    @property() state: FullGameState<GS, PS>;
-    @property() surface: 'projected' | 'companion';
-    @property() viewingAsPlayer: PlayerIndex;
-    @property() seatPresentations: SeatPresentation[];   // §5.4
+export class BoardgameTableViewBase<GS, PS> extends LitElement {
+    @property() state: PublicGameState<GS, PS>;     // ObserverPlayerIndex-sanitized
+    @property() seatPresentations: SeatPresentation[];
     @property() absentPlayers: PlayerIndex[];
-    @property() roomLocked: boolean;
     @property() isHost: boolean;
+    @property() roomLocked: boolean;
+    @property() roomCode: string;
+    @property() serverPlayAt: number | null;        // for animation timing
 
-    protected get layoutPlan() { return this.gameLayout(this.state, this.surface, this.viewingAsPlayer); }
-    protected gameLayout(...): LayoutPlan { /* abstract — implemented by each game's layoutFor */ }
+    // Helper renders — call these from your render() where you want them
+    protected renderAvatarStrip(): TemplateResult { ... }
+    protected renderHostControls(): TemplateResult { ... }   // SkipTurn button when applicable
+    protected renderFakeDeckRow(): TemplateResult { ... }    // §8
 
-    protected renderAvatarStrip(): TemplateResult { /* shared */ }
-    protected renderAbsentBadges(): TemplateResult { /* shared, gated by §6.2 sanitization */ }
-    protected renderHostControls(): TemplateResult { /* shared, gated by isHost */ }
+    // FLIP animator wired automatically; respects serverPlayAt for cross-screen sync.
 }
 ```
 
-Each per-game per-surface renderer subclasses this and overrides `gameLayout` (wiring to the game's `layoutFor`) plus the surface-specific composition. The base never gets per-game logic; the subclasses never reimplement cross-cutting pieces.
+Helper renders are *opt-in to call*, not invoked automatically. The author composes their own layout and calls the helpers where they want them. No bundled inheritance — if the author wants a custom avatar strip, they don't call `renderAvatarStrip()`.
 
-### 7.4 Existing per-Player Info Components
+### 7.3 Hand View Base
 
-`boardgame-render-player-info-<X>.ts` files (seen in `server/static/game-src/murdermrmonroe/`) continue to render avatars in solo and projector views. The companion view typically does not need them.
+```ts
+export class BoardgameHandViewBase<GS, PS> extends LitElement {
+    @property() state: FullGameState<GS, PS>;       // PlayerIndex(n)-sanitized
+    @property() viewingAs: PlayerIndex;
+    @property() seatPresentations: SeatPresentation[];
+    @property() serverPlayAt: number | null;
 
-## 8. Animation Synchronization Primitive
+    // Convenience: shortcut to this player's own state
+    protected get playerState(): PS { return this.state.Players[this.viewingAs]; }
 
-A single piggybacked primitive: every WebSocket frame includes a server timestamp. The client maintains a running estimate of one-way latency from those timestamps and schedules animations against a server-anchored play-at instant. No separate ping endpoint, no clock-sync warmup phase, no `/api/server-time` HTTP endpoint.
+    // FLIP animator wired automatically.
+}
+```
 
-### 8.1 Server Stamps
+The Hand view base is even thinner than Table view base — there's no avatar strip or host controls to expose.
 
-The existing `socketMessage` envelope (see `server/api/websockets.go:19-22`) carries server timing in `Data` for state-push messages:
+### 7.4 What the Bases Do NOT Bundle
+
+Cross-cutting concerns the *framework* handles (the author doesn't think about):
+
+- Cookie reading + surface selection (done by the loader).
+- FLIP wiring (auto, via existing animator).
+- `serverPlayAt` scheduling (auto).
+- Presence indicators (`absentPlayers` is just a prop; author renders it however they want, or uses the avatar-strip helper which renders the standard treatment).
+
+Things deliberately *not* in the bases — kept as Lit `ReactiveController`s or out-of-class entirely so they're opt-in composable, not inherited bundles:
+
+- Score ribbon — not all games have a global score; let authors render their own ribbons.
+- Phase indicators, turn timers — game-specific; bases don't impose a layout.
+- Custom animations beyond FLIP — author hooks into the existing animation system directly.
+
+This is the answer to the layering critic's "BoardgameSurfaceRendererBase bundled inheritance" complaint: each base exposes a *small* set of typed properties + a *small* set of opt-in helper renders, and nothing else. Authors compose, not subclass-and-pray.
+
+## 8. Animation — Fake Deck Row Convention
+
+The framework provides a single convention for cross-screen card animations that game authors don't have to think about.
+
+### 8.1 The Mechanism
+
+On the Table view, the framework auto-renders a "fake deck row" along the bottom edge (via `renderFakeDeckRow()` when the author calls it, or auto-added as a sibling if not). The row has one stub stack per seated player, in seat order, evenly spaced left-to-right.
+
+Each stub is a hidden stack mirror of that player's private state — same `component.id`s as the player's actual Hand view stack, but rendered off-screen / underneath the avatar at the bottom edge. The FLIP animator on the Table side sees the cards present in the stub when the server pushes a state where they belong to player N's hand.
+
+**Result**:
+- Deal from public deck → player N's hand: card animates from on-screen deck to the bottom-row stub at seat N's position. Visually: card flies down toward the player.
+- Player M plays a card to a public discard: card animates from the bottom-row stub at seat M to the on-screen discard. Visually: card flies up from the player to the table.
+- Card moves from player 3's hand to player 2's hand: card animates between fake-deck-3 and fake-deck-2 along the bottom — horizontally, left or right based on relative seat position. Visually: card slides between players.
+
+### 8.2 On the Hand View Side
+
+On player N's Hand view, the framework auto-positions an off-screen anchor at the top edge representing "the rest of the game" (the public board on the Table view).
+
+- Card dealt to this player: animates from the top edge (entering "from the Table") to the hand stack.
+- Card played from this player: animates from the hand stack to the top edge (exiting "toward the Table").
+- Card transferred to this player from another: also enters from the top edge — the Hand view does not currently distinguish "from player M vs from the deck" (V2 if the metaphor matters more).
+
+### 8.3 No DSL, No Edge Enums
+
+The author writes nothing to enable this. The framework knows:
+
+- Seat order — from the existing `state.Players` array.
+- Per-player private stacks — they live on `playerState`. The framework iterates `playerState`'s `Stack`-typed fields when building the fake-deck row.
+- Seat positions on the Table view — left-to-right evenly spaced; computed from `state.Players.length`.
+
+V1 commits to the left-to-right-evenly-spaced layout convention. Games that want a different seat arrangement (e.g. circular for Settlers of Catan-style) are V2.
+
+### 8.4 Sync Primitive
+
+Every WebSocket frame includes a server timestamp piggybacked in `Data` for state-push messages:
 
 ```go
 type stateUpdateData struct {
     // ... existing state fields ...
     ServerSentAt int64 `json:"serverSentAt"`  // ms since epoch, set immediately before write
-    ServerPlayAt int64 `json:"serverPlayAt"`  // ms since epoch; serverSentAt + ANIMATION_LEAD_MS
+    ServerPlayAt int64 `json:"serverPlayAt"`  // ms since epoch; serverSentAt + 250ms default
 }
 ```
 
-`ANIMATION_LEAD_MS` defaults to 250ms. Games may override per the `CompanionAnimationLeadDelegate` interface (§11).
-
-This piggybacks on the existing message stream — no protocol bump, no new fields on the outer `socketMessage` envelope.
-
-### 8.2 Client Estimation
-
-On every state push received, the client records:
+Client maintains a minimum-wins one-way latency estimator over the last 30 frames:
 
 ```js
-const localRx   = performance.now();              // monotonic
-const serverTx  = msg.serverSentAt;
-const oneWayMs  = (localRxAsEpochMs) - serverTx;  // minimum-wins estimator
+const oneWayMs = (localRxAsEpochMs) - serverSentAt;
+// minOneWayMs over rolling window is the offset
 ```
 
-The estimator keeps the **minimum** of `oneWayMs` over the last 30 frames (NTP-style: the lowest-latency sample is closest to true one-way delivery, because variance only adds; it doesn't subtract). The server-to-local offset is then `minOneWayMs`, and `localEquivalent(serverPlayAt) = serverPlayAt - minOneWayMs + (perfNowEpochOffset)`.
+Animations schedule via `setTimeout(playFn, localEquivalent(serverPlayAt) - now)`. Falls back to "play immediately on receive" if the play-at instant is already past or fewer than 3 samples have been collected.
 
-Animations are scheduled with `setTimeout(playFn, localEquivalent(serverPlayAt) - now)`.
+**Documented limitations**:
+- Asymmetric routes (cell + Wi-Fi) bias the estimator but the bias is consistent per surface; visible cross-surface drift is bounded by the asymmetry, not by the variance.
+- JS GC pauses and background-tab throttling can shift `setTimeout` firing by 50-200ms; we accept this in V1.
+- First state push beats the sample window; first deal animation may be visibly uncoordinated.
 
-### 8.3 Known Limitations (Documented, Not Solved)
+V1 ships this minimal primitive; future iteration can layer in explicit clock sync rounds if playtests show the median-LAN baseline is insufficient.
 
-- **Asymmetric routes** (phone on cell, projector on Wi-Fi): the one-way estimator is biased by the asymmetry but the bias is consistent across frames, so animations on each surface are *self-consistent* (each side animates on its own offset) and the visible cross-surface drift is bounded by the asymmetry, not by the variance.
-- **JS GC pauses & background-tab throttling**: a `setTimeout` set to fire in 200ms can fire 200ms+ late under Chrome's hidden-tab throttling or on a low-end Android during GC. We accept this — V1 explicitly does NOT promise frame-perfect sync.
-- **First state push beats the estimator's window**: on the very first push, the estimator has 1 sample. Animations play immediately on receive (not via `setTimeout`). The first deal animation may be visibly uncoordinated; we accept this for V1.
+## 9. Presence & Host Controls
 
-### 8.4 Fallback
+### 9.1 Presence (Heartbeat-Based)
 
-`localEquivalent(serverPlayAt) - now < 0` means the play-at instant is already past — animation plays immediately on receive. Same fallback when fewer than 3 valid samples have been collected.
+Each Hand-view WebSocket sends a heartbeat ping every 10 seconds. Server tracks `lastHeartbeat map[gameID]map[PlayerIndex]time.Time`. A player is **absent** when `time.Since(lastHeartbeat) > 30s`.
 
-### 8.5 Acceptable V1 Outcome
+Tracking lives inside the existing `versionNotifier`'s goroutine (`server/api/websockets.go:46-54`), alongside `register`/`unregister`/`notifyVersion`. A new `chan heartbeat` is processed in the same select loop — no mutex, matching the framework's channel-based concurrency idiom.
 
-Cross-surface animations look "right" on the median LAN connection (~95% of plays). Pathological networks (mobile in low-signal, asymmetric Wi-Fi) show visible drift up to ~200ms. This is documented in the user-facing FAQ for V1; future work may add an explicit clock-sync round-trip if playtests find the median-LAN baseline insufficient.
+A periodic ticker (every 5s) scans for stale entries and emits presence-change events. WebSocket read deadlines (30s) close idle sockets so the OS-keepalive default doesn't leave zombies. `lastHeartbeat` evicts game entries when a game reaches `Finished`.
 
-## 9. Presence & Host Override
+The state pushed to clients includes `Absent []PlayerIndex` so the Table view can render a "Waiting for Alice…" badge over the absent seat's avatar in the strip.
 
-### 9.1 Presence Tracking (Heartbeat-Based)
+### 9.2 Host = Game Creator on Table Surface
 
-A counter-based "live socket count" is fragile: TCP RSTs on mobile networks don't fire close frames, zombie tabs keep count > 0, and reconnect-faster-than-unregister leaves a permanently-stuck count. We use **heartbeat-based liveness** instead.
+The host is identified by `eGame.Owner == currentUser` AND `surface=table` cookie. Host privileges:
 
-Each companion WebSocket sends a heartbeat ping every 10 seconds. The server tracks `lastHeartbeat map[gameID]map[PlayerIndex]time.Time` and considers a player **absent** when `time.Since(lastHeartbeat) > 30s`. Specifically:
+- See the Skip-Turn button on the absent-player badge.
+- See the "Lock room" toggle.
+- Audit log: all host actions recorded to a new `companionHostAudit` table for diagnostics.
 
-- Server enforces WebSocket read deadlines (30s). Idle sockets get a forced close.
-- Heartbeat-tracking lives inside the existing `versionNotifier`'s goroutine, alongside `register`/`unregister`/`notifyVersion`. A new `chan heartbeat { gameID, playerIndex, ts }` is processed in the same select loop — **no mutex**, matching the framework's channel-based concurrency idiom (per `server/api/websockets.go:46-54`).
-- A periodic ticker (every 5s) inside the notifier scans `lastHeartbeat` for stale entries and emits `presenceChange` events, which flow to a per-game absent-set computation. Stale-entry detection plus heartbeats jointly close the zombie-tab gap.
+### 9.3 SkipTurn
 
-The state pushed to clients includes an `Absent []PlayerIndex` field, gated by sanitization per §6.2.
+The only V1 host action.
 
-The `lastHeartbeat` map evicts game entries when a game reaches `Finished` to prevent unbounded growth.
+`POST /api/game/<id>/hostSkipTurn?player=N` (camelCase to match existing route style at `server/api/main.go:944,1072,1301`):
 
-### 9.2 Host Actions
+- Gated on `IsHost(currentUser, gameID)`.
+- Server proposes the existing `moves.AdvanceCurrentPlayer` FixUp move (or equivalent — the framework's standard turn-advance). No game-specific opt-in required.
+- Audited.
+- Rate-limited to 1/sec per `(gameID, hostUserID)`.
 
-The host is identified as `eGame.Owner == currentUser` viewing on the projector surface (per the `surface=projector` cookie of §7.1). Their projector view exposes three actions on any absent player:
+Games whose turn structure doesn't fit "advance current player" (e.g., simultaneous-action games) have host-SkipTurn surfaced as a no-op for V1; future iterations can plumb in game-specific fallbacks via a single optional delegate method. Most turn-based games work out of the box.
 
-| Action | Endpoint | Effect |
-|--------|----------|--------|
-| Skip turn | `POST /api/game/<id>/hostSkipTurn?player=N` | Server proposes the game-defined absent-player fallback move (§11). |
-| Replace with Agent | `POST /api/game/<id>/hostReplaceWithAgent?player=N` | Server engages the existing `Agents` flow for player N. |
-| Free seat for new joiner | `POST /api/game/<id>/hostFreeSeat?player=N` | See §9.4 — clears the seat AND its private state. |
+### 9.4 Host Transfer
 
-Routes use the framework's existing camelCase handler naming (per `server/api/main.go:944,1072,1301`). All three are gated on `IsHost(currentUser, gameID)` and recorded to a per-game audit log (new table `companionHostAudit`).
-
-Rate-limit host actions to 1 per second per `(gameID, hostUserID)` to mitigate trolling-host scenarios.
-
-### 9.3 Host Transfer (V1)
-
-A V1 must-have, given that the original host's projector going down would otherwise permanently lock the game.
-
-Mechanism: if `eGame.Owner` has no live projector socket (no heartbeat within 30s), any seated companion player may claim host via `POST /api/game/<id>/claimHost`. The first claim within a 5-second contention window wins; ties broken by lowest player index. On claim:
-
-- Server sets `eGame.CompanionHostOverride = <claimingUserID>`.
-- Subsequent `IsHost(user, gameID)` returns true for either the original Owner OR the override.
-- If the original owner returns, both have host powers until the override is dropped (audited).
-
-This is intentionally permissive: a malicious host transfer is in scope only for the "trusted friends in person" threat model. Public/streamed games should keep the room locked from the start (§5.1).
-
-### 9.4 Free-Seat Semantics — Avoiding State Leak
-
-The naive "clear `UserIDsForGame()[N]`" leaves the game's `playerState[N]` intact with the prior player's private cards/info. The next joiner who takes seat N would inherit Alice's hand on first state push.
-
-Fix: every companion-supporting game must implement a one-shot game-defined "reset seat" move:
-
-```go
-type CompanionAbsentSeatResetDelegate interface {
-    CompanionResetSeatMove() boardgame.MoveType  // returns a configured move that wipes per-seat private state
-}
-```
-
-When `hostFreeSeat` is invoked, the server:
-
-1. Proposes the reset move via the existing move pipeline (sanitization, validation all apply).
-2. Clears `UserIDsForGame()[N]`.
-3. Calls `ClearSeatPresentation(gameID, N)` (§5.4).
-
-The reset move is game-specific because "what counts as a clean slate" varies: a hidden-role game needs to redraw a role; a card game needs to return the hand to the deck (or discard). Games that don't supply the move cannot use Free-Seat; the host's only options for those games are Skip or Agent.
+If `eGame.Owner` has no heartbeat-fresh Table connection for 30s, any seated player may claim host via `POST /api/game/<id>/claimHost`. First claim wins; ties broken by lowest player index. Subsequent `IsHost` returns true for either the original Owner OR the override. If the original owner returns, both have host powers (audited). The override is durable for the rest of the session.
 
 ### 9.5 Reconnection
 
-A phone reconnects in three flavors:
+Three flavors, all framework-handled:
 
-- **Same browser, refresh**: Cookie still valid → server resolves anon UID → existing `calcViewingAsPlayerAndEmptySlots()` returns same seat. Heartbeat resumes; absent flag clears.
-- **Same browser, new tab**: Cookie shared → same seat → second tab joins as the same player. Both send heartbeats; presence remains live as long as either does.
-- **New browser, same device**: Anon Firebase UID restored from IndexedDB (Firebase's default persistence). Same as refresh.
-- **Truly new browser (cleared storage)**: Anon UID is lost. Phone must re-enter the room code. Server's resolution path first checks `if anonUID in UserIDsForGame() → restore that seat` before falling back to next-open-seat assignment, so a same-UID re-join lands on the same seat as long as the seat hasn't been freed.
+- **Same browser, refresh**: cookie still valid → existing `calcViewingAsPlayerAndEmptySlots()` returns same seat. Heartbeat resumes; absent flag clears.
+- **Same browser, new tab**: cookie shared → same seat. Both tabs send heartbeats; presence is live as long as either does.
+- **Truly new browser**: anon UID is gone unless Firebase IndexedDB persistence restores it. If restored, same seat (resolution path checks `if anonUID in UserIDsForGame() → restore` before falling back to next-open-seat). If not restored, phone re-enters the room code and is reassigned to the next open seat.
 
 ## 10. Avatar / Name Picker
 
-Modeled on word-bloom's publisher avatar picker (see `/Users/jkomoros/Code/word-bloom/src/components/publisher-avatar-picker.ts`).
+Modeled on word-bloom's publisher avatar picker (see `/Users/jkomoros/Code/word-bloom/src/components/publisher-avatar-picker.ts`). 4-step shape:
 
-### 10.1 Flow
+- **random** (front door): one fully-randomized avatar + name. Big "Looks good — join!" button. Small "Try another" reroll. Small "Customize" link.
+- **primary**: grid of 12 primaries.
+- **style**: decoration + corner + tint pickers.
+- **review**: confirm + edit name.
 
-The picker has a 4-step shape: `random → primary → style → review`.
+Most users tap "Looks good" on step 1.
 
-- **random** (front door): On entry, the phone shows one fully-randomized (avatar + name) pair. Big "Looks good — join!" button. Small "Try another" reroll button. Small "Customize" link to go to step 2.
-- **primary**: Grid of 12 character/icon primaries to pick from.
-- **style**: Decoration + corner + tint pickers (matches word-bloom's composite avatar model).
-- **review**: Confirm, then commit.
-
-Most users will tap "Looks good" on step 1 and skip the rest.
-
-### 10.2 Avatar Composition
-
-Composite id format (4 dash-joined slugs, lifted from word-bloom for consistency):
+Composite id format (mirrored from word-bloom for consistency):
 
 ```
 ${primaryId}-${decorationId|none}-${cornerId|none}-${tintId|none}
 ```
 
-Catalog lives in `server/static/src/components/companion-avatar-primaries.ts` etc. We do NOT share the word-bloom catalog literally — these are different products — but we mirror the format and a starter catalog (12 primaries, 12 decorations, 4 corners, 8 tints).
+Catalog lives in `server/static/src/components/companion-avatar-primaries.ts` etc. Not shared with word-bloom literally — separate products — but the format and starter catalog (12 primaries, 12 decorations, 4 corners, 8 tints) are mirrored.
 
-### 10.3 Name Generator
+Name generator: adjective + animal from a small curated list (200 + 200 = 40,000 combos). Generated client-side. Editable at the review step. Length 2–24, ASCII per §6.6.
 
-Adjective + animal (e.g., "BrightFox", "ShyOtter") drawn from a small curated list (200 + 200 = 40,000 combinations). Generated client-side. The user can edit the name in step 4 ("review"). Maximum length 24 chars; alphanumerics + spaces only.
+Persistence: lives in `seatPresentation`, NOT the user `StorageRecord`. Clearing a seat (V2 Free-Seat) clears the row.
 
-### 10.4 Persistence
-
-Avatar + name are stored in the **`seatPresentation` table** keyed on `(gameID, playerIndex)` (§5.4), NOT on the user's `StorageRecord`. This means:
-
-- Joining game B with a different avatar does not mutate game A's presentation.
-- Freeing a seat (§9.4) clears the row, so the next joiner doesn't inherit the previous player's identity surface.
-- A Google-signed-in user can override their default display name and avatar on a per-game basis at the review step.
-
-The user's persistent `StorageRecord` remains the source of truth for *user identity* (Email, Google photo); `seatPresentation` is the source of truth for *what this seat looks like in this game*.
-
-## 11. Game Capability Declaration
-
-The framework idiom (per `base/game_delegate.go:507`, `behaviors/role.go:26`) is **single-purpose extension interfaces detected via type assertion**, not a wide multi-method extension interface. We follow that idiom strictly: opting into companion mode is one marker interface; each optional behavior is its own.
-
-### 11.1 Capability marker
-
-```go
-// boardgame/companion/delegate.go (new package, parallel to behaviors/)
-package companion
-
-type GameDelegate interface {
-    UsesCompanionMode()  // no-arg marker; implementing this IS the opt-in
-}
-```
-
-A game opts in with:
-
-```go
-func (d *MyGameDelegate) UsesCompanionMode() {}
-```
-
-Server check: `if _, ok := delegate.(companion.GameDelegate); ok { /* this game supports companion mode */ }`.
-
-### 11.2 Optional extension interfaces
-
-Each is one method; each is detected separately via type assertion; none are required.
-
-```go
-// Seat assignment policy override (§6).
-type SeatAssignmentDelegate interface {
-    CompanionSeatAssignment() SeatAssignment
-}
-type SeatAssignment int
-const (
-    SeatAssignmentDefault SeatAssignment = iota
-    SeatAssignmentAuto
-    SeatAssignmentRolePicker
-)
-
-// Whether roles are publicly visible on the projector (§6.1).
-type RolePrivacyDelegate interface { RoleIsPublic() bool }
-
-// Whether team affiliation is publicly visible on the projector (§6.1).
-type TeamPrivacyDelegate interface { TeamIsPublic() bool }
-
-// Custom slot label (§6.3).
-type SlotLabelDelegate interface {
-    CompanionSlotLabel(playerIndex boardgame.PlayerIndex, state boardgame.ImmutableState) string
-}
-
-// Animation lead-time override (§8).
-type AnimationLeadDelegate interface {
-    CompanionAnimationLeadMS() int  // milliseconds
-}
-
-// Required-if-supporting-FreeSeat: the move that resets a single seat's private state (§9.4).
-type AbsentSeatResetDelegate interface {
-    CompanionResetSeatMove() boardgame.MoveType
-}
-
-// Required-if-supporting-SkipTurn: the move that no-ops or auto-passes for an absent player (§9.2).
-type AbsentSkipTurnDelegate interface {
-    CompanionSkipTurnMove() boardgame.MoveType
-}
-```
-
-### 11.3 Defaults
-
-When a delegate doesn't implement a given interface, the framework applies a default:
-
-| Interface | Default behavior |
-|-----------|------------------|
-| `SeatAssignmentDelegate` | `SeatAssignmentDefault` — detection via behaviors. |
-| `RolePrivacyDelegate` | `false` — assume roles are private. The safer default for hidden-role games; games like Codenames must explicitly opt in. |
-| `TeamPrivacyDelegate` | `true` — assume teams are public (most common). |
-| `SlotLabelDelegate` | Label derived from `role`/`team` enum display names. |
-| `AnimationLeadDelegate` | 250ms. |
-| `AbsentSeatResetDelegate` | No default. If unimplemented, the host's Free-Seat action is unavailable for absent players in this game. |
-| `AbsentSkipTurnDelegate` | No default. If unimplemented, the host's Skip-Turn action is unavailable. |
-
-## 12. UI / Visual Details
-
-### 12.1 Projector
-
-- Dark theme preferred; legible from 8+ feet.
-- Room code typography: ≥120pt. Surrounded by URL: small text "Go to boardgame.app/join" above the code.
-- QR code: 25% of viewport width, in a corner.
-- Seats panel: avatar + name + presence indicator (pulse if it's their turn; faded if absent).
-- Animation: cards fly off the projector edge using FLIP transforms toward the seat's screen-position. Each seat has a known anchor coordinate (passed into the layout module).
-
-### 12.2 Companion
-
-- Mobile-first portrait.
-- Top: tiny game-state ribbon (current player, phase, score).
-- Middle: this player's hand, fanned. Tap-to-select; selected card has a "Play" affordance.
-- Bottom: action buttons (e.g., "Pass", "Draw").
-- Animation: incoming cards enter from the top edge (matching the "from the shared screen" direction); outgoing cards exit the top edge.
-
-### 12.3 No Cross-Surface Audio (V1)
-
-Per the Jackbox research, audio cues bridge two screens well, but we defer audio to V2. V1 is silent.
-
-## 13. Edge Cases & Failure Modes
+## 11. Edge Cases
 
 | Case | Behavior |
 |------|----------|
-| Room code typo'd | 404 / "Room not found". `/api/join` is rate-limited per IP (10/min) with exponential backoff on 404. |
-| Two phones race for the last open seat | The `/api/join/seat` handler acquires a per-game lock spanning the SeatPlayer proposal. First request commits, others get 409 Conflict with the latest seat-availability snapshot and retry against it. |
-| Two phones race for the same role slot | Same handler/lock; loser gets 409 and is re-shown the role picker with the now-filled slot marked. |
-| Host disconnects (closes projector) | Game continues. If `eGame.Owner` heartbeat is stale (>30s) any seated player may claim host (§9.3). |
-| Original host returns after transfer | Both have host powers; audit log records the overlap. |
-| Anon UID token expires (1h TTL) | Silent re-auth via Firebase SDK. If the device is offline at the refresh moment, on next online attempt the same UID restores from IndexedDB and resumes. |
-| Phone went to sleep for 2h, then woke up | Same UID restores; reconnect path of §9.5 applies; same seat as long as not freed. |
-| Game gets to `Finished` state | Room code enters 24h grace period (§5.1) before recycling. Phones get a "Game over" screen. |
-| Same Google user opens two phones for the same game | First takes the seat; second is observer (existing behavior). |
-| `serverPlayAt` reports a time before client-now (slow state-fetch) | Animation plays immediately on the receiving client (§8.4). |
-| Network partition phone↔server | Heartbeat goes stale; player flagged absent after 30s. Phone sees "Reconnecting…" overlay; rejoins when network restores. |
-| Host frees Alice's seat, Alice reconnects 5s later | Alice's anon UID no longer maps to seat N. She re-enters the room code and is auto-assigned to the next open seat. Server emits a friendly toast: "Your seat was reassigned by the host; you've been moved to seat M." |
-| Game reset move fails on Free-Seat | The seat is not freed; host sees an error. The game-defined reset move is responsible for guaranteed-legal cleanup. |
-| Display name collides with existing seat | `/api/join/seat` returns 409 with a suggested suffix; phone retries silently. |
-| Display name has zero-width/RTL chars | `/api/join/seat` returns 400 with a generic "name not allowed"; phone surfaces the reroll button. |
+| Room code typo | 404 / "Room not found". Rate-limited per IP. |
+| Two phones race for last seat | Per-game lock + 409 to loser; loser retries against fresh snapshot. |
+| Host's projector closes | Heartbeat goes stale (30s) → any seated player may claim host. |
+| Anon UID token expires (1h) | Silent re-auth via Firebase SDK. If offline, restored from IndexedDB on next online attempt; same seat as long as still bound. |
+| Phone went to sleep for 2h | Heartbeat went stale → player flagged absent → on wake, heartbeat resumes → absent flag clears. |
+| Game reaches `Finished` | Room code enters 24h grace before recycling. Phones see "Game over". |
+| Same Google user opens two phones | First takes the seat; second is observer (existing behavior). |
+| State-fetch slower than `serverPlayAt` lead | Animation plays immediately on the receiving client. Cross-surface drift visible; non-blocking. |
+| Network partition phone↔server | Heartbeat stales; absent flag raised; reconnect restores. |
+| Display-name collision in same game | 409 + suggested suffix; phone retries silently. |
+| Display-name has zero-width/RTL chars | 400 + generic rejection; phone shows reroll. |
 
-## 14. Testing Strategy
+## 12. UI Details
 
-### 14.1 Unit Tests
+### Table View
+- Dark theme preferred; legible from 8+ feet.
+- Room code typography: ≥120pt while pre-game.
+- QR code (25% of viewport) in a corner.
+- Avatar strip across the top: avatar + name + presence indicator (pulse if current player; faded if absent).
+- "Waiting for Alice (1:42)" badge over absent avatar; SkipTurn button visible only to host.
+- Fake-deck row along bottom edge (auto-rendered): one stub per seated player, evenly spaced.
 
-- `room_code_test.go`: code generation alphabet, uniqueness, collision handling.
-- `seat_assignment_test.go`: behavior detection (with PlayerRole, PlayerTeam, both, neither); `CompanionSeatAssignment` overrides.
-- `presence_test.go`: live count increment/decrement, absent flag computation.
-- `host_actions_test.go`: skip / agent / free for each host action; non-host caller is rejected.
+### Hand View
+- Mobile-first portrait.
+- Top: tiny game-state ribbon (current player, phase, score).
+- Middle: this player's hand, fanned/stacked per game's renderer.
+- Bottom: action buttons.
+- Cards animate from the top edge on incoming, to the top edge on outgoing.
 
-### 14.1.5 Lint / Build-Time Check
+### No Cross-Surface Audio in V1
+Per Jackbox research, audio cues bridge two screens well but we defer to V2. V1 is silent.
 
-- A small Node script (run in CI) that:
-  - Walks `server/static/game-src/*/`, identifies games whose Go delegate implements `companion.GameDelegate`.
-  - Asserts each one ships `-projected.ts`, `-companion.ts`, and `-layout.ts` siblings.
-  - Imports the `-layout.ts` and verifies it exports a `layoutFor` function (not a constant) with the right signature.
-  - Asserts each surface renderer subclasses `BoardgameSurfaceRendererBase`.
-  - Catches §7.1 deployment errors at build time.
+## 13. Testing Strategy
 
-### 14.2 Integration Tests
+### 13.1 Unit Tests
 
-- Multi-client websocket scenario: one projector + 2 phones connect; one phone disconnects; presence updates push; reconnect restores.
-- Anonymous join → seat → state push → move → state push. Compare projector and phone state JSONs to confirm sanitization differences.
+- `room_code_test.go`: alphabet, collision retry, recycling.
+- `presence_test.go`: heartbeat staleness, absent flag, reconnect.
+- `visibility_test.go`: `behaviors.Visibility` field affects sanitization correctly for projector vs hand views (this is the security regression test).
+- `host_actions_test.go`: SkipTurn gated on `IsHost`; rate-limited; audited; non-host rejected.
+- `host_transfer_test.go`: claim succeeds after 30s; doesn't succeed if owner is fresh; ties broken by lowest player index.
 
-### 14.3 Browser / E2E Tests (Playwright)
+### 13.2 Integration Tests
 
-- Headless run of `murdermrmonroe` (or chosen MVP game) with projector tab + 3 phone tabs.
-- Verify room code visible on projector, code entry works from phone, avatars appear on projector after join.
-- Verify a deal animation: capture before/after screenshots on both projector and phone, assert card flies on each.
-- Verify drop/pause/host-skip/host-agent flow.
+- Multi-client websocket scenario: Table + 2 Hands connect; one Hand disconnects; presence updates push; SkipTurn advances; Hand reconnects.
+- Anonymous join → seat → state push → move → state push. Compare Table and Hand state JSONs to confirm sanitization differences.
+- Public-visibility role game: confirm role appears on Table view's seat picker. Private-visibility role game: confirm role does NOT appear on Table view, only on Hand view.
 
-### 14.4 Manual / Playtest
+### 13.3 Browser / E2E (Playwright)
 
-- One real session with 4 humans (per the user's "live, in-person" guidance) before V1 ships. The Jackbox-style group-laughter test cannot be automated.
+- Headless run of `murdermrmonroe` (or chosen MVP game) with Table tab + 3 Hand tabs.
+- Verify room code visible, code entry works, avatars appear on Table after join.
+- Verify a deal: capture before/after screenshots on both Table and Hand; assert card flies on each.
+- Verify drop → absent → host SkipTurn → game advances.
 
-## 15. Scope / MVP Phasing
+### 13.4 Manual Playtest
+
+One real session with 4 humans before V1 ships.
+
+## 14. Phasing
 
 ### Phase 1 — Foundations (PR 1)
-
-- `companion.GameDelegate` marker + capability gating on the create-game form.
-- `CompanionRoomCode` + `CompanionLocked` on `extendedgame.StorageRecord` + `GameByRoomCode` storage method.
+- `CompanionRoomCode` + `CompanionLocked` fields on `extendedgame.StorageRecord` + `GameByRoomCode` storage method.
 - `/api/join` + `/api/join/seat` endpoints with HTTPS-only, rate limiting, display-name validation.
 - Firebase anonymous auth flow on the phone.
 - `seatPresentation` storage table + accessors.
+- Filesystem capability walk at server boot.
 - Surface cookie routing in `boardgame-render-game.ts`.
-- `BoardgameSurfaceRendererBase` mixin.
-- Three-renderer + `layoutFor` convention documented in `TUTORIAL.md`.
+- `BoardgameTableViewBase` + `BoardgameHandViewBase` (minimal — just the typed props + helper renders).
 
-### Phase 2 — Seat assignment + identity (PR 2)
+### Phase 2 — Identity + Seat Picker (PR 2)
+- `behaviors.Visibility` field on `PlayerRole` + `PlayerTeam` (with struct-tag support).
+- `behaviors.HasPlayerTeam` interface + `GetPlayerTeam()` on `PlayerTeam`.
+- Seat picker UI on phone (`/api/join/seat-options` endpoint).
+- Avatar/name picker (random front door + customize) — depends on the avatar catalog being committed.
 
-- `behaviors.HasPlayerTeam` interface + `GetPlayerTeam()` method on `PlayerTeam`.
-- Symmetric vs asymmetric detection (behaviors-based) with privacy-respecting role-options endpoint.
-- Role picker UI on phone.
-- Avatar/name picker (random front door + customize) — depends on the avatar primaries catalog being checked in.
-- Optional extension delegates: `SeatAssignmentDelegate`, `RolePrivacyDelegate`, `TeamPrivacyDelegate`, `SlotLabelDelegate`.
-
-### Phase 3 — Presence + host override (PR 3)
-
-- Heartbeat-based presence tracker folded into the existing notifier goroutine.
-- Sanitization-aware `Absent []PlayerIndex` channel.
-- Host actions: Skip / Agent / Free-Seat (each gated on the relevant `AbsentX` delegate being implemented).
-- Host transfer flow with audit log.
+### Phase 3 — Presence + Host (PR 3)
+- Heartbeat-based presence folded into the existing notifier goroutine.
 - "Waiting for Alice…" projector affordance.
+- Host SkipTurn endpoint + UI button.
+- Host transfer + audit log.
 
 ### Phase 4 — Animations (PR 4)
+- Fake-deck row auto-rendering on Table view base.
+- Top-edge anchor on Hand view base.
+- `ServerSentAt`/`ServerPlayAt` piggybacked on state pushes; client estimator.
+- MVP game's `*-table.ts` and `*-hand.ts` shipped (likely `murdermrmonroe`).
+- End-to-end deal animation working across surfaces.
 
-- `layoutFor` function convention for the MVP game (likely `murdermrmonroe`).
-- `*-projected.ts` + `*-companion.ts` for MVP game.
-- `ServerSentAt`/`ServerPlayAt` piggybacked on state pushes.
-- One end-to-end deal animation working across surfaces.
-
-### Phase 5 — Polish + V1 ship (PR 5)
-
-- QR code on projector.
+### Phase 5 — Polish + V1 Ship (PR 5)
+- QR code on Table view.
 - Visual polish, dark theme.
 - Room-lock toggle UI.
-- Playtest with 4+ humans.
+- 4+ human playtest.
 
-### Explicitly out of V1
-
+### Out of V1 (deferred)
+- Free-Seat host action.
+- Replace-with-AI host action (existing Agent system covers some of this already at game-create time).
 - Audio cues.
 - Multi-projector.
-- Spectator-on-phone (audience tier).
+- Spectator/audience tier.
 - Anonymous → Google account upgrade UI.
 - Cross-session persistent avatar.
-- Improved clock sync beyond the minimum-wins one-way estimator (only if playtests show the V1 sync is insufficient).
+- Non-card private info animation (hidden numbers, secret meeples).
+- Non-left-to-right seat layouts (circular, around-a-board).
+- Improved clock sync beyond the minimum-wins estimator.
 
-## 16. Open Questions
+## 15. Open Questions
 
-Most prior open questions have been resolved inline by this revision. Remaining items:
+Most have been resolved by the reshape. Remaining:
 
-1. **MVP game**: assumed `murdermrmonroe` based on the untracked `server/static/game-src/murdermrmonroe/` directory. Confirm before Phase 4. Alternatives include a fresh implementation of Love Letter (`research/love-letter/`) or a new lightweight hidden-role game.
-2. **Slur/abuse word filter for display names**: V1 ships with NFKC + ASCII validation only (§5.5). Hook point exists; deciding whether to add a blocklist before V1 or after first incident.
-3. **Avatar primaries catalog**: this spec proposes mirroring word-bloom's `(primary, decoration, corner, tint)` 4-tuple model. The actual catalog content (which 12 primaries? which 12 decorations?) is a separate art-direction task tracked outside this spec. Phase 2 cannot land until the starter catalog is committed.
-4. **Confusion-resistant alphabet**: proposed omitting O/I/L/Z (letters only). Confirm this is the right set, or revise (some teams prefer numeric-only codes for accessibility).
+1. **MVP game**: assumed `murdermrmonroe` based on the untracked `server/static/game-src/murdermrmonroe/` directory. Confirm before Phase 4.
+2. **Avatar primaries catalog**: this spec proposes mirroring word-bloom's `(primary, decoration, corner, tint)` 4-tuple format. The actual catalog content (which 12 primaries? which 12 decorations?) is a separate art-direction task. Phase 2 cannot land until the starter catalog is committed.
+3. **Build-time manifest vs filesystem walk**: §5 describes both paths (dev = walk, prod = manifest). Confirm whether to ship both or just the walk in V1 (recommendation: walk-only for V1; add manifest in V2 when the deployment story is more formal).
+4. **Slur/abuse word filter for display names**: V1 ships with NFKC + ASCII validation only. Hook point exists; deciding whether to add a blocklist before V1 or after first incident.
 
-### Decisions encoded into this spec (closed)
+## 16. Glossary
 
-- **Room code persistence**: typed field on `extendedgame.StorageRecord`. (Was Open Q2.)
-- **Room code recycling**: 24h grace period after `Finished` before reuse. (Was Open Q3.)
-- **Per-game animation timing override**: `CompanionAnimationLeadDelegate` interface on the delegate. (Was Open Q4.)
-- **Host transfer**: in V1, not deferred. (Was Open Q6.)
-- **Skip-turn fallback move**: `CompanionAbsentSkipTurnDelegate` interface on the delegate; Skip action unavailable if not implemented. (Was Open Q7.)
-
-## 17. Glossary
-
-- **Projector**: the shared screen (laptop, TV, tablet) connected as `ObserverPlayerIndex` with the projected renderer.
-- **Companion**: a phone connected as `PlayerIndex(n)` with the companion renderer, bound to a seat.
-- **Host**: by default `eGame.Owner` viewing on the projector surface; transferable via §9.3 when stale.
+- **Table view**: the shared screen (laptop, TV, tablet) connected as `ObserverPlayerIndex` with the `-table.ts` renderer.
+- **Hand view**: a phone connected as `PlayerIndex(n)` with the `-hand.ts` renderer, bound to a seat.
 - **Solo mode**: existing single-device-per-player flow. Untouched by this work.
-- **Room code**: 4-letter code stored on `extendedgame.StorageRecord` for companion-mode games. Resolves to a gameID via `GameByRoomCode`.
-- **Off-screen anchor**: a layout anchor (typically a stack) positioned outside the visible viewport on a given surface, used as the animation source/destination for cards crossing surfaces.
-- **`seatPresentation`**: per-`(gameID, playerIndex)` storage of `DisplayName` + `AvatarSlug`. Source of truth for what a seat looks like in this game; cleared on Free-Seat.
-- **`serverPlayAt`**: server-clock timestamp stamped on a state push, indicating the wall-clock instant at which all clients should begin the resulting animation.
-- **`layoutFor`**: per-game function `(state, surface, viewingAsPlayer) → LayoutPlan` that resolves anchors against current state. Replaces the static-data layout module from earlier drafts.
-- **`BoardgameSurfaceRendererBase`**: shared Lit base class owning cross-cutting renderer concerns (avatar strip, presence badges, animation wiring, host controls).
+- **Host**: by default `eGame.Owner` viewing the Table; transferable per §9.4.
+- **Fake deck row**: framework-rendered row of off-screen-anchored stub stacks along the bottom of the Table view, one per seated player in left-to-right seat order. The destination/source for cross-screen card animations.
+- **Room code**: 4-letter code on `extendedgame.StorageRecord`. Resolved via `GameByRoomCode`.
+- **`seatPresentation`**: per-`(gameID, playerIndex)` storage of display name + avatar. Source of truth for what a seat looks like in this game.
+- **`behaviors.Visibility`**: enum `Private | Public` on `PlayerRole` / `PlayerTeam` controlling whether role/team appears on the Table view. Default: `Private`.
+- **`ServerSentAt` / `ServerPlayAt`**: timestamps piggybacked on state pushes; client uses them for cross-screen animation timing.
+
+## 17. What a Game Author Actually Writes — Worked Example
+
+For `murdermrmonroe` (or any hidden-info game) to opt into Table+Hand mode:
+
+1. Create `server/static/game-src/murdermrmonroe/boardgame-render-game-murdermrmonroe-table.ts`:
+
+```ts
+import { html, css } from 'lit';
+import { customElement } from 'lit/decorators.js';
+import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.ts';
+import type { GameState, PlayerState } from './_types.ts';
+
+@customElement('boardgame-render-game-murdermrmonroe-table')
+export class TableView extends BoardgameTableViewBase<GameState, PlayerState> {
+    static styles = css`/* big-screen styles */`;
+
+    render() {
+        return html`
+            ${this.renderAvatarStrip()}
+            ${this.renderHostControls()}
+            <div class="board">
+                <boardgame-component-stack .stack=${this.state.PublicDeck}></boardgame-component-stack>
+                <!-- ...rest of public board... -->
+            </div>
+            ${this.renderFakeDeckRow()}
+        `;
+    }
+}
+```
+
+2. Create `boardgame-render-game-murdermrmonroe-hand.ts`:
+
+```ts
+import { html, css } from 'lit';
+import { customElement } from 'lit/decorators.js';
+import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.ts';
+
+@customElement('boardgame-render-game-murdermrmonroe-hand')
+export class HandView extends BoardgameHandViewBase<GameState, PlayerState> {
+    static styles = css`/* mobile-first styles */`;
+
+    render() {
+        return html`
+            <div class="hand">
+                <boardgame-component-stack .stack=${this.playerState.Hand} layout="fan">
+                </boardgame-component-stack>
+            </div>
+            <div class="actions">
+                <button @click=${this.onPlay}>Play</button>
+                <button @click=${this.onPass}>Pass</button>
+            </div>
+        `;
+    }
+}
+```
+
+3. (If roles should appear on the Table view, which murdermrmonroe doesn't): set `visibility:"public"` on the role behavior. Otherwise: do nothing else.
+
+That's the whole opt-in. Two files, roughly the size of the existing solo renderer combined. The framework handles pairing, identity, sanitization, animations, presence, host controls, sync.
