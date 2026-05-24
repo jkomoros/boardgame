@@ -752,12 +752,25 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	open := s.getRequestOpen(c)
 	visible := s.getRequestVisible(c)
+	companionMode := s.getRequestCompanionMode(c)
 
-	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible, variant)
+	// Server-side validation that this manager actually supports
+	// Table+Hand mode. A malicious client could POST companionMode=1 for
+	// a game whose static dir doesn't ship -table.ts/-hand.ts; refuse
+	// before generating a room code that would route to nowhere.
+	if companionMode {
+		mInfo := s.managers[managerID]
+		if mInfo == nil || !mInfo.supportsTableHandMode {
+			r.Error(errors.NewFriendly("This game does not support shared-projector mode."))
+			return
+		}
+	}
+
+	s.doNewGame(r, c, owner, manager, numPlayers, agents, open, visible, variant, companionMode)
 
 }
 
-func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, variant map[string]string) {
+func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, variant map[string]string, companionMode bool) {
 
 	if manager == nil {
 		r.Error(errors.New("No manager provided"))
@@ -792,17 +805,44 @@ func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boa
 	eGame.Open = open
 	eGame.Visible = visible
 
-	//TODO: set Open, Visible based on query params.
+	// If companion-mode was requested, generate a room code and set the
+	// host's surface=table cookie so their browser loads the projected
+	// renderer on the redirect. Solo-mode games leave CompanionRoomCode
+	// empty + don't get a surface cookie (renderer falls back to solo).
+	var roomCode string
+	if companionMode {
+		code, codeErr := GenerateRoomCode(func(candidate string) (bool, error) {
+			id, gerr := s.storage.GameByRoomCode(candidate)
+			if gerr != nil {
+				return false, gerr
+			}
+			return id != "", nil
+		})
+		if codeErr != nil {
+			s.logger.Warnln("Failed to generate room code:", codeErr)
+			r.Error(errors.NewFriendly("Couldn't generate a room code; please try again."))
+			return
+		}
+		eGame.CompanionRoomCode = code
+		roomCode = code
+		// Surface cookie scoped to the gameID — see surfaceCookieName().
+		// Path "/" so the loader sees it on the game page.
+		c.SetCookie(surfaceCookieName(game.ID()), "table", 30*24*60*60, "/", "", false, false)
+	}
 
 	if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
 		r.Error(errors.New("Couldn't save extended game metadata: " + err.Error()))
 		return
 	}
 
-	r.Success(gin.H{
+	resp := gin.H{
 		"GameID":   game.ID(),
 		"GameName": game.Name(),
-	})
+	}
+	if roomCode != "" {
+		resp["CompanionRoomCode"] = roomCode
+	}
+	r.Success(resp)
 }
 
 func (s *Server) listGamesHandler(c *gin.Context) {

@@ -33,6 +33,11 @@ const (
 	qryOpen                 = "open"
 	qryVisible              = "visible"
 	qryFromVersion          = "from"
+	// qryCompanionMode is the form/query param the create-game form sends
+	// (value "1" or "0") to request Table+Hand companion mode. The server
+	// validates the request against manager.supportsTableHandMode before
+	// honoring it.
+	qryCompanionMode = "companionMode"
 )
 
 const (
@@ -109,6 +114,21 @@ func (s *Server) getRequestFromVersion(c *gin.Context) int {
 	result, _ := strconv.Atoi(rawVal)
 
 	return result
+}
+
+// getRequestCompanionMode returns whether the create-game form requested
+// Table+Hand mode for this new game. Returns false unless the form
+// supplies a non-zero integer in qryCompanionMode.
+func (s *Server) getRequestCompanionMode(c *gin.Context) bool {
+	val := c.PostForm(qryCompanionMode)
+	if val == "" {
+		val = c.Query(qryCompanionMode)
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		return false
+	}
+	return n > 0
 }
 
 func (s *Server) getRequestOpen(c *gin.Context) bool {
