@@ -52,6 +52,12 @@ type Server struct {
 
 	notifier *versionNotifier
 	logger   *logrus.Logger
+
+	// joinRateLimiter throttles /api/join and /api/join/seat per client IP.
+	// 10 requests / minute is plenty for legitimate use (entering the code,
+	// then claiming a seat) and tight enough to discourage brute-force
+	// enumeration of the 234k 4-letter code namespace (spec §6.1).
+	joinRateLimiter *rateLimiter
 }
 
 type renderer struct {
@@ -128,11 +134,14 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 	logger := logrus.New()
 
 	result := &Server{
-		managers:      make(managerMap),
+		managers:        make(managerMap),
 		playersToSeat:   make(map[string][]*playerToSeat),
 		gameOverEmitted: make(map[string]bool),
-		storage:       storage,
-		logger:        logger,
+		storage:         storage,
+		logger:          logger,
+		// 10 requests / minute = 1 every 6 seconds steady-state, with a
+		// burst capacity of 10. Idle buckets evict after 10 minutes.
+		joinRateLimiter: newRateLimiter(10, 10.0/60.0, 10*time.Minute),
 	}
 
 	storage.server = result
@@ -1805,6 +1814,14 @@ func (s *Server) Start() {
 		mainGroup.GET("list/manager", s.listManagerHandler)
 
 		mainGroup.POST("auth", s.authCookieHandler)
+
+		// Companion-mode join endpoints. /api/join is unauthenticated (a phone
+		// types in a room code before deciding whether to sign in). Both are
+		// rate-limited per client IP — see spec §6.2 for the threat model.
+		joinGroup := mainGroup.Group("join")
+		joinGroup.Use(rateLimitMiddleware(s.joinRateLimiter))
+		joinGroup.POST("", s.joinHandler)
+		// /api/join/seat lands in P1.7.
 
 		protectedMainGroup := mainGroup.Group("")
 		protectedMainGroup.Use(s.requireLoggedIn)
