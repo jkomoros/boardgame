@@ -469,6 +469,31 @@ func (v *versionNotifier) broadcastPresenceChange(gameID string) {
 	}
 }
 
+// broadcastModeChanged sends a "mode-changed" socket message to every
+// socket currently connected to gameID. Client-side handler responds by
+// reloading the page (boardgame-game-state-manager.ts); on reload the
+// surface=table / surface=hand cookies are cleared by the server's
+// response to switchToSolo, and the loader picks the solo renderer.
+func (v *versionNotifier) broadcastModeChanged(gameID, newMode string) {
+	bucket, ok := v.sockets[gameID]
+	if !ok {
+		return
+	}
+	msg := socketMessage{
+		Type: "mode-changed",
+		Data: map[string]interface{}{
+			"newMode": newMode,
+		},
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return
+	}
+	for socket := range bucket {
+		socket.send <- data
+	}
+}
+
 func (v *versionNotifier) registerSocket(s *socket) {
 	//Should only be called by workLoop
 

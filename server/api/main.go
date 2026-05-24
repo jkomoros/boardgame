@@ -1926,6 +1926,8 @@ func (s *Server) Start() {
 			// user; further gated by isHost() / seated checks in the handlers.
 			protectedGameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
 			protectedGameAPIGroup.POST("claimHost", s.claimHostHandler)
+			protectedGameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
+			protectedGameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
 		}
 
 		// Chat read endpoint — available to any user with game access

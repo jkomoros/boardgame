@@ -64,7 +64,9 @@ import (
 // server uses this to populate managerInfo.supportsTableHandMode and surface
 // it in doListManager so the create-game form can show the
 // "Use shared projector + phones" toggle for supporting games. (Spec §5.3.)
-var companionCapableGames = []string{}
+var companionCapableGames = []string{
+	"blackjack",
+}
 
 func main() {
 
@@ -105,7 +107,9 @@ func init() {
 // server uses this to populate managerInfo.supportsTableHandMode and surface
 // it in doListManager so the create-game form can show the
 // "Use shared projector + phones" toggle for supporting games. (Spec §5.3.)
-var companionCapableGames = []string{}
+var companionCapableGames = []string{
+	"blackjack",
+}
 
 func main() {
 

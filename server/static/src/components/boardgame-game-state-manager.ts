@@ -419,6 +419,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
           // window._companionSync so the Table+Hand renderers can
           // schedule animations at a server-anchored wall-clock instant.
           ingestVersionTiming(msg.data);
+        } else if (msg.type === 'mode-changed') {
+          // Companion-mode → solo downgrade triggered by host
+          // switchToSolo (spec §9.6). Reload the page so the loader
+          // re-reads the (now-cleared) surface cookie and picks the
+          // solo renderer. Server-side has already cleared cookies +
+          // CompanionRoomCode; the reload's request will see solo.
+          console.log('[boardgame-game-state-manager] mode-changed:', msg.data);
+          window.location.reload();
         } else if (msg.type === 'chat') {
           // Dispatch chat notification event for the chat panel to handle
           this.dispatchEvent(new CustomEvent('chat-notification', {

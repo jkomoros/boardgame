@@ -193,6 +193,138 @@ func (s *Server) hostSkipTurnHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// switchToSoloHandler implements POST /api/game/:name/:id/switchToSolo.
+// Gated on isHost. Clears CompanionRoomCode + CompanionLocked on the
+// eGame, broadcasts a "mode-changed" WebSocket message, and clears the
+// surface=table cookie on the response. The client-side handler
+// (boardgame-game-state-manager.ts) reloads on receipt of mode-changed;
+// the reload's HTTP response carries the cookie-clear and the loader
+// falls back to the solo renderer.
+//
+// Spec §9.6: this is a one-way mode downgrade and a deliberate UX hazard
+// for hidden-info games. The Table view's two-tap confirm() (P5.3) is
+// the user-facing safety; the server doesn't second-guess.
+func (s *Server) switchToSoloHandler(c *gin.Context) {
+	game := s.getGame(c)
+	if game == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
+		return
+	}
+	gameID := game.ID()
+
+	hostUserID, err := s.resolveHost(gameID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve host: " + err.Error()})
+		return
+	}
+	if !s.isHost(c, gameID, extendedGameWithHostOverride{owner: hostUserID}) {
+		s.auditHostAction("switchToSolo", gameID, "", "not host", false)
+		c.JSON(http.StatusForbidden, gin.H{"error": "host privileges required"})
+		return
+	}
+
+	user := s.getUser(c)
+	userID := ""
+	if user != nil {
+		userID = user.ID
+	}
+	if !hostActionAllowed(gameID, userID) {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
+		return
+	}
+
+	eGame, err := s.storage.ExtendedGame(gameID)
+	if err != nil || eGame == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
+		return
+	}
+
+	eGame.CompanionRoomCode = ""
+	eGame.CompanionLocked = false
+	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {
+		s.auditHostAction("switchToSolo", gameID, userID, err.Error(), false)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update game: " + err.Error()})
+		return
+	}
+
+	// Clear the surface cookie for this game on the host's browser.
+	// Max-Age=-1 (or 0 in some browsers) triggers immediate expiration.
+	c.SetCookie(surfaceCookieName(gameID), "", -1, "/", "", false, false)
+
+	// Broadcast mode-changed to all connected sockets so phones reload
+	// into the solo renderer. Their surface=hand cookie remains stale
+	// but the next state fetch (after reload) will have eGame.
+	// CompanionRoomCode=="" → loader falls back to solo renderer; the
+	// stale cookie no-ops there.
+	s.notifier.broadcastModeChanged(gameID, "solo")
+
+	s.auditHostAction("switchToSolo", gameID, userID, "switched to solo", true)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// setRoomLockHandler implements POST /api/game/:name/:id/setRoomLock.
+// Body: { "locked": true|false }. Flips eGame.CompanionLocked. Host-only;
+// rate-limited; audited.
+func (s *Server) setRoomLockHandler(c *gin.Context) {
+	var body struct {
+		Locked bool `json:"locked"`
+	}
+	if err := c.BindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body: " + err.Error()})
+		return
+	}
+
+	game := s.getGame(c)
+	if game == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
+		return
+	}
+	gameID := game.ID()
+
+	hostUserID, err := s.resolveHost(gameID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve host: " + err.Error()})
+		return
+	}
+	if !s.isHost(c, gameID, extendedGameWithHostOverride{owner: hostUserID}) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "host privileges required"})
+		return
+	}
+
+	user := s.getUser(c)
+	userID := ""
+	if user != nil {
+		userID = user.ID
+	}
+	if !hostActionAllowed(gameID, userID) {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
+		return
+	}
+
+	eGame, err := s.storage.ExtendedGame(gameID)
+	if err != nil || eGame == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
+		return
+	}
+
+	eGame.CompanionLocked = body.Locked
+	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {
+		s.auditHostAction("setRoomLock", gameID, userID, err.Error(), false)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update game: " + err.Error()})
+		return
+	}
+
+	s.auditHostAction("setRoomLock", gameID, userID, "locked="+boolStr(body.Locked), true)
+	c.JSON(http.StatusOK, gin.H{"ok": true, "locked": body.Locked})
+}
+
+func boolStr(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
+}
+
 // claimHostHandler implements POST /api/game/:name/:id/claimHost.
 // Per spec §9.4: any seated player can claim host if the current host
 // (eGame.Owner OR existing CompanionHostOverride) has no heartbeat-fresh
