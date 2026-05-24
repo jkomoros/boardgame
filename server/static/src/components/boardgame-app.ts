@@ -414,8 +414,13 @@ export class BoardgameApp extends connect(store)(LitElement) {
               ?selected="${this._page === 'list-games'}">
             </boardgame-list-games-view>
 
+            <boardgame-join-view
+              class="page ${this._page === 'join' ? 'selected' : ''}"
+              ?selected="${this._page === 'join'}">
+            </boardgame-join-view>
+
             <boardgame-404-view
-              class="page ${this._page === 'view404' || (!this._page && this._page !== 'game' && this._page !== 'list-games') ? 'selected' : ''}"
+              class="page ${this._page === 'view404' || (!this._page && this._page !== 'game' && this._page !== 'list-games' && this._page !== 'join') ? 'selected' : ''}"
               ?selected="${this._page === 'view404'}">
             </boardgame-404-view>
           </main>
