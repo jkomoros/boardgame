@@ -82,18 +82,16 @@ func (s *Server) getSeatJoinLock(gameID string) *sync.Mutex {
 	// (We deliberately do NOT touch lastHeartbeat here, which is owned
 	// by the workLoop goroutine without a mutex.)
 	if len(s.seatJoinLocks) > 64 {
-		for id := range s.seatJoinLocks {
+		for id, lock := range s.seatJoinLocks {
 			if id == gameID {
 				continue
 			}
-			// hasSockets check is racy on its own but eviction is
-			// strictly safe: a stale lock for a game with no
-			// active socket can be safely freed; if a new joiner
-			// shows up, they'll allocate a fresh one.
-			s.notifier.absentMu.RLock()
-			_, hasAbsentTracking := s.notifier.absent[id]
-			s.notifier.absentMu.RUnlock()
-			if !hasAbsentTracking {
+			// Only evict if the lock is not currently held. TryLock
+			// (Go 1.18+) returns true if we acquired it — meaning
+			// nobody else is inside the critical section. We unlock
+			// immediately before deleting.
+			if lock.TryLock() {
+				lock.Unlock()
 				delete(s.seatJoinLocks, id)
 			}
 		}

@@ -81,6 +81,15 @@ type presenceChanged struct {
 	gameID string
 }
 
+// modeChangedRecord is sent on versionNotifier.modeChanged from HTTP handler
+// goroutines (e.g. switchToSoloHandler) and consumed by workLoop, which owns
+// the v.sockets map. This avoids a data race: handler goroutines must not
+// read v.sockets directly.
+type modeChangedRecord struct {
+	gameID  string
+	newMode string
+}
+
 type versionNotifier struct {
 	sockets       map[string]map[*socket]bool
 	register      chan *socket
@@ -88,6 +97,7 @@ type versionNotifier struct {
 	notifyVersion chan gameVersionChanged
 	notifyChat    chan chatBroadcast
 	heartbeat     chan heartbeatRecord
+	modeChanged   chan modeChangedRecord
 	doneChan      chan bool
 	server        *Server
 
@@ -277,10 +287,17 @@ func (s *socket) SendMessage(message gameVersionChanged) {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		// Fallback to raw version number if JSON fails
-		s.send <- []byte(strconv.Itoa(message.Version))
+		select {
+		case s.send <- []byte(strconv.Itoa(message.Version)):
+		default:
+		}
 		return
 	}
-	s.send <- data
+	select {
+	case s.send <- data:
+	default:
+		return
+	}
 
 	// Sibling "version-timing" message carries the cross-screen animation
 	// sync timestamps (spec §8.4). Sent immediately after "version" so a
@@ -296,7 +313,10 @@ func (s *socket) SendMessage(message gameVersionChanged) {
 		},
 	}
 	if timingData, terr := json.Marshal(timing); terr == nil {
-		s.send <- timingData
+		select {
+		case s.send <- timingData:
+		default:
+		}
 	}
 }
 
@@ -306,7 +326,10 @@ func (s *socket) SendChatNotification(notification chatNotification) {
 	if err != nil {
 		return
 	}
-	s.send <- data
+	select {
+	case s.send <- data:
+	default:
+	}
 }
 
 func newVersionNotifier(s *Server) *versionNotifier {
@@ -317,6 +340,7 @@ func newVersionNotifier(s *Server) *versionNotifier {
 		notifyVersion: make(chan gameVersionChanged),
 		notifyChat:    make(chan chatBroadcast),
 		heartbeat:     make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
+		modeChanged:   make(chan modeChangedRecord, 4),
 		doneChan:      make(chan bool),
 		server:        s,
 		lastHeartbeat: make(map[string]map[boardgame.PlayerIndex]time.Time),
@@ -388,6 +412,8 @@ func (v *versionNotifier) workLoop() {
 			if v.clearAbsentIfPresent(hb.gameID, hb.playerIndex) {
 				v.broadcastPresenceChange(hb.gameID)
 			}
+		case mc := <-v.modeChanged:
+			v.doBroadcastModeChanged(mc.gameID, mc.newMode)
 		case <-scanTicker.C:
 			v.scanStaleHeartbeats()
 		case <-v.doneChan:
@@ -496,12 +522,17 @@ func (v *versionNotifier) broadcastPresenceChange(gameID string) {
 	})
 }
 
-// broadcastModeChanged sends a "mode-changed" socket message to every
-// socket currently connected to gameID. Client-side handler responds by
-// reloading the page (boardgame-game-state-manager.ts); on reload the
-// surface cookies are cleared by switchToSolo's HTTP response and the
-// loader picks the solo renderer.
+// broadcastModeChanged enqueues a mode-changed notification for workLoop.
+// Safe to call from any goroutine (e.g. HTTP handler goroutines). The actual
+// broadcast happens inside workLoop which owns v.sockets.
 func (v *versionNotifier) broadcastModeChanged(gameID, newMode string) {
+	v.modeChanged <- modeChangedRecord{gameID: gameID, newMode: newMode}
+}
+
+// doBroadcastModeChanged is called from workLoop only. Sends a
+// "mode-changed" socket message to every socket in the game. Client-side
+// handler responds by reloading the page.
+func (v *versionNotifier) doBroadcastModeChanged(gameID, newMode string) {
 	v.broadcastSocketMessage(gameID, "mode-changed", map[string]interface{}{
 		"newMode": newMode,
 	})

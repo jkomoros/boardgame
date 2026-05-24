@@ -343,6 +343,12 @@ func (s *Server) claimHostHandler(c *gin.Context) {
 		return
 	}
 
+	// Rate limit like other host actions.
+	if !hostActionAllowed(gameID, user.ID) {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "rate limited — wait a moment"})
+		return
+	}
+
 	// Caller must be seated in this game.
 	playerIndex := s.effectivePlayerIndex(c)
 	if playerIndex < 0 {
