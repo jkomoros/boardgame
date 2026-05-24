@@ -79,6 +79,19 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: String })
   gameId = '';
 
+  // companionInfo bundles the Table+Hand companion-mode fields from the
+  // doGameInfo response (RoomCode, RoomLocked, SeatPresentations, Absent,
+  // CompanionMode). Null for solo-mode games. Pass-through to the inner
+  // surface renderer via _companionInfoChanged.
+  @property({ type: Object })
+  companionInfo: any = null;
+
+  // isOwner is the doGameInfo IsOwner bool — true if the authenticated
+  // user is the game's Owner. Pass-through; the surface renderer combines
+  // this with its own surface-cookie check to compute isHost.
+  @property({ type: Boolean })
+  isOwner = false;
+
   @property({ type: Object, attribute: false })
   renderer: HTMLElement | null = null;
 
@@ -183,6 +196,14 @@ class BoardgameRenderGame extends LitElement {
       this._stateChanged(this.state, changedProperties.get('state') as any);
     }
 
+    if (changedProperties.has('companionInfo')) {
+      this._companionInfoChanged(this.companionInfo);
+    }
+
+    if (changedProperties.has('isOwner')) {
+      this._isOwnerChanged(this.isOwner);
+    }
+
     if (changedProperties.has('renderer')) {
       this.dispatchEvent(new CustomEvent('renderer-changed', {
         composed: true, bubbles: true, detail: { value: this.renderer }
@@ -195,6 +216,46 @@ class BoardgameRenderGame extends LitElement {
       return;
     }
     (this.renderer as any).diagram = newValue;
+  }
+
+  // _companionInfoChanged propagates the companionInfo bundle to the
+  // inner surface renderer whenever the gameInfo response refreshes. The
+  // base view classes (BoardgameTableViewBase / BoardgameHandViewBase)
+  // expose typed properties for the unpacked fields; we set them all so
+  // the renderer can react to e.g. an absent player coming back without
+  // a full re-mount.
+  private _companionInfoChanged(newValue: any) {
+    if (!this.renderer) return;
+    this._applyCompanionPropsToRenderer(this.renderer);
+  }
+
+  // _isOwnerChanged is the simpler sibling — just push the bool through.
+  // The base view computes isHost = isOwner && surface==='table'.
+  private _isOwnerChanged(newValue: boolean) {
+    if (!this.renderer) return;
+    (this.renderer as any).isOwner = newValue;
+    // isHost is gated by surface=table; recompute on isOwner change too.
+    this._recomputeIsHost();
+  }
+
+  private _applyCompanionPropsToRenderer(ele: HTMLElement) {
+    const r = ele as any;
+    const info = this.companionInfo || {};
+    r.seatPresentations = info.SeatPresentations || [];
+    r.absentPlayers = info.Absent || [];
+    r.roomCode = info.RoomCode || '';
+    r.roomLocked = info.RoomLocked || false;
+    r.companionMode = info.CompanionMode || false;
+    this._recomputeIsHost();
+  }
+
+  private _recomputeIsHost() {
+    if (!this.renderer) return;
+    // isHost: server-confirmed isOwner AND surface cookie indicates we're
+    // on the table surface. The surface cookie lookup duplicates the
+    // loader logic in _readSurfaceCookie but it's cheap to re-read.
+    const surface = this._readSurfaceCookie(this.gameId);
+    (this.renderer as any).isHost = this.isOwner && surface === 'table';
   }
 
   private _activeChanged(newValue: boolean) {
@@ -446,6 +507,12 @@ class BoardgameRenderGame extends LitElement {
     ele.currentPlayerIndex = this.currentPlayerIndex;
     ele.chest = this.chest;
     ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
+    // Pass game name + ID + companion props through so the Table/Hand
+    // view bases can call host endpoints (which require these in the URL
+    // path) and render the avatar strip, room code banner, etc.
+    ele.gameName = this.gameName;
+    ele.gameId = this.gameId;
+    this._applyCompanionPropsToRenderer(ele);
 
     this.renderer = ele;
 

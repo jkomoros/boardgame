@@ -728,6 +728,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       open: data.GameOpen,
       visible: data.GameVisible,
       isOwner: data.IsOwner,
+      // Companion-mode bundle from doGameInfo (spec §9.1 + §12). Empty
+      // object for solo-mode games (CompanionInfo is always present in
+      // the response but its sub-fields are zero-valued).
+      companionInfo: data.CompanionInfo || null,
     };
 
     this.dispatchEvent(new CustomEvent('install-game-static-info', { composed: true, bubbles: true, detail: gameInfo }));

@@ -69,6 +69,10 @@ export interface UpdateGameStaticInfoAction {
   open: boolean;
   visible: boolean;
   isOwner: boolean;
+  // companionInfo bundles the Table+Hand companion-mode fields from
+  // the gameInfo response (RoomCode, RoomLocked, SeatPresentations,
+  // Absent, CompanionMode). Null/absent for solo-mode games.
+  companionInfo: any;
 }
 
 export interface UpdateGameCurrentStateAction {

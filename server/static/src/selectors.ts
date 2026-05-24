@@ -84,6 +84,10 @@ export const selectGameHasEmptySlots = (state: RootState): boolean => state.game
 export const selectGameOpen = (state: RootState): boolean => state.game ? state.game.open : false;
 export const selectGameVisible = (state: RootState): boolean => state.game ? state.game.visible : false;
 export const selectGameIsOwner = (state: RootState): boolean => state.game ? state.game.isOwner : false;
+// selectGameCompanionInfo returns the doGameInfo CompanionInfo bundle for
+// the active game, or null for solo-mode games / before the first
+// gameInfo fetch.
+export const selectGameCompanionInfo = (state: RootState): any => state.game ? state.game.companionInfo : null;
 // Returns raw game state (not expanded) - use selectExpandedGameState for expanded version
 export const selectGameCurrentState = (state: RootState): RawGameState | null => state.game ? state.game.currentState : null;
 // Per-operation loading selectors

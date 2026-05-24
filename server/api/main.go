@@ -1307,6 +1307,27 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 	return result
 }
 
+// collectSeatPresentations returns the per-seat avatar+name records for a
+// game, indexed by playerIndex. Iterates numPlayers; absent rows (e.g.
+// for unjoined slots or solo-mode games) return nil from the storage and
+// are dropped from the result. Cheap V1 implementation; a single bulk
+// "list by gameID" storage method would be more efficient at scale.
+func (s *Server) collectSeatPresentations(gameID string, numPlayers int) []gin.H {
+	var out []gin.H
+	for i := 0; i < numPlayers; i++ {
+		rec, err := s.storage.SeatPresentation(gameID, boardgame.PlayerIndex(i))
+		if err != nil || rec == nil {
+			continue
+		}
+		out = append(out, gin.H{
+			"playerIndex": rec.PlayerIndex,
+			"displayName": rec.DisplayName,
+			"avatarSlug":  rec.AvatarSlug,
+		})
+	}
+	return out
+}
+
 func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
@@ -1355,6 +1376,24 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		return
 	}
 
+	// Companion-mode bundle: everything the Table+Hand view bases need to
+	// render avatar strips, "Waiting…" badges, room code, host controls.
+	// Empty/zero for solo-mode games (CompanionRoomCode=="") — harmless.
+	// Bundled into one CompanionInfo object so the client-side plumbing
+	// is a single prop traversal rather than five.
+	seatPresentations := s.collectSeatPresentations(game.ID(), game.NumPlayers())
+	companionInfo := gin.H{
+		"CompanionMode":     gameInfo.CompanionRoomCode != "",
+		"RoomCode":          gameInfo.CompanionRoomCode,
+		"RoomLocked":        gameInfo.CompanionLocked,
+		"SeatPresentations": seatPresentations,
+		// Absent is the list of player indices currently flagged absent by
+		// the heartbeat scan (spec §9.1). The Table view uses this to draw
+		// "Waiting for Alice (m:ss)" badges and to decide whether to show
+		// the host SkipTurn button on the current-player badge.
+		"Absent": s.notifier.AbsentPlayers(game.ID()),
+	}
+
 	args := gin.H{
 		"Chest":           game.Manager().Chest(),
 		"Forms":           s.generateFormsWithLegality(game, state, playerIndex),
@@ -1366,12 +1405,7 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		"GameOpen":        gameInfo.Open,
 		"GameVisible":     gameInfo.Visible,
 		"IsOwner":         isOwner,
-		// Absent is the list of player indices currently flagged absent by
-		// the heartbeat scan (spec §9.1). The Table view uses this to draw
-		// "Waiting for Alice (m:ss)" badges and to decide whether to show
-		// the host SkipTurn button on the current-player badge. Empty list
-		// for solo-mode games (no companion-mode heartbeats) — harmless.
-		"Absent": s.notifier.AbsentPlayers(game.ID()),
+		"CompanionInfo":   companionInfo,
 		//The StateVersion is almost always the Game.Version, except in the
 		//special case described above where lots of fix up moves have been
 		//applied but no player moves yet. State blobs used to include their own

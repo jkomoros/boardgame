@@ -49,6 +49,7 @@ const INITIAL_STATE: GameState = {
 	open: false,
 	visible: false,
 	isOwner: false,
+	companionInfo: null,
 	// currentState is now RAW state from server (unexpanded)
 	// Use selectExpandedGameState selector to get expanded version
 	currentState: null,
@@ -111,7 +112,8 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 			hasEmptySlots: action.hasEmptySlots,
 			open: action.open,
 			visible: action.visible,
-			isOwner: action.isOwner
+			isOwner: action.isOwner,
+			companionInfo: action.companionInfo,
 		};
 	case UPDATE_GAME_CURRENT_STATE:
 		return {

@@ -24,6 +24,7 @@ import {
   selectGameOpen,
   selectGameVisible,
   selectGameIsOwner,
+  selectGameCompanionInfo,
   selectExpandedGameState,
   selectGame,
   selectViewingAsPlayer,
@@ -157,6 +158,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean, attribute: false })
   _isOwner = false;
 
+  @property({ type: Object, attribute: false })
+  _companionInfo: any = null;
+
   @property({ type: String, attribute: false })
   _pageExtra = '';
 
@@ -238,6 +242,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           @renderer-changed=${this._handleRendererChanged}
           .gameName=${this._gameRoute ? this._gameRoute.name : ''}
           .gameId=${this._gameRoute ? this._gameRoute.id : ''}
+          .companionInfo=${this._companionInfo}
+          .isOwner=${this._isOwner}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .socketActive=${this.socketActive}
@@ -302,6 +308,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._open = selectGameOpen(state);
     this._visible = selectGameVisible(state);
     this._isOwner = selectGameIsOwner(state);
+    this._companionInfo = selectGameCompanionInfo(state);
     this._pageExtra = selectPageExtra(state);
     this._gameRoute = selectGameRoute(state);
     this._loggedIn = selectLoggedIn(state);
@@ -394,7 +401,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleGameStaticInfo(e: CustomEvent) {
     const bundle = e.detail;
-    store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner));
+    store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner, bundle.companionInfo));
   }
 
   private _handleAllAnimationsDone(e: Event) {

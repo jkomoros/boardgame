@@ -123,7 +123,8 @@ export const updateGameStaticInfo = (
   hasEmptySlots: boolean,
   open: boolean,
   visible: boolean,
-  isOwner: boolean
+  isOwner: boolean,
+  companionInfo: any = null,
 ): UpdateGameStaticInfoAction => {
   return {
     type: UPDATE_GAME_STATIC_INFO,
@@ -132,7 +133,8 @@ export const updateGameStaticInfo = (
     hasEmptySlots,
     open,
     visible,
-    isOwner
+    isOwner,
+    companionInfo,
   }
 }
 

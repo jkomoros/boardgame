@@ -98,6 +98,19 @@ export class BoardgameTableViewBase<
   @property({ type: Number })
   serverPlayAt: number | null = null;
 
+  // gameName + gameId are populated by boardgame-render-game's
+  // _instantiateRenderer (P5 polish). Used to build the URL path for
+  // host-action endpoints (hostSkipTurn, setRoomLock, switchToSolo).
+  // Without these the host-action handlers below silently no-op — they
+  // were previously trying to dig the gameName out of the sanitized
+  // state object via state.Manager.Delegate.Name(), which doesn't exist
+  // on the client-side state.
+  @property({ type: String })
+  gameName = '';
+
+  @property({ type: String })
+  gameId = '';
+
   /**
    * Opt-in helper: renders the avatar strip across the top edge of the
    * Table view. Tile per seated player; per-tile pulse for the current
@@ -178,11 +191,9 @@ export class BoardgameTableViewBase<
   }
 
   private async _onLockRoomToggle(locked: boolean) {
+    if (!this.gameName || !this.gameId) return;
     const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-    const gameName = (this.state as any)?.Manager?.Delegate?.Name?.() ?? '';
-    const gameID = (this.state as any)?.Game?.ID ?? '';
-    if (!gameName || !gameID) return;
-    await fetch(`${apiHost}/api/game/${gameName}/${gameID}/setRoomLock`, {
+    await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/setRoomLock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ locked }),
@@ -203,11 +214,9 @@ export class BoardgameTableViewBase<
     )) {
       return;
     }
+    if (!this.gameName || !this.gameId) return;
     const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-    const gameName = (this.state as any)?.Manager?.Delegate?.Name?.() ?? '';
-    const gameID = (this.state as any)?.Game?.ID ?? '';
-    if (!gameName || !gameID) return;
-    await fetch(`${apiHost}/api/game/${gameName}/${gameID}/switchToSolo`, {
+    await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/switchToSolo`, {
       method: 'POST',
       credentials: 'include',
     }).catch(e => console.warn('[table-view-base] switch-to-solo failed:', e));
@@ -273,17 +282,13 @@ export class BoardgameTableViewBase<
   }
 
   private async _onSkipTurn(playerIndex: number) {
-    // The endpoint figures out which player is current — we don't need
-    // to send the playerIndex, but log for debugging.
-    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-    const gameName = (this.state as any)?.Manager?.Delegate?.Name?.() ?? '';
-    const gameID = (this.state as any)?.Game?.ID ?? '';
-    if (!gameName || !gameID) {
-      console.warn('[table-view-base] cannot Skip — gameName/gameID not on state');
+    if (!this.gameName || !this.gameId) {
+      console.warn('[table-view-base] cannot Skip — gameName/gameId not set');
       return;
     }
+    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
     try {
-      const res = await fetch(`${apiHost}/api/game/${gameName}/${gameID}/hostSkipTurn`, {
+      const res = await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/hostSkipTurn`, {
         method: 'POST',
         credentials: 'include',
       });

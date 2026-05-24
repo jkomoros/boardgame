@@ -162,6 +162,9 @@ export interface GameState {
   visible: boolean;
   /** Whether current user is the game owner */
   isOwner: boolean;
+  /** Companion-mode bundle: RoomCode, RoomLocked, SeatPresentations, Absent,
+      CompanionMode. Null for solo-mode games. From the doGameInfo response. */
+  companionInfo: any;
   /** Current RAW game state from server (unexpanded - use selectExpandedGameState selector to get expanded version) */
   currentState: RawGameState | null;
   /** Timer metadata for expansion (maps timer ID to TimerInfo) */
