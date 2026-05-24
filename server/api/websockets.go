@@ -450,47 +450,57 @@ func (v *versionNotifier) clearAbsentIfPresent(gameID string, pi boardgame.Playe
 	return true
 }
 
-// broadcastPresenceChange wakes clients up with a version-style notify
-// (re-using the existing socket message channel to keep client wiring
-// simple). The client refetches state, which surfaces the new Absent list.
-// V1 uses a synthetic version of -1 in the broadcast envelope so clients
-// can distinguish from real state changes if they care; for now the
-// existing client just treats any "version" message as "go fetch state".
+// broadcastPresenceChange sends a "presence-changed" socket message to all
+// sockets in the game. Client-side handler refetches gameInfo, which
+// surfaces the updated Absent list. We use a distinct message type
+// (rather than synthesizing a "version" with a sentinel) because the
+// client-side version-targeting logic filters out versions < 0 — so a
+// fake "version: -1" would never reach the state-refetch path.
 func (v *versionNotifier) broadcastPresenceChange(gameID string) {
-	bucket, ok := v.sockets[gameID]
-	if !ok {
-		return
-	}
-	// Re-broadcast the latest game version (we don't track it here so use
-	// a sentinel; clients refetch state and get the actual version).
-	notif := gameVersionChanged{ID: gameID, Version: -1}
-	for socket := range bucket {
-		socket.SendMessage(notif)
-	}
+	v.broadcastSocketMessage(gameID, "presence-changed", map[string]interface{}{
+		"gameID": gameID,
+	})
 }
 
 // broadcastModeChanged sends a "mode-changed" socket message to every
 // socket currently connected to gameID. Client-side handler responds by
 // reloading the page (boardgame-game-state-manager.ts); on reload the
-// surface=table / surface=hand cookies are cleared by the server's
-// response to switchToSolo, and the loader picks the solo renderer.
+// surface cookies are cleared by switchToSolo's HTTP response and the
+// loader picks the solo renderer.
 func (v *versionNotifier) broadcastModeChanged(gameID, newMode string) {
+	v.broadcastSocketMessage(gameID, "mode-changed", map[string]interface{}{
+		"newMode": newMode,
+	})
+}
+
+// broadcastSocketMessage is the shared non-blocking broadcaster for the
+// new socket message types added in P3-P5 (presence-changed, mode-changed).
+// Non-blocking send via select+default — if a socket's send channel is
+// full, drop this frame for that client rather than stalling the entire
+// notifier goroutine on a slow socket. The version-changed path uses
+// SendMessage which blocks; switching it to non-blocking is a separate
+// hardening task (existing behavior preserved for now).
+func (v *versionNotifier) broadcastSocketMessage(gameID, msgType string, data interface{}) {
 	bucket, ok := v.sockets[gameID]
 	if !ok {
 		return
 	}
-	msg := socketMessage{
-		Type: "mode-changed",
-		Data: map[string]interface{}{
-			"newMode": newMode,
-		},
-	}
-	data, err := json.Marshal(msg)
+	msg := socketMessage{Type: msgType, Data: data}
+	payload, err := json.Marshal(msg)
 	if err != nil {
+		v.server.logger.Warnln("failed to marshal socket message", logrus.Fields{
+			"type": msgType,
+			"err":  err.Error(),
+		})
 		return
 	}
 	for socket := range bucket {
-		socket.send <- data
+		select {
+		case socket.send <- payload:
+		default:
+			// Slow client; drop this frame for them. They'll catch up
+			// on the next state refetch or reconnect.
+		}
 	}
 }
 
