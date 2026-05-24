@@ -196,6 +196,15 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 		return "", errors.New("Couldn't link " + nodeModulesFolder + ": " + err.Error())
 	}
 
+	// Inject the companion-capable game list into the ClientConfig so the
+	// game-creation form can show the Table+Hand toggle for supporting
+	// games. We don't mutate the caller's pointer if it's nil; otherwise we
+	// set the field non-destructively (overwriting any prior value, which
+	// shouldn't exist — this is a build-time-only computation).
+	if c != nil {
+		c.TableHandSupportedGames = CompanionCapableGames(pkgs)
+	}
+
 	fmt.Println("Creating " + clientConfigJsFileName)
 	if err := CreateClientConfigJs(directory, c); err != nil {
 		return "", errors.New("Couldn't create " + clientConfigJsFileName + ": " + err.Error())
