@@ -195,7 +195,7 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to issue session cookie: " + err.Error()})
 			return
 		}
-		setAuthCookieOnGin(c, authCookie)
+		s.setAuthCookieOnGin(c, authCookie)
 	}
 
 	// Look up the manager to retrieve the live game (doSeatPlayer needs a
@@ -227,7 +227,7 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	// Issue surface=hand cookie scoped to this game (per spec §7.1). We
 	// use a per-gameID cookie name so multiple in-flight companion games on
 	// one browser don't step on each other.
-	setSurfaceCookie(c, req.GameID, "hand")
+	s.setSurfaceCookie(c, req.GameID, "hand")
 
 	c.JSON(http.StatusOK, joinSeatResponse{
 		GameID:      req.GameID,
@@ -250,17 +250,20 @@ func surfaceCookieName(gameID string) string {
 // origin sees it. MaxAge 30 days so a returning player on the same browser
 // slots back into their seat.
 //
-// SameSite=Lax would be ideal but the framework's pinned gin version
-// predates SetSameSite. V2 can tighten when gin is upgraded; for V1 we rely
-// on Path scoping + the per-gameID-name to avoid cross-game cookie leakage.
-func setSurfaceCookie(c *gin.Context, gameID string, surface string) {
-	c.SetCookie(surfaceCookieName(gameID), surface, 30*24*60*60, "/", "", false /* secure */, false /* httpOnly */)
+// Secure is set in non-OfflineDevMode so production cookies are TLS-only;
+// dev mode (http://localhost) tolerates non-Secure. SameSite=Lax would be
+// ideal but the framework's pinned gin version predates SetSameSite. V2
+// can tighten when gin is upgraded.
+func (s *Server) setSurfaceCookie(c *gin.Context, gameID string, surface string) {
+	secure := !s.config.OfflineDevMode
+	c.SetCookie(surfaceCookieName(gameID), surface, 30*24*60*60, "/", "", secure, false /* httpOnly */)
 }
 
 // setAuthCookieOnGin is a small helper that mirrors what r.SetAuthCookie
 // does on the renderer-based handlers, for handlers that don't go through
 // renderer. Kept here rather than in auth.go to avoid touching the existing
-// flow.
-func setAuthCookieOnGin(c *gin.Context, value string) {
-	c.SetCookie(cookieName, value, 365*24*60*60, "/", "", false, true /* httpOnly */)
+// flow. Sets Secure in production, HttpOnly always.
+func (s *Server) setAuthCookieOnGin(c *gin.Context, value string) {
+	secure := !s.config.OfflineDevMode
+	c.SetCookie(cookieName, value, 365*24*60*60, "/", "", secure, true /* httpOnly */)
 }

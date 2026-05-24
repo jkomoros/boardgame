@@ -827,7 +827,7 @@ func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageReco
 		roomCode = code
 		// Surface cookie scoped to the gameID — see surfaceCookieName().
 		// Path "/" so the loader sees it on the game page.
-		c.SetCookie(surfaceCookieName(game.ID()), "table", 30*24*60*60, "/", "", false, false)
+		s.setSurfaceCookie(c, game.ID(), "table")
 	}
 
 	if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
