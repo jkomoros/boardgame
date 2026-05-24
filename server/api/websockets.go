@@ -398,12 +398,38 @@ func (v *versionNotifier) workLoop() {
 
 // scanStaleHeartbeats walks lastHeartbeat looking for entries older than
 // absentThreshold. Promotes them into the absent set and broadcasts a
-// presence-change notification per affected game. Called from the workLoop
-// goroutine only; safe to read lastHeartbeat without locking.
+// presence-change notification per affected game. Also opportunistically
+// evicts maps for finished games (long-running servers would otherwise
+// accumulate one inner map per game ever played; see spec §11 + critic
+// finding on map leaks).
+//
+// Called from the workLoop goroutine only; safe to read lastHeartbeat
+// without locking.
 func (v *versionNotifier) scanStaleHeartbeats() {
 	cutoff := time.Now().Add(-absentThreshold)
 	changedGames := make(map[string]bool)
+	var gamesToEvict []string
+
 	for gameID, gameHB := range v.lastHeartbeat {
+		// Eviction probe: if the game is gone-or-finished, drop the map.
+		// Cheap heuristic: the game has zero connected sockets AND
+		// we last heard a heartbeat for it more than 5 minutes ago.
+		// 5min > 30s absent threshold so a normal mid-game disconnect
+		// doesn't trigger eviction.
+		if _, hasSockets := v.sockets[gameID]; !hasSockets {
+			anyRecent := false
+			for _, ts := range gameHB {
+				if time.Since(ts) < 5*time.Minute {
+					anyRecent = true
+					break
+				}
+			}
+			if !anyRecent {
+				gamesToEvict = append(gamesToEvict, gameID)
+				continue
+			}
+		}
+
 		for pi, ts := range gameHB {
 			if ts.Before(cutoff) {
 				if v.markAbsent(gameID, pi) {
@@ -412,6 +438,14 @@ func (v *versionNotifier) scanStaleHeartbeats() {
 			}
 		}
 	}
+
+	for _, gameID := range gamesToEvict {
+		delete(v.lastHeartbeat, gameID)
+		v.absentMu.Lock()
+		delete(v.absent, gameID)
+		v.absentMu.Unlock()
+	}
+
 	for gameID := range changedGames {
 		v.broadcastPresenceChange(gameID)
 	}

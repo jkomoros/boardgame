@@ -21,18 +21,40 @@ const hostActionRateLimit = 1 * time.Second
 // action; used for the 1/sec rate limit. Per-game-per-host is the right
 // granularity: two different hosts in the same game don't throttle each
 // other, and one host across two games doesn't throttle either.
+//
+// Package-level rather than per-Server (acceptable smell — there's
+// typically one Server per process). hostActionLocksGC opportunistically
+// drops entries older than 1 hour to bound the map. Run from a single
+// goroutine in the package init below.
 var (
 	hostActionLocksMu sync.Mutex
 	hostActionLocks   = map[string]time.Time{}
 )
 
+const hostActionLocksEvictAge = 1 * time.Hour
+
 // hostActionAllowed returns true if enough time has passed since this
 // host's last recorded action in this game. Records the new action's
-// timestamp on success.
+// timestamp on success. Opportunistically evicts entries older than
+// hostActionLocksEvictAge on every Nth call (cheap GC).
 func hostActionAllowed(gameID, userID string) bool {
 	key := gameID + ":" + userID
 	hostActionLocksMu.Lock()
 	defer hostActionLocksMu.Unlock()
+
+	// Periodic eviction. We piggyback on the existing lock to avoid a
+	// separate goroutine. 1-in-N probabilistic gating keeps the cost
+	// O(N) amortized — fine since this only fires from host actions
+	// (rare events).
+	if len(hostActionLocks) > 32 {
+		cutoff := time.Now().Add(-hostActionLocksEvictAge)
+		for k, ts := range hostActionLocks {
+			if ts.Before(cutoff) {
+				delete(hostActionLocks, k)
+			}
+		}
+	}
+
 	if last, ok := hostActionLocks[key]; ok && time.Since(last) < hostActionRateLimit {
 		return false
 	}
