@@ -1,7 +1,9 @@
 package api
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -40,13 +42,14 @@ func hostActionAllowed(gameID, userID string) bool {
 
 // isHost returns true iff:
 //   - the request bears a surface=table cookie scoped to gameID, AND
-//   - the authenticated user is either the original game Owner OR the
-//     CompanionHostOverride (set by claimHost after the Owner went stale).
+//   - the authenticated user matches the supplied hostUserID (which is
+//     either the original game Owner OR the CompanionHostOverride, as
+//     resolved by resolveHost).
 //
 // A returning Owner reconnecting on a phone (no surface=table cookie) is
 // NOT host until they switch to a Table surface — this is the spec §9.4
 // rule that keeps host privileges with the projector.
-func (s *Server) isHost(c *gin.Context, gameID string, eGame interface{ getOwner() string }) bool {
+func (s *Server) isHost(c *gin.Context, gameID, hostUserID string) bool {
 	// Surface check: must have the table-surface cookie for this game.
 	surfaceCookie, err := c.Cookie(surfaceCookieName(gameID))
 	if err != nil || surfaceCookie != "table" {
@@ -57,17 +60,8 @@ func (s *Server) isHost(c *gin.Context, gameID string, eGame interface{ getOwner
 	if user == nil {
 		return false
 	}
-	owner := eGame.getOwner()
-	return user.ID == owner
+	return user.ID == hostUserID
 }
-
-// extendedGameWithHostOverride is a tiny adapter satisfying isHost's
-// interface dependency without forcing it to import extendedgame
-// (which would be fine — this is just a clarity choice). The full
-// CompanionHostOverride lookup is inlined in the helpers below.
-type extendedGameWithHostOverride struct{ owner, override string }
-
-func (e extendedGameWithHostOverride) getOwner() string { return e.owner }
 
 // resolveHost loads the eGame for gameID and returns (ownerOrOverride,
 // resolveErr). ownerOrOverride is the userID that has host privilege
@@ -75,27 +69,17 @@ func (e extendedGameWithHostOverride) getOwner() string { return e.owner }
 // set). Returns "" + err on lookup failure.
 func (s *Server) resolveHost(gameID string) (string, error) {
 	eGame, err := s.storage.ExtendedGame(gameID)
-	if err != nil || eGame == nil {
-		if err == nil {
-			err = errFromString("no such game")
-		}
+	if err != nil {
 		return "", err
+	}
+	if eGame == nil {
+		return "", errors.New("no such game")
 	}
 	if eGame.CompanionHostOverride != "" {
 		return eGame.CompanionHostOverride, nil
 	}
 	return eGame.Owner, nil
 }
-
-// errFromString is a tiny helper so we don't import errors here. The
-// existing errors package in this folder is a wrapped variant; for
-// internal helpers stdlib errors.New would also work but this keeps the
-// dependency footprint of host_actions.go small.
-func errFromString(s string) error { return &simpleError{s} }
-
-type simpleError struct{ s string }
-
-func (e *simpleError) Error() string { return e.s }
 
 // auditHostAction logs a structured record of a host action. V1 emits to
 // the existing logger rather than a dedicated companionHostAudit table;
@@ -134,7 +118,7 @@ func (s *Server) hostSkipTurnHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve host: " + err.Error()})
 		return
 	}
-	if !s.isHost(c, gameID, extendedGameWithHostOverride{owner: hostUserID}) {
+	if !s.isHost(c, gameID, hostUserID) {
 		s.auditHostAction("hostSkipTurn", gameID, "", "not host", false)
 		c.JSON(http.StatusForbidden, gin.H{"error": "host privileges required"})
 		return
@@ -217,7 +201,7 @@ func (s *Server) switchToSoloHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve host: " + err.Error()})
 		return
 	}
-	if !s.isHost(c, gameID, extendedGameWithHostOverride{owner: hostUserID}) {
+	if !s.isHost(c, gameID, hostUserID) {
 		s.auditHostAction("switchToSolo", gameID, "", "not host", false)
 		c.JSON(http.StatusForbidden, gin.H{"error": "host privileges required"})
 		return
@@ -286,7 +270,7 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve host: " + err.Error()})
 		return
 	}
-	if !s.isHost(c, gameID, extendedGameWithHostOverride{owner: hostUserID}) {
+	if !s.isHost(c, gameID, hostUserID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "host privileges required"})
 		return
 	}
@@ -314,15 +298,8 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 		return
 	}
 
-	s.auditHostAction("setRoomLock", gameID, userID, "locked="+boolStr(body.Locked), true)
+	s.auditHostAction("setRoomLock", gameID, userID, "locked="+strconv.FormatBool(body.Locked), true)
 	c.JSON(http.StatusOK, gin.H{"ok": true, "locked": body.Locked})
-}
-
-func boolStr(b bool) string {
-	if b {
-		return "true"
-	}
-	return "false"
 }
 
 // claimHostHandler implements POST /api/game/:name/:id/claimHost.
