@@ -253,11 +253,11 @@ The game-creation form reads `CLIENT_CONFIG.table_hand_supported_games` to show/
 The api binary also needs to know per-game whether Table+Hand mode applies (so it can refuse `/api/join`-flow for non-supporting games, and so it can populate per-game metadata in `doListManager`). The api binary already reads its own `config.json` at boot via `config.Get` (`server/api/main.go:1738`); `boardgame-util` writes a new `companion_capable_games []string` field into config.json as part of the same build step that emits the client-side map. At boot, the api populates `managerInfo.supportsTableHandMode bool` (`server/api/main.go:84`) from this field; surfaced via the existing `doListManager` response (which already carries per-manager flags like `playerHasSeat`).
 
 Concretely:
-- **Build step** (`boardgame-util/cmd_serve.go`, `cmd_build_static.go`): walks `server/static/game-src/<delegate.Name()>/`, builds a string slice of games with both `*-table.ts` and `*-hand.ts`, writes the slice to BOTH config.json (under key `companion_capable_games`) AND `client_config.js` (under `window.CLIENT_CONFIG.table_hand_supported_games`).
-- **Server side**: api binary reads `config.json` at boot, populates per-manager flag in `managerInfo`.
-- **Client side**: game-creation form reads `window.CLIENT_CONFIG.table_hand_supported_games` to decide whether to show the toggle.
+- **Build step** (`boardgame-util/cmd_serve.go`, `cmd_build_static.go`): walks `server/static/game-src/<delegate.Name()>/`, builds a string slice of games with both `*-table.ts` and `*-hand.ts`. Sets a new typed field on `ClientConfig` (`boardgame-util/lib/config/client.go:6-12` — the same struct that today carries `OfflineDevMode`, Firebase config, etc.). The existing `client_config.js` generator at `boardgame-util/lib/build/static/build.go:167-193` serializes the struct to JS for the browser AND `boardgame-util` writes the same field into `config.json` (under `companion_capable_games`) for the api binary to consume.
+- **Server side**: api binary reads `config.json` at boot via existing `config.Get` (`server/api/main.go:1738`), populates per-manager flag in `managerInfo` (`server/api/main.go:84`).
+- **Client side**: game-creation form reads `window.CLIENT_CONFIG.tableHandSupportedGames` (the typed-field name will follow existing camelCase conventions in `ClientConfig` JSON output) to decide whether to show the toggle.
 
-This is two writes by `boardgame-util` of the same data to two sinks (config.json for Go, client_config.js for JS) — symmetric and traceable, avoids the api binary parsing a JS file.
+One typed source (`ClientConfig.TableHandSupportedGames`), two consumers (browser via the existing JS serialization path; api via the existing config.json read path). No "api parses JS file" trickery; no raw-string emission.
 
 **Not on `boardgame.GameManager` directly** — that type is in the core library, deliberately HTTP-agnostic and filesystem-agnostic. Per-deployment capability belongs in the server's `managerInfo`, not the core library.
 
@@ -673,6 +673,7 @@ Three flavors, all framework-handled:
 - **Same browser, refresh**: cookie still valid → existing `calcViewingAsPlayerAndEmptySlots()` returns same seat. Heartbeat resumes; absent flag clears.
 - **Same browser, new tab**: cookie shared → same seat. Both tabs send heartbeats; presence is live as long as either does.
 - **Truly new browser**: anon UID is gone unless Firebase IndexedDB persistence restores it. If restored, same seat (resolution path checks `if anonUID in UserIDsForGame() → restore` before falling back to next-open-seat). If not restored, phone re-enters the room code and is reassigned to the next open seat.
+- **Same browser reused for a different room**: a phone that played in game A and then goes to `/join` to join game B will carry a stale `surface=hand` cookie scoped to game A's gameID. Because cookies are per-gameID, this cookie is invisible to game B (which uses a different gameID-scoped path). The new `surface=hand` cookie for game B is issued on `/api/join/seat` for game B without conflict. The old cookie expires naturally when game A reaches `Finished` + the 24h grace period elapses, OR is cleared explicitly if the user invokes `switchToSolo` on game A.
 
 ### 9.6 Switch to Solo (Mode Downgrade)
 
