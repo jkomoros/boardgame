@@ -1141,10 +1141,40 @@ func (s *Server) AddOverrides(overrides []config.OptionOverrider) *Server {
 // list boardgame-util computed at build time from filesystem walk. Returns
 // the server for chaining. Names that don't match any registered manager
 // are silently ignored (so a stale capability list doesn't crash startup).
+//
+// Panics at boot if a companion-capable game does not register a move named
+// "Force Finish Turn", or if that move is registered as a FixUp (which
+// would cause infinite recursion in the fixup pipeline). See
+// moves.ForceFinishTurn for the required registration pattern.
 func (s *Server) WithCompanionCapableGames(gameNames []string) *Server {
 	for _, name := range gameNames {
-		if mInfo, ok := s.managers[name]; ok {
-			mInfo.supportsTableHandMode = true
+		mInfo, ok := s.managers[name]
+		if !ok {
+			continue
+		}
+		mInfo.supportsTableHandMode = true
+
+		move := mInfo.manager.ExampleMoveByName("Force Finish Turn")
+		if move == nil {
+			panic(fmt.Sprintf(
+				"boardgame/server: game %q is companion-capable (has -table.ts and -hand.ts) "+
+					"but does not register a move named \"Force Finish Turn\". "+
+					"Add: auto.MustConfig(new(moves.ForceFinishTurn), "+
+					"moves.WithMoveName(\"Force Finish Turn\"), moves.WithIsFixUp(false))",
+				name,
+			))
+		}
+		type isFixUpper interface{ IsFixUp() bool }
+		fixUpper, _ := move.(isFixUpper)
+		if fixUpper != nil && fixUpper.IsFixUp() {
+			panic(fmt.Sprintf(
+				"boardgame/server: game %q registers \"Force Finish Turn\" as a FixUp move. "+
+					"This will cause infinite recursion in the fixup pipeline because "+
+					"ForceFinishTurn.Legal() returns nil for AdminPlayerIndex (the same "+
+					"identity used by fixup proposers). Fix: add moves.WithIsFixUp(false) "+
+					"to the auto.MustConfig call",
+				name,
+			))
 		}
 	}
 	return s
