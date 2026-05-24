@@ -130,6 +130,24 @@ func (s *ExtendedMemoryStorageManager) UpdateExtendedGame(id string, eGame *exte
 	return nil
 }
 
+// GameByRoomCode implements that part of the server storage interface.
+// Scans the stored extendedGames for one whose CompanionRoomCode matches.
+// Returns "" with a nil error if not found (caller treats as 404). Empty
+// CompanionRoomCode values are skipped — never match.
+func (s *ExtendedMemoryStorageManager) GameByRoomCode(code string) (string, error) {
+	if code == "" {
+		return "", nil
+	}
+	s.extendedGamesLock.RLock()
+	defer s.extendedGamesLock.RUnlock()
+	for id, eGame := range s.extendedGames {
+		if eGame != nil && eGame.CompanionRoomCode == code {
+			return id, nil
+		}
+	}
+	return "", nil
+}
+
 // UserIDsForGame implements that part of the server storage interface.
 func (s *ExtendedMemoryStorageManager) UserIDsForGame(gameID string) []string {
 	s.usersForGamesLock.RLock()

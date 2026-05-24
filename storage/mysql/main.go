@@ -289,6 +289,28 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	return (&record).ToStorageRecord(), nil
 }
 
+// GameByRoomCode looks up a gameID by CompanionRoomCode. Returns "" with
+// a nil error if no match (caller treats as 404). Empty code short-circuits
+// to "" with no DB query.
+func (s *StorageManager) GameByRoomCode(code string) (string, error) {
+	if !s.connected {
+		return "", errors.New("Database not connected yet")
+	}
+	if code == "" {
+		return "", nil
+	}
+
+	var id string
+	err := s.dbMap.SelectOne(&id, "select ID from "+tableExtendedGames+" where CompanionRoomCode = ?", code)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
 // SaveGameAndCurrentState saves the given game and current state.
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 

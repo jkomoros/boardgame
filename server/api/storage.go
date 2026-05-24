@@ -62,6 +62,14 @@ type StorageManager interface {
 
 	SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error
 
+	//GameByRoomCode looks up a gameID by its CompanionRoomCode (see
+	//extendedgame.StorageRecord and spec §6.1). Returns "" and a nil error
+	//if no live game has that code (caller should treat as 404). Codes
+	//are exclusive while the game is active and for 24h after Finished;
+	//implementations may choose to filter out games beyond the grace
+	//period or rely on the caller to check Finished + Modified.
+	GameByRoomCode(code string) (gameID string, err error)
+
 	//Store or update all fields
 	UpdateUser(user *users.StorageRecord) error
 

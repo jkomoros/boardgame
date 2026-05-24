@@ -515,6 +515,43 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 
 }
 
+// GameByRoomCode implements that method from the server api storagemanager
+// interface. Scans extended-game records for a CompanionRoomCode match.
+// Returns "" and a nil error if not found. Bolt doesn't have an index, so
+// this is O(N) over extendedGames — acceptable for the small N expected
+// of a single-server bolt deployment.
+func (s *StorageManager) GameByRoomCode(code string) (string, error) {
+	if code == "" {
+		return "", nil
+	}
+
+	var match string
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		eBucket := tx.Bucket(extendedGamesBucket)
+		if eBucket == nil {
+			return errors.New("Couldn't open extended games bucket")
+		}
+		return eBucket.ForEach(func(k, v []byte) error {
+			var eGame extendedgame.StorageRecord
+			if err := json.Unmarshal(v, &eGame); err != nil {
+				// Skip records we can't unmarshal; don't fail the whole scan.
+				return nil
+			}
+			if eGame.CompanionRoomCode == code {
+				match = string(k)
+			}
+			return nil
+		})
+	})
+
+	if err != nil {
+		return "", errors.New("Couldn't scan extended games for room code: " + err.Error())
+	}
+
+	return match, nil
+}
+
 // SetPlayerForGame implements that method from the server api storagemanager interface
 func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
 
