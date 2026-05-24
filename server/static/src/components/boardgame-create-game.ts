@@ -66,6 +66,10 @@ interface ManagerInfo {
   MaxNumPlayers: number;
   Variant: VariantInfo[] | null;
   Agents: AgentInfo[];
+  // SupportsTableHandMode: server-side flag (P1.9) telling us whether this
+  // game ships -table.ts + -hand.ts renderers, i.e. whether the Table+Hand
+  // toggle should be available on the create form.
+  SupportsTableHandMode?: boolean;
 }
 
 // Empty manager for templates
@@ -78,6 +82,7 @@ const EMPTY_MANAGER: ManagerInfo = {
   MaxNumPlayers: 0,
   Variant: [],
   Agents: [],
+  SupportsTableHandMode: false,
 };
 
 @customElement('boardgame-create-game')
@@ -478,6 +483,17 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
             <span>Allow anyone who can view the game to join</span>
           </label>
         </div>
+
+        ${when(this._selectedManager.SupportsTableHandMode, () => html`
+          <div class="horizontal layout">
+            <label class="switch-label">
+              <md-switch name="companionMode">
+                <md-icon slot="icon">cast</md-icon>
+              </md-switch>
+              <span>Use shared projector + phones (Table+Hand mode)</span>
+            </label>
+          </div>
+        `)}
       </div>
     `;
   }
