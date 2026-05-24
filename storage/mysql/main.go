@@ -35,7 +35,7 @@ const (
 )
 
 const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
-	"g.Created, g.Modified, e.Open, e.Visible, e.Owner, e.CompanionRoomCode, e.CompanionLocked"
+	"g.Created, g.Modified, e.Open, e.Visible, e.Owner, e.CompanionRoomCode, e.CompanionLocked, e.CompanionHostOverride"
 
 const baseCombinedFromQuery = "from " + tableGames + " g, " + tableExtendedGames + " e"
 

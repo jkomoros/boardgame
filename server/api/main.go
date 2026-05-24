@@ -1882,6 +1882,10 @@ func (s *Server) Start() {
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
 			protectedGameAPIGroup.POST("chat", s.chatSendHandler)
+			// Companion-mode host actions (spec §9). All require a logged-in
+			// user; further gated by isHost() / seated checks in the handlers.
+			protectedGameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
+			protectedGameAPIGroup.POST("claimHost", s.claimHostHandler)
 		}
 
 		// Chat read endpoint — available to any user with game access
