@@ -90,10 +90,19 @@ export class BoardgameTableViewBase<
 
   /**
    * Server-clock instant (ms since epoch) at which this state's cross-
-   * screen animation should begin playing. Set by boardgame-game-state-
-   * manager from the "version-timing" WebSocket message (spec §8.4).
-   * null = play immediately on state install (the V1 default for missing
-   * timing data).
+   * screen animation should begin playing. NOT auto-populated as a
+   * property in V1 (left as a property declaration for future Redux
+   * threading). The canonical access pattern is to import from
+   * ./companion-sync.js:
+   *
+   *   import { companionSync, latestServerPlayAt } from './companion-sync.js';
+   *   const playAt = latestServerPlayAt();
+   *   if (playAt) {
+   *     const localPlayAt = companionSync.localEquivalent(playAt);
+   *     setTimeout(() => playAnimation(), Math.max(0, localPlayAt - Date.now()));
+   *   }
+   *
+   * See spec §8.4 for the synchronization model and its V1 limitations.
    */
   @property({ type: Number })
   serverPlayAt: number | null = null;

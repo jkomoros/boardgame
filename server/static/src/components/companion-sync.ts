@@ -91,6 +91,17 @@ class CompanionSyncEstimator {
 
 export const companionSync = new CompanionSyncEstimator();
 
+// _latestServerPlayAt is the server-anchored play-at instant from the
+// most recent version-timing message. Game renderers can read it via
+// latestServerPlayAt() and feed it to companionSync.localEquivalent()
+// to schedule cross-screen animation playback at a clock-aligned
+// instant. Updated by ingestVersionTiming on every state push.
+let _latestServerPlayAt: number | null = null;
+
+export function latestServerPlayAt(): number | null {
+  return _latestServerPlayAt;
+}
+
 /**
  * ingestVersionTiming is the boardgame-game-state-manager hook that
  * forwards inbound "version-timing" socket messages into the estimator.
@@ -102,4 +113,5 @@ export function ingestVersionTiming(data: VersionTimingMessage): void {
     return;
   }
   companionSync.ingest(data);
+  _latestServerPlayAt = typeof data.serverPlayAt === 'number' ? data.serverPlayAt : null;
 }
