@@ -1,10 +1,23 @@
 # Table + Hand Mode (Per-Person Mobile UI)
 
-Spec date: 2026-05-23 (fourth revision — implementability fix-up after code-traced critic pass)
+Spec date: 2026-05-23 (fifth revision — concrete mechanisms for remaining gaps)
 Ticket: [#759 — Allow remote control / projected mode](https://github.com/jkomoros/boardgame/issues/759)
 Branch: `per-person-mobile-ui`
 
 ## Revision Notes
+
+### Revision 5 (concrete mechanisms)
+
+A second code-tracing critic pass on Revision 4 found that several "fixes" were themselves underspecified or still had real gaps. This revision applies the concrete corrections:
+
+- **Embedding-site sanitize override mechanism**: Go's `reflect.Type.FieldByNameFunc` returns the *inner* field's tag for promoted properties, NOT the outer embedding struct's tag. So `behaviors.PlayerRole \`sanitize:"all:visible"\`` at the embedding site has no effect on the existing inflater. **§6.3.2 (new) specifies the inflater extension required to walk outer embedding tags first, falling back to inner defaults.** The implementation plan will include this work item; we explicitly DO add the struct-tag machinery because the override is load-bearing for V1 public-role games.
+- **`switchToSolo` plumbing concretized** (§9.6) into four pieces: `eGame.CompanionMode` flag flip, new `mode-changed` WebSocket message type, client reload handler, response that clears surface cookies via `Set-Cookie: Max-Age=0`. Also added warning: switching mid-game in a hidden-info game destroys privacy and is irreversible in V1.
+- **`ForceFinishTurn` code example corrected**: now uses `state.PlayerStates()[state.CurrentPlayerIndex()]` and `interfaces.PlayerTurnFinisher` (the actual interface at `moves/interfaces/main.go:78`). Removed the redundant `ResetForTurnEnd` call (already invoked by `FinishTurn.Apply` at `moves/finish_turn.go:90`).
+- **Skip-on-non-current-player**: §9.3 now specifies that the Skip button only appears on the badge of the **current** player when they're absent. Non-current absent players display the "Waiting…" indicator without a Skip button — the host has nothing to skip until that player would be active.
+- **`ForceAdvancePhase` dropped from V1**: phase advancement is intrinsically game-specific (which phase next?) and cannot be a generic framework move. Phase-driven games where the absent player blocks phase advance fall back to "host has no recourse for V1" — same bucket as simultaneous-action games (§2 Non-Goals).
+- **`gameVersionChanged` backward-compatible**: instead of changing the existing `"version"` message's bare-int `Data` shape (which would break old clients at `boardgame-game-state-manager.ts:411-412`), a **new sibling message type `"version-timing"` carries the timestamps**. Old clients ignore the new type; new clients use it. Old `"version"` payload unchanged. §8.4 rewritten.
+- **Config distribution to the api binary**: §5.3 now specifies that `boardgame-util` writes a `companion_capable_games` array into `config.json` (the api binary's existing config source via `config.Get`, `server/api/main.go:1738`). No new "read client_config.js at boot" path needed.
+- **Audit deliverable corrected**: a grep confirms zero existing games embed `behaviors.PlayerRole` or `behaviors.PlayerTeam` in this repo today. Phase 2 "audit" is empty work; spec text amended to reflect.
 
 ### Revision 4 (implementability fix-up)
 
@@ -237,7 +250,14 @@ The game-creation form reads `CLIENT_CONFIG.table_hand_supported_games` to show/
 
 ### 5.3 Server-side capability exposure
 
-The api binary also needs to know per-game whether Table+Hand mode applies (so it can refuse `/api/join`-flow for non-supporting games, and so it can populate per-game metadata in `doListManager`). That happens via the existing `managerInfo` struct at `server/api/main.go:84`: we add a new `supportsTableHandMode bool` field, populated from the same `client_config.js` content (the api binary reads its own config file at boot via the existing config mechanism). The map is plumbed into `doListManager` (which already exposes per-manager flags like `playerHasSeat`).
+The api binary also needs to know per-game whether Table+Hand mode applies (so it can refuse `/api/join`-flow for non-supporting games, and so it can populate per-game metadata in `doListManager`). The api binary already reads its own `config.json` at boot via `config.Get` (`server/api/main.go:1738`); `boardgame-util` writes a new `companion_capable_games []string` field into config.json as part of the same build step that emits the client-side map. At boot, the api populates `managerInfo.supportsTableHandMode bool` (`server/api/main.go:84`) from this field; surfaced via the existing `doListManager` response (which already carries per-manager flags like `playerHasSeat`).
+
+Concretely:
+- **Build step** (`boardgame-util/cmd_serve.go`, `cmd_build_static.go`): walks `server/static/game-src/<delegate.Name()>/`, builds a string slice of games with both `*-table.ts` and `*-hand.ts`, writes the slice to BOTH config.json (under key `companion_capable_games`) AND `client_config.js` (under `window.CLIENT_CONFIG.table_hand_supported_games`).
+- **Server side**: api binary reads `config.json` at boot, populates per-manager flag in `managerInfo`.
+- **Client side**: game-creation form reads `window.CLIENT_CONFIG.table_hand_supported_games` to decide whether to show the toggle.
+
+This is two writes by `boardgame-util` of the same data to two sinks (config.json for Go, client_config.js for JS) — symmetric and traceable, avoids the api binary parsing a JS file.
 
 **Not on `boardgame.GameManager` directly** — that type is in the core library, deliberately HTTP-agnostic and filesystem-agnostic. Per-deployment capability belongs in the server's `managerInfo`, not the core library.
 
@@ -314,15 +334,43 @@ The choice of `seatPick` becomes the player's `playerIndex` on the seat endpoint
 
 ### 6.3.1 Concrete Sanitization Plumbing
 
-Sanitization in this framework is property-name keyed and resolved at inflater-construction time — see `struct_inflater.go:438` (`PropertySanitizationPolicy`) and the `sanitize:` struct-tag mini-language in `sanitization.go`. A runtime-mutable `Visibility` field on a behavior cannot directly influence per-property policies (the policy map is precomputed). This spec uses the existing tag mechanism instead:
+Sanitization in this framework is property-name keyed and resolved at inflater-construction time — see `struct_inflater.go:438` (`PropertySanitizationPolicy`) and the `sanitize:` struct-tag mini-language in `sanitization.go`. A runtime-mutable `Visibility` field on a behavior cannot directly influence per-property policies (the policy map is precomputed). This spec uses the existing tag mechanism, plus a small extension to make embedding-site overrides actually work:
 
 1. **Default**: this spec changes `behaviors.PlayerRole.Role` to ship with a default `sanitize:"other:hidden"` tag (added to its existing `enum:"role"` tag at `behaviors/role.go:16`). Same change applied to `behaviors.PlayerTeam.Team` at `behaviors/team.go:32`. Effect: `ObserverPlayerIndex` (i.e., the projector) sees these properties as hidden by default; the player's own Hand view still sees them (since "other" excludes self).
-2. **Opt-out at the embedding site**: a game that wants public roles overrides the tag in its own `playerState` struct (as shown in §3.3) via the standard Go struct-tag override mechanism. The inflater walks the *embedding* struct's field tags first, falling back to the embedded field's defaults.
-3. **Programmatic override (rare)**: `base.GameDelegate.SanitizationPolicy()` at `game_delegate.go:307-321` can return a per-property `Policy` based on runtime state. This is the existing API; no new hook.
+2. **Opt-out at the embedding site**: a game that wants public roles overrides the tag in its own `playerState` struct (as shown in §3.3). See §6.3.2 — this requires a small extension to the inflater because Go's default reflection of promoted properties doesn't carry the outer embedding-site tag.
+3. **Programmatic override (rare)**: `base.GameDelegate.SanitizationPolicy()` at `game_delegate.go:307-321` can return a per-property `Policy` based on runtime state. This is the existing API; no new hook needed.
 
-**Existing-game compatibility**: games that embed `behaviors.PlayerRole` today expect the role property to be visible to observers (since that's the current default — no `sanitize:` tag means `all:visible`). Adding the new default flips that for these games. **Migration**: as part of Phase 2, each existing game embedding `PlayerRole`/`PlayerTeam` is audited and explicitly tagged `sanitize:"all:visible"` if its current behavior is intentional. Examples in `examples/` that don't opt in get the new private default — verified to match game intent in code review. This is captured as a phase-2 task in §14.
+**Existing-game compatibility**: a grep of `examples/` and `server/static/game-src/` shows **no games today embed `behaviors.PlayerRole` or `behaviors.PlayerTeam`**. So the default flip is safe — there's nothing to migrate. The Phase 2 "audit" deliverable is effectively confirmation that the grep stays empty as of the Phase 2 PR; new games introduced before then would be checked.
 
-**Why no new tag namespace**: the third revision proposed a custom `visibility:"public"` tag; the code-traced critic pointed out this isn't idiomatic (existing tags are `enum:"…"`, `sanitize:"…"`). Reusing `sanitize:` keeps the convention tight and the implementation surface zero.
+**Why no new tag namespace**: the third revision proposed a custom `visibility:"public"` tag; the code-traced critic pointed out this isn't idiomatic (existing tags are `enum:"…"`, `sanitize:"…"`). Reusing `sanitize:` keeps the convention tight.
+
+### 6.3.2 Inflater Extension for Embedding-Site Tag Overrides
+
+**The problem.** Go's `reflect.Type.FieldByNameFunc(propName)` (used at `struct_inflater.go:962-990`) returns the *promoted inner* field's `Tag` when looking up a struct field by its promoted name. It does NOT return the tag on the outer anonymous-embed site. So today, given:
+
+```go
+type playerState struct {
+    base.SubState
+    behaviors.PlayerRole `sanitize:"all:visible"`   // outer tag
+}
+```
+
+…and `behaviors.PlayerRole.Role` carrying `sanitize:"other:hidden"` as its inner default, the existing inflater sees only `sanitize:"other:hidden"`. The outer override is dropped on the floor.
+
+**The fix.** This spec adds a small extension to `StructInflater` (the one place that resolves per-property sanitization, at `struct_inflater.go:125` and the per-property lookup at `:438`). The new resolution rule:
+
+1. For each anonymous-embedded field on the struct being inflated, capture its outer tag (via `reflect.StructField.Tag` on the embedding field — not the inner promoted one).
+2. When resolving a promoted property name to a sanitization policy: first check whether the outer tag has a `sanitize:` value (the outer override); if it does, use that. Otherwise fall back to the inner field's `sanitize:` tag (current behavior).
+3. Precedence: outer-embedding-site tag > inner default. This is the standard "child overrides parent" precedence, which matches developer expectations from struct-tag overrides in other Go libraries (e.g., gorm).
+
+This extension is **load-bearing for V1 public-role games** (Codenames-style — if we ever ship one — and any user-defined game wanting public roles). Without it, the §3.3 author experience ("override one tag at the embedding site") is broken.
+
+**Scope**: ~30-50 lines of new code in `struct_inflater.go`, plus tests that:
+- Confirm the default (inner `sanitize:"other:hidden"`) hides from observer.
+- Confirm the outer override (`sanitize:"all:visible"`) shows to observer.
+- Confirm a game NOT embedding either behavior is unaffected (no regression).
+
+This work item is included in **Phase 2** as the foundation for the public-role opt-in — see §14.
 
 ### 6.4 Identity Paths
 
@@ -491,24 +539,27 @@ V1 commits to the left-to-right-evenly-spaced layout convention. Games that want
 
 ### 8.4 Sync Primitive
 
-**There is no "state push" — there's a version-change notify over WebSocket, followed by a separate HTTP `GET /api/game/:name/:id/version/:version` round-trip for the state JSON** (see `server/api/main.go:944` and `websockets.go:19-22`). The WebSocket `socketMessage.Data` is just the version number (an int) for state changes. So the sync timestamps ride on the `gameVersionChanged` socket payload (server-controlled, no JSON-body change needed), and the client schedules animation start **before** the HTTP fetch completes.
+**There is no "state push" — there's a version-change notify over WebSocket, followed by a separate HTTP `GET /api/game/:name/:id/version/:version` round-trip for the state JSON** (see `server/api/main.go:944` and `websockets.go:19-22`). The WebSocket `socketMessage.Data` for the existing `"version"` message type is a bare integer (the version number). So adding timestamps to that message would break existing clients which parse the integer directly (`boardgame-game-state-manager.ts:411-412` calls `setTargetVersion(msg.data)` expecting an int).
 
-The framework extends `gameVersionChanged` (defined in `server/api/websockets.go:36-39`):
+To stay backward-compatible, this spec introduces a **new sibling message type `"version-timing"`** that is broadcast immediately after the existing `"version"` message for state changes. Old clients ignore the new type; new clients use it. The existing `"version"` payload shape is unchanged.
 
 ```go
-type gameVersionChanged struct {
-    gameID       string
-    version      int
-    serverSentAt int64    // NEW — ms since epoch, set at the server-side broadcast site
-    serverPlayAt int64    // NEW — serverSentAt + ANIMATION_LEAD_MS (default 250)
+// websockets.go — new message type
+type versionTiming struct {
+    Version      int   `json:"version"`
+    ServerSentAt int64 `json:"serverSentAt"`  // ms since epoch, set at broadcast
+    ServerPlayAt int64 `json:"serverPlayAt"`  // serverSentAt + ANIMATION_LEAD_MS (default 250)
 }
 ```
 
-Outbound socket frame for the client:
+Outbound socket frames for the client (two frames, in this order):
 
 ```json
-{ "type": "version", "data": { "version": 42, "serverSentAt": 1779712345678, "serverPlayAt": 1779712345928 } }
+{ "type": "version",         "data": 42 }
+{ "type": "version-timing",  "data": { "version": 42, "serverSentAt": 1779712345678, "serverPlayAt": 1779712345928 } }
 ```
+
+New clients that handle `"version-timing"` correlate it to the same version number from the preceding `"version"` message. If `"version-timing"` doesn't arrive within 200ms after `"version"` (e.g., legacy server), the client falls back to "play immediately on state-fetch" — graceful degradation.
 
 Client logic on receipt:
 
@@ -552,10 +603,10 @@ The host is identified by `eGame.Owner == currentUser` AND `surface=table` cooki
 
 The only V1 host action.
 
-`POST /api/game/<id>/hostSkipTurn?player=N` (camelCase to match existing route style at `server/api/main.go:944,1072,1301`):
+`POST /api/game/<id>/hostSkipTurn` (no `?player=` query parameter — the action only ever targets the **current** player; see "Skip-on-non-current behavior" below):
 
 - Gated on `IsHost(currentUser, gameID)`.
-- Server proposes the new `moves.ForceFinishTurn` move (described below).
+- Server proposes the new `moves.ForceFinishTurn` move with `proposer = AdminPlayerIndex` (existing pattern: server-proposed FixUp moves already use `AdminPlayerIndex` — see `game.go:568, 651` for the existing `applyMove(..., AdminPlayerIndex, ...)` and `ProposeMove(move, AdminPlayerIndex)` callers).
 - Audited.
 - Rate-limited to 1/sec per `(gameID, hostUserID)`.
 
@@ -571,30 +622,37 @@ type ForceFinishTurn struct {
     FinishTurn  // embed for behavior reuse
 }
 
-func (f *ForceFinishTurn) Legal(state ImmutableState, proposer PlayerIndex) error {
-    // Bypasses TurnDone() — only requires AdminPlayerIndex proposer
-    if !proposer.Equivalent(AdminPlayerIndex) {
+func (f *ForceFinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+    // Bypasses TurnDone() — only AdminPlayerIndex (server-proposed) may invoke
+    if proposer != boardgame.AdminPlayerIndex {
         return errors.New("ForceFinishTurn can only be proposed by AdminPlayerIndex")
     }
     return nil
 }
 
-func (f *ForceFinishTurn) Apply(state State) error {
-    // Defensively call ResetForTurnEnd on the current player to clear partial-turn state
-    if rt, ok := state.CurrentPlayer().(interfaces.RoundRobinResetter); ok {
-        rt.ResetForTurnEnd()
-    }
-    return f.FinishTurn.Apply(state)
-}
+// Apply is inherited from FinishTurn, which already calls ResetForTurnEnd on
+// the current player's PlayerTurnFinisher (moves/finish_turn.go:90). No
+// override needed — the embedded behavior does the right thing once Legal()
+// allows the move through.
 ```
+
+Note: `FinishTurn.Apply` already calls `ResetForTurnEnd` via the `interfaces.PlayerTurnFinisher` interface (`moves/interfaces/main.go:78`); we explicitly do NOT override `Apply` in `ForceFinishTurn` so that we don't double-invoke. The embed cleanly inherits the behavior.
 
 Server-side `hostSkipTurn` proposes `ForceFinishTurn` with `proposer = AdminPlayerIndex`. Existing `moves.FinishTurn` is unchanged.
 
-#### Phase-based games (Werewolf etc.)
+#### Skip-on-non-current-player behavior
 
-Games that drive turn order via phases (using `moves.StartPhase`) need phase advancement on absent-player skip, not just current-player advancement. V1 ships a sibling move `moves.ForceAdvancePhase` that the host can invoke through a separate `POST /api/game/<id>/hostForceAdvancePhase` endpoint (the Table view exposes this as a second host button when the game uses `moves.StartPhase`). Detection: server type-asserts the delegate's move set for an existing `StartPhase` move; if present, the second button appears.
+A common case: player Bob is absent, but it's Carol's turn (not Bob's). Host taps Bob's badge — what should happen?
 
-Authors of games that have non-standard turn structures (e.g., simultaneous-action games via `behaviors.PlayerSubmission`) where neither `ForceFinishTurn` nor `ForceAdvancePhase` applies will see the host SkipTurn button hidden — V1 has no recourse for that case; the game pauses indefinitely on the absent player. Documented in §2 Non-Goals.
+**Answer**: the Skip button only appears on the badge of the **current** player when they're absent. Non-current absent players display a "Waiting…" indicator (just informational) with no Skip button. Rationale: there's nothing meaningful to "skip" for a player who isn't currently making decisions. Once it becomes Bob's turn and he's still absent, the Skip button appears on his badge.
+
+This matches the existing `ForceFinishTurn` semantics (which target the current player) and avoids the ambiguity of "skip until this player would have been current."
+
+#### Phase-based games (Werewolf etc.) — out of V1
+
+Earlier drafts proposed a sibling `ForceAdvancePhase` move for games using `moves.StartPhase`. We dropped it from V1 because phase advancement is intrinsically game-specific — `StartPhase` requires `WithPhaseToStart` config (see `moves/start_phase.go:86-94`) and a generic framework move cannot know which phase comes next without delegate-specific knowledge.
+
+For V1, phase-driven games where an absent player blocks phase advance fall into the same "no recourse" bucket as simultaneous-action games (§2 Non-Goals): the game pauses indefinitely on the absent player; host can wait, switch-to-solo, or end the game. V2 can add a delegate hook for game-specific phase-skip moves once we have actual deployed phase-driven games to drive the design.
 
 ### 9.4 Host Transfer
 
@@ -618,18 +676,27 @@ Three flavors, all framework-handled:
 
 ### 9.6 Switch to Solo (Mode Downgrade)
 
-If the projector setup fails mid-game (HDMI handshake drops, AirPlay disconnect, etc.) and the group wants to fall back to solo-device-per-player without losing state: any host can invoke `POST /api/game/<id>/switchToSolo`.
+If the projector setup fails mid-game (HDMI handshake drops, AirPlay disconnect, etc.) and the group wants to fall back to solo-device-per-player without losing state: the host can invoke `POST /api/game/<id>/switchToSolo`.
 
-Effects:
-- Server clears `eGame.CompanionMode = false`.
-- All `surface=table` and `surface=hand` cookies for the game are invalidated (the server tracks them per-game and notifies via the WebSocket).
-- Each connected client refreshes; on reload, the surface cookie is absent, so the loader picks the solo renderer.
-- `seatPresentation` rows are preserved (the avatars still apply in the solo view's "who's playing" UI, even if the metaphor shifts).
-- Phones still bound to seats stay bound — they just now see the solo renderer.
+**⚠️ User-facing warning at the confirm step**: "Switching to solo mode will end the shared-screen mode for this game. Each player's phone will start showing the full game view, which **may reveal hidden information** (cards, roles) that was previously private. This change cannot be undone for the current game." The confirm requires a deliberate two-tap (initial button → confirm-the-warning).
+
+This is the price of switching mid-game in a hidden-info game: the solo renderer typically renders all public state + the viewing player's private slice, but a phone shoved next to a neighbor's eyes makes "your private slice" much less private than the Hand view did. For pre-game switching, the warning is unnecessary (no info to leak yet); the spec still surfaces it for consistency.
+
+#### Concrete plumbing — four pieces
+
+The earlier draft said cookies are "invalidated via the WebSocket." That's actually two pieces of plumbing the framework doesn't have today. Here's what's actually needed:
+
+1. **Server-side state change**. Endpoint sets `eGame.CompanionMode = false` and persists it. (One existing pattern — same kind of write as setting `Finished`.)
+
+2. **New WebSocket message type `mode-changed`**. Currently the framework defines only `"version"` and `"chat"` socket message types (`server/api/websockets.go:19-22`). This spec adds a third: `{ "type": "mode-changed", "data": { "newMode": "solo" } }`. Broadcast to every socket in the game's bucket via the existing `versionNotifier` channel-based mechanism.
+
+3. **Client-side handler**. `boardgame-game-state-manager.ts` (or equivalent socket router on the client) gets a new branch for `"mode-changed"` that calls `window.location.reload()`. No state surgery — just a clean reload.
+
+4. **HTTP response on reload clears the surface cookies**. On the next HTTP request after `eGame.CompanionMode == false`, the server's middleware sets `Set-Cookie: surface=hand; Max-Age=0; Path=/; ...` (and ditto for `surface=table`). Standard cookie-clearing pattern. After reload + cookie-clear, the loader (`boardgame-render-game.ts:365`) reads no `surface=...` cookie and loads the solo renderer.
+
+`seatPresentation` rows are preserved (the avatars still apply in the solo view's "who's playing" UI). Phones still bound to seats stay bound — they just now see the solo renderer.
 
 V1 does NOT support the reverse direction (upgrading a solo game into Table+Hand mid-session) because solo-mode players aren't seat-bound the same way.
-
-This is an explicit two-line addition over the third revision; the omission was flagged by the V1-scope critic as a recovery footgun.
 
 ## 10. Avatar / Name Picker
 
@@ -696,12 +763,13 @@ Per Jackbox research, audio cues bridge two screens well but we defer to V2. V1 
 
 - `room_code_test.go`: alphabet, collision retry, recycling.
 - `presence_test.go`: heartbeat staleness, absent flag, reconnect.
+- **`inflater_outer_tag_override_test.go`**: confirms the new inflater extension (§6.3.2) — given a struct that embeds a behavior with an inner `sanitize:"…"` tag AND an outer `sanitize:"…"` tag at the embedding site, the outer tag wins. Tests against synthetic fixtures, not against `PlayerRole` specifically, so the inflater is verified independently of the behavior.
 - `role_sanitize_default_test.go`: confirms the new `sanitize:"other:hidden"` default on `PlayerRole.Role` and `PlayerTeam.Team` produces the expected projector vs hand-view sanitization difference. Includes a fixture game with PlayerRole, asserts `ObserverPlayerIndex` JSON omits the role property while `PlayerIndex(n)` JSON includes it.
-- `role_sanitize_public_override_test.go`: same fixture but with `sanitize:"all:visible"` override at the embedding site; confirms projector now sees the role.
-- `force_finish_turn_test.go`: confirms `moves.ForceFinishTurn.Legal` accepts `AdminPlayerIndex` proposers and rejects others; confirms `Apply` calls `ResetForTurnEnd` defensively before delegating to `FinishTurn.Apply`.
-- `host_actions_test.go`: SkipTurn gated on `IsHost` (table-surface check included); rate-limited; audited; non-host rejected; phone-only Owner cannot skip.
+- `role_sanitize_public_override_test.go`: same fixture but with `sanitize:"all:visible"` override at the embedding site; confirms projector now sees the role. Depends on the inflater extension passing first.
+- `force_finish_turn_test.go`: confirms `moves.ForceFinishTurn.Legal` accepts `AdminPlayerIndex` proposers and rejects others; confirms `Apply` delegates correctly to `FinishTurn.Apply` (which invokes `ResetForTurnEnd` via `interfaces.PlayerTurnFinisher`); confirms no double-invocation of reset.
+- `host_actions_test.go`: SkipTurn gated on `IsHost` (table-surface check included); rate-limited; audited; non-host rejected; phone-only Owner cannot skip. **Skip button is only available when the absent player IS the current player** (per §9.3).
 - `host_transfer_test.go`: claim succeeds after 30s of stale Owner heartbeat; rejects if Owner is fresh; ties broken by lowest player index; promoted player retains host on Hand surface.
-- `switch_to_solo_test.go`: confirms `switchToSolo` clears `CompanionMode` and invalidates surface cookies; confirms phones reload into solo renderer.
+- `switch_to_solo_test.go`: confirms `switchToSolo` flips `CompanionMode = false`, broadcasts the new `"mode-changed"` WebSocket message, and subsequent HTTP requests carry `Set-Cookie: surface=…; Max-Age=0` headers.
 - **`inter_player_gift_privacy_test.go`** (security regression): set up a 3-player game where each player has a private `Hand` stack with `sanitize:"order:none"` (component IDs hidden from observers). Move a card from player 3's hand to player 2's hand. Confirm the `ObserverPlayerIndex` view of both before and after states sees only obscured component IDs in the fake-deck stub elements — there is no way the Table-view FLIP animation can reveal which specific card was transferred. This regression covers the case where a sanitization mistake on a future game could leak via the cross-screen animation.
 
 ### 13.2 Integration Tests
@@ -709,8 +777,9 @@ Per Jackbox research, audio cues bridge two screens well but we defer to V2. V1 
 - Multi-client websocket scenario: Table + 2 Hands connect; one Hand disconnects; presence updates push; SkipTurn advances (via `moves.ForceFinishTurn` rather than vanilla `FinishTurn`); Hand reconnects.
 - Anonymous join → seat → state-version-change notify → state-fetch → move → notify → fetch. Compare Table and Hand state JSONs to confirm sanitization differences.
 - Public-visibility role game: confirm role appears on Table view's seat picker. Private-visibility role game: confirm role does NOT appear on Table view, only on Hand view.
-- WebSocket `gameVersionChanged` payload includes `serverSentAt` and `serverPlayAt`; client schedules animation correctly before the HTTP state-fetch resolves.
+- New `"version-timing"` WebSocket message arrives after `"version"` for state changes; carries valid `serverSentAt`/`serverPlayAt`. Old `"version"` payload shape unchanged (bare int). Backward-compat: a stubbed "old client" that only handles `"version"` doesn't break.
 - `animateBetween(realId, stubId)` correctly animates a single card via synthetic-ID stub without colliding with the real `component.id` in the animator's `_infoById` map.
+- `switchToSolo` end-to-end: Table host invokes endpoint → all sockets receive `"mode-changed"` → reload → cookies cleared → solo renderer loads.
 
 ### 13.3 Browser / E2E (Playwright)
 
@@ -731,13 +800,14 @@ One real session with 4 humans before V1 ships.
 - New token-bucket rate-limiting middleware (`middleware_ratelimit.go`); apply to `/api/join` and `/api/join/seat`.
 - Firebase anonymous auth flow on the phone.
 - `seatPresentation` storage table + accessors (same four-place implementation).
-- Build-time filesystem capability walk in `boardgame-util/cmd_serve.go` and `cmd_build_static.go`; emit `table_hand_supported_games` field into existing `client_config.js`. Server-side `managerInfo.supportsTableHandMode` surfaced via `doListManager`.
+- Build-time filesystem capability walk in `boardgame-util/cmd_serve.go` and `cmd_build_static.go`; emit `companion_capable_games` into config.json (for api binary) AND `table_hand_supported_games` into client_config.js (for browser). Server-side `managerInfo.supportsTableHandMode` populated from config.json at boot; surfaced via `doListManager`.
 - Surface cookie routing in `boardgame-render-game.ts`.
 - `BoardgameTableViewBase` + `BoardgameHandViewBase` (minimal — just typed props + helper renders).
 
 ### Phase 2 — Identity + Seat Picker (PR 2)
-- Add default `sanitize:"other:hidden"` to `behaviors.PlayerRole.Role` and `behaviors.PlayerTeam.Team`.
-- Audit existing games embedding `PlayerRole`/`PlayerTeam`; add explicit `sanitize:"all:visible"` overrides where the current behavior is intentional (preserves existing-game compatibility).
+- **Inflater extension (§6.3.2)**: extend `StructInflater` in `struct_inflater.go` to walk outer embedding-site tags first, falling back to inner defaults. ~30-50 LOC + tests. **Load-bearing** for the public-role opt-in mechanism.
+- Add default `sanitize:"other:hidden"` to `behaviors.PlayerRole.Role` (at `behaviors/role.go:16`) and `behaviors.PlayerTeam.Team` (at `behaviors/team.go:32`).
+- Audit confirmation: grep shows zero games currently embed `PlayerRole`/`PlayerTeam`. If any new games landed before this PR, audit them and add explicit `sanitize:"all:visible"` overrides where current behavior was intentional.
 - Seat picker UI on phone (`/api/join/seat-options` endpoint).
 - Avatar/name picker (random front door + customize) — depends on the avatar catalog being committed.
 
@@ -745,16 +815,16 @@ One real session with 4 humans before V1 ships.
 - Thread `playerIndex` into the `socket` struct (`websockets.go:56-61`); populate from `effectivePlayerIndex` at handler entry.
 - In-band JSON heartbeat message + server-side `lastHeartbeat` map folded into the existing notifier goroutine via a new `chan heartbeat`.
 - "Waiting for Alice…" projector affordance.
-- `moves.ForceFinishTurn` (and `moves.ForceAdvancePhase` for phase-driven games).
-- Host SkipTurn endpoint + UI button. Detection of phase-driven games adds a second host button (`hostForceAdvancePhase`).
+- `moves.ForceFinishTurn` (new file `moves/force_finish_turn.go`).
+- Host `hostSkipTurn` endpoint — Skip button appears ONLY on the current player's badge when absent (§9.3).
 - Host transfer (`claimHost`) + `companionHostAudit` table + audit log writes from host endpoints.
 - Host = table-surface requirement encoded in `IsHost`.
 
 ### Phase 4 — Animations (PR 4)
 - Fake-deck row helper render on Table view base (synthetic-ID stub elements).
-- New animator API: `animateBetween(realId, stubId)` in `boardgame-component-animator.ts`.
+- New animator API: `animateBetween(realId, stubId)` in `boardgame-component-animator.ts`. Scope: ~50-80 LOC; a new code path that takes element references directly and runs mini-FLIP outside the main collection iteration (the existing `prepare()` only walks `_sharedStackList` so synthetic stubs outside the stack tree need their own measure path).
 - Top-edge off-screen anchor on Hand view base.
-- `serverSentAt`/`serverPlayAt` fields on the `gameVersionChanged` WebSocket payload; client-side minimum-wins one-way estimator.
+- New WebSocket message type `"version-timing"` carrying `serverSentAt`/`serverPlayAt`; broadcast sibling to existing `"version"` message (backward compatible — old clients ignore the new type). Client-side minimum-wins one-way estimator.
 - MVP game's `*-table.ts` and `*-hand.ts` shipped (likely `murdermrmonroe`).
 - End-to-end deal animation working across surfaces.
 
@@ -762,12 +832,14 @@ One real session with 4 humans before V1 ships.
 - QR code on Table view.
 - Visual polish, dark theme.
 - Room-lock toggle UI.
-- `switchToSolo` host action.
+- `switchToSolo` host action (four-piece plumbing per §9.6): server-side flag, new `"mode-changed"` WebSocket message type, client reload handler, cookie clearing via Set-Cookie Max-Age=0 on reload.
 - 4+ human playtest.
 
 ### Out of V1 (deferred)
 - Free-Seat host action.
 - Replace-with-AI host action (existing Agent system covers some of this already at game-create time).
+- Phase-skip host action (`ForceAdvancePhase` or per-delegate hook) for games using `moves.StartPhase`.
+- Skip host action for simultaneous-action games (those using `behaviors.PlayerSubmission`).
 - Audio cues.
 - Multi-projector.
 - Spectator/audience tier.
@@ -776,6 +848,7 @@ One real session with 4 humans before V1 ships.
 - Non-card private info animation (hidden numbers, secret meeples).
 - Non-left-to-right seat layouts (circular, around-a-board).
 - Improved clock sync beyond the minimum-wins estimator.
+- Mid-game upgrade from solo → Table+Hand (Switch-to-Solo is one-way only in V1).
 
 ## 15. Open Questions
 
@@ -797,9 +870,9 @@ Most have been resolved by the reshape and the implementability fix-up. Remainin
 - **Room code**: 4-letter code on `extendedgame.StorageRecord`. Resolved via `GameByRoomCode`.
 - **`seatPresentation`**: per-`(gameID, playerIndex)` storage of display name + avatar. Source of truth for what a seat looks like in this game.
 - **`sanitize:"other:hidden"`** (default on `PlayerRole.Role` / `PlayerTeam.Team` as of this spec): hides the property from `ObserverPlayerIndex` (Table view) while leaving it visible to the player's own Hand view. Override at the embedding site with `sanitize:"all:visible"` for public-role games.
-- **`moves.ForceFinishTurn`**: new framework move that bypasses `TurnDone()` to advance the current player when a host invokes SkipTurn for an absent player.
-- **`moves.ForceAdvancePhase`**: companion move for phase-driven games (e.g., Werewolf using `moves.StartPhase`).
-- **`serverSentAt` / `serverPlayAt`**: timestamps on the `gameVersionChanged` socket payload (NOT on a state JSON struct — the JSON arrives via separate HTTP fetch). Client uses them to schedule animation start before the state-fetch resolves.
+- **`moves.ForceFinishTurn`**: new framework move that bypasses `TurnDone()` to advance the current player when a host invokes SkipTurn for an absent player. Only accepts `AdminPlayerIndex` proposers (i.e., server-initiated).
+- **`"version-timing"` (WebSocket message type)**: new message type carrying `serverSentAt` and `serverPlayAt` timestamps. Broadcast as a sibling to the existing `"version"` message; old clients ignore it. Backward-compatible.
+- **`"mode-changed"` (WebSocket message type)**: new message type signaling that the game's mode flipped (e.g., Table+Hand → solo via `switchToSolo`). Client handler triggers a reload.
 
 ## 17. What a Game Author Actually Writes — Worked Example
 
