@@ -1142,10 +1142,13 @@ func (s *Server) AddOverrides(overrides []config.OptionOverrider) *Server {
 // the server for chaining. Names that don't match any registered manager
 // are silently ignored (so a stale capability list doesn't crash startup).
 //
-// Panics at boot if a companion-capable game does not register a move named
-// "Force Finish Turn", or if that move is registered as a FixUp (which
-// would cause infinite recursion in the fixup pipeline). See
-// moves.ForceFinishTurn for the required registration pattern.
+// Validates companion-capable games at boot:
+//   - If "Force Finish Turn" is registered but as a FixUp: panics (infinite
+//     recursion in the fixup pipeline).
+//   - If "Force Finish Turn" is not registered: logs a warning. This is
+//     normal for simultaneous-action games (e.g. werewolf) where there is
+//     no current player to skip. Turn-based games should register it — see
+//     moves.ForceFinishTurn for the pattern.
 func (s *Server) WithCompanionCapableGames(gameNames []string) *Server {
 	for _, name := range gameNames {
 		mInfo, ok := s.managers[name]
@@ -1156,13 +1159,15 @@ func (s *Server) WithCompanionCapableGames(gameNames []string) *Server {
 
 		move := mInfo.manager.ExampleMoveByName("Force Finish Turn")
 		if move == nil {
-			panic(fmt.Sprintf(
-				"boardgame/server: game %q is companion-capable (has -table.ts and -hand.ts) "+
-					"but does not register a move named \"Force Finish Turn\". "+
-					"Add: auto.MustConfig(new(moves.ForceFinishTurn), "+
+			s.logger.Warnf(
+				"boardgame/server: game %q is companion-capable but does not register "+
+					"\"Force Finish Turn\". Host SkipTurn will return 501 for this game. "+
+					"This is expected for simultaneous-action games; turn-based games "+
+					"should add: auto.MustConfig(new(moves.ForceFinishTurn), "+
 					"moves.WithMoveName(\"Force Finish Turn\"), moves.WithIsFixUp(false))",
 				name,
-			))
+			)
+			continue
 		}
 		type isFixUpper interface{ IsFixUp() bool }
 		fixUpper, _ := move.(isFixUpper)

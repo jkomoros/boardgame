@@ -76,15 +76,7 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	_, players := concreteStates(state)
 
-	// Count active (seated) players
-	var activePlayers []*playerState
-	for _, p := range players {
-		if p.SeatFilled {
-			activePlayers = append(activePlayers, p)
-		}
-	}
-
-	numPlayers := len(activePlayers)
+	numPlayers := len(players)
 
 	// Determine number of werewolves: 1 for 4-5 players, 2 for 6-7
 	numWerewolves := 1
@@ -95,8 +87,10 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	// Create a shuffled list of indices
 	indices := rand.Perm(numPlayers)
 
-	// Assign roles
-	for i, p := range activePlayers {
+	// Assign roles to all player slots. FinishSetUp runs before the
+	// gathering phase seats anyone, so we assign to every slot and
+	// the gathering flow activates/deactivates as players join.
+	for i, p := range players {
 		isWerewolf := false
 		for j := 0; j < numWerewolves; j++ {
 			if indices[j] == i {
@@ -245,6 +239,10 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			),
 		),
 		// Day and night phases share the same moves.
+		// No ForceFinishTurn: werewolf uses simultaneous voting
+		// (AnyPlayerIndex), so there's no "current player" whose turn
+		// the host can skip. ForceFinishTurn requires CurrentPlayerSetter
+		// which doesn't apply to simultaneous games.
 		moves.AddForPhase(phaseDay,
 			auto.MustConfig(
 				new(moveCastVote),
@@ -253,12 +251,6 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveResolveVotes),
 				moves.WithHelpText("Tallies votes, eliminates the chosen player, and transitions to the next phase."),
-			),
-			auto.MustConfig(
-				new(moves.ForceFinishTurn),
-				moves.WithMoveName("Force Finish Turn"),
-				moves.WithIsFixUp(false),
-				moves.WithHelpText("Admin-only: force end the current voting phase."),
 			),
 		),
 		moves.AddForPhase(phaseNight,
@@ -271,12 +263,6 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moveResolveVotes),
 				moves.WithMoveName("Resolve Night Votes"),
 				moves.WithHelpText("Tallies werewolf votes, eliminates the target, and transitions to day."),
-			),
-			auto.MustConfig(
-				new(moves.ForceFinishTurn),
-				moves.WithMoveName("Force Finish Night Turn"),
-				moves.WithIsFixUp(false),
-				moves.WithHelpText("Admin-only: force end the night voting phase."),
 			),
 		),
 	)
