@@ -972,19 +972,88 @@ func structTagsForField(obj interface{}, fieldName string, structTags []string) 
 
 	t := reflect.TypeOf(v.Interface())
 
+	// First, harvest any outer embedding-site tags. Go's
+	// reflect.Type.FieldByNameFunc returns the *inner* promoted field's
+	// StructField — so the outer struct's tag on an anonymous-embedded
+	// behavior is invisible without an explicit walk. We do that walk here
+	// so that, e.g., a game struct like
+	//
+	//   type playerState struct {
+	//       base.SubState
+	//       behaviors.PlayerRole `sanitize:"all:visible"`   // outer
+	//   }
+	//
+	// has its `sanitize:"all:visible"` win over PlayerRole.Role's own
+	// `sanitize:"other:hidden"` inner default. This is load-bearing for
+	// the Table+Hand companion mode public-role opt-in (spec §6.3.2),
+	// but it's a generic capability — any embedded-behavior tag can be
+	// overridden at the embedding site for consumers that participate in
+	// the precedence (currently just `sanitize:`).
+	outerOverrides := outerEmbeddingTags(t, fieldName, structTags)
+
+	// Then resolve the inner tag via the existing promoted-field lookup.
 	field, ok := t.FieldByNameFunc(func(str string) bool {
 		return str == fieldName
 	})
 
-	if !ok {
-		return result
+	var innerTag reflect.StructTag
+	if ok {
+		innerTag = field.Tag
 	}
 
-	theTag := field.Tag
-
 	for _, structTag := range structTags {
-		result[structTag] = theTag.Get(structTag)
+		if v, found := outerOverrides[structTag]; found && v != "" {
+			// Outer embedding-site tag wins.
+			result[structTag] = v
+		} else if ok {
+			// Fall back to inner promoted-field tag (existing behavior).
+			result[structTag] = innerTag.Get(structTag)
+		}
 	}
 
 	return result
+}
+
+// outerEmbeddingTags walks the top-level (non-promoted) fields of t and, for
+// each anonymous embedding whose type contains fieldName, captures any of
+// the requested structTags set on the OUTER embedding-site StructField.
+//
+// The function is intentionally narrow: it considers only one level of
+// embedding. Nested embeddings (e.g. A embeds B embeds C, looking up a
+// field of C) would require deeper recursion; for the V1 use case
+// (behaviors embedded directly in playerState) one level is sufficient and
+// the simpler implementation is easier to reason about.
+func outerEmbeddingTags(t reflect.Type, fieldName string, structTags []string) map[string]string {
+	out := make(map[string]string)
+	if t == nil {
+		return out
+	}
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return out
+	}
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if !f.Anonymous {
+			continue
+		}
+		innerType := f.Type
+		if innerType.Kind() == reflect.Ptr {
+			innerType = innerType.Elem()
+		}
+		if innerType.Kind() != reflect.Struct {
+			continue
+		}
+		if _, ok := innerType.FieldByName(fieldName); !ok {
+			continue
+		}
+		for _, st := range structTags {
+			if v := f.Tag.Get(st); v != "" {
+				out[st] = v
+			}
+		}
+	}
+	return out
 }
