@@ -2,6 +2,12 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
+import {
+  PRIMARIES,
+  randomAvatarSlug,
+  randomDisplayName,
+  glyphForSlug,
+} from './companion-avatar-catalog.js';
 
 /**
  * boardgame-join-view is the phone-side flow for joining a Table+Hand
@@ -25,7 +31,7 @@ import 'firebase/compat/auth';
  * no shared state, and benefits from keeping the multi-step transitions
  * inline. Reduxification can come later if the flow grows.
  */
-type Step = 'code' | 'identity' | 'avatar' | 'seat' | 'submitting' | 'error';
+type Step = 'code' | 'identity' | 'avatar' | 'avatarCustomize' | 'seat' | 'submitting' | 'error';
 
 interface JoinResponse {
   gameID: string;
@@ -52,24 +58,9 @@ interface SeatOptionsResponse {
   requiresSeatPicker: boolean;
 }
 
-// V1 placeholder avatar set. P2.6 replaces these with proper SVG primaries.
-const PLACEHOLDER_AVATARS = ['🦊', '🐻', '🦁', '🐯', '🐸', '🐙', '🦄', '🐳', '🦉', '🐧'];
-const PLACEHOLDER_ADJECTIVES = ['Brave', 'Clever', 'Sunny', 'Wild', 'Bright', 'Mighty', 'Calm', 'Bold'];
-const PLACEHOLDER_NOUNS = ['Fox', 'Bear', 'Lion', 'Tiger', 'Frog', 'Octopus', 'Unicorn', 'Whale', 'Owl', 'Penguin'];
-
-function randomFromArray<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function randomDisplayName(): string {
-  return randomFromArray(PLACEHOLDER_ADJECTIVES) + randomFromArray(PLACEHOLDER_NOUNS);
-}
-
-function randomAvatarSlug(): string {
-  // P2.6 will replace with composite primary-decoration-corner-tint slug.
-  // For V1 the slug is just a single emoji codepoint.
-  return randomFromArray(PLACEHOLDER_AVATARS);
-}
+// Avatar primaries + name vocabulary live in companion-avatar-catalog.ts —
+// imported above. Swap that module to upgrade the catalog without changing
+// this component.
 
 @customElement('boardgame-join-view')
 export class BoardgameJoinView extends LitElement {
@@ -155,7 +146,26 @@ export class BoardgameJoinView extends LitElement {
       background: #f0f7ff;
       border-color: #1a73e8;
     }
+    .primary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 16px 0;
+    }
+    .primary-tile {
+      padding: 12px;
+      font-size: 48px;
+      text-align: center;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .primary-tile.selected {
+      border-color: #1a73e8;
+      background: #f0f7ff;
+    }
   `;
+
 
   @property({ type: String })
   pageExtra = '';
@@ -354,12 +364,37 @@ export class BoardgameJoinView extends LitElement {
 
       <div class="step ${this._step === 'avatar' ? '' : 'hidden'}">
         <div class="avatar-front-door">
-          <div class="glyph">${this._avatarSlug}</div>
+          <div class="glyph">${glyphForSlug(this._avatarSlug)}</div>
           <div class="name">${this._displayName}</div>
           <button class="primary" @click=${this._acceptAvatarAndProceed}>Looks good — join!</button>
           <br />
           <button @click=${this._reroll}>Try another</button>
+          <br />
+          <button @click=${() => { this._step = 'avatarCustomize'; }}>Customize</button>
         </div>
+      </div>
+
+      <div class="step ${this._step === 'avatarCustomize' ? '' : 'hidden'}">
+        <p>Pick your avatar</p>
+        <div class="primary-grid">
+          ${PRIMARIES.map(p => html`
+            <div
+              class="primary-tile ${this._avatarSlug === p ? 'selected' : ''}"
+              @click=${() => { this._avatarSlug = p; }}>
+              ${p}
+            </div>
+          `)}
+        </div>
+        <p style="margin-top:24px">Edit your name</p>
+        <input
+          class="code-input"
+          maxlength="24"
+          .value=${this._displayName}
+          @input=${(e: Event) => { this._displayName = (e.target as HTMLInputElement).value; }}
+          style="font-size:18px;letter-spacing:0;text-transform:none;text-align:left;"
+        />
+        <button class="primary" @click=${this._acceptAvatarAndProceed}>Looks good — join!</button>
+        <button @click=${() => { this._step = 'avatar'; }}>Back</button>
       </div>
 
       <div class="step ${this._step === 'seat' ? '' : 'hidden'}">
