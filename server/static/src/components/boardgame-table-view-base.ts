@@ -184,9 +184,14 @@ export class BoardgameTableViewBase<
         </div>
       `;
     }
-    // Pre-game: full-bleed banner with QR + giant code.
-    const joinURL = window.location.origin + '/join?code=' + this.roomCode;
-    const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(joinURL);
+    // Pre-game: full-bleed banner with QR + giant code. QR is served
+    // self-hosted via /api/game/<name>/<id>/qrcode.png (P5+ polish —
+    // replaces the earlier qrserver.com cross-origin call).
+    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
+    const origin = encodeURIComponent(window.location.origin);
+    const qrSrc = this.gameName && this.gameId
+      ? `${apiHost}/api/game/${this.gameName}/${this.gameId}/qrcode.png?origin=${origin}`
+      : '';
     return html`
       <div class="room-code-banner">
         <div class="room-code-instructions">
@@ -194,7 +199,7 @@ export class BoardgameTableViewBase<
           <p>and enter the code</p>
         </div>
         <div class="room-code-giant">${this.roomCode}</div>
-        <img class="room-code-qr" src=${qrSrc} alt="Join QR code">
+        ${qrSrc ? html`<img class="room-code-qr" src=${qrSrc} alt="Join QR code">` : ''}
       </div>
     `;
   }

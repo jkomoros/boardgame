@@ -1946,6 +1946,11 @@ func (s *Server) Start() {
 			gameAPIGroup.GET("socket", s.socketHandler)
 			gameAPIGroup.GET("info", s.gameInfoHandler)
 			gameAPIGroup.GET("version/:version", s.gameVersionHandler)
+			// Self-hosted QR code generator for the Table+Hand room code
+			// (P5+). Unauthenticated by design — the QR encodes nothing
+			// secret (just the join URL); rendering it doesn't expose
+			// anything a phone scanning the projector wouldn't already see.
+			gameAPIGroup.GET("qrcode.png", s.qrcodeHandler)
 
 			//The statusHandler is conceptually here, but becuase we want to
 			//optimize it so much we have it congfigured at the top level.
