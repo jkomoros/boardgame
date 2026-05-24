@@ -1,5 +1,5 @@
 import { html, css, TemplateResult } from 'lit';
-import { property } from 'lit/decorators.js';
+import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 
 /**
@@ -120,6 +120,17 @@ export class BoardgameTableViewBase<
   @property({ type: String })
   gameId = '';
 
+  @state()
+  private _hostFeedback = '';
+
+  private _hostFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private _showHostFeedback(msg: string) {
+    this._hostFeedback = msg;
+    if (this._hostFeedbackTimer) clearTimeout(this._hostFeedbackTimer);
+    this._hostFeedbackTimer = setTimeout(() => { this._hostFeedback = ''; }, 4000);
+  }
+
   /**
    * Opt-in helper: renders the avatar strip across the top edge of the
    * Table view. Tile per seated player; per-tile pulse for the current
@@ -157,9 +168,23 @@ export class BoardgameTableViewBase<
             @change=${(e: Event) => this._onLockRoomToggle((e.target as HTMLInputElement).checked)}>
           Lock room (no new joins)
         </label>
-        <button class="switch-to-solo" @click=${this._onSwitchToSolo}>
-          Switch to solo mode
-        </button>
+        ${this._switchToSoloConfirming
+          ? html`
+            <div class="switch-to-solo-confirm">
+              <span class="warning-text">This may reveal hidden info and cannot be undone.</span>
+              <button class="switch-to-solo danger" @click=${this._onSwitchToSolo}>
+                Yes, switch to solo
+              </button>
+              <button @click=${this._cancelSwitchToSolo}>Cancel</button>
+            </div>
+          `
+          : html`
+            <button class="switch-to-solo" @click=${this._onSwitchToSolo}>
+              Switch to solo mode
+            </button>
+          `
+        }
+        ${this._hostFeedback ? html`<div class="host-feedback">${this._hostFeedback}</div>` : ''}
       </div>
     `;
   }
@@ -215,25 +240,40 @@ export class BoardgameTableViewBase<
     }).catch(e => console.warn('[table-view-base] lock-room failed:', e));
   }
 
-  private async _onSwitchToSolo() {
-    // Two-tap confirmation per spec §9.6. Mid-game switch destroys
-    // hidden-info privacy because the solo renderer reveals everyone's
-    // state.
-    if (!confirm(
-      'Switching to solo mode will end the shared-screen mode for this game.\n\n' +
-      'Each player\'s phone will start showing the full game view, which MAY ' +
-      'REVEAL HIDDEN INFORMATION (cards, roles) that was previously private.\n\n' +
-      'This change cannot be undone for the current game.\n\n' +
-      'Continue?'
-    )) {
+  @state()
+  private _switchToSoloConfirming = false;
+
+  private _switchToSoloTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private _onSwitchToSolo() {
+    if (!this._switchToSoloConfirming) {
+      this._switchToSoloConfirming = true;
+      this._switchToSoloTimer = setTimeout(() => {
+        this._switchToSoloConfirming = false;
+      }, 5000);
       return;
     }
+    this._doSwitchToSolo();
+  }
+
+  private _cancelSwitchToSolo() {
+    this._switchToSoloConfirming = false;
+    if (this._switchToSoloTimer) clearTimeout(this._switchToSoloTimer);
+  }
+
+  private async _doSwitchToSolo() {
+    this._switchToSoloConfirming = false;
+    if (this._switchToSoloTimer) clearTimeout(this._switchToSoloTimer);
     if (!this.gameName || !this.gameId) return;
     const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-    await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/switchToSolo`, {
-      method: 'POST',
-      credentials: 'include',
-    }).catch(e => console.warn('[table-view-base] switch-to-solo failed:', e));
+    try {
+      await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/switchToSolo`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (e) {
+      this._showHostFeedback('Network error — switch to solo failed');
+    }
   }
 
   /**
@@ -297,7 +337,7 @@ export class BoardgameTableViewBase<
 
   private async _onSkipTurn(playerIndex: number) {
     if (!this.gameName || !this.gameId) {
-      console.warn('[table-view-base] cannot Skip — gameName/gameId not set');
+      this._showHostFeedback('Cannot skip — game info not loaded yet');
       return;
     }
     const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
@@ -308,10 +348,18 @@ export class BoardgameTableViewBase<
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Skip failed' }));
-        console.warn('[table-view-base] hostSkipTurn rejected:', body.error, 'for player', playerIndex);
+        if (res.status === 429) {
+          this._showHostFeedback('Please wait a moment before skipping again');
+        } else if (res.status === 409) {
+          this._showHostFeedback('Player is not absent yet — wait for them to disconnect');
+        } else {
+          this._showHostFeedback(body.error || 'Skip failed');
+        }
+        return;
       }
+      this._showHostFeedback('Turn skipped');
     } catch (e) {
-      console.warn('[table-view-base] hostSkipTurn network error:', e);
+      this._showHostFeedback('Network error — check your connection');
     }
   }
 
@@ -436,6 +484,33 @@ export class BoardgameTableViewBase<
       background: #fff;
       border-radius: 6px;
       cursor: pointer;
+    }
+    .host-controls .switch-to-solo.danger {
+      border-color: #c62828;
+      color: #c62828;
+      font-weight: 600;
+    }
+    .switch-to-solo-confirm {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .switch-to-solo-confirm .warning-text {
+      color: #c62828;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .host-feedback {
+      padding: 4px 12px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border-radius: 6px;
+      font-size: 13px;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
   `;
 }

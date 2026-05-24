@@ -311,13 +311,11 @@ export class BoardgameJoinView extends LitElement {
     if (!this._joinResponse) return;
     try {
       const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-      const params = new URLSearchParams({
-        gameID: this._joinResponse.gameID,
-        uid: this._firebaseUID,
-        token: this._firebaseToken,
-      });
-      const res = await fetch(apiHost + '/api/join/seat-options?' + params.toString(), {
+      const res = await fetch(apiHost + '/api/join/seat-options?gameID=' + encodeURIComponent(this._joinResponse.gameID), {
         credentials: 'include',
+        headers: {
+          'Authorization': 'Bearer ' + this._firebaseToken,
+        },
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Failed to load seats' }));
@@ -394,7 +392,7 @@ export class BoardgameJoinView extends LitElement {
       <div class="step ${this._step === 'identity' ? '' : 'hidden'}">
         ${this._joinResponse ? html`<p>Joining <strong>${this._joinResponse.gameDisplayName}</strong></p>` : ''}
         <button class="primary" @click=${this._continueAsGuest}>Continue as guest</button>
-        <button @click=${this._continueWithGoogle}>Sign in with Google</button>
+        <button disabled title="Google sign-in for the join flow is coming soon">Sign in with Google (coming soon)</button>
       </div>
 
       <div class="step ${this._step === 'avatar' ? '' : 'hidden'}">

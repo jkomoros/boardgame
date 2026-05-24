@@ -55,16 +55,19 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 		return
 	}
 
-	// Auth: same shape as /api/join/seat — the phone passes uid + token.
-	uid := c.Query("uid")
-	token := c.Query("token")
+	// Auth: Firebase token in Authorization header (not query string —
+	// JWTs in URLs leak via logs, browser history, and Referer headers).
 	if !s.config.OfflineDevMode {
-		if uid == "" || token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth required"})
+		token := c.GetHeader("Authorization")
+		if len(token) > 7 && token[:7] == "Bearer " {
+			token = token[7:]
+		}
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth required (pass token in Authorization: Bearer header)"})
 			return
 		}
-		verifiedUID, err := verifyFirebaseTokenWithTimeout(token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
-		if err != nil || verifiedUID != uid {
+		_, err := verifyFirebaseTokenWithTimeout(token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
+		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth failed"})
 			return
 		}

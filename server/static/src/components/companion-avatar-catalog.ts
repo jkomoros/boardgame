@@ -12,16 +12,23 @@
  * seatPresentation.AvatarSlug's 256 chars) when the catalog is swapped.
  */
 
-export const PRIMARIES = ['🦊', '🐻', '🦁', '🐯', '🐸', '🐙', '🦄', '🐳', '🦉', '🐧', '🐲', '🦋'];
+export const PRIMARIES = [
+  '🦊', '🐻', '🦁', '🐯', '🐸', '🐙', '🦄', '🐳', '🦉', '🐧', '🐲', '🦋',
+  '🐺', '🦅', '🦈', '🐬', '🦎', '🐢', '🦩', '🐝', '🐞', '🦇', '🐠', '🦜',
+];
 
 export const ADJECTIVES = [
   'Brave', 'Clever', 'Sunny', 'Wild', 'Bright', 'Mighty', 'Calm', 'Bold',
   'Quick', 'Quiet', 'Shy', 'Lucky', 'Cosmic', 'Daring', 'Eager', 'Fierce',
+  'Jolly', 'Noble', 'Swift', 'Witty', 'Grand', 'Keen', 'Plucky', 'Wry',
+  'Lively', 'Merry', 'Nimble', 'Royal', 'Sly', 'Zesty',
 ];
 
 export const NOUNS = [
   'Fox', 'Bear', 'Lion', 'Tiger', 'Frog', 'Octopus', 'Unicorn', 'Whale',
   'Owl', 'Penguin', 'Dragon', 'Butterfly', 'Phoenix', 'Wolf', 'Otter', 'Hawk',
+  'Raven', 'Shark', 'Dolphin', 'Lizard', 'Turtle', 'Falcon', 'Badger', 'Heron',
+  'Crane', 'Panther', 'Cobra', 'Sparrow', 'Beetle', 'Parrot',
 ];
 
 function randomFromArray<T>(arr: T[]): T {
