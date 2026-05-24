@@ -58,6 +58,13 @@ type Server struct {
 	// then claiming a seat) and tight enough to discourage brute-force
 	// enumeration of the 234k 4-letter code namespace (spec §6.1).
 	joinRateLimiter *rateLimiter
+
+	// seatJoinLocks serializes seat-claim operations on a per-game basis so
+	// concurrent /api/join/seat requests for the same room can't race
+	// through the empty-slot lookup + SeatPlayer proposal. Spec §11 race-
+	// resolution behavior. Lazy-allocated by getSeatJoinLock.
+	seatJoinLocks   map[string]*sync.Mutex
+	seatJoinLocksMu sync.Mutex
 }
 
 type renderer struct {
@@ -142,6 +149,7 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		// 10 requests / minute = 1 every 6 seconds steady-state, with a
 		// burst capacity of 10. Idle buckets evict after 10 minutes.
 		joinRateLimiter: newRateLimiter(10, 10.0/60.0, 10*time.Minute),
+		seatJoinLocks:   make(map[string]*sync.Mutex),
 	}
 
 	storage.server = result
@@ -1821,7 +1829,7 @@ func (s *Server) Start() {
 		joinGroup := mainGroup.Group("join")
 		joinGroup.Use(rateLimitMiddleware(s.joinRateLimiter))
 		joinGroup.POST("", s.joinHandler)
-		// /api/join/seat lands in P1.7.
+		joinGroup.POST("seat", s.joinSeatHandler)
 
 		protectedMainGroup := mainGroup.Group("")
 		protectedMainGroup.Use(s.requireLoggedIn)
