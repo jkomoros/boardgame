@@ -73,6 +73,12 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: String })
   gameName = '';
 
+  // gameId is needed to read the per-game surface cookie (surface_<gameId>)
+  // for companion-mode routing. Empty string means we haven't been told the
+  // gameID yet (the loader will operate as solo until it's set).
+  @property({ type: String })
+  gameId = '';
+
   @property({ type: Object, attribute: false })
   renderer: HTMLElement | null = null;
 
@@ -361,13 +367,64 @@ class BoardgameRenderGame extends LitElement {
 
     if (!newValue) return;
 
+    const suffix = this._surfaceSuffix(this.gameId);
+
     try {
-      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode
+      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode.
+      // If a companion-mode suffix is in play (-table / -hand), try the
+      // suffixed import first; on failure fall back to the solo renderer
+      // with a console warning. This makes solo-mode games safe to load even
+      // when a stale surface cookie is present, and surfaces deployment
+      // errors (missing -table.ts / -hand.ts on a supporting game) loudly.
+      if (suffix) {
+        try {
+          await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}${suffix}.ts`);
+          this._instantiateRenderer(suffix);
+          return;
+        } catch (innerError) {
+          console.warn(
+            `[boardgame-render-game] surface renderer ${newValue}${suffix} failed to load; falling back to solo:`,
+            innerError,
+          );
+        }
+      }
       await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}.ts`);
-      this._instantiateRenderer();
+      this._instantiateRenderer('');
     } catch (error) {
       console.error(`Failed to load game renderer for ${newValue}:`, error);
     }
+  }
+
+  // _readSurfaceCookie returns the surface value ('table' | 'hand') stored
+  // in the per-game cookie surface_<gameId>, or null if unset. In dev mode
+  // a ?display=table|hand URL query param overrides the cookie; this is
+  // intentional for developer testing and is harmless in prod because no
+  // production-deployed phone client would set the param.
+  private _readSurfaceCookie(gameId: string): 'table' | 'hand' | null {
+    if (gameId) {
+      const cookieName = `surface_${gameId}=`;
+      const cookies = document.cookie.split('; ');
+      for (const c of cookies) {
+        if (c.startsWith(cookieName)) {
+          const value = c.slice(cookieName.length);
+          if (value === 'table' || value === 'hand') return value;
+        }
+      }
+    }
+    const params = new URLSearchParams(window.location.search);
+    const display = params.get('display');
+    if (display === 'table' || display === 'hand') return display;
+    return null;
+  }
+
+  // _surfaceSuffix returns the filename suffix to add to the renderer
+  // module / custom-element name for the current surface, or empty for
+  // solo. Pure function of the cookie + query string.
+  private _surfaceSuffix(gameId: string): string {
+    const s = this._readSurfaceCookie(gameId);
+    if (s === 'table') return '-table';
+    if (s === 'hand') return '-hand';
+    return '';
   }
 
   private _removeRenderer() {
@@ -377,11 +434,11 @@ class BoardgameRenderGame extends LitElement {
     this.renderer = null;
   }
 
-  private _instantiateRenderer() {
+  private _instantiateRenderer(surfaceSuffix: string = '') {
     // The import loaded! Add it!
     this.rendererLoaded = true;
 
-    const ele = document.createElement(`boardgame-render-game-${this.gameName}`) as any;
+    const ele = document.createElement(`boardgame-render-game-${this.gameName}${surfaceSuffix}`) as any;
 
     ele.diagram = this.diagram;
     ele.state = this.state;

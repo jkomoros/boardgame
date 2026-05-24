@@ -237,6 +237,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .renderer=${this.activeRenderer}
           @renderer-changed=${this._handleRendererChanged}
           .gameName=${this._gameRoute ? this._gameRoute.name : ''}
+          .gameId=${this._gameRoute ? this._gameRoute.id : ''}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .socketActive=${this.socketActive}
