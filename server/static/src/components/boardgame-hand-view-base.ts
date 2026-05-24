@@ -1,3 +1,4 @@
+import { html, css, TemplateResult } from 'lit';
 import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
@@ -64,4 +65,33 @@ export class BoardgameHandViewBase<
     if (idx < 0 || idx >= this.state.Players.length) return undefined;
     return this.state.Players[idx];
   }
+
+  /**
+   * Opt-in helper: renders a small invisible anchor element at the top
+   * edge of the Hand view, representing "from/to the Table". Cards dealt
+   * to this player should be animated from this anchor; cards played
+   * should exit through it. The element has a stable id ("hand-top-edge")
+   * so authors can call this.animator.animateBetween(realCardId,
+   * "hand-top-edge", durationMs) to wire deal/play animations.
+   *
+   * V1 ships the anchor element only — game authors wire the actual
+   * animation calls from their own renderer's state-change reactions.
+   * The base doesn't auto-detect deals because deal-ness is game-
+   * specific (which moves count as "incoming card from Table"?).
+   */
+  protected renderTopEdgeAnchor(): TemplateResult {
+    return html`<div class="hand-top-edge-anchor" id="hand-top-edge"></div>`;
+  }
+
+  static styles = css`
+    .hand-top-edge-anchor {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+  `;
 }

@@ -132,14 +132,36 @@ export class BoardgameTableViewBase<
 
   /**
    * Opt-in helper: renders the fake-deck row along the bottom edge of the
-   * Table view, one off-screen-positioned stub stack per seated player
-   * (left-to-right in seat order). This is the cross-screen animation
-   * source/destination for cards moving between the public board and a
-   * player's hand. V1 stub — Phase 4 wires the synthetic-ID stubs +
-   * animateBetween() integration with the FLIP animator.
+   * Table view (spec §8). One stub stack per seated player, left-to-right
+   * in seat order. Each stub element has id "stub:p<N>:hand" — a
+   * synthetic ID distinct from any real component.id, so the FLIP
+   * animator's flat _infoById map can be addressed against it via
+   * animateBetween(realId, stubId) without colliding with real cards.
+   *
+   * V1: stubs are rendered with low opacity at the bottom of the screen,
+   * one per seated player, with the seat's display-name visible. The
+   * actual card-flying animation is triggered by the game's renderer
+   * calling this.animator.animateBetween(...) when it detects a deal —
+   * the base doesn't auto-wire deal detection because that's game-
+   * specific (which moves are "deals" varies). The stub PRESENCE is the
+   * V1 deliverable; the animation TRIGGERING is left to the game author
+   * with a clear hook.
+   *
+   * Future polish: position stubs at the screen edge (off-viewport) so
+   * cards visually "fly off" toward the player; for V1 they're visible
+   * placeholders so authors can see and tune the layout.
    */
   protected renderFakeDeckRow(): TemplateResult {
-    return html``;
+    const seats = this._seatedSeats();
+    return html`
+      <div class="fake-deck-row">
+        ${seats.map(s => html`
+          <div class="fake-deck-stub" id="stub:p${s.playerIndex}:hand">
+            <small>${s.displayName}</small>
+          </div>
+        `)}
+      </div>
+    `;
   }
 
   // ---- internal helpers below ----
@@ -236,6 +258,30 @@ export class BoardgameTableViewBase<
       border-radius: 6px;
       font-weight: 600;
       cursor: pointer;
+    }
+    .fake-deck-row {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      padding: 8px 16px;
+      gap: 8px;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+    .fake-deck-stub {
+      width: 64px;
+      height: 88px;
+      border: 1px dashed #ccc;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.6);
+      text-align: center;
+      padding-top: 4px;
+      font-size: 10px;
+      color: #888;
+      opacity: 0.4;
     }
   `;
 }
