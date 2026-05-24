@@ -1854,6 +1854,7 @@ func (s *Server) Start() {
 		joinGroup.Use(rateLimitMiddleware(s.joinRateLimiter))
 		joinGroup.POST("", s.joinHandler)
 		joinGroup.POST("seat", s.joinSeatHandler)
+		joinGroup.GET("seat-options", s.joinSeatOptionsHandler)
 
 		protectedMainGroup := mainGroup.Group("")
 		protectedMainGroup.Use(s.requireLoggedIn)
