@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -11,6 +12,34 @@ import (
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
+
+// verifyFirebaseTokenWithTimeout wraps firebase.VerifyIDToken in a 2-second
+// timeout so a hung Google PKI fetch doesn't hold the gin handler
+// indefinitely. The library doesn't expose a context-aware variant, so we
+// run the verify in a goroutine and race it against a timer.
+//
+// Returns the verified UID on success; on timeout returns a sentinel error
+// so callers can map to 503-ish or 401. On verification failure returns
+// the library's error verbatim.
+func verifyFirebaseTokenWithTimeout(token, projectID string, timeout time.Duration) (string, error) {
+	type result struct {
+		uid string
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		uid, err := firebase.VerifyIDToken(token, projectID)
+		ch <- result{uid, err}
+	}()
+	select {
+	case r := <-ch:
+		return r.uid, r.err
+	case <-time.After(timeout):
+		return "", errors.New("Firebase token verification timed out")
+	}
+}
+
+const firebaseVerifyTimeout = 2 * time.Second
 
 // joinSeatRequest is the body of POST /api/join/seat. Phone client posts
 // after running through identity + avatar picker + (for asymmetric games)
@@ -135,7 +164,7 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 
 	// Verify Firebase token unless OfflineDevMode short-circuits.
 	if !s.config.OfflineDevMode {
-		verifiedUID, verifyErr := firebase.VerifyIDToken(req.Token, s.config.Firebase.ProjectID)
+		verifiedUID, verifyErr := verifyFirebaseTokenWithTimeout(req.Token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
 		if verifyErr != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token verification failed: " + verifyErr.Error()})
 			return

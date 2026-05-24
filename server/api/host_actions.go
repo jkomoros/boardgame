@@ -368,27 +368,34 @@ func (s *Server) claimHostHandler(c *gin.Context) {
 		return
 	}
 
-	// The current host must have no heartbeat-fresh table-surface socket.
-	// We approximate "table surface" by looking at the heartbeat for the
-	// host's userID via the absent set: a Table view connects as
-	// ObserverPlayerIndex, so heartbeats land at lastHeartbeat[gameID][-1]
-	// rather than per-player. For V1 we use a coarser proxy: if there is
-	// ANY connected socket bound to currentHost on the table surface,
-	// consider them fresh.
+	// Stale-host gate. Full table-surface heartbeat tracking would let us
+	// detect "Owner is currently looking at the Table" precisely; we
+	// don't have that today (the socket struct doesn't record surface).
+	// Coarser proxy: refuse the claim unless the game's last activity
+	// (eGame.Modified, updated on every move) is older than 30s. A live
+	// game with the host actually playing is constantly moving; if it's
+	// been 30s+ with no state change, the host is probably gone.
 	//
-	// Implementation: scan v.sockets[gameID] for a socket whose backing
-	// user equals currentHost AND whose effectivePlayerIndex is Observer
-	// AND the surface=table cookie was set on connect. We don't have a
-	// great hook for that today (the surface cookie isn't recorded on the
-	// socket struct). For V1 we adopt the simpler rule: the override is
-	// always claimable, but the original Owner can always reclaim by
-	// reloading the Table view (their session will set
-	// CompanionHostOverride back to ""). This is a soft V1 simplification
-	// — full Table-surface-presence detection is a P5 task.
-	//
-	// To prevent abuse, we require the caller to be seated AND wait at
-	// least 30s after game creation before allowing a claim. The "stale
-	// owner" check is a P5 enhancement.
+	// This is intentionally lenient: it doesn't stop a malicious player
+	// from claiming when the Owner is just thinking for 30s. But it
+	// stops trivial racing immediately after game-create and gives the
+	// Owner time to recover from a transient disconnect. The "trusted
+	// friends in person" threat model accepts this; spec §9.4.
+	gameRecord, err := s.storage.Game(gameID)
+	if err != nil || gameRecord == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
+		return
+	}
+	const stalenessGate = 30 * time.Second
+	timeSinceModified := time.Since(gameRecord.Modified)
+	if timeSinceModified < stalenessGate {
+		s.auditHostAction("claimHost", gameID, user.ID, "rejected: host activity within 30s window", false)
+		c.JSON(http.StatusConflict, gin.H{
+			"error":            "current host appears active; try again in a few seconds",
+			"secondsRemaining": int((stalenessGate - timeSinceModified).Seconds()) + 1,
+		})
+		return
+	}
 
 	eGame.CompanionHostOverride = user.ID
 	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {

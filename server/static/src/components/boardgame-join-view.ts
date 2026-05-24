@@ -181,6 +181,11 @@ export class BoardgameJoinView extends LitElement {
   @state() private _firebaseToken = '';
   @state() private _selectedSeat: number | null = null;
 
+  // _unsubscribeIdTokenChanged is the cleanup handle returned by Firebase's
+  // onIdTokenChanged subscription. Stashed here so disconnectedCallback can
+  // call it; otherwise the listener leaks across navigations.
+  private _unsubscribeIdTokenChanged: (() => void) | null = null;
+
   override connectedCallback() {
     super.connectedCallback();
     // Roll a default avatar+name for the front door.
@@ -190,6 +195,36 @@ export class BoardgameJoinView extends LitElement {
     const codeParam = params.get('code');
     if (codeParam) {
       this._codeInput = codeParam.toUpperCase();
+    }
+
+    // Firebase anon (and Google) ID tokens are JWTs with a 1-hour TTL.
+    // Subscribe to onIdTokenChanged so a long-lived join flow (or a
+    // future re-auth-protected request) sees the freshest token.
+    // Without this, a join older than an hour can't make authenticated
+    // calls like /api/join/seat-options or seat-claim retries.
+    const OFFLINE_DEV_MODE = (window as any).CONFIG && (window as any).CONFIG.offline_dev_mode;
+    if (!OFFLINE_DEV_MODE) {
+      this._unsubscribeIdTokenChanged = firebase.auth().onIdTokenChanged(async (user) => {
+        if (!user) {
+          this._firebaseUID = '';
+          this._firebaseToken = '';
+          return;
+        }
+        this._firebaseUID = user.uid;
+        try {
+          this._firebaseToken = await user.getIdToken();
+        } catch (err) {
+          console.warn('Failed to refresh Firebase ID token:', err);
+        }
+      });
+    }
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._unsubscribeIdTokenChanged) {
+      this._unsubscribeIdTokenChanged();
+      this._unsubscribeIdTokenChanged = null;
     }
   }
 

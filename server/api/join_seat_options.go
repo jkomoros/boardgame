@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/alternaDev/go-firebase-verify"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
@@ -64,7 +63,7 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth required"})
 			return
 		}
-		verifiedUID, err := firebase.VerifyIDToken(token, s.config.Firebase.ProjectID)
+		verifiedUID, err := verifyFirebaseTokenWithTimeout(token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
 		if err != nil || verifiedUID != uid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth failed"})
 			return
