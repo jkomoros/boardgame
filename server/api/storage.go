@@ -7,6 +7,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
+	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
@@ -69,6 +70,20 @@ type StorageManager interface {
 	//implementations may choose to filter out games beyond the grace
 	//period or rely on the caller to check Finished + Modified.
 	GameByRoomCode(code string) (gameID string, err error)
+
+	//SeatPresentation returns the per-(gameID, playerIndex) display name and
+	//avatar set by the phone at join time. Returns nil with no error if no
+	//row exists (e.g., solo-mode game or seat not yet claimed). See spec §5.4.
+	SeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) (*seatpresentation.StorageRecord, error)
+
+	//SetSeatPresentation upserts the seat presentation for
+	//(rec.GameID, rec.PlayerIndex).
+	SetSeatPresentation(rec *seatpresentation.StorageRecord) error
+
+	//ClearSeatPresentation removes any row for (gameID, playerIndex). No
+	//error if no row exists. Called when a host frees a seat (V2) so the
+	//next joiner doesn't inherit the prior phone's name + avatar.
+	ClearSeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) error
 
 	//Store or update all fields
 	UpdateUser(user *users.StorageRecord) error

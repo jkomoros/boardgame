@@ -10,6 +10,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
@@ -109,6 +110,38 @@ type agentStateStorageRecord struct {
 	GameID      string `db:",size:16"`
 	PlayerIndex int64
 	Blob        string `db:",size:1000000"`
+}
+
+type seatPresentationStorageRecord struct {
+	ID          int64
+	GameID      string `db:",size:16"`
+	PlayerIndex int64
+	DisplayName string `db:",size:128"`
+	AvatarSlug  string `db:",size:256"`
+}
+
+func (r *seatPresentationStorageRecord) ToStorageRecord() *seatpresentation.StorageRecord {
+	if r == nil {
+		return nil
+	}
+	return &seatpresentation.StorageRecord{
+		GameID:      r.GameID,
+		PlayerIndex: boardgame.PlayerIndex(r.PlayerIndex),
+		DisplayName: r.DisplayName,
+		AvatarSlug:  r.AvatarSlug,
+	}
+}
+
+func newSeatPresentationStorageRecord(rec *seatpresentation.StorageRecord) *seatPresentationStorageRecord {
+	if rec == nil {
+		return nil
+	}
+	return &seatPresentationStorageRecord{
+		GameID:      rec.GameID,
+		PlayerIndex: int64(rec.PlayerIndex),
+		DisplayName: rec.DisplayName,
+		AvatarSlug:  rec.AvatarSlug,
+	}
 }
 
 func agentsToString(agents []string) string {

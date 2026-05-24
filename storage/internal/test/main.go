@@ -21,6 +21,7 @@ import (
 	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
+	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
 )
@@ -127,6 +128,50 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 	gotID, err = storage.GameByRoomCode("")
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(gotID).Equals("")
+
+	// SeatPresentation round-trip: absent → set → get → clear → absent.
+	gotSeat, err := storage.SeatPresentation(tictactoeGame.ID(), 0)
+	assert.For(t).ThatActual(err).IsNil()
+	if gotSeat != nil {
+		t.Errorf("Expected no seat presentation initially, got %+v", gotSeat)
+	}
+
+	seatRec := &seatpresentation.StorageRecord{
+		GameID:      tictactoeGame.ID(),
+		PlayerIndex: 0,
+		DisplayName: "BrightFox",
+		AvatarSlug:  "fox-star-tl-bloom",
+	}
+	err = storage.SetSeatPresentation(seatRec)
+	assert.For(t).ThatActual(err).IsNil()
+
+	gotSeat, err = storage.SeatPresentation(tictactoeGame.ID(), 0)
+	assert.For(t).ThatActual(err).IsNil()
+	if gotSeat == nil {
+		t.Fatal("Expected seat presentation after Set, got nil")
+	}
+	assert.For(t).ThatActual(gotSeat.DisplayName).Equals("BrightFox")
+	assert.For(t).ThatActual(gotSeat.AvatarSlug).Equals("fox-star-tl-bloom")
+
+	// Update (same seat) replaces, doesn't append.
+	seatRec.DisplayName = "ShyOtter"
+	err = storage.SetSeatPresentation(seatRec)
+	assert.For(t).ThatActual(err).IsNil()
+	gotSeat, err = storage.SeatPresentation(tictactoeGame.ID(), 0)
+	assert.For(t).ThatActual(err).IsNil()
+	if gotSeat == nil {
+		t.Fatal("Expected seat presentation after second Set, got nil")
+	}
+	assert.For(t).ThatActual(gotSeat.DisplayName).Equals("ShyOtter")
+
+	// Clear removes the row.
+	err = storage.ClearSeatPresentation(tictactoeGame.ID(), 0)
+	assert.For(t).ThatActual(err).IsNil()
+	gotSeat, err = storage.SeatPresentation(tictactoeGame.ID(), 0)
+	assert.For(t).ThatActual(err).IsNil()
+	if gotSeat != nil {
+		t.Errorf("Expected nil seat presentation after Clear, got %+v", gotSeat)
+	}
 
 	move := tictactoeGame.MoveByName("Place Token")
 

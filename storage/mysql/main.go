@@ -16,20 +16,22 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
+	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 )
 
 const (
-	tableGames         = "games"
-	tableExtendedGames = "extendedgames"
-	tableMoves         = "moves"
-	tableUsers         = "users"
-	tableStates        = "states"
-	tableCookies       = "cookies"
-	tablePlayers       = "players"
-	tableAgentStates   = "agentstates"
-	tableChatMessages  = "chatmessages"
+	tableGames             = "games"
+	tableExtendedGames     = "extendedgames"
+	tableMoves             = "moves"
+	tableUsers             = "users"
+	tableStates            = "states"
+	tableCookies           = "cookies"
+	tablePlayers           = "players"
+	tableAgentStates       = "agentstates"
+	tableSeatPresentations = "seatpresentations"
+	tableChatMessages      = "chatmessages"
 )
 
 const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
@@ -115,6 +117,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(agentStateStorageRecord{}, tableAgentStates).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(moveStorageRecord{}, tableMoves).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(chatStorageRecord{}, tableChatMessages).SetKeys(true, "ID")
+	s.dbMap.AddTableWithName(seatPresentationStorageRecord{}, tableSeatPresentations).SetKeys(true, "ID")
 
 	// Create chat table if it doesn't exist (auto-migration for chat)
 	s.dbMap.CreateTablesIfNotExists()
@@ -287,6 +290,56 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	}
 
 	return (&record).ToStorageRecord(), nil
+}
+
+// SeatPresentation looks up the per-(gameID, playerIndex) presentation row.
+func (s *StorageManager) SeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) (*seatpresentation.StorageRecord, error) {
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+	var rec seatPresentationStorageRecord
+	err := s.dbMap.SelectOne(&rec, "select * from "+tableSeatPresentations+" where GameID = ? and PlayerIndex = ?", gameID, int64(playerIndex))
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return rec.ToStorageRecord(), nil
+}
+
+// SetSeatPresentation upserts the seat presentation row.
+func (s *StorageManager) SetSeatPresentation(rec *seatpresentation.StorageRecord) error {
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
+	if rec == nil {
+		return errors.New("nil seat presentation record")
+	}
+	// Look for an existing row to update; insert if none.
+	var existing seatPresentationStorageRecord
+	err := s.dbMap.SelectOne(&existing, "select * from "+tableSeatPresentations+" where GameID = ? and PlayerIndex = ?", rec.GameID, int64(rec.PlayerIndex))
+	if err == sql.ErrNoRows {
+		newRow := newSeatPresentationStorageRecord(rec)
+		return s.dbMap.Insert(newRow)
+	}
+	if err != nil {
+		return err
+	}
+	existing.DisplayName = rec.DisplayName
+	existing.AvatarSlug = rec.AvatarSlug
+	_, err = s.dbMap.Update(&existing)
+	return err
+}
+
+// ClearSeatPresentation removes the row for (gameID, playerIndex). No error
+// if no row exists.
+func (s *StorageManager) ClearSeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) error {
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
+	_, err := s.dbMap.Exec("delete from "+tableSeatPresentations+" where GameID = ? and PlayerIndex = ?", gameID, int64(playerIndex))
+	return err
 }
 
 // GameByRoomCode looks up a gameID by CompanionRoomCode. Returns "" with

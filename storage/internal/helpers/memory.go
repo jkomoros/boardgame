@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
@@ -21,16 +22,18 @@ type GameChecker interface {
 // anonymously in the containing item. Get a new one from
 // NewExtendedMemoryStorageManager.
 type ExtendedMemoryStorageManager struct {
-	agentStates   map[string][]byte
-	extendedGames map[string]*extendedgame.StorageRecord
-	usersByID     map[string]*users.StorageRecord
-	usersByCookie map[string]*users.StorageRecord
-	usersForGames map[string][]string
+	agentStates       map[string][]byte
+	extendedGames     map[string]*extendedgame.StorageRecord
+	usersByID         map[string]*users.StorageRecord
+	usersByCookie     map[string]*users.StorageRecord
+	usersForGames     map[string][]string
+	seatPresentations map[string]*seatpresentation.StorageRecord // key: gameID + ":" + playerIndex
 
-	agentStatesLock   sync.RWMutex
-	extendedGamesLock sync.RWMutex
-	usersLock         sync.RWMutex
-	usersForGamesLock sync.RWMutex
+	agentStatesLock       sync.RWMutex
+	extendedGamesLock     sync.RWMutex
+	usersLock             sync.RWMutex
+	usersForGamesLock     sync.RWMutex
+	seatPresentationsLock sync.RWMutex
 
 	gameChecker GameChecker
 }
@@ -44,13 +47,18 @@ func NewExtendedMemoryStorageManager(checker GameChecker) *ExtendedMemoryStorage
 	}
 
 	return &ExtendedMemoryStorageManager{
-		extendedGames: make(map[string]*extendedgame.StorageRecord),
-		usersByID:     make(map[string]*users.StorageRecord),
-		usersByCookie: make(map[string]*users.StorageRecord),
-		usersForGames: make(map[string][]string),
-		agentStates:   make(map[string][]byte),
-		gameChecker:   checker,
+		extendedGames:     make(map[string]*extendedgame.StorageRecord),
+		usersByID:         make(map[string]*users.StorageRecord),
+		usersByCookie:     make(map[string]*users.StorageRecord),
+		usersForGames:     make(map[string][]string),
+		agentStates:       make(map[string][]byte),
+		seatPresentations: make(map[string]*seatpresentation.StorageRecord),
+		gameChecker:       checker,
 	}
+}
+
+func keyForSeat(gameID string, playerIndex boardgame.PlayerIndex) string {
+	return gameID + ":" + playerIndex.String()
 }
 
 func keyForAgent(gameID string, player boardgame.PlayerIndex) string {
@@ -127,6 +135,33 @@ func (s *ExtendedMemoryStorageManager) UpdateExtendedGame(id string, eGame *exte
 	s.extendedGamesLock.Lock()
 	s.extendedGames[id] = eGame
 	s.extendedGamesLock.Unlock()
+	return nil
+}
+
+// SeatPresentation implements that part of the server storage interface.
+func (s *ExtendedMemoryStorageManager) SeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) (*seatpresentation.StorageRecord, error) {
+	s.seatPresentationsLock.RLock()
+	rec := s.seatPresentations[keyForSeat(gameID, playerIndex)]
+	s.seatPresentationsLock.RUnlock()
+	return rec, nil
+}
+
+// SetSeatPresentation implements that part of the server storage interface.
+func (s *ExtendedMemoryStorageManager) SetSeatPresentation(rec *seatpresentation.StorageRecord) error {
+	if rec == nil {
+		return errors.New("nil seat presentation record")
+	}
+	s.seatPresentationsLock.Lock()
+	s.seatPresentations[keyForSeat(rec.GameID, rec.PlayerIndex)] = rec
+	s.seatPresentationsLock.Unlock()
+	return nil
+}
+
+// ClearSeatPresentation implements that part of the server storage interface.
+func (s *ExtendedMemoryStorageManager) ClearSeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) error {
+	s.seatPresentationsLock.Lock()
+	delete(s.seatPresentations, keyForSeat(gameID, playerIndex))
+	s.seatPresentationsLock.Unlock()
 	return nil
 }
 
