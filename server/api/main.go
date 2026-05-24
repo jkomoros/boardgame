@@ -1326,6 +1326,12 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		"GameOpen":        gameInfo.Open,
 		"GameVisible":     gameInfo.Visible,
 		"IsOwner":         isOwner,
+		// Absent is the list of player indices currently flagged absent by
+		// the heartbeat scan (spec §9.1). The Table view uses this to draw
+		// "Waiting for Alice (m:ss)" badges and to decide whether to show
+		// the host SkipTurn button on the current-player badge. Empty list
+		// for solo-mode games (no companion-mode heartbeats) — harmless.
+		"Absent": s.notifier.AbsentPlayers(game.ID()),
 		//The StateVersion is almost always the Game.Version, except in the
 		//special case described above where lots of fix up moves have been
 		//applied but no player moves yet. State blobs used to include their own
