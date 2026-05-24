@@ -25,6 +25,13 @@ const absentThreshold = 30 * time.Second
 // counts up smoothly without thrashing.
 const absentScanInterval = 5 * time.Second
 
+// animationLeadMS is the default delay between when the server broadcasts
+// a state change and when clients should start the resulting animation.
+// 250ms gives typical LAN/Wi-Fi enough head-time to converge without
+// feeling laggy (spec §8.4). Per-game override via the (future)
+// CompanionAnimationLeadDelegate hook.
+const animationLeadMS = 250
+
 // socketMessage is the JSON-framed WebSocket message format.
 // Clients should feature-detect: if the message starts with "{", parse as
 // JSON; otherwise treat as a raw version number (legacy).
@@ -274,6 +281,23 @@ func (s *socket) SendMessage(message gameVersionChanged) {
 		return
 	}
 	s.send <- data
+
+	// Sibling "version-timing" message carries the cross-screen animation
+	// sync timestamps (spec §8.4). Sent immediately after "version" so a
+	// new client can correlate the two by version number. Old clients
+	// ignore the new type — backward-compatible.
+	now := time.Now().UnixMilli()
+	timing := socketMessage{
+		Type: "version-timing",
+		Data: map[string]interface{}{
+			"version":      message.Version,
+			"serverSentAt": now,
+			"serverPlayAt": now + animationLeadMS,
+		},
+	}
+	if timingData, terr := json.Marshal(timing); terr == nil {
+		s.send <- timingData
+	}
 }
 
 func (s *socket) SendChatNotification(notification chatNotification) {

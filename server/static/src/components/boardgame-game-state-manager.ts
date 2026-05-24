@@ -1,6 +1,7 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
+import { ingestVersionTiming } from './companion-sync.js';
 import { store } from '../store.js';
 import {
   fetchGameInfo,
@@ -410,6 +411,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
         const msg = JSON.parse(data);
         if (msg.type === 'version') {
           store.dispatch(setTargetVersion(msg.data));
+        } else if (msg.type === 'version-timing') {
+          // Companion-mode cross-screen animation sync (spec §8.4).
+          // Sibling to 'version' — old clients ignore it. Carries
+          // serverSentAt + serverPlayAt; we feed them into the
+          // minimum-wins one-way latency estimator on
+          // window._companionSync so the Table+Hand renderers can
+          // schedule animations at a server-anchored wall-clock instant.
+          ingestVersionTiming(msg.data);
         } else if (msg.type === 'chat') {
           // Dispatch chat notification event for the chat panel to handle
           this.dispatchEvent(new CustomEvent('chat-notification', {
