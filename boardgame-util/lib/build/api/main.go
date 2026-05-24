@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	buildstatic "github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
@@ -99,10 +100,11 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, e
 	}
 
 	err := apiTemplate.Execute(buf, map[string]interface{}{
-		"pkgs":               pkgs,
-		"storageImport":      storageImport,
-		"storageConstructor": storage.Constructor(options.StorageLiteralArgs),
-		"options":            options,
+		"pkgs":                  pkgs,
+		"storageImport":         storageImport,
+		"storageConstructor":    storage.Constructor(options.StorageLiteralArgs),
+		"options":               options,
+		"companionCapableGames": buildstatic.CompanionCapableGames(pkgs),
 	})
 
 	if err != nil {
@@ -151,6 +153,19 @@ func init() {
 }
 {{end}}
 
+// companionCapableGames is the list of game names that ship the Table+Hand
+// renderer pair (boardgame-render-game-<name>-table.ts AND -hand.ts) as of
+// this build. Computed by boardgame-util at build time via a filesystem
+// walk (see boardgame-util/lib/build/static.CompanionCapableGames). The
+// server uses this to populate managerInfo.supportsTableHandMode and surface
+// it in doListManager so the create-game form can show the
+// "Use shared projector + phones" toggle for supporting games. (Spec §5.3.)
+var companionCapableGames = []string{
+{{- range .companionCapableGames}}
+	"{{.}}",
+{{- end}}
+}
+
 func main() {
 
 	storage := api.NewServerStorageManager({{.storageConstructor}})
@@ -159,10 +174,10 @@ func main() {
 		{{- range .pkgs}}
 		{{.Name}}.NewDelegate(),
 		{{- end}}
-	{{- if .options.OverrideOfflineDevMode }}		
-	).AddOverrides(overrides).Start()
+	{{- if .options.OverrideOfflineDevMode }}
+	).AddOverrides(overrides).WithCompanionCapableGames(companionCapableGames).Start()
 	{{- else}}
-	).Start()
+	).WithCompanionCapableGames(companionCapableGames).Start()
 	{{- end}}
 }
 

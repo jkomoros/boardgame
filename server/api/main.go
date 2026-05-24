@@ -101,6 +101,15 @@ type managerInfo struct {
 	//if len(seatPlayerMoves) != 0, as moves.SeatPlayer and behaviors.Seat are
 	//used in conjunction most often.
 	playerHasSeat bool
+	// supportsTableHandMode is true iff this game ships a
+	// boardgame-render-game-<name>-table.ts AND -hand.ts pair (detected at
+	// build time by boardgame-util; surfaced into the generated api/main.go
+	// via Server.WithCompanionCapableGames). Used by doListManager so the
+	// create-game form can show the "Use shared projector + phones" toggle
+	// for supporting games (spec §5.3), and by /api/game/.../new-style
+	// creation requests for server-side validation that a request for
+	// companionMode is for an actually-supporting game.
+	supportsTableHandMode bool
 }
 
 type playerToSeat struct {
@@ -937,14 +946,15 @@ func (s *Server) doListManager(r *renderer) {
 		}
 
 		managers = append(managers, map[string]interface{}{
-			"Name":              name,
-			"DisplayName":       manager.Delegate().DisplayName(),
-			"Description":       manager.Delegate().Description(),
-			"DefaultNumPlayers": manager.Delegate().DefaultNumPlayers(),
-			"MinNumPlayers":     manager.Delegate().MinNumPlayers(),
-			"MaxNumPlayers":     manager.Delegate().MaxNumPlayers(),
-			"Agents":            agents,
-			"Variant":           variant,
+			"Name":                  name,
+			"DisplayName":           manager.Delegate().DisplayName(),
+			"Description":           manager.Delegate().Description(),
+			"DefaultNumPlayers":     manager.Delegate().DefaultNumPlayers(),
+			"MinNumPlayers":         manager.Delegate().MinNumPlayers(),
+			"MaxNumPlayers":         manager.Delegate().MaxNumPlayers(),
+			"Agents":                agents,
+			"Variant":               variant,
+			"SupportsTableHandMode": mInfo.supportsTableHandMode,
 		})
 	}
 
@@ -1083,6 +1093,20 @@ func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromV
 // load. We return a reference to ourself to allow chaining of configurations.
 func (s *Server) AddOverrides(overrides []config.OptionOverrider) *Server {
 	s.overriders = append(s.overriders, overrides...)
+	return s
+}
+
+// WithCompanionCapableGames marks the named games as supporting Table+Hand
+// companion mode (spec §5.3). Called by the generated api/main.go with the
+// list boardgame-util computed at build time from filesystem walk. Returns
+// the server for chaining. Names that don't match any registered manager
+// are silently ignored (so a stale capability list doesn't crash startup).
+func (s *Server) WithCompanionCapableGames(gameNames []string) *Server {
+	for _, name := range gameNames {
+		if mInfo, ok := s.managers[name]; ok {
+			mInfo.supportsTableHandMode = true
+		}
+	}
 	return s
 }
 
