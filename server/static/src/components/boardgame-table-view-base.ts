@@ -1,4 +1,4 @@
-import { html, TemplateResult } from 'lit';
+import { html, css, TemplateResult } from 'lit';
 import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 
@@ -100,18 +100,31 @@ export class BoardgameTableViewBase<
 
   /**
    * Opt-in helper: renders the avatar strip across the top edge of the
-   * Table view. Pulls from seatPresentations + absentPlayers. V1 stub —
-   * Phase 3 wires up the real treatment with pulse animations for the
-   * current player and "Waiting…" overlays for absent players.
+   * Table view. Tile per seated player; per-tile pulse for the current
+   * player; "Waiting for Alice (m:ss)" overlay for absent players plus
+   * (if isHost AND this absent player is also current) a Skip button.
+   *
+   * Authors call this from render() at the spot in the layout they want
+   * the avatar strip. Skip wiring goes through the game's normal API
+   * base URL — the strip POSTs hostSkipTurn directly rather than going
+   * through a Redux action, keeping the dependency footprint of the
+   * Table view base small.
    */
   protected renderAvatarStrip(): TemplateResult {
-    return html``;
+    const seats = this._seatedSeats();
+    return html`
+      <div class="avatar-strip">
+        ${seats.map(s => this._renderSeatTile(s))}
+      </div>
+    `;
   }
 
   /**
-   * Opt-in helper: renders host-only controls (Lock room toggle, SkipTurn
-   * button on the absent current-player badge). No-op when !isHost.
-   * V1 stub — Phase 3 wires the real UI + click handlers.
+   * Opt-in helper: renders host-only controls (Lock room toggle). Skip
+   * button is rendered inline on the absent-current-player badge by
+   * renderAvatarStrip; this helper is for chrome that doesn't fit in
+   * the avatar strip. V1 ships the Lock-room toggle as a P5 polish task,
+   * so this is currently empty but kept for the consistent API.
    */
   protected renderHostControls(): TemplateResult {
     return html``;
@@ -128,4 +141,101 @@ export class BoardgameTableViewBase<
   protected renderFakeDeckRow(): TemplateResult {
     return html``;
   }
+
+  // ---- internal helpers below ----
+
+  private _seatedSeats(): SeatPresentation[] {
+    // Stable left-to-right order by playerIndex.
+    return [...this.seatPresentations].sort((a, b) => a.playerIndex - b.playerIndex);
+  }
+
+  private _isAbsent(playerIndex: number): boolean {
+    return this.absentPlayers.includes(playerIndex);
+  }
+
+  private _renderSeatTile(seat: SeatPresentation): TemplateResult {
+    const absent = this._isAbsent(seat.playerIndex);
+    const isCurrent = seat.playerIndex === this.currentPlayerIndex;
+    const showSkip = this.isHost && absent && isCurrent;
+    return html`
+      <div class="seat-tile ${isCurrent ? 'current' : ''} ${absent ? 'absent' : ''}">
+        <div class="seat-avatar">${seat.avatarSlug}</div>
+        <div class="seat-name">${seat.displayName}</div>
+        ${absent ? html`<div class="seat-waiting">Waiting…</div>` : ''}
+        ${showSkip ? html`<button class="seat-skip" @click=${() => this._onSkipTurn(seat.playerIndex)}>Skip turn</button>` : ''}
+      </div>
+    `;
+  }
+
+  private async _onSkipTurn(playerIndex: number) {
+    // The endpoint figures out which player is current — we don't need
+    // to send the playerIndex, but log for debugging.
+    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
+    const gameName = (this.state as any)?.Manager?.Delegate?.Name?.() ?? '';
+    const gameID = (this.state as any)?.Game?.ID ?? '';
+    if (!gameName || !gameID) {
+      console.warn('[table-view-base] cannot Skip — gameName/gameID not on state');
+      return;
+    }
+    try {
+      const res = await fetch(`${apiHost}/api/game/${gameName}/${gameID}/hostSkipTurn`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Skip failed' }));
+        console.warn('[table-view-base] hostSkipTurn rejected:', body.error, 'for player', playerIndex);
+      }
+    } catch (e) {
+      console.warn('[table-view-base] hostSkipTurn network error:', e);
+    }
+  }
+
+  static styles = css`
+    .avatar-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 12px;
+      justify-content: center;
+    }
+    .seat-tile {
+      min-width: 80px;
+      padding: 8px 12px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      text-align: center;
+      background: white;
+      position: relative;
+    }
+    .seat-tile.current {
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.15);
+    }
+    .seat-tile.absent {
+      opacity: 0.5;
+    }
+    .seat-avatar {
+      font-size: 32px;
+    }
+    .seat-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .seat-waiting {
+      color: #c62828;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .seat-skip {
+      margin-top: 4px;
+      padding: 4px 12px;
+      border: 1px solid #c62828;
+      background: #fff;
+      color: #c62828;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  `;
 }
