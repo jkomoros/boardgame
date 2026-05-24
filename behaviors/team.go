@@ -28,7 +28,13 @@ together -- they compose cleanly.
 */
 type PlayerTeam struct {
 	container boardgame.SubState
-	Team      enum.Val `enum:"team"`
+	// Team is hidden from observers (e.g. the Table+Hand projector at
+	// ObserverPlayerIndex) by default — safe default for games where team
+	// affiliation is part of the hidden information. Games where teams
+	// are publicly known (the common case for Codenames-style games)
+	// override at the embedding site with `sanitize:"all:visible"`.
+	// See PlayerRole for the same pattern with more documentation.
+	Team enum.Val `enum:"team" sanitize:"other:hidden"`
 }
 
 // ConnectBehavior stores a reference to the containing SubState.
