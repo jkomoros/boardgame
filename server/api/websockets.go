@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,17 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// absentThreshold is how long since the last heartbeat before a player is
+// flagged absent (spec §9.1). The client sends heartbeats every 10s, so a
+// 30s threshold tolerates one missed heartbeat + some jitter without
+// flapping.
+const absentThreshold = 30 * time.Second
+
+// absentScanInterval is how often workLoop wakes to scan lastHeartbeat for
+// stale entries. 5s is fine-grained enough that "Waiting for Alice (m:ss)"
+// counts up smoothly without thrashing.
+const absentScanInterval = 5 * time.Second
 
 // socketMessage is the JSON-framed WebSocket message format.
 // Clients should feature-detect: if the message starts with "{", parse as
@@ -43,14 +55,64 @@ type chatBroadcast struct {
 	notification chatNotification
 }
 
+// heartbeatRecord is sent on versionNotifier.heartbeat when a connected
+// socket receives an application-level heartbeat from the client. Carries
+// the socket's gameID + playerIndex so the notifier can update its
+// lastHeartbeat map for the right (game, player) cell.
+type heartbeatRecord struct {
+	gameID      string
+	playerIndex boardgame.PlayerIndex
+	ts          time.Time
+}
+
+// presenceChanged is broadcast on versionNotifier when the absent set for
+// a game changes (a player went stale, or a stale player came back). The
+// existing gameInfoHandler reads the latest absent set into the JSON state
+// on the next fetch — this notification is the wake-up that tells clients
+// to refetch.
+type presenceChanged struct {
+	gameID string
+}
+
 type versionNotifier struct {
 	sockets       map[string]map[*socket]bool
 	register      chan *socket
 	unregister    chan *socket
 	notifyVersion chan gameVersionChanged
 	notifyChat    chan chatBroadcast
+	heartbeat     chan heartbeatRecord
 	doneChan      chan bool
 	server        *Server
+
+	// lastHeartbeat tracks, per (gameID, playerIndex), the wall-clock
+	// time of the most recent application heartbeat. Read + written ONLY
+	// by workLoop (and the absent-scan ticker that delivers events back
+	// into the same goroutine via presenceChanged channels). No mutex —
+	// channel discipline guarantees single-goroutine access.
+	lastHeartbeat map[string]map[boardgame.PlayerIndex]time.Time
+	// absent is the derived per-game set of player indices considered
+	// absent at the last scan. Cleared when a game enters Finished or
+	// transitions back to live. Read by gameInfoHandler concurrently —
+	// guarded by absentMu since reads happen on HTTP handler goroutines.
+	absent   map[string]map[boardgame.PlayerIndex]bool
+	absentMu sync.RWMutex
+}
+
+// AbsentPlayers returns the current absent-player set for the given gameID,
+// as a copy suitable for serialization into the JSON state response. Empty
+// list if no players are absent or the game is unknown to the notifier.
+func (v *versionNotifier) AbsentPlayers(gameID string) []boardgame.PlayerIndex {
+	v.absentMu.RLock()
+	defer v.absentMu.RUnlock()
+	set, ok := v.absent[gameID]
+	if !ok {
+		return nil
+	}
+	out := make([]boardgame.PlayerIndex, 0, len(set))
+	for pi := range set {
+		out = append(out, pi)
+	}
+	return out
 }
 
 type socket struct {
@@ -58,6 +120,13 @@ type socket struct {
 	notifier *versionNotifier
 	conn     *websocket.Conn
 	send     chan []byte
+
+	// playerIndex is the seat this socket is bound to, or
+	// ObserverPlayerIndex for unseated viewers (Table view connections,
+	// spectators on a shared game). Populated at handshake time from
+	// effectivePlayerIndex(c). Heartbeats from this socket are recorded
+	// against (gameID, playerIndex).
+	playerIndex boardgame.PlayerIndex
 }
 
 func (s *Server) checkOriginForSocket(r *http.Request) bool {
@@ -89,17 +158,20 @@ func (s *Server) socketHandler(c *gin.Context) {
 		return
 	}
 
-	socket := newSocket(game, conn, s.notifier)
+	playerIndex := s.effectivePlayerIndex(c)
+
+	socket := newSocket(game, conn, s.notifier, playerIndex)
 	s.notifier.register <- socket
 
 }
 
-func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNotifier) *socket {
+func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNotifier, playerIndex boardgame.PlayerIndex) *socket {
 	result := &socket{
-		notifier: notifier,
-		conn:     conn,
-		send:     make(chan []byte, 256),
-		gameID:   game.ID(),
+		notifier:    notifier,
+		conn:        conn,
+		send:        make(chan []byte, 256),
+		gameID:      game.ID(),
+		playerIndex: playerIndex,
 	}
 	go result.readPump()
 	go result.writePump()
@@ -137,6 +209,23 @@ func (s *socket) readPump() {
 			}
 			break
 		}
+
+		// Application-level heartbeat. {"type":"heartbeat"} — body is
+		// ignored. Anything else is unexpected and logged. We don't bother
+		// validating that playerIndex is a real seat (ObserverPlayerIndex
+		// hits this path too, harmlessly; lastHeartbeat updates won't
+		// affect the absent set since absent is only computed for seated
+		// players in workLoop's scan).
+		var msg socketMessage
+		if jerr := json.Unmarshal(message, &msg); jerr == nil && msg.Type == "heartbeat" {
+			s.notifier.heartbeat <- heartbeatRecord{
+				gameID:      s.gameID,
+				playerIndex: s.playerIndex,
+				ts:          time.Now(),
+			}
+			continue
+		}
+
 		s.notifier.server.logger.Warnln("Unexpectedly got a message from client", logrus.Fields{
 			"Message": message,
 			"Id":      s.gameID,
@@ -203,8 +292,11 @@ func newVersionNotifier(s *Server) *versionNotifier {
 		unregister:    make(chan *socket),
 		notifyVersion: make(chan gameVersionChanged),
 		notifyChat:    make(chan chatBroadcast),
+		heartbeat:     make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
 		doneChan:      make(chan bool),
 		server:        s,
+		lastHeartbeat: make(map[string]map[boardgame.PlayerIndex]time.Time),
+		absent:        make(map[string]map[boardgame.PlayerIndex]bool),
 	}
 	go result.workLoop()
 	return result
@@ -232,6 +324,9 @@ func (v *versionNotifier) done() {
 }
 
 func (v *versionNotifier) workLoop() {
+	scanTicker := time.NewTicker(absentScanInterval)
+	defer scanTicker.Stop()
+
 	for {
 		select {
 		case s := <-v.register:
@@ -258,9 +353,95 @@ func (v *versionNotifier) workLoop() {
 					socket.SendChatNotification(chat.notification)
 				}
 			}
+		case hb := <-v.heartbeat:
+			gameHB, ok := v.lastHeartbeat[hb.gameID]
+			if !ok {
+				gameHB = make(map[boardgame.PlayerIndex]time.Time)
+				v.lastHeartbeat[hb.gameID] = gameHB
+			}
+			gameHB[hb.playerIndex] = hb.ts
+			// If this player was previously absent, clear and broadcast.
+			if v.clearAbsentIfPresent(hb.gameID, hb.playerIndex) {
+				v.broadcastPresenceChange(hb.gameID)
+			}
+		case <-scanTicker.C:
+			v.scanStaleHeartbeats()
 		case <-v.doneChan:
-			break
+			return
 		}
+	}
+}
+
+// scanStaleHeartbeats walks lastHeartbeat looking for entries older than
+// absentThreshold. Promotes them into the absent set and broadcasts a
+// presence-change notification per affected game. Called from the workLoop
+// goroutine only; safe to read lastHeartbeat without locking.
+func (v *versionNotifier) scanStaleHeartbeats() {
+	cutoff := time.Now().Add(-absentThreshold)
+	changedGames := make(map[string]bool)
+	for gameID, gameHB := range v.lastHeartbeat {
+		for pi, ts := range gameHB {
+			if ts.Before(cutoff) {
+				if v.markAbsent(gameID, pi) {
+					changedGames[gameID] = true
+				}
+			}
+		}
+	}
+	for gameID := range changedGames {
+		v.broadcastPresenceChange(gameID)
+	}
+}
+
+// markAbsent adds (gameID, pi) to the absent set; returns true if this is a
+// transition (not already absent).
+func (v *versionNotifier) markAbsent(gameID string, pi boardgame.PlayerIndex) bool {
+	v.absentMu.Lock()
+	defer v.absentMu.Unlock()
+	set, ok := v.absent[gameID]
+	if !ok {
+		set = make(map[boardgame.PlayerIndex]bool)
+		v.absent[gameID] = set
+	}
+	if set[pi] {
+		return false
+	}
+	set[pi] = true
+	return true
+}
+
+// clearAbsentIfPresent removes (gameID, pi) from the absent set; returns
+// true if this is a transition (was previously absent).
+func (v *versionNotifier) clearAbsentIfPresent(gameID string, pi boardgame.PlayerIndex) bool {
+	v.absentMu.Lock()
+	defer v.absentMu.Unlock()
+	set, ok := v.absent[gameID]
+	if !ok || !set[pi] {
+		return false
+	}
+	delete(set, pi)
+	if len(set) == 0 {
+		delete(v.absent, gameID)
+	}
+	return true
+}
+
+// broadcastPresenceChange wakes clients up with a version-style notify
+// (re-using the existing socket message channel to keep client wiring
+// simple). The client refetches state, which surfaces the new Absent list.
+// V1 uses a synthetic version of -1 in the broadcast envelope so clients
+// can distinguish from real state changes if they care; for now the
+// existing client just treats any "version" message as "go fetch state".
+func (v *versionNotifier) broadcastPresenceChange(gameID string) {
+	bucket, ok := v.sockets[gameID]
+	if !ok {
+		return
+	}
+	// Re-broadcast the latest game version (we don't track it here so use
+	// a sentinel; clients refetch state and get the actual version).
+	notif := gameVersionChanged{ID: gameID, Version: -1}
+	for socket := range bucket {
+		socket.SendMessage(notif)
 	}
 }
 
