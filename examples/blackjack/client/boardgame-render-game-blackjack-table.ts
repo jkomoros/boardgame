@@ -47,6 +47,7 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
   override render() {
     return html`
       <h1>Blackjack — Table</h1>
+      ${this.renderRoomCodeBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
       <div class="draw">

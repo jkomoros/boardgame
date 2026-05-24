@@ -123,11 +123,94 @@ export class BoardgameTableViewBase<
    * Opt-in helper: renders host-only controls (Lock room toggle). Skip
    * button is rendered inline on the absent-current-player badge by
    * renderAvatarStrip; this helper is for chrome that doesn't fit in
-   * the avatar strip. V1 ships the Lock-room toggle as a P5 polish task,
-   * so this is currently empty but kept for the consistent API.
+   * the avatar strip. P5.5 wires the Lock-room toggle here.
    */
   protected renderHostControls(): TemplateResult {
-    return html``;
+    if (!this.isHost) return html``;
+    return html`
+      <div class="host-controls">
+        <label>
+          <input type="checkbox"
+            .checked=${this.roomLocked}
+            @change=${(e: Event) => this._onLockRoomToggle((e.target as HTMLInputElement).checked)}>
+          Lock room (no new joins)
+        </label>
+        <button class="switch-to-solo" @click=${this._onSwitchToSolo}>
+          Switch to solo mode
+        </button>
+      </div>
+    `;
+  }
+
+  /**
+   * Opt-in helper: renders the room-code banner (≥120pt code + QR) for
+   * the Table view pre-game lobby (spec §12.1). The banner hides once
+   * the game has started (state.Version > 0) so the playing surface
+   * isn't cluttered with the join prompt. V1 uses an external QR
+   * service (qrserver.com); production can swap in a self-hosted
+   * generator as a P5+ polish item.
+   */
+  protected renderRoomCodeBanner(): TemplateResult {
+    if (!this.roomCode) return html``;
+    const stateVersion = (this.state as any)?.Game?.Version ?? 0;
+    if (stateVersion > 0) {
+      // Game has started — render a small persistent badge in the corner
+      // rather than the giant pre-game banner.
+      return html`
+        <div class="room-code-mini">
+          <small>Room <strong>${this.roomCode}</strong>${this.roomLocked ? html`🔒` : ''}</small>
+        </div>
+      `;
+    }
+    // Pre-game: full-bleed banner with QR + giant code.
+    const joinURL = window.location.origin + '/join?code=' + this.roomCode;
+    const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(joinURL);
+    return html`
+      <div class="room-code-banner">
+        <div class="room-code-instructions">
+          <p>Go to <strong>${window.location.host}/join</strong></p>
+          <p>and enter the code</p>
+        </div>
+        <div class="room-code-giant">${this.roomCode}</div>
+        <img class="room-code-qr" src=${qrSrc} alt="Join QR code">
+      </div>
+    `;
+  }
+
+  private async _onLockRoomToggle(locked: boolean) {
+    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
+    const gameName = (this.state as any)?.Manager?.Delegate?.Name?.() ?? '';
+    const gameID = (this.state as any)?.Game?.ID ?? '';
+    if (!gameName || !gameID) return;
+    await fetch(`${apiHost}/api/game/${gameName}/${gameID}/setRoomLock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locked }),
+      credentials: 'include',
+    }).catch(e => console.warn('[table-view-base] lock-room failed:', e));
+  }
+
+  private async _onSwitchToSolo() {
+    // Two-tap confirmation per spec §9.6. Mid-game switch destroys
+    // hidden-info privacy because the solo renderer reveals everyone's
+    // state.
+    if (!confirm(
+      'Switching to solo mode will end the shared-screen mode for this game.\n\n' +
+      'Each player\'s phone will start showing the full game view, which MAY ' +
+      'REVEAL HIDDEN INFORMATION (cards, roles) that was previously private.\n\n' +
+      'This change cannot be undone for the current game.\n\n' +
+      'Continue?'
+    )) {
+      return;
+    }
+    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
+    const gameName = (this.state as any)?.Manager?.Delegate?.Name?.() ?? '';
+    const gameID = (this.state as any)?.Game?.ID ?? '';
+    if (!gameName || !gameID) return;
+    await fetch(`${apiHost}/api/game/${gameName}/${gameID}/switchToSolo`, {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(e => console.warn('[table-view-base] switch-to-solo failed:', e));
   }
 
   /**
@@ -282,6 +365,58 @@ export class BoardgameTableViewBase<
       font-size: 10px;
       color: #888;
       opacity: 0.4;
+    }
+    .room-code-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      padding: 24px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border-radius: 12px;
+      margin: 24px auto;
+      max-width: 720px;
+    }
+    .room-code-instructions p {
+      margin: 4px 0;
+      font-size: 20px;
+    }
+    .room-code-giant {
+      font-size: 128px;
+      font-weight: 900;
+      letter-spacing: 16px;
+      font-family: monospace;
+    }
+    .room-code-qr {
+      width: 180px;
+      height: 180px;
+      background: white;
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .room-code-mini {
+      position: fixed;
+      top: 8px;
+      right: 8px;
+      padding: 4px 8px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .host-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      padding: 8px;
+    }
+    .host-controls .switch-to-solo {
+      padding: 6px 12px;
+      border: 1px solid #888;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
     }
   `;
 }
