@@ -11,8 +11,9 @@ func TestManager(t *testing.T) {
 
 	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
 
-	assert.For(t).ThatActual(err).IsNil()
-
+	if err != nil {
+		t.Fatalf("NewGameManager error: %v", err)
+	}
 	assert.For(t).ThatActual(manager).IsNotNil()
 
 	game, err := manager.NewDefaultGame()

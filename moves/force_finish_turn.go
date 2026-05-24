@@ -30,10 +30,28 @@ Usage in a server-initiated move proposal:
 
 	game.ProposeMove(forceFinishTurnMove, boardgame.AdminPlayerIndex)
 
-The move is also fine to register in a game's move list via auto config so
-it's available for admin/debug UIs, but for the companion-mode host
-SkipTurn flow it's proposed directly from the server endpoint without
-needing the game's config to mention it.
+When registering in a game's move list via auto config, you MUST pass
+moves.WithIsFixUp(false) AND moves.WithMoveName("Force Finish Turn"):
+
+	auto.MustConfig(
+	    new(moves.ForceFinishTurn),
+	    moves.WithMoveName("Force Finish Turn"),
+	    moves.WithIsFixUp(false),
+	)
+
+Both options are load-bearing:
+  - The name override is required because ForceFinishTurn embeds
+    FinishTurn, and the auto-configurator's default name derivation
+    yields "Finish Turn" which clashes with the parent move's
+    registration.
+  - WithIsFixUp(false) is required because FinishTurn (the embedded
+    type) is a FixUp, and FixUp moves are auto-proposed by the
+    framework's fixup pipeline. Since ForceFinishTurn.Legal returns
+    nil for AdminPlayerIndex (the same identity the fixup pipeline
+    proposes under), an auto-proposed ForceFinishTurn would advance
+    the current player every fixup pass — i.e. infinite recursion
+    in the move loop. The host-SkipTurn flow proposes it directly,
+    bypassing the fixup pipeline.
 
 boardgame:codegen
 */
