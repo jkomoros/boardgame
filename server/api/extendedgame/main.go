@@ -16,6 +16,13 @@ type StorageRecord struct {
 	Open    bool
 	Visible bool
 	Owner   string
+	// CompanionRoomCode is the 4-letter (or fallback 5-letter) join code for
+	// games created in Table+Hand companion mode. Empty for solo-mode games.
+	// See docs/superpowers/specs/2026-05-23-per-person-mobile-ui-design.md §6.1.
+	CompanionRoomCode string
+	// CompanionLocked, when true, prevents new phones from joining the room
+	// even if the code is known. Host-controlled. Always false for solo-mode.
+	CompanionLocked bool
 }
 
 // CombinedStorageRecord combines the base GameStorageRecord and StorageRecord
@@ -32,6 +39,7 @@ func DefaultStorageRecord() *StorageRecord {
 		Open:    true,
 		Visible: true,
 		Owner:   "",
+		// CompanionRoomCode and CompanionLocked default to "" / false — solo-mode.
 	}
 }
 

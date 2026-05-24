@@ -51,27 +51,31 @@ type gameStorageRecord struct {
 }
 
 type extendedGameStorageRecord struct {
-	ID      string `db:",size:16"`
-	Open    bool
-	Visible bool
-	Owner   string `db:",size:128"`
+	ID                string `db:",size:16"`
+	Open              bool
+	Visible           bool
+	Owner             string `db:",size:128"`
+	CompanionRoomCode string `db:",size:8"` // 4-letter code, possible 5-letter fallback
+	CompanionLocked   bool
 }
 
 // Used for pulling out of a db with a join
 type combinedGameStorageRecord struct {
-	Name       string
-	ID         string
-	SecretSalt string
-	Version    int64
-	Winners    string
-	Finished   bool
-	NumPlayers int64
-	Agents     string
-	Created    int64
-	Modified   int64
-	Open       bool
-	Visible    bool
-	Owner      string
+	Name              string
+	ID                string
+	SecretSalt        string
+	Version           int64
+	Winners           string
+	Finished          bool
+	NumPlayers        int64
+	Agents            string
+	Created           int64
+	Modified          int64
+	Open              bool
+	Visible           bool
+	Owner             string
+	CompanionRoomCode string
+	CompanionLocked   bool
 }
 
 type stateStorageRecord struct {
@@ -266,9 +270,11 @@ func (c *combinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 			Modified:   time.Unix(0, c.Modified),
 		},
 		StorageRecord: extendedgame.StorageRecord{
-			Open:    c.Open,
-			Visible: c.Visible,
-			Owner:   c.Owner,
+			Open:              c.Open,
+			Visible:           c.Visible,
+			Owner:             c.Owner,
+			CompanionRoomCode: c.CompanionRoomCode,
+			CompanionLocked:   c.CompanionLocked,
 		},
 	}
 
@@ -281,19 +287,21 @@ func newCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 	}
 
 	return &combinedGameStorageRecord{
-		Name:       combined.Name,
-		ID:         combined.ID,
-		SecretSalt: combined.SecretSalt,
-		Version:    int64(combined.Version),
-		Winners:    winnersToString(combined.Winners),
-		NumPlayers: int64(combined.NumPlayers),
-		Finished:   combined.Finished,
-		Agents:     agentsToString(combined.Agents),
-		Created:    combined.Created.UnixNano(),
-		Modified:   combined.Modified.UnixNano(),
-		Open:       combined.Open,
-		Visible:    combined.Visible,
-		Owner:      combined.Owner,
+		Name:              combined.Name,
+		ID:                combined.ID,
+		SecretSalt:        combined.SecretSalt,
+		Version:           int64(combined.Version),
+		Winners:           winnersToString(combined.Winners),
+		NumPlayers:        int64(combined.NumPlayers),
+		Finished:          combined.Finished,
+		Agents:            agentsToString(combined.Agents),
+		Created:           combined.Created.UnixNano(),
+		Modified:          combined.Modified.UnixNano(),
+		Open:              combined.Open,
+		Visible:           combined.Visible,
+		Owner:             combined.Owner,
+		CompanionRoomCode: combined.CompanionRoomCode,
+		CompanionLocked:   combined.CompanionLocked,
 	}
 
 }
@@ -304,9 +312,11 @@ func (e *extendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecor
 	}
 
 	return &extendedgame.StorageRecord{
-		Open:    e.Open,
-		Visible: e.Visible,
-		Owner:   e.Owner,
+		Open:              e.Open,
+		Visible:           e.Visible,
+		Owner:             e.Owner,
+		CompanionRoomCode: e.CompanionRoomCode,
+		CompanionLocked:   e.CompanionLocked,
 	}
 }
 
@@ -316,9 +326,11 @@ func newExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *extendedGa
 	}
 
 	return &extendedGameStorageRecord{
-		Open:    eGame.Open,
-		Visible: eGame.Visible,
-		Owner:   eGame.Owner,
+		Open:              eGame.Open,
+		Visible:           eGame.Visible,
+		Owner:             eGame.Owner,
+		CompanionRoomCode: eGame.CompanionRoomCode,
+		CompanionLocked:   eGame.CompanionLocked,
 	}
 }
 
