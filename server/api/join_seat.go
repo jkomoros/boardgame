@@ -161,8 +161,18 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	}
 
 	// Verify Firebase token unless OfflineDevMode short-circuits.
+	// Accept token from Authorization: Bearer header (preferred — avoids
+	// logging JWTs in request bodies) or from the JSON body (legacy).
 	if !s.config.OfflineDevMode {
-		verifiedUID, verifyErr := verifyFirebaseTokenWithTimeout(req.Token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
+		token := req.Token
+		if authHeader := c.GetHeader("Authorization"); len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+			token = authHeader[7:]
+		}
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth required (pass token in Authorization: Bearer header)"})
+			return
+		}
+		verifiedUID, verifyErr := verifyFirebaseTokenWithTimeout(token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
 		if verifyErr != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token verification failed: " + verifyErr.Error()})
 			return

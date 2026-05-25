@@ -12,6 +12,13 @@ TurnDone() check so a server (or other AdminPlayerIndex caller) can force
 the current player's turn to end even when the player hasn't satisfied the
 game's normal turn-end condition.
 
+ForceFinishTurn is only meaningful for turn-based games where
+CurrentPlayerIndex returns a valid player index and the GameState
+implements [interfaces.CurrentPlayerSetter]. For simultaneous-action games
+(where CurrentPlayerIndex returns AnyPlayerIndex), there is no "current
+player" to advance — omit ForceFinishTurn from those games' move lists.
+See examples/werewolf for a companion-capable game that correctly omits it.
+
 The motivating case is the Table+Hand companion-mode SkipTurn host action
 (spec §9.3): a phone drops mid-turn with required moves still pending; the
 host wants to advance past them. Vanilla FinishTurn refuses because

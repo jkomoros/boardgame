@@ -339,14 +339,16 @@ export class BoardgameJoinView extends LitElement {
       const body: Record<string, unknown> = {
         gameID: this._joinResponse.gameID,
         uid: this._firebaseUID,
-        token: this._firebaseToken,
         displayName: this._displayName,
         avatarSlug: this._avatarSlug,
         seatPick: this._selectedSeat !== null ? this._selectedSeat : -1,
       };
       const res = await fetch(apiHost + '/api/join/seat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + this._firebaseToken,
+        },
         body: JSON.stringify(body),
         credentials: 'include',
       });
