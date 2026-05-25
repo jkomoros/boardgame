@@ -159,7 +159,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _isOwner = false;
 
   @property({ type: Object, attribute: false })
-  _companionInfo: any = null;
+  _companionInfo: import('../types/store').CompanionInfo | null = null;
 
   @property({ type: String, attribute: false })
   _pageExtra = '';

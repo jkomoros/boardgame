@@ -3,7 +3,7 @@
  * All actions use discriminated unions for type safety in the reducer.
  */
 
-import type { GameChest, PlayerInfo } from './store';
+import type { GameChest, PlayerInfo, CompanionInfo } from './store';
 import type { MoveForm } from './api';
 import type { RawGameState, TimerInfo, StateBundle } from './game-state';
 
@@ -69,10 +69,7 @@ export interface UpdateGameStaticInfoAction {
   open: boolean;
   visible: boolean;
   isOwner: boolean;
-  // companionInfo bundles the Table+Hand companion-mode fields from
-  // the gameInfo response (RoomCode, RoomLocked, SeatPresentations,
-  // Absent, CompanionMode). Null/absent for solo-mode games.
-  companionInfo: any;
+  companionInfo: CompanionInfo | null;
 }
 
 export interface UpdateGameCurrentStateAction {

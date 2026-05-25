@@ -79,12 +79,8 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: String })
   gameId = '';
 
-  // companionInfo bundles the Table+Hand companion-mode fields from the
-  // doGameInfo response (RoomCode, RoomLocked, SeatPresentations, Absent,
-  // CompanionMode). Null for solo-mode games. Pass-through to the inner
-  // surface renderer via _companionInfoChanged.
   @property({ type: Object })
-  companionInfo: any = null;
+  companionInfo: import('../types/store').CompanionInfo | null = null;
 
   // isOwner is the doGameInfo IsOwner bool — true if the authenticated
   // user is the game's Owner. Pass-through; the surface renderer combines
@@ -224,28 +220,25 @@ class BoardgameRenderGame extends LitElement {
   // expose typed properties for the unpacked fields; we set them all so
   // the renderer can react to e.g. an absent player coming back without
   // a full re-mount.
-  private _companionInfoChanged(newValue: any) {
+  private _companionInfoChanged(_newValue: import('../types/store').CompanionInfo | null) {
     if (!this.renderer) return;
     this._applyCompanionPropsToRenderer(this.renderer);
   }
 
-  // _isOwnerChanged is the simpler sibling — just push the bool through.
-  // The base view computes isHost = isOwner && surface==='table'.
   private _isOwnerChanged(newValue: boolean) {
     if (!this.renderer) return;
     (this.renderer as any).isOwner = newValue;
-    // isHost is gated by surface=table; recompute on isOwner change too.
     this._recomputeIsHost();
   }
 
   private _applyCompanionPropsToRenderer(ele: HTMLElement) {
     const r = ele as any;
-    const info = this.companionInfo || {};
-    r.seatPresentations = info.SeatPresentations || [];
-    r.absentPlayers = info.Absent || [];
-    r.roomCode = info.RoomCode || '';
-    r.roomLocked = info.RoomLocked || false;
-    r.companionMode = info.CompanionMode || false;
+    const info = this.companionInfo;
+    r.seatPresentations = info?.SeatPresentations || [];
+    r.absentPlayers = info?.Absent || [];
+    r.roomCode = info?.RoomCode || '';
+    r.roomLocked = info?.RoomLocked || false;
+    r.companionMode = info?.CompanionMode || false;
     this._recomputeIsHost();
   }
 

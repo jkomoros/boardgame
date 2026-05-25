@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect';
-import type { RootState, GameChest, PlayerInfo, ExpandedGameState, UserInfo } from './types/store';
+import type { RootState, GameChest, PlayerInfo, ExpandedGameState, UserInfo, CompanionInfo } from './types/store';
 import type { RawGameState, TimerInfo, StateBundle } from './types/game-state';
 import type { MoveForm } from './types/api';
 
@@ -87,7 +87,7 @@ export const selectGameIsOwner = (state: RootState): boolean => state.game ? sta
 // selectGameCompanionInfo returns the doGameInfo CompanionInfo bundle for
 // the active game, or null for solo-mode games / before the first
 // gameInfo fetch.
-export const selectGameCompanionInfo = (state: RootState): any => state.game ? state.game.companionInfo : null;
+export const selectGameCompanionInfo = (state: RootState): CompanionInfo | null => state.game ? state.game.companionInfo : null;
 // Returns raw game state (not expanded) - use selectExpandedGameState for expanded version
 export const selectGameCurrentState = (state: RootState): RawGameState | null => state.game ? state.game.currentState : null;
 // Per-operation loading selectors

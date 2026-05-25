@@ -1,7 +1,7 @@
 import { Dispatch, type UnknownAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { store } from '../store.js';
-import type { RootState, GameChest, PlayerInfo } from '../types/store';
+import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/store';
 import type { ApiResponse } from '../api';
 import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
 import type {
@@ -124,7 +124,7 @@ export const updateGameStaticInfo = (
   open: boolean,
   visible: boolean,
   isOwner: boolean,
-  companionInfo: any = null,
+  companionInfo: CompanionInfo | null = null,
 ): UpdateGameStaticInfoAction => {
   return {
     type: UPDATE_GAME_STATIC_INFO,
