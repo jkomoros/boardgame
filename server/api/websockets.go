@@ -286,23 +286,22 @@ func (s *socket) SendMessage(message gameVersionChanged) {
 	msg := socketMessage{Type: "version", Data: message.Version}
 	data, err := json.Marshal(msg)
 	if err != nil {
-		// Fallback to raw version number if JSON fails
 		select {
 		case s.send <- []byte(strconv.Itoa(message.Version)):
 		default:
+			s.conn.Close()
 		}
 		return
 	}
 	select {
 	case s.send <- data:
 	default:
+		// Buffer full — close the connection so the client reconnects
+		// and catches up from the current version (gorilla chat pattern).
+		s.conn.Close()
 		return
 	}
 
-	// Sibling "version-timing" message carries the cross-screen animation
-	// sync timestamps (spec §8.4). Sent immediately after "version" so a
-	// new client can correlate the two by version number. Old clients
-	// ignore the new type — backward-compatible.
 	now := time.Now().UnixMilli()
 	timing := socketMessage{
 		Type: "version-timing",
@@ -329,6 +328,7 @@ func (s *socket) SendChatNotification(notification chatNotification) {
 	select {
 	case s.send <- data:
 	default:
+		s.conn.Close()
 	}
 }
 

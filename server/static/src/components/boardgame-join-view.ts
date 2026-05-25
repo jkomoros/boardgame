@@ -186,8 +186,21 @@ export class BoardgameJoinView extends LitElement {
   // call it; otherwise the listener leaks across navigations.
   private _unsubscribeIdTokenChanged: (() => void) | null = null;
 
+  private _popstateHandler = (e: PopStateEvent) => {
+    if (e.state && e.state.step) {
+      this._step = e.state.step;
+    }
+  };
+
+  private _setStep(step: Step) {
+    this._step = step;
+    history.pushState({ step }, '', window.location.pathname + window.location.search);
+  }
+
   override connectedCallback() {
     super.connectedCallback();
+    window.addEventListener('popstate', this._popstateHandler);
+    history.replaceState({ step: 'code' }, '', window.location.pathname + window.location.search);
     // Roll a default avatar+name for the front door.
     this._reroll();
     // If pageExtra starts with "?code=XXXX", prefill (handy for QR codes).
@@ -222,6 +235,7 @@ export class BoardgameJoinView extends LitElement {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener('popstate', this._popstateHandler);
     if (this._unsubscribeIdTokenChanged) {
       this._unsubscribeIdTokenChanged();
       this._unsubscribeIdTokenChanged = null;
@@ -258,7 +272,7 @@ export class BoardgameJoinView extends LitElement {
         return;
       }
       this._joinResponse = await res.json();
-      this._step = 'identity';
+      this._setStep('identity');
     } catch (e) {
       this._error = 'Network error: ' + (e instanceof Error ? e.message : String(e));
     }
@@ -281,7 +295,7 @@ export class BoardgameJoinView extends LitElement {
         this._firebaseUID = cred.user.uid;
         this._firebaseToken = await cred.user.getIdToken();
       }
-      this._step = 'avatar';
+      this._setStep('avatar');
     } catch (e) {
       this._error = 'Sign-in failed: ' + (e instanceof Error ? e.message : String(e));
     }
@@ -297,8 +311,13 @@ export class BoardgameJoinView extends LitElement {
 
   private _acceptAvatarAndProceed() {
     if (!this._joinResponse) return;
+    this._displayName = this._displayName.trim();
+    if (!this._displayName) {
+      this._error = 'Please enter a display name';
+      return;
+    }
     if (this._joinResponse.requiresSeatPicker) {
-      this._step = 'seat';
+      this._setStep('seat');
       this._fetchSeatOptions();
     } else {
       // Symmetric: auto-assign on the server side.
@@ -384,6 +403,12 @@ export class BoardgameJoinView extends LitElement {
         <input
           class="code-input"
           maxlength="5"
+          inputmode="text"
+          autocapitalize="characters"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          pattern="[A-Za-z]{4,5}"
           .value=${this._codeInput}
           @input=${(e: Event) => { this._codeInput = (e.target as HTMLInputElement).value.toUpperCase(); }}
           placeholder="ABCD"
@@ -411,11 +436,16 @@ export class BoardgameJoinView extends LitElement {
 
       <div class="step ${this._step === 'avatarCustomize' ? '' : 'hidden'}">
         <p>Pick your avatar</p>
-        <div class="primary-grid">
+        <div class="primary-grid" role="radiogroup" aria-label="Avatar selection">
           ${PRIMARIES.map(p => html`
             <div
               class="primary-tile ${this._avatarSlug === p ? 'selected' : ''}"
-              @click=${() => { this._avatarSlug = p; }}>
+              role="radio"
+              tabindex="0"
+              aria-checked=${this._avatarSlug === p ? 'true' : 'false'}
+              aria-label="Avatar ${p}"
+              @click=${() => { this._avatarSlug = p; }}
+              @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._avatarSlug = p; } }}>
               ${p}
             </div>
           `)}

@@ -81,21 +81,13 @@ func (s *Server) getSeatJoinLock(gameID string) *sync.Mutex {
 	// games with no connected sockets are eligible to drop their lock.
 	// (We deliberately do NOT touch lastHeartbeat here, which is owned
 	// by the workLoop goroutine without a mutex.)
-	if len(s.seatJoinLocks) > 64 {
-		for id, lock := range s.seatJoinLocks {
-			if id == gameID {
-				continue
-			}
-			// Only evict if the lock is not currently held. TryLock
-			// (Go 1.18+) returns true if we acquired it — meaning
-			// nobody else is inside the critical section. We unlock
-			// immediately before deleting.
-			if lock.TryLock() {
-				lock.Unlock()
-				delete(s.seatJoinLocks, id)
-			}
-		}
-	}
+	// No eviction: the map holds one sync.Mutex per active gameID
+	// (at most ~64 entries = ~4KB). Eviction is unsafe because a
+	// goroutine that already obtained a pointer from a prior call
+	// could Lock a deleted mutex while a new goroutine gets a fresh
+	// one for the same gameID — breaking serialization. The leak is
+	// bounded by the number of distinct games ever created in this
+	// server process and is negligible.
 
 	if lock, ok := s.seatJoinLocks[gameID]; ok {
 		return lock

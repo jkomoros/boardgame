@@ -224,7 +224,8 @@ export class BoardgameTableViewBase<
           <p>and enter the code</p>
         </div>
         <div class="room-code-giant">${this.roomCode}</div>
-        ${qrSrc ? html`<img class="room-code-qr" src=${qrSrc} alt="Join QR code">` : ''}
+        ${qrSrc ? html`<img class="room-code-qr" src=${qrSrc} alt="Join QR code"
+          @error=${(e: Event) => { (e.target as HTMLImageElement).style.display = 'none'; }}>` : ''}
       </div>
     `;
   }
@@ -232,12 +233,21 @@ export class BoardgameTableViewBase<
   private async _onLockRoomToggle(locked: boolean) {
     if (!this.gameName || !this.gameId) return;
     const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-    await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/setRoomLock`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ locked }),
-      credentials: 'include',
-    }).catch(e => console.warn('[table-view-base] lock-room failed:', e));
+    try {
+      const res = await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/setRoomLock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locked }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        this._showHostFeedback(locked ? 'Room locked' : 'Room unlocked');
+      } else {
+        this._showHostFeedback('Failed to update lock');
+      }
+    } catch (e) {
+      this._showHostFeedback('Network error — lock toggle failed');
+    }
   }
 
   @state()
@@ -267,10 +277,15 @@ export class BoardgameTableViewBase<
     if (!this.gameName || !this.gameId) return;
     const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
     try {
-      await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/switchToSolo`, {
+      const res = await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/switchToSolo`, {
         method: 'POST',
         credentials: 'include',
       });
+      if (res.ok) {
+        this._showHostFeedback('Switching to solo mode...');
+      } else {
+        this._showHostFeedback('Switch to solo failed');
+      }
     } catch (e) {
       this._showHostFeedback('Network error — switch to solo failed');
     }
@@ -431,7 +446,7 @@ export class BoardgameTableViewBase<
       padding-top: 4px;
       font-size: 10px;
       color: #888;
-      opacity: 0.4;
+      opacity: 0;
     }
     .room-code-banner {
       display: flex;

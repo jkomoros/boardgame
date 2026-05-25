@@ -36,6 +36,12 @@ export class BoardgameHandViewBase<
     return this.viewingAsPlayer;
   }
 
+  @property({ type: String })
+  gameName = '';
+
+  @property({ type: String })
+  gameId = '';
+
   /**
    * Per-seat avatar + name records for everyone in the game (same data
    * the Table view receives). The Hand view typically only needs this

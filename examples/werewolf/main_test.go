@@ -25,6 +25,11 @@ func TestNewGameManager(t *testing.T) {
 	}
 }
 
+// TestRoleHiddenFromObserver pins the core companion-mode privacy contract:
+// the Table surface connects as ObserverPlayerIndex, so the framework's
+// sanitization with behaviors.PlayerRole's default sanitize:"other:hidden"
+// tag hides every player's role from the projector. If this test fails,
+// the projector would display everyone's secret role on the shared screen.
 func TestRoleHiddenFromObserver(t *testing.T) {
 	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
 	if err != nil {
@@ -71,6 +76,11 @@ func TestRoleHiddenFromObserver(t *testing.T) {
 	}
 }
 
+// TestRoleVisibleToSelf pins the other half of the companion-mode contract:
+// each player's phone (Hand surface) connects as PlayerIndex(n), and
+// sanitize:"other:hidden" only hides OTHER players' roles — you can always
+// see your own. If this test fails, phones would show "Unknown" for the
+// player's own role.
 func TestRoleVisibleToSelf(t *testing.T) {
 	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
 	if err != nil {
