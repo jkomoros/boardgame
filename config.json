@@ -17,7 +17,8 @@
         "debuganimations",
         "memory",
         "pig",
-        "tictactoe"
+        "tictactoe",
+        "werewolf"
       ],
       "github.com/jkomoros/boardgame/games": []
     }

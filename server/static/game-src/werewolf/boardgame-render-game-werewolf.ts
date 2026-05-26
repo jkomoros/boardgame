@@ -1,0 +1,1 @@
+/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/examples/werewolf/client/boardgame-render-game-werewolf.ts
