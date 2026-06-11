@@ -67,27 +67,15 @@ type joinSeatResponse struct {
 
 // getSeatJoinLock returns the per-game mutex used to serialize seat-claim
 // operations. Lazy-allocates a fresh mutex on first call for a given
-// gameID. Opportunistically evicts locks when the map grows past a
-// threshold and the notifier's heartbeat tracking has no record of the
-// game (a coarse "game is no longer active" proxy that doesn't require
-// us to plumb storage IsFinished calls in here). Bounded growth without
-// a dedicated cleanup goroutine.
+// gameID. Locks are never evicted: eviction is unsafe because a
+// goroutine that already obtained a pointer from a prior call could
+// Lock a deleted mutex while a new goroutine gets a fresh one for the
+// same gameID — breaking serialization. The leak is bounded by the
+// number of distinct games ever joined in this server process
+// (one sync.Mutex each) and is negligible.
 func (s *Server) getSeatJoinLock(gameID string) *sync.Mutex {
 	s.seatJoinLocksMu.Lock()
 	defer s.seatJoinLocksMu.Unlock()
-
-	// Opportunistic eviction at 64 entries. Use the notifier's existing
-	// connected-sockets bucket as a "game is currently active" probe;
-	// games with no connected sockets are eligible to drop their lock.
-	// (We deliberately do NOT touch lastHeartbeat here, which is owned
-	// by the workLoop goroutine without a mutex.)
-	// No eviction: the map holds one sync.Mutex per active gameID
-	// (at most ~64 entries = ~4KB). Eviction is unsafe because a
-	// goroutine that already obtained a pointer from a prior call
-	// could Lock a deleted mutex while a new goroutine gets a fresh
-	// one for the same gameID — breaking serialization. The leak is
-	// bounded by the number of distinct games ever created in this
-	// server process and is negligible.
 
 	if lock, ok := s.seatJoinLocks[gameID]; ok {
 		return lock

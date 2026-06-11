@@ -8,7 +8,6 @@ package werewolf
 
 import (
 	"fmt"
-	"math/rand"
 	"reflect"
 	"strings"
 
@@ -73,43 +72,21 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 	return nil
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
-	_, players := concreteStates(state)
-
-	numPlayers := len(players)
-
-	// Determine number of werewolves: 1 for 4-5 players, 2 for 6-7
-	numWerewolves := 1
-	if numPlayers >= 6 {
-		numWerewolves = 2
-	}
-
-	// Create a shuffled list of indices
-	indices := rand.Perm(numPlayers)
-
-	// Assign roles to all player slots. FinishSetUp runs before the
-	// gathering phase seats anyone, so we assign to every slot and
-	// the gathering flow activates/deactivates as players join.
-	for i, p := range players {
-		isWerewolf := false
-		for j := 0; j < numWerewolves; j++ {
-			if indices[j] == i {
-				isWerewolf = true
-				break
-			}
-		}
-		if isWerewolf {
-			p.Role.SetValue(roleWerewolf)
-		} else {
-			p.Role.SetValue(roleVillager)
-		}
-	}
-
-	return nil
-}
+// Role assignment deliberately does NOT happen in FinishSetUp: at that
+// point no players have been seated, and slots that never fill would
+// receive roles (a werewolf on an empty seat makes the game degenerate).
+// Roles are assigned by moveBeginGame at the gathering→day transition,
+// among active players only. See moves.go.
 
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
-	_, players := concreteStates(state)
+	game, players := concreteStates(state)
+
+	// During gathering no roles are assigned yet, so aliveWerewolves
+	// would be 0 and the "villagers win" condition would fire at game
+	// creation. The game can't end before it begins.
+	if game.Phase.Value() == phaseGathering {
+		return false
+	}
 
 	var aliveWerewolves, aliveVillagers int
 
@@ -233,9 +210,10 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				),
 			),
 			auto.MustConfig(
-				new(moves.StartPhase),
+				new(moveBeginGame),
 				moves.WithMoveName("Begin Game"),
 				moves.WithPhaseToStart(phaseDay, phaseEnum),
+				moves.WithHelpText("Starts the day phase and assigns roles among seated players."),
 			),
 		),
 		// Day and night phases share the same moves.

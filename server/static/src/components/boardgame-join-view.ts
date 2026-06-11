@@ -188,6 +188,14 @@ export class BoardgameJoinView extends LitElement {
 
   private _popstateHandler = (e: PopStateEvent) => {
     if (e.state && e.state.step) {
+      // After a mid-flow reload, history entries for later steps can
+      // survive while _joinResponse (in-memory only) is gone. Restoring
+      // such a step would strand the user on a panel whose buttons
+      // silently no-op — fall back to the code step instead.
+      if (e.state.step !== 'code' && !this._joinResponse) {
+        this._step = 'code';
+        return;
+      }
       this._step = e.state.step;
     }
   };

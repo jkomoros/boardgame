@@ -2,11 +2,68 @@ package werewolf
 
 import (
 	"errors"
+	"math/rand"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 	"github.com/jkomoros/boardgame/moves"
 )
+
+// moveBeginGame transitions gathering → day AND assigns roles. Role
+// assignment must happen here — not in FinishSetUp — because games with
+// more slots than MinNumPlayers can legally start with empty seats
+// (WaitForEnoughPlayers fires at 4 seated even in a 7-slot game), and
+// InactivateEmptySeat marks those seats inactive just before this move.
+// Assigning roles across all slots at setup time could put a werewolf on
+// a never-filled seat, making the game instantly won or unwinnable
+// (GameEndConditionMet only counts active players). Assigning here, only
+// among active players, with the wolf count derived from the ACTIVE
+// player count, closes that hole.
+//
+//boardgame:codegen
+type moveBeginGame struct {
+	moves.StartPhase
+}
+
+func (m *moveBeginGame) Apply(state boardgame.State) error {
+	if err := m.StartPhase.Apply(state); err != nil {
+		return err
+	}
+
+	_, players := concreteStates(state)
+
+	var active []*playerState
+	for _, p := range players {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		active = append(active, p)
+	}
+
+	numWerewolves := 1
+	if len(active) >= 6 {
+		numWerewolves = 2
+	}
+
+	indices := rand.Perm(len(active))
+
+	for i, p := range active {
+		isWerewolf := false
+		for j := 0; j < numWerewolves; j++ {
+			if indices[j] == i {
+				isWerewolf = true
+				break
+			}
+		}
+		if isWerewolf {
+			p.Role.SetValue(roleWerewolf)
+		} else {
+			p.Role.SetValue(roleVillager)
+		}
+	}
+
+	return nil
+}
 
 // moveCastVote is a non-fixup move where a player votes for who to eliminate.
 // During the day phase, any alive player may vote. During the night phase,
@@ -61,9 +118,8 @@ func (m *moveCastVote) Legal(state boardgame.ImmutableState, proposer boardgame.
 		return errors.New("cannot vote for an inactive player")
 	}
 
-	// During day phase, you cannot vote for yourself
-	if phase == phaseDay && target == m.TargetPlayerIndex {
-		return errors.New("you cannot vote for yourself during the day")
+	if target == m.TargetPlayerIndex {
+		return errors.New("you cannot vote for yourself")
 	}
 
 	return nil
@@ -139,12 +195,19 @@ func (m *moveResolveVotes) Apply(state boardgame.State) error {
 		}
 	}
 
-	// Find the player with most votes
+	// Find the player with most votes. Iterate by player index (not map
+	// order) so tie-breaks are deterministic — golden-style replays would
+	// otherwise produce different victims per run.
 	var maxVotes int
 	var eliminated boardgame.PlayerIndex = -1
 	tied := false
 
-	for target, count := range voteCounts {
+	for i := 0; i < len(players); i++ {
+		target := boardgame.PlayerIndex(i)
+		count := voteCounts[target]
+		if count == 0 {
+			continue
+		}
 		if count > maxVotes {
 			maxVotes = count
 			eliminated = target

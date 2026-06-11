@@ -1,6 +1,7 @@
 import { html, css, TemplateResult } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
+import { glyphForSlug } from './companion-avatar-catalog.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -342,7 +343,7 @@ export class BoardgameTableViewBase<
     const showSkip = this.isHost && absent && isCurrent;
     return html`
       <div class="seat-tile ${isCurrent ? 'current' : ''} ${absent ? 'absent' : ''}">
-        <div class="seat-avatar">${seat.avatarSlug}</div>
+        <div class="seat-avatar">${glyphForSlug(seat.avatarSlug)}</div>
         <div class="seat-name">${seat.displayName}</div>
         ${absent ? html`<div class="seat-waiting">Waiting…</div>` : ''}
         ${showSkip ? html`<button class="seat-skip" @click=${() => this._onSkipTurn(seat.playerIndex)}>Skip turn</button>` : ''}

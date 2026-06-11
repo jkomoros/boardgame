@@ -505,9 +505,16 @@ class BoardgameRenderGame extends LitElement {
     // path) and render the avatar strip, room code banner, etc.
     ele.gameName = this.gameName;
     ele.gameId = this.gameId;
-    this._applyCompanionPropsToRenderer(ele);
+    ele.isOwner = this.isOwner;
 
+    // Assign this.renderer BEFORE applying companion props:
+    // _applyCompanionPropsToRenderer calls _recomputeIsHost which guards
+    // on this.renderer — applying first would silently no-op the isHost
+    // computation, leaving the host's Table view without host controls
+    // until the next companionInfo change (which may never come in a
+    // quiet lobby).
     this.renderer = ele;
+    this._applyCompanionPropsToRenderer(ele);
 
     if (this._container) {
       this._container.appendChild(ele);

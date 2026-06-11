@@ -327,8 +327,13 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 // claimHostHandler implements POST /api/game/:name/:id/claimHost.
 // Per spec §9.4: any seated player can claim host if the current host
 // (eGame.Owner OR existing CompanionHostOverride) has no heartbeat-fresh
-// table-surface socket. First claim wins; the claimer's userID is
-// recorded as CompanionHostOverride.
+// table-surface socket. The claimer's userID is recorded as
+// CompanionHostOverride. Note: concurrent claims are read-modify-write
+// with no per-game lock, so the LAST write wins (not first-claim-wins).
+// Acceptable under the trusted-friends-in-person threat model — both
+// claimers are seated players, and the rate limit (1/sec per user)
+// bounds the churn. A CAS-style storage write would be needed for a
+// hostile-multiplayer deployment.
 func (s *Server) claimHostHandler(c *gin.Context) {
 	game := s.getGame(c)
 	if game == nil {

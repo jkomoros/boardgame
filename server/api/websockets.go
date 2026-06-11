@@ -457,6 +457,12 @@ func (v *versionNotifier) scanStaleHeartbeats() {
 		}
 
 		for pi, ts := range gameHB {
+			// Observers (Table views, spectators) are pi < 0 — they
+			// don't occupy seats and must not appear in the absent set
+			// ("Waiting for Player -1") or trip hostSkipTurn's gate.
+			if pi < 0 {
+				continue
+			}
 			if ts.Before(cutoff) {
 				if v.markAbsent(gameID, pi) {
 					changedGames[gameID] = true
@@ -600,4 +606,12 @@ func (v *versionNotifier) unregisterSocket(s *socket) {
 	}
 
 	delete(bucket, s)
+
+	// Drop the empty bucket so scanStaleHeartbeats' "game has zero
+	// connected sockets" eviction probe can actually fire. Without this,
+	// any game that ever had a socket keeps an empty bucket forever and
+	// the lastHeartbeat/absent maps leak unboundedly.
+	if len(bucket) == 0 {
+		delete(v.sockets, s.gameID)
+	}
 }
