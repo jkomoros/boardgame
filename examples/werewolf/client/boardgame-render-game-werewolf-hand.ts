@@ -1,6 +1,6 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BoardgameHandViewBase } from '../../../server/static/src/components/boardgame-hand-view-base.js';
+import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import type { MoveArgs } from './_move_args.js';

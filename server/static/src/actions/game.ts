@@ -103,7 +103,11 @@ export const CLEAR_FETCHED_INFO = 'CLEAR_FETCHED_INFO';
 export const CLEAR_FETCHED_VERSION = 'CLEAR_FETCHED_VERSION';
 
 export const updateGameRoute = (pageExtra: string): UpdateGameRouteAction | null => {
-    const pieces = pageExtra.split("/");
+    // Strip any query string (e.g. ?display=table used by companion-mode
+    // dev override) before splitting into name/id segments.
+    const queryIdx = pageExtra.indexOf("?");
+    const pathOnly = queryIdx >= 0 ? pageExtra.slice(0, queryIdx) : pageExtra;
+    const pieces = pathOnly.split("/");
     //remove the trailing slash
     if (!pieces[pieces.length - 1]) pieces.pop();
     if (pieces.length != 2) {
@@ -435,6 +439,11 @@ export const fetchGameInfo = (
     open: data.GameOpen,
     visible: data.GameVisible,
     isOwner: data.IsOwner,
+    // CompanionInfo is the doGameInfo §9.1/§12 bundle — RoomCode, lock state,
+    // seat presentations, and the absent-player list. Pass-through so the
+    // state-manager's _handleInfoData can plumb it into the static-info
+    // event. Without this, table/hand renderers never see a room code.
+    companionInfo: data.CompanionInfo,
     game: data.Game,
     forms: expandedForms,
     viewingAsPlayer: data.ViewingAsPlayer,

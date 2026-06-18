@@ -1944,8 +1944,12 @@ func (s *Server) Start() {
 
 	router.NoRoute(s.genericHandler)
 	router.Use(cors.Middleware(cors.Config{
-		Origins:        s.config.AllowedOrigins,
-		RequestHeaders: "content-type, Origin",
+		Origins: s.config.AllowedOrigins,
+		// Authorization is allowed so the companion-mode join flow can
+		// send a Firebase bearer token from the phone (cross-origin
+		// during dev because the API runs on a different port than the
+		// static server).
+		RequestHeaders: "content-type, Origin, Authorization",
 		ExposedHeaders: "content-type",
 		Methods:        "GET, POST",
 		Credentials:    true,

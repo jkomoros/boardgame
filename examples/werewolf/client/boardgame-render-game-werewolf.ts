@@ -1,4 +1,4 @@
-import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
 import { html, css } from 'lit';
 import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';

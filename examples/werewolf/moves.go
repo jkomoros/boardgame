@@ -2,7 +2,6 @@ package werewolf
 
 import (
 	"errors"
-	"math/rand"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
@@ -45,7 +44,7 @@ func (m *moveBeginGame) Apply(state boardgame.State) error {
 		numWerewolves = 2
 	}
 
-	indices := rand.Perm(len(active))
+	indices := state.Rand().Perm(len(active))
 
 	for i, p := range active {
 		isWerewolf := false

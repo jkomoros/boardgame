@@ -142,6 +142,7 @@ export interface FetchGameInfoSuccessAction {
   open: boolean;
   visible: boolean;
   isOwner: boolean;
+  companionInfo: CompanionInfo | null;
   game: RawGameState;
   forms: MoveForm[] | null;
   viewingAsPlayer: number;

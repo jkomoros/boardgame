@@ -317,6 +317,11 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 				GameOpen: action.open,
 				GameVisible: action.visible,
 				IsOwner: action.isOwner,
+				// Pass CompanionInfo through unchanged so the
+				// state-manager's _handleInfoData can dispatch it as part
+				// of the static-info bundle (table/hand renderers need
+				// RoomCode, RoomLocked, SeatPresentations, Absent).
+				CompanionInfo: action.companionInfo,
 				Game: action.game,
 				Forms: action.forms,
 				ViewingAsPlayer: action.viewingAsPlayer,
