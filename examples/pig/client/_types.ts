@@ -21,11 +21,14 @@ export interface GameState {
 }
 
 export interface PlayerState {
-  Busted: boolean;
   DieCounted: boolean;
   Done: boolean;
+  Eliminated: boolean;
+  PlayerInactive: boolean;
   RoundScore: number;
-  TotalScore: number;
+  Score: number;
+  SeatClosed: boolean;
+  SeatFilled: boolean;
   Computed?: Record<string, unknown>;
 }
 

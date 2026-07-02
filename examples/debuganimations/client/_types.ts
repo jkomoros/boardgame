@@ -36,6 +36,9 @@ export interface GameState {
 
 export interface PlayerState {
   Hand: ExpandedStack<CardsComponentValues>;
+  PlayerInactive: boolean;
+  SeatClosed: boolean;
+  SeatFilled: boolean;
   Computed?: Record<string, unknown>;
 }
 

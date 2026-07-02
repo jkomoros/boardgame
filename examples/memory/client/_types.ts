@@ -23,6 +23,9 @@ export interface GameState {
 
 export interface PlayerState {
   CardsLeftToReveal: number;
+  PlayerInactive: boolean;
+  SeatClosed: boolean;
+  SeatFilled: boolean;
   WonCards: ExpandedStack<CardsComponentValues>;
   Computed?: Record<string, unknown>;
 }

@@ -4,7 +4,7 @@
 
 import type { ExpandedStack, FullGameState } from '../../src/types/boardgame-types.js';
 
-export type PhaseValue = "Initial Deal" | "Normal Play";
+export type PhaseValue = "Gathering" | "Initial Deal" | "Normal Play" | "Round Cleanup";
 
 export type RankValue = "Unknown" | "Ace" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "Jack" | "Queen" | "King" | "Joker";
 
@@ -19,20 +19,23 @@ export interface GameState {
   CurrentPlayer: number;
   DiscardStack: ExpandedStack<CardsComponentValues>;
   DrawStack: ExpandedStack<CardsComponentValues>;
+  MaxRounds: number;
   Phase: PhaseValue;
   RRHasStarted: boolean;
   RRLastPlayer: number;
   RRRoundCount: number;
   RRStarterPlayer: number;
+  RoundsCompleted: number;
   UnusedCards: ExpandedStack<CardsComponentValues>;
   Computed?: Record<string, unknown>;
 }
 
 export interface PlayerState {
-  Busted: boolean;
+  Eliminated: boolean;
   Hand: ExpandedStack<CardsComponentValues>;
   HiddenHand: ExpandedStack<CardsComponentValues>;
   PlayerInactive: boolean;
+  Score: number;
   SeatClosed: boolean;
   SeatFilled: boolean;
   Stood: boolean;

@@ -14,4 +14,5 @@ export interface CurrentPlayerStandArgs {
 export type MoveArgs = {
   "Current Player Hit": CurrentPlayerHitArgs;
   "Current Player Stand": CurrentPlayerStandArgs;
+  "Force Finish Turn": Record<string, never>;
 };
