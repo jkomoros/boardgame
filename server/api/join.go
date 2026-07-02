@@ -103,9 +103,10 @@ func (s *Server) joinHandler(c *gin.Context) {
 		MinPlayers:      combined.NumPlayers, // for now: NumPlayers is fixed at create-time
 		MaxPlayers:      combined.NumPlayers,
 		CurrentPlayers:  currentPlayers,
-		// RequiresSeatPicker: filled in by P2 once HasPlayerRole/HasPlayerTeam
-		// detection is wired into managerInfo. V1 default: false.
-		RequiresSeatPicker: false,
+		// Note this only says WHETHER a picker is needed; the slot details
+		// (which require auth) come from /api/join/seat-options, so a
+		// brute-force scrape of /api/join can't learn asymmetric structure.
+		RequiresSeatPicker: s.requiresSeatPicker(mgrInfo),
 	}
 	c.JSON(http.StatusOK, resp)
 }

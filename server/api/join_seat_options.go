@@ -89,17 +89,7 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 		return
 	}
 
-	// Asymmetry detection: inspect the example player state on the manager.
-	examplePlayerStates := mgrInfo.manager.ExampleState().ImmutablePlayerStates()
-	var hasRole, hasTeam bool
-	if len(examplePlayerStates) > 0 {
-		if _, ok := examplePlayerStates[0].(behaviors.HasPlayerRole); ok {
-			hasRole = true
-		}
-		if _, ok := examplePlayerStates[0].(behaviors.HasPlayerTeam); ok {
-			hasTeam = true
-		}
-	}
+	requiresPicker := s.requiresSeatPicker(mgrInfo)
 
 	userIDs := s.storage.UserIDsForGame(gameID)
 	numPlayers := combined.NumPlayers
@@ -130,6 +120,27 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 		GameID:             gameID,
 		GameName:           combined.Name,
 		Slots:              slots,
-		RequiresSeatPicker: hasRole || hasTeam,
+		RequiresSeatPicker: requiresPicker,
 	})
+}
+
+// requiresSeatPicker reports whether the manager's playerState is asymmetric
+// (satisfies behaviors.HasPlayerRole or behaviors.HasPlayerTeam), meaning
+// phones should show the seat picker before claiming a seat. Symmetric games
+// auto-assign in /api/join/seat.
+func (s *Server) requiresSeatPicker(mgrInfo *managerInfo) bool {
+	if mgrInfo == nil || mgrInfo.manager == nil {
+		return false
+	}
+	examplePlayerStates := mgrInfo.manager.ExampleState().ImmutablePlayerStates()
+	if len(examplePlayerStates) == 0 {
+		return false
+	}
+	if _, ok := examplePlayerStates[0].(behaviors.HasPlayerRole); ok {
+		return true
+	}
+	if _, ok := examplePlayerStates[0].(behaviors.HasPlayerTeam); ok {
+		return true
+	}
+	return false
 }

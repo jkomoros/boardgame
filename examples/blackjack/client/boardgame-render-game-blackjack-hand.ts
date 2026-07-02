@@ -1,10 +1,10 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BoardgameHandViewBase } from '../../../server/static/src/components/boardgame-hand-view-base.js';
-import '../../../server/static/src/components/boardgame-component-stack.js';
-import '../../../server/static/src/components/boardgame-card.js';
-import '../../../server/static/src/components/boardgame-deck-defaults.js';
-import type { MoveName } from './_move_names.js';
+import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
+import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-card.js';
+import '../../src/components/boardgame-deck-defaults.js';
+import { MoveNames, type MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 
 /**
@@ -76,8 +76,8 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
           : ''}
       </div>
       <div class="actions">
-        <button @click=${() => this.proposeMove('Hit' as MoveName, {} as never)}>Hit</button>
-        <button @click=${() => this.proposeMove('Stand' as MoveName, {} as never)}>Stand</button>
+        <button @click=${() => this.proposeMove(MoveNames.CurrentPlayerHit, { TargetPlayerIndex: this.viewingAs })}>Hit</button>
+        <button @click=${() => this.proposeMove(MoveNames.CurrentPlayerStand, { TargetPlayerIndex: this.viewingAs })}>Stand</button>
       </div>
     `;
   }

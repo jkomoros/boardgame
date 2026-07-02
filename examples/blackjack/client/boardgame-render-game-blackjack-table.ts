@@ -1,9 +1,9 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BoardgameTableViewBase } from '../../../server/static/src/components/boardgame-table-view-base.js';
-import '../../../server/static/src/components/boardgame-component-stack.js';
-import '../../../server/static/src/components/boardgame-card.js';
-import '../../../server/static/src/components/boardgame-deck-defaults.js';
+import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
+import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-card.js';
+import '../../src/components/boardgame-deck-defaults.js';
 import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';
 

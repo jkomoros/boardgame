@@ -455,6 +455,9 @@ class BoardgameRenderGame extends LitElement {
   // intentional for developer testing and is harmless in prod because no
   // production-deployed phone client would set the param.
   private _readSurfaceCookie(gameId: string): 'table' | 'hand' | null {
+    const params = new URLSearchParams(window.location.search);
+    const display = params.get('display');
+    if (display === 'table' || display === 'hand') return display;
     if (gameId) {
       const cookieName = `surface_${gameId}=`;
       const cookies = document.cookie.split('; ');
@@ -465,9 +468,6 @@ class BoardgameRenderGame extends LitElement {
         }
       }
     }
-    const params = new URLSearchParams(window.location.search);
-    const display = params.get('display');
-    if (display === 'table' || display === 'hand') return display;
     return null;
   }
 

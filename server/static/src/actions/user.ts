@@ -123,6 +123,15 @@ function fauxSignOut(): void {
   localStorage.removeItem(fauxFirebaseDisplayNameKey);
 }
 
+//fauxSignInAsGuest mirrors what firebase.auth().signInAnonymously() does in
+//production: it replaces the browser's persisted auth identity, so the
+//app-level auth bootstrap on the next page load validates as this guest
+//rather than any previously signed-in faux user. Only meaningful in
+//OFFLINE_DEV_MODE; used by the companion-mode join flow.
+export function fauxSignInAsGuest(uid: string, displayName: string): void {
+  new fauxFirebaseUser(uid, displayName);
+}
+
 //firebaseUser isn't state that is rendered, and it can't go in the redux store
 //anyway.
 let firebaseUser: firebase.User | fauxFirebaseUser | null = null;

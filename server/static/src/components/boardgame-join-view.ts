@@ -8,6 +8,7 @@ import {
   randomDisplayName,
   glyphForSlug,
 } from './companion-avatar-catalog.js';
+import { fauxSignInAsGuest } from '../actions/user.js';
 
 /**
  * boardgame-join-view is the phone-side flow for joining a Table+Hand
@@ -291,9 +292,14 @@ export class BoardgameJoinView extends LitElement {
     try {
       const OFFLINE_DEV_MODE = (window as any).CONFIG && (window as any).CONFIG.offline_dev_mode;
       if (OFFLINE_DEV_MODE) {
-        // In offline dev mode we don't have Firebase — synthesize a UID.
+        // In offline dev mode we don't have Firebase — synthesize a UID and
+        // replace the faux persisted identity, mirroring how
+        // signInAnonymously() replaces the Firebase user in production. If
+        // we skipped this, the game page's auth bootstrap would re-validate
+        // as the previously signed-in faux user and orphan the seat claim.
         this._firebaseUID = 'anon-' + Math.random().toString(36).slice(2, 14);
         this._firebaseToken = 'dev-mode-token';
+        fauxSignInAsGuest(this._firebaseUID, 'Guest');
       } else {
         const cred = await firebase.auth().signInAnonymously();
         if (!cred.user) {
@@ -419,6 +425,7 @@ export class BoardgameJoinView extends LitElement {
           pattern="[A-Za-z]{4,5}"
           .value=${this._codeInput}
           @input=${(e: Event) => { this._codeInput = (e.target as HTMLInputElement).value.toUpperCase(); }}
+          @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); this._submitCode(); } }}
           placeholder="ABCD"
         />
         <button class="primary" @click=${this._submitCode}>Join</button>

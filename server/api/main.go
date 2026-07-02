@@ -555,7 +555,16 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents(), closedSeats)
 
-	if user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers() {
+	// Companion (Table+Hand) games seat players exclusively through the
+	// phone join flow (/api/join/seat). Auto-seating the first viewer here
+	// would bind a seat to the table surface, and the dev-mode debug fill
+	// below would leave no seats for phones to claim.
+	companionGame := false
+	if eGame, err := s.storage.ExtendedGame(id); err == nil && eGame.CompanionRoomCode != "" {
+		companionGame = true
+	}
+
+	if !companionGame && user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers() {
 		//Special case: we're the first player, we likely just created it. Just join the thing!
 
 		slot := emptySlots[0]

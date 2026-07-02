@@ -51,9 +51,10 @@ type joinSeatRequest struct {
 	Token       string `json:"token"`
 	DisplayName string `json:"displayName"`
 	AvatarSlug  string `json:"avatarSlug"`
-	// SeatPick is the chosen player index for asymmetric games. -1 (or
-	// absent) means "auto-assign the next open seat" which is the symmetric
-	// default. P2 wires this up; V1 always auto-assigns.
+	// SeatPick is the chosen player index for asymmetric games. -1 or
+	// absent means "auto-assign the next open seat" (the symmetric
+	// default). The handler pre-fills -1 before decoding so an absent
+	// field auto-assigns rather than claiming seat 0.
 	SeatPick int `json:"seatPick"`
 }
 
@@ -101,7 +102,7 @@ func (s *Server) getSeatJoinLock(gameID string) *sync.Mutex {
 // On race (last seat just got taken), returns 409 with the latest seat
 // snapshot; phone retries against fresh state.
 func (s *Server) joinSeatHandler(c *gin.Context) {
-	var req joinSeatRequest
+	req := joinSeatRequest{SeatPick: -1}
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
 		return
@@ -170,22 +171,44 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	// Find a slot. V1 is auto-only — SeatPick is reserved for P2.
+	// Find a slot. SeatPick >= 0 means the phone chose a specific seat via
+	// the seat picker (asymmetric games); honor it if it's still open, 409
+	// with the latest availability so the phone can re-pick if not.
+	// SeatPick < 0 means auto-assign the next open seat (symmetric games).
 	userIDs := s.storage.UserIDsForGame(req.GameID)
 	var slot boardgame.PlayerIndex = -1
-	for i, uid := range userIDs {
-		if uid == "" {
-			slot = boardgame.PlayerIndex(i)
-			break
+	if req.SeatPick >= 0 {
+		if req.SeatPick >= len(userIDs) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "seatPick out of range"})
+			return
 		}
-	}
-	if slot < 0 {
-		c.JSON(http.StatusConflict, gin.H{
-			"error":          "Room is full",
-			"currentPlayers": len(userIDs),
-			"maxPlayers":     len(userIDs),
-		})
-		return
+		if userIDs[req.SeatPick] != "" {
+			filled := make([]bool, len(userIDs))
+			for i, uid := range userIDs {
+				filled[i] = uid != ""
+			}
+			c.JSON(http.StatusConflict, gin.H{
+				"error":  "Seat already taken",
+				"filled": filled,
+			})
+			return
+		}
+		slot = boardgame.PlayerIndex(req.SeatPick)
+	} else {
+		for i, uid := range userIDs {
+			if uid == "" {
+				slot = boardgame.PlayerIndex(i)
+				break
+			}
+		}
+		if slot < 0 {
+			c.JSON(http.StatusConflict, gin.H{
+				"error":          "Room is full",
+				"currentPlayers": len(userIDs),
+				"maxPlayers":     len(userIDs),
+			})
+			return
+		}
 	}
 
 	// Find-or-create the user record.
@@ -205,8 +228,14 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	}
 
 	// Issue (or refresh) the auth cookie that ties this UID to a session.
+	// A valid cookie for a DIFFERENT user (e.g. the phone was already
+	// signed into the site) must be rebound too — otherwise the seat gets
+	// bound to req.UID while the session stays on the old user, and the
+	// hand view renders as an observer. req.UID is token-verified above,
+	// so rebinding cannot be used to hijack someone else's session.
 	authCookie := s.getRequestCookie(c)
-	if authCookie == "" || s.storage.GetUserByCookie(authCookie) == nil {
+	cookieUser := s.storage.GetUserByCookie(authCookie)
+	if authCookie == "" || cookieUser == nil || cookieUser.ID != user.ID {
 		authCookie = randomString(cookieLength)
 		if err := s.storage.ConnectCookieToUser(authCookie, user); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to issue session cookie: " + err.Error()})
