@@ -2,6 +2,7 @@ import { html, css, TemplateResult } from 'lit';
 import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
+import { glyphForSlug } from './companion-avatar-catalog.js';
 
 /**
  * BoardgameHandViewBase is the base class for the Hand view renderer that
@@ -126,6 +127,35 @@ export class BoardgameHandViewBase<
   }
 
   /**
+   * Opt-in helper: renders a one-line header for the Hand view — who this
+   * phone is playing as (avatar + the display name picked in the join
+   * flow) and whose turn it is ("Your turn" / "Waiting for <name>…").
+   * These are the two questions every player asks their phone between
+   * moves; call this at the top of render() to answer both for free.
+   */
+  protected renderHandHeader(): TemplateResult {
+    const me = this.seatPresentations.find((s) => s.playerIndex === this.viewingAs);
+    const isMyTurn = this.isCurrentPlayer;
+    const current = this.seatPresentations.find((s) => s.playerIndex === this.currentPlayerIndex);
+    const turnText = isMyTurn
+      ? 'Your turn'
+      : current
+        ? `Waiting for ${current.displayName}…`
+        : 'Waiting…';
+    return html`
+      <div class="hand-header">
+        ${me ? html`
+          <span class="hand-identity">
+            <span class="hand-avatar">${glyphForSlug(me.avatarSlug)}</span>
+            ${me.displayName}
+          </span>
+        ` : ''}
+        <span class="hand-turn ${isMyTurn ? 'my-turn' : ''}">${turnText}</span>
+      </div>
+    `;
+  }
+
+  /**
    * Opt-in helper: renders a small invisible anchor element at the top
    * edge of the Hand view, representing "from/to the Table". Cards dealt
    * to this player should be animated from this anchor; cards played
@@ -151,6 +181,30 @@ export class BoardgameHandViewBase<
       height: 1px;
       opacity: 0;
       pointer-events: none;
+    }
+    .hand-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .hand-identity {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .hand-avatar {
+      font-size: 20px;
+    }
+    .hand-turn {
+      opacity: 0.75;
+    }
+    .hand-turn.my-turn {
+      opacity: 1;
+      font-weight: 700;
     }
   `;
 }

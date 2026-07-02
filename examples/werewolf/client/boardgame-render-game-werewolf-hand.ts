@@ -1,6 +1,7 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
+import { glyphForSlug } from '../../src/components/companion-avatar-catalog.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import type { MoveArgs } from './_move_args.js';
@@ -145,12 +146,19 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
       });
     }
 
-    // Build list of alive, non-inactive players for voting
+    // Build list of alive, non-inactive players for voting. Label with the
+    // avatar + display name people picked in the join flow (falling back
+    // to "Player N" if the seat has no presentation) — voters know each
+    // other as "🦊 BrightFox", not as seat indexes.
+    const nameFor = (i: number): string => {
+      const seat = this.seatPresentations.find((s) => s.playerIndex === i);
+      return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i}`;
+    };
     const voteTargets: { index: number; label: string }[] = [];
     allPlayers.forEach((p, i) => {
       if (p.PlayerInactive || p.Eliminated) return;
       if (phase === 'Day' && i === myIndex) return; // Can't vote for self during day
-      voteTargets.push({ index: i, label: `Player ${i}` });
+      voteTargets.push({ index: i, label: nameFor(i) });
     });
 
     // Determine the correct move name for this phase
@@ -167,7 +175,7 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
 
       ${isWerewolf && fellowWolves.length > 0 ? html`
         <div class="fellow-wolves">
-          Fellow wolves: ${fellowWolves.map(i => `Player ${i}`).join(', ')}
+          Fellow wolves: ${fellowWolves.map(nameFor).join(', ')}
         </div>
       ` : ''}
 

@@ -46,6 +46,15 @@ export class BoardgameGatheringPanel extends LitElement {
       display: block;
     }
 
+    .join-code {
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+    .join-code strong {
+      font-size: 20px;
+      letter-spacing: 4px;
+    }
+
     .panel {
       background: linear-gradient(180deg, var(--md-sys-color-primary-container, #D4E8DA) 0%, #C8DECC 100%);
       color: var(--md-sys-color-on-primary-container, #0A2818);
@@ -113,8 +122,21 @@ export class BoardgameGatheringPanel extends LitElement {
            !!this._readyToStartError;
   }
 
+  /**
+   * The room code for companion (Table+Hand) games, empty otherwise. When
+   * set, the share affordance becomes "Join code: XXXX" instead of the
+   * solo-flow "Copy invite link" — companion players join by code on
+   * their phones, not by account-bound URL.
+   */
+  @property({ type: String })
+  companionRoomCode = '';
+
   private get _showShare(): boolean {
-    return this.hasEmptySlots && this.gameOpen && !this._isObserver;
+    return this.hasEmptySlots && this.gameOpen && !this._isObserver && !this.companionRoomCode;
+  }
+
+  private get _showJoinCode(): boolean {
+    return this.hasEmptySlots && !this.finished && !!this.companionRoomCode;
   }
 
   // Centralized move detection — resolve once, pass to children as props
@@ -166,6 +188,10 @@ export class BoardgameGatheringPanel extends LitElement {
               <boardgame-gathering-share
                 .gameRoute=${this.gameRoute}>
               </boardgame-gathering-share>
+            ` : nothing}
+
+            ${this._showJoinCode ? html`
+              <span class="join-code">Join code: <strong>${this.companionRoomCode}</strong></span>
             ` : nothing}
 
             ${this._startMoveForm ? html`

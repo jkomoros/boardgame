@@ -312,7 +312,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         .gameOpen=${this._open}
         .finished=${this.game ? this.game.Finished : false}
         .gameRoute=${this._gameRoute}
-        .playersInfo=${this._playersInfo}>
+        .playersInfo=${this._playersInfo}
+        .companionRoomCode=${this._companionInfo?.RoomCode || ''}>
       </boardgame-gathering-panel>
       <div class="card">
         <boardgame-render-game

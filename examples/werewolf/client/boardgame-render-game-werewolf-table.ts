@@ -118,12 +118,13 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
     const phase = game?.Phase ?? 'Gathering';
     const round = (game?.RoundNumber ?? 0) + 1;
 
-    // Check win conditions for banner
-    const activePlayers = players.filter(p => !p.PlayerInactive);
-    const alive = activePlayers.filter(p => !p.Eliminated);
-    const aliveWerewolves = alive.filter(p => p.Role === 'Werewolf').length;
-    const aliveVillagers = alive.filter(p => p.Role !== 'Werewolf').length;
-    const gameOver = this.state?.Game && (aliveWerewolves === 0 || aliveWerewolves >= aliveVillagers) && phase !== 'Gathering';
+    // NOTE: win conditions CANNOT be computed here. The Table view sees
+    // observer-sanitized state, where every hidden Role reads as the
+    // enum's zero value ("Villager") — so "count the alive werewolves"
+    // always returns 0 and the old banner declared "Villagers Win!" from
+    // the very first Day. Game-over must come from the server (delegate
+    // CheckGameFinished + a public winning-team field), which werewolf
+    // does not implement yet.
 
     // Determine phase CSS class
     let phaseClass = 'phase-gathering';
@@ -135,13 +136,6 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
       ${this.renderRoomCodeBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
-
-      ${gameOver ? html`
-        ${aliveWerewolves === 0
-          ? html`<div class="winner-banner winner-villagers">Villagers Win!</div>`
-          : html`<div class="winner-banner winner-werewolves">Werewolves Win!</div>`
-        }
-      ` : ''}
 
       <div class="phase-banner ${phaseClass}">
         ${phase === 'Gathering' ? 'Waiting for players...' : `${phase} - Round ${round}`}

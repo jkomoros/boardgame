@@ -54,13 +54,19 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
         font-weight: 600;
         cursor: pointer;
       }
+      .actions button[disabled] {
+        opacity: 0.35;
+        cursor: default;
+      }
     `,
   ];
 
   override render() {
     const player = this.playerState as any;
+    const canAct = this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerHit);
     return html`
       ${this.renderTopEdgeAnchor()}
+      ${this.renderHandHeader()}
       <h1>Your Hand</h1>
       <div class="hand">
         <boardgame-deck-defaults>
@@ -76,8 +82,8 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
           : ''}
       </div>
       <div class="actions">
-        <button @click=${() => this.proposeMove(MoveNames.CurrentPlayerHit, { TargetPlayerIndex: this.viewingAs })}>Hit</button>
-        <button @click=${() => this.proposeMove(MoveNames.CurrentPlayerStand, { TargetPlayerIndex: this.viewingAs })}>Stand</button>
+        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerHit, { TargetPlayerIndex: this.viewingAs })}>Hit</button>
+        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerStand, { TargetPlayerIndex: this.viewingAs })}>Stand</button>
       </div>
     `;
   }
