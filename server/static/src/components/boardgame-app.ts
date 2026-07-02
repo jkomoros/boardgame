@@ -325,10 +325,19 @@ export class BoardgameApp extends connect(store)(LitElement) {
     // On companion surfaces (projector / phone) the game owns the screen:
     // demote the persistent desktop drawer to a hamburger-opened overlay at
     // every width. Reflected as a host attribute so CSS can key off it.
+    // Cached per game id: stateChanged fires on every dispatch (up to once
+    // per animation frame while timers run), and the surface for a given
+    // game can't change without a navigation/reload — no need to re-parse
+    // the cookie jar each time.
     const gameRoute = this._page === 'game' ? selectGameRoute(state) : null;
-    const companion = !!(gameRoute && surfaceForGame(gameRoute.id));
-    this.toggleAttribute('companion-surface', companion);
+    const gameId = gameRoute ? gameRoute.id : null;
+    if (gameId !== this._surfaceCachedGameId) {
+      this._surfaceCachedGameId = gameId;
+      this.toggleAttribute('companion-surface', !!(gameId && surfaceForGame(gameId)));
+    }
   }
+
+  private _surfaceCachedGameId: string | null = null;
 
   private _handleAdminChanged(e: Event): void {
     const target = e.target as any;

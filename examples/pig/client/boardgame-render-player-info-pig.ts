@@ -15,7 +15,7 @@ class BoardgameRenderPlayerInfoPig extends LitElement {
   override render() {
     return html`
       <div>Round Score <boardgame-status-text>${this.playerState?.RoundScore}</boardgame-status-text></div>
-      <div>Total Score <boardgame-status-text>${this.playerState?.TotalScore}</boardgame-status-text></div>
+      <div>Total Score <boardgame-status-text>${this.playerState?.Score}</boardgame-status-text></div>
     `;
   }
 }

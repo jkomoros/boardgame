@@ -157,7 +157,10 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
     const voteTargets: { index: number; label: string }[] = [];
     allPlayers.forEach((p, i) => {
       if (p.PlayerInactive || p.Eliminated) return;
-      if (phase === 'Day' && i === myIndex) return; // Can't vote for self during day
+      // The server rejects self-votes in EVERY phase (moves.go: "you
+      // cannot vote for yourself") — offering yourself at night just
+      // produces a silently-failing tap.
+      if (i === myIndex) return;
       voteTargets.push({ index: i, label: nameFor(i) });
     });
 

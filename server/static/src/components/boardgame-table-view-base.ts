@@ -2,6 +2,7 @@ import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
+import { apiPath } from '../util.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -91,11 +92,14 @@ export class BoardgameTableViewBase<
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
-    if (!this.autoFlyDeals) return;
     if (!changedProperties.has('state')) return;
+    // Keep the baseline current even when auto-fly is off, so toggling
+    // the flag back on doesn't diff against a stale snapshot and play a
+    // burst of spurious animations.
     const sizes = this._handSizes();
     const prev = this._prevHandSizes;
     this._prevHandSizes = sizes;
+    if (!this.autoFlyDeals) return;
     if (prev === null) return;
     const source = this.shadowRoot?.getElementById('deal-source');
     if (!source) return;
@@ -143,25 +147,6 @@ export class BoardgameTableViewBase<
    */
   @property({ type: String })
   roomCode = '';
-
-  /**
-   * Server-clock instant (ms since epoch) at which this state's cross-
-   * screen animation should begin playing. NOT auto-populated as a
-   * property in V1 (left as a property declaration for future Redux
-   * threading). The canonical access pattern is to import from
-   * ./companion-sync.js:
-   *
-   *   import { companionSync, latestServerPlayAt } from './companion-sync.js';
-   *   const playAt = latestServerPlayAt();
-   *   if (playAt) {
-   *     const localPlayAt = companionSync.localEquivalent(playAt);
-   *     setTimeout(() => playAnimation(), Math.max(0, localPlayAt - Date.now()));
-   *   }
-   *
-   * See spec §8.4 for the synchronization model and its V1 limitations.
-   */
-  @property({ type: Number })
-  serverPlayAt: number | null = null;
 
   // gameName + gameId are populated by boardgame-render-game's
   // _instantiateRenderer (P5 polish). Used to build the URL path for
@@ -255,15 +240,20 @@ export class BoardgameTableViewBase<
    */
   protected renderRoomCodeBanner(): TemplateResult {
     if (!this.roomCode) return html``;
-    // Shrink to the corner badge once every seat is claimed — that's the
-    // moment the code stops mattering to the room. (The old check read
-    // state.Game.Version, which doesn't exist — Version lives on the game
-    // record — so the giant lobby banner never shrank. And a version-based
-    // check would be wrong anyway: seat claims bump the version while the
-    // lobby is still gathering.)
-    const totalSeats = this.state?.Players?.length ?? 0;
-    const roomFull = totalSeats > 0 && this.seatPresentations.length >= totalSeats;
-    if (roomFull) {
+    // Shrink to the corner badge once nobody else can be waited for —
+    // every seat is either claimed or closed/inactivated (games with
+    // WaitForEnoughPlayers legally start below capacity and permanently
+    // close their unfilled seats). That's the moment the code stops
+    // mattering to the room. (The old check read state.Game.Version,
+    // which doesn't exist — Version lives on the game record — so the
+    // giant lobby banner never shrank. And a version-based check would be
+    // wrong anyway: seat claims bump the version while the lobby is still
+    // gathering.)
+    const players = (this.state?.Players ?? []) as Array<Record<string, unknown>>;
+    const claimed = new Set(this.seatPresentations.map((s) => s.playerIndex));
+    const roomSettled = players.length > 0 && players.every((p, i) =>
+      claimed.has(i) || p.SeatClosed === true || p.PlayerInactive === true);
+    if (roomSettled || this.gameFinished) {
       // Game has started — render a small persistent badge in the corner
       // rather than the giant pre-game banner.
       return html`
@@ -275,10 +265,9 @@ export class BoardgameTableViewBase<
     // Pre-game: full-bleed banner with QR + giant code. QR is served
     // self-hosted via /api/game/<name>/<id>/qrcode.png (P5+ polish —
     // replaces the earlier qrserver.com cross-origin call).
-    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
     const origin = encodeURIComponent(window.location.origin);
     const qrSrc = this.gameName && this.gameId
-      ? `${apiHost}/api/game/${this.gameName}/${this.gameId}/qrcode.png?origin=${origin}`
+      ? apiPath(`game/${this.gameName}/${this.gameId}/qrcode.png`) + `?origin=${origin}`
       : '';
     return html`
       <div class="room-code-banner">
@@ -295,9 +284,8 @@ export class BoardgameTableViewBase<
 
   private async _onLockRoomToggle(locked: boolean) {
     if (!this.gameName || !this.gameId) return;
-    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
     try {
-      const res = await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/setRoomLock`, {
+      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/setRoomLock`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locked }),
@@ -338,9 +326,8 @@ export class BoardgameTableViewBase<
     this._switchToSoloConfirming = false;
     if (this._switchToSoloTimer) clearTimeout(this._switchToSoloTimer);
     if (!this.gameName || !this.gameId) return;
-    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
     try {
-      const res = await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/switchToSolo`, {
+      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/switchToSolo`), {
         method: 'POST',
         credentials: 'include',
       });
@@ -386,18 +373,23 @@ export class BoardgameTableViewBase<
    */
   protected renderGameOverBanner(): TemplateResult {
     if (!this.gameFinished) return html``;
-    const winners = this.gameWinners
-      .map((i) => this.seatPresentations.find((s) => s.playerIndex === i))
-      .filter((s): s is SeatPresentation => !!s);
+    // Winners without a seat-presentation row (AI agents never have one;
+    // a human's row write is deliberately non-fatal at join) still get
+    // announced — by seat label — rather than being silently dropped,
+    // which used to turn a real win into "It's a draw."
+    const winnerLabels = this.gameWinners.map((i) => {
+      const seat = this.seatPresentations.find((s) => s.playerIndex === i);
+      return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i + 1}`;
+    });
     return html`
       <div class="game-over-banner">
         <div class="game-over-title">Game over!</div>
-        ${winners.length > 0 ? html`
+        ${winnerLabels.length > 0 ? html`
           <div class="game-over-winners">
-            ${winners.map((w) => html`
-              <span class="game-over-winner">${glyphForSlug(w.avatarSlug)} ${w.displayName}</span>
+            ${winnerLabels.map((label) => html`
+              <span class="game-over-winner">${label}</span>
             `)}
-            <span>${winners.length === 1 ? 'wins!' : 'win!'}</span>
+            <span>${winnerLabels.length === 1 ? 'wins!' : 'win!'}</span>
           </div>
         ` : html`<div class="game-over-winners">It's a draw.</div>`}
       </div>
@@ -468,9 +460,8 @@ export class BoardgameTableViewBase<
       this._showHostFeedback('Cannot skip — game info not loaded yet');
       return;
     }
-    const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
     try {
-      const res = await fetch(`${apiHost}/api/game/${this.gameName}/${this.gameId}/hostSkipTurn`, {
+      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/hostSkipTurn`), {
         method: 'POST',
         credentials: 'include',
       });

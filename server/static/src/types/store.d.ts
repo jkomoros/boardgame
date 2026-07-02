@@ -25,6 +25,12 @@ export interface CompanionInfo {
   RoomLocked: boolean;
   SeatPresentations: CompanionSeatPresentation[];
   Absent: number[];
+  /**
+   * Server-computed: whether THIS session may use host actions
+   * (Owner-or-claimHost-override + table-surface cookie). Clients display
+   * host controls from this rather than re-deriving the rule.
+   */
+  IsHost?: boolean;
 }
 
 /**

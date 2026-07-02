@@ -98,8 +98,12 @@ type versionNotifier struct {
 	notifyChat    chan chatBroadcast
 	heartbeat     chan heartbeatRecord
 	modeChanged   chan modeChangedRecord
-	doneChan      chan bool
-	server        *Server
+	// presenceChanged carries gameIDs whose presence should be broadcast.
+	// Same discipline as modeChanged: HTTP handler goroutines enqueue here;
+	// only workLoop (which owns v.sockets) performs the actual broadcast.
+	presenceChanged chan string
+	doneChan        chan bool
+	server          *Server
 
 	// lastHeartbeat tracks, per (gameID, playerIndex), the wall-clock
 	// time of the most recent application heartbeat. Read + written ONLY
@@ -186,19 +190,17 @@ func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNoti
 	result := &socket{
 		notifier:    notifier,
 		conn:        conn,
-		send:        make(chan []byte, 256),
+		send:        make(chan []byte, 1024), // headroom for version+timing frame pairs under mobile-browser throttling
 		gameID:      game.ID(),
 		playerIndex: playerIndex,
 	}
 	go result.readPump()
 	go result.writePump()
 
-	//As soon as the socke tis opened, send the current version. That way if
+	//As soon as the socket is opened, send the current version. That way if
 	//the connection broke right when the version changed, we'll still catch up.
-	result.SendMessage(gameVersionChanged{
-		ID:      game.ID(),
-		Version: game.Version(),
-	})
+	versionData, timingData := marshalVersionFrames(game.Version())
+	result.SendMessage(versionData, timingData)
 
 	return result
 }
@@ -281,20 +283,17 @@ func (s *socket) writePump() {
 
 }
 
-func (s *socket) SendMessage(message gameVersionChanged) {
-	// Send JSON-framed message. Clients feature-detect the format.
-	msg := socketMessage{Type: "version", Data: message.Version}
-	data, err := json.Marshal(msg)
-	if err != nil {
-		select {
-		case s.send <- []byte(strconv.Itoa(message.Version)):
-		default:
-			s.conn.Close()
-		}
-		return
-	}
+// SendMessage enqueues the pre-marshaled version + timing frames on this
+// socket. Both payloads are built ONCE per broadcast in workLoop (see the
+// notifyVersion case) so every client in the game receives byte-identical
+// frames — in particular the same serverPlayAt instant, which is the whole
+// point of the timing frame (spec §8.4). The version frame keeps the
+// close-on-full behavior (gorilla chat pattern: the client reconnects and
+// catches up); the timing frame is advisory and is silently dropped when
+// the buffer is full rather than adding close pressure.
+func (s *socket) SendMessage(versionData, timingData []byte) {
 	select {
-	case s.send <- data:
+	case s.send <- versionData:
 	default:
 		// Buffer full — close the connection so the client reconnects
 		// and catches up from the current version (gorilla chat pattern).
@@ -302,21 +301,39 @@ func (s *socket) SendMessage(message gameVersionChanged) {
 		return
 	}
 
+	if timingData == nil {
+		return
+	}
+	select {
+	case s.send <- timingData:
+	default:
+	}
+}
+
+// marshalVersionFrames builds the shared version + version-timing payloads
+// for one broadcast. timingData may be nil if marshaling fails (callers
+// tolerate it); versionData always marshals (falls back to the bare
+// version number for pathological cases).
+func marshalVersionFrames(version int) (versionData, timingData []byte) {
+	msg := socketMessage{Type: "version", Data: version}
+	versionData, err := json.Marshal(msg)
+	if err != nil {
+		versionData = []byte(strconv.Itoa(version))
+	}
 	now := time.Now().UnixMilli()
 	timing := socketMessage{
 		Type: "version-timing",
 		Data: map[string]interface{}{
-			"version":      message.Version,
+			"version":      version,
 			"serverSentAt": now,
 			"serverPlayAt": now + animationLeadMS,
 		},
 	}
-	if timingData, terr := json.Marshal(timing); terr == nil {
-		select {
-		case s.send <- timingData:
-		default:
-		}
+	timingData, terr := json.Marshal(timing)
+	if terr != nil {
+		timingData = nil
 	}
+	return versionData, timingData
 }
 
 func (s *socket) SendChatNotification(notification chatNotification) {
@@ -339,9 +356,10 @@ func newVersionNotifier(s *Server) *versionNotifier {
 		unregister:    make(chan *socket),
 		notifyVersion: make(chan gameVersionChanged),
 		notifyChat:    make(chan chatBroadcast),
-		heartbeat:     make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
-		modeChanged:   make(chan modeChangedRecord, 4),
-		doneChan:      make(chan bool),
+		heartbeat:       make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
+		modeChanged:     make(chan modeChangedRecord, 4),
+		presenceChanged: make(chan string, 16),
+		doneChan:        make(chan bool),
 		server:        s,
 		lastHeartbeat: make(map[string]map[boardgame.PlayerIndex]time.Time),
 		absent:        make(map[string]map[boardgame.PlayerIndex]bool),
@@ -389,9 +407,11 @@ func (v *versionNotifier) workLoop() {
 			//Send message
 			bucket, ok := v.sockets[rec.ID]
 			if ok {
-				//Someone's listening!
+				//Someone's listening! Marshal once; every socket gets
+				//byte-identical frames (and one shared serverPlayAt).
+				versionData, timingData := marshalVersionFrames(rec.Version)
 				for socket := range bucket {
-					socket.SendMessage(rec)
+					socket.SendMessage(versionData, timingData)
 				}
 			}
 		case chat := <-v.notifyChat:
@@ -414,6 +434,8 @@ func (v *versionNotifier) workLoop() {
 			}
 		case mc := <-v.modeChanged:
 			v.doBroadcastModeChanged(mc.gameID, mc.newMode)
+		case gameID := <-v.presenceChanged:
+			v.broadcastPresenceChange(gameID)
 		case <-scanTicker.C:
 			v.scanStaleHeartbeats()
 		case <-v.doneChan:
@@ -516,12 +538,27 @@ func (v *versionNotifier) clearAbsentIfPresent(gameID string, pi boardgame.Playe
 	return true
 }
 
+// enqueuePresenceChange requests a presence-changed broadcast for gameID.
+// Safe from any goroutine (e.g. joinSeatHandler): the actual broadcast
+// happens in workLoop, which owns v.sockets. Non-blocking with a buffered
+// channel; if the buffer is somehow full the notification is dropped —
+// presence is re-derived on the next heartbeat scan, so a dropped nudge
+// self-heals within absentScanInterval.
+func (v *versionNotifier) enqueuePresenceChange(gameID string) {
+	select {
+	case v.presenceChanged <- gameID:
+	default:
+	}
+}
+
 // broadcastPresenceChange sends a "presence-changed" socket message to all
 // sockets in the game. Client-side handler refetches gameInfo, which
 // surfaces the updated Absent list. We use a distinct message type
 // (rather than synthesizing a "version" with a sentinel) because the
 // client-side version-targeting logic filters out versions < 0 — so a
 // fake "version: -1" would never reach the state-refetch path.
+// workLoop-ONLY: reads v.sockets. Handler goroutines must use
+// enqueuePresenceChange instead.
 func (v *versionNotifier) broadcastPresenceChange(gameID string) {
 	v.broadcastSocketMessage(gameID, "presence-changed", map[string]interface{}{
 		"gameID": gameID,

@@ -155,9 +155,15 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		gameOverEmitted: make(map[string]bool),
 		storage:         storage,
 		logger:          logger,
-		// 10 requests / minute = 1 every 6 seconds steady-state, with a
-		// burst capacity of 10. Idle buckets evict after 10 minutes.
-		joinRateLimiter: newRateLimiter(10, 10.0/60.0, 10*time.Minute),
+		// Sized for the feature's PRIMARY scenario: a whole party of
+		// phones behind one NAT'd household IP joining within the same
+		// minute, at 2-3 requests per joiner (/join + seat-options +
+		// seat claim, plus retries). Burst 40 admits ~12 simultaneous
+		// joiners; the 0.5/s steady-state refill (30/min) still makes
+		// brute-forcing the 234k-code space impractical (~7 months for
+		// half the space from one IP) while never throttling a real
+		// game night. Idle buckets evict after 10 minutes.
+		joinRateLimiter: newRateLimiter(40, 0.5, 10*time.Minute),
 		seatJoinLocks:   make(map[string]*sync.Mutex),
 	}
 
@@ -555,16 +561,29 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents(), closedSeats)
 
+	// The first-viewer auto-seat special case. The cheap in-memory
+	// conditions come first so the storage read below only happens in the
+	// rare state where auto-seating could actually fire (a signed-in
+	// observer viewing a game with every non-agent seat empty) — NOT on
+	// every game API request.
+	autoSeatCandidate := user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers()
+
 	// Companion (Table+Hand) games seat players exclusively through the
 	// phone join flow (/api/join/seat). Auto-seating the first viewer here
 	// would bind a seat to the table surface, and the dev-mode debug fill
-	// below would leave no seats for phones to claim.
-	companionGame := false
-	if eGame, err := s.storage.ExtendedGame(id); err == nil && eGame.CompanionRoomCode != "" {
-		companionGame = true
+	// below would leave no seats for phones to claim. FAIL CLOSED: if the
+	// extended record can't be read we don't know the game ISN'T a
+	// companion game, and wrongly auto-seating is destructive (the binding
+	// persists) while wrongly skipping just means the creator joins by
+	// hand — so any error also suppresses the auto-seat.
+	if autoSeatCandidate {
+		eGame, err := s.storage.ExtendedGame(id)
+		if err != nil || eGame == nil || eGame.CompanionRoomCode != "" {
+			autoSeatCandidate = false
+		}
 	}
 
-	if !companionGame && user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers() {
+	if autoSeatCandidate {
 		//Special case: we're the first player, we likely just created it. Just join the thing!
 
 		slot := emptySlots[0]
@@ -1280,7 +1299,21 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	r := s.newRenderer(c)
 
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion)
+	// Server-computed host verdict for the companion bundle. Uses the same
+	// rule as the host-action endpoints (Owner-or-override + table-surface
+	// cookie), so the client can display host controls for exactly the
+	// requests the server would authorize — including a host promoted via
+	// /claimHost, who is not the Owner and would otherwise never see them.
+	isHostViewer := false
+	if gameInfo != nil && gameInfo.CompanionRoomCode != "" {
+		hostUserID := gameInfo.Owner
+		if gameInfo.CompanionHostOverride != "" {
+			hostUserID = gameInfo.CompanionHostOverride
+		}
+		isHostViewer = s.isHost(c, gameID, hostUserID)
+	}
+
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion, isHostViewer)
 
 }
 
@@ -1372,7 +1405,7 @@ func (s *Server) collectSeatPresentations(gameID string, numPlayers int) []gin.H
 	return out
 }
 
-func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
+func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int, isHostViewer bool) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
 		return
@@ -1422,15 +1455,27 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 
 	// Companion-mode bundle: everything the Table+Hand view bases need to
 	// render avatar strips, "Waiting…" badges, room code, host controls.
-	// Empty/zero for solo-mode games (CompanionRoomCode=="") — harmless.
 	// Bundled into one CompanionInfo object so the client-side plumbing
-	// is a single prop traversal rather than five.
-	seatPresentations := s.collectSeatPresentations(game.ID(), game.NumPlayers())
+	// is a single prop traversal rather than five. For solo-mode games
+	// (CompanionRoomCode=="") skip the per-seat presentation reads
+	// entirely — /info is refetched by every client on every version
+	// change, and NumPlayers storage reads per fetch for a list that is
+	// always empty was the dominant needless I/O on that hot path.
+	companionMode := gameInfo.CompanionRoomCode != ""
+	var seatPresentations []gin.H
+	if companionMode {
+		seatPresentations = s.collectSeatPresentations(game.ID(), game.NumPlayers())
+	}
 	companionInfo := gin.H{
-		"CompanionMode":     gameInfo.CompanionRoomCode != "",
+		"CompanionMode":     companionMode,
 		"RoomCode":          gameInfo.CompanionRoomCode,
 		"RoomLocked":        gameInfo.CompanionLocked,
 		"SeatPresentations": seatPresentations,
+		// IsHost is the server's own verdict on whether THIS request's
+		// session may use host actions (Owner-or-override + table-surface
+		// cookie) — the client displays host controls from this rather
+		// than re-deriving the rule and drifting.
+		"IsHost": isHostViewer,
 		// Absent is the list of player indices currently flagged absent by
 		// the heartbeat scan (spec §9.1). The Table view uses this to draw
 		// "Waiting for Alice (m:ss)" badges and to decide whether to show

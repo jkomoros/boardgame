@@ -45,13 +45,6 @@ export class BoardgameBaseGameRenderer<
   @property({ type: Array })
   gameWinners: number[] = [];
 
-  /**
-   * The game record's Version (count of applied moves). 0 = nothing has
-   * happened yet, i.e. the pre-game lobby. Renderers use this to switch
-   * lobby chrome (giant room code) to in-game chrome (corner badge).
-   */
-  @property({ type: Number })
-  gameVersion = 0;
 
   get isCurrentPlayer(): boolean {
     // AdminPlayerIndex (-2): admin can always act

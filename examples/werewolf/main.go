@@ -78,14 +78,20 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 // Roles are assigned by moveBeginGame at the gathering→day transition,
 // among active players only. See moves.go.
 
-func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
+// CheckGameFinished implements the full delegate hook (rather than the
+// simpler GameEndConditionMet) because werewolf's winners are a TEAM, not
+// a score ranking: base.GameDelegate's default scoring would declare every
+// seated player a winner. Winners are all members of the winning role —
+// including eliminated teammates, per werewolf convention (a lynched
+// villager still wins with the village).
+func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finished bool, winners []boardgame.PlayerIndex) {
 	game, players := concreteStates(state)
 
 	// During gathering no roles are assigned yet, so aliveWerewolves
 	// would be 0 and the "villagers win" condition would fire at game
 	// creation. The game can't end before it begins.
 	if game.Phase.Value() == phaseGathering {
-		return false
+		return false, nil
 	}
 
 	var aliveWerewolves, aliveVillagers int
@@ -104,17 +110,24 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 		}
 	}
 
-	// Villagers win when all werewolves are eliminated
-	if aliveWerewolves == 0 {
-		return true
+	villagersWin := aliveWerewolves == 0
+	werewolvesWin := !villagersWin && aliveWerewolves >= aliveVillagers
+
+	if !villagersWin && !werewolvesWin {
+		return false, nil
 	}
 
-	// Werewolves win when werewolves >= villagers
-	if aliveWerewolves >= aliveVillagers {
-		return true
+	for i, p := range players {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		isWerewolf := p.Role.Value() == roleWerewolf
+		if (villagersWin && !isWerewolf) || (werewolvesWin && isWerewolf) {
+			winners = append(winners, boardgame.PlayerIndex(i))
+		}
 	}
 
-	return false
+	return true, winners
 }
 
 func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {

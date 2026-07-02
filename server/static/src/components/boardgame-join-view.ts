@@ -8,6 +8,7 @@ import {
   glyphForSlug,
 } from './companion-avatar-catalog.js';
 import { fauxSignInAsGuest } from '../actions/user.js';
+import { apiPath, gamePath } from '../util.js';
 
 /**
  * boardgame-join-view is the phone-side flow for joining a Table+Hand
@@ -278,8 +279,7 @@ export class BoardgameJoinView extends LitElement {
       return;
     }
     try {
-      const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-      const res = await fetch(apiHost + '/api/join', {
+      const res = await fetch(apiPath('join'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -361,8 +361,7 @@ export class BoardgameJoinView extends LitElement {
   private async _fetchSeatOptions() {
     if (!this._joinResponse) return;
     try {
-      const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
-      const res = await fetch(apiHost + '/api/join/seat-options?gameID=' + encodeURIComponent(this._joinResponse.gameID), {
+      const res = await fetch(apiPath('join/seat-options') + '?gameID=' + encodeURIComponent(this._joinResponse.gameID), {
         credentials: 'include',
         headers: {
           'Authorization': 'Bearer ' + this._firebaseToken,
@@ -386,7 +385,6 @@ export class BoardgameJoinView extends LitElement {
     this._step = 'submitting';
     this._error = '';
     try {
-      const apiHost = ((window as any).CONFIG && (window as any).CONFIG.dev_host) || '';
       const body: Record<string, unknown> = {
         gameID: this._joinResponse.gameID,
         uid: this._firebaseUID,
@@ -394,7 +392,7 @@ export class BoardgameJoinView extends LitElement {
         avatarSlug: this._avatarSlug,
         seatPick: this._selectedSeat !== null ? this._selectedSeat : -1,
       };
-      const res = await fetch(apiHost + '/api/join/seat', {
+      const res = await fetch(apiPath('join/seat'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -413,7 +411,7 @@ export class BoardgameJoinView extends LitElement {
       // Navigate to the game's Hand view. The surface=hand cookie was set
       // by the server in the response above; the loader at
       // boardgame-render-game.ts will pick the -hand.ts renderer on load.
-      window.location.href = '/' + 'game/' + seated.gameName + '/' + seated.gameID;
+      window.location.href = gamePath(seated.gameName, seated.gameID);
     } catch (e) {
       this._error = 'Network error: ' + (e instanceof Error ? e.message : String(e));
       this._step = this._joinResponse.requiresSeatPicker ? 'seat' : 'avatar';
@@ -433,7 +431,7 @@ export class BoardgameJoinView extends LitElement {
 
   private _watchInstead() {
     if (!this._joinResponse) return;
-    window.location.href = `/game/${this._joinResponse.gameName}/${this._joinResponse.gameID}?display=table`;
+    window.location.href = gamePath(this._joinResponse.gameName, this._joinResponse.gameID) + '?display=table';
   }
 
   override render() {

@@ -98,8 +98,6 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Array })
   gameWinners: number[] = [];
 
-  @property({ type: Number })
-  gameVersion = 0;
 
   @property({ type: Object, attribute: false })
   renderer: HTMLElement | null = null;
@@ -213,7 +211,7 @@ class BoardgameRenderGame extends LitElement {
       this._isOwnerChanged(this.isOwner);
     }
 
-    if (changedProperties.has('gameFinished') || changedProperties.has('gameWinners') || changedProperties.has('gameVersion')) {
+    if (changedProperties.has('gameFinished') || changedProperties.has('gameWinners')) {
       this._applyGameOutcomeToRenderer();
     }
 
@@ -265,13 +263,20 @@ class BoardgameRenderGame extends LitElement {
     const r = this.renderer as any;
     r.gameFinished = this.gameFinished;
     r.gameWinners = this.gameWinners;
-    r.gameVersion = this.gameVersion;
   }
 
   private _recomputeIsHost() {
     if (!this.renderer) return;
-    // isHost: server-confirmed isOwner AND the browser is presenting the
-    // table surface for this game.
+    // Prefer the server's own verdict (CompanionInfo.IsHost, computed with
+    // the same Owner-or-override + surface-cookie rule the host-action
+    // endpoints enforce) so a host promoted via /claimHost sees controls
+    // even though they aren't the Owner. Fall back to the local derivation
+    // for older payloads that lack the field.
+    const info = this.companionInfo as any;
+    if (info && typeof info.IsHost === 'boolean') {
+      (this.renderer as any).isHost = info.IsHost;
+      return;
+    }
     const surface = surfaceForGame(this.gameId);
     (this.renderer as any).isHost = this.isOwner && surface === 'table';
   }
@@ -288,7 +293,11 @@ class BoardgameRenderGame extends LitElement {
       this._removeRenderer();
     } else {
       if (this.rendererLoaded) {
-        this._instantiateRenderer();
+        // Re-instantiate with the CURRENT surface's suffix — the plain
+        // solo element was never registered on companion surfaces (only
+        // the suffixed module was imported), so instantiating '' here
+        // would create an un-upgraded element that renders nothing.
+        this._instantiateRenderer(this._surfaceSuffix(this.gameId));
       }
     }
   }

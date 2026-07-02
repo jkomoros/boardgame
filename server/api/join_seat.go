@@ -279,7 +279,7 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	// this the Table view wouldn't learn about the new player until some
 	// unrelated state change; clients handle presence-changed by
 	// refetching gameInfo, which re-renders the avatar strip and roster.
-	s.notifier.broadcastPresenceChange(req.GameID)
+	s.notifier.enqueuePresenceChange(req.GameID)
 
 	// Start the absence clock: if this phone never actually connects, the
 	// heartbeat scanner flags the seat absent 30s from now instead of

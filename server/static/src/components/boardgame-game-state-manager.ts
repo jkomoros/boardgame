@@ -428,12 +428,13 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
           ingestVersionTiming(msg.data);
         } else if (msg.type === 'mode-changed') {
           // Companion-mode → solo downgrade triggered by host
-          // switchToSolo (spec §9.6). Clear our own surface cookie
+          // switchToSolo (spec §9.6). Clear THIS game's surface cookie
           // before reloading so the loader picks the solo renderer
           // (server only set the cookie-clear on the host's response;
-          // phones need to clear themselves). Then reload.
-          console.log('[boardgame-game-state-manager] mode-changed:', msg.data);
-          this._clearAllSurfaceCookies();
+          // phones need to clear themselves). Scoped to this game only:
+          // the browser may hold surface cookies for other in-flight
+          // companion games, and the broadcast is per-game.
+          this._clearSurfaceCookieForThisGame();
           window.location.reload();
         } else if (msg.type === 'presence-changed') {
           // Companion-mode heartbeat scan flipped a player into/out of
@@ -517,16 +518,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   // browser holds. Used on switchToSolo (mode-changed) so the post-reload
   // loader picks the solo renderer. Iterates document.cookie because we
   // don't track which gameIDs the user has touched.
-  private _clearAllSurfaceCookies() {
-    const cookies = document.cookie.split('; ');
-    for (const c of cookies) {
-      const idx = c.indexOf('=');
-      if (idx < 0) continue;
-      const name = c.slice(0, idx);
-      if (name.startsWith('surface_')) {
-        document.cookie = name + '=; Path=/; Max-Age=0';
-      }
-    }
+  private _clearSurfaceCookieForThisGame() {
+    if (!this.gameRoute) return;
+    document.cookie = 'surface_' + this.gameRoute.id + '=; Path=/; Max-Age=0';
   }
 
   updateData() {

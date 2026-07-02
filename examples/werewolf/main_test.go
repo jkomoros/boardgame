@@ -209,3 +209,75 @@ func TestRoleVisibleToSelf(t *testing.T) {
 		t.Errorf("Player %d cannot see their own werewolf role; got %v", werewolfIdx, roleProp)
 	}
 }
+
+// TestCheckGameFinishedTeamWinners pins the team-based winner computation:
+// the winning ROLE's members (eliminated teammates included) are the
+// winners — never "everyone", which is what base.GameDelegate's default
+// scoring produced before werewolf implemented CheckGameFinished itself.
+func TestCheckGameFinishedTeamWinners(t *testing.T) {
+	delegate := NewDelegate().(*gameDelegate)
+	_, game := newSeatedGame(t, 4)
+
+	state := game.CurrentState()
+	_, players := concreteStates(state)
+
+	var wolfIndex boardgame.PlayerIndex = -1
+	for i, p := range players {
+		if p.Role.Value() == roleWerewolf {
+			wolfIndex = boardgame.PlayerIndex(i)
+			break
+		}
+	}
+	if wolfIndex < 0 {
+		t.Fatal("no werewolf assigned in seated game")
+	}
+
+	// Mid-game: nobody eliminated → not finished.
+	if finished, _ := delegate.CheckGameFinished(state); finished {
+		t.Fatal("game reported finished with all players alive")
+	}
+
+	// Villagers win: eliminate the wolf. Winners must be exactly the
+	// non-wolves, and must NOT include the wolf.
+	players[wolfIndex].Eliminated = true
+
+	finished, winners := delegate.CheckGameFinished(state)
+	if !finished {
+		t.Fatal("game not finished after last wolf eliminated")
+	}
+	activeCount := 0
+	for _, p := range players {
+		if !behaviors.PlayerIsInactive(p) {
+			activeCount++
+		}
+	}
+	if len(winners) != activeCount-1 {
+		t.Fatalf("expected %d villager winners, got %d", activeCount-1, len(winners))
+	}
+	for _, w := range winners {
+		if w == wolfIndex {
+			t.Fatal("losing werewolf listed among winners")
+		}
+	}
+
+	// Werewolves win: revive the wolf, eliminate villagers until parity.
+	players[wolfIndex].Eliminated = false
+	eliminated := 0
+	for i, p := range players {
+		if boardgame.PlayerIndex(i) == wolfIndex {
+			continue
+		}
+		if eliminated < 2 {
+			p.Eliminated = true
+			eliminated++
+		}
+	}
+	// 1 wolf vs 1 villager alive → wolves win.
+	finished, winners = delegate.CheckGameFinished(state)
+	if !finished {
+		t.Fatal("game not finished at wolf parity")
+	}
+	if len(winners) != 1 || winners[0] != wolfIndex {
+		t.Fatalf("expected sole winner %v (the wolf), got %v", wolfIndex, winners)
+	}
+}

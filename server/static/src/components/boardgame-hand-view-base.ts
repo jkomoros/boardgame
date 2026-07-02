@@ -53,14 +53,6 @@ export class BoardgameHandViewBase<
   seatPresentations: SeatPresentation[] = [];
 
   /**
-   * Server-clock instant (ms since epoch) at which this state's cross-
-   * screen animation should begin playing. Set by boardgame-game-state-
-   * manager from the "version-timing" WebSocket message (spec §8.4).
-   */
-  @property({ type: Number })
-  serverPlayAt: number | null = null;
-
-  /**
    * Convenience shortcut to this player's own substate. Common rendering
    * pattern: `${this.playerState.Hand.Components.map(...)}`. Returns
    * undefined if state is null OR viewingAsPlayer is out of bounds (e.g.
@@ -104,11 +96,14 @@ export class BoardgameHandViewBase<
       navigator.vibrate?.(200);
     }
     this._wasMyTurn = myTurn;
-    if (!this.autoFlyIncoming) return;
     if (!changedProperties.has('state')) return;
+    // Keep the baseline current even when auto-fly is off, so toggling
+    // the flag back on doesn't diff against a stale snapshot and fly in
+    // every card at once.
     const ids = this._collectOwnCardIds();
     const prev = this._prevOwnCardIds;
     this._prevOwnCardIds = ids;
+    if (!this.autoFlyIncoming) return;
     if (prev === null) return;
     const incoming = [...ids].filter((id) => !prev.has(id));
     if (incoming.length === 0) return;

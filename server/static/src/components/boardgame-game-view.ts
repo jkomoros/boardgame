@@ -240,6 +240,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Array, attribute: false })
   _playerOrder: number[] | null = null;
 
+  // The active companion surface ('table' | 'hand' | null), derived once
+  // per game-route change in stateChanged — render() runs far too often
+  // (every state bundle; every animation-frame tick while timers run) to
+  // re-parse the query string + cookie jar each time.
+  @property({ type: String, attribute: false })
+  _companionSurface: 'table' | 'hand' | null = null;
+
+  private _surfaceCachedGameId: string | null = null;
+
   // Hide-my-hand privacy shield (hand surface only): when true, an opaque
   // full-viewport overlay covers the private hand so the player can set
   // the phone down or step away without shoulder-surfing risk. Purely
@@ -267,7 +276,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // at best redundant and at worst contradicts the companion model. The
     // gathering panel stays: "Waiting for N more players" is useful on
     // both surfaces.
-    const companionSurface = this._gameRoute ? surfaceForGame(this._gameRoute.id) : null;
+    const companionSurface = this._companionSurface;
     return html`
       ${companionSurface === 'hand' ? html`
         ${this._handHidden ? html`
@@ -328,7 +337,6 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .isOwner=${this._isOwner}
           .gameFinished=${this.game ? this.game.Finished : false}
           .gameWinners=${this.game ? this.game.Winners || [] : []}
-          .gameVersion=${this.game ? this.game.Version || 0 : 0}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .socketActive=${this.socketActive}
@@ -402,6 +410,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._companionInfo = selectGameCompanionInfo(state);
     this._pageExtra = selectPageExtra(state);
     this._gameRoute = selectGameRoute(state);
+    const surfaceGameId = this._gameRoute ? this._gameRoute.id : null;
+    if (surfaceGameId !== this._surfaceCachedGameId) {
+      this._surfaceCachedGameId = surfaceGameId;
+      this._companionSurface = surfaceGameId ? surfaceForGame(surfaceGameId) : null;
+    }
     this._loggedIn = selectLoggedIn(state);
     this._admin = selectAdmin(state);
     this._page = selectPage(state);
