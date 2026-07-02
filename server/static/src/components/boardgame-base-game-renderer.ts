@@ -43,6 +43,19 @@ export class BoardgameBaseGameRenderer<
   }
 
   /**
+   * The FLIP animator that wraps this renderer. Renderers live inside
+   * boardgame-render-game's #container, a sibling of the #animator element
+   * in the same shadow root. Use for one-off cross-screen animations:
+   * `this.animator?.animateBetween(cardId, 'hand-top-edge')`. Null before
+   * the renderer is attached (or in tests outside boardgame-render-game).
+   */
+  protected get animator(): { animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs?: number): Promise<void> } | null {
+    const root = this.getRootNode();
+    if (!(root instanceof ShadowRoot)) return null;
+    return root.querySelector('#animator') as any;
+  }
+
+  /**
    * Returns true if the named move is legal for the viewing player right now.
    * Use this to disable buttons when a move can't be made (e.g. not your turn).
    */

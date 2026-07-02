@@ -73,6 +73,59 @@ export class BoardgameHandViewBase<
   }
 
   /**
+   * When true (the default), the base watches this player's own state for
+   * newly-arrived card ids and flies them in from the top-edge anchor
+   * automatically — the phone half of the cross-screen deal animation,
+   * with zero author wiring. "Newly arrived" means an id that appears in
+   * any Stack-shaped property of playerState and was not present in ANY
+   * of them on the previous state (so cards shuffling between the
+   * player's own stacks don't retrigger). Games whose incoming-card
+   * semantics don't fit (or that wire bespoke animations) set this false
+   * and call this.animator.animateBetween themselves.
+   */
+  @property({ type: Boolean })
+  autoFlyIncoming = true;
+
+  // null = no baseline yet (first render / reload mid-game): we record
+  // what's already there without animating it.
+  private _prevOwnCardIds: Set<string> | null = null;
+
+  protected override updated(changedProperties: Map<PropertyKey, unknown>) {
+    super.updated?.(changedProperties);
+    if (!this.autoFlyIncoming) return;
+    if (!changedProperties.has('state')) return;
+    const ids = this._collectOwnCardIds();
+    const prev = this._prevOwnCardIds;
+    this._prevOwnCardIds = ids;
+    if (prev === null) return;
+    const incoming = [...ids].filter((id) => !prev.has(id));
+    if (incoming.length === 0) return;
+    const anchor = this.shadowRoot?.getElementById('hand-top-edge') ?? 'hand-top-edge';
+    // The card elements are rendered by child <boardgame-component-stack>
+    // elements that re-render asynchronously after receiving the new
+    // state; wait two frames so the new cards exist before we measure.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const id of incoming) {
+        this.animator?.animateBetween(id, anchor, 600);
+      }
+    }));
+  }
+
+  private _collectOwnCardIds(): Set<string> {
+    const out = new Set<string>();
+    const ps = this.playerState as Record<string, unknown> | undefined;
+    if (!ps) return out;
+    for (const value of Object.values(ps)) {
+      const ids = (value as { IDs?: unknown })?.IDs;
+      if (!Array.isArray(ids)) continue;
+      for (const id of ids) {
+        if (typeof id === 'string' && id) out.add(id);
+      }
+    }
+    return out;
+  }
+
+  /**
    * Opt-in helper: renders a small invisible anchor element at the top
    * edge of the Hand view, representing "from/to the Table". Cards dealt
    * to this player should be animated from this anchor; cards played

@@ -74,6 +74,57 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         display: none !important;
       }
 
+      /* Hide-my-hand privacy shield (hand surface only). Fixed positioning
+         so the shield covers the entire viewport — app chrome included —
+         because the threat is a glance at the whole phone screen, not just
+         the renderer area. */
+      .privacy-toggle {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 1000;
+        padding: 8px 14px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 20px;
+        border: none;
+        background: rgba(0, 0, 0, 0.55);
+        color: white;
+        cursor: pointer;
+      }
+      .privacy-shield {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: #1a2b3c;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        color: white;
+        text-align: center;
+        padding: 24px;
+      }
+      .privacy-shield .shield-glyph {
+        font-size: 64px;
+      }
+      .privacy-shield p {
+        margin: 0;
+        font-size: 18px;
+        opacity: 0.8;
+      }
+      .privacy-shield button {
+        padding: 16px 32px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 12px;
+        border: 2px solid white;
+        background: transparent;
+        color: white;
+        cursor: pointer;
+      }
+
       #moves > details {
         margin-left: 1em;
       }
@@ -189,6 +240,14 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Array, attribute: false })
   _playerOrder: number[] | null = null;
 
+  // Hide-my-hand privacy shield (hand surface only): when true, an opaque
+  // full-viewport overlay covers the private hand so the player can set
+  // the phone down or step away without shoulder-surfing risk. Purely
+  // client-side and per-tab — game state keeps flowing underneath, so
+  // revealing is instant and never misses an update.
+  @property({ type: Boolean, attribute: false })
+  _handHidden = false;
+
   constructor() {
     super();
 
@@ -210,6 +269,17 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // both surfaces.
     const companionSurface = this._gameRoute ? surfaceForGame(this._gameRoute.id) : null;
     return html`
+      ${companionSurface === 'hand' ? html`
+        ${this._handHidden ? html`
+          <div class="privacy-shield">
+            <div class="shield-glyph">🙈</div>
+            <p>Your hand is hidden.</p>
+            <button @click=${() => { this._handHidden = false; }}>Show my hand</button>
+          </div>
+        ` : html`
+          <button class="privacy-toggle" @click=${() => { this._handHidden = true; }}>🙈 Hide my hand</button>
+        `}
+      ` : ''}
       ${companionSurface ? '' : html`
       <div class="card">
         <boardgame-player-roster
@@ -263,7 +333,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .moveForms=${this.moveForms}>
         </boardgame-render-game>
       </div>
-      ${companionSurface ? '' : html`
+      <!-- Not chrome despite the name: admin-controls owns the move-form
+           submission pipeline (_handleProposeMove forwards every proposed
+           move through it), so it must exist on companion surfaces too.
+           It renders nothing visible unless admin mode is active. -->
       <boardgame-admin-controls
         id="admin"
         .active=${this._admin}
@@ -276,6 +349,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         @requested-player-changed=${this._handleRequestedPlayerChanged}
         @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}>
       </boardgame-admin-controls>
+      ${companionSurface ? '' : html`
       <boardgame-chat-panel
         .gameRoute=${this._gameRoute}
         .viewingAsPlayer=${this.viewingAsPlayer}

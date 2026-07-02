@@ -74,6 +74,61 @@ export class BoardgameTableViewBase<
   isHost = false;
 
   /**
+   * When true (the default), the base watches each player's hand size and,
+   * when it grows, flies that player's fake-deck-row stub in from the
+   * element the author marked id="deal-source" (typically the draw pile) —
+   * the projector half of the cross-screen deal animation. Rendering a
+   * #deal-source element is the entire opt-in; no element, no animation.
+   * Hand size = total length of all Stack-shaped playerState properties
+   * (sanitized stacks still carry placeholder indexes, so counts survive
+   * hiding). Set false for bespoke animation wiring.
+   */
+  @property({ type: Boolean })
+  autoFlyDeals = true;
+
+  // null = no baseline yet; record without animating (reload mid-game).
+  private _prevHandSizes: number[] | null = null;
+
+  protected override updated(changedProperties: Map<PropertyKey, unknown>) {
+    super.updated?.(changedProperties);
+    if (!this.autoFlyDeals) return;
+    if (!changedProperties.has('state')) return;
+    const sizes = this._handSizes();
+    const prev = this._prevHandSizes;
+    this._prevHandSizes = sizes;
+    if (prev === null) return;
+    const source = this.shadowRoot?.getElementById('deal-source');
+    if (!source) return;
+    const grew = sizes
+      .map((n, i) => (n > (prev[i] ?? 0) ? i : -1))
+      .filter((i) => i >= 0);
+    if (grew.length === 0) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      for (const playerIndex of grew) {
+        const stub = this.shadowRoot?.getElementById(`stub:p${playerIndex}:hand`);
+        if (!stub) continue;
+        // The stub starts at the deal source and flies to its spot at the
+        // bottom edge — visually, a card leaving the deck toward that
+        // player. The matching arrival plays on their phone (see
+        // BoardgameHandViewBase.autoFlyIncoming).
+        this.animator?.animateBetween(stub, source, 600);
+      }
+    }));
+  }
+
+  private _handSizes(): number[] {
+    const players = this.state?.Players ?? [];
+    return players.map((p) => {
+      let total = 0;
+      for (const value of Object.values(p as Record<string, unknown>)) {
+        const indexes = (value as { Indexes?: unknown })?.Indexes;
+        if (Array.isArray(indexes)) total += indexes.length;
+      }
+      return total;
+    });
+  }
+
+  /**
    * True iff CompanionLocked is set on this game (host has explicitly
    * locked the room against new joiners). Renders as a closed-padlock
    * indicator on the room code display.

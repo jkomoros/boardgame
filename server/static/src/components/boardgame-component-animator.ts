@@ -158,6 +158,33 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   /**
+   * _resolveAnimationTarget turns an animateBetween argument into a live
+   * element. Elements pass through. String ids are resolved against the
+   * document first, then against the root node (usually a renderer's
+   * shadow root) of every registered component stack — renderers are Lit
+   * elements, so their cards, fake-deck stubs, and edge anchors all live
+   * inside shadow DOM where document.getElementById can't see them. The
+   * shared stack registry is the one thing that already spans those
+   * boundaries, so we borrow its roots.
+   */
+  private _resolveAnimationTarget(target: string | HTMLElement): HTMLElement | null {
+    if (typeof target !== 'string') return target;
+    const direct = document.getElementById(target);
+    if (direct) return direct;
+    const stacks = this.stackElement?._sharedStackList ?? [];
+    const seenRoots = new Set<Node>();
+    for (const stack of stacks) {
+      const root = stack.getRootNode();
+      if (seenRoots.has(root)) continue;
+      seenRoots.add(root);
+      const found = (root as Document | ShadowRoot).getElementById?.(target)
+        ?? (root as Document | ShadowRoot).querySelector?.(`#${CSS.escape(target)}`);
+      if (found) return found as HTMLElement;
+    }
+    return null;
+  }
+
+  /**
    * animateBetween runs a one-off FLIP animation moving the element with id
    * `realId` from the on-screen position of `stubId` (or vice versa). Used
    * by the Table view's fake-deck row to fly cards between the visible
@@ -170,9 +197,11 @@ export class BoardgameComponentAnimator extends LitElement {
    * of real card "c17") avoids the flat-map collision that would happen
    * if both elements shared the same component.id.
    *
-   * Direction: animates `realId` from its current rendered position TO
-   * the position of `stubId` (i.e. real-to-stub). Reverse the call
-   * argument order to animate stub-to-real.
+   * Direction: the `realId` element starts at `stubId`'s on-screen
+   * position and flies to its own natural rendered position (i.e. it
+   * visually ARRIVES FROM the stub). To make an element visually depart
+   * toward a location instead, swap the argument order — the departing
+   * element then plays the arrival animation at the other end.
    *
    * Returns a Promise that resolves when the animation completes (or
    * immediately if either element is missing from the DOM).
@@ -183,11 +212,9 @@ export class BoardgameComponentAnimator extends LitElement {
    * then re-enable transitions and translate back to 0. The CSS
    * transition handles the actual frame interpolation.
    */
-  async animateBetween(realId: string, stubId: string, durationMs: number = 500): Promise<void> {
-    const real = this.querySelector(`#${CSS.escape(realId)}`) as HTMLElement | null
-                 ?? document.getElementById(realId);
-    const stub = this.querySelector(`#${CSS.escape(stubId)}`) as HTMLElement | null
-                 ?? document.getElementById(stubId);
+  async animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs: number = 500): Promise<void> {
+    const real = this._resolveAnimationTarget(realId);
+    const stub = this._resolveAnimationTarget(stubId);
     if (!real || !stub) {
       return;
     }

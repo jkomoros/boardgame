@@ -50,7 +50,7 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
       ${this.renderRoomCodeBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
-      <div class="draw">
+      <div class="draw" id="deal-source">
         <boardgame-deck-defaults>
           <template deck="cards">
             <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
