@@ -10,6 +10,7 @@ export const CLOSE_HEADER_PANEL = 'CLOSE_HEADER_PANEL';
 
 export const PAGE_DEFAULT = 'list-games';
 export const PAGE_GAME = 'game';
+export const PAGE_JOIN = 'join';
 export const PAGE_404 = 'view404';
 
 import {
@@ -104,6 +105,11 @@ const loadPage = (pathname: string, query: string): AppThunk => (dispatch) => {
 	case PAGE_GAME:
 		import('../components/boardgame-game-view.js');
         break;
+	case PAGE_JOIN:
+		// Table+Hand companion-mode phone join flow. Lazy-imported so
+		// solo-mode users never load the join-view bundle.
+		import('../components/boardgame-join-view.js');
+		break;
     default:
 		page = PAGE_404;
 		import('../components/boardgame-404-view.js');

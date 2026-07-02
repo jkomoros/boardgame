@@ -9,6 +9,13 @@ type ClientConfig struct {
 	Host            string          `json:"host"`
 	DevHost         string          `json:"dev_host"`
 	OfflineDevMode  bool            `json:"offline_dev_mode,omitempty"`
+	// TableHandSupportedGames is the list of game names that opt into
+	// Table+Hand companion mode by shipping both *-table.ts and *-hand.ts
+	// renderer files in their static/game-src directory. Populated by
+	// boardgame-util at build time (see boardgame-util/lib/build/static.
+	// CompanionCapableGames). Consumed by the game-creation form to decide
+	// whether to show the "Use shared projector + phones" toggle.
+	TableHandSupportedGames []string `json:"table_hand_supported_games,omitempty"`
 }
 
 // Client returns a ClientConfig derived from the given config. The returned

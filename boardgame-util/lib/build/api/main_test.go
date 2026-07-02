@@ -57,6 +57,17 @@ import (
 	"github.com/jkomoros/boardgame/storage/bolt"
 )
 
+// companionCapableGames is the list of game names that ship the Table+Hand
+// renderer pair (boardgame-render-game-<name>-table.ts AND -hand.ts) as of
+// this build. Computed by boardgame-util at build time via a filesystem
+// walk (see boardgame-util/lib/build/static.CompanionCapableGames). The
+// server uses this to populate managerInfo.supportsTableHandMode and surface
+// it in doListManager so the create-game form can show the
+// "Use shared projector + phones" toggle for supporting games. (Spec §5.3.)
+var companionCapableGames = []string{
+	"blackjack",
+}
+
 func main() {
 
 	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
@@ -65,7 +76,7 @@ func main() {
 		blackjack.NewDelegate(),
 		checkers.NewDelegate(),
 		tictactoe.NewDelegate(),
-	).Start()
+	).WithCompanionCapableGames(companionCapableGames).Start()
 }
 `
 
@@ -89,6 +100,17 @@ func init() {
 	overrides = append(overrides, config.EnableOfflineDevMode())
 }
 
+// companionCapableGames is the list of game names that ship the Table+Hand
+// renderer pair (boardgame-render-game-<name>-table.ts AND -hand.ts) as of
+// this build. Computed by boardgame-util at build time via a filesystem
+// walk (see boardgame-util/lib/build/static.CompanionCapableGames). The
+// server uses this to populate managerInfo.supportsTableHandMode and surface
+// it in doListManager so the create-game form can show the
+// "Use shared projector + phones" toggle for supporting games. (Spec §5.3.)
+var companionCapableGames = []string{
+	"blackjack",
+}
+
 func main() {
 
 	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
@@ -97,6 +119,6 @@ func main() {
 		blackjack.NewDelegate(),
 		checkers.NewDelegate(),
 		tictactoe.NewDelegate(),
-	).AddOverrides(overrides).Start()
+	).AddOverrides(overrides).WithCompanionCapableGames(companionCapableGames).Start()
 }
 `

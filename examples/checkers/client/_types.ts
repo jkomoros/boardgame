@@ -30,6 +30,9 @@ export interface PlayerState {
   CapturedTokens: ExpandedStack<TokensComponentValues, TokensDynamicComponentValues>;
   Color: ColorValue;
   FinishedTurn: boolean;
+  PlayerInactive: boolean;
+  SeatClosed: boolean;
+  SeatFilled: boolean;
   Computed?: Record<string, unknown>;
 }
 

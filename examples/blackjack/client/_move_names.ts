@@ -5,6 +5,7 @@
 export const MoveNames = {
   CurrentPlayerHit: "Current Player Hit",
   CurrentPlayerStand: "Current Player Stand",
+  ForceFinishTurn: "Force Finish Turn",
 } as const;
 
 export type MoveName = typeof MoveNames[keyof typeof MoveNames];

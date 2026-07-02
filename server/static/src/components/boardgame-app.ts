@@ -20,8 +20,11 @@ import {
   selectErrorFriendlyMessage,
   selectErrorTitle,
   selectAdminAllowed,
-  selectAdmin
+  selectAdmin,
+  selectGameRoute
 } from '../selectors.js';
+
+import { surfaceForGame } from '../utils/companion-surface.js';
 
 import {
   navigated,
@@ -261,6 +264,23 @@ export class BoardgameApp extends connect(store)(LitElement) {
         display: none;
       }
     }
+
+    /* Companion surfaces (projector / phone hand): the game owns the
+       screen, so the drawer is an overlay at EVERY width — hidden until
+       the hamburger opens it. Overrides the desktop rules above. */
+    :host([companion-surface]) .drawer {
+      position: fixed;
+      transform: translateX(-100%);
+    }
+    :host([companion-surface]) .drawer.open {
+      transform: translateX(0);
+    }
+    :host([companion-surface]) .drawer-backdrop {
+      display: block !important;
+    }
+    :host([companion-surface]) .menu-button {
+      display: inline-flex;
+    }
   `;
 
   @property({ type: String })
@@ -302,7 +322,22 @@ export class BoardgameApp extends connect(store)(LitElement) {
     this._errorFriendlyMessage = selectErrorFriendlyMessage(state);
     this._adminAllowed = selectAdminAllowed(state);
     this._admin = selectAdmin(state);
+    // On companion surfaces (projector / phone) the game owns the screen:
+    // demote the persistent desktop drawer to a hamburger-opened overlay at
+    // every width. Reflected as a host attribute so CSS can key off it.
+    // Cached per game id: stateChanged fires on every dispatch (up to once
+    // per animation frame while timers run), and the surface for a given
+    // game can't change without a navigation/reload — no need to re-parse
+    // the cookie jar each time.
+    const gameRoute = this._page === 'game' ? selectGameRoute(state) : null;
+    const gameId = gameRoute ? gameRoute.id : null;
+    if (gameId !== this._surfaceCachedGameId) {
+      this._surfaceCachedGameId = gameId;
+      this.toggleAttribute('companion-surface', !!(gameId && surfaceForGame(gameId)));
+    }
   }
+
+  private _surfaceCachedGameId: string | null = null;
 
   private _handleAdminChanged(e: Event): void {
     const target = e.target as any;
@@ -414,8 +449,13 @@ export class BoardgameApp extends connect(store)(LitElement) {
               ?selected="${this._page === 'list-games'}">
             </boardgame-list-games-view>
 
+            <boardgame-join-view
+              class="page ${this._page === 'join' ? 'selected' : ''}"
+              ?selected="${this._page === 'join'}">
+            </boardgame-join-view>
+
             <boardgame-404-view
-              class="page ${this._page === 'view404' || (!this._page && this._page !== 'game' && this._page !== 'list-games') ? 'selected' : ''}"
+              class="page ${this._page === 'view404' || (!this._page && this._page !== 'game' && this._page !== 'list-games' && this._page !== 'join') ? 'selected' : ''}"
               ?selected="${this._page === 'view404'}">
             </boardgame-404-view>
           </main>

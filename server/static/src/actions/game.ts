@@ -1,7 +1,7 @@
 import { Dispatch, type UnknownAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { store } from '../store.js';
-import type { RootState, GameChest, PlayerInfo } from '../types/store';
+import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/store';
 import type { ApiResponse } from '../api';
 import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
 import type {
@@ -103,7 +103,11 @@ export const CLEAR_FETCHED_INFO = 'CLEAR_FETCHED_INFO';
 export const CLEAR_FETCHED_VERSION = 'CLEAR_FETCHED_VERSION';
 
 export const updateGameRoute = (pageExtra: string): UpdateGameRouteAction | null => {
-    const pieces = pageExtra.split("/");
+    // Strip any query string (e.g. ?display=table used by companion-mode
+    // dev override) before splitting into name/id segments.
+    const queryIdx = pageExtra.indexOf("?");
+    const pathOnly = queryIdx >= 0 ? pageExtra.slice(0, queryIdx) : pageExtra;
+    const pieces = pathOnly.split("/");
     //remove the trailing slash
     if (!pieces[pieces.length - 1]) pieces.pop();
     if (pieces.length != 2) {
@@ -123,7 +127,8 @@ export const updateGameStaticInfo = (
   hasEmptySlots: boolean,
   open: boolean,
   visible: boolean,
-  isOwner: boolean
+  isOwner: boolean,
+  companionInfo: CompanionInfo | null = null,
 ): UpdateGameStaticInfoAction => {
   return {
     type: UPDATE_GAME_STATIC_INFO,
@@ -132,7 +137,8 @@ export const updateGameStaticInfo = (
     hasEmptySlots,
     open,
     visible,
-    isOwner
+    isOwner,
+    companionInfo,
   }
 }
 
@@ -433,6 +439,11 @@ export const fetchGameInfo = (
     open: data.GameOpen,
     visible: data.GameVisible,
     isOwner: data.IsOwner,
+    // CompanionInfo is the doGameInfo §9.1/§12 bundle — RoomCode, lock state,
+    // seat presentations, and the absent-player list. Pass-through so the
+    // state-manager's _handleInfoData can plumb it into the static-info
+    // event. Without this, table/hand renderers never see a room code.
+    companionInfo: data.CompanionInfo,
     game: data.Game,
     forms: expandedForms,
     viewingAsPlayer: data.ViewingAsPlayer,

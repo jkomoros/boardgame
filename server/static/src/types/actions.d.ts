@@ -3,7 +3,7 @@
  * All actions use discriminated unions for type safety in the reducer.
  */
 
-import type { GameChest, PlayerInfo } from './store';
+import type { GameChest, PlayerInfo, CompanionInfo } from './store';
 import type { MoveForm } from './api';
 import type { RawGameState, TimerInfo, StateBundle } from './game-state';
 
@@ -69,6 +69,7 @@ export interface UpdateGameStaticInfoAction {
   open: boolean;
   visible: boolean;
   isOwner: boolean;
+  companionInfo: CompanionInfo | null;
 }
 
 export interface UpdateGameCurrentStateAction {
@@ -141,6 +142,7 @@ export interface FetchGameInfoSuccessAction {
   open: boolean;
   visible: boolean;
   isOwner: boolean;
+  companionInfo: CompanionInfo | null;
   game: RawGameState;
   forms: MoveForm[] | null;
   viewingAsPlayer: number;

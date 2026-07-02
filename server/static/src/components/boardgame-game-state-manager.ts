@@ -1,6 +1,7 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
+import { ingestVersionTiming } from './companion-sync.js';
 import { store } from '../store.js';
 import {
   fetchGameInfo,
@@ -103,6 +104,13 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   @property({ type: Object, attribute: false })
   private _socket: WebSocket | null = null;
+
+  // _heartbeatTimer fires every 10 seconds while the socket is open and
+  // sends a {"type":"heartbeat"} application-level keepalive. The server's
+  // versionNotifier uses these to maintain per-(gameID, playerIndex)
+  // presence; without them the absent-player badge + host SkipTurn flow
+  // is end-to-end inert (spec §9.1).
+  private _heartbeatTimer: number | null = null;
 
   // Fetched data - synced from Redux
   @property({ type: Object, attribute: false })
@@ -410,6 +418,30 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
         const msg = JSON.parse(data);
         if (msg.type === 'version') {
           store.dispatch(setTargetVersion(msg.data));
+        } else if (msg.type === 'version-timing') {
+          // Companion-mode cross-screen animation sync (spec §8.4).
+          // Sibling to 'version' — old clients ignore it. Carries
+          // serverSentAt + serverPlayAt; we feed them into the
+          // minimum-wins one-way latency estimator on
+          // window._companionSync so the Table+Hand renderers can
+          // schedule animations at a server-anchored wall-clock instant.
+          ingestVersionTiming(msg.data);
+        } else if (msg.type === 'mode-changed') {
+          // Companion-mode → solo downgrade triggered by host
+          // switchToSolo (spec §9.6). Clear THIS game's surface cookie
+          // before reloading so the loader picks the solo renderer
+          // (server only set the cookie-clear on the host's response;
+          // phones need to clear themselves). Scoped to this game only:
+          // the browser may hold surface cookies for other in-flight
+          // companion games, and the broadcast is per-game.
+          this._clearSurfaceCookieForThisGame();
+          window.location.reload();
+        } else if (msg.type === 'presence-changed') {
+          // Companion-mode heartbeat scan flipped a player into/out of
+          // the Absent set. Refetch gameInfo so the new Absent list
+          // surfaces in state and the Table view re-renders the
+          // "Waiting for Alice…" badges (spec §9.1).
+          this.fetchInfo();
         } else if (msg.type === 'chat') {
           // Dispatch chat notification event for the chat panel to handle
           this.dispatchEvent(new CustomEvent('chat-notification', {
@@ -442,10 +474,12 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   private _socketOpened(e: Event) {
     store.dispatch(socketConnected());
+    this._startHeartbeat();
   }
 
   private _socketClosed(e: CloseEvent) {
     store.dispatch(socketDisconnected());
+    this._stopHeartbeat();
     // We always want a socket, so connect. Wait a bit so we don't just
     // busy spin if the server is down.
 
@@ -454,6 +488,39 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     // TODO: exponential backoff on server connect.
     setTimeout(() => this._connectSocket(), 250);
+  }
+
+  private _startHeartbeat() {
+    this._stopHeartbeat();
+    // 10s cadence: server's absentThreshold is 30s, so one missed
+    // heartbeat (e.g. brief network burp) doesn't flap the absent flag.
+    this._heartbeatTimer = window.setInterval(() => {
+      if (this._socket && this._socket.readyState === WebSocket.OPEN) {
+        try {
+          this._socket.send(JSON.stringify({ type: 'heartbeat' }));
+        } catch (err) {
+          // Send failures are non-fatal — the socket will close on its
+          // own and _socketClosed re-arms via _connectSocket.
+          console.warn('heartbeat send failed:', err);
+        }
+      }
+    }, 10000);
+  }
+
+  private _stopHeartbeat() {
+    if (this._heartbeatTimer !== null) {
+      window.clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
+    }
+  }
+
+  // _clearAllSurfaceCookies expires every surface_<gameID> cookie this
+  // browser holds. Used on switchToSolo (mode-changed) so the post-reload
+  // loader picks the solo renderer. Iterates document.cookie because we
+  // don't track which gameIDs the user has touched.
+  private _clearSurfaceCookieForThisGame() {
+    if (!this.gameRoute) return;
+    document.cookie = 'surface_' + this.gameRoute.id + '=; Path=/; Max-Age=0';
   }
 
   updateData() {
@@ -655,6 +722,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       open: data.GameOpen,
       visible: data.GameVisible,
       isOwner: data.IsOwner,
+      // Companion-mode bundle from doGameInfo (spec §9.1 + §12). Empty
+      // object for solo-mode games (CompanionInfo is always present in
+      // the response but its sub-fields are zero-valued).
+      companionInfo: data.CompanionInfo || null,
     };
 
     this.dispatchEvent(new CustomEvent('install-game-static-info', { composed: true, bubbles: true, detail: gameInfo }));

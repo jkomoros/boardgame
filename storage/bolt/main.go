@@ -16,6 +16,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
+	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 )
@@ -30,16 +31,17 @@ type StorageManager struct {
 }
 
 var (
-	statesBucket        = []byte("States")
-	movesBucket         = []byte("Moves")
-	gamesBucket         = []byte("Games")
-	extendedGamesBucket = []byte("ExtendedGames")
-	usersBucket         = []byte("Users")
-	cookiesBucket       = []byte("Cookies")
-	gameUsersBucket     = []byte("GameUsers")
-	agentStatesBucket   = []byte("AgentStates")
-	chatBucket          = []byte("Chat")
-	chatCounterBucket   = []byte("ChatCounters")
+	statesBucket            = []byte("States")
+	movesBucket             = []byte("Moves")
+	gamesBucket             = []byte("Games")
+	extendedGamesBucket     = []byte("ExtendedGames")
+	usersBucket             = []byte("Users")
+	cookiesBucket           = []byte("Cookies")
+	gameUsersBucket         = []byte("GameUsers")
+	agentStatesBucket       = []byte("AgentStates")
+	chatBucket              = []byte("Chat")
+	chatCounterBucket       = []byte("ChatCounters")
+	seatPresentationsBucket = []byte("SeatPresentations")
 )
 
 // NewStorageManager returns a new StorageManager ready for use, backed by the
@@ -82,6 +84,9 @@ func NewStorageManager(fileName string) *StorageManager {
 		}
 		if _, err := tx.CreateBucketIfNotExists(chatCounterBucket); err != nil {
 			return errors.New("Cannot create chat counter bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(seatPresentationsBucket); err != nil {
+			return errors.New("Cannot create seat presentations bucket" + err.Error())
 		}
 		return nil
 	})
@@ -513,6 +518,106 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 
 	return nil
 
+}
+
+func keyForSeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) []byte {
+	return []byte(gameID + ":" + playerIndex.String())
+}
+
+// SeatPresentation implements that method from the server api storagemanager
+// interface.
+func (s *StorageManager) SeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) (*seatpresentation.StorageRecord, error) {
+	var rawRecord []byte
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(seatPresentationsBucket)
+		if b == nil {
+			return errors.New("Couldn't open seat presentations bucket")
+		}
+		rawRecord = b.Get(keyForSeatPresentation(gameID, playerIndex))
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.New("Couldn't read seat presentation: " + err.Error())
+	}
+	if rawRecord == nil {
+		return nil, nil
+	}
+
+	var rec seatpresentation.StorageRecord
+	if err := json.Unmarshal(rawRecord, &rec); err != nil {
+		return nil, errors.New("Couldn't unmarshal seat presentation: " + err.Error())
+	}
+	return &rec, nil
+}
+
+// SetSeatPresentation implements that method from the server api
+// storagemanager interface.
+func (s *StorageManager) SetSeatPresentation(rec *seatpresentation.StorageRecord) error {
+	if rec == nil {
+		return errors.New("nil seat presentation record")
+	}
+	serialized, err := json.Marshal(rec)
+	if err != nil {
+		return errors.New("Couldn't serialize seat presentation: " + err.Error())
+	}
+	return s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(seatPresentationsBucket)
+		if b == nil {
+			return errors.New("Couldn't open seat presentations bucket")
+		}
+		return b.Put(keyForSeatPresentation(rec.GameID, rec.PlayerIndex), serialized)
+	})
+}
+
+// ClearSeatPresentation implements that method from the server api
+// storagemanager interface.
+func (s *StorageManager) ClearSeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(seatPresentationsBucket)
+		if b == nil {
+			return errors.New("Couldn't open seat presentations bucket")
+		}
+		return b.Delete(keyForSeatPresentation(gameID, playerIndex))
+	})
+}
+
+// GameByRoomCode implements that method from the server api storagemanager
+// interface. Scans extended-game records for a CompanionRoomCode match.
+// Returns "" and a nil error if not found. Bolt doesn't have an index, so
+// this is O(N) over extendedGames — acceptable for the small N expected
+// of a single-server bolt deployment.
+func (s *StorageManager) GameByRoomCode(code string) (string, error) {
+	if code == "" {
+		return "", nil
+	}
+
+	var match string
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		eBucket := tx.Bucket(extendedGamesBucket)
+		if eBucket == nil {
+			return errors.New("Couldn't open extended games bucket")
+		}
+		return eBucket.ForEach(func(k, v []byte) error {
+			var eGame extendedgame.StorageRecord
+			if err := json.Unmarshal(v, &eGame); err != nil {
+				// Skip records we can't unmarshal; don't fail the whole scan.
+				return nil
+			}
+			if eGame.CompanionRoomCode == code {
+				match = string(k)
+			}
+			return nil
+		})
+	})
+
+	if err != nil {
+		return "", errors.New("Couldn't scan extended games for room code: " + err.Error())
+	}
+
+	return match, nil
 }
 
 // SetPlayerForGame implements that method from the server api storagemanager interface

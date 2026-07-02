@@ -13,7 +13,22 @@ roleClueGiver. If your role enum is combined with the group enum, then
 base.GameDelegate.GroupMembership will pick this up automatically.
 */
 type PlayerRole struct {
-	Role enum.Val `enum:"role"`
+	// Role is hidden from observers (e.g. the Table+Hand projector at
+	// ObserverPlayerIndex) by default — the typical case for hidden-role
+	// games like Werewolf, Mysterium, Secret Hitler. The player's own
+	// Hand view still sees their own role because "other" excludes self.
+	//
+	// Games where roles are publicly known (Codenames: Spymaster vs
+	// Operative is announced openly) override at the embedding site:
+	//
+	//   type playerState struct {
+	//       base.SubState
+	//       behaviors.PlayerRole `sanitize:"all:visible"`
+	//   }
+	//
+	// The override works via the outer-embedding-site tag precedence
+	// added to struct_inflater.go (spec §6.3.2).
+	Role enum.Val `enum:"role" sanitize:"other:hidden"`
 }
 
 // GetPlayerRole returns itself, satisfying [HasPlayerRole].

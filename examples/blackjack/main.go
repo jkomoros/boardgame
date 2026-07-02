@@ -246,6 +246,26 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moves.FinishTurn),
 				moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
 			),
+			// ForceFinishTurn lets a host/server force-end the current
+			// player's turn even when TurnDone() returns an error (e.g.
+			// the player's phone dropped mid-turn in companion mode). Only
+			// AdminPlayerIndex can propose it; FinishTurn is the normal
+			// player-proposed variant. The name override is necessary
+			// because ForceFinishTurn embeds FinishTurn, and the
+			// auto-configurator's default name derivation would yield
+			// "Finish Turn" — clashing with the parent move's registration.
+			// WithIsFixUp(false) is also load-bearing: ForceFinishTurn
+			// embeds FinishTurn which is a FixUp. If we let the auto-
+			// proposer treat it as a fixup, the game's fixup loop would
+			// propose ForceFinishTurn every turn forever (Legal always
+			// returns nil for AdminPlayerIndex, the same identity used by
+			// fixup proposers). The move is host-initiated only.
+			auto.MustConfig(
+				new(moves.ForceFinishTurn),
+				moves.WithMoveName("Force Finish Turn"),
+				moves.WithIsFixUp(false),
+				moves.WithHelpText("Admin-only: end the current player's turn even if TurnDone() would refuse. Used by host SkipTurn in Table+Hand mode."),
+			),
 		),
 		moves.AddOrderedForPhase(phaseInitialDeal,
 			//Because we have behavior.InactivePlayer, we need to re-activate players... if there are any to run

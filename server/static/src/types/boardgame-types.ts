@@ -9,8 +9,8 @@
  * objects at runtime, while normal components have Deck, GameName, etc.
  */
 export type Component<
-  T extends Record<string, unknown> = Record<string, unknown>,
-  D extends Record<string, unknown> = Record<string, unknown>
+  T extends object = Record<string, unknown>,
+  D extends object = Record<string, unknown>
 > = Partial<T & { Deck: string; GameName: string; ID: string; DynamicValues: D }>;
 
 /**
@@ -19,8 +19,8 @@ export type Component<
  * those indices into full component objects.
  */
 export interface ExpandedStack<
-  T extends Record<string, unknown> = Record<string, unknown>,
-  D extends Record<string, unknown> = Record<string, unknown>
+  T extends object = Record<string, unknown>,
+  D extends object = Record<string, unknown>
 > {
   Deck: string;
   Indexes: number[];
@@ -60,8 +60,8 @@ export interface Board {
  * expanded stack with resolved component objects, ready for rendering.
  */
 export interface ExpandedBoard<
-  T extends Record<string, unknown> = Record<string, unknown>,
-  D extends Record<string, unknown> = Record<string, unknown>
+  T extends object = Record<string, unknown>,
+  D extends object = Record<string, unknown>
 > {
   Spaces: ExpandedStack<T, D>[];
 }
@@ -81,8 +81,8 @@ export interface ExpandedTimer {
  * GS is the game-level state interface, PS is the per-player state interface.
  */
 export interface FullGameState<
-  GS extends Record<string, unknown> = Record<string, unknown>,
-  PS extends Record<string, unknown> = Record<string, unknown>
+  GS extends object = Record<string, unknown>,
+  PS extends object = Record<string, unknown>
 > {
   Game: GS;
   Players: PS[];

@@ -5,10 +5,10 @@ import type { FullGameState } from '../types/boardgame-types.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 
 export class BoardgameBaseGameRenderer<
-  GS extends Record<string, unknown> = Record<string, unknown>,
-  PS extends Record<string, unknown> = Record<string, unknown>,
+  GS extends object = Record<string, unknown>,
+  PS extends object = Record<string, unknown>,
   MN extends string = string,
-  MA extends Record<string, Record<string, unknown>> = Record<string, Record<string, unknown>>
+  MA extends Record<string, object> = Record<string, Record<string, unknown>>
 > extends LitElement {
   @property({ type: Object })
   state: FullGameState<GS, PS> | null = null;
@@ -34,12 +34,37 @@ export class BoardgameBaseGameRenderer<
   @property({ type: Object })
   moveLegality: Record<string, MoveLegalityInfo> = {};
 
+  /**
+   * Mirrors the game record's Finished/Winners (plumbed through
+   * boardgame-render-game). Winners are player indexes; empty array with
+   * gameFinished=true means a draw / no-winner ending.
+   */
+  @property({ type: Boolean })
+  gameFinished = false;
+
+  @property({ type: Array })
+  gameWinners: number[] = [];
+
+
   get isCurrentPlayer(): boolean {
     // AdminPlayerIndex (-2): admin can always act
     if (this.viewingAsPlayer === -2) return true;
     // AnyPlayerIndex (-3): any player can act (simultaneous phase)
     if (this.currentPlayerIndex === -3) return true;
     return this.currentPlayerIndex === this.viewingAsPlayer;
+  }
+
+  /**
+   * The FLIP animator that wraps this renderer. Renderers live inside
+   * boardgame-render-game's #container, a sibling of the #animator element
+   * in the same shadow root. Use for one-off cross-screen animations:
+   * `this.animator?.animateBetween(cardId, 'hand-top-edge')`. Null before
+   * the renderer is attached (or in tests outside boardgame-render-game).
+   */
+  protected get animator(): { animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs?: number): Promise<void> } | null {
+    const root = this.getRootNode();
+    if (!(root instanceof ShadowRoot)) return null;
+    return root.querySelector('#animator') as any;
   }
 
   /**
@@ -172,7 +197,12 @@ export class BoardgameBaseGameRenderer<
       if (!(tempEle instanceof Element)) continue;
       if (!tempEle.hasAttribute) continue;
 
-      const proposeMove = (tempEle as Element & { proposeMove?: string }).proposeMove || tempEle.getAttribute('propose-move');
+      // Only accept string-valued proposeMove properties: the renderer
+      // element itself (and anything extending BoardgameBaseGameRenderer)
+      // has a proposeMove METHOD, which must not be mistaken for the
+      // legacy string-property/attribute convention.
+      const rawProposeMove = (tempEle as Element & { proposeMove?: unknown }).proposeMove;
+      const proposeMove = (typeof rawProposeMove === 'string' ? rawProposeMove : null) || tempEle.getAttribute('propose-move');
       if (proposeMove) {
         // found it!
         ele = tempEle as HTMLElement;
@@ -189,7 +219,8 @@ export class BoardgameBaseGameRenderer<
       return;
     }
 
-    const moveName = (ele as HTMLElement & { proposeMove?: string }).proposeMove || ele.getAttribute('propose-move');
+    const rawMoveName = (ele as HTMLElement & { proposeMove?: unknown }).proposeMove;
+    const moveName = (typeof rawMoveName === 'string' ? rawMoveName : null) || ele.getAttribute('propose-move');
     if (!moveName) return;
 
     const data = ele.dataset;

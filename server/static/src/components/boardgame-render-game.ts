@@ -4,6 +4,7 @@ import './boardgame-component-animator.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
+import { surfaceForGame } from '../utils/companion-surface.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -72,6 +73,31 @@ class BoardgameRenderGame extends LitElement {
 
   @property({ type: String })
   gameName = '';
+
+  // gameId is needed to read the per-game surface cookie (surface_<gameId>)
+  // for companion-mode routing. Empty string means we haven't been told the
+  // gameID yet (the loader will operate as solo until it's set).
+  @property({ type: String })
+  gameId = '';
+
+  @property({ type: Object })
+  companionInfo: import('../types/store').CompanionInfo | null = null;
+
+  // isOwner is the doGameInfo IsOwner bool — true if the authenticated
+  // user is the game's Owner. Pass-through; the surface renderer combines
+  // this with its own surface-cookie check to compute isHost.
+  @property({ type: Boolean })
+  isOwner = false;
+
+  // gameFinished/gameWinners mirror the game record's Finished/Winners so
+  // renderers can show an ending (winner banner, you-won/lost) without
+  // bespoke plumbing. Winners are player indexes.
+  @property({ type: Boolean })
+  gameFinished = false;
+
+  @property({ type: Array })
+  gameWinners: number[] = [];
+
 
   @property({ type: Object, attribute: false })
   renderer: HTMLElement | null = null;
@@ -177,6 +203,18 @@ class BoardgameRenderGame extends LitElement {
       this._stateChanged(this.state, changedProperties.get('state') as any);
     }
 
+    if (changedProperties.has('companionInfo')) {
+      this._companionInfoChanged(this.companionInfo);
+    }
+
+    if (changedProperties.has('isOwner')) {
+      this._isOwnerChanged(this.isOwner);
+    }
+
+    if (changedProperties.has('gameFinished') || changedProperties.has('gameWinners')) {
+      this._applyGameOutcomeToRenderer();
+    }
+
     if (changedProperties.has('renderer')) {
       this.dispatchEvent(new CustomEvent('renderer-changed', {
         composed: true, bubbles: true, detail: { value: this.renderer }
@@ -191,6 +229,58 @@ class BoardgameRenderGame extends LitElement {
     (this.renderer as any).diagram = newValue;
   }
 
+  // _companionInfoChanged propagates the companionInfo bundle to the
+  // inner surface renderer whenever the gameInfo response refreshes. The
+  // base view classes (BoardgameTableViewBase / BoardgameHandViewBase)
+  // expose typed properties for the unpacked fields; we set them all so
+  // the renderer can react to e.g. an absent player coming back without
+  // a full re-mount.
+  private _companionInfoChanged(_newValue: import('../types/store').CompanionInfo | null) {
+    if (!this.renderer) return;
+    this._applyCompanionPropsToRenderer(this.renderer);
+  }
+
+  private _isOwnerChanged(newValue: boolean) {
+    if (!this.renderer) return;
+    (this.renderer as any).isOwner = newValue;
+    this._recomputeIsHost();
+  }
+
+  private _applyCompanionPropsToRenderer(ele: HTMLElement) {
+    const r = ele as any;
+    const info = this.companionInfo;
+    r.seatPresentations = info?.SeatPresentations || [];
+    r.absentPlayers = info?.Absent || [];
+    r.roomCode = info?.RoomCode || '';
+    r.roomLocked = info?.RoomLocked || false;
+    r.companionMode = info?.CompanionMode || false;
+    this._recomputeIsHost();
+    this._applyGameOutcomeToRenderer();
+  }
+
+  private _applyGameOutcomeToRenderer() {
+    if (!this.renderer) return;
+    const r = this.renderer as any;
+    r.gameFinished = this.gameFinished;
+    r.gameWinners = this.gameWinners;
+  }
+
+  private _recomputeIsHost() {
+    if (!this.renderer) return;
+    // Prefer the server's own verdict (CompanionInfo.IsHost, computed with
+    // the same Owner-or-override + surface-cookie rule the host-action
+    // endpoints enforce) so a host promoted via /claimHost sees controls
+    // even though they aren't the Owner. Fall back to the local derivation
+    // for older payloads that lack the field.
+    const info = this.companionInfo as any;
+    if (info && typeof info.IsHost === 'boolean') {
+      (this.renderer as any).isHost = info.IsHost;
+      return;
+    }
+    const surface = surfaceForGame(this.gameId);
+    (this.renderer as any).isHost = this.isOwner && surface === 'table';
+  }
+
   private _activeChanged(newValue: boolean) {
     if (!newValue) {
       // The game view has gone inactive
@@ -203,7 +293,11 @@ class BoardgameRenderGame extends LitElement {
       this._removeRenderer();
     } else {
       if (this.rendererLoaded) {
-        this._instantiateRenderer();
+        // Re-instantiate with the CURRENT surface's suffix — the plain
+        // solo element was never registered on companion surfaces (only
+        // the suffixed module was imported), so instantiating '' here
+        // would create an un-upgraded element that renders nothing.
+        this._instantiateRenderer(this._surfaceSuffix(this.gameId));
       }
     }
   }
@@ -361,13 +455,43 @@ class BoardgameRenderGame extends LitElement {
 
     if (!newValue) return;
 
+    const suffix = this._surfaceSuffix(this.gameId);
+
     try {
-      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode
+      // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode.
+      // If a companion-mode suffix is in play (-table / -hand), try the
+      // suffixed import first; on failure fall back to the solo renderer
+      // with a console warning. This makes solo-mode games safe to load even
+      // when a stale surface cookie is present, and surfaces deployment
+      // errors (missing -table.ts / -hand.ts on a supporting game) loudly.
+      if (suffix) {
+        try {
+          await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}${suffix}.ts`);
+          this._instantiateRenderer(suffix);
+          return;
+        } catch (innerError) {
+          console.warn(
+            `[boardgame-render-game] surface renderer ${newValue}${suffix} failed to load; falling back to solo:`,
+            innerError,
+          );
+        }
+      }
       await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}.ts`);
-      this._instantiateRenderer();
+      this._instantiateRenderer('');
     } catch (error) {
       console.error(`Failed to load game renderer for ${newValue}:`, error);
     }
+  }
+
+  // _surfaceSuffix returns the filename suffix to add to the renderer
+  // module / custom-element name for the current surface, or empty for
+  // solo. Pure function of the cookie + query string (see
+  // utils/companion-surface.ts, shared with boardgame-game-view).
+  private _surfaceSuffix(gameId: string): string {
+    const s = surfaceForGame(gameId);
+    if (s === 'table') return '-table';
+    if (s === 'hand') return '-hand';
+    return '';
   }
 
   private _removeRenderer() {
@@ -377,11 +501,11 @@ class BoardgameRenderGame extends LitElement {
     this.renderer = null;
   }
 
-  private _instantiateRenderer() {
+  private _instantiateRenderer(surfaceSuffix: string = '') {
     // The import loaded! Add it!
     this.rendererLoaded = true;
 
-    const ele = document.createElement(`boardgame-render-game-${this.gameName}`) as any;
+    const ele = document.createElement(`boardgame-render-game-${this.gameName}${surfaceSuffix}`) as any;
 
     ele.diagram = this.diagram;
     ele.state = this.state;
@@ -389,8 +513,21 @@ class BoardgameRenderGame extends LitElement {
     ele.currentPlayerIndex = this.currentPlayerIndex;
     ele.chest = this.chest;
     ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
+    // Pass game name + ID + companion props through so the Table/Hand
+    // view bases can call host endpoints (which require these in the URL
+    // path) and render the avatar strip, room code banner, etc.
+    ele.gameName = this.gameName;
+    ele.gameId = this.gameId;
+    ele.isOwner = this.isOwner;
 
+    // Assign this.renderer BEFORE applying companion props:
+    // _applyCompanionPropsToRenderer calls _recomputeIsHost which guards
+    // on this.renderer — applying first would silently no-op the isHost
+    // computation, leaving the host's Table view without host controls
+    // until the next companionInfo change (which may never come in a
+    // quiet lobby).
     this.renderer = ele;
+    this._applyCompanionPropsToRenderer(ele);
 
     if (this._container) {
       this._container.appendChild(ele);
@@ -427,7 +564,10 @@ class BoardgameRenderGame extends LitElement {
         <!-- Dynamic renderer will be inserted here -->
       </div>
 
-      <div id="loading" ?active="${!this.socketActive}">
+      <!-- Suppress the connection-lost dim once the game is finished: the
+           socket closing after game end is expected, not an outage, and
+           dimming the final scoreboard reads as a broken page. -->
+      <div id="loading" ?active="${!this.socketActive && !this.gameFinished}">
         <div>
           <div class="spinner"></div>
         </div>

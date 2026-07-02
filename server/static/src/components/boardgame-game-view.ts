@@ -8,6 +8,7 @@ import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
+import { surfaceForGame } from '../utils/companion-surface.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -24,6 +25,7 @@ import {
   selectGameOpen,
   selectGameVisible,
   selectGameIsOwner,
+  selectGameCompanionInfo,
   selectExpandedGameState,
   selectGame,
   selectViewingAsPlayer,
@@ -70,6 +72,57 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
       [hidden] {
         display: none !important;
+      }
+
+      /* Hide-my-hand privacy shield (hand surface only). Fixed positioning
+         so the shield covers the entire viewport — app chrome included —
+         because the threat is a glance at the whole phone screen, not just
+         the renderer area. */
+      .privacy-toggle {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 1000;
+        padding: 8px 14px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 20px;
+        border: none;
+        background: rgba(0, 0, 0, 0.55);
+        color: white;
+        cursor: pointer;
+      }
+      .privacy-shield {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: #1a2b3c;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        color: white;
+        text-align: center;
+        padding: 24px;
+      }
+      .privacy-shield .shield-glyph {
+        font-size: 64px;
+      }
+      .privacy-shield p {
+        margin: 0;
+        font-size: 18px;
+        opacity: 0.8;
+      }
+      .privacy-shield button {
+        padding: 16px 32px;
+        font-size: 18px;
+        font-weight: 600;
+        border-radius: 12px;
+        border: 2px solid white;
+        background: transparent;
+        color: white;
+        cursor: pointer;
       }
 
       #moves > details {
@@ -157,6 +210,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean, attribute: false })
   _isOwner = false;
 
+  @property({ type: Object, attribute: false })
+  _companionInfo: import('../types/store').CompanionInfo | null = null;
+
   @property({ type: String, attribute: false })
   _pageExtra = '';
 
@@ -184,6 +240,23 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Array, attribute: false })
   _playerOrder: number[] | null = null;
 
+  // The active companion surface ('table' | 'hand' | null), derived once
+  // per game-route change in stateChanged — render() runs far too often
+  // (every state bundle; every animation-frame tick while timers run) to
+  // re-parse the query string + cookie jar each time.
+  @property({ type: String, attribute: false })
+  _companionSurface: 'table' | 'hand' | null = null;
+
+  private _surfaceCachedGameId: string | null = null;
+
+  // Hide-my-hand privacy shield (hand surface only): when true, an opaque
+  // full-viewport overlay covers the private hand so the player can set
+  // the phone down or step away without shoulder-surfing risk. Purely
+  // client-side and per-tab — game state keeps flowing underneath, so
+  // revealing is instant and never misses an update.
+  @property({ type: Boolean, attribute: false })
+  _handHidden = false;
+
   constructor() {
     super();
 
@@ -196,7 +269,27 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   override render() {
+    // On companion surfaces the renderer owns the screen: the projector
+    // (table) and phones (hand) hide the solo-flow chrome — roster with its
+    // join buttons, admin controls, chat. Seating happens via the phone
+    // join flow and identity lives on the avatar strip, so that chrome is
+    // at best redundant and at worst contradicts the companion model. The
+    // gathering panel stays: "Waiting for N more players" is useful on
+    // both surfaces.
+    const companionSurface = this._companionSurface;
     return html`
+      ${companionSurface === 'hand' ? html`
+        ${this._handHidden ? html`
+          <div class="privacy-shield">
+            <div class="shield-glyph">🙈</div>
+            <p>Your hand is hidden.</p>
+            <button @click=${() => { this._handHidden = false; }}>Show my hand</button>
+          </div>
+        ` : html`
+          <button class="privacy-toggle" @click=${() => { this._handHidden = true; }}>🙈 Hide my hand</button>
+        `}
+      ` : ''}
+      ${companionSurface ? '' : html`
       <div class="card">
         <boardgame-player-roster
           id="player"
@@ -219,6 +312,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .active=${this.selected}>
         </boardgame-player-roster>
       </div>
+      `}
       <boardgame-gathering-panel
         .moveForms=${this.moveForms}
         .state=${this._currentState}
@@ -227,7 +321,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         .gameOpen=${this._open}
         .finished=${this.game ? this.game.Finished : false}
         .gameRoute=${this._gameRoute}
-        .playersInfo=${this._playersInfo}>
+        .playersInfo=${this._playersInfo}
+        .companionRoomCode=${this._companionInfo?.RoomCode || ''}>
       </boardgame-gathering-panel>
       <div class="card">
         <boardgame-render-game
@@ -237,6 +332,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .renderer=${this.activeRenderer}
           @renderer-changed=${this._handleRendererChanged}
           .gameName=${this._gameRoute ? this._gameRoute.name : ''}
+          .gameId=${this._gameRoute ? this._gameRoute.id : ''}
+          .companionInfo=${this._companionInfo}
+          .isOwner=${this._isOwner}
+          .gameFinished=${this.game ? this.game.Finished : false}
+          .gameWinners=${this.game ? this.game.Winners || [] : []}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .socketActive=${this.socketActive}
@@ -245,6 +345,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .moveForms=${this.moveForms}>
         </boardgame-render-game>
       </div>
+      <!-- Not chrome despite the name: admin-controls owns the move-form
+           submission pipeline (_handleProposeMove forwards every proposed
+           move through it), so it must exist on companion surfaces too.
+           It renders nothing visible unless admin mode is active. -->
       <boardgame-admin-controls
         id="admin"
         .active=${this._admin}
@@ -257,11 +361,13 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         @requested-player-changed=${this._handleRequestedPlayerChanged}
         @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}>
       </boardgame-admin-controls>
+      ${companionSurface ? '' : html`
       <boardgame-chat-panel
         .gameRoute=${this._gameRoute}
         .viewingAsPlayer=${this.viewingAsPlayer}
         .playersInfo=${this._playersInfo}>
       </boardgame-chat-panel>
+      `}
       <boardgame-game-state-manager
         id="manager"
         .activeRenderer=${this.activeRenderer}
@@ -301,8 +407,14 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._open = selectGameOpen(state);
     this._visible = selectGameVisible(state);
     this._isOwner = selectGameIsOwner(state);
+    this._companionInfo = selectGameCompanionInfo(state);
     this._pageExtra = selectPageExtra(state);
     this._gameRoute = selectGameRoute(state);
+    const surfaceGameId = this._gameRoute ? this._gameRoute.id : null;
+    if (surfaceGameId !== this._surfaceCachedGameId) {
+      this._surfaceCachedGameId = surfaceGameId;
+      this._companionSurface = surfaceGameId ? surfaceForGame(surfaceGameId) : null;
+    }
     this._loggedIn = selectLoggedIn(state);
     this._admin = selectAdmin(state);
     this._page = selectPage(state);
@@ -393,7 +505,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleGameStaticInfo(e: CustomEvent) {
     const bundle = e.detail;
-    store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner));
+    store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner, bundle.companionInfo));
   }
 
   private _handleAllAnimationsDone(e: Event) {
@@ -412,6 +524,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _firstStateBundleInstalled() {
+    // No roster on companion surfaces (@query returns null) — and no
+    // join prompt either: phones join via the room code, not this dialog.
+    if (!this._playerEle) return;
     if (this.selected && this._loggedIn && this._playerEle.showJoin && !this.promptedToJoin) {
       // Take note that we already prompted them, and don't prompt again unless the game changes.
       this.promptedToJoin = true;

@@ -52,6 +52,19 @@ type Server struct {
 
 	notifier *versionNotifier
 	logger   *logrus.Logger
+
+	// joinRateLimiter throttles /api/join and /api/join/seat per client IP.
+	// 10 requests / minute is plenty for legitimate use (entering the code,
+	// then claiming a seat) and tight enough to discourage brute-force
+	// enumeration of the 234k 4-letter code namespace (spec §6.1).
+	joinRateLimiter *rateLimiter
+
+	// seatJoinLocks serializes seat-claim operations on a per-game basis so
+	// concurrent /api/join/seat requests for the same room can't race
+	// through the empty-slot lookup + SeatPlayer proposal. Spec §11 race-
+	// resolution behavior. Lazy-allocated by getSeatJoinLock.
+	seatJoinLocks   map[string]*sync.Mutex
+	seatJoinLocksMu sync.Mutex
 }
 
 type renderer struct {
@@ -88,6 +101,15 @@ type managerInfo struct {
 	//if len(seatPlayerMoves) != 0, as moves.SeatPlayer and behaviors.Seat are
 	//used in conjunction most often.
 	playerHasSeat bool
+	// supportsTableHandMode is true iff this game ships a
+	// boardgame-render-game-<name>-table.ts AND -hand.ts pair (detected at
+	// build time by boardgame-util; surfaced into the generated api/main.go
+	// via Server.WithCompanionCapableGames). Used by doListManager so the
+	// create-game form can show the "Use shared projector + phones" toggle
+	// for supporting games (spec §5.3), and by /api/game/.../new-style
+	// creation requests for server-side validation that a request for
+	// companionMode is for an actually-supporting game.
+	supportsTableHandMode bool
 }
 
 type playerToSeat struct {
@@ -128,11 +150,21 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 	logger := logrus.New()
 
 	result := &Server{
-		managers:      make(managerMap),
+		managers:        make(managerMap),
 		playersToSeat:   make(map[string][]*playerToSeat),
 		gameOverEmitted: make(map[string]bool),
-		storage:       storage,
-		logger:        logger,
+		storage:         storage,
+		logger:          logger,
+		// Sized for the feature's PRIMARY scenario: a whole party of
+		// phones behind one NAT'd household IP joining within the same
+		// minute, at 2-3 requests per joiner (/join + seat-options +
+		// seat claim, plus retries). Burst 40 admits ~12 simultaneous
+		// joiners; the 0.5/s steady-state refill (30/min) still makes
+		// brute-forcing the 234k-code space impractical (~7 months for
+		// half the space from one IP) while never throttling a real
+		// game night. Idle buckets evict after 10 minutes.
+		joinRateLimiter: newRateLimiter(40, 0.5, 10*time.Minute),
+		seatJoinLocks:   make(map[string]*sync.Mutex),
 	}
 
 	storage.server = result
@@ -529,7 +561,29 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents(), closedSeats)
 
-	if user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers() {
+	// The first-viewer auto-seat special case. The cheap in-memory
+	// conditions come first so the storage read below only happens in the
+	// rare state where auto-seating could actually fire (a signed-in
+	// observer viewing a game with every non-agent seat empty) — NOT on
+	// every game API request.
+	autoSeatCandidate := user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers()
+
+	// Companion (Table+Hand) games seat players exclusively through the
+	// phone join flow (/api/join/seat). Auto-seating the first viewer here
+	// would bind a seat to the table surface, and the dev-mode debug fill
+	// below would leave no seats for phones to claim. FAIL CLOSED: if the
+	// extended record can't be read we don't know the game ISN'T a
+	// companion game, and wrongly auto-seating is destructive (the binding
+	// persists) while wrongly skipping just means the creator joins by
+	// hand — so any error also suppresses the auto-seat.
+	if autoSeatCandidate {
+		eGame, err := s.storage.ExtendedGame(id)
+		if err != nil || eGame == nil || eGame.CompanionRoomCode != "" {
+			autoSeatCandidate = false
+		}
+	}
+
+	if autoSeatCandidate {
 		//Special case: we're the first player, we likely just created it. Just join the thing!
 
 		slot := emptySlots[0]
@@ -726,12 +780,25 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	open := s.getRequestOpen(c)
 	visible := s.getRequestVisible(c)
+	companionMode := s.getRequestCompanionMode(c)
 
-	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible, variant)
+	// Server-side validation that this manager actually supports
+	// Table+Hand mode. A malicious client could POST companionMode=1 for
+	// a game whose static dir doesn't ship -table.ts/-hand.ts; refuse
+	// before generating a room code that would route to nowhere.
+	if companionMode {
+		mInfo := s.managers[managerID]
+		if mInfo == nil || !mInfo.supportsTableHandMode {
+			r.Error(errors.NewFriendly("This game does not support shared-projector mode."))
+			return
+		}
+	}
+
+	s.doNewGame(r, c, owner, manager, numPlayers, agents, open, visible, variant, companionMode)
 
 }
 
-func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, variant map[string]string) {
+func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, variant map[string]string, companionMode bool) {
 
 	if manager == nil {
 		r.Error(errors.New("No manager provided"))
@@ -766,17 +833,44 @@ func (s *Server) doNewGame(r *renderer, owner *users.StorageRecord, manager *boa
 	eGame.Open = open
 	eGame.Visible = visible
 
-	//TODO: set Open, Visible based on query params.
+	// If companion-mode was requested, generate a room code and set the
+	// host's surface=table cookie so their browser loads the projected
+	// renderer on the redirect. Solo-mode games leave CompanionRoomCode
+	// empty + don't get a surface cookie (renderer falls back to solo).
+	var roomCode string
+	if companionMode {
+		code, codeErr := GenerateRoomCode(func(candidate string) (bool, error) {
+			id, gerr := s.storage.GameByRoomCode(candidate)
+			if gerr != nil {
+				return false, gerr
+			}
+			return id != "", nil
+		})
+		if codeErr != nil {
+			s.logger.Warnln("Failed to generate room code:", codeErr)
+			r.Error(errors.NewFriendly("Couldn't generate a room code; please try again."))
+			return
+		}
+		eGame.CompanionRoomCode = code
+		roomCode = code
+		// Surface cookie scoped to the gameID — see surfaceCookieName().
+		// Path "/" so the loader sees it on the game page.
+		s.setSurfaceCookie(c, game.ID(), "table")
+	}
 
 	if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
 		r.Error(errors.New("Couldn't save extended game metadata: " + err.Error()))
 		return
 	}
 
-	r.Success(gin.H{
+	resp := gin.H{
 		"GameID":   game.ID(),
 		"GameName": game.Name(),
-	})
+	}
+	if roomCode != "" {
+		resp["CompanionRoomCode"] = roomCode
+	}
+	r.Success(resp)
 }
 
 func (s *Server) listGamesHandler(c *gin.Context) {
@@ -920,14 +1014,15 @@ func (s *Server) doListManager(r *renderer) {
 		}
 
 		managers = append(managers, map[string]interface{}{
-			"Name":              name,
-			"DisplayName":       manager.Delegate().DisplayName(),
-			"Description":       manager.Delegate().Description(),
-			"DefaultNumPlayers": manager.Delegate().DefaultNumPlayers(),
-			"MinNumPlayers":     manager.Delegate().MinNumPlayers(),
-			"MaxNumPlayers":     manager.Delegate().MaxNumPlayers(),
-			"Agents":            agents,
-			"Variant":           variant,
+			"Name":                  name,
+			"DisplayName":           manager.Delegate().DisplayName(),
+			"Description":           manager.Delegate().Description(),
+			"DefaultNumPlayers":     manager.Delegate().DefaultNumPlayers(),
+			"MinNumPlayers":         manager.Delegate().MinNumPlayers(),
+			"MaxNumPlayers":         manager.Delegate().MaxNumPlayers(),
+			"Agents":                agents,
+			"Variant":               variant,
+			"SupportsTableHandMode": mInfo.supportsTableHandMode,
 		})
 	}
 
@@ -1069,6 +1164,55 @@ func (s *Server) AddOverrides(overrides []config.OptionOverrider) *Server {
 	return s
 }
 
+// WithCompanionCapableGames marks the named games as supporting Table+Hand
+// companion mode (spec §5.3). Called by the generated api/main.go with the
+// list boardgame-util computed at build time from filesystem walk. Returns
+// the server for chaining. Names that don't match any registered manager
+// are silently ignored (so a stale capability list doesn't crash startup).
+//
+// Validates companion-capable games at boot:
+//   - If "Force Finish Turn" is registered but as a FixUp: panics (infinite
+//     recursion in the fixup pipeline).
+//   - If "Force Finish Turn" is not registered: logs a warning. This is
+//     normal for simultaneous-action games (e.g. werewolf) where there is
+//     no current player to skip. Turn-based games should register it — see
+//     moves.ForceFinishTurn for the pattern.
+func (s *Server) WithCompanionCapableGames(gameNames []string) *Server {
+	for _, name := range gameNames {
+		mInfo, ok := s.managers[name]
+		if !ok {
+			continue
+		}
+		mInfo.supportsTableHandMode = true
+
+		move := mInfo.manager.ExampleMoveByName("Force Finish Turn")
+		if move == nil {
+			s.logger.Warnf(
+				"boardgame/server: game %q is companion-capable but does not register "+
+					"\"Force Finish Turn\". Host SkipTurn will return 501 for this game. "+
+					"This is expected for simultaneous-action games; turn-based games "+
+					"should add: auto.MustConfig(new(moves.ForceFinishTurn), "+
+					"moves.WithMoveName(\"Force Finish Turn\"), moves.WithIsFixUp(false))",
+				name,
+			)
+			continue
+		}
+		type isFixUpper interface{ IsFixUp() bool }
+		fixUpper, _ := move.(isFixUpper)
+		if fixUpper != nil && fixUpper.IsFixUp() {
+			panic(fmt.Sprintf(
+				"boardgame/server: game %q registers \"Force Finish Turn\" as a FixUp move. "+
+					"This will cause infinite recursion in the fixup pipeline because "+
+					"ForceFinishTurn.Legal() returns nil for AdminPlayerIndex (the same "+
+					"identity used by fixup proposers). Fix: add moves.WithIsFixUp(false) "+
+					"to the auto.MustConfig call",
+				name,
+			))
+		}
+	}
+	return s
+}
+
 func (s *Server) configureGameHandler(c *gin.Context) {
 	game := s.getGame(c)
 
@@ -1155,7 +1299,21 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	r := s.newRenderer(c)
 
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion)
+	// Server-computed host verdict for the companion bundle. Uses the same
+	// rule as the host-action endpoints (Owner-or-override + table-surface
+	// cookie), so the client can display host controls for exactly the
+	// requests the server would authorize — including a host promoted via
+	// /claimHost, who is not the Owner and would otherwise never see them.
+	isHostViewer := false
+	if gameInfo != nil && gameInfo.CompanionRoomCode != "" {
+		hostUserID := gameInfo.Owner
+		if gameInfo.CompanionHostOverride != "" {
+			hostUserID = gameInfo.CompanionHostOverride
+		}
+		isHostViewer = s.isHost(c, gameID, hostUserID)
+	}
+
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion, isHostViewer)
 
 }
 
@@ -1226,7 +1384,28 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 	return result
 }
 
-func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
+// collectSeatPresentations returns the per-seat avatar+name records for a
+// game, indexed by playerIndex. Iterates numPlayers; absent rows (e.g.
+// for unjoined slots or solo-mode games) return nil from the storage and
+// are dropped from the result. Cheap V1 implementation; a single bulk
+// "list by gameID" storage method would be more efficient at scale.
+func (s *Server) collectSeatPresentations(gameID string, numPlayers int) []gin.H {
+	var out []gin.H
+	for i := 0; i < numPlayers; i++ {
+		rec, err := s.storage.SeatPresentation(gameID, boardgame.PlayerIndex(i))
+		if err != nil || rec == nil {
+			continue
+		}
+		out = append(out, gin.H{
+			"playerIndex": rec.PlayerIndex,
+			"displayName": rec.DisplayName,
+			"avatarSlug":  rec.AvatarSlug,
+		})
+	}
+	return out
+}
+
+func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int, isHostViewer bool) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
 		return
@@ -1274,6 +1453,36 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		return
 	}
 
+	// Companion-mode bundle: everything the Table+Hand view bases need to
+	// render avatar strips, "Waiting…" badges, room code, host controls.
+	// Bundled into one CompanionInfo object so the client-side plumbing
+	// is a single prop traversal rather than five. For solo-mode games
+	// (CompanionRoomCode=="") skip the per-seat presentation reads
+	// entirely — /info is refetched by every client on every version
+	// change, and NumPlayers storage reads per fetch for a list that is
+	// always empty was the dominant needless I/O on that hot path.
+	companionMode := gameInfo.CompanionRoomCode != ""
+	var seatPresentations []gin.H
+	if companionMode {
+		seatPresentations = s.collectSeatPresentations(game.ID(), game.NumPlayers())
+	}
+	companionInfo := gin.H{
+		"CompanionMode":     companionMode,
+		"RoomCode":          gameInfo.CompanionRoomCode,
+		"RoomLocked":        gameInfo.CompanionLocked,
+		"SeatPresentations": seatPresentations,
+		// IsHost is the server's own verdict on whether THIS request's
+		// session may use host actions (Owner-or-override + table-surface
+		// cookie) — the client displays host controls from this rather
+		// than re-deriving the rule and drifting.
+		"IsHost": isHostViewer,
+		// Absent is the list of player indices currently flagged absent by
+		// the heartbeat scan (spec §9.1). The Table view uses this to draw
+		// "Waiting for Alice (m:ss)" badges and to decide whether to show
+		// the host SkipTurn button on the current-player badge.
+		"Absent": s.notifier.AbsentPlayers(game.ID()),
+	}
+
 	args := gin.H{
 		"Chest":           game.Manager().Chest(),
 		"Forms":           s.generateFormsWithLegality(game, state, playerIndex),
@@ -1285,6 +1494,7 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		"GameOpen":        gameInfo.Open,
 		"GameVisible":     gameInfo.Visible,
 		"IsOwner":         isOwner,
+		"CompanionInfo":   companionInfo,
 		//The StateVersion is almost always the Game.Version, except in the
 		//special case described above where lots of fix up moves have been
 		//applied but no player moves yet. State blobs used to include their own
@@ -1788,8 +1998,12 @@ func (s *Server) Start() {
 
 	router.NoRoute(s.genericHandler)
 	router.Use(cors.Middleware(cors.Config{
-		Origins:        s.config.AllowedOrigins,
-		RequestHeaders: "content-type, Origin",
+		Origins: s.config.AllowedOrigins,
+		// Authorization is allowed so the companion-mode join flow can
+		// send a Firebase bearer token from the phone (cross-origin
+		// during dev because the API runs on a different port than the
+		// static server).
+		RequestHeaders: "content-type, Origin, Authorization",
 		ExposedHeaders: "content-type",
 		Methods:        "GET, POST",
 		Credentials:    true,
@@ -1806,6 +2020,15 @@ func (s *Server) Start() {
 
 		mainGroup.POST("auth", s.authCookieHandler)
 
+		// Companion-mode join endpoints. /api/join is unauthenticated (a phone
+		// types in a room code before deciding whether to sign in). Both are
+		// rate-limited per client IP — see spec §6.2 for the threat model.
+		joinGroup := mainGroup.Group("join")
+		joinGroup.Use(rateLimitMiddleware(s.joinRateLimiter))
+		joinGroup.POST("", s.joinHandler)
+		joinGroup.POST("seat", s.joinSeatHandler)
+		joinGroup.GET("seat-options", s.joinSeatOptionsHandler)
+
 		protectedMainGroup := mainGroup.Group("")
 		protectedMainGroup.Use(s.requireLoggedIn)
 		protectedMainGroup.POST("new/game", s.newGameHandler)
@@ -1816,6 +2039,11 @@ func (s *Server) Start() {
 			gameAPIGroup.GET("socket", s.socketHandler)
 			gameAPIGroup.GET("info", s.gameInfoHandler)
 			gameAPIGroup.GET("version/:version", s.gameVersionHandler)
+			// Self-hosted QR code generator for the Table+Hand room code
+			// (P5+). Unauthenticated by design — the QR encodes nothing
+			// secret (just the join URL); rendering it doesn't expose
+			// anything a phone scanning the projector wouldn't already see.
+			gameAPIGroup.GET("qrcode.png", s.qrcodeHandler)
 
 			//The statusHandler is conceptually here, but becuase we want to
 			//optimize it so much we have it congfigured at the top level.
@@ -1826,6 +2054,12 @@ func (s *Server) Start() {
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
 			protectedGameAPIGroup.POST("chat", s.chatSendHandler)
+			// Companion-mode host actions (spec §9). All require a logged-in
+			// user; further gated by isHost() / seated checks in the handlers.
+			protectedGameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
+			protectedGameAPIGroup.POST("claimHost", s.claimHostHandler)
+			protectedGameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
+			protectedGameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
 		}
 
 		// Chat read endpoint — available to any user with game access

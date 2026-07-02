@@ -157,6 +157,97 @@ export class BoardgameComponentAnimator extends LitElement {
     this._infoById = result;
   }
 
+  /**
+   * _resolveAnimationTarget turns an animateBetween argument into a live
+   * element. Elements pass through. String ids are resolved against the
+   * document first, then against the root node (usually a renderer's
+   * shadow root) of every registered component stack — renderers are Lit
+   * elements, so their cards, fake-deck stubs, and edge anchors all live
+   * inside shadow DOM where document.getElementById can't see them. The
+   * shared stack registry is the one thing that already spans those
+   * boundaries, so we borrow its roots.
+   */
+  private _resolveAnimationTarget(target: string | HTMLElement): HTMLElement | null {
+    if (typeof target !== 'string') return target;
+    const direct = document.getElementById(target);
+    if (direct) return direct;
+    const stacks = this.stackElement?._sharedStackList ?? [];
+    const seenRoots = new Set<Node>();
+    for (const stack of stacks) {
+      const root = stack.getRootNode();
+      if (seenRoots.has(root)) continue;
+      seenRoots.add(root);
+      const found = (root as Document | ShadowRoot).getElementById?.(target)
+        ?? (root as Document | ShadowRoot).querySelector?.(`#${CSS.escape(target)}`);
+      if (found) return found as HTMLElement;
+    }
+    return null;
+  }
+
+  /**
+   * animateBetween runs a one-off FLIP animation moving the element with id
+   * `realId` from the on-screen position of `stubId` (or vice versa). Used
+   * by the Table view's fake-deck row to fly cards between the visible
+   * board and the off-screen per-player stub stacks (spec §8.1).
+   *
+   * This is intentionally simpler than the prepare/animateFlip pipeline:
+   * it doesn't walk _sharedStackList and doesn't depend on the diff
+   * machinery — caller supplies both element IDs explicitly. The
+   * synthetic-stub-ID approach (e.g. "stub:p3:c17" for player 3's mirror
+   * of real card "c17") avoids the flat-map collision that would happen
+   * if both elements shared the same component.id.
+   *
+   * Direction: the `realId` element starts at `stubId`'s on-screen
+   * position and flies to its own natural rendered position (i.e. it
+   * visually ARRIVES FROM the stub). To make an element visually depart
+   * toward a location instead, swap the argument order — the departing
+   * element then plays the arrival animation at the other end.
+   *
+   * Returns a Promise that resolves when the animation completes (or
+   * immediately if either element is missing from the DOM).
+   *
+   * Implementation: pure CSS transform animation. We measure both
+   * elements with _calculateOffsets, compute the delta, set
+   * transition:'none', apply the delta as a translate, force layout,
+   * then re-enable transitions and translate back to 0. The CSS
+   * transition handles the actual frame interpolation.
+   */
+  async animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs: number = 500): Promise<void> {
+    const real = this._resolveAnimationTarget(realId);
+    const stub = this._resolveAnimationTarget(stubId);
+    if (!real || !stub) {
+      return;
+    }
+    const realOffsets = this._calculateOffsets(real);
+    const stubOffsets = this._calculateOffsets(stub);
+    const dx = stubOffsets.left - realOffsets.left;
+    const dy = stubOffsets.top - realOffsets.top;
+    if (dx === 0 && dy === 0) {
+      return;
+    }
+    const prevTransition = real.style.transition;
+    const prevTransform = real.style.transform;
+    // First/Invert: jump immediately to the stub position (no animation).
+    real.style.transition = 'none';
+    real.style.transform = `translate(${dx}px, ${dy}px)`;
+    // Force layout to lock in the inverted position before transitioning.
+    real.getBoundingClientRect();
+    // Last/Play: animate back to original transform over durationMs.
+    real.style.transition = `transform ${durationMs}ms ease-out`;
+    real.style.transform = prevTransform || '';
+    await new Promise<void>((resolve) => {
+      const cleanup = () => {
+        real.style.transition = prevTransition;
+        real.removeEventListener('transitionend', cleanup);
+        resolve();
+      };
+      real.addEventListener('transitionend', cleanup);
+      // Defensive timeout in case transitionend doesn't fire (which can
+      // happen if the element is removed mid-animation).
+      setTimeout(cleanup, durationMs + 100);
+    });
+  }
+
   // CRITICAL: Double microtask delay for Polymer databinding completion
   // animateFlip returns a promise that is resolved once all animations that will
   // be started are started.

@@ -18,6 +18,9 @@ export interface GameState {
 }
 
 export interface PlayerState {
+  PlayerInactive: boolean;
+  SeatClosed: boolean;
+  SeatFilled: boolean;
   TokenValue: string;
   TokensToPlaceThisTurn: number;
   UnusedTokens: ExpandedStack<TokensComponentValues>;

@@ -9,6 +9,31 @@ import type { RawGameState, TimerInfo, StateBundle } from './game-state';
 import type { MoveForm } from './api';
 
 /**
+ * Companion-mode bundle from the doGameInfo response. Matches the JSON
+ * shape emitted by server/api/main.go doGameInfo(). Keys are PascalCase
+ * because Go's JSON marshaling uses struct field names.
+ */
+export interface CompanionSeatPresentation {
+  playerIndex: number;
+  displayName: string;
+  avatarSlug: string;
+}
+
+export interface CompanionInfo {
+  CompanionMode: boolean;
+  RoomCode: string;
+  RoomLocked: boolean;
+  SeatPresentations: CompanionSeatPresentation[];
+  Absent: number[];
+  /**
+   * Server-computed: whether THIS session may use host actions
+   * (Owner-or-claimHost-override + table-surface cookie). Clients display
+   * host controls from this rather than re-deriving the rule.
+   */
+  IsHost?: boolean;
+}
+
+/**
  * Root Redux state containing all slices.
  * Game and list are optional as they're lazily loaded.
  */
@@ -162,6 +187,8 @@ export interface GameState {
   visible: boolean;
   /** Whether current user is the game owner */
   isOwner: boolean;
+  /** Companion-mode bundle from the doGameInfo response. Null for solo-mode games. */
+  companionInfo: CompanionInfo | null;
   /** Current RAW game state from server (unexpanded - use selectExpandedGameState selector to get expanded version) */
   currentState: RawGameState | null;
   /** Timer metadata for expansion (maps timer ID to TimerInfo) */

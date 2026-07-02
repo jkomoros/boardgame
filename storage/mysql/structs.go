@@ -10,6 +10,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/seatpresentation"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
@@ -51,27 +52,33 @@ type gameStorageRecord struct {
 }
 
 type extendedGameStorageRecord struct {
-	ID      string `db:",size:16"`
-	Open    bool
-	Visible bool
-	Owner   string `db:",size:128"`
+	ID                    string `db:",size:16"`
+	Open                  bool
+	Visible               bool
+	Owner                 string `db:",size:128"`
+	CompanionRoomCode     string `db:",size:8"` // 4-letter code, possible 5-letter fallback
+	CompanionLocked       bool
+	CompanionHostOverride string `db:",size:128"` // userID that claimed host after Owner went stale
 }
 
 // Used for pulling out of a db with a join
 type combinedGameStorageRecord struct {
-	Name       string
-	ID         string
-	SecretSalt string
-	Version    int64
-	Winners    string
-	Finished   bool
-	NumPlayers int64
-	Agents     string
-	Created    int64
-	Modified   int64
-	Open       bool
-	Visible    bool
-	Owner      string
+	Name                  string
+	ID                    string
+	SecretSalt            string
+	Version               int64
+	Winners               string
+	Finished              bool
+	NumPlayers            int64
+	Agents                string
+	Created               int64
+	Modified              int64
+	Open                  bool
+	Visible               bool
+	Owner                 string
+	CompanionRoomCode     string
+	CompanionLocked       bool
+	CompanionHostOverride string
 }
 
 type stateStorageRecord struct {
@@ -105,6 +112,38 @@ type agentStateStorageRecord struct {
 	GameID      string `db:",size:16"`
 	PlayerIndex int64
 	Blob        string `db:",size:1000000"`
+}
+
+type seatPresentationStorageRecord struct {
+	ID          int64
+	GameID      string `db:",size:16"`
+	PlayerIndex int64
+	DisplayName string `db:",size:128"`
+	AvatarSlug  string `db:",size:256"`
+}
+
+func (r *seatPresentationStorageRecord) ToStorageRecord() *seatpresentation.StorageRecord {
+	if r == nil {
+		return nil
+	}
+	return &seatpresentation.StorageRecord{
+		GameID:      r.GameID,
+		PlayerIndex: boardgame.PlayerIndex(r.PlayerIndex),
+		DisplayName: r.DisplayName,
+		AvatarSlug:  r.AvatarSlug,
+	}
+}
+
+func newSeatPresentationStorageRecord(rec *seatpresentation.StorageRecord) *seatPresentationStorageRecord {
+	if rec == nil {
+		return nil
+	}
+	return &seatPresentationStorageRecord{
+		GameID:      rec.GameID,
+		PlayerIndex: int64(rec.PlayerIndex),
+		DisplayName: rec.DisplayName,
+		AvatarSlug:  rec.AvatarSlug,
+	}
 }
 
 func agentsToString(agents []string) string {
@@ -266,9 +305,12 @@ func (c *combinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 			Modified:   time.Unix(0, c.Modified),
 		},
 		StorageRecord: extendedgame.StorageRecord{
-			Open:    c.Open,
-			Visible: c.Visible,
-			Owner:   c.Owner,
+			Open:                  c.Open,
+			Visible:               c.Visible,
+			Owner:                 c.Owner,
+			CompanionRoomCode:     c.CompanionRoomCode,
+			CompanionLocked:       c.CompanionLocked,
+			CompanionHostOverride: c.CompanionHostOverride,
 		},
 	}
 
@@ -281,19 +323,22 @@ func newCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 	}
 
 	return &combinedGameStorageRecord{
-		Name:       combined.Name,
-		ID:         combined.ID,
-		SecretSalt: combined.SecretSalt,
-		Version:    int64(combined.Version),
-		Winners:    winnersToString(combined.Winners),
-		NumPlayers: int64(combined.NumPlayers),
-		Finished:   combined.Finished,
-		Agents:     agentsToString(combined.Agents),
-		Created:    combined.Created.UnixNano(),
-		Modified:   combined.Modified.UnixNano(),
-		Open:       combined.Open,
-		Visible:    combined.Visible,
-		Owner:      combined.Owner,
+		Name:                  combined.Name,
+		ID:                    combined.ID,
+		SecretSalt:            combined.SecretSalt,
+		Version:               int64(combined.Version),
+		Winners:               winnersToString(combined.Winners),
+		NumPlayers:            int64(combined.NumPlayers),
+		Finished:              combined.Finished,
+		Agents:                agentsToString(combined.Agents),
+		Created:               combined.Created.UnixNano(),
+		Modified:              combined.Modified.UnixNano(),
+		Open:                  combined.Open,
+		Visible:               combined.Visible,
+		Owner:                 combined.Owner,
+		CompanionRoomCode:     combined.CompanionRoomCode,
+		CompanionLocked:       combined.CompanionLocked,
+		CompanionHostOverride: combined.CompanionHostOverride,
 	}
 
 }
@@ -304,9 +349,12 @@ func (e *extendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecor
 	}
 
 	return &extendedgame.StorageRecord{
-		Open:    e.Open,
-		Visible: e.Visible,
-		Owner:   e.Owner,
+		Open:                  e.Open,
+		Visible:               e.Visible,
+		Owner:                 e.Owner,
+		CompanionRoomCode:     e.CompanionRoomCode,
+		CompanionLocked:       e.CompanionLocked,
+		CompanionHostOverride: e.CompanionHostOverride,
 	}
 }
 
@@ -316,9 +364,12 @@ func newExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *extendedGa
 	}
 
 	return &extendedGameStorageRecord{
-		Open:    eGame.Open,
-		Visible: eGame.Visible,
-		Owner:   eGame.Owner,
+		Open:                  eGame.Open,
+		Visible:               eGame.Visible,
+		Owner:                 eGame.Owner,
+		CompanionRoomCode:     eGame.CompanionRoomCode,
+		CompanionLocked:       eGame.CompanionLocked,
+		CompanionHostOverride: eGame.CompanionHostOverride,
 	}
 }
 
