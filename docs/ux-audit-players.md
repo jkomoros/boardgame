@@ -56,61 +56,55 @@ the rest are the ranked backlog.*
 
 ## Backlog (ranked)
 
-### P1 — hurts every game night
+### Fixed in the second pass (2026-07-02)
 
-1. **Game-over is a shrug.** Nothing special happens on any surface when a
-   game finishes. The projector should celebrate (winners by avatar/name);
-   phones should say you won/lost and offer "Play again". Werewolf can't even
-   end (no `CheckGameFinished` — task filed). The "play again with the same
-   room" loop doesn't exist; a new game means new code, everyone re-joins.
-2. **Room code banner never shrinks.** The spec (§12) says big code during
-   lobby, small corner code during play. It's projector-dominating forever.
-   `renderRoomCodeBanner()` should collapse once the game starts (state
-   phase ≠ gathering), with the QR available behind a tap.
-3. **Absent-player UX is untested theater.** Heartbeat → absent badge →
-   host SkipTurn exists and is unit-tested, but the real journey (phone
-   sleeps → projector shows "Waiting for Alice…" → host skips) hasn't been
-   driven end-to-end with real timing. Do a deliberate session; tune the
-   30/60s thresholds to phone-lock reality (screens sleep in ~30s).
-4. **Identity is split-brained where chrome remains.** The app drawer still
-   shows the *account* ("Guest") while the game shows your picked identity
-   ("🐲 SlyFalcon"). Roster (solo view) and chat tabs show "Player N" /
-   account names. Companion identity (seatPresentation) should be the one
-   name everywhere a companion game is on screen.
+- ✅ **Game-over display**: `Finished`/`Winners` plumbed to every renderer;
+  the projector celebrates ("Game over! 🦊 Ada wins!" with avatars), the
+  phone header shows 🎉 You won! / you lost / draw. Verified with a real
+  finished game. Also: the connection-lost dim no longer engages on
+  finished games (the socket closing at game end is expected).
+- ✅ **Room code banner shrinks** to a corner "Room XXXX" badge once every
+  seat is claimed (the moment the code stops mattering). The old
+  version-based check read a field that doesn't exist and never fired.
+- ✅ **Absent-player journey driven with real timing** — and it found a
+  hole: heartbeats were only tracked after a phone connected, so a
+  no-show who claimed a seat and never arrived looked present forever
+  (the exact case SkipTurn exists for). Seat claims now seed the absence
+  clock; verified live: claim → Absent after ~35s → host SkipTurn
+  advances the game.
+- ✅ **Projector/phone fullscreen**: the app drawer collapses to a
+  hamburger overlay at every width on companion surfaces.
+- ✅ **Join-flow dead ends**: "Room is full" now offers "Watch this game
+  instead" (Table view); the validated code survives a mid-flow reload
+  via sessionStorage.
+- ✅ **Seat picker shows faces** (avatar + name on filled slots, "open"
+  on empty ones).
+- ✅ **Avatar name matches glyph** ("🦊 CleverFox", never "🐯 QuickWhale")
+  via a glyph-aligned noun list; free-form nouns remain for Customize.
+- ✅ **Blackjack table shows each player's public cards + score**, with a
+  gold highlight on the current player.
+- ✅ **Your-turn haptic**: the hand base buzzes the phone
+  (`navigator.vibrate`, progressive enhancement) when it becomes your turn.
 
-### P2 — polish that earns the "mobile UI" name
+### Remaining backlog
 
-5. **Projector fullscreen mode.** The left app drawer (sign-in, admin
-   toggle, menu) is still visible around the table view on desktop. A
-   "present" affordance (fullscreen + hide drawer) — or hiding app chrome
-   whenever surface=table — would make the projector feel intentional.
-6. **Phone top bar.** The hamburger + "Boardgame App" banner survive on the
-   hand. Fine, but a slimmer game-branded bar (game name + room code) would
-   reclaim 56px on every phone.
-7. **Join-flow dead ends.** "Room is full" leaves you staring at the avatar
-   step with a toast; there's no "watch instead?" or "notify me" path.
-   Mid-flow reload falls back to the code step (good) but forgets the code.
-8. **Seat picker shows no faces.** Filled seats render as generic filled
-   slots; they should show who's sitting there (avatar + name are already in
-   the payload).
-9. **Avatar name/emoji mismatch.** "QuickWhale" paired with 🐯. Either pair
-   the noun list to the glyph list or leans into the absurdity deliberately.
-10. **Hide-my-hand doesn't survive reload** (per-tab state). Arguably
-    correct (reload = you're holding the phone), but decide on purpose.
-
-### P3 — nice-to-haves observed
-
-11. Blackjack table shows no visible cards (MVP renderer renders only deck +
-    avatars) — players' public cards belong on the projector.
-12. Chat is hidden on companion surfaces (right call for phones at a shared
-    table) — but observers on the solo view can still chat; decide whether
-    table-mode games want any chat at all.
-13. No sound/haptics on "your turn" — a phone buzz is the natural cue when
-    your eyes are on the projector. (Spec defers cross-surface audio; a
-    local vibration is cheap.)
-14. The `?display=` dev override and per-game surface cookies make one
-    browser profile confusing when testing (documented in
-    utils/companion-surface.ts, but worth a dev-tools note).
+1. **Play-again loop.** A finished game is still a dead end — same-room
+   rematch (new game, same seats/identities) doesn't exist. New game =
+   new code, everyone re-joins.
+2. **Werewolf can't end** — no `CheckGameFinished` (task filed); the
+   game-over machinery is ready for it.
+3. **Identity unification in solo-view chrome.** On companion surfaces the
+   account name is now hidden with the drawer, but the solo view of a
+   companion game still shows account names / "Player N" in roster and
+   chat tabs.
+4. **Phone top bar** could become game-branded (name + room code) and
+   reclaim 56px; hamburger + "Boardgame App" survive today.
+5. **Hide-my-hand is per-tab** and doesn't survive reload — decided:
+   acceptable (a reload means you're holding the phone).
+6. Chat on table-mode games: observers can still chat from the solo view;
+   decide whether that's wanted.
+7. Absent thresholds (30s) worked well in testing; revisit against real
+   phone-lock behavior at a live game night.
 
 ## J5/J6 notes (verified, no action)
 

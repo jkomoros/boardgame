@@ -535,6 +535,17 @@ func (v *versionNotifier) broadcastModeChanged(gameID, newMode string) {
 	v.modeChanged <- modeChangedRecord{gameID: gameID, newMode: newMode}
 }
 
+// seedHeartbeat starts the absence clock for a player who has just claimed
+// a seat, by recording a synthetic heartbeat at the claim instant. Without
+// this, a player who claims a seat but never connects a socket has NO
+// lastHeartbeat entry and is therefore never scanned into the absent set —
+// i.e. the no-show player (the exact case host SkipTurn exists for) looks
+// permanently present. Safe from any goroutine: routes through the same
+// channel as real heartbeats, so workLoop stays the sole map owner.
+func (v *versionNotifier) seedHeartbeat(gameID string, playerIndex boardgame.PlayerIndex) {
+	v.heartbeat <- heartbeatRecord{gameID: gameID, playerIndex: playerIndex, ts: time.Now()}
+}
+
 // doBroadcastModeChanged is called from workLoop only. Sends a
 // "mode-changed" socket message to every socket in the game. Client-side
 // handler responds by reloading the page.

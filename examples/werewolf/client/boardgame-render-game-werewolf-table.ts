@@ -122,9 +122,14 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
     // observer-sanitized state, where every hidden Role reads as the
     // enum's zero value ("Villager") — so "count the alive werewolves"
     // always returns 0 and the old banner declared "Villagers Win!" from
-    // the very first Day. Game-over must come from the server (delegate
-    // CheckGameFinished + a public winning-team field), which werewolf
-    // does not implement yet.
+    // the very first Day. Game-over comes from the server via the plumbed
+    // gameFinished/gameWinners (renderGameOverBanner below) — though
+    // werewolf's delegate doesn't implement CheckGameFinished yet.
+    const activePlayers = players.filter(p => !p.PlayerInactive);
+    const nameFor = (i: number): string => {
+      const seat = this.seatPresentations.find((s) => s.playerIndex === i);
+      return seat ? seat.displayName : `Player ${i}`;
+    };
 
     // Determine phase CSS class
     let phaseClass = 'phase-gathering';
@@ -134,6 +139,7 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
     return html`
       <h1>Werewolf</h1>
       ${this.renderRoomCodeBanner()}
+      ${this.renderGameOverBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
 
@@ -141,22 +147,22 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
         ${phase === 'Gathering' ? 'Waiting for players...' : `${phase} - Round ${round}`}
       </div>
 
-      ${phase === 'Night' && !gameOver ? html`
+      ${phase === 'Night' && !this.gameFinished ? html`
         <div class="night-message">Night time -- werewolves are choosing...</div>
       ` : ''}
 
       <div class="players-circle">
-        ${activePlayers.map((player, index) => {
+        ${activePlayers.map((player) => {
           const realIndex = players.indexOf(player);
           const hasVoted = player.Vote >= 0;
           return html`
             <div class="player-tile ${player.Eliminated ? 'eliminated' : ''}">
-              <div class="name">Player ${realIndex}</div>
+              <div class="name">${nameFor(realIndex)}</div>
               ${player.Eliminated
                 ? html`<div class="status">ELIMINATED</div>`
                 : html`
                   ${phase === 'Day' && hasVoted
-                    ? html`<div class="vote-info">Voted for P${player.Vote}</div>`
+                    ? html`<div class="vote-info">Voted for ${nameFor(player.Vote)}</div>`
                     : ''}
                   ${phase === 'Day' && !hasVoted && !player.Eliminated
                     ? html`<div class="vote-info">Thinking...</div>`

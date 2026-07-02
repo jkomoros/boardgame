@@ -20,8 +20,11 @@ import {
   selectErrorFriendlyMessage,
   selectErrorTitle,
   selectAdminAllowed,
-  selectAdmin
+  selectAdmin,
+  selectGameRoute
 } from '../selectors.js';
+
+import { surfaceForGame } from '../utils/companion-surface.js';
 
 import {
   navigated,
@@ -261,6 +264,23 @@ export class BoardgameApp extends connect(store)(LitElement) {
         display: none;
       }
     }
+
+    /* Companion surfaces (projector / phone hand): the game owns the
+       screen, so the drawer is an overlay at EVERY width — hidden until
+       the hamburger opens it. Overrides the desktop rules above. */
+    :host([companion-surface]) .drawer {
+      position: fixed;
+      transform: translateX(-100%);
+    }
+    :host([companion-surface]) .drawer.open {
+      transform: translateX(0);
+    }
+    :host([companion-surface]) .drawer-backdrop {
+      display: block !important;
+    }
+    :host([companion-surface]) .menu-button {
+      display: inline-flex;
+    }
   `;
 
   @property({ type: String })
@@ -302,6 +322,12 @@ export class BoardgameApp extends connect(store)(LitElement) {
     this._errorFriendlyMessage = selectErrorFriendlyMessage(state);
     this._adminAllowed = selectAdminAllowed(state);
     this._admin = selectAdmin(state);
+    // On companion surfaces (projector / phone) the game owns the screen:
+    // demote the persistent desktop drawer to a hamburger-opened overlay at
+    // every width. Reflected as a host attribute so CSS can key off it.
+    const gameRoute = this._page === 'game' ? selectGameRoute(state) : null;
+    const companion = !!(gameRoute && surfaceForGame(gameRoute.id));
+    this.toggleAttribute('companion-surface', companion);
   }
 
   private _handleAdminChanged(e: Event): void {

@@ -4,8 +4,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import {
   PRIMARIES,
-  randomAvatarSlug,
-  randomDisplayName,
+  randomAvatarIdentity,
   glyphForSlug,
 } from './companion-avatar-catalog.js';
 import { fauxSignInAsGuest } from '../actions/user.js';
@@ -224,6 +223,13 @@ export class BoardgameJoinView extends LitElement {
       if (/^[A-Za-z]{4,5}$/.test(codeParam)) {
         this._submitCode();
       }
+    } else {
+      // No QR param: prefill (but don't auto-submit) the last code this
+      // tab validated, so a mid-flow reload is one tap to recover.
+      try {
+        const last = sessionStorage.getItem('join-last-code');
+        if (last) this._codeInput = last;
+      } catch { /* private mode */ }
     }
 
     // Firebase anon (and Google) ID tokens are JWTs with a 1-hour TTL.
@@ -259,8 +265,9 @@ export class BoardgameJoinView extends LitElement {
   }
 
   private _reroll() {
-    this._displayName = randomDisplayName();
-    this._avatarSlug = randomAvatarSlug();
+    const identity = randomAvatarIdentity();
+    this._displayName = identity.name;
+    this._avatarSlug = identity.slug;
   }
 
   private async _submitCode() {
@@ -288,6 +295,10 @@ export class BoardgameJoinView extends LitElement {
         return;
       }
       this._joinResponse = await res.json();
+      // Remember the validated code for this tab so a mid-flow reload
+      // (which loses _joinResponse and falls back to the code step)
+      // doesn't make the player squint at the projector again.
+      try { sessionStorage.setItem('join-last-code', code); } catch { /* private mode */ }
       this._setStep('identity');
     } catch (e) {
       this._error = 'Network error: ' + (e instanceof Error ? e.message : String(e));
@@ -414,10 +425,26 @@ export class BoardgameJoinView extends LitElement {
     this._submitSeat();
   }
 
+  // "Room is full" isn't a dead end: the game is real and public state is
+  // watchable — offer the Table view as a spectator path.
+  private get _roomFull(): boolean {
+    return /room is full/i.test(this._error);
+  }
+
+  private _watchInstead() {
+    if (!this._joinResponse) return;
+    window.location.href = `/game/${this._joinResponse.gameName}/${this._joinResponse.gameID}?display=table`;
+  }
+
   override render() {
     return html`
       <h2>Join a game</h2>
-      ${this._error ? html`<div class="error">${this._error}</div>` : ''}
+      ${this._error ? html`
+        <div class="error">${this._error}</div>
+        ${this._roomFull && this._joinResponse ? html`
+          <button @click=${this._watchInstead}>Watch this game instead</button>
+        ` : ''}
+      ` : ''}
 
       <div class="step ${this._step === 'code' ? '' : 'hidden'}">
         <p>Enter the 4-letter code shown on the shared screen.</p>
@@ -492,7 +519,9 @@ export class BoardgameJoinView extends LitElement {
               <div class="slot ${slot.filled ? 'filled' : ''}"
                    @click=${() => { if (!slot.filled) this._pickSeat(slot.playerIndex); }}>
                 <div>${slot.label}</div>
-                ${slot.filled ? html`<small>${slot.displayName || 'Taken'}</small>` : ''}
+                ${slot.filled ? html`
+                  <small>${slot.avatarSlug ? glyphForSlug(slot.avatarSlug) + ' ' : ''}${slot.displayName || 'Taken'}</small>
+                ` : html`<small class="open-label">open</small>`}
               </div>
             `)}
           </div>

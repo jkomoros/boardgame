@@ -1,7 +1,7 @@
 import '@material/web/button/filled-button.js';
-import '../../../server/static/src/components/boardgame-die.js';
-import { BoardgameBaseGameRenderer } from '../../../server/static/src/components/boardgame-base-game-renderer.js';
-import '../../../server/static/src/components/boardgame-fading-text.js';
+import '../../src/components/boardgame-die.js';
+import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import '../../src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';

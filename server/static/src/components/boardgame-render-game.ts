@@ -89,6 +89,18 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Boolean })
   isOwner = false;
 
+  // gameFinished/gameWinners mirror the game record's Finished/Winners so
+  // renderers can show an ending (winner banner, you-won/lost) without
+  // bespoke plumbing. Winners are player indexes.
+  @property({ type: Boolean })
+  gameFinished = false;
+
+  @property({ type: Array })
+  gameWinners: number[] = [];
+
+  @property({ type: Number })
+  gameVersion = 0;
+
   @property({ type: Object, attribute: false })
   renderer: HTMLElement | null = null;
 
@@ -201,6 +213,10 @@ class BoardgameRenderGame extends LitElement {
       this._isOwnerChanged(this.isOwner);
     }
 
+    if (changedProperties.has('gameFinished') || changedProperties.has('gameWinners') || changedProperties.has('gameVersion')) {
+      this._applyGameOutcomeToRenderer();
+    }
+
     if (changedProperties.has('renderer')) {
       this.dispatchEvent(new CustomEvent('renderer-changed', {
         composed: true, bubbles: true, detail: { value: this.renderer }
@@ -241,6 +257,15 @@ class BoardgameRenderGame extends LitElement {
     r.roomLocked = info?.RoomLocked || false;
     r.companionMode = info?.CompanionMode || false;
     this._recomputeIsHost();
+    this._applyGameOutcomeToRenderer();
+  }
+
+  private _applyGameOutcomeToRenderer() {
+    if (!this.renderer) return;
+    const r = this.renderer as any;
+    r.gameFinished = this.gameFinished;
+    r.gameWinners = this.gameWinners;
+    r.gameVersion = this.gameVersion;
   }
 
   private _recomputeIsHost() {
@@ -530,7 +555,10 @@ class BoardgameRenderGame extends LitElement {
         <!-- Dynamic renderer will be inserted here -->
       </div>
 
-      <div id="loading" ?active="${!this.socketActive}">
+      <!-- Suppress the connection-lost dim once the game is finished: the
+           socket closing after game end is expected, not an outage, and
+           dimming the final scoreboard reads as a broken page. -->
+      <div id="loading" ?active="${!this.socketActive && !this.gameFinished}">
         <div>
           <div class="spinner"></div>
         </div>

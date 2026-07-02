@@ -281,6 +281,11 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	// refetching gameInfo, which re-renders the avatar strip and roster.
 	s.notifier.broadcastPresenceChange(req.GameID)
 
+	// Start the absence clock: if this phone never actually connects, the
+	// heartbeat scanner flags the seat absent 30s from now instead of
+	// treating the no-show as permanently present.
+	s.notifier.seedHeartbeat(req.GameID, slot)
+
 	c.JSON(http.StatusOK, joinSeatResponse{
 		GameID:      req.GameID,
 		GameName:    combined.Name,

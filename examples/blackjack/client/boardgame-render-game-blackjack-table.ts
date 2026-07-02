@@ -41,24 +41,72 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
         text-align: center;
         margin: 32px auto;
       }
+      .seats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        justify-content: center;
+        margin: 24px 0;
+      }
+      .seat {
+        text-align: center;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 2px solid transparent;
+      }
+      .seat.current {
+        border-color: gold;
+      }
+      .seat-name {
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .seat-cards {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
     `,
   ];
 
   override render() {
+    const players = this.state?.Players ?? [];
+    const nameFor = (i: number): string => {
+      const seat = this.seatPresentations.find((s) => s.playerIndex === i);
+      return seat ? seat.displayName : `Player ${i}`;
+    };
     return html`
       <h1>Blackjack — Table</h1>
       ${this.renderRoomCodeBanner()}
+      ${this.renderGameOverBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
+      <boardgame-deck-defaults>
+        <template deck="cards">
+          <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
+        </template>
+      </boardgame-deck-defaults>
       <div class="draw" id="deal-source">
-        <boardgame-deck-defaults>
-          <template deck="cards">
-            <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-          </template>
-        </boardgame-deck-defaults>
         ${this.state?.Game?.DrawStack
           ? html`<boardgame-component-stack .stack=${(this.state.Game as any).DrawStack}></boardgame-component-stack>`
           : html`<small>waiting for state…</small>`}
+      </div>
+      <div class="seats">
+        ${players.map((p, i) => html`
+          <div class="seat ${i === this.currentPlayerIndex ? 'current' : ''}">
+            <div class="seat-name">${nameFor(i)} · ${(p as any).Score ?? 0} pts</div>
+            <div class="seat-cards">
+              ${(p as any).VisibleHand
+                ? html`<boardgame-component-stack .stack=${(p as any).VisibleHand} layout="fan" messy></boardgame-component-stack>`
+                : ''}
+              ${(p as any).HiddenHand
+                ? html`<boardgame-component-stack .stack=${(p as any).HiddenHand} layout="fan" messy></boardgame-component-stack>`
+                : ''}
+            </div>
+            ${(p as any).Stood ? html`<small>Standing</small>` : ''}
+            ${(p as any).Eliminated ? html`<small>Busted!</small>` : ''}
+          </div>
+        `)}
       </div>
       ${this.renderFakeDeckRow()}
     `;

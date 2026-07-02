@@ -326,6 +326,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .gameId=${this._gameRoute ? this._gameRoute.id : ''}
           .companionInfo=${this._companionInfo}
           .isOwner=${this._isOwner}
+          .gameFinished=${this.game ? this.game.Finished : false}
+          .gameWinners=${this.game ? this.game.Winners || [] : []}
+          .gameVersion=${this.game ? this.game.Version || 0 : 0}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .socketActive=${this.socketActive}

@@ -49,3 +49,27 @@ export function glyphForSlug(slug: string): string {
 export function randomDisplayName(): string {
   return randomFromArray(ADJECTIVES) + randomFromArray(NOUNS);
 }
+
+// The animal word for each primary glyph, index-aligned with PRIMARIES,
+// so a rolled identity reads coherently ("🦊 CleverFox", never
+// "🐯 QuickWhale"). Kept separate from NOUNS: that list is free
+// vocabulary for the customize step; this one is the glyph's true name.
+const PRIMARY_NOUNS = [
+  'Fox', 'Bear', 'Lion', 'Tiger', 'Frog', 'Octopus', 'Unicorn', 'Whale',
+  'Owl', 'Penguin', 'Dragon', 'Butterfly',
+  'Wolf', 'Eagle', 'Shark', 'Dolphin', 'Lizard', 'Turtle', 'Flamingo', 'Bee',
+  'Ladybug', 'Bat', 'Fish', 'Parrot',
+];
+
+/**
+ * Roll a matched avatar + name pair: the name's animal always matches the
+ * glyph. Preferred over calling randomAvatarSlug() + randomDisplayName()
+ * separately, which pairs any glyph with any animal.
+ */
+export function randomAvatarIdentity(): { slug: string; name: string } {
+  const i = Math.floor(Math.random() * PRIMARIES.length);
+  return {
+    slug: PRIMARIES[i],
+    name: randomFromArray(ADJECTIVES) + PRIMARY_NOUNS[i],
+  };
+}

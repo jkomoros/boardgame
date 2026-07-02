@@ -5,10 +5,10 @@ import type { FullGameState } from '../types/boardgame-types.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 
 export class BoardgameBaseGameRenderer<
-  GS extends Record<string, unknown> = Record<string, unknown>,
-  PS extends Record<string, unknown> = Record<string, unknown>,
+  GS extends object = Record<string, unknown>,
+  PS extends object = Record<string, unknown>,
   MN extends string = string,
-  MA extends Record<string, Record<string, unknown>> = Record<string, Record<string, unknown>>
+  MA extends Record<string, object> = Record<string, Record<string, unknown>>
 > extends LitElement {
   @property({ type: Object })
   state: FullGameState<GS, PS> | null = null;
@@ -33,6 +33,25 @@ export class BoardgameBaseGameRenderer<
    */
   @property({ type: Object })
   moveLegality: Record<string, MoveLegalityInfo> = {};
+
+  /**
+   * Mirrors the game record's Finished/Winners (plumbed through
+   * boardgame-render-game). Winners are player indexes; empty array with
+   * gameFinished=true means a draw / no-winner ending.
+   */
+  @property({ type: Boolean })
+  gameFinished = false;
+
+  @property({ type: Array })
+  gameWinners: number[] = [];
+
+  /**
+   * The game record's Version (count of applied moves). 0 = nothing has
+   * happened yet, i.e. the pre-game lobby. Renderers use this to switch
+   * lobby chrome (giant room code) to in-game chrome (corner badge).
+   */
+  @property({ type: Number })
+  gameVersion = 0;
 
   get isCurrentPlayer(): boolean {
     // AdminPlayerIndex (-2): admin can always act

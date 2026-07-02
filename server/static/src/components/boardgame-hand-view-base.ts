@@ -1,4 +1,4 @@
-import { html, css, TemplateResult } from 'lit';
+import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
@@ -21,10 +21,10 @@ import { glyphForSlug } from './companion-avatar-catalog.js';
  * animations is also wired here; V1 ships the prop surface only.
  */
 export class BoardgameHandViewBase<
-  GS extends Record<string, unknown> = Record<string, unknown>,
-  PS extends Record<string, unknown> = Record<string, unknown>,
+  GS extends object = Record<string, unknown>,
+  PS extends object = Record<string, unknown>,
   MN extends string = string,
-  MA extends Record<string, Record<string, unknown>> = Record<string, Record<string, unknown>>
+  MA extends Record<string, object> = Record<string, Record<string, unknown>>
 > extends BoardgameBaseGameRenderer<GS, PS, MN, MA> {
 
   /**
@@ -91,8 +91,19 @@ export class BoardgameHandViewBase<
   // what's already there without animating it.
   private _prevOwnCardIds: Set<string> | null = null;
 
+  // Buzz the phone when it becomes this player's turn — the player's eyes
+  // are usually on the projector, so a local haptic is the natural cue.
+  // navigator.vibrate is a no-op-safe progressive enhancement (undefined on
+  // iOS Safari and desktop; short-circuits silently).
+  private _wasMyTurn = false;
+
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
+    const myTurn = this.isCurrentPlayer && !this.gameFinished;
+    if (myTurn && !this._wasMyTurn) {
+      navigator.vibrate?.(200);
+    }
+    this._wasMyTurn = myTurn;
     if (!this.autoFlyIncoming) return;
     if (!changedProperties.has('state')) return;
     const ids = this._collectOwnCardIds();
@@ -127,6 +138,25 @@ export class BoardgameHandViewBase<
   }
 
   /**
+   * The game-specific hand area. Override this (instead of render()) to
+   * get the standard Hand chrome for free: the default render() composes
+   * top-edge anchor → hand header (identity + turn status) → YOUR HAND.
+   * Games that want a different arrangement override render() itself and
+   * call the helpers à la carte.
+   */
+  protected renderHand(): TemplateResult {
+    return html``;
+  }
+
+  override render() {
+    return html`
+      ${this.renderTopEdgeAnchor()}
+      ${this.renderHandHeader()}
+      ${this.renderHand()}
+    `;
+  }
+
+  /**
    * Opt-in helper: renders a one-line header for the Hand view — who this
    * phone is playing as (avatar + the display name picked in the join
    * flow) and whose turn it is ("Your turn" / "Waiting for <name>…").
@@ -135,13 +165,25 @@ export class BoardgameHandViewBase<
    */
   protected renderHandHeader(): TemplateResult {
     const me = this.seatPresentations.find((s) => s.playerIndex === this.viewingAs);
-    const isMyTurn = this.isCurrentPlayer;
-    const current = this.seatPresentations.find((s) => s.playerIndex === this.currentPlayerIndex);
-    const turnText = isMyTurn
-      ? 'Your turn'
-      : current
-        ? `Waiting for ${current.displayName}…`
-        : 'Waiting…';
+    let statusText: string;
+    let statusClass = '';
+    if (this.gameFinished) {
+      // The verdict replaces the turn status once the game ends.
+      if (this.gameWinners.includes(this.viewingAs)) {
+        statusText = '🎉 You won!';
+        statusClass = 'my-turn';
+      } else if (this.gameWinners.length > 0) {
+        statusText = 'Game over — you lost.';
+      } else {
+        statusText = "Game over — it's a draw.";
+      }
+    } else if (this.isCurrentPlayer) {
+      statusText = 'Your turn';
+      statusClass = 'my-turn';
+    } else {
+      const current = this.seatPresentations.find((s) => s.playerIndex === this.currentPlayerIndex);
+      statusText = current ? `Waiting for ${current.displayName}…` : 'Waiting…';
+    }
     return html`
       <div class="hand-header">
         ${me ? html`
@@ -150,7 +192,7 @@ export class BoardgameHandViewBase<
             ${me.displayName}
           </span>
         ` : ''}
-        <span class="hand-turn ${isMyTurn ? 'my-turn' : ''}">${turnText}</span>
+        <span class="hand-turn ${statusClass}">${statusText}</span>
       </div>
     `;
   }
@@ -172,7 +214,7 @@ export class BoardgameHandViewBase<
     return html`<div class="hand-top-edge-anchor" id="hand-top-edge"></div>`;
   }
 
-  static styles = css`
+  static styles: CSSResultGroup = css`
     .hand-top-edge-anchor {
       position: fixed;
       top: 0;

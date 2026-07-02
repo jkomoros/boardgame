@@ -263,7 +263,14 @@ One typed source (`ClientConfig.TableHandSupportedGames`), two consumers (browse
 
 ### 5.4 Dev hot-add
 
-In dev mode, when a developer adds new `-table.ts`/`-hand.ts` files for a game, the `boardgame-util serve` watcher re-runs the walk and writes a fresh `client_config.js`. Vite's HMR picks up the new config and refreshes the form. No server restart required.
+**Status: not implemented in V1 — restart required.** The capability walk
+runs once at `boardgame-util serve` startup, and the resulting list is
+baked into both `client_config.js` and the generated api binary. Adding
+`-table.ts`/`-hand.ts` files mid-serve therefore requires restarting
+`serve`. (The originally-specced design — a watcher that re-runs the walk
+and lets Vite HMR refresh the form — remains a V2 candidate; it also needs
+a story for the api binary's baked-in `supportsTableHandMode` list.) The
+authoring guide (docs/companion-mode-authoring.md) documents the restart.
 
 ## 6. Identity & Pairing
 

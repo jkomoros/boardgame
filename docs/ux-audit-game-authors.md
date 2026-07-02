@@ -26,6 +26,16 @@ walking the "add companion mode to an existing game" journey step by step.
 
 ## The five traps (ranked by how fast a new author hits them)
 
+*Update 2026-07-02: traps 1, 2, 4, and 5 below are addressed — an
+authoring guide now exists at docs/companion-mode-authoring.md; pig's
+imports are fixed; the generic constraints were relaxed (`extends object`,
+`CSSResultGroup` styles, `Record<string, object>` move-args) so all
+in-repo companion renderers type-check with ZERO errors and honest typed
+code needs no casts; and spec §5.4 now truthfully documents the restart
+requirement. Wiring game-src into a build-time type-check step remains
+open (task filed). Trap 3 (zero-value masquerade) is documented in the
+authoring guide and its cautionary tale is fixed in werewolf.*
+
 1. **There is no authoring guide.** The only documentation is a design spec
    in `docs/superpowers/specs/` (spec-speak, includes unshipped features) and
    base-class doc comments. The journey "I have a game, I want companion
@@ -79,13 +89,11 @@ walking the "add companion mode to an existing game" journey step by step.
 
 ## Structural suggestions (future work)
 
-1. **Template-method default for the table.** Every table view calls the
-   same four helpers in the same order. A base `render()` that composes
-   `renderRoomCodeBanner() + renderAvatarStrip() + renderHostControls() +
-   this.renderBoard() + renderFakeDeckRow()` around one abstract
-   `renderBoard()` would make a minimal table ~10 lines, with the helpers
-   becoming the override path. Same idea for the hand
-   (`renderHandHeader() + renderHand() + anchor`).
+1. ✅ **Template-method default for the table — DONE.** Both bases now
+   ship a default `render()` composed of the standard chrome around an
+   overridable `renderBoard()` / `renderHand()`. A minimal table or hand
+   view is now ~10 lines (see the skeletons in the authoring guide).
+   Existing games that override `render()` are unaffected.
 2. **A `boardgame-util stub companion <game>` generator.** The codegen
    machinery exists (`lib/stub`); emitting the two files with correct
    imports, typed generics, and TODO markers would erase traps #1 and #2 in
@@ -95,10 +103,10 @@ walking the "add companion mode to an existing game" journey step by step.
    could also warn when a companion game's playerState has no
    `sanitize:` tags at all (a hand view with zero private state is usually a
    mistake).
-4. **Game-over surface contract.** Winners/Finished aren't delivered to
-   renderers today. Plumb `gameFinished` + `gameWinners` through
-   boardgame-render-game to the bases so every game can render an ending
-   without bespoke wiring (pairs with the player-audit P1 item).
+4. ✅ **Game-over surface contract — DONE.** `gameFinished`, `gameWinners`,
+   and `gameVersion` are plumbed to every renderer;
+   `renderGameOverBanner()` (table) and the hand header verdict consume
+   them. Verified with a real finished game.
 5. **Second exemplar beyond cards.** Blackjack (cards) and werewolf
    (hidden roles) are both "private hand" shaped. The first author of a
    board-centric game (memory, checkers) will discover whether the hand
@@ -108,6 +116,7 @@ walking the "add companion mode to an existing game" journey step by step.
 ## Verification status
 
 Everything asserted above was exercised against the running dev server
-(`boardgame-util serve --offline-dev-mode`, GOPATH set) except: MySQL
-storage (no server in the dev environment; migrations unexercised), and
-absent-player SkipTurn end-to-end timing (unit-tested only).
+(`boardgame-util serve --offline-dev-mode`, GOPATH set) except MySQL
+storage (no server in the dev environment; migrations unexercised).
+Absent-player SkipTurn was subsequently driven end-to-end with real
+timing (no-show claim → absent at ~35s → host SkipTurn advances play).

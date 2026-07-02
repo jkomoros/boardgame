@@ -1,4 +1,4 @@
-import { html, css, TemplateResult } from 'lit';
+import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
@@ -42,10 +42,10 @@ export interface SeatPresentation {
  * client. Phase 4 fills in renderFakeDeckRow for cross-screen animations.
  */
 export class BoardgameTableViewBase<
-  GS extends Record<string, unknown> = Record<string, unknown>,
-  PS extends Record<string, unknown> = Record<string, unknown>,
+  GS extends object = Record<string, unknown>,
+  PS extends object = Record<string, unknown>,
   MN extends string = string,
-  MA extends Record<string, Record<string, unknown>> = Record<string, Record<string, unknown>>
+  MA extends Record<string, object> = Record<string, Record<string, unknown>>
 > extends BoardgameBaseGameRenderer<GS, PS, MN, MA> {
 
   /**
@@ -255,8 +255,15 @@ export class BoardgameTableViewBase<
    */
   protected renderRoomCodeBanner(): TemplateResult {
     if (!this.roomCode) return html``;
-    const stateVersion = (this.state as any)?.Game?.Version ?? 0;
-    if (stateVersion > 0) {
+    // Shrink to the corner badge once every seat is claimed — that's the
+    // moment the code stops mattering to the room. (The old check read
+    // state.Game.Version, which doesn't exist — Version lives on the game
+    // record — so the giant lobby banner never shrank. And a version-based
+    // check would be wrong anyway: seat claims bump the version while the
+    // lobby is still gathering.)
+    const totalSeats = this.state?.Players?.length ?? 0;
+    const roomFull = totalSeats > 0 && this.seatPresentations.length >= totalSeats;
+    if (roomFull) {
       // Game has started — render a small persistent badge in the corner
       // rather than the giant pre-game banner.
       return html`
@@ -348,6 +355,56 @@ export class BoardgameTableViewBase<
   }
 
   /**
+   * The game-specific board area. Override this (instead of render()) to
+   * get the standard Table chrome for free: the default render() composes
+   * room-code banner → game-over banner → avatar strip → host controls →
+   * YOUR BOARD → fake-deck row. Games that want a different arrangement
+   * override render() itself and call the helpers à la carte — every
+   * existing game does that today, so this default is purely additive.
+   */
+  protected renderBoard(): TemplateResult {
+    return html``;
+  }
+
+  override render() {
+    return html`
+      ${this.renderRoomCodeBanner()}
+      ${this.renderGameOverBanner()}
+      ${this.renderAvatarStrip()}
+      ${this.renderHostControls()}
+      ${this.renderBoard()}
+      ${this.renderFakeDeckRow()}
+    `;
+  }
+
+  /**
+   * Opt-in helper: renders the game-over celebration when the game is
+   * finished — winners by avatar + display name on the shared screen.
+   * Empty until gameFinished; renders a draw message when Winners is
+   * empty. Call it near the top of render(); it's the projector's payoff
+   * moment, so it's intentionally loud.
+   */
+  protected renderGameOverBanner(): TemplateResult {
+    if (!this.gameFinished) return html``;
+    const winners = this.gameWinners
+      .map((i) => this.seatPresentations.find((s) => s.playerIndex === i))
+      .filter((s): s is SeatPresentation => !!s);
+    return html`
+      <div class="game-over-banner">
+        <div class="game-over-title">Game over!</div>
+        ${winners.length > 0 ? html`
+          <div class="game-over-winners">
+            ${winners.map((w) => html`
+              <span class="game-over-winner">${glyphForSlug(w.avatarSlug)} ${w.displayName}</span>
+            `)}
+            <span>${winners.length === 1 ? 'wins!' : 'win!'}</span>
+          </div>
+        ` : html`<div class="game-over-winners">It's a draw.</div>`}
+      </div>
+    `;
+  }
+
+  /**
    * Opt-in helper: renders the fake-deck row along the bottom edge of the
    * Table view (spec §8). One stub stack per seated player, left-to-right
    * in seat order. Each stub element has id "stub:p<N>:hand" — a
@@ -434,13 +491,38 @@ export class BoardgameTableViewBase<
     }
   }
 
-  static styles = css`
+  static styles: CSSResultGroup = css`
     .avatar-strip {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
       padding: 12px;
       justify-content: center;
+    }
+    .game-over-banner {
+      text-align: center;
+      margin: 24px auto;
+      padding: 24px;
+      max-width: 640px;
+      border-radius: 16px;
+      background: rgba(255, 215, 0, 0.15);
+      border: 2px solid gold;
+    }
+    .game-over-title {
+      font-size: 40px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .game-over-winners {
+      font-size: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+    }
+    .game-over-winner {
+      font-weight: 700;
     }
     .seat-tile {
       min-width: 80px;

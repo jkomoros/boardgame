@@ -1,6 +1,6 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
-import '../../../server/static/src/components/boardgame-status-text.js';
+import '../../src/components/boardgame-status-text.js';
 
 class BoardgameRenderPlayerInfoPig extends LitElement {
   @property({ type: Object })
