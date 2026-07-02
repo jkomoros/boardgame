@@ -4,6 +4,7 @@ import './boardgame-component-animator.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
+import { surfaceForGame } from '../utils/companion-surface.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -244,10 +245,9 @@ class BoardgameRenderGame extends LitElement {
 
   private _recomputeIsHost() {
     if (!this.renderer) return;
-    // isHost: server-confirmed isOwner AND surface cookie indicates we're
-    // on the table surface. The surface cookie lookup duplicates the
-    // loader logic in _readSurfaceCookie but it's cheap to re-read.
-    const surface = this._readSurfaceCookie(this.gameId);
+    // isHost: server-confirmed isOwner AND the browser is presenting the
+    // table surface for this game.
+    const surface = surfaceForGame(this.gameId);
     (this.renderer as any).isHost = this.isOwner && surface === 'table';
   }
 
@@ -449,33 +449,12 @@ class BoardgameRenderGame extends LitElement {
     }
   }
 
-  // _readSurfaceCookie returns the surface value ('table' | 'hand') stored
-  // in the per-game cookie surface_<gameId>, or null if unset. In dev mode
-  // a ?display=table|hand URL query param overrides the cookie; this is
-  // intentional for developer testing and is harmless in prod because no
-  // production-deployed phone client would set the param.
-  private _readSurfaceCookie(gameId: string): 'table' | 'hand' | null {
-    const params = new URLSearchParams(window.location.search);
-    const display = params.get('display');
-    if (display === 'table' || display === 'hand') return display;
-    if (gameId) {
-      const cookieName = `surface_${gameId}=`;
-      const cookies = document.cookie.split('; ');
-      for (const c of cookies) {
-        if (c.startsWith(cookieName)) {
-          const value = c.slice(cookieName.length);
-          if (value === 'table' || value === 'hand') return value;
-        }
-      }
-    }
-    return null;
-  }
-
   // _surfaceSuffix returns the filename suffix to add to the renderer
   // module / custom-element name for the current surface, or empty for
-  // solo. Pure function of the cookie + query string.
+  // solo. Pure function of the cookie + query string (see
+  // utils/companion-surface.ts, shared with boardgame-game-view).
   private _surfaceSuffix(gameId: string): string {
-    const s = this._readSurfaceCookie(gameId);
+    const s = surfaceForGame(gameId);
     if (s === 'table') return '-table';
     if (s === 'hand') return '-hand';
     return '';

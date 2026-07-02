@@ -275,6 +275,12 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	// one browser don't step on each other.
 	s.setSurfaceCookie(c, req.GameID, "hand")
 
+	// Tell the room. Seat claims don't bump the game version, so without
+	// this the Table view wouldn't learn about the new player until some
+	// unrelated state change; clients handle presence-changed by
+	// refetching gameInfo, which re-renders the avatar strip and roster.
+	s.notifier.broadcastPresenceChange(req.GameID)
+
 	c.JSON(http.StatusOK, joinSeatResponse{
 		GameID:      req.GameID,
 		GameName:    combined.Name,

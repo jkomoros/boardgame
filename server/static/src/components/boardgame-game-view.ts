@@ -8,6 +8,7 @@ import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
+import { surfaceForGame } from '../utils/companion-surface.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -200,7 +201,16 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   override render() {
+    // On companion surfaces the renderer owns the screen: the projector
+    // (table) and phones (hand) hide the solo-flow chrome — roster with its
+    // join buttons, admin controls, chat. Seating happens via the phone
+    // join flow and identity lives on the avatar strip, so that chrome is
+    // at best redundant and at worst contradicts the companion model. The
+    // gathering panel stays: "Waiting for N more players" is useful on
+    // both surfaces.
+    const companionSurface = this._gameRoute ? surfaceForGame(this._gameRoute.id) : null;
     return html`
+      ${companionSurface ? '' : html`
       <div class="card">
         <boardgame-player-roster
           id="player"
@@ -223,6 +233,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .active=${this.selected}>
         </boardgame-player-roster>
       </div>
+      `}
       <boardgame-gathering-panel
         .moveForms=${this.moveForms}
         .state=${this._currentState}
@@ -252,6 +263,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .moveForms=${this.moveForms}>
         </boardgame-render-game>
       </div>
+      ${companionSurface ? '' : html`
       <boardgame-admin-controls
         id="admin"
         .active=${this._admin}
@@ -269,6 +281,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         .viewingAsPlayer=${this.viewingAsPlayer}
         .playersInfo=${this._playersInfo}>
       </boardgame-chat-panel>
+      `}
       <boardgame-game-state-manager
         id="manager"
         .activeRenderer=${this.activeRenderer}
@@ -420,6 +433,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _firstStateBundleInstalled() {
+    // No roster on companion surfaces (@query returns null) — and no
+    // join prompt either: phones join via the room code, not this dialog.
+    if (!this._playerEle) return;
     if (this.selected && this._loggedIn && this._playerEle.showJoin && !this.promptedToJoin) {
       // Take note that we already prompted them, and don't prompt again unless the game changes.
       this.promptedToJoin = true;

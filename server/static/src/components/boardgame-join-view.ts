@@ -212,11 +212,18 @@ export class BoardgameJoinView extends LitElement {
     history.replaceState({ step: 'code' }, '', window.location.pathname + window.location.search);
     // Roll a default avatar+name for the front door.
     this._reroll();
-    // If pageExtra starts with "?code=XXXX", prefill (handy for QR codes).
+    // If the URL carries "?code=XXXX" (the QR on the Table view encodes
+    // /join?code=<room code>), prefill AND auto-submit: scanning the QR is
+    // an unambiguous statement of intent, so don't make the phone tap Join
+    // on a code it didn't type. Malformed values just prefill; a bad-but-
+    // well-formed code falls back to the code step with the server's error.
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
     if (codeParam) {
       this._codeInput = codeParam.toUpperCase();
+      if (/^[A-Za-z]{4,5}$/.test(codeParam)) {
+        this._submitCode();
+      }
     }
 
     // Firebase anon (and Google) ID tokens are JWTs with a 1-hour TTL.

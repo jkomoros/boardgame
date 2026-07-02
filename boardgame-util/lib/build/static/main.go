@@ -215,6 +215,12 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 		return "", errors.New("Couldn't create " + gameSrcSubFolder + ": " + err.Error())
 	}
 
+	// Surface broken framework imports now, at build time, instead of as an
+	// opaque vite 500 when the renderer is first loaded in the dev server.
+	for _, warning := range LintGameClientImports(pkgs) {
+		fmt.Println(warning)
+	}
+
 	if prodBuild {
 		fmt.Println("Building bundled resources with Vite")
 		if err := BuildVite(directory); err != nil {
