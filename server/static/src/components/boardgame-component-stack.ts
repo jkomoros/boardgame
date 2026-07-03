@@ -734,7 +734,27 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private _attributesForComponents(): Map<string, any> {
-    return new Map(Object.entries(this.componentAttrs));
+    const attrs = new Map(Object.entries(this.componentAttrs));
+
+    // Forward the stack's own post-animation-delay / wait-for-animation
+    // DOM attributes to stamped children, same as componentAttrs entries
+    // (spec: Renderer-facing API — post-animation-delay #715,
+    // wait-for-animation #716). These are plain HTML attributes authored
+    // directly on <boardgame-component-stack> (unlike componentAttrs,
+    // which is populated programmatically by parent components like
+    // boardgame-game-board), so read them here rather than via a
+    // reflected Lit @property.
+    if (this.hasAttribute('post-animation-delay')) {
+      const parsed = parseFloat(this.getAttribute('post-animation-delay')!);
+      if (!isNaN(parsed)) {
+        attrs.set('postAnimationDelay', parsed);
+      }
+    }
+    if (this.hasAttribute('wait-for-animation')) {
+      attrs.set('waitForAnimation', this.getAttribute('wait-for-animation') !== 'false');
+    }
+
+    return attrs;
   }
 
   /**
