@@ -221,13 +221,24 @@ export class BoardgameComponentAnimator extends LitElement {
    * Returns a Promise that resolves when the animation completes (or
    * immediately if either element is missing from the DOM).
    *
-   * Implementation: pure CSS transform animation. We measure both
-   * elements with _calculateOffsets, compute the delta, set
-   * transition:'none', apply the delta as a translate, force layout,
-   * then re-enable transitions and translate back to 0. The CSS
-   * transition handles the actual frame interpolation.
+   * Implementation: WAAPI overlay animation. We measure both elements
+   * with getBoundingClientRect, compute the delta, and run a two-keyframe
+   * element.animate() from the inverted (stub-aligned) transform back to
+   * the element's own resting transform. fill:'none' means the animation
+   * never writes a persistent style — no inline transform/transition
+   * juggling, no forced reflow, no transitionend/setTimeout race.
+   * Settlement (anim.finished, or the cancel rejection) is ground truth
+   * for "done".
+   *
+   * opts.startAtMs is accepted but not yet implemented (scheduling lands
+   * in a later task); passing it currently has no effect.
    */
-  async animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs: number = 500): Promise<void> {
+  async animateBetween(
+    realId: string | HTMLElement,
+    stubId: string | HTMLElement,
+    durationMs: number = 500,
+    opts?: { startAtMs?: number },
+  ): Promise<void> {
     const real = this._resolveAnimationTarget(realId);
     const stub = this._resolveAnimationTarget(stubId);
     if (!real || !stub) {
@@ -250,33 +261,16 @@ export class BoardgameComponentAnimator extends LitElement {
     if (dx === 0 && dy === 0) {
       return;
     }
-    const prevTransform = real.style.transform;
-    // First/Invert: jump immediately to the stub position (no animation).
-    real.style.transition = 'none';
-    real.style.transform = `translate(${dx}px, ${dy}px) ${prevTransform || ''}`.trim();
-    // Force layout to lock in the inverted position before transitioning.
-    real.getBoundingClientRect();
-    // Last/Play: animate back to original transform over durationMs.
-    real.style.transition = `transform ${durationMs}ms ease-out`;
-    real.style.transform = prevTransform || '';
-    await new Promise<void>((resolve) => {
-      let done = false;
-      const cleanup = () => {
-        if (done) return;
-        done = true;
-        // Restore to '' (stylesheet transition), NOT the captured inline
-        // value: if another pipeline (the FLIP state-install path) had an
-        // inline transition mid-flight when we started, blindly restoring
-        // it later could stomp a NEWER animation on this element.
-        real.style.transition = '';
-        real.removeEventListener('transitionend', cleanup);
-        resolve();
-      };
-      real.addEventListener('transitionend', cleanup);
-      // Defensive timeout in case transitionend doesn't fire (which can
-      // happen if the element is removed mid-animation).
-      setTimeout(cleanup, durationMs + 100);
-    });
+    const anim = real.animate(
+      [
+        { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
+        { transform: real.style.transform || 'none' },
+      ],
+      { duration: durationMs, easing: 'ease-out', fill: 'none' },
+    );
+    // Settlement is ground truth: finished resolves on completion, rejects
+    // on cancel (element removed mid-flight) — both mean "done" here.
+    await anim.finished.catch(() => {});
   }
 
   // CRITICAL: Double microtask delay for Polymer databinding completion

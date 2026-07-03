@@ -54,3 +54,32 @@ test('noAnimate suppresses play; ungated play does not hold settled()', async ({
   expect(r.a1IsNull).toBe(true);
   expect(r.a2Running).toBe(true);
 });
+
+test('animateBetween flies an element and resolves on settlement', async ({ page }) => {
+  await createOfflineGame(page, 'blackjack');
+  const r = await page.evaluate(async () => {
+    const animator = document.createElement('boardgame-component-animator') as any;
+    document.body.appendChild(animator);
+    await animator.updateComplete;
+    const a = document.createElement('div');
+    const b = document.createElement('div');
+    a.style.cssText = 'position:fixed;top:10px;left:10px;width:20px;height:20px';
+    b.style.cssText = 'position:fixed;top:300px;left:300px;width:20px;height:20px';
+    document.body.append(a, b);
+    const p = animator.animateBetween(a, b, 150);
+    const liveDuring = a.getAnimations().length > 0;
+    const inlineTransitionDuring = a.style.transition;
+    await p;
+    const liveAfter = a.getAnimations().length > 0;
+    return {
+      liveDuring,
+      liveAfter,
+      inlineTransformUntouched: a.style.transform === '',
+      inlineTransitionUntouched: inlineTransitionDuring === '' && a.style.transition === '',
+    };
+  });
+  expect(r.liveDuring).toBe(true);
+  expect(r.liveAfter).toBe(false);
+  expect(r.inlineTransformUntouched).toBe(true);
+  expect(r.inlineTransitionUntouched).toBe(true);
+});
