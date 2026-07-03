@@ -40,7 +40,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
                     0 3px 1px -2px rgba(60, 40, 20, 0.2),
                     inset 0 1px 0 rgba(255, 255, 255, 0.4);
         transform: scale(var(--effective-die-scale));
-        transition: transform var(--animation-length) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       #main.interactive:hover {
@@ -52,7 +52,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
       #inner {
         position: relative;
         transform: translateY(calc(-1 * var(--effective-die-size) * var(--selected-face)));
-        transition: transform var(--animation-length) ease-in-out;
+        /* The spin is WAAPI-driven now; no CSS transform transition. */
       }
 
       .face {

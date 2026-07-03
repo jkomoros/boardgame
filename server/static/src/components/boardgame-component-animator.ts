@@ -338,13 +338,6 @@ export class BoardgameComponentAnimator extends LitElement {
         const component = components[j];
         if (component.id === '') continue;
         component.noAnimate = true;
-        // We reset this here, and not in prepare(), because we only want to
-        // animate properties we set from here on out, and also all of the
-        // physical components might not yet be created during prepare, for
-        // example if a new component is added to a stack and a new one is
-        // stamped. Calling this here makes sure they can all be
-        // resetAnimating.
-        component.resetAnimating();
       }
     }
 

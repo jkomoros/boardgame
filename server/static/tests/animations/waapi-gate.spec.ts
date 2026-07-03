@@ -41,12 +41,20 @@ test.describe('animation completion gate', () => {
   });
 
   test('blackjack: fresh deal completes cleanly', async ({ page }) => {
-    test.setTimeout(60_000);
+    // 3 iterations, each a full game-create + a deal wait that can run up to
+    // 30s under load; give the whole test comfortable headroom.
+    test.setTimeout(120_000);
 
     for (let i = 0; i < 3; i++) {
       await createOfflineGame(page, 'blackjack');
       const base = await gateSnapshot(page);
-      await expectCleanGate(page, base);
+      // The deal auto-fires on creation and can fully complete during the
+      // admin-panel setup inside createOfflineGame, so accept an
+      // already-settled (quiescent, no-watchdog) gate as clean. The deal is
+      // a long chain of per-card gate cycles (~5s of real animation) and the
+      // offline server's round-trips add variable latency under load, so
+      // give the wait a wider margin than the default.
+      await expectCleanGate(page, base, 30000, { allowAlreadySettled: true });
     }
   });
 

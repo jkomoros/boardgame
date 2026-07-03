@@ -28,12 +28,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       --component-effective-height: calc(var(--component-effective-width) * var(--component-aspect-ratio));
     }
 
-    /* FLIP animation: host element carries the position transform */
-    :host {
-      transition: transform var(--animation-length, 0.25s) ease-in-out,
-                  opacity var(--animation-length, 0.25s) ease-in-out;
-    }
-
     /* Shadow elevation styles - copied from paper-styles */
     :host {
       --shadow-elevation-normal: 0 2px 2px 0 rgba(60, 40, 20, 0.14),
@@ -59,11 +53,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
 
     #outer.interactive {
       cursor: pointer;
-    }
-
-    /* CRITICAL: noAnimate barrier during measurement */
-    .no-animate #inner {
-      transition: unset;
     }
 
     .disabled {
@@ -99,9 +88,9 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     }
 
     #inner {
-      /* The second part of this transition is from paper-styles/shadow */
-      transition: transform var(--animation-length, 0.25s) ease-in-out,
-                  box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      /* box-shadow/filter transitions are from paper-styles/shadow; the
+         transform term is gone — flips are WAAPI-driven now. */
+      transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
                   filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     }
   `;
@@ -206,61 +195,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     // Subclasses override.
   }
 
-  // computeAnimationProps is called by prepareAnimation and startAnimation,
-  // passing the raw props and returning the actual properties to set. This is
-  // the override point for sub-classes like boardgame-card who actually want
-  // to set other properties, not the literal ones we were provided, for
-  // performance reasons. The default simply returns props.
-  computeAnimationProps(isAfter: boolean, props: Record<string, any>): Record<string, any> {
-    return props;
-  }
-
-  // prepareAnimation is called after the new state is databound but just
-  // before animation starts. Will call computeAnimationProps to get the final
-  // props to set, which is an override point for subClasses. beforeProps is
-  // what this element--or one like it--returned from animatingPropValues()
-  // before the databinding happened. Transform is the transform to set on the
-  // top-level element. This often isn't the literal transform from before, but
-  // one that has been modified to be the previous transform, combined with the
-  // inversion transform to move the component visually back to where it was.
-  prepareAnimation(beforeProps: Record<string, any>, transform: string, opacity: string) {
-    const props = this.computeAnimationProps(false, beforeProps);
-    this.setProperties(props);
-    // Disable host transition so FLIP inversion is applied instantly
-    this.style.transition = 'none';
-    this.style.transform = transform;
-    this.style.opacity = opacity;
-  }
-
-  // startAnimation is called after the new state is databound and after
-  // prepareAnimation. Will call computeAnimationProps to get the final props
-  // to set, which is an override point for subClasses. afterProps is what
-  // this element--or one like it--returned from animatingPropValues() after
-  // the databinding happened. transform and opacity are the final values for
-  // those two properties in their final location. needsHostTransition is
-  // computed by the animator based on whether the FLIP inversion or inline
-  // transform actually changed — if false, we skip registering a host
-  // transform expectation since the browser won't fire transitionend.
-  startAnimation(afterProps: Record<string, any>, transform: string, opacity: string, needsHostTransition = true) {
-    const props = this.computeAnimationProps(true, afterProps);
-    this.setProperties(props);
-
-    this.style.transform = transform;
-    if (needsHostTransition) {
-      this._expectTransitionEnd(this, 'transform');
-    }
-
-    // Compare opacity numerically: inline style '' and '1' and '1.0' all
-    // compute to the same rendered opacity of 1. Only expect a transition
-    // when the rendered value will actually change.
-    const currentOpacity = parseFloat(this.style.opacity || '1');
-    const targetOpacity = parseFloat(opacity || '1');
-    this.style.opacity = opacity;
-    if (Math.abs(currentOpacity - targetOpacity) > 0.01) {
-      this._expectTransitionEnd(this, 'opacity');
-    }
-  }
-
   // prepareForBeingAnimatingComponent is called if the component is going
   // to be an animating component; that is it was created within
   // stack.newAnimatingComponent().
@@ -278,20 +212,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   // animationRotates should return true if the before and after have a
   // different rotated property.
   animationRotates(beforeProps: Record<string, any>, afterProps: Record<string, any>): boolean {
-    return false;
-  }
-
-  override willNotAnimate(ele: HTMLElement, propName: string): boolean {
-    if (super.willNotAnimate(ele, propName)) return true;
-
-    // Spacer causes us to be visibility:hidden, which won't generate a
-    // transitionend in chrome. See https://github.com/digitaledgeit/js-
-    // transition-auto/issues/1
-    if (this.spacer) {
-      // Spacer only makes inner and outer visibility:hidden
-      if (ele.id === 'outer') return true;
-      if (ele.id === 'inner') return true;
-    }
     return false;
   }
 
@@ -329,14 +249,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       disabled: this.disabled,
       'no-animate': this.noAnimate
     };
-  }
-
-  private setProperties(props: Record<string, any>) {
-    for (const key in props) {
-      if (props.hasOwnProperty(key)) {
-        (this as any)[key] = props[key];
-      }
-    }
   }
 
   // obj.properties, smooshed down all the way to the upper.

@@ -26,20 +26,6 @@ export interface BoardgameAnimatableItemElement extends HTMLElement {
    * Called during FIRST phase of FLIP to capture state before change.
    */
   animatingPropValues(): AnimatingProps;
-
-  /**
-   * Prepare for animation by applying inverse transforms.
-   * This makes the component appear in its old position/state.
-   * Called during INVERT phase of FLIP.
-   */
-  prepareAnimation(before: AnimatingProps, transform: string, opacity: string): void;
-
-  /**
-   * Start animation to final state by removing inverse transforms.
-   * CSS transitions then animate to natural position/state.
-   * Called during PLAY phase of FLIP.
-   */
-  startAnimation(after: AnimatingProps, transform: string, opacity: string): void;
 }
 
 /**

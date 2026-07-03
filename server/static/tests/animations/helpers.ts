@@ -151,6 +151,12 @@ export interface GateSnapshot {
 
 export async function gateSnapshot(page: Page): Promise<GateSnapshot> {
   return page.evaluate(() => {
+    // Stamp a reload sentinel on the live window. A full page reload
+    // installs a brand-new window (and a fresh __bgAnimTestHooks at 0), so
+    // the sentinel's absence later is an unambiguous, race-free signal that
+    // a reload happened -- unlike inferring it from counters, which the
+    // fresh page can re-climb past `since.gateOpens` before we sample.
+    (window as any).__gateProbeToken = ((window as any).__gateProbeToken || 0) + 1;
     const h = (window as any).__bgAnimTestHooks;
     return {
       gateOpens: h.gateOpens, gateCloses: h.gateCloses,
@@ -171,7 +177,25 @@ export async function gateSnapshot(page: Page): Promise<GateSnapshot> {
 // counter has moved yet. Without this, a slow-to-open gate is
 // indistinguishable from an already-settled one, and the true opening
 // (and its close) get silently missed by the caller's next assertion.
-export async function expectCleanGate(page: Page, since: GateSnapshot, timeoutMs = 20000) {
+// allowAlreadySettled is for scenarios where the animation that opens the
+// gate fires on its own (e.g. blackjack's fresh deal, which auto-runs the
+// moment the game is created) rather than in response to an action this
+// helper's caller just performed. Setup after game creation
+// (createOfflineGame's admin-panel dance) can take long enough that the
+// entire deal -- many rapid open/close cycles -- completes before
+// gateSnapshot is even taken, so there is no fresh open past `since` left
+// to observe. In that case a quiescent gate (closes caught up to opens)
+// with an unchanged watchdog count IS the clean outcome; requiring a new
+// open would hang until timeout. The click-driven scenarios
+// (debuganimations) leave this false so a slow-to-open gate can't be
+// mistaken for an already-settled one.
+export async function expectCleanGate(
+  page: Page,
+  since: GateSnapshot,
+  timeoutMs = 20000,
+  opts: { allowAlreadySettled?: boolean } = {}
+) {
+  const allowAlreadySettled = opts.allowAlreadySettled ?? false;
   // Defensive: some move round-trips in this app (observed on
   // examples/memory) trigger a page reload, which briefly makes
   // __bgAnimTestHooks undefined and would throw inside the waitForFunction
@@ -185,11 +209,23 @@ export async function expectCleanGate(page: Page, since: GateSnapshot, timeoutMs
   // than waiting forever for a monotonic increase that will never come; a
   // reset also makes the watchdogFirings delta meaningless, so skip that
   // assertion for this call (a reset gate is definitionally not wedged).
-  const openedOrReset = await page.waitForFunction((sinceGateOpens) => {
+  //
+  // Reset is detected two ways, either of which is decisive: (1) the reload
+  // sentinel gateSnapshot stamped is gone -- a reload swapped in a fresh
+  // window; or (2) gateOpens dropped below `since`. The sentinel closes a
+  // race where a reloaded page re-climbs gateOpens back to >= since before
+  // we ever observe the dip, which used to hang this wait until timeout.
+  const openedOrReset = await page.waitForFunction(([sinceGateOpens, allowSettled]) => {
+    if ((window as any).__gateProbeToken === undefined) return 'reset';
     const h = (window as any).__bgAnimTestHooks;
     if (h.gateOpens < sinceGateOpens) return 'reset';
-    return h.gateOpens > sinceGateOpens ? 'opened' : false;
-  }, since.gateOpens, { timeout: timeoutMs }).then((h) => h.jsonValue());
+    if (h.gateOpens > sinceGateOpens) return 'opened';
+    // No fresh open past `since`. For auto-firing scenarios, a gate that is
+    // already quiescent (closes caught up) is the clean, already-completed
+    // outcome -- accept it rather than hanging on an open that won't come.
+    if (allowSettled && h.gateCloses >= h.gateOpens) return 'settled';
+    return false;
+  }, [since.gateOpens, allowAlreadySettled] as [number, boolean], { timeout: timeoutMs }).then((h) => h.jsonValue());
   await page.waitForFunction(() => {
     const h = (window as any).__bgAnimTestHooks;
     return h.gateCloses >= h.gateOpens;
