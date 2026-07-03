@@ -172,7 +172,10 @@ class BoardgameDie extends BoardgameAnimatableItem {
     super.updated(changedProperties);
 
     if (changedProperties.has('selectedFace')) {
-      this._selectedFaceChanged(this.selectedFace);
+      this._selectedFaceChanged(
+        this.selectedFace,
+        changedProperties.get('selectedFace') as number | undefined
+      );
     }
 
     if (changedProperties.has('item')) {
@@ -186,10 +189,23 @@ class BoardgameDie extends BoardgameAnimatableItem {
     }
   }
 
-  private _selectedFaceChanged(newValue: number) {
-    if (this._innerElement) {
-      this._expectTransitionEnd(this._innerElement, 'transform');
-    }
+  // _innerTransformForFace mirrors the CSS resting transform on #inner for
+  // a given selectedFace: translateY(-1 * effective-die-size * face). The
+  // #main element carries the --selected-face var that drives the CSS
+  // resting position; here we build an explicit transform so WAAPI can
+  // interpolate the spin instead of relying on a CSS transition.
+  private _innerTransformForFace(face: number): string {
+    return `translateY(calc(-1 * var(--effective-die-size) * ${face}))`;
+  }
+
+  private _selectedFaceChanged(newValue: number, oldValue: number | undefined) {
+    if (!this._innerElement) return;
+    // On first render there's no meaningful spin to animate from.
+    if (oldValue === undefined || oldValue === newValue) return;
+    this.play(this._innerElement, [
+      { transform: this._innerTransformForFace(oldValue) },
+      { transform: this._innerTransformForFace(newValue) },
+    ]);
   }
 
   private _itemChanged(newValue: any) {

@@ -3,6 +3,20 @@ import { html, css, CSSResult, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
+// FlipRecord is the bundle the animator computes for each animating
+// component and hands to playAnimation(). before/after are the
+// animatingPropValues() snapshots on either side of the databinding;
+// invertedTransform/finalTransform/opacity describe the host FLIP delta.
+export interface FlipRecord {
+  before: Record<string, any>;       // animatingPropValues() before
+  after: Record<string, any>;        // animatingPropValues() after
+  invertedTransform: string;         // FLIP inverted transform (animator-computed, includes beforeTransform + scale)
+  finalTransform: string;            // final inline/messy transform ('' if none)
+  beforeOpacity: string;             // '' treated as '1'
+  finalOpacity: string;
+  needsHostTransition: boolean;      // host transform keyframes worth playing
+}
+
 export class BoardgameComponent extends BoardgameAnimatableItem {
   static override styles: any = css`
     :host {
@@ -159,6 +173,37 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       result[propName] = stack.stackDefault(propName);
     }
     return result;
+  }
+
+  // playAnimation is the WAAPI replacement for the old
+  // prepareAnimation/startAnimation pair. The animator computed the FLIP
+  // delta; we translate it into keyframes. Property-driven inner effects
+  // (card flip, die spin) are handled by subclasses via
+  // playPropertyAnimation, so the databinding dance (setting before-props
+  // then after-props) is gone entirely.
+  playAnimation(rec: FlipRecord): void {
+    if (rec.needsHostTransition) {
+      this.play(this, [
+        { transform: rec.invertedTransform },
+        { transform: rec.finalTransform || 'none' },
+      ]);
+      // The element's resting inline transform must be the final one; the
+      // animation is an overlay (fill: 'none').
+      this.style.transform = rec.finalTransform;
+    }
+    const beforeO = parseFloat(rec.beforeOpacity || '1');
+    const afterO = parseFloat(rec.finalOpacity || '1');
+    if (Math.abs(beforeO - afterO) > 0.01) {
+      this.play(this, [{ opacity: String(beforeO) }, { opacity: String(afterO) }]);
+    }
+    this.style.opacity = rec.finalOpacity;
+    this.playPropertyAnimation(rec.before, rec.after);
+  }
+
+  // playPropertyAnimation animates the visual consequences of
+  // animatingProperties changing (e.g. a card's faceUp flip). Base: no-op.
+  playPropertyAnimation(before: Record<string, any>, after: Record<string, any>): void {
+    // Subclasses override.
   }
 
   // computeAnimationProps is called by prepareAnimation and startAnimation,
