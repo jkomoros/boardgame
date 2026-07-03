@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, test } from '@playwright/test';
 
 // Display names shown in the "Game Type" combobox on /list-games, keyed by
 // the internal game name used in URLs (/game/<name>/<id>/).
@@ -194,7 +194,22 @@ export async function expectCleanGate(page: Page, since: GateSnapshot, timeoutMs
     const h = (window as any).__bgAnimTestHooks;
     return h.gateCloses >= h.gateOpens;
   }, undefined, { timeout: timeoutMs });
-  if (openedOrReset === 'reset') return;
+  if (openedOrReset === 'reset') {
+    console.warn('[expectCleanGate] page reloaded mid-check — watchdog assertion SKIPPED for this cycle');
+    try {
+      test.info().annotations.push({
+        type: 'warning',
+        description: 'expectCleanGate: reload detected, watchdog assertion skipped',
+      });
+    } catch {
+      // Called outside a test context; annotation is optional
+    }
+    // Best-effort check: after reload, counters restarted at 0, so any
+    // non-zero watchdogFirings indicates a post-reload wedge.
+    const afterReload = await gateSnapshot(page);
+    expect(afterReload.watchdogFirings, 'animation watchdog must never fire (post-reload check)').toBe(0);
+    return;
+  }
   const now = await gateSnapshot(page);
   expect(now.watchdogFirings, 'animation watchdog must never fire').toBe(since.watchdogFirings);
 }
