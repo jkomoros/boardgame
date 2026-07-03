@@ -145,6 +145,16 @@ tabs share one signed-in identity; for true multi-identity testing use a
 second browser profile, or claim seats via `curl` against
 `POST /api/join/seat` in `--offline-dev-mode`.
 
+## Type-checking your renderers
+
+`boardgame-util serve` transpiles renderers WITHOUT type-checking (fast dev
+loop). A production `boardgame-util build static` type-checks all game
+renderers against the framework types and prints any errors as warnings —
+so run a prod build (or `tsc` over the assembled dir) before shipping. The
+base classes are generic (`BoardgameTableViewBase<GameState, PlayerState>`
+etc.); pass your generated `_types` and you'll get compile-time checking of
+`playerState` access and `proposeMove` args, with no casts needed.
+
 ## Known limitations (V1)
 
 - Adding the two files requires a `serve` restart (no hot-add watcher).

@@ -222,6 +222,20 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 	}
 
 	if prodBuild {
+		// Type-check the game renderers before bundling. Vite/esbuild strip
+		// types without checking, so this is the only gate that catches
+		// renderer type errors. Non-fatal (external games may not be
+		// type-clean); dev `serve` skips this to keep the loop fast.
+		fmt.Println("Type-checking game renderers")
+		staticDir := filepath.Join(directory, staticSubFolder)
+		if diagnostics, err := TypeCheckGameSrc(staticDir); err != nil {
+			fmt.Println("WARNING: skipped game-renderer type-check: " + err.Error())
+		} else {
+			for _, d := range diagnostics {
+				fmt.Println(d)
+			}
+		}
+
 		fmt.Println("Building bundled resources with Vite")
 		if err := BuildVite(directory); err != nil {
 			return "", errors.New("Couldn't build bundled resources: " + err.Error())

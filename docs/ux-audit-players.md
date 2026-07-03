@@ -119,9 +119,11 @@ entry, 600ms monotonic ease-out), chip flight visible from the deck, no
 regressions, hand wrap works. Remaining (tracked in the sync follow-up
 task): a ≤2-frame FLIP/animateBetween handoff blip with ~40px origin
 skew, and deal-phase cross-screen drift (up to ~1s on the 4th card of a
-deal) until serverPlayAt is actually consumed. Also noted: presence
-badges showed "Waiting…" for open phone pages in the test rig — worth a
-heartbeat check outside the animation scope.
+deal) until serverPlayAt is actually consumed. Investigated afterward and RESOLVED as a test-rig artifact, not a
+product bug: a real UI join authenticates before its socket connects and
+stays present past the 30s threshold (verified live); the reviewer's
+localStorage-injected pages never fully signed in, so their heartbeats
+credited the observer index.
 
 ## J5/J6 notes (verified, no action)
 

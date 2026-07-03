@@ -1,1 +1,0 @@
-/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/examples/werewolf/client/_types.ts

@@ -32,8 +32,8 @@ imports are fixed; the generic constraints were relaxed (`extends object`,
 `CSSResultGroup` styles, `Record<string, object>` move-args) so all
 in-repo companion renderers type-check with ZERO errors and honest typed
 code needs no casts; and spec §5.4 now truthfully documents the restart
-requirement. Wiring game-src into a build-time type-check step remains
-open (task filed). Trap 3 (zero-value masquerade) is documented in the
+requirement. game-src is now type-checked in the prod build
+(boardgame-util build static, non-fatal warnings). Trap 3 (zero-value masquerade) is documented in the
 authoring guide and its cautionary tale is fixed in werewolf.*
 
 1. **There is no authoring guide.** The only documentation is a design spec

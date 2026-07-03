@@ -3,6 +3,7 @@ package static
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -59,4 +60,63 @@ func LintGameClientImports(pkgs []*gamepkg.Pkg) []string {
 		}
 	}
 	return warnings
+}
+
+// gameSrcTypeCheckTSConfig is the type-check-only tsconfig written into the
+// assembled static dir. It extends the real tsconfig (so compiler options
+// match production) but widens rootDir + include to cover the symlinked
+// game-src renderers — which vite/esbuild transpile WITHOUT type-checking,
+// so authoring mistakes (wrong move-arg types, missing fields) otherwise
+// ship silently. noEmit + a scratch outDir keep it side-effect-free.
+const gameSrcTypeCheckTSConfig = `{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "rootDir": ".", "noEmit": true, "declaration": false, "composite": false },
+  "include": ["src/**/*", "game-src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}`
+
+// TypeCheckGameSrc runs `tsc --noEmit` over the assembled static dir,
+// including the symlinked game-src renderers, and returns tsc's diagnostic
+// lines. staticDir must be the assembled dir (game-src symlinks + a
+// node_modules symlink already in place — i.e. call AFTER LinkGameClientFolders).
+//
+// NON-FATAL by design, mirroring LintGameClientImports: the assembled dir
+// can include external games (the user's own repo) whose renderers this
+// framework doesn't control, so a hard failure would block a prod build
+// over a game the builder may not own. Callers print the returned lines as
+// warnings. Returns (nil, err) only for infrastructure failures (tsc not
+// runnable); type errors come back as diagnostic strings with err == nil.
+func TypeCheckGameSrc(staticDir string) ([]string, error) {
+	// A game-src type-check only makes sense once renderers are symlinked in.
+	if _, err := os.Stat(filepath.Join(staticDir, "game-src")); err != nil {
+		return nil, nil
+	}
+
+	configPath := filepath.Join(staticDir, "tsconfig.gamesrc.json")
+	if err := os.WriteFile(configPath, []byte(gameSrcTypeCheckTSConfig), 0644); err != nil {
+		return nil, fmt.Errorf("couldn't write game-src tsconfig: %w", err)
+	}
+	defer os.Remove(configPath)
+
+	cmd := exec.Command("npx", "tsc", "--noEmit", "-p", "tsconfig.gamesrc.json")
+	cmd.Dir = staticDir
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		return nil, nil // clean type-check
+	}
+	// tsc exits non-zero when it reports diagnostics; surface only the
+	// lines that name a game-src file (the src/** lines are the framework's
+	// own concern, checked by the normal build).
+	var diagnostics []string
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "game-src/") {
+			diagnostics = append(diagnostics, "WARNING: game renderer type error: "+line)
+		}
+	}
+	if len(diagnostics) == 0 && len(out) > 0 {
+		// tsc failed for a non-diagnostic reason (e.g. couldn't start).
+		return nil, fmt.Errorf("game-src type-check could not run: %s", strings.TrimSpace(string(out)))
+	}
+	return diagnostics, nil
 }

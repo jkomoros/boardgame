@@ -1,0 +1,49 @@
+import { LitElement, html, css } from 'lit';
+import { property } from 'lit/decorators.js';
+import '../../src/components/boardgame-status-text.js';
+import type { PlayerState } from './_types.js';
+
+/**
+ * Player-info renderer for werewolf's roster tiles. Shown for every game
+ * surface (solo, Table, and Hand rosters). Deliberately reveals NOTHING
+ * about roles: it only receives the viewer-sanitized playerState, where
+ * other players' Role reads as the enum zero value, so showing Role here
+ * would leak nothing useful and mislead. It surfaces only public status —
+ * eliminated / voted / thinking — which is safe for all viewers.
+ */
+class BoardgameRenderPlayerInfoWerewolf extends LitElement {
+  static styles = css`
+    .status {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .eliminated {
+      color: #c62828;
+      font-weight: 600;
+    }
+  `;
+
+  @property({ type: Object })
+  state: any = null;
+
+  @property({ type: Number })
+  playerIndex = 0;
+
+  @property({ type: Object })
+  playerState: PlayerState | null = null;
+
+  override render() {
+    const p = this.playerState;
+    if (p?.Eliminated) {
+      return html`<div class="status eliminated">Eliminated</div>`;
+    }
+    // Intentionally NOT showing vote status: playerState.Vote is currently
+    // unsanitized, so during Night it would reveal exactly which players
+    // are werewolves (see the filed vote-sanitization fix). Eliminated is
+    // the only unambiguously-public status; the roster shows just that.
+    // \xa0 keeps the tile height stable so the roster doesn't jump.
+    return html`<div class="status">\xa0</div>`;
+  }
+}
+
+customElements.define('boardgame-render-player-info-werewolf', BoardgameRenderPlayerInfoWerewolf);

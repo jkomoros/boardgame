@@ -246,7 +246,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
             min="0.5"
             max="2.0"
             .value="${this.fromCardScale}"
-            @change="${(e: Event) => { this.fromCardScale = (e.target as MdSlider).value; }}"
+            @change="${(e: Event) => { this.fromCardScale = (e.target as MdSlider).value ?? 1.0; }}"
             labeled
             step="0.05">
           </md-slider>
@@ -255,7 +255,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
             min="0.5"
             max="2.0"
             .value="${this.toCardScale}"
-            @change="${(e: Event) => { this.toCardScale = (e.target as MdSlider).value; }}"
+            @change="${(e: Event) => { this.toCardScale = (e.target as MdSlider).value ?? 1.0; }}"
             labeled
             step="0.05">
           </md-slider>
