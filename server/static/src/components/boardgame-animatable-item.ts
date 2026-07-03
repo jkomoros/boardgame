@@ -67,9 +67,9 @@ export class BoardgameAnimatableItem extends LitElement {
   // animating). it's our last chance to fire 'animation-done' if we were going
   // to fire that.
   beforeOrphaned() {
-    if (!this._expectedTransitionEnds) return;
-    if (!this._expectedTransitionEnds.size) return;
-    this._notifyAnimationDone();
+    // Last chance before removal: settle everything so the gate never
+    // waits on a detached element.
+    this.finishAllAnimations();
   }
 
   // _expectTransitionEnd is called whenever we have just changed a property

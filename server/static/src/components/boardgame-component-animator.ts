@@ -12,6 +12,8 @@ interface ComponentRecord {
   beforeInlineTransform?: string;
   afterTransform?: string;
   afterOpacity?: string;
+  invertedTransform?: string;
+  beforeOpacity?: string;
   needsHostTransition?: boolean;
   needsAnimation?: boolean;
 }
@@ -33,9 +35,12 @@ interface CollectionRecord {
 interface AnimatingComponentRecord {
   stack: any;
   component: any;
+  before: Record<string, any>;
   after: Record<string, any>;
   afterTransform: string;
   afterOpacity: string;
+  invertedTransform: string;
+  beforeOpacity: string;
   needsHostTransition: boolean;
 }
 
@@ -96,6 +101,16 @@ export class BoardgameComponentAnimator extends LitElement {
     // keep track of all of the ids we've seen this round to make sure we
     // found a home for all of them in the end.
     this._beforeSeenIds = new Set();
+
+    // Interruption semantics (spec): a new cycle must measure resting
+    // positions, so jump any still-live animations to their end state.
+    for (let i = 0; i < collections.length; i++) {
+      const components = collections[i].Components;
+      for (let j = 0; j < components.length; j++) {
+        const c = components[j];
+        if (typeof c.finishAllAnimations === 'function') c.finishAllAnimations();
+      }
+    }
 
     for (let i = 0; i < collections.length; i++) {
       const collection = collections[i];
@@ -277,29 +292,33 @@ export class BoardgameComponentAnimator extends LitElement {
     // visual glitch if you wait until then. As of October 18, Chrome seems to
     // now have the Safari behavior, so just doing that.
 
+    // The inner promise resolves with a Promise<void> that means "everything
+    // SETTLED" — the WAAPI PLAY phase hands that up through _startAnimations.
+    // Flattening it means the promise animateFlip() returns now completes at
+    // real animation settlement, not merely when animations were started.
     const generation = this._generation;
 
-    return new Promise((resolve) => {
+    return new Promise<Promise<void>>((resolve) => {
       // CRITICAL: First microtask - Let Polymer dispatch change events
       Promise.resolve().then(() => {
-        if (this._generation !== generation) { resolve(); return; }
+        if (this._generation !== generation) { resolve(Promise.resolve()); return; }
         this._scheduleAnimate(resolve, generation);
       });
-    });
+    }).then((settled) => settled);
   }
 
-  private _scheduleAnimate(resolve: () => void, generation: number) {
+  private _scheduleAnimate(resolve: (p: Promise<void>) => void, generation: number) {
     // CRITICAL: Second microtask - Ensure ALL databinding cascades complete
     // This bizarre indirection is necessary because by the time the first
     // microtask resolves some databinding won't have been done, so we need to
     // one more time wait until the end of the microtask. See #722 for more.
     Promise.resolve().then(() => {
-      if (this._generation !== generation) { resolve(); return; }
+      if (this._generation !== generation) { resolve(Promise.resolve()); return; }
       this._doAnimate(resolve, generation);
     });
   }
 
-  private _doAnimate(resolve: () => void, generation: number) {
+  private _doAnimate(resolve: (p: Promise<void>) => void, generation: number) {
     const collections = this.stackElement._sharedStackList;
 
     // The last seen location of a given card ID
@@ -476,12 +495,14 @@ export class BoardgameComponentAnimator extends LitElement {
         const scaleTransform = `scale(${scaleFactor})`;
         const beforeInvertedTransform = `${transform} ${record.beforeTransform} ${scaleTransform}`;
 
-        // Only prepare animation (set inverted transform, clone content) for
-        // components that actually need animation. Non-animating components
-        // skip the entire FLIP pipeline, avoiding spurious will-animate events.
+        // Only prepare animation (clone content) for components that
+        // actually need animation. Non-animating components skip the entire
+        // FLIP pipeline, avoiding spurious will-animate events. The inverted
+        // transform and before-opacity are stashed on the record; the WAAPI
+        // PLAY phase in _startAnimations turns them into keyframes.
         if (record.needsAnimation) {
-          // TODO: what should opacity be?
-          component.prepareAnimation(record.before, beforeInvertedTransform, '1.0');
+          record.invertedTransform = beforeInvertedTransform;
+          record.beforeOpacity = component.style.opacity;
 
           const clonedNodes = this._lastSeenNodesById.get(component.id);
 
@@ -523,14 +544,18 @@ export class BoardgameComponentAnimator extends LitElement {
 
       record.after = component.animatingPropDefaults(anonRecord.stack);
 
-      this._animatingComponents.push({
+      const animatingRecord: AnimatingComponentRecord = {
         stack: anonRecord.stack,
         component: component,
+        before: record.before || {},
         after: record.after || {},
         afterTransform: component.style.transform,
         afterOpacity: component.style.opacity,
+        invertedTransform: '',
+        beforeOpacity: '1.0',
         needsHostTransition: true
-      });
+      };
+      this._animatingComponents.push(animatingRecord);
 
       const stackLocation = collectionOffsets.get(anonRecord.stack.id);
       const oldLocation = record.offsets;
@@ -571,12 +596,13 @@ export class BoardgameComponentAnimator extends LitElement {
       const scaleTransform = `scale(${scaleFactor})`;
 
       const beforeInvertedTransform = `${transform} ${record.beforeTransform} ${scaleTransform}`;
-      const beforeOpacity = '1.0';
 
-      component.style.transform = beforeInvertedTransform;
-      component.style.opacity = beforeOpacity;
-
-      component.prepareAnimation(record.before, beforeInvertedTransform, beforeOpacity);
+      // Stash the inverted transform / before-opacity for the WAAPI PLAY
+      // phase. We deliberately do NOT write component.style.transform/opacity
+      // here: the resting inline transform stays put, and playAnimation()
+      // supplies the inverted state as the animation's opening keyframe.
+      animatingRecord.invertedTransform = beforeInvertedTransform;
+      animatingRecord.beforeOpacity = '1.0';
 
       const clonedNodes = this._lastSeenNodesById.get(id);
       if (clonedNodes) {
@@ -596,12 +622,12 @@ export class BoardgameComponentAnimator extends LitElement {
     raf(() => this._startAnimations(resolve, generation));
   }
 
-  private async _startAnimations(resolve: () => void, generation: number) {
-    if (this._generation !== generation) { resolve(); return; }
+  private async _startAnimations(resolve: (p: Promise<void>) => void, generation: number) {
+    if (this._generation !== generation) { resolve(Promise.resolve()); return; }
 
     const collections = this.stackElement._sharedStackList;
 
-    // Phase 1: Restore noAnimate on ALL components (required — was set during measurement)
+    // Restore noAnimate (was the measurement barrier; still gates play()).
     const allComponents: any[] = [];
     for (let i = 0; i < collections.length; i++) {
       const collection = collections[i];
@@ -614,21 +640,16 @@ export class BoardgameComponentAnimator extends LitElement {
         allComponents.push(component);
       }
     }
-
-    // Also restore noAnimate on animating components (cross-stack overlays)
     for (const ac of this._animatingComponents) {
       ac.component.noAnimate = false;
       allComponents.push(ac.component);
     }
 
-    // Phase 2: Wait for Lit to process noAnimate changes
     await Promise.all(allComponents.map(c => c.updateComplete));
+    if (this._generation !== generation) { resolve(Promise.resolve()); return; }
 
-    // Check generation after await — overlap timer may have started a new cycle
-    if (this._generation !== generation) { resolve(); return; }
+    const settledPromises: Promise<void>[] = [];
 
-    // Phase 3: Build filtered list of components that actually need animation
-    const componentsToAnimate: any[] = [];
     for (let i = 0; i < collections.length; i++) {
       const components = collections[i].Components;
       for (let j = 0; j < components.length; j++) {
@@ -636,45 +657,35 @@ export class BoardgameComponentAnimator extends LitElement {
         if (component.id === '') continue;
         const record = this._infoById[component.id];
         if (!record || !record.needsAnimation) continue;
-        componentsToAnimate.push({ component, record });
+        component.playAnimation({
+          before: record.before || {},
+          after: record.after || {},
+          invertedTransform: record.invertedTransform || '',
+          finalTransform: record.afterTransform || '',
+          beforeOpacity: record.beforeOpacity || '1',
+          finalOpacity: record.afterOpacity || '',
+          needsHostTransition: record.needsHostTransition ?? true,
+        });
+        settledPromises.push(component.settled());
       }
     }
 
-    // Animating components (cross-stack) always animate
     for (const ac of this._animatingComponents) {
-      componentsToAnimate.push({ component: ac.component, record: ac });
+      ac.component.playAnimation({
+        before: ac.before || {},
+        after: ac.after,
+        invertedTransform: ac.invertedTransform || '',
+        finalTransform: ac.afterTransform,
+        beforeOpacity: ac.beforeOpacity || '1',
+        finalOpacity: ac.afterOpacity,
+        needsHostTransition: true,
+      });
+      settledPromises.push(ac.component.settled());
     }
 
-    // Phase 4: FLIP Play phase
-    // CRITICAL ORDERING for CSS transitions to fire:
-    //
-    // prepareAnimation() set `style.transition = 'none'` and the inverted
-    // transform on each component's host element. For the browser to animate
-    // from the inverted position to the final position, it must:
-    //   1. Commit the inverted position while transitions are disabled
-    //   2. Re-enable transitions
-    //   3. Set the final transform — browser sees the change and animates
-    //
-    // A reflow between steps 1-2 and 2-3 ensures the browser doesn't batch
-    // the writes and skip the animation.
-
-    // Step 1: Force layout to commit inverted transforms (transition: none still in effect)
-    this.offsetHeight;
-
-    // Step 2: Re-enable CSS transitions on the host element
-    for (const item of componentsToAnimate) {
-      item.component.style.transition = '';
-    }
-
-    // Step 3: Force layout so browser registers transition is now active
-    this.offsetHeight;
-
-    // Step 4: Set final transforms — browser sees change and animates
-    for (const item of componentsToAnimate) {
-      item.component.startAnimation(item.record.after, item.record.afterTransform, item.record.afterOpacity, item.record.needsHostTransition ?? true);
-    }
-
-    resolve();
+    // The promise animateFlip() hands out now means "everything SETTLED",
+    // not "everything started" — the gate awaits real completion.
+    resolve(Promise.all(settledPromises).then(() => {}));
   }
 
   private _ingestStack(possibleLocations: Map<string, CollectionRecord>, stack: any) {

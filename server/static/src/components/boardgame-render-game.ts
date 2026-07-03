@@ -341,11 +341,11 @@ class BoardgameRenderGame extends LitElement {
       }
       animHooks.record('watchdog', pendingComponents.join(','));
       console.error(
-        `[boardgame-render-game] Animation watchdog timeout: animations did not complete within 15s. ` +
+        `[boardgame-render-game] Animation watchdog timeout: animations did not complete within 4s. ` +
         `Force-firing all-animations-done. Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
       );
       this._notifyAnimationsDone();
-    }, 15000);
+    }, 4000);
   }
 
   private _componentWillAnimate(e: CustomEvent) {
@@ -409,11 +409,6 @@ class BoardgameRenderGame extends LitElement {
       // started, check to see if no animations have been registered; if they
       // haven't, then we can advance to the next state immediately.
       this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations());
-      // TODO: technically it's possible that no animations fire, but
-      // this._animator.animateFlip() returns immediately but schedules work in a
-      // rAF callback. We used to check for this._activeAnimations.size == 0
-      // and then bail, but that always triggered because animateFlip() returns
-      // immediately.
     }
   }
 
