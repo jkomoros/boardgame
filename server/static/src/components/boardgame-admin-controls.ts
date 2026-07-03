@@ -160,6 +160,13 @@ export class BoardgameAdminControls extends LitElement {
   @property({ type: Object })
   game: Game | null = null;
 
+  // Mirrors boardgame-render-game's isAnimating, threaded down from
+  // boardgame-game-view via the animating-changed event, so the move form
+  // can auto-disable its submit buttons while an animation is in flight
+  // (#721).
+  @property({ type: Boolean })
+  animating = false;
+
   @query('#moves')
   private movesElement!: BoardgameMoveForm;
 
@@ -308,7 +315,8 @@ export class BoardgameAdminControls extends LitElement {
               .moveAsPlayer="${this.moveAsPlayer}"
               id="moves"
               .config="${this.moveForms}"
-              .gameRoute="${this.gameRoute}">
+              .gameRoute="${this.gameRoute}"
+              .animating="${this.animating}">
             </boardgame-move-form>
           </div>
         `)}

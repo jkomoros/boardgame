@@ -116,6 +116,19 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
   @property({ type: Number })
   moveAsPlayer = 0;
 
+  // animating mirrors boardgame-render-game's isAnimating, threaded down
+  // through boardgame-admin-controls. While true, submit buttons are
+  // disabled unless noAnimationDisable opts out (#721) — proposing a move
+  // while the rendered state is still transitioning would be judged against
+  // stale-looking state from the user's perspective.
+  @property({ type: Boolean })
+  animating = false;
+
+  // noAnimationDisable opts a move-form instance out of the animating-driven
+  // auto-disable above (e.g. for callers that want moves always available).
+  @property({ type: Boolean, attribute: 'no-animation-disable' })
+  noAnimationDisable = false;
+
   private _lastError: string | null = null;
 
   stateChanged(state: RootState): void {
@@ -292,7 +305,9 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
               <div ?hidden="${item.Fields && item.Fields.length > 0}">
                 <em>No modifiable fields</em><br>
               </div>
-              <md-filled-button @click="${this.doSubmitForm}">Make Move</md-filled-button>
+              <md-filled-button
+                ?disabled="${this.animating && !this.noAnimationDisable}"
+                @click="${this.doSubmitForm}">Make Move</md-filled-button>
             </form>
           </details>
         `)}

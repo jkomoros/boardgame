@@ -127,6 +127,14 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Boolean, attribute: false })
   private _allAnimationsDoneFired = true;
 
+  // isAnimating reflects whether the animation gate is currently open (an
+  // animation cycle is in flight). Reflected to the `is-animating` attribute
+  // so tests and ancestor CSS can observe it without reaching into internals,
+  // and mirrored via `animating-changed` so ancestors (boardgame-game-view)
+  // can wire it into move-disabling UI without polling. See #721.
+  @property({ type: Boolean, reflect: true, attribute: 'is-animating' })
+  isAnimating = false;
+
   @query('#animator')
   private _animator?: any;
 
@@ -326,6 +334,10 @@ class BoardgameRenderGame extends LitElement {
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
+    this.isAnimating = true;
+    this.dispatchEvent(new CustomEvent('animating-changed', {
+      bubbles: true, composed: true, detail: { value: this.isAnimating }
+    }));
     // Start a watchdog timer. If animations complete normally,
     // _notifyAnimationsDone() will clear it before it fires.
     this._animationWatchdogTimer = setTimeout(() => {
@@ -378,6 +390,10 @@ class BoardgameRenderGame extends LitElement {
     }
     this._allAnimationsDoneFired = true;
     animHooks.record('gate-close');
+    this.isAnimating = false;
+    this.dispatchEvent(new CustomEvent('animating-changed', {
+      bubbles: true, composed: true, detail: { value: this.isAnimating }
+    }));
     this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true, bubbles: true }));
   }
 

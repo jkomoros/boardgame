@@ -257,6 +257,13 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean, attribute: false })
   _handHidden = false;
 
+  // Mirrors boardgame-render-game's isAnimating (via the animating-changed
+  // event, since #render is a plain @query reference, not a reactive
+  // property source) so it can be threaded down to the admin move-form for
+  // move auto-disable (#721).
+  @property({ type: Boolean, attribute: false })
+  _animating = false;
+
   constructor() {
     super();
 
@@ -266,6 +273,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.addEventListener('install-game-static-info', (e: Event) => this._handleGameStaticInfo(e as CustomEvent));
     this.addEventListener('all-animations-done', (e: Event) => this._handleAllAnimationsDone(e));
     this.addEventListener('set-animation-length', (e: Event) => this._handleSetAnimationLength(e as CustomEvent));
+    this.addEventListener('animating-changed', (e: Event) => this._handleAnimatingChanged(e as CustomEvent));
   }
 
   override render() {
@@ -358,6 +366,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         .gameRoute=${this._gameRoute}
         .chest=${this._chest}
         .currentState=${this._currentState}
+        .animating=${this._animating}
         @requested-player-changed=${this._handleRequestedPlayerChanged}
         @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}>
       </boardgame-admin-controls>
@@ -453,6 +462,21 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleProposeMove(e: CustomEvent) {
+    // Swallow proposed moves while an animation cycle is in flight: the
+    // rendered state on screen is mid-transition to what the server already
+    // considers current, so a move proposed now would be judged against
+    // stale-looking state from the user's perspective (#721). This also
+    // guards the classic "double-click a move button" case with the default
+    // animation length — the second click lands while isAnimating is still
+    // true and is dropped rather than silently enqueuing a second move.
+    // The gate re-opens either when animations finish normally or when the
+    // 4s watchdog force-closes it (boardgame-render-game's
+    // _notifyAnimationsDone), so this never permanently wedges move entry.
+    if (this._renderEle?.isAnimating) {
+      console.warn('[game-view] propose-move ignored while animations are running (#721)');
+      return;
+    }
+
     // Validate arguments against the move schema (dev-time safety net)
     warnOnInvalidMoveArgs(e.detail.name, e.detail.arguments || {}, this.moveForms);
 
@@ -521,6 +545,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleSetAnimationLength(e: CustomEvent) {
     this._renderEle.defaultAnimationLength = e.detail;
+  }
+
+  private _handleAnimatingChanged(e: CustomEvent) {
+    this._animating = e.detail.value;
   }
 
   private _firstStateBundleInstalled() {
