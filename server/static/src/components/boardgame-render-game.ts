@@ -5,6 +5,7 @@ import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
+import { animHooks } from '../utils/anim-test-hooks.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -316,6 +317,7 @@ class BoardgameRenderGame extends LitElement {
   }
 
   private _resetAnimating() {
+    animHooks.record('gate-open');
     // Clear any existing watchdog timer from a previous animation cycle.
     if (this._animationWatchdogTimer !== null) {
       clearTimeout(this._animationWatchdogTimer);
@@ -337,6 +339,7 @@ class BoardgameRenderGame extends LitElement {
           pendingComponents.push(`${tag}${id}`);
         }
       }
+      animHooks.record('watchdog', pendingComponents.join(','));
       console.error(
         `[boardgame-render-game] Animation watchdog timeout: animations did not complete within 15s. ` +
         `Force-firing all-animations-done. Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
@@ -374,6 +377,7 @@ class BoardgameRenderGame extends LitElement {
       this._animationWatchdogTimer = null;
     }
     this._allAnimationsDoneFired = true;
+    animHooks.record('gate-close');
     this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true, bubbles: true }));
   }
 
