@@ -56,10 +56,6 @@ research/
 boardgame-util/*.log
 server/static/*.log
 
-# Generated test directories
-server/static/tests/animations/
-server/static/tests/games/
-
 # Extra compiled binaries
 boardgame-util/boardgame-util-bin
 
