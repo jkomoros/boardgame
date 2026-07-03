@@ -91,6 +91,15 @@ export class BoardgameHandViewBase<
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
+    if (changedProperties.has('viewingAsPlayer')) {
+      // The first state can install while we're still resolving as an
+      // observer — playerState is undefined then, and a baseline recorded
+      // at that moment is empty-but-non-null. When the seat identity
+      // resolves a beat later, every long-held card would diff as
+      // "incoming" and the whole hand would replay from the top edge.
+      // Identity changed ⇒ start the baseline over.
+      this._prevOwnCardIds = null;
+    }
     const myTurn = this.isCurrentPlayer && !this.gameFinished;
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a

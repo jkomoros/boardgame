@@ -35,16 +35,21 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
       }
       .hand {
         display: flex;
+        flex-wrap: wrap;
+        padding: 0 14px;
         justify-content: center;
         align-items: center;
         gap: 12px;
         margin: 24px 0;
         min-height: 170px;
+        /* Long hands (repeated Hits) wrap instead of clipping off the
+           right edge of the phone; card width also shrinks a little on
+           narrow screens. */
         /* Big readable cards on a phone. boardgame-card's sizing model:
            width var × aspect; the rotated attr (set below, matching the
            solo renderer's convention) swaps the axes so cards stand
            upright/portrait. */
-        --component-width: 104px;
+        --component-width: clamp(76px, 24vw, 104px);
       }
       .hand boardgame-component-stack {
         /* The stack's own :host defaults to width:100%, which makes two

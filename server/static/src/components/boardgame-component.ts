@@ -98,7 +98,12 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   @property({ type: Object })
   item: any = null;
 
-  @property({ type: String })
+  // reflect: true is LOAD-BEARING. This Lit property shadows the native
+  // Element.id accessor; without reflection, `ele.id = x` stores the value
+  // in Lit state but never writes the DOM id attribute — so
+  // getElementById / #id selectors could never match any component, which
+  // silently no-op'ed every id-based animateBetween lookup.
+  @property({ type: String, reflect: true })
   id = '';
 
   @property({ type: Boolean })

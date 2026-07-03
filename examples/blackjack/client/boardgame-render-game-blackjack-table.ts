@@ -99,9 +99,9 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
           <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
         </template>
       </boardgame-deck-defaults>
-      <div class="draw" id="deal-source">
+      <div class="draw">
         ${this.state?.Game?.DrawStack
-          ? html`<boardgame-component-stack .stack=${(this.state.Game as any).DrawStack} .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack id="deal-source" .stack=${(this.state.Game as any).DrawStack} .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
           : html`<small>waiting for state…</small>`}
       </div>
       <div class="seats">

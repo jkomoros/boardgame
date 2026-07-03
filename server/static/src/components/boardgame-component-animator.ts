@@ -216,28 +216,44 @@ export class BoardgameComponentAnimator extends LitElement {
     const real = this._resolveAnimationTarget(realId);
     const stub = this._resolveAnimationTarget(stubId);
     if (!real || !stub) {
+      // Loud on purpose: an unresolvable endpoint silently killed the
+      // entire cross-screen animation feature once already (the id
+      // property wasn't reflected to the DOM, so no card ever matched).
+      console.warn('[animator] animateBetween: could not resolve',
+        !real ? realId : stubId, '— animation skipped');
       return;
     }
-    const realOffsets = this._calculateOffsets(real);
-    const stubOffsets = this._calculateOffsets(stub);
-    const dx = stubOffsets.left - realOffsets.left;
-    const dy = stubOffsets.top - realOffsets.top;
+    // Measure both endpoints in the SAME coordinate space (viewport rects)
+    // and align CENTERS. The previous offsetParent-chain math mixed
+    // coordinate spaces when the two elements had different fixed/absolute
+    // ancestors, and corner-alignment launched flights from the top-left
+    // of full-width containers instead of from the visual source.
+    const realRect = real.getBoundingClientRect();
+    const stubRect = stub.getBoundingClientRect();
+    const dx = (stubRect.left + stubRect.width / 2) - (realRect.left + realRect.width / 2);
+    const dy = (stubRect.top + stubRect.height / 2) - (realRect.top + realRect.height / 2);
     if (dx === 0 && dy === 0) {
       return;
     }
-    const prevTransition = real.style.transition;
     const prevTransform = real.style.transform;
     // First/Invert: jump immediately to the stub position (no animation).
     real.style.transition = 'none';
-    real.style.transform = `translate(${dx}px, ${dy}px)`;
+    real.style.transform = `translate(${dx}px, ${dy}px) ${prevTransform || ''}`.trim();
     // Force layout to lock in the inverted position before transitioning.
     real.getBoundingClientRect();
     // Last/Play: animate back to original transform over durationMs.
     real.style.transition = `transform ${durationMs}ms ease-out`;
     real.style.transform = prevTransform || '';
     await new Promise<void>((resolve) => {
+      let done = false;
       const cleanup = () => {
-        real.style.transition = prevTransition;
+        if (done) return;
+        done = true;
+        // Restore to '' (stylesheet transition), NOT the captured inline
+        // value: if another pipeline (the FLIP state-install path) had an
+        // inline transition mid-flight when we started, blindly restoring
+        // it later could stomp a NEWER animation on this element.
+        real.style.transition = '';
         real.removeEventListener('transitionend', cleanup);
         resolve();
       };

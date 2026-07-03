@@ -568,14 +568,17 @@ export class BoardgameTableViewBase<
     .fake-deck-stub {
       width: 64px;
       height: 88px;
-      border: 1px dashed #ccc;
+      border: 1px dashed rgba(255, 255, 255, 0.5);
       border-radius: 6px;
-      background: rgba(255,255,255,0.6);
+      background: rgba(255, 255, 255, 0.18);
       text-align: center;
       padding-top: 4px;
       font-size: 10px;
-      color: #888;
-      opacity: 0;
+      color: rgba(255, 255, 255, 0.85);
+      /* Visible — these ARE the flying proxies for the cross-screen deal
+         animation. opacity: 0 here silently hid the entire projector half
+         of the effect (the stub flew a perfect arc nobody could see). */
+      opacity: 0.9;
     }
     .room-code-banner {
       display: flex;

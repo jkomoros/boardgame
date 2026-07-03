@@ -106,6 +106,23 @@ the rest are the ranked backlog.*
 7. Absent thresholds (30s) worked well in testing; revisit against real
    phone-lock behavior at a live game night.
 
+### Frame-by-frame animation review (2026-07-02, adversarial agent)
+
+An instrumented reviewer sampled every card's position per frame during
+real deals on three simultaneous pages. Round 1 verdict: the cross-screen
+animation feature **did not exist** — the phone fly-in never fired (a Lit
+`id` property shadowed `Element.id` without reflecting, so no id lookup
+ever matched a card, silently), the table's chip flight played at
+opacity 0 from a wrong origin, and the sync estimator had no consumers.
+After fixes, round 2 confirmed with frame evidence: fly-in real (top-edge
+entry, 600ms monotonic ease-out), chip flight visible from the deck, no
+regressions, hand wrap works. Remaining (tracked in the sync follow-up
+task): a ≤2-frame FLIP/animateBetween handoff blip with ~40px origin
+skew, and deal-phase cross-screen drift (up to ~1s on the 4th card of a
+deal) until serverPlayAt is actually consumed. Also noted: presence
+badges showed "Waiting…" for open phone pages in the test rig — worth a
+heartbeat check outside the animation scope.
+
 ## J5/J6 notes (verified, no action)
 
 - Brute-forcing `/api/join` reveals nothing about game structure (seat
