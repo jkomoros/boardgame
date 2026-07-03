@@ -123,8 +123,13 @@ export class BoardgameCard extends BoardgameComponent {
       #top-rank,
       #bottom-rank {
         position: absolute;
-        font-size: 12px;
-        line-height: 12px;
+        /* Scale corner indices with the card so they stay readable at any
+           size (--component-width comes from the surrounding view). The
+           old fixed 12px was illegible on phone-sized cards. */
+        font-size: max(11px, calc(var(--component-effective-width) * 0.17));
+        line-height: 1;
+        font-weight: 600;
+        color: var(--card-ink-color, #1c2b22);
       }
 
       #top-rank {
@@ -137,6 +142,30 @@ export class BoardgameCard extends BoardgameComponent {
         right: 5px;
         top: 5px;
         transform: rotate(90deg);
+      }
+
+      /* Big center pip so a hand card reads at arm's length. Rotated 90°
+         for the same reason the corner indices are: the card's natural
+         frame is landscape; views display it upright via the rotated
+         attribute. */
+      #center-rank {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: calc(var(--component-effective-width) * 0.48);
+        line-height: 1;
+        font-weight: 700;
+        color: var(--card-ink-color, #1c2b22);
+        transform: rotate(90deg);
+      }
+
+      /* Classic red suits: ♥/♦ fronts carry the .red-suit class. */
+      .red-suit #top-rank,
+      .red-suit #bottom-rank,
+      .red-suit #center-rank {
+        color: var(--card-red-ink-color, #B3362B);
       }
 
       #outer #front {
@@ -377,9 +406,10 @@ export class BoardgameCard extends BoardgameComponent {
       <div id="outer" class="${classMap(this._computeClasses())}" @click="${this.handleTap}" style="${this._outerStyle}">
         <div id="inner">
           <div id="front">
-            <div class="normal">
+            <div class="normal ${this.suit === '♥' || this.suit === '♦' ? 'red-suit' : ''}">
               <slot id="front-slot">
                 <div id="top-rank">${this.suit}${this.rank}</div>
+                <div id="center-rank">${this.suit}</div>
                 <div id="bottom-rank">${this.suit}${this.rank}</div>
               </slot>
             </div>

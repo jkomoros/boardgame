@@ -93,7 +93,11 @@ export class BoardgameHandViewBase<
     super.updated?.(changedProperties);
     const myTurn = this.isCurrentPlayer && !this.gameFinished;
     if (myTurn && !this._wasMyTurn) {
-      navigator.vibrate?.(200);
+      // Browsers block vibration before the first user gesture (and log a
+      // console error) — only buzz once the user has interacted.
+      if ((navigator as any).userActivation?.hasBeenActive) {
+        navigator.vibrate?.(200);
+      }
     }
     this._wasMyTurn = myTurn;
     if (!changedProperties.has('state')) return;

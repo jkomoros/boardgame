@@ -38,8 +38,12 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
         margin: 0 0 16px 0;
       }
       .draw {
-        text-align: center;
-        margin: 32px auto;
+        display: flex;
+        justify-content: center;
+        margin: 24px auto;
+      }
+      .draw boardgame-component-stack {
+        width: auto;
       }
       .seats {
         display: flex;
@@ -65,6 +69,15 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
         display: flex;
         gap: 8px;
         justify-content: center;
+        align-items: center;
+        min-height: 110px;
+        --component-width: 64px;
+      }
+      .seat-cards boardgame-component-stack {
+        width: auto;
+      }
+      .draw {
+        --component-width: 64px;
       }
     `,
   ];
@@ -88,7 +101,7 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
       </boardgame-deck-defaults>
       <div class="draw" id="deal-source">
         ${this.state?.Game?.DrawStack
-          ? html`<boardgame-component-stack .stack=${(this.state.Game as any).DrawStack}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${(this.state.Game as any).DrawStack} .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
           : html`<small>waiting for state…</small>`}
       </div>
       <div class="seats">
@@ -97,10 +110,10 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
             <div class="seat-name">${nameFor(i)} · ${(p as any).Score ?? 0} pts</div>
             <div class="seat-cards">
               ${(p as any).VisibleHand
-                ? html`<boardgame-component-stack .stack=${(p as any).VisibleHand} layout="fan" messy></boardgame-component-stack>`
+                ? html`<boardgame-component-stack .stack=${(p as any).VisibleHand} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
                 : ''}
               ${(p as any).HiddenHand
-                ? html`<boardgame-component-stack .stack=${(p as any).HiddenHand} layout="fan" messy></boardgame-component-stack>`
+                ? html`<boardgame-component-stack .stack=${(p as any).HiddenHand} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
                 : ''}
             </div>
             ${(p as any).Stood ? html`<small>Standing</small>` : ''}

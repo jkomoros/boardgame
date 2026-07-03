@@ -36,8 +36,21 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
       .hand {
         display: flex;
         justify-content: center;
-        gap: 8px;
+        align-items: center;
+        gap: 12px;
         margin: 24px 0;
+        min-height: 170px;
+        /* Big readable cards on a phone. boardgame-card's sizing model:
+           width var × aspect; the rotated attr (set below, matching the
+           solo renderer's convention) swaps the axes so cards stand
+           upright/portrait. */
+        --component-width: 104px;
+      }
+      .hand boardgame-component-stack {
+        /* The stack's own :host defaults to width:100%, which makes two
+           sibling stacks fight for the row and pile their cards on top
+           of each other. Size to content instead. */
+        width: auto;
       }
       .actions {
         display: flex;
@@ -75,10 +88,10 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
           </template>
         </boardgame-deck-defaults>
         ${player?.HiddenHand
-          ? html`<boardgame-component-stack .stack=${player.HiddenHand}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.HiddenHand} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
           : html`<small>waiting…</small>`}
         ${player?.VisibleHand
-          ? html`<boardgame-component-stack .stack=${player.VisibleHand}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.VisibleHand} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
           : ''}
       </div>
       <div class="actions">
