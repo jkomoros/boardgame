@@ -298,13 +298,13 @@ export class BoardgameCard extends BoardgameComponent {
     ].join(' ');
   }
 
-  override playPropertyAnimation(before: Record<string, any>, after: Record<string, any>): void {
+  override playPropertyAnimation(before: Record<string, any>, after: Record<string, any>, delayMs: number = 0): void {
     if (before.faceUp === after.faceUp && before.rotated === after.rotated) return;
     if (!this.innerElement) return;
     this.play(this.innerElement, [
       { transform: this._innerTransformFor(!!before.faceUp, !!before.rotated) },
       { transform: this._innerTransformFor(!!after.faceUp, !!after.rotated) },
-    ]);
+    ], { delay: delayMs });
   }
 
   override get cloneContent(): boolean {

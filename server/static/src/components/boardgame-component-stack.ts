@@ -309,6 +309,12 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   fauxComponents = 0;
 
+  // stagger, when > 0, offsets the start of each animating child in a
+  // cycle by (index * stagger * animation length), producing a cascading
+  // deal effect (#728). 0 = simultaneous (default).
+  @property({ type: Number })
+  stagger = 0;
+
   @query('#container')
   private container!: HTMLElement;
 

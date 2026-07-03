@@ -638,12 +638,19 @@ export class BoardgameComponentAnimator extends LitElement {
     const settledPromises: Promise<void>[] = [];
 
     for (let i = 0; i < collections.length; i++) {
-      const components = collections[i].Components;
+      const collection = collections[i];
+      const staggerFraction = collection.stagger || 0;
+      let animIndex = 0;
+      const components = collection.Components;
       for (let j = 0; j < components.length; j++) {
         const component = components[j];
         if (component.id === '') continue;
         const record = this._infoById[component.id];
         if (!record || !record.needsAnimation) continue;
+        const delayMs = staggerFraction > 0
+          ? animIndex * staggerFraction * component.animationLengthMs()
+          : 0;
+        animIndex++;
         component.playAnimation({
           before: record.before || {},
           after: record.after || {},
@@ -652,6 +659,7 @@ export class BoardgameComponentAnimator extends LitElement {
           beforeOpacity: record.beforeOpacity || '1',
           finalOpacity: record.afterOpacity || '',
           needsHostTransition: record.needsHostTransition ?? true,
+          delayMs,
         });
         settledPromises.push(component.settled());
       }

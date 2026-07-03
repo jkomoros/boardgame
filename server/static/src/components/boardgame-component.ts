@@ -15,6 +15,7 @@ export interface FlipRecord {
   beforeOpacity: string;             // '' treated as '1'
   finalOpacity: string;
   needsHostTransition: boolean;      // host transform keyframes worth playing
+  delayMs?: number;                  // per-component start delay, from a stack's stagger attribute (#728)
 }
 
 export class BoardgameComponent extends BoardgameAnimatableItem {
@@ -171,11 +172,12 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   // playPropertyAnimation, so the databinding dance (setting before-props
   // then after-props) is gone entirely.
   playAnimation(rec: FlipRecord): void {
+    const delayMs = rec.delayMs ?? 0;
     if (rec.needsHostTransition) {
       this.play(this, [
         { transform: rec.invertedTransform },
         { transform: rec.finalTransform || 'none' },
-      ]);
+      ], { delay: delayMs });
       // The element's resting inline transform must be the final one; the
       // animation is an overlay (fill: 'none').
       this.style.transform = rec.finalTransform;
@@ -183,15 +185,17 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     const beforeO = parseFloat(rec.beforeOpacity || '1');
     const afterO = parseFloat(rec.finalOpacity || '1');
     if (Math.abs(beforeO - afterO) > 0.01) {
-      this.play(this, [{ opacity: String(beforeO) }, { opacity: String(afterO) }]);
+      this.play(this, [{ opacity: String(beforeO) }, { opacity: String(afterO) }], { delay: delayMs });
     }
     this.style.opacity = rec.finalOpacity;
-    this.playPropertyAnimation(rec.before, rec.after);
+    this.playPropertyAnimation(rec.before, rec.after, delayMs);
   }
 
   // playPropertyAnimation animates the visual consequences of
   // animatingProperties changing (e.g. a card's faceUp flip). Base: no-op.
-  playPropertyAnimation(before: Record<string, any>, after: Record<string, any>): void {
+  // delayMs (from a stack's stagger attribute, #728) should be threaded
+  // into any play() call subclasses make here.
+  playPropertyAnimation(before: Record<string, any>, after: Record<string, any>, delayMs: number = 0): void {
     // Subclasses override.
   }
 
