@@ -13,7 +13,18 @@ export class BoardgameAnimatableItem extends LitElement {
   @property({ type: Number, attribute: 'post-animation-delay' })
   postAnimationDelay = 0;
 
-  @property({ type: Boolean, attribute: 'wait-for-animation' })
+  // waitForAnimation controls whether this item's animations hold the
+  // completion gate (#716). Boolean-ish attribute with one twist: since
+  // the property DEFAULTS to true, the only useful thing an attribute can
+  // express is "false" — so unlike a stock Lit Boolean, the literal
+  // string "false" parses as false. Absent attribute → default (true).
+  @property({
+    attribute: 'wait-for-animation',
+    converter: {
+      fromAttribute: (value: string | null) => value !== 'false',
+      toAttribute: (value: boolean) => (value ? '' : 'false'),
+    },
+  })
   waitForAnimation = true;
 
   // beforeOrphaned is called when we know we're about to be orphaned (for

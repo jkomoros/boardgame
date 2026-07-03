@@ -78,3 +78,23 @@ test('stack forwards post-animation-delay to stamped components', async ({ page 
   expect(v.found).toBe(true);
   expect(v.value).toBe(150);
 });
+
+test('wait-for-animation="false" set directly on an item parses as false and ungates', async ({ page }) => {
+  await createOfflineGame(page, 'blackjack');
+  const r = await page.evaluate(async () => {
+    const ele = document.createElement('boardgame-component') as any;
+    ele.setAttribute('wait-for-animation', 'false');
+    document.body.appendChild(ele);
+    await ele.updateComplete;
+    const parsedFalse = ele.waitForAnimation === false;
+    ele.play(ele, [{ opacity: 0 }, { opacity: 1 }], { duration: 60000 });
+    await ele.settled(); // must resolve immediately since ungated
+    const bare = document.createElement('boardgame-component') as any;
+    bare.setAttribute('wait-for-animation', '');
+    document.body.appendChild(bare);
+    await bare.updateComplete;
+    return { parsedFalse, bareParsedTrue: bare.waitForAnimation === true };
+  });
+  expect(r.parsedFalse).toBe(true);
+  expect(r.bareParsedTrue).toBe(true);
+});

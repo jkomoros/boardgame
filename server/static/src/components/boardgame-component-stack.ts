@@ -744,6 +744,11 @@ export class BoardgameComponentStack extends LitElement {
     // which is populated programmatically by parent components like
     // boardgame-game-board), so read them here rather than via a
     // reflected Lit @property.
+    //
+    // wait-for-animation parsing (`!== 'false'`) intentionally matches the
+    // item-level contract in boardgame-animatable-item.ts's custom Lit
+    // converter: the attribute defaults to true, and the literal string
+    // "false" is the only way to turn it off. Keep both in sync.
     if (this.hasAttribute('post-animation-delay')) {
       const parsed = parseFloat(this.getAttribute('post-animation-delay')!);
       if (!isNaN(parsed)) {
