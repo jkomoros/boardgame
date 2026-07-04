@@ -61,7 +61,7 @@ export class BoardgameBaseGameRenderer<
    * `this.animator?.animateBetween(cardId, 'hand-top-edge')`. Null before
    * the renderer is attached (or in tests outside boardgame-render-game).
    */
-  protected get animator(): { animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs?: number): Promise<void> } | null {
+  protected get animator(): { animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs?: number, opts?: { startAtMs?: number }): Promise<void> } | null {
     const root = this.getRootNode();
     if (!(root instanceof ShadowRoot)) return null;
     return root.querySelector('#animator') as any;

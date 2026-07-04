@@ -1,0 +1,178 @@
+import { test, expect } from '@playwright/test';
+import { createOfflineGame } from './helpers';
+
+// Companion-mode cross-screen animation sync (#798, spec §8.4). The
+// Table surface (shared projector) and Hand surfaces (players' phones)
+// must launch the same card flight at roughly the same wall-clock
+// instant. Two mechanisms cooperate:
+//
+//   1. boardgame-game-state-manager delays INSTALL of a state bundle to
+//      the server-anchored serverPlayAt (converted to local-clock ms via
+//      companionSync.localEquivalent), but only on companion surfaces.
+//   2. boardgame-component-animator.animateBetween accepts a startAtMs
+//      and puts clamp(startAtMs - Date.now(), 0, 2000) into the WAAPI
+//      flight's `delay`, so the visible motion begins at that instant.
+//
+// These specs drive the real production singletons (exposed on
+// window.__bgCompanionSync, mirroring window.__bgAnimTestHooks) and the
+// real animateBetween, then assert the cross-context skew is well under
+// the 250ms coherence threshold (drift was ~1000ms before #798).
+
+test.describe('companion-sync estimator', () => {
+  test('localEquivalent needs >=3 samples, then applies the min offset', async ({ page }) => {
+    await createOfflineGame(page, 'blackjack'); // any page with the module loaded
+    const r = await page.evaluate(() => {
+      const sync = (window as any).__bgCompanionSync;
+      if (!sync) return { missing: true } as any;
+      const est = sync.estimator;
+      const server = Date.now() + 100000; // arbitrary future server epoch
+      // NOTE: this is the live production singleton, so real socket
+      // version-timing frames from the running game may already have fed
+      // it samples — we assert its CONTRACT, not a from-empty offset.
+      const offsetBefore = est.minOffset();
+      const beforeWarm = est.localEquivalent(server);
+      // Feed >=3 samples with a large, unambiguous one-way latency (250ms)
+      // so the min-wins estimator has a committed, non-null offset even if
+      // it was cold before. ingest records (Date.now() - serverSentAt).
+      const now = Date.now();
+      for (let i = 0; i < 4; i++) {
+        est.ingest({ version: 1000 + i, serverSentAt: now - 250, serverPlayAt: now });
+      }
+      const offsetAfter = est.minOffset();
+      const afterWarm = est.localEquivalent(server);
+      return { missing: false, offsetBefore, beforeWarm, offsetAfter, afterWarm, server };
+    });
+    expect(r.missing, 'window.__bgCompanionSync must be exposed').toBe(false);
+    // Cold-estimator contract: with <3 samples minOffset is null and
+    // localEquivalent is a passthrough (callers then play immediately).
+    if (r.offsetBefore === null) {
+      expect(r.beforeWarm).toBe(r.server);
+    } else {
+      // Already warm from live traffic: the conversion identity must hold.
+      expect(r.beforeWarm).toBe(r.server + r.offsetBefore);
+    }
+    // Warm-estimator contract: >=3 samples ⇒ non-null offset, and
+    // localEquivalent(x) === x + minOffset() exactly (the core server→
+    // local conversion the schedulers depend on).
+    expect(r.offsetAfter).not.toBeNull();
+    expect(r.afterWarm).toBe(r.server + r.offsetAfter);
+    // The min-wins offset can never exceed our injected 250ms sample
+    // (variance only ever adds latency; the minimum is the floor).
+    expect(r.offsetAfter).toBeLessThanOrEqual(250);
+  });
+});
+
+test.describe('cross-screen synced auto-fly', () => {
+  test.setTimeout(120000);
+
+  // Two independent browser contexts stand in for the Table projector and
+  // a player's phone. Each drives the REAL animateBetween with the SAME
+  // absolute startAtMs (a shared wall-clock target on this one machine).
+  // We then read each context's first 'play' hook — recorded by
+  // animateBetween at the moment the flight VISUALLY begins — normalize it
+  // to absolute epoch-comparable ms via performance.timeOrigin + t, and
+  // assert the two launches land within the coherence threshold.
+  test('deal flights start within sync threshold on both surfaces', async ({ browser }) => {
+    const tableCtx = await browser.newContext();
+    const handCtx = await browser.newContext();
+    const table = await tableCtx.newPage();
+    const hand = await handCtx.newPage();
+
+    try {
+      // Surface routing is the ?display=table|hand query param (see
+      // utils/companion-surface.ts — it takes precedence over the
+      // per-game surface_<gameId> cookie and is the dev-testing seam).
+      await createOfflineGame(table, 'blackjack');
+      const gameUrl = new URL(table.url());
+
+      const tableUrl = new URL(gameUrl.toString());
+      tableUrl.searchParams.set('display', 'table');
+      const handUrl = new URL(gameUrl.toString());
+      handUrl.searchParams.set('display', 'hand');
+
+      // Join the same game on the hand context, then land both pages on
+      // their surface-routed URLs. (The -table/-hand renderer variants are
+      // not shipped for any game yet, so the loader falls back to the solo
+      // renderer with a console warning; that is fine here — we are testing
+      // the surface-agnostic animator + estimator, and the animator element
+      // is created directly below, exactly as waapi-play.spec.ts does.)
+      await createOfflineGame(hand, 'blackjack');
+      await hand.goto(handUrl.toString());
+      await table.goto(tableUrl.toString());
+
+      await table.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined, undefined, { timeout: 30000 });
+      await hand.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined, undefined, { timeout: 30000 });
+      await table.waitForFunction(() => (window as any).__bgCompanionSync !== undefined, undefined, { timeout: 30000 });
+      await hand.waitForFunction(() => (window as any).__bgCompanionSync !== undefined, undefined, { timeout: 30000 });
+
+      // Shared wall-clock target. Both contexts run on this same machine,
+      // so Date.now() is a common clock — the same absolute startAtMs on
+      // each page is exactly what companionSync.localEquivalent(playAt)
+      // produces once the estimators on both surfaces agree. We give a
+      // comfortable lead so both timers are armed well before it elapses.
+      const sharedStartAtMs = Date.now() + 600;
+
+      // Reset hooks on BOTH pages right before launching, so the first
+      // 'play' entry we read is unambiguously our flight.
+      await table.evaluate(() => (window as any).__bgAnimTestHooks.reset());
+      await hand.evaluate(() => (window as any).__bgAnimTestHooks.reset());
+
+      const launch = async (page: typeof table, startAtMs: number) => {
+        return page.evaluate(async (startAt) => {
+          const animator = document.createElement('boardgame-component-animator') as any;
+          document.body.appendChild(animator);
+          await animator.updateComplete;
+          const a = document.createElement('div');
+          const b = document.createElement('div');
+          a.id = 'fly-real';
+          a.style.cssText = 'position:fixed;top:10px;left:10px;width:20px;height:20px';
+          b.style.cssText = 'position:fixed;top:400px;left:400px;width:20px;height:20px';
+          document.body.append(a, b);
+          // Fire-and-forget: the flight resolves ~600ms after its delay
+          // elapses; we only need the 'play' hook it records at visual
+          // start, which we read below after awaiting the shared instant.
+          void animator.animateBetween(a, b, 300, { startAtMs: startAt });
+        }, startAtMs);
+      };
+
+      // Launch on both surfaces. Order/skew here is absorbed by the shared
+      // absolute startAtMs — each side's WAAPI delay self-corrects to the
+      // common instant.
+      await Promise.all([launch(table, sharedStartAtMs), launch(hand, sharedStartAtMs)]);
+
+      // Wait until both pages have recorded their fly 'play' hook (the
+      // delay has elapsed and the flight began).
+      const readFirstFly = async (page: typeof table) => {
+        await page.waitForFunction(() => {
+          const h = (window as any).__bgAnimTestHooks;
+          return h.log.some((e: any) => e.ev === 'play' && typeof e.detail === 'string' && e.detail.startsWith('fly:'));
+        }, undefined, { timeout: 15000 });
+        return page.evaluate(() => {
+          const h = (window as any).__bgAnimTestHooks;
+          const entry = h.log.find((e: any) => e.ev === 'play' && typeof e.detail === 'string' && e.detail.startsWith('fly:'));
+          // Normalize to an absolute, cross-context-comparable epoch-ms
+          // instant. performance.now() (entry.t) is relative to each
+          // page's own timeOrigin; adding timeOrigin makes them shareable.
+          return performance.timeOrigin + entry.t;
+        });
+      };
+
+      const [tableStart, handStart] = await Promise.all([
+        readFirstFly(table),
+        readFirstFly(hand),
+      ]);
+
+      const skew = Math.abs(tableStart - handStart);
+      // eslint-disable-next-line no-console
+      console.log(`[waapi-companion] measured cross-surface skew: ${skew.toFixed(1)}ms`);
+      test.info().annotations.push({ type: 'skew', description: `${skew.toFixed(1)}ms` });
+
+      // Coherence threshold (spec §8.4): the two surfaces must launch the
+      // same flight within 250ms. Do NOT weaken this.
+      expect(skew).toBeLessThan(250);
+    } finally {
+      await tableCtx.close();
+      await handCtx.close();
+    }
+  });
+});

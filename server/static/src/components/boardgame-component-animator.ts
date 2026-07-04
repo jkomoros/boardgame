@@ -2,6 +2,7 @@ import { LitElement, html, TemplateResult } from 'lit';
 import { query } from 'lit/decorators.js';
 import './boardgame-component-stack.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
+import { animHooks } from '../utils/anim-test-hooks.js';
 
 interface ComponentRecord {
   offsets?: OffsetRect;
@@ -230,8 +231,12 @@ export class BoardgameComponentAnimator extends LitElement {
    * Settlement (anim.finished, or the cancel rejection) is ground truth
    * for "done".
    *
-   * opts.startAtMs is accepted but not yet implemented (scheduling lands
-   * in a later task); passing it currently has no effect.
+   * opts.startAtMs is a local-clock (Date.now()-comparable) instant at
+   * which the flight should visually begin — the companion-sync scheduled
+   * play-at (spec §8.4). The WAAPI `delay` is clamp(startAtMs - Date.now(),
+   * 0, 2000): a bad/stale estimate can never hold a card in flight for more
+   * than 2s, and a past instant plays immediately. Omitting it (solo games)
+   * yields delay 0, i.e. the original instant-start behaviour.
    */
   async animateBetween(
     realId: string | HTMLElement,
@@ -261,13 +266,30 @@ export class BoardgameComponentAnimator extends LitElement {
     if (dx === 0 && dy === 0) {
       return;
     }
+    // Companion-sync scheduling (spec §8.4): defer the flight so Table and
+    // Hand launch the same card within estimator error. Clamped to [0,2000]
+    // so a bad estimate can never wedge the card in flight.
+    const delay = opts?.startAtMs
+      ? Math.min(2000, Math.max(0, opts.startAtMs - Date.now()))
+      : 0;
     const anim = real.animate(
       [
         { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
         { transform: real.style.transform || 'none' },
       ],
-      { duration: durationMs, easing: 'ease-out', fill: 'none' },
+      { duration: durationMs, delay, easing: 'ease-out', fill: 'none' },
     );
+    // Record a 'play' hook at the moment the flight VISUALLY begins (after
+    // the sync delay elapses), so the cross-screen skew test can compare
+    // launch instants across surfaces. We stamp it via a matching timer
+    // rather than anim.ready because WAAPI's `ready` resolves when the
+    // DELAY phase starts, not the active (visible) phase.
+    const realTag = real.tagName.toLowerCase() + (real.id ? `#${real.id}` : '');
+    if (delay > 0) {
+      window.setTimeout(() => animHooks.record('play', 'fly:' + realTag), delay);
+    } else {
+      animHooks.record('play', 'fly:' + realTag);
+    }
     // Settlement is ground truth: finished resolves on completion, rejects
     // on cancel (element removed mid-flight) — both mean "done" here.
     await anim.finished.catch(() => {});

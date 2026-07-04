@@ -1,7 +1,8 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
-import { ingestVersionTiming } from './companion-sync.js';
+import { ingestVersionTiming, companionSync, latestServerPlayAt } from './companion-sync.js';
+import { surfaceForGame } from '../utils/companion-surface.js';
 import { store } from '../store.js';
 import {
   fetchGameInfo,
@@ -648,6 +649,27 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
             if (length > 0) effectiveAnimationLength = length;
             this.dispatchEvent(new CustomEvent('set-animation-length', { composed: true, bubbles: true, detail: length }));
           }
+        }
+      }
+    }
+
+    // Companion sync (#798): if the server stamped a play-at time for this
+    // version and we're on a companion surface (Table or Hand), delay the
+    // install so both surfaces start the same animation within estimator
+    // error. Solo games keep instant installs. Clamped so a bad estimate
+    // can never hang the game (spec §8.4: Error handling).
+    const surface = this.gameRoute ? surfaceForGame(this.gameRoute.id) : null;
+    if (surface === 'table' || surface === 'hand') {
+      const playAt = latestServerPlayAt();
+      if (playAt !== null) {
+        const local = companionSync.localEquivalent(playAt);
+        const wait = Math.min(2000, Math.max(0, local - Date.now()));
+        if (wait > 8) { // sub-frame waits aren't worth a timer
+          window.setTimeout(() => this._asyncFireNextStateBundle(effectiveAnimationLength), wait);
+          return;
+        }
+        if (local - Date.now() < -2000) {
+          console.warn('[state-manager] serverPlayAt over 2s stale; installing immediately');
         }
       }
     }

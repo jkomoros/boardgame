@@ -3,6 +3,7 @@ import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
+import { companionSync, latestServerPlayAt } from './companion-sync.js';
 
 /**
  * BoardgameHandViewBase is the base class for the Hand view renderer that
@@ -124,9 +125,14 @@ export class BoardgameHandViewBase<
     // The card elements are rendered by child <boardgame-component-stack>
     // elements that re-render asynchronously after receiving the new
     // state; wait two frames so the new cards exist before we measure.
+    // Companion sync (#798): schedule the arrival flight at the same
+    // server-anchored instant the Table launches the departure, so the
+    // card appears to cross screens coherently. undefined ⇒ play now.
+    const playAt = latestServerPlayAt();
+    const startAtMs = playAt !== null ? companionSync.localEquivalent(playAt) : undefined;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       for (const id of incoming) {
-        this.animator?.animateBetween(id, anchor, 600);
+        this.animator?.animateBetween(id, anchor, 600, { startAtMs });
       }
     }));
   }

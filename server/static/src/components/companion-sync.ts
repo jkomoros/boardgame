@@ -91,6 +91,28 @@ class CompanionSyncEstimator {
 
 export const companionSync = new CompanionSyncEstimator();
 
+// Test seam (mirrors window.__bgAnimTestHooks): the estimator + play-at
+// singletons are otherwise module-private, so the cross-screen sync spec
+// (tests/animations/waapi-companion.spec.ts) has no way to drive them
+// deterministically across two browser contexts. Cost is two property
+// writes at module load; harmless in production.
+declare global {
+  interface Window {
+    __bgCompanionSync?: {
+      estimator: CompanionSyncEstimator;
+      latestServerPlayAt: () => number | null;
+      ingestVersionTiming: (data: VersionTimingMessage) => void;
+    };
+  }
+}
+if (typeof window !== 'undefined') {
+  window.__bgCompanionSync = {
+    estimator: companionSync,
+    latestServerPlayAt,
+    ingestVersionTiming,
+  };
+}
+
 // _latestServerPlayAt is the server-anchored play-at instant from the
 // most recent version-timing message. Game renderers can read it via
 // latestServerPlayAt() and feed it to companionSync.localEquivalent()
