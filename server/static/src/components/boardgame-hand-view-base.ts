@@ -45,17 +45,6 @@ export class BoardgameHandViewBase<
   gameId = '';
 
   /**
-   * Mirrors boardgame-render-game's isAnimating (set at both gate flips and
-   * at instantiation — see _applyAnimatingToRenderer). Gates
-   * renderHandHeader()'s outcome strings so the verdict never appears while
-   * the last animation cycle (e.g. the winning card landing) is still in
-   * flight — the outcome should only announce itself once the board has
-   * visually settled (#798).
-   */
-  @property({ type: Boolean })
-  animating = false;
-
-  /**
    * Per-seat avatar + name records for everyone in the game (same data
    * the Table view receives). The Hand view typically only needs this
    * for a small banner ("Playing as BrightFox") or to show who the

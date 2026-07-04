@@ -155,30 +155,154 @@ and transparent, so as the component animates back to 0 state it's visually
 clear which stack the component went to in general, but not where in the
 component it went.
 
-The timing logic of the animation is controlled by when animations are done,
-which fundamentally relies on `transitionend` events. During the animation
-state, each boardgame-component fires a `will-animate` event as soon as it
-realizes that it will animate, because either its external or internal
-transforms will change. It does this by calling _expectTransitionEnd, which
-handles the logic of keeping track of how many `transitionend` the component
-expects before all of its animations are done. Because sometimes the transform
-is set multiple times by multiple property sets, _expectTransitionEnd takes an element and property name that we expect to animate, so we can make sure to only count as many animations as we will actually
-receive `transtiionend`s later (and ignore anything that's not a `transform` or `opacity`, as those are never semantic, as well as anything that this.willNotAnimate tells us won't animate, for example because this.noAnimate is true). (That deduping logic is reset at the beginning
-of each new animation pass when _resetAnimating is called by animation
-coordinator).
+## Animation timing: play() / settlement / the gate
 
-The components are also responsible for firing `animation-done` when all of
-their aniamtions are done. We do this by watching for `transitionend` events
-coming up from within, calling _animationEnded. We wait until we get as many
-`transitionend` events as we expected base don _expectTransitionEnd, and when
-that's true, we fire `animation-done`.
+The timing logic described above (computing before/after transforms) is
+unchanged, but *knowing when an animation is done* was rewritten to use the
+Web Animations API (WAAPI) directly instead of counting `transitionend`
+events. There is no more expectation counting, no `_expectTransitionEnd`, no
+`willNotAnimate`, and no `transitionend` listening anywhere in the animation
+path — `Animation.finished` is ground truth.
 
-`boardgame-render-game` listens for `will-animate` events, and then keeps
-track of it, waiting to hear later of a `animation-done` from that component.
-Once every `will-animate` for this animation cycle has had a matching
-`aniamtion-done`, render-game fires `all-animations-done`, which game view
-catches and then asks the state manager to install the next state bundle, if
-it has one. Thus the process continues, until the queue of state bundles is
-empty.
+`BoardgameAnimatableItem` (the mixin/base that both `boardgame-component` and
+`boardgame-component-stack`'s faux animating elements extend) exposes a single
+entry point, `play(element, keyframes, timing, opts)`, that every animating
+transform goes through:
 
-As a recap, at a high level the timing works like this. `game-state-manager`, when it boots up, fetches the game info and tells the game-view to install the first state-bundle. `game-state-manager` also keeps a socket to the server, so it always knows when there are new game versions to fetch and put in its queue to apply. If the queue was empty when a new one is fetched, it immediately tells `game-view` to install it. After that, it waits until all animations are done, before `game-view` tells `game-state-manager` to pass the next state bundle, if it has one. Every time `game-state-manager` is told to pass a new state bundle if it has one, it checks whether it should set an override animationLength (which might even tell it to skip it), by inspecting the renderer's `animationLength`. It also checks the renderer's `animationOverlap` to determine whether to install the next state before the current animation finishes, enabling overlapping animations for effects like cascade dealing. Any post-animation hold (like letting a matched pair linger on screen) is expressed declaratively via the `post-animation-delay` attribute on the animating item/stack rather than by delaying bundle installation.
+- It calls `element.animate(keyframes, timing)` and gets back a real WAAPI
+  `Animation`.
+- Unless `noAnimate` is set (a barrier used while the animator is measuring
+  before/after layout) or `opts.gated === false`, the animation counts toward
+  the item's *gated* set: on the first gated animation to start, the item
+  fires `will-animate`; when the gated count returns to zero it fires
+  `animation-done`.
+- `settled(): Promise<void>` resolves once every gated animation on that item
+  has finished (or was cancelled — `anim.finished` rejects on cancel, and
+  both paths count as settlement).
+- `finishAllAnimations()` force-finishes (or cancels) every live animation on
+  the item synchronously, resolving settlement immediately. This backs
+  interruption semantics (a new animation cycle starting while a previous one
+  is still in flight) and `beforeOrphaned()` (an animating faux component is
+  about to be removed from the DOM — settle first so the gate never waits on
+  a detached element).
+- `animationLengthMs()` reads the effective `--animation-length` CSS custom
+  property (set by `boardgame-render-game` from the renderer's
+  `animationLength()` hook) and is what `play()` uses as the default duration
+  unless the caller overrides `timing`.
+
+`BoardgameComponentAnimator._startAnimations` calls `play()` (via each
+component's `playAnimation()`) for every component that needs to animate this
+cycle, collects each one's `settled()` promise, and resolves the promise it
+handed back from `animateFlip()` with `Promise.all(settledPromises)`. That
+promise means "everything has visually SETTLED", not "everything has
+started" — callers await real completion, not just animation kickoff.
+
+### The gate
+
+`boardgame-render-game` owns a boolean `isAnimating` (reflected as the
+`is-animating` attribute so tests/CSS can observe it, and broadcast via an
+`animating-changed` event since it isn't reachable as a reactive property
+from ancestors). This is "the gate":
+
+- `_resetAnimating()` flips it open (`isAnimating = true`) at the start of an
+  animation cycle, resets the set of components it's waiting on, and mirrors
+  the value onto the active renderer's `animating` property
+  (`_applyAnimatingToRenderer`, called at both gate flips and at renderer
+  instantiation so a renderer created mid-cycle starts with the right value).
+- Each component fires `will-animate` (tracked in `_activeAnimations`) and
+  later `animation-done` (removed from the map); when the map empties,
+  `_notifyAnimationsDone()` flips the gate closed (`isAnimating = false`) and
+  fires `all-animations-done`, which `boardgame-game-view` uses to ask the
+  state manager to install the next pending state bundle.
+- `boardgame-game-view` also swallows `propose-move` events while
+  `isAnimating` is true (#721): the on-screen state is mid-transition to what
+  the server already considers current, so a move proposed now would judge
+  stale-looking state, and it also guards the classic
+  double-click-a-move-button case. The gate re-opening (normally or via the
+  watchdog) is what lets move entry resume — it never permanently wedges.
+- Table/Hand view renderer bases (`boardgame-table-view-base.ts`,
+  `boardgame-hand-view-base.ts`, and the shared `animating` property they
+  inherit from `boardgame-base-game-renderer.ts`) gate verdict/outcome UI
+  (`renderGameOverBanner()`, `renderHandHeader()`'s status text) on this same
+  mirrored `animating` flag, so a game-over banner or "You won!" string can
+  never render while the winning move's animation is still in flight (#798).
+
+### The 4s watchdog
+
+`_resetAnimating()` also arms a `setTimeout(..., 4000)` watchdog every time
+the gate opens, and clears it whenever the gate closes normally
+(`_notifyAnimationsDone`) or a fresh cycle starts. If 4 seconds pass without
+every awaited animation settling — a hung `Animation`, a component that never
+fired `animation-done`, a bug — the watchdog force-fires
+`_notifyAnimationsDone()` anyway, logs an error naming the still-pending
+components, and records a `watchdog` event via the `animHooks` test-hook
+singleton (consulted by the Playwright suite's `watchdogFirings` assertions:
+a passing run must see zero watchdog firings, since a firing means some
+animation path didn't settle on its own). This is the invariant that
+guarantees the gate — and therefore move entry and state installation — can
+never wedge permanently, regardless of what bugs exist upstream in
+timing/settlement logic.
+
+### Attributes
+
+Three DOM attributes give game renderers declarative control over animation
+behavior without touching the state manager or the gate directly:
+
+- **`post-animation-delay`** (milliseconds, on an item or a
+  `boardgame-component-stack`, forwarded to stamped children): sets
+  WAAPI's `endDelay` on `play()`'s timing, holding the element in its final
+  state for a beat after the animation visually completes before
+  `animation-done`/settlement fires. Replaced an earlier imperative
+  per-move delay hook that the state manager used to consult directly
+  before installing the next bundle — this is the same effect (e.g. let a
+  matched pair linger before it's captured) expressed declaratively at the
+  render site instead.
+- **`wait-for-animation`** (boolean-ish, default true; the literal string
+  `"false"` is the only way to opt out, since the property already defaults
+  true): controls whether this item's animations hold the gate open at all
+  (`opts.gated` in `play()`). An item with `wait-for-animation="false"`
+  still animates, but the gate doesn't wait for it to settle.
+- **`stagger`** (fraction, on `boardgame-component-stack`): when > 0, each
+  animating child in the stack's cycle is delayed by
+  `index * stagger * animationLengthMs()` before its `play()` call, producing
+  a cascading start (e.g. cards dealing one after another) instead of every
+  card starting simultaneously.
+
+### Companion scheduling (#798)
+
+Companion mode (Table + Hand views on separate physical screens) wants the
+same logical event — e.g. a card dealt from the table to a phone — to start
+animating on both screens at roughly the same wall-clock instant, even
+though each screen receives its own WebSocket push and renders independently.
+
+- The server stamps every `version-timing` socket message with
+  `serverSentAt` and `serverPlayAt` (`serverSentAt + ANIMATION_LEAD_MS`).
+- `companion-sync.ts`'s `CompanionSyncEstimator` maintains a rolling,
+  minimum-wins one-way-latency estimate from `serverSentAt` (variance only
+  ever adds delay, so the minimum sample is the closest thing to true
+  one-way transit time). `companionSync.localEquivalent(serverEpochMs)`
+  converts a server timestamp into the local-clock instant of the same
+  wall-clock moment; with fewer than 3 samples it falls back to the raw
+  server timestamp (animations play immediately — safe degradation).
+- On the state-manager side, `boardgame-game-state-manager`'s
+  `_scheduleNextStateBundle()` — on companion surfaces only, solo games are
+  unaffected — reads `latestServerPlayAt()` and, if set, arms a
+  `_scheduledInstallTimerId` so the next state bundle installs at the
+  locally-converted play-at instant rather than immediately. The wait is
+  clamped to [0, 2000]ms so a bad estimate or stale timestamp can never hang
+  the game; `readyForNextState()` (fired when the gate closes) and any
+  fresh enqueue cancel a previously-armed timer to avoid double-installs.
+- Game renderer code that flies a stub between screens (see
+  `BoardgameTableViewBase`'s `autoFlyDeals`/`updated()` and
+  `BoardgameHandViewBase`'s `autoFlyIncoming`/`updated()`) reads the same
+  `latestServerPlayAt()` value, converts it via `companionSync
+  .localEquivalent()`, and passes it as `startAtMs` to
+  `animator.animateBetween(..., { startAtMs })` — so the departure flight on
+  the Table and the arrival flight on the Hand are scheduled against the
+  same server-anchored instant, reading as one coherent cross-screen motion
+  rather than two independently-timed animations.
+- The game-over verdict (`renderGameOverBanner()` / the Hand header's
+  outcome text) is gated on the mirrored `animating` flag described above,
+  so the outcome banner can't race ahead of a still-in-flight companion
+  flight — and the 4s watchdog is the backstop that guarantees that gate
+  can't wedge if a flight's `Animation` never settles.

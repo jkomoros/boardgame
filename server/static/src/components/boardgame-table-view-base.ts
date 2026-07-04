@@ -76,17 +76,6 @@ export class BoardgameTableViewBase<
   isHost = false;
 
   /**
-   * Mirrors boardgame-render-game's isAnimating (set at both gate flips and
-   * at instantiation — see _applyAnimatingToRenderer). Gates
-   * renderGameOverBanner() so the verdict never appears while the last
-   * animation cycle (e.g. the winning card landing) is still in flight —
-   * the outcome should only announce itself once the board has visually
-   * settled (#798).
-   */
-  @property({ type: Boolean })
-  animating = false;
-
-  /**
    * When true (the default), the base watches each player's hand size and,
    * when it grows, flies that player's fake-deck-row stub in from the
    * element the author marked id="deal-source" (typically the draw pile) —

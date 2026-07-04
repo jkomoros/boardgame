@@ -339,7 +339,6 @@ export class BoardgameComponentStack extends LitElement {
   private _id = '';
   private _style = '';
   private _boundSlotChanged?: (firstRender: boolean) => void;
-  private _boundClearAnimatingComponents?: (e: Event) => void;
 
   get _sharedStackList(): BoardgameComponentStack[] {
     return sharedStackList;
@@ -692,25 +691,14 @@ export class BoardgameComponentStack extends LitElement {
 
     this.setUnknownAnimationState(component);
     this.animatingComponentsContainer.appendChild(component);
-    if (!this._boundClearAnimatingComponents) {
-      this._boundClearAnimatingComponents = (e: Event) => this._clearAnimatingComponents(e);
-    }
-    component.addEventListener('transitionend', this._boundClearAnimatingComponents);
     return component;
   }
 
   clearAnimatingComponents() {
-    this._clearAnimatingComponents(null);
-  }
-
-  private _clearAnimatingComponents(e: Event | null) {
     const container = this.animatingComponentsContainer;
     while (container.children.length > 0) {
       const child = container.children[0];
       if ((child as any).beforeOrphaned) (child as any).beforeOrphaned();
-      if (this._boundClearAnimatingComponents) {
-        child.removeEventListener('transitionend', this._boundClearAnimatingComponents);
-      }
       container.removeChild(child);
     }
   }

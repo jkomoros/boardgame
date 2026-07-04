@@ -45,6 +45,17 @@ export class BoardgameBaseGameRenderer<
   @property({ type: Array })
   gameWinners: number[] = [];
 
+  /**
+   * Mirrors boardgame-render-game's isAnimating (set at both gate flips and
+   * at instantiation — see _applyAnimatingToRenderer). Table and Hand view
+   * subclasses gate their verdict UI (renderGameOverBanner /
+   * renderHandHeader) on this so the outcome never appears while the last
+   * animation cycle (e.g. the winning card landing) is still in flight —
+   * it should only announce itself once the board has visually settled
+   * (#798).
+   */
+  @property({ type: Boolean })
+  animating = false;
 
   get isCurrentPlayer(): boolean {
     // AdminPlayerIndex (-2): admin can always act
