@@ -76,8 +76,18 @@ export class BoardgameAnimatableItem extends LitElement {
     if (gated) {
       this._liveGatedCount++;
       if (this._liveGatedCount === 1) {
+        // Tell the render-game watchdog how long this gated play is
+        // declared to run so it can extend its deadline past a legitimately
+        // long cycle (stagger delay + duration + post-animation-delay)
+        // instead of force-closing mid-animation. Numbers only — coerce the
+        // resolved timing fields (they may be CSSNumericValue-ish or absent).
+        const num = (v: unknown): number =>
+          typeof v === 'number' && isFinite(v) ? v : 0;
+        const expectedSettleMs = num(resolvedTiming.delay)
+          + num(resolvedTiming.duration)
+          + num(resolvedTiming.endDelay);
         this.dispatchEvent(new CustomEvent('will-animate',
-          { bubbles: true, composed: true, detail: { ele: this } }));
+          { bubbles: true, composed: true, detail: { ele: this, expectedSettleMs } }));
       }
     }
     animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));

@@ -166,6 +166,20 @@ test('stagger produces strictly increasing per-index animation delays', async ({
     return h.gateCloses >= h.gateOpens;
   }, undefined, { timeout: 20000 });
 
+  // The watchdog must NOT have fired across this staggered cycle. With
+  // --animation-length forced to 3s and stagger 0.2, later cards start
+  // well past 4s (index 2 alone starts at 1200ms, and a real deal cascade
+  // of many cards pushes the last card's *settle* far past a flat 4s
+  // watchdog). Before the event-driven watchdog extension this could
+  // silently force-close mid-cascade (watchdogFirings > 0); the extension
+  // scales the deadline to each play's declared settle budget, so a clean
+  // cycle records zero firings. A non-zero count here means the watchdog
+  // wrongly force-closed a legitimate long animation -- a regression.
+  const watchdogFirings = await page.evaluate(
+    () => (window as any).__bgAnimTestHooks.watchdogFirings as number,
+  );
+  expect(watchdogFirings, 'watchdog must not fire during a legitimate long staggered cycle').toBe(0);
+
   // At least two distinct non-zero delays observed (one stack's worth of
   // staggered cards), and they form a strictly increasing sequence once
   // deduped+sorted -- i.e. index*stagger*animationLength for index

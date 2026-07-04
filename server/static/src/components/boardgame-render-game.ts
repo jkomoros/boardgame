@@ -144,6 +144,22 @@ class BoardgameRenderGame extends LitElement {
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
   private _animationWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
+  // Largest declared settle time (delay + duration + endDelay) reported by
+  // any gated play() in the current cycle, via the will-animate event. Used
+  // to extend the watchdog past a legitimately long cycle (stagger +
+  // post-animation-delay + long --animation-length) rather than force-close
+  // mid-animation. Reset to 0 at each gate open.
+  private _maxExpectedSettleMs = 0;
+  // Absolute local-clock (Date.now()-comparable) instant the current
+  // watchdog is armed to fire at. Tracked so an incoming will-animate can
+  // tell whether a longer play would outlast the deadline and re-arm.
+  private _watchdogDeadlineEpoch = 0;
+  // The watchdog floor: the gate never gets less than this before firing,
+  // even for trivially short cycles. Longer declared cycles push it out.
+  private static readonly _WATCHDOG_FLOOR_MS = 4000;
+  // Slack added past a declared long cycle's expected settle instant, so
+  // normal per-animation jitter/scheduling never trips the watchdog.
+  private static readonly _WATCHDOG_MARGIN_MS = 1500;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -344,6 +360,7 @@ class BoardgameRenderGame extends LitElement {
       clearTimeout(this._animationWatchdogTimer);
       this._animationWatchdogTimer = null;
     }
+    this._maxExpectedSettleMs = 0;
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
@@ -352,8 +369,22 @@ class BoardgameRenderGame extends LitElement {
     this.dispatchEvent(new CustomEvent('animating-changed', {
       bubbles: true, composed: true, detail: { value: this.isAnimating }
     }));
-    // Start a watchdog timer. If animations complete normally,
-    // _notifyAnimationsDone() will clear it before it fires.
+    // Arm the watchdog at the floor. Long declared cycles push it out via
+    // _componentWillAnimate. If animations complete normally,
+    // _notifyAnimationsDone() clears it before it fires.
+    this._armWatchdog(BoardgameRenderGame._WATCHDOG_FLOOR_MS);
+  }
+
+  // _armWatchdog (re)arms the watchdog to fire `fromNowMs` from now, tracking
+  // the absolute deadline so a later will-animate can decide whether to
+  // extend it. The watchdog is the invariant backstop: if it ever fires, an
+  // awaited animation didn't settle within its own declared budget — a bug.
+  private _armWatchdog(fromNowMs: number) {
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
+    }
+    this._watchdogDeadlineEpoch = Date.now() + fromNowMs;
     this._animationWatchdogTimer = setTimeout(() => {
       this._animationWatchdogTimer = null;
       if (this._allAnimationsDoneFired) return;
@@ -367,16 +398,30 @@ class BoardgameRenderGame extends LitElement {
       }
       animHooks.record('watchdog', pendingComponents.join(','));
       console.error(
-        `[boardgame-render-game] Animation watchdog timeout: animations did not complete within 4s. ` +
-        `Force-firing all-animations-done. Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
+        `[boardgame-render-game] Animation watchdog timeout: animations did not complete ` +
+        `within their declared budget (${fromNowMs}ms). Force-firing all-animations-done. ` +
+        `Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
       );
       this._notifyAnimationsDone();
-    }, 4000);
+    }, fromNowMs);
   }
 
   private _componentWillAnimate(e: CustomEvent) {
     this._ensureActiveAnimations();
     this._activeAnimations!.set(e.detail.ele, true);
+    // Extend the watchdog if this play declares a settle time that would
+    // outlast the current deadline. The deadline is the declared expected
+    // settle instant plus a fixed margin, floored at _WATCHDOG_FLOOR_MS —
+    // so e.g. 15 staggered cards each 2s long (last starts ~5.6s in) no
+    // longer trip a flat 4s watchdog mid-flight.
+    const expected = e.detail?.expectedSettleMs;
+    if (typeof expected === 'number' && expected > this._maxExpectedSettleMs) {
+      this._maxExpectedSettleMs = expected;
+      const targetEpoch = Date.now() + expected + BoardgameRenderGame._WATCHDOG_MARGIN_MS;
+      if (targetEpoch > this._watchdogDeadlineEpoch) {
+        this._armWatchdog(targetEpoch - Date.now());
+      }
+    }
   }
 
   private _componentAnimationDone(e: CustomEvent) {

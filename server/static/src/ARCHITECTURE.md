@@ -227,21 +227,35 @@ from ancestors). This is "the gate":
   mirrored `animating` flag, so a game-over banner or "You won!" string can
   never render while the winning move's animation is still in flight (#798).
 
-### The 4s watchdog
+### The watchdog
 
-`_resetAnimating()` also arms a `setTimeout(..., 4000)` watchdog every time
-the gate opens, and clears it whenever the gate closes normally
-(`_notifyAnimationsDone`) or a fresh cycle starts. If 4 seconds pass without
-every awaited animation settling — a hung `Animation`, a component that never
-fired `animation-done`, a bug — the watchdog force-fires
-`_notifyAnimationsDone()` anyway, logs an error naming the still-pending
-components, and records a `watchdog` event via the `animHooks` test-hook
-singleton (consulted by the Playwright suite's `watchdogFirings` assertions:
-a passing run must see zero watchdog firings, since a firing means some
-animation path didn't settle on its own). This is the invariant that
-guarantees the gate — and therefore move entry and state installation — can
-never wedge permanently, regardless of what bugs exist upstream in
-timing/settlement logic.
+`_resetAnimating()` also arms a watchdog every time the gate opens, and
+clears it whenever the gate closes normally (`_notifyAnimationsDone`) or a
+fresh cycle starts. If the deadline passes without every awaited animation
+settling — a hung `Animation`, a component that never fired `animation-done`,
+a bug — the watchdog force-fires `_notifyAnimationsDone()` anyway, logs an
+error naming the still-pending components, and records a `watchdog` event via
+the `animHooks` test-hook singleton (consulted by the Playwright suite's
+`watchdogFirings` assertions: a passing run must see zero watchdog firings,
+since a firing means some animation path didn't settle on its own). This is
+the invariant that guarantees the gate — and therefore move entry and state
+installation — can never wedge permanently, regardless of what bugs exist
+upstream in timing/settlement logic.
+
+The deadline is **not** a flat timeout: a legitimate cycle can run much
+longer than a few seconds (e.g. 15 cards staggered at 0.2 with a 2s
+`--animation-length` — the last card doesn't even start until ~5.6s), and a
+flat 4s watchdog would force-close that cycle mid-flight, violating its own
+"firing = bug" invariant. Instead each gated `play()` reports its declared
+settle time (`delay + duration + endDelay`, covering stagger delay,
+animation length, and `post-animation-delay`) in the `will-animate` event's
+`expectedSettleMs`. `_componentWillAnimate` tracks the largest such value and
+extends the watchdog to *that declared settle instant + a 1.5s margin*
+whenever a play would outlast the current deadline. The deadline never drops
+below a 4s floor, so trivially short cycles still get a prompt backstop; it
+only ever grows to cover a cycle's own declared animation budget. A firing
+therefore still unambiguously means an animation overran the time it *itself
+declared* it would take — a real bug, never just a long-but-honest cycle.
 
 ### Attributes
 
