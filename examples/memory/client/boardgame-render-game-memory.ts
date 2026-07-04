@@ -10,7 +10,7 @@ import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
+import type { CardsComponentValues, GameState, PlayerState } from './_types.js';
 
 class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
   static override styles = [
@@ -52,16 +52,38 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, Pla
     return this.computeMaxTimeLeft(this.state?.Game?.HideCardsTimer?.originalTimeLeft ?? 0);
   }
 
-  override delayAnimation(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
-    if (toMove && toMove.Name === 'Capture Cards') {
-      // Show the cards for a second before capturing them.
-      return 1000;
-    }
-    return 0;
-  }
-
   private computeMaxTimeLeft(timeLeft: number): number {
     return Math.max(timeLeft, 100);
+  }
+
+  // _revealHoldMs replaces this renderer's old imperative delay-animation
+  // hook, which delayed installing the next state by 1000ms whenever the move
+  // about to be installed was the engine's "Capture Cards" FixUp move (i.e.
+  // the two currently-revealed cards match), so players could see the
+  // matched pair for a beat before they animate away to the winner's pile.
+  // That hook was told about the upcoming move directly; the declarative
+  // replacement (post-animation-delay, #715) instead infers the same
+  // condition from currently-rendered state: two visible cards of the same
+  // Type is exactly the situation in which the engine's next queued bundle
+  // will be Capture Cards (its Legal() requires exactly two matching
+  // VisibleCards; otherwise a different fixup move applies, and the hold
+  // does not apply).
+  //
+  // VisibleCards.Components is a fixed-size (SizedStack) array padded with
+  // nulls at unrevealed slots, matching the template's own
+  // {{item.Values.Type}} access -- component field values live under
+  // `.Values`, not directly on the component (that nesting isn't reflected
+  // in the shared Component<T> TS type, so read defensively).
+  private _revealHoldMs(): number {
+    const components = this.state?.Game?.VisibleCards?.Components;
+    if (!components) return 0;
+    const revealed = components.filter((c): c is NonNullable<typeof c> => !!c);
+    if (revealed.length !== 2) return 0;
+    const [first, second] = revealed as unknown as { Values?: CardsComponentValues }[];
+    const firstType = first.Values?.Type;
+    const secondType = second.Values?.Type;
+    if (firstType === undefined || secondType === undefined) return 0;
+    return firstType === secondType ? 1000 : 0;
   }
 
   override render() {
@@ -80,6 +102,7 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, Pla
         <boardgame-component-stack
           layout="grid"
           messy
+          post-animation-delay="${this._revealHoldMs()}"
           .stack="${this.state?.Game?.Cards}"
           .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
         </boardgame-component-stack>

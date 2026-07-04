@@ -167,15 +167,8 @@ export class BoardgameBaseGameRenderer<
   // animation length (in milliseconds) by setting `--animation-length` on the
   // renderer. Zero will specify default animation length (that is, unset an
   // override style). A negative return value will skip the animation entirely.
-  // The default one returns 0 for all combinations. See also delayAnimation.
+  // The default one returns 0 for all combinations. See also animationOverlap.
   animationLength(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
-    return 0;
-  }
-
-  // delayAnimation will be consulted when applying an animation. It will delay
-  // by the returned number of milliseconds. The default one returns 0 for all
-  // combinations. See also animationLength.
-  delayAnimation(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     return 0;
   }
 
@@ -183,7 +176,7 @@ export class BoardgameBaseGameRenderer<
   // which the next state can be installed, even if the current animation is
   // still running. 0 (default) = wait for animation to complete (no overlap).
   // 0.5 = start next animation when this one is halfway done. Values outside
-  // 0-1 are clamped. See also animationLength and delayAnimation.
+  // 0-1 are clamped. See also animationLength.
   animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     return 0;
   }

@@ -626,7 +626,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     const renderer = this.activeRenderer;
     let effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS;
 
-    // If we were given a renderer that knows how to delay animations, consult it.
+    // If we were given a renderer that customizes animation length, consult it.
     if (renderer) {
       const nextBundle = this._pendingBundles[0];
       const lastBundle = this._lastFiredBundle;
@@ -647,17 +647,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
           } else {
             if (length > 0) effectiveAnimationLength = length;
             this.dispatchEvent(new CustomEvent('set-animation-length', { composed: true, bubbles: true, detail: length }));
-          }
-        }
-        if (renderer.delayAnimation) {
-          const delay = renderer.delayAnimation(lastMove, nextMove);
-          if (delay < 0) {
-            console.warn('Negative value for delayAnimation. Did you mean to use animationLength instead?', lastMove, nextMove);
-          }
-          // If delay is greater than 0, wait that long before firing
-          if (delay > 0) {
-            window.setTimeout(() => this._asyncFireNextStateBundle(effectiveAnimationLength), delay);
-            return;
           }
         }
       }
