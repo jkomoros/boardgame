@@ -275,6 +275,78 @@ test.describe('verdict gating on animation completion', () => {
     expect(await bannerVisible(), 'banner must appear once animating=false and gameFinished=true').toBe(true);
   });
 
+  test('animateBetween flight on a real card holds the render-game gate until it settles', async ({ page }) => {
+    // #798: a synced deal flight (animateBetween) on a REAL animatable card
+    // must keep the render-game completion gate OPEN until the flight
+    // settles, so the game-over verdict can't appear while the winning card
+    // is still in the air. Before this fix animateBetween used a raw
+    // real.animate() that never registered with the gate, so the gate could
+    // close (and the banner appear) mid-flight. This drives the REAL
+    // production render-game + its REAL animator against a REAL card, and
+    // asserts the render-game[is-animating] gate is open mid-flight and
+    // closed only after settlement.
+    await createOfflineGame(page, 'debuganimations');
+
+    // Quiescent baseline: gate closed.
+    await page.waitForFunction(() => {
+      const h = (window as any).__bgAnimTestHooks;
+      return h.gateCloses >= h.gateOpens;
+    }, undefined, { timeout: 20000 });
+
+    const result = await page.evaluate(async (fnSrc: string) => {
+      // eslint-disable-next-line no-eval
+      const deepQueryFirst = eval(`(${fnSrc})`);
+      const rg = deepQueryFirst(document, 'boardgame-render-game') as any;
+      // The production animator lives in render-game's shadow root.
+      const animator = rg?.shadowRoot?.querySelector('#animator') as any;
+      // Any real animatable card/component connected inside the renderer's
+      // tree. It extends BoardgameAnimatableItem, so it has play().
+      const card = deepQueryFirst(document, 'boardgame-card')
+        || deepQueryFirst(document, 'boardgame-component');
+      if (!rg || !animator || !card) {
+        return { setupOk: false, hasPlay: false, midFlightAnimating: null, afterAnimating: null };
+      }
+      const hasPlay = typeof (card as any).play === 'function';
+
+      // Open the completion gate exactly as a state-change cycle would, so
+      // there is a live gate for the flight to hold. (_resetAnimating is
+      // private; we reach it deliberately to isolate the flight's effect on
+      // the gate from any incidental FLIP animations.)
+      (rg as any)._resetAnimating();
+      await rg.updateComplete;
+
+      // Fly the real card from a shifted position to its resting spot. Use
+      // an explicit HTMLElement stub with a non-overlapping rect so dx/dy
+      // are non-zero (animateBetween early-returns on a zero delta).
+      const stub = document.createElement('div');
+      stub.style.cssText = 'position:fixed;top:500px;left:500px;width:40px;height:60px';
+      document.body.appendChild(stub);
+
+      // Fire-and-forget so we can sample the gate WHILE the flight is live.
+      const flightDone = animator.animateBetween(card, stub, 300);
+
+      // Let the will-animate bubble to render-game and flip the gate.
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      await rg.updateComplete;
+      const midFlightAnimating = rg.hasAttribute('is-animating');
+
+      // Now let the flight settle; the animation-done must close the gate.
+      await flightDone;
+      await rg.updateComplete;
+      const afterAnimating = rg.hasAttribute('is-animating');
+
+      stub.remove();
+      return { setupOk: true, hasPlay, midFlightAnimating, afterAnimating };
+    }, `(${deepQueryFirstScript.toString()})()`);
+
+    expect(result.setupOk, 'render-game, its animator, and a real card must all be present').toBe(true);
+    expect(result.hasPlay, 'the real card must be an animatable item with play()').toBe(true);
+    // The load-bearing #798 assertions: gate OPEN while the flight is in the
+    // air, CLOSED only once it settles.
+    expect(result.midFlightAnimating, 'render-game[is-animating] must be true while the flight is airborne').toBe(true);
+    expect(result.afterAnimating, 'render-game[is-animating] must be false once the flight settles').toBe(false);
+  });
+
   test('renderer.animating mirrors render-game.isAnimating through a real move animation', async ({ page }) => {
     // debuganimations (not blackjack) drives this: it exposes a reliable
     // button-triggered move (waapi-buttons.spec.ts uses the same "To

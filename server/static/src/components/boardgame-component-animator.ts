@@ -272,13 +272,10 @@ export class BoardgameComponentAnimator extends LitElement {
     const delay = opts?.startAtMs
       ? Math.min(2000, Math.max(0, opts.startAtMs - Date.now()))
       : 0;
-    const anim = real.animate(
-      [
-        { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
-        { transform: real.style.transform || 'none' },
-      ],
-      { duration: durationMs, delay, easing: 'ease-out', fill: 'none' },
-    );
+    const keyframes: Keyframe[] = [
+      { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
+      { transform: real.style.transform || 'none' },
+    ];
     // Record a 'play' hook at the moment the flight VISUALLY begins (after
     // the sync delay elapses), so the cross-screen skew test can compare
     // launch instants across surfaces. We stamp it via a matching timer
@@ -290,6 +287,30 @@ export class BoardgameComponentAnimator extends LitElement {
     } else {
       animHooks.record('play', 'fly:' + realTag);
     }
+
+    // When the flight target is a real animatable item (a boardgame-card /
+    // -component), route through its play() so the flight is GATED: it
+    // registers a will-animate/animation-done pair and joins the item's
+    // live set. This closes two holes that raw real.animate() left open
+    // (#798): (a) the completion gate could close — and the game-over
+    // verdict banner appear — while a synced deal flight (up to 2000ms sync
+    // delay + duration) was still mid-air; (b) prepare()'s interruption
+    // pass (finishAllAnimations) couldn't reach a raw flight to settle it
+    // before measuring a new cycle. play() supplies its own default timing
+    // (duration = --animation-length), so we override with the caller's
+    // durationMs + the sync delay and match the raw path's ease-out/none.
+    // Plain elements (e.g. the divs the waapi-play.spec.ts animateBetween
+    // test uses) have no play() and keep the raw-element fallback below.
+    if (typeof (real as any).play === 'function') {
+      const anim = (real as any).play(real, keyframes,
+        { duration: durationMs, delay, easing: 'ease-out', fill: 'none' });
+      // play() returns null under noAnimate; nothing is in flight then.
+      if (anim) await anim.finished.catch(() => {});
+      return;
+    }
+
+    const anim = real.animate(keyframes,
+      { duration: durationMs, delay, easing: 'ease-out', fill: 'none' });
     // Settlement is ground truth: finished resolves on completion, rejects
     // on cancel (element removed mid-flight) — both mean "done" here.
     await anim.finished.catch(() => {});

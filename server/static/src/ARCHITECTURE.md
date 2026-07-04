@@ -318,5 +318,14 @@ though each screen receives its own WebSocket push and renders independently.
 - The game-over verdict (`renderGameOverBanner()` / the Hand header's
   outcome text) is gated on the mirrored `animating` flag described above,
   so the outcome banner can't race ahead of a still-in-flight companion
-  flight — and the 4s watchdog is the backstop that guarantees that gate
-  can't wedge if a flight's `Animation` never settles.
+  flight. For that guarantee to hold, the flight itself must keep the gate
+  open: when `animateBetween`'s resolved `real` endpoint is an animatable
+  item, it routes the flight through that item's `play()` (gated) rather
+  than a raw `real.animate()`, so the departing/arriving card registers a
+  will-animate/animation-done pair and the gate stays open — and the
+  verdict stays suppressed — until the flight (sync delay included) settles.
+  Only plain, non-item elements fall back to the ungated raw path. The
+  watchdog is the backstop that guarantees the gate can't wedge if a
+  flight's `Animation` never settles; because the flight reports its full
+  `delay + duration` budget in `will-animate`, the watchdog extends to
+  cover it rather than force-closing a legitimately delayed synced flight.
