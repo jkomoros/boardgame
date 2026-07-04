@@ -16,7 +16,11 @@ import { createOfflineGame } from './helpers';
 // These specs drive the real production singletons (exposed on
 // window.__bgCompanionSync, mirroring window.__bgAnimTestHooks) and the
 // real animateBetween, then assert the cross-context skew is well under
-// the 250ms coherence threshold (drift was ~1000ms before #798).
+// the 250ms coherence threshold (drift was ~1000ms before #798). Skew
+// alone doesn't discriminate a correct sync from both surfaces ignoring
+// startAtMs and firing immediately (they'd still agree with each other),
+// so the test also asserts each surface's absolute play instant lands
+// near the shared target time — see the per-page offset assertions below.
 
 test.describe('companion-sync estimator', () => {
   test('localEquivalent needs >=3 samples, then applies the min offset', async ({ page }) => {
@@ -109,8 +113,12 @@ test.describe('cross-screen synced auto-fly', () => {
       // so Date.now() is a common clock — the same absolute startAtMs on
       // each page is exactly what companionSync.localEquivalent(playAt)
       // produces once the estimators on both surfaces agree. We give a
-      // comfortable lead so both timers are armed well before it elapses.
-      const sharedStartAtMs = Date.now() + 600;
+      // comfortable lead (800ms, comfortably longer than the 250ms
+      // coherence threshold) so that if a page ignored startAtMs and
+      // played immediately instead, its play instant would land ~800ms
+      // early and fail the per-page target assertion below — this is what
+      // makes the test discriminating rather than trivially true.
+      const sharedStartAtMs = Date.now() + 800;
 
       // Reset hooks on BOTH pages right before launching, so the first
       // 'play' entry we read is unambiguously our flight.
@@ -170,6 +178,22 @@ test.describe('cross-screen synced auto-fly', () => {
       // Coherence threshold (spec §8.4): the two surfaces must launch the
       // same flight within 250ms. Do NOT weaken this.
       expect(skew).toBeLessThan(250);
+
+      // Skew alone doesn't discriminate: if both pages ignored startAtMs
+      // and played immediately, they'd still be in sync with each other
+      // (both near "now"), and the skew assertion above would trivially
+      // pass. What actually proves startAtMs was honored is that EACH
+      // page's play instant lands near the shared absolute target — not
+      // ~800ms early, which is what "played immediately" would produce.
+      const tableOffset = tableStart - sharedStartAtMs;
+      const handOffset = handStart - sharedStartAtMs;
+      // eslint-disable-next-line no-console
+      console.log(`[waapi-companion] table offset from target: ${tableOffset.toFixed(1)}ms, hand offset from target: ${handOffset.toFixed(1)}ms`);
+      test.info().annotations.push({ type: 'table-offset', description: `${tableOffset.toFixed(1)}ms` });
+      test.info().annotations.push({ type: 'hand-offset', description: `${handOffset.toFixed(1)}ms` });
+
+      expect(Math.abs(tableOffset)).toBeLessThan(200);
+      expect(Math.abs(handOffset)).toBeLessThan(200);
     } finally {
       await tableCtx.close();
       await handCtx.close();
