@@ -76,6 +76,17 @@ export class BoardgameTableViewBase<
   isHost = false;
 
   /**
+   * Mirrors boardgame-render-game's isAnimating (set at both gate flips and
+   * at instantiation — see _applyAnimatingToRenderer). Gates
+   * renderGameOverBanner() so the verdict never appears while the last
+   * animation cycle (e.g. the winning card landing) is still in flight —
+   * the outcome should only announce itself once the board has visually
+   * settled (#798).
+   */
+  @property({ type: Boolean })
+  animating = false;
+
+  /**
    * When true (the default), the base watches each player's hand size and,
    * when it grows, flies that player's fake-deck-row stub in from the
    * element the author marked id="deal-source" (typically the draw pile) —
@@ -378,7 +389,12 @@ export class BoardgameTableViewBase<
    * moment, so it's intentionally loud.
    */
   protected renderGameOverBanner(): TemplateResult {
-    if (!this.gameFinished) return html``;
+    // Gate on !animating too: gameFinished can arrive while the final
+    // animation cycle is still playing (the winning move's card is still in
+    // flight), and the verdict must never appear before it lands (#798).
+    // The watchdog force-closes the gate within 4s, so this can never
+    // permanently hide the banner.
+    if (!this.gameFinished || this.animating) return html``;
     // Winners without a seat-presentation row (AI agents never have one;
     // a human's row write is deliberately non-fatal at join) still get
     // announced — by seat label — rather than being silently dropped,

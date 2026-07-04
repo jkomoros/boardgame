@@ -274,6 +274,19 @@ class BoardgameRenderGame extends LitElement {
     r.gameWinners = this.gameWinners;
   }
 
+  // _applyAnimatingToRenderer mirrors isAnimating onto the renderer so the
+  // Table/Hand view bases can gate outcome/verdict rendering on it (#798
+  // final piece): the outcome must never appear while the last animation
+  // cycle (e.g. the winning card landing) is still in flight. Called at
+  // both gate flips (_resetAnimating / _notifyAnimationsDone) and at
+  // renderer instantiation so a renderer created mid-cycle (or finished
+  // and re-instantiated on a surface switch) starts with the correct value
+  // rather than defaulting to false.
+  private _applyAnimatingToRenderer() {
+    if (!this.renderer) return;
+    (this.renderer as any).animating = this.isAnimating;
+  }
+
   private _recomputeIsHost() {
     if (!this.renderer) return;
     // Prefer the server's own verdict (CompanionInfo.IsHost, computed with
@@ -335,6 +348,7 @@ class BoardgameRenderGame extends LitElement {
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
     this.isAnimating = true;
+    this._applyAnimatingToRenderer();
     this.dispatchEvent(new CustomEvent('animating-changed', {
       bubbles: true, composed: true, detail: { value: this.isAnimating }
     }));
@@ -391,6 +405,7 @@ class BoardgameRenderGame extends LitElement {
     this._allAnimationsDoneFired = true;
     animHooks.record('gate-close');
     this.isAnimating = false;
+    this._applyAnimatingToRenderer();
     this.dispatchEvent(new CustomEvent('animating-changed', {
       bubbles: true, composed: true, detail: { value: this.isAnimating }
     }));
@@ -534,6 +549,7 @@ class BoardgameRenderGame extends LitElement {
     ele.gameName = this.gameName;
     ele.gameId = this.gameId;
     ele.isOwner = this.isOwner;
+    ele.animating = this.isAnimating;
 
     // Assign this.renderer BEFORE applying companion props:
     // _applyCompanionPropsToRenderer calls _recomputeIsHost which guards

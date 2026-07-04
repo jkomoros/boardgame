@@ -45,6 +45,17 @@ export class BoardgameHandViewBase<
   gameId = '';
 
   /**
+   * Mirrors boardgame-render-game's isAnimating (set at both gate flips and
+   * at instantiation — see _applyAnimatingToRenderer). Gates
+   * renderHandHeader()'s outcome strings so the verdict never appears while
+   * the last animation cycle (e.g. the winning card landing) is still in
+   * flight — the outcome should only announce itself once the board has
+   * visually settled (#798).
+   */
+  @property({ type: Boolean })
+  animating = false;
+
+  /**
    * Per-seat avatar + name records for everyone in the game (same data
    * the Table view receives). The Hand view typically only needs this
    * for a small banner ("Playing as BrightFox") or to show who the
@@ -181,7 +192,13 @@ export class BoardgameHandViewBase<
     const me = this.seatPresentations.find((s) => s.playerIndex === this.viewingAs);
     let statusText: string;
     let statusClass = '';
-    if (this.gameFinished) {
+    if (this.gameFinished && this.animating) {
+      // gameFinished can arrive while the final animation cycle is still
+      // playing (the winning move's card is still in flight) — hold off on
+      // the verdict text until it lands (#798). The watchdog force-closes
+      // the gate within 4s, so this can never wedge permanently.
+      statusText = 'Game over…';
+    } else if (this.gameFinished) {
       // The verdict replaces the turn status once the game ends.
       if (this.gameWinners.includes(this.viewingAs)) {
         statusText = '🎉 You won!';

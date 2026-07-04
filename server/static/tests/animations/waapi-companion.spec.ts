@@ -200,3 +200,125 @@ test.describe('cross-screen synced auto-fly', () => {
     }
   });
 });
+
+// Verdict-gating (#798 final piece): the outcome/verdict text must never
+// appear while animations are still running -- cards must visually land
+// before any surface announces "Game over". boardgame-render-game mirrors
+// its isAnimating gate onto the renderer as `animating` (both at the gate
+// flips and at renderer instantiation -- see _applyAnimatingToRenderer in
+// boardgame-render-game.ts), and BoardgameTableViewBase.renderGameOverBanner
+// / BoardgameHandViewBase.renderHandHeader gate their outcome markup on
+// `!this.animating` in addition to `gameFinished`. Blackjack ships real
+// -table/-hand renderers (unlike the games this task's original brief
+// named), so this drives the REAL component tree via ?display=table.
+function deepQueryFirstScript() {
+  function deepQueryFirst(root: Document | ShadowRoot | Element, selector: string): Element | null {
+    const direct = root.querySelector(selector);
+    if (direct) return direct;
+    for (const el of Array.from(root.querySelectorAll('*'))) {
+      if ((el as any).shadowRoot) {
+        const found = deepQueryFirst((el as any).shadowRoot, selector);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  return deepQueryFirst;
+}
+
+test.describe('verdict gating on animation completion', () => {
+  test('game-over banner is suppressed while animating, appears once the gate closes', async ({ page }) => {
+    await createOfflineGame(page, 'blackjack');
+    const tableUrl = new URL(page.url());
+    tableUrl.searchParams.set('display', 'table');
+    await page.goto(tableUrl.toString());
+    await page.waitForSelector('boardgame-render-game', { timeout: 15000 });
+    await page.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined, undefined, { timeout: 15000 });
+
+    // Wait for the real -table renderer (boardgame-render-game-blackjack-table)
+    // to be instantiated and reachable via deep shadow-DOM query.
+    const findTableRenderer = () => page.evaluate((fnSrc: string) => {
+      // eslint-disable-next-line no-eval
+      const deepQueryFirst = eval(`(${fnSrc})`);
+      const r = deepQueryFirst(document, 'boardgame-render-game-blackjack-table');
+      return !!r;
+    }, `(${deepQueryFirstScript.toString()})()`);
+    await expect.poll(findTableRenderer, { timeout: 15000 }).toBe(true);
+
+    // Inject gameFinished/gameWinners/animating directly onto the real
+    // renderer instance -- this exercises the actual guard in the actual
+    // component (renderGameOverBanner), not a synthetic stand-in.
+    const setRendererProps = (props: Record<string, unknown>) => page.evaluate(
+      ([fnSrc, p]) => {
+        // eslint-disable-next-line no-eval
+        const deepQueryFirst = eval(`(${fnSrc})`);
+        const r = deepQueryFirst(document, 'boardgame-render-game-blackjack-table') as any;
+        Object.assign(r, p);
+        return r.updateComplete;
+      },
+      [`(${deepQueryFirstScript.toString()})()`, props] as const,
+    );
+
+    const bannerVisible = () => page.evaluate((fnSrc: string) => {
+      // eslint-disable-next-line no-eval
+      const deepQueryFirst = eval(`(${fnSrc})`);
+      const r = deepQueryFirst(document, 'boardgame-render-game-blackjack-table') as any;
+      return !!r?.shadowRoot?.querySelector('.game-over-banner');
+    }, `(${deepQueryFirstScript.toString()})()`);
+
+    // gameFinished + animating=true: the verdict must stay hidden.
+    await setRendererProps({ gameFinished: true, gameWinners: [0], animating: true });
+    expect(await bannerVisible(), 'banner must be absent while animating=true, even though gameFinished=true').toBe(false);
+
+    // Gate closes: the verdict must now appear.
+    await setRendererProps({ animating: false });
+    expect(await bannerVisible(), 'banner must appear once animating=false and gameFinished=true').toBe(true);
+  });
+
+  test('renderer.animating mirrors render-game.isAnimating through a real move animation', async ({ page }) => {
+    // debuganimations (not blackjack) drives this: it exposes a reliable
+    // button-triggered move (waapi-buttons.spec.ts uses the same "To
+    // Hidden" trigger for the analogous isAnimating-attribute check), so
+    // the plumbing assertion isn't coupled to blackjack's move set or to
+    // the initial deal's own animation burst racing the sample.
+    await createOfflineGame(page, 'debuganimations');
+
+    const sample = () => page.evaluate((fnSrc: string) => {
+      // eslint-disable-next-line no-eval
+      const deepQueryFirst = eval(`(${fnSrc})`);
+      const rg = deepQueryFirst(document, 'boardgame-render-game') as any;
+      const renderer = deepQueryFirst(document, 'boardgame-render-game-debuganimations') as any;
+      return {
+        isAnimating: rg ? rg.isAnimating : null,
+        rendererAnimating: renderer ? renderer.animating : null,
+      };
+    }, `(${deepQueryFirstScript.toString()})()`);
+
+    // Quiescent baseline: gate closed, renderer mirrors it.
+    await page.waitForFunction(() => {
+      const h = (window as any).__bgAnimTestHooks;
+      return h.gateCloses >= h.gateOpens;
+    }, undefined, { timeout: 20000 });
+    const before = await sample();
+    expect(before.isAnimating).toBe(false);
+    expect(before.rendererAnimating).toBe(false);
+
+    await page.getByRole('button', { name: 'To Hidden' }).click();
+
+    // DURING: poll until the gate opens, then sample both properties
+    // together -- they must agree at every observed instant, not just at
+    // the two quiescent endpoints.
+    await expect.poll(async () => (await sample()).isAnimating, { timeout: 20000 }).toBe(true);
+    const during = await sample();
+    expect(during.rendererAnimating).toBe(true);
+
+    // AFTER: wait for the gate to close, then re-sample.
+    await page.waitForFunction(() => {
+      const h = (window as any).__bgAnimTestHooks;
+      return h.gateCloses >= h.gateOpens;
+    }, undefined, { timeout: 20000 });
+    await expect.poll(async () => (await sample()).isAnimating, { timeout: 20000 }).toBe(false);
+    const after = await sample();
+    expect(after.rendererAnimating).toBe(false);
+  });
+});

@@ -117,7 +117,7 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
                 : ''}
             </div>
             ${(p as any).Stood ? html`<small>Standing</small>` : ''}
-            ${(p as any).Eliminated ? html`<small>Busted!</small>` : ''}
+            ${(p as any).Eliminated && !this.animating ? html`<small>Busted!</small>` : ''}
           </div>
         `)}
       </div>
