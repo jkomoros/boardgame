@@ -244,3 +244,60 @@ stays green (type-check + existing tests) at every commit.
 | #721 | Auto-disable via reliable `isAnimating` |
 | #728 | `stagger` attribute; overlap native to WAAPI |
 | #798 | Companion phase: scheduled installs + synced flights + gated verdict |
+
+## Implementation notes (2026-07-03)
+
+Adjudicated deviations from the design as implemented and landed on
+`animation-waapi-timing`, recorded so the spec and the shipped code agree:
+
+- **Watchdog is no longer a flat 4s.** The design (and #720 row above) kept
+  the watchdog as a "4s last resort". A legitimate cycle can exceed 4s
+  (e.g. 15 cards staggered at 0.2 with a 2s `--animation-length` — the last
+  card doesn't start until ~5.6s), so a flat 4s would force-close a valid
+  animation and violate the watchdog's own "firing = bug" invariant. The
+  watchdog is now event-driven: each gated `play()` reports its declared
+  `delay + duration + endDelay` in the `will-animate` event's
+  `expectedSettleMs`, and `boardgame-render-game` extends the deadline to
+  the largest declared settle instant + 1.5s margin, floored at 4s. A
+  firing still unambiguously means an animation overran its *own declared*
+  budget. (See ARCHITECTURE.md "The watchdog".)
+
+- **animateBetween flights hold the gate.** The design left `animateBetween`
+  as a raw `real.animate()` outside the gate/live-set machinery. That let
+  the completion gate (and thus the game-over verdict) close while a synced
+  deal flight — up to a 2000ms sync delay plus duration — was still in the
+  air, and left `prepare()`'s interruption pass unable to settle it. Fixed:
+  when the resolved `real` endpoint is an animatable item, the flight now
+  routes through that item's gated `play()`, so it registers a
+  will-animate/animation-done pair and holds the gate until settlement.
+  Plain (non-item) elements keep the raw fallback path.
+
+- **Blackjack deal test runs ×3, not ×10.** The design implied a heavier
+  repeat count; ×3 is sufficient to exercise the deal path deterministically
+  without inflating suite runtime, and was adjudicated down.
+
+- **Memory scenario is single-reveal.** The intended multi-reveal memory
+  scenario hits a page-reload issue on the move round-trip (the reload
+  resets the animation hooks mid-check, see `expectCleanGate`'s reload
+  handling); a single-reveal scenario is used and a follow-up is filed to
+  restore the fuller scenario once the reload is addressed.
+
+- **Companion validation bed is blackjack, not murdermrmonroe.** Phase D's
+  plan named murdermrmonroe for the two-page test, but murdermrmonroe ships
+  no `-table`/`-hand` renderers. Verdict gating landed in the framework
+  view-bases (`boardgame-table-view-base.ts` / `boardgame-hand-view-base.ts`
+  + the shared `animating` property), which covers all games; blackjack
+  ships real `-table`/`-hand` renderers and so is the concrete bed the
+  verdict-gating and cross-screen-sync specs drive.
+
+- **FLIP↔animateBetween handoff.** With the Important-2 fix the synced
+  flight is gated through the same item `play()`/gate as the FLIP cycle, so
+  the two share one continuously-open completion gate rather than the FLIP
+  cycle closing the gate and the raw flight re-opening nothing. The
+  `waapi-companion` "animateBetween flight … holds the render-game gate"
+  spec confirms the gate stays open across the whole flight and closes only
+  once it settles — i.e. no intermediate gate flip between the FLIP cycle
+  and the flight. No handoff blip was observed; the handoff is now clean. If
+  a residual cosmetic blip is ever seen at the exact FLIP→flight frame it
+  should be treated as a separate, low-priority cosmetic follow-up, as it is
+  no longer a gate-ownership problem.

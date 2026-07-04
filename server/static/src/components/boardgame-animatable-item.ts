@@ -68,6 +68,10 @@ export class BoardgameAnimatableItem extends LitElement {
       fill: 'none',
       ...timing,
     };
+    // endDelay (post-animation-delay) intentionally still applies under
+    // prefers-reduced-motion: it's gameplay pacing (letting a matched pair
+    // linger before capture), not motion, so honoring it is correct even
+    // when the visible motion is collapsed to duration 0.
     if (this.postAnimationDelay > 0 && resolvedTiming.endDelay === undefined) {
       resolvedTiming.endDelay = this.postAnimationDelay;
     }
