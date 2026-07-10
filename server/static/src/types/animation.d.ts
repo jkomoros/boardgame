@@ -73,16 +73,6 @@ export interface AnimatingComponent extends HTMLElement {
   animatingProperties: string[];
   /** Returns current values of all animating properties */
   animatingPropValues(): AnimatingProps;
-  /**
-   * Prepare the component for animation by applying inverse transforms.
-   * This makes the component appear to be in its old position/state.
-   */
-  prepareAnimation(before: AnimatingProps, transform: string, opacity: string): void;
-  /**
-   * Start the animation by removing inverse transforms and letting
-   * CSS transitions animate to the final state.
-   */
-  startAnimation(after: AnimatingProps, transform: string, opacity: string): void;
   /** Whether this component should clone its content during animation */
   cloneContent?: boolean;
   /**

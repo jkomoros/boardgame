@@ -309,6 +309,12 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   fauxComponents = 0;
 
+  // stagger, when > 0, offsets the start of each animating child in a
+  // cycle by (index * stagger * animation length), producing a cascading
+  // deal effect (#728). 0 = simultaneous (default).
+  @property({ type: Number })
+  stagger = 0;
+
   @query('#container')
   private container!: HTMLElement;
 
@@ -333,7 +339,6 @@ export class BoardgameComponentStack extends LitElement {
   private _id = '';
   private _style = '';
   private _boundSlotChanged?: (firstRender: boolean) => void;
-  private _boundClearAnimatingComponents?: (e: Event) => void;
 
   get _sharedStackList(): BoardgameComponentStack[] {
     return sharedStackList;
@@ -686,25 +691,14 @@ export class BoardgameComponentStack extends LitElement {
 
     this.setUnknownAnimationState(component);
     this.animatingComponentsContainer.appendChild(component);
-    if (!this._boundClearAnimatingComponents) {
-      this._boundClearAnimatingComponents = (e: Event) => this._clearAnimatingComponents(e);
-    }
-    component.addEventListener('transitionend', this._boundClearAnimatingComponents);
     return component;
   }
 
   clearAnimatingComponents() {
-    this._clearAnimatingComponents(null);
-  }
-
-  private _clearAnimatingComponents(e: Event | null) {
     const container = this.animatingComponentsContainer;
     while (container.children.length > 0) {
       const child = container.children[0];
       if ((child as any).beforeOrphaned) (child as any).beforeOrphaned();
-      if (this._boundClearAnimatingComponents) {
-        child.removeEventListener('transitionend', this._boundClearAnimatingComponents);
-      }
       container.removeChild(child);
     }
   }
@@ -734,7 +728,32 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private _attributesForComponents(): Map<string, any> {
-    return new Map(Object.entries(this.componentAttrs));
+    const attrs = new Map(Object.entries(this.componentAttrs));
+
+    // Forward the stack's own post-animation-delay / wait-for-animation
+    // DOM attributes to stamped children, same as componentAttrs entries
+    // (spec: Renderer-facing API — post-animation-delay #715,
+    // wait-for-animation #716). These are plain HTML attributes authored
+    // directly on <boardgame-component-stack> (unlike componentAttrs,
+    // which is populated programmatically by parent components like
+    // boardgame-game-board), so read them here rather than via a
+    // reflected Lit @property.
+    //
+    // wait-for-animation parsing (`!== 'false'`) intentionally matches the
+    // item-level contract in boardgame-animatable-item.ts's custom Lit
+    // converter: the attribute defaults to true, and the literal string
+    // "false" is the only way to turn it off. Keep both in sync.
+    if (this.hasAttribute('post-animation-delay')) {
+      const parsed = parseFloat(this.getAttribute('post-animation-delay')!);
+      if (!isNaN(parsed)) {
+        attrs.set('postAnimationDelay', parsed);
+      }
+    }
+    if (this.hasAttribute('wait-for-animation')) {
+      attrs.set('waitForAnimation', this.getAttribute('wait-for-animation') !== 'false');
+    }
+
+    return attrs;
   }
 
   /**

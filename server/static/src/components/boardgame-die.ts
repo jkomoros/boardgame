@@ -40,7 +40,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
                     0 3px 1px -2px rgba(60, 40, 20, 0.2),
                     inset 0 1px 0 rgba(255, 255, 255, 0.4);
         transform: scale(var(--effective-die-scale));
-        transition: transform var(--animation-length) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       #main.interactive:hover {
@@ -52,7 +52,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
       #inner {
         position: relative;
         transform: translateY(calc(-1 * var(--effective-die-size) * var(--selected-face)));
-        transition: transform var(--animation-length) ease-in-out;
+        /* The spin is WAAPI-driven now; no CSS transform transition. */
       }
 
       .face {
@@ -172,7 +172,10 @@ class BoardgameDie extends BoardgameAnimatableItem {
     super.updated(changedProperties);
 
     if (changedProperties.has('selectedFace')) {
-      this._selectedFaceChanged(this.selectedFace);
+      this._selectedFaceChanged(
+        this.selectedFace,
+        changedProperties.get('selectedFace') as number | undefined
+      );
     }
 
     if (changedProperties.has('item')) {
@@ -186,10 +189,23 @@ class BoardgameDie extends BoardgameAnimatableItem {
     }
   }
 
-  private _selectedFaceChanged(newValue: number) {
-    if (this._innerElement) {
-      this._expectTransitionEnd(this._innerElement, 'transform');
-    }
+  // _innerTransformForFace mirrors the CSS resting transform on #inner for
+  // a given selectedFace: translateY(-1 * effective-die-size * face). The
+  // #main element carries the --selected-face var that drives the CSS
+  // resting position; here we build an explicit transform so WAAPI can
+  // interpolate the spin instead of relying on a CSS transition.
+  private _innerTransformForFace(face: number): string {
+    return `translateY(calc(-1 * var(--effective-die-size) * ${face}))`;
+  }
+
+  private _selectedFaceChanged(newValue: number, oldValue: number | undefined) {
+    if (!this._innerElement) return;
+    // On first render there's no meaningful spin to animate from.
+    if (oldValue === undefined || oldValue === newValue) return;
+    this.play(this._innerElement, [
+      { transform: this._innerTransformForFace(oldValue) },
+      { transform: this._innerTransformForFace(newValue) },
+    ]);
   }
 
   private _itemChanged(newValue: any) {

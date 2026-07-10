@@ -45,6 +45,17 @@ export class BoardgameBaseGameRenderer<
   @property({ type: Array })
   gameWinners: number[] = [];
 
+  /**
+   * Mirrors boardgame-render-game's isAnimating (set at both gate flips and
+   * at instantiation — see _applyAnimatingToRenderer). Table and Hand view
+   * subclasses gate their verdict UI (renderGameOverBanner /
+   * renderHandHeader) on this so the outcome never appears while the last
+   * animation cycle (e.g. the winning card landing) is still in flight —
+   * it should only announce itself once the board has visually settled
+   * (#798).
+   */
+  @property({ type: Boolean })
+  animating = false;
 
   get isCurrentPlayer(): boolean {
     // AdminPlayerIndex (-2): admin can always act
@@ -61,7 +72,7 @@ export class BoardgameBaseGameRenderer<
    * `this.animator?.animateBetween(cardId, 'hand-top-edge')`. Null before
    * the renderer is attached (or in tests outside boardgame-render-game).
    */
-  protected get animator(): { animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs?: number): Promise<void> } | null {
+  protected get animator(): { animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs?: number, opts?: { startAtMs?: number }): Promise<void> } | null {
     const root = this.getRootNode();
     if (!(root instanceof ShadowRoot)) return null;
     return root.querySelector('#animator') as any;
@@ -167,15 +178,8 @@ export class BoardgameBaseGameRenderer<
   // animation length (in milliseconds) by setting `--animation-length` on the
   // renderer. Zero will specify default animation length (that is, unset an
   // override style). A negative return value will skip the animation entirely.
-  // The default one returns 0 for all combinations. See also delayAnimation.
+  // The default one returns 0 for all combinations. See also animationOverlap.
   animationLength(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
-    return 0;
-  }
-
-  // delayAnimation will be consulted when applying an animation. It will delay
-  // by the returned number of milliseconds. The default one returns 0 for all
-  // combinations. See also animationLength.
-  delayAnimation(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     return 0;
   }
 
@@ -183,7 +187,7 @@ export class BoardgameBaseGameRenderer<
   // which the next state can be installed, even if the current animation is
   // still running. 0 (default) = wait for animation to complete (no overlap).
   // 0.5 = start next animation when this one is halfway done. Values outside
-  // 0-1 are clamped. See also animationLength and delayAnimation.
+  // 0-1 are clamped. See also animationLength.
   animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     return 0;
   }

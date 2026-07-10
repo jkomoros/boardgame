@@ -5,6 +5,7 @@ import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
+import { animHooks } from '../utils/anim-test-hooks.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -126,6 +127,14 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Boolean, attribute: false })
   private _allAnimationsDoneFired = true;
 
+  // isAnimating reflects whether the animation gate is currently open (an
+  // animation cycle is in flight). Reflected to the `is-animating` attribute
+  // so tests and ancestor CSS can observe it without reaching into internals,
+  // and mirrored via `animating-changed` so ancestors (boardgame-game-view)
+  // can wire it into move-disabling UI without polling. See #721.
+  @property({ type: Boolean, reflect: true, attribute: 'is-animating' })
+  isAnimating = false;
+
   @query('#animator')
   private _animator?: any;
 
@@ -135,6 +144,22 @@ class BoardgameRenderGame extends LitElement {
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
   private _animationWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
+  // Largest declared settle time (delay + duration + endDelay) reported by
+  // any gated play() in the current cycle, via the will-animate event. Used
+  // to extend the watchdog past a legitimately long cycle (stagger +
+  // post-animation-delay + long --animation-length) rather than force-close
+  // mid-animation. Reset to 0 at each gate open.
+  private _maxExpectedSettleMs = 0;
+  // Absolute local-clock (Date.now()-comparable) instant the current
+  // watchdog is armed to fire at. Tracked so an incoming will-animate can
+  // tell whether a longer play would outlast the deadline and re-arm.
+  private _watchdogDeadlineEpoch = 0;
+  // The watchdog floor: the gate never gets less than this before firing,
+  // even for trivially short cycles. Longer declared cycles push it out.
+  private static readonly _WATCHDOG_FLOOR_MS = 4000;
+  // Slack added past a declared long cycle's expected settle instant, so
+  // normal per-animation jitter/scheduling never trips the watchdog.
+  private static readonly _WATCHDOG_MARGIN_MS = 1500;
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -265,6 +290,19 @@ class BoardgameRenderGame extends LitElement {
     r.gameWinners = this.gameWinners;
   }
 
+  // _applyAnimatingToRenderer mirrors isAnimating onto the renderer so the
+  // Table/Hand view bases can gate outcome/verdict rendering on it (#798
+  // final piece): the outcome must never appear while the last animation
+  // cycle (e.g. the winning card landing) is still in flight. Called at
+  // both gate flips (_resetAnimating / _notifyAnimationsDone) and at
+  // renderer instantiation so a renderer created mid-cycle (or finished
+  // and re-instantiated on a surface switch) starts with the correct value
+  // rather than defaulting to false.
+  private _applyAnimatingToRenderer() {
+    if (!this.renderer) return;
+    (this.renderer as any).animating = this.isAnimating;
+  }
+
   private _recomputeIsHost() {
     if (!this.renderer) return;
     // Prefer the server's own verdict (CompanionInfo.IsHost, computed with
@@ -316,16 +354,37 @@ class BoardgameRenderGame extends LitElement {
   }
 
   private _resetAnimating() {
+    animHooks.record('gate-open');
     // Clear any existing watchdog timer from a previous animation cycle.
     if (this._animationWatchdogTimer !== null) {
       clearTimeout(this._animationWatchdogTimer);
       this._animationWatchdogTimer = null;
     }
+    this._maxExpectedSettleMs = 0;
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
-    // Start a watchdog timer. If animations complete normally,
-    // _notifyAnimationsDone() will clear it before it fires.
+    this.isAnimating = true;
+    this._applyAnimatingToRenderer();
+    this.dispatchEvent(new CustomEvent('animating-changed', {
+      bubbles: true, composed: true, detail: { value: this.isAnimating }
+    }));
+    // Arm the watchdog at the floor. Long declared cycles push it out via
+    // _componentWillAnimate. If animations complete normally,
+    // _notifyAnimationsDone() clears it before it fires.
+    this._armWatchdog(BoardgameRenderGame._WATCHDOG_FLOOR_MS);
+  }
+
+  // _armWatchdog (re)arms the watchdog to fire `fromNowMs` from now, tracking
+  // the absolute deadline so a later will-animate can decide whether to
+  // extend it. The watchdog is the invariant backstop: if it ever fires, an
+  // awaited animation didn't settle within its own declared budget — a bug.
+  private _armWatchdog(fromNowMs: number) {
+    if (this._animationWatchdogTimer !== null) {
+      clearTimeout(this._animationWatchdogTimer);
+      this._animationWatchdogTimer = null;
+    }
+    this._watchdogDeadlineEpoch = Date.now() + fromNowMs;
     this._animationWatchdogTimer = setTimeout(() => {
       this._animationWatchdogTimer = null;
       if (this._allAnimationsDoneFired) return;
@@ -337,17 +396,32 @@ class BoardgameRenderGame extends LitElement {
           pendingComponents.push(`${tag}${id}`);
         }
       }
+      animHooks.record('watchdog', pendingComponents.join(','));
       console.error(
-        `[boardgame-render-game] Animation watchdog timeout: animations did not complete within 15s. ` +
-        `Force-firing all-animations-done. Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
+        `[boardgame-render-game] Animation watchdog timeout: animations did not complete ` +
+        `within their declared budget (${fromNowMs}ms). Force-firing all-animations-done. ` +
+        `Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
       );
       this._notifyAnimationsDone();
-    }, 15000);
+    }, fromNowMs);
   }
 
   private _componentWillAnimate(e: CustomEvent) {
     this._ensureActiveAnimations();
     this._activeAnimations!.set(e.detail.ele, true);
+    // Extend the watchdog if this play declares a settle time that would
+    // outlast the current deadline. The deadline is the declared expected
+    // settle instant plus a fixed margin, floored at _WATCHDOG_FLOOR_MS —
+    // so e.g. 15 staggered cards each 2s long (last starts ~5.6s in) no
+    // longer trip a flat 4s watchdog mid-flight.
+    const expected = e.detail?.expectedSettleMs;
+    if (typeof expected === 'number' && expected > this._maxExpectedSettleMs) {
+      this._maxExpectedSettleMs = expected;
+      const targetEpoch = Date.now() + expected + BoardgameRenderGame._WATCHDOG_MARGIN_MS;
+      if (targetEpoch > this._watchdogDeadlineEpoch) {
+        this._armWatchdog(targetEpoch - Date.now());
+      }
+    }
   }
 
   private _componentAnimationDone(e: CustomEvent) {
@@ -374,6 +448,12 @@ class BoardgameRenderGame extends LitElement {
       this._animationWatchdogTimer = null;
     }
     this._allAnimationsDoneFired = true;
+    animHooks.record('gate-close');
+    this.isAnimating = false;
+    this._applyAnimatingToRenderer();
+    this.dispatchEvent(new CustomEvent('animating-changed', {
+      bubbles: true, composed: true, detail: { value: this.isAnimating }
+    }));
     this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true, bubbles: true }));
   }
 
@@ -405,11 +485,6 @@ class BoardgameRenderGame extends LitElement {
       // started, check to see if no animations have been registered; if they
       // haven't, then we can advance to the next state immediately.
       this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations());
-      // TODO: technically it's possible that no animations fire, but
-      // this._animator.animateFlip() returns immediately but schedules work in a
-      // rAF callback. We used to check for this._activeAnimations.size == 0
-      // and then bail, but that always triggered because animateFlip() returns
-      // immediately.
     }
   }
 
@@ -519,6 +594,7 @@ class BoardgameRenderGame extends LitElement {
     ele.gameName = this.gameName;
     ele.gameId = this.gameId;
     ele.isOwner = this.isOwner;
+    ele.animating = this.isAnimating;
 
     // Assign this.renderer BEFORE applying companion props:
     // _applyCompanionPropsToRenderer calls _recomputeIsHost which guards

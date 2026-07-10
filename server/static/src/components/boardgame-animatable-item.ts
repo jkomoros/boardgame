@@ -1,156 +1,140 @@
 import { LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
+import { animHooks } from '../utils/anim-test-hooks.js';
 
 export class BoardgameAnimatableItem extends LitElement {
   @property({ type: Boolean })
   noAnimate = false;
 
-  // Private properties - not decorated because they don't need reactivity
-  private _expectedTransitionEnds: Map<HTMLElement, Map<string, boolean>> | null = null;
-  private _outstandingTransitonEnds = 0;
-  private _boundTransitionEnded?: (e: Event) => void;
+  private _liveAnimations = new Set<Animation>();
+  private _liveGatedCount = 0;
+  private _settledResolvers: Array<() => void> = [];
 
-  override connectedCallback() {
-    super.connectedCallback();
-    // CRITICAL: Event listeners must be added in connectedCallback to match Polymer timing
-    // Must listen on both light DOM and shadow DOM for transitionend events
-    this._boundTransitionEnded = (e: Event) => this._transitionEnded(e as TransitionEvent);
-    this.addEventListener('transitionend', this._boundTransitionEnded);
-    // Defensive check: shadowRoot may not exist yet
-    if (this.shadowRoot) {
-      this.shadowRoot.addEventListener('transitionend', this._boundTransitionEnded);
-    }
-  }
+  @property({ type: Number, attribute: 'post-animation-delay' })
+  postAnimationDelay = 0;
 
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this._boundTransitionEnded) {
-      this.removeEventListener('transitionend', this._boundTransitionEnded);
-      // Defensive check: shadowRoot may not exist
-      if (this.shadowRoot) {
-        this.shadowRoot.removeEventListener('transitionend', this._boundTransitionEnded);
-      }
-    }
-  }
-
-  // willNotAnimate says whether based on our current settings we expect this ele
-  // and propName to fire a transitionend. Subclasses can override, but should
-  // call this. Default answer is false, but this will return true if noAnimate
-  // is true.
-  willNotAnimate(ele: HTMLElement, propName: string): boolean {
-    if (this.noAnimate) {
-      return true;
-    }
-    return false;
-  }
-
-  // resetAnimating should be called when we expect animating count to be zero
-  resetAnimating() {
-    // if (this._animatingCount != 0) console.warn(this, this._animatingCount, "Was not zero when expected");
-    this._expectedTransitionEnds = new Map();
-    this._outstandingTransitonEnds = 0;
-  }
+  // waitForAnimation controls whether this item's animations hold the
+  // completion gate (#716). Boolean-ish attribute with one twist: since
+  // the property DEFAULTS to true, the only useful thing an attribute can
+  // express is "false" — so unlike a stock Lit Boolean, the literal
+  // string "false" parses as false. Absent attribute → default (true).
+  @property({
+    attribute: 'wait-for-animation',
+    converter: {
+      fromAttribute: (value: string | null) => value !== 'false',
+      toAttribute: (value: boolean) => (value ? '' : 'false'),
+    },
+  })
+  waitForAnimation = true;
 
   // beforeOrphaned is called when we know we're about to be orphaned (for
   // example if we're an animating component that will be removed when done
-  // animating). it's our last chance to fire 'animation-done' if we were going
-  // to fire that.
+  // animating). it's our last chance to settle so the gate never waits on a
+  // detached element.
   beforeOrphaned() {
-    if (!this._expectedTransitionEnds) return;
-    if (!this._expectedTransitionEnds.size) return;
-    this._notifyAnimationDone();
+    // Last chance before removal: settle everything so the gate never
+    // waits on a detached element.
+    this.finishAllAnimations();
   }
 
-  // _expectTransitionEnd is called whenever we have just changed a property
-  // that will later fire a transitionend, with the specific ele (this,
-  // #inner, #outer), and propertyName we expect to fire. We only care about
-  // transform and opacity changes; ignore everything else. We also will
-  // ignore things that this.willNotAnimate() tell us won't animate.
-  protected _expectTransitionEnd(ele: HTMLElement, propName: string) {
-    if (!this._expectedTransitionEnds) {
-      // This happens the first time state is installed. No biggie, just skip
-      // it.
-      return;
+  // animationLengthMs reads the effective --animation-length CSS variable
+  // (games set it; render-game sets it from the renderer's animationLength()
+  // hook). Accepts '0.25s' or '250ms'. Returns milliseconds.
+  animationLengthMs(): number {
+    const raw = getComputedStyle(this).getPropertyValue('--animation-length').trim();
+    if (!raw) return 250;
+    if (raw.endsWith('ms')) return parseFloat(raw) || 250;
+    if (raw.endsWith('s')) return (parseFloat(raw) || 0.25) * 1000;
+    const n = parseFloat(raw);
+    return isNaN(n) ? 250 : n;
+  }
+
+  get isAnimating(): boolean {
+    return this._liveGatedCount > 0;
+  }
+
+  // play is the single entry point for starting an animation on this item
+  // (host element, #inner, or any shadow child). Ground truth for
+  // completion is the returned Animation's settlement — there is nothing
+  // to guess (spec: WAAPI rewrite).
+  play(element: HTMLElement, keyframes: Keyframe[], timing?: OptionalEffectTiming,
+       opts?: { gated?: boolean }): Animation | null {
+    if (this.noAnimate) return null;
+    const gated = (opts?.gated ?? true) && this.waitForAnimation;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const resolvedTiming: OptionalEffectTiming = {
+      duration: reduced ? 0 : this.animationLengthMs(),
+      easing: 'ease-in-out',
+      fill: 'none',
+      ...timing,
+    };
+    // endDelay (post-animation-delay) intentionally still applies under
+    // prefers-reduced-motion: it's gameplay pacing (letting a matched pair
+    // linger before capture), not motion, so honoring it is correct even
+    // when the visible motion is collapsed to duration 0.
+    if (this.postAnimationDelay > 0 && resolvedTiming.endDelay === undefined) {
+      resolvedTiming.endDelay = this.postAnimationDelay;
     }
-
-    if (propName !== 'transform' && propName !== 'opacity') return;
-    if (this.willNotAnimate(ele, propName)) {
-      // Sometimes we will have already told us to expect one, but later we
-      // realize that we actually won't. This can happen for example the first
-      // time a non-spacer card is set to a spacer--we update the inner
-      // transform, then set spacer, then later update again. In those cases,
-      // we should forget the one we previously told ourselves to expect.
-      this._removeExpectedTransition(ele, propName);
-      return;
+    const anim = element.animate(keyframes, resolvedTiming);
+    this._liveAnimations.add(anim);
+    if (gated) {
+      this._liveGatedCount++;
+      if (this._liveGatedCount === 1) {
+        // Tell the render-game watchdog how long this gated play is
+        // declared to run so it can extend its deadline past a legitimately
+        // long cycle (stagger delay + duration + post-animation-delay)
+        // instead of force-closing mid-animation. Numbers only — coerce the
+        // resolved timing fields (they may be CSSNumericValue-ish or absent).
+        const num = (v: unknown): number =>
+          typeof v === 'number' && isFinite(v) ? v : 0;
+        const expectedSettleMs = num(resolvedTiming.delay)
+          + num(resolvedTiming.duration)
+          + num(resolvedTiming.endDelay);
+        this.dispatchEvent(new CustomEvent('will-animate',
+          { bubbles: true, composed: true, detail: { ele: this, expectedSettleMs } }));
+      }
     }
+    animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
+    // finished rejects on cancel(); both paths are settlement for us.
+    anim.finished.catch(() => {}).finally(() => this._animationSettled(anim, gated));
+    return anim;
+  }
 
-    let expectedPropsMap = this._expectedTransitionEnds.get(ele);
-    if (!expectedPropsMap) {
-      expectedPropsMap = new Map();
-      this._expectedTransitionEnds.set(ele, expectedPropsMap);
-    }
-
-    // Already set!
-    if (expectedPropsMap.get(propName)) return;
-
-    expectedPropsMap.set(propName, true);
-    this._outstandingTransitonEnds++;
-
-    if (this._outstandingTransitonEnds === 1) {
-      // This was the first one, fire a will-animate.
-      this.dispatchEvent(new CustomEvent('will-animate', { bubbles: true, composed: true, detail: { ele: this } }));
+  private _animationSettled(anim: Animation, gated: boolean) {
+    if (!this._liveAnimations.delete(anim)) return; // already accounted
+    animHooks.record('settle', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
+    if (!gated) return;
+    this._liveGatedCount--;
+    if (this._liveGatedCount <= 0) {
+      this._liveGatedCount = 0;
+      const resolvers = this._settledResolvers;
+      this._settledResolvers = [];
+      for (const r of resolvers) r();
+      this.dispatchEvent(new CustomEvent('animation-done',
+        { bubbles: true, composed: true, detail: { ele: this } }));
     }
   }
 
-  // removes the ele and propName from the map, and returns whether it was in there.
-  private _removeExpectedTransition(ele: HTMLElement, propName: string): boolean {
-    if (!this._expectedTransitionEnds) return false;
-    const expectedPropsMap = this._expectedTransitionEnds.get(ele);
-    if (!expectedPropsMap) return false;
-    if (!expectedPropsMap.get(propName)) return false;
-    expectedPropsMap.delete(propName);
-    this._outstandingTransitonEnds--;
-    if (this._outstandingTransitonEnds < 0) {
-      console.warn('Got to less than 0 transition ends somehow');
-      this._outstandingTransitonEnds = 0;
-    }
-    if (expectedPropsMap.size === 0) {
-      this._expectedTransitionEnds.delete(ele);
-    }
-    return true;
+  settled(): Promise<void> {
+    if (this._liveGatedCount === 0) return Promise.resolve();
+    return new Promise((resolve) => this._settledResolvers.push(resolve));
   }
 
-  private _notifyAnimationDone() {
-    this.dispatchEvent(new CustomEvent('animation-done', { bubbles: true, composed: true, detail: { ele: this } }));
-  }
-
-  // _transitionEnded is the handler for transitionend. It will fire for _any_
-  // transition that ended on ourselves or our shadow root. We only care about
-  // transform and opacity changes; ignore everything else, because we'll
-  // heard about every property that changes, including box-shadow and others
-  // that are non-semantic.
-  private _transitionEnded(e: TransitionEvent) {
-    if (e.propertyName !== 'transform' && e.propertyName !== 'opacity') return;
-
-    // CRITICAL: Use composedPath() instead of deprecated e.path
-    // Defensive check: composedPath() may not be supported in older browsers
-    if (typeof e.composedPath !== 'function') {
-      console.warn('composedPath not supported');
-      return;
-    }
-
-    const path = e.composedPath();
-    if (!path || path.length < 1) return;
-
-    const target = path[0];
-    if (!(target instanceof HTMLElement)) return;
-    const ele = target;
-
-    const changeMade = this._removeExpectedTransition(ele, e.propertyName);
-
-    if (changeMade && this._outstandingTransitonEnds === 0) {
-      // all of the animations we were expecting to finish are finished.
-      this._notifyAnimationDone();
+  // finishAllAnimations jumps every live animation to its end state and
+  // resolves settlement. Called when a new animation cycle must start
+  // while a previous one is in flight (spec: Interruption semantics).
+  finishAllAnimations(): void {
+    for (const anim of [...this._liveAnimations]) {
+      try {
+        if (anim.playState === 'running' || anim.playState === 'finished') {
+          anim.finish();
+        } else {
+          anim.cancel();
+        }
+      } catch {
+        // finish() throws InvalidStateError for infinite animations; cancel instead.
+        try { anim.cancel(); } catch { /* already dead */ }
+      }
     }
   }
 }

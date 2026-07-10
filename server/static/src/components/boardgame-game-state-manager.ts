@@ -1,7 +1,8 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
-import { ingestVersionTiming } from './companion-sync.js';
+import { ingestVersionTiming, companionSync, latestServerPlayAt } from './companion-sync.js';
+import { surfaceForGame } from '../utils/companion-surface.js';
 import { store } from '../store.js';
 import {
   fetchGameInfo,
@@ -127,6 +128,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _infoFetching = false;
 
   private _overlapTimerId: ReturnType<typeof setTimeout> | null = null;
+  private _scheduledInstallTimerId: ReturnType<typeof setTimeout> | null = null;
 
   // Track previous values for change detection
   private _prevTargetVersion = -1;
@@ -540,6 +542,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       clearTimeout(this._overlapTimerId);
       this._overlapTimerId = null;
     }
+    if (this._scheduledInstallTimerId !== null) {
+      clearTimeout(this._scheduledInstallTimerId);
+      this._scheduledInstallTimerId = null;
+    }
     store.dispatch(setLastFetchedVersion(0));
     store.dispatch(setTargetVersion(-1));
     store.dispatch(setCurrentVersion(0));
@@ -614,6 +620,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       clearTimeout(this._overlapTimerId);
       this._overlapTimerId = null;
     }
+    if (this._scheduledInstallTimerId !== null) {
+      clearTimeout(this._scheduledInstallTimerId);
+      this._scheduledInstallTimerId = null;
+    }
     this._scheduleNextStateBundle();
   }
 
@@ -623,10 +633,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _scheduleNextStateBundle() {
     if (!this._pendingBundles.length) return;
 
+    // A re-schedule (e.g. from readyForNextState(), the overlap timer, or a
+    // fresh enqueue) supersedes any previously-armed scheduled-install
+    // timer, so cancel it here to avoid arming a second timer that could
+    // fire early or install twice within the up-to-2s companion-sync window.
+    if (this._scheduledInstallTimerId !== null) {
+      clearTimeout(this._scheduledInstallTimerId);
+      this._scheduledInstallTimerId = null;
+    }
+
     const renderer = this.activeRenderer;
     let effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS;
 
-    // If we were given a renderer that knows how to delay animations, consult it.
+    // If we were given a renderer that customizes animation length, consult it.
     if (renderer) {
       const nextBundle = this._pendingBundles[0];
       const lastBundle = this._lastFiredBundle;
@@ -649,16 +668,33 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
             this.dispatchEvent(new CustomEvent('set-animation-length', { composed: true, bubbles: true, detail: length }));
           }
         }
-        if (renderer.delayAnimation) {
-          const delay = renderer.delayAnimation(lastMove, nextMove);
-          if (delay < 0) {
-            console.warn('Negative value for delayAnimation. Did you mean to use animationLength instead?', lastMove, nextMove);
-          }
-          // If delay is greater than 0, wait that long before firing
-          if (delay > 0) {
-            window.setTimeout(() => this._asyncFireNextStateBundle(effectiveAnimationLength), delay);
-            return;
-          }
+      }
+    }
+
+    // Companion sync (#798): if the server stamped a play-at time for this
+    // version and we're on a companion surface (Table or Hand), delay the
+    // install so both surfaces start the same animation within estimator
+    // error. Solo games keep instant installs. Clamped so a bad estimate
+    // can never hang the game (spec §8.4: Error handling).
+    const surface = this.gameRoute ? surfaceForGame(this.gameRoute.id) : null;
+    if (surface === 'table' || surface === 'hand') {
+      const playAt = latestServerPlayAt();
+      if (playAt !== null) {
+        const local = companionSync.localEquivalent(playAt);
+        const rawWait = local - Date.now();
+        if (rawWait > 2000) {
+          console.warn('[state-manager] serverPlayAt over 2s in the future; clamping wait to 2s');
+        }
+        const wait = Math.min(2000, Math.max(0, rawWait));
+        if (wait > 8) { // sub-frame waits aren't worth a timer
+          this._scheduledInstallTimerId = setTimeout(() => {
+            this._scheduledInstallTimerId = null;
+            this._asyncFireNextStateBundle(effectiveAnimationLength);
+          }, wait);
+          return;
+        }
+        if (rawWait < -2000) {
+          console.warn('[state-manager] serverPlayAt over 2s stale; installing immediately');
         }
       }
     }

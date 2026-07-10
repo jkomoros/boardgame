@@ -3,6 +3,7 @@ import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 import { apiPath } from '../util.js';
+import { companionSync, latestServerPlayAt } from './companion-sync.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -107,6 +108,11 @@ export class BoardgameTableViewBase<
       .map((n, i) => (n > (prev[i] ?? 0) ? i : -1))
       .filter((i) => i >= 0);
     if (grew.length === 0) return;
+    // Companion sync (#798): launch every departure at the same
+    // server-anchored instant the phones launch their arrivals, so the
+    // deal reads as one coherent motion across screens. undefined ⇒ now.
+    const playAt = latestServerPlayAt();
+    const startAtMs = playAt !== null ? companionSync.localEquivalent(playAt) : undefined;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       for (const playerIndex of grew) {
         const stub = this.shadowRoot?.getElementById(`stub:p${playerIndex}:hand`);
@@ -115,7 +121,7 @@ export class BoardgameTableViewBase<
         // bottom edge — visually, a card leaving the deck toward that
         // player. The matching arrival plays on their phone (see
         // BoardgameHandViewBase.autoFlyIncoming).
-        this.animator?.animateBetween(stub, source, 600);
+        this.animator?.animateBetween(stub, source, 600, { startAtMs });
       }
     }));
   }
@@ -372,7 +378,12 @@ export class BoardgameTableViewBase<
    * moment, so it's intentionally loud.
    */
   protected renderGameOverBanner(): TemplateResult {
-    if (!this.gameFinished) return html``;
+    // Gate on !animating too: gameFinished can arrive while the final
+    // animation cycle is still playing (the winning move's card is still in
+    // flight), and the verdict must never appear before it lands (#798).
+    // The watchdog force-closes the gate within 4s, so this can never
+    // permanently hide the banner.
+    if (!this.gameFinished || this.animating) return html``;
     // Winners without a seat-presentation row (AI agents never have one;
     // a human's row write is deliberately non-fatal at join) still get
     // announced — by seat label — rather than being silently dropped,

@@ -217,12 +217,6 @@ export class BoardgameCard extends BoardgameComponent {
   rotated = false;
 
   @property({ type: Boolean })
-  basicRotated = false;
-
-  @property({ type: Boolean })
-  overrideRotated = false;
-
-  @property({ type: Boolean })
   noContent = false;
 
   @property({ type: Boolean })
@@ -243,15 +237,15 @@ export class BoardgameCard extends BoardgameComponent {
 
   // Optimization opportunity: shouldUpdate() could be added here to prevent
   // unnecessary re-renders during animations. However, cards have complex state
-  // with multiple interdependent properties (faceUp, rotated, basicRotated,
-  // overrideRotated, noContent, tall, aspectRatio) that affect visual output.
+  // with multiple interdependent properties (faceUp, rotated, noContent, tall,
+  // aspectRatio) that affect visual output.
   // Conservative approach: Allow all renders to ensure correctness.
   // Future optimization: Skip renders when only non-visual properties change.
 
   protected override updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
 
-    if (changedProperties.has('faceUp') || changedProperties.has('rotated') || changedProperties.has('basicRotated') || changedProperties.has('overrideRotated')) {
+    if (changedProperties.has('faceUp') || changedProperties.has('rotated')) {
       this._updateInnerTransform();
     }
 
@@ -293,23 +287,24 @@ export class BoardgameCard extends BoardgameComponent {
     return super.animatingProperties.concat(['rotated', 'faceUp']);
   }
 
-  override computeAnimationProps(isAfter: boolean, props: Record<string, any>): Record<string, any> {
-    // We override these props for performance.
-    // All of these set inner rotation on card, so do them all at once
+  // _innerTransformFor computes the resting inner transform for a given
+  // faceUp/rotated combination — the pure function behind what
+  // _updateInnerTransform writes as the resting style.
+  private _innerTransformFor(faceUp: boolean, rotated: boolean): string {
+    return [
+      'scale(var(--component-effective-scale))',
+      faceUp ? 'rotateY(180deg)' : 'rotateY(0deg)',
+      rotated ? 'rotate(90deg)' : 'rotate(0deg)',
+    ].join(' ');
+  }
 
-    if (isAfter) {
-      return {
-        faceUp: props.faceUp,
-        overrideRotated: false,
-        basicRotated: props.rotated
-      };
-    }
-
-    return {
-      faceUp: props.faceUp,
-      overrideRotated: true,
-      basicRotated: props.rotated
-    };
+  override playPropertyAnimation(before: Record<string, any>, after: Record<string, any>, delayMs: number = 0): void {
+    if (before.faceUp === after.faceUp && before.rotated === after.rotated) return;
+    if (!this.innerElement) return;
+    this.play(this.innerElement, [
+      { transform: this._innerTransformFor(!!before.faceUp, !!before.rotated) },
+      { transform: this._innerTransformFor(!!after.faceUp, !!after.rotated) },
+    ], { delay: delayMs });
   }
 
   override get cloneContent(): boolean {
@@ -339,36 +334,14 @@ export class BoardgameCard extends BoardgameComponent {
     this.tall = newValue;
   }
 
-  private _rotatedChanged(newValue: boolean) {
-    // there's a class of bugs where basicRotation isn't set the same as
-    // rotation at beginning of rotation. The most recent one was when
-    // moving a card that DIDN'T flip faceUp but did change from not
-    // rotated to rotated, the first animation wouldn't work. To fix that,
-    // we have basicRotated mirror rotated whenever rotated is explicitly
-    // set, to verify basicRotated defaults to a reasonable value.
-    this.basicRotated = newValue;
+  private _rotatedChanged(_newValue: boolean) {
     this._updateInnerTransform();
   }
 
   private _updateInnerTransform() {
     if (!this.innerElement) return;
-
-    const transformPieces: string[] = ['scale(var(--component-effective-scale))'];
-    // Chrome Canary used to interpolate fine if you left out the 0deg
-    // rotation term, but then broke. Setting it explicitly fixes the bug.
-    transformPieces.push(this.faceUp ? 'rotateY(180deg)' : 'rotateY(0deg)');
-    transformPieces.push(
-      (this.overrideRotated ? this.basicRotated : this.rotated) ? 'rotate(90deg)' : 'rotate(0deg)'
-    );
-    const transform = transformPieces.join(' ') || 'none';
-    // Only expect a transition if the transform actually changes.
-    // For non-flipping cards, the transform string is identical before and
-    // after, so the browser won't fire transitionend.
-    const changed = this.innerElement.style.transform !== transform;
-    this.innerElement.style.transform = transform;
-    if (changed) {
-      this._expectTransitionEnd(this.innerElement, 'transform');
-    }
+    this.innerElement.style.transform =
+      this._innerTransformFor(this.faceUp, this.rotated) || 'none';
   }
 
   protected override _itemChanged(newValue: any) {
