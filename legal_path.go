@@ -133,11 +133,14 @@ func validatePropOnReader(p LegalPropPath, propName string, reader PropertyReade
 // "move.X" paths, move. It returns the raw property value, its
 // PropertyType, and an error if resolution failed.
 //
-// NOTE on signature: the design spec's evaluation Context type
-// (boardgame.LegalContext, wrapping State/Move/Proposer/Chest) does not
-// exist yet — it is introduced in a later task. This task's brief was
-// controller-approved to instead take (LegalPropPath, ImmutableState, Move)
-// directly; a future task adapts callers once LegalContext lands.
+// This is no longer dead outside tests: LegalContext.ResolvePath
+// (legal_predicate.go) delegates directly here, which is what makes it THE
+// path resolution every predicate — core's own future predicates and every
+// predicate in package legal's catalog alike — must use. Boot validation
+// (validateLegalPath, above) and evaluation (this function, reached via
+// LegalContext.ResolvePath) share one grammar by construction: both are
+// built on parseLegalPath, and a "kind.Property" spelling that boot
+// accepted can never surprise evaluation with a different parse.
 //
 // "player.X" paths resolve against state.ImmutableCurrentPlayer(), which
 // already guards CurrentPlayerIndex() against being out of bounds or one of
@@ -176,6 +179,25 @@ func resolveLegalPath(p LegalPropPath, state ImmutableState, move Move) (interfa
 	}
 
 	return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: unknown path kind", p)
+}
+
+// ResolvePath resolves p at evaluation time against c.State and, for
+// "move.X" paths, c.Move. It returns the raw property value, its
+// PropertyType, and an error if resolution failed.
+//
+// This is THE path resolution a LegalPredicate's Evaluate func must use to
+// turn a LegalPropPath into a value: it delegates directly to
+// resolveLegalPath, the same grammar validateLegalPath checks paths against
+// at boot (NewGameManager). Sharing one implementation between boot
+// validation and evaluation is deliberate — see spec §1 "Context is the
+// entire vocabulary a predicate may reference" — so a path that validates
+// at boot can never be parsed differently at evaluation time, and vice
+// versa. Any predicate constructor, whether built into core or registered
+// by package legal's catalog (or a game's own LegalPredicateConstructor),
+// should call c.ResolvePath rather than hand-rolling its own "kind.Property"
+// parsing.
+func (c LegalContext) ResolvePath(p LegalPropPath) (interface{}, PropertyType, error) {
+	return resolveLegalPath(p, c.State, c.Move)
 }
 
 // resolveProp fetches propName's value and PropertyType from reader,
