@@ -91,7 +91,97 @@ func TestResolveLegalSpecsAnyDepthTwoRejected(t *testing.T) {
 	}
 	_, err := resolveLegalSpecs([]LegalSpec{spec}, registry, nil, nil, nil)
 	assert.For(t).ThatActual(err).IsNotNil()
+	// A weak assertion here (just "contains any") would pass even if the
+	// error didn't actually identify the offending nested spec. Require the
+	// stronger "nested" phrasing that names what went wrong.
+	assert.For(t).ThatActual(strings.Contains(err.Error(), "nested")).Equals(true)
 	assert.For(t).ThatActual(strings.Contains(err.Error(), "any")).Equals(true)
+}
+
+// TestResolveLegalSpecsAnyNestingBypass covers Finding 1: the depth-1 "any"
+// rule must be enforced at resolution, not by literally inspecting each
+// sub-spec's Name — a registered constructor is handed the resolve closure
+// and could otherwise plant a depth-2 "any" by resolving one internally and
+// returning it as its own predicate, entirely undetected by a check that
+// only looks at spec.Sub[i].Name.
+func TestResolveLegalSpecsAnyNestingBypass(t *testing.T) {
+	t.Run("constructor-mediated nested any is rejected", func(t *testing.T) {
+		registry := legalTestRegistry()
+		// wrapsAnAny's spec.Name is NOT "any" — a literal-Name check on
+		// spec.Sub would never see this coming — but its Constructor calls
+		// resolve on an {Name: "any", ...} spec internally and returns that
+		// as its own predicate, planting a nested "any" via the back door.
+		registry["wrapsAnAny"] = &LegalPredicateConstructor{
+			Name: "wrapsAnAny",
+			Constructor: func(spec LegalSpec, chest *ComponentChest, resolve func(LegalSpec) (*LegalPredicate, error)) (*LegalPredicate, error) {
+				return resolve(LegalSpec{
+					Name: "any",
+					Sub: []LegalSpec{
+						{Name: "alwaysPass"},
+						{Name: "alwaysFail"},
+					},
+				})
+			},
+		}
+
+		outer := LegalSpec{
+			Name: "any",
+			Sub: []LegalSpec{
+				{Name: "wrapsAnAny"},
+				{Name: "alwaysPass"},
+			},
+		}
+		_, err := resolveLegalSpecs([]LegalSpec{outer}, registry, nil, nil, nil)
+		assert.For(t).ThatActual(err).IsNotNil()
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "nested")).Equals(true)
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "wrapsAnAny")).Equals(true)
+	})
+
+	t.Run("hand-built nested any predicate is caught by the post-walk", func(t *testing.T) {
+		registry := legalTestRegistry()
+		// This constructor bypasses resolve entirely and hand-assembles a
+		// *LegalPredicate whose Sub contains a manually-constructed nested
+		// "any" — resolve's insideAny tracking never sees this, since it
+		// never routes through resolve. checkNoNestedAny's post-resolution
+		// walk is the only thing that can catch it.
+		registry["handBuildsNestedAny"] = &LegalPredicateConstructor{
+			Name: "handBuildsNestedAny",
+			Constructor: func(spec LegalSpec, chest *ComponentChest, resolve func(LegalSpec) (*LegalPredicate, error)) (*LegalPredicate, error) {
+				return &LegalPredicate{
+					Name: legalAnyCompositorName,
+					Sub: []*LegalPredicate{
+						{
+							Name: legalAnyCompositorName,
+							Sub: []*LegalPredicate{
+								{Name: "innerA", Evaluate: func(ctx LegalContext) LegalVerdict { return LegalVerdict{Outcome: LegalPass} }},
+								{Name: "innerB", Evaluate: func(ctx LegalContext) LegalVerdict { return LegalVerdict{Outcome: LegalFail} }},
+							},
+						},
+						{Name: "outerB", Evaluate: func(ctx LegalContext) LegalVerdict { return LegalVerdict{Outcome: LegalPass} }},
+					},
+				}, nil
+			},
+		}
+
+		_, err := resolveLegalSpecs([]LegalSpec{{Name: "handBuildsNestedAny"}}, registry, nil, nil, nil)
+		assert.For(t).ThatActual(err).IsNotNil()
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "nested")).Equals(true)
+	})
+
+	t.Run("legitimate single any still resolves", func(t *testing.T) {
+		registry := legalTestRegistry()
+		spec := LegalSpec{
+			Name: "any",
+			Sub: []LegalSpec{
+				{Name: "alwaysFail"},
+				{Name: "alwaysPass"},
+			},
+		}
+		preds, err := resolveLegalSpecs([]LegalSpec{spec}, registry, nil, nil, nil)
+		assert.For(t).ThatActual(err).IsNil()
+		v := evalLegalPredicate(preds[0], LegalContext{})
+		assert.For(t).ThatActual(v.Outcome).Equals(LegalPass)
+	})
 }
 
 func TestResolveLegalSpecsAnyRequiresTwoSubs(t *testing.T) {
@@ -163,6 +253,59 @@ func TestLegalAnyKleeneTruthTable(t *testing.T) {
 		v := evalLegalPredicate(preds[0], LegalContext{})
 		assert.For(t).ThatActual(v.Message.Template).Equals("custom.failed")
 	})
+}
+
+// TestLegalAnyKleeneTruthTableExhaustiveThreeWay covers Finding 3: rather
+// than a handful of hand-picked 3-way cases, exercise all 27 combinations of
+// three children each independently Pass/Unknown/Fail, computing the
+// expected Kleene outcome the same way evalLegalAnyKleene is documented to:
+// any Pass -> Pass; else any Unknown -> Unknown; else Fail.
+func TestLegalAnyKleeneTruthTableExhaustiveThreeWay(t *testing.T) {
+	registry := legalTestRegistry()
+
+	outcomes := []struct {
+		ctorName string
+		outcome  LegalOutcome
+	}{
+		{"alwaysPass", LegalPass},
+		{"alwaysUnknown", LegalUnknown},
+		{"alwaysFail", LegalFail},
+	}
+
+	for _, a := range outcomes {
+		for _, b := range outcomes {
+			for _, c := range outcomes {
+				name := a.ctorName + "_" + b.ctorName + "_" + c.ctorName
+				t.Run(name, func(t *testing.T) {
+					anyPass := a.outcome == LegalPass || b.outcome == LegalPass || c.outcome == LegalPass
+					anyUnknown := a.outcome == LegalUnknown || b.outcome == LegalUnknown || c.outcome == LegalUnknown
+
+					var want LegalOutcome
+					switch {
+					case anyPass:
+						want = LegalPass
+					case anyUnknown:
+						want = LegalUnknown
+					default:
+						want = LegalFail
+					}
+
+					spec := LegalSpec{
+						Name: "any",
+						Sub: []LegalSpec{
+							{Name: a.ctorName},
+							{Name: b.ctorName},
+							{Name: c.ctorName},
+						},
+					}
+					preds, err := resolveLegalSpecs([]LegalSpec{spec}, registry, nil, nil, nil)
+					assert.For(t).ThatActual(err).IsNil()
+					v := evalLegalPredicate(preds[0], LegalContext{})
+					assert.For(t).ThatActual(v.Outcome).Equals(want)
+				})
+			}
+		}
+	}
 }
 
 func TestLegalPredicateSerializable(t *testing.T) {

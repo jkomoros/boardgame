@@ -107,9 +107,25 @@ const legalAnyCompositorName = "any"
 // offending spec; "any" is the only compositor (any other Name with Sub set
 // is not itself special-cased — Sub is only meaningful to the "any"
 // resolution path and to whatever a specific constructor chooses to do with
-// it via the resolve callback); an "any" whose Sub contains another "any"
-// is rejected (depth 1 only), naming both the outer spec and the offending
-// nested "any"; an "any" with fewer than 2 Sub is rejected.
+// it via the resolve callback); an "any" is enforced to depth 1 — no "any"
+// may be resolved anywhere beneath another "any" on the same resolution
+// path; an "any" with fewer than 2 Sub is rejected.
+//
+// The depth-1 rule is enforced at RESOLUTION time, not by literally
+// inspecting each sub-spec's Name: the resolve closure handed to every
+// constructor (via LegalPredicateConstructor.Constructor's resolve
+// parameter) closes over whether the current resolution is already inside
+// an "any". A constructor that internally calls resolve on an
+// {Name: "any", ...} spec — even though its own spec's Name is something
+// else entirely, e.g. a game-registered "wrapsAnAny" — hits the same check
+// as a spec whose Sub literally names "any" directly, because the
+// enforcement lives in what gets resolved, not in what the literal spec
+// tree looks like. This closes a bypass where a constructor could plant a
+// depth-2 "any" by resolving one internally and returning it as its own
+// predicate. See checkNoNestedAny below for a second, independent
+// belt-and-suspenders check over the resulting *LegalPredicate tree, which
+// also catches a constructor that hand-builds a nested-"any"
+// *LegalPredicate without ever calling resolve.
 //
 // resolveLegalSpecs is also where every resolved predicate's declared Reads
 // paths are validated via validateLegalPath, so a typo in a Read's path
@@ -129,10 +145,27 @@ const legalAnyCompositorName = "any"
 func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateConstructor,
 	chest *ComponentChest, exampleState ImmutableState, moveReader PropertyReader) ([]*LegalPredicate, error) {
 
-	var resolve func(spec LegalSpec) (*LegalPredicate, error)
-	resolve = func(spec LegalSpec) (*LegalPredicate, error) {
+	// resolve is the internal resolver. insideAny is true whenever this
+	// call is resolving something that is, directly or via any number of
+	// constructor hops, beneath an "any" that is already being resolved.
+	// The resolve closure bound and handed to a constructor (below) always
+	// captures the insideAny value in effect at the point the constructor
+	// was invoked, so a constructor cannot escape the depth-1 rule by
+	// resolving an "any" itself: that call re-enters resolve with the same
+	// insideAny=true, and resolving "any" while insideAny is an error.
+	var resolve func(spec LegalSpec, insideAny bool) (*LegalPredicate, error)
+	resolve = func(spec LegalSpec, insideAny bool) (*LegalPredicate, error) {
 		if spec.Name == legalAnyCompositorName {
-			return resolveLegalAnySpec(spec, resolve)
+			if insideAny {
+				return nil, fmt.Errorf("boardgame: legal spec %q: nested %q compositor is not allowed (any is depth-1 only, no nested any anywhere beneath another any)", spec.Name, legalAnyCompositorName)
+			}
+			// The subs of this "any" resolve with insideAny=true, whether
+			// they are literally {Name: "any", ...} in spec.Sub or a
+			// constructor that internally resolves an "any" of its own.
+			boundResolve := func(sub LegalSpec) (*LegalPredicate, error) {
+				return resolve(sub, true)
+			}
+			return resolveLegalAnySpec(spec, boundResolve)
 		}
 
 		ctor, ok := registry[spec.Name]
@@ -140,7 +173,15 @@ func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateCon
 			return nil, fmt.Errorf("boardgame: legal spec %q: unknown predicate name %q", spec.Name, spec.Name)
 		}
 
-		pred, err := ctor.Constructor(spec, chest, resolve)
+		// The resolve closure handed to this constructor carries forward
+		// the CURRENT insideAny — so if this constructor is itself being
+		// resolved as a sub of an "any" (insideAny is already true), any
+		// "any" it resolves internally is caught too.
+		boundResolve := func(sub LegalSpec) (*LegalPredicate, error) {
+			return resolve(sub, insideAny)
+		}
+
+		pred, err := ctor.Constructor(spec, chest, boundResolve)
 		if err != nil {
 			return nil, fmt.Errorf("boardgame: legal spec %q: constructor failed: %w", spec.Name, err)
 		}
@@ -152,9 +193,17 @@ func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateCon
 
 	result := make([]*LegalPredicate, 0, len(specs))
 	for _, spec := range specs {
-		pred, err := resolve(spec)
+		pred, err := resolve(spec, false)
 		if err != nil {
 			return nil, err
+		}
+		// Belt-and-suspenders: walk the resolved predicate tree itself,
+		// independent of how it was built, and reject a nested "any" a
+		// hand-built *LegalPredicate might have smuggled past resolve
+		// entirely (a constructor that builds a LegalPredicate struct
+		// literal rather than calling resolve).
+		if err := checkNoNestedAny(pred); err != nil {
+			return nil, fmt.Errorf("boardgame: legal spec %q: %w", spec.Name, err)
 		}
 		if err := validateLegalReadsForBoot(pred.Reads, exampleState, moveReader); err != nil {
 			return nil, fmt.Errorf("boardgame: legal spec %q: %w", spec.Name, err)
@@ -164,13 +213,47 @@ func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateCon
 	return result, nil
 }
 
+// checkNoNestedAny walks pred's Sub tree (the already-resolved
+// *LegalPredicate structure, not LegalSpec) and returns an error if any
+// "any" node has another "any" node anywhere among its descendants. This is
+// independent of, and a backstop for, resolve's insideAny enforcement
+// above: it catches a constructor that hand-assembles a *LegalPredicate
+// (Name: "any", Sub: [...]) containing a nested "any" without ever routing
+// through the resolve closure it was given.
+func checkNoNestedAny(pred *LegalPredicate) error {
+	var walk func(p *LegalPredicate, insideAny bool) error
+	walk = func(p *LegalPredicate, insideAny bool) error {
+		if p == nil {
+			return nil
+		}
+		isAny := p.Name == legalAnyCompositorName
+		if isAny && insideAny {
+			return fmt.Errorf("resolved predicate %q: nested %q compositor is not allowed (any is depth-1 only, no nested any anywhere beneath another any)", p.Name, legalAnyCompositorName)
+		}
+		for _, sub := range p.Sub {
+			if err := walk(sub, insideAny || isAny); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return walk(pred, false)
+}
+
 // resolveLegalAnySpec resolves an "any"-named spec into the built-in
-// any-compositor predicate: depth-1 enforced (no sub may itself be "any"),
-// at least 2 subs required. Its Reads is the union of its children's Reads,
-// its Cost the max of its children's Cost, and its Evaluate implements the
-// Kleene truth table (spec §6): any child Pass -> Pass; else if any child
-// Unknown -> Unknown; else Fail, with the spec's Message key if set, else
-// the "legal.any_failed" template.
+// any-compositor predicate: at least 2 subs required. Its Reads is the
+// union of its children's Reads, its Cost the max of its children's Cost,
+// and its Evaluate implements the Kleene truth table (spec §6): any child
+// Pass -> Pass; else if any child Unknown -> Unknown; else Fail, with the
+// spec's Message key if set, else the "legal.any_failed" template.
+//
+// resolve is expected to already be bound (by the caller, resolveLegalSpecs)
+// so that resolving any of spec's subs — including a nested "any", however
+// it's reached — is treated as inside this "any"; resolveLegalAnySpec does
+// not itself re-check subSpec.Name against "any" literally, since that
+// literal check is bypassable by a constructor that resolves an "any"
+// internally rather than naming it directly in Sub. See resolveLegalSpecs's
+// doc comment for the full depth-1 enforcement rationale.
 func resolveLegalAnySpec(spec LegalSpec, resolve func(LegalSpec) (*LegalPredicate, error)) (*LegalPredicate, error) {
 	if len(spec.Sub) < 2 {
 		return nil, fmt.Errorf("boardgame: legal spec %q: %q compositor requires at least 2 sub-specs, got %d", spec.Name, legalAnyCompositorName, len(spec.Sub))
@@ -178,9 +261,6 @@ func resolveLegalAnySpec(spec LegalSpec, resolve func(LegalSpec) (*LegalPredicat
 
 	subs := make([]*LegalPredicate, 0, len(spec.Sub))
 	for _, subSpec := range spec.Sub {
-		if subSpec.Name == legalAnyCompositorName {
-			return nil, fmt.Errorf("boardgame: legal spec %q: sub-spec %q may not itself be %q (any is depth-1 only, no nested any)", spec.Name, subSpec.Name, legalAnyCompositorName)
-		}
 		sub, err := resolve(subSpec)
 		if err != nil {
 			return nil, err
