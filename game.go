@@ -940,6 +940,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.
+		if isFixUp {
+			// #65: fixup rejections were silently discarded before this;
+			// log them at debug (design spec §6, "Server": "no exceptions").
+			g.logFixupRejection(move, currentState, proposer, err)
+		}
 		return errors.NewFriendly(err.Error())
 	}
 
