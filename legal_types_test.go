@@ -182,6 +182,46 @@ func TestLegalBindingValueUnmarshalJSON(t *testing.T) {
 			t.Fatalf("got %+v, want only B set", v)
 		}
 	})
+
+	t.Run("non-integer JSON number errors", func(t *testing.T) {
+		var v LegalBindingValue
+		if err := json.Unmarshal([]byte(`1.5`), &v); err == nil {
+			t.Fatalf("Unmarshal of 1.5 returned nil error, want error")
+		}
+		if v.I != nil || v.S != nil || v.B != nil {
+			t.Fatalf("got %+v, want no fields set after error", v)
+		}
+	})
+
+	t.Run("integral float succeeds", func(t *testing.T) {
+		var v LegalBindingValue
+		if err := json.Unmarshal([]byte(`1e2`), &v); err != nil {
+			t.Fatalf("Unmarshal of 1e2 returned error: %v", err)
+		}
+		if v.I == nil || *v.I != 100 {
+			t.Fatalf("got %+v, want I=100", v)
+		}
+		if v.S != nil || v.B != nil {
+			t.Fatalf("got %+v, want only I set", v)
+		}
+	})
+
+	t.Run("unmarshal bool into value with int clears int", func(t *testing.T) {
+		i := 42
+		v := LegalBindingValue{I: &i}
+		if err := json.Unmarshal([]byte(`true`), &v); err != nil {
+			t.Fatalf("Unmarshal returned error: %v", err)
+		}
+		if v.B == nil || *v.B != true {
+			t.Fatalf("got %+v, want B=true", v)
+		}
+		if v.I != nil {
+			t.Fatalf("got I=%v, want I=nil", v.I)
+		}
+		if v.S != nil {
+			t.Fatalf("got %+v, want only B set", v)
+		}
+	})
 }
 
 // TestLegalMessageJSONBindings verifies that a LegalMessage's Bindings map

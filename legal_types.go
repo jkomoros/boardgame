@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 )
 
 // LegalOutcome is the three-valued verdict returned by legality evaluation.
@@ -63,6 +64,7 @@ func (b LegalBindingValue) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON infers which field to populate from the JSON value's type:
 // a JSON string sets S, a JSON number sets I, and a JSON bool sets B.
 func (b *LegalBindingValue) UnmarshalJSON(data []byte) error {
+	b.S, b.I, b.B = nil, nil, nil
 	var raw interface{}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -73,6 +75,9 @@ func (b *LegalBindingValue) UnmarshalJSON(data []byte) error {
 	case bool:
 		b.B = &val
 	case float64:
+		if val != math.Trunc(val) {
+			return fmt.Errorf("boardgame: LegalBindingValue: non-integer number %v not representable", val)
+		}
 		i := int(val)
 		b.I = &i
 	default:
