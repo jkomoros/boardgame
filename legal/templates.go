@@ -62,6 +62,9 @@ var defaultTemplates = map[string]string{
 	TemplateNoCardHere:                    "there is no card at that index",
 	TemplateAlreadyRevealed:               "that card has already been revealed",
 	TemplateComponentPropNotCurrentPlayer: "the component's {prop} does not match the current player's {prop}",
+	TemplateInPhase:                       "{detail}",
+	TemplateInProgression:                 "{detail}",
+	TemplateStackConstraints:              "{detail}",
 	legalAnyFailedTemplate:                "none of the required conditions were satisfied",
 }
 

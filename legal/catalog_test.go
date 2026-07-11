@@ -1,16 +1,17 @@
-package legal
+package legal_test
 
 import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/constraints"
 )
 
 // TestPropAtLeast covers PropAtLeast's pass/fail/unknown paths, its
 // declared Reads, and the template key used on Fail.
 func TestPropAtLeast(t *testing.T) {
-	spec := PropAtLeast("player.CardsLeftToReveal", 1)
+	spec := legal.PropAtLeast("player.CardsLeftToReveal", 1)
 	if spec.Name != "propAtLeast" {
 		t.Fatalf("Name = %q, want propAtLeast", spec.Name)
 	}
@@ -25,18 +26,18 @@ func TestPropAtLeast(t *testing.T) {
 
 	// Pass: memoryDefault has CardsLeftToReveal == 2 >= 1.
 	pass := buildLegalFixture(t, "memoryDefault")
-	if v := pred.Evaluate(pass.context(0)); v.Outcome != Pass {
-		t.Fatalf("pass fixture: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(pass.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("pass fixture: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	// Fail: memoryZeroCardsLeft has CardsLeftToReveal == 0 < 1.
 	fail := buildLegalFixture(t, "memoryZeroCardsLeft")
 	v := pred.Evaluate(fail.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("fail fixture: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("fail fixture: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplatePropAtLeast {
-		t.Fatalf("fail fixture: Message = %+v, want template %q", v.Message, TemplatePropAtLeast)
+	if v.Message == nil || v.Message.Template != legal.TemplatePropAtLeast {
+		t.Fatalf("fail fixture: legal.Message = %+v, want template %q", v.Message, legal.TemplatePropAtLeast)
 	}
 	if got := v.Message.Bindings["value"]; got.I == nil || *got.I != 0 {
 		t.Fatalf("fail fixture: value binding = %+v, want 0", got)
@@ -46,23 +47,23 @@ func TestPropAtLeast(t *testing.T) {
 	}
 
 	// Unknown: property doesn't exist.
-	unknownSpec := PropAtLeast("game.NoSuchIntProp", 1)
+	unknownSpec := legal.PropAtLeast("game.NoSuchIntProp", 1)
 	unknownPred := resolvePredicateForTest(t, unknownSpec)
-	if v := unknownPred.Evaluate(pass.context(0)); v.Outcome != Unknown {
-		t.Fatalf("unknown-path: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := unknownPred.Evaluate(pass.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("unknown-path: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 
 	// Custom message overrides the default template.
-	overridden := resolvePredicateForTest(t, PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("custom.key"))
+	overridden := resolvePredicateForTest(t, legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("custom.key"))
 	if v := overridden.Evaluate(fail.context(0)); v.Message == nil || v.Message.Template != "custom.key" {
-		t.Fatalf("WithMessage override: Message = %+v, want template custom.key", v.Message)
+		t.Fatalf("WithMessage override: legal.Message = %+v, want template custom.key", v.Message)
 	}
 }
 
 // TestPropCompare covers PropCompare's ops, pass/fail/unknown, Reads, and
 // bad-op construction-time validation.
 func TestPropCompare(t *testing.T) {
-	spec := PropCompare("player.CardsLeftToReveal", "==", 2)
+	spec := legal.PropCompare("player.CardsLeftToReveal", "==", 2)
 	if spec.Name != "propCompare" {
 		t.Fatalf("Name = %q, want propCompare", spec.Name)
 	}
@@ -73,52 +74,52 @@ func TestPropCompare(t *testing.T) {
 	}
 
 	pass := buildLegalFixture(t, "memoryDefault")
-	if v := pred.Evaluate(pass.context(0)); v.Outcome != Pass {
-		t.Fatalf("pass fixture: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(pass.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("pass fixture: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	fail := buildLegalFixture(t, "memoryZeroCardsLeft")
 	v := pred.Evaluate(fail.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("fail fixture: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("fail fixture: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplatePropCompare {
-		t.Fatalf("fail fixture: Message = %+v, want template %q", v.Message, TemplatePropCompare)
+	if v.Message == nil || v.Message.Template != legal.TemplatePropCompare {
+		t.Fatalf("fail fixture: legal.Message = %+v, want template %q", v.Message, legal.TemplatePropCompare)
 	}
 
-	unknownPred := resolvePredicateForTest(t, PropCompare("game.NoSuchIntProp", "==", 0))
-	if v := unknownPred.Evaluate(pass.context(0)); v.Outcome != Unknown {
-		t.Fatalf("unknown-path: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	unknownPred := resolvePredicateForTest(t, legal.PropCompare("game.NoSuchIntProp", "==", 0))
+	if v := unknownPred.Evaluate(pass.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("unknown-path: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 
 	// Every operator exercised against a known value (CardsLeftToReveal == 2).
 	opCases := []struct {
 		op   string
 		n    int
-		want Outcome
+		want legal.Outcome
 	}{
-		{"==", 2, Pass},
-		{"==", 3, Fail},
-		{"!=", 3, Pass},
-		{"!=", 2, Fail},
-		{"<", 3, Pass},
-		{"<", 2, Fail},
-		{"<=", 2, Pass},
-		{"<=", 1, Fail},
-		{">", 1, Pass},
-		{">", 2, Fail},
-		{">=", 2, Pass},
-		{">=", 3, Fail},
+		{"==", 2, legal.Pass},
+		{"==", 3, legal.Fail},
+		{"!=", 3, legal.Pass},
+		{"!=", 2, legal.Fail},
+		{"<", 3, legal.Pass},
+		{"<", 2, legal.Fail},
+		{"<=", 2, legal.Pass},
+		{"<=", 1, legal.Fail},
+		{">", 1, legal.Pass},
+		{">", 2, legal.Fail},
+		{">=", 2, legal.Pass},
+		{">=", 3, legal.Fail},
 	}
 	for _, oc := range opCases {
-		p := resolvePredicateForTest(t, PropCompare("player.CardsLeftToReveal", oc.op, oc.n))
+		p := resolvePredicateForTest(t, legal.PropCompare("player.CardsLeftToReveal", oc.op, oc.n))
 		if v := p.Evaluate(pass.context(0)); v.Outcome != oc.want {
-			t.Errorf("op %s %d: Outcome = %v, want %v", oc.op, oc.n, v.Outcome, oc.want)
+			t.Errorf("op %s %d: legal.Outcome = %v, want %v", oc.op, oc.n, v.Outcome, oc.want)
 		}
 	}
 
 	// Bad op is a construction-time error, not a runtime Unknown.
-	if _, err := resolveSpecViaRegistry(PropCompare("game.NumCards", "~=", 1), DefaultConstructors(), nil); err == nil {
+	if _, err := resolveSpecViaRegistry(legal.PropCompare("game.NumCards", "~=", 1), legal.DefaultConstructors(), nil); err == nil {
 		t.Fatal("expected an error constructing propCompare with an invalid op")
 	}
 }
@@ -126,7 +127,7 @@ func TestPropCompare(t *testing.T) {
 // TestPlayerBool covers PlayerBool's pass/fail/unknown, Reads, and template
 // key.
 func TestPlayerBool(t *testing.T) {
-	spec := PlayerBool("SeatFilled")
+	spec := legal.PlayerBool("SeatFilled")
 	if spec.Name != "playerBool" {
 		t.Fatalf("Name = %q, want playerBool", spec.Name)
 	}
@@ -137,25 +138,25 @@ func TestPlayerBool(t *testing.T) {
 	}
 
 	pass := buildLegalFixture(t, "memorySeatFilled")
-	if v := pred.Evaluate(pass.context(0)); v.Outcome != Pass {
-		t.Fatalf("pass fixture: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(pass.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("pass fixture: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	fail := buildLegalFixture(t, "memoryDefault")
 	v := pred.Evaluate(fail.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("fail fixture: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("fail fixture: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplatePlayerBool {
-		t.Fatalf("fail fixture: Message = %+v, want template %q", v.Message, TemplatePlayerBool)
+	if v.Message == nil || v.Message.Template != legal.TemplatePlayerBool {
+		t.Fatalf("fail fixture: legal.Message = %+v, want template %q", v.Message, legal.TemplatePlayerBool)
 	}
 	if got := v.Message.Bindings["prop"]; got.S == nil || *got.S != "SeatFilled" {
 		t.Fatalf("fail fixture: prop binding = %+v, want SeatFilled", got)
 	}
 
-	unknownPred := resolvePredicateForTest(t, PlayerBool("NoSuchBoolProp"))
-	if v := unknownPred.Evaluate(fail.context(0)); v.Outcome != Unknown {
-		t.Fatalf("unknown-prop: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	unknownPred := resolvePredicateForTest(t, legal.PlayerBool("NoSuchBoolProp"))
+	if v := unknownPred.Evaluate(fail.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("unknown-prop: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 }
 
@@ -163,7 +164,7 @@ func TestPlayerBool(t *testing.T) {
 // Reads (occupancy facet on the stack, values facet on the index), and
 // template key.
 func TestComponentPresentAt(t *testing.T) {
-	spec := ComponentPresentAt("game.HiddenCards", "move.CardIndex")
+	spec := legal.ComponentPresentAt("game.HiddenCards", "move.CardIndex")
 	if spec.Name != "componentPresentAt" {
 		t.Fatalf("Name = %q, want componentPresentAt", spec.Name)
 	}
@@ -180,33 +181,33 @@ func TestComponentPresentAt(t *testing.T) {
 	}
 
 	fixture := buildLegalFixture(t, "memoryDefault")
-	if v := pred.Evaluate(fixture.context(0)); v.Outcome != Pass {
-		t.Fatalf("HiddenCards[0] present: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("HiddenCards[0] present: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
-	failSpec := ComponentPresentAt("game.VisibleCards", "move.CardIndex")
+	failSpec := legal.ComponentPresentAt("game.VisibleCards", "move.CardIndex")
 	failPred := resolvePredicateForTest(t, failSpec)
 	v := failPred.Evaluate(fixture.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("VisibleCards[0] absent: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("VisibleCards[0] absent: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplateComponentMissing {
-		t.Fatalf("Message = %+v, want template %q", v.Message, TemplateComponentMissing)
+	if v.Message == nil || v.Message.Template != legal.TemplateComponentMissing {
+		t.Fatalf("legal.Message = %+v, want template %q", v.Message, legal.TemplateComponentMissing)
 	}
 	if got := v.Message.Bindings["index"]; got.I == nil || *got.I != 0 {
 		t.Fatalf("index binding = %+v, want 0", got)
 	}
 
 	noMove := buildLegalFixture(t, "memoryNoMove")
-	if v := pred.Evaluate(noMove.context(0)); v.Outcome != Unknown {
-		t.Fatalf("nil move: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("nil move: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 }
 
 // TestComponentPresentAtKey covers ComponentPresentAtKey's pass/fail/unknown,
 // Reads, and template key, using checkers' enum-keyed Spaces stack.
 func TestComponentPresentAtKey(t *testing.T) {
-	spec := ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove")
+	spec := legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove")
 	if spec.Name != "componentPresentAtKey" {
 		t.Fatalf("Name = %q, want componentPresentAtKey", spec.Name)
 	}
@@ -223,29 +224,29 @@ func TestComponentPresentAtKey(t *testing.T) {
 	}
 
 	occupied := buildLegalFixture(t, "checkersDefault")
-	if v := pred.Evaluate(occupied.context(0)); v.Outcome != Pass {
-		t.Fatalf("occupied space: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(occupied.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("occupied space: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	empty := buildLegalFixture(t, "checkersEmptySpace")
 	v := pred.Evaluate(empty.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("empty space: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("empty space: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplateComponentMissingKey {
-		t.Fatalf("Message = %+v, want template %q", v.Message, TemplateComponentMissingKey)
+	if v.Message == nil || v.Message.Template != legal.TemplateComponentMissingKey {
+		t.Fatalf("legal.Message = %+v, want template %q", v.Message, legal.TemplateComponentMissingKey)
 	}
 
 	noMove := buildLegalFixture(t, "checkersNoMove")
-	if v := pred.Evaluate(noMove.context(0)); v.Outcome != Unknown {
-		t.Fatalf("nil move: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("nil move: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 }
 
 // TestMayMoveTo covers MayMoveTo's pass/fail(x2 templates)/unknown, Reads,
 // and template keys.
 func TestMayMoveTo(t *testing.T) {
-	spec := MayMoveTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex")
+	spec := legal.MayMoveTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex")
 	if spec.Name != "mayMoveTo" {
 		t.Fatalf("Name = %q, want mayMoveTo", spec.Name)
 	}
@@ -272,19 +273,19 @@ func TestMayMoveTo(t *testing.T) {
 	}
 
 	fixture := buildLegalFixture(t, "memoryDefault")
-	if v := pred.Evaluate(fixture.context(0)); v.Outcome != Pass {
-		t.Fatalf("HiddenCards->VisibleCards: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("HiddenCards->VisibleCards: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	// Fail: component present at source, but MayMoveTo itself rejects
 	// (same stack for source and destination).
-	sameStackPred := resolvePredicateForTest(t, MayMoveTo("game.HiddenCards", "game.HiddenCards", "move.CardIndex"))
+	sameStackPred := resolvePredicateForTest(t, legal.MayMoveTo("game.HiddenCards", "game.HiddenCards", "move.CardIndex"))
 	v := sameStackPred.Evaluate(fixture.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("same-stack: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("same-stack: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplateMayNotMoveTo {
-		t.Fatalf("same-stack Message = %+v, want template %q", v.Message, TemplateMayNotMoveTo)
+	if v.Message == nil || v.Message.Template != legal.TemplateMayNotMoveTo {
+		t.Fatalf("same-stack legal.Message = %+v, want template %q", v.Message, legal.TemplateMayNotMoveTo)
 	}
 	if got := v.Message.Bindings["detail"]; got.S == nil || *got.S == "" {
 		t.Fatalf("same-stack detail binding = %+v, want a non-empty error string", got)
@@ -292,18 +293,18 @@ func TestMayMoveTo(t *testing.T) {
 
 	// Fail: no component at the source index (VisibleCards[0] is empty in
 	// memoryDefault).
-	noComponentPred := resolvePredicateForTest(t, MayMoveTo("game.VisibleCards", "game.HiddenCards", "move.CardIndex"))
+	noComponentPred := resolvePredicateForTest(t, legal.MayMoveTo("game.VisibleCards", "game.HiddenCards", "move.CardIndex"))
 	v2 := noComponentPred.Evaluate(fixture.context(0))
-	if v2.Outcome != Fail {
-		t.Fatalf("no-component: Outcome = %v, want Fail (%+v)", v2.Outcome, v2)
+	if v2.Outcome != legal.Fail {
+		t.Fatalf("no-component: legal.Outcome = %v, want legal.Fail (%+v)", v2.Outcome, v2)
 	}
-	if v2.Message == nil || v2.Message.Template != TemplateNoComponentToMove {
-		t.Fatalf("no-component Message = %+v, want template %q", v2.Message, TemplateNoComponentToMove)
+	if v2.Message == nil || v2.Message.Template != legal.TemplateNoComponentToMove {
+		t.Fatalf("no-component legal.Message = %+v, want template %q", v2.Message, legal.TemplateNoComponentToMove)
 	}
 
 	noMove := buildLegalFixture(t, "memoryNoMove")
-	if v := pred.Evaluate(noMove.context(0)); v.Outcome != Unknown {
-		t.Fatalf("nil move: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("nil move: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 }
 
@@ -311,7 +312,7 @@ func TestMayMoveTo(t *testing.T) {
 // slot-specific rejection (occupied destination slot), which MayMoveTo
 // itself does not check.
 func TestMayMoveToSlot(t *testing.T) {
-	spec := MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex")
+	spec := legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex")
 	if spec.Name != "mayMoveToSlot" {
 		t.Fatalf("Name = %q, want mayMoveToSlot", spec.Name)
 	}
@@ -322,36 +323,36 @@ func TestMayMoveToSlot(t *testing.T) {
 	}
 
 	fixture := buildLegalFixture(t, "memoryDefault")
-	if v := pred.Evaluate(fixture.context(0)); v.Outcome != Pass {
-		t.Fatalf("HiddenCards->VisibleCards[0] (empty slot): Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("HiddenCards->VisibleCards[0] (empty slot): legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	// Fail: destination slot is occupied (MayMoveTo alone wouldn't catch
 	// this — it's MayMoveToSlot's own slot-specific check).
 	occupied := buildLegalFixture(t, "memoryVisibleOccupied")
 	v := pred.Evaluate(occupied.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("occupied dest slot: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("occupied dest slot: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplateMayNotMoveTo {
-		t.Fatalf("occupied dest slot Message = %+v, want template %q", v.Message, TemplateMayNotMoveTo)
+	if v.Message == nil || v.Message.Template != legal.TemplateMayNotMoveTo {
+		t.Fatalf("occupied dest slot legal.Message = %+v, want template %q", v.Message, legal.TemplateMayNotMoveTo)
 	}
 
 	noMove := buildLegalFixture(t, "memoryNoMove")
-	if v := pred.Evaluate(noMove.context(0)); v.Outcome != Unknown {
-		t.Fatalf("nil move: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("nil move: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 }
 
 // findRead returns the Read in reads whose Path matches path, and whether
 // one was found.
-func findRead(reads []Read, path string) (Read, bool) {
+func findRead(reads []legal.Read, path string) (legal.Read, bool) {
 	for _, r := range reads {
 		if string(r.Path) == path {
 			return r, true
 		}
 	}
-	return Read{}, false
+	return legal.Read{}, false
 }
 
 // TestMayMoveFacetHonesty pins the facet-honesty fix for MayMoveTo/
@@ -369,14 +370,14 @@ func TestMayMoveFacetHonesty(t *testing.T) {
 	// carries no constraint at all — the common case, and the one
 	// LegalFacetOccupancy would have been tempting to declare.
 	for _, name := range []string{"mayMoveTo", "mayMoveToSlot"} {
-		spec := Spec{Name: name, Args: []string{"game.HiddenCards", "game.VisibleCards", "move.CardIndex"}}
+		spec := legal.Spec{Name: name, Args: []string{"game.HiddenCards", "game.VisibleCards", "move.CardIndex"}}
 		pred := resolvePredicateForTest(t, spec)
 		dst, ok := findRead(pred.Reads, "game.VisibleCards")
 		if !ok {
-			t.Fatalf("%s: no Read found for dstPath game.VisibleCards", name)
+			t.Fatalf("%s: no legal.Read found for dstPath game.VisibleCards", name)
 		}
 		if dst.Facet != boardgame.LegalFacetValues {
-			t.Fatalf("%s: dstPath Facet = %v, want LegalFacetValues", name, dst.Facet)
+			t.Fatalf("%s: dstPath legal.Facet = %v, want LegalFacetValues", name, dst.Facet)
 		}
 	}
 
@@ -440,19 +441,19 @@ func TestMayMoveFacetHonesty(t *testing.T) {
 		t.Fatal("expected both a Type-matching and a Type-mismatching card left in HiddenCards")
 	}
 
-	pred := resolvePredicateForTest(t, MayMoveTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"))
+	pred := resolvePredicateForTest(t, legal.MayMoveTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"))
 
 	matchMove := memoryMoveWithCardIndex(t, game, matchIdx)
 	matchFixture := legalFixture{state: state, move: matchMove, chest: game.Manager().Chest()}
-	if v := pred.Evaluate(matchFixture.context(0)); v.Outcome != Pass {
-		t.Fatalf("matching Type: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(matchFixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("matching Type: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	mismatchMove := memoryMoveWithCardIndex(t, game, mismatchIdx)
 	mismatchFixture := legalFixture{state: state, move: mismatchMove, chest: game.Manager().Chest()}
 	v := pred.Evaluate(mismatchFixture.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("mismatching Type: Outcome = %v, want Fail (%+v) — this values-dependence is exactly what the FacetValues declaration on dstPath exists to make honest", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("mismatching Type: legal.Outcome = %v, want legal.Fail (%+v) — this values-dependence is exactly what the FacetValues declaration on dstPath exists to make honest", v.Outcome, v)
 	}
 }
 
@@ -460,7 +461,7 @@ func TestMayMoveFacetHonesty(t *testing.T) {
 // catalog built in this task, and that ExtendDefaults appends without
 // mutating DefaultConstructors' own result.
 func TestDefaultConstructors(t *testing.T) {
-	constructors := DefaultConstructors()
+	constructors := legal.DefaultConstructors()
 	wantNames := map[string]bool{
 		"propAtLeast":                      true,
 		"propCompare":                      true,
@@ -473,9 +474,11 @@ func TestDefaultConstructors(t *testing.T) {
 		"proposerIsCurrentPlayer":          true,
 		"revealableCardAt":                 true,
 		"componentPropEqualsCurrentPlayer": true,
+		"inPhase":                          true,
+		"stackConstraints":                 true,
 	}
 	if len(constructors) != len(wantNames) {
-		t.Fatalf("len(DefaultConstructors()) = %d, want %d", len(constructors), len(wantNames))
+		t.Fatalf("len(legal.DefaultConstructors()) = %d, want %d", len(constructors), len(wantNames))
 	}
 	for _, c := range constructors {
 		if !wantNames[c.Name] {
@@ -489,23 +492,23 @@ func TestDefaultConstructors(t *testing.T) {
 }
 
 func TestExtendDefaults(t *testing.T) {
-	custom := &PredicateConstructor{
+	custom := &legal.PredicateConstructor{
 		Name: "custom",
-		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+		Constructor: func(spec legal.Spec, chest *boardgame.ComponentChest, resolve func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
 			return nil, nil
 		},
 	}
 
-	extended := ExtendDefaults(custom)
-	defaultLen := len(DefaultConstructors())
+	extended := legal.ExtendDefaults(custom)
+	defaultLen := len(legal.DefaultConstructors())
 	if len(extended) != defaultLen+1 {
 		t.Fatalf("len(extended) = %d, want %d", len(extended), defaultLen+1)
 	}
 	if extended[len(extended)-1].Name != "custom" {
 		t.Fatalf("last constructor = %q, want custom", extended[len(extended)-1].Name)
 	}
-	if len(DefaultConstructors()) != defaultLen {
-		t.Fatalf("DefaultConstructors() was mutated by ExtendDefaults")
+	if len(legal.DefaultConstructors()) != defaultLen {
+		t.Fatalf("legal.DefaultConstructors() was mutated by legal.ExtendDefaults")
 	}
 }
 
@@ -524,30 +527,34 @@ func TestExtendDefaults(t *testing.T) {
 // here by hand; nothing enforces that automatically today.
 func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 	want := []string{
-		TemplatePropAtLeast,
-		TemplatePropCompare,
-		TemplatePlayerBool,
-		TemplateComponentMissing,
-		TemplateComponentMissingKey,
-		TemplateNoComponentToMove,
-		TemplateMayNotMoveTo,
-		TemplateAllActivePlayers,
-		TemplateProposerTargetInvalid,
-		TemplateProposerNotYourTurn,
-		TemplateNoCardHere,
-		TemplateAlreadyRevealed,
-		TemplateComponentPropNotCurrentPlayer,
+		legal.TemplatePropAtLeast,
+		legal.TemplatePropCompare,
+		legal.TemplatePlayerBool,
+		legal.TemplateComponentMissing,
+		legal.TemplateComponentMissingKey,
+		legal.TemplateNoComponentToMove,
+		legal.TemplateMayNotMoveTo,
+		legal.TemplateAllActivePlayers,
+		legal.TemplateProposerTargetInvalid,
+		legal.TemplateProposerNotYourTurn,
+		legal.TemplateNoCardHere,
+		legal.TemplateAlreadyRevealed,
+		legal.TemplateComponentPropNotCurrentPlayer,
+		legal.TemplateInPhase,
+		legal.TemplateInProgression,
+		legal.TemplateStackConstraints,
 	}
-	if len(defaultTemplateKeys) != len(want) {
-		t.Fatalf("len(defaultTemplateKeys) = %d, want %d", len(defaultTemplateKeys), len(want))
+	keys := legal.DefaultTemplateKeys()
+	if len(keys) != len(want) {
+		t.Fatalf("len(legal.DefaultTemplateKeys()) = %d, want %d", len(keys), len(want))
 	}
 	got := make(map[string]bool)
-	for _, k := range defaultTemplateKeys {
+	for _, k := range keys {
 		got[k] = true
 	}
 	for _, k := range want {
 		if !got[k] {
-			t.Errorf("defaultTemplateKeys is missing %q", k)
+			t.Errorf("legal.DefaultTemplateKeys() is missing %q", k)
 		}
 	}
 }

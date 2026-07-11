@@ -1,4 +1,4 @@
-package legal
+package legal_test
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/enum"
 	blackjackgame "github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/checkers"
@@ -31,9 +32,9 @@ reach package boardgame's unexported getDefaultReader either), this file
 reuses two existing, fully-codegen'd example games as the standing
 conformance fixture: examples/memory (HiddenCards/VisibleCards mirrored
 SizedStacks, player.CardsLeftToReveal int, player.PlayerInactive bool,
-game.NumCards int — covers PropAtLeast/PropCompare/PlayerBool/
-ComponentPresentAt/MayMoveTo/MayMoveToSlot) and examples/checkers
-(Spaces SizedStack keyed by an enum — covers ComponentPresentAtKey).
+game.NumCards int — covers legal.PropAtLeast/legal.PropCompare/legal.PlayerBool/
+legal.ComponentPresentAt/legal.MayMoveTo/legal.MayMoveToSlot) and examples/checkers
+(Spaces SizedStack keyed by an enum — covers legal.ComponentPresentAtKey).
 Both are already NewDelegate()-constructible with real Reader()
 implementations; constraints/constraints_test.go established the precedent
 of importing an example game from an external test package for exactly
@@ -51,8 +52,8 @@ type legalFixture struct {
 }
 
 // context builds a legal.Context from the fixture for the given proposer.
-func (f legalFixture) context(proposer boardgame.PlayerIndex) Context {
-	return Context{
+func (f legalFixture) context(proposer boardgame.PlayerIndex) legal.Context {
+	return legal.Context{
 		State:    f.state,
 		Move:     f.move,
 		Proposer: proposer,
@@ -501,12 +502,12 @@ func buildLegalFixture(t *testing.T, name string) legalFixture {
 // up in registry and invokes that constructor, handing it a resolve closure
 // that recurses through the same registry (for forward-compatibility with a
 // future constructor that composes sub-specs of its own).
-func resolveSpecViaRegistry(spec Spec, registry []*PredicateConstructor, chest *boardgame.ComponentChest) (*Predicate, error) {
+func resolveSpecViaRegistry(spec legal.Spec, registry []*legal.PredicateConstructor, chest *boardgame.ComponentChest) (*legal.Predicate, error) {
 	for _, c := range registry {
 		if c.Name != spec.Name {
 			continue
 		}
-		resolve := func(sub Spec) (*Predicate, error) {
+		resolve := func(sub legal.Spec) (*legal.Predicate, error) {
 			return resolveSpecViaRegistry(sub, registry, chest)
 		}
 		return c.Constructor(spec, chest, resolve)
@@ -516,9 +517,9 @@ func resolveSpecViaRegistry(spec Spec, registry []*PredicateConstructor, chest *
 
 // resolvePredicateForTest resolves spec against DefaultConstructors(),
 // failing the test on error.
-func resolvePredicateForTest(t *testing.T, spec Spec) *Predicate {
+func resolvePredicateForTest(t *testing.T, spec legal.Spec) *legal.Predicate {
 	t.Helper()
-	pred, err := resolveSpecViaRegistry(spec, DefaultConstructors(), nil)
+	pred, err := resolveSpecViaRegistry(spec, legal.DefaultConstructors(), nil)
 	if err != nil {
 		t.Fatalf("legal: resolving spec %+v: %v", spec, err)
 	}
@@ -527,13 +528,13 @@ func resolvePredicateForTest(t *testing.T, spec Spec) *Predicate {
 
 // outcomeString renders an Outcome the way the conformance corpus JSON
 // spells verdicts ("pass", "fail", "unknown").
-func outcomeString(o Outcome) string {
+func outcomeString(o legal.Outcome) string {
 	switch o {
-	case Pass:
+	case legal.Pass:
 		return "pass"
-	case Fail:
+	case legal.Fail:
 		return "fail"
-	case Unknown:
+	case legal.Unknown:
 		return "unknown"
 	default:
 		return "invalid"
@@ -542,7 +543,7 @@ func outcomeString(o Outcome) string {
 
 // conformanceCase is one row of a conformance corpus file's "cases" array.
 type conformanceCase struct {
-	Spec     Spec   `json:"spec"`
+	Spec     legal.Spec   `json:"spec"`
 	Fixture  string `json:"fixture"`
 	Proposer int    `json:"proposer"`
 	Expect   string `json:"expect"`

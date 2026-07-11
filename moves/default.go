@@ -3,7 +3,6 @@ package moves
 import (
 	"log"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -368,23 +367,11 @@ func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
 		return nil
 	}
 
-	reader := state.ImmutableGameState().Reader()
-
-	srcStack, err := reader.ImmutableStackProp(srcName)
-	if err != nil || srcStack == nil {
-		return nil
-	}
-	dstStack, err := reader.ImmutableStackProp(dstName)
-	if err != nil || dstStack == nil {
-		return nil
-	}
-
-	first := srcStack.ImmutableFirst()
-	if first == nil {
-		return nil
-	}
-
-	return first.MayMoveTo(dstStack)
+	// The actual check is extracted to core (boardgame.LegalStackConstraintsCheck,
+	// legal_framework.go) so that this frozen chain and legal's
+	// "stackConstraints" wrapper predicate (legal/catalog_framework.go) call
+	// exactly one implementation. See that file's doc comment.
+	return boardgame.LegalStackConstraintsCheck(state, srcName, dstName)
 }
 
 func (d *Default) legalPhases() []enum.EnumKey {
@@ -424,48 +411,11 @@ func currentPhaseInfo(state boardgame.ImmutableState) (enum.ImmutableVal, enum.E
 // the current phase of the game.
 func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 
-	legalPhases := d.legalPhases()
-
-	if len(legalPhases) == 0 {
-		//If PhaseEnum is a TreeEnum, this is basically equivalent to the
-		//legalPhases being []int{0}.
-		return nil
-	}
-
-	currentPhaseVal, currentPhase := currentPhaseInfo(state)
-
-	var treeEnum enum.TreeEnum
-	if currentPhaseVal != nil {
-		if e := currentPhaseVal.Enum(); e != nil {
-			treeEnum = e.TreeEnum()
-		}
-	}
-
-	//totalCurrentPhases is all of the current phases we could be considered
-	//to be in. Defaults to an []EnumKey with just the current phase.
-	totalCurrentPhases := []enum.EnumKey{currentPhase}
-
-	if treeEnum != nil {
-		//If PhaseEnum is a tree, then the phase we're in for this purpose is
-		//all ancestor phases.
-		totalCurrentPhases = treeEnum.Ancestors(currentPhase)
-	}
-
-	for _, phase := range legalPhases {
-		for _, candidateCurrentPhase := range totalCurrentPhases {
-			if phase == candidateCurrentPhase {
-				return nil
-			}
-		}
-	}
-
-	phaseName := strconv.Itoa(currentPhase.Int())
-
-	if currentPhaseVal != nil {
-		phaseName = currentPhaseVal.String()
-	}
-
-	return errors.New("Move is not legal in phase " + phaseName)
+	// The actual check is extracted to core (boardgame.LegalInPhaseCheck,
+	// legal_framework.go) so that this frozen chain and legal's "inPhase"
+	// wrapper predicate (legal/catalog_framework.go) call exactly one
+	// implementation. See that file's doc comment.
+	return boardgame.LegalInPhaseCheck(state, d.legalPhases())
 }
 
 func (d *Default) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase enum.EnumKey) []*boardgame.MoveStorageRecord {

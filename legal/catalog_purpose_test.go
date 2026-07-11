@@ -1,9 +1,10 @@
-package legal
+package legal_test
 
 import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 // TestRevealableCardAt covers the design spec §8 acid test's two-branch
@@ -14,7 +15,7 @@ import (
 // TemplateNoCardHere/TemplateAlreadyRevealed's doc comments in
 // catalog_purpose.go for the verbatim strings themselves).
 func TestRevealableCardAt(t *testing.T) {
-	spec := RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex")
+	spec := legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex")
 	if spec.Name != "revealableCardAt" {
 		t.Fatalf("Name = %q, want revealableCardAt", spec.Name)
 	}
@@ -36,38 +37,38 @@ func TestRevealableCardAt(t *testing.T) {
 	// Pass: the card is still hidden (memoryDefault's HiddenCards[0] is
 	// occupied).
 	pass := buildLegalFixture(t, "memoryDefault")
-	if v := pred.Evaluate(pass.context(0)); v.Outcome != Pass {
-		t.Fatalf("memoryDefault: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(pass.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("memoryDefault: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	// Fail (already revealed): hidden empty, visible occupied, same idx.
 	alreadyRevealed := buildLegalFixture(t, "memoryCardAlreadyRevealed")
 	v := pred.Evaluate(alreadyRevealed.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("memoryCardAlreadyRevealed: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("memoryCardAlreadyRevealed: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplateAlreadyRevealed {
-		t.Fatalf("memoryCardAlreadyRevealed: Message = %+v, want template %q", v.Message, TemplateAlreadyRevealed)
+	if v.Message == nil || v.Message.Template != legal.TemplateAlreadyRevealed {
+		t.Fatalf("memoryCardAlreadyRevealed: legal.Message = %+v, want template %q", v.Message, legal.TemplateAlreadyRevealed)
 	}
 
 	// Fail (no card here): hidden empty, visible ALSO empty, same idx.
 	neverThere := buildLegalFixture(t, "memoryCardNeverThere")
 	v2 := pred.Evaluate(neverThere.context(0))
-	if v2.Outcome != Fail {
-		t.Fatalf("memoryCardNeverThere: Outcome = %v, want Fail (%+v)", v2.Outcome, v2)
+	if v2.Outcome != legal.Fail {
+		t.Fatalf("memoryCardNeverThere: legal.Outcome = %v, want legal.Fail (%+v)", v2.Outcome, v2)
 	}
-	if v2.Message == nil || v2.Message.Template != TemplateNoCardHere {
-		t.Fatalf("memoryCardNeverThere: Message = %+v, want template %q", v2.Message, TemplateNoCardHere)
+	if v2.Message == nil || v2.Message.Template != legal.TemplateNoCardHere {
+		t.Fatalf("memoryCardNeverThere: legal.Message = %+v, want template %q", v2.Message, legal.TemplateNoCardHere)
 	}
 
 	// Unknown: nil move (idxField can't resolve).
 	noMove := buildLegalFixture(t, "memoryNoMove")
-	if v := pred.Evaluate(noMove.context(0)); v.Outcome != Unknown {
-		t.Fatalf("memoryNoMove: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("memoryNoMove: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 
 	// Bad arg count is a construction-time error.
-	if _, err := resolveSpecViaRegistry(Spec{Name: "revealableCardAt", Args: []string{"a", "b"}}, DefaultConstructors(), nil); err == nil {
+	if _, err := resolveSpecViaRegistry(legal.Spec{Name: "revealableCardAt", Args: []string{"a", "b"}}, legal.DefaultConstructors(), nil); err == nil {
 		t.Fatal("expected an error constructing revealableCardAt with 2 args")
 	}
 }
@@ -78,7 +79,7 @@ func TestRevealableCardAt(t *testing.T) {
 // FacetOccupancy — this predicate reads a component's property VALUE, not
 // merely its presence).
 func TestComponentPropEqualsCurrentPlayer(t *testing.T) {
-	spec := ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color")
+	spec := legal.ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color")
 	if spec.Name != "componentPropEqualsCurrentPlayer" {
 		t.Fatalf("Name = %q, want componentPropEqualsCurrentPlayer", spec.Name)
 	}
@@ -99,18 +100,18 @@ func TestComponentPropEqualsCurrentPlayer(t *testing.T) {
 
 	// Pass: the token at the space belongs to the current player.
 	own := buildLegalFixture(t, "checkersOwnToken")
-	if v := pred.Evaluate(own.context(0)); v.Outcome != Pass {
-		t.Fatalf("checkersOwnToken: Outcome = %v, want Pass (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(own.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("checkersOwnToken: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
 	}
 
 	// Fail: the token at the space belongs to the opponent.
 	opponent := buildLegalFixture(t, "checkersOpponentToken")
 	v := pred.Evaluate(opponent.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("checkersOpponentToken: Outcome = %v, want Fail (%+v)", v.Outcome, v)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("checkersOpponentToken: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
 	}
-	if v.Message == nil || v.Message.Template != TemplateComponentPropNotCurrentPlayer {
-		t.Fatalf("checkersOpponentToken: Message = %+v, want template %q", v.Message, TemplateComponentPropNotCurrentPlayer)
+	if v.Message == nil || v.Message.Template != legal.TemplateComponentPropNotCurrentPlayer {
+		t.Fatalf("checkersOpponentToken: legal.Message = %+v, want template %q", v.Message, legal.TemplateComponentPropNotCurrentPlayer)
 	}
 	if got := v.Message.Bindings["prop"]; got.S == nil || *got.S != "Color" {
 		t.Fatalf("checkersOpponentToken: prop binding = %+v, want Color", got)
@@ -120,18 +121,18 @@ func TestComponentPropEqualsCurrentPlayer(t *testing.T) {
 	// predicate's job — ComponentPresentAtKey — so this predicate can't
 	// evaluate a color comparison against nothing).
 	empty := buildLegalFixture(t, "checkersEmptySpace")
-	if v := pred.Evaluate(empty.context(0)); v.Outcome != Unknown {
-		t.Fatalf("checkersEmptySpace: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(empty.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("checkersEmptySpace: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 
 	// Unknown: nil move.
 	noMove := buildLegalFixture(t, "checkersNoMove")
-	if v := pred.Evaluate(noMove.context(0)); v.Outcome != Unknown {
-		t.Fatalf("checkersNoMove: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("checkersNoMove: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
 	}
 
 	// Bad arg count is a construction-time error.
-	if _, err := resolveSpecViaRegistry(Spec{Name: "componentPropEqualsCurrentPlayer", Args: []string{"a", "b"}}, DefaultConstructors(), nil); err == nil {
+	if _, err := resolveSpecViaRegistry(legal.Spec{Name: "componentPropEqualsCurrentPlayer", Args: []string{"a", "b"}}, legal.DefaultConstructors(), nil); err == nil {
 		t.Fatal("expected an error constructing componentPropEqualsCurrentPlayer with 2 args")
 	}
 }

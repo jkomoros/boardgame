@@ -3,6 +3,7 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
@@ -29,6 +30,8 @@ const configPropRequireExplicitStart = fullyQualifiedPackageName + "RequireExpli
 const configPropUnique = fullyQualifiedPackageName + "Unique"
 const configPropAllowDuplicates = fullyQualifiedPackageName + "AllowDuplicates"
 const configPropRequireAdmin = fullyQualifiedPackageName + "RequireAdmin"
+const configPropPreconditions = fullyQualifiedPackageName + "Preconditions"
+const configPropSuppressedPreconditions = fullyQualifiedPackageName + "SuppressedPreconditions"
 
 // CustomConfigurationOption is a function that takes a PropertyCollection and
 // modifies a key on it. This package defines a number of functions that return
@@ -249,6 +252,44 @@ func WithUnique() CustomConfigurationOption {
 func WithAllowDuplicates() CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropAllowDuplicates] = true
+	}
+}
+
+// WithPreconditions returns a function configuration option suitable for
+// being passed to auto.Config. Passing it is how a move type opts in to
+// declarative legality (design spec §2): the specs, in order, are appended
+// to whatever has already been passed to earlier WithPreconditions calls
+// for this move type (mirroring WithLegalPhases' accumulate-across-calls
+// behavior). See moves.Default.DeclaredPreconditions, which reads this
+// configuration back out, and moves.PreconditionsProvider /
+// moves.Default.ContributedPreconditions for how these authored specs
+// combine with the base type's own contributed specs (inPhase/
+// inProgression/stackConstraints/proposerIsCurrentPlayer) at plan-assembly
+// time. Declaring WithPreconditions does not, by itself, change Legal()'s
+// behavior for a move that also overrides Legal() without super-calling
+// into the frozen chain — see the design spec's "prime guarantee" for the
+// boot-time probe that catches that mistake.
+func WithPreconditions(specs ...legal.Spec) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		previous, _ := config[configPropPreconditions].([]legal.Spec)
+		config[configPropPreconditions] = append(previous, specs...)
+	}
+}
+
+// WithoutPrecondition returns a function configuration option suitable for
+// being passed to auto.Config. It suppresses one CONTRIBUTED precondition
+// (one of the framework's own stable names: "inPhase", "inProgression",
+// "stackConstraints", "proposerIsCurrentPlayer" — design spec §2) by name,
+// for a move type that wants to opt out of an inherited check entirely (the
+// moves.ForceFinishTurn "inherit nothing" pattern, now expressible
+// declaratively). Suppression names accumulate across multiple calls, like
+// WithPreconditions accumulates specs. It does not remove an AUTHORED spec
+// passed via WithPreconditions; those are simply not passed in the first
+// place.
+func WithoutPrecondition(name string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		previous, _ := config[configPropSuppressedPreconditions].([]string)
+		config[configPropSuppressedPreconditions] = append(previous, name)
 	}
 }
 

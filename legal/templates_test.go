@@ -1,4 +1,4 @@
-package legal
+package legal_test
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 // TestDefaultTemplatesCoversDefaultTemplateKeys is a sanity check that
@@ -18,10 +19,10 @@ import (
 // both lists wrong in the same way); see
 // TestDefaultTemplatesCoversCorpusFailCases below for that.
 func TestDefaultTemplatesCoversDefaultTemplateKeys(t *testing.T) {
-	table := DefaultTemplates()
-	for _, key := range defaultTemplateKeys {
+	table := legal.DefaultTemplates()
+	for _, key := range legal.DefaultTemplateKeys() {
 		if _, ok := table[key]; !ok {
-			t.Errorf("DefaultTemplates() is missing an entry for %q (listed in defaultTemplateKeys)", key)
+			t.Errorf("legal.DefaultTemplates() is missing an entry for %q (listed in defaultTemplateKeys)", key)
 		}
 	}
 }
@@ -37,7 +38,7 @@ func TestDefaultTemplatesCoversDefaultTemplateKeys(t *testing.T) {
 // defaultTemplateKeys at all — it only looks at what predicates actually
 // emit when evaluated.
 func TestDefaultTemplatesCoversCorpusFailCases(t *testing.T) {
-	table := DefaultTemplates()
+	table := legal.DefaultTemplates()
 
 	paths, err := filepath.Glob("testdata/conformance/*.json")
 	if err != nil {
@@ -64,14 +65,14 @@ func TestDefaultTemplatesCoversCorpusFailCases(t *testing.T) {
 			fixture := buildLegalFixture(t, c.Fixture)
 			pred := resolvePredicateForTest(t, c.Spec)
 			verdict := pred.Evaluate(fixture.context(boardgame.PlayerIndex(c.Proposer)))
-			if verdict.Outcome != Fail {
+			if verdict.Outcome != legal.Fail {
 				t.Fatalf("%s case %d (%s): expected fail per corpus, evaluator returned %v", path, i, c.Spec.Name, verdict.Outcome)
 			}
 			if verdict.Message == nil {
-				t.Fatalf("%s case %d (%s): Fail verdict has no Message", path, i, c.Spec.Name)
+				t.Fatalf("%s case %d (%s): legal.Fail verdict has no legal.Message", path, i, c.Spec.Name)
 			}
 			if _, ok := table[verdict.Message.Template]; !ok {
-				t.Errorf("%s case %d (%s): emitted template key %q is not covered by DefaultTemplates()", path, i, c.Spec.Name, verdict.Message.Template)
+				t.Errorf("%s case %d (%s): emitted template key %q is not covered by legal.DefaultTemplates()", path, i, c.Spec.Name, verdict.Message.Template)
 			}
 			checked++
 		}
@@ -79,18 +80,18 @@ func TestDefaultTemplatesCoversCorpusFailCases(t *testing.T) {
 	if checked == 0 {
 		t.Fatal("legal: no corpus fail-cases were evaluated — the corpus or this test's fixture-building is broken")
 	}
-	t.Logf("legal: checked %d corpus fail-case emitted template keys against DefaultTemplates()", checked)
+	t.Logf("legal: checked %d corpus fail-case emitted template keys against legal.DefaultTemplates()", checked)
 }
 
 // TestDefaultTemplatesReturnsCopy verifies a caller mutating the returned
 // map cannot corrupt the package's own default table or a subsequent call's
 // result.
 func TestDefaultTemplatesReturnsCopy(t *testing.T) {
-	first := DefaultTemplates()
+	first := legal.DefaultTemplates()
 	first["injected.key"] = "should not leak"
-	second := DefaultTemplates()
+	second := legal.DefaultTemplates()
 	if _, ok := second["injected.key"]; ok {
-		t.Fatal("DefaultTemplates() shares mutable state across calls")
+		t.Fatal("legal.DefaultTemplates() shares mutable state across calls")
 	}
 }
 
@@ -98,19 +99,19 @@ func TestDefaultTemplatesReturnsCopy(t *testing.T) {
 // error, is retrievable via errors.As as a *boardgame.LegalError, and
 // carries the given template key and bindings.
 func TestErrorfRoundTripsThroughErrorsAs(t *testing.T) {
-	err := Errorf("checkers.illegal_dest", map[string]boardgame.LegalBindingValue{
-		"from": String("A1"),
+	err := legal.Errorf("checkers.illegal_dest", map[string]boardgame.LegalBindingValue{
+		"from": legal.String("A1"),
 	})
 	if err == nil {
-		t.Fatal("Errorf(...) = nil, want non-nil error")
+		t.Fatal("legal.Errorf(...) = nil, want non-nil error")
 	}
 
 	var target *boardgame.LegalError
 	if !errors.As(err, &target) {
 		t.Fatalf("errors.As(err, &target) = false, want true (err: %v, %T)", err, err)
 	}
-	if target.Verdict.Outcome != Fail {
-		t.Fatalf("target.Verdict.Outcome = %v, want Fail", target.Verdict.Outcome)
+	if target.Verdict.Outcome != legal.Fail {
+		t.Fatalf("target.Verdict.Outcome = %v, want legal.Fail", target.Verdict.Outcome)
 	}
 	if target.Verdict.Message == nil || target.Verdict.Message.Template != "checkers.illegal_dest" {
 		t.Fatalf("target.Verdict.Message = %+v, want Template %q", target.Verdict.Message, "checkers.illegal_dest")
@@ -123,9 +124,9 @@ func TestErrorfRoundTripsThroughErrorsAs(t *testing.T) {
 // TestErrorfNilBindings verifies Errorf accepts a nil bindings map for a
 // template with no placeholders.
 func TestErrorfNilBindings(t *testing.T) {
-	err := Errorf("some.key", nil)
+	err := legal.Errorf("some.key", nil)
 	if err == nil {
-		t.Fatal("Errorf(\"some.key\", nil) = nil, want non-nil error")
+		t.Fatal("legal.Errorf(\"some.key\", nil) = nil, want non-nil error")
 	}
 }
 
@@ -134,17 +135,17 @@ func TestErrorfNilBindings(t *testing.T) {
 // behavior as core's RenderLegalMessage: the bare placeholder name, never a
 // panic.
 func TestRenderMessageMissingBindingRendersPlaceholderName(t *testing.T) {
-	m := &Message{Template: "some.key"}
+	m := &legal.Message{Template: "some.key"}
 	table := map[string]string{"some.key": "needs {value}"}
-	if got := RenderMessage(m, table); got != "needs value" {
-		t.Fatalf("RenderMessage = %q, want %q", got, "needs value")
+	if got := legal.RenderMessage(m, table); got != "needs value" {
+		t.Fatalf("legal.RenderMessage = %q, want %q", got, "needs value")
 	}
 }
 
 // TestRenderMessageNilSafe verifies RenderMessage(nil, ...) never panics.
 func TestRenderMessageNilSafe(t *testing.T) {
-	if got := RenderMessage(nil, DefaultTemplates()); got != "" {
-		t.Fatalf("RenderMessage(nil, ...) = %q, want \"\"", got)
+	if got := legal.RenderMessage(nil, legal.DefaultTemplates()); got != "" {
+		t.Fatalf("legal.RenderMessage(nil, ...) = %q, want \"\"", got)
 	}
 }
 
@@ -154,24 +155,24 @@ func TestRenderMessageNilSafe(t *testing.T) {
 // strings from moves/current_player.go, since un-migrated games' clients
 // depend on seeing those exact strings (design spec "prime guarantee").
 func TestProposerTemplateRenderingParity(t *testing.T) {
-	table := DefaultTemplates()
-	pred := resolvePredicateForTest(t, ProposerIsCurrentPlayer())
+	table := legal.DefaultTemplates()
+	pred := resolvePredicateForTest(t, legal.ProposerIsCurrentPlayer())
 
 	targetMismatch := buildLegalFixture(t, "memoryTargetPlayerOne")
 	v := pred.Evaluate(targetMismatch.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("memoryTargetPlayerOne: Outcome = %v, want Fail", v.Outcome)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("memoryTargetPlayerOne: legal.Outcome = %v, want legal.Fail", v.Outcome)
 	}
-	if got, want := RenderMessage(v.Message, table), "it's not your turn"; got != want {
+	if got, want := legal.RenderMessage(v.Message, table), "it's not your turn"; got != want {
 		t.Fatalf("rendered = %q, want the verbatim legacy string %q", got, want)
 	}
 
 	targetObserver := buildLegalFixture(t, "memoryTargetObserver")
 	v2 := pred.Evaluate(targetObserver.context(0))
-	if v2.Outcome != Fail {
-		t.Fatalf("memoryTargetObserver: Outcome = %v, want Fail", v2.Outcome)
+	if v2.Outcome != legal.Fail {
+		t.Fatalf("memoryTargetObserver: legal.Outcome = %v, want legal.Fail", v2.Outcome)
 	}
-	if got, want := RenderMessage(v2.Message, table), "The specified target player is not valid"; got != want {
+	if got, want := legal.RenderMessage(v2.Message, table), "The specified target player is not valid"; got != want {
 		t.Fatalf("rendered = %q, want the verbatim legacy string %q", got, want)
 	}
 }
@@ -181,24 +182,24 @@ func TestProposerTemplateRenderingParity(t *testing.T) {
 // branches must render exactly examples/memory/moves.go's legacy strings
 // through DefaultTemplates().
 func TestRevealableCardAtTemplateRenderingParity(t *testing.T) {
-	table := DefaultTemplates()
-	pred := resolvePredicateForTest(t, RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"))
+	table := legal.DefaultTemplates()
+	pred := resolvePredicateForTest(t, legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"))
 
 	neverThere := buildLegalFixture(t, "memoryCardNeverThere")
 	v := pred.Evaluate(neverThere.context(0))
-	if v.Outcome != Fail {
-		t.Fatalf("memoryCardNeverThere: Outcome = %v, want Fail", v.Outcome)
+	if v.Outcome != legal.Fail {
+		t.Fatalf("memoryCardNeverThere: legal.Outcome = %v, want legal.Fail", v.Outcome)
 	}
-	if got, want := RenderMessage(v.Message, table), "there is no card at that index"; got != want {
+	if got, want := legal.RenderMessage(v.Message, table), "there is no card at that index"; got != want {
 		t.Fatalf("rendered = %q, want %q", got, want)
 	}
 
 	alreadyRevealed := buildLegalFixture(t, "memoryCardAlreadyRevealed")
 	v2 := pred.Evaluate(alreadyRevealed.context(0))
-	if v2.Outcome != Fail {
-		t.Fatalf("memoryCardAlreadyRevealed: Outcome = %v, want Fail", v2.Outcome)
+	if v2.Outcome != legal.Fail {
+		t.Fatalf("memoryCardAlreadyRevealed: legal.Outcome = %v, want legal.Fail", v2.Outcome)
 	}
-	if got, want := RenderMessage(v2.Message, table), "that card has already been revealed"; got != want {
+	if got, want := legal.RenderMessage(v2.Message, table), "that card has already been revealed"; got != want {
 		t.Fatalf("rendered = %q, want %q", got, want)
 	}
 }
@@ -217,9 +218,9 @@ func (fakeTemplateConfigurer) ConfigureLegalTemplates() map[string]string {
 // package's other optional interfaces (ConstructorConfigurer) use.
 func TestTemplateConfigurerTypeAssertion(t *testing.T) {
 	var delegate interface{} = fakeTemplateConfigurer{}
-	tc, ok := delegate.(TemplateConfigurer)
+	tc, ok := delegate.(legal.TemplateConfigurer)
 	if !ok {
-		t.Fatal("fakeTemplateConfigurer does not satisfy TemplateConfigurer via type-assertion")
+		t.Fatal("fakeTemplateConfigurer does not satisfy legal.TemplateConfigurer via type-assertion")
 	}
 	got := tc.ConfigureLegalTemplates()
 	if got["my.key"] != "my text" {
@@ -229,7 +230,7 @@ func TestTemplateConfigurerTypeAssertion(t *testing.T) {
 	// A delegate that doesn't implement it must fail the assertion cleanly,
 	// not panic.
 	var other interface{} = struct{}{}
-	if _, ok := other.(TemplateConfigurer); ok {
-		t.Fatal("struct{}{} unexpectedly satisfies TemplateConfigurer")
+	if _, ok := other.(legal.TemplateConfigurer); ok {
+		t.Fatal("struct{}{} unexpectedly satisfies legal.TemplateConfigurer")
 	}
 }

@@ -26,6 +26,19 @@ const (
 	TemplateMayNotMoveTo = "legal.may_not_move_to"
 )
 
+// DefaultTemplateKeys returns a copy of defaultTemplateKeys: every template
+// key the catalog predicates in this package default to when Spec.Message is
+// unset. Exported so this package's external test package (legal_test —
+// necessary from Task 7 onward, since package legal cannot import package
+// moves, but some of this package's own tests need real example games built
+// on package moves as fixtures) can cross-check DefaultTemplates()' coverage
+// against the same list catalog authors maintain by hand.
+func DefaultTemplateKeys() []string {
+	out := make([]string, len(defaultTemplateKeys))
+	copy(out, defaultTemplateKeys)
+	return out
+}
+
 // defaultTemplateKeys lists every template key the catalog predicates in
 // this package (catalog_compare.go and catalog_stack.go) default to when
 // Spec.Message is unset. This is the handoff for Task 6's
@@ -47,6 +60,13 @@ var defaultTemplateKeys = []string{
 	TemplateNoCardHere,
 	TemplateAlreadyRevealed,
 	TemplateComponentPropNotCurrentPlayer,
+	// Task 7 (catalog_framework.go) additions: inPhase/stackConstraints
+	// (predicate AND template both live in this package) and
+	// inProgression (predicate lives in package moves; only its default
+	// template body lives here — see catalog_framework.go's doc comment).
+	TemplateInPhase,
+	TemplateInProgression,
+	TemplateStackConstraints,
 }
 
 // ComponentPresentAt returns a Spec for the "componentPresentAt" predicate:
@@ -330,6 +350,8 @@ func DefaultConstructors() []*PredicateConstructor {
 		proposerIsCurrentPlayerConstructor(),
 		revealableCardAtConstructor(),
 		componentPropEqualsCurrentPlayerConstructor(),
+		inPhaseConstructor(),
+		stackConstraintsConstructor(),
 	}
 }
 
