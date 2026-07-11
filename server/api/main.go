@@ -1647,10 +1647,16 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 //
 //   - Opaque (no assembled plan): the frozen two-Legal()-call path, byte-
 //     identical to the pre-Task-10 server — see legalFormOpaque.
-//   - Opted-in (WithPreconditions): ONE full-ledger evaluation
-//     (GameManager.LegalEvaluateLedger) replaces both Legal() calls — see
-//     legalFormFromLedger, including its doc comment on how LegalForAnyone
-//     is derived from a single ledger pass instead of a second evaluation.
+//   - Opted-in (WithPreconditions): the player-perspective full-ledger
+//     evaluation (GameManager.LegalEvaluateLedger) replaces the player-facing
+//     Legal() call, and LegalForAnyone is computed by a SECOND, hot-path
+//     (short-circuit) plan evaluation at proposer=AdminPlayerIndex
+//     (GameManager.LegalEvaluatePlan) — the plan-path equivalent of the old
+//     move.Legal(state, AdminPlayerIndex) call. See legalFormFromLedger's doc
+//     comment. This is still strictly cheaper than the pre-Task-10 server's
+//     two FULL Legal() calls, because the admin pass is hot-path
+//     short-circuit, not full-ledger, and shares no memo state with the
+//     player pass (the field-independent memo key includes proposer).
 func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex) []*moveForm {
 	var result []*moveForm
 
@@ -1671,7 +1677,7 @@ func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame
 		}
 
 		if verdict, entries, opted := manager.LegalEvaluateLedger(moveItem.Name, state, move, playerIndex); opted {
-			legalFormFromLedger(moveItem, manager, state, playerIndex, verdict, entries)
+			legalFormFromLedger(moveItem, manager, state, move, playerIndex, verdict, entries)
 		} else {
 			legalFormOpaque(moveItem, move, state, playerIndex)
 		}
@@ -1705,9 +1711,10 @@ func legalFormOpaque(moveItem *moveForm, move boardgame.Move, state boardgame.Im
 }
 
 // legalFormFromLedger fills in moveItem's legality fields for an opted-in
-// move from a SINGLE full-ledger evaluation (verdict/entries, already
-// computed with proposer=playerIndex by the caller), replacing the two
-// Legal() calls legalFormOpaque makes for an un-migrated move.
+// move from a full-ledger evaluation (verdict/entries, already computed with
+// proposer=playerIndex by the caller) plus one hot-path admin plan
+// evaluation, replacing the two Legal() calls legalFormOpaque makes for an
+// un-migrated move.
 //
 //   - Preconditions is every entry, each converted to the wire shape by
 //     buildPreconditionEntry (viewer = playerIndex: the ledger's evaluable/
@@ -1720,12 +1727,27 @@ func legalFormOpaque(moveItem *moveForm, move boardgame.Move, state boardgame.Im
 //     returned — see legalPlan.evaluate's doc comment for why full-ledger
 //     mode's overall verdict is the same first-non-Pass verdict the
 //     hot-path short-circuit evaluation would compute.
-//   - LegalForAnyone is derived from entries directly (legalForAnyoneFromLedger)
-//     rather than a second Legal(state, AdminPlayerIndex) call: see that
-//     function's doc comment for why exempting only the
-//     proposerIsCurrentPlayer entry's verdict is equivalent to actually
-//     re-evaluating with proposer=AdminPlayerIndex.
-func legalFormFromLedger(moveItem *moveForm, manager *boardgame.GameManager, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex, verdict boardgame.LegalVerdict, entries []boardgame.LegalVerdictEntry) {
+//   - LegalForAnyone is computed by re-running the SAME plan in hot-path
+//     (short-circuit) mode with proposer=AdminPlayerIndex, via
+//     GameManager.LegalEvaluatePlan — the plan-path equivalent of the old
+//     move.Legal(state, AdminPlayerIndex) call. This is deliberately NOT
+//     derived from entries by exempting a known proposer-reading atom's
+//     verdict: that approach is only correct if proposerIsCurrentPlayer
+//     (legal/catalog_players.go) is the sole predicate anywhere in the plan
+//     that reads ctx.Proposer, AND every one of its own three sub-checks
+//     (target invalid, target != current player, target != proposer) would
+//     flip to Pass under an admin proposer — the first two do NOT (Admin
+//     does not bypass "no current player" or "target is not the current
+//     player"; only "target != proposer" is proposer-bypassed via
+//     PlayerIndex.Equivalent's Admin-is-wildcard rule), and it silently
+//     mishandles any future proposer-reading custom/game-registered
+//     predicate. Re-evaluating the actual plan is correct by construction
+//     for all of the above. The cost is one extra hot-path (short-circuit)
+//     evaluation — still strictly cheaper than the pre-Task-10 server's two
+//     FULL Legal() calls, and the two evaluations share nothing (the
+//     field-independent memo key includes proposer, so player-pass and
+//     admin-pass memo entries are distinct).
+func legalFormFromLedger(moveItem *moveForm, manager *boardgame.GameManager, state boardgame.ImmutableState, move boardgame.Move, playerIndex boardgame.PlayerIndex, verdict boardgame.LegalVerdict, entries []boardgame.LegalVerdictEntry) {
 	preconditions := make([]preconditionEntry, len(entries))
 	for i, entry := range entries {
 		preconditions[i] = buildPreconditionEntry(state, playerIndex, entry)
@@ -1740,41 +1762,9 @@ func legalFormFromLedger(moveItem *moveForm, manager *boardgame.GameManager, sta
 		}
 	}
 
-	moveItem.LegalForAnyone = legalForAnyoneFromLedger(entries)
-}
-
-// legalProposerAtomName is the registry name of the one catalog predicate
-// (legal.ProposerIsCurrentPlayer, contributed by moves.CurrentPlayer) whose
-// Evaluate reads ctx.Proposer directly — see legalForAnyoneFromLedger.
-const legalProposerAtomName = "proposerIsCurrentPlayer"
-
-// legalForAnyoneFromLedger derives the "structurally legal" (admin-
-// perspective) verdict from entries — a full-ledger evaluation run with
-// proposer=playerIndex — without a second full evaluation pass at
-// proposer=AdminPlayerIndex. This mirrors the original
-// "move.Legal(state, boardgame.AdminPlayerIndex)" call's own comment,
-// "admin bypasses proposer checks": every catalog predicate other than
-// proposerIsCurrentPlayer (legal/catalog_players.go) never reads
-// ctx.Proposer at all, so re-evaluating them at proposer=Admin would
-// reproduce IDENTICAL verdicts to what entries already holds; only
-// proposerIsCurrentPlayer's verdict would change, because
-// boardgame.PlayerIndex.Equivalent treats AdminPlayerIndex as a wildcard
-// equal to any concrete player, which makes that one predicate PASS
-// unconditionally under an admin proposer. So "ignore this one entry,
-// require every other to have passed" is exactly the answer a second
-// Legal(state, AdminPlayerIndex) call would have given — for any move
-// built on Default/CurrentPlayer (v1's only supported opt-in bases; see
-// design spec §2), the only place ctx.Proposer can matter at all.
-func legalForAnyoneFromLedger(entries []boardgame.LegalVerdictEntry) bool {
-	for _, entry := range entries {
-		if entry.Name == legalProposerAtomName {
-			continue
-		}
-		if entry.Verdict.Outcome != boardgame.LegalPass {
-			return false
-		}
+	if _, err := manager.LegalEvaluatePlan(moveItem.Name, state, move, boardgame.AdminPlayerIndex); err == nil {
+		moveItem.LegalForAnyone = true
 	}
-	return true
 }
 
 // buildPreconditionEntry converts one boardgame.LegalVerdictEntry into its

@@ -577,3 +577,50 @@ func newLegalLedgerGame(t interface {
 	}
 	return game, manager
 }
+
+// legalLedgerObserverDelegate is legalLedgerDelegate with FinishSetUp
+// overridden to force the fixture into the "no current player" state the
+// LegalForAnyone regression (docs/superpowers/... critical review finding)
+// is about: game.CurrentPlayer = boardgame.ObserverPlayerIndex (a documented
+// framework pattern -- base.GameDelegate.CurrentPlayerIndex's own doc
+// comment: "If your game has different rounds where no one may move, return
+// boardgame.ObserverPlayerIndex"), and game.HiddenCounter set high enough
+// that the authored propAtLeast precondition PASSES -- isolating the
+// contributed proposerIsCurrentPlayer atom as the ONLY thing that can fail,
+// so a test can tell whether LegalForAnyone incorrectly exempts it.
+type legalLedgerObserverDelegate struct {
+	legalLedgerDelegate
+}
+
+func (d *legalLedgerObserverDelegate) FinishSetUp(state boardgame.State) error {
+	if err := d.legalLedgerDelegate.FinishSetUp(state); err != nil {
+		return err
+	}
+	gameState, ok := state.GameState().(*legalLedgerGameState)
+	if !ok {
+		return errors.New("legal ledger observer fixture: game state was not *legalLedgerGameState")
+	}
+	gameState.CurrentPlayer = boardgame.ObserverPlayerIndex
+	gameState.HiddenCounter = 1000
+	return nil
+}
+
+// newLegalLedgerObserverGame builds a fresh two-player game on
+// legalLedgerObserverDelegate: same "Opted In"/"Opaque" moves as
+// newLegalLedgerGame, but game.CurrentPlayer is forced to
+// boardgame.ObserverPlayerIndex and game.HiddenCounter is pre-seeded past
+// propAtLeast's threshold, so moves.CurrentPlayer's target-player checks are
+// the only thing that can make "Opted In" illegal.
+func newLegalLedgerObserverGame(t interface {
+	Fatalf(format string, args ...interface{})
+}) (*boardgame.Game, *boardgame.GameManager) {
+	manager, err := boardgame.NewGameManager(&legalLedgerObserverDelegate{}, newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("legal ledger observer fixture: building manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("legal ledger observer fixture: building game: %v", err)
+	}
+	return game, manager
+}

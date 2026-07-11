@@ -35,6 +35,29 @@ func findPrecondition(entries []preconditionEntry, name string) *preconditionEnt
 	return nil
 }
 
+// assertLegalForAnyoneParity asserts the universal invariant an opted-in
+// move's LegalForAnyone must maintain: it is exactly
+// (move.Legal(state, boardgame.AdminPlayerIndex) == nil) -- the plan-path
+// LegalForAnyone (legalFormFromLedger, main.go) must agree with the
+// move's own imperative Legal() call under an admin proposer, for ANY
+// predicate mix. This is the invariant the exemption-based derivation this
+// replaced got wrong: it assumed the ONLY place ctx.Proposer can matter is
+// the contributed proposerIsCurrentPlayer atom's proposer-BYPASSED
+// sub-check ("target != proposer"), and unconditionally exempted that
+// entire entry -- silently also exempting its proposer-INDEPENDENT
+// sub-checks (target invalid, target != current player), which Admin does
+// NOT bypass. Asserting this everywhere a form is already built is cheap
+// and catches that class of bug for any move mix, not just the specific
+// no-current-player scenario TestGenerateFormsWithLegalityAdminDoesNotBypassProposerIndependentChecks
+// exercises directly.
+func assertLegalForAnyoneParity(t *testing.T, move boardgame.Move, state boardgame.ImmutableState, form *moveForm) {
+	t.Helper()
+	wantLegalForAnyone := move.Legal(state, boardgame.AdminPlayerIndex) == nil
+	if form.LegalForAnyone != wantLegalForAnyone {
+		t.Errorf("LegalForAnyone = %v, want %v (move.Legal(state, AdminPlayerIndex) == nil)", form.LegalForAnyone, wantLegalForAnyone)
+	}
+}
+
 func TestGenerateFormsWithLegalityOptedInLedgerShape(t *testing.T) {
 	game, _ := newLegalLedgerGame(t)
 	s := &Server{}
@@ -45,6 +68,7 @@ func TestGenerateFormsWithLegalityOptedInLedgerShape(t *testing.T) {
 	if form == nil {
 		t.Fatal("could not find Opted In move form")
 	}
+	assertLegalForAnyoneParity(t, game.MoveByName("Opted In"), game.CurrentState(), form)
 
 	if len(form.Preconditions) != 2 {
 		t.Fatalf("expected 2 preconditions (authored propAtLeast + contributed proposerIsCurrentPlayer), got %d: %+v", len(form.Preconditions), form.Preconditions)
@@ -89,6 +113,7 @@ func TestGenerateFormsWithLegalityBindingsStrippedWhenInevaluable(t *testing.T) 
 	// non-admin viewer, legal_ledger_fixture_test.go's SanitizationPolicy).
 	forms := s.generateFormsWithLegality(game, game.CurrentState(), 0)
 	form := findMoveForm(forms, "Opted In")
+	assertLegalForAnyoneParity(t, game.MoveByName("Opted In"), game.CurrentState(), form)
 	propAtLeast := findPrecondition(form.Preconditions, "propAtLeast")
 	if propAtLeast == nil {
 		t.Fatal("could not find propAtLeast entry")
@@ -151,6 +176,7 @@ func TestGenerateFormsWithLegalityAdminSeesEvaluableAndBindings(t *testing.T) {
 	// with its bindings intact when the viewer is Admin.
 	forms := s.generateFormsWithLegality(game, game.CurrentState(), boardgame.AdminPlayerIndex)
 	form := findMoveForm(forms, "Opted In")
+	assertLegalForAnyoneParity(t, game.MoveByName("Opted In"), game.CurrentState(), form)
 	propAtLeast := findPrecondition(form.Preconditions, "propAtLeast")
 	if propAtLeast == nil {
 		t.Fatal("could not find propAtLeast entry")
@@ -170,6 +196,7 @@ func TestGenerateFormsWithLegalityForPlayerAndForAnyone(t *testing.T) {
 
 	forms := s.generateFormsWithLegality(game, game.CurrentState(), 0)
 	form := findMoveForm(forms, "Opted In")
+	assertLegalForAnyoneParity(t, game.MoveByName("Opted In"), game.CurrentState(), form)
 
 	// The authored precondition always fails, so the move can never be
 	// legal for player 0, and LegalForPlayerError should be the RENDERED
@@ -223,4 +250,53 @@ func TestGenerateFormsWithLegalityOpaqueMoveHasNoPreconditions(t *testing.T) {
 	if _, ok := raw["Preconditions"]; ok {
 		t.Error("opaque move's JSON must omit the Preconditions key entirely")
 	}
+}
+
+// TestGenerateFormsWithLegalityAdminDoesNotBypassProposerIndependentChecks is
+// the reviewer's exact regression scenario for the Critical finding on
+// legalForAnyoneFromLedger (now removed): that function derived
+// LegalForAnyone by unconditionally exempting the whole
+// proposerIsCurrentPlayer ledger entry, on the false premise that it would
+// always pass under proposer=Admin. In fact that predicate bundles three
+// checks (legal/catalog_players.go): (1) target invalid and (2) target !=
+// current player are proposer-INDEPENDENT -- Admin does not bypass them;
+// only (3) target != proposer is bypassed (via PlayerIndex.Equivalent's
+// Admin-is-wildcard rule). legalLedgerObserverDelegate (fixture file) forces
+// game.CurrentPlayer = boardgame.ObserverPlayerIndex, a documented framework
+// pattern (base.GameDelegate.CurrentPlayerIndex's own doc comment) for "no
+// one may move this round" -- and pre-seeds HiddenCounter past the authored
+// propAtLeast threshold, so proposerIsCurrentPlayer is the ONLY precondition
+// that can fail. moves.CurrentPlayer.DefaultsForState mirrors
+// TargetPlayerIndex to the (Observer) current player, so the atom fails at
+// its very first check ("target invalid" -- ObserverPlayerIndex < 0) --
+// proposer-independent, so Admin does NOT bypass it, and LegalForAnyone must
+// be false.
+//
+// Against the removed exemption-based code this test is RED: entries holds
+// only the (exempted) proposerIsCurrentPlayer entry, so
+// legalForAnyoneFromLedger's loop finds nothing else to check and returns
+// true, even though move.Legal(state, AdminPlayerIndex) itself returns a
+// non-nil error. Against the fix (GameManager.LegalEvaluatePlan re-run at
+// proposer=AdminPlayerIndex) it is GREEN.
+func TestGenerateFormsWithLegalityAdminDoesNotBypassProposerIndependentChecks(t *testing.T) {
+	game, _ := newLegalLedgerObserverGame(t)
+	s := &Server{}
+
+	forms := s.generateFormsWithLegality(game, game.CurrentState(), 0)
+	form := findMoveForm(forms, "Opted In")
+	if form == nil {
+		t.Fatal("could not find Opted In move form")
+	}
+
+	move := game.MoveByName("Opted In")
+	adminErr := move.Legal(game.CurrentState(), boardgame.AdminPlayerIndex)
+	if adminErr == nil {
+		t.Fatal("test setup bug: move.Legal(state, AdminPlayerIndex) should fail when there is no current player -- Admin does not bypass the proposer-independent 'target invalid'/'not your turn' checks")
+	}
+
+	if form.LegalForAnyone {
+		t.Error("LegalForAnyone should be false: no current player means proposerIsCurrentPlayer's proposer-INDEPENDENT sub-checks fail, and Admin does not bypass those")
+	}
+
+	assertLegalForAnyoneParity(t, move, game.CurrentState(), form)
 }
