@@ -63,6 +63,10 @@ func ComponentPresentAtKey(stackPath, keyField string) Spec {
 // moved to the stack at dstPath, per
 // ImmutableComponentInstance.MayMoveTo (component.go). This does not check
 // a specific destination slot; see MayMoveToSlot for that.
+//
+// Facet honesty: unlike ComponentPresentAt, the resolved predicate declares
+// LegalFacetValues (not LegalFacetOccupancy) on dstPath. See the doc comment
+// on mayMoveConstructor for why.
 func MayMoveTo(srcPath, dstPath, idxField string) Spec {
 	return Spec{Name: "mayMoveTo", Args: []string{srcPath, dstPath, idxField}}
 }
@@ -74,6 +78,10 @@ func MayMoveTo(srcPath, dstPath, idxField string) Spec {
 // the SAME index used for both the source lookup and the destination slot
 // — the mirrored-stacks pattern memory's HiddenCards/VisibleCards uses
 // (design spec §8).
+//
+// Facet honesty: like MayMoveTo, the resolved predicate declares
+// LegalFacetValues (not LegalFacetOccupancy) on dstPath. See the doc comment
+// on mayMoveConstructor for why.
 func MayMoveToSlot(srcPath, dstPath, idxField string) Spec {
 	return Spec{Name: "mayMoveToSlot", Args: []string{srcPath, dstPath, idxField}}
 }
@@ -183,6 +191,42 @@ func componentPresentAtKeyConstructor() *PredicateConstructor {
 // depending on useSlot: both share arg shape (srcPath, dstPath, idxField)
 // and Reads, differing only in whether MayMoveTo or MayMoveToSlot is
 // called on the component found at the source index.
+//
+// Facet honesty (dstPath declares LegalFacetValues, not LegalFacetOccupancy,
+// unlike srcPath): Evaluate calls comp.MayMoveTo(dst) / comp.MayMoveToSlot
+// (component.go), which end by calling dst.CheckConstraints(...)
+// (stack.go). CheckConstraints runs every StackConstraint attached to dst
+// (struct-tag-attached via constraints.Same/constraints.Unique/etc, or
+// added programmatically via Stack.AddConstraint) — see stack_constraint.go
+// — and those constraint functions are handed the destination stack itself,
+// which they are free to inspect by VALUE (constraints.Same and
+// constraints.Unique, for two examples that ship in this repo, both compare
+// component property VALUES already in the destination stack against the
+// proposed component). So a client that only sanitizes dst down to
+// PolicyOrder (which LegalFacetOccupancy would call safe) could still leak a
+// values-comparison through this predicate's verdict, if dst happens to
+// carry a values-reading constraint.
+//
+// Ideally this predicate would declare LegalFacetOccupancy on dst when dst
+// provably carries no constraints, and only fall back to LegalFacetValues
+// when it does — narrowing client evaluability instead of pessimizing it
+// unconditionally. That requires inspecting dst's attached constraints at
+// LegalPredicate construction time, using an example state (resolveLegalSpecs
+// already threads one through for boot-time path validation). Two things
+// stand in the way today: (1) ImmutableStack/Stack expose no way to ask "do
+// you have any constraints attached" short of actually invoking
+// CheckConstraints with a real proposed component (which reports whether a
+// SPECIFIC move would be accepted, not whether the stack merely carries a
+// values-reading constraint) — there is no exported NumConstraints/
+// HasConstraints/Constraints accessor in core to grep for; and (2)
+// LegalPredicateConstructor.Constructor's signature (spec, chest, resolve)
+// does not receive the example state resolveLegalSpecs holds, so even a
+// constraint-count accessor wouldn't be reachable from here without a wider
+// signature change touching every registered constructor, not just this
+// one. Absent either of those, this predicate declares LegalFacetValues on
+// dstPath unconditionally, which is always honest (never under-declares) at
+// the cost of sometimes being more conservative than necessary. Narrowing
+// this via one or both of the above is legitimate future work.
 func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 	return &PredicateConstructor{
 		Name: name,
@@ -208,7 +252,7 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 				Args: spec.Args,
 				Reads: []Read{
 					{Path: PropPath(srcPath), Facet: boardgame.LegalFacetOccupancy},
-					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetOccupancy},
+					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
 				},
 				Cost: boardgame.LegalCostModerate,
