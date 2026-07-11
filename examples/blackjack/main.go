@@ -13,6 +13,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/playingcards"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -227,7 +228,24 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveStartRoundCleanup),
 				moves.WithHelpText("When all players have finished, transitions to round cleanup."),
-				moves.WithPhaseToStart(phaseRoundCleanup, phaseEnum),
+				// moves.WithPhaseToStart is gone: moveStartRoundCleanup no
+				// longer embeds moves.StartPhase (see moves.go's doc
+				// comment) and hand-rolls its own phase transition in
+				// Apply(). moves.WithIsFixUp(true) replaces what embedding
+				// moves.FixUp/moves.StartPhase provided implicitly (moves.
+				// Default defaults IsFixUp to false).
+				moves.WithIsFixUp(true),
+				// Declarative migration (design spec §8's second flagship
+				// acid test): Legal() is deleted (see moves.go); this plan
+				// replaces it exactly. Default's own inPhase(phaseNormalPlay)
+				// atom (contributed automatically by moves.AddForPhase's
+				// WithLegalPhases call) runs first, matching the legacy
+				// super-call to StartPhase.Legal -> Default.Legal.
+				moves.WithPreconditions(
+					legal.AllActivePlayers(
+						legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
+					).WithMessage("cleanup.players_unfinished"),
+				),
 			),
 			auto.MustConfig(
 				new(moveCurrentPlayerHit),
@@ -314,6 +332,18 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 	)
 
+}
+
+// ConfigureLegalTemplates supplies the one game-specific template key
+// moveStartRoundCleanup's WithPreconditions plan overrides (design spec
+// §8): legal.AllActivePlayers' default message ("not every active player
+// satisfies the required condition") is generic, so the "cleanup.
+// players_unfinished" override carries the exact legacy string from the
+// pre-migration Legal() body instead.
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		"cleanup.players_unfinished": "not all active players have finished their turn",
+	}
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
