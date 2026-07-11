@@ -368,6 +368,16 @@ type LegalVerdictEntry struct {
 }
 ```
 
+**Template-validation closer (added post-Task-6 review):** add an optional
+`EmittedTemplates []string` field to `LegalPredicate` (additive — Task 5's
+model gains a field, nothing breaks); catalog constructors populate it from
+their key constants; `validateLegalTemplates` gains a variant (or the boot
+call site iterates plans) checking every resolved predicate's EmittedTemplates
+against DefaultTemplates ∪ game table — closing the spec-§3 "unregistered keys
+are a boot error" invariant for game-registered predicates too. Boot call
+sites must wrap template-validation errors with the owning MOVE's name (Task
+6's function doesn't know it).
+
 **The probe (spec, prime guarantee rule 4):** at boot, for each move type with declared preconditions, call `exampleMove.Legal(probeState, ObserverPlayerIndex)` where `probeState` is a sentinel the engine recognizes (`type legalProbeState struct{ ImmutableState }` with a marker method, or a package-private context flag on the manager set during probing — pick the implementation that requires NO change to the public Legal signature: a manager-scoped `probing bool` + `probeReached bool` pair that `Default.Legal()` checks-and-sets first thing works and is race-free at boot). If `probeReached` is false after the call → boot error: `move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead`.
 
 **Default.Legal() opt-in branch** (`moves/default.go:339`):
