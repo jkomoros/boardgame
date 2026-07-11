@@ -1,7 +1,7 @@
 import { createSelector } from 'reselect';
 import type { RootState, GameChest, PlayerInfo, ExpandedGameState, UserInfo, CompanionInfo } from './types/store';
 import type { RawGameState, TimerInfo, StateBundle } from './types/game-state';
-import type { MoveForm } from './types/api';
+import type { MoveForm, PreconditionEntry } from './types/api';
 
 // Stable default objects to prevent creating new objects on every selector call
 const DEFAULT_ANIMATION_STATE = {
@@ -169,6 +169,15 @@ export interface MoveLegalityInfo {
     legalForPlayer: boolean;
     legalForAnyone: boolean;
     error?: string;
+    /**
+     * Per-predicate declarative-legality ledger (design spec §6), passed
+     * through verbatim from MoveForm.Preconditions. Present only for a
+     * move type that opted in to declarative legality; undefined for an
+     * opaque move, where legalForPlayer/legalForAnyone/error alone
+     * describe legality. No UI reads this yet -- Task 10 ships the plumbing
+     * only, ahead of a future client evaluator/explainer feature.
+     */
+    preconditions?: PreconditionEntry[];
 }
 
 export const selectMoveLegality = createSelector(
@@ -181,6 +190,7 @@ export const selectMoveLegality = createSelector(
                 legalForPlayer: form.LegalForPlayer ?? false,
                 legalForAnyone: form.LegalForAnyone ?? false,
                 error: form.LegalForPlayerError,
+                preconditions: form.Preconditions,
             };
         }
         return result;
