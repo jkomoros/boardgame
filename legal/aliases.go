@@ -31,6 +31,21 @@ type Read = boardgame.LegalRead
 // Spec is an alias for boardgame.LegalSpec.
 type Spec = boardgame.LegalSpec
 
+// Context is an alias for boardgame.LegalContext: the entire vocabulary a
+// Predicate's Evaluate func may reference.
+type Context = boardgame.LegalContext
+
+// Predicate is an alias for boardgame.LegalPredicate: one resolved
+// legality question, either a leaf built by a PredicateConstructor or a
+// compositor ("any" in v1) whose Sub holds its children.
+type Predicate = boardgame.LegalPredicate
+
+// PredicateConstructor is an alias for boardgame.LegalPredicateConstructor:
+// a named factory that turns a Spec into a *Predicate. Games register their
+// own predicates through the same registry mechanism the built-in catalog
+// uses.
+type PredicateConstructor = boardgame.LegalPredicateConstructor
+
 // Pass, Fail, and Unknown alias boardgame's LegalOutcome values, so callers
 // that need to inspect a Verdict's Outcome (e.g. in tests) can compare
 // against legal.Pass rather than boardgame.LegalPass. Prefer the
