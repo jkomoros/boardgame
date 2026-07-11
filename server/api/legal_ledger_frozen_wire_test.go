@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
-	checkersgame "github.com/jkomoros/boardgame/examples/checkers"
+	werewolfgame "github.com/jkomoros/boardgame/examples/werewolf"
 )
 
 /*
@@ -22,10 +22,36 @@ migrated memory's "Reveal Card" move to declarative legality (design spec
 memory's moves have opted in yet" assumption below would be false against
 it. Task 11's brief calls this out explicitly ("handle deliberately and
 document"): rather than weaken this test to special-case one opted-in move,
-the fixture was swapped to examples/checkers, which stays fully un-migrated
-until Task 12 and so keeps this test's original all-opaque guarantee intact
+the fixture was swapped to examples/checkers, which stayed fully un-migrated
+through Task 11 and so kept this test's original all-opaque guarantee intact
 and meaningful. (memory's own opted-in move now has its OWN golden-
 equivalence coverage instead — examples/memory/legal_golden_test.go.)
+
+Fixture choice (Task 12 update): Task 12 migrated checkers' "Move Token"
+move (moveMoveToken) to declarative legality (design spec §8's checkers acid
+test — see examples/checkers/moves.go/main.go), so checkers is no longer a
+fully-opaque game either, for the identical reason memory stopped being one
+in Task 11. Per the Task 12 brief's explicit instruction ("re-point it to a
+game that REMAINS fully opaque after this task... document the choice"),
+the fixture is swapped again, to examples/werewolf, which Task 12's survey
+found gains ZERO opted-in moves, not because no natural catalog gate exists,
+but because every one of werewolf's three own move types embeds a
+moves-package framework base type OTHER than Default/CurrentPlayer — the
+v1 declarative-legality composition seam (design spec §2) only supports
+those two:
+  - moveBeginGame embeds moves.StartPhase
+  - moveCastVote embeds moves.AnyPlayer
+  - moveResolveVotes embeds moves.FixUp
+(plus moves.SeatPlayer/ActivateInactivePlayer/WaitForEnoughPlayers/
+InactivateEmptySeat from main.go's ConfigureMoves, which are unmodified
+framework move types werewolf never overrides Legal() on, and which
+legalUnsupportedMovesBaseType would flag too — moot here since none of them
+declare WithPreconditions in the first place). Every one of legalUnsupported-
+MovesBaseType's checks is a hard boot-time gate (legal_plan.go), not a
+judgment call, so this is a durable "stays opaque" guarantee, not a
+survey-cycle-scoped one — unlike checkers/memory, no genuinely-natural
+catalog gate was left un-migrated here; werewolf's moves.go documents the
+same finding (Task 12 report has the full per-game migration table).
 
 There is no literal "before" JSON blob checked in here to diff against
 (this package had no test harness capable of building a real game before
@@ -59,13 +85,13 @@ func legalFormOpaqueExpected(move boardgame.Move, state boardgame.ImmutableState
 }
 
 func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
-	manager, err := boardgame.NewGameManager(checkersgame.NewDelegate(), newLegalLedgerStorage())
+	manager, err := boardgame.NewGameManager(werewolfgame.NewDelegate(), newLegalLedgerStorage())
 	if err != nil {
-		t.Fatalf("building checkers manager: %v", err)
+		t.Fatalf("building werewolf manager: %v", err)
 	}
 	game, err := manager.NewDefaultGame()
 	if err != nil {
-		t.Fatalf("building checkers game: %v", err)
+		t.Fatalf("building werewolf game: %v", err)
 	}
 
 	s := &Server{}
@@ -78,9 +104,10 @@ func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
 		}
 
 		for _, form := range forms {
-			// None of checkers' moves have opted in (as of Task 11; that's
-			// Task 12) -- every single one must take the frozen opaque path:
-			// no Preconditions at all.
+			// None of werewolf's moves have opted in, and structurally never
+			// will under the v1 seam (see this file's doc comment) -- every
+			// single one must take the frozen opaque path: no Preconditions
+			// at all.
 			if form.Preconditions != nil {
 				t.Errorf("player %d, move %q: opaque game produced a non-nil Preconditions ledger: %+v", playerIndex, form.Name, form.Preconditions)
 			}

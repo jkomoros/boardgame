@@ -1,0 +1,500 @@
+package checkers
+
+import (
+	"errors"
+	"testing"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
+	storagememory "github.com/jkomoros/boardgame/storage/memory"
+)
+
+/*
+Golden-equivalence harness for moveMoveToken (design spec §8/§9, Task 12
+brief): for every recorded (state, proposer) pair, asserts that
+legacyLegalMoveMoveToken (a hand-copied snapshot of the move's Legal() body
+exactly as it read before this migration) and the migrated move's ACTUAL
+Legal() (now dispatched through moves.CurrentPlayer.Legal ->
+moves.Default.Legal's plan-evaluation short-circuit, since moves.go's Legal()
+override was deleted and replaced with LegalCustom) agree on both nil-ness
+and, for a non-nil result outside the documented residue-collapse divergence
+below, the exact error message string.
+
+Fixture-construction approach follows examples/memory/legal_golden_test.go's
+precedent (Task 11): build a real game via manager.NewDefaultGame() and
+mutate specific state fields/stacks directly to reach each branch
+deterministically. A fresh checkers game is special-cased further: per
+legal/conformance_test.go's "checkersDefault" fixture (Task 4/5 precedent),
+NewDefaultGame() already runs SeatPlayer and every PlaceToken fixup to
+completion, landing in phasePlaying with the standard 24-token starting
+layout — no manual setup-phase play is needed to reach a moveMoveToken-legal
+state.
+*/
+
+// legacyLegalMoveMoveToken is a hand-copied snapshot of moveMoveToken's
+// Legal() method exactly as it read before this migration (see moves.go's
+// comment block for the original source). It deliberately does NOT call
+// m.CurrentPlayer.Legal(state, proposer): that would dispatch through
+// moves.Default.Legal, which (post-migration) detects the assembled plan and
+// evaluates THAT instead of the frozen chain — defeating the point of an
+// independent oracle. Instead it hand-replicates:
+//   - moves.Default.legalInPhase's check via the same exported helper that
+//     check itself calls (boardgame.LegalInPhaseCheck — moves/default.go's
+//     legalInPhase doc comment: "extracted to core so that this frozen
+//     chain and legal's inPhase wrapper predicate call exactly one
+//     implementation", a Task 7 decision this oracle relies on rather than
+//     re-deriving); moveMoveToken's only legal phase is phasePlaying (set
+//     via moves.AddForPhase in main.go). legalMoveInProgression and
+//     legalStackConstraints are both no-ops for moveMoveToken (no
+//     WithLegalMoveProgression/WithSourceProperty+WithDestinationProperty
+//     configured), so they are omitted.
+//   - moves.CurrentPlayer.Legal's own TargetPlayerIndex checks
+//     (moves/current_player.go:37-65), by hand.
+//   - moveMoveToken's own body, verbatim.
+func legacyLegalMoveMoveToken(m *moveMoveToken, state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+	if err := boardgame.LegalInPhaseCheck(state, []enum.EnumKey{enum.EnumKey(phasePlaying)}); err != nil {
+		return err
+	}
+
+	currentPlayer := state.CurrentPlayerIndex()
+	targetPlayerIndex := m.TargetPlayerIndex.EnsureValid(state)
+
+	if !targetPlayerIndex.Valid(state) {
+		return errors.New("The specified target player is not valid")
+	}
+	if targetPlayerIndex < 0 {
+		return errors.New("The specified target player is not valid")
+	}
+	if !targetPlayerIndex.Equivalent(currentPlayer) {
+		return errors.New("it's not your turn")
+	}
+	if !targetPlayerIndex.Equivalent(proposer) {
+		return errors.New("it's not your turn")
+	}
+
+	p := state.ImmutableCurrentPlayer().(*playerState)
+	g := state.ImmutableGameState().(*gameState)
+
+	if err := g.Spaces.MaySwapComponentsByKey(m.TokenIndexToMove.Value(), m.SpaceIndex.Value()); err != nil {
+		return err
+	}
+
+	c := g.Spaces.ImmutableComponentAtKey(m.TokenIndexToMove.Value())
+
+	if c == nil {
+		return errors.New("That space does not have a component in it")
+	}
+
+	t := c.Values().(*token)
+
+	if !p.Color.Equals(t.Color) {
+		return errors.New("that token isn't your token to move")
+	}
+
+	if !spaceIsBlack(m.SpaceIndex.Value().Int()) {
+		return errors.New("you can only move to spaces that are black")
+	}
+
+	for _, space := range t.FreeNextSpaces(state, m.TokenIndexToMove.Value().Int()) {
+		if m.SpaceIndex.Value().Int() == space {
+			return nil
+		}
+	}
+
+	for _, space := range t.LegalCaptureSpaces(state, m.TokenIndexToMove.Value().Int()) {
+		if m.SpaceIndex.Value().Int() == space {
+			return nil
+		}
+	}
+
+	return errors.New("spaceIndex does not represent a legal space for that token to move to")
+}
+
+// moveMoveTokenGoldenFixture is one (game, move) pair to check every
+// proposer worth distinguishing against.
+type moveMoveTokenGoldenFixture struct {
+	name string
+	game *boardgame.Game
+	move *moveMoveToken
+}
+
+func newMoveMoveTokenGame(t *testing.T) (*boardgame.Game, boardgame.State) {
+	t.Helper()
+	manager, err := boardgame.NewGameManager(NewDelegate(), storagememory.NewStorageManager())
+	if err != nil {
+		t.Fatalf("legal_golden: building manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("legal_golden: building default game: %v", err)
+	}
+	state, ok := game.CurrentState().(boardgame.State)
+	if !ok {
+		t.Fatalf("legal_golden: CurrentState() was not mutable")
+	}
+	return game, state
+}
+
+// moveMoveTokenMove returns a fresh "Move Token" move from game, with
+// TokenIndexToMove and SpaceIndex set.
+func moveMoveTokenMove(t *testing.T, game *boardgame.Game, tokenIndex, spaceIndex int) *moveMoveToken {
+	t.Helper()
+	move := game.MoveByName("Move Token")
+	if move == nil {
+		t.Fatal("legal_golden: no \"Move Token\" move found")
+	}
+	mv, ok := move.(*moveMoveToken)
+	if !ok {
+		t.Fatal("legal_golden: \"Move Token\" move was not a *moveMoveToken")
+	}
+	val, err := mv.ReadSetter().EnumProp("TokenIndexToMove")
+	if err != nil {
+		t.Fatalf("legal_golden: reading TokenIndexToMove enum prop: %v", err)
+	}
+	if err := val.SetValue(enum.EnumKey(tokenIndex)); err != nil {
+		t.Fatalf("legal_golden: setting TokenIndexToMove: %v", err)
+	}
+	val, err = mv.ReadSetter().EnumProp("SpaceIndex")
+	if err != nil {
+		t.Fatalf("legal_golden: reading SpaceIndex enum prop: %v", err)
+	}
+	if err := val.SetValue(enum.EnumKey(spaceIndex)); err != nil {
+		t.Fatalf("legal_golden: setting SpaceIndex: %v", err)
+	}
+	return mv
+}
+
+func firstOccupiedSpace(spaces boardgame.ImmutableStack) int {
+	for i := 0; i < spaces.Len(); i++ {
+		if spaces.ImmutableComponentAt(i) != nil {
+			return i
+		}
+	}
+	return -1
+}
+
+func firstEmptySpace(spaces boardgame.ImmutableStack) int {
+	for i := 0; i < spaces.Len(); i++ {
+		if spaces.ImmutableComponentAt(i) == nil {
+			return i
+		}
+	}
+	return -1
+}
+
+// firstSpaceWithColorMatch returns the lowest Spaces index whose occupying
+// token's Color equals (or, if wantMatch is false, does not equal)
+// currentPlayerColor, or -1 if none exists. Mirrors
+// legal/conformance_test.go's firstSpaceWithColor helper (same purpose,
+// duplicated here so this package's tests don't need to import
+// package legal_test's unexported fixtures).
+func firstSpaceWithColorMatch(t *testing.T, spaces boardgame.ImmutableStack, currentPlayerColor enum.ImmutableVal, wantMatch bool) int {
+	t.Helper()
+	for i := 0; i < spaces.Len(); i++ {
+		c := spaces.ImmutableComponentAt(i)
+		if c == nil {
+			continue
+		}
+		tokenColor, err := c.Values().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal_golden: reading token Color at Spaces[%d]: %v", i, err)
+		}
+		if tokenColor.Equals(currentPlayerColor) == wantMatch {
+			return i
+		}
+	}
+	return -1
+}
+
+// firstNonBlackSpace returns the lowest space index for which spaceIsBlack
+// is false.
+func firstNonBlackSpace() int {
+	for i := 0; i < boardSize; i++ {
+		if !spaceIsBlack(i) {
+			return i
+		}
+	}
+	return -1
+}
+
+// moveMoveTokenGoldenFixtures builds the table of (state, move) fixtures the
+// golden test sweeps every proposer against.
+func moveMoveTokenGoldenFixtures(t *testing.T) []moveMoveTokenGoldenFixture {
+	t.Helper()
+
+	var fixtures []moveMoveTokenGoldenFixture
+
+	// default: a fresh game (already in phasePlaying with the standard
+	// 24-token layout — see this file's doc comment). TokenIndexToMove is
+	// the current player's own token; SpaceIndex is one of its free
+	// neighboring spaces (t.FreeNextSpaces). Legal for the current player.
+	// Not every own-colored token has a free next space in the starting
+	// layout (a token pinned at the board's outer edge, in its own
+	// movement direction, has none), so this scans for the first one that
+	// does rather than assuming the lowest-index match works.
+	{
+		game, state := newMoveMoveTokenGame(t)
+		g, _ := concreteStates(state)
+		playerColor, err := state.ImmutableCurrentPlayer().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal_golden: reading current player's Color: %v", err)
+		}
+		tokenIdx := -1
+		var freeSpaces []int
+		for i := 0; i < g.Spaces.Len(); i++ {
+			c := g.Spaces.ImmutableComponentAt(i)
+			if c == nil {
+				continue
+			}
+			tokenColor, err := c.Values().Reader().ImmutableEnumProp("Color")
+			if err != nil {
+				t.Fatalf("legal_golden: reading token Color at Spaces[%d]: %v", i, err)
+			}
+			if !tokenColor.Equals(playerColor) {
+				continue
+			}
+			tok := c.Values().(*token)
+			spaces := tok.FreeNextSpaces(state, i)
+			if len(spaces) > 0 {
+				tokenIdx = i
+				freeSpaces = spaces
+				break
+			}
+		}
+		if tokenIdx < 0 {
+			t.Fatal("legal_golden: no current-player token with a free next space found")
+		}
+		move := moveMoveTokenMove(t, game, tokenIdx, freeSpaces[0])
+		fixtures = append(fixtures, moveMoveTokenGoldenFixture{"default", game, move})
+	}
+
+	// emptySpace: TokenIndexToMove names an unoccupied space —
+	// legal.ComponentPresentAtKey's Fail branch ("checkers.no_token_there").
+	{
+		game, state := newMoveMoveTokenGame(t)
+		g, _ := concreteStates(state)
+		emptyIdx := firstEmptySpace(g.Spaces)
+		if emptyIdx < 0 {
+			t.Fatal("legal_golden: no empty space found")
+		}
+		move := moveMoveTokenMove(t, game, emptyIdx, 0)
+		fixtures = append(fixtures, moveMoveTokenGoldenFixture{"emptySpace", game, move})
+	}
+
+	// opponentToken: TokenIndexToMove names a space occupied by the
+	// OPPOSING color — legal.ComponentPropEqualsCurrentPlayer's Fail branch
+	// ("checkers.not_your_token").
+	{
+		game, state := newMoveMoveTokenGame(t)
+		g, _ := concreteStates(state)
+		playerColor, err := state.ImmutableCurrentPlayer().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal_golden: reading current player's Color: %v", err)
+		}
+		oppIdx := firstSpaceWithColorMatch(t, g.Spaces, playerColor, false)
+		if oppIdx < 0 {
+			t.Fatal("legal_golden: no space occupied by an opposing color")
+		}
+		move := moveMoveTokenMove(t, game, oppIdx, 0)
+		fixtures = append(fixtures, moveMoveTokenGoldenFixture{"opponentToken", game, move})
+	}
+
+	// nonBlackDest: TokenIndexToMove names the current player's own token,
+	// but SpaceIndex names a non-black space — the game-registered
+	// "checkers.spaceIsBlack" predicate's Fail branch
+	// ("checkers.black_spaces_only").
+	{
+		game, state := newMoveMoveTokenGame(t)
+		g, _ := concreteStates(state)
+		playerColor, err := state.ImmutableCurrentPlayer().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal_golden: reading current player's Color: %v", err)
+		}
+		tokenIdx := firstSpaceWithColorMatch(t, g.Spaces, playerColor, true)
+		if tokenIdx < 0 {
+			t.Fatal("legal_golden: no space occupied by the current player's own color")
+		}
+		whiteIdx := firstNonBlackSpace()
+		if whiteIdx < 0 {
+			t.Fatal("legal_golden: no non-black space found")
+		}
+		move := moveMoveTokenMove(t, game, tokenIdx, whiteIdx)
+		fixtures = append(fixtures, moveMoveTokenGoldenFixture{"nonBlackDest", game, move})
+	}
+
+	// unreachableDest: TokenIndexToMove/SpaceIndex both legitimate (own
+	// token, black space), but SpaceIndex is not reachable by a free move
+	// or a capture — LegalCustom's residue Fail branch
+	// ("checkers.illegal_dest"). Chosen as the diametrically opposite
+	// corner of the board from the token, which is never adjacent to it.
+	{
+		game, state := newMoveMoveTokenGame(t)
+		g, _ := concreteStates(state)
+		playerColor, err := state.ImmutableCurrentPlayer().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal_golden: reading current player's Color: %v", err)
+		}
+		tokenIdx := firstSpaceWithColorMatch(t, g.Spaces, playerColor, true)
+		if tokenIdx < 0 {
+			t.Fatal("legal_golden: no space occupied by the current player's own color")
+		}
+		// spacesEnum is a boardWidth x boardWidth range enum; corner (0,0)
+		// is index 0 and is black (spaceIsBlack(0) == true). If tokenIdx
+		// itself happens to be 0, fall back to the opposite corner.
+		dest := 0
+		if tokenIdx == dest {
+			dest = boardSize - 1
+			if !spaceIsBlack(dest) {
+				dest = boardSize - 2
+			}
+		}
+		if !spaceIsBlack(dest) {
+			t.Fatalf("legal_golden: chosen unreachable-dest space %d is not black", dest)
+		}
+		tok := g.Spaces.ImmutableComponentAt(tokenIdx).Values().(*token)
+		for _, s := range tok.FreeNextSpaces(state, tokenIdx) {
+			if s == dest {
+				t.Fatalf("legal_golden: chosen unreachable-dest space %d is unexpectedly a free next space of token %d", dest, tokenIdx)
+			}
+		}
+		for _, s := range tok.LegalCaptureSpaces(state, tokenIdx) {
+			if s == dest {
+				t.Fatalf("legal_golden: chosen unreachable-dest space %d is unexpectedly a legal capture space of token %d", dest, tokenIdx)
+			}
+		}
+		move := moveMoveTokenMove(t, game, tokenIdx, dest)
+		fixtures = append(fixtures, moveMoveTokenGoldenFixture{"unreachableDest", game, move})
+	}
+
+	// sameSpace: TokenIndexToMove == SpaceIndex. Legacy hits
+	// g.Spaces.MaySwapComponentsByKey's "i and j were the same" branch
+	// before ever reaching the component-present check; the migrated plan
+	// has no declarative gate for this (a token is never its own graph
+	// neighbor, so LegalCustom's walk falls through to
+	// "checkers.illegal_dest" too) — both illegal, message text diverges.
+	// See knownMessageCollapseDivergence below.
+	{
+		game, state := newMoveMoveTokenGame(t)
+		g, _ := concreteStates(state)
+		playerColor, err := state.ImmutableCurrentPlayer().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal_golden: reading current player's Color: %v", err)
+		}
+		tokenIdx := firstSpaceWithColorMatch(t, g.Spaces, playerColor, true)
+		if tokenIdx < 0 {
+			t.Fatal("legal_golden: no space occupied by the current player's own color")
+		}
+		move := moveMoveTokenMove(t, game, tokenIdx, tokenIdx)
+		fixtures = append(fixtures, moveMoveTokenGoldenFixture{"sameSpace", game, move})
+	}
+
+	return fixtures
+}
+
+// knownMessageCollapseDivergence names (fixture, proposer) combinations
+// where the migrated plan is EXPECTED to disagree with the legacy oracle on
+// the message text, even though both agree the move is illegal (nil-ness
+// always matches). Unlike Task 11's memory bucket-reordering divergence,
+// this is NOT a bucket-reordering effect: moveMoveToken's declarative gates
+// (legal.ComponentPresentAtKey/ComponentPropEqualsCurrentPlayer/
+// checkers.spaceIsBlack) all read a move.* path (TokenIndexToMove or
+// SpaceIndex), so all four land in the field-DEPENDENT bucket alongside the
+// contributed proposer check; the only field-independent predicate is the
+// phase check (legal.InPhase, contributed via moves.AddForPhase), which was
+// ALSO first in the legacy imperative chain — so evaluation order is
+// byte-identical to legacy's for moveMoveToken specifically (see the
+// Task 12 report for the general finding this narrows).
+//
+// The divergence here is a deliberate, spec-sanctioned RESIDUE COLLAPSE
+// (design spec §8's LegalCustom sample): g.Spaces.MaySwapComponentsByKey's
+// i==j distinctness check is not re-run in LegalCustom (moves.go's doc
+// comment explains why: the walk below already rejects a token moving to
+// its own space, since a space is never its own graph neighbor), so the
+// legacy "i and j were the same" string is replaced by the generic
+// "checkers.illegal_dest" text the capture-graph walk's own fallback
+// already uses for a genuinely unreachable destination.
+var knownMessageCollapseDivergence = map[string]bool{
+	"sameSpace/currentPlayer": true,
+	"sameSpace/admin":         true,
+}
+
+// TestGoldenLegalMoveMoveToken is the design spec §9 "golden equivalence"
+// test for checkers' declarative migration (spec §8): for every fixture
+// above, cross every proposer worth distinguishing (the current player, a
+// different concrete player, AdminPlayerIndex — a wildcard that passes the
+// proposer check, ObserverPlayerIndex — which fails it) and assert the
+// legacy oracle and the migrated move's real Legal() agree on nil-ness, and
+// (outside the one documented residue-collapse exception above) on message
+// text too.
+func TestGoldenLegalMoveMoveToken(t *testing.T) {
+	fixtures := moveMoveTokenGoldenFixtures(t)
+
+	for _, fixture := range fixtures {
+		fixture := fixture
+		state := fixture.game.CurrentState()
+		currentPlayer := state.CurrentPlayerIndex()
+
+		var otherPlayer boardgame.PlayerIndex = -1
+		for i := range state.ImmutablePlayerStates() {
+			pIdx := boardgame.PlayerIndex(i)
+			if pIdx != currentPlayer {
+				otherPlayer = pIdx
+				break
+			}
+		}
+		if otherPlayer < 0 {
+			t.Fatalf("legal_golden[%s]: could not find a non-current player", fixture.name)
+		}
+
+		proposers := map[string]boardgame.PlayerIndex{
+			"currentPlayer": currentPlayer,
+			"otherPlayer":   otherPlayer,
+			"admin":         boardgame.AdminPlayerIndex,
+			"observer":      boardgame.ObserverPlayerIndex,
+		}
+
+		for proposerName, proposer := range proposers {
+			t.Run(fixture.name+"/"+proposerName, func(t *testing.T) {
+				legacyErr := legacyLegalMoveMoveToken(fixture.move, state, proposer)
+				actualErr := fixture.move.Legal(state, proposer)
+
+				if (legacyErr == nil) != (actualErr == nil) {
+					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
+				}
+				if knownMessageCollapseDivergence[fixture.name+"/"+proposerName] {
+					return
+				}
+				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
+					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
+				}
+			})
+		}
+	}
+}
+
+// TestGoldenLegalMoveMoveTokenWrongPhase directly exercises the field-
+// independent phase-check bucket, forcing the game back to phaseSetup
+// (moveMoveToken is only legal in phasePlaying, contributed via
+// moves.AddForPhase in main.go). This is the one predicate in
+// moveMoveToken's plan that is field-INDEPENDENT (legal.InPhase reads no
+// move.* path) — confirming it stays first in evaluation order, matching
+// legacy's Default.legalInPhase, which also ran first (before
+// CurrentPlayer's own proposer check).
+func TestGoldenLegalMoveMoveTokenWrongPhase(t *testing.T) {
+	game, state := newMoveMoveTokenGame(t)
+	g := state.GameState().(*gameState)
+	g.SetCurrentPhase(enum.EnumKey(phaseSetup))
+
+	move := moveMoveTokenMove(t, game, 0, 0)
+
+	legacyErr := legacyLegalMoveMoveToken(move, state, state.CurrentPlayerIndex())
+	actualErr := move.Legal(state, state.CurrentPlayerIndex())
+
+	if legacyErr == nil || actualErr == nil {
+		t.Fatalf("expected both legacy and actual to be illegal in phaseSetup: legacy=%v actual=%v", legacyErr, actualErr)
+	}
+	if legacyErr.Error() != actualErr.Error() {
+		t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
+	}
+}

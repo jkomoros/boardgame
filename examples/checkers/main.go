@@ -8,11 +8,14 @@ package checkers
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -86,9 +89,94 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveMoveToken),
 				moves.WithHelpText("Moves a token from one place to another"),
+				// Declarative migration (design spec §8's checkers acid
+				// test): Legal() is deleted (see moves.go); this plan
+				// replaces it exactly, in the same order the old imperative
+				// chain ran (the phase check and CurrentPlayer's proposer
+				// check are contributed automatically ahead of these three,
+				// then these three in declaration order, then LegalCustom's
+				// capture-graph-walk residue — see moves.go's comment for
+				// the full mapping).
+				moves.WithPreconditions(
+					legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove").
+						WithMessage("checkers.no_token_there"),
+					legal.ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color").
+						WithMessage("checkers.not_your_token"),
+					legal.Spec{Name: "checkers.spaceIsBlack", Args: []string{"move.SpaceIndex"}},
+				),
 			),
 		),
 	)
+}
+
+// ConfigurePredicateConstructors registers checkers' one game-specific
+// predicate, "checkers.spaceIsBlack" (design spec §1/§8): the FIRST real use
+// of the game-registered predicate extension path (legal.ConstructorConfigurer),
+// consumed via type-assertion on this delegate at NewGameManager, the same
+// way legal.TemplateConfigurer below is. ExtendDefaults returns the full
+// built-in catalog (legal.DefaultConstructors()) plus this one addition, so
+// checkers keeps every universal predicate for free.
+func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstructor {
+	return legal.ExtendDefaults(&legal.PredicateConstructor{
+		Name: "checkers.spaceIsBlack",
+		Constructor: func(spec legal.Spec, _ *boardgame.ComponentChest,
+			_ func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
+			if len(spec.Args) != 1 {
+				return nil, fmt.Errorf("checkers.spaceIsBlack: requires exactly 1 arg (the space-index field), got %d", len(spec.Args))
+			}
+			field := spec.Args[0]
+
+			template := spec.Message
+			if template == "" {
+				template = "checkers.black_spaces_only"
+			}
+
+			return &legal.Predicate{
+				Name: "checkers.spaceIsBlack",
+				Args: spec.Args,
+				Reads: []legal.Read{
+					{Path: legal.PropPath(field), Facet: boardgame.LegalFacetValues},
+				},
+				Cost:             boardgame.LegalCostTrivial,
+				EmittedTemplates: []string{template},
+				Evaluate: func(ctx legal.Context) legal.Verdict {
+					val, propType, err := ctx.ResolvePath(legal.PropPath(field))
+					if err != nil {
+						return legal.UnknownVerdict(err.Error())
+					}
+					if propType != boardgame.TypeEnum {
+						return legal.UnknownVerdict("checkers.spaceIsBlack: path " + field + " is not an enum property")
+					}
+					ev, ok := val.(enum.ImmutableVal)
+					if !ok || ev == nil {
+						return legal.UnknownVerdict("checkers.spaceIsBlack: path " + field + " resolved to a nil or non-enum value")
+					}
+					if spaceIsBlack(ev.Value().Int()) {
+						return legal.PassVerdict()
+					}
+					return legal.FailT(template)
+				},
+			}, nil
+		},
+	})
+}
+
+// ConfigureLegalTemplates supplies the checkers.* template keys moveMoveToken's
+// WithPreconditions plan and LegalCustom residue reference (design spec §8):
+// three override the generic catalog defaults with the exact legacy strings
+// from the pre-migration Legal() body (see moves.go's comment for the
+// mapping), and one ("checkers.black_spaces_only") is the game-registered
+// spaceIsBlack predicate's own default template — it has no catalog default
+// to fall back to since it isn't part of legal.DefaultTemplates(). See
+// moves.go's LegalCustom doc comment for why "checkers.illegal_dest" now
+// covers what were three distinct legacy strings.
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		"checkers.no_token_there":    "That space does not have a component in it",
+		"checkers.not_your_token":    "that token isn't your token to move",
+		"checkers.black_spaces_only": "you can only move to spaces that are black",
+		"checkers.illegal_dest":      "spaceIndex does not represent a legal space for that token to move to",
+	}
 }
 
 func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {
