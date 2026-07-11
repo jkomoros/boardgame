@@ -1,18 +1,18 @@
 # Declarative Move Legality — Design
 
-**Date:** 2026-07-10
+**Date:** 2026-07-10 (rev 2, post-critique)
 **Issues:** #761, #189 (the core thread); folds in #790, #644, #65; constrains #693, #44; enables #640, #213, #295
 **Branch:** `declarative-legality-design`
 **Status:** Design for review (implementation plan follows approval)
 
 ## Provenance
 
-Synthesized from a three-lens design panel (composability / engine / DX) plus two
-adversarial critiques, run 2026-07-10. Panel verdict: engine-lens design as the
-spine, wearing the DX lens's error model and the composability lens's wire
-format. Panel artifacts (not normative, kept for the record):
-`.superpowers/design/design-{A-composability,B-engine,C-delight}.md`,
-`critique-{acid,systems}.md`, `legality-brief.md`.
+Synthesized from a three-lens design panel (composability / engine / DX) plus
+two adversarial critiques of the panel outputs, then revised against four
+adversarial critiques of the spec itself (Go API/idiom, codebase contact,
+purely-sugar guarantee, client/TS future). Panel and critique artifacts (not
+normative): `.superpowers/design/design-*.md`, `critique-*.md`,
+`spec-critique-*.md`, `legality-brief.md`.
 
 ## Problem
 
@@ -29,116 +29,165 @@ Three consequences:
    rejections are silently discarded (#65).
 
 Meanwhile `moves.Default.Legal()` already secretly runs three declarative checks
-from its config bag — phase membership (`WithLegalPhases`), move-tape progression
-(`WithLegalMoveProgression`), and stack constraints
-(`WithSourceProperty`/`WithDestinationProperty` → `MayMoveTo`). This design
-promotes that buried pattern to a first-class, inspectable, serializable system.
+from its config bag — phase membership, move-tape progression, and stack
+constraints. This design promotes that buried pattern to a first-class,
+inspectable, serializable system.
 
 ## The prime guarantee: purely sugar
 
-**`Legal(state, proposer) error` remains the ground-truth contract, unchanged.**
+**`Legal(state, proposer) error` remains the ground-truth contract, unchanged —
+and the existing imperative chain is FROZEN.**
 
-- A game author can ignore this entire system and write imperative `Legal()`
-  exactly as today, with zero new required concepts. The engine treats such a
-  move as opaque and behaves exactly as it does now.
-- When preconditions are declared, `moves.Default.Legal()` *is* their evaluator:
-  declaring is implementing. An author never writes both a declaration and the
-  code enforcing it.
-- Every engine capability — phase bucketing, caching, the client ledger,
-  structured errors — is opportunistic introspection through one optional
-  interface, degrading gracefully to "call Legal()" when declarations are
-  absent.
-- A move that overrides `Legal()` wholesale (not via `LegalCustom`) opts out of
-  the plan entirely; the engine falls back to today's behavior for that move.
+The critique process showed the naive version of this guarantee ("Default.Legal
+becomes 'evaluate plan'") silently breaks the dominant real-world pattern —
+every in-repo and `../games` move embeds a framework type, overrides `Legal()`,
+and super-calls the chain (`if err := m.CurrentPlayer.Legal(state, proposer);
+err != nil {...}`). The revised, normative rules:
+
+1. **The imperative chain is frozen.** `Default.Legal()`,
+   `CurrentPlayer.Legal()`, and every other framework move type's `Legal()`
+   keep their current implementations, byte-for-byte observable behavior:
+   same checks, same order, same error strings. Un-migrated games — including
+   games that never migrate — behave identically to today, including the exact
+   `LegalForPlayerError` strings legacy clients see.
+2. **Plan-based evaluation is opt-in per move type.** A move opts in by
+   declaring `moves.WithPreconditions(...)` in its `auto.Config` AND not
+   overriding `Legal()` (it may implement `LegalCustom`, §4). For opted-in
+   moves, `Default.Legal()` detects the declarations and evaluates the plan
+   instead of the frozen chain — declaring is implementing.
+3. **Everything engine-side is opportunistic.** Moves without declarations are
+   *opaque*: the engine calls their `Legal()` exactly as today, places them in
+   every phase bucket (§5), caches nothing about them, and reports them to the
+   client exactly as today. No capability of this design ever requires a game
+   to adopt it.
+4. **Dead declarations are a boot error, detected behaviorally.** Go cannot
+   see method overrides statically, so `NewGameManager` runs a one-time
+   **probe**: for each move type with declared preconditions, it calls the
+   example instance's `Legal()` against a sentinel probe state that
+   `Default.Legal()` recognizes and records before doing anything else. If the
+   probe never reaches `Default.Legal()`, the declarations can never execute —
+   boot fails naming the move and explaining that its wholesale `Legal()`
+   override orphans its declarations. A `Legal()` override that super-calls
+   into the chain passes the probe and is fully supported: the super-call
+   evaluates the plan, and the override's own imperative checks compose around
+   it — exactly today's embedding pattern. (`LegalCustom` remains the
+   preferred way to add imperative residue; override-plus-super-call is the
+   compatible legacy spelling.)
 
 ## Design decisions locked before the panel
 
 - **Design for client evaluation, ship server-first.** The representation is
   serializable and sanitization-aware from day one; the TypeScript evaluator is
-  a designed-for follow-up, not in this campaign.
-- **Break the Go API freely** (in the additive-sugar sense above): all in-repo
-  example games and the three `../games` clients are migrated to declarations
-  where they benefit; imperative Legal() keeps working everywhere.
+  a designed-for follow-up.
+- **Migrate freely.** In-repo example games and the three `../games` clients
+  are migrated to declarations where the catalog covers them; imperative
+  Legal() keeps working everywhere, forever.
 
 ---
 
 ## 1. Representation
 
 One new package, `legal`, sitting beside `constraints` and deliberately rhyming
-with it (name + string args, constructor registry, struct-tag-friendly).
+with it (name + string args, constructor registry).
 
 ```go
 // package legal
 
-// Outcome is a three-valued verdict. Unknown is load-bearing: it is how a
-// predicate that cannot decide (hidden state, imperative escape hatch) stays
-// honest instead of guessing.
+// Outcome is a three-valued verdict. The zero value is deliberately INVALID so
+// a forgotten Verdict fails closed (an accidentally-zero Verdict must never
+// read as "legal").
 type Outcome int
 
 const (
-    Pass Outcome = iota
+    outcomeInvalid Outcome = iota // zero value: fails closed, reported as engine error
+    Pass
     Fail
     Unknown
 )
 
-// Message is a template key plus named bindings — never a pre-baked string —
-// so failures are localizable, greppable, and re-renderable on server or
-// client. (Adapts to the existing errors.Friendly at the API boundary.)
-type Message struct {
-    Template string         // "reveal.no_cards_left"
-    Bindings map[string]any // {"left": 0}
+// BindingValue keeps Bindings JSON-round-trippable and TS-conformant: no
+// arbitrary `any` in the wire format.
+type BindingValue struct { // exactly one field set
+    S *string
+    I *int
+    B *bool
 }
 
-// Verdict is the result of evaluating one Predicate.
+// Message is a template KEY plus named bindings — never a pre-baked string —
+// so failures are localizable, greppable, and re-renderable on server or
+// client. Template keys resolve through the game's template table (§6).
+type Message struct {
+    Template string
+    Bindings map[string]BindingValue
+}
+
+// Verdict is the result of evaluating one predicate.
 type Verdict struct {
     Outcome Outcome
     Message *Message // set on Fail (optionally on Unknown); nil on Pass
     Reason  string   // on Unknown: why ("reads hidden property HiddenCards")
 }
 
-// Context is the entire vocabulary a predicate may reference. The line before
-// the Turing tarpit is drawn here, by construction: no I/O, no mutation, no
-// access beyond these four values.
+func PassVerdict() Verdict
+func FailT(template string, bindings ...map[string]BindingValue) Verdict
+func UnknownVerdict(reason string) Verdict
+```
+
+### Predicates are structs-with-a-func, not interfaces
+
+Following the repo's own precedent (`StackConstraint` is a func type, not an
+interface — four of the five proposed interface methods were immutable
+getters):
+
+```go
+// Context is the entire vocabulary a predicate may reference — the wall
+// before the Turing tarpit: no I/O, no mutation, nothing beyond these four.
 type Context struct {
     State    boardgame.ImmutableState
-    Move     boardgame.Move // nil during field-independent evaluation
+    Move     boardgame.Move // nil during field-independent evaluation (§4)
     Proposer boardgame.PlayerIndex
     Chest    *boardgame.ComponentChest
 }
 
-// Predicate is one legality question.
-type Predicate interface {
-    // Name + Args round-trip through the constructor registry and are the
-    // serialized identity.
-    Name() string
-    Args() []string
-    // Reads declares the property paths this predicate touches. Drives the
-    // field-independent/dependent split, caching, and per-viewer client
-    // evaluability. Must be a conservative over-approximation.
-    Reads() []PropPath
-    // Cost orders evaluation (cheap gates run first, short-circuit).
-    Cost() Cost
-    // Evaluate is pure: same Context in, same Verdict out.
-    Evaluate(ctx Context) Verdict
+// Predicate is one resolved legality question.
+type Predicate struct {
+    Name     string     // registry identity, e.g. "playerPropAtLeast"
+    Args     []string   // with Name, round-trips the registry
+    Reads    []Read     // declared read-set (conservative over-approximation)
+    Cost     Cost       // Trivial | Cheap | Moderate | Expensive
+    Evaluate func(ctx Context) Verdict // pure
 }
 
-type Cost int
-
-const (
-    CostTrivial  Cost = iota // int/bool compare, proposer check
-    CostCheap                // single stack read, phase lookup
-    CostModerate             // iterate players or a stack, walk the move tape
-    CostExpensive            // opaque custom residue
-)
+// Read is a property path plus the FACET the predicate needs from it — this
+// is what makes client evaluability precise under sanitization (§6): a
+// stack-size check needs only the count facet, which PolicyLen preserves.
+type Read struct {
+    Path  PropPath
+    Facet Facet // FacetValues | FacetCount | FacetOccupancy | FacetOrder
+}
 ```
 
-### Wire format: leaf ≡ node
+### Wire format: leaf ≡ node, with message
 
-A compositor is just a predicate whose children are predicates. One serialized
-shape covers leaves and composites with no duplication:
+A compositor is a spec whose children are specs. One serialized shape:
+
+```go
+// Spec is the serializable, registry-resolvable form.
+type Spec struct {
+    Name    string `json:"name"`
+    Args    []string `json:"args,omitempty"`
+    Sub     []Spec `json:"sub,omitempty"`
+    Message string `json:"message,omitempty"` // template-key override
+}
+
+// Builders return Spec by value; WithMessage sets Spec.Message.
+func PropAtLeast(path string, n int) Spec
+func (s Spec) WithMessage(templateKey string) Spec
+```
 
 ```jsonc
-{"name": "playerPropAtLeast", "args": ["CardsLeftToReveal", "1"]}
+{"name": "playerPropAtLeast", "args": ["player.CardsLeftToReveal", "1"],
+ "message": "reveal.no_cards_left"}
 
 {"name": "any", "sub": [
   {"name": "playerBool", "args": ["Eliminated"]},
@@ -146,63 +195,54 @@ shape covers leaves and composites with no duplication:
 ]}
 ```
 
-```go
-// Spec is the serializable form; resolved against the registry at
-// NewGameManager time (fail-fast on unknown names / bad args).
-type Spec struct {
-    Name string   `json:"name"`
-    Args []string `json:"args,omitempty"`
-    Sub  []Spec   `json:"sub,omitempty"`
-}
+Constructors mirror `constraints.StackConstraintConstructor`; **games register
+their own predicates through the same registry** (this is how checkers'
+board-geometry check stays serializable, §8):
 
-// PredicateConstructor mirrors constraints.StackConstraintConstructor.
+```go
 type PredicateConstructor struct {
     Name        string
     Constructor func(spec Spec, chest *boardgame.ComponentChest,
-        resolve func(Spec) (Predicate, error)) (Predicate, error)
+        resolve func(Spec) (*Predicate, error)) (*Predicate, error)
 }
 ```
 
-Registry wiring mirrors constraints exactly:
-`GameDelegate.ConfigurePredicateConstructors() []*legal.PredicateConstructor`,
-with `base.GameDelegate` returning `legal.DefaultConstructors()`.
+The registry is consumed from the delegate via **type-assertion on an optional
+interface** (never a new `GameDelegate` method — that would be a compile break
+for every existing delegate):
+
+```go
+// package legal — implemented optionally by delegates; base.GameDelegate
+// does NOT need changes. Absence = DefaultConstructors().
+type ConstructorConfigurer interface {
+    ConfigurePredicateConstructors() []*PredicateConstructor
+}
+```
 
 ### Anti-tarpit rules (normative)
 
-Findings from the adversarial critiques, adopted as hard rules:
-
-1. **`any` is the only compositor in v1**, and the registry rejects a compositor
-   nested inside a compositor (depth 1). No `all` (the plan's ordered list IS
-   the conjunction); no first-class `not` (a Kleene-`Not` is a TS-conformance
-   liability — client and server must agree exactly on `Unknown` semantics, and
-   `not` doubles the surface where they can disagree).
-2. **Branchy logic becomes a purpose-built named predicate with hand-written Go
-   Eval** — not combinator surface. Proven on the acid test: memory's "no card
-   at that index" vs "that card has already been revealed" disambiguation is a
-   12-line `revealableCardAt` predicate, not an `ElseWhen`/`_if()` DSL invention
-   (both of which failed critique).
-3. **The governing rule for catalog growth:** if you can't say it as a relation
-   over a path, push the computation into a computed state property (which a
-   `propCompare` predicate can then read) or drop to the escape hatch. No user
-   arithmetic, no loops, no lambdas in serialized form, ever.
+1. **`any` is the only compositor in v1**, registry-enforced to depth 1. No
+   `all` (the plan's ordered list IS the conjunction); no first-class `not`
+   (a Kleene-`Not` doubles the Go↔TS conformance surface). Framework move
+   types whose semantics are negated/conditional (`ApplyUntil`,
+   `ApplyUntilCount`, `RoundRobin`) stay opaque in v1 rather than bending this
+   rule.
+2. **Branchy logic becomes a purpose-built named predicate with hand-written
+   Go Eval** — proven on the acid test: memory's two-branch disambiguation is
+   a 12-line `revealableCardAt`, not DSL surface.
+3. **Catalog growth rule:** if you can't say it as a relation over a path,
+   push the computation into a computed state property or the escape hatch.
+   No user arithmetic, loops, or lambdas in serialized form, ever.
 
 ### Path grammar (net-new build, honestly priced)
 
-The panel designs all claimed to "reuse" `constraints/prop_path.go`; critique
-ground-truthing showed that resolver handles a single component instance only.
-The state-path resolver is a **new build** with this grammar:
-
-| Path | Resolves to |
-|---|---|
-| `game.X` | game state property X |
-| `player.X` | property X of the *current* player |
-| `players[*].X` | property X across all players (quantified predicates only) |
-| `move.X` | move field X |
-
-Paths are validated against the reader hierarchy at `NewGameManager` — a typo'd
-path fails at boot with the move name and path in the error, never mid-game.
-`player.` is treated as `players[*]` for any future invalidation purposes
-(coarse but sound).
+`constraints/prop_path.go` resolves a single component instance; the state
+resolver is a **new build**: `game.X`, `player.X` (current player),
+`players[*].X` (quantified predicates only), `move.X`. All paths — and all
+template keys (§6) — are validated at `NewGameManager`: a typo fails at boot
+naming the move and path, never mid-game. Runtime guard: a predicate whose
+declared reads omit `move.*` but which touches `ctx.Move` when nil returns
+`UnknownVerdict("undeclared move read")` rather than panicking.
 
 ---
 
@@ -210,15 +250,248 @@ path fails at boot with the move name and path in the error, never mid-game.
 
 ### Authoring surface
 
-One option family in `moves`, rhyming with the existing `With*` idiom:
-
 ```go
-moves.WithPreconditions(specs ...legal.Spec)   // append, in order
-moves.WithoutPrecondition(name string)          // suppress an inherited one
+moves.WithPreconditions(specs ...legal.Spec) // opt in + append, in order
+moves.WithoutPrecondition(name string)        // suppress an inherited one
 ```
 
-The catalog exposes typed builders that produce `Spec`s, so authoring is
-readable and typo-resistant:
+Struct tags are not in v1 (cut per YAGNI — the panel's own migrations never
+used them).
+
+### The composition seam — v1 scope: Default and CurrentPlayer only
+
+The critique ground-truthed the `moves/` package: beyond
+`Default`/`CurrentPlayer`, ~24 move types carry real legality logic
+(`DealComponents` counting rounds, `FinishTurn` readiness, seat-management
+checks, `ForceFinishTurn` which deliberately super-calls *nothing*, negated
+`ApplyUntil` family). Modeling all of them declaratively in v1 is neither
+necessary nor honest. Normative v1 scope:
+
+- **`Default` and `CurrentPlayer` contribute declaratively** via a
+  data-returning chain that mirrors today's super-call pattern, written once
+  in the framework:
+
+```go
+func (d *Default) ContributedPreconditions() []legal.Spec {
+    // inPhase / inProgression / stackConstraints — derived from the config
+    // bag (WithLegalPhases / WithLegalMoveProgression / WithSourceProperty
+    // keep working; they are now also readable as specs).
+    return d.specsFromConfig()
+}
+func (c *CurrentPlayer) ContributedPreconditions() []legal.Spec {
+    return append(c.Default.ContributedPreconditions(),
+        legal.ProposerIsCurrentPlayer())
+}
+```
+
+- **Every other framework move type is opaque in v1**: its frozen `Legal()`
+  runs as today. A game move embedding, say, `DealCountComponents` cannot opt
+  in to plans in v1 (fail-fast at boot if it tries, with a message naming the
+  unsupported base type). Extending contribution to more base types is
+  follow-up work, one type at a time, each with golden-equivalence tests.
+- A move may opt out of inherited contributions entirely with
+  `WithoutPrecondition` per name (stable names: `"inPhase"`,
+  `"inProgression"`, `"stackConstraints"`, `"proposerIsCurrentPlayer"`) — the
+  `ForceFinishTurn` inherit-nothing pattern, now expressible.
+
+Plan assembly, per opted-in move type, at `NewGameManager`:
+`ContributedPreconditions()` (base-first, deterministic) + authored
+`WithPreconditions` (declaration order) − `WithoutPrecondition` suppressions.
+
+---
+
+## 3. Layering
+
+```
+boardgame (core)
+    Verdict, Outcome, Message, PropPath, Read, Facet, Spec, Cost (value types)
+    the evaluation engine: plan build, buckets, phase index, memo,
+    move-form ledger assembly   (lives here: game.go's loops call it)
+    optional interfaces consumed by type-assertion:
+        PreconditionsProvider  (moves.Default implements)
+        CustomLegaler
+        legal.ConstructorConfigurer / legal.TemplateConfigurer (on delegates)
+        ▲
+moves
+    ContributedPreconditions chain on Default/CurrentPlayer
+    WithPreconditions / WithoutPrecondition
+    Default.Legal(): frozen chain, OR plan evaluation for opted-in moves
+        ▲
+legal (new; peer of constraints)
+    predicate catalog + DefaultConstructors()
+    Errorf (template-errors from imperative code) + template rendering
+```
+
+Dependency arrows point downward only; core holds types + engine, zero game
+semantics. The structured `Verdict` (bindings and all) is what crosses the
+core boundary; nothing flattens to a rendered string until `Verdict.Error()`
+adapts it at the `Legal()` return (rendering against the template table, §6,
+with the template key as fallback text if unregistered — but unregistered keys
+are a boot error anyway).
+
+---
+
+## 4. Evaluation semantics
+
+Per opted-in move type, built once at `NewGameManager`:
+
+```go
+type PreconditionPlan struct {
+    fieldIndependent []*legal.Predicate // no move.* reads
+    fieldDependent   []*legal.Predicate // includes proposerIsCurrentPlayer:
+                                        // it reads move.TargetPlayerIndex
+    custom           *legal.Predicate   // LegalCustom wrapper, or nil
+    allReads         []legal.Read
+}
+```
+
+- **Evaluation order is plan order: contributed atoms first (base-first), then
+  authored atoms in declaration order; `custom` always last. No Cost-sorting
+  in v1** — what you declare is what runs, in the order you wrote it (least
+  surprise; migrated moves keep their historical first-failure messages
+  without snapshot churn). `Cost` stays on every predicate as metadata: docs
+  and lints use it ("expensive predicate declared before cheap ones"), and a
+  future opt-in reordering can use it without a representation change.
+  Deterministic order ⇒ the same state always reports the same failure.
+- Order: field-independent → field-dependent (with a bound move; this is
+  #761's split) → custom. Note the critique correction: the proposer check is
+  field-**dependent** (it reads `move.TargetPlayerIndex`), so the plan
+  preserves today's error-precedence for turn violations.
+- **Hot paths short-circuit** on first Fail (fixup loop, ProposeMove).
+  **Move-forms assembly evaluates the full ledger** (once per request).
+- `Default.Legal()` for opted-in moves: evaluate plan; return first failure's
+  `Verdict.Error()` or nil. For everything else: the frozen chain (§ prime
+  guarantee).
+
+### The escape hatch
+
+```go
+type CustomLegaler interface {
+    // Runs after all declarative preconditions pass; the imperative residue.
+    LegalCustom(state ImmutableState, proposer PlayerIndex) error
+}
+```
+
+Wrapped as an opaque predicate (`Reads` unknown, `CostExpensive`, no
+serialized form): runs last, never cached, client sees `"unknown"`. Imperative
+bodies may return `legal.Errorf("checkers.illegal_dest", nil)` to stay
+structured; plain errors are wrapped as opaque one-off templates.
+`LegalCustom` + wholesale `Legal()` override on the same type = boot error.
+
+---
+
+## 5. Engine wins (honest table)
+
+| Mechanism | v1 | Effect |
+|---|---|---|
+| **Phase bucketing** — `phaseIndex[phase] = opted-in moves whose inPhase admits it (∪ TreeEnum ancestors)`, **plus a phase-agnostic bucket containing every opaque move and every opted-in move with no inPhase spec**; lookups take `phaseIndex[current] ∪ phaseAgnostic` | ✅ | Fixup loop and move-forms skip declaratively-impossible moves with zero evaluations (#640); opaque moves are never skipped (superset property, tested §9) |
+| **Declaration-order short-circuit** (opted-in moves) | ✅ | Contributed cheap gates (phase, proposer) run before authored checks; residue always last. Cost metadata powers a lint, not a reorder (v1) |
+| **Field-independent memo** keyed `(moveType, stateVersion, proposer)` | ✅ | Move-forms' player+admin double pass computes the stable half once |
+| **Tape memoization** per version | ✅ | All `inProgression` predicates share one tape walk (retires the default.go:475 TODO) |
+| **Dirty-tracking** by read/write path intersection | ❌ deferred | Write-set capture must be complete or the legality cache is stale-and-wrong (correctness, not perf). `Reads` metadata makes it addable behind a future audit; v1 invalidates per version. |
+
+Honest framing from critique: with v1's seam scope (opaque framework types in
+every bucket), the bucketing win grows as games migrate — it is proportional
+to adoption, not automatic. What stays O(Legal): opaque moves and residue, by
+design, now gated behind cheap declarative checks where adopted.
+
+---
+
+## 6. Explainability
+
+### The template table (critique: this had no home; now it does)
+
+Template keys resolve through a per-game table configured on the delegate via
+an optional interface and **shipped to the client inside the chest JSON**,
+exactly the channel enums already ride (`expandMoveForms` precedent):
+
+```go
+// package legal — optional on delegates; validated at NewGameManager:
+// every template key referenced by any Spec/FailT/Errorf must exist.
+type TemplateConfigurer interface {
+    ConfigureLegalTemplates() map[string]string
+    // {"reveal.no_cards_left": "You have no cards left to reveal this turn"}
+}
+```
+
+The catalog ships defaults for built-in predicate failures
+(`legal.DefaultTemplates()`); games extend/override. Server-side rendering
+(`Verdict.Error()`, fixup logs) and the future client renderer read the same
+table.
+
+### Server
+
+Every declarative failure carries `Message{Template, Bindings}`. The fixup
+loop logs rejections at debug level (`fixup rejected move=X predicate=Y
+msg=...`) — #65, no exceptions.
+
+### Client contract
+
+Move forms gain a per-predicate ledger alongside the preserved (and for
+un-migrated moves, byte-identical) `LegalForPlayer` /
+`LegalForPlayerError` / `LegalForAnyone`:
+
+```jsonc
+"Preconditions": [
+  {"name": "proposerIsCurrentPlayer", "verdict": "pass", "evaluable": true,
+   "provisional": true},   // field-dependent: verdict used server-set defaults
+  {"name": "playerPropAtLeast", "args": ["player.CardsLeftToReveal", "1"],
+   "verdict": "fail",
+   "message": {"template": "reveal.no_cards_left", "bindings": {"left": 0}},
+   "evaluable": true},
+  {"name": "custom", "verdict": "unknown", "evaluable": false}
+]
+```
+
+- `provisional: true` marks field-dependent verdicts (computed against
+  `DefaultsForState` bindings — a different field choice could differ; the
+  `LegalForAnyone` analog at predicate granularity).
+- `evaluable` is per predicate, per viewer, per **facet**:
+  `evaluable = has serialized form ∧ every Read's Facet survives this viewer's
+  sanitization` — `FacetCount` survives `PolicyLen`; `FacetOccupancy` survives
+  `PolicyOrder` (which is why memory's whole plan is client-evaluable —
+  ground-truthed in critique); `FacetValues` requires `PolicyVisible`.
+  An `any` compositor is evaluable iff all children are (Kleene-honest).
+- **#693 guard:** when `evaluable: false`, the ledger ships verdict + reason
+  only — never bindings derived from state the viewer can't see.
+- A `catalogVersion` stamp ships with the ledger; a client with an older
+  catalog treats unknown predicate names as `evaluable: false` and defers to
+  server verdicts (graceful skew).
+
+### Go↔TS conformance (designed-for deliverable)
+
+The representation deliverable includes a **shared JSON conformance corpus**:
+for every catalog predicate, a table of `(spec, context-fixture, expected
+verdict)` cases checked by the Go tests in this campaign and, later, by the TS
+evaluator's test suite verbatim. Divergence = failing test on either side.
+This is the mechanism that keeps two evaluators honest, and it's why the
+catalog stays small and `not` stays out.
+
+---
+
+## 7. Progression & #644
+
+Move-tape matching becomes the `inProgression` predicate wrapping the existing
+`matchTape` machinery — same plan/cache/explain path (`Reads:
+[game.moveHistory/FacetValues]`, `CostModerate`).
+`MoveProgressionGroup.Satisfied` gains access to `legal.Context` (named
+plumbing change), unlocking #644: `moves.RepeatFromProp("game.RoundsThisTurn")`
+resolves its count against live state at match time; the backing path joins
+the predicate's read-set mechanically.
+
+---
+
+## 8. Migrations (the acid tests)
+
+Corrected survey (critique ground-truthing): across the example games, the
+catalog as specified covers phase / current-player / stack-size / presence /
+property-compare checks; **4 moves are hard-custom** (memory's two card-type
+comparisons, blackjack's hand-value arithmetic, checkers' capture graph) and
+stay in `LegalCustom`; **~11 player-quantifier checks** (blackjack, werewolf)
+are covered by the `AllActivePlayers` quantifier primitive. Framework move
+types beyond Default/CurrentPlayer stay opaque in v1 (§2).
+
+### memory/moveRevealCard — fully declarative, Legal() deleted
 
 ```go
 auto.Config(new(moveRevealCard),
@@ -231,337 +504,135 @@ auto.Config(new(moveRevealCard),
 )
 ```
 
-Struct tags are **not** in v1 (the DX panel proposed them; its own migrations
-never used them — cut per YAGNI).
-
-### The composition seam (designed here; the panel left it open)
-
-Both critiques identified the same gap: the config bag is a *flat*
-`PropertyCollection`, so "each embedding layer appends" is not free. The
-mechanism, using Go's idiomatic embedding dispatch to return **data instead of
-doing work**:
+`RevealableCardAt` (catalog, purpose-built, `Reads` facets: occupancy only):
 
 ```go
-// package moves
-
-// ContributedPreconditions returns the preconditions this move type's
-// embedding chain contributes, base-first. Embeddable types chain explicitly —
-// the same pattern as today's Legal() super-calls, but written ONCE in the
-// framework and returning declarations instead of verdicts.
-func (d *Default) ContributedPreconditions() []legal.Spec {
-    // phase, progression, stack-constraint specs derived from the config bag
-    // (WithLegalPhases / WithLegalMoveProgression / WithSourceProperty keep
-    // working — they are now thin shims that produce these specs).
-    return d.specsFromConfig()
-}
-
-func (c *CurrentPlayer) ContributedPreconditions() []legal.Spec {
-    return append(c.Default.ContributedPreconditions(),
-        legal.ProposerIsCurrentPlayer())
-}
-```
-
-The plan-builder (at NewGameManager) assembles, per move type:
-
-```
-plan = ContributedPreconditions()   // base-first, deterministic
-     + configured WithPreconditions // author's, in declaration order
-     - WithoutPrecondition names    // suppressions, matched by stable name
-```
-
-Every built-in has a stable name (`"inPhase"`, `"inProgression"`,
-`"stackConstraints"`, `"proposerIsCurrentPlayer"`), so suppression and client
-display are addressable. This is strictly more capable than today, where the
-buried checks are unremovable. Game authors never write the chain; they inherit
-it by embedding, exactly as now — minus the
-`if err := m.CurrentPlayer.Legal(...)` boilerplate, which disappears.
-
----
-
-## 3. Layering
-
-```
-boardgame (core)
-    Verdict, Outcome, Message, PropPath, Spec, Cost   (value types)
-    PreconditionsProvider (optional interface, below)
-    the evaluation engine: plan build, buckets, phase index, caches,
-    move-form ledger assembly
-    — engine lives in core because game.go's apply/fixup loop calls it —
-        ▲
-moves
-    ContributedPreconditions chain on Default/CurrentPlayer/FixUp/StartPhase
-    WithPreconditions / WithoutPrecondition
-    Default.Legal() = "evaluate my plan, then LegalCustom"
-        ▲
-legal (new; peer of constraints)
-    the predicate catalog + DefaultConstructors()
-    Errorf (template-errors from imperative code)
-    template rendering
-```
-
-Dependency arrows point downward only. Core holds **types + engine, zero game
-semantics** — the catalog lives in `legal` exactly as constraint implementations
-live in `constraints`. Critically (a fatal flaw in one panel design, avoided
-here): the structured `Verdict` — bindings and all — is what crosses the core
-boundary. Nothing flattens to a rendered string until the last moment
-(`Verdict.Error()` adapts to `error`/`errors.Friendly` for the Legal() return),
-so the move-forms assembler in core has full explainability data.
-
-```go
-// package boardgame
-
-// PreconditionsProvider is the single optional interface the engine introspects.
-// moves.Default implements it; hand-rolled moves may; absence = opaque move,
-// today's behavior.
-type PreconditionsProvider interface {
-    PreconditionPlan() *PreconditionPlan
-}
-```
-
----
-
-## 4. Evaluation semantics
-
-Per move *type*, built once at NewGameManager:
-
-```go
-type PreconditionPlan struct {
-    fieldIndependent []legal.Predicate // Reads() has no move.* paths
-    fieldDependent   []legal.Predicate
-    custom           legal.Predicate   // LegalCustom wrapper, or nil
-    allReadPaths     []legal.PropPath  // union, for future invalidation
-    opaque           bool              // move overrides Legal() wholesale
-}
-```
-
-- Buckets are stable-sorted by `Cost` (Trivial → Expensive); `custom` always
-  last. Deterministic order ⇒ a given state always reports the same failure (no
-  message flapping).
-- Evaluation order: field-independent bucket → field-dependent bucket (only
-  with a bound move; this is #761's split — phase/turn checks run before
-  `DefaultsForState`/field-binding, `CardIndex`-in-range after) → custom.
-- **Hot paths short-circuit** on first Fail (fixup loop, ProposeMove
-  validation). **Move-forms assembly evaluates the full ledger** (once per
-  request — richness is worth it there, and only there).
-- `moves.Default.Legal()` becomes exactly: evaluate plan; return first
-  failure's `Verdict.Error()`, or nil. One code path for every declarative
-  move. (Purely sugar: this is the same signature and observable behavior
-  contract as today.)
-
-### The escape hatch
-
-```go
-// package boardgame
-type CustomLegaler interface {
-    // LegalCustom runs after all declarative preconditions pass. It is the
-    // imperative residue (checkers capture graph, blackjack hand value).
-    LegalCustom(state ImmutableState, proposer PlayerIndex) error
-}
-```
-
-The engine wraps it as an opaque predicate: `Reads()` unknown, `CostExpensive`,
-no serialized form. Consequences fall out of the metadata, not special cases:
-runs last, never cached, client sees `"unknown"`. An imperative body may return
-`legal.Errorf("checkers.illegal_dest", bindings)` to keep even residue failures
-structured; a plain `error` is wrapped as an opaque single-use template.
-
----
-
-## 5. Engine wins (honest table)
-
-| Mechanism | v1 | Effect |
-|---|---|---|
-| **Phase bucketing** — `phaseIndex map[phase][]moveType` built from each plan's `inPhase` spec (∪ TreeEnum ancestors) | ✅ | Fixup loop and move-forms iterate `phaseIndex[currentPhase]` instead of all moves: candidate filtering is an index lookup with zero evaluations (#640) |
-| **Cost-ordered short-circuit** | ✅ | The common rejections (wrong phase, not your turn) are Trivial/Cheap and fire before any player-loop or graph search |
-| **Field-independent memo**, keyed `(moveType, stateVersion, proposer)` | ✅ | The move-forms double pass (player + admin) computes the stable half once; client field-editing re-runs only the field-dependent bucket |
-| **Tape memoization** — `historicalMovesSincePhaseTransition` memoized per version | ✅ | Every `inProgression` predicate in a version shares one tape walk (retires the default.go:475 TODO) |
-| **Dirty-tracking** — invalidate cached verdicts only when a move's Apply wrote paths intersecting `allReadPaths` | ❌ deferred | Both critiques converged: write-set capture must be *complete* or the legality cache is stale-and-wrong (a correctness bug, not a slow path). `Reads()` metadata makes this addable later behind an audit; v1 invalidates everything each version. |
-
-What stays O(Legal): opaque moves and `LegalCustom` residue — by design, and
-now gated behind cheap declarative checks so they run far less often.
-
----
-
-## 6. Explainability
-
-### Server
-
-Every declarative failure is a `Verdict` with `Message{Template, Bindings}`.
-The fixup loop, on rejecting a candidate, logs at debug level:
-`fixup rejected move=MoveMoveToken predicate=proposerIsCurrentPlayer msg="it's not your turn"`
-— #65 resolved with no exceptions, since even imperative residue can emit
-templates via `legal.Errorf`.
-
-### Client contract (shipped in v1; consumed richly by a later TS evaluator)
-
-Move forms gain a per-predicate ledger alongside the preserved
-`LegalForPlayer`/`LegalForAnyone`/`LegalForPlayerError`:
-
-```jsonc
-"Preconditions": [
-  {"name": "proposerIsCurrentPlayer", "verdict": "pass", "evaluable": true},
-  {"name": "playerPropAtLeast", "args": ["player.CardsLeftToReveal", "1"],
-   "verdict": "fail",
-   "message": {"template": "reveal.no_cards_left", "bindings": {"left": 0}},
-   "evaluable": true},
-  {"name": "custom", "verdict": "unknown", "evaluable": false}
-]
-```
-
-`evaluable` is computed server-side, per predicate, per viewer:
-
-```
-evaluable = has a serialized form (not the escape hatch)
-          ∧ every Reads() path is Visible under the sanitization
-            transformation applied for this viewer
-```
-
-That is the honest three-valued story: the future TS evaluator re-runs
-evaluable predicates locally against the sanitized state (live graying, zero
-round trips, #189/#213) and displays the server's last verdict for everything
-else. It never guesses whether a zero is a real zero or a hidden seven.
-
-(Ground truth from critique: memory's stacks are `sanitize:"order"` — slot
-*occupancy* is visible — so memory's entire plan is client-evaluable. The
-common case is better than the panel assumed.)
-
----
-
-## 7. Progression & #644
-
-Move-tape matching becomes the `inProgression` predicate wrapping the existing
-`matchTape` machinery — same plan, cache, and explain path as everything else
-(`Reads: [game.moveHistory]`, `CostModerate`, so it runs after the cheap
-gates). `MoveProgressionGroup.Satisfied` gains access to `legal.Context`
-(plumbing change, named explicitly since the panel found it hand-waved
-elsewhere), which unlocks #644: `moves.RepeatFromProp("game.RoundsThisTurn")`
-resolves its count against live state at match time, and the backing path joins
-the predicate's read-set mechanically.
-
----
-
-## 8. Migrations (the acid tests, in full)
-
-### memory/moveRevealCard — fully declarative, Legal() deleted
-
-```go
-//boardgame:codegen
-type moveRevealCard struct {
-    moves.CurrentPlayer
-    CardIndex int
-}
-
-auto.Config(new(moveRevealCard),
-    moves.WithPreconditions(
-        legal.PropAtLeast("player.CardsLeftToReveal", 1).
-            WithMessage("reveal.no_cards_left"), // "You have no cards left to reveal this turn"
-        legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-        legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-    ),
-)
-```
-
-`RevealableCardAt` is a purpose-built catalog predicate (the anti-tarpit rule
-in action) whose Eval mirrors the original branch structure exactly:
-
-```go
-func (p *revealableCardAt) Evaluate(ctx legal.Context) legal.Verdict {
+Evaluate: func(ctx legal.Context) legal.Verdict {
     idx := intField(ctx.Move, p.field)
     if stackAt(ctx, p.hidden).ImmutableComponentAt(idx) != nil {
         return legal.PassVerdict()
     }
     if stackAt(ctx, p.visible).ImmutableComponentAt(idx) == nil {
-        return legal.FailT("reveal.no_card_here")        // "there is no card at that index"
+        return legal.FailT("reveal.no_card_here")       // "there is no card at that index"
     }
-    return legal.FailT("reveal.already_revealed")        // "that card has already been revealed"
-}
+    return legal.FailT("reveal.already_revealed")       // "that card has already been revealed"
+},
 ```
 
-All three error strings preserved verbatim as templates; every predicate
-client-evaluable under memory's sanitization.
+All three strings preserved verbatim in the game's template table; every
+predicate client-evaluable (occupancy facets survive memory's
+`sanitize:"order"`).
 
 ### blackjack/moveStartRoundCleanup — fully declarative
 
 ```go
 auto.Config(new(moveStartRoundCleanup),
     moves.WithPreconditions(
-        // StartPhase contributes its phase/progression preconditions.
         legal.AllActivePlayers(
             legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
-        ).WithMessage("cleanup.players_unfinished"), // "not all active players have finished their turn"
+        ).WithMessage("cleanup.players_unfinished"),
     ),
 )
 ```
 
-`AllActivePlayers` reuses `behaviors.PlayerIsInactive` to skip inactive seats;
-`Reads: [players[*].Eliminated, players[*].Stood]`, `CostModerate` — the player
-loop no longer runs in the common wrong-phase case.
+(Blackjack's `moveCurrentPlayerHit`/hand-value moves keep their arithmetic in
+`LegalCustom` — hard-custom per the corrected survey.)
 
-### checkers/moveMoveToken — declarative gates + imperative residue
+### checkers/moveMoveToken — declarative gates + game-registered predicate + residue
+
+`spaceIsBlack` is an unexported free function today; it becomes a
+**game-registered predicate** — the registry is open to games, same as
+constraints:
 
 ```go
+// in checkers' delegate:
+func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstructor {
+    return legal.ExtendDefaults(&legal.PredicateConstructor{
+        Name: "checkers.spaceIsBlack",
+        Constructor: func(spec legal.Spec, _ *boardgame.ComponentChest,
+            _ func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
+            field := spec.Args[0] // "move.SpaceIndex"
+            return &legal.Predicate{
+                Name: "checkers.spaceIsBlack", Args: spec.Args,
+                Reads: []legal.Read{{Path: legal.PropPath(field), Facet: legal.FacetValues}},
+                Cost:  legal.CostTrivial,
+                Evaluate: func(ctx legal.Context) legal.Verdict {
+                    if spaceIsBlack(intField(ctx.Move, field)) {
+                        return legal.PassVerdict()
+                    }
+                    return legal.FailT("checkers.black_spaces_only")
+                },
+            }, nil
+        },
+    })
+}
+
 auto.Config(new(moveMoveToken),
     moves.WithPreconditions(
-        // CurrentPlayer contributes proposerIsCurrentPlayer.
         legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove").
             WithMessage("checkers.no_token_there"),
         legal.ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color").
-            WithMessage("checkers.not_your_token"), // "that token isn't your token to move"
-        legal.SpacePredicate("move.SpaceIndex", "spaceIsBlack").
-            WithMessage("checkers.black_spaces_only"), // "you can only move to spaces that are black"
+            WithMessage("checkers.not_your_token"),
+        legal.Predicate1("checkers.spaceIsBlack", "move.SpaceIndex"),
     ),
 )
 
-// The capture-graph search stays imperative — and honest:
 func (m *moveMoveToken) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-    // ... FreeNextSpaces / LegalCaptureSpaces walk, verbatim from today ...
-    return legal.Errorf("checkers.illegal_dest", nil) // structured even in the residue
+    // capture-graph walk, verbatim from today
+    return legal.Errorf("checkers.illegal_dest", nil)
 }
 ```
 
-Client outcome: the four cheap gates are `evaluable:true` (≈80% of illegal
-clicks rejected locally, later, by the TS evaluator); the graph walk shows
-`verdict:"unknown"` — honestly.
+Client outcome: cheap gates `evaluable:true`; graph walk honestly `unknown`.
+Game-registered predicates are client-evaluable only if the game also ships a
+TS implementation (future); otherwise they degrade to server verdicts —
+`checkers.spaceIsBlack` is a natural first test of that extension path.
 
 ### Migration scope
 
-All `examples/*` moves move to declarations where the catalog covers them
-(survey: ~5 phase, ~8 current-player, ~6 stack-size/presence, ~4 property
-comparisons, ~3 MayMoveTo — all covered; 2 genuinely custom stay in
-`LegalCustom`). `../games` (murdermrmonroe, pass, valentine) migrated the same
-way, committed on a matching branch. Migration tests snapshot the acid-test
-error messages, since Cost-reordering can legitimately change *which* failure
-is reported first.
+All example-game moves that the catalog covers; `../games` clients likewise on
+a matching branch. Un-migrated moves are untouched and behavior-frozen.
+Golden-equivalence tests fence every migration (§9); with declaration-order
+evaluation, migrated moves keep their historical first-failure messages.
 
 ---
 
 ## 9. Testing
 
-- **Unit (Go):** every catalog predicate — Pass/Fail/Unknown cases, Reads()
-  conservativeness, registry round-trip (Spec → Predicate → Name/Args → Spec).
-- **Plan tests:** contributed-chain assembly order; WithoutPrecondition
-  suppression; opaque fallback for wholesale Legal() overrides (the purely-sugar
-  guarantee, asserted).
-- **Golden equivalence:** for every migrated move, a table test asserting the
-  new plan and the old imperative Legal() agree (legal/illegal + message) across
-  recorded game states — the migration is provably behavior-preserving.
-- **Engine:** phase-index correctness incl. TreeEnum ancestors; memo hit/miss
-  across the move-forms double pass; determinism of reported failure.
-- **Ledger:** server e2e asserting the Preconditions array shape and
-  per-viewer `evaluable` under each sanitization policy.
+- **Unit:** every catalog predicate — Pass/Fail/Unknown, facet-level `Reads`
+  conservativeness, registry round-trip, template-key existence.
+- **Purely-sugar property tests:** (a) a game using only frozen-chain moves
+  produces byte-identical Legal() results and LegalForPlayerError strings
+  before/after this change; (b) **bucket superset property** — every opaque
+  move appears in the candidate set for every phase; (c) the
+  orphaned-declarations probe — boot fails for a wholesale `Legal()` override
+  with declarations, passes for a super-calling override (whose super-call
+  path evaluates the plan); unsupported-base-type opt-in fails at boot.
+- **Golden equivalence:** for every migrated move, table tests asserting plan
+  vs. old imperative Legal() agree (legal/illegal + message) across recorded
+  states.
+- **Engine:** phase-index correctness incl. TreeEnum ancestors and the
+  phase-agnostic bucket; memo hit/miss across the move-forms double pass;
+  deterministic failure reporting.
+- **Ledger:** server e2e asserting Preconditions shape, `provisional`
+  marking, per-viewer facet-based `evaluable`, and no-bindings-on-inevaluable
+  (#693 guard).
+- **Conformance corpus:** generated and checked in Go now; consumed by TS
+  later.
 
 ## 10. Risks & open questions
 
-- **The path resolver is the biggest net-new component** (mis-claimed as reuse
-  by all three panel designs). Boot-time validation contains the blast radius.
-- **`Reads()` conservativeness for custom predicate authors** is by-convention;
-  built-ins are verified by construction, and a lint/test helper ships with the
-  catalog.
-- **Cost-reordering changes error precedence** vs today's hand-ordered chains —
-  handled via golden equivalence tests; a few messages may legitimately improve.
-- **Catalog growth pressure** is permanent; the governing rule (relation over a
-  path, or push to computed property / escape hatch) is normative and enforced
-  in review.
-- **Deferred dirty-tracking** is designed-for (Reads() exists) but requires a
-  write-set audit of every mutation path in core before it can ever ship; the
-  conservative default is correct-but-uncached.
+- **The path/facet resolver is the largest net-new component**; boot-time
+  validation contains the blast radius.
+- **`Reads` conservativeness for game-registered predicates** is
+  by-convention; a lint helper ships with the catalog, and the nil-Move
+  runtime guard converts the worst case (undeclared move read) into `Unknown`,
+  never a panic or a wrong verdict.
+- **Seam expansion pressure**: games embedding the other ~24 framework move
+  types can't opt in until those types get contribution support — each
+  expansion is mechanical but needs golden tests. Sequencing risk, not design
+  risk.
+- **Catalog growth pressure** is permanent; the governing rule (§1) is
+  normative and enforced in review.
+- **Deferred dirty-tracking** stays deferred until a complete write-set audit
+  exists; the conservative default is correct-but-uncached.
