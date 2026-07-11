@@ -270,7 +270,7 @@ func resolveLegalAnySpec(spec LegalSpec, resolve func(LegalSpec) (*LegalPredicat
 
 	template := spec.Message
 	if template == "" {
-		template = "legal.any_failed"
+		template = legalAnyFailedTemplate
 	}
 
 	return &LegalPredicate{
