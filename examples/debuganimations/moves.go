@@ -7,6 +7,59 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
+/*
+Declarative-legality survey (design spec §8, Task 12): every move type in
+this file embeds moves.Default (a SUPPORTED v1-seam base type — design spec
+§2), so none is blocked by the base-type seam the way checkers'
+movePlaceToken or werewolf's three move types are. Despite that, ALL ELEVEN
+move types below stay fully imperative. Two independent catalog gaps are
+responsible, and finding them here (a game explicitly built to exercise
+every stack-shuffling/animation code path) is this task's single most
+concrete piece of design feedback — reported in full in the Task 12 report:
+
+ 1. NO STACK-SIZE/COUNT PREDICATE EXISTS. Every one of this file's Legal()
+    bodies gates on stack.NumComponents() thresholds or exact counts
+    (game.FanStack.NumComponents() > 1, game.AllVisibleStack.NumComponents()
+    < 1, etc.) — the direct stack-shaped analog of legal.PropAtLeast/
+    legal.PropCompare, which only read INT-typed PROPERTIES, not a stack's
+    length. LegalFacetCount (boardgame/legal_types.go) exists in the type
+    system specifically for this ("a stack-size check needs only the count
+    facet" — design spec §1), but v1's catalog (legal/catalog_*.go) ships
+    zero predicates that construct a Read with it; grep confirms
+    LegalFacetCount is referenced only in its own declaration and doc
+    comments. This single missing primitive is the ENTIRE blocker for
+    moveShuffleHidden, moveVisibleShuffleCards, and moveShuffleCards (each
+    ONE simple threshold check — textbook PropAtLeast shape, just on a
+    stack instead of an int property) and moveStartMoveAllComponentsToHidden
+    /moveStartMoveAllComponentsToVisible (each TWO such checks, which
+    WithPreconditions' implicit AND already composes correctly) — five
+    moves that would become FULLY declarative, Legal()-deleted migrations
+    (spec §8's own flagship shape) the moment a legal.StackSizeAtLeast/
+    legal.StackSizeCompare constructor exists.
+
+ 2. NO NEGATION OR AND-GROUPING-WITHIN-OR COMPOSITOR EXISTS. "any" is v1's
+    only compositor (an OR of leaf verdicts — design spec §1's anti-tarpit
+    rules); WithPreconditions' own top-level list is an implicit AND, but
+    there is no way to express "(A and B) or (C and D)" (a fixed pair of
+    known-good toggle states — moveMoveCardBetweenFanStacks,
+    moveMoveBetweenHidden, moveMoveToken, moveMoveTokenSanitized) or a
+    negation ("NOT both stacks occupied" — moveFlipHiddenCard's XOR
+    occupancy check; pig's moveCountDie/moveDoneTurn hit this same gap for
+    a negated bool, Task 12's pig commit). These four moves would still be
+    hard-custom even with gap #1 fixed.
+
+Two moves are blocked by neither gap, but by something the catalog was
+simply never built to express at all: moveMoveCardBetweenShortStacks and
+moveMoveCardBetweenDrawAndDiscardStacks choose WHICH stack is source and
+which is destination based on a move-field bool (m.FromFirst/m.FromDraw) —
+the catalog's path grammar (boardgame/legal_path.go's parseLegalPath) has no
+conditional/indirect path resolution, only fixed "kind.Property" literals
+known at WithPreconditions-authoring time.
+
+Every move below is therefore left byte-for-byte unchanged from
+pre-Task-12; no golden test file is added since no Legal() is touched.
+*/
+
 //boardgame:codegen
 type moveMoveCardBetweenShortStacks struct {
 	moves.Default
