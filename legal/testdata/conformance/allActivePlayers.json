@@ -1,0 +1,47 @@
+{
+  "predicate": "allActivePlayers",
+  "cases": [
+    {
+      "spec": {"name": "allActivePlayers", "sub": [
+        {"name": "any", "sub": [
+          {"name": "playerBool", "args": ["Eliminated"]},
+          {"name": "playerBool", "args": ["Stood"]}
+        ]}
+      ]},
+      "fixture": "blackjackAllFinished",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "allActivePlayers", "sub": [
+        {"name": "any", "sub": [
+          {"name": "playerBool", "args": ["Eliminated"]},
+          {"name": "playerBool", "args": ["Stood"]}
+        ]}
+      ]},
+      "fixture": "blackjackOneUnfinished",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.all_active_players_failed"
+    },
+    {
+      "spec": {"name": "allActivePlayers", "sub": [
+        {"name": "any", "sub": [
+          {"name": "playerBool", "args": ["Eliminated"]},
+          {"name": "playerBool", "args": ["Stood"]}
+        ]}
+      ]},
+      "fixture": "blackjackInactiveSkipped",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "allActivePlayers", "sub": [
+        {"name": "playerBool", "args": ["NoSuchBoolProp"]}
+      ]},
+      "fixture": "blackjackAllFinished",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

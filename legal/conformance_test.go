@@ -9,6 +9,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
+	blackjackgame "github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/checkers"
 	memorygame "github.com/jkomoros/boardgame/examples/memory"
 	storagememory "github.com/jkomoros/boardgame/storage/memory"
@@ -72,6 +73,26 @@ func newMemoryGame(t *testing.T) (*boardgame.Game, boardgame.State) {
 	state, ok := game.CurrentState().(boardgame.State)
 	if !ok {
 		t.Fatalf("legal: memory fixture CurrentState() was not mutable")
+	}
+	return game, state
+}
+
+// newBlackjackGame builds a fresh blackjack game (Task 5's fixture for
+// AllActivePlayers — see the design spec §8's moveStartRoundCleanup acid
+// test: blackjack's playerState carries Eliminated/Stood/PlayerInactive).
+func newBlackjackGame(t *testing.T) (*boardgame.Game, boardgame.State) {
+	t.Helper()
+	manager, err := boardgame.NewGameManager(blackjackgame.NewDelegate(), storagememory.NewStorageManager())
+	if err != nil {
+		t.Fatalf("legal: building blackjack fixture manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("legal: building blackjack fixture game: %v", err)
+	}
+	state, ok := game.CurrentState().(boardgame.State)
+	if !ok {
+		t.Fatalf("legal: blackjack fixture CurrentState() was not mutable")
 	}
 	return game, state
 }
@@ -147,6 +168,31 @@ func firstOccupiedIndex(stack boardgame.ImmutableStack) int {
 func firstEmptyIndex(stack boardgame.ImmutableStack) int {
 	for i := 0; i < stack.Len(); i++ {
 		if stack.ImmutableComponentAt(i) == nil {
+			return i
+		}
+	}
+	return -1
+}
+
+// firstSpaceWithColor returns the lowest checkers Spaces index whose
+// occupying token's Color enum property equals wantMatch's-ness against
+// currentPlayerColor: if wantMatch is true, the first index whose token
+// Color equals currentPlayerColor; if false, the first index whose token
+// Color does NOT equal currentPlayerColor. Returns -1 if no such index
+// exists. Used by ComponentPropEqualsCurrentPlayer's conformance fixtures
+// (checkersOwnToken / checkersOpponentToken).
+func firstSpaceWithColor(t *testing.T, spaces boardgame.ImmutableStack, currentPlayerColor enum.ImmutableVal, wantMatch bool) int {
+	t.Helper()
+	for i := 0; i < spaces.Len(); i++ {
+		c := spaces.ImmutableComponentAt(i)
+		if c == nil {
+			continue
+		}
+		tokenColor, err := c.Values().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal: reading token Color at Spaces[%d]: %v", i, err)
+		}
+		if tokenColor.Equals(currentPlayerColor) == wantMatch {
 			return i
 		}
 	}
@@ -257,6 +303,182 @@ var legalFixtureBuilders = map[string]func(t *testing.T) legalFixture{
 	// checkersNoMove: checkersDefault's state, but with a nil Move.
 	"checkersNoMove": func(t *testing.T) legalFixture {
 		game, state := newCheckersGame(t)
+		return legalFixture{state: state, move: nil, chest: game.Manager().Chest()}
+	},
+	// checkersOwnToken: checkersDefault, but move.TokenIndexToMove is set to
+	// a space occupied by a token whose Color matches the CURRENT player's
+	// Color — for ComponentPropEqualsCurrentPlayer's Pass case.
+	"checkersOwnToken": func(t *testing.T) legalFixture {
+		game, state := newCheckersGame(t)
+		gameRS := state.GameState().ReadSetter()
+		spaces, err := gameRS.StackProp("Spaces")
+		if err != nil {
+			t.Fatalf("legal: reading Spaces: %v", err)
+		}
+		playerColor, err := state.ImmutableCurrentPlayer().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal: reading current player's Color: %v", err)
+		}
+		idx := firstSpaceWithColor(t, spaces, playerColor, true)
+		if idx < 0 {
+			t.Fatal("legal: checkers fixture has no space occupied by the current player's own color")
+		}
+		move := checkersMoveWithTokenIndex(t, game, idx)
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	// checkersOpponentToken: checkersDefault, but move.TokenIndexToMove is
+	// set to a space occupied by a token whose Color does NOT match the
+	// CURRENT player's Color — for ComponentPropEqualsCurrentPlayer's Fail
+	// case.
+	"checkersOpponentToken": func(t *testing.T) legalFixture {
+		game, state := newCheckersGame(t)
+		gameRS := state.GameState().ReadSetter()
+		spaces, err := gameRS.StackProp("Spaces")
+		if err != nil {
+			t.Fatalf("legal: reading Spaces: %v", err)
+		}
+		playerColor, err := state.ImmutableCurrentPlayer().Reader().ImmutableEnumProp("Color")
+		if err != nil {
+			t.Fatalf("legal: reading current player's Color: %v", err)
+		}
+		idx := firstSpaceWithColor(t, spaces, playerColor, false)
+		if idx < 0 {
+			t.Fatal("legal: checkers fixture has no space occupied by an opposing color")
+		}
+		move := checkersMoveWithTokenIndex(t, game, idx)
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	// memoryCardAlreadyRevealed: memoryDefault, but HiddenCards[0] is moved
+	// directly to VisibleCards[0] (the mirrored slot), so at idx 0 the
+	// hidden stack is empty and the visible stack is occupied — for
+	// RevealableCardAt's "already revealed" Fail branch.
+	"memoryCardAlreadyRevealed": func(t *testing.T) legalFixture {
+		game, state := newMemoryGame(t)
+		gameRS := state.GameState().ReadSetter()
+		hidden, err := gameRS.StackProp("HiddenCards")
+		if err != nil {
+			t.Fatalf("legal: reading HiddenCards: %v", err)
+		}
+		visible, err := gameRS.StackProp("VisibleCards")
+		if err != nil {
+			t.Fatalf("legal: reading VisibleCards: %v", err)
+		}
+		card := hidden.ComponentAt(0)
+		if card == nil {
+			t.Fatal("legal: expected HiddenCards[0] to be occupied")
+		}
+		if err := card.MoveTo(visible, 0); err != nil {
+			t.Fatalf("legal: moving HiddenCards[0] to VisibleCards[0]: %v", err)
+		}
+		move := memoryMoveWithCardIndex(t, game, 0)
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	// memoryCardNeverThere: memoryDefault, but HiddenCards[0] is moved to a
+	// DIFFERENT visible slot (5), so at idx 0 both the hidden and visible
+	// stacks are empty — for RevealableCardAt's "no card here" Fail branch.
+	"memoryCardNeverThere": func(t *testing.T) legalFixture {
+		game, state := newMemoryGame(t)
+		gameRS := state.GameState().ReadSetter()
+		hidden, err := gameRS.StackProp("HiddenCards")
+		if err != nil {
+			t.Fatalf("legal: reading HiddenCards: %v", err)
+		}
+		visible, err := gameRS.StackProp("VisibleCards")
+		if err != nil {
+			t.Fatalf("legal: reading VisibleCards: %v", err)
+		}
+		card := hidden.ComponentAt(0)
+		if card == nil {
+			t.Fatal("legal: expected HiddenCards[0] to be occupied")
+		}
+		if err := card.MoveTo(visible, 5); err != nil {
+			t.Fatalf("legal: moving HiddenCards[0] to VisibleCards[5]: %v", err)
+		}
+		move := memoryMoveWithCardIndex(t, game, 0)
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	// memoryTargetPlayerOne: memoryDefault, but move.TargetPlayerIndex is
+	// forced to player 1 while the current player stays 0 — for
+	// ProposerIsCurrentPlayer's "it's not your turn" Fail branch (target !=
+	// current player).
+	"memoryTargetPlayerOne": func(t *testing.T) legalFixture {
+		game, state := newMemoryGame(t)
+		move := memoryMoveWithCardIndex(t, game, 0)
+		if err := move.ReadSetter().SetPlayerIndexProp("TargetPlayerIndex", boardgame.PlayerIndex(1)); err != nil {
+			t.Fatalf("legal: setting TargetPlayerIndex: %v", err)
+		}
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	// memoryTargetObserver: memoryDefault, but move.TargetPlayerIndex is
+	// forced to boardgame.ObserverPlayerIndex — for ProposerIsCurrentPlayer's
+	// "target player is not valid" Fail branch (a special negative index
+	// that PlayerIndex.Valid() treats as valid, but which is not a
+	// legitimate move target).
+	"memoryTargetObserver": func(t *testing.T) legalFixture {
+		game, state := newMemoryGame(t)
+		move := memoryMoveWithCardIndex(t, game, 0)
+		if err := move.ReadSetter().SetPlayerIndexProp("TargetPlayerIndex", boardgame.ObserverPlayerIndex); err != nil {
+			t.Fatalf("legal: setting TargetPlayerIndex: %v", err)
+		}
+		return legalFixture{state: state, move: move, chest: game.Manager().Chest()}
+	},
+	// blackjackAllFinished: a fresh blackjack game with every active
+	// player's Stood forced to true (so AllActivePlayers(Any(Eliminated,
+	// Stood)) Passes for every one of them).
+	"blackjackAllFinished": func(t *testing.T) legalFixture {
+		game, state := newBlackjackGame(t)
+		for _, p := range state.PlayerStates() {
+			rs := p.ReadSetter()
+			if err := rs.SetBoolProp("Stood", true); err != nil {
+				t.Fatalf("legal: setting Stood: %v", err)
+			}
+		}
+		return legalFixture{state: state, move: nil, chest: game.Manager().Chest()}
+	},
+	// blackjackOneUnfinished: blackjackAllFinished, but player 0's Stood is
+	// forced back to false (and Eliminated stays false) — one active player
+	// with neither condition true, so AllActivePlayers(Any(Eliminated,
+	// Stood)) Fails.
+	"blackjackOneUnfinished": func(t *testing.T) legalFixture {
+		game, state := newBlackjackGame(t)
+		players := state.PlayerStates()
+		for i, p := range players {
+			rs := p.ReadSetter()
+			if i == 0 {
+				if err := rs.SetBoolProp("Stood", false); err != nil {
+					t.Fatalf("legal: setting Stood: %v", err)
+				}
+				continue
+			}
+			if err := rs.SetBoolProp("Stood", true); err != nil {
+				t.Fatalf("legal: setting Stood: %v", err)
+			}
+		}
+		return legalFixture{state: state, move: nil, chest: game.Manager().Chest()}
+	},
+	// blackjackInactiveSkipped: blackjackOneUnfinished's unfinished player
+	// (player 0) is additionally marked PlayerInactive, so
+	// behaviors.PlayerIsInactive skips it entirely and
+	// AllActivePlayers(Any(Eliminated, Stood)) Passes (every ACTIVE player
+	// has Stood).
+	"blackjackInactiveSkipped": func(t *testing.T) legalFixture {
+		game, state := newBlackjackGame(t)
+		players := state.PlayerStates()
+		for i, p := range players {
+			rs := p.ReadSetter()
+			if i == 0 {
+				if err := rs.SetBoolProp("Stood", false); err != nil {
+					t.Fatalf("legal: setting Stood: %v", err)
+				}
+				if err := rs.SetBoolProp("PlayerInactive", true); err != nil {
+					t.Fatalf("legal: setting PlayerInactive: %v", err)
+				}
+				continue
+			}
+			if err := rs.SetBoolProp("Stood", true); err != nil {
+				t.Fatalf("legal: setting Stood: %v", err)
+			}
+		}
 		return legalFixture{state: state, move: nil, chest: game.Manager().Chest()}
 	},
 }

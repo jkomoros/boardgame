@@ -40,6 +40,13 @@ var defaultTemplateKeys = []string{
 	TemplateComponentMissingKey,
 	TemplateNoComponentToMove,
 	TemplateMayNotMoveTo,
+	// Task 5 (catalog_players.go / catalog_purpose.go) additions:
+	TemplateAllActivePlayers,
+	TemplateProposerTargetInvalid,
+	TemplateProposerNotYourTurn,
+	TemplateNoCardHere,
+	TemplateAlreadyRevealed,
+	TemplateComponentPropNotCurrentPlayer,
 }
 
 // ComponentPresentAt returns a Spec for the "componentPresentAt" predicate:
@@ -319,6 +326,10 @@ func DefaultConstructors() []*PredicateConstructor {
 		componentPresentAtKeyConstructor(),
 		mayMoveToConstructor(),
 		mayMoveToSlotConstructor(),
+		allActivePlayersConstructor(),
+		proposerIsCurrentPlayerConstructor(),
+		revealableCardAtConstructor(),
+		componentPropEqualsCurrentPlayerConstructor(),
 	}
 }
 

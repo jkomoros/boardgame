@@ -462,13 +462,17 @@ func TestMayMoveFacetHonesty(t *testing.T) {
 func TestDefaultConstructors(t *testing.T) {
 	constructors := DefaultConstructors()
 	wantNames := map[string]bool{
-		"propAtLeast":           true,
-		"propCompare":           true,
-		"playerBool":            true,
-		"componentPresentAt":    true,
-		"componentPresentAtKey": true,
-		"mayMoveTo":             true,
-		"mayMoveToSlot":         true,
+		"propAtLeast":                      true,
+		"propCompare":                      true,
+		"playerBool":                       true,
+		"componentPresentAt":               true,
+		"componentPresentAtKey":            true,
+		"mayMoveTo":                        true,
+		"mayMoveToSlot":                    true,
+		"allActivePlayers":                 true,
+		"proposerIsCurrentPlayer":          true,
+		"revealableCardAt":                 true,
+		"componentPropEqualsCurrentPlayer": true,
 	}
 	if len(constructors) != len(wantNames) {
 		t.Fatalf("len(DefaultConstructors()) = %d, want %d", len(constructors), len(wantNames))
@@ -527,6 +531,12 @@ func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 		TemplateComponentMissingKey,
 		TemplateNoComponentToMove,
 		TemplateMayNotMoveTo,
+		TemplateAllActivePlayers,
+		TemplateProposerTargetInvalid,
+		TemplateProposerNotYourTurn,
+		TemplateNoCardHere,
+		TemplateAlreadyRevealed,
+		TemplateComponentPropNotCurrentPlayer,
 	}
 	if len(defaultTemplateKeys) != len(want) {
 		t.Fatalf("len(defaultTemplateKeys) = %d, want %d", len(defaultTemplateKeys), len(want))

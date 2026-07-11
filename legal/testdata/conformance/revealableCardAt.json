@@ -1,0 +1,31 @@
+{
+  "predicate": "revealableCardAt",
+  "cases": [
+    {
+      "spec": {"name": "revealableCardAt", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "revealableCardAt", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryCardAlreadyRevealed",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.already_revealed"
+    },
+    {
+      "spec": {"name": "revealableCardAt", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryCardNeverThere",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.no_card_here"
+    },
+    {
+      "spec": {"name": "revealableCardAt", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

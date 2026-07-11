@@ -80,6 +80,24 @@ func resolveStackPath(path string, ctx Context) (boardgame.ImmutableStack, error
 	return stack, nil
 }
 
+// resolvePlayerIndexPath resolves path as a boardgame.PlayerIndex against
+// ctx, via ctx.ResolvePath. Used by proposerIsCurrentPlayer to read
+// move.TargetPlayerIndex (see catalog_players.go).
+func resolvePlayerIndexPath(path string, ctx Context) (boardgame.PlayerIndex, error) {
+	val, propType, err := ctx.ResolvePath(PropPath(path))
+	if err != nil {
+		return 0, err
+	}
+	if propType != boardgame.TypePlayerIndex {
+		return 0, fmt.Errorf("legal: path %q is not a PlayerIndex property", path)
+	}
+	p, ok := val.(boardgame.PlayerIndex)
+	if !ok {
+		return 0, fmt.Errorf("legal: path %q resolved to a PlayerIndex-typed property but its value was not a PlayerIndex (%T)", path, val)
+	}
+	return p, nil
+}
+
 // resolveEnumPath resolves path as an enum.ImmutableVal against ctx, via
 // ctx.ResolvePath.
 func resolveEnumPath(path string, ctx Context) (enum.ImmutableVal, error) {
