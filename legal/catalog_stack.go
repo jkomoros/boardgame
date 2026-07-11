@@ -137,7 +137,8 @@ func componentPresentAtConstructor() *PredicateConstructor {
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostCheap,
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					idx, err := resolveIntPath(idxField, ctx)
 					if err != nil {
@@ -186,7 +187,8 @@ func componentPresentAtKeyConstructor() *PredicateConstructor {
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(keyField), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostCheap,
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					key, err := resolveEnumPath(keyField, ctx)
 					if err != nil {
@@ -282,7 +284,8 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostModerate,
+				Cost:             boardgame.LegalCostModerate,
+				EmittedTemplates: []string{noComponentTemplate, mayNotMoveTemplate},
 				Evaluate: func(ctx Context) Verdict {
 					idx, err := resolveIntPath(idxField, ctx)
 					if err != nil {
@@ -331,6 +334,22 @@ func mayMoveToConstructor() *PredicateConstructor {
 
 func mayMoveToSlotConstructor() *PredicateConstructor {
 	return mayMoveConstructor("mayMoveToSlot", true)
+}
+
+// ConstructorConfigurer is implemented optionally by a game's GameDelegate to
+// register its own predicate constructors on top of the universal catalog
+// (design spec §1's checkers.spaceIsBlack example). This package never calls
+// ConfigurePredicateConstructors itself: like TemplateConfigurer, it is
+// consumed via a type-assertion on the delegate by NewGameManager's plan
+// assembly (boardgame/legal_plan.go), which overlays the returned
+// constructors (by Name) on the process-wide defaults. Absence means the game
+// uses only the default catalog. A delegate that wants the built-in catalog
+// plus its own returns ExtendDefaults(...) here.
+type ConstructorConfigurer interface {
+	// ConfigurePredicateConstructors returns this game's predicate
+	// constructors. Names matching a built-in override it; new names extend
+	// the catalog.
+	ConfigurePredicateConstructors() []*PredicateConstructor
 }
 
 // DefaultConstructors returns the full set of pre-built

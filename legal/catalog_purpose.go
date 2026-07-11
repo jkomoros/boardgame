@@ -93,7 +93,8 @@ func revealableCardAtConstructor() *PredicateConstructor {
 					{Path: PropPath(visiblePath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostCheap,
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{noCardTemplate, alreadyRevealedTemplate},
 				Evaluate: func(ctx Context) Verdict {
 					idx, err := resolveIntPath(idxField, ctx)
 					if err != nil {
@@ -160,7 +161,8 @@ func componentPropEqualsCurrentPlayerConstructor() *PredicateConstructor {
 					{Path: PropPath(keyField), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath(playerPath), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostCheap,
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					key, err := resolveEnumPath(keyField, ctx)
 					if err != nil {

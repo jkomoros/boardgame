@@ -47,6 +47,21 @@ type LegalPredicate struct {
 	// touch of a nil ctx.Move are all converted to a fail-closed
 	// LegalUnknown instead of propagating.
 	Evaluate func(ctx LegalContext) LegalVerdict
+	// EmittedTemplates is the conservative set of template keys this
+	// predicate's Evaluate may emit in a Fail (or Message-carrying Unknown)
+	// verdict — the effective keys AFTER any Spec.Message override was
+	// applied at construction time. It is populated by the constructor that
+	// built the predicate (each catalog constructor lists the key(s) its
+	// Evaluate can FailT with; a game-registered constructor should do the
+	// same). Boot-time validation (validateLegalEmittedTemplates) checks
+	// every key here against the game's merged template table, so a
+	// predicate that can emit an unregistered template key fails at
+	// NewGameManager naming the owning move rather than rendering a bare key
+	// mid-game — closing the spec §3 "unregistered keys are a boot error"
+	// invariant for game-registered predicates and implicit catalog
+	// defaults alike. Empty/nil is allowed (an opaque escape-hatch wrapper,
+	// or a predicate that never fails with a template, declares none).
+	EmittedTemplates []string
 	// Sub holds child predicates; only set for compositors ("any" in v1).
 	Sub []*LegalPredicate
 	// opaque marks an escape-hatch wrapper predicate (e.g. LegalCustom) that
@@ -274,10 +289,11 @@ func resolveLegalAnySpec(spec LegalSpec, resolve func(LegalSpec) (*LegalPredicat
 	}
 
 	return &LegalPredicate{
-		Name:  legalAnyCompositorName,
-		Reads: unionLegalReads(subs),
-		Cost:  maxLegalCost(subs),
-		Sub:   subs,
+		Name:             legalAnyCompositorName,
+		Reads:            unionLegalReads(subs),
+		Cost:             maxLegalCost(subs),
+		Sub:              subs,
+		EmittedTemplates: []string{template},
 		Evaluate: func(ctx LegalContext) LegalVerdict {
 			return evalLegalAnyKleene(subs, ctx, template)
 		},

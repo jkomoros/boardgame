@@ -116,7 +116,8 @@ func inPhaseConstructor() *PredicateConstructor {
 					// risk note, §10).
 					{Path: PropPath("game.Phase"), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostCheap,
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: inPhase: state was nil")
@@ -157,7 +158,8 @@ func stackConstraintsConstructor() *PredicateConstructor {
 					{Path: PropPath("game." + srcName), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath("game." + dstName), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostModerate,
+				Cost:             boardgame.LegalCostModerate,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: stackConstraints: state was nil")

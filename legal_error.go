@@ -142,6 +142,47 @@ func (v LegalVerdict) Error() error {
 	return &LegalError{Verdict: v}
 }
 
+// validateLegalEmittedTemplates walks each predicate (and, recursively, its
+// Sub tree) and returns an error if any key in a predicate's
+// EmittedTemplates is absent from table. This is the completion of the
+// spec §3 "unregistered keys are a boot error" invariant that
+// validateLegalTemplates could not cover: validateLegalTemplates only sees
+// EXPLICIT Spec.Message overrides (plus the one core-level "any" default),
+// whereas EmittedTemplates is populated by every predicate's constructor
+// with the effective template key(s) its Evaluate can actually emit —
+// including a leaf catalog predicate's implicit default and a
+// game-registered predicate's own hardcoded key. table must already be the
+// caller-merged union of legal.DefaultTemplates() and the delegate's
+// legal.TemplateConfigurer table (same layering constraint as
+// validateLegalTemplates). The boot call site wraps the returned error with
+// the owning MOVE's name (this function, like the rest of core's legal
+// plumbing, does not know it).
+func validateLegalEmittedTemplates(predicates []*LegalPredicate, table map[string]string) error {
+	for _, pred := range predicates {
+		if err := validateLegalEmittedTemplatesTree(pred, table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateLegalEmittedTemplatesTree(pred *LegalPredicate, table map[string]string) error {
+	if pred == nil {
+		return nil
+	}
+	for _, key := range pred.EmittedTemplates {
+		if _, ok := table[key]; !ok {
+			return fmt.Errorf("boardgame: predicate %q may emit template key %q, which is not found in the game's template table", pred.Name, key)
+		}
+	}
+	for _, sub := range pred.Sub {
+		if err := validateLegalEmittedTemplatesTree(sub, table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // validateLegalTemplates is the boot-time template-key validation contract,
 // consumed by a later task's NewGameManager wiring (design spec §6:
 // "validated at NewGameManager: every template key referenced by any

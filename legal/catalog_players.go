@@ -304,9 +304,10 @@ func allActivePlayersConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:  "allActivePlayers",
-				Reads: reads,
-				Cost:  boardgame.LegalCostModerate,
+				Name:             "allActivePlayers",
+				Reads:            reads,
+				Cost:             boardgame.LegalCostModerate,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: allActivePlayers: state was nil")
@@ -405,7 +406,8 @@ func proposerIsCurrentPlayerConstructor() *PredicateConstructor {
 					// declaration, not exercised by any in-repo game today.
 					{Path: PropPath("game.CurrentPlayer"), Facet: boardgame.LegalFacetValues},
 				},
-				Cost: boardgame.LegalCostCheap,
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{targetInvalidTemplate, notYourTurnTemplate},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: proposerIsCurrentPlayer: state was nil")

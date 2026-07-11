@@ -78,10 +78,11 @@ func propAtLeastConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:  "propAtLeast",
-				Args:  spec.Args,
-				Reads: []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
-				Cost:  boardgame.LegalCostCheap,
+				Name:             "propAtLeast",
+				Args:             spec.Args,
+				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveIntPath(path, ctx)
 					if err != nil {
@@ -125,10 +126,11 @@ func propCompareConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:  "propCompare",
-				Args:  spec.Args,
-				Reads: []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
-				Cost:  boardgame.LegalCostCheap,
+				Name:             "propCompare",
+				Args:             spec.Args,
+				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveIntPath(path, ctx)
 					if err != nil {
@@ -165,10 +167,11 @@ func playerBoolConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:  "playerBool",
-				Args:  spec.Args,
-				Reads: []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
-				Cost:  boardgame.LegalCostTrivial,
+				Name:             "playerBool",
+				Args:             spec.Args,
+				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				Cost:             boardgame.LegalCostTrivial,
+				EmittedTemplates: []string{template},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveBoolPath(path, ctx)
 					if err != nil {
