@@ -103,6 +103,21 @@ type Game struct {
 	//TODO: HistoricalState(index int) and HistoryLen() int
 
 	//TODO: an array of Player objects.
+
+	// legalFieldIndepMemo/legalFieldIndepMemoVersion back the
+	// field-independent legality memo (design spec §5, legal_memo.go),
+	// bounded to at most the current head version's worth of entries.
+	legalFieldIndepMemo        map[legalFieldIndepMemoKey]LegalVerdict
+	legalFieldIndepMemoVersion int
+
+	// legalTapeMemo/legalTapeMemoVersion/legalTapeMemoPhase/
+	// legalTapeMemoValid back the move-tape memo (design spec §5,
+	// legal_memo.go's LegalTapeMemo), bounded to at most one (version,
+	// phase) pair's worth of a cached tape at a time.
+	legalTapeMemo        []*MoveStorageRecord
+	legalTapeMemoVersion int
+	legalTapeMemoPhase   enum.EnumKey
+	legalTapeMemoValid   bool
 }
 
 const gameIDLength = 16

@@ -147,7 +147,7 @@ func TestLegalPlanBucketSplit(t *testing.T) {
 	}
 	specs := []LegalSpec{{Name: "gameRead"}, {Name: "moveRead"}, {Name: "noReads"}, {Name: "bothReads"}}
 
-	plan := buildLegalPlanFromPredicates(predicates, specs, move)
+	plan := buildLegalPlanFromPredicates("Test", predicates, specs, move)
 
 	// Field-INDEPENDENT: the two with no move.* read, in plan order.
 	assert.For(t).ThatActual(len(plan.fieldIndependent)).Equals(2)
@@ -178,7 +178,7 @@ func TestLegalPlanCustomBucketAndWrapper(t *testing.T) {
 
 	t.Run("move implementing CustomLegaler gets a custom tail", func(t *testing.T) {
 		move := &testCustomLegalerMove{}
-		plan := buildLegalPlanFromPredicates(nil, nil, move)
+		plan := buildLegalPlanFromPredicates("", nil, nil, move)
 		assert.For(t).ThatActual(plan.custom).IsNotNil()
 		assert.For(t).ThatActual(plan.custom.Name).Equals("custom")
 		// The custom wrapper is opaque / unserializable.

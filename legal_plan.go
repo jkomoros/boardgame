@@ -83,6 +83,10 @@ type legalTemplateConfigurer interface {
 // order, then custom — with NO Cost sort (design spec §4: what you declare is
 // what runs, in the order you wrote it).
 type legalPlan struct {
+	// moveName is the owning move type's name (mType.Name()), used as part
+	// of the field-independent memo's key (legal_memo.go) so a lookup can't
+	// collide across move types sharing a game.
+	moveName string
 	// fieldIndependent holds resolved predicates with no move.* reads, in
 	// plan order.
 	fieldIndependent []*LegalPredicate
@@ -136,13 +140,22 @@ type LegalVerdictEntry struct {
 // non-Pass verdict (Fail OR Unknown — fail-closed: an Unknown means legality
 // could not be confirmed, so the move is treated as not legal and its verdict
 // returned, exactly as a Fail would be), preserving today's first-failure
-// error precedence; the returned entry slice is nil.
+// error precedence; the returned entry slice is nil. In this mode the
+// fieldIndependent bucket's overall verdict is served from (and stored into)
+// ctx.State.Game()'s field-independent memo (design spec §5's honest table,
+// legal_memo.go) rather than always re-evaluated — see
+// evaluateFieldIndependentMemoized. A ctx with no Game to anchor a memo to
+// (e.g. a probe or an isolated test evaluating against ExampleState()) just
+// evaluates fresh every time, with no memo interaction at all.
 //
 // In full-ledger mode (fullLedger == true) it evaluates EVERY predicate,
 // returns the parallel []LegalVerdictEntry for the ledger, and returns as the
 // overall verdict the first non-Pass encountered (or Pass if all passed).
 // Every predicate is run through evalLegalPredicate, so a panicking or
 // invalid-verdict predicate degrades to a fail-closed Unknown, never to Pass.
+// Full-ledger mode never consults or populates the memo: it needs a fresh
+// per-predicate entry for every bucket member, which a cached bucket-level
+// verdict can't supply.
 func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, []LegalVerdictEntry) {
 	if p == nil {
 		// A nil plan cannot confirm legality; fail closed.
@@ -176,10 +189,20 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 		return false
 	}
 
-	for _, pred := range p.fieldIndependent {
-		if consider(pred, false) {
-			return overall, nil
+	if fullLedger {
+		for _, pred := range p.fieldIndependent {
+			if consider(pred, false) {
+				return overall, nil
+			}
 		}
+	} else {
+		if verdict := p.evaluateFieldIndependentMemoized(ctx); verdict.Outcome != LegalPass {
+			return verdict, nil
+		}
+		// Passed (or the bucket was empty): fall through to fieldDependent /
+		// custom below with overall/haveOverall still at their Pass/false
+		// zero values, exactly as if the fieldIndependent loop above had run
+		// and found nothing to complain about.
 	}
 	for _, pred := range p.fieldDependent {
 		if consider(pred, true) {
@@ -193,6 +216,61 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 	}
 
 	return overall, entries
+}
+
+// evaluateFieldIndependentMemoized returns p's fieldIndependent bucket's
+// overall verdict (Pass if every member passed, else the FIRST non-pass
+// verdict encountered, in plan order — exactly what the fieldIndependent
+// loop in evaluate's fullLedger branch would compute), consulting and
+// populating ctx.State.Game()'s field-independent memo (design spec §5,
+// legal_memo.go) keyed on (p.moveName, ctx.State.Version(), ctx.Proposer).
+//
+// If ctx.State (or its Game()) is nil there is nowhere to anchor a memo, so
+// this just evaluates the bucket fresh with no caching at all — the
+// behavior every existing isolated test (evaluating against a bare
+// LegalContext{} or ExampleState(), whose Game() is nil) already exercises.
+func (p *legalPlan) evaluateFieldIndependentMemoized(ctx LegalContext) LegalVerdict {
+	game := legalMemoGame(ctx)
+	if game == nil {
+		return evaluateLegalPredicateBucket(p.fieldIndependent, ctx)
+	}
+
+	key := legalFieldIndepMemoKey{moveName: p.moveName, version: ctx.State.Version(), proposer: ctx.Proposer}
+
+	if verdict, ok := game.legalFieldIndepMemoGet(key); ok {
+		return verdict
+	}
+
+	verdict := evaluateLegalPredicateBucket(p.fieldIndependent, ctx)
+	game.legalFieldIndepMemoSet(key, verdict)
+	return verdict
+}
+
+// legalMemoGame returns ctx.State.Game(), or nil if ctx.State itself is nil
+// (a nil ImmutableState has no Game() to call). Game() itself may also
+// legitimately return nil (e.g. GameManager.ExampleState()'s state has no
+// backing *Game) — callers treat either case as "nothing to memoize
+// against".
+func legalMemoGame(ctx LegalContext) *Game {
+	if ctx.State == nil {
+		return nil
+	}
+	return ctx.State.Game()
+}
+
+// evaluateLegalPredicateBucket evaluates preds in order via
+// evalLegalPredicate, short-circuiting on and returning the FIRST non-Pass
+// verdict, or a Pass verdict if every predicate passed (or preds is empty).
+// This is the same short-circuit semantics evaluate's fieldIndependent loop
+// uses, factored out so evaluateFieldIndependentMemoized can compute a
+// cache-miss's value without duplicating it.
+func evaluateLegalPredicateBucket(preds []*LegalPredicate, ctx LegalContext) LegalVerdict {
+	for _, pred := range preds {
+		if v := evalLegalPredicate(pred, ctx); v.Outcome != LegalPass {
+			return v
+		}
+	}
+	return LegalVerdict{Outcome: LegalPass}
 }
 
 // LegalProbeActive is engine-internal plumbing for the declarative-legality
@@ -304,7 +382,7 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 			return fmt.Errorf("move %q: %w", mType.Name(), err)
 		}
 
-		plan := buildLegalPlanFromPredicates(predicates, specs, move)
+		plan := buildLegalPlanFromPredicates(mType.Name(), predicates, specs, move)
 		if g.legalPlans == nil {
 			g.legalPlans = make(map[string]*legalPlan)
 		}
@@ -371,10 +449,14 @@ func assembleLegalSpecList(contributed, authored []LegalSpec, suppressions []str
 // field-independent / field-dependent buckets (by whether a predicate reads
 // any move.* path — see legalReadsIncludeMovePath), preserving plan order
 // within each bucket, and appends the CustomLegaler wrapper (if move
-// implements CustomLegaler) as the plan's custom tail. specs is the parallel
-// serializable spec list.
-func buildLegalPlanFromPredicates(predicates []*LegalPredicate, specs []LegalSpec, move Move) *legalPlan {
-	plan := &legalPlan{specs: specs}
+// implements CustomLegaler) as the plan's custom tail. moveName is stored on
+// the plan for the field-independent memo's key (legal_memo.go); pass "" if
+// the caller doesn't care about memoization (e.g. an isolated test that
+// never evaluates against a real *Game — see legalPlan.evaluate, which skips
+// the memo whenever ctx.State.Game() is nil regardless of moveName). specs is
+// the parallel serializable spec list.
+func buildLegalPlanFromPredicates(moveName string, predicates []*LegalPredicate, specs []LegalSpec, move Move) *legalPlan {
+	plan := &legalPlan{specs: specs, moveName: moveName}
 	for _, pred := range predicates {
 		if legalReadsIncludeMovePath(pred.Reads) {
 			plan.fieldDependent = append(plan.fieldDependent, pred)

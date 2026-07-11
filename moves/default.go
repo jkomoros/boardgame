@@ -441,14 +441,31 @@ func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 	return boardgame.LegalInPhaseCheck(state, d.legalPhases())
 }
 
+// historicalMovesSincePhaseTransition is memoized per (game, upToVersion,
+// targetPhase) via game.LegalTapeMemo (boardgame/legal_memo.go, design spec
+// §5's "Tape memoization" engine win) — this retires the TODO that used to
+// live right here ("ideally we'd memoize this so all base moves for this
+// game for this version could use the result... make sure the lifetime of
+// the cache does not extend beyond the lifetime of the game, or is purged
+// every so often"): the memo lives ON the *boardgame.Game, so it is
+// garbage-collected with the game and is bounded to at most one
+// (version, phase) pair resident at a time — see LegalTapeMemo's doc
+// comment. Both this frozen chain (legalMoveInProgression, below) and the
+// "inProgression" declarative predicate (catalog_framework.go) call this
+// same method, so they share one tape walk per (game, version) by
+// construction.
 func (d *Default) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase enum.EnumKey) []*boardgame.MoveStorageRecord {
+	return game.LegalTapeMemo(upToVersion, targetPhase, func() []*boardgame.MoveStorageRecord {
+		return computeHistoricalMovesSincePhaseTransition(game, upToVersion, targetPhase)
+	})
+}
+
+// computeHistoricalMovesSincePhaseTransition is the actual (uncached) tape
+// walk; historicalMovesSincePhaseTransition above wraps it in the memo. See
+// that method's doc comment.
+func computeHistoricalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase enum.EnumKey) []*boardgame.MoveStorageRecord {
 
 	moves := game.MoveRecords(upToVersion)
-
-	//TODO: ideally we'd memoize this so all base moves for this game for this
-	//version could use the result. If we do that, we'll want to make sure the
-	//lifetime of the cache does not extend beyond the lifetime of the game,
-	//or is purged every so often.
 
 	if len(moves) == 0 {
 		return nil
