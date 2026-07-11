@@ -146,10 +146,15 @@ func legalPlanInPhases(plan *legalPlan) []enum.EnumKey {
 // core fixup LOOP itself is untouched, only the candidate list it iterates
 // is now pre-filtered.
 //
-// If the index hasn't been built yet (a hand-constructed *GameManager in a
-// unit test that never called NewGameManager, or a manager not yet
-// initialized), this fails OPEN — every move is a candidate — matching the
-// pre-Task-9 behavior exactly rather than silently returning nothing.
+// An uninitialized manager or a nil state has no legal index (and, in the
+// nil-state case, no state to bucket by phase anyway), so this fails CLOSED
+// in that case — returning nil rather than every move — since there is no
+// well-defined "current phase" to look up. Once the manager IS initialized,
+// though, a still-nil g.legalIndex (e.g. a hand-constructed *GameManager in
+// a unit test that built moves without going through the normal
+// buildLegalIndex path) fails OPEN instead — every move is a candidate —
+// matching the pre-Task-9 behavior exactly rather than silently returning
+// nothing.
 func (g *GameManager) CandidateMoves(state ImmutableState) []Move {
 	if !g.initialized || state == nil {
 		return nil

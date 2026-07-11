@@ -1,8 +1,11 @@
 package boardgame
 
 import (
+	"strconv"
+	"sync"
 	"testing"
 
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
 )
 
@@ -255,4 +258,99 @@ func TestLegalTapeMemoHitMissEviction(t *testing.T) {
 	// discarded when the cache moved on, not resurrected.
 	game.LegalTapeMemo(1, phaseSetUp, compute)
 	assert.For(t).ThatActual(calls).Equals(4)
+}
+
+// TestLegalMemoConcurrentAccessRace proves both per-Game memo caches
+// (g.legalFieldIndepMemo and g.legalTapeMemo, both legal_memo.go) are safe
+// under the concurrent access pattern this codebase actually has:
+// server/api's generateFormsWithLegality (server/api/main.go) calls
+// move.Legal() from an HTTP-handler goroutine while Game.mainLoop's own
+// goroutine is simultaneously evaluating Legal() during fixups — both
+// populating and evicting the SAME two maps on the SAME shared *Game.
+//
+// Before Game.legalMemoMu existed, this reliably crashed `go test -race`
+// with a hard "fatal error: concurrent map writes" (or "concurrent map read
+// and map write"): Go's map implementation detects unsynchronized
+// concurrent access itself and calls throw(), which is an unrecoverable
+// process abort — not an ordinary reported data race, and not something a
+// deferred recover() in the test can catch. See this package's Task 9
+// memo-synchronization report for the RED (pre-fix) run's captured crash
+// output.
+//
+// Run in isolation with: go test -race -run TestLegalMemoConcurrentAccessRace .
+func TestLegalMemoConcurrentAccessRace(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+
+	// Precompute several distinct game versions up front, single-threaded,
+	// so the concurrent section below exercises ONLY the two memo caches
+	// (via legalMemoMu) — not the separate, pre-existing, out-of-scope race
+	// on g.version/g.cachedCurrentState that concurrently calling
+	// CurrentState()/applyMove would also trip and that this finding is not
+	// about.
+	const numVersions = 8
+	states := make([]ImmutableState, numVersions)
+	states[0] = game.CurrentState()
+	for i := 1; i < numVersions; i++ {
+		legalMemoAdvanceVersion(t, game)
+		states[i] = game.CurrentState()
+	}
+
+	// A trivial always-pass fieldIndependent plan, parameterized by move
+	// name, so legalFieldIndepMemoGet/Set see genuinely different keys
+	// (moveName x version x proposer) across goroutines — forcing real map
+	// churn, including legalFieldIndepMemoSet's evict-and-rekey path,
+	// rather than every goroutine hammering one already-cached entry.
+	passPlan := func(moveName string) *legalPlan {
+		return &legalPlan{
+			moveName: moveName,
+			fieldIndependent: []*LegalPredicate{
+				{
+					Name: "alwaysPass",
+					Evaluate: func(ctx LegalContext) LegalVerdict {
+						return LegalVerdict{Outcome: LegalPass}
+					},
+				},
+			},
+		}
+	}
+
+	const numGoroutines = 32
+	const numIterations = 200
+
+	var wg sync.WaitGroup
+	for gIdx := 0; gIdx < numGoroutines; gIdx++ {
+		wg.Add(1)
+		go func(gIdx int) {
+			defer wg.Done()
+
+			// Simulates N concurrent HTTP-handler goroutines (server/api's
+			// generateFormsWithLegality) each repeatedly evaluating Legal()
+			// for an opted-in move, racing against each other AND against
+			// the version churn simulated by the precomputed states slice
+			// (standing in for mainLoop's own concurrent evaluation +
+			// eviction during fixups).
+			plan := passPlan("MemoRaceMove" + strconv.Itoa(gIdx%4))
+			for i := 0; i < numIterations; i++ {
+				state := states[(gIdx+i)%numVersions]
+				proposer := PlayerIndex((gIdx + i) % 3)
+				ctx := LegalContext{State: state, Proposer: proposer}
+
+				verdict, _ := plan.evaluate(ctx, false)
+				if verdict.Outcome != LegalPass {
+					t.Errorf("expected LegalPass, got %v", verdict.Outcome)
+					return
+				}
+
+				phase := enum.EnumKey(phaseSetUp)
+				if i%2 == 0 {
+					phase = phaseNormal
+				}
+				compute := func() []*MoveStorageRecord {
+					return []*MoveStorageRecord{{Name: "race"}}
+				}
+				game.LegalTapeMemo(state.Version(), phase, compute)
+			}
+		}(gIdx)
+	}
+	wg.Wait()
 }

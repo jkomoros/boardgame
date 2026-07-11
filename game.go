@@ -104,16 +104,34 @@ type Game struct {
 
 	//TODO: an array of Player objects.
 
+	// legalMemoMu guards every field below it: both the field-independent
+	// legality memo and the move-tape memo (design spec §5, legal_memo.go).
+	// Unlike cachedCurrentState/cachedHistoricalMoves above (which are only
+	// ever touched from Game.mainLoop's single goroutine), these memos are
+	// also written from move.Legal() evaluation reachable off mainLoop —
+	// e.g. server/api's generateFormsWithLegality calling move.Legal() from
+	// an HTTP-handler goroutine concurrently with mainLoop's own Legal()
+	// evaluation during fixups. Two goroutines read/writing the same Go map
+	// concurrently is a fatal runtime crash (not just a benign race), so
+	// these maps need real synchronization, unlike the pointer-assignment
+	// caches above. See legal_memo.go's lock-ordering note: this mutex must
+	// never be held while evaluating a predicate or calling a caller-
+	// supplied compute() closure (arbitrary user code) — only the map/field
+	// reads and writes themselves are done under the lock.
+	legalMemoMu sync.Mutex
+
 	// legalFieldIndepMemo/legalFieldIndepMemoVersion back the
 	// field-independent legality memo (design spec §5, legal_memo.go),
 	// bounded to at most the current head version's worth of entries.
+	// Guarded by legalMemoMu.
 	legalFieldIndepMemo        map[legalFieldIndepMemoKey]LegalVerdict
 	legalFieldIndepMemoVersion int
 
 	// legalTapeMemo/legalTapeMemoVersion/legalTapeMemoPhase/
 	// legalTapeMemoValid back the move-tape memo (design spec §5,
 	// legal_memo.go's LegalTapeMemo), bounded to at most one (version,
-	// phase) pair's worth of a cached tape at a time.
+	// phase) pair's worth of a cached tape at a time. Guarded by
+	// legalMemoMu.
 	legalTapeMemo        []*MoveStorageRecord
 	legalTapeMemoVersion int
 	legalTapeMemoPhase   enum.EnumKey
