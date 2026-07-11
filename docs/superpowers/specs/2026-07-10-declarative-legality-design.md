@@ -11,8 +11,12 @@ Synthesized from a three-lens design panel (composability / engine / DX) plus
 two adversarial critiques of the panel outputs, then revised against four
 adversarial critiques of the spec itself (Go API/idiom, codebase contact,
 purely-sugar guarantee, client/TS future). Panel and critique artifacts (not
-normative): `.superpowers/design/design-*.md`, `critique-*.md`,
-`spec-critique-*.md`, `legality-brief.md`.
+normative, checked in for the record):
+`docs/superpowers/design/2026-07-10-declarative-legality/` — the design brief,
+three lens designs (A-composability, B-engine, C-delight), two panel critiques
+(acid, systems), and four spec critiques (goapi, client, sugar, contact).
+Finding-by-finding dispositions:
+`docs/superpowers/specs/2026-07-10-declarative-legality-critique-responses.md`.
 
 ## Problem
 
