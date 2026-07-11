@@ -4,6 +4,8 @@ flipping over two cards, and keeping them if they match.
 */
 package memory
 
+// NOTE: legal/conformance_test.go builds fixture states from this game; renaming state properties breaks that suite.
+
 import (
 	"errors"
 	"fmt"

@@ -11,13 +11,15 @@
       "spec": {"name": "mayMoveToSlot", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
       "fixture": "memoryVisibleOccupied",
       "proposer": 0,
-      "expect": "fail"
+      "expect": "fail",
+      "template": "legal.may_not_move_to"
     },
     {
       "spec": {"name": "mayMoveToSlot", "args": ["game.VisibleCards", "game.HiddenCards", "move.CardIndex"]},
       "fixture": "memoryDefault",
       "proposer": 0,
-      "expect": "fail"
+      "expect": "fail",
+      "template": "legal.no_component_to_move"
     },
     {
       "spec": {"name": "mayMoveToSlot", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},

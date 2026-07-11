@@ -16,9 +16,10 @@ whichever side disagrees.
   "cases": [
     {
       "spec": {"name": "propAtLeast", "args": ["player.CardsLeftToReveal", "1"]},
-      "fixture": "memoryDefault",
+      "fixture": "memoryZeroCardsLeft",
       "proposer": 0,
-      "expect": "pass"
+      "expect": "fail",
+      "template": "legal.prop_at_least"
     }
   ]
 }
@@ -34,6 +35,14 @@ whichever side disagrees.
   `examples/checkers`) rather than a hand-rolled one.
 - `proposer` is a player index passed through to `Context.Proposer`.
 - `expect` is one of `"pass"`, `"fail"`, or `"unknown"`.
+- `template` (optional) pins the Fail template key the resulting
+  `Verdict.Message.Template` must carry. Populate this on every `"fail"`
+  case: a predicate can have more than one distinct Fail template (e.g.
+  mayMoveTo's `legal.no_component_to_move` vs `legal.may_not_move_to`), and
+  without pinning the template a corpus edit that silently swapped a case
+  from one Fail reason to another would still report `"fail"` and pass.
+  Leave it unset for `"pass"`/`"unknown"` cases, which have no Message
+  template to check.
 
 ## Adding a predicate's corpus
 
@@ -42,6 +51,7 @@ whichever side disagrees.
    reads `move.*`, a `Move`) into the arrangement your case needs.
 2. Add `<predicateName>.json` here with at least 3 cases: at minimum one
    `pass`, one `fail`, and one `unknown` (typically a nil-`Move` fixture for
-   a predicate that declares a `move.*` read).
+   a predicate that declares a `move.*` read). Every `fail` case should set
+   `template` to the Fail template key it expects.
 3. `go test ./legal/...` picks the file up automatically —
    `TestConformanceCorpus` globs every `*.json` in this directory.

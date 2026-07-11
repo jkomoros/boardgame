@@ -11,7 +11,8 @@
       "spec": {"name": "playerBool", "args": ["SeatFilled"]},
       "fixture": "memoryDefault",
       "proposer": 0,
-      "expect": "fail"
+      "expect": "fail",
+      "template": "legal.player_bool"
     },
     {
       "spec": {"name": "playerBool", "args": ["NoSuchBoolProp"]},

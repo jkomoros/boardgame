@@ -11,7 +11,8 @@
       "spec": {"name": "componentPresentAtKey", "args": ["game.Spaces", "move.TokenIndexToMove"]},
       "fixture": "checkersEmptySpace",
       "proposer": 0,
-      "expect": "fail"
+      "expect": "fail",
+      "template": "legal.component_missing_key"
     },
     {
       "spec": {"name": "componentPresentAtKey", "args": ["game.Spaces", "move.TokenIndexToMove"]},

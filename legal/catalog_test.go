@@ -505,10 +505,19 @@ func TestExtendDefaults(t *testing.T) {
 	}
 }
 
-// TestDefaultTemplateKeysCoversAllTemplates is a lint-style check that every
-// template constant defined in this package appears in defaultTemplateKeys
-// (Task 6's handoff list), so a future added predicate can't silently omit
-// itself.
+// TestDefaultTemplateKeysCoversAllTemplates pins defaultTemplateKeys
+// (catalog_stack.go's handoff list for Task 6's legal.DefaultTemplates())
+// against the `want` list below. Despite the name, this does NOT
+// independently verify that every TemplateXxx constant defined in this
+// package is present: `want` is a second, hand-maintained copy of the same
+// set catalog_stack.go's authors had to remember to update, not something
+// derived by scanning the package for TemplateXxx declarations. So it
+// guards against defaultTemplateKeys and this test's own `want` drifting
+// out of sync with each other (e.g. a typo, or one being edited without the
+// other) — it does not guard against BOTH lists omitting a template key a
+// new predicate introduces. A future predicate constructor's author must
+// still remember to add its template constant to defaultTemplateKeys AND
+// here by hand; nothing enforces that automatically today.
 func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 	want := []string{
 		TemplatePropAtLeast,

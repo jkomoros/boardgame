@@ -11,7 +11,8 @@
       "spec": {"name": "componentPresentAt", "args": ["game.VisibleCards", "move.CardIndex"]},
       "fixture": "memoryDefault",
       "proposer": 0,
-      "expect": "fail"
+      "expect": "fail",
+      "template": "legal.component_missing"
     },
     {
       "spec": {"name": "componentPresentAt", "args": ["game.VisibleCards", "move.CardIndex"]},

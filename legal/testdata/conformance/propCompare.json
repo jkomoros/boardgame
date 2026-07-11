@@ -11,7 +11,8 @@
       "spec": {"name": "propCompare", "args": ["player.CardsLeftToReveal", "==", "2"]},
       "fixture": "memoryZeroCardsLeft",
       "proposer": 0,
-      "expect": "fail"
+      "expect": "fail",
+      "template": "legal.prop_compare"
     },
     {
       "spec": {"name": "propCompare", "args": ["game.NumCards", ">", "0"]},

@@ -11,7 +11,8 @@
       "spec": {"name": "propAtLeast", "args": ["player.CardsLeftToReveal", "1"]},
       "fixture": "memoryZeroCardsLeft",
       "proposer": 0,
-      "expect": "fail"
+      "expect": "fail",
+      "template": "legal.prop_at_least"
     },
     {
       "spec": {"name": "propAtLeast", "args": ["game.NumCards", "1"]},

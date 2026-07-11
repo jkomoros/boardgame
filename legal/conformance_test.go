@@ -324,6 +324,17 @@ type conformanceCase struct {
 	Fixture  string `json:"fixture"`
 	Proposer int    `json:"proposer"`
 	Expect   string `json:"expect"`
+	// Template, if set, pins the Fail template key this case's Verdict must
+	// carry (Verdict.Message.Template). Optional — most useful (and, by
+	// convention, always populated) on "fail" cases, where it is what
+	// actually distinguishes e.g. mayMoveTo's TemplateNoComponentToMove
+	// case from its TemplateMayNotMoveTo case; both expect "fail" but for
+	// different reasons, and without pinning the template a corpus edit
+	// that silently swapped one for the other would go undetected. Empty
+	// (the zero value) means "don't check the template" — used for "pass"
+	// (Message is nil) and "unknown" (Reason, not Message, carries the
+	// explanation) cases, where there is nothing meaningful to pin.
+	Template string `json:"template,omitempty"`
 }
 
 // conformanceFile is the top-level shape of a
@@ -372,6 +383,11 @@ func TestConformanceCorpus(t *testing.T) {
 					verdict := pred.Evaluate(fixture.context(boardgame.PlayerIndex(c.Proposer)))
 					if got := outcomeString(verdict.Outcome); got != c.Expect {
 						t.Errorf("legal: %s case %d (%s, fixture %s): got %s, want %s (verdict: %+v)", path, i, c.Spec.Name, c.Fixture, got, c.Expect, verdict)
+					}
+					if c.Template != "" {
+						if verdict.Message == nil || verdict.Message.Template != c.Template {
+							t.Errorf("legal: %s case %d (%s, fixture %s): template = %+v, want %q", path, i, c.Spec.Name, c.Fixture, verdict.Message, c.Template)
+						}
 					}
 				})
 			}
