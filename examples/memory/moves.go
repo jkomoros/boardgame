@@ -36,30 +36,30 @@ func (m *moveRevealCard) DefaultsForState(state boardgame.ImmutableState) {
 	}
 }
 
-func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if p.CardsLeftToReveal < 1 {
-		return errors.New("You have no cards left to reveal this turn")
-	}
-
-	c := game.HiddenCards.ImmutableComponentAt(m.CardIndex)
-	if c == nil {
-		if game.VisibleCards.ImmutableComponentAt(m.CardIndex) == nil {
-			return errors.New("there is no card at that index")
-		}
-		return errors.New("that card has already been revealed")
-	}
-
-	return c.MayMoveToSlot(game.VisibleCards, m.CardIndex)
-}
+// Legal() is deliberately absent: this move opted into declarative legality
+// (design spec §8's flagship migration) via the moves.WithPreconditions call
+// in main.go's ConfigureMoves. moves.CurrentPlayer.Legal (promoted, since
+// this type no longer overrides it) calls moves.Default.Legal, which detects
+// the assembled plan and evaluates it instead of running the old imperative
+// chain below (kept only as legacyLegalMoveRevealCard, a private copy in
+// legal_golden_test.go, for golden-equivalence testing):
+//
+//	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+//		return err
+//	}
+//	game, players := concreteStates(state)
+//	p := players[game.CurrentPlayer.EnsureValid(state)]
+//	if p.CardsLeftToReveal < 1 {
+//		return errors.New("You have no cards left to reveal this turn")
+//	}
+//	c := game.HiddenCards.ImmutableComponentAt(m.CardIndex)
+//	if c == nil {
+//		if game.VisibleCards.ImmutableComponentAt(m.CardIndex) == nil {
+//			return errors.New("there is no card at that index")
+//		}
+//		return errors.New("that card has already been revealed")
+//	}
+//	return c.MayMoveToSlot(game.VisibleCards, m.CardIndex)
 
 func (m *moveRevealCard) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
@@ -80,6 +80,23 @@ func (m *moveRevealCard) Apply(state boardgame.State) error {
  *
  **************************************************/
 
+// moveStartHideCardsTimer stays fully imperative (spec §8's "hard-custom"
+// survey, and the brief's "if NO declarative gates apply naturally, leave
+// the move fully imperative/opaque and document why; do not force it"):
+// none of its three checks has a catalog builder — there is no stack-COUNT
+// predicate (VisibleCards.NumComponents() != 2), no Timer-state predicate
+// (HideCardsTimer.Active()), and no component-VALUE-compare predicate
+// (cardOneType == cardTwoType, the card-type match check). With zero
+// authored WithPreconditions candidates there is nothing to opt in with —
+// moves.WithPreconditions() with no natural specs would not satisfy
+// boardgame's "declaring is implementing" opt-in rule anyway (an empty
+// authored list is treated as not-opted-in, so CustomLegaler would never be
+// consulted even if implemented). Separately, this move also embeds
+// moves.FixUp, an unsupported v1-seam base type (design spec §2: only
+// moves.Default and moves.CurrentPlayer support declarative legality), so it
+// could not opt in even if a natural gate existed. Left byte-for-byte
+// unchanged from pre-Task-11.
+//
 //boardgame:codegen
 type moveStartHideCardsTimer struct {
 	moves.FixUp
@@ -135,6 +152,13 @@ func (m *moveStartHideCardsTimer) Apply(state boardgame.State) error {
  *
  **************************************************/
 
+// moveCaptureCards is memory's other hard-custom card-type comparison (spec
+// §8) — same rationale as moveStartHideCardsTimer just above: no catalog
+// stack-count or component-value-compare predicate exists, so there is no
+// natural WithPreconditions candidate to opt in with, and it embeds
+// moves.FixUp (unsupported v1 seam base type) regardless. Left byte-for-byte
+// unchanged from pre-Task-11.
+//
 //boardgame:codegen
 type moveCaptureCards struct {
 	moves.FixUp

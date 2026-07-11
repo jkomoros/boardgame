@@ -5,16 +5,27 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
-	memorygame "github.com/jkomoros/boardgame/examples/memory"
+	checkersgame "github.com/jkomoros/boardgame/examples/checkers"
 )
 
 /*
 This file is Task 10's frozen-wire test (spec §6's "prime guarantee",
-extended to the wire format): examples/memory has not opted in to
-declarative legality (that's Tasks 11/12), so EVERY one of its moves takes
-the opaque (legalFormOpaque) path through generateFormsWithLegality, and
-that path's output must be byte-identical to what the pre-Task-10 server
-produced.
+extended to the wire format): the fixture game used here has not opted in to
+declarative legality, so EVERY one of its moves takes the opaque
+(legalFormOpaque) path through generateFormsWithLegality, and that path's
+output must be byte-identical to what the pre-Task-10 server produced.
+
+Fixture choice (Task 11 update): this originally used examples/memory, which
+was accurate when written (Task 10, before any game had migrated). Task 11
+migrated memory's "Reveal Card" move to declarative legality (design spec
+§8), so memory is no longer a fully-opaque game and this test's own "None of
+memory's moves have opted in yet" assumption below would be false against
+it. Task 11's brief calls this out explicitly ("handle deliberately and
+document"): rather than weaken this test to special-case one opted-in move,
+the fixture was swapped to examples/checkers, which stays fully un-migrated
+until Task 12 and so keeps this test's original all-opaque guarantee intact
+and meaningful. (memory's own opted-in move now has its OWN golden-
+equivalence coverage instead — examples/memory/legal_golden_test.go.)
 
 There is no literal "before" JSON blob checked in here to diff against
 (this package had no test harness capable of building a real game before
@@ -48,13 +59,13 @@ func legalFormOpaqueExpected(move boardgame.Move, state boardgame.ImmutableState
 }
 
 func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
-	manager, err := boardgame.NewGameManager(memorygame.NewDelegate(), newLegalLedgerStorage())
+	manager, err := boardgame.NewGameManager(checkersgame.NewDelegate(), newLegalLedgerStorage())
 	if err != nil {
-		t.Fatalf("building memory manager: %v", err)
+		t.Fatalf("building checkers manager: %v", err)
 	}
 	game, err := manager.NewDefaultGame()
 	if err != nil {
-		t.Fatalf("building memory game: %v", err)
+		t.Fatalf("building checkers game: %v", err)
 	}
 
 	s := &Server{}
@@ -67,8 +78,9 @@ func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
 		}
 
 		for _, form := range forms {
-			// None of memory's moves have opted in yet -- every single one
-			// must take the frozen opaque path: no Preconditions at all.
+			// None of checkers' moves have opted in (as of Task 11; that's
+			// Task 12) -- every single one must take the frozen opaque path:
+			// no Preconditions at all.
 			if form.Preconditions != nil {
 				t.Errorf("player %d, move %q: opaque game produced a non-nil Preconditions ledger: %+v", playerIndex, form.Name, form.Preconditions)
 			}

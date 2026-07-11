@@ -15,6 +15,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -308,6 +309,16 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	revealCardConfig := auto.MustConfig(
 		new(moveRevealCard),
 		moves.WithHelpText("Reveals the card at the specified location"),
+		// Declarative migration (design spec §8's flagship acid test):
+		// Legal() is deleted (see moves.go); this plan replaces it exactly,
+		// in the same order the old imperative chain ran (CurrentPlayer's
+		// proposer check is contributed automatically, then these three in
+		// declaration order).
+		moves.WithPreconditions(
+			legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("reveal.no_cards_left"),
+			legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+			legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+		),
 	)
 
 	hideCardConfig := auto.MustConfig(
@@ -338,6 +349,23 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
 		),
 	)
+}
+
+// ConfigureLegalTemplates supplies the one game-specific template key
+// moveRevealCard's WithPreconditions plan overrides (design spec §8):
+// PropAtLeast's default message ("requires at least {min}...") is generic,
+// so the CardsLeftToReveal check overrides it with the exact legacy string
+// from the pre-migration Legal() body. RevealableCardAt and MayMoveToSlot's
+// Fail branches are NOT overridden here: legal.DefaultTemplates() already
+// carries "there is no card at that index" / "that card has already been
+// revealed" (legal.TemplateNoCardHere / legal.TemplateAlreadyRevealed)
+// verbatim, and MayMoveToSlot's default "{detail}" template passes through
+// the underlying MayMoveToSlot error text unchanged — both already match
+// the legacy strings byte-for-byte with no override needed.
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		"reveal.no_cards_left": "You have no cards left to reveal this turn",
+	}
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
