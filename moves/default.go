@@ -338,6 +338,28 @@ func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) b
 // return true.
 func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
+	// Declarative-legality seam (design spec "prime guarantee"). These two
+	// checks run FIRST THING and are pure sugar for un-opted-in moves:
+	//   1. The boot probe (rule 4): during NewGameManager, the engine calls
+	//      each opted-in move's Legal() against a probe. Reaching here proves
+	//      the move's declarations are reachable; we record that and return
+	//      nil immediately (the probe observes reachability, not a verdict).
+	//   2. The opt-in plan path: if this move type opted in via
+	//      WithPreconditions, its assembled plan REPLACES this frozen chain —
+	//      evaluated exactly once here, so a super-calling Legal() override
+	//      composes its own imperative residue around the plan without
+	//      double-evaluating the contributed atoms.
+	// For a move that did NOT opt in, both calls are cheap no-ops and control
+	// falls through to the byte-for-byte-unchanged frozen chain below.
+	if manager := state.Manager(); manager != nil {
+		if manager.LegalProbeActive() {
+			return nil
+		}
+		if handled, err := manager.LegalEvaluatePlan(d.Name(), state, d.TopLevelStruct(), proposer); handled {
+			return err
+		}
+	}
+
 	if err := d.legalInPhase(state); err != nil {
 		return err
 	}

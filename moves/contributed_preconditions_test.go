@@ -201,8 +201,19 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 			WithPreconditions(
 				legal.PropAtLeast("game.Counter", 1),
 			),
+			// Task 8 note: this second spec must reference a property that
+			// actually resolves, because as of Task 8 NewGameManager
+			// assembles and boot-validates the plan for every opted-in move
+			// (resolving paths against the example state). The original Task 7
+			// round-trip fixture used legal.PlayerBool("SeatFilled"), which
+			// worked only while declarations were inert; the shared moves-test
+			// playerState (game_test.go) carries no bool property, so that path
+			// now fails boot validation. player.Counter (an int on playerState)
+			// resolves, and a distinct predicate type still exercises the
+			// accumulate-across-WithPreconditions-calls behavior this test
+			// documents.
 			WithPreconditions(
-				legal.PlayerBool("SeatFilled"),
+				legal.PropCompare("player.Counter", ">=", 0),
 			),
 			WithoutPrecondition("proposerIsCurrentPlayer"),
 			WithoutPrecondition("stackConstraints"),
@@ -234,7 +245,7 @@ func TestWithPreconditionsRoundTrip(t *testing.T) {
 
 	assert.For(t, "declared spec count").ThatActual(len(specs)).Equals(2)
 	assert.For(t, "declared spec 0").ThatActual(specs[0].Name).Equals("propAtLeast")
-	assert.For(t, "declared spec 1").ThatActual(specs[1].Name).Equals("playerBool")
+	assert.For(t, "declared spec 1").ThatActual(specs[1].Name).Equals("propCompare")
 
 	assert.For(t, "suppression count").ThatActual(len(suppressions)).Equals(2)
 	assert.For(t, "suppression 0").ThatActual(suppressions[0]).Equals("proposerIsCurrentPlayer")
