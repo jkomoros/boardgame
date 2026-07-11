@@ -19,6 +19,13 @@ import (
 // among active players, with the wolf count derived from the ACTIVE
 // player count, closes that hole.
 //
+// Declarative-legality survey (design spec §8, Task 12): this move has no
+// Legal() override of its own (it relies entirely on moves.StartPhase's),
+// and moves.StartPhase is a v1-seam-unsupported base type (only
+// moves.Default/moves.CurrentPlayer support declarative legality) — see
+// this file's package-level survey summary at the bottom for the full
+// per-move-type table. Unaffected by this task.
+//
 //boardgame:codegen
 type moveBeginGame struct {
 	moves.StartPhase
@@ -67,6 +74,28 @@ func (m *moveBeginGame) Apply(state boardgame.State) error {
 // moveCastVote is a non-fixup move where a player votes for who to eliminate.
 // During the day phase, any alive player may vote. During the night phase,
 // only alive werewolves may vote.
+//
+// Declarative-legality survey (design spec §8, Task 12): this move embeds
+// moves.AnyPlayer, a v1-seam-unsupported base type (only
+// moves.Default/moves.CurrentPlayer support declarative legality — design
+// spec §2), so it cannot opt in via moves.WithPreconditions regardless of
+// whether a natural catalog gate exists for its checks. Worth recording
+// separately (the Task 12 brief specifically flagged this game's hidden-info
+// sanitization, #797): several of this move's checks — the night-phase
+// "only werewolves may act" gate in particular — read the PROPOSING
+// player's own Role, which carries behaviors.PlayerRole's default
+// `sanitize:"other:hidden"` tag (a role is hidden from OTHER players, not
+// from the player who holds it). Had a catalog gate been available and
+// natural here, its declared Reads would need to name a self-scoped
+// player.Role read, and the server ledger's ("evaluable" = every Read's
+// facet survives the viewer's sanitization policy) computation is
+// viewer-relative — a hidden field a player reads about THEMSELVES is a
+// different evaluability question than the same field read about another
+// player, and the ledger machinery built through Task 10 already
+// distinguishes player/admin/observer viewers for exactly this reason. This
+// move never reaches that question (the base-type block above is
+// dispositive on its own), so it's recorded here as a survey note, not
+// exercised. Left byte-for-byte unchanged from pre-Task-12.
 //
 //boardgame:codegen
 type moveCastVote struct {
@@ -134,6 +163,12 @@ func (m *moveCastVote) Apply(state boardgame.State) error {
 // moveResolveVotes is a fixup move that triggers when all eligible voters
 // have voted. It tallies votes, eliminates the target (if any), resets votes,
 // and transitions the phase.
+//
+// Declarative-legality survey (design spec §8, Task 12): this move embeds
+// moves.FixUp, a v1-seam-unsupported base type — see moveCastVote's doc
+// comment above for the full per-move-type rationale (all three of
+// werewolf's own move types are blocked the same way, by three DIFFERENT
+// unsupported base types). Left byte-for-byte unchanged from pre-Task-12.
 //
 //boardgame:codegen
 type moveResolveVotes struct {
