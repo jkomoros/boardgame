@@ -83,6 +83,52 @@ type moveForm struct {
 	LegalForPlayerError string `json:",omitempty"`
 	LegalForAnyone      bool   `json:",omitempty"`
 	IsGatheringStart    bool   `json:",omitempty"`
+	// Preconditions is the per-predicate declarative-legality ledger (design
+	// spec §6) for a move type that opted in to declarative legality
+	// (WithPreconditions). It is absent (nil, hence omitempty) for an opaque
+	// move — one with no assembled plan — so an un-migrated game's moveForm
+	// JSON is byte-identical to the pre-Task-10 shape.
+	Preconditions []preconditionEntry `json:",omitempty"`
+}
+
+// preconditionEntry is one predicate's line in a move's Preconditions ledger
+// (design spec §6's wire format), built from a boardgame.LegalVerdictEntry
+// by buildPreconditionEntry.
+type preconditionEntry struct {
+	// Name is the predicate's registry name ("any" for a compositor,
+	// "custom" for the CustomLegaler escape hatch).
+	Name string `json:"name"`
+	// Args are the predicate's string args (absent for compositors/custom).
+	Args []string `json:"args,omitempty"`
+	// Verdict is "pass", "fail", or "unknown".
+	Verdict string `json:"verdict"`
+	// Message carries the Fail/Unknown verdict's template key and (subject
+	// to the #693 guard below) its bindings. Absent on a Pass verdict.
+	Message *legalMessageJSON `json:"message,omitempty"`
+	// Evaluable reports whether a CLIENT (not just the server) could
+	// reproduce this entry's verdict: entry.Serializable AND every one of
+	// its declared Reads survives the requesting viewer's sanitization
+	// (design spec §6). An "any" compositor is evaluable iff every child
+	// is, automatically, since its Reads is already the union of its
+	// children's.
+	Evaluable bool `json:"evaluable"`
+	// Provisional marks a field-dependent verdict: it was computed against
+	// a server-chosen (DefaultsForState-bound) move, so a different choice
+	// of move field values could evaluate differently. Corresponds to
+	// LegalForPlayer's own "this could change once you fill out the form"
+	// caveat, at predicate granularity.
+	Provisional bool `json:"provisional,omitempty"`
+}
+
+// legalMessageJSON is the wire shape of a boardgame.LegalMessage: the
+// template key always ships, but Bindings is populated only when the #693
+// guard (buildPreconditionEntry) has confirmed the owning entry is
+// evaluable for the requesting viewer — bindings are derived from state a
+// less-privileged viewer may not be allowed to see, so an inevaluable
+// entry's Message carries its template key only.
+type legalMessageJSON struct {
+	Template string                                 `json:"template"`
+	Bindings map[string]boardgame.LegalBindingValue `json:"bindings,omitempty"`
 }
 
 type moveFormFieldType int
@@ -1484,17 +1530,22 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 	}
 
 	args := gin.H{
-		"Chest":           game.Manager().Chest(),
-		"Forms":           s.generateFormsWithLegality(game, state, playerIndex),
-		"Game":            gameJSON,
-		"Error":           s.lastErrorMessage,
-		"Players":         s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
-		"ViewingAsPlayer": playerIndex,
-		"HasEmptySlots":   hasEmptySlots,
-		"GameOpen":        gameInfo.Open,
-		"GameVisible":     gameInfo.Visible,
-		"IsOwner":         isOwner,
-		"CompanionInfo":   companionInfo,
+		"Chest": game.Manager().Chest(),
+		// LegalCatalogVersion stamps the shape of the Preconditions ledger
+		// (design spec §6): a client with an older bundled catalog treats
+		// unknown predicate names as evaluable:false and defers to the
+		// server's own verdicts rather than mis-evaluating them itself.
+		"LegalCatalogVersion": boardgame.LegalCatalogVersion,
+		"Forms":               s.generateFormsWithLegality(game, state, playerIndex),
+		"Game":                gameJSON,
+		"Error":               s.lastErrorMessage,
+		"Players":             s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
+		"ViewingAsPlayer":     playerIndex,
+		"HasEmptySlots":       hasEmptySlots,
+		"GameOpen":            gameInfo.Open,
+		"GameVisible":         gameInfo.Visible,
+		"IsOwner":             isOwner,
+		"CompanionInfo":       companionInfo,
 		//The StateVersion is almost always the Game.Version, except in the
 		//special case described above where lots of fix up moves have been
 		//applied but no player moves yet. State blobs used to include their own
@@ -1591,8 +1642,19 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 // information for each move against the given state and player. This tells the
 // client which moves are currently legal (for enabling/disabling buttons) and
 // which are structurally possible (for showing/hiding buttons).
+//
+// Two paths, per move type (design spec §6, Task 10):
+//
+//   - Opaque (no assembled plan): the frozen two-Legal()-call path, byte-
+//     identical to the pre-Task-10 server — see legalFormOpaque.
+//   - Opted-in (WithPreconditions): ONE full-ledger evaluation
+//     (GameManager.LegalEvaluateLedger) replaces both Legal() calls — see
+//     legalFormFromLedger, including its doc comment on how LegalForAnyone
+//     is derived from a single ledger pass instead of a second evaluation.
 func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex) []*moveForm {
 	var result []*moveForm
+
+	manager := game.Manager()
 
 	for _, move := range game.Moves() {
 		if base.IsFixUp(move) {
@@ -1608,24 +1670,159 @@ func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame
 			moveItem.IsGatheringStart = true
 		}
 
-		// Legality for viewing player
-		if playerIndex != boardgame.ObserverPlayerIndex {
-			if err := move.Legal(state, playerIndex); err != nil {
-				moveItem.LegalForPlayerError = err.Error()
-			} else {
-				moveItem.LegalForPlayer = true
-			}
-		}
-
-		// Structural legality (admin bypasses proposer checks)
-		if err := move.Legal(state, boardgame.AdminPlayerIndex); err == nil {
-			moveItem.LegalForAnyone = true
+		if verdict, entries, opted := manager.LegalEvaluateLedger(moveItem.Name, state, move, playerIndex); opted {
+			legalFormFromLedger(moveItem, manager, state, playerIndex, verdict, entries)
+		} else {
+			legalFormOpaque(moveItem, move, state, playerIndex)
 		}
 
 		result = append(result, moveItem)
 	}
 
 	return result
+}
+
+// legalFormOpaque fills in moveItem's legacy legality fields for an opaque
+// (non-opted-in) move via the original two-Legal()-call path. This is
+// deliberately untouched by Task 10: an un-migrated move's moveForm JSON —
+// LegalForPlayer/LegalForPlayerError/LegalForAnyone, and the ABSENCE of
+// Preconditions (nil, omitempty) — must be byte-identical to what this
+// server produced before the declarative-legality ledger existed.
+func legalFormOpaque(moveItem *moveForm, move boardgame.Move, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex) {
+	// Legality for viewing player
+	if playerIndex != boardgame.ObserverPlayerIndex {
+		if err := move.Legal(state, playerIndex); err != nil {
+			moveItem.LegalForPlayerError = err.Error()
+		} else {
+			moveItem.LegalForPlayer = true
+		}
+	}
+
+	// Structural legality (admin bypasses proposer checks)
+	if err := move.Legal(state, boardgame.AdminPlayerIndex); err == nil {
+		moveItem.LegalForAnyone = true
+	}
+}
+
+// legalFormFromLedger fills in moveItem's legality fields for an opted-in
+// move from a SINGLE full-ledger evaluation (verdict/entries, already
+// computed with proposer=playerIndex by the caller), replacing the two
+// Legal() calls legalFormOpaque makes for an un-migrated move.
+//
+//   - Preconditions is every entry, each converted to the wire shape by
+//     buildPreconditionEntry (viewer = playerIndex: the ledger's evaluable/
+//     #693-guard computation is about what THIS RESPONSE'S RECIPIENT may
+//     see, independent of which proposer the verdicts were evaluated
+//     against).
+//   - LegalForPlayer/LegalForPlayerError is verdict itself, rendered via
+//     manager's template table (LegalRenderVerdict) so the text
+//     byte-matches what move.Legal(state, playerIndex) would have
+//     returned — see legalPlan.evaluate's doc comment for why full-ledger
+//     mode's overall verdict is the same first-non-Pass verdict the
+//     hot-path short-circuit evaluation would compute.
+//   - LegalForAnyone is derived from entries directly (legalForAnyoneFromLedger)
+//     rather than a second Legal(state, AdminPlayerIndex) call: see that
+//     function's doc comment for why exempting only the
+//     proposerIsCurrentPlayer entry's verdict is equivalent to actually
+//     re-evaluating with proposer=AdminPlayerIndex.
+func legalFormFromLedger(moveItem *moveForm, manager *boardgame.GameManager, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex, verdict boardgame.LegalVerdict, entries []boardgame.LegalVerdictEntry) {
+	preconditions := make([]preconditionEntry, len(entries))
+	for i, entry := range entries {
+		preconditions[i] = buildPreconditionEntry(state, playerIndex, entry)
+	}
+	moveItem.Preconditions = preconditions
+
+	if playerIndex != boardgame.ObserverPlayerIndex {
+		if verdict.Outcome == boardgame.LegalPass {
+			moveItem.LegalForPlayer = true
+		} else {
+			moveItem.LegalForPlayerError = manager.LegalRenderVerdict(verdict)
+		}
+	}
+
+	moveItem.LegalForAnyone = legalForAnyoneFromLedger(entries)
+}
+
+// legalProposerAtomName is the registry name of the one catalog predicate
+// (legal.ProposerIsCurrentPlayer, contributed by moves.CurrentPlayer) whose
+// Evaluate reads ctx.Proposer directly — see legalForAnyoneFromLedger.
+const legalProposerAtomName = "proposerIsCurrentPlayer"
+
+// legalForAnyoneFromLedger derives the "structurally legal" (admin-
+// perspective) verdict from entries — a full-ledger evaluation run with
+// proposer=playerIndex — without a second full evaluation pass at
+// proposer=AdminPlayerIndex. This mirrors the original
+// "move.Legal(state, boardgame.AdminPlayerIndex)" call's own comment,
+// "admin bypasses proposer checks": every catalog predicate other than
+// proposerIsCurrentPlayer (legal/catalog_players.go) never reads
+// ctx.Proposer at all, so re-evaluating them at proposer=Admin would
+// reproduce IDENTICAL verdicts to what entries already holds; only
+// proposerIsCurrentPlayer's verdict would change, because
+// boardgame.PlayerIndex.Equivalent treats AdminPlayerIndex as a wildcard
+// equal to any concrete player, which makes that one predicate PASS
+// unconditionally under an admin proposer. So "ignore this one entry,
+// require every other to have passed" is exactly the answer a second
+// Legal(state, AdminPlayerIndex) call would have given — for any move
+// built on Default/CurrentPlayer (v1's only supported opt-in bases; see
+// design spec §2), the only place ctx.Proposer can matter at all.
+func legalForAnyoneFromLedger(entries []boardgame.LegalVerdictEntry) bool {
+	for _, entry := range entries {
+		if entry.Name == legalProposerAtomName {
+			continue
+		}
+		if entry.Verdict.Outcome != boardgame.LegalPass {
+			return false
+		}
+	}
+	return true
+}
+
+// buildPreconditionEntry converts one boardgame.LegalVerdictEntry into its
+// wire shape for viewer (design spec §6): Verdict as a lowercase string,
+// Evaluable per the entry.Serializable ∧ every-Read-survives-sanitization
+// formula (boardgame.LegalReadsEvaluable), Provisional mirroring
+// entry.FieldDependent, and Message — present only for a non-Pass verdict —
+// with Bindings stripped whenever Evaluable is false (the #693 guard: a
+// verdict a viewer cannot independently confirm must not leak the state
+// values that produced it, only the template key naming WHY it failed).
+func buildPreconditionEntry(state boardgame.ImmutableState, viewer boardgame.PlayerIndex, entry boardgame.LegalVerdictEntry) preconditionEntry {
+	evaluable := entry.Serializable && boardgame.LegalReadsEvaluable(state, viewer, entry.Reads)
+
+	out := preconditionEntry{
+		Name:        entry.Name,
+		Args:        entry.Args,
+		Verdict:     legalVerdictString(entry.Verdict.Outcome),
+		Evaluable:   evaluable,
+		Provisional: entry.FieldDependent,
+	}
+
+	if msg := entry.Verdict.Message; msg != nil {
+		rendered := &legalMessageJSON{Template: msg.Template}
+		// #693 guard: bindings are derived from state; only ship them when
+		// the viewer could have derived the same verdict themselves.
+		if evaluable {
+			rendered.Bindings = msg.Bindings
+		}
+		out.Message = rendered
+	}
+
+	return out
+}
+
+// legalVerdictString renders a boardgame.LegalOutcome as the wire format's
+// lowercase verdict string (design spec §6: "pass"|"fail"|"unknown"). The
+// zero-value/invalid outcome (which evalLegalPredicate's fail-closed
+// guarantees should never actually reach the ledger) also renders as
+// "unknown" rather than panicking or emitting an empty string.
+func legalVerdictString(o boardgame.LegalOutcome) string {
+	switch o {
+	case boardgame.LegalPass:
+		return "pass"
+	case boardgame.LegalFail:
+		return "fail"
+	default:
+		return "unknown"
+	}
 }
 
 func formFields(move boardgame.Move) []*moveFormField {

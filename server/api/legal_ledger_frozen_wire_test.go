@@ -1,0 +1,111 @@
+package api
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/jkomoros/boardgame"
+	memorygame "github.com/jkomoros/boardgame/examples/memory"
+)
+
+/*
+This file is Task 10's frozen-wire test (spec §6's "prime guarantee",
+extended to the wire format): examples/memory has not opted in to
+declarative legality (that's Tasks 11/12), so EVERY one of its moves takes
+the opaque (legalFormOpaque) path through generateFormsWithLegality, and
+that path's output must be byte-identical to what the pre-Task-10 server
+produced.
+
+There is no literal "before" JSON blob checked in here to diff against
+(this package had no test harness capable of building a real game before
+this task), so byte-identity is proven differentially instead, which is
+actually the stronger guarantee: legalFormOpaqueExpected below
+re-implements the OLD two-move.Legal()-call logic independently, at test
+time, against the SAME live game/state generateFormsWithLegality itself
+uses. If legalFormOpaque (main.go) ever drifted from that logic, this test
+would catch it even without a pre-recorded fixture.
+*/
+
+// legalFormOpaqueExpected independently recomputes what the pre-Task-10
+// generateFormsWithLegality would have produced for one move, by calling
+// move.Legal() exactly the way the old code did (two calls: playerIndex,
+// then AdminPlayerIndex). It deliberately does NOT call any Task-10
+// production code (legalFormOpaque/legalFormFromLedger/buildPreconditionEntry) --
+// it is the independent oracle those functions are checked against.
+func legalFormOpaqueExpected(move boardgame.Move, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex) *moveForm {
+	item := &moveForm{}
+	if playerIndex != boardgame.ObserverPlayerIndex {
+		if err := move.Legal(state, playerIndex); err != nil {
+			item.LegalForPlayerError = err.Error()
+		} else {
+			item.LegalForPlayer = true
+		}
+	}
+	if err := move.Legal(state, boardgame.AdminPlayerIndex); err == nil {
+		item.LegalForAnyone = true
+	}
+	return item
+}
+
+func TestGenerateFormsWithLegalityOpaqueGameByteIdentical(t *testing.T) {
+	manager, err := boardgame.NewGameManager(memorygame.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("building memory manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("building memory game: %v", err)
+	}
+
+	s := &Server{}
+	state := game.CurrentState()
+
+	for _, playerIndex := range []boardgame.PlayerIndex{0, 1, boardgame.ObserverPlayerIndex} {
+		forms := s.generateFormsWithLegality(game, state, playerIndex)
+		if len(forms) == 0 {
+			t.Fatalf("expected at least one move form for player %d", playerIndex)
+		}
+
+		for _, form := range forms {
+			// None of memory's moves have opted in yet -- every single one
+			// must take the frozen opaque path: no Preconditions at all.
+			if form.Preconditions != nil {
+				t.Errorf("player %d, move %q: opaque game produced a non-nil Preconditions ledger: %+v", playerIndex, form.Name, form.Preconditions)
+			}
+
+			move := game.MoveByName(form.Name)
+			if move == nil {
+				t.Fatalf("player %d: could not re-look-up move %q", playerIndex, form.Name)
+			}
+			expected := legalFormOpaqueExpected(move, state, playerIndex)
+
+			if form.LegalForPlayer != expected.LegalForPlayer {
+				t.Errorf("player %d, move %q: LegalForPlayer = %v, want %v", playerIndex, form.Name, form.LegalForPlayer, expected.LegalForPlayer)
+			}
+			if form.LegalForPlayerError != expected.LegalForPlayerError {
+				t.Errorf("player %d, move %q: LegalForPlayerError = %q, want %q", playerIndex, form.Name, form.LegalForPlayerError, expected.LegalForPlayerError)
+			}
+			if form.LegalForAnyone != expected.LegalForAnyone {
+				t.Errorf("player %d, move %q: LegalForAnyone = %v, want %v", playerIndex, form.Name, form.LegalForAnyone, expected.LegalForAnyone)
+			}
+		}
+
+		// The JSON wire form itself must never carry a "Preconditions" key
+		// for any of these moves (omitempty on a nil slice) -- the actual
+		// byte-identity guarantee, checked at the JSON boundary rather than
+		// just the Go struct.
+		data, err := json.Marshal(forms)
+		if err != nil {
+			t.Fatalf("player %d: marshal error: %v", playerIndex, err)
+		}
+		var raw []map[string]interface{}
+		if err := json.Unmarshal(data, &raw); err != nil {
+			t.Fatalf("player %d: unmarshal error: %v", playerIndex, err)
+		}
+		for _, entry := range raw {
+			if _, ok := entry["Preconditions"]; ok {
+				t.Errorf("player %d: JSON move form %v carries a Preconditions key on an opaque game", playerIndex, entry["Name"])
+			}
+		}
+	}
+}

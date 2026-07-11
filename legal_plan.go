@@ -325,6 +325,61 @@ func (g *GameManager) LegalEvaluatePlan(moveName string, state ImmutableState, m
 	return true, err
 }
 
+// LegalEvaluateLedger is engine-internal plumbing the server ledger (design
+// spec §6, Task 10) calls to get every predicate's individual verdict for an
+// opted-in move type in ONE evaluation pass, replacing the two separate
+// Legal() calls (player-perspective + admin-structural) the pre-Task-10
+// server made. If moveName is opted in (a plan was assembled for it at
+// boot), it runs full-ledger evaluation against (state, move, proposer) and
+// returns (verdict, entries, true). verdict is computed with the exact same
+// first-non-Pass semantics LegalEvaluatePlan's hot-path short-circuit mode
+// uses (see legalPlan.evaluate's doc comment: fullLedger mode still latches
+// onto the FIRST non-Pass verdict encountered, in plan order, even though it
+// keeps evaluating every remaining predicate for the ledger) — so rendering
+// verdict through LegalRenderVerdict reproduces move.Legal()'s error text
+// byte-for-byte for the same (state, move, proposer). Otherwise (moveName is
+// opaque) it returns (LegalVerdict{}, nil, false) and the caller must fall
+// back to the move's imperative Legal() path — the frozen two-call path Task
+// 10 leaves untouched for non-opted-in moves.
+func (g *GameManager) LegalEvaluateLedger(moveName string, state ImmutableState, move Move, proposer PlayerIndex) (LegalVerdict, []LegalVerdictEntry, bool) {
+	if g.legalPlans == nil {
+		return LegalVerdict{}, nil, false
+	}
+	plan := g.legalPlans[moveName]
+	if plan == nil {
+		return LegalVerdict{}, nil, false
+	}
+
+	ctx := LegalContext{
+		State:    state,
+		Move:     move,
+		Proposer: proposer,
+		Chest:    g.chest,
+	}
+	verdict, entries := plan.evaluate(ctx, true)
+	return verdict, entries, true
+}
+
+// LegalRenderVerdict renders v into the same error text move.Legal() itself
+// would produce for the equivalent verdict: v.Error() (LegalError, for any
+// non-Pass Outcome) attached to this manager's own merged legal template
+// table, exactly as LegalEvaluatePlan attaches it before returning. Returns
+// "" for a Pass verdict (v.Error() is a true nil interface — see
+// LegalVerdict.Error()'s doc comment — so there is nothing to render). This
+// is what lets the server ledger derive LegalForPlayerError/LegalForAnyone's
+// rendered text from a LegalEvaluateLedger verdict without this package
+// exposing legalTemplateTable itself.
+func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
+	err := v.Error()
+	if err == nil {
+		return ""
+	}
+	if le, ok := err.(*LegalError); ok {
+		return le.AttachTable(g.legalTemplateTable).Error()
+	}
+	return err.Error()
+}
+
 // assembleLegalPlans is called once at the end of NewGameManager (after moves
 // are installed and the example state exists). For every installed move type
 // that has opted in to declarative legality (declares WithPreconditions), it

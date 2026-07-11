@@ -6,6 +6,18 @@ import (
 	"math"
 )
 
+// LegalCatalogVersion stamps the shape of the declarative-legality wire
+// format the server ledger ships (design spec §6: "A catalogVersion stamp
+// ships with the ledger; a client with an older catalog treats unknown
+// predicate names as evaluable: false and defers to server verdicts
+// (graceful skew)"). It has no relationship to the module/package version —
+// it is bumped only when the CATALOG (predicate names/args shapes, the
+// PreconditionEntry wire shape itself) changes in a way an older client's
+// evaluator couldn't safely interpret. Consumers: server/api's info
+// response ships it as LegalCatalogVersion; a future TS evaluator reads it
+// to decide whether it trusts its own bundled catalog for this game.
+const LegalCatalogVersion = 1
+
 // LegalOutcome is the three-valued verdict returned by legality evaluation.
 // The zero value is deliberately invalid (neither LegalPass, LegalFail, nor
 // LegalUnknown) so that a forgotten or zero-initialized LegalVerdict fails
