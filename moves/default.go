@@ -10,6 +10,7 @@ import (
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 //go:generate boardgame-util codegen
@@ -526,7 +527,16 @@ func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, propose
 		Name: d.Name(),
 	})
 
-	return matchTape(group, movesToNames(historicalMoves))
+	// ctx carries state/proposer to matchTape so a StatefulMoveProgressionGroup
+	// (e.g. RepeatFromProp, #644) anywhere in group's tree can resolve a
+	// state-driven count — see groups.go's StatefulMoveProgressionGroup and
+	// design spec §7's "named plumbing change". Move/Chest are left zero:
+	// move-tape matching has never needed them, and the legal.Read this
+	// package declares for "inProgression" (catalog_framework.go) doesn't
+	// include any move.* path.
+	ctx := legal.Context{State: state, Proposer: proposer}
+
+	return matchTape(group, movesToNames(historicalMoves), ctx)
 
 }
 
@@ -562,11 +572,17 @@ func movesToNames(moves []*boardgame.MoveStorageRecord) []string {
 	return result
 }
 
-func matchTape(group MoveProgressionGroup, historicalMoves []string) error {
+// matchTape walks group against the tape built from historicalMoves, via
+// satisfiedDispatch(group, tapeStart, ctx) — so a StatefulMoveProgressionGroup
+// (e.g. RepeatFromProp, #644) anywhere in group's tree receives ctx, while a
+// plain MoveProgressionGroup (everything before this task, and any
+// third-party group) is evaluated exactly as before. See groups.go's
+// StatefulMoveProgressionGroup doc comment for the full rationale.
+func matchTape(group MoveProgressionGroup, historicalMoves []string, ctx legal.Context) error {
 
 	tapeStart := makeTape(historicalMoves)
 
-	rest, err := group.Satisfied(tapeStart)
+	rest, err := satisfiedDispatch(group, tapeStart, ctx)
 
 	defaultErr := errors.NewFriendly("The move was not legal at this phase in the progression")
 

@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 /*
@@ -83,6 +84,27 @@ func (p parallelCount) MoveConfigs() []boardgame.MoveConfig {
 }
 
 func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
+	return p.satisfied(tape, func(group MoveProgressionGroup, tapeHead *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
+		return group.Satisfied(tapeHead)
+	})
+}
+
+// SatisfiedWithContext implements StatefulMoveProgressionGroup: identical to
+// Satisfied, except each child is evaluated via satisfiedDispatch(child,
+// tapeHead, ctx) instead of child.Satisfied(tapeHead) directly, so a
+// state-driven child (e.g. RepeatFromProp) nested anywhere inside this
+// Parallel/ParallelCount still receives ctx. See groups.go's
+// StatefulMoveProgressionGroup doc comment.
+func (p parallelCount) SatisfiedWithContext(tape *MoveGroupHistoryItem, ctx legal.Context) (*MoveGroupHistoryItem, error) {
+	return p.satisfied(tape, func(group MoveProgressionGroup, tapeHead *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
+		return satisfiedDispatch(group, tapeHead, ctx)
+	})
+}
+
+// satisfied is the shared walk both Satisfied and SatisfiedWithContext use;
+// evalChild is how each child group is asked whether it's satisfied
+// (context-free for Satisfied, context-aware for SatisfiedWithContext).
+func (p parallelCount) satisfied(tape *MoveGroupHistoryItem, evalChild func(group MoveProgressionGroup, tapeHead *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error)) (*MoveGroupHistoryItem, error) {
 	tapeHead := tape
 
 	//Keep track of items that have matched, by index into self.
@@ -109,7 +131,7 @@ func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryI
 				continue
 			}
 
-			rest, err := group.Satisfied(tapeHead)
+			rest, err := evalChild(group, tapeHead)
 
 			if err != nil {
 				//That one didn't work

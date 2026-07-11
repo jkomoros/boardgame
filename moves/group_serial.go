@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 /*
@@ -26,6 +27,27 @@ func (s serial) MoveConfigs() []boardgame.MoveConfig {
 }
 
 func (s serial) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
+	return s.satisfied(tape, func(group MoveProgressionGroup, tapeHead *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
+		return group.Satisfied(tapeHead)
+	})
+}
+
+// SatisfiedWithContext implements StatefulMoveProgressionGroup: identical to
+// Satisfied, except each child is evaluated via satisfiedDispatch(child,
+// tapeHead, ctx) instead of child.Satisfied(tapeHead) directly, so a
+// state-driven child (e.g. RepeatFromProp) nested anywhere inside this
+// Serial still receives ctx. See groups.go's StatefulMoveProgressionGroup
+// doc comment.
+func (s serial) SatisfiedWithContext(tape *MoveGroupHistoryItem, ctx legal.Context) (*MoveGroupHistoryItem, error) {
+	return s.satisfied(tape, func(group MoveProgressionGroup, tapeHead *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error) {
+		return satisfiedDispatch(group, tapeHead, ctx)
+	})
+}
+
+// satisfied is the shared walk both Satisfied and SatisfiedWithContext use;
+// evalChild is how each child group is asked whether it's satisfied
+// (context-free for Satisfied, context-aware for SatisfiedWithContext).
+func (s serial) satisfied(tape *MoveGroupHistoryItem, evalChild func(group MoveProgressionGroup, tapeHead *MoveGroupHistoryItem) (*MoveGroupHistoryItem, error)) (*MoveGroupHistoryItem, error) {
 
 	tapeHead := tape
 
@@ -35,7 +57,7 @@ func (s serial) Satisfied(tape *MoveGroupHistoryItem) (*MoveGroupHistoryItem, er
 			return nil, nil
 		}
 
-		rest, err := group.Satisfied(tapeHead)
+		rest, err := evalChild(group, tapeHead)
 		if err != nil {
 			return tape, err
 		}
