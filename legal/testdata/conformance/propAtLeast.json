@@ -1,0 +1,29 @@
+{
+  "predicate": "propAtLeast",
+  "cases": [
+    {
+      "spec": {"name": "propAtLeast", "args": ["player.CardsLeftToReveal", "1"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propAtLeast", "args": ["player.CardsLeftToReveal", "1"]},
+      "fixture": "memoryZeroCardsLeft",
+      "proposer": 0,
+      "expect": "fail"
+    },
+    {
+      "spec": {"name": "propAtLeast", "args": ["game.NumCards", "1"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propAtLeast", "args": ["game.NoSuchIntProp", "1"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

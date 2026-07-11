@@ -1,0 +1,23 @@
+{
+  "predicate": "playerBool",
+  "cases": [
+    {
+      "spec": {"name": "playerBool", "args": ["SeatFilled"]},
+      "fixture": "memorySeatFilled",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "playerBool", "args": ["SeatFilled"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail"
+    },
+    {
+      "spec": {"name": "playerBool", "args": ["NoSuchBoolProp"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

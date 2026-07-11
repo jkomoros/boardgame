@@ -1,0 +1,29 @@
+{
+  "predicate": "mayMoveToSlot",
+  "cases": [
+    {
+      "spec": {"name": "mayMoveToSlot", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "mayMoveToSlot", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryVisibleOccupied",
+      "proposer": 0,
+      "expect": "fail"
+    },
+    {
+      "spec": {"name": "mayMoveToSlot", "args": ["game.VisibleCards", "game.HiddenCards", "move.CardIndex"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail"
+    },
+    {
+      "spec": {"name": "mayMoveToSlot", "args": ["game.HiddenCards", "game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

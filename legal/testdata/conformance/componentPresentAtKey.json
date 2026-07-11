@@ -1,0 +1,23 @@
+{
+  "predicate": "componentPresentAtKey",
+  "cases": [
+    {
+      "spec": {"name": "componentPresentAtKey", "args": ["game.Spaces", "move.TokenIndexToMove"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "componentPresentAtKey", "args": ["game.Spaces", "move.TokenIndexToMove"]},
+      "fixture": "checkersEmptySpace",
+      "proposer": 0,
+      "expect": "fail"
+    },
+    {
+      "spec": {"name": "componentPresentAtKey", "args": ["game.Spaces", "move.TokenIndexToMove"]},
+      "fixture": "checkersNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}
