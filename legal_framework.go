@@ -52,6 +52,34 @@ func legalCurrentPhaseInfo(state ImmutableState) (enum.ImmutableVal, enum.EnumKe
 	return val, val.Value()
 }
 
+// legalCurrentPhaseAncestors returns state's current phase together with all
+// of its TreeEnum ancestors (enum.TreeEnum.Ancestors is self-inclusive), or
+// a single-element slice holding just the current phase if the phase enum is
+// not a TreeEnum (or no phase is configured at all, in which case the single
+// element is the zero EnumKey). This is the exact "totalCurrentPhases"
+// computation LegalInPhaseCheck uses to decide phase membership, extracted
+// so legal_index.go's phase-bucketing lookup (design spec §5) can query the
+// index with identical ancestor semantics — a move whose inPhase atom names
+// an ANCESTOR phase is legal in every descendant phase too, and the index
+// lookup must agree with LegalInPhaseCheck about that or the superset
+// property breaks.
+func legalCurrentPhaseAncestors(state ImmutableState) []enum.EnumKey {
+	currentPhaseVal, currentPhase := legalCurrentPhaseInfo(state)
+
+	var treeEnum enum.TreeEnum
+	if currentPhaseVal != nil {
+		if e := currentPhaseVal.Enum(); e != nil {
+			treeEnum = e.TreeEnum()
+		}
+	}
+
+	if treeEnum != nil {
+		return treeEnum.Ancestors(currentPhase)
+	}
+
+	return []enum.EnumKey{currentPhase}
+}
+
 // LegalInPhaseCheck reports whether state's current phase (per the game's
 // delegate) is one of legalPhases, walking TreeEnum ancestors exactly like
 // moves.Default.Legal() always has. A zero-length legalPhases is legal in
@@ -71,22 +99,9 @@ func LegalInPhaseCheck(state ImmutableState, legalPhases []enum.EnumKey) error {
 
 	currentPhaseVal, currentPhase := legalCurrentPhaseInfo(state)
 
-	var treeEnum enum.TreeEnum
-	if currentPhaseVal != nil {
-		if e := currentPhaseVal.Enum(); e != nil {
-			treeEnum = e.TreeEnum()
-		}
-	}
-
 	//totalCurrentPhases is all of the current phases we could be considered
-	//to be in. Defaults to an []EnumKey with just the current phase.
-	totalCurrentPhases := []enum.EnumKey{currentPhase}
-
-	if treeEnum != nil {
-		//If PhaseEnum is a tree, then the phase we're in for this purpose is
-		//all ancestor phases.
-		totalCurrentPhases = treeEnum.Ancestors(currentPhase)
-	}
+	//to be in.
+	totalCurrentPhases := legalCurrentPhaseAncestors(state)
 
 	for _, phase := range legalPhases {
 		for _, candidateCurrentPhase := range totalCurrentPhases {
