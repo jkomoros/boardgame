@@ -1,9 +1,11 @@
 package api
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/jkomoros/boardgame"
+	tictactoe "github.com/jkomoros/boardgame/examples/tictactoe"
 )
 
 // TestLegalMoveFormPreviewMatchesMoveLegalAndDoesNotApply pins the two core
@@ -73,7 +75,7 @@ func TestLegalMoveFormsBatch(t *testing.T) {
 		if m == nil {
 			t.Fatalf("could not find move %q", moveType)
 		}
-		if err := bindMoveFields(m, func(n string) string { return args[n] }); err != nil {
+		if err := bindMoveFields(m, func(n string) (string, bool) { v, ok := args[n]; return v, ok }); err != nil {
 			t.Fatalf("independent bind of %q failed: %v", moveType, err)
 		}
 		legalErr := m.Legal(state, proposer)
@@ -166,4 +168,87 @@ func TestLegalMoveFormsBatch(t *testing.T) {
 			t.Fatalf("expected a whole-batch error for an invalid move type, got results %#v", results)
 		}
 	})
+}
+
+// TestLegalMoveFormsBatchRealTictactoeGame runs the batch preview against a REAL
+// example game (not the synthetic fixture) to prove it composes with real move
+// legality end-to-end: the tictactoe "Place Token" move embeds moves.CurrentPlayer
+// (so its TargetPlayerIndex field is set by DefaultsForState) and gates on
+// LegalCustom (token availability + MayMoveToSlot). Candidates supply only the
+// varying Slot and rely on TargetPlayerIndex's default — exactly what the client
+// board (previewSpec) does. Also pins that batch legality equals move.Legal and
+// that previewing never advances the game.
+func TestLegalMoveFormsBatchRealTictactoeGame(t *testing.T) {
+	manager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("building tictactoe manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("building tictactoe game: %v", err)
+	}
+
+	s := &Server{}
+	state := game.CurrentState()
+	const moveType = "Place Token"
+	if game.MoveByName(moveType) == nil {
+		t.Fatalf("tictactoe has no %q move (auto-name changed?)", moveType)
+	}
+	current := state.CurrentPlayerIndex()
+	versionBefore := game.Version()
+
+	// One candidate per board slot, supplying ONLY the varying Slot — the batch
+	// keeps TargetPlayerIndex at its DefaultsForState value (the current player).
+	candidates := make([]movePreviewBatchCandidate, 9)
+	for i := range candidates {
+		candidates[i] = movePreviewBatchCandidate{Args: map[string]string{"Slot": strconv.Itoa(i)}}
+	}
+
+	// As the current player, the empty board is fully open — every slot legal.
+	curResults, err := s.legalMoveFormsBatch(game, state, moveType, candidates, current)
+	if err != nil {
+		t.Fatalf("batch as current player: %v", err)
+	}
+	for i, r := range curResults {
+		if !r.Legal {
+			t.Errorf("current player, slot %d: Legal=false (%q); an empty board should be fully open (default TargetPlayerIndex must fill in)", i, r.Error)
+		}
+	}
+
+	// Parity: each batch verdict equals the authoritative move.Legal for a move
+	// bound the same way (Slot only, default TargetPlayerIndex).
+	for i := range candidates {
+		m := game.MoveByName(moveType)
+		slot := candidates[i].Args["Slot"]
+		if err := bindMoveFields(m, func(name string) (string, bool) {
+			if name == "Slot" {
+				return slot, true
+			}
+			return "", false
+		}); err != nil {
+			t.Fatalf("independent bind of slot %d: %v", i, err)
+		}
+		if want := m.Legal(state, current) == nil; curResults[i].Legal != want {
+			t.Errorf("slot %d: batch Legal=%v, want %v (move.Legal parity)", i, curResults[i].Legal, want)
+		}
+	}
+
+	// As a non-current player it isn't their turn, so the whole board grays.
+	other := boardgame.PlayerIndex(1)
+	if other == current {
+		other = boardgame.PlayerIndex(0)
+	}
+	otherResults, err := s.legalMoveFormsBatch(game, state, moveType, candidates, other)
+	if err != nil {
+		t.Fatalf("batch as non-current player: %v", err)
+	}
+	for i, r := range otherResults {
+		if r.Legal {
+			t.Errorf("non-current player %d, slot %d: Legal=true; expected illegal (not their turn)", other, i)
+		}
+	}
+
+	if got := game.Version(); got != versionBefore {
+		t.Errorf("batch preview advanced a real game's version %d -> %d; must never apply", versionBefore, got)
+	}
 }

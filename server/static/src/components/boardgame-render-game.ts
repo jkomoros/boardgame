@@ -4,6 +4,8 @@ import './boardgame-component-animator.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
+import { movePreviewBatch } from '../api.js';
+import { disabledSpacesFromResults, type MovePreviewSpec } from '../legal/previewLegality.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 
@@ -226,6 +228,17 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('state')) {
       this._stateChanged(this.state, changedProperties.get('state') as any);
+    }
+
+    // Refresh the board's target-legality preview when anything it depends on
+    // moves: the game state, the move forms (which move types exist / are
+    // legal), or who we're viewing as. Debounced + coalesced in the scheduler.
+    if (
+      changedProperties.has('state') ||
+      changedProperties.has('moveForms') ||
+      changedProperties.has('viewingAsPlayer')
+    ) {
+      this._scheduleRefreshPreview();
     }
 
     if (changedProperties.has('companionInfo')) {
@@ -508,6 +521,65 @@ class BoardgameRenderGame extends LitElement {
     (this.renderer as any).moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
   }
 
+  // Board legality preview (movePreviewBatch). Kept view-local rather than in
+  // Redux: preview results are ephemeral, tied to the exact candidate set of the
+  // current head state, and consumed only by the renderer — putting them in the
+  // store would add a slice plus staleness/keying concerns for no shared
+  // consumer. _previewTimer debounces bursts of state/turn changes into one
+  // request; _previewSeq drops a response the game has already moved past.
+  private _previewTimer: ReturnType<typeof setTimeout> | null = null;
+  private _previewSeq = 0;
+
+  private _scheduleRefreshPreview() {
+    if (this._previewTimer !== null) clearTimeout(this._previewTimer);
+    this._previewTimer = setTimeout(() => {
+      this._previewTimer = null;
+      void this._refreshPreview();
+    }, 150);
+  }
+
+  // _refreshPreview asks the game renderer for its preview candidates
+  // (previewSpec(), null unless the game opted in), batch-checks their legality
+  // on the server WITHOUT applying anything, and pushes the illegal spaces back
+  // onto the renderer for graying. Note it deliberately previews as the session
+  // player (no player param) so it agrees with how submitMove resolves the
+  // proposer.
+  private async _refreshPreview() {
+    const renderer = this.renderer as
+      | (HTMLElement & {
+          previewSpec?: () => MovePreviewSpec | null;
+          previewDisabledSpaces?: number[];
+        })
+      | null;
+    if (!renderer || typeof renderer.previewSpec !== 'function') return;
+    if (!this.gameName || !this.gameId) return;
+
+    const spec = renderer.previewSpec();
+    if (!spec || spec.candidates.length === 0) {
+      // Opted out (or nothing to check right now) — clear any stale graying.
+      if (renderer.previewDisabledSpaces && renderer.previewDisabledSpaces.length) {
+        renderer.previewDisabledSpaces = [];
+      }
+      return;
+    }
+
+    const seq = ++this._previewSeq;
+    const response = await movePreviewBatch(
+      this.gameName,
+      this.gameId,
+      spec.moveName,
+      spec.candidates.map((c) => ({ Args: c.args })),
+    );
+    // A newer refresh superseded this one, or the same renderer is no longer
+    // mounted — drop this now-stale response.
+    if (seq !== this._previewSeq || this.renderer !== renderer) return;
+    // On a network/server error, leave the prior graying in place rather than
+    // flashing the whole board back to enabled.
+    if (!response.data) return;
+
+    renderer.previewDisabledSpaces = disabledSpacesFromResults(spec.candidates, response.data.Results);
+  }
+
   private static _deriveLegality(moveForms: MoveForm[] | null): Record<string, MoveLegalityInfo> {
     const result: Record<string, MoveLegalityInfo> = {};
     if (!moveForms) return result;
@@ -622,6 +694,11 @@ class BoardgameRenderGame extends LitElement {
       // _notifyAnimationsDone won't fire it again if it's already fired.
       window.requestAnimationFrame(() => this._notifyAnimationsDone());
     }
+
+    // Kick off the initial target-legality preview for the freshly-mounted
+    // renderer (updated()'s change-driven refresh won't fire for props that were
+    // already set before this renderer existed).
+    this._scheduleRefreshPreview();
   }
 
   override render() {

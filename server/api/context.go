@@ -458,24 +458,34 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 
 	//TODO: should we use gin's Binding to do this instead?
 
-	if err := bindMoveFields(move, c.PostForm); err != nil {
+	// The move endpoint marks every form field "present" (c.PostForm returns ""
+	// for an absent field), so a missing required field still errors exactly as
+	// before — the move form is always submitted whole.
+	if err := bindMoveFields(move, func(name string) (string, bool) {
+		return c.PostForm(name), true
+	}); err != nil {
 		return nil, err
 	}
 
 	return move, nil
 }
 
-// bindMoveFields binds a move's form fields from get (fieldName -> raw string
-// value) via the move's ReadSetter. It is the shared arg-binding used by
-// getMoveFromForm (form-encoded args from the move endpoint) and the batch
-// preview handler (per-candidate JSON args). get returns "" for an absent
-// field (an int/enum/PlayerIndex field with no value is an error, matching the
-// move endpoint's behavior). It only sets the move's fields — never applies or
-// reads legality.
-func bindMoveFields(move boardgame.Move, get func(name string) string) error {
+// bindMoveFields binds a move's form fields from get, which returns each field's
+// raw string value and whether it was supplied. It is the shared arg-binding
+// used by getMoveFromForm (form-encoded args from the move endpoint — every
+// field "present", so an absent required field errors) and the batch preview
+// handler (per-candidate JSON args — a field NOT supplied is left at its
+// DefaultsForState value, so a candidate can vary just the fields it cares about
+// and let sensible defaults stand for the rest, e.g. TargetPlayerIndex). It only
+// sets the move's fields — never applies or reads legality.
+func bindMoveFields(move boardgame.Move, get func(name string) (rawVal string, present bool)) error {
 	for _, field := range formFields(move) {
 
-		rawVal := get(field.Name)
+		rawVal, present := get(field.Name)
+		if !present {
+			// Not supplied: keep the field's DefaultsForState value.
+			continue
+		}
 
 		switch field.Type {
 		case boardgame.TypeInt:

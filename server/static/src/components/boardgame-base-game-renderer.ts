@@ -1,6 +1,7 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { MoveLegalityInfo } from '../selectors.js';
+import type { MovePreviewSpec } from '../legal/previewLegality.js';
 import type { FullGameState } from '../types/boardgame-types.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 
@@ -84,6 +85,31 @@ export class BoardgameBaseGameRenderer<
    */
   isMoveCurrentlyLegal(moveName: MN): boolean {
     return this.moveLegality[moveName]?.legalForPlayer ?? false;
+  }
+
+  /**
+   * previewDisabledSpaces is set by boardgame-render-game after a batch legality
+   * preview (movePreviewBatch) returns: the board spaces whose candidate move is
+   * currently illegal for the viewing player. Bind it to your
+   * <boardgame-game-board .disabledSpaces="${this.previewDisabledSpaces}"> — the
+   * board already grays and blocks clicks on disabled spaces. Empty by default
+   * (no preview, or every candidate legal).
+   */
+  @property({ type: Array })
+  previewDisabledSpaces: number[] = [];
+
+  /**
+   * previewSpec opts a renderer into per-target legality preview. Return the
+   * move type to check plus one PreviewCandidate per board space you want tested
+   * (its space index + the move args for targeting there); boardgame-render-game
+   * batches them to the server (movePreviewBatch) and feeds the illegal ones
+   * back via previewDisabledSpaces so the board can gray them BEFORE the player
+   * clicks. Return null (the default) to leave preview off. It is called
+   * whenever state / moveForms / the viewing player change, so keep it cheap and
+   * pure (no side effects, just read this.state).
+   */
+  previewSpec(): MovePreviewSpec | null {
+    return null;
   }
 
   /**

@@ -1700,7 +1700,10 @@ func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.Immut
 	for _, cand := range candidates {
 		move := game.MoveByName(moveType)
 		args := cand.Args
-		if err := bindMoveFields(move, func(name string) string { return args[name] }); err != nil {
+		if err := bindMoveFields(move, func(name string) (string, bool) {
+			v, ok := args[name]
+			return v, ok
+		}); err != nil {
 			results = append(results, movePreviewBatchResult{Legal: false, Error: err.Error()})
 			continue
 		}
