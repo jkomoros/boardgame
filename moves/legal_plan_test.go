@@ -794,3 +794,200 @@ func TestBootValidatesTemplatePlaceholdersAgainstEmittedBindings(t *testing.T) {
 		}
 	})
 }
+
+// --- Footgun-batch F3: boot smoke probe catching a game-registered
+// predicate that reads move properties without declaring any move.* Read ---
+
+// legalProbeTestDelegate embeds the standard moves-test delegate and adds the
+// optional legal.ConstructorConfigurer surface, so the F3 probe tests below
+// can register game-registered predicates and prove the boot gauntlet probes
+// their field-independent ones against a sentinel move.
+type legalProbeTestDelegate struct {
+	gameDelegate
+	ctors []*legal.PredicateConstructor
+}
+
+func (d *legalProbeTestDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstructor {
+	return d.ctors
+}
+
+// newProbeTestManager builds a manager whose delegate registers ctors and
+// whose single configured move is whatever moveConfig returns.
+func newProbeTestManager(ctors []*legal.PredicateConstructor,
+	moveConfig func(auto *AutoConfigurer) boardgame.MoveConfig) (*boardgame.GameManager, error) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(moveConfig(auto))
+	}
+	return boardgame.NewGameManager(&legalProbeTestDelegate{
+		gameDelegate{moveInstaller: installer},
+		ctors,
+	}, memory.NewStorageManager())
+}
+
+// probeTestConstructor returns a game-registered predicate constructor whose
+// predicates declare the given reads and evaluate with eval.
+func probeTestConstructor(name string, reads []legal.Read,
+	eval func(ctx legal.Context) legal.Verdict) *legal.PredicateConstructor {
+	return &legal.PredicateConstructor{
+		Name: name,
+		Constructor: func(spec legal.Spec, _ *boardgame.ComponentChest,
+			_ func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
+			return &legal.Predicate{
+				Name:     name,
+				Args:     spec.Args,
+				Reads:    reads,
+				Cost:     boardgame.LegalCostTrivial,
+				Evaluate: eval,
+			}, nil
+		},
+	}
+}
+
+// sneakyMoveReadConstructor is the F3 footgun in miniature: a game-registered
+// predicate whose Evaluate reads a move property while declaring NO Reads at
+// all. Plan assembly sorts it into the field-independent bucket, whose
+// verdict is memoized without the move's fields in the key — so before the
+// boot probe, the server itself would serve stale verdicts as the move's
+// fields changed.
+func sneakyMoveReadConstructor() *legal.PredicateConstructor {
+	return probeTestConstructor("test.sneakyMoveRead", nil,
+		func(ctx legal.Context) legal.Verdict {
+			if _, _, err := ctx.ResolvePath("move.TargetPlayerIndex"); err != nil {
+				return legal.UnknownVerdict(err.Error())
+			}
+			return legal.PassVerdict()
+		})
+}
+
+// TestBootProbeCatchesUndeclaredMoveRead (footgun-batch F3): at boot, every
+// field-independent game-registered predicate is evaluated once against the
+// example state with a sentinel move whose PropertyReader panics on every
+// property access; a predicate that touches the move despite declaring no
+// move.* Read is a boot error naming the move and the predicate.
+func TestBootProbeCatchesUndeclaredMoveRead(t *testing.T) {
+	t.Run("top-level field-independent predicate", func(t *testing.T) {
+		_, err := newProbeTestManager(
+			[]*legal.PredicateConstructor{sneakyMoveReadConstructor()},
+			func(auto *AutoConfigurer) boardgame.MoveConfig {
+				return auto.MustConfig(
+					new(moveDeclarativeOptIn),
+					WithMoveName("Sneaky Move Read"),
+					WithPreconditions(legal.Spec{Name: "test.sneakyMoveRead"}),
+				)
+			},
+		)
+		assert.For(t, "boot error").ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"Sneaky Move Read", "test.sneakyMoveRead", "move.*"} {
+			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
+		}
+	})
+
+	t.Run("game-registered predicate nested inside an any compositor", func(t *testing.T) {
+		_, err := newProbeTestManager(
+			[]*legal.PredicateConstructor{sneakyMoveReadConstructor()},
+			func(auto *AutoConfigurer) boardgame.MoveConfig {
+				return auto.MustConfig(
+					new(moveDeclarativeOptIn),
+					WithMoveName("Sneaky Any Move Read"),
+					WithPreconditions(legal.Any(
+						legal.Spec{Name: "test.sneakyMoveRead"},
+						legal.PropAtLeast("game.Counter", 1000),
+					)),
+				)
+			},
+		)
+		assert.For(t, "boot error").ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"Sneaky Any Move Read", "test.sneakyMoveRead"} {
+			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
+		}
+	})
+}
+
+// TestBootProbeAllowsStateOnlyGameRegistered (F3 contrast case): a
+// game-registered field-independent predicate that genuinely never touches
+// the move IS probed but never trips the sentinel, so the game boots.
+func TestBootProbeAllowsStateOnlyGameRegistered(t *testing.T) {
+	stateOnly := probeTestConstructor("test.stateOnly",
+		[]legal.Read{{Path: "game.Counter", Facet: boardgame.LegalFacetValues}},
+		func(ctx legal.Context) legal.Verdict {
+			if _, _, err := ctx.ResolvePath("game.Counter"); err != nil {
+				return legal.UnknownVerdict(err.Error())
+			}
+			return legal.PassVerdict()
+		})
+
+	manager, err := newProbeTestManager(
+		[]*legal.PredicateConstructor{stateOnly},
+		func(auto *AutoConfigurer) boardgame.MoveConfig {
+			return auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("State Only Game Registered"),
+				WithPreconditions(legal.Spec{Name: "test.stateOnly"}),
+			)
+		},
+	)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	assert.For(t, "manager").ThatActual(manager != nil).IsTrue()
+}
+
+// TestBootProbeSkipsFieldDependentGameRegistered (F3 contrast case): a
+// game-registered predicate that reads the move AND declares that read lands
+// in the field-dependent bucket, which the probe does not touch — declaring
+// honestly is exactly what the probe exists to encourage.
+func TestBootProbeSkipsFieldDependentGameRegistered(t *testing.T) {
+	declared := probeTestConstructor("test.declaredMoveRead",
+		[]legal.Read{{Path: "move.TargetPlayerIndex", Facet: boardgame.LegalFacetValues}},
+		func(ctx legal.Context) legal.Verdict {
+			if _, _, err := ctx.ResolvePath("move.TargetPlayerIndex"); err != nil {
+				return legal.UnknownVerdict(err.Error())
+			}
+			return legal.PassVerdict()
+		})
+
+	manager, err := newProbeTestManager(
+		[]*legal.PredicateConstructor{declared},
+		func(auto *AutoConfigurer) boardgame.MoveConfig {
+			// moveCurrentPlayerOptIn embeds CurrentPlayer, so
+			// move.TargetPlayerIndex exists for boot path validation.
+			return auto.MustConfig(
+				new(moveCurrentPlayerOptIn),
+				WithMoveName("Declared Move Read"),
+				WithPreconditions(legal.Spec{Name: "test.declaredMoveRead"}),
+			)
+		},
+	)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	assert.For(t, "manager").ThatActual(manager != nil).IsTrue()
+}
+
+// TestBootProbeIgnoresUnrelatedPanics (F3 precision case): the probe must
+// only fire on the sentinel's own panic — a game-registered predicate that
+// panics at boot for some unrelated reason keeps booting (at runtime
+// evalLegalPredicate degrades that panic to a fail-closed Unknown, exactly
+// as before the probe existed).
+func TestBootProbeIgnoresUnrelatedPanics(t *testing.T) {
+	panicky := probeTestConstructor("test.unrelatedPanic", nil,
+		func(ctx legal.Context) legal.Verdict {
+			panic("boom: nothing to do with the move")
+		})
+
+	manager, err := newProbeTestManager(
+		[]*legal.PredicateConstructor{panicky},
+		func(auto *AutoConfigurer) boardgame.MoveConfig {
+			return auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Unrelated Panic"),
+				WithPreconditions(legal.Spec{Name: "test.unrelatedPanic"}),
+			)
+		},
+	)
+	assert.For(t, "boots despite unrelated panic").ThatActual(err).IsNil()
+	assert.For(t, "manager").ThatActual(manager != nil).IsTrue()
+}

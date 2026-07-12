@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/jkomoros/boardgame/enum"
 )
 
 /*
@@ -391,7 +393,7 @@ func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
 // move with no authored preconditions is left entirely alone: no plan, no
 // probe — its frozen chain runs at runtime exactly as today.
 func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
-	registry, templateTable := g.buildLegalRegistryAndTemplates()
+	registry, templateTable, gameRegistered := g.buildLegalRegistryAndTemplates()
 	g.legalTemplateTable = templateTable
 
 	for _, mType := range g.moves {
@@ -505,6 +507,18 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		}
 		g.legalPlans[mType.Name()] = plan
 
+		// Footgun-batch F3: game-registered predicates' declared Reads are
+		// an honor system, and an UNDER-declared move.* read is worse than a
+		// client-side inaccuracy — it lands the predicate in the
+		// field-independent bucket, whose verdict is memoized without the
+		// move's fields in the key, so the SERVER itself serves stale
+		// verdicts. Smoke-probe each field-independent game-registered
+		// predicate once, against a sentinel move whose reader panics on any
+		// property access.
+		if err := legalProbeUndeclaredMoveReads(mType.Name(), plan, gameRegistered, exampleState, move, g.chest); err != nil {
+			return err
+		}
+
 		if err := g.probeLegalReachable(mType, exampleState); err != nil {
 			return err
 		}
@@ -518,13 +532,36 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 // package moves' init, see legal_registry.go) overlaid with the delegate's
 // own game-registered constructors / template overrides, if it implements the
 // optional legal.ConstructorConfigurer / legal.TemplateConfigurer interfaces.
-func (g *GameManager) buildLegalRegistryAndTemplates() (map[string]*LegalPredicateConstructor, map[string]string) {
+//
+// The third return is the set of GAME-REGISTERED predicate names: names the
+// delegate supplied that do not exist in the universal default registry at
+// all. It feeds legalProbeUndeclaredMoveReads (footgun-batch F3), which
+// deliberately probes only game-registered predicates — the universal
+// catalog's Reads are audited in-repo. Membership is by NAME, not identity:
+// legal.ExtendDefaults returns fresh copies of the default constructors, so
+// pointer comparison would misclassify every catalog predicate as
+// game-registered for any game using it. The one blind spot is a delegate
+// OVERRIDING a universal name with its own implementation — that override
+// keeps the universal name, so it is not probed.
+func (g *GameManager) buildLegalRegistryAndTemplates() (map[string]*LegalPredicateConstructor, map[string]string, map[string]bool) {
 	registry, templates := legalRegistrySnapshot()
 
+	defaultNames := make(map[string]bool, len(registry))
+	for name := range registry {
+		defaultNames[name] = true
+	}
+
+	var gameRegistered map[string]bool
 	if cc, ok := g.delegate.(legalConstructorConfigurer); ok {
 		for _, ctor := range cc.ConfigurePredicateConstructors() {
 			if ctor == nil || ctor.Name == "" {
 				continue
+			}
+			if !defaultNames[ctor.Name] {
+				if gameRegistered == nil {
+					gameRegistered = make(map[string]bool)
+				}
+				gameRegistered[ctor.Name] = true
 			}
 			registry[ctor.Name] = ctor
 		}
@@ -536,7 +573,7 @@ func (g *GameManager) buildLegalRegistryAndTemplates() (map[string]*LegalPredica
 		}
 	}
 
-	return registry, templates
+	return registry, templates, gameRegistered
 }
 
 // validateLegalSuppressions is the footgun-batch F2 flavor-1 boot check for
@@ -712,6 +749,186 @@ func (g *GameManager) probeLegalReachable(mType *moveType, exampleState Immutabl
 		return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it; only moves embedding a base type from the seam allowlist (legalSupportedMovesBaseTypes in legal_plan.go: Default, CurrentPlayer, FixUp, FixUpMulti, StartPhase) can opt in at all, and each of those declares no Legal() override of its own, so this probe should only ever fire on a move's OWN override, never on the embedded base", mType.Name())
 	}
 	return nil
+}
+
+/*
+Footgun-batch F3: the undeclared-move-read boot probe.
+
+A game-registered predicate's declared Reads is an honor system (there is no
+way to introspect a Go closure), and the failure mode of UNDER-declaring a
+move.* read is uniquely bad: buildLegalPlanFromPredicates sorts the predicate
+into the field-independent bucket, whose overall verdict is memoized keyed on
+(moveName, stateVersion, proposer) — WITHOUT the move's field values
+(legal_memo.go) — so the server itself serves a stale verdict when only the
+move's fields change. The probe below catches the common shape of that bug
+mechanically at boot: it evaluates each field-independent game-registered
+predicate once, against the real example state, with a sentinel Move whose
+PropertyReader panics on every property access. Reaching the move's
+properties at all proves the predicate depends on the move, so the recovered
+sentinel panic becomes a boot error naming the move and the predicate.
+
+Precision properties, both load-bearing:
+
+  - It can only fire on a genuine move-property access: the sentinel panic
+    payload is an unexported type only the sentinel reader throws, and any
+    OTHER recovered panic is swallowed (at runtime evalLegalPredicate
+    degrades such a panic to a fail-closed Unknown, exactly as before this
+    probe existed — a predicate that panics at boot for unrelated reasons
+    must not newly fail boot).
+  - It cannot false-negative into a behavior change: the probe only ADDS a
+    boot error; evaluation semantics are untouched.
+
+Known blind spots, accepted deliberately (see legal/doc.go's game-registered
+predicates section): a predicate whose move read is conditional on state the
+example state doesn't exhibit; a predicate that reaches the move via
+ctx.Move.TopLevelStruct() or a concrete type assertion rather than
+ctx.Move.Reader()/ctx.ResolvePath; and a delegate overriding a UNIVERSAL
+catalog name (probing is scoped to names outside the default registry — see
+buildLegalRegistryAndTemplates). Catalog predicates are skipped: their Reads
+are audited in-repo, and probing them for every game would add boot cost for
+no new information.
+*/
+
+// legalProbeSentinelPanic is the distinctive panic payload
+// legalProbeSentinelReader throws. Unexported and thrown by nothing else, so
+// recovering a value of this type is PROOF the probed predicate touched the
+// sentinel move's properties.
+type legalProbeSentinelPanic struct{}
+
+// legalProbeSentinelReader implements the full PropertyReader interface;
+// every method panics with legalProbeSentinelPanic. It is the Reader() of
+// legalProbeSentinelMove, below.
+type legalProbeSentinelReader struct{}
+
+func (legalProbeSentinelReader) Props() map[string]PropertyType {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) IntProp(name string) (int, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) BoolProp(name string) (bool, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) StringProp(name string) (string, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) IntSliceProp(name string) ([]int, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) BoolSliceProp(name string) ([]bool, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) StringSliceProp(name string) ([]string, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) PlayerIndexSliceProp(name string) ([]PlayerIndex, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) PlayerIndexProp(name string) (PlayerIndex, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) ImmutableEnumSliceProp(name string) (enum.ImmutableEnumSlice, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) ImmutableStackProp(name string) (ImmutableStack, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) ImmutableBoardProp(name string) (ImmutableBoard, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) ImmutableTimerProp(name string) (ImmutableTimer, error) {
+	panic(legalProbeSentinelPanic{})
+}
+func (legalProbeSentinelReader) Prop(name string) (interface{}, error) {
+	panic(legalProbeSentinelPanic{})
+}
+
+// legalProbeSentinelMove wraps a real example move (so the sentinel is
+// non-nil and every Move method a defensive predicate might call behaves
+// sanely), overriding only Reader() to return the panicking sentinel reader.
+// ctx.ResolvePath and ctx.Move.Reader() — the sanctioned surfaces a
+// predicate reads move properties through — both hit the sentinel.
+type legalProbeSentinelMove struct {
+	Move
+}
+
+func (m *legalProbeSentinelMove) Reader() PropertyReader {
+	return legalProbeSentinelReader{}
+}
+
+// legalProbeUndeclaredMoveReads walks plan's field-independent bucket
+// (recursing through compositor Sub trees, so a game-registered predicate
+// inside an "any" is probed too) and evaluates each game-registered
+// predicate once against exampleState with the sentinel move. A recovered
+// sentinel panic is a boot error naming the move and the predicate. See the
+// file-section comment above for the full rationale and known blind spots.
+//
+// The field-DEPENDENT bucket is deliberately not probed: those predicates
+// declared a move.* read, which is exactly the honest declaration this probe
+// exists to encourage; evaluating them against a panicking reader would
+// reject every one of them.
+func legalProbeUndeclaredMoveReads(moveName string, plan *legalPlan, gameRegistered map[string]bool,
+	exampleState ImmutableState, exampleMove Move, chest *ComponentChest) error {
+
+	if len(gameRegistered) == 0 || plan == nil {
+		return nil
+	}
+
+	ctx := LegalContext{
+		State:    exampleState,
+		Move:     &legalProbeSentinelMove{Move: exampleMove},
+		Proposer: ObserverPlayerIndex,
+		Chest:    chest,
+	}
+
+	var walk func(pred *LegalPredicate) error
+	walk = func(pred *LegalPredicate) error {
+		if pred == nil {
+			return nil
+		}
+		if gameRegistered[pred.Name] && pred.Evaluate != nil && legalProbeEvaluateTouchesMove(pred, ctx) {
+			return fmt.Errorf("move %q: game-registered predicate %q reads properties off the move at evaluation time but declares no move.* (or players[move.*]) path in Reads: plan assembly sorted it into the field-independent bucket, whose verdict is memoized WITHOUT the move's field values in its key, so the server itself would serve stale verdicts when only the move's fields change — declare every move path the predicate reads in its Reads (over-approximating is fine; see legal/doc.go's game-registered predicates section)", moveName, pred.Name)
+		}
+		for _, sub := range pred.Sub {
+			if err := walk(sub); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	for _, pred := range plan.fieldIndependent {
+		if err := walk(pred); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// legalProbeEvaluateTouchesMove runs pred.Evaluate DIRECTLY (not through
+// evalLegalPredicate, whose recover would silently convert the sentinel
+// panic to an Unknown verdict and hide the evidence) and reports whether it
+// panicked with the sentinel payload. Any other panic — or any verdict at
+// all — reports false: the probe's only question is "did evaluation reach
+// the move's properties?", never "did evaluation succeed?".
+func legalProbeEvaluateTouchesMove(pred *LegalPredicate, ctx LegalContext) (touched bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(legalProbeSentinelPanic); ok {
+				touched = true
+				return
+			}
+			// Unrelated panic: swallowed. At runtime evalLegalPredicate
+			// degrades it to a fail-closed Unknown; a predicate that panics
+			// against the example state must not NEWLY fail boot just
+			// because this probe ran it.
+		}
+	}()
+	pred.Evaluate(ctx)
+	return false
 }
 
 // legalMovesPackagePathSuffix is the import-path suffix identifying the

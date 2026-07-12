@@ -454,10 +454,15 @@ func TestBuildLegalRegistryAndTemplatesOverlaysDelegate(t *testing.T) {
 	RegisterDefaultLegalTemplates(map[string]string{"default.key": "default body"})
 
 	g := &GameManager{delegate: &testRegistryDelegate{}}
-	registry, templates := g.buildLegalRegistryAndTemplates()
+	registry, templates, gameRegistered := g.buildLegalRegistryAndTemplates()
 
 	assert.For(t).ThatActual(registry["defaultPred"]).IsNotNil()
 	assert.For(t).ThatActual(registry["gameSpecificPred"]).IsNotNil()
 	assert.For(t).ThatActual(templates["default.key"]).Equals("default body")
 	assert.For(t).ThatActual(templates["game.specific"]).Equals("a game-specific template")
+
+	// The game-registered set (footgun-batch F3's probe scope) contains
+	// exactly the delegate-supplied names that are NOT universal defaults.
+	assert.For(t).ThatActual(gameRegistered["gameSpecificPred"]).Equals(true)
+	assert.For(t).ThatActual(gameRegistered["defaultPred"]).Equals(false)
 }
