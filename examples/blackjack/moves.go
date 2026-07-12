@@ -36,45 +36,40 @@ type moveCurrentPlayerStand struct {
 // AllActivePlayers(Any(PlayerBool("Eliminated"), PlayerBool("Stood")))) in
 // main.go, matching spec §8 verbatim.
 //
-// Base-type deviation from the literal spec sample (documented): spec §8's
-// code shows this move still embedding moves.StartPhase. It cannot: design
-// spec §2's v1 seam only supports moves.Default/moves.CurrentPlayer for
-// declarative legality, and legalUnsupportedMovesBaseType (legal_plan.go)
-// treats ANY other moves-package embed -- including moves.StartPhase, even
-// though it has no Legal() override of its own -- as an unsupported base
-// type; this is locked in by an existing, passing test
-// (moves.TestUnsupportedBaseTypeStartPhaseIsBootError). Rather than leave
-// this move un-migrated (spec §8's own genuinely-natural AllActivePlayers
-// gate would then go undelivered) or weaken that framework-level seam
-// restriction (out of Task 11's scope -- design spec §10 defers "seam
-// expansion" to later work), this move now embeds moves.Default directly
-// and hand-rolls the one piece of behavior moves.StartPhase provided that
-// this move actually used: setting the game's current phase in Apply (see
-// below). moves.StartPhase's other machinery -- generic PhaseToStart()
-// config lookup, BeforeLeavePhase/BeforeEnterPhase hooks -- is unused here
-// (blackjack's gameState implements neither hook interface), so hand-
-// rolling costs nothing. moves.WithIsFixUp(true) is now required explicitly
-// in main.go (moves.Default defaults IsFixUp to false; moves.FixUp/
-// moves.StartPhase default it to true, which this move relied on
-// implicitly before). The move's registered Name is unaffected: moves.
-// Default.DeriveName derives "Start Round Cleanup" from the Go struct name
-// moveStartRoundCleanup by reflection, independent of what it embeds.
+// StartPhase embed restored (Task 7, design spec §6 A6 -- seam widened):
+// Task 11 originally had to swap this move's base type from
+// moves.StartPhase to moves.Default and hand-roll Apply() (see git history
+// for that interim shape), because design spec §2's v1 seam only supported
+// moves.Default/moves.CurrentPlayer for declarative legality and
+// legalUnsupportedMovesBaseType (legal_plan.go) treated ANY other
+// moves-package embed -- including moves.StartPhase, even though it has no
+// Legal() override of its own -- as an unsupported base type. Task 6
+// (design spec §5) widened that seam to include FixUp/FixUpMulti/
+// StartPhase -- verified structurally (moves/seam_source_test.go) that none
+// of them declares its own Legal() override, so their legality composes
+// exactly like Default's -- so this move can now embed moves.StartPhase
+// directly again, exactly as design spec §8's literal sample shows. Apply()
+// is deleted: moves.StartPhase.Apply (promoted) now does the phase-set via
+// PhaseToStart (configured with moves.WithPhaseToStart(phaseRoundCleanup,
+// phaseEnum) in main.go, restored alongside this embed) plus
+// BeforeLeavePhase/BeforeEnterPhase hook calls that are no-ops here
+// (blackjack's gameState implements neither interfaces.BeforeLeavePhaser
+// nor interfaces.BeforeEnterPhaser) -- the Task 11 report documented this
+// exact equivalence in reverse when justifying the hand-rolled Apply() as a
+// faithful stand-in for StartPhase.Apply; restoring the embed is simply
+// undoing that stand-in now that it's no longer necessary. Legal() itself
+// is unaffected either way: design spec §5 established that StartPhase's
+// legality IS Default.Legal verbatim (no override), so the WithPreconditions
+// plan composes identically regardless of which of the two base types is
+// embedded. Verified behavior-preserving by the pre-existing full-game
+// TestGolden (JSON replay) and legal_golden_test.go both staying green. The
+// move's registered Name is unaffected: moves.Default.DeriveName derives
+// "Start Round Cleanup" from the Go struct name moveStartRoundCleanup by
+// reflection, independent of what it embeds.
 //
 //boardgame:codegen
 type moveStartRoundCleanup struct {
-	moves.Default
-}
-
-// Apply sets the game's current phase to phaseRoundCleanup -- the one
-// behavior this move used from moves.StartPhase.Apply before the base-type
-// migration documented above. blackjack's gameState implements neither
-// interfaces.BeforeLeavePhaser nor interfaces.BeforeEnterPhaser, so
-// StartPhase.Apply's hook-calling logic had no effect for this move and is
-// not replicated.
-func (m *moveStartRoundCleanup) Apply(state boardgame.State) error {
-	game, _ := concreteStates(state)
-	game.SetCurrentPhase(phaseRoundCleanup)
-	return nil
+	moves.StartPhase
 }
 
 // moveAccumulateScores adds each non-busted player's hand value to their

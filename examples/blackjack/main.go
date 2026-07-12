@@ -228,13 +228,16 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveStartRoundCleanup),
 				moves.WithHelpText("When all players have finished, transitions to round cleanup."),
-				// moves.WithPhaseToStart is gone: moveStartRoundCleanup no
-				// longer embeds moves.StartPhase (see moves.go's doc
-				// comment) and hand-rolls its own phase transition in
-				// Apply(). moves.WithIsFixUp(true) replaces what embedding
-				// moves.FixUp/moves.StartPhase provided implicitly (moves.
-				// Default defaults IsFixUp to false).
-				moves.WithIsFixUp(true),
+				// moves.WithPhaseToStart restored (Task 7, design spec §6
+				// A6): moveStartRoundCleanup re-embeds moves.StartPhase (see
+				// moves.go's doc comment) now that the seam allows it, so
+				// StartPhase.Apply -> PhaseToStart needs this configured
+				// again, exactly as the other StartPhase moves in this file
+				// do. moves.WithIsFixUp(true) is gone: moves.StartPhase
+				// embeds moves.FixUp, which defaults IsFixUp to true, so the
+				// explicit override from the moves.Default-embedding interim
+				// shape is no longer needed.
+				moves.WithPhaseToStart(phaseRoundCleanup, phaseEnum),
 				// Declarative migration (design spec §8's second flagship
 				// acid test): Legal() is deleted (see moves.go); this plan
 				// replaces it exactly. Default's own inPhase(phaseNormalPlay)
