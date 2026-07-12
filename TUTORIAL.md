@@ -602,13 +602,26 @@ Many Player moves can only be made by the CurrentPlayer. This move encodes which
 In typical use you embed this struct, and then either declare your move's legality (see "Declarative Move Legality" just below — this is the primary, recommended way today) or, for logic the declarative catalog can't express, check its Legal method at the top of your own Legal method, as in this example from memory's `moveHideCards` (the "Worked Move Example" section below walks through it fully):
 
 ```go
+// examples/memory/moves.go:221-240 (verbatim)
 func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-        return err
-    }
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
 
-    // Logic specific to this move type goes here.
+	game, players := concreteStates(state)
+
+	p := players[game.CurrentPlayer.EnsureValid(state)]
+
+	if p.CardsLeftToReveal > 0 {
+		return errors.New("You still have to reveal more cards before your turn is over")
+	}
+
+	if game.VisibleCards.NumComponents() < 1 {
+		return errors.New("no cards left to hide")
+	}
+
+	return nil
 }
 ```
 
@@ -664,7 +677,7 @@ type moveRevealCard struct {
 The three checks moved to where the move is *installed*, in `main.go`'s `ConfigureMoves`, as data instead of code:
 
 ```go
-// examples/memory/main.go:309-322 (verbatim)
+// examples/memory/main.go:309-311,317-322 (verbatim)
 revealCardConfig := auto.MustConfig(
     new(moveRevealCard),
     moves.WithHelpText("Reveals the card at the specified location"),
@@ -705,7 +718,7 @@ The most common catalog predicates (full list: `legal.DefaultConstructors()`; ev
 | `legal.ComponentPresentAt(stackPath, idxField string)` | the stack at `stackPath` has a non-nil component at the int index named by `idxField` | occupancy |
 | `legal.ComponentPresentAtKey(stackPath, keyField string)` | like above, but the slot is identified by an enum-valued key (e.g. a board position) | occupancy |
 | `legal.MayMoveTo(srcPath, dstPath, idxField string)` | the component at `idxField` in `srcPath` could legally move into `dstPath` (`ImmutableComponentInstance.MayMoveTo`) | values |
-| `legal.MayMoveToSlot(srcPath, dstPath, idxField string)` | like above, but into the *same* index slot in `dstPath` (the "mirrored stacks" pattern, e.g. memory's `HiddenCards`/`VisibleCards`) | values |
+| `legal.MayMoveToSlot(srcPath, dstPath, idxField string)` | like above, but into the *same* index slot in `dstPath` (the "mirrored stacks" pattern, e.g. memory's `HiddenCards`/`VisibleCards`) | occupancy (src) + values (dst, idx) |
 | `legal.Any(subs ...legal.Spec)` | at least one of `subs` passes (Kleene: Pass beats Unknown beats Fail) | union of children |
 | `legal.AllActivePlayers(inner legal.Spec)` | `inner` holds for every active (non-inactive) player; `inner` must be `PlayerBool`, a player-path `PropAtLeast`/`PropCompare`, or an `Any` of those | per-player values |
 | `legal.RevealableCardAt(hiddenPath, visiblePath, idxField string)` | purpose-built two-branch occupancy check (see above) | occupancy |
@@ -782,7 +795,7 @@ auto.Config(
 
 ###### What the client gets for free
 
-None of this requires the client to change anything — `LegalForPlayer`, `LegalForPlayerError`, and `LegalForAnyone` on each move form are unchanged, byte-identical for an opaque (non-declarative) move. But for a move that opted in, the server ships an additional per-predicate ledger alongside them (`server/api/main.go:80-121`):
+None of this requires the client to change anything — `LegalForPlayer`, `LegalForPlayerError`, and `LegalForAnyone` on each move form are unchanged, byte-identical for an opaque (non-declarative) move. But for a move that opted in, the server ships an additional per-predicate ledger alongside them (`server/api/main.go:80-121`; schematic — field names match `server/api/main.go`'s `preconditionEntry` struct tags; not literal output):
 
 ```jsonc
 "Preconditions": [
