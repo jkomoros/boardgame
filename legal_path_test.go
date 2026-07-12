@@ -9,25 +9,31 @@ import (
 
 func TestParseLegalPath(t *testing.T) {
 	tests := []struct {
-		name     string
-		path     LegalPropPath
-		wantErr  bool
-		wantKind legalPathKind
-		wantProp string
+		name      string
+		path      LegalPropPath
+		wantErr   bool
+		wantKind  legalPathKind
+		wantProp  string
+		wantField string
 	}{
-		{"game path", "game.DrawStack", false, pathGame, "DrawStack"},
-		{"player path", "player.CardsLeftToReveal", false, pathPlayer, "CardsLeftToReveal"},
-		{"players[*] path", "players[*].Stood", false, pathPlayersAll, "Stood"},
-		{"move path", "move.CardIndex", false, pathMove, "CardIndex"},
-		{"nested prop is not itself rejected by parse", "game.Sub.Field", false, pathGame, "Sub.Field"},
+		{"game path", "game.DrawStack", false, pathGame, "DrawStack", ""},
+		{"player path", "player.CardsLeftToReveal", false, pathPlayer, "CardsLeftToReveal", ""},
+		{"players[*] path", "players[*].Stood", false, pathPlayersAll, "Stood", ""},
+		{"move path", "move.CardIndex", false, pathMove, "CardIndex", ""},
+		{"nested prop is not itself rejected by parse", "game.Sub.Field", false, pathGame, "Sub.Field", ""},
+		{"players[move.Field] path", "players[move.TargetPlayerIndex].Hand", false, pathPlayersMoveField, "Hand", "TargetPlayerIndex"},
 
-		{"wrong case kind", "Game.X", true, 0, ""},
-		{"concrete player index", "players[0].X", true, 0, ""},
-		{"unknown kind", "foo.X", true, 0, ""},
-		{"empty prop with trailing dot", "game.", true, 0, ""},
-		{"no dot at all", "game", true, 0, ""},
-		{"totally empty", "", true, 0, ""},
-		{"players wildcard wrong bracket contents", "players[1].X", true, 0, ""},
+		{"wrong case kind", "Game.X", true, 0, "", ""},
+		{"concrete player index", "players[0].X", true, 0, "", ""},
+		{"unknown kind", "foo.X", true, 0, "", ""},
+		{"empty prop with trailing dot", "game.", true, 0, "", ""},
+		{"no dot at all", "game", true, 0, "", ""},
+		{"totally empty", "", true, 0, "", ""},
+		{"players wildcard wrong bracket contents", "players[1].X", true, 0, "", ""},
+		{"players[move.] empty field", "players[move.].X", true, 0, "", ""},
+		{"players[game.X] wrong index expr", "players[game.X].Y", true, 0, "", ""},
+		{"players[move.F] missing prop", "players[move.F]", true, 0, "", ""},
+		{"players[move.F] missing prop, missing dot too", "players[move.F", true, 0, "", ""},
 	}
 
 	for _, tc := range tests {
@@ -40,6 +46,7 @@ func TestParseLegalPath(t *testing.T) {
 			assert.For(t).ThatActual(err).IsNil()
 			assert.For(t).ThatActual(got.kind).Equals(tc.wantKind)
 			assert.For(t).ThatActual(got.prop).Equals(tc.wantProp)
+			assert.For(t).ThatActual(got.moveField).Equals(tc.wantField)
 		})
 	}
 }
@@ -70,6 +77,42 @@ func TestValidateLegalPath(t *testing.T) {
 	t.Run("valid move path", func(t *testing.T) {
 		err := validateLegalPath("move.AString", exampleState, moveReader)
 		assert.For(t).ThatActual(err).IsNil()
+	})
+
+	t.Run("valid players[move.Field] path, PlayerIndex-typed field", func(t *testing.T) {
+		err := validateLegalPath("players[move.TargetPlayerIndex].Hand", exampleState, moveReader)
+		assert.For(t).ThatActual(err).IsNil()
+	})
+
+	t.Run("valid players[move.Field] path, int-typed field", func(t *testing.T) {
+		err := validateLegalPath("players[move.ScoreIncrement].Hand", exampleState, moveReader)
+		assert.For(t).ThatActual(err).IsNil()
+	})
+
+	t.Run("players[move.Field] path with nil moveReader is an error", func(t *testing.T) {
+		err := validateLegalPath("players[move.TargetPlayerIndex].Hand", exampleState, nil)
+		assert.For(t).ThatActual(err).IsNotNil()
+	})
+
+	t.Run("players[move.Field] path names missing field", func(t *testing.T) {
+		err := validateLegalPath("players[move.NopeNotReal].Hand", exampleState, moveReader)
+		assert.For(t).ThatActual(err).IsNotNil()
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "players[move.NopeNotReal].Hand")).Equals(true)
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "NopeNotReal")).Equals(true)
+	})
+
+	t.Run("players[move.Field] path rejects wrong-typed field", func(t *testing.T) {
+		err := validateLegalPath("players[move.AString].Hand", exampleState, moveReader)
+		assert.For(t).ThatActual(err).IsNotNil()
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "players[move.AString].Hand")).Equals(true)
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "AString")).Equals(true)
+	})
+
+	t.Run("players[move.Field] path names missing prop", func(t *testing.T) {
+		err := validateLegalPath("players[move.TargetPlayerIndex].TotallyNotAProp", exampleState, moveReader)
+		assert.For(t).ThatActual(err).IsNotNil()
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "players[move.TargetPlayerIndex].TotallyNotAProp")).Equals(true)
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "TotallyNotAProp")).Equals(true)
 	})
 
 	t.Run("unknown game property names path and property", func(t *testing.T) {
@@ -186,6 +229,22 @@ func TestResolveLegalPath(t *testing.T) {
 		assert.For(t).ThatActual(err).IsNotNil()
 	})
 
+	t.Run("players[move.Field].X round-trips through the indexed player", func(t *testing.T) {
+		// TargetPlayerIndex was set to 1 above; players[1].Score should be
+		// whatever testGameDelegate.BeginSetUp set it to.
+		val, propType, err := resolveLegalPath("players[move.TargetPlayerIndex].Score", state, move)
+		assert.For(t).ThatActual(err).IsNil()
+		assert.For(t).ThatActual(propType).Equals(TypeInt)
+		gotScore, scoreErr := state.ImmutablePlayerStates()[1].Reader().IntProp("Score")
+		assert.For(t).ThatActual(scoreErr).IsNil()
+		assert.For(t).ThatActual(val).Equals(gotScore)
+	})
+
+	t.Run("players[move.Field].X with nil move errors, not panics", func(t *testing.T) {
+		_, _, err := resolveLegalPath("players[move.TargetPlayerIndex].Score", state, nil)
+		assert.For(t).ThatActual(err).IsNotNil()
+	})
+
 	t.Run("players[*] path cannot be resolved directly", func(t *testing.T) {
 		_, _, err := resolveLegalPath("players[*].Score", state, nil)
 		assert.For(t).ThatActual(err).IsNotNil()
@@ -230,6 +289,39 @@ func TestResolveLegalPathInvalidCurrentPlayer(t *testing.T) {
 			gameState.CurrentPlayer = tc.value
 
 			_, _, err := resolveLegalPath("player.Score", state, nil)
+			assert.For(t).ThatActual(err).IsNotNil()
+		})
+	}
+}
+
+// TestResolveLegalPathPlayersMoveFieldGuard verifies that
+// "players[move.<Field>].X" resolution against a move field value that is
+// out of range, Observer, Admin, or Any returns an error rather than
+// panicking, mirroring TestResolveLegalPathInvalidCurrentPlayer's coverage
+// of the same guard for "player.X" paths (spec §3: same guard logic,
+// applied to a move-field-derived index instead of CurrentPlayerIndex()).
+func TestResolveLegalPathPlayersMoveFieldGuard(t *testing.T) {
+	tests := []struct {
+		name  string
+		value PlayerIndex
+	}{
+		{"one past last valid index", PlayerIndex(3)},
+		{"observer", ObserverPlayerIndex},
+		{"admin", AdminPlayerIndex},
+		{"any", AnyPlayerIndex},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			game := testDefaultGame(t, false)
+			state := game.CurrentState()
+
+			manager := game.Manager()
+			move := manager.ExampleMoveByName("Test")
+			rs := move.ReadSetter()
+			assert.For(t).ThatActual(rs.SetPlayerIndexProp("TargetPlayerIndex", tc.value)).IsNil()
+
+			_, _, err := resolveLegalPath("players[move.TargetPlayerIndex].Score", state, move)
 			assert.For(t).ThatActual(err).IsNotNil()
 		})
 	}

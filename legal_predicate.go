@@ -420,13 +420,19 @@ func evalLegalPredicate(p *LegalPredicate, ctx LegalContext) (verdict LegalVerdi
 }
 
 // legalReadsIncludeMovePath reports whether reads contains at least one
-// path that parses as a move.* path. A malformed path is treated as not a
-// move path (parseLegalPath's error is ignored here — reads that failed to
-// parse are a construction-time bug caught by resolveLegalSpecs' boot-time
+// path that parses as a move.* path OR a players[move.<Field>].* path (spec
+// §3): the latter resolves to a value that depends on the move's own
+// <Field>, so a predicate reading one is field-dependent by construction
+// exactly like a bare move.* read — it must land in the plan's
+// field-dependent bucket (buildLegalPlanFromPredicates, legal_plan.go) and
+// count as a declared move read for evalLegalPredicate's nil-Move panic
+// guard, above. A malformed path is treated as not a move path
+// (parseLegalPath's error is ignored here — reads that failed to parse are
+// a construction-time bug caught by resolveLegalSpecs' boot-time
 // validation, not something evalLegalPredicate should mask or amplify).
 func legalReadsIncludeMovePath(reads []LegalRead) bool {
 	for _, r := range reads {
-		if parsed, err := parseLegalPath(r.Path); err == nil && parsed.kind == pathMove {
+		if parsed, err := parseLegalPath(r.Path); err == nil && (parsed.kind == pathMove || parsed.kind == pathPlayersMoveField) {
 			return true
 		}
 	}

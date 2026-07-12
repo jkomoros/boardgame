@@ -162,6 +162,30 @@ func TestLegalPlanBucketSplit(t *testing.T) {
 	assert.For(t).ThatActual(plan.custom == nil).IsTrue()
 }
 
+// TestLegalPlanBucketSplitPlayersMoveFieldPath verifies that a predicate
+// reading a "players[move.<Field>].<Prop>" path (spec §3) lands in the
+// field-dependent bucket, exactly like a bare "move.X" read: it depends on
+// the move's own field value, so it must be re-evaluated per-move rather
+// than memoized as field-independent.
+func TestLegalPlanBucketSplitPlayersMoveFieldPath(t *testing.T) {
+	manager := newTestGameManger(t)
+	move := manager.ExampleMoveByName("Test")
+
+	predicates := []*LegalPredicate{
+		legalPlanTestPred("gameRead", LegalPass, LegalRead{Path: "game.DrawDeck", Facet: LegalFacetValues}),
+		legalPlanTestPred("playersMoveFieldRead", LegalPass, moveReadOf("players[move.TargetPlayerIndex].Hand")),
+	}
+	specs := []LegalSpec{{Name: "gameRead"}, {Name: "playersMoveFieldRead"}}
+
+	plan := buildLegalPlanFromPredicates("Test", predicates, specs, move)
+
+	assert.For(t).ThatActual(len(plan.fieldIndependent)).Equals(1)
+	assert.For(t).ThatActual(plan.fieldIndependent[0].Name).Equals("gameRead")
+
+	assert.For(t).ThatActual(len(plan.fieldDependent)).Equals(1)
+	assert.For(t).ThatActual(plan.fieldDependent[0].Name).Equals("playersMoveFieldRead")
+}
+
 // testCustomLegalerMove is a Move that also implements CustomLegaler, for
 // exercising the escape-hatch wrapper and the custom bucket.
 type testCustomLegalerMove struct {

@@ -5,8 +5,9 @@ import (
 	"strings"
 )
 
-// legalPathKind identifies which of the four path grammars a parsed
-// LegalPropPath uses. See the design spec §1 "Path grammar".
+// legalPathKind identifies which of the five path grammars a parsed
+// LegalPropPath uses. See the design spec §1 "Path grammar" and (for
+// pathPlayersMoveField) spec §3.
 type legalPathKind int
 
 const (
@@ -26,31 +27,53 @@ const (
 	// pathMove denotes a "move.X" path, resolved against the move being
 	// evaluated.
 	pathMove
+	// pathPlayersMoveField denotes a "players[move.<Field>].<Prop>" path
+	// (spec §3): the playerState of the player whose index is the value of
+	// the move's <Field> property. moveField names <Field>; prop names
+	// <Prop>. See resolveLegalPath for how an invalid/Observer/Admin/Any
+	// field value is handled — the same guard pathPlayer uses for an
+	// invalid current player, applied to the field-derived index instead.
+	// Predicates reading this path kind are field-dependent by construction
+	// (legalReadsIncludeMovePath, legal_predicate.go, treats it as such)
+	// since the value they resolve depends on the move's own field.
+	pathPlayersMoveField
 )
 
 // parsedLegalPath is the result of successfully parsing a LegalPropPath: the
-// path's kind, and the property name to look up within that kind's reader.
+// path's kind, the property name to look up within that kind's reader, and
+// (pathPlayersMoveField only) the move field naming which player to index.
 type parsedLegalPath struct {
-	kind legalPathKind
-	prop string
+	kind      legalPathKind
+	prop      string
+	moveField string
 }
 
-// parseLegalPath parses p according to the path grammar in spec §1:
+// parseLegalPath parses p according to the path grammar in spec §1 and §3:
 // "game.X", "player.X" (current player), "players[*].X" (quantifier-only),
-// or "move.X". The KIND segment is matched literally and case-sensitively
-// against exactly those four spellings ("players[0]" or any other concrete
-// index is not valid grammar — only the "*" quantifier is).
+// "move.X", or "players[move.<Field>].<Prop>". The KIND segment is matched
+// literally and case-sensitively against exactly those spellings
+// ("players[0]" or any other concrete index is not valid grammar — only the
+// "*" quantifier and a "move."-prefixed index expression are).
 //
 // parseLegalPath only checks the path's shape; it does not check that the
-// named property actually exists on any reader. That is validateLegalPath's
-// job, run once at boot (NewGameManager) against real example readers so a
-// typo fails at boot naming the move and path, never mid-game.
+// named property (or, for pathPlayersMoveField, the named move field)
+// actually exists on any reader. That is validateLegalPath's job, run once
+// at boot (NewGameManager) against real example readers so a typo fails at
+// boot naming the move and path, never mid-game.
 func parseLegalPath(p LegalPropPath) (parsedLegalPath, error) {
 	s := string(p)
 
+	// "players[move.<Field>].<Prop>" is handled separately from the other
+	// four kinds: cutting on the first "." would split inside "move.<Field>"
+	// rather than at the KIND/Property boundary, since the KIND segment
+	// itself contains a ".".
+	if strings.HasPrefix(s, "players[move.") {
+		return parsePlayersMoveFieldPath(p, s)
+	}
+
 	kindStr, prop, ok := strings.Cut(s, ".")
 	if !ok {
-		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: expected KIND.Property (KIND is one of game, player, players[*], move)", s)
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: expected KIND.Property (KIND is one of game, player, players[*], move, players[move.Field])", s)
 	}
 
 	if prop == "" {
@@ -68,10 +91,37 @@ func parseLegalPath(p LegalPropPath) (parsedLegalPath, error) {
 	case "move":
 		kind = pathMove
 	default:
-		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: unknown path kind %q (expected game, player, players[*], or move)", s, kindStr)
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: unknown path kind %q (expected game, player, players[*], move, or players[move.Field])", s, kindStr)
 	}
 
 	return parsedLegalPath{kind: kind, prop: prop}, nil
+}
+
+// parsePlayersMoveFieldPath parses the "players[move.<Field>].<Prop>" shape
+// of s (already known to start with "players[move."), spec §3. Both <Field>
+// (the move property naming which player to index) and <Prop> (the property
+// to read from that player) must be non-empty, and the bracket must be
+// closed before the "." that introduces <Prop>.
+func parsePlayersMoveFieldPath(p LegalPropPath, s string) (parsedLegalPath, error) {
+	rest := strings.TrimPrefix(s, "players[move.")
+
+	closeIdx := strings.Index(rest, "]")
+	if closeIdx == -1 {
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: missing closing %q in players[move.<Field>] path", s, "]")
+	}
+
+	field := rest[:closeIdx]
+	if field == "" {
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: missing move field name inside players[move.<Field>]", s)
+	}
+
+	afterBracket := rest[closeIdx+1:]
+	prop, ok := strings.CutPrefix(afterBracket, ".")
+	if !ok || prop == "" {
+		return parsedLegalPath{}, fmt.Errorf("boardgame: invalid legal path %q: missing property name after players[move.%s]", s, field)
+	}
+
+	return parsedLegalPath{kind: pathPlayersMoveField, moveField: field, prop: prop}, nil
 }
 
 // validateLegalPath parses p and checks that its named property actually
@@ -111,6 +161,25 @@ func validateLegalPath(p LegalPropPath, exampleState ImmutableState, moveReader 
 			return fmt.Errorf("boardgame: legal path %q: is a move.* path but no move reader was provided to validate against", p)
 		}
 		return validatePropOnReader(p, parsed.prop, moveReader)
+	case pathPlayersMoveField:
+		if moveReader == nil {
+			return fmt.Errorf("boardgame: legal path %q: is a players[move.*] path but no move reader was provided to validate against", p)
+		}
+		fieldType, ok := moveReader.Props()[parsed.moveField]
+		if !ok {
+			return fmt.Errorf("boardgame: legal path %q: move field %q does not exist", p, parsed.moveField)
+		}
+		if fieldType != TypePlayerIndex && fieldType != TypeInt {
+			return fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypePlayerIndex or TypeInt", p, parsed.moveField, fieldType)
+		}
+		if exampleState == nil {
+			return fmt.Errorf("boardgame: legal path %q: no example state provided to validate against", p)
+		}
+		players := exampleState.ImmutablePlayerStates()
+		if len(players) == 0 {
+			return fmt.Errorf("boardgame: legal path %q: example state has no player states to validate against", p)
+		}
+		return validatePropOnReader(p, parsed.prop, players[0].Reader())
 	}
 
 	return fmt.Errorf("boardgame: legal path %q: unknown path kind", p)
@@ -176,6 +245,28 @@ func resolveLegalPath(p LegalPropPath, state ImmutableState, move Move) (interfa
 			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: is a move.* path but no move was provided to resolve against", p)
 		}
 		return resolveProp(p, parsed.prop, move.Reader())
+	case pathPlayersMoveField:
+		if move == nil {
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: is a players[move.*] path but no move was provided to resolve against", p)
+		}
+		fieldVal, fieldType, err := resolveProp(p, parsed.moveField, move.Reader())
+		if err != nil {
+			return nil, TypeIllegal, err
+		}
+		var index PlayerIndex
+		switch fieldType {
+		case TypePlayerIndex:
+			index = fieldVal.(PlayerIndex)
+		case TypeInt:
+			index = PlayerIndex(fieldVal.(int))
+		default:
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypePlayerIndex or TypeInt", p, parsed.moveField, fieldType)
+		}
+		players := state.ImmutablePlayerStates()
+		if index < 0 || int(index) >= len(players) {
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q resolved to player index %d, which is not a valid concrete player (may be out of bounds, Observer, Admin, or Any)", p, parsed.moveField, index)
+		}
+		return resolveProp(p, parsed.prop, players[index].Reader())
 	}
 
 	return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: unknown path kind", p)
