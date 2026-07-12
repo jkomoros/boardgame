@@ -19,8 +19,12 @@ const (
 	// TemplatePropCompare is the default Fail template key for PropCompare.
 	// Bindings: "value", "op", "n".
 	TemplatePropCompare = "legal.prop_compare"
-	// TemplatePlayerBool is the default Fail template key for PlayerBool.
-	// Bindings: "prop" (the property name checked).
+	// TemplatePlayerBool is the default Fail template key for PlayerBool and
+	// PlayerBoolIs (spec §4: both share the "playerBool" registry entry, and
+	// share this one template key — see playerBoolConstructor's doc comment
+	// for why a second key was not warranted). Bindings: "prop" (the
+	// property name checked), "want" (the string "true" or "false" — what
+	// the property was required to equal).
 	TemplatePlayerBool = "legal.player_bool"
 	// TemplatePropEquals is the default Fail template key for PropEquals.
 	// Bindings: "value" (the actual resolved value, stringified per its
@@ -61,9 +65,41 @@ func PropCompare(path, op string, n int) Spec {
 // current player's bool property named prop is true. ("Current player" is
 // what the catalog's player.* path grammar resolves against; in a future
 // players[*] quantifier context, that will mean the player being
-// quantified over.)
+// quantified over.) This is the 1-arg, backward-compatible spelling —
+// existing specs/corpus built with PlayerBool keep their exact meaning
+// (want=true) unchanged; see PlayerBoolIs for the explicit-want form (spec
+// §4).
 func PlayerBool(prop string) Spec {
 	return Spec{Name: "playerBool", Args: []string{prop}}
+}
+
+// PlayerBoolIs returns a Spec for the "playerBool" predicate with an
+// explicit want: Passes if the current player's bool property named prop
+// equals want. Both PlayerBool(prop) (want=true, 1-arg spelling) and
+// PlayerBoolIs(prop, want) (2-arg spelling) resolve through the SAME
+// registry entry ("playerBool") — see playerBoolConstructor, which accepts
+// either 1 or 2 args. AllActivePlayers' inner grammar also accepts this
+// 2-arg form (buildAllActivePlayersLeaf, catalog_players.go), so
+// AllActivePlayers(PlayerBoolIs("DoneWithPhase", false)) is a valid
+// per-player negation leaf.
+func PlayerBoolIs(prop string, want bool) Spec {
+	return Spec{Name: "playerBool", Args: []string{prop, strconv.FormatBool(want)}}
+}
+
+// playerBoolWant parses playerBool's optional second arg ("true"/"false")
+// into a bool. Shared by playerBoolConstructor (below) and
+// AllActivePlayers' inner-grammar compiler (buildAllActivePlayersLeaf,
+// catalog_players.go) so both accept identical 2-arg syntax by construction
+// — one parser, not two independently-maintained copies.
+func playerBoolWant(arg string) (bool, error) {
+	switch arg {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return false, fmt.Errorf("must be \"true\" or \"false\", got %q", arg)
+	}
 }
 
 // PropEquals returns a Spec for the "propEquals" predicate: Passes if the
@@ -404,14 +440,41 @@ func propCompareConstructor() *PredicateConstructor {
 }
 
 // playerBoolConstructor returns the registry entry for "playerBool".
+//
+// Want-false template decision (spec §4 leaves this a judgment call: "either
+// the same template with a want binding, or a legal.player_bool_want
+// template — pick one"): this reuses TemplatePlayerBool for both want=true
+// and want=false rather than minting a second key. A second key would only
+// earn its keep if the two cases needed structurally different bindings or
+// wildly different phrasing; they don't — "requires {prop} to be {want}"
+// covers both honestly, and it keeps the registered-template surface (and
+// the corpus-completeness/template-coverage meta-tests) from growing for a
+// predicate that didn't grow in registry-name terms either (still one
+// "playerBool" entry). The "want" binding is new (added unconditionally,
+// including for the 1-arg/want=true case) so a caller rendering an existing
+// want=true Fail Verdict gets "requires X to be true" exactly as before,
+// word for word — the OLD literal template body was "requires {prop} to be
+// true"; the new body substitutes the literal "true" for "{want}", which
+// renders identically when want=true. No existing corpus case pins the
+// rendered STRING (only the template KEY, "legal.player_bool" — see
+// testdata/conformance/playerBool.json), so this is not a breaking change
+// under the corpus's own conformance contract.
 func playerBoolConstructor() *PredicateConstructor {
 	return &PredicateConstructor{
 		Name: "playerBool",
 		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
-			if len(spec.Args) != 1 {
-				return nil, fmt.Errorf("legal: playerBool requires 1 arg (prop), got %d", len(spec.Args))
+			if len(spec.Args) != 1 && len(spec.Args) != 2 {
+				return nil, fmt.Errorf("legal: playerBool requires 1 or 2 args (prop, optional want), got %d", len(spec.Args))
 			}
 			prop := spec.Args[0]
+			want := true
+			if len(spec.Args) == 2 {
+				w, err := playerBoolWant(spec.Args[1])
+				if err != nil {
+					return nil, fmt.Errorf("legal: playerBool: arg 2 (want) %s", err)
+				}
+				want = w
+			}
 			path := "player." + prop
 
 			template := spec.Message
@@ -430,11 +493,12 @@ func playerBoolConstructor() *PredicateConstructor {
 					if err != nil {
 						return UnknownVerdict(err.Error())
 					}
-					if value {
+					if value == want {
 						return PassVerdict()
 					}
 					return FailT(template, map[string]BindingValue{
 						"prop": String(prop),
+						"want": String(strconv.FormatBool(want)),
 					})
 				},
 			}, nil

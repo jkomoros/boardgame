@@ -175,6 +175,60 @@ func TestAllActivePlayersV1InnerRestriction(t *testing.T) {
 	})
 }
 
+// TestAllActivePlayersInnerPlayerBoolIs covers spec §4's negation-leaf
+// requirement: AllActivePlayers' restricted inner-grammar must accept
+// playerBool's 2-arg (want) form, e.g.
+// AllActivePlayers(PlayerBoolIs("DoneWithPhase", false)) — not just the
+// legacy 1-arg (want=true) spelling. Uses blackjack's Stood bool prop
+// directly (rather than a named fixture) so both "every active player has
+// Stood=false" (Pass) and "one active player has Stood=true" (Fail) are
+// exercised.
+func TestAllActivePlayersInnerPlayerBoolIs(t *testing.T) {
+	spec := legal.AllActivePlayers(legal.PlayerBoolIs("Stood", false))
+	if len(spec.Sub) != 1 || spec.Sub[0].Name != "playerBool" || len(spec.Sub[0].Args) != 2 || spec.Sub[0].Args[1] != "false" {
+		t.Fatalf("Sub = %+v, want a 2-arg playerBool inner spec with want=false", spec.Sub)
+	}
+
+	pred := resolvePredicateForTest(t, spec)
+	if len(pred.Reads) != 1 || pred.Reads[0].Path != "players[*].Stood" || pred.Reads[0].Facet != boardgame.LegalFacetValues {
+		t.Fatalf("Reads = %+v", pred.Reads)
+	}
+
+	// Pass: every active player has Stood == false.
+	allNotStoodGame, allNotStood := newBlackjackGame(t)
+	for _, p := range allNotStood.PlayerStates() {
+		if err := p.ReadSetter().SetBoolProp("Stood", false); err != nil {
+			t.Fatalf("legal: setting Stood: %v", err)
+		}
+	}
+	if v := pred.Evaluate((legalFixture{state: allNotStood, chest: allNotStoodGame.Manager().Chest()}).context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("all Stood=false: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+
+	// Fail: player 0 has Stood == true (want=false requires it be false).
+	oneStoodGame, oneStood := newBlackjackGame(t)
+	players := oneStood.PlayerStates()
+	for i, p := range players {
+		if err := p.ReadSetter().SetBoolProp("Stood", i == 0); err != nil {
+			t.Fatalf("legal: setting Stood: %v", err)
+		}
+	}
+	v := pred.Evaluate((legalFixture{state: oneStood, chest: oneStoodGame.Manager().Chest()}).context(0))
+	if v.Outcome != legal.Fail {
+		t.Fatalf("player 0 Stood=true: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
+	}
+	if v.Message == nil || v.Message.Template != legal.TemplateAllActivePlayers {
+		t.Fatalf("legal.Message = %+v, want template %q", v.Message, legal.TemplateAllActivePlayers)
+	}
+
+	// A bad want arg on the inner playerBool is a construction-time error,
+	// same as the top-level predicate.
+	badSpec := legal.AllActivePlayers(legal.Spec{Name: "playerBool", Args: []string{"Stood", "nope"}})
+	if _, err := resolveSpecViaRegistry(badSpec, legal.DefaultConstructors(), nil); err == nil {
+		t.Fatal("expected an error constructing allActivePlayers' inner playerBool with an invalid want arg")
+	}
+}
+
 // TestProposerIsCurrentPlayer covers ProposerIsCurrentPlayer's shape, Reads
 // (incl. the FIELD-DEPENDENT move.TargetPlayerIndex read — spec §4),
 // pass/fail(x2 distinct branches)/unknown, and the string-parity guarantee:

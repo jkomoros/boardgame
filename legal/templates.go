@@ -51,8 +51,9 @@ const legalAnyFailedTemplate = "legal.any_failed"
 var defaultTemplates = map[string]string{
 	TemplatePropAtLeast:                   "requires at least {min}, but the current value is {value}",
 	TemplatePropCompare:                   "requires the current value ({value}) to be {op} {n}",
-	TemplatePlayerBool:                    "requires {prop} to be true",
+	TemplatePlayerBool:                    "requires {prop} to be {want}",
 	TemplateComponentMissing:              "there is no component at index {index}",
+	TemplateComponentPresentUnexpected:    "there is unexpectedly a component at index {index}",
 	TemplateComponentMissingKey:           "there is no component at key {key}",
 	TemplateNoComponentToMove:             "there is no component at index {index} to move",
 	TemplateMayNotMoveTo:                  "{detail}",

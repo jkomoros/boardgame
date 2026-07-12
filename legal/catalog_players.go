@@ -115,10 +115,26 @@ type allActivePlayersLeaf struct {
 func buildAllActivePlayersLeaf(s Spec) (allActivePlayersLeaf, error) {
 	switch s.Name {
 	case "playerBool":
-		if len(s.Args) != 1 {
-			return allActivePlayersLeaf{}, fmt.Errorf("legal: allActivePlayers: inner playerBool requires 1 arg (prop), got %d", len(s.Args))
+		// Accepts both playerBool's 1-arg (prop, want=true) and 2-arg
+		// (prop, want) spellings — spec §4's negation leaves require
+		// AllActivePlayers(PlayerBoolIs("DoneWithPhase", false)) to
+		// construct and evaluate per-player. playerBoolWant
+		// (catalog_compare.go) is the same parser playerBoolConstructor
+		// itself uses, so this inner grammar accepts EXACTLY the same 2nd-
+		// arg syntax as the top-level "playerBool" predicate — no
+		// independently-drifting copy.
+		if len(s.Args) != 1 && len(s.Args) != 2 {
+			return allActivePlayersLeaf{}, fmt.Errorf("legal: allActivePlayers: inner playerBool requires 1 or 2 args (prop, optional want), got %d", len(s.Args))
 		}
 		prop := s.Args[0]
+		want := true
+		if len(s.Args) == 2 {
+			w, err := playerBoolWant(s.Args[1])
+			if err != nil {
+				return allActivePlayersLeaf{}, fmt.Errorf("legal: allActivePlayers: inner playerBool: arg 2 (want) %s", err)
+			}
+			want = w
+		}
 		read := Read{Path: PropPath("players[*]." + prop), Facet: boardgame.LegalFacetValues}
 		return allActivePlayersLeaf{
 			reads: []Read{read},
@@ -130,7 +146,7 @@ func buildAllActivePlayersLeaf(s Spec) (allActivePlayersLeaf, error) {
 				if err != nil {
 					return Unknown
 				}
-				if v {
+				if v == want {
 					return Pass
 				}
 				return Fail

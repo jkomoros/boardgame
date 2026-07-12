@@ -24,6 +24,11 @@ const (
 	// the underlying error's message verbatim (component.go's MayMoveTo/
 	// MayMoveToSlot error strings).
 	TemplateMayNotMoveTo = "legal.may_not_move_to"
+	// TemplateComponentPresentUnexpected is the default Fail template key
+	// for ComponentAbsentAt (spec §4's negation leaf, the exact inverse of
+	// ComponentPresentAt): fired when a component IS present at the index
+	// where the predicate requires absence. Bindings: "index".
+	TemplateComponentPresentUnexpected = "legal.component_present_unexpected"
 )
 
 // DefaultTemplateKeys returns a copy of defaultTemplateKeys: every template
@@ -76,6 +81,12 @@ var defaultTemplateKeys = []string{
 	// typed equality predicates.
 	TemplatePropEquals,
 	TemplatePropNotEquals,
+	// Task 5 (legality-completeness round, catalog_players.go /
+	// catalog_stack.go) additions: negation leaves. playerBool's want-false
+	// arm reuses TemplatePlayerBool (already listed above, catalog_compare.go)
+	// rather than adding a new key — see playerBoolConstructor's doc comment.
+	// componentAbsentAt gets its own key, below.
+	TemplateComponentPresentUnexpected,
 }
 
 // ComponentPresentAt returns a Spec for the "componentPresentAt" predicate:
@@ -84,6 +95,16 @@ var defaultTemplateKeys = []string{
 // occupancy is read, never the component's values.
 func ComponentPresentAt(stackPath, idxField string) Spec {
 	return Spec{Name: "componentPresentAt", Args: []string{stackPath, idxField}}
+}
+
+// ComponentAbsentAt returns a Spec for the "componentAbsentAt" predicate:
+// the exact negation of ComponentPresentAt (spec §4's negation leaf) —
+// Passes if the stack at stackPath has NO component (a nil slot) at the int
+// index named by idxField. Same Reads shape as ComponentPresentAt (occupancy
+// facet on the stack, values facet on idxField — only occupancy is read,
+// never the component's values) with the presence check inverted.
+func ComponentAbsentAt(stackPath, idxField string) Spec {
+	return Spec{Name: "componentAbsentAt", Args: []string{stackPath, idxField}}
 }
 
 // ComponentPresentAtKey returns a Spec for the "componentPresentAtKey"
@@ -161,6 +182,58 @@ func componentPresentAtConstructor() *PredicateConstructor {
 						return UnknownVerdict(fmt.Sprintf("legal: stack path %q resolved to nil", stackPath))
 					}
 					if stack.ImmutableComponentAt(idx) != nil {
+						return PassVerdict()
+					}
+					return FailT(template, map[string]BindingValue{
+						"index": Int(idx),
+					})
+				},
+			}, nil
+		},
+	}
+}
+
+// componentAbsentAtConstructor returns the registry entry for
+// "componentAbsentAt". Mirrors componentPresentAtConstructor exactly (same
+// Reads, same Cost, same nil-move/unresolvable-path -> Unknown handling)
+// with the presence check inverted.
+func componentAbsentAtConstructor() *PredicateConstructor {
+	return &PredicateConstructor{
+		Name: "componentAbsentAt",
+		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+			if len(spec.Args) != 2 {
+				return nil, fmt.Errorf("legal: componentAbsentAt requires 2 args (stackPath, idxField), got %d", len(spec.Args))
+			}
+			stackPath := spec.Args[0]
+			idxField := spec.Args[1]
+
+			template := spec.Message
+			if template == "" {
+				template = TemplateComponentPresentUnexpected
+			}
+
+			return &Predicate{
+				Name: "componentAbsentAt",
+				Args: spec.Args,
+				Reads: []Read{
+					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
+					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
+				},
+				Cost:             boardgame.LegalCostCheap,
+				EmittedTemplates: []string{template},
+				Evaluate: func(ctx Context) Verdict {
+					idx, err := resolveIntPath(idxField, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					stack, err := resolveStackPath(stackPath, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					if stack == nil {
+						return UnknownVerdict(fmt.Sprintf("legal: stack path %q resolved to nil", stackPath))
+					}
+					if stack.ImmutableComponentAt(idx) == nil {
 						return PassVerdict()
 					}
 					return FailT(template, map[string]BindingValue{
@@ -371,6 +444,7 @@ func DefaultConstructors() []*PredicateConstructor {
 		propCompareConstructor(),
 		playerBoolConstructor(),
 		componentPresentAtConstructor(),
+		componentAbsentAtConstructor(),
 		componentPresentAtKeyConstructor(),
 		mayMoveToConstructor(),
 		mayMoveToSlotConstructor(),

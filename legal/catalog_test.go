@@ -160,6 +160,68 @@ func TestPlayerBool(t *testing.T) {
 	}
 }
 
+// TestPlayerBoolIs covers PlayerBoolIs (spec §4's negation leaf): the 2-arg
+// "playerBool" spelling, both want=true (byte-for-byte the same registry
+// entry and args-count PlayerBool's own 1-arg spelling resolves to a
+// backward-compatible want=true) and want=false, plus the bad-want
+// construction-time error.
+func TestPlayerBoolIs(t *testing.T) {
+	trueSpec := legal.PlayerBoolIs("SeatFilled", true)
+	if trueSpec.Name != "playerBool" {
+		t.Fatalf("Name = %q, want playerBool", trueSpec.Name)
+	}
+	if len(trueSpec.Args) != 2 || trueSpec.Args[0] != "SeatFilled" || trueSpec.Args[1] != "true" {
+		t.Fatalf("Args = %v, want [SeatFilled true]", trueSpec.Args)
+	}
+
+	falseSpec := legal.PlayerBoolIs("SeatFilled", false)
+	if len(falseSpec.Args) != 2 || falseSpec.Args[0] != "SeatFilled" || falseSpec.Args[1] != "false" {
+		t.Fatalf("Args = %v, want [SeatFilled false]", falseSpec.Args)
+	}
+
+	seatFilled := buildLegalFixture(t, "memorySeatFilled") // SeatFilled == true
+	seatEmpty := buildLegalFixture(t, "memoryDefault")     // SeatFilled == false
+
+	// want=true behaves exactly like PlayerBool("SeatFilled").
+	truePred := resolvePredicateForTest(t, trueSpec)
+	if v := truePred.Evaluate(seatFilled.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("want=true, SeatFilled=true: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+	v := truePred.Evaluate(seatEmpty.context(0))
+	if v.Outcome != legal.Fail {
+		t.Fatalf("want=true, SeatFilled=false: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
+	}
+	if v.Message == nil || v.Message.Template != legal.TemplatePlayerBool {
+		t.Fatalf("legal.Message = %+v, want template %q", v.Message, legal.TemplatePlayerBool)
+	}
+	if got := v.Message.Bindings["want"]; got.S == nil || *got.S != "true" {
+		t.Fatalf("want binding = %+v, want \"true\"", got)
+	}
+
+	// want=false is the negation: Pass when SeatFilled is false, Fail (with
+	// the want=false binding) when SeatFilled is true.
+	falsePred := resolvePredicateForTest(t, falseSpec)
+	if v := falsePred.Evaluate(seatEmpty.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("want=false, SeatFilled=false: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+	v2 := falsePred.Evaluate(seatFilled.context(0))
+	if v2.Outcome != legal.Fail {
+		t.Fatalf("want=false, SeatFilled=true: legal.Outcome = %v, want legal.Fail (%+v)", v2.Outcome, v2)
+	}
+	if v2.Message == nil || v2.Message.Template != legal.TemplatePlayerBool {
+		t.Fatalf("legal.Message = %+v, want template %q", v2.Message, legal.TemplatePlayerBool)
+	}
+	if got := v2.Message.Bindings["want"]; got.S == nil || *got.S != "false" {
+		t.Fatalf("want binding = %+v, want \"false\"", got)
+	}
+
+	// A hand-built spec with a bad 2nd arg is a construction-time error.
+	badSpec := legal.Spec{Name: "playerBool", Args: []string{"SeatFilled", "nope"}}
+	if _, err := resolveSpecViaRegistry(badSpec, legal.DefaultConstructors(), nil); err == nil {
+		t.Fatal("expected an error constructing playerBool with an invalid want arg")
+	}
+}
+
 // TestComponentPresentAt covers ComponentPresentAt's pass/fail/unknown,
 // Reads (occupancy facet on the stack, values facet on the index), and
 // template key.
@@ -198,6 +260,54 @@ func TestComponentPresentAt(t *testing.T) {
 		t.Fatalf("index binding = %+v, want 0", got)
 	}
 
+	noMove := buildLegalFixture(t, "memoryNoMove")
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("nil move: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
+	}
+}
+
+// TestComponentAbsentAt covers ComponentAbsentAt (spec §4's negation leaf,
+// the exact inverse of ComponentPresentAt): pass/fail/unknown, Reads
+// (occupancy facet on the stack, values facet on the index, mirroring
+// ComponentPresentAt exactly), and template key.
+func TestComponentAbsentAt(t *testing.T) {
+	spec := legal.ComponentAbsentAt("game.VisibleCards", "move.CardIndex")
+	if spec.Name != "componentAbsentAt" {
+		t.Fatalf("Name = %q, want componentAbsentAt", spec.Name)
+	}
+
+	pred := resolvePredicateForTest(t, spec)
+	if len(pred.Reads) != 2 {
+		t.Fatalf("Reads = %+v, want 2 entries", pred.Reads)
+	}
+	if pred.Reads[0].Path != "game.VisibleCards" || pred.Reads[0].Facet != boardgame.LegalFacetOccupancy {
+		t.Fatalf("Reads[0] = %+v, want game.VisibleCards/FacetOccupancy", pred.Reads[0])
+	}
+	if pred.Reads[1].Path != "move.CardIndex" || pred.Reads[1].Facet != boardgame.LegalFacetValues {
+		t.Fatalf("Reads[1] = %+v, want move.CardIndex/FacetValues", pred.Reads[1])
+	}
+
+	// Pass: VisibleCards[0] is empty in memoryDefault.
+	fixture := buildLegalFixture(t, "memoryDefault")
+	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("VisibleCards[0] absent: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+
+	// Fail: HiddenCards[0] is occupied in memoryDefault.
+	failSpec := legal.ComponentAbsentAt("game.HiddenCards", "move.CardIndex")
+	failPred := resolvePredicateForTest(t, failSpec)
+	v := failPred.Evaluate(fixture.context(0))
+	if v.Outcome != legal.Fail {
+		t.Fatalf("HiddenCards[0] present: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
+	}
+	if v.Message == nil || v.Message.Template != legal.TemplateComponentPresentUnexpected {
+		t.Fatalf("legal.Message = %+v, want template %q", v.Message, legal.TemplateComponentPresentUnexpected)
+	}
+	if got := v.Message.Bindings["index"]; got.I == nil || *got.I != 0 {
+		t.Fatalf("index binding = %+v, want 0", got)
+	}
+
+	// Unknown: nil move (Reads declares move.CardIndex).
 	noMove := buildLegalFixture(t, "memoryNoMove")
 	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
 		t.Fatalf("nil move: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
@@ -467,6 +577,7 @@ func TestDefaultConstructors(t *testing.T) {
 		"propCompare":                      true,
 		"playerBool":                       true,
 		"componentPresentAt":               true,
+		"componentAbsentAt":                true,
 		"componentPresentAtKey":            true,
 		"mayMoveTo":                        true,
 		"mayMoveToSlot":                    true,
@@ -553,6 +664,7 @@ func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 		legal.TemplateStackNotEmpty,
 		legal.TemplatePropEquals,
 		legal.TemplatePropNotEquals,
+		legal.TemplateComponentPresentUnexpected,
 	}
 	keys := legal.DefaultTemplateKeys()
 	if len(keys) != len(want) {

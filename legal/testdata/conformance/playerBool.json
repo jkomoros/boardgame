@@ -19,6 +19,25 @@
       "fixture": "memoryDefault",
       "proposer": 0,
       "expect": "unknown"
+    },
+    {
+      "spec": {"name": "playerBool", "args": ["SeatFilled", "false"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "playerBool", "args": ["SeatFilled", "false"]},
+      "fixture": "memorySeatFilled",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.player_bool"
+    },
+    {
+      "spec": {"name": "playerBool", "args": ["SeatFilled", "true"]},
+      "fixture": "memorySeatFilled",
+      "proposer": 0,
+      "expect": "pass"
     }
   ]
 }
