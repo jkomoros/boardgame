@@ -479,6 +479,8 @@ func TestDefaultConstructors(t *testing.T) {
 		"stackCount":                       true,
 		"stackEmpty":                       true,
 		"stackNotEmpty":                    true,
+		"propEquals":                       true,
+		"propNotEquals":                    true,
 	}
 	if len(constructors) != len(wantNames) {
 		t.Fatalf("len(legal.DefaultConstructors()) = %d, want %d", len(constructors), len(wantNames))
@@ -549,6 +551,8 @@ func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 		legal.TemplateStackCount,
 		legal.TemplateStackEmpty,
 		legal.TemplateStackNotEmpty,
+		legal.TemplatePropEquals,
+		legal.TemplatePropNotEquals,
 	}
 	keys := legal.DefaultTemplateKeys()
 	if len(keys) != len(want) {

@@ -68,6 +68,8 @@ var defaultTemplates = map[string]string{
 	TemplateStackCount:                    "requires the stack's count ({count}) to be {op} {n}",
 	TemplateStackEmpty:                    "requires the stack to be empty",
 	TemplateStackNotEmpty:                 "requires the stack to not be empty",
+	TemplatePropEquals:                    "requires the current value ({value}) to equal {want}",
+	TemplatePropNotEquals:                 "requires the current value ({value}) to not equal {want}",
 	legalAnyFailedTemplate:                "none of the required conditions were satisfied",
 }
 

@@ -72,6 +72,10 @@ var defaultTemplateKeys = []string{
 	TemplateStackCount,
 	TemplateStackEmpty,
 	TemplateStackNotEmpty,
+	// Task 4 (legality-completeness round, catalog_compare.go) additions:
+	// typed equality predicates.
+	TemplatePropEquals,
+	TemplatePropNotEquals,
 }
 
 // ComponentPresentAt returns a Spec for the "componentPresentAt" predicate:
@@ -379,6 +383,8 @@ func DefaultConstructors() []*PredicateConstructor {
 		stackCountConstructor(),
 		stackEmptyConstructor(),
 		stackNotEmptyConstructor(),
+		propEqualsConstructor(),
+		propNotEqualsConstructor(),
 	}
 }
 
