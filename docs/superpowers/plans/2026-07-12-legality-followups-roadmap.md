@@ -30,9 +30,11 @@
 
 ---
 
-## Workstream 0 — Finish the footgun batch (IMMEDIATE; mostly done)
+## Workstream 0 — Finish the footgun batch (✅ COMPLETE)
 
-Plan: `docs/superpowers/plans/2026-07-12-legality-footgun-batch.md`. Status at time of writing: Tasks 1–4 implemented, reviewed (all APPROVE), commits `72b981b4`, `3586f278`, `1d82dfba`, `63519c73`, `e195c947`, `b96e13b6`, `77d36a45`, `06419dbf`, `3f11d57c`, `5f1ab043`, plus a Task 3 minors polish commit (in flight at writing time). Remaining:
+**DONE** (commits `1e2dfce4`, `42102032`, `7ee43c7a`; do NOT merge — awaits explicit user confirmation). Task-4 review minors landed (`1e2dfce4`); Task-5 whole-batch verification passed (full gates green both repos, `TestLegalChainStringFreeze` unmodified, F1–F10 disposition audit done). **The audit turned up a real gap: F5 (LegalCustom-without-opt-in) was mis-annotated as fixed — its `[BATCH: FIXED in 72b981b4]` note actually described F2. F5 was documentation-only (fail-open) and was genuinely boot-enforced this session in `42102032` (TDD + adversarial review, both no-plan paths, zero false positives). Annotation drift for F5/F9 corrected in `7ee43c7a`.** See `.superpowers/sdd/progress-legality.md` for the full disposition audit.
+
+Plan: `docs/superpowers/plans/2026-07-12-legality-footgun-batch.md`. Status at time of writing: Tasks 1–4 implemented, reviewed (all APPROVE), commits `72b981b4`, `3586f278`, `1d82dfba`, `63519c73`, `e195c947`, `b96e13b6`, `77d36a45`, `06419dbf`, `3f11d57c`, `5f1ab043`, plus a Task 3 minors polish commit (in flight at writing time). Remaining (now all done):
 
 1. **Task 4 review minors** (all Minor, none blocking):
    - Soften the surviving overclaim in `moves/legal_plan_test.go` (~line 603 doc comment: "the frozen imperative chain still enforces the check the suppression names") to match the corrected M1 message wording.
