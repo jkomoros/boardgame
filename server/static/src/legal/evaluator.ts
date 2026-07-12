@@ -41,6 +41,8 @@ export interface ChestEnum {
   Values: Record<string, string>;
   /** Present only for range enums (e.g. checkers' "spaces"). */
   Dimensions?: number[];
+  /** Present only for a TreeEnum: child int-string key -> parent int key. */
+  Parents?: Record<string, number>;
 }
 /** One deck component's IMMUTABLE values (state carries only dynamic values). */
 export interface ChestDeckComponent {
@@ -491,6 +493,146 @@ function evalComponentPropEqualsCurrentPlayer(spec: LegalSpec, ctx: EvalContext)
   return failT(template, { prop });
 }
 
+// revealableCardAt mirrors legal/catalog_purpose.go revealableCardAtConstructor:
+// resolve int idxField (args[2]) + hidden (args[0]) + visible (args[1]) stacks;
+// Pass iff hidden has a component at idx; else Fail "legal.no_card_here" when
+// visible ALSO has none there, else Fail "legal.already_revealed". Occupancy
+// only (never reads component values) — client-evaluable under sanitize:"order".
+function evalRevealableCardAt(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  const args = spec.args;
+  if (!args || args.length !== 3) return unknown();
+  const [hiddenPath, visiblePath, idxField] = args;
+  const idxR = resolveIntPath(idxField, ctx);
+  if (!idxR.ok) return unknown();
+  const hidden = resolveStackPath(hiddenPath, ctx);
+  if (!hidden.ok) return unknown();
+  const visible = resolveStackPath(visiblePath, ctx);
+  if (!visible.ok) return unknown();
+  if (stackComponentPresent(hidden.stack, idxR.value)) return pass();
+  const override = spec.message && spec.message.length > 0 ? spec.message : undefined;
+  if (!stackComponentPresent(visible.stack, idxR.value)) {
+    return failT(override ?? 'legal.no_card_here', {});
+  }
+  return failT(override ?? 'legal.already_revealed', {});
+}
+
+// PlayerIndex sentinels (Go state.go): the special negative indices.
+const OBSERVER_PLAYER_INDEX = -1;
+const ADMIN_PLAYER_INDEX = -2;
+const ANY_PLAYER_INDEX = -3;
+
+// playerMayBeActive mirrors base.GameDelegate.PlayerMayBeActive for the DEFAULT
+// delegate: active unless behaviors.InactivePlayer's PlayerInactive bool is true
+// (absent -> active). A game overriding PlayerMayBeActive can't be reproduced
+// client-side (no delegate) — an undetectable divergence, the same "by
+// convention" class the Go Read on game.CurrentPlayer already documents.
+function playerMayBeActive(player: Record<string, unknown> | undefined): boolean {
+  if (!player) return false;
+  return player.PlayerInactive !== true;
+}
+
+// playerIndexValid mirrors PlayerIndex.Valid (state.go) for the default
+// delegate: specials always valid; a concrete index must be in-bounds AND active.
+function playerIndexValid(p: number, ctx: EvalContext): boolean {
+  if (p === ADMIN_PLAYER_INDEX || p === OBSERVER_PLAYER_INDEX || p === ANY_PLAYER_INDEX) {
+    return true;
+  }
+  const players = ctx.state?.Players;
+  if (!Array.isArray(players) || p < 0 || p >= players.length) return false;
+  return playerMayBeActive(players[p] as Record<string, unknown>);
+}
+
+// playerIndexEquivalent mirrors PlayerIndex.Equivalent (state.go) byte-for-byte.
+function playerIndexEquivalent(p: number, other: number): boolean {
+  if (p < ANY_PLAYER_INDEX || other < ANY_PLAYER_INDEX) return false;
+  if (p === OBSERVER_PLAYER_INDEX || other === OBSERVER_PLAYER_INDEX) return false;
+  if (p === ADMIN_PLAYER_INDEX || other === ADMIN_PLAYER_INDEX) return true;
+  if (p === ANY_PLAYER_INDEX || other === ANY_PLAYER_INDEX) return true;
+  return p === other;
+}
+
+// proposerIsCurrentPlayer mirrors legal/catalog_players.go: replicates
+// moves.CurrentPlayer's TargetPlayerIndex checks. Field-dependent (reads
+// move.TargetPlayerIndex; no move -> Unknown). EnsureValid's invalid-raw branch
+// calls PlayerIndex.Next, which is delegate/CustomPlayerOrder-dependent and not
+// shipped, so fail-close (Unknown) when raw is not already Valid — the valid
+// path (all in-repo games / the whole corpus) is faithful; Next never fires.
+function evalProposerIsCurrentPlayer(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  if (spec.args && spec.args.length !== 0) return unknown();
+  const raw = resolveIntPath('move.TargetPlayerIndex', ctx);
+  if (!raw.ok) return unknown();
+  if (!playerIndexValid(raw.value, ctx)) return unknown();
+  const target = raw.value; // Valid -> EnsureValid returns raw unchanged.
+  const override = spec.message && spec.message.length > 0 ? spec.message : undefined;
+  if (target < 0) {
+    return failT(override ?? 'legal.proposer_target_invalid', {
+      detail: 'The specified target player is not valid',
+    });
+  }
+  if (!playerIndexEquivalent(target, ctx.currentPlayerIndex)) {
+    return failT(override ?? 'legal.proposer_not_your_turn', { detail: "it's not your turn" });
+  }
+  if (!playerIndexEquivalent(target, ctx.proposer)) {
+    return failT(override ?? 'legal.proposer_not_your_turn', { detail: "it's not your turn" });
+  }
+  return pass();
+}
+
+// phaseAncestors mirrors enum TreeEnum.Ancestors (enum/tree.go): root+self-
+// inclusive up the Parents chain; a flat enum (no Parents) yields just [key].
+function phaseAncestors(key: number, parents?: Record<string, number>): number[] {
+  if (!parents) return [key];
+  const out: number[] = [];
+  const seen = new Set<number>();
+  let cur = key;
+  while (true) {
+    out.unshift(cur);
+    if (cur === 0 || seen.has(cur)) break; // Go base case val==0 -> [0]
+    seen.add(cur);
+    const p = parents[String(cur)];
+    cur = typeof p === 'number' ? p : 0;
+  }
+  return out;
+}
+
+// inPhase mirrors legal/catalog_framework.go -> boardgame.LegalInPhaseCheck.
+// Reproducible only for the conventional PhaseBehavior case (phase == the
+// game.Phase enum property) AND only with the chest's phase enum. The state
+// ships Phase as its value NAME; the enum (and its key + tree Parents) is
+// recovered from the chest by membership. A non-conventional CurrentPhase
+// delegate or a missing phase enum fail-closes to Unknown.
+function evalInPhase(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  const args = spec.args ?? [];
+  if (args.length === 0) return pass(); // zero phases -> legal in every phase
+  const phaseR = resolvePath('game.Phase', ctx);
+  if (!phaseR.ok || typeof phaseR.value !== 'string') return unknown();
+  const phaseName = phaseR.value;
+  if (!ctx.chest || !ctx.chest.Enums) return unknown();
+  // Recover the phase enum by membership of the current phase NAME.
+  let currentKey: number | undefined;
+  let parents: Record<string, number> | undefined;
+  for (const enumName of Object.keys(ctx.chest.Enums)) {
+    const e = ctx.chest.Enums[enumName];
+    if (!e || !e.Values) continue;
+    for (const [k, name] of Object.entries(e.Values)) {
+      if (name === phaseName) {
+        currentKey = Number.parseInt(k, 10);
+        parents = e.Parents;
+        break;
+      }
+    }
+    if (currentKey !== undefined) break;
+  }
+  if (currentKey === undefined || Number.isNaN(currentKey)) return unknown();
+  const ancestors = phaseAncestors(currentKey, parents);
+  for (const a of args) {
+    const k = Number.parseInt(a, 10);
+    if (!Number.isNaN(k) && ancestors.includes(k)) return pass();
+  }
+  const template = spec.message && spec.message.length > 0 ? spec.message : 'legal.in_phase';
+  return failT(template, { detail: phaseName });
+}
+
 type PredicateFn = (spec: LegalSpec, ctx: EvalContext) => LegalVerdict;
 
 const PREDICATES: Record<string, PredicateFn> = {
@@ -506,6 +648,12 @@ const PREDICATES: Record<string, PredicateFn> = {
   propNotEquals: evalPropNotEquals,
   componentPresentAtKey: evalComponentPresentAtKey,
   componentPropEqualsCurrentPlayer: evalComponentPropEqualsCurrentPlayer,
+  revealableCardAt: evalRevealableCardAt,
+  proposerIsCurrentPlayer: evalProposerIsCurrentPlayer,
+  inPhase: evalInPhase,
+  // NOTE: mayMoveTo / mayMoveToSlot are deliberately absent (fail-closed to
+  // Unknown): a destination stack's constraints are Go closures that are never
+  // serialized to the client, so their legality cannot be soundly reproduced.
 };
 
 /** The predicate registry names the narrow evaluator can currently reproduce. */
