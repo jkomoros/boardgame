@@ -386,6 +386,28 @@ func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
 	return err.Error()
 }
 
+// legalCustomWithoutOptInError is the footgun-batch F5 boot error: a move
+// implements CustomLegaler (LegalCustom) but is not opted in to declarative
+// legality, so no plan is assembled, LegalCustom is never wrapped as the plan's
+// custom tail (buildLegalPlanFromPredicates), and the residue silently never
+// runs (fails open) with zero boot signal. Both no-plan paths in
+// assembleLegalPlans route here, and the diagnosis/fix differ by path, so
+// optInCapable distinguishes them: true means the move is a legalDeclarer with
+// no authored specs (its base supports opt-in; adding WithPreconditions fixes
+// it); false means the move is not a legalDeclarer at all — its base type
+// provides no DeclaredPreconditions surface (e.g. a core base.Move), so it
+// cannot opt in without switching to a supported base, and adding
+// WithPreconditions alone would just re-trigger this error.
+func legalCustomWithoutOptInError(moveName string, optInCapable bool) error {
+	reason := "it declares no WithPreconditions specs"
+	fix := "opt in with at least one WithPreconditions spec"
+	if !optInCapable {
+		reason = "its base type does not support declarative legality (only moves.Default, moves.CurrentPlayer, moves.FixUp, moves.FixUpMulti, and moves.StartPhase do)"
+		fix = "switch to one of those base types and opt in via WithPreconditions"
+	}
+	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom) but is not opted in to declarative legality: LegalCustom runs only as the custom tail of an assembled plan, and this move has no plan because %s — so its LegalCustom is never consulted and every check in that body silently stops being enforced (%s, or move the LegalCustom logic into a Legal() override)", moveName, reason, fix)
+}
+
 // assembleLegalPlans is called once at the end of NewGameManager (after moves
 // are installed and the example state exists). For every installed move type
 // that has opted in to declarative legality (declares WithPreconditions), it
@@ -409,12 +431,39 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 
 		declarer, ok := move.(legalDeclarer)
 		if !ok {
+			// Not opt-in-capable: this move embeds no moves-package base that
+			// provides the DeclaredPreconditions surface, so it has no plan and
+			// its frozen chain runs at runtime. But if it implements
+			// CustomLegaler, that residue can never be wrapped into a plan
+			// (footgun-batch F5) — the identical silent fail-open as the
+			// no-authored-specs path below — so reject it here too, before this
+			// guard would skip the move.
+			if _, isCustom := move.(CustomLegaler); isCustom {
+				return legalCustomWithoutOptInError(mType.Name(), false)
+			}
 			continue
 		}
 		authored, suppressions := declarer.DeclaredPreconditions()
 		if len(authored) == 0 {
 			// Not opted in (design spec §2). Frozen chain runs at runtime.
-			// But a WithoutPrecondition call on a not-opted-in move is dead
+			//
+			// But a move that implements CustomLegaler while not opted in is
+			// dead config (footgun-batch F5): LegalCustom is wrapped as the
+			// plan's custom tail (buildLegalPlanFromPredicates), and a move
+			// with no authored WithPreconditions gets no plan at all — so
+			// LegalCustom is never wrapped and never consulted. Every check
+			// the author put in that body silently stops being enforced (fails
+			// open) with zero boot signal. legal/doc.go states the requirement
+			// ("a move implementing LegalCustom must have opted in via
+			// WithPreconditions with at least one real spec"); enforce it at
+			// boot rather than let the residue silently vanish. This precedes
+			// the suppression check below because a dead LegalCustom is the
+			// more fundamental mistake (a bare WithoutPrecondition is merely
+			// inert; a dead LegalCustom drops real gating logic).
+			if _, isCustom := move.(CustomLegaler); isCustom {
+				return legalCustomWithoutOptInError(mType.Name(), true)
+			}
+			// A WithoutPrecondition call on a not-opted-in move is dead
 			// config (footgun-batch F2 flavor 2): suppressions only shape
 			// the declarative plan, and this move has no plan, so no
 			// suppression can have any effect. Reject at boot rather than

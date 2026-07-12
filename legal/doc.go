@@ -127,9 +127,13 @@ declarative Fail); a plain error still works and is wrapped as a one-off
 template. A move implementing LegalCustom must have opted in via
 WithPreconditions with at least one real spec — "declaring is implementing";
 an empty WithPreconditions() call does not count, so LegalCustom alone,
-without any declarative gates, is never consulted. LegalCustom combined with
-a wholesale Legal() override on the same type is a boot error: the override
-would orphan both the declared plan and the residue.
+without any declarative gates, would never be consulted — and is therefore a
+boot error naming the move (footgun-batch F5): LegalCustom is wrapped only as
+the custom tail of an assembled plan, and a move with no authored
+preconditions has no plan, so the residue would silently fail open rather than
+gate anything. LegalCustom combined with a wholesale Legal() override on the
+same type is a boot error too: the override would orphan both the declared
+plan and the residue.
 
 WithoutPrecondition(name string) suppresses one *contributed* check by its
 stable name (moves.Default/CurrentPlayer's own, never a game-authored one):

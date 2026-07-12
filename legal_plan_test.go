@@ -197,6 +197,48 @@ func (t *testCustomLegalerMove) LegalCustom(state ImmutableState, proposer Playe
 	return t.customErr
 }
 
+// testCustomLegalerNoDeclarerMove implements CustomLegaler but embeds a core
+// base type (testAlwaysLegalMove → baseFixUpMove → baseMove), NOT moves.Default,
+// so it does not implement the DeclaredPreconditions surface (legalDeclarer).
+// It exercises the F5 boot check on the path where assembleLegalPlans' "not a
+// legalDeclarer" guard would otherwise skip the move before the check.
+type testCustomLegalerNoDeclarerMove struct {
+	testAlwaysLegalMove
+}
+
+func (t *testCustomLegalerNoDeclarerMove) LegalCustom(state ImmutableState, proposer PlayerIndex) error {
+	return nil
+}
+
+var testCustomLegalerNoDeclarerMoveConfig = NewMoveConfig(
+	"Test Custom Legaler No Declarer",
+	func() Move { return new(testCustomLegalerNoDeclarerMove) },
+	nil)
+
+// TestCustomLegalerWithoutDeclarerIsBootError (F5, non-declarer path): a move
+// implementing CustomLegaler while embedding a core base type (not
+// moves.Default) never reaches the authored-preconditions branch of
+// assembleLegalPlans — the `move.(legalDeclarer)` type assertion fails and the
+// loop would `continue`. But it still gets no plan, so its LegalCustom is never
+// wrapped and never runs (fails open). The F5 boot check must fire here too,
+// naming the move.
+func TestCustomLegalerWithoutDeclarerIsBootError(t *testing.T) {
+	moveInstaller := func(manager *GameManager) []MoveConfig {
+		return []MoveConfig{testCustomLegalerNoDeclarerMoveConfig}
+	}
+	_, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Test Custom Legaler No Declarer")).IsTrue()
+		assert.For(t, "names LegalCustom").ThatActual(strings.Contains(err.Error(), "LegalCustom")).IsTrue()
+		// Path-B-specific guidance: the reason this move has no plan is that
+		// its base type is not opt-in-capable, not merely that specs are
+		// absent — so the message must point at switching base, not just
+		// adding WithPreconditions (which alone would re-trigger this error).
+		assert.For(t, "explains the base type is not opt-in-capable").ThatActual(strings.Contains(err.Error(), "does not support declarative legality")).IsTrue()
+	}
+}
+
 func TestLegalPlanCustomBucketAndWrapper(t *testing.T) {
 	manager := newTestGameManger(t)
 

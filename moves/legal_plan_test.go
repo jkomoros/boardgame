@@ -75,6 +75,26 @@ func (m *moveSuperCallOverrideOptIn) Legal(state boardgame.ImmutableState, propo
 
 func (m *moveSuperCallOverrideOptIn) Apply(state boardgame.State) error { return nil }
 
+// --- CustomLegaler implemented WITHOUT opting in (footgun batch F5) ---
+//
+// A move that implements boardgame.CustomLegaler (LegalCustom) but declares no
+// WithPreconditions specs is not opted in, so no plan is assembled and its
+// LegalCustom is never wrapped or consulted — the residue silently never runs
+// (fails open). legal/doc.go documents this as a hard author requirement; the
+// F5 boot check turns the honor-system requirement into a fail-closed boot
+// error.
+
+//boardgame:codegen
+type moveCustomLegalerNoOptIn struct {
+	Default
+}
+
+func (m *moveCustomLegalerNoOptIn) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	return nil
+}
+
+func (m *moveCustomLegalerNoOptIn) Apply(state boardgame.State) error { return nil }
+
 // TestPurelySugarOptInEvaluatesPlan: a fully declarative move (no Legal
 // override) has its plan evaluated in place of the frozen chain — an
 // always-fail precondition makes Legal() return that failure, rendered
@@ -653,6 +673,37 @@ func TestSuppressionWithoutOptInListsAllNames(t *testing.T) {
 		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Suppression Multi Without Opt In")).IsTrue()
 		assert.For(t, "lists the first dead name").ThatActual(strings.Contains(err.Error(), `"inPhase"`)).IsTrue()
 		assert.For(t, "lists the second dead name").ThatActual(strings.Contains(err.Error(), `"inProgression"`)).IsTrue()
+	}
+}
+
+// --- CustomLegaler-without-opt-in boot validation (footgun batch F5) ---
+
+// TestCustomLegalerWithoutOptInIsBootError (F5): a move that implements
+// boardgame.CustomLegaler (LegalCustom) but declares no WithPreconditions is
+// not opted in — no plan is assembled, so LegalCustom is never wrapped and
+// never runs. Every check the author put in LegalCustom silently stops being
+// enforced (fails open), with zero boot signal. legal/doc.go documents that a
+// LegalCustom move must opt in via WithPreconditions; boot must enforce it,
+// naming the move and pointing at the missing opt-in.
+func TestCustomLegalerWithoutOptInIsBootError(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveCustomLegalerNoOptIn),
+				WithMoveName("Custom Legaler Without Opt In"),
+				WithLegalPhases(phaseSetUp),
+				// NO WithPreconditions: not opted in, so LegalCustom is dead.
+			),
+		)
+	}
+
+	_, err := newGameManager(installer)
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Custom Legaler Without Opt In")).IsTrue()
+		assert.For(t, "names LegalCustom").ThatActual(strings.Contains(err.Error(), "LegalCustom")).IsTrue()
+		assert.For(t, "points at the missing opt-in").ThatActual(strings.Contains(err.Error(), "WithPreconditions")).IsTrue()
 	}
 }
 
