@@ -16,13 +16,26 @@ const (
 	TemplateComponentMissingKey = "legal.component_missing_key"
 	// TemplateNoComponentToMove is the default Fail template key MayMoveTo
 	// and MayMoveToSlot use when there is no component at the source index
-	// to move in the first place. Bindings: "index".
+	// to move in the first place. Bindings: "index" — but only on THIS
+	// branch's own key: a single .WithMessage override collapses this branch
+	// and TemplateMayNotMoveTo's onto one key, whose guaranteed bindings are
+	// the two branches' intersection (empty), so an overriding template body
+	// may not reference {index} or any other placeholder (see
+	// TemplateMayNotMoveTo).
 	TemplateNoComponentToMove = "legal.no_component_to_move"
 	// TemplateMayNotMoveTo is the default Fail template key MayMoveTo and
 	// MayMoveToSlot use when a component exists at the source index but
 	// MayMoveTo/MayMoveToSlot itself rejects the move. Bindings: "detail",
 	// the underlying error's message verbatim (component.go's MayMoveTo/
-	// MayMoveToSlot error strings).
+	// MayMoveToSlot error strings). Note the per-branch bindings above and
+	// here apply only to the DEFAULT keys: MayMoveTo/MayMoveToSlot fail on
+	// two branches ({index} on one, {detail} on the other), and a single
+	// .WithMessage override retargets BOTH branches at your one key, so the
+	// bindings guaranteed to render with that key shrink to the branches'
+	// intersection — for this predicate, none — and an overriding template
+	// body referencing ANY placeholder is a boot error (see
+	// boardgame.LegalPredicate.EmittedBindings and legal/doc.go's template
+	// tables section).
 	TemplateMayNotMoveTo = "legal.may_not_move_to"
 	// TemplateComponentPresentUnexpected is the default Fail template key
 	// for ComponentAbsentAt (spec §4's negation leaf, the exact inverse of

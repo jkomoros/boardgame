@@ -226,7 +226,17 @@ This covers a WithMessage retarget at a game template AND a
 ConfigureLegalTemplates body override of a catalog default — e.g. pointing
 PropAtLeast at a body referencing {frobs} is a boot error naming the move,
 the template key, and the unemitted placeholder (each catalog predicate's
-bindings per key are documented on its Template* constant).
+bindings per key are documented on its Template* constant). One subtlety for
+predicates that fail on MORE THAN ONE branch (e.g. mayMoveTo/mayMoveToSlot:
+{index} when no component sits at the source, {detail} when the move itself
+is rejected): the per-branch bindings documented on the Template* constants
+apply to the DEFAULT per-branch keys, but a single WithMessage override
+retargets EVERY branch at your one key, so the bindings your template body
+may reference shrink to the branches' INTERSECTION — only a binding attached
+on every failure path is guaranteed renderable. For mayMoveTo/mayMoveToSlot
+that intersection is empty, so an overriding body may not reference any
+placeholder at all; for proposerIsCurrentPlayer both branches emit {detail},
+so {detail} survives the collapse.
 
 # Game-registered predicates
 

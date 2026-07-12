@@ -3,6 +3,7 @@ package boardgame
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -230,7 +231,12 @@ func validateLegalEmittedTemplatesTree(pred *LegalPredicate, table map[string]st
 // entry are checked (iterated via EmittedTemplates, so the reported error is
 // deterministic); every catalog constructor covers all its emitted keys by
 // construction, since both fields are populated from the same effective-key
-// variables. A key absent from table is skipped here — that is
+// variables. Malformed metadata is a boot error, though: an EmittedBindings
+// key that is NOT listed in EmittedTemplates (a typo'd or stale entry) would
+// otherwise be silently ignored — the entry itself never looked at, and the
+// key it was meant to cover skipped as metadata-free — so a predicate that
+// bothered to declare metadata would get zero validation with no diagnostic.
+// A key absent from table is skipped here — that is
 // validateLegalEmittedTemplates's error to report, with its more specific
 // message. The boot call site wraps the returned error with the owning
 // MOVE's name (this function, like the rest of core's legal plumbing, does
@@ -249,6 +255,20 @@ func validateLegalEmittedBindingsTree(pred *LegalPredicate, table map[string]str
 		return nil
 	}
 	if pred.EmittedBindings != nil {
+		declared := make(map[string]bool, len(pred.EmittedTemplates))
+		for _, key := range pred.EmittedTemplates {
+			declared[key] = true
+		}
+		var strays []string
+		for key := range pred.EmittedBindings {
+			if !declared[key] {
+				strays = append(strays, key)
+			}
+		}
+		if len(strays) > 0 {
+			sort.Strings(strays)
+			return fmt.Errorf("boardgame: predicate %q declares EmittedBindings metadata for template key(s) %s not listed in its EmittedTemplates (%s) — a bindings entry for an unlisted key is never validated against any template body, so this is almost certainly a typo'd or stale metadata key; list the key in EmittedTemplates or fix the EmittedBindings entry", pred.Name, legalFormatBindingNames(strays), legalFormatBindingNames(pred.EmittedTemplates))
+		}
 		for _, key := range pred.EmittedTemplates {
 			bindings, ok := pred.EmittedBindings[key]
 			if !ok {
@@ -265,7 +285,7 @@ func validateLegalEmittedBindingsTree(pred *LegalPredicate, table map[string]str
 			}
 			for _, placeholder := range LegalTemplatePlaceholders(body) {
 				if !emitted[placeholder] {
-					return fmt.Errorf("boardgame: predicate %q emits template key %q whose body (%q) references placeholder {%s}, but the predicate never emits a binding named %q with that key (it emits: %s) — the placeholder would render as its bare name mid-game; fix the template body or point the spec at a template whose placeholders the predicate can fill", pred.Name, key, body, placeholder, placeholder, legalFormatBindingNames(bindings))
+					return fmt.Errorf("boardgame: predicate %q emits template key %q whose body (%q) references placeholder {%s}, but the predicate does not guarantee a binding named %q on every emission of that key (guaranteed bindings: %s) — the placeholder would render as its bare name mid-game; fix the template body or point the spec at a template whose placeholders the predicate always fills", pred.Name, key, body, placeholder, placeholder, legalFormatBindingNames(bindings))
 				}
 			}
 		}
@@ -278,16 +298,18 @@ func validateLegalEmittedBindingsTree(pred *LegalPredicate, table map[string]str
 	return nil
 }
 
-// legalFormatBindingNames renders a declared-bindings list for
-// validateLegalEmittedBindingsTree's error message: quoted and
-// comma-separated, or an explicit "no bindings at all" for an empty set.
-func legalFormatBindingNames(bindings []string) string {
-	if len(bindings) == 0 {
-		return "no bindings at all"
+// legalFormatBindingNames renders a name list (binding names or template
+// keys) for validateLegalEmittedBindingsTree's error messages: quoted and
+// comma-separated, or an explicit "none" for an empty set — so the
+// guaranteed-bindings clause reads "(guaranteed bindings: none)" when a
+// multi-branch collapse leaves nothing guaranteed on every emission path.
+func legalFormatBindingNames(names []string) string {
+	if len(names) == 0 {
+		return "none"
 	}
-	quoted := make([]string, len(bindings))
-	for i, b := range bindings {
-		quoted[i] = fmt.Sprintf("%q", b)
+	quoted := make([]string, len(names))
+	for i, n := range names {
+		quoted[i] = fmt.Sprintf("%q", n)
 	}
 	return strings.Join(quoted, ", ")
 }

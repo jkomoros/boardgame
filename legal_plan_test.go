@@ -380,6 +380,31 @@ func TestValidateLegalEmittedBindings(t *testing.T) {
 		assert.For(t).ThatActual(validateLegalEmittedBindings(preds, table)).IsNil()
 	})
 
+	t.Run("EmittedBindings key absent from EmittedTemplates is a boot error", func(t *testing.T) {
+		// A typo'd EmittedBindings key silently got ZERO validation before
+		// this check existed: the per-key loop iterates EmittedTemplates, so
+		// a bindings entry whose key doesn't appear there was never looked
+		// at, and the key it was MEANT to cover was skipped as
+		// metadata-free. Malformed metadata is a boot error, not a silent
+		// validation gap.
+		preds := []*LegalPredicate{{
+			Name:             "typoPred",
+			EmittedTemplates: []string{"all.bound"},
+			EmittedBindings: map[string][]string{
+				"all.bound": {"value", "min"},
+				"all.buond": {"value", "min"},
+			},
+		}}
+		err := validateLegalEmittedBindings(preds, table)
+		assert.For(t).ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"typoPred", "all.buond", "EmittedTemplates"} {
+			assert.For(t, want).ThatActual(strings.Contains(err.Error(), want)).Equals(true)
+		}
+	})
+
 	t.Run("recurses into Sub tree", func(t *testing.T) {
 		preds := []*LegalPredicate{{
 			Name:             "any",

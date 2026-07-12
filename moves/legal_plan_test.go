@@ -795,6 +795,138 @@ func TestBootValidatesTemplatePlaceholdersAgainstEmittedBindings(t *testing.T) {
 	})
 }
 
+// legalRegisteredBindingTestDelegate embeds the standard moves-test delegate
+// and adds BOTH optional legal surfaces — ConstructorConfigurer and
+// TemplateConfigurer — so the tests below can register a game-registered
+// predicate carrying EmittedBindings metadata alongside the game templates
+// its keys resolve to.
+type legalRegisteredBindingTestDelegate struct {
+	gameDelegate
+	ctors     []*legal.PredicateConstructor
+	templates map[string]string
+}
+
+func (d *legalRegisteredBindingTestDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstructor {
+	return d.ctors
+}
+
+func (d *legalRegisteredBindingTestDelegate) ConfigureLegalTemplates() map[string]string {
+	return d.templates
+}
+
+// bindingMetadataConstructor returns a game-registered predicate constructor
+// whose predicates declare exactly the given EmittedTemplates/EmittedBindings
+// metadata and whose Evaluate fails with the first emitted key carrying a
+// single {who} binding — the minimal shape for exercising the F4
+// placeholder/binding boot checks through the game-registered (rather than
+// catalog) path.
+func bindingMetadataConstructor(name string, emittedTemplates []string,
+	emittedBindings map[string][]string) *legal.PredicateConstructor {
+	return &legal.PredicateConstructor{
+		Name: name,
+		Constructor: func(spec legal.Spec, _ *boardgame.ComponentChest,
+			_ func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
+			return &legal.Predicate{
+				Name: name,
+				Args: spec.Args,
+				Reads: []legal.Read{
+					{Path: "game.Counter", Facet: boardgame.LegalFacetValues},
+				},
+				Cost:             boardgame.LegalCostTrivial,
+				EmittedTemplates: emittedTemplates,
+				EmittedBindings:  emittedBindings,
+				Evaluate: func(ctx legal.Context) legal.Verdict {
+					return legal.FailT(emittedTemplates[0], map[string]legal.BindingValue{
+						"who": legal.String("someone"),
+					})
+				},
+			}, nil
+		},
+	}
+}
+
+// TestBootValidatesGameRegisteredEmittedBindings: the F4 placeholder/binding
+// boot checks through a GAME-REGISTERED predicate that declares
+// EmittedBindings metadata (the catalog path is
+// TestBootValidatesTemplatePlaceholdersAgainstEmittedBindings above; the
+// metadata-free game-registered path deliberately skips validation and is
+// pinned by the root package's TestValidateLegalEmittedBindings). Also pins
+// the malformed-metadata boot error: an EmittedBindings key absent from
+// EmittedTemplates used to be silently skipped by validation entirely.
+func TestBootValidatesGameRegisteredEmittedBindings(t *testing.T) {
+	newRegisteredBindingManager := func(moveName string, templates map[string]string,
+		ctor *legal.PredicateConstructor, spec legal.Spec) (*boardgame.GameManager, error) {
+		installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+			auto := NewAutoConfigurer(manager.Delegate())
+			return Add(
+				auto.MustConfig(
+					new(moveDeclarativeOptIn),
+					WithMoveName(moveName),
+					WithPreconditions(spec),
+				),
+			)
+		}
+		return boardgame.NewGameManager(&legalRegisteredBindingTestDelegate{
+			gameDelegate{moveInstaller: installer},
+			[]*legal.PredicateConstructor{ctor},
+			templates,
+		}, memory.NewStorageManager())
+	}
+
+	t.Run("template body referencing a binding not in the metadata is a boot error", func(t *testing.T) {
+		_, err := newRegisteredBindingManager(
+			"Registered Binding Move",
+			map[string]string{"test.registered_binding": "blocked by {villain}"},
+			bindingMetadataConstructor("test.registeredBinding",
+				[]string{"test.registered_binding"},
+				map[string][]string{"test.registered_binding": {"who"}}),
+			legal.Spec{Name: "test.registeredBinding"},
+		)
+		assert.For(t, "boot error").ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"Registered Binding Move", "test.registered_binding", "villain"} {
+			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
+		}
+	})
+
+	t.Run("EmittedBindings key absent from EmittedTemplates is a boot error", func(t *testing.T) {
+		// The metadata key is typo'd ("bidning"): before the
+		// malformed-metadata check, the typo'd entry was never looked at AND
+		// the real key was skipped as metadata-free, so the {villain}
+		// mismatch above would sail through boot unvalidated.
+		_, err := newRegisteredBindingManager(
+			"Typo Metadata Move",
+			map[string]string{"test.registered_binding": "blocked by {villain}"},
+			bindingMetadataConstructor("test.typoMetadata",
+				[]string{"test.registered_binding"},
+				map[string][]string{"test.registered_bidning": {"who"}}),
+			legal.Spec{Name: "test.typoMetadata"},
+		)
+		assert.For(t, "boot error").ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"Typo Metadata Move", "test.typoMetadata", "test.registered_bidning", "EmittedTemplates"} {
+			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
+		}
+	})
+
+	t.Run("matching metadata and template body boot cleanly", func(t *testing.T) {
+		manager, err := newRegisteredBindingManager(
+			"Valid Registered Binding Move",
+			map[string]string{"test.registered_binding": "blocked by {who}"},
+			bindingMetadataConstructor("test.validBinding",
+				[]string{"test.registered_binding"},
+				map[string][]string{"test.registered_binding": {"who"}}),
+			legal.Spec{Name: "test.validBinding"},
+		)
+		assert.For(t, "boots").ThatActual(err).IsNil()
+		assert.For(t, "manager").ThatActual(manager != nil).IsTrue()
+	})
+}
+
 // --- Footgun-batch F3: boot smoke probe catching a game-registered
 // predicate that reads move properties without declaring any move.* Read ---
 
