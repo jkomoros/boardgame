@@ -37,6 +37,12 @@ neither of which package server/api can reach.
 //     quantifier's verdict is a function of every iterated player's value,
 //     so if even one player's policy would hide it from viewer, the
 //     aggregate verdict can leak information about that one player.
+//   - "players[move.<Field>].<Prop>" reads require the facet to survive for
+//     EVERY player, exactly like "players[*].X": which player <Field>
+//     resolves to is only known once the move is fixed, and the server
+//     ledger's job here is to judge evaluability WITHOUT trusting the move
+//     to pick a favorable player, so it must be conservative over every
+//     player the field could name (same rationale as pathPlayersAll above).
 //
 // A malformed read.Path, a nil st, or an st whose concrete type isn't this
 // package's own (impossible in practice — ImmutableState has exactly one
@@ -79,7 +85,7 @@ func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) b
 			return false
 		}
 		return facetSurvives(legalPolicyForProp(transformation.Players[current], parsed.prop), read.Facet)
-	case pathPlayersAll:
+	case pathPlayersAll, pathPlayersMoveField:
 		if len(transformation.Players) == 0 {
 			return false
 		}
@@ -89,9 +95,16 @@ func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) b
 			}
 		}
 		return true
+	default:
+		// Every legalPathKind must be classified explicitly above. A new
+		// path kind added to legal_path.go without a corresponding case here
+		// would otherwise silently fall through to fail-closed false for
+		// every read of that kind — which is exactly the bug this default
+		// exists to make loud instead of silent: if you're here because a
+		// new kind hit this default, go add its case above, don't just
+		// accept the false.
+		return false
 	}
-
-	return false
 }
 
 // LegalReadsEvaluable reports whether EVERY read in reads is
