@@ -423,17 +423,20 @@ func TestCurrentPlayerSuppressedProposerIsBootError(t *testing.T) {
 	}
 }
 
-// TestDefaultSuppressedProposerStillBoots (final review finding, contrast
-// case): the identical WithoutPrecondition("proposerIsCurrentPlayer") call
-// on a moves.Default-embedding move (which never contributes that atom in
-// the first place, and has no imperative proposer check to diverge from)
-// still boots cleanly — the boot guard above is CurrentPlayer-specific, not
-// a blanket ban on suppressing this name. moveDeclaredPreconditions
-// (contributed_preconditions_test.go) already exercises this exact
-// suppression on a Default-embedding move via
-// TestWithPreconditionsRoundTrip; this test pins the "boots without error"
-// half directly and by name, next to its CurrentPlayer counterpart above.
-func TestDefaultSuppressedProposerStillBoots(t *testing.T) {
+// TestDefaultSuppressedProposerIsBootError (contrast case, updated by the
+// footgun batch's F2 suppression validation): the identical
+// WithoutPrecondition("proposerIsCurrentPlayer") call on a
+// moves.Default-embedding move used to boot cleanly as a silent no-op —
+// Default never contributes that atom, so the suppression matched nothing
+// and was dropped at plan assembly. Under F2 an unmatched suppression name
+// is a boot error (it can only ever be a typo or an opt-out of a check the
+// move never had), so the same call now fails boot — via the GENERIC
+// unmatched-name guard, not the CurrentPlayer-specific divergence guard its
+// counterpart above exercises. The two errors are deliberately distinct:
+// this one says the atom was never contributed; that one says the atom IS
+// contributed but suppressing it would desynchronize the client ledger from
+// CurrentPlayer.Legal's imperative check.
+func TestDefaultSuppressedProposerIsBootError(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
 		return Add(
@@ -447,7 +450,11 @@ func TestDefaultSuppressedProposerStillBoots(t *testing.T) {
 	}
 
 	_, err := newGameManager(installer)
-	assert.For(t, "boots (Default has no proposer check to diverge from)").ThatActual(err).IsNil()
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Default Suppressed Proposer")).IsTrue()
+		assert.For(t, "generic unmatched-name guard, not the CurrentPlayer guard").ThatActual(strings.Contains(err.Error(), "contributes no spec with that name")).IsTrue()
+	}
 }
 
 // --- Registry-merge boot test ---
@@ -522,4 +529,132 @@ func TestContributedOnlyIsNotOptedIn(t *testing.T) {
 
 	_, err := newGameManager(installer)
 	assert.For(t, "boots (not opted in, no probe)").ThatActual(err).IsNil()
+}
+
+// --- WithoutPrecondition boot validation (footgun batch F2) ---
+//
+// WithoutPrecondition is fire-and-forget config: before these guards, a
+// suppression whose name matched nothing (a typo, or a check the move never
+// contributed) was silently dropped at plan assembly, and a suppression on a
+// move that never opted in via WithPreconditions was dead config while the
+// frozen chain kept enforcing the "suppressed" check. All three flavors are
+// now boot errors naming the move.
+
+// TestSuppressionTypoIsBootError (F2 flavor 1a): a WithoutPrecondition name
+// that matches no contributed spec name because it is misspelled ("inphase"
+// for "inPhase") must fail boot naming the move, the unmatched name, and the
+// move's actual contributed names — not silently no-op while the phase check
+// keeps running.
+func TestSuppressionTypoIsBootError(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Suppression Typo"),
+				WithLegalPhases(phaseSetUp),
+				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutPrecondition("inphase"), // typo: real name is "inPhase"
+			),
+		)
+	}
+
+	_, err := newGameManager(installer)
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Suppression Typo")).IsTrue()
+		assert.For(t, "names the unmatched name").ThatActual(strings.Contains(err.Error(), `"inphase"`)).IsTrue()
+		assert.For(t, "lists the contributed names").ThatActual(strings.Contains(err.Error(), `"inPhase"`)).IsTrue()
+	}
+}
+
+// TestSuppressionNotContributedIsBootError (F2 flavor 1b): a perfectly valid
+// framework name ("inProgression") suppressed on a move that never
+// contributes it (no move progression configured) must fail boot — the
+// author believes they opted out of a check that was never going to run,
+// which almost certainly means they meant a different name or a different
+// move.
+func TestSuppressionNotContributedIsBootError(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Suppression Not Contributed"),
+				WithLegalPhases(phaseSetUp),
+				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutPrecondition("inProgression"),
+			),
+		)
+	}
+
+	_, err := newGameManager(installer)
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Suppression Not Contributed")).IsTrue()
+		assert.For(t, "names the unmatched name").ThatActual(strings.Contains(err.Error(), `"inProgression"`)).IsTrue()
+	}
+}
+
+// TestSuppressionWithoutOptInIsBootError (F2 flavor 2): WithoutPrecondition
+// on a move with NO authored WithPreconditions specs is dead config — the
+// move is not opted in, no plan exists, and the frozen imperative chain
+// still enforces the check the suppression names. Boot must reject it
+// rather than let the author believe the check is off.
+func TestSuppressionWithoutOptInIsBootError(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Suppression Without Opt In"),
+				WithLegalPhases(phaseSetUp),
+				// NO WithPreconditions: not opted in, so this suppression
+				// could never take effect.
+				WithoutPrecondition("inPhase"),
+			),
+		)
+	}
+
+	_, err := newGameManager(installer)
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Suppression Without Opt In")).IsTrue()
+		assert.For(t, "points at the missing opt-in").ThatActual(strings.Contains(err.Error(), "WithPreconditions")).IsTrue()
+	}
+}
+
+// TestValidSuppressionBootsAndSuppresses (F2 contrast case): a suppression
+// that names a check the move actually contributes is the supported pattern
+// and must keep working — the game boots, and the suppressed check really
+// is gone from the plan (the move is legal even though the game is NOT in
+// the move's configured phase).
+func TestValidSuppressionBootsAndSuppresses(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Valid Suppression"),
+				// The game never enters phaseDrawAgain in these tests, so if
+				// the contributed inPhase atom survived, Legal() would fail.
+				WithLegalPhases(phaseDrawAgain),
+				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutPrecondition("inPhase"),
+			),
+		)
+	}
+
+	manager, err := newGameManager(installer)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	if manager == nil {
+		return
+	}
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "game").ThatActual(err).IsNil()
+
+	move := game.MoveByName("Valid Suppression")
+	assert.For(t, "move").ThatActual(move).IsNotNil()
+	// Legal despite the wrong phase: the inPhase atom was suppressed.
+	assert.For(t, "phase check suppressed").ThatActual(move.Legal(game.CurrentState(), 0)).IsNil()
 }

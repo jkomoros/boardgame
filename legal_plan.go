@@ -408,6 +408,15 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		authored, suppressions := declarer.DeclaredPreconditions()
 		if len(authored) == 0 {
 			// Not opted in (design spec §2). Frozen chain runs at runtime.
+			// But a WithoutPrecondition call on a not-opted-in move is dead
+			// config (footgun-batch F2 flavor 2): suppressions only shape
+			// the declarative plan, and this move has no plan — the frozen
+			// imperative chain keeps enforcing the very check the author
+			// believes they turned off. Reject at boot rather than let the
+			// suppression silently do nothing.
+			if len(suppressions) > 0 {
+				return fmt.Errorf("move %q calls WithoutPrecondition(%q) but never opts in via WithPreconditions: suppressions only remove atoms from the declarative plan, and a move with no authored WithPreconditions specs has no plan — its frozen imperative chain runs unchanged, still enforcing the check the suppression names (opt in with at least one WithPreconditions spec, or drop the WithoutPrecondition call)", mType.Name(), suppressions[0])
+			}
 			continue
 		}
 
@@ -442,6 +451,18 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		var contributed []LegalSpec
 		if contributor, ok := move.(legalContributor); ok {
 			contributed = contributor.ContributedPreconditions()
+		}
+
+		// Footgun-batch F2 flavor 1: every suppression must match at least
+		// one contributed spec name, or it is either a typo ("inphase") or
+		// an opt-out of a check this move never had ("inProgression" on a
+		// move with no progression) — both silently no-ops before this
+		// guard. The CurrentPlayer-specific proposer guard above stays the
+		// more specific error for its case (on a CurrentPlayer-embedding
+		// move the proposer atom IS contributed, so it would pass this
+		// check).
+		if err := validateLegalSuppressions(mType.Name(), contributed, suppressions); err != nil {
+			return err
 		}
 
 		specs := assembleLegalSpecList(contributed, authored, suppressions)
@@ -496,6 +517,41 @@ func (g *GameManager) buildLegalRegistryAndTemplates() (map[string]*LegalPredica
 	}
 
 	return registry, templates
+}
+
+// validateLegalSuppressions is the footgun-batch F2 flavor-1 boot check for
+// one opted-in move type: every WithoutPrecondition name must match at least
+// one CONTRIBUTED spec name (suppression removes contributed atoms only —
+// see assembleLegalSpecList below — so an unmatched name could never have
+// any effect). An unmatched name is a boot error naming the move, the
+// unmatched name, and the move's actual contributed names, so the author can
+// tell a typo ("inphase") apart from suppressing a check the move never
+// contributes ("inProgression" on a move with no configured progression).
+func validateLegalSuppressions(moveName string, contributed []LegalSpec, suppressions []string) error {
+	if len(suppressions) == 0 {
+		return nil
+	}
+
+	names := make(map[string]bool, len(contributed))
+	quoted := make([]string, 0, len(contributed))
+	for _, spec := range contributed {
+		if !names[spec.Name] {
+			quoted = append(quoted, fmt.Sprintf("%q", spec.Name))
+		}
+		names[spec.Name] = true
+	}
+
+	contributedDesc := "none at all — this move contributes no specs, so no suppression could ever match"
+	if len(quoted) > 0 {
+		contributedDesc = strings.Join(quoted, ", ")
+	}
+
+	for _, name := range suppressions {
+		if !names[name] {
+			return fmt.Errorf("move %q suppresses %q via WithoutPrecondition but contributes no spec with that name: suppression only removes a CONTRIBUTED atom from the plan, so an unmatched name is either a typo or an opt-out of a check this move never had (this move's contributed spec names: %s)", moveName, name, contributedDesc)
+		}
+	}
+	return nil
 }
 
 // assembleLegalSpecList produces the final ordered spec list for a plan

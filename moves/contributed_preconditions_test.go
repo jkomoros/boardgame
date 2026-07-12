@@ -198,6 +198,15 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 		auto.MustConfig(
 			new(moveDeclaredPreconditions),
 			WithMoveName("Declared Preconditions"),
+			// Footgun-batch F2 note: WithoutPrecondition names must match
+			// CONTRIBUTED spec names at boot, so this fixture contributes
+			// the two checks it then suppresses (the original fixture
+			// suppressed "proposerIsCurrentPlayer"/"stackConstraints"
+			// without contributing either — a silent no-op then, a boot
+			// error now).
+			WithLegalPhases(phaseSetUp),
+			WithSourceProperty("DrawStack"),
+			WithDestinationProperty("DiscardStack"),
 			WithPreconditions(
 				legal.PropAtLeast("game.Counter", 1),
 			),
@@ -215,7 +224,7 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 			WithPreconditions(
 				legal.PropCompare("player.Counter", ">=", 0),
 			),
-			WithoutPrecondition("proposerIsCurrentPlayer"),
+			WithoutPrecondition("inPhase"),
 			WithoutPrecondition("stackConstraints"),
 		),
 		auto.MustConfig(
@@ -248,7 +257,7 @@ func TestWithPreconditionsRoundTrip(t *testing.T) {
 	assert.For(t, "declared spec 1").ThatActual(specs[1].Name).Equals("propCompare")
 
 	assert.For(t, "suppression count").ThatActual(len(suppressions)).Equals(2)
-	assert.For(t, "suppression 0").ThatActual(suppressions[0]).Equals("proposerIsCurrentPlayer")
+	assert.For(t, "suppression 0").ThatActual(suppressions[0]).Equals("inPhase")
 	assert.For(t, "suppression 1").ThatActual(suppressions[1]).Equals("stackConstraints")
 
 	notDeclared := game.MoveByName("No Declared Preconditions").(*moveNoDeclaredPreconditions)
