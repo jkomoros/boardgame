@@ -295,9 +295,10 @@ func WithPreconditions(specs ...legal.Spec) CustomConfigurationOption {
 // move never had — e.g. PreconditionInProgression on a move with no move
 // progression) is a boot error listing the move's real contributed names,
 // and WithoutPrecondition on a move that never opts in via
-// WithPreconditions is a boot error too (without the opt-in there is no
-// plan to edit, and the frozen imperative chain would keep enforcing the
-// "suppressed" check).
+// WithPreconditions is a boot error too, listing every dead suppression
+// name on the move (without the opt-in there is no plan to edit, so the
+// frozen imperative chain runs unchanged — the suppression cannot have any
+// effect).
 func WithoutPrecondition(name string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		previous, _ := config[configPropSuppressedPreconditions].([]string)

@@ -625,6 +625,36 @@ func TestSuppressionWithoutOptInIsBootError(t *testing.T) {
 	}
 }
 
+// TestSuppressionWithoutOptInListsAllNames (wave-1 review M1): when a
+// not-opted-in move carries MULTIPLE dead suppressions, the flavor-2 boot
+// error must report every dead name, not just the first — an author fixing
+// the error by deleting only the named call would just trade one boot error
+// for another, once per remaining suppression.
+func TestSuppressionWithoutOptInListsAllNames(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Suppression Multi Without Opt In"),
+				WithLegalPhases(phaseSetUp),
+				// NO WithPreconditions: not opted in, so BOTH suppressions
+				// are dead config.
+				WithoutPrecondition(PreconditionInPhase),
+				WithoutPrecondition(PreconditionInProgression),
+			),
+		)
+	}
+
+	_, err := newGameManager(installer)
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Suppression Multi Without Opt In")).IsTrue()
+		assert.For(t, "lists the first dead name").ThatActual(strings.Contains(err.Error(), `"inPhase"`)).IsTrue()
+		assert.For(t, "lists the second dead name").ThatActual(strings.Contains(err.Error(), `"inProgression"`)).IsTrue()
+	}
+}
+
 // TestValidSuppressionBootsAndSuppresses (F2 contrast case): a suppression
 // that names a check the move actually contributes is the supported pattern
 // and must keep working — the game boots, and the suppressed check really

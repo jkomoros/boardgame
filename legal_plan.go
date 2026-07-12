@@ -410,12 +410,22 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 			// Not opted in (design spec §2). Frozen chain runs at runtime.
 			// But a WithoutPrecondition call on a not-opted-in move is dead
 			// config (footgun-batch F2 flavor 2): suppressions only shape
-			// the declarative plan, and this move has no plan — the frozen
-			// imperative chain keeps enforcing the very check the author
-			// believes they turned off. Reject at boot rather than let the
-			// suppression silently do nothing.
+			// the declarative plan, and this move has no plan, so no
+			// suppression can have any effect. Reject at boot rather than
+			// let the suppressions silently do nothing. The error lists
+			// EVERY dead name (wave-1 review M1) so the author fixes them
+			// all in one pass, and deliberately does NOT claim the frozen
+			// chain "still enforces the check the suppression names" — the
+			// named check may never have been in the frozen chain either
+			// (e.g. "inProgression" on a move with no configured
+			// progression); the only thing certainly true is that the
+			// frozen chain runs unchanged.
 			if len(suppressions) > 0 {
-				return fmt.Errorf("move %q calls WithoutPrecondition(%q) but never opts in via WithPreconditions: suppressions only remove atoms from the declarative plan, and a move with no authored WithPreconditions specs has no plan — its frozen imperative chain runs unchanged, still enforcing the check the suppression names (opt in with at least one WithPreconditions spec, or drop the WithoutPrecondition call)", mType.Name(), suppressions[0])
+				quoted := make([]string, len(suppressions))
+				for i, name := range suppressions {
+					quoted[i] = fmt.Sprintf("%q", name)
+				}
+				return fmt.Errorf("move %q calls WithoutPrecondition(%s) but never opts in via WithPreconditions: suppressions only remove atoms from the declarative plan, and a move with no authored WithPreconditions specs has no plan — its frozen imperative chain runs unchanged, still enforcing whatever checks it always ran (whether or not one of them corresponds to a suppressed name), so every suppression here is dead config (opt in with at least one WithPreconditions spec, or drop the WithoutPrecondition calls)", mType.Name(), strings.Join(quoted, ", "))
 			}
 			continue
 		}

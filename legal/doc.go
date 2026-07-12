@@ -159,8 +159,10 @@ each naming the offending move:
 
   - Suppression without opt-in: WithoutPrecondition on a move with no
     authored WithPreconditions specs. The move is not opted in, no plan
-    exists, and the frozen imperative chain keeps enforcing the very check
-    the suppression names — dead config masquerading as an opt-out.
+    exists, and the frozen imperative chain runs unchanged — still enforcing
+    whatever checks it always ran, whether or not one of them corresponds to
+    a suppressed name — so the suppression is dead config masquerading as an
+    opt-out. The error lists every dead suppression name on the move.
 
   - moves.PreconditionProposerIsCurrentPlayer on a
     moves.CurrentPlayer-embedding move: CurrentPlayer.Legal() runs its
