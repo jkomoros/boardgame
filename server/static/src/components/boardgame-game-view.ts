@@ -347,6 +347,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .gameWinners=${this.game ? this.game.Winners || [] : []}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
+          .previewAsPlayer=${this.requestedPlayer}
+          .previewAsAdmin=${this._admin}
           .socketActive=${this.socketActive}
           .active=${this.selected}
           .chest=${this._chest}
