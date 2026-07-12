@@ -127,6 +127,29 @@ func propEqualsPlayerIndexString(p boardgame.PlayerIndex) string {
 	return strconv.Itoa(int(p))
 }
 
+// valueMatchesAnyEnumInChest checks if value is a valid value name in ANY
+// enum within the chest. Returns true if found, false otherwise. If chest is
+// nil, returns false.
+func valueMatchesAnyEnumInChest(value string, chest *boardgame.ComponentChest) bool {
+	if chest == nil {
+		return false
+	}
+	enumSet := chest.Enums()
+	if enumSet == nil {
+		return false
+	}
+	for _, enumName := range enumSet.EnumNames() {
+		e := enumSet.Enum(enumName)
+		if e == nil {
+			continue
+		}
+		if e.ValueFromString(value) != enum.IllegalValue {
+			return true
+		}
+	}
+	return false
+}
+
 // propEqualsFamilyConstructor builds the shared registry entry for
 // "propEquals" (negate=false) and "propNotEquals" (negate=true).
 //
@@ -197,6 +220,17 @@ func propEqualsFamilyConstructor(name, defaultTemplate string, negate bool) *Pre
 				boolWant = false
 			default:
 				boolErr = fmt.Errorf("legal: %s: value %q is not \"true\" or \"false\"", name, value)
+			}
+
+			// Construction-time typo guard: if chest is provided and value
+			// doesn't match any int/bool/PlayerIndex-special or any enum value
+			// name, it's likely a typo. This guard is gated on chest != nil
+			// because test harnesses may pass nil chest; calling chest.Enums()
+			// on nil would panic. If value is a valid enum name or matches one
+			// of the other arms, we construct and defer the final dispatch to
+			// Evaluate time (when the path's PropertyType is known).
+			if chest != nil && intErr != nil && boolErr != nil && value != "observer" && value != "admin" && !valueMatchesAnyEnumInChest(value, chest) {
+				return nil, fmt.Errorf("legal: %s: value %q matches no int/bool/playerindex-special and no enum value name in the chest — likely a typo", name, value)
 			}
 
 			return &Predicate{

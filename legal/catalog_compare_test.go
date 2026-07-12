@@ -217,3 +217,81 @@ func TestPropEqualsBadArgCount(t *testing.T) {
 		t.Fatal("expected an error constructing propNotEquals with 1 arg")
 	}
 }
+
+// TestPropEqualsEnumTypoGuard verifies the construction-time enum-typo guard
+// for propEquals and propNotEquals.
+//
+// (a) With a real chest fixture, a garbage value that doesn't match int/bool/
+// PlayerIndex-specials or any enum value name should return a constructor error.
+// (b) A valid enum name from a DIFFERENT enum than the path's should construct
+// fine (defers to Evaluate, which will return Unknown).
+// (c) With nil chest, a garbage value should construct fine (guard is skipped),
+// and Evaluate should return Unknown (existing behavior).
+func TestPropEqualsEnumTypoGuard(t *testing.T) {
+	checkersDefault := buildLegalFixture(t, "checkersDefault")
+	chest := checkersDefault.chest
+
+	// (a) Garbage value with real chest → construction error.
+	garbaseSpec := legal.Spec{Name: "propEquals", Args: []string{"player.Color", "GarbageValue"}}
+	if _, err := resolveSpecViaRegistry(garbaseSpec, legal.DefaultConstructors(), chest); err == nil {
+		t.Fatal("expected a construction error for propEquals with garbage value and real chest")
+	} else if err.Error() != "legal: propEquals: value \"GarbageValue\" matches no int/bool/playerindex-special and no enum value name in the chest — likely a typo" {
+		t.Fatalf("unexpected error message: %v", err)
+	}
+
+	// (a) Same for propNotEquals.
+	badSpec2 := legal.Spec{Name: "propNotEquals", Args: []string{"player.Color", "GarbageValue"}}
+	if _, err := resolveSpecViaRegistry(badSpec2, legal.DefaultConstructors(), chest); err == nil {
+		t.Fatal("expected a construction error for propNotEquals with garbage value and real chest")
+	}
+
+	// (b) A valid enum name from a DIFFERENT enum (checkers has Color and Phase
+	// enums; use a Phase value name "Playing" against a Color path) should
+	// construct fine and defer the final verdict to Evaluate.
+	differentEnumSpec := legal.Spec{Name: "propEquals", Args: []string{"player.Color", "Playing"}}
+	pred, err := resolveSpecViaRegistry(differentEnumSpec, legal.DefaultConstructors(), chest)
+	if err != nil {
+		t.Fatalf("expected construction success for valid enum value from different enum: %v", err)
+	}
+
+	// Evaluate should return Unknown (path is Color enum but value "Playing" is
+	// a Phase enum name, which doesn't match Color's values).
+	if v := pred.Evaluate(checkersDefault.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("expected Unknown for different-enum value at Evaluate time, got %v (%+v)", v.Outcome, v)
+	}
+
+	// (c) With nil chest, garbage value should construct fine.
+	nilChestSpec := legal.Spec{Name: "propEquals", Args: []string{"player.Color", "GarbageValue"}}
+	pred, err = resolveSpecViaRegistry(nilChestSpec, legal.DefaultConstructors(), nil)
+	if err != nil {
+		t.Fatalf("expected construction success with nil chest: %v", err)
+	}
+
+	// Evaluate should return Unknown (the existing behavior).
+	if v := pred.Evaluate(checkersDefault.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("expected Unknown for garbage value with nil chest at Evaluate time, got %v (%+v)", v.Outcome, v)
+	}
+
+	// Valid values like "true"/"false", "observer"/"admin", parseable ints
+	// should construct fine even with the real chest.
+	validIntSpec := legal.Spec{Name: "propEquals", Args: []string{"player.CardsLeftToReveal", "123"}}
+	if _, err := resolveSpecViaRegistry(validIntSpec, legal.DefaultConstructors(), chest); err != nil {
+		t.Fatalf("expected construction success for valid int value: %v", err)
+	}
+
+	validBoolSpec := legal.Spec{Name: "propEquals", Args: []string{"player.PlayerInactive", "true"}}
+	if _, err := resolveSpecViaRegistry(validBoolSpec, legal.DefaultConstructors(), chest); err != nil {
+		t.Fatalf("expected construction success for valid bool value: %v", err)
+	}
+
+	validSpecialSpec := legal.Spec{Name: "propEquals", Args: []string{"move.TargetPlayerIndex", "observer"}}
+	if _, err := resolveSpecViaRegistry(validSpecialSpec, legal.DefaultConstructors(), chest); err != nil {
+		t.Fatalf("expected construction success for valid PlayerIndex special: %v", err)
+	}
+
+	// A valid enum name (from any enum) should construct fine.
+	validEnumSpec := legal.Spec{Name: "propEquals", Args: []string{"player.Color", "Red"}}
+	if _, err := resolveSpecViaRegistry(validEnumSpec, legal.DefaultConstructors(), chest); err != nil {
+		t.Fatalf("expected construction success for valid enum value: %v", err)
+	}
+}
