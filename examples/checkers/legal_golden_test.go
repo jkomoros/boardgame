@@ -10,8 +10,8 @@ import (
 )
 
 /*
-Golden-equivalence harness for moveMoveToken (design spec §8/§9, Task 12
-brief): for every recorded (state, proposer) pair, asserts that
+Golden-equivalence harness for moveMoveToken and movePlaceToken (design spec
+§8/§9, Task 12 brief): for every recorded (state, proposer) pair, asserts that
 legacyLegalMoveMoveToken (a hand-copied snapshot of the move's Legal() body
 exactly as it read before this migration) and the migrated move's ACTUAL
 Legal() (now dispatched through moves.CurrentPlayer.Legal ->
@@ -29,6 +29,20 @@ NewDefaultGame() already runs SeatPlayer and every PlaceToken fixup to
 completion, landing in phasePlaying with the standard 24-token starting
 layout — no manual setup-phase play is needed to reach a moveMoveToken-legal
 state.
+
+movePlaceToken is the mirror case: it is only legal DURING phaseSetup, which
+NewDefaultGame() has already run to completion, so its fixtures can't come
+from the finished head state. They come instead from genuine HISTORICAL
+versions of the same finished game (game.State(v)) — real mid-setup snapshots.
+This matters for equivalence: movePlaceToken is added via AddOrderedForPhase,
+so FixUpMulti contributes an inProgression base check (walking the
+move-progression tape) alongside the inPhase check. At a real historical setup
+version that tape is genuinely mid-progression, so proposing another Place
+Token there PASSES both base checks — for the legacy oracle and the migrated
+plan alike (they call the identical (*Default).legalMoveInProgression /
+"inProgression" implementation). Forcing a FINISHED game back into phaseSetup
+by mutation, by contrast, leaves the real tape ending in StartPhase, so the
+progression check fails and never reaches the gates under test.
 */
 
 // legacyLegalMoveMoveToken is a hand-copied snapshot of moveMoveToken's
@@ -496,5 +510,280 @@ func TestGoldenLegalMoveMoveTokenWrongPhase(t *testing.T) {
 	}
 	if legacyErr.Error() != actualErr.Error() {
 		t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
+	}
+}
+
+/**************************************************
+ *
+ * movePlaceToken golden coverage
+ *
+ **************************************************/
+
+// legacyLegalMovePlaceToken is a hand-copied snapshot of movePlaceToken's
+// Legal() method exactly as it read before its PARTIAL declarative migration
+// (see moves.go's comment block for the original source). Like the
+// moveMoveToken oracle above, it deliberately does NOT call
+// m.FixUpMulti.Legal(state, proposer): post-migration that dispatches through
+// moves.Default.Legal, which detects the assembled plan and evaluates THAT
+// instead of the frozen chain — defeating an independent oracle. Instead it
+// hand-replicates the pieces of moves.Default.Legal's frozen chain that matter
+// for these fixtures:
+//   - legalInPhase via the same exported core helper that check itself calls
+//     (boardgame.LegalInPhaseCheck — the Task 7 decision the moveMoveToken
+//     oracle also relies on); movePlaceToken's only legal phase is phaseSetup
+//     (set via moves.AddOrderedForPhase in main.go).
+//   - legalStackConstraints is a no-op (movePlaceToken configures no
+//     WithSourceProperty+WithDestinationProperty), so it is omitted.
+//   - legalMoveInProgression is NOT a structural no-op (movePlaceToken IS
+//     ordered), but it is unexported and cannot be called from this package
+//     without dispatching through the migrated plan. It is omitted here on the
+//     strength of a fixture invariant, not a shortcut: every fixture below is
+//     a genuine mid-setup HISTORICAL version where the progression check
+//     PASSES, and — because the frozen chain and the migrated "inProgression"
+//     predicate call the one identical implementation — legacy and migrated
+//     can never disagree on that atom's verdict, which in these fixtures is
+//     always Pass, so it is never the deciding atom. (See this file's doc
+//     comment.)
+//
+// FixUpMulti contributes no proposer/current-player check (only
+// moves.CurrentPlayer does), so proposer is unused: every proposer sees the
+// same verdict, which the sweep below confirms.
+func legacyLegalMovePlaceToken(m *movePlaceToken, state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+	if err := boardgame.LegalInPhaseCheck(state, []enum.EnumKey{enum.EnumKey(phaseSetup)}); err != nil {
+		return err
+	}
+
+	game := state.ImmutableGameState().(*gameState)
+
+	first := game.UnusedTokens.ImmutableFirst()
+	if first == nil {
+		return errors.New("No more components to place")
+	}
+
+	if err := first.MayMoveToSlot(game.Spaces, m.TargetIndex.Value().Int()); err != nil {
+		return err
+	}
+
+	if !spaceIsBlack(m.TargetIndex.Value().Int()) {
+		return errors.New("The proposed space is not black")
+	}
+
+	return nil
+}
+
+// placeTokenMove returns a fresh "Place Token" move from game, with
+// TargetIndex set.
+func placeTokenMove(t *testing.T, game *boardgame.Game, target int) *movePlaceToken {
+	t.Helper()
+	move := game.MoveByName("Place Token")
+	if move == nil {
+		t.Fatal("legal_golden: no \"Place Token\" move found")
+	}
+	mv, ok := move.(*movePlaceToken)
+	if !ok {
+		t.Fatal("legal_golden: \"Place Token\" move was not a *movePlaceToken")
+	}
+	val, err := mv.ReadSetter().EnumProp("TargetIndex")
+	if err != nil {
+		t.Fatalf("legal_golden: reading TargetIndex enum prop: %v", err)
+	}
+	if err := val.SetValue(enum.EnumKey(target)); err != nil {
+		t.Fatalf("legal_golden: setting TargetIndex: %v", err)
+	}
+	return mv
+}
+
+// firstInProgressSetupVersion returns the lowest historical version of game
+// whose state is mid-phaseSetup (UnusedTokens still non-empty) AND has at
+// least one occupied space, one empty black space, and one empty non-black
+// space — everything the legal / occupiedDest / nonBlackDest fixtures need to
+// target. See this file's doc comment for why a real historical setup version
+// (not a mutated-back-to-setup finished game) is what keeps the contributed
+// inPhase + inProgression base checks genuinely passing.
+func firstInProgressSetupVersion(t *testing.T, game *boardgame.Game) int {
+	t.Helper()
+	for v := 0; v <= game.Version(); v++ {
+		g, _ := concreteStates(game.State(v))
+		if g.Phase.Value() != phaseSetup {
+			continue
+		}
+		if g.UnusedTokens.NumComponents() == 0 {
+			continue
+		}
+		if firstOccupiedSpace(g.Spaces) < 0 {
+			continue
+		}
+		hasEmptyBlack, hasEmptyNonBlack := false, false
+		for i := 0; i < g.Spaces.Len(); i++ {
+			if g.Spaces.ImmutableComponentAt(i) != nil {
+				continue
+			}
+			if spaceIsBlack(i) {
+				hasEmptyBlack = true
+			} else {
+				hasEmptyNonBlack = true
+			}
+		}
+		if hasEmptyBlack && hasEmptyNonBlack {
+			return v
+		}
+	}
+	t.Fatal("legal_golden: no in-progress phaseSetup version with the needed spaces found")
+	return -1
+}
+
+// lastSetupVersion returns the highest historical version of game still in
+// phaseSetup. That is the instant just before StartPhase fires: UnusedTokens
+// is empty (every token placed) but the phase has not yet advanced, so
+// proposing another Place Token is still in-progression — the only natural
+// state that reaches movePlaceToken's "No more components to place" gate.
+func lastSetupVersion(t *testing.T, game *boardgame.Game) int {
+	t.Helper()
+	last := -1
+	for v := 0; v <= game.Version(); v++ {
+		g, _ := concreteStates(game.State(v))
+		if g.Phase.Value() == phaseSetup {
+			last = v
+		}
+	}
+	if last < 0 {
+		t.Fatal("legal_golden: no phaseSetup version found")
+	}
+	return last
+}
+
+// firstEmptyBlackSpace returns the lowest index that is both empty in spaces
+// and a black space, or -1 if none.
+func firstEmptyBlackSpace(spaces boardgame.ImmutableStack) int {
+	for i := 0; i < spaces.Len(); i++ {
+		if spaces.ImmutableComponentAt(i) == nil && spaceIsBlack(i) {
+			return i
+		}
+	}
+	return -1
+}
+
+// placeTokenGoldenFixture is one (state, move) pair to check every proposer
+// worth distinguishing against.
+type placeTokenGoldenFixture struct {
+	name  string
+	state boardgame.ImmutableState
+	move  *movePlaceToken
+}
+
+// placeTokenGoldenFixtures builds the table the golden test sweeps every
+// proposer against. All four are drawn from historical versions of one
+// finished game (see this file's doc comment): three from a single in-progress
+// setup version differing only in TargetIndex, and one from the last setup
+// version (UnusedTokens empty).
+func placeTokenGoldenFixtures(t *testing.T) []placeTokenGoldenFixture {
+	t.Helper()
+
+	game, _ := newMoveMoveTokenGame(t)
+
+	var fixtures []placeTokenGoldenFixture
+
+	setupV := firstInProgressSetupVersion(t, game)
+	inProgress := game.State(setupV)
+	g, _ := concreteStates(inProgress)
+
+	emptyBlack, emptyNonBlack := -1, -1
+	for i := 0; i < g.Spaces.Len(); i++ {
+		if g.Spaces.ImmutableComponentAt(i) != nil {
+			continue
+		}
+		if spaceIsBlack(i) && emptyBlack < 0 {
+			emptyBlack = i
+		}
+		if !spaceIsBlack(i) && emptyNonBlack < 0 {
+			emptyNonBlack = i
+		}
+	}
+	occupied := firstOccupiedSpace(g.Spaces)
+	if emptyBlack < 0 || emptyNonBlack < 0 || occupied < 0 {
+		t.Fatalf("legal_golden: in-progress setup version %d missing needed spaces (emptyBlack=%d emptyNonBlack=%d occupied=%d)", setupV, emptyBlack, emptyNonBlack, occupied)
+	}
+
+	// legal: TargetIndex is an empty black space — StackNotEmpty passes,
+	// MayMoveToSlot passes (slot empty), spaceIsBlack passes. Legal.
+	fixtures = append(fixtures, placeTokenGoldenFixture{"legal", inProgress, placeTokenMove(t, game, emptyBlack)})
+
+	// occupiedDest: TargetIndex is an occupied space — StackNotEmpty passes,
+	// then MayMoveToSlot fails ("slot N is already occupied"), so spaceIsBlack
+	// is never reached. LegalCustom residue.
+	fixtures = append(fixtures, placeTokenGoldenFixture{"occupiedDest", inProgress, placeTokenMove(t, game, occupied)})
+
+	// nonBlackDest: TargetIndex is an empty non-black space — StackNotEmpty
+	// passes, MayMoveToSlot passes (slot empty), then spaceIsBlack fails ("The
+	// proposed space is not black"). LegalCustom residue, second gate.
+	fixtures = append(fixtures, placeTokenGoldenFixture{"nonBlackDest", inProgress, placeTokenMove(t, game, emptyNonBlack)})
+
+	// noTokensLeft: last setup version (UnusedTokens empty) — the declarative
+	// StackNotEmpty precondition fails ("No more components to place") before
+	// LegalCustom runs. TargetIndex is a still-empty black space so the failure
+	// is unambiguously the emptiness gate, not the dest gates.
+	noTok := game.State(lastSetupVersion(t, game))
+	gNo, _ := concreteStates(noTok)
+	dest := firstEmptyBlackSpace(gNo.Spaces)
+	if dest < 0 {
+		t.Fatal("legal_golden: no empty black space in the last setup version")
+	}
+	fixtures = append(fixtures, placeTokenGoldenFixture{"noTokensLeft", noTok, placeTokenMove(t, game, dest)})
+
+	return fixtures
+}
+
+// TestGoldenLegalMovePlaceToken is the design spec §9 "golden equivalence"
+// test for checkers' PARTIAL movePlaceToken migration (spec §8): for every
+// fixture above, cross every proposer worth distinguishing and assert the
+// legacy oracle and the migrated move's real Legal() agree on both nil-ness
+// and message text. Because the exact legacy order was preserved (StackNotEmpty
+// declarative first, then MayMoveToSlot, then spaceIsBlack in LegalCustom),
+// there is NO message-ordering divergence to whitelist — verified empirically,
+// including for the AdminPlayerIndex proposer: unlike pig's moveCountDie, these
+// fixtures come from HISTORICAL versions rather than a ReadSetter mutation of
+// the head state, so the fixup-move setup memo (keyed by state version) never
+// goes stale against them, and admin recomputes fresh and matches.
+func TestGoldenLegalMovePlaceToken(t *testing.T) {
+	fixtures := placeTokenGoldenFixtures(t)
+
+	for _, fixture := range fixtures {
+		fixture := fixture
+		state := fixture.state
+		currentPlayer := state.CurrentPlayerIndex()
+
+		var otherPlayer boardgame.PlayerIndex = -1
+		for i := range state.ImmutablePlayerStates() {
+			pIdx := boardgame.PlayerIndex(i)
+			if pIdx != currentPlayer {
+				otherPlayer = pIdx
+				break
+			}
+		}
+		if otherPlayer < 0 {
+			t.Fatalf("legal_golden[%s]: could not find a non-current player", fixture.name)
+		}
+
+		proposers := map[string]boardgame.PlayerIndex{
+			"currentPlayer": currentPlayer,
+			"otherPlayer":   otherPlayer,
+			"admin":         boardgame.AdminPlayerIndex,
+			"observer":      boardgame.ObserverPlayerIndex,
+		}
+
+		for proposerName, proposer := range proposers {
+			t.Run(fixture.name+"/"+proposerName, func(t *testing.T) {
+				legacyErr := legacyLegalMovePlaceToken(fixture.move, state, proposer)
+				actualErr := fixture.move.Legal(state, proposer)
+
+				if (legacyErr == nil) != (actualErr == nil) {
+					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
+				}
+				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
+					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
+				}
+			})
+		}
 	}
 }

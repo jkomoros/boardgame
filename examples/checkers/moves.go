@@ -57,17 +57,62 @@ func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 
 }
 
-func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := m.FixUpMulti.Legal(state, proposer); err != nil {
-		return err
-	}
+// Legal() is deliberately absent: this move opted into declarative legality
+// via a PARTIAL migration (design spec §8). Only the FIRST of its three
+// original gates is declarative; the other two stay imperative in LegalCustom
+// below, in their ORIGINAL order. The original imperative body (kept only as
+// legacyLegalMovePlaceToken, a private copy in legal_golden_test.go, for
+// golden-equivalence testing) read:
+//
+//	if err := m.FixUpMulti.Legal(state, proposer); err != nil {
+//		return err
+//	}
+//	game := state.ImmutableGameState().(*gameState)
+//	first := game.UnusedTokens.ImmutableFirst()
+//	if first == nil {
+//		return errors.New("No more components to place")
+//	}
+//	if err := first.MayMoveToSlot(game.Spaces, m.TargetIndex.Value().Int()); err != nil {
+//		return err
+//	}
+//	if !spaceIsBlack(m.TargetIndex.Value().Int()) {
+//		return errors.New("The proposed space is not black")
+//	}
+//	return nil
+//
+// Migration mapping:
+//   - "No more components to place" (first == nil, i.e.
+//     UnusedTokens.NumComponents() == 0) is exactly legal.StackNotEmpty's Pass
+//     condition, so it becomes legal.StackNotEmpty("game.UnusedTokens").
+//     WithMessage("checkers.no_more_components"), declared via
+//     WithPreconditions in main.go's ConfigureMoves. FixUpMulti's phase +
+//     move-progression checks are contributed base-first ahead of it,
+//     unchanged. This single precondition is also what opts the move in,
+//     satisfying the boot rule that a LegalCustom move must declare at least
+//     one WithPreconditions spec.
+//   - MayMoveToSlot stays in LegalCustom: it compares a FIXED source index (0,
+//     "first" of UnusedTokens) against move.TargetIndex for the destination —
+//     two DIFFERENT indices. legal.MayMoveToSlot only expresses the
+//     mirrored-stacks shape (one shared idxField for source AND destination),
+//     so the catalog cannot express this. Its native error is returned
+//     verbatim.
+//   - spaceIsBlack stays imperative in LegalCustom too, in its ORIGINAL order
+//     (AFTER MayMoveToSlot). checkers already registers a
+//     "checkers.spaceIsBlack" predicate (moveMoveToken uses it), but migrating
+//     this gate to it would REORDER it — a declarative atom evaluates before
+//     LegalCustom — changing which message wins for a move that fails both
+//     gates; keeping the imperative call here preserves byte-for-byte order.
+//     Its native error is returned verbatim.
+//
+// LegalCustom's first deref (game.UnusedTokens.ImmutableFirst()) is guaranteed
+// non-nil: the StackNotEmpty precondition runs base-first (before LegalCustom)
+// and rejects the move when UnusedTokens is empty, so control only reaches
+// here with a non-nil First.
+func (m *movePlaceToken) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	game := state.ImmutableGameState().(*gameState)
 
 	first := game.UnusedTokens.ImmutableFirst()
-	if first == nil {
-		return errors.New("No more components to place")
-	}
 
 	if err := first.MayMoveToSlot(game.Spaces, m.TargetIndex.Value().Int()); err != nil {
 		return err

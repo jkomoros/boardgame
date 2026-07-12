@@ -71,6 +71,21 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(movePlaceToken),
 				moves.WithHelpText("Places one token at a time on the board."),
+				// Declarative migration (design spec §8, PARTIAL): Legal() is
+				// deleted (see moves.go). Only the first of the three original
+				// gates — "No more components to place" (UnusedTokens empty) —
+				// is declarative, as this StackNotEmpty precondition;
+				// FixUpMulti's phase + progression checks are contributed
+				// base-first ahead of it. The remaining two gates
+				// (MayMoveToSlot against a fixed source index, then
+				// spaceIsBlack) stay imperative, in their original order, in
+				// the move's LegalCustom. This one precondition also satisfies
+				// the boot rule that a LegalCustom move must opt in via at
+				// least one WithPreconditions spec.
+				moves.WithPreconditions(
+					legal.StackNotEmpty("game.UnusedTokens").
+						WithMessage("checkers.no_more_components"),
+				),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
@@ -170,20 +185,24 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 }
 
 // ConfigureLegalTemplates supplies the checkers.* template keys moveMoveToken's
-// WithPreconditions plan and LegalCustom residue reference (design spec §8):
-// three override the generic catalog defaults with the exact legacy strings
-// from the pre-migration Legal() body (see moves.go's comment for the
-// mapping), and one ("checkers.black_spaces_only") is the game-registered
-// spaceIsBlack predicate's own default template — it has no catalog default
-// to fall back to since it isn't part of legal.DefaultTemplates(). See
-// moves.go's LegalCustom doc comment for why "checkers.illegal_dest" now
-// covers what were three distinct legacy strings.
+// and movePlaceToken's WithPreconditions plans (and moveMoveToken's LegalCustom
+// residue) reference (design spec §8): three override the generic catalog
+// defaults with the exact legacy strings from moveMoveToken's pre-migration
+// Legal() body (see moves.go's comment for the mapping), one
+// ("checkers.black_spaces_only") is the game-registered spaceIsBlack
+// predicate's own default template — it has no catalog default to fall back to
+// since it isn't part of legal.DefaultTemplates() — and one
+// ("checkers.no_more_components") retargets movePlaceToken's StackNotEmpty
+// precondition to the exact string its deleted Legal()'s first gate returned.
+// See moves.go's moveMoveToken LegalCustom doc comment for why
+// "checkers.illegal_dest" now covers what were three distinct legacy strings.
 func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 	return map[string]string{
-		"checkers.no_token_there":    "That space does not have a component in it",
-		"checkers.not_your_token":    "that token isn't your token to move",
-		"checkers.black_spaces_only": "you can only move to spaces that are black",
-		"checkers.illegal_dest":      "spaceIndex does not represent a legal space for that token to move to",
+		"checkers.no_token_there":     "That space does not have a component in it",
+		"checkers.not_your_token":     "that token isn't your token to move",
+		"checkers.black_spaces_only":  "you can only move to spaces that are black",
+		"checkers.illegal_dest":       "spaceIndex does not represent a legal space for that token to move to",
+		"checkers.no_more_components": "No more components to place",
 	}
 }
 
