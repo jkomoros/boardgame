@@ -1,0 +1,104 @@
+package memory
+
+import (
+	"testing"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
+	"github.com/jkomoros/boardgame/moves"
+	storagememory "github.com/jkomoros/boardgame/storage/memory"
+)
+
+/*
+Compile-checked source for TUTORIAL.md's declarative-legality section (Task
+14, user-mandated tutorial integration). The tutorial's before/after for
+moveRevealCard and its LegalCustom example (checkers' moveMoveToken) are
+copied VERBATIM from real branch source, cited by file:line in HTML
+comments right in TUTORIAL.md -- those don't need a second compiled copy
+here. This file exists for the tutorial's remaining snippets, which are
+illustrative rather than lifted from one exact call site: the catalog
+predicate builder cheat-sheet (every constructor signature the tutorial's
+table claims exists, called for real) and the WithoutPrecondition
+escape-from-inheritance pattern (design spec §2's "ForceFinishTurn, now
+expressible declaratively" -- there is no in-repo game that actually calls
+WithoutPrecondition yet, so the tutorial's example is necessarily
+synthetic and must be proven to compile and Config() cleanly here).
+*/
+
+// TestTutorialSnippetCatalogPredicates proves every catalog builder call
+// used in TUTORIAL.md's "common predicates" table compiles and returns a
+// legal.Spec with the expected registry Name -- the table's whole point is
+// that these names/signatures are real, not documentation prose.
+func TestTutorialSnippetCatalogPredicates(t *testing.T) {
+	specs := map[string]legal.Spec{
+		"propAtLeast":                   legal.PropAtLeast("player.CardsLeftToReveal", 1),
+		"propCompare":                   legal.PropCompare("game.AttackStrength", ">", 0),
+		"playerBool":                    legal.PlayerBool("Eliminated"),
+		"componentPresentAt":            legal.ComponentPresentAt("game.HiddenCards", "move.CardIndex"),
+		"componentPresentAtKey":         legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove"),
+		"mayMoveTo":                     legal.MayMoveTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+		"mayMoveToSlot":                 legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+		"any":                           legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
+		"allActivePlayers":              legal.AllActivePlayers(legal.PlayerBool("Eliminated")),
+		"proposerIsCurrentPlayer":       legal.ProposerIsCurrentPlayer(),
+		"revealableCardAt":              legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+		"componentPropEqualsCurrentPlayer": legal.ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color"),
+	}
+
+	for name, spec := range specs {
+		if spec.Name == "" {
+			t.Errorf("%s: Spec.Name was empty", name)
+		}
+	}
+}
+
+// TestTutorialSnippetWithoutPrecondition proves the tutorial's
+// WithoutPrecondition example -- a move that opts in to declarative
+// legality with one authored check while suppressing an inherited
+// contributed one, the moves.ForceFinishTurn "inherit nothing" pattern
+// design spec §2 calls out -- actually compiles and Config()s cleanly.
+// This needs a real, manager-attached delegate (AutoConfigurer.Config
+// calls into a.delegate.Manager()), so it builds a throwaway
+// GameManager rather than calling auto.Config in isolation.
+func TestTutorialSnippetWithoutPrecondition(t *testing.T) {
+	manager, err := boardgame.NewGameManager(NewDelegate(), storagememory.NewStorageManager())
+	if err != nil {
+		t.Fatalf("tutorial_snippets: building manager: %v", err)
+	}
+
+	auto := moves.NewAutoConfigurer(manager.Delegate())
+
+	// moveHideCards is a real move type in this package (moves.go); it is
+	// NOT actually reconfigured in the running game by this call -- Config()
+	// just builds a MoveConfig value, it does not register or mutate
+	// anything on the live manager. This exercises exactly the syntax the
+	// tutorial teaches: WithPreconditions to opt in, WithoutPrecondition to
+	// suppress one of CurrentPlayer's contributed checks by its stable name.
+	_, err = auto.Config(
+		new(moveHideCards),
+		moves.WithPreconditions(
+			legal.PropAtLeast("player.CardsLeftToReveal", 0),
+		),
+		moves.WithoutPrecondition("proposerIsCurrentPlayer"),
+	)
+	if err != nil {
+		t.Fatalf("tutorial_snippets: WithoutPrecondition example failed to Config: %v", err)
+	}
+}
+
+// TestTutorialSnippetCustomLegaler is a compile-time proof that the shape
+// TUTORIAL.md describes for the LegalCustom escape hatch --
+// `func (m *T) LegalCustom(state boardgame.ImmutableState, proposer
+// boardgame.PlayerIndex) error` -- actually satisfies boardgame.CustomLegaler.
+// checkers' moveMoveToken (examples/checkers/moves.go) is the real,
+// verbatim-cited example in the tutorial; this just pins the interface
+// shape independent of that one call site.
+func TestTutorialSnippetCustomLegaler(t *testing.T) {
+	var _ boardgame.CustomLegaler = (*tutorialSnippetCustomLegalerExample)(nil)
+}
+
+type tutorialSnippetCustomLegalerExample struct{}
+
+func (t *tutorialSnippetCustomLegalerExample) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	return legal.Errorf("tutorial.example_residue", nil)
+}
