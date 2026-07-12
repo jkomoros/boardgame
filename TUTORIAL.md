@@ -599,26 +599,26 @@ if your move is a FixUp move it's best to embed it so that
 
 Many Player moves can only be made by the CurrentPlayer. This move encodes which player the move applies to (set automatically in `DefaultsForState`) and also includes the logic to verify that the `proposer` of the move is allowed to make the move, and is modifiying their own state. (This logic is slightly tricky because it needs to accomodate `AdminPlayerIndex` making moves on behalf of any player).
 
-In typical use you embed this struct, and then either declare your move's legality (see "Declarative Move Legality" just below — this is the primary, recommended way today) or, for logic the declarative catalog can't express, check its Legal method at the top of your own Legal method, as in this example from memory's `moveHideCards` (the "Worked Move Example" section below walks through it fully):
+In typical use you embed this struct, and then either declare your move's legality (see "Declarative Move Legality" just below — this is the primary, recommended way today) or, for logic the declarative catalog can't express, override `Legal` and call the embedded type's `Legal` at the top of your own. (memory's `moveHideCards` was once the example here; its checks — how many cards are left to reveal, and whether any card is still showing — turned out to be expressible declaratively, so it has since been migrated. See "Declarative Move Legality" below.)
+
+A check that genuinely *cannot* be declared is a comparison between two components' values. memory's `moveCaptureCards` captures the two face-up cards only if they are the *same type*, comparing the `Type` of one revealed card against the `Type` of another — and the catalog has no "two components' properties equal each other" primitive (nor a Timer-state predicate, which its sibling `moveStartHideCardsTimer` also needs). It embeds `moves.FixUp` rather than `moves.CurrentPlayer`, but the escape-hatch shape is identical — super-call the embedded `Legal` first, then add your own checks:
 
 ```go
-// examples/memory/moves.go:221-240 (verbatim)
-func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+// examples/memory/moves.go — moveCaptureCards.Legal (abridged)
+func (m *moveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
 
-	game, players := concreteStates(state)
+	game, _ := concreteStates(state)
 
-	p := players[game.CurrentPlayer.EnsureValid(state)]
+	// ... gather the two face-up cards into revealedCards ...
 
-	if p.CardsLeftToReveal > 0 {
-		return errors.New("You still have to reveal more cards before your turn is over")
-	}
+	cardOneType := revealedCards[0].Values().(*cardValue).Type
+	cardTwoType := revealedCards[1].Values().(*cardValue).Type
 
-	if game.VisibleCards.NumComponents() < 1 {
-		return errors.New("no cards left to hide")
+	if cardOneType != cardTwoType {
+		return errors.New("The two revealed cards are not of the same type")
 	}
 
 	return nil
@@ -960,30 +960,18 @@ The `Name` property is a unique-within-this-game-package, human-readable name fo
 
 The most important aspect is the `Constructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
 
+`moveHideCards` is legal when two conditions hold: the current player has finished revealing (`CardsLeftToReveal` is no longer positive), and a card is still showing to hide. Rather than write a `Legal` method, it *declares* those conditions on its config — the recommended approach (see "Declarative Move Legality" above):
+
 ```go
-func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-        return err
-    }
-
-    game, players := concreteStates(state)
-
-    p := players[game.CurrentPlayer]
-
-    if p.CardsLeftToReveal > 0 {
-        return errors.New("You still have to reveal more cards before your turn is over")
-    }
-
-    if game.VisibleCards.NumComponents() < 1 {
-        return errors.New("No cards left to hide!")
-    }
-
-    return nil
-}
+moves.WithPreconditions(
+    legal.PropCompare("player.CardsLeftToReveal", "<=", 0).WithMessage("hide.cards_still_to_reveal"),
+    legal.StackNotEmpty("game.VisibleCards").WithMessage("hide.no_cards_to_hide"),
+)
 ```
 
-This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Default includes important logic in its Legal implementation.
+attached to the move when it is installed (the "Declarative Move Legality" section above shows the mechanics). The framework evaluates these in place of a `Legal` method, and `moves.CurrentPlayer`'s own proposer/current-player check is contributed automatically — so the two verbatim legacy strings above are the only game-specific part.
+
+The imperative alternative still works for any move, and is exactly what the frozen chain runs for moves that don't opt in: override `Legal`, super-call the embedded type's `Legal` first (always — even `moves.Default` contributes important logic), then add your own checks. Use that shape (see the `moves.CurrentPlayer` section above) when a check can't be declared.
 
 ```go
 func (m *moveHideCards) Apply(state boardgame.State) error {
