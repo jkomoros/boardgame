@@ -68,18 +68,27 @@ func TestTutorialSnippetWithoutPrecondition(t *testing.T) {
 
 	auto := moves.NewAutoConfigurer(manager.Delegate())
 
-	// moveHideCards is a real move type in this package (moves.go); it is
-	// NOT actually reconfigured in the running game by this call -- Config()
-	// just builds a MoveConfig value, it does not register or mutate
-	// anything on the live manager. This exercises exactly the syntax the
-	// tutorial teaches: WithPreconditions to opt in, WithoutPrecondition to
-	// suppress one of CurrentPlayer's contributed checks by its stable name.
+	// moveCaptureCards is a real move type in this package (moves.go),
+	// embedding moves.FixUp; it is NOT actually reconfigured in the running
+	// game by this call -- Config() just builds a MoveConfig value, it does
+	// not register or mutate anything on the live manager. This exercises
+	// exactly the syntax the tutorial teaches: WithPreconditions to opt in,
+	// WithoutPrecondition to suppress an inherited contributed check by its
+	// stable name.
+	//
+	// Deliberately a moves.FixUp / moves.Default-family embed: suppressing
+	// "proposerIsCurrentPlayer" on a moves.CurrentPlayer-embedding move is a
+	// BOOT ERROR (the imperative proposer check in CurrentPlayer.Legal would
+	// still run, desyncing the client ledger from actual legality — see
+	// legal/doc.go's WithoutPrecondition section). Suppress only checks the
+	// plan actually controls; on a CurrentPlayer move, embed moves.Default
+	// instead if you truly need proposer-free semantics.
 	_, err = auto.Config(
-		new(moveHideCards),
+		new(moveCaptureCards),
 		moves.WithPreconditions(
-			legal.PropAtLeast("player.CardsLeftToReveal", 0),
+			legal.StackNotEmpty("game.VisibleCards"),
 		),
-		moves.WithoutPrecondition("proposerIsCurrentPlayer"),
+		moves.WithoutPrecondition("inPhase"),
 	)
 	if err != nil {
 		t.Fatalf("tutorial_snippets: WithoutPrecondition example failed to Config: %v", err)

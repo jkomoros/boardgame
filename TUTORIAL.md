@@ -794,13 +794,15 @@ func (m *moveMoveToken) LegalCustom(state boardgame.ImmutableState, proposer boa
 // examples/memory/tutorial_snippets_test.go's
 // TestTutorialSnippetWithoutPrecondition
 auto.Config(
-    new(moveHideCards),
+    new(moveCaptureCards), // embeds moves.FixUp
     moves.WithPreconditions(
-        legal.PropAtLeast("player.CardsLeftToReveal", 0),
+        legal.StackNotEmpty("game.VisibleCards"),
     ),
-    moves.WithoutPrecondition("proposerIsCurrentPlayer"),
+    moves.WithoutPrecondition("inPhase"), // legal in ANY phase
 )
 ```
+
+One name has a guard rail: suppressing `"proposerIsCurrentPlayer"` on a move that embeds `moves.CurrentPlayer` is a **boot error**. The plan can drop the atom, but `CurrentPlayer.Legal()`'s own imperative proposer check still runs — the suppression would be a no-op on actual legality while telling the client the move is proposable by anyone, exactly the client/server divergence the system exists to prevent. If a move genuinely shouldn't be proposer-gated, embed `moves.Default` (or `moves.FixUp`) instead of `moves.CurrentPlayer`.
 
 ###### What the client gets for free
 
