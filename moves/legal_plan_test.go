@@ -165,10 +165,18 @@ func TestProbeSuperCallOverrideBootsAndEvaluates(t *testing.T) {
 	}
 }
 
-// TestUnsupportedBaseTypeStartPhaseIsBootError (design spec §9(c) / §2 seam):
-// a move embedding moves.StartPhase (no Legal override of its own) cannot opt
-// in — boot fails naming the base type.
-func TestUnsupportedBaseTypeStartPhaseIsBootError(t *testing.T) {
+// TestUnsupportedBaseTypeStartPhaseBootsAndEvaluates (design spec §5, Task 6
+// Step 2): moves.StartPhase joined the seam allowlist (it declares no Legal()
+// override of its own — its legality IS Default.Legal, exactly like a bare
+// Default-embedding move). A move embedding StartPhase with WithPreconditions
+// now boots cleanly AND its plan actually evaluates, proven the same way
+// TestProbeSuperCallOverrideBootsAndEvaluates proves it for a super-calling
+// Default override: an always-fail declared precondition's template surfaces
+// through Legal(). This test used to be
+// TestUnsupportedBaseTypeStartPhaseIsBootError (StartPhase was outside the
+// v1 seam); it inverts here because Task 6 widened the seam, not because the
+// underlying mechanism changed.
+func TestUnsupportedBaseTypeStartPhaseBootsAndEvaluates(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
 		// moveStartPhaseDrawAgain (moves_test.go) embeds StartPhase and
@@ -183,10 +191,112 @@ func TestUnsupportedBaseTypeStartPhaseIsBootError(t *testing.T) {
 		)
 	}
 
-	_, err := newGameManager(installer)
-	assert.For(t, "boot error").ThatActual(err).IsNotNil()
-	if err != nil {
-		assert.For(t, "names StartPhase").ThatActual(strings.Contains(err.Error(), "StartPhase")).IsTrue()
+	manager, err := newGameManager(installer)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	if manager == nil {
+		return
+	}
+
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "game").ThatActual(err).IsNil()
+
+	move := game.MoveByName("Start Phase Opt In")
+	assert.For(t, "move").ThatActual(move).IsNotNil()
+
+	legalErr := move.Legal(game.CurrentState(), 0)
+	assert.For(t, "plan evaluates").ThatActual(legalErr).IsNotNil()
+	if legalErr != nil {
+		assert.For(t, "rendered template").ThatActual(strings.Contains(legalErr.Error(), "1000")).IsTrue()
+	}
+}
+
+// --- FixUp / FixUpMulti opt-in (design spec §5, Task 6 Step 2): both joined
+// the seam allowlist alongside StartPhase, for the same reason — neither
+// declares its own Legal() override. ---
+
+//boardgame:codegen
+type moveFixUpOptIn struct {
+	FixUp
+}
+
+func (m *moveFixUpOptIn) Apply(state boardgame.State) error { return nil }
+
+// TestFixUpBaseTypeBootsAndEvaluates: a move embedding moves.FixUp with
+// WithPreconditions boots cleanly and its plan evaluates.
+func TestFixUpBaseTypeBootsAndEvaluates(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveFixUpOptIn),
+				WithMoveName("FixUp Opt In"),
+				WithPreconditions(alwaysFailPrecondition()),
+			),
+		)
+	}
+
+	manager, err := newGameManager(installer)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	if manager == nil {
+		return
+	}
+
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "game").ThatActual(err).IsNil()
+
+	move := game.MoveByName("FixUp Opt In")
+	assert.For(t, "move").ThatActual(move).IsNotNil()
+
+	legalErr := move.Legal(game.CurrentState(), 0)
+	assert.For(t, "plan evaluates").ThatActual(legalErr).IsNotNil()
+	if legalErr != nil {
+		assert.For(t, "rendered template").ThatActual(strings.Contains(legalErr.Error(), "1000")).IsTrue()
+	}
+}
+
+//boardgame:codegen
+type moveFixUpMultiOptIn struct {
+	FixUpMulti
+}
+
+func (m *moveFixUpMultiOptIn) Apply(state boardgame.State) error { return nil }
+
+// TestFixUpMultiBaseTypeBootsAndEvaluates: a move embedding moves.FixUpMulti
+// with WithPreconditions boots cleanly and its plan evaluates — the full
+// opt-in path the design spec §5 FixUpMulti precondition (proven separately
+// by moves/preconditions_test.go's TestFixUpMultiProgressionAtomEquivalence,
+// which this test does not duplicate: that test proves the "inProgression"
+// atom agrees with the frozen chain across a repeated-move tape; this test
+// only proves a FixUpMulti-embedding move can opt in and its plan runs at
+// all) now unlocks.
+func TestFixUpMultiBaseTypeBootsAndEvaluates(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveFixUpMultiOptIn),
+				WithMoveName("FixUpMulti Opt In"),
+				WithPreconditions(alwaysFailPrecondition()),
+			),
+		)
+	}
+
+	manager, err := newGameManager(installer)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	if manager == nil {
+		return
+	}
+
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "game").ThatActual(err).IsNil()
+
+	move := game.MoveByName("FixUpMulti Opt In")
+	assert.For(t, "move").ThatActual(move).IsNotNil()
+
+	legalErr := move.Legal(game.CurrentState(), 0)
+	assert.For(t, "plan evaluates").ThatActual(legalErr).IsNotNil()
+	if legalErr != nil {
+		assert.For(t, "rendered template").ThatActual(strings.Contains(legalErr.Error(), "1000")).IsTrue()
 	}
 }
 
