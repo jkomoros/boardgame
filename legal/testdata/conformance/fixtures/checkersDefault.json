@@ -1,0 +1,316 @@
+{
+  "fixture": "checkersDefault",
+  "currentPlayerIndex": 0,
+  "state": {
+    "Components": {
+      "Tokens": [
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        },
+        {
+          "Crowned": false
+        }
+      ]
+    },
+    "Game": {
+      "CurrentPlayer": 0,
+      "Phase": "Playing",
+      "Spaces": {
+        "Deck": "Tokens",
+        "Indexes": [
+          12,
+          -1,
+          13,
+          -1,
+          14,
+          -1,
+          15,
+          -1,
+          16,
+          -1,
+          17,
+          -1,
+          18,
+          -1,
+          19,
+          -1,
+          20,
+          -1,
+          21,
+          -1,
+          22,
+          -1,
+          23,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          11,
+          -1,
+          10,
+          -1,
+          9,
+          -1,
+          8,
+          -1,
+          7,
+          -1,
+          6,
+          -1,
+          5,
+          -1,
+          4,
+          -1,
+          3,
+          -1,
+          2,
+          -1,
+          1,
+          -1,
+          0,
+          -1
+        ],
+        "IDs": [
+          "4de9c67808a9f7f9fc4f9232d442a04024d18aeb",
+          "",
+          "2b0d460ef9b47d30ce5d6ee859b2c932c330817f",
+          "",
+          "12bfe5f70b5d42f7063a68ec5e7c0663d50e3e82",
+          "",
+          "81d7b469b73f781821cc0015c2bf4447e5ef5f7a",
+          "",
+          "7bb08db709ab7d017240cd1b0921a1605385ccca",
+          "",
+          "1ba1c639ae8d78cbe93d11dbab10aa5be241be3c",
+          "",
+          "b7f624da1f70665778bb30814c5157b28e7cd5b6",
+          "",
+          "3282dca14fc3548f2aa9784fbe71dfb110b00054",
+          "",
+          "6be76a2522eff22bf06c377c8ba029f5e079b43e",
+          "",
+          "91f13d103c71740debd757fd46a762ad55d3c2bd",
+          "",
+          "6c5ad76bc756f0075bfc6661465b665ae5bc3bb4",
+          "",
+          "3d1860328373551141b90a09a0ea4bc905099160",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "a5a07cf1b3cdcfcd76631648feb1270f18f0194f",
+          "",
+          "3c2ef94dec4230a8a36a97c3d294fcacbce15b13",
+          "",
+          "a47a21d02d56411caf39745ccc0338047a7a6397",
+          "",
+          "0cbd59479106ad72584c6fb263e374c7d28395b1",
+          "",
+          "a47ddcf00b70204db5303a2255a16ec835c80cf6",
+          "",
+          "7e86a5ea2e7b306add5d4123a14c30d3fdcebce3",
+          "",
+          "6334f8eca22b764a92bbe057f50d85d343052893",
+          "",
+          "1b24393672f0befb4263f08938da27c35f109182",
+          "",
+          "1f7498f8fed7cfc133cb925da84e7d1d094016f4",
+          "",
+          "8425846cebd8e85f6c1a80b8a3e117c31ab6ce15",
+          "",
+          "7497c4269108725af74d19281ec0373e2482650a",
+          "",
+          "6d0054d5eebe7276cdb7682d26bad3e33bddc2e9",
+          ""
+        ],
+        "IDsLastSeen": {
+          "0cbd59479106ad72584c6fb263e374c7d28395b1": 9,
+          "12bfe5f70b5d42f7063a68ec5e7c0663d50e3e82": 15,
+          "1b24393672f0befb4263f08938da27c35f109182": 5,
+          "1ba1c639ae8d78cbe93d11dbab10aa5be241be3c": 18,
+          "1f7498f8fed7cfc133cb925da84e7d1d094016f4": 4,
+          "2b0d460ef9b47d30ce5d6ee859b2c932c330817f": 14,
+          "3282dca14fc3548f2aa9784fbe71dfb110b00054": 20,
+          "3c2ef94dec4230a8a36a97c3d294fcacbce15b13": 11,
+          "3d1860328373551141b90a09a0ea4bc905099160": 24,
+          "4de9c67808a9f7f9fc4f9232d442a04024d18aeb": 13,
+          "6334f8eca22b764a92bbe057f50d85d343052893": 6,
+          "6be76a2522eff22bf06c377c8ba029f5e079b43e": 21,
+          "6c5ad76bc756f0075bfc6661465b665ae5bc3bb4": 23,
+          "6d0054d5eebe7276cdb7682d26bad3e33bddc2e9": 1,
+          "7497c4269108725af74d19281ec0373e2482650a": 2,
+          "7bb08db709ab7d017240cd1b0921a1605385ccca": 17,
+          "7e86a5ea2e7b306add5d4123a14c30d3fdcebce3": 7,
+          "81d7b469b73f781821cc0015c2bf4447e5ef5f7a": 16,
+          "8425846cebd8e85f6c1a80b8a3e117c31ab6ce15": 3,
+          "91f13d103c71740debd757fd46a762ad55d3c2bd": 22,
+          "a47a21d02d56411caf39745ccc0338047a7a6397": 10,
+          "a47ddcf00b70204db5303a2255a16ec835c80cf6": 8,
+          "a5a07cf1b3cdcfcd76631648feb1270f18f0194f": 12,
+          "b7f624da1f70665778bb30814c5157b28e7cd5b6": 19
+        },
+        "ShuffleCount": 0,
+        "Size": 64
+      },
+      "UnusedTokens": {
+        "Deck": "Tokens",
+        "Indexes": [],
+        "IDs": [],
+        "IDsLastSeen": {
+          "0cbd59479106ad72584c6fb263e374c7d28395b1": 0,
+          "12bfe5f70b5d42f7063a68ec5e7c0663d50e3e82": 0,
+          "1b24393672f0befb4263f08938da27c35f109182": 0,
+          "1ba1c639ae8d78cbe93d11dbab10aa5be241be3c": 0,
+          "1f7498f8fed7cfc133cb925da84e7d1d094016f4": 0,
+          "2b0d460ef9b47d30ce5d6ee859b2c932c330817f": 0,
+          "3282dca14fc3548f2aa9784fbe71dfb110b00054": 0,
+          "3c2ef94dec4230a8a36a97c3d294fcacbce15b13": 0,
+          "3d1860328373551141b90a09a0ea4bc905099160": 0,
+          "4de9c67808a9f7f9fc4f9232d442a04024d18aeb": 0,
+          "6334f8eca22b764a92bbe057f50d85d343052893": 0,
+          "6be76a2522eff22bf06c377c8ba029f5e079b43e": 0,
+          "6c5ad76bc756f0075bfc6661465b665ae5bc3bb4": 0,
+          "6d0054d5eebe7276cdb7682d26bad3e33bddc2e9": 0,
+          "7497c4269108725af74d19281ec0373e2482650a": 0,
+          "7bb08db709ab7d017240cd1b0921a1605385ccca": 0,
+          "7e86a5ea2e7b306add5d4123a14c30d3fdcebce3": 0,
+          "81d7b469b73f781821cc0015c2bf4447e5ef5f7a": 0,
+          "8425846cebd8e85f6c1a80b8a3e117c31ab6ce15": 0,
+          "91f13d103c71740debd757fd46a762ad55d3c2bd": 0,
+          "a47a21d02d56411caf39745ccc0338047a7a6397": 0,
+          "a47ddcf00b70204db5303a2255a16ec835c80cf6": 0,
+          "a5a07cf1b3cdcfcd76631648feb1270f18f0194f": 0,
+          "b7f624da1f70665778bb30814c5157b28e7cd5b6": 0
+        },
+        "ShuffleCount": 0
+      }
+    },
+    "Players": [
+      {
+        "SeatFilled": false,
+        "SeatClosed": false,
+        "PlayerInactive": false,
+        "Color": "Red",
+        "CapturedTokens": {
+          "Deck": "Tokens",
+          "Indexes": [],
+          "IDs": [],
+          "IDsLastSeen": {},
+          "ShuffleCount": 0
+        },
+        "FinishedTurn": false
+      },
+      {
+        "SeatFilled": false,
+        "SeatClosed": false,
+        "PlayerInactive": false,
+        "Color": "Red",
+        "CapturedTokens": {
+          "Deck": "Tokens",
+          "Indexes": [],
+          "IDs": [],
+          "IDsLastSeen": {},
+          "ShuffleCount": 0
+        },
+        "FinishedTurn": false
+      }
+    ]
+  },
+  "move": {
+    "SpaceIndex": "0_0",
+    "TargetPlayerIndex": 0,
+    "TokenIndexToMove": "0_0"
+  }
+}

@@ -1,0 +1,499 @@
+{
+  "fixture": "blackjackInactiveSkipped",
+  "currentPlayerIndex": 1,
+  "state": {
+    "Components": {},
+    "Game": {
+      "RRLastPlayer": 3,
+      "RRStarterPlayer": 0,
+      "RRRoundCount": 1,
+      "RRHasStarted": false,
+      "CurrentPlayer": 0,
+      "Phase": "Normal Play",
+      "DiscardStack": {
+        "Deck": "cards",
+        "Indexes": [],
+        "IDs": [],
+        "IDsLastSeen": {},
+        "ShuffleCount": 0
+      },
+      "DrawStack": {
+        "Deck": "cards",
+        "Indexes": [
+          28,
+          15,
+          5,
+          49,
+          14,
+          32,
+          29,
+          11,
+          18,
+          40,
+          0,
+          38,
+          51,
+          1,
+          12,
+          27,
+          24,
+          50,
+          44,
+          48,
+          33,
+          10,
+          39,
+          25,
+          16,
+          7,
+          31,
+          43,
+          36,
+          45,
+          35,
+          37,
+          9,
+          4,
+          2,
+          21,
+          19,
+          42,
+          22,
+          47,
+          26,
+          13,
+          17,
+          3
+        ],
+        "IDs": [
+          "8cc80549a8314a277f8b0dbb46c7520254e9f51b",
+          "b2c770dab151fc39fa7e7c811f3a7cba5b13f0c6",
+          "40cf5c0b5ed4f0885d6a06387af8b81eac116186",
+          "3c56d6076c5935d97d5a3654a5b7099a0212c646",
+          "7cffd5f7146171ef2041fca449e94d68579afe4c",
+          "1f86b633bb3bd9612059c59f7d3cbd746b942c5d",
+          "a4a1a40b9fd11028b0da86ed353adb591a228aaf",
+          "1c998df18401dd4854ab0e0d8e48c8e5c7ad80ac",
+          "ff17fd1a726a1f0e57e83b39f333b94591ff712e",
+          "a8fa1660ed1f17aac702e3420a8eddde9156e801",
+          "c05ec337769ba632edd61911754b59ffa920682f",
+          "ac6e663d6d51c8252c4cc8f2fbc9d79eca752648",
+          "8483acc26835570733edefa5d9b7c7c57e446003",
+          "6ad78e86ca12ff301bea5455764863a2b3e2703b",
+          "38990f90a25fa2f47ef6728882df57834aac0cca",
+          "196e18e7a89db7d3d4fd43506a21806dad98c80e",
+          "d2b0fe834ba5cf8250b9f314d34593b5c09c3a2a",
+          "dbd904fdcd53f79b623dc50f3cddca4fb8d111bc",
+          "398ef1d8f13f7f51ae50ae45b0469332590a6463",
+          "12bbd2518aef5b9fbe65fc5f279847ae85716f44",
+          "3833dc591bb24d126e3e17d889c83e0dc2554981",
+          "ed754de2ac6b332c5e364dee6c299c8e59b109b1",
+          "18fb04a07915357230ed78ef24913d2ae3140180",
+          "06d7f3b65b70b5343b45c18b39063091ca667bf9",
+          "98b4fb9ede6668ea9710282b806c5d69b1e6bbc0",
+          "01a6602cc83a631fd86efa1f120b3baa3696b3a8",
+          "1f9aa1a973290f6e4e77da32d2ac4aa6bf15952d",
+          "6ae5130e37b59fec7604f417121eb7b8fc30a7bb",
+          "b90b2803d2fc46c24c6350da169a8b0d37cefef5",
+          "51bc25803b2b3eca12dfa3b52d13e87391d9755a",
+          "a20138da31c400d1612d1902a17387baffae91d1",
+          "978c4c93c10adefa778a04bfd2ca7c146ce3dfc7",
+          "681eb45148425d8abca868aea29dd59b0806b902",
+          "9fbe643d1950075c8ee3ec4ed1d00ebd26e4ba94",
+          "0aa38679881270cafffb148ff118eb4fca6c084d",
+          "c7d3e18627854500f801c3e9d5ba6d118132fea5",
+          "fc97b6f281dd4e2795a7607d4dc9768f83d94a17",
+          "21546f41936c33c6da07bc0de43fbb3a207e3e5d",
+          "1ad25e0706bbe440d31c731863c875da881a6caa",
+          "061865c8c523f42eb763ef1900a50d071e789219",
+          "b4190d54f280467f269e5c3aed39d433270d2a22",
+          "58b6302e0c602ba83ce86e29d7eeb7f7eb2e33a0",
+          "9d5bb47b15f68759653676bc9ca323554962fedc",
+          "fe153a26138693c068c3e259aeb0af7e042b65d0"
+        ],
+        "IDsLastSeen": {
+          "01a6602cc83a631fd86efa1f120b3baa3696b3a8": 0,
+          "03719588f752f9cb212b4fbf015a40b4ac2616f0": 0,
+          "061865c8c523f42eb763ef1900a50d071e789219": 0,
+          "06d7f3b65b70b5343b45c18b39063091ca667bf9": 0,
+          "091fe69144c1edfb5b6b551d1d52a93b05f476f2": 0,
+          "0aa38679881270cafffb148ff118eb4fca6c084d": 0,
+          "12bbd2518aef5b9fbe65fc5f279847ae85716f44": 0,
+          "18fb04a07915357230ed78ef24913d2ae3140180": 0,
+          "196e18e7a89db7d3d4fd43506a21806dad98c80e": 0,
+          "1ad25e0706bbe440d31c731863c875da881a6caa": 0,
+          "1bbdfc54f221deef75b10251aaa4a1c6790c03ef": 0,
+          "1c998df18401dd4854ab0e0d8e48c8e5c7ad80ac": 0,
+          "1f86b633bb3bd9612059c59f7d3cbd746b942c5d": 0,
+          "1f9aa1a973290f6e4e77da32d2ac4aa6bf15952d": 0,
+          "21546f41936c33c6da07bc0de43fbb3a207e3e5d": 0,
+          "2331866d7e20302b5d742bccb880b31aa099dffe": 0,
+          "2a166e08e9210d1a654fd0b02ae0bb80e99f567e": 0,
+          "2babc84dd89c68e40e186983f618005e7080b280": 0,
+          "2bf38fb3dbd460301e103659b8b438c363ea7c13": 0,
+          "2e64538be3f14e47ecfa7d98a78346477a38d057": 0,
+          "30d08d19f895805d78e2a0748277eed84bb5c8ed": 0,
+          "31942ca0203d0e52471b16b0e6f237877f142ab5": 0,
+          "347de5524767d33f7f362a3c26caa474dc135285": 0,
+          "362ae8e45eadb496f153e2e529431fc626f50648": 0,
+          "3833dc591bb24d126e3e17d889c83e0dc2554981": 0,
+          "38990f90a25fa2f47ef6728882df57834aac0cca": 0,
+          "398ef1d8f13f7f51ae50ae45b0469332590a6463": 0,
+          "3ae3fafc139ba28a9aefe468cb4ce0426d363af4": 0,
+          "3baaf913a0dfa5d26532697033afadf691b886ee": 0,
+          "3c56d6076c5935d97d5a3654a5b7099a0212c646": 0,
+          "4003b6b47b2bf1887c22511d8ff3b1a17e6cb531": 0,
+          "40cf5c0b5ed4f0885d6a06387af8b81eac116186": 0,
+          "426bb197161f87f189ecc5c7445b0b95266fa37e": 0,
+          "43bcfd312fbdda8e493d27af53f2637c26f07fa1": 0,
+          "4a00c1352e6477698d28b662bb323808153c08f4": 0,
+          "4c0cde8afcdff184e316b09e2fec0a61f6fc3cec": 0,
+          "4ef8bfad9fd30280d161b71921d6d24fa5e63e34": 0,
+          "5125b19d78bca13c5be28ed837139e22f8fa7650": 0,
+          "51bc25803b2b3eca12dfa3b52d13e87391d9755a": 0,
+          "51d316833580a58d7f8f9579972691a2ec8f69c4": 0,
+          "58b6302e0c602ba83ce86e29d7eeb7f7eb2e33a0": 0,
+          "5e9a28097d9115c741d1c2ab84f76faab0f7d5e7": 0,
+          "681eb45148425d8abca868aea29dd59b0806b902": 0,
+          "6ad78e86ca12ff301bea5455764863a2b3e2703b": 0,
+          "6ae5130e37b59fec7604f417121eb7b8fc30a7bb": 0,
+          "6bb5c0ebffa95d0ad328bb6c1dada8dfa194d4e2": 0,
+          "6c25d69138fdad11a9c61ffc90205f80117197ed": 0,
+          "6dbebed530769c204ce8e8adf59f593416edac17": 0,
+          "757e2d9e74391da334693c50cc9abaae077931ba": 0,
+          "77ba7b92a3adb4d7a599f0e0d4b56735a7b43376": 0,
+          "797c4705dc09b37990bd156ed019b7830e98e3ed": 0,
+          "7cffd5f7146171ef2041fca449e94d68579afe4c": 0,
+          "7e0e4c2f21807622f6db59eee1ff4334a8b9f4bd": 0,
+          "80f7796dbd0ef8088337cf79f74dc55fe65c59d4": 0,
+          "8483acc26835570733edefa5d9b7c7c57e446003": 0,
+          "8554a14b2d00562f387e1af2827620e626be3b21": 0,
+          "8584e718e80425c10e355a5e4034cca9240c6209": 0,
+          "8cc80549a8314a277f8b0dbb46c7520254e9f51b": 0,
+          "8dd5be8d9f667bbdda6be68af039d22ab9f915f2": 0,
+          "9109a3af47aa8092b0289d5477933c096a1b045c": 0,
+          "931c328698f7954b1624cb022076741c10f949e8": 0,
+          "9404c82bf41a371dd1826c2278d65d8a2a5a19d1": 0,
+          "94a4daf3abcb4b569e8a21755a85ac1600432c91": 0,
+          "94ba23c1fc54799f188b40c302f5587446a5ee81": 0,
+          "95cccb4d89f33404ed1ba8d25bf9dd355c477204": 0,
+          "964502de75bd0d54d151a67aad3285447c2b29c0": 0,
+          "978c4c93c10adefa778a04bfd2ca7c146ce3dfc7": 0,
+          "98b4fb9ede6668ea9710282b806c5d69b1e6bbc0": 0,
+          "98c0ffff3c2d07c110af0f54da352fbfb4d57574": 0,
+          "9d5bb47b15f68759653676bc9ca323554962fedc": 0,
+          "9fbe643d1950075c8ee3ec4ed1d00ebd26e4ba94": 0,
+          "a0846e044d0fdff3a44358210cfd242619c1aab3": 0,
+          "a20138da31c400d1612d1902a17387baffae91d1": 0,
+          "a46676426a2d278f2c1a5ec25f1642eddb7ce7e6": 0,
+          "a4a1a40b9fd11028b0da86ed353adb591a228aaf": 0,
+          "a84b1dcc6505c538c1a02a8efbcef8eb98282d1b": 0,
+          "a8fa1660ed1f17aac702e3420a8eddde9156e801": 0,
+          "ac6e663d6d51c8252c4cc8f2fbc9d79eca752648": 0,
+          "ad54ce8e65de3a890a100d75aae8570b4275f593": 0,
+          "b1b7d3277abc76b4d2fb50ad6b49eed221daae77": 0,
+          "b2c770dab151fc39fa7e7c811f3a7cba5b13f0c6": 0,
+          "b4190d54f280467f269e5c3aed39d433270d2a22": 0,
+          "b90b2803d2fc46c24c6350da169a8b0d37cefef5": 0,
+          "bddf538110c3d68186b2a4c2bbf72186bef2e0dc": 0,
+          "c05ec337769ba632edd61911754b59ffa920682f": 0,
+          "c1452712f1f5a93bcd1325892fb28cdd55747da4": 0,
+          "c202b9f8f3c3bd4c859dc735420500cabe4f1f73": 0,
+          "c7d3e18627854500f801c3e9d5ba6d118132fea5": 0,
+          "d2b0fe834ba5cf8250b9f314d34593b5c09c3a2a": 0,
+          "d585ab0376520a51b8769f719be6fa03feaf9e8c": 0,
+          "da72515453e5da0117ed35ce45fd44538855842a": 0,
+          "dbd904fdcd53f79b623dc50f3cddca4fb8d111bc": 0,
+          "dc63b09c62f28199bcc852fd9ea3d774d9dddd78": 0,
+          "dfc19f922ad016d89ed637d512f0db57612a5076": 0,
+          "e3233852658fd979a19f02dac340bd41e03f155d": 0,
+          "e87999b07b0eabd566543fe34dcd03867d74e0c9": 0,
+          "e96c35079403bfa8cd9b2755f3f6b9bf026d1044": 0,
+          "ebf26194eb432188fc4998bdb2de9b2162f55a88": 0,
+          "ed754de2ac6b332c5e364dee6c299c8e59b109b1": 0,
+          "ed94374e88f851bb3aec6e149d118d8e0f448749": 0,
+          "f538c8942f836b6b8824700144271b63e4307785": 0,
+          "fc97b6f281dd4e2795a7607d4dc9768f83d94a17": 0,
+          "fe153a26138693c068c3e259aeb0af7e042b65d0": 0,
+          "ff17fd1a726a1f0e57e83b39f333b94591ff712e": 0
+        },
+        "ShuffleCount": 1
+      },
+      "UnusedCards": {
+        "Deck": "cards",
+        "Indexes": [],
+        "IDs": [],
+        "IDsLastSeen": {},
+        "ShuffleCount": 0
+      },
+      "MaxRounds": 5,
+      "RoundsCompleted": 0
+    },
+    "Players": [
+      {
+        "SeatFilled": false,
+        "SeatClosed": false,
+        "PlayerInactive": true,
+        "Score": 0,
+        "Eliminated": false,
+        "HiddenHand": {
+          "Deck": "cards",
+          "Indexes": [],
+          "IDs": [],
+          "IDsLastSeen": {
+            "426bb197161f87f189ecc5c7445b0b95266fa37e": 4
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "VisibleHand": {
+          "Deck": "cards",
+          "Indexes": [
+            6,
+            30
+          ],
+          "IDs": [
+            "426bb197161f87f189ecc5c7445b0b95266fa37e",
+            "e3233852658fd979a19f02dac340bd41e03f155d"
+          ],
+          "IDsLastSeen": {
+            "426bb197161f87f189ecc5c7445b0b95266fa37e": 13,
+            "e3233852658fd979a19f02dac340bd41e03f155d": 8
+          },
+          "ShuffleCount": 0
+        },
+        "Hand": {
+          "Deck": "cards",
+          "Indexes": [
+            6,
+            30
+          ],
+          "IDs": [
+            "426bb197161f87f189ecc5c7445b0b95266fa37e",
+            "e3233852658fd979a19f02dac340bd41e03f155d"
+          ],
+          "IDsLastSeen": {
+            "426bb197161f87f189ecc5c7445b0b95266fa37e": 13,
+            "e3233852658fd979a19f02dac340bd41e03f155d": 8
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "Stood": false
+      },
+      {
+        "SeatFilled": false,
+        "SeatClosed": false,
+        "PlayerInactive": false,
+        "Score": 0,
+        "Eliminated": false,
+        "HiddenHand": {
+          "Deck": "cards",
+          "Indexes": [
+            8
+          ],
+          "IDs": [
+            "c1452712f1f5a93bcd1325892fb28cdd55747da4"
+          ],
+          "IDsLastSeen": {
+            "c1452712f1f5a93bcd1325892fb28cdd55747da4": 5
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "VisibleHand": {
+          "Deck": "cards",
+          "Indexes": [
+            20
+          ],
+          "IDs": [
+            "51d316833580a58d7f8f9579972691a2ec8f69c4"
+          ],
+          "IDsLastSeen": {
+            "51d316833580a58d7f8f9579972691a2ec8f69c4": 9
+          },
+          "ShuffleCount": 0
+        },
+        "Hand": {
+          "Deck": "cards",
+          "Indexes": [
+            8,
+            20
+          ],
+          "IDs": [
+            "c1452712f1f5a93bcd1325892fb28cdd55747da4",
+            "51d316833580a58d7f8f9579972691a2ec8f69c4"
+          ],
+          "IDsLastSeen": {
+            "51d316833580a58d7f8f9579972691a2ec8f69c4": 9,
+            "c1452712f1f5a93bcd1325892fb28cdd55747da4": 5
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "Stood": true
+      },
+      {
+        "SeatFilled": false,
+        "SeatClosed": false,
+        "PlayerInactive": false,
+        "Score": 0,
+        "Eliminated": false,
+        "HiddenHand": {
+          "Deck": "cards",
+          "Indexes": [
+            34
+          ],
+          "IDs": [
+            "d585ab0376520a51b8769f719be6fa03feaf9e8c"
+          ],
+          "IDsLastSeen": {
+            "d585ab0376520a51b8769f719be6fa03feaf9e8c": 6
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "VisibleHand": {
+          "Deck": "cards",
+          "Indexes": [
+            46
+          ],
+          "IDs": [
+            "3baaf913a0dfa5d26532697033afadf691b886ee"
+          ],
+          "IDsLastSeen": {
+            "3baaf913a0dfa5d26532697033afadf691b886ee": 10
+          },
+          "ShuffleCount": 0
+        },
+        "Hand": {
+          "Deck": "cards",
+          "Indexes": [
+            34,
+            46
+          ],
+          "IDs": [
+            "d585ab0376520a51b8769f719be6fa03feaf9e8c",
+            "3baaf913a0dfa5d26532697033afadf691b886ee"
+          ],
+          "IDsLastSeen": {
+            "3baaf913a0dfa5d26532697033afadf691b886ee": 10,
+            "d585ab0376520a51b8769f719be6fa03feaf9e8c": 6
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "Stood": true
+      },
+      {
+        "SeatFilled": false,
+        "SeatClosed": false,
+        "PlayerInactive": false,
+        "Score": 0,
+        "Eliminated": false,
+        "HiddenHand": {
+          "Deck": "cards",
+          "Indexes": [
+            41
+          ],
+          "IDs": [
+            "2a166e08e9210d1a654fd0b02ae0bb80e99f567e"
+          ],
+          "IDsLastSeen": {
+            "2a166e08e9210d1a654fd0b02ae0bb80e99f567e": 7
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "VisibleHand": {
+          "Deck": "cards",
+          "Indexes": [
+            23
+          ],
+          "IDs": [
+            "c202b9f8f3c3bd4c859dc735420500cabe4f1f73"
+          ],
+          "IDsLastSeen": {
+            "c202b9f8f3c3bd4c859dc735420500cabe4f1f73": 11
+          },
+          "ShuffleCount": 0
+        },
+        "Hand": {
+          "Deck": "cards",
+          "Indexes": [
+            41,
+            23
+          ],
+          "IDs": [
+            "2a166e08e9210d1a654fd0b02ae0bb80e99f567e",
+            "c202b9f8f3c3bd4c859dc735420500cabe4f1f73"
+          ],
+          "IDsLastSeen": {
+            "2a166e08e9210d1a654fd0b02ae0bb80e99f567e": 7,
+            "c202b9f8f3c3bd4c859dc735420500cabe4f1f73": 11
+          },
+          "ShuffleCount": 0,
+          "MaxSize": 1
+        },
+        "Stood": true
+      }
+    ],
+    "SecretMoveCount": {
+      "cards": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  },
+  "move": null
+}
