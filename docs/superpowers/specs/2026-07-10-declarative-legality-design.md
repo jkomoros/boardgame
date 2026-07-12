@@ -640,3 +640,86 @@ evaluation, migrated moves keep their historical first-failure messages.
   normative and enforced in review.
 - **Deferred dirty-tracking** stays deferred until a complete write-set audit
   exists; the conservative default is correct-but-uncached.
+
+---
+
+## Implementation notes (2026-07-11)
+
+Recorded during Task 14 close-out, from the accumulated execution ledger
+(`.superpowers/sdd/progress-legality.md`). Each note is a divergence between
+this spec's normative text/samples and what actually shipped, adjudicated
+during implementation and left standing (not reverted) because the
+divergence was itself correct or unavoidable given an earlier, binding
+design decision.
+
+- **StartPhase embed is seam-blocked; §8's blackjack sample diverges.**
+  §8's `moveStartRoundCleanup` sample still shows the move embedding
+  `moves.StartPhase`. It cannot: §2's v1 seam is Default/CurrentPlayer only,
+  and any other `moves` package embed — including `StartPhase`, even though
+  it has no `Legal()` override of its own — is treated as an unsupported
+  base type at boot. The shipped move embeds `moves.Default` directly and
+  hand-rolls the one behavior it used from `StartPhase.Apply` (setting the
+  game's current phase); verified behaviorally equivalent for blackjack,
+  since its `gameState` implements neither `BeforeLeavePhaser` nor
+  `BeforeEnterPhaser`.
+
+- **Bucket-reordering narrows the "historical first-failure message"
+  claim (§4).** The plan evaluator splits a plan into a field-independent
+  bucket (no `move.*` reads) and a field-dependent bucket, evaluating the
+  entire field-independent bucket first regardless of authored declaration
+  order. Since `proposerIsCurrentPlayer` is field-dependent (reads
+  `move.TargetPlayerIndex`), a field-independent authored check that ran
+  AFTER the proposer check in the old linear chain can now report first.
+  Real migrations (memory, checkers, and every ../games migration) hit this
+  and documented it per-case (`knownMessageOrderingDivergence`-style maps in
+  each game's golden test) rather than treating it as a regression — nil-ness
+  never diverges, only which message wins a tie.
+
+- **`legal.Predicate1` (§8's checkers sample) does not exist.** The
+  literal spelling in the shipped checkers migration is a bare
+  `legal.Spec{Name: "checkers.spaceIsBlack", Args: [...]}` value, not a
+  `legal.Predicate1(...)` builder function — no such convenience
+  constructor was ever built for single-arg game-registered predicates.
+  Game authors write the `Spec` literal directly today.
+
+- **`player.X` cannot express "the proposing player" in simultaneous-move
+  phases (§1's path grammar, hit in Task 13).** `player.X` resolves against
+  the game's `CurrentPlayerIndex`. Darwin (`../games`) has a
+  simultaneous-move phase where every player proposes at once and the
+  game's own "current player" is Admin/none; `player.X` there returns an
+  error or `Unknown`, never the actual proposer's properties. Darwin's
+  attempted migration was reverted by its golden-equivalence fence rather
+  than shipped with degraded behavior — zero regression shipped, but the gap
+  is real and durable, not a fixture artifact.
+
+- **Catalog gaps found and left open (Tasks 11-13 surveys), tracked for
+  future growth per §1's rule of growth:** no count/stack-size threshold
+  predicate exists, despite `Read`'s `FacetCount` facet already being
+  designed for exactly this purpose and sitting unused by every catalog
+  predicate; no negation compositor (`any` is the only one, matching §1's
+  anti-tarpit rule, but it leaves genuinely-negated checks stuck in
+  `LegalCustom`); `MayMoveTo`/`MayMoveToSlot` take a single `idxField`,
+  so there is no variant expressing a source index distinct from a
+  destination index. Each blocked at least one real migration (memory's
+  timer-start check, several `../games` stack-count checks, blackjack's
+  hand-arithmetic residue) and is recorded in the affected games'
+  migration-survey commit messages and `legal/doc.go`'s "v1 limits."
+
+- **`LegalForAnyone` is plan evaluation under `AdminPlayerIndex` (§4/§6),
+  not a separate exemption path.** The pre-existing "is this legal for
+  ANY player" computation used to run its own ad hoc exemption logic; Task
+  10 deleted that logic and defined `LegalForAnyone` for an opted-in move as
+  literally "evaluate the assembled plan with `proposer =
+  AdminPlayerIndex`" — the old semantics fall out by construction (Admin
+  bypasses the proposer-identity check) rather than needing a parallel code
+  path. A parity invariant is asserted across every opted-in fixture.
+
+- **The frozen-wire test is a differential reimplementation, not a
+  recorded pre-change fixture (§9, accepted with a note in the Task 10
+  ledger).** The ideal test would replay a byte-for-byte JSON payload
+  captured before this campaign began; what shipped instead independently
+  reconstructs the pre-change move-form JSON shape in the test itself and
+  diffs against it live. This is weaker (a bug shared between the
+  reimplementation and the real code would go undetected) but was judged
+  sufficient given the shape's simplicity; flagged here rather than silently
+  accepted as equivalent to a recorded fixture.
