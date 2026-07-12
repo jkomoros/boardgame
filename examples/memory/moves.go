@@ -218,27 +218,33 @@ type moveHideCards struct {
 	moves.CurrentPlayer
 }
 
-func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if p.CardsLeftToReveal > 0 {
-		return errors.New("You still have to reveal more cards before your turn is over")
-	}
-
-	if game.VisibleCards.NumComponents() < 1 {
-		return errors.New("no cards left to hide")
-	}
-
-	return nil
-}
-
+// Legal() is deliberately absent: this move opted into declarative legality.
+// The original stale comment (and TUTORIAL.md) used moveHideCards as the
+// canonical "logic the declarative catalog can't express" example, on the
+// theory that its two gates — CardsLeftToReveal must be non-positive, and at
+// least one card must be showing — had no catalog builders. The completeness
+// round falsified that: the gates are now
+// legal.PropCompare("player.CardsLeftToReveal", "<=", 0) and
+// legal.StackNotEmpty("game.VisibleCards"), added via WithPreconditions in
+// main.go's ConfigureMoves (Workstream 9 re-migration); the
+// proposer/current-player check is contributed base-first by
+// moves.CurrentPlayer (this is a normal player move — no fixup memo, every
+// proposer cell recomputes fresh). The original imperative body (kept only as
+// legacyLegalMoveHideCards, a private copy in legal_golden_test.go, for
+// golden-equivalence testing) read:
+//
+//	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+//		return err
+//	}
+//	game, players := concreteStates(state)
+//	p := players[game.CurrentPlayer.EnsureValid(state)]
+//	if p.CardsLeftToReveal > 0 {
+//		return errors.New("You still have to reveal more cards before your turn is over")
+//	}
+//	if game.VisibleCards.NumComponents() < 1 {
+//		return errors.New("no cards left to hide")
+//	}
+//	return nil
 func (m *moveHideCards) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 

@@ -10,7 +10,9 @@ import (
 
 /*
 Golden-equivalence harness for moveRevealCard (design spec §8/§9, Task 11
-brief): for every recorded (state, proposer) pair, asserts that
+brief) and moveHideCards (the Workstream 9 completeness-round re-migration;
+see its own section near the bottom of this file): for every recorded
+(state, proposer) pair, asserts that
 legacyLegalMoveRevealCard (a hand-copied snapshot of the move's Legal() body
 exactly as it read before this migration) and the migrated move's ACTUAL
 Legal() (now dispatched through moves.CurrentPlayer.Legal ->
@@ -310,6 +312,223 @@ func TestGoldenLegalMoveRevealCard(t *testing.T) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
 				}
 				if knownMessageOrderingDivergence[fixture.name+"/"+proposerName] {
+					return
+				}
+				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
+					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
+				}
+			})
+		}
+	}
+}
+
+/**************************************************
+ *
+ * moveHideCards golden coverage (Workstream 9)
+ *
+ **************************************************/
+
+// legacyLegalMoveHideCards is a hand-copied snapshot of moveHideCards's
+// Legal() method exactly as it read before the Workstream 9 re-migration (see
+// moves.go's comment block for the original source). Like
+// legacyLegalMoveRevealCard above, it deliberately does NOT call
+// m.CurrentPlayer.Legal (which post-migration would dispatch through
+// moves.Default.Legal into the assembled plan, defeating the point of an
+// independent oracle); it hand-replicates moves.CurrentPlayer.Legal's
+// TargetPlayerIndex/proposer checks directly (moves/current_player.go). Since
+// moveHideCards is not phase-restricted, moves.Default.Legal's own
+// phase/progression/stack-constraint checks are no-ops and are omitted. Unlike
+// the reveal oracle there are only two authored gates after the proposer
+// checks: CardsLeftToReveal and VisibleCards.
+func legacyLegalMoveHideCards(m *moveHideCards, state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+	currentPlayer := state.CurrentPlayerIndex()
+	targetPlayerIndex := m.TargetPlayerIndex.EnsureValid(state)
+
+	if !targetPlayerIndex.Valid(state) {
+		return errors.New("The specified target player is not valid")
+	}
+	if targetPlayerIndex < 0 {
+		return errors.New("The specified target player is not valid")
+	}
+	if !targetPlayerIndex.Equivalent(currentPlayer) {
+		return errors.New("it's not your turn")
+	}
+	if !targetPlayerIndex.Equivalent(proposer) {
+		return errors.New("it's not your turn")
+	}
+
+	game, players := concreteStates(state)
+
+	p := players[game.CurrentPlayer.EnsureValid(state)]
+
+	if p.CardsLeftToReveal > 0 {
+		return errors.New("You still have to reveal more cards before your turn is over")
+	}
+
+	if game.VisibleCards.NumComponents() < 1 {
+		return errors.New("no cards left to hide")
+	}
+
+	return nil
+}
+
+// hideCardsGoldenFixture is one (game, move) pair to check every proposer
+// against.
+type hideCardsGoldenFixture struct {
+	name string
+	game *boardgame.Game
+	move *moveHideCards
+}
+
+// hideCardsMove returns a fresh "Hide Cards" move from game. Its
+// TargetPlayerIndex is set by moves.CurrentPlayer.DefaultsForState (invoked by
+// NewMove) to the current player index.
+func hideCardsMove(t *testing.T, game *boardgame.Game) *moveHideCards {
+	t.Helper()
+	move := game.MoveByName("Hide Cards")
+	if move == nil {
+		t.Fatal("legal_golden: no \"Hide Cards\" move found")
+	}
+	hc, ok := move.(*moveHideCards)
+	if !ok {
+		t.Fatal("legal_golden: \"Hide Cards\" move was not a *moveHideCards")
+	}
+	return hc
+}
+
+// hideCardsGoldenFixtures builds the table of (state, move) fixtures the golden
+// test sweeps every proposer against. Fixture construction follows the same
+// NewDefaultGame()+direct-field-mutation approach documented in this file's top
+// comment (reused via newRevealCardGame, which just builds a memory default
+// game).
+func hideCardsGoldenFixtures(t *testing.T) []hideCardsGoldenFixture {
+	t.Helper()
+
+	var fixtures []hideCardsGoldenFixture
+
+	// default: a fresh game. Unlike reveal's "default" (legal for the current
+	// player), BOTH of hide's field-independent gates FAIL here:
+	// CardsLeftToReveal is 2 (>0, so PropCompare "<=" 0 fails) and VisibleCards
+	// is empty (StackNotEmpty fails). PropCompare is declared first, so it is
+	// the first-failure message for a passing/wildcard proposer.
+	{
+		game := newRevealCardGame(t)
+		move := hideCardsMove(t, game)
+		fixtures = append(fixtures, hideCardsGoldenFixture{"default", game, move})
+	}
+
+	// bothPass: force the current player's CardsLeftToReveal to 0 (PropCompare
+	// "<=" 0 PASSES) AND move one card from HiddenCards into VisibleCards
+	// (StackNotEmpty PASSES) — both field-independent gates pass, so the
+	// contributed proposer atom decides the verdict. This is the only fixture
+	// that exercises the legal/nil (pass) path and the proposer-branch "it's
+	// not your turn" message byte-for-byte (mirrors reveal's alreadyRevealed
+	// card-move technique).
+	{
+		game := newRevealCardGame(t)
+		state, ok := game.CurrentState().(boardgame.State)
+		if !ok {
+			t.Fatal("legal_golden: CurrentState() was not mutable")
+		}
+		rs := state.CurrentPlayer().ReadSetter()
+		if err := rs.SetIntProp("CardsLeftToReveal", 0); err != nil {
+			t.Fatalf("legal_golden: setting CardsLeftToReveal: %v", err)
+		}
+		gameRS := state.GameState().ReadSetter()
+		hidden, err := gameRS.StackProp("HiddenCards")
+		if err != nil {
+			t.Fatalf("legal_golden: reading HiddenCards: %v", err)
+		}
+		visible, err := gameRS.StackProp("VisibleCards")
+		if err != nil {
+			t.Fatalf("legal_golden: reading VisibleCards: %v", err)
+		}
+		card := hidden.ComponentAt(0)
+		if card == nil {
+			t.Fatal("legal_golden: expected HiddenCards[0] to be occupied")
+		}
+		if err := card.MoveTo(visible, 0); err != nil {
+			t.Fatalf("legal_golden: moving HiddenCards[0] to VisibleCards[0]: %v", err)
+		}
+		move := hideCardsMove(t, game)
+		fixtures = append(fixtures, hideCardsGoldenFixture{"bothPass", game, move})
+	}
+
+	return fixtures
+}
+
+// knownMessageOrderingDivergenceHide names (fixture, proposer) combinations
+// where the migrated plan is EXPECTED to disagree with the legacy oracle on
+// WHICH message wins, even though both agree the move is illegal (nil-ness
+// always matches). Same architectural finding as moveRevealCard's
+// knownMessageOrderingDivergence above: legalPlan.evaluate runs the ENTIRE
+// field-independent bucket before ANY field-dependent predicate, regardless of
+// declaration order (design spec §5's memoization split). moveHideCards's two
+// gates (PropCompare on player.*, StackNotEmpty on game.*) read no move.* path,
+// so both land field-INDEPENDENT; the contributed proposer atom reads
+// move.TargetPlayerIndex, so it lands field-DEPENDENT — meaning the gates are
+// checked BEFORE the proposer check in the plan, the reverse of the legacy
+// order (super-call first).
+//
+// This bites ONLY in the "default" fixture, where both gates already fail:
+// for a proposer that also fails the proposer check (a non-current, non-admin
+// proposer), legacy reports "it's not your turn" (proposer check first) while
+// the plan reports "You still have to reveal more cards before your turn is
+// over" (PropCompare, the first field-independent gate). admin does NOT diverge
+// (its proposer atom passes, so it reaches the same failing gate in both
+// orderings), and the "bothPass" fixture does not diverge at all (its gates
+// pass, so the proposer atom runs and, when it fails, wins byte-for-byte in
+// both orderings). This is a normal player move, not a fixup, so there is no
+// setup-memo artifact — every proposer cell recomputes fresh.
+var knownMessageOrderingDivergenceHide = map[string]bool{
+	"default/otherPlayer": true,
+	"default/observer":    true,
+}
+
+// TestGoldenLegalMoveHideCards is the design spec §9 "golden equivalence" test
+// for moveHideCards's Workstream 9 re-migration: for every fixture above, cross
+// every proposer worth distinguishing (the current player, a different concrete
+// player, AdminPlayerIndex — a wildcard that passes the proposer check,
+// ObserverPlayerIndex — which fails it) and assert the legacy oracle and the
+// migrated move's real Legal() agree on nil-ness, and (outside the two
+// documented ordering exceptions above) on message text too.
+func TestGoldenLegalMoveHideCards(t *testing.T) {
+	fixtures := hideCardsGoldenFixtures(t)
+
+	for _, fixture := range fixtures {
+		fixture := fixture
+		state := fixture.game.CurrentState()
+		currentPlayer := state.CurrentPlayerIndex()
+
+		var otherPlayer boardgame.PlayerIndex = -1
+		for i := range state.ImmutablePlayerStates() {
+			pIdx := boardgame.PlayerIndex(i)
+			if pIdx != currentPlayer {
+				otherPlayer = pIdx
+				break
+			}
+		}
+		if otherPlayer < 0 {
+			t.Fatalf("legal_golden[%s]: could not find a non-current player", fixture.name)
+		}
+
+		proposers := map[string]boardgame.PlayerIndex{
+			"currentPlayer": currentPlayer,
+			"otherPlayer":   otherPlayer,
+			"admin":         boardgame.AdminPlayerIndex,
+			"observer":      boardgame.ObserverPlayerIndex,
+		}
+
+		for proposerName, proposer := range proposers {
+			t.Run(fixture.name+"/"+proposerName, func(t *testing.T) {
+				legacyErr := legacyLegalMoveHideCards(fixture.move, state, proposer)
+				actualErr := fixture.move.Legal(state, proposer)
+
+				if (legacyErr == nil) != (actualErr == nil) {
+					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
+				}
+				if knownMessageOrderingDivergenceHide[fixture.name+"/"+proposerName] {
 					return
 				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {

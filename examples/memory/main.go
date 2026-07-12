@@ -324,6 +324,18 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	hideCardConfig := auto.MustConfig(
 		new(moveHideCards),
 		moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
+		// Declarative migration (Workstream 9 re-migration): Legal() is
+		// deleted (see moves.go); its two gates are now these preconditions,
+		// in the same order the old imperative chain ran (CurrentPlayer's
+		// proposer check is contributed automatically first). PropCompare
+		// with "<=",0 (not PropEquals ==,0: there is no PropAtMost, and == would
+		// wrongly reject a negative value the imperative `>0` treats as legal)
+		// mirrors `if CardsLeftToReveal > 0 { fail }`; StackNotEmpty mirrors
+		// `if VisibleCards.NumComponents() < 1 { fail }`.
+		moves.WithPreconditions(
+			legal.PropCompare("player.CardsLeftToReveal", "<=", 0).WithMessage("hide.cards_still_to_reveal"),
+			legal.StackNotEmpty("game.VisibleCards").WithMessage("hide.no_cards_to_hide"),
+		),
 	)
 
 	//Save this name so agent can use it and we don't have to worry about
@@ -351,20 +363,27 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	)
 }
 
-// ConfigureLegalTemplates supplies the one game-specific template key
-// moveRevealCard's WithPreconditions plan overrides (design spec §8):
-// PropAtLeast's default message ("requires at least {min}...") is generic,
-// so the CardsLeftToReveal check overrides it with the exact legacy string
-// from the pre-migration Legal() body. RevealableCardAt and MayMoveToSlot's
-// Fail branches are NOT overridden here: legal.DefaultTemplates() already
-// carries "there is no card at that index" / "that card has already been
-// revealed" (legal.TemplateNoCardHere / legal.TemplateAlreadyRevealed)
-// verbatim, and MayMoveToSlot's default "{detail}" template passes through
-// the underlying MayMoveToSlot error text unchanged — both already match
-// the legacy strings byte-for-byte with no override needed.
+// ConfigureLegalTemplates supplies the game-specific template keys the
+// declarative migrations override (design spec §8): moveRevealCard's
+// PropAtLeast default message ("requires at least {min}...") is generic, so
+// the CardsLeftToReveal check overrides it with the exact legacy string from
+// the pre-migration Legal() body. RevealableCardAt and MayMoveToSlot's Fail
+// branches are NOT overridden here: legal.DefaultTemplates() already carries
+// "there is no card at that index" / "that card has already been revealed"
+// (legal.TemplateNoCardHere / legal.TemplateAlreadyRevealed) verbatim, and
+// MayMoveToSlot's default "{detail}" template passes through the underlying
+// MayMoveToSlot error text unchanged — both already match the legacy strings
+// byte-for-byte with no override needed. moveHideCards (Workstream 9)
+// likewise overrides both its gates: PropCompare's default ("requires the
+// current value ({value}) to be {op} {n}") and StackNotEmpty's default
+// ("requires the stack to not be empty") are generic, so hide.* restore the
+// exact legacy strings ("You still have to reveal more cards before your turn
+// is over" / "no cards left to hide").
 func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 	return map[string]string{
-		"reveal.no_cards_left": "You have no cards left to reveal this turn",
+		"reveal.no_cards_left":       "You have no cards left to reveal this turn",
+		"hide.cards_still_to_reveal": "You still have to reveal more cards before your turn is over",
+		"hide.no_cards_to_hide":      "no cards left to hide",
 	}
 }
 
