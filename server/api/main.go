@@ -1661,6 +1661,97 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 	})
 }
 
+// movePreviewBatchCandidate is one arg-set in a batch preview request: the
+// field values (fieldName -> raw string, same encoding the move endpoint's form
+// uses) to bind before evaluating legality. All candidates in a request share
+// one move type and one state.
+type movePreviewBatchCandidate struct {
+	Args map[string]string `json:"Args"`
+}
+
+// movePreviewBatchResult is one candidate's legality, in the same slot as its
+// candidate. It is the compact shape graying-a-board needs — the authoritative
+// LegalForPlayer verdict plus its reason — not the full moveForm ledger the
+// single-move preview returns.
+type movePreviewBatchResult struct {
+	Legal bool   `json:"Legal"`
+	Error string `json:"Error,omitempty"`
+}
+
+// legalMoveFormsBatch computes legality for many candidate arg-sets of a single
+// move type against one state, WITHOUT applying any of them — the primitive
+// that lets a client gray a whole board's candidate targets in one round-trip.
+// moveType and playerIndex are shared; each candidate supplies its own field
+// values, bound exactly the way the move endpoint binds form args (a fresh move
+// per candidate, so no candidate's args leak into another). A candidate whose
+// args can't be bound soft-fails to {Legal:false, Error:<bind error>} in its own
+// slot — for graying, a target you can't even construct is a target you can't
+// move to — without failing the batch. An invalid or fixup move type (shared by
+// every candidate) is a whole-batch error. Never mutates the game.
+func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.ImmutableState, moveType string, candidates []movePreviewBatchCandidate, playerIndex boardgame.PlayerIndex) ([]movePreviewBatchResult, error) {
+	// Validate the shared move type once (it's the same for every candidate).
+	if probe := game.MoveByName(moveType); probe == nil {
+		return nil, errors.New("Invalid MoveType")
+	} else if base.IsFixUp(probe) {
+		return nil, errors.New("players cannot make fixup moves")
+	}
+
+	results := make([]movePreviewBatchResult, 0, len(candidates))
+	for _, cand := range candidates {
+		move := game.MoveByName(moveType)
+		args := cand.Args
+		if err := bindMoveFields(move, func(name string) string { return args[name] }); err != nil {
+			results = append(results, movePreviewBatchResult{Legal: false, Error: err.Error()})
+			continue
+		}
+		form := s.legalMoveForm(game, state, move, playerIndex)
+		results = append(results, movePreviewBatchResult{Legal: form.LegalForPlayer, Error: form.LegalForPlayerError})
+	}
+	return results, nil
+}
+
+// movePreviewBatchHandler is the batch sibling of movePreviewHandler: given a
+// move type and a list of candidate arg-sets in the JSON body, it returns each
+// candidate's legality (in order) against the current state without applying
+// anything — one round-trip to gray a whole board.
+func (s *Server) movePreviewBatchHandler(c *gin.Context) {
+
+	r := s.newRenderer(c)
+
+	if c.Request.Method != http.MethodPost {
+		r.Error(errors.New("this method only supports post"))
+		return
+	}
+
+	game := s.getGame(c)
+
+	if game == nil {
+		r.Error(errors.New("Game not found"))
+		return
+	}
+
+	proposer := s.effectivePlayerIndex(c)
+
+	var req struct {
+		MoveType   string                      `json:"MoveType"`
+		Candidates []movePreviewBatchCandidate `json:"Candidates"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		r.Error(errors.New("Couldn't parse batch preview request: " + err.Error()))
+		return
+	}
+
+	results, err := s.legalMoveFormsBatch(game, game.CurrentState(), req.MoveType, req.Candidates, proposer)
+	if err != nil {
+		r.Error(errors.New(err.Error()))
+		return
+	}
+
+	r.Success(gin.H{
+		"Results": results,
+	})
+}
+
 func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 
 	var result []*moveForm
@@ -2311,6 +2402,7 @@ func (s *Server) Start() {
 			protectedGameAPIGroup.Use(s.requireLoggedIn)
 			protectedGameAPIGroup.POST("move", s.moveHandler)
 			protectedGameAPIGroup.POST("movePreview", s.movePreviewHandler)
+			protectedGameAPIGroup.POST("movePreviewBatch", s.movePreviewBatchHandler)
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
 			protectedGameAPIGroup.POST("chat", s.chatSendHandler)

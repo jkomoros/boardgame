@@ -458,65 +458,80 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 
 	//TODO: should we use gin's Binding to do this instead?
 
+	if err := bindMoveFields(move, c.PostForm); err != nil {
+		return nil, err
+	}
+
+	return move, nil
+}
+
+// bindMoveFields binds a move's form fields from get (fieldName -> raw string
+// value) via the move's ReadSetter. It is the shared arg-binding used by
+// getMoveFromForm (form-encoded args from the move endpoint) and the batch
+// preview handler (per-candidate JSON args). get returns "" for an absent
+// field (an int/enum/PlayerIndex field with no value is an error, matching the
+// move endpoint's behavior). It only sets the move's fields — never applies or
+// reads legality.
+func bindMoveFields(move boardgame.Move, get func(name string) string) error {
 	for _, field := range formFields(move) {
 
-		rawVal := c.PostForm(field.Name)
+		rawVal := get(field.Name)
 
 		switch field.Type {
 		case boardgame.TypeInt:
 			if rawVal == "" {
-				return nil, errors.New(fmt.Sprint("An int field had no value", field.Name))
+				return errors.New(fmt.Sprint("An int field had no value", field.Name))
 			}
 			num, err := strconv.Atoi(rawVal)
 			if err != nil {
-				return nil, errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
+				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
 			if err := move.ReadSetter().SetIntProp(field.Name, num); err != nil {
-				return nil, errors.New("Couldn't set int prop " + field.Name + " " + err.Error())
+				return errors.New("Couldn't set int prop " + field.Name + " " + err.Error())
 			}
 		case boardgame.TypePlayerIndex:
 			if rawVal == "" {
-				return nil, errors.New("An int field had no value " + field.Name)
+				return errors.New("An int field had no value " + field.Name)
 			}
 			num, err := strconv.Atoi(rawVal)
 			if err != nil {
-				return nil, errors.New("Couldn't set field " + field.Name + " " + err.Error())
+				return errors.New("Couldn't set field " + field.Name + " " + err.Error())
 			}
 			if err := move.ReadSetter().SetPlayerIndexProp(field.Name, boardgame.PlayerIndex(num)); err != nil {
-				return nil, errors.New("Couldn't set int prop " + field.Name + " " + err.Error())
+				return errors.New("Couldn't set int prop " + field.Name + " " + err.Error())
 			}
 		case boardgame.TypeBool:
 			if rawVal == "" {
 				if err := move.ReadSetter().SetBoolProp(field.Name, false); err != nil {
-					return nil, errors.New("Couldn't set bool prop with default: " + field.Name + " " + err.Error())
+					return errors.New("Couldn't set bool prop with default: " + field.Name + " " + err.Error())
 				}
 				continue
 			}
 			num, err := strconv.Atoi(rawVal)
 			if err != nil {
-				return nil, errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
+				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
 			val := false
 			if num == 1 {
 				val = true
 			}
 			if err := move.ReadSetter().SetBoolProp(field.Name, val); err != nil {
-				return nil, errors.New("Couldnt set bool prop " + field.Name + ": " + err.Error())
+				return errors.New("Couldnt set bool prop " + field.Name + ": " + err.Error())
 			}
 		case boardgame.TypeEnum:
 			eVar, err := move.ReadSetter().EnumProp(field.Name)
 			if err != nil {
-				return nil, errors.New("Invalid field name: " + err.Error())
+				return errors.New("Invalid field name: " + err.Error())
 			}
 			//SetStringValue will also try converting to an int.
 
 			if err := eVar.SetStringValue(rawVal); err != nil {
-				return nil, errors.New("Couldn't set field value: " + err.Error())
+				return errors.New("Couldn't set field value: " + err.Error())
 			}
 		case boardgame.TypeIllegal:
-			return nil, errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
+			return errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
 		}
 	}
 
-	return move, nil
+	return nil
 }
