@@ -275,6 +275,7 @@ func propEqualsFamilyConstructor(name, defaultTemplate string, negate bool) *Pre
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostTrivial,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"value", "want"}},
 				Evaluate: func(ctx Context) Verdict {
 					val, propType, err := ctx.ResolvePath(PropPath(path))
 					if err != nil {
@@ -372,6 +373,7 @@ func propAtLeastConstructor() *PredicateConstructor {
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"value", "min"}},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveIntPath(path, ctx)
 					if err != nil {
@@ -420,6 +422,7 @@ func propCompareConstructor() *PredicateConstructor {
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"value", "op", "n"}},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveIntPath(path, ctx)
 					if err != nil {
@@ -488,6 +491,7 @@ func playerBoolConstructor() *PredicateConstructor {
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostTrivial,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"prop", "want"}},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveBoolPath(path, ctx)
 					if err != nil {

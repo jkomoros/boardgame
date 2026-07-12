@@ -6,6 +6,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/legal"
+	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/workfit/tester/assert"
 )
 
@@ -657,4 +658,109 @@ func TestValidSuppressionBootsAndSuppresses(t *testing.T) {
 	assert.For(t, "move").ThatActual(move).IsNotNil()
 	// Legal despite the wrong phase: the inPhase atom was suppressed.
 	assert.For(t, "phase check suppressed").ThatActual(move.Legal(game.CurrentState(), 0)).IsNil()
+}
+
+// --- Footgun-batch F4: template placeholder / emitted-binding boot checks ---
+
+// legalBindingTestDelegate embeds the standard moves-test delegate and adds
+// the optional legal.TemplateConfigurer surface, so the F4 boot tests below
+// can register game templates whose bodies reference placeholders and prove
+// the boot gauntlet validates those placeholders against the owning
+// predicate's declared emitted bindings.
+type legalBindingTestDelegate struct {
+	gameDelegate
+	templates map[string]string
+}
+
+func (d *legalBindingTestDelegate) ConfigureLegalTemplates() map[string]string {
+	return d.templates
+}
+
+// TestBootValidatesTemplatePlaceholdersAgainstEmittedBindings (footgun-batch
+// F4): a WithMessage retarget pointing a catalog predicate at a game
+// template whose body references a placeholder the predicate never emits is
+// a boot error naming the move, the template key, and the missing binding —
+// today that placeholder would render as its own bare name mid-game
+// ("you need frobs more"), silently garbled. Templates whose placeholders
+// are all genuinely emitted must keep booting.
+func TestBootValidatesTemplatePlaceholdersAgainstEmittedBindings(t *testing.T) {
+	newManagerWithTemplates := func(moveName string, templates map[string]string, specs ...legal.Spec) (*boardgame.GameManager, error) {
+		installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+			auto := NewAutoConfigurer(manager.Delegate())
+			return Add(
+				auto.MustConfig(
+					new(moveDeclarativeOptIn),
+					WithMoveName(moveName),
+					WithPreconditions(specs...),
+				),
+			)
+		}
+		return boardgame.NewGameManager(&legalBindingTestDelegate{
+			gameDelegate{moveInstaller: installer},
+			templates,
+		}, memory.NewStorageManager())
+	}
+
+	t.Run("placeholder the predicate never emits is a boot error naming move, key, and binding", func(t *testing.T) {
+		_, err := newManagerWithTemplates(
+			"Binding Validated Move",
+			map[string]string{"test.bad_binding": "you need {frobs} more"},
+			legal.PropAtLeast("game.Counter", 1000).WithMessage("test.bad_binding"),
+		)
+		assert.For(t, "boot error").ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"Binding Validated Move", "test.bad_binding", "frobs"} {
+			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
+		}
+	})
+
+	t.Run("placeholders the predicate does emit boot cleanly", func(t *testing.T) {
+		_, err := newManagerWithTemplates(
+			"Binding Valid Move",
+			map[string]string{"test.good_binding": "have {value}, need at least {min}"},
+			legal.PropAtLeast("game.Counter", 1000).WithMessage("test.good_binding"),
+		)
+		assert.For(t, "boots").ThatActual(err).IsNil()
+	})
+
+	t.Run("any-compositor WithMessage retarget with a placeholder is a boot error", func(t *testing.T) {
+		// The "any" compositor never attaches bindings to its Fail/Unknown
+		// Message, so ANY placeholder in a retargeted template body is
+		// unrenderable and must be rejected at boot.
+		_, err := newManagerWithTemplates(
+			"Any Binding Move",
+			map[string]string{"test.any_bad": "none of it worked: {detail}"},
+			legal.Any(
+				legal.PropAtLeast("game.Counter", 1000),
+				legal.StackNotEmpty("game.DrawStack"),
+			).WithMessage("test.any_bad"),
+		)
+		assert.For(t, "boot error").ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"Any Binding Move", "test.any_bad", "detail"} {
+			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
+		}
+	})
+
+	t.Run("overriding a catalog DEFAULT template's body with an unemitted placeholder is a boot error", func(t *testing.T) {
+		// ConfigureLegalTemplates overrides of a catalog default key are
+		// validated too: the resolved body is what renders, wherever it came
+		// from.
+		_, err := newManagerWithTemplates(
+			"Default Override Move",
+			map[string]string{legal.TemplatePropAtLeast: "you need {frobs} more"},
+			legal.PropAtLeast("game.Counter", 1000),
+		)
+		assert.For(t, "boot error").ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"Default Override Move", legal.TemplatePropAtLeast, "frobs"} {
+			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
+		}
+	})
 }

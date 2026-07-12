@@ -62,6 +62,29 @@ type LegalPredicate struct {
 	// defaults alike. Empty/nil is allowed (an opaque escape-hatch wrapper,
 	// or a predicate that never fails with a template, declares none).
 	EmittedTemplates []string
+	// EmittedBindings maps each template key in EmittedTemplates to the set
+	// of binding names Evaluate is GUARANTEED to attach whenever it emits a
+	// Message with that key (footgun-batch F4). Boot-time validation
+	// (validateLegalEmittedBindings) extracts the {placeholders} from each
+	// key's resolved template body — including WithMessage retargets and
+	// ConfigureLegalTemplates body overrides — and requires them to be a
+	// subset of that key's entry here, so a template referencing a binding
+	// its predicate never emits fails at NewGameManager (naming the owning
+	// move, the key, and the missing binding) rather than rendering the bare
+	// placeholder name mid-game. A key whose Evaluate emission carries no
+	// bindings maps to nil/empty. When two distinct emission branches are
+	// collapsed onto ONE key by a Spec.Message override (e.g. mayMoveTo's
+	// no-component and may-not-move branches), the entry must be the
+	// INTERSECTION of the branches' binding sets — only a binding present on
+	// every emission with that key is guaranteed renderable. Like
+	// EmittedTemplates, this is server-side construction metadata, never
+	// serialized (LegalPredicate has no wire form; LegalSpec is the wire
+	// shape). A nil map means "no metadata declared": validation is skipped
+	// for the whole predicate. Every catalog constructor populates it;
+	// game-registered constructors are strongly encouraged to (see
+	// legal/doc.go's game-registered predicates section) but a nil map stays
+	// legal so existing registrations keep booting.
+	EmittedBindings map[string][]string
 	// Sub holds child predicates; only set for compositors ("any" in v1).
 	Sub []*LegalPredicate
 	// opaque marks an escape-hatch wrapper predicate (e.g. LegalCustom) that
@@ -295,6 +318,10 @@ func resolveLegalAnySpec(spec LegalSpec, resolve func(LegalSpec) (*LegalPredicat
 		Cost:             maxLegalCost(subs),
 		Sub:              subs,
 		EmittedTemplates: []string{template},
+		// The compositor's own Fail/Unknown Message never carries bindings
+		// (evalLegalAnyKleene), so its template body — default or
+		// WithMessage retarget — may not reference any placeholder.
+		EmittedBindings: map[string][]string{template: nil},
 		Evaluate: func(ctx LegalContext) LegalVerdict {
 			return evalLegalAnyKleene(subs, ctx, template)
 		},

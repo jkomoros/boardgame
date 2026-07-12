@@ -124,6 +124,7 @@ func inProgressionConstructor() *legal.PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostModerate,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"detail"}},
 				Evaluate: func(ctx legal.Context) legal.Verdict {
 					if ctx.State == nil {
 						return legal.UnknownVerdict("moves: inProgression: state was nil")

@@ -139,6 +139,14 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 				},
 				Cost:             boardgame.LegalCostTrivial,
 				EmittedTemplates: []string{template},
+				// Recommended (not required) game-registered metadata: the
+				// FailT below attaches no bindings, so the template body —
+				// default or WithMessage retarget — may not reference any
+				// {placeholder}; declaring that here gets the mismatch
+				// caught at boot instead of rendering a bare placeholder
+				// name mid-game (see legal/doc.go's game-registered
+				// predicates section).
+				EmittedBindings: map[string][]string{template: nil},
 				Evaluate: func(ctx legal.Context) legal.Verdict {
 					val, propType, err := ctx.ResolvePath(legal.PropPath(field))
 					if err != nil {

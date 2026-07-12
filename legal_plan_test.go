@@ -311,6 +311,98 @@ func TestValidateLegalEmittedTemplates(t *testing.T) {
 	})
 }
 
+// TestValidateLegalEmittedBindings covers footgun-batch F4's core validation
+// semantics directly (the end-to-end boot path is
+// moves.TestBootValidatesTemplatePlaceholdersAgainstEmittedBindings): a
+// declared-metadata predicate whose resolved template body references an
+// unemitted placeholder errors naming predicate, key, and placeholder; nil
+// metadata (a game-registered predicate predating the field) skips
+// validation entirely; a key missing from the table is
+// validateLegalEmittedTemplates's error to report, not this one's; and the
+// walk recurses into Sub trees.
+func TestValidateLegalEmittedBindings(t *testing.T) {
+	table := map[string]string{
+		"has.placeholder": "you need {frobs} more",
+		"all.bound":       "have {value}, need {min}",
+		"no.placeholder":  "just words",
+	}
+
+	t.Run("unemitted placeholder errors naming predicate, key, and placeholder", func(t *testing.T) {
+		preds := []*LegalPredicate{{
+			Name:             "badpred",
+			EmittedTemplates: []string{"has.placeholder"},
+			EmittedBindings:  map[string][]string{"has.placeholder": {"value", "min"}},
+		}}
+		err := validateLegalEmittedBindings(preds, table)
+		assert.For(t).ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		for _, want := range []string{"badpred", "has.placeholder", "frobs"} {
+			assert.For(t, want).ThatActual(strings.Contains(err.Error(), want)).Equals(true)
+		}
+	})
+
+	t.Run("fully-bound placeholders pass", func(t *testing.T) {
+		preds := []*LegalPredicate{{
+			Name:             "goodpred",
+			EmittedTemplates: []string{"all.bound"},
+			EmittedBindings:  map[string][]string{"all.bound": {"value", "min"}},
+		}}
+		assert.For(t).ThatActual(validateLegalEmittedBindings(preds, table)).IsNil()
+	})
+
+	t.Run("empty declared bindings pass against a placeholder-free body", func(t *testing.T) {
+		preds := []*LegalPredicate{{
+			Name:             "noBindings",
+			EmittedTemplates: []string{"no.placeholder"},
+			EmittedBindings:  map[string][]string{"no.placeholder": nil},
+		}}
+		assert.For(t).ThatActual(validateLegalEmittedBindings(preds, table)).IsNil()
+	})
+
+	t.Run("nil metadata skips validation entirely", func(t *testing.T) {
+		// Same shape as the failing case above, but EmittedBindings is nil:
+		// a game-registered predicate without metadata must keep booting.
+		preds := []*LegalPredicate{{
+			Name:             "legacyGamePred",
+			EmittedTemplates: []string{"has.placeholder"},
+		}}
+		assert.For(t).ThatActual(validateLegalEmittedBindings(preds, table)).IsNil()
+	})
+
+	t.Run("key missing from table is skipped (validateLegalEmittedTemplates reports it)", func(t *testing.T) {
+		preds := []*LegalPredicate{{
+			Name:             "missingKeyPred",
+			EmittedTemplates: []string{"not.in.table"},
+			EmittedBindings:  map[string][]string{"not.in.table": nil},
+		}}
+		assert.For(t).ThatActual(validateLegalEmittedBindings(preds, table)).IsNil()
+	})
+
+	t.Run("recurses into Sub tree", func(t *testing.T) {
+		preds := []*LegalPredicate{{
+			Name:             "any",
+			EmittedTemplates: []string{"no.placeholder"},
+			EmittedBindings:  map[string][]string{"no.placeholder": nil},
+			Sub: []*LegalPredicate{
+				{
+					Name:             "badchild",
+					EmittedTemplates: []string{"has.placeholder"},
+					EmittedBindings:  map[string][]string{"has.placeholder": nil},
+				},
+			},
+		}}
+		err := validateLegalEmittedBindings(preds, table)
+		assert.For(t).ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "badchild")).Equals(true)
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "frobs")).Equals(true)
+	})
+}
+
 func TestLegalProbeActive(t *testing.T) {
 	g := &GameManager{}
 

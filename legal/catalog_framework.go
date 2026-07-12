@@ -118,6 +118,7 @@ func inPhaseConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"detail"}},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: inPhase: state was nil")
@@ -160,6 +161,7 @@ func stackConstraintsConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostModerate,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"detail"}},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: stackConstraints: state was nil")

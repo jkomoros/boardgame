@@ -324,6 +324,7 @@ func allActivePlayersConstructor() *PredicateConstructor {
 				Reads:            reads,
 				Cost:             boardgame.LegalCostModerate,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: nil},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: allActivePlayers: state was nil")
@@ -424,6 +425,13 @@ func proposerIsCurrentPlayerConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{targetInvalidTemplate, notYourTurnTemplate},
+				// Both branches emit exactly {"detail"}, so a Spec.Message
+				// override collapsing the two keys onto one still guarantees
+				// "detail" (the intersection is the same set).
+				EmittedBindings: map[string][]string{
+					targetInvalidTemplate: {"detail"},
+					notYourTurnTemplate:   {"detail"},
+				},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: proposerIsCurrentPlayer: state was nil")

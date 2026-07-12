@@ -208,7 +208,16 @@ predicate-level default; see memory's
 `PropAtLeast(...).WithMessage("reveal.no_cards_left")` for a real example.
 RenderMessage never panics on a missing binding — it renders the raw
 placeholder name instead, so a template/binding mismatch is visibly wrong in
-output rather than crashing a request.
+output rather than crashing a request. For every catalog predicate (and any
+game-registered predicate declaring EmittedBindings metadata — see below),
+that mismatch cannot survive to runtime at all: NewGameManager also
+validates each resolved template BODY, requiring its {placeholders} to be a
+subset of the bindings the owning predicate declares it emits with that key.
+This covers a WithMessage retarget at a game template AND a
+ConfigureLegalTemplates body override of a catalog default — e.g. pointing
+PropAtLeast at a body referencing {frobs} is a boot error naming the move,
+the template key, and the unemitted placeholder (each catalog predicate's
+bindings per key are documented on its Template* constant).
 
 # Game-registered predicates
 
@@ -235,10 +244,22 @@ LegalCustom residue. A game-registered predicate's declared Reads is honored
 by convention — there is no framework-level verification that a
 game-supplied Evaluate func only touches what it declares; keep Reads
 conservative (over-approximate rather than under-approximate) so client
-evaluability calculations (see below) stay honest. A game-registered
-predicate degrades gracefully on a client with no TypeScript implementation
-of it: its ledger entry reports evaluable:false and the server remains the
-source of truth, exactly like CustomLegaler.
+evaluability calculations (see below) stay honest. Alongside
+EmittedTemplates (the keys your Evaluate can FailT with, boot-validated
+against the game's template table), a game-registered predicate SHOULD also
+populate EmittedBindings: a map from each emitted template key to the
+binding names Evaluate is guaranteed to attach with it (nil/empty for a
+bindings-free emission). With that metadata declared, NewGameManager
+validates each key's resolved template body's {placeholders} against it —
+the same placeholder/binding boot check every catalog predicate gets (see
+"Template tables" above), and checkers' spaceIsBlack demonstrates the
+pattern. The metadata is optional for backward compatibility: a predicate
+with a nil EmittedBindings map skips this validation entirely, and a
+template/binding mismatch then only shows up as a bare placeholder name in
+rendered output. A game-registered predicate degrades gracefully on a
+client with no TypeScript implementation of it: its ledger entry reports
+evaluable:false and the server remains the source of truth, exactly like
+CustomLegaler.
 
 # What client evaluation gets, today
 

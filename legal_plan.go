@@ -478,6 +478,16 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		if err := validateLegalEmittedTemplates(predicates, templateTable); err != nil {
 			return fmt.Errorf("move %q: %w", mType.Name(), err)
 		}
+		// Footgun-batch F4: with every emitted key known to resolve, also
+		// check that each resolved template BODY's {placeholders} are a
+		// subset of the bindings its predicate declares it emits with that
+		// key — covering WithMessage retargets and ConfigureLegalTemplates
+		// body overrides alike. Predicates without EmittedBindings metadata
+		// (game-registered ones predating the field) are skipped; see
+		// validateLegalEmittedBindings.
+		if err := validateLegalEmittedBindings(predicates, templateTable); err != nil {
+			return fmt.Errorf("move %q: %w", mType.Name(), err)
+		}
 
 		plan := buildLegalPlanFromPredicates(mType.Name(), predicates, specs, move)
 		if g.legalPlans == nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // legalAnyFailedTemplate is the default Fail template key the "any"
@@ -23,6 +24,30 @@ const legalAnyFailedTemplate = "legal.any_failed"
 // legalPlaceholderPattern matches a "{name}" placeholder in a template body:
 // name is one or more letters, digits, or underscores.
 var legalPlaceholderPattern = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
+
+// LegalTemplatePlaceholders returns the distinct placeholder names a
+// template body references (the "{name}" occurrences RenderLegalMessage
+// would substitute), de-duplicated, in first-appearance order. This is the
+// exact same pattern RenderLegalMessage substitutes against, exported so
+// package legal's catalog metadata tests (and a game sanity-checking its own
+// templates against the bindings its predicates emit) can extract
+// placeholders without maintaining a drift-prone copy of the pattern. Boot
+// validation (validateLegalEmittedBindings, below) uses it to check each
+// resolved template body's placeholders against the owning predicate's
+// EmittedBindings.
+func LegalTemplatePlaceholders(body string) []string {
+	var out []string
+	seen := make(map[string]bool)
+	for _, match := range legalPlaceholderPattern.FindAllStringSubmatch(body, -1) {
+		name := match[1]
+		if seen[name] {
+			continue
+		}
+		seen[name] = true
+		out = append(out, name)
+	}
+	return out
+}
 
 // RenderLegalMessage renders m into human-readable text: it looks up
 // m.Template in table to get the template body (falling back to the bare
@@ -181,6 +206,90 @@ func validateLegalEmittedTemplatesTree(pred *LegalPredicate, table map[string]st
 		}
 	}
 	return nil
+}
+
+// validateLegalEmittedBindings walks each predicate (and, recursively, its
+// Sub tree) and returns an error if any template key the predicate declares
+// EmittedBindings metadata for resolves (through table — the caller-merged
+// union of legal.DefaultTemplates() and the delegate's
+// legal.TemplateConfigurer table, same layering as
+// validateLegalEmittedTemplates) to a body referencing a {placeholder} that
+// is not among the bindings the predicate declares it emits with that key
+// (footgun-batch F4). Such a placeholder would render as its own bare name
+// mid-game — RenderLegalMessage deliberately never panics on a missing
+// binding — so the mismatch is caught at boot instead, whether it came from
+// a Spec.Message retarget (the constructor bakes the override into both
+// EmittedTemplates and EmittedBindings) or a ConfigureLegalTemplates body
+// override of a default key.
+//
+// Scope, deliberately conservative: a predicate whose EmittedBindings is nil
+// declares no metadata and is skipped entirely (game-registered predicates
+// predate this field and cannot be failed closed without breaking existing
+// registrations — metadata is recommended, not required; see legal/doc.go).
+// Within a metadata-carrying predicate, only keys with an EmittedBindings
+// entry are checked (iterated via EmittedTemplates, so the reported error is
+// deterministic); every catalog constructor covers all its emitted keys by
+// construction, since both fields are populated from the same effective-key
+// variables. A key absent from table is skipped here — that is
+// validateLegalEmittedTemplates's error to report, with its more specific
+// message. The boot call site wraps the returned error with the owning
+// MOVE's name (this function, like the rest of core's legal plumbing, does
+// not know it).
+func validateLegalEmittedBindings(predicates []*LegalPredicate, table map[string]string) error {
+	for _, pred := range predicates {
+		if err := validateLegalEmittedBindingsTree(pred, table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateLegalEmittedBindingsTree(pred *LegalPredicate, table map[string]string) error {
+	if pred == nil {
+		return nil
+	}
+	if pred.EmittedBindings != nil {
+		for _, key := range pred.EmittedTemplates {
+			bindings, ok := pred.EmittedBindings[key]
+			if !ok {
+				continue
+			}
+			body, ok := table[key]
+			if !ok {
+				// validateLegalEmittedTemplates reports missing keys.
+				continue
+			}
+			emitted := make(map[string]bool, len(bindings))
+			for _, b := range bindings {
+				emitted[b] = true
+			}
+			for _, placeholder := range LegalTemplatePlaceholders(body) {
+				if !emitted[placeholder] {
+					return fmt.Errorf("boardgame: predicate %q emits template key %q whose body (%q) references placeholder {%s}, but the predicate never emits a binding named %q with that key (it emits: %s) — the placeholder would render as its bare name mid-game; fix the template body or point the spec at a template whose placeholders the predicate can fill", pred.Name, key, body, placeholder, placeholder, legalFormatBindingNames(bindings))
+				}
+			}
+		}
+	}
+	for _, sub := range pred.Sub {
+		if err := validateLegalEmittedBindingsTree(sub, table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// legalFormatBindingNames renders a declared-bindings list for
+// validateLegalEmittedBindingsTree's error message: quoted and
+// comma-separated, or an explicit "no bindings at all" for an empty set.
+func legalFormatBindingNames(bindings []string) string {
+	if len(bindings) == 0 {
+		return "no bindings at all"
+	}
+	quoted := make([]string, len(bindings))
+	for i, b := range bindings {
+		quoted[i] = fmt.Sprintf("%q", b)
+	}
+	return strings.Join(quoted, ", ")
 }
 
 // validateLegalTemplates is the boot-time template-key validation contract,

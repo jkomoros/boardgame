@@ -262,3 +262,33 @@ func TestValidateLegalTemplatesLengthMismatch(t *testing.T) {
 func intPtr(i int) *int          { return &i }
 func stringPtr(s string) *string { return &s }
 func boolPtr(b bool) *bool       { return &b }
+
+// TestLegalTemplatePlaceholders pins the exported placeholder extractor
+// (footgun-batch F4): distinct names, first-appearance order, matching
+// exactly the {name} pattern RenderLegalMessage substitutes.
+func TestLegalTemplatePlaceholders(t *testing.T) {
+	tests := []struct {
+		body string
+		want []string
+	}{
+		{"no placeholders here", nil},
+		{"", nil},
+		{"one {value}", []string{"value"}},
+		{"{value} then {min} then {value} again", []string{"value", "min"}},
+		{"underscores and digits: {some_name_2}", []string{"some_name_2"}},
+		{"not a placeholder: {with space} {with-dash} {}", nil},
+	}
+	for _, tc := range tests {
+		got := LegalTemplatePlaceholders(tc.body)
+		if len(got) != len(tc.want) {
+			t.Errorf("LegalTemplatePlaceholders(%q) = %v, want %v", tc.body, got, tc.want)
+			continue
+		}
+		for i := range got {
+			if got[i] != tc.want[i] {
+				t.Errorf("LegalTemplatePlaceholders(%q) = %v, want %v", tc.body, got, tc.want)
+				break
+			}
+		}
+	}
+}

@@ -169,6 +169,7 @@ func componentPresentAtConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"index"}},
 				Evaluate: func(ctx Context) Verdict {
 					idx, err := resolveIntPath(idxField, ctx)
 					if err != nil {
@@ -221,6 +222,7 @@ func componentAbsentAtConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"index"}},
 				Evaluate: func(ctx Context) Verdict {
 					idx, err := resolveIntPath(idxField, ctx)
 					if err != nil {
@@ -271,6 +273,7 @@ func componentPresentAtKeyConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"key"}},
 				Evaluate: func(ctx Context) Verdict {
 					key, err := resolveEnumPath(keyField, ctx)
 					if err != nil {
@@ -358,6 +361,19 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 				mayNotMoveTemplate = TemplateMayNotMoveTo
 			}
 
+			// The two branches emit DIFFERENT bindings ({index} vs {detail}).
+			// When a Spec.Message override collapses both onto one key, the
+			// guaranteed set for that key is the branches' INTERSECTION —
+			// empty — so an overriding template may not reference any
+			// placeholder (see boardgame.LegalPredicate.EmittedBindings).
+			emittedBindings := map[string][]string{
+				noComponentTemplate: {"index"},
+				mayNotMoveTemplate:  {"detail"},
+			}
+			if noComponentTemplate == mayNotMoveTemplate {
+				emittedBindings = map[string][]string{noComponentTemplate: nil}
+			}
+
 			return &Predicate{
 				Name: name,
 				Args: spec.Args,
@@ -368,6 +384,7 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostModerate,
 				EmittedTemplates: []string{noComponentTemplate, mayNotMoveTemplate},
+				EmittedBindings:  emittedBindings,
 				Evaluate: func(ctx Context) Verdict {
 					idx, err := resolveIntPath(idxField, ctx)
 					if err != nil {

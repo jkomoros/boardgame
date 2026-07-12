@@ -95,6 +95,13 @@ func revealableCardAtConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{noCardTemplate, alreadyRevealedTemplate},
+				// Neither branch emits any bindings, so this stays correct
+				// (still the empty intersection) when a Spec.Message override
+				// collapses both keys onto one.
+				EmittedBindings: map[string][]string{
+					noCardTemplate:          nil,
+					alreadyRevealedTemplate: nil,
+				},
 				Evaluate: func(ctx Context) Verdict {
 					idx, err := resolveIntPath(idxField, ctx)
 					if err != nil {
@@ -163,6 +170,7 @@ func componentPropEqualsCurrentPlayerConstructor() *PredicateConstructor {
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"prop"}},
 				Evaluate: func(ctx Context) Verdict {
 					key, err := resolveEnumPath(keyField, ctx)
 					if err != nil {

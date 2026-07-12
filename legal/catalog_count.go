@@ -75,6 +75,7 @@ func stackCountConstructor() *PredicateConstructor {
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetCount}},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
+				EmittedBindings:  map[string][]string{template: {"count", "op", "n"}},
 				Evaluate: func(ctx Context) Verdict {
 					stack, err := resolveStackPath(path, ctx)
 					if err != nil {
@@ -121,6 +122,7 @@ func stackEmptinessConstructor(name string, template string, wantEmpty bool) *Pr
 				Reads:            []Read{{Path: PropPath(path), Facet: FacetNonEmpty}},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{msgTemplate},
+				EmittedBindings:  map[string][]string{msgTemplate: nil},
 				Evaluate: func(ctx Context) Verdict {
 					stack, err := resolveStackPath(path, ctx)
 					if err != nil {
