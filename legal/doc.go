@@ -133,22 +133,43 @@ would orphan both the declared plan and the residue.
 
 WithoutPrecondition(name string) suppresses one *contributed* check by its
 stable name (moves.Default/CurrentPlayer's own, never a game-authored one):
-"inPhase", "inProgression", "stackConstraints", "proposerIsCurrentPlayer".
-Use it when a move needs to opt out of something it would otherwise inherit
-— the moves.ForceFinishTurn "inherit nothing" pattern, now expressible
-without its own bespoke base type. It does not remove an authored
-WithPreconditions spec; those are simply not passed in the first place if
-you don't want them.
+pass the exported constants moves.PreconditionInPhase,
+moves.PreconditionInProgression, moves.PreconditionStackConstraints, or
+moves.PreconditionProposerIsCurrentPlayer rather than raw strings. Use it
+when a move needs to opt out of something it would otherwise inherit — the
+moves.ForceFinishTurn "inherit nothing" pattern, now expressible without
+its own bespoke base type. It does not remove an authored WithPreconditions
+spec; those are simply not passed in the first place if you don't want
+them.
 
-"proposerIsCurrentPlayer" is suppressible ONLY on a moves.Default-embedding
-move (where it does nothing anyway, since Default never contributes it in
-the first place — the entry is symmetry, not function). On a
-moves.CurrentPlayer-embedding move it is a boot error: CurrentPlayer.Legal()
-runs its proposer-equivalence check imperatively, unconditionally, after its
-super-call into Default.Legal, so suppressing the contributed atom would
-silently desync the plan/ledger (which would then say "legal") from Legal()
-itself (which still rejects a wrong proposer). If a CurrentPlayer-based move
-genuinely needs no proposer check, embed moves.Default instead.
+Suppression depends on the opt-in: WithoutPrecondition only edits the
+declarative plan, and only a move with at least one authored
+WithPreconditions spec HAS a plan. NewGameManager's boot gauntlet enforces
+this, so a suppression can never silently do nothing. Three boot errors,
+each naming the offending move:
+
+  - An unmatched name: the suppression names no spec the move actually
+    contributes. This covers both a typo ("inphase" — pass the constants
+    and typos become compile errors instead) and suppressing a check the
+    move never had (moves.PreconditionInProgression on a move with no
+    configured move progression, or
+    moves.PreconditionProposerIsCurrentPlayer on a moves.Default-embedding
+    move, which never contributes that atom). The error lists the move's
+    real contributed spec names.
+
+  - Suppression without opt-in: WithoutPrecondition on a move with no
+    authored WithPreconditions specs. The move is not opted in, no plan
+    exists, and the frozen imperative chain keeps enforcing the very check
+    the suppression names — dead config masquerading as an opt-out.
+
+  - moves.PreconditionProposerIsCurrentPlayer on a
+    moves.CurrentPlayer-embedding move: CurrentPlayer.Legal() runs its
+    proposer-equivalence check imperatively, unconditionally, after its
+    super-call into Default.Legal, so suppressing the contributed atom
+    would silently desync the plan/ledger (which would then say "legal")
+    from Legal() itself (which still rejects a wrong proposer). If a
+    CurrentPlayer-based move genuinely needs no proposer check, embed
+    moves.Default instead.
 
 A `Legal()` override that super-calls into the frozen chain (the existing,
 universal embedding pattern — `if err := m.CurrentPlayer.Legal(...); err !=

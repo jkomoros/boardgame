@@ -198,11 +198,15 @@ into a plan at NewGameManager (base-derived checks — phase, move-progression,
 stack constraints, and for CurrentPlayer the proposer check — first, then the
 authored WithPreconditions specs in order); Default.Legal() then evaluates
 that plan instead of running the old chain. [WithoutPrecondition] suppresses
-one of those base-derived checks by its stable name ("inPhase",
-"inProgression", "stackConstraints", "proposerIsCurrentPlayer") for a move
-that wants to opt out of something it would otherwise inherit — the
+one of those base-derived checks by its stable name (pass the exported
+constants: [PreconditionInPhase], [PreconditionInProgression],
+[PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer]) for a
+move that wants to opt out of something it would otherwise inherit — the
 [ForceFinishTurn] "inherit nothing" pattern, now expressible without a
-bespoke base type. For legality that isn't a simple relation over a property
+bespoke base type. Suppressions are boot-validated: a name the move doesn't
+actually contribute, or a WithoutPrecondition call on a move that never
+opted in via WithPreconditions, is a NewGameManager error naming the move
+(see [WithoutPrecondition]'s own doc). For legality that isn't a simple relation over a property
 path — arithmetic, graph walks, anything with real Go logic —
 [boardgame.CustomLegaler]'s LegalCustom method runs as imperative residue
 after every declared precondition passes; see the [legal] package doc for the

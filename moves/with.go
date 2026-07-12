@@ -278,14 +278,26 @@ func WithPreconditions(specs ...legal.Spec) CustomConfigurationOption {
 
 // WithoutPrecondition returns a function configuration option suitable for
 // being passed to auto.Config. It suppresses one CONTRIBUTED precondition
-// (one of the framework's own stable names: "inPhase", "inProgression",
-// "stackConstraints", "proposerIsCurrentPlayer" — design spec §2) by name,
-// for a move type that wants to opt out of an inherited check entirely (the
+// (one of the framework's own stable names — pass the exported constants
+// [PreconditionInPhase], [PreconditionInProgression],
+// [PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer]
+// rather than raw strings — design spec §2) by name, for a move type that
+// wants to opt out of an inherited check entirely (the
 // moves.ForceFinishTurn "inherit nothing" pattern, now expressible
 // declaratively). Suppression names accumulate across multiple calls, like
 // WithPreconditions accumulates specs. It does not remove an AUTHORED spec
 // passed via WithPreconditions; those are simply not passed in the first
 // place.
+//
+// Suppressions are validated by NewGameManager's boot gauntlet, so a
+// WithoutPrecondition call can never silently do nothing: a name that
+// matches no spec the move actually contributes (a typo, or a check the
+// move never had — e.g. PreconditionInProgression on a move with no move
+// progression) is a boot error listing the move's real contributed names,
+// and WithoutPrecondition on a move that never opts in via
+// WithPreconditions is a boot error too (without the opt-in there is no
+// plan to edit, and the frozen imperative chain would keep enforcing the
+// "suppressed" check).
 func WithoutPrecondition(name string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		previous, _ := config[configPropSuppressedPreconditions].([]string)

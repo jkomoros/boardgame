@@ -394,7 +394,7 @@ type moveCurrentPlayerSuppressedProposer struct {
 func (m *moveCurrentPlayerSuppressedProposer) Apply(state boardgame.State) error { return nil }
 
 // TestCurrentPlayerSuppressedProposerIsBootError (final review finding):
-// WithoutPrecondition("proposerIsCurrentPlayer") on a move embedding
+// WithoutPrecondition(PreconditionProposerIsCurrentPlayer) on a move embedding
 // CurrentPlayer would remove the contributed proposer atom from the plan
 // (so the ledger/client would report the move legal for any proposer) while
 // CurrentPlayer.Legal's imperative proposer-equivalence check keeps running
@@ -409,7 +409,7 @@ func TestCurrentPlayerSuppressedProposerIsBootError(t *testing.T) {
 				new(moveCurrentPlayerSuppressedProposer),
 				WithMoveName("Current Player Suppressed Proposer"),
 				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition("proposerIsCurrentPlayer"),
+				WithoutPrecondition(PreconditionProposerIsCurrentPlayer),
 			),
 		)
 	}
@@ -425,7 +425,7 @@ func TestCurrentPlayerSuppressedProposerIsBootError(t *testing.T) {
 
 // TestDefaultSuppressedProposerIsBootError (contrast case, updated by the
 // footgun batch's F2 suppression validation): the identical
-// WithoutPrecondition("proposerIsCurrentPlayer") call on a
+// WithoutPrecondition(PreconditionProposerIsCurrentPlayer) call on a
 // moves.Default-embedding move used to boot cleanly as a silent no-op —
 // Default never contributes that atom, so the suppression matched nothing
 // and was dropped at plan assembly. Under F2 an unmatched suppression name
@@ -444,7 +444,7 @@ func TestDefaultSuppressedProposerIsBootError(t *testing.T) {
 				new(moveDeclarativeOptIn),
 				WithMoveName("Default Suppressed Proposer"),
 				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition("proposerIsCurrentPlayer"),
+				WithoutPrecondition(PreconditionProposerIsCurrentPlayer),
 			),
 		)
 	}
@@ -583,7 +583,7 @@ func TestSuppressionNotContributedIsBootError(t *testing.T) {
 				WithMoveName("Suppression Not Contributed"),
 				WithLegalPhases(phaseSetUp),
 				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition("inProgression"),
+				WithoutPrecondition(PreconditionInProgression),
 			),
 		)
 	}
@@ -611,7 +611,7 @@ func TestSuppressionWithoutOptInIsBootError(t *testing.T) {
 				WithLegalPhases(phaseSetUp),
 				// NO WithPreconditions: not opted in, so this suppression
 				// could never take effect.
-				WithoutPrecondition("inPhase"),
+				WithoutPrecondition(PreconditionInPhase),
 			),
 		)
 	}
@@ -640,7 +640,7 @@ func TestValidSuppressionBootsAndSuppresses(t *testing.T) {
 				// the contributed inPhase atom survived, Legal() would fail.
 				WithLegalPhases(phaseDrawAgain),
 				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition("inPhase"),
+				WithoutPrecondition(PreconditionInPhase),
 			),
 		)
 	}

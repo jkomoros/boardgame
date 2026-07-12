@@ -74,21 +74,32 @@ func TestTutorialSnippetWithoutPrecondition(t *testing.T) {
 	// not register or mutate anything on the live manager. This exercises
 	// exactly the syntax the tutorial teaches: WithPreconditions to opt in,
 	// WithoutPrecondition to suppress an inherited contributed check by its
-	// stable name.
+	// stable name (the moves.Precondition* constants).
+	//
+	// The WithLegalPhases call matters (footgun-batch F2): boot validates
+	// every suppression against the move's ACTUAL contributed spec names, so
+	// suppressing "inPhase" on a move that never contributes an inPhase
+	// check (no WithLegalPhases, no AddForPhase) is a boot error, as is any
+	// misspelled name. In a real game the phase config usually arrives via
+	// moves.AddForPhase/AddOrderedForPhase rather than an explicit
+	// WithLegalPhases; memory has no phase enum, so a literal stands in
+	// here — this config is never installed, only Config()'d.
 	//
 	// Deliberately a moves.FixUp / moves.Default-family embed: suppressing
-	// "proposerIsCurrentPlayer" on a moves.CurrentPlayer-embedding move is a
-	// BOOT ERROR (the imperative proposer check in CurrentPlayer.Legal would
-	// still run, desyncing the client ledger from actual legality — see
-	// legal/doc.go's WithoutPrecondition section). Suppress only checks the
-	// plan actually controls; on a CurrentPlayer move, embed moves.Default
-	// instead if you truly need proposer-free semantics.
+	// moves.PreconditionProposerIsCurrentPlayer on a
+	// moves.CurrentPlayer-embedding move is a BOOT ERROR (the imperative
+	// proposer check in CurrentPlayer.Legal would still run, desyncing the
+	// client ledger from actual legality — see legal/doc.go's
+	// WithoutPrecondition section). Suppress only checks the plan actually
+	// controls; on a CurrentPlayer move, embed moves.Default instead if you
+	// truly need proposer-free semantics.
 	_, err = auto.Config(
 		new(moveCaptureCards),
+		moves.WithLegalPhases(1),
 		moves.WithPreconditions(
 			legal.StackNotEmpty("game.VisibleCards"),
 		),
-		moves.WithoutPrecondition("inPhase"),
+		moves.WithoutPrecondition(moves.PreconditionInPhase),
 	)
 	if err != nil {
 		t.Fatalf("tutorial_snippets: WithoutPrecondition example failed to Config: %v", err)

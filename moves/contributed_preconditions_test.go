@@ -224,8 +224,8 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 			WithPreconditions(
 				legal.PropCompare("player.Counter", ">=", 0),
 			),
-			WithoutPrecondition("inPhase"),
-			WithoutPrecondition("stackConstraints"),
+			WithoutPrecondition(PreconditionInPhase),
+			WithoutPrecondition(PreconditionStackConstraints),
 		),
 		auto.MustConfig(
 			new(moveNoDeclaredPreconditions),

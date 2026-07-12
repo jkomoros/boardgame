@@ -787,7 +787,7 @@ func (m *moveMoveToken) LegalCustom(state boardgame.ImmutableState, proposer boa
 
 `legal.Errorf(templateKey, bindings)` returns an `error` that carries a structured, template-rendered message, exactly like a declarative Fail — use it instead of `errors.New` inside `LegalCustom` when you want the same explainability the catalog gets for free. A plain `errors.New` still works; it's wrapped as a one-off template. A move implementing `LegalCustom` must have opted in via `WithPreconditions` first (an empty `WithPreconditions()` call doesn't count — "declaring is implementing" means at least one real spec); `LegalCustom` on a move that also wholesale-overrides `Legal()` is a boot error, since the override would orphan it.
 
-**`WithoutPrecondition(name string)`** suppresses one *contributed* check by its stable name — `"inPhase"`, `"inProgression"`, `"stackConstraints"`, or `"proposerIsCurrentPlayer"` — for a move that wants to opt out of something it would otherwise inherit (the `moves.ForceFinishTurn` "inherit nothing" pattern, now expressible declaratively instead of needing its own base type):
+**`WithoutPrecondition(name string)`** suppresses one *contributed* check by its stable name — pass one of the exported constants `moves.PreconditionInPhase`, `moves.PreconditionInProgression`, `moves.PreconditionStackConstraints`, or `moves.PreconditionProposerIsCurrentPlayer` — for a move that wants to opt out of something it would otherwise inherit (the `moves.ForceFinishTurn` "inherit nothing" pattern, now expressible declaratively instead of needing its own base type):
 
 ```go
 // synthetic example, compile-checked in
@@ -795,14 +795,19 @@ func (m *moveMoveToken) LegalCustom(state boardgame.ImmutableState, proposer boa
 // TestTutorialSnippetWithoutPrecondition
 auto.Config(
     new(moveCaptureCards), // embeds moves.FixUp
+    moves.WithLegalPhases(phaseNormalPlay), // usually via moves.AddForPhase
     moves.WithPreconditions(
         legal.StackNotEmpty("game.VisibleCards"),
     ),
-    moves.WithoutPrecondition("inPhase"), // legal in ANY phase
+    moves.WithoutPrecondition(moves.PreconditionInPhase), // legal in ANY phase
 )
 ```
 
-One name has a guard rail: suppressing `"proposerIsCurrentPlayer"` on a move that embeds `moves.CurrentPlayer` is a **boot error**. The plan can drop the atom, but `CurrentPlayer.Legal()`'s own imperative proposer check still runs — the suppression would be a no-op on actual legality while telling the client the move is proposable by anyone, exactly the client/server divergence the system exists to prevent. If a move genuinely shouldn't be proposer-gated, embed `moves.Default` (or `moves.FixUp`) instead of `moves.CurrentPlayer`.
+Suppression is validated at boot, so it can never silently do nothing:
+
+- A name that matches **no check the move actually contributes** is a boot error naming the move, the unmatched name, and the move's real contributed names. This catches both a typo (`"inphase"` — another reason to pass the constants, which make typos a compile error) and suppressing a check the move never had (e.g. `moves.PreconditionInProgression` on a move with no move progression — in the example above, dropping the `WithLegalPhases` line would make the `inPhase` suppression itself a boot error).
+- `WithoutPrecondition` on a move that never opts in via `WithPreconditions` is a boot error: without the opt-in there is no plan for the suppression to edit, and the frozen imperative chain would keep enforcing the very check you believed you turned off.
+- Suppressing `moves.PreconditionProposerIsCurrentPlayer` on a move that embeds `moves.CurrentPlayer` is a **boot error** of its own: the plan can drop the atom, but `CurrentPlayer.Legal()`'s own imperative proposer check still runs — the suppression would be a no-op on actual legality while telling the client the move is proposable by anyone, exactly the client/server divergence the system exists to prevent. If a move genuinely shouldn't be proposer-gated, embed `moves.Default` (or `moves.FixUp`) instead of `moves.CurrentPlayer`.
 
 ###### What the client gets for free
 

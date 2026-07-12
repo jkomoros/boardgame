@@ -21,6 +21,37 @@ alone (a later task's boot-time probe is what turns that into a named boot
 error rather than a silently-ignored declaration).
 */
 
+// The stable names of the framework-contributed precondition checks — the
+// exact names moves.Default/CurrentPlayer's ContributedPreconditions specs
+// carry, and therefore the only names WithoutPrecondition can meaningfully
+// suppress. Pass these constants instead of raw string literals: a
+// misspelled or non-contributed name is a boot error (NewGameManager's
+// gauntlet validates every suppression against the move's actual
+// contributed spec names), and the constants make that class of typo a
+// compile-time non-issue.
+const (
+	// PreconditionInPhase is the contributed phase check, present when the
+	// move was configured with WithLegalPhases (including via
+	// AddForPhase/AddOrderedForPhase).
+	PreconditionInPhase = "inPhase"
+	// PreconditionInProgression is the contributed move-progression check,
+	// present when the move was configured with WithLegalMoveProgression
+	// (including via AddOrderedForPhase).
+	PreconditionInProgression = "inProgression"
+	// PreconditionStackConstraints is the contributed source/destination
+	// stack-size check, present when the move was configured with BOTH
+	// WithSourceProperty and WithDestinationProperty.
+	PreconditionStackConstraints = "stackConstraints"
+	// PreconditionProposerIsCurrentPlayer is the proposer-equivalence check
+	// moves.CurrentPlayer contributes on top of Default's specs. Note that
+	// suppressing it on a CurrentPlayer-embedding move is a boot error in
+	// its own right (CurrentPlayer.Legal's imperative check would still
+	// run, desynchronizing the client ledger — embed moves.Default
+	// instead), and on a Default-embedding move it is never contributed at
+	// all, so suppressing it there is an unmatched-name boot error too.
+	PreconditionProposerIsCurrentPlayer = "proposerIsCurrentPlayer"
+)
+
 // PreconditionsProvider is the optional interface core consults (design spec
 // §2/§3) to derive a move type's declarative precondition plan. Default
 // implements it directly; CurrentPlayer overrides it to append the proposer
