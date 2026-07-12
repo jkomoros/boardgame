@@ -265,17 +265,13 @@ func resolveLegalPath(p LegalPropPath, state ImmutableState, move Move) (interfa
 		switch fieldType {
 		case TypePlayerIndex:
 			index = fieldVal.(PlayerIndex)
-		case TypeInt:
-			// Kept for evaluation-time tolerance only: boot validation
-			// (validateLegalPath above, footgun-batch F9) rejects int-typed
-			// fields, so a DECLARED players[move.<Field>] path can never
-			// reach this branch. It remains reachable via an ad-hoc
-			// ctx.ResolvePath call from a predicate's Evaluate on a path it
-			// never declared — the Reads honor-system hole — where erroring
-			// would just trade a wrong-player read for an Unknown; boot is
-			// the right place to reject, and does.
-			index = PlayerIndex(fieldVal.(int))
 		default:
+			// TypeInt deliberately NOT tolerated here (footgun-batch F9):
+			// boot validation (validateLegalPath above) already rejects
+			// int-typed fields for declared paths, and for the residual
+			// ad-hoc ctx.ResolvePath case an error degrades to a fail-closed
+			// Unknown — strictly safer than silently reading a wrong-but-
+			// valid player index.
 			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypePlayerIndex", p, parsed.moveField, fieldType)
 		}
 		players := state.ImmutablePlayerStates()

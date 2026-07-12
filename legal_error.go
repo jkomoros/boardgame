@@ -327,32 +327,28 @@ func legalFormatBindingNames(names []string) string {
 // legal, so it cannot compute that union itself (see RenderLegalMessage's
 // doc comment for the same layering constraint).
 //
-// Coverage decision (v1, deliberately scoped down — see the task-6 report
-// for the full justification): this function verifies every EXPLICIT
-// Spec.Message override against table, plus the one core-level IMPLICIT
-// default it knows about (the "any" compositor's legalAnyFailedTemplate,
-// since "any" is resolved by this package, not by a registered
-// LegalPredicateConstructor). It does NOT attempt to verify every implicit
-// default template key a leaf catalog or game-registered predicate's
-// Evaluate might emit when Spec.Message is unset (e.g. propAtLeast's
+// Coverage decision: this function verifies every EXPLICIT Spec.Message
+// override against table, plus the one core-level IMPLICIT default it
+// knows about (the "any" compositor's legalAnyFailedTemplate, since "any"
+// is resolved by this package, not by a registered
+// LegalPredicateConstructor). Implicit default keys emitted by a
+// predicate's Evaluate when Spec.Message is unset (e.g. propAtLeast's
 // TemplatePropAtLeast, or a game-registered predicate's own hardcoded
-// key): LegalPredicate carries no metadata field declaring "the template
-// keys my Evaluate might return", and introspecting an Evaluate closure is
-// not possible in Go. For the built-in catalog, this gap is covered by
-// convention instead: every catalog predicate's default key is listed in
-// legal/catalog_stack.go's defaultTemplateKeys, which legal.DefaultTemplates()
-// is built from and tested (legal/templates_test.go) to cover completely —
-// so as long as the caller merges legal.DefaultTemplates() into table
-// before calling this function (which the design spec §6 requires), every
-// catalog predicate's implicit default is already present. A
-// game-registered predicate's own implicit default key (e.g. checkers'
-// "checkers.black_spaces_only") is NOT verified at boot by this function;
-// an unregistered key there degrades gracefully at render time
-// (RenderLegalMessage falls back to the bare key) rather than failing
-// boot. A future enhancement could close this gap by adding an
-// EmittedTemplates []string-style declaration to
-// LegalPredicateConstructor, matching Reads' by-convention declaration
-// model — noted as follow-up, not implemented here.
+// key) are NOT this function's job: they are declared via
+// LegalPredicate.EmittedTemplates and boot-validated by the companion
+// validateLegalEmittedTemplates (and their placeholders by
+// validateLegalEmittedBindings). Introspecting an Evaluate closure is
+// not possible in Go, so EmittedTemplates remains a declaration the
+// predicate author must keep honest; a game-registered predicate that
+// omits it gets no boot check for its hardcoded keys, and an
+// unregistered key degrades gracefully at render time
+// (RenderLegalMessage falls back to the bare key). For the built-in
+// catalog, completeness is test-pinned: every catalog predicate's
+// default key is listed in defaultTemplateKeys, which
+// legal.DefaultTemplates() is built from and tested
+// (legal/templates_test.go) to cover completely, and callers merge
+// legal.DefaultTemplates() into table before calling this function (as
+// the design spec §6 requires).
 func validateLegalTemplates(specs []LegalSpec, predicates []*LegalPredicate, table map[string]string) error {
 	if len(specs) != len(predicates) {
 		return fmt.Errorf("boardgame: validateLegalTemplates: specs and predicates must be parallel slices of equal length, got %d specs and %d predicates", len(specs), len(predicates))

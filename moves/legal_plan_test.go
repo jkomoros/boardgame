@@ -600,8 +600,9 @@ func TestSuppressionNotContributedIsBootError(t *testing.T) {
 // TestSuppressionWithoutOptInIsBootError (F2 flavor 2): WithoutPrecondition
 // on a move with NO authored WithPreconditions specs is dead config — the
 // move is not opted in, no plan exists, and the frozen imperative chain
-// still enforces the check the suppression names. Boot must reject it
-// rather than let the author believe the check is off.
+// runs unchanged (whether or not any of its checks corresponds to the
+// suppressed name). Boot must reject it rather than let the author believe
+// the check is off.
 func TestSuppressionWithoutOptInIsBootError(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
