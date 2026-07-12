@@ -1614,6 +1614,53 @@ func (s *Server) doMakeMove(r *renderer, game *boardgame.Game, proposer boardgam
 	r.Success(nil)
 }
 
+// movePreviewHandler computes a move's legality for the args the player is
+// composing, against the CURRENT state, WITHOUT applying it — so the client can
+// preview legality (and gray illegal targets) round-trip, never duplicating the
+// Go legality engine. It parses the move+args exactly like moveHandler
+// (getMoveFromForm), then returns the same moveForm legality shape the client
+// already consumes (LegalForPlayer/LegalForPlayerError/LegalForAnyone/
+// Preconditions) computed the one authoritative way (move.Legal via
+// legalMoveForm). Because it never calls ProposeMove, it is side-effect-free
+// and safe to call on every keystroke. It IS the authoritative gate
+// (move.Legal), so it correctly previews constraint- and LegalCustom-gated
+// moves that a client-side evaluator cannot.
+func (s *Server) movePreviewHandler(c *gin.Context) {
+
+	r := s.newRenderer(c)
+
+	if c.Request.Method != http.MethodPost {
+		r.Error(errors.New("this method only supports post"))
+		return
+	}
+
+	game := s.getGame(c)
+
+	if game == nil {
+		r.Error(errors.New("Game not found"))
+		return
+	}
+
+	proposer := s.effectivePlayerIndex(c)
+
+	move, err := s.getMoveFromForm(c, game)
+
+	if move == nil {
+		errString := "No move returned"
+		if err != nil {
+			errString = err.Error()
+		}
+		r.Error(errors.New("Couldn't get move: " + errString))
+		return
+	}
+
+	form := s.legalMoveForm(game, game.CurrentState(), move, proposer)
+
+	r.Success(gin.H{
+		"Form": form,
+	})
+}
+
 func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 
 	var result []*moveForm
@@ -1658,32 +1705,39 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex) []*moveForm {
 	var result []*moveForm
 
-	manager := game.Manager()
-
 	for _, move := range game.Moves() {
 		if base.IsFixUp(move) {
 			continue
 		}
-
-		moveItem := &moveForm{
-			Name:     move.Info().Name(),
-			HelpText: move.HelpText(),
-			Fields:   formFields(move),
-		}
-		if starter, ok := move.(interfaces.GatheringStartMover); ok && starter.IsGatheringStartMove() {
-			moveItem.IsGatheringStart = true
-		}
-
-		if _, entries, opted := manager.LegalEvaluateLedger(moveItem.Name, state, move, playerIndex); opted {
-			legalFormFromLedger(moveItem, state, move, playerIndex, entries)
-		} else {
-			legalFormOpaque(moveItem, move, state, playerIndex)
-		}
-
-		result = append(result, moveItem)
+		result = append(result, s.legalMoveForm(game, state, move, playerIndex))
 	}
 
 	return result
+}
+
+// legalMoveForm builds a moveForm with its legality fields filled for one
+// move+state+playerIndex, via the same dispatch generateFormsWithLegality uses
+// per move (opted-in -> legalFormFromLedger, else legalFormOpaque). Sharing it
+// keeps the /info move-forms and the movePreview endpoint computing legality
+// the one authoritative way. Its output for a move drawn from game.Moves() is
+// byte-identical to the inlined loop it replaced (pinned by
+// legal_ledger_frozen_wire_test.go); the preview endpoint passes a freshly
+// arg-bound move instead.
+func (s *Server) legalMoveForm(game *boardgame.Game, state boardgame.ImmutableState, move boardgame.Move, playerIndex boardgame.PlayerIndex) *moveForm {
+	moveItem := &moveForm{
+		Name:     move.Info().Name(),
+		HelpText: move.HelpText(),
+		Fields:   formFields(move),
+	}
+	if starter, ok := move.(interfaces.GatheringStartMover); ok && starter.IsGatheringStartMove() {
+		moveItem.IsGatheringStart = true
+	}
+	if _, entries, opted := game.Manager().LegalEvaluateLedger(moveItem.Name, state, move, playerIndex); opted {
+		legalFormFromLedger(moveItem, state, move, playerIndex, entries)
+	} else {
+		legalFormOpaque(moveItem, move, state, playerIndex)
+	}
+	return moveItem
 }
 
 // legalFormOpaque fills in moveItem's legacy legality fields for an opaque
@@ -2256,6 +2310,7 @@ func (s *Server) Start() {
 			protectedGameAPIGroup := gameAPIGroup.Group("")
 			protectedGameAPIGroup.Use(s.requireLoggedIn)
 			protectedGameAPIGroup.POST("move", s.moveHandler)
+			protectedGameAPIGroup.POST("movePreview", s.movePreviewHandler)
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
 			protectedGameAPIGroup.POST("chat", s.chatSendHandler)

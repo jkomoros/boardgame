@@ -6,6 +6,53 @@
 > `declarative-legality-design`. Supersedes the v1 draft; §"Corrections"
 > records what the critique overturned.
 
+## DECISION (2026-07-12) — server preview endpoint
+
+After building a client-side evaluator to 15/19 predicates (all conformance-
+verified against Go), a 6-design architecture panel (WASM, server-endpoint,
+codegen, shared-IR, hybrid, hardened-mirror) + a 3-lens judge panel
+**unanimously chose the SERVER PREVIEW ENDPOINT**, and the user confirmed it.
+
+**Why.** The decisive, grounded finding: the moves players most want to
+preview — place-token, `mayMoveToSlot`, and every `LegalCustom` move (pervasive
+across the real games) — are exactly the ones a *client* engine cannot
+evaluate, because destination-stack **constraints** and `LegalCustom` are Go
+closures that never serialize. So a heavyweight client engine (mirror/codegen/
+IR) buys round-trip-free preview of the easy moves while fail-closing on the
+ones that matter. The server endpoint runs the *real* `move.Legal()` — zero
+duplication, single source of truth, authoritative (handles constraints +
+`LegalCustom`, and kills footgun F1 by construction), ~150 LOC reusing existing
+seams. (WASM was the only client-side design that could also handle everything
+— proven by execution — but it costs a ~1.7–2.2 MB lazy bundle + a `GOOS=js` CI
+surface, not justified for an already-online-only app.)
+
+**Shipped.** `POST …/movePreview` (`server/api/main.go` `movePreviewHandler`):
+parses the move+args exactly like `moveHandler` (`getMoveFromForm`), then
+computes legality via a new shared `legalMoveForm` helper — the same
+`LegalEvaluateLedger`→`legalFormFromLedger`/`legalFormOpaque` dispatch the
+`/info` forms use — against the CURRENT state **without applying**
+(`move.Legal`, never `ProposeMove`), returning the same `moveForm` legality
+shape the client already parses. Side-effect-free (test-pinned: game version
+unchanged), so safe on every keystroke. `generateFormsWithLegality` refactored
+to share `legalMoveForm` (byte-identity held by the frozen-wire test).
+
+**Removed** (superseded, was dead code — nothing imported it): the client
+predicate evaluator `server/static/src/legal/evaluator.ts` +
+`evaluator.conformance.test.ts`, and the TS-side conformance apparatus
+`legal/conformance_export_test.go` + `legal/testdata/conformance/fixtures/`.
+The exploration wasn't wasted — it *surfaced the constraint-unshippability
+finding* that made the server endpoint the right call. **Kept:**
+`renderLegalMessage` (a small, tested, shared renderer for the ledger's
+`{template,bindings}` and Workstream 6's rejection envelope), and the
+`npm run test:unit` harness.
+
+**Next (follow-ons):** a batch variant (`movePreviewBatch` — one round-trip
+grays a whole board's candidate targets); the client wiring (debounced call as
+the player edits args / hovers candidates + gray illegal ones, bound to
+settled live-head state); observer/a11y treatment. The three-tier framing below
+is retained for context, but Layer-3's "client re-evaluator" is explicitly
+withdrawn in favor of this endpoint.
+
 ## 0. TL;DR
 
 The genuinely valuable, safe, *on-the-client* work is **authority-driven
