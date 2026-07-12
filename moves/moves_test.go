@@ -179,10 +179,17 @@ func zeroIterationRoundRobinMoveInstaller(manager *boardgame.GameManager) []boar
 // TestZeroIterationRoundRobinLegal is a framework-level regression test for a
 // bug where a round robin move whose ConditionMet was already satisfied before
 // it started (e.g. a DealComponentsUntilPlayerCountReached targeting a count
-// every player already meets) was still reported legal to start. Apply() would
-// then immediately trip its "found to be finished in our Apply, but it should
-// have been marked finished before" invariant, failing game creation. The move
-// must instead be reported not-legal so fixup convergence skips it.
+// every player already meets) would trip Apply()'s "found to be finished in
+// our Apply, but it should have been marked finished before" invariant,
+// failing game creation. The fix lives in RoundRobin.Apply: after
+// startRoundRobin resets the shared round-robin state, an already-met
+// condition finishes the round robin cleanly (zero iterations) and returns
+// nil. It deliberately does NOT live in Legal(): ConditionMet reads the
+// shared RoundRobinRoundCount, which is only reset inside Apply's
+// startRoundRobin, so a Legal-side check reads stale state from the previous
+// round robin and mis-rejects legitimate starts (a Legal-based fix regressed
+// blackjack; see round_robin.go's comment). This test asserts game creation
+// succeeds and the zero-iteration deal dealt nothing.
 func TestZeroIterationRoundRobinLegal(t *testing.T) {
 	manager, err := newGameManager(zeroIterationRoundRobinMoveInstaller)
 
