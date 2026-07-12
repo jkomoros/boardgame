@@ -1,11 +1,17 @@
 package api
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	tictactoe "github.com/jkomoros/boardgame/examples/tictactoe"
+	"github.com/sirupsen/logrus"
 )
 
 // TestLegalMoveFormPreviewMatchesMoveLegalAndDoesNotApply pins the two core
@@ -139,9 +145,9 @@ func TestLegalMoveFormsBatch(t *testing.T) {
 
 	t.Run("malformed candidate soft-fails without killing the batch", func(t *testing.T) {
 		candidates := []movePreviewBatchCandidate{
-			{Args: map[string]string{"TargetPlayerIndex": "0"}},           // fine
-			{Args: map[string]string{"TargetPlayerIndex": "not-an-int"}},  // unbindable
-			{Args: map[string]string{"TargetPlayerIndex": "1"}},           // fine, must still be evaluated
+			{Args: map[string]string{"TargetPlayerIndex": "0"}},          // fine
+			{Args: map[string]string{"TargetPlayerIndex": "not-an-int"}}, // unbindable
+			{Args: map[string]string{"TargetPlayerIndex": "1"}},          // fine, must still be evaluated
 		}
 		results, err := s.legalMoveFormsBatch(game, state, "Opted In", candidates, proposer)
 		if err != nil {
@@ -166,6 +172,105 @@ func TestLegalMoveFormsBatch(t *testing.T) {
 		results, err := s.legalMoveFormsBatch(game, state, "No Such Move", []movePreviewBatchCandidate{{Args: map[string]string{}}}, proposer)
 		if err == nil {
 			t.Fatalf("expected a whole-batch error for an invalid move type, got results %#v", results)
+		}
+	})
+
+	t.Run("a batch over the candidate cap is rejected whole (DoS guard)", func(t *testing.T) {
+		over := make([]movePreviewBatchCandidate, maxLegalPreviewBatchCandidates+1)
+		for i := range over {
+			over[i] = movePreviewBatchCandidate{Args: map[string]string{"TargetPlayerIndex": "0"}}
+		}
+		results, err := s.legalMoveFormsBatch(game, state, "Opted In", over, proposer)
+		if err == nil {
+			t.Fatalf("expected a whole-batch error for %d candidates (> cap %d), got %d results", len(over), maxLegalPreviewBatchCandidates, len(results))
+		}
+		// At the cap exactly, it must still work (the bound is inclusive).
+		atCap := make([]movePreviewBatchCandidate, maxLegalPreviewBatchCandidates)
+		for i := range atCap {
+			atCap[i] = movePreviewBatchCandidate{Args: map[string]string{"TargetPlayerIndex": "0"}}
+		}
+		if _, err := s.legalMoveFormsBatch(game, state, "Opted In", atCap, proposer); err != nil {
+			t.Fatalf("a batch exactly at the cap (%d) must be allowed, got error: %v", maxLegalPreviewBatchCandidates, err)
+		}
+	})
+}
+
+// TestMovePreviewBatchHandler exercises the gin HTTP handler itself (not just the
+// legalMoveFormsBatch core): the POST-only method guard, JSON body parsing +
+// its error envelope, the candidate-cap / body-size DoS guards, and that a valid
+// request renders an ordered Results array. getGame/effectivePlayerIndex read
+// from the gin context, so the fixture game + viewing player are injected
+// directly (no full managers/storage wiring needed).
+func TestMovePreviewBatchHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	game, _ := newLegalLedgerGame(t)
+	s := &Server{logger: logrus.New()}
+
+	// call invokes the handler with the given method + raw body and returns the
+	// HTTP status and the decoded response envelope.
+	call := func(method, body string) (int, map[string]interface{}) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(method, "/api/game/x/y/movePreviewBatch", strings.NewReader(body))
+		c.Request.Header.Set("Content-Type", "application/json")
+		c.Set(ctxGameKey, game)
+		c.Set(ctxViewingPlayerAsKey, boardgame.PlayerIndex(0))
+		s.movePreviewBatchHandler(c)
+		var parsed map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &parsed); err != nil {
+			t.Fatalf("response was not JSON (%q): %v", w.Body.String(), err)
+		}
+		return w.Code, parsed
+	}
+
+	t.Run("valid batch renders an ordered Results array", func(t *testing.T) {
+		_, resp := call(http.MethodPost, `{"MoveType":"Opted In","Candidates":[{"Args":{"TargetPlayerIndex":"0"}},{"Args":{"TargetPlayerIndex":"1"}}]}`)
+		if resp["Status"] != "Success" {
+			t.Fatalf("want Success, got Status=%v Error=%v", resp["Status"], resp["Error"])
+		}
+		results, ok := resp["Results"].([]interface{})
+		if !ok || len(results) != 2 {
+			t.Fatalf("want 2 Results, got %#v", resp["Results"])
+		}
+	})
+
+	t.Run("malformed JSON renders the Failure envelope, not a panic", func(t *testing.T) {
+		_, resp := call(http.MethodPost, `{not valid json`)
+		if resp["Status"] != "Failure" {
+			t.Errorf("malformed JSON should render Failure, got %v", resp["Status"])
+		}
+	})
+
+	t.Run("GET is rejected (POST-only)", func(t *testing.T) {
+		_, resp := call(http.MethodGet, `{"MoveType":"Opted In","Candidates":[]}`)
+		if resp["Status"] != "Failure" {
+			t.Errorf("GET should be rejected, got %v", resp["Status"])
+		}
+	})
+
+	t.Run("over-cap candidate count renders Failure (DoS guard)", func(t *testing.T) {
+		var sb strings.Builder
+		sb.WriteString(`{"MoveType":"Opted In","Candidates":[`)
+		for i := 0; i <= maxLegalPreviewBatchCandidates; i++ { // one over the cap
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(`{"Args":{"TargetPlayerIndex":"0"}}`)
+		}
+		sb.WriteString(`]}`)
+		_, resp := call(http.MethodPost, sb.String())
+		if resp["Status"] != "Failure" {
+			t.Errorf("a batch over the candidate cap should render Failure, got %v", resp["Status"])
+		}
+	})
+
+	t.Run("oversized body renders Failure (MaxBytesReader guard)", func(t *testing.T) {
+		// A body past the 1 MiB cap must be shed by http.MaxBytesReader so
+		// BindJSON errors out rather than buffering it all.
+		big := `{"MoveType":"` + strings.Repeat("x", maxLegalPreviewBatchBodyBytes+1024) + `","Candidates":[]}`
+		_, resp := call(http.MethodPost, big)
+		if resp["Status"] != "Failure" {
+			t.Errorf("an oversized body should render Failure, got %v", resp["Status"])
 		}
 	})
 }

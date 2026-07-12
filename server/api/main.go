@@ -1678,6 +1678,19 @@ type movePreviewBatchResult struct {
 	Error string `json:"Error,omitempty"`
 }
 
+// maxLegalPreviewBatchCandidates bounds how many candidates one movePreviewBatch
+// request may evaluate. Each candidate runs a full legality evaluation on the
+// server's goroutine, so an uncapped batch is a CPU-amplification vector for any
+// authenticated user (the endpoint sits behind requireLoggedIn but has no
+// per-request work bound). The cap is far above any real board's candidate count
+// (checkers is 64, tictactoe 9) so it never constrains legitimate use.
+const maxLegalPreviewBatchCandidates = 1024
+
+// maxLegalPreviewBatchBodyBytes bounds the movePreviewBatch request body so a
+// client can't force the server to buffer an arbitrarily large JSON payload
+// before the candidate cap above even applies.
+const maxLegalPreviewBatchBodyBytes = 1 << 20 // 1 MiB
+
 // legalMoveFormsBatch computes legality for many candidate arg-sets of a single
 // move type against one state, WITHOUT applying any of them — the primitive
 // that lets a client gray a whole board's candidate targets in one round-trip.
@@ -1689,6 +1702,12 @@ type movePreviewBatchResult struct {
 // move to — without failing the batch. An invalid or fixup move type (shared by
 // every candidate) is a whole-batch error. Never mutates the game.
 func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.ImmutableState, moveType string, candidates []movePreviewBatchCandidate, playerIndex boardgame.PlayerIndex) ([]movePreviewBatchResult, error) {
+	// Bound the work a single request can demand (each candidate is a full
+	// legality evaluation) before touching any of them.
+	if len(candidates) > maxLegalPreviewBatchCandidates {
+		return nil, errors.New("too many preview candidates: " + strconv.Itoa(len(candidates)) + " exceeds the limit of " + strconv.Itoa(maxLegalPreviewBatchCandidates))
+	}
+
 	// Validate the shared move type once (it's the same for every candidate).
 	if probe := game.MoveByName(moveType); probe == nil {
 		return nil, errors.New("Invalid MoveType")
@@ -1739,6 +1758,8 @@ func (s *Server) movePreviewBatchHandler(c *gin.Context) {
 		MoveType   string                      `json:"MoveType"`
 		Candidates []movePreviewBatchCandidate `json:"Candidates"`
 	}
+	// Cap the body size so an oversized payload is shed before it's buffered.
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLegalPreviewBatchBodyBytes)
 	if err := c.BindJSON(&req); err != nil {
 		r.Error(errors.New("Couldn't parse batch preview request: " + err.Error()))
 		return
