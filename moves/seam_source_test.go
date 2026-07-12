@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/jkomoros/boardgame"
 	"github.com/workfit/tester/assert"
 )
 
@@ -34,27 +35,32 @@ no longer be provably equivalent to plan evaluation) rather than silently
 letting imperative and declarative evaluation start to interleave.
 
 Proof this test actually works (not just passes vacuously): during Task 6
-development, seamAllowlistTypesRequiringNoLegalMethod below was temporarily
-widened to also include "CurrentPlayer" (which DOES declare its own Legal(),
+development, the allowlist this test checks against was temporarily widened
+to also include "CurrentPlayer" (which DOES declare its own Legal(),
 moves/current_player.go) — the test went RED, naming CurrentPlayer and the
 declaring file — then was restored to the real allowlist and confirmed
 GREEN again. See the Task 6 report (.superpowers/sdd/task-6-report.md) for
 the captured RED failure text.
+
+The allowlist consulted below is boardgame.LegalSupportedMovesBaseTypeNames()
+— core's own export of legal_plan.go's legalSupportedMovesBaseTypes (minus
+Default/CurrentPlayer) — rather than a hand-copied duplicate, so this test
+can never silently drift out of sync with the real allowlist as it widens.
 */
 
-// seamAllowlistTypesRequiringNoLegalMethod is the design spec §5 seam
-// allowlist's members BEYOND Default/CurrentPlayer (which legitimately
-// declare Legal — see this file's doc comment) — kept in sync BY HAND with
-// legal_plan.go's legalSupportedMovesBaseTypes map minus {"Default",
-// "CurrentPlayer"}. A future widening of that allowlist must add the new
-// type here too, or this test silently fails to cover it.
-var seamAllowlistTypesRequiringNoLegalMethod = map[string]bool{
-	"FixUp":      true,
-	"FixUpMulti": true,
-	"StartPhase": true,
-}
-
 func TestSeamAllowlistTypesDeclareNoLegalMethod(t *testing.T) {
+	// seamAllowlistTypesRequiringNoLegalMethod is the design spec §5 seam
+	// allowlist's members BEYOND Default/CurrentPlayer (which legitimately
+	// declare Legal — see this file's doc comment). This used to be a
+	// hand-copied duplicate of legal_plan.go's legalSupportedMovesBaseTypes
+	// map minus {"Default", "CurrentPlayer"}, drift-prone by construction;
+	// it now consumes boardgame.LegalSupportedMovesBaseTypeNames(), the
+	// canonical single source of truth, so a future widening of the real
+	// allowlist is automatically covered here too.
+	seamAllowlistTypesRequiringNoLegalMethod := make(map[string]bool)
+	for _, name := range boardgame.LegalSupportedMovesBaseTypeNames() {
+		seamAllowlistTypesRequiringNoLegalMethod[name] = true
+	}
 	sourceFiles, err := filepath.Glob("*.go")
 	assert.For(t, "glob moves/*.go").ThatActual(err).IsNil()
 	if len(sourceFiles) == 0 {

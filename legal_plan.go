@@ -675,6 +675,29 @@ var legalSupportedMovesBaseTypes = map[string]bool{
 	"StartPhase":    true,
 }
 
+// LegalSupportedMovesBaseTypeNames is engine-internal plumbing exposing the
+// design spec §5 seam allowlist (legalSupportedMovesBaseTypes, above) BEYOND
+// the original v1 seam (Default, CurrentPlayer): the framework moves-package
+// base types that (a) are safe to embed and still opt in to declarative
+// legality, and (b) must NOT declare their own Legal() method, because their
+// legality IS moves.Default.Legal, verbatim (see legalSupportedMovesBaseTypes'
+// own doc comment). It exists so moves/seam_source_test.go's structural
+// "these types declare no Legal()" check has a single source of truth to
+// consume instead of a hand-copied duplicate of this set that could
+// silently drift out of sync with the real allowlist when it widens. No
+// caller other than that test should need this. The names are returned in
+// no particular order.
+func LegalSupportedMovesBaseTypeNames() []string {
+	names := make([]string, 0, len(legalSupportedMovesBaseTypes))
+	for name := range legalSupportedMovesBaseTypes {
+		if name == "Default" || name == "CurrentPlayer" {
+			continue
+		}
+		names = append(names, name)
+	}
+	return names
+}
+
 // legalUnsupportedMovesBaseType walks move's anonymous-embed graph looking
 // for an embedded struct type from the framework moves package that is not
 // in legalSupportedMovesBaseTypes (design spec §5's seam). It returns the
