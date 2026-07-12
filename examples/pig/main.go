@@ -159,6 +159,13 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			new(moveCountDie),
 			moves.WithHelpText("After a die has been rolled, tabulating its impact"),
 			moves.WithIsFixUp(true),
+			// Declarative migration (Workstream 9 re-migration): Legal() is
+			// deleted (see moves.go); its single negated-boolean gate is now
+			// this precondition. The proposer/current-player check is
+			// contributed base-first by moves.CurrentPlayer.
+			moves.WithPreconditions(
+				legal.PlayerBoolIs("DieCounted", false).WithMessage("pig.roll_already_counted"),
+			),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
@@ -180,6 +187,7 @@ func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 		"pig.roll_not_counted":      "Your most recent roll has not yet been counted",
 		"pig.done_roll_not_counted": "your most recent roll has not yet been counted",
 		"pig.already_done":          "you already signaled that you are done",
+		"pig.roll_already_counted":  "the most recent die roll has already been counted",
 	}
 }
 

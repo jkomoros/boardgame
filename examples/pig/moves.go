@@ -1,8 +1,6 @@
 package pig
 
 import (
-	"errors"
-
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/legal"
@@ -126,33 +124,27 @@ func (m *moveDoneTurn) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-// moveCountDie stays fully imperative (spec §8 survey, Task 12): its ONLY
-// gate is "the most recent die roll has already been counted" -- a NEGATED
-// boolean (DieCounted must be false). legal.PlayerBool only expresses "prop
-// is true"; v1's catalog has no negation wrapper (the only compositor is
-// legal.Any, an OR), so there is no declarative spec this move could author
-// at all. With zero natural WithPreconditions candidates there is nothing
-// to opt in with (an empty authored list is treated as not-opted-in, so
-// LegalCustom would never be consulted even if implemented -- see
-// examples/memory/moves.go's moveStartHideCardsTimer for the same Task 11
-// precedent). Left byte-for-byte unchanged from pre-Task-12.
-func (m *moveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if p.DieCounted {
-		return errors.New("the most recent die roll has already been counted")
-	}
-
-	return nil
-}
-
+// Legal() is deliberately absent: this move opted into declarative legality.
+// The original stale comment (Task 12) claimed moveCountDie could not migrate
+// because its only gate is a NEGATED boolean (DieCounted must be false) and
+// v1's catalog had no negation primitive. The completeness round shipped
+// legal.PlayerBoolIs(prop, want), so the gate is now
+// legal.PlayerBoolIs("DieCounted", false), added via WithPreconditions in
+// main.go's ConfigureMoves (Workstream 9 re-migration); the
+// proposer/current-player check is contributed base-first by
+// moves.CurrentPlayer. The original imperative body (kept only as
+// legacyLegalMoveCountDie, a private copy in legal_golden_test.go, for
+// golden-equivalence testing) read:
+//
+//	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+//		return err
+//	}
+//	game, players := concreteStates(state)
+//	p := players[game.CurrentPlayer.EnsureValid(state)]
+//	if p.DieCounted {
+//		return errors.New("the most recent die roll has already been counted")
+//	}
+//	return nil
 func (m *moveCountDie) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 

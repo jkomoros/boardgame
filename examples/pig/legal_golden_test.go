@@ -9,15 +9,12 @@ import (
 )
 
 /*
-Golden-equivalence harness for moveRollDice and moveDoneTurn (design spec
-§8/§9, Task 12 brief). Follows examples/memory/legal_golden_test.go's
-pattern (Task 11 precedent): a hand-copied legacy oracle per move type,
-crossed against every proposer worth distinguishing, checked against the
-migrated move's ACTUAL Legal().
-
-moveCountDie is NOT covered here: it stays fully opaque (its only gate is a
-negated boolean with no catalog primitive — see moves.go's doc comment), so
-its Legal() is byte-for-byte unchanged and there is nothing to diff.
+Golden-equivalence harness for moveRollDice, moveDoneTurn, and moveCountDie
+(design spec §8/§9, Task 12 brief; moveCountDie added in the Workstream 9
+re-migration). Follows examples/memory/legal_golden_test.go's pattern (Task
+11 precedent): a hand-copied legacy oracle per move type, crossed against
+every proposer worth distinguishing, checked against the migrated move's
+ACTUAL Legal().
 */
 
 func newPigGame(t *testing.T) (*boardgame.Game, boardgame.State) {
@@ -278,6 +275,142 @@ func TestGoldenLegalMoveDoneTurn(t *testing.T) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
 				}
 				if knownMessageOrderingDivergence[fx.name+"/"+proposerName] {
+					return
+				}
+				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
+					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
+				}
+			})
+		}
+	}
+}
+
+/**************************************************
+ *
+ * moveCountDie golden coverage
+ *
+ **************************************************/
+
+// legacyLegalMoveCountDie is a hand-copied snapshot of moveCountDie's Legal()
+// method exactly as it read before the Workstream 9 re-migration (see
+// moves.go's comment block for the original source). Like moveDoneTurn (and
+// unlike the buggy moveRollDice), it correctly returned the super-call's
+// error, so this is a clean equivalence except the message-ordering
+// divergence noted below. The proposer checks replicate
+// moves.CurrentPlayer.Legal's TargetPlayerIndex/proposer logic directly (NOT
+// via m.CurrentPlayer.Legal, which would dispatch into the migrated plan).
+func legacyLegalMoveCountDie(m *moveCountDie, state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	currentPlayer := state.CurrentPlayerIndex()
+	targetPlayerIndex := m.TargetPlayerIndex.EnsureValid(state)
+
+	if !targetPlayerIndex.Valid(state) {
+		return errors.New("The specified target player is not valid")
+	}
+	if targetPlayerIndex < 0 {
+		return errors.New("The specified target player is not valid")
+	}
+	if !targetPlayerIndex.Equivalent(currentPlayer) {
+		return errors.New("it's not your turn")
+	}
+	if !targetPlayerIndex.Equivalent(proposer) {
+		return errors.New("it's not your turn")
+	}
+
+	game, players := concreteStates(state)
+	p := players[game.CurrentPlayer.EnsureValid(state)]
+
+	if p.DieCounted {
+		return errors.New("the most recent die roll has already been counted")
+	}
+
+	return nil
+}
+
+// knownMessageOrderingDivergenceCountDie names (fixture, proposer)
+// combinations where the migrated plan disagrees with the legacy oracle on
+// WHICH message wins (nil-ness always matches), for the same bucket-reordering
+// reason as moveDoneTurn above: PlayerBoolIs("DieCounted", false) reads no
+// move.* path, so it lands in the field-INDEPENDENT bucket and evaluates
+// before the contributed proposer atom (field-dependent), reversing their
+// legacy order. Only the "default" fixture (a fresh game, DieCounted==true →
+// gate FAILS) combined with a failing proposer check exercises this: legacy
+// reports "it's not your turn" first, the plan reports "the most recent die
+// roll has already been counted" first. The "dieNotCounted" fixture has
+// DieCounted==false (gate PASSES), so the contributed proposer atom runs and,
+// when it fails, wins byte-for-byte in both orderings.
+var knownMessageOrderingDivergenceCountDie = map[string]bool{
+	"default/otherPlayer": true,
+	"default/observer":    true,
+}
+
+func TestGoldenLegalMoveCountDie(t *testing.T) {
+	type fixture struct {
+		name string
+		game *boardgame.Game
+	}
+
+	var fixtures []fixture
+
+	// default: a fresh game (DieCounted is true for every player at turn
+	// start — ResetForTurnStart), so the gate FAILS ("already counted").
+	{
+		game, _ := newPigGame(t)
+		fixtures = append(fixtures, fixture{"default", game})
+	}
+
+	// dieNotCounted: the current player's DieCounted forced to false — the
+	// gate PASSES (legal for the current player).
+	{
+		game, state := newPigGame(t)
+		rs := state.CurrentPlayer().ReadSetter()
+		if err := rs.SetBoolProp("DieCounted", false); err != nil {
+			t.Fatalf("legal_golden: setting DieCounted: %v", err)
+		}
+		fixtures = append(fixtures, fixture{"dieNotCounted", game})
+	}
+
+	for _, fx := range fixtures {
+		fx := fx
+		state := fx.game.CurrentState()
+		move := fx.game.MoveByName("Count Die")
+		if move == nil {
+			t.Fatal("legal_golden: no \"Count Die\" move found")
+		}
+		mv, ok := move.(*moveCountDie)
+		if !ok {
+			t.Fatal("legal_golden: \"Count Die\" move was not a *moveCountDie")
+		}
+
+		for proposerName, proposer := range pigProposers(t, state.(boardgame.State)) {
+			t.Run(fx.name+"/"+proposerName, func(t *testing.T) {
+				// Fixup-move memo artifact (NOT a migration divergence):
+				// moveCountDie is a fixup move (WithIsFixUp), so during game
+				// setup the engine evaluates its Legal() for the
+				// AdminPlayerIndex proposer at the head version and memoizes the
+				// verdict (legal_memo.go, keyed move/version/proposer, one head
+				// version resident). The "dieNotCounted" fixture flips
+				// DieCounted via ReadSetter, which does NOT bump the state
+				// version, so an admin-proposer evaluation hits the stale
+				// pre-mutation verdict ("already counted") instead of
+				// recomputing. In real play DieCounted only changes through move
+				// application, which bumps the version and evicts the memo, so
+				// this cannot occur — it is purely a direct-mutation test
+				// limitation. The nil/pass equivalence for this fixture is
+				// proven byte-for-byte by the currentPlayer/otherPlayer/observer
+				// proposers, which setup never memoized and which therefore
+				// recompute fresh; admin's pass path is logically identical to
+				// currentPlayer's (the gate is proposer-independent).
+				if fx.name == "dieNotCounted" && proposerName == "admin" {
+					t.Skip("fixup-move setup memo is stale vs. direct ReadSetter mutation; see comment")
+				}
+
+				legacyErr := legacyLegalMoveCountDie(mv, state, proposer)
+				actualErr := mv.Legal(state, proposer)
+
+				if (legacyErr == nil) != (actualErr == nil) {
+					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
+				}
+				if knownMessageOrderingDivergenceCountDie[fx.name+"/"+proposerName] {
 					return
 				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
