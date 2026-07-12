@@ -1,0 +1,24 @@
+{
+  "predicate": "stackConstraints",
+  "cases": [
+    {
+      "spec": {"name": "stackConstraints", "args": ["HiddenCards", "VisibleCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "stackConstraints", "args": ["HiddenCards", "HiddenCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.stack_constraints"
+    },
+    {
+      "spec": {"name": "stackConstraints", "args": ["VisibleCards", "HiddenCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    }
+  ]
+}

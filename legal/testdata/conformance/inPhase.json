@@ -1,0 +1,24 @@
+{
+  "predicate": "inPhase",
+  "cases": [
+    {
+      "spec": {"name": "inPhase", "args": ["1"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "inPhase", "args": ["0"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.in_phase"
+    },
+    {
+      "spec": {"name": "inPhase", "args": []},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    }
+  ]
+}
