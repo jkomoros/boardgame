@@ -73,7 +73,7 @@ Verified: `validateLegalTemplates`/`validateLegalEmittedTemplates` (`legal_error
 
 ## F5 — MEDIUM-HIGH: `LegalCustom` implemented without `WithPreconditions` is silently never called — and fails *open*
 
-[BATCH: FIXED in 72b981b4's companion validation (boot error: LegalCustom requires opting in).]
+[BATCH: annotation corrected — this was NOT fixed in 72b981b4; that commit implemented F2 (WithoutPrecondition-without-opt-in), a sibling "X-without-opt-in" check that was conflated with F5. F5 remained documentation-only (legal/doc.go) — a fail-open honor system — until it was genuinely FIXED in 42102032: assembleLegalPlans now boot-errors any CustomLegaler move that gets no plan, on BOTH no-plan paths (a legalDeclarer with no authored specs, and a move that is not a legalDeclarer at all, e.g. a core base.Move). Path-tailored message + TDD coverage on both paths; adversarially reviewed (round 1 caught a single-site fix missing the non-declarer path). Full gates green in both repos ⇒ all real LegalCustom implementers already opt in (zero false positives).]
 
 Verified: `assembleLegalPlans` returns early on `len(authored) == 0` (`legal_plan.go:408-413`) before ever type-asserting `CustomLegaler`; the wrapper is only built inside `buildLegalPlanFromPredicates` (`legal_plan.go:552-554`). So a move that implements `LegalCustom` but declares no specs gets no plan, no probe, no boot error — and `LegalCustom` never runs. If an author migrates by moving their `Legal()` body into `LegalCustom` and deleting `Legal()` without adding specs, every check in that body silently stops being enforced (previously-illegal moves become legal). The rule is documented (`legal/doc.go:127-130`) but implementing an interface method that is then never invoked, with zero boot signal, is exactly the "compiles, boots, wrong" shape.
 
@@ -109,7 +109,7 @@ Verified mechanics: evaluation is field-independent bucket → field-dependent b
 
 ## F9 — LOW: `players[move.Field]` with special/out-of-range indices — one small trap
 
-[BATCH: FIXED in 06419dbf — boot validation restricted to TypePlayerIndex (no in-repo TypeInt usage existed); runtime int tolerance in resolveLegalPath kept deliberately for ad-hoc undeclared ResolvePath calls.]
+[BATCH: FIXED in 06419dbf — boot validation restricted to TypePlayerIndex (no in-repo TypeInt usage existed). The runtime int tolerance in resolveLegalPath was initially kept for ad-hoc undeclared ResolvePath calls, but was subsequently DELETED in 1e2dfce4 (Task-4 review minor, reviewer preferred deletion): resolveLegalPath now returns an error for a TypeInt move field too, so the residual ad-hoc case fails closed (Unknown) rather than silently reading a wrong-but-valid player.]
 
 At evaluation, admin/observer/out-of-range field values return a resolution error (`legal_path.go:265-268`) which catalog predicates convert to fail-closed `Unknown` with a descriptive reason. Boot validated the field exists and is `TypePlayerIndex` **or `TypeInt`** (`legal_path.go:168-174`). The `TypeInt` allowance was the trap: `players[move.CardIndex].Score` boots and silently reads a *wrong but valid* player whenever the int is in range.
 
