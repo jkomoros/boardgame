@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/constraints"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 // TestPropAtLeast covers PropAtLeast's pass/fail/unknown paths, its

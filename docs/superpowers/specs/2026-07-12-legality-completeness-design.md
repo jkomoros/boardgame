@@ -144,3 +144,137 @@ resolve incl. Unknown guards; seam source-parse test; FixUpMulti progression
 equivalence; goldens for all re-migrations (both repos); purely-sugar suite;
 full gates both repos (3 known boardgame sandbox exclusions + valentine's
 pre-existing TestGolden).
+
+## Implementation notes
+
+Judgment calls the design left open, and how each was actually resolved
+during the A1–A8 implementation pass. Recorded here per §6's "docs ride
+along" rail rather than left scattered across task reports.
+
+- **§2's boot-time enum dispatch is not fully delivered — branch 2 (lazy
+  eval-time dispatch) was forced, not chosen.** The spec's own text says
+  "type dispatch happens at boot: the constructor resolves the path's
+  PropertyType from the example state" — but `LegalPredicateConstructor`'s
+  actual signature (`Constructor(spec, chest, resolve)`) never receives an
+  example state, and widening it to add one was rejected mid-round: it
+  would change the constructor contract for every registered predicate,
+  catalog and game-registered alike, at exactly the ~15-file cost the
+  pre-spec critique warned against for a single predicate pair. The
+  delivered design instead: eager-parses `PropEquals`/`PropNotEquals`'s
+  int/bool value arms at construction (no state needed to validate those
+  shapes), and defers the enum/PlayerIndex arms to `Evaluate`, where
+  `ctx.ResolvePath`'s second return value supplies the real
+  `PropertyType`. A construction-time typo guard (added as a follow-up,
+  chest-gated so nil-chest test harnesses are unaffected) rejects a
+  `value` that matches no int/bool/PlayerIndex-special AND no enum value
+  name anywhere in the whole chest — catching the overwhelming majority of
+  real typos at boot despite the lazy dispatch. What's still genuinely
+  eval-time-only: a value that's a valid name for a DIFFERENT enum than
+  the one the path actually resolves to at runtime surfaces as
+  `LegalUnknown`, not a boot error. Closing that for real needs either the
+  wider constructor signature above or a dedicated boot-validation hook;
+  neither exists yet (`legal/catalog_compare.go`'s
+  `propEqualsFamilyConstructor` doc comment carries the full reasoning).
+
+- **§6's "four single-threshold moves" undercounts debuganimations by
+  one, and cites two literal values that trace to the wrong method.**
+  Tracing the spec's illustrative list (`FirstShortStack<1`,
+  `DiscardStack<3`, `FanStack>1` ×2) against the actual code:
+  `FanStack>1` ×2 matches two real `Legal()` gates, but
+  `FirstShortStack<1` and `DiscardStack<3` are threshold literals from
+  `DefaultsForState` bodies (picking which stack a move field defaults
+  to), not `Legal()` gates at all, on two different moves that stay
+  unmigrated for unrelated conditional-path-selection reasons. The
+  in-repo header comment (debuganimations' own Task 12 ground truth)
+  correctly names five moves with a single- or dual-threshold `Legal()`
+  body; all five migrated. Trusted the in-repo comment over the spec's
+  paraphrase; not silently reconciled — flagged in the boardgame
+  re-migration commit and report.
+
+- **`moves.FixUpMulti` is in the seam allowlist "by construction," not by
+  a flag check.** §5 required a progression-equivalence test before
+  allowlisting it. The delivered test proves the WIRING is correct
+  (a `FixUpMulti`-embedding move's contributed `inProgression` atom is
+  literally the same code path `AllowMultipleInProgression()`-aware moves
+  already used, reached via delegation rather than a duplicated
+  implementation) rather than re-deriving progression-matching semantics
+  from scratch — the equivalence follows from the plan calling the exact
+  same `legalMoveInProgression` method the frozen chain always called, not
+  from a new independent proof. No divergence found; `FixUpMulti` shipped
+  in the allowlist alongside `FixUp`/`StartPhase`.
+
+- **werewolf surfaced a real, unclosed catalog gap this round doesn't
+  fix: `AllActivePlayers`' inner leaf has no PlayerIndex- or enum-typed
+  support.** `moveResolveVotes`' one substantive check ("every eligible
+  voter has voted") is a per-player quantifier over `Vote`
+  (`PlayerIndex`-typed) and, for night registration, `Role`
+  (enum-typed) — neither is an accepted `AllActivePlayers` inner-leaf
+  type, even after §2 added top-level `PropEquals` support for both
+  types. The gap is structural: `AllActivePlayers`' per-player evaluator
+  hand-compiles three leaf kinds directly against a raw
+  `PropertyReader` (bypassing `ctx.ResolvePath` entirely, since
+  "player.X" always means the CURRENT player and there's no way to
+  redirect it to an explicitly-named player mid-quantifier — see
+  `allActivePlayersConstructor`'s doc comment), so widening it needs
+  hand-written leaf compilation for each new type, not just reuse of
+  `PropEquals`'s existing dispatch. Recorded as a durable, prioritized gap
+  for a future catalog round rather than worked around; `moveResolveVotes`
+  stays `LegalCustom`.
+
+- **`players[move.<Field>].<Prop>` (§3) is the round's actual headline
+  fix, closing a campaign-level finding from the completeness round's own
+  predecessor.** The v1 spec's migration pass reverted darwin's
+  simultaneous-phase moves specifically because `player.X` resolves
+  against `state.ImmutableCurrentPlayer()`, which is `nil` whenever the
+  delegate's `CurrentPlayerIndex()` returns `AdminPlayerIndex` (darwin's
+  "anyone may go in any order" phase) — a landmine invisible in every
+  example game, caught only because that migration's golden tests
+  actually exercised the affected phase. `players[move.<Field>].<Prop>`
+  resolves by reading the named field directly off the move being
+  evaluated and indexing into player state with it, never touching the
+  current-player concept at all — so it is unaffected by the Admin
+  override. Re-verified end to end this round: darwin's `moveDealCard`
+  (the exact move whose migration was reverted) is now fully declarative,
+  with a golden test that forces `game.Phase == phasePlayCards`, asserts
+  `state.CurrentPlayerIndex() == AdminPlayerIndex` before relying on it,
+  and targets a player other than the game's nominal player 0 — the
+  simultaneous-phase acceptance test the original finding called for.
+
+- **Darwin's negation-leaf migrations used `PropEquals`/`PropNotEquals`
+  on the new path kind, not `PlayerBoolIs`, for target-player-relative
+  bool checks.** `PlayerBoolIs(prop, want)` hardcodes a `"player."+prop`
+  path (always the CURRENT player) — it has no form that accepts an
+  arbitrary path, so it cannot express
+  `players[move.TargetPlayerIndex].DoneWithPhase`. `PropEquals`/
+  `PropNotEquals` accept any path (including the new
+  `players[move.<Field>].X` kind) and dispatch correctly for a
+  `TypeBool` property via the `"true"`/`"false"` string arm, so darwin's
+  `DoneWithPhase` negation checks use those instead. `PlayerBoolIs`
+  itself did ship and is used where a plain current-player bool check
+  applies (unaffected by this).
+
+- **A genuine pre-existing production bug (darwin's `moveAddTrait`
+  duplicate-trait scan) was found and fixed this round, not just
+  flagged.** The v1 spec's migration pass discovered but deliberately did
+  not fix a nil-pointer panic in `moveAddTrait`'s `LegalCustom` residue
+  (`values.Traits.Components()` — a `SizedStack` — returns one entry per
+  capacity slot, nil for empty ones; the original loop dereferenced every
+  entry unconditionally). This round's re-migration touches that same
+  move's `LegalCustom` body directly, and the bug was actively breaking
+  gate cleanliness (`go test ./...` intermittently panicked depending on
+  proposer-map iteration order), so it was fixed in place — a one-line
+  `continue` on nil entries, applied identically to the production code
+  and its golden-test oracle — rather than re-deferred. This is a bugfix,
+  not a legality-semantics change: no declarative predicate's behavior is
+  affected.
+
+- **`../games/darwin`'s two `moves.FixUp`-embedding climate-card moves
+  (`moveReplaceHotClimateCard`/`moveReplaceColdClimateCard`) are now
+  plausibly migratable but were not attempted this round.** Both checks
+  (a negative phase comparison + a stack-emptiness check) look fully
+  expressible via §2's `PropNotEquals` + §1's `StackEmpty` now that §5
+  widened the seam to include `FixUp`. Out of this task's declared file
+  scope (darwin's reverted `moves.CurrentPlayer` moves plus
+  `moveDealCard`); flagged in-repo (the file's top-of-file survey
+  comment) rather than silently left looking permanently blocked, since
+  the seam-widening reason the original comment gave is no longer true.

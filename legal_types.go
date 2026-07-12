@@ -16,7 +16,19 @@ import (
 // evaluator couldn't safely interpret. Consumers: server/api's info
 // response ships it as LegalCatalogVersion; a future TS evaluator reads it
 // to decide whether it trusts its own bundled catalog for this game.
-const LegalCatalogVersion = 1
+//
+// v1 -> v2 (completeness round, 2026-07-12-legality-completeness-design.md):
+// new predicate names (stackCount, stackEmpty, stackNotEmpty, propEquals,
+// propNotEquals, componentAbsentAt), playerBool's optional second arg, and
+// the players[move.<Field>].<Prop> path grammar kind are all additions an
+// older (v1) client's evaluator could not safely interpret (unknown
+// predicate names, an unexpected extra arg, a path shape its parser
+// doesn't recognize) — exactly the "graceful skew" case this stamp exists
+// for. No wire SHAPE changed (PreconditionEntry itself is unchanged); the
+// VOCABULARY did, which is what this stamp tracks. No design argument in
+// the completeness round relies on client-side skew handling, since that
+// doesn't exist until sub-project B — this bump is forward pin only.
+const LegalCatalogVersion = 2
 
 // LegalOutcome is the three-valued verdict returned by legality evaluation.
 // The zero value is deliberately invalid (neither LegalPass, LegalFail, nor

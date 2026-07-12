@@ -41,10 +41,12 @@ capability in this package that requires a game to adopt it.
 	)
 
 Each argument to WithPreconditions is a Spec built by one of this package's
-catalog functions (PropAtLeast, PropCompare, PlayerBool, ComponentPresentAt,
-ComponentPresentAtKey, MayMoveTo, MayMoveToSlot, Any, AllActivePlayers,
-RevealableCardAt, ComponentPropEqualsCurrentPlayer, ProposerIsCurrentPlayer,
-InPhase, StackConstraints — the full, current list is DefaultConstructors()).
+catalog functions (PropAtLeast, PropCompare, PlayerBool, PlayerBoolIs,
+StackCount, StackEmpty, StackNotEmpty, PropEquals, PropNotEquals,
+ComponentPresentAt, ComponentAbsentAt, ComponentPresentAtKey, MayMoveTo,
+MayMoveToSlot, Any, AllActivePlayers, RevealableCardAt,
+ComponentPropEqualsCurrentPlayer, ProposerIsCurrentPlayer, InPhase,
+StackConstraints — the full, current list is DefaultConstructors()).
 At NewGameManager, every declared Spec is resolved through the registry,
 every path it references is validated (a typo is a boot error naming the
 move and the path — never a mid-game surprise), and one ordered plan is
@@ -91,12 +93,18 @@ that doesn't exist:
     portable to a client-side TypeScript evaluator without ever needing to
     port a general-purpose expression language.
 
-`any` (Any, in this package) is the only compositor in v1, registry-enforced
-to depth 1 — no nested `any`, no first-class `not`. There is deliberately no
-`all`: the plan's ordered list of top-level specs already is the conjunction.
-Framework move types whose semantics are inherently negated or conditional
-(ApplyUntil and its subclasses, RoundRobin) stay opaque in v1 rather than
-bending this rule.
+`any` (Any, in this package) is the only compositor, registry-enforced to
+depth 1 — no nested `any`, no first-class `not` wrapper around an arbitrary
+sub-spec. There is deliberately no `all`: the plan's ordered list of
+top-level specs already is the conjunction. The completeness round (design
+spec 2026-07-12) added explicit NEGATION LEAVES instead of a general `not`
+compositor — PlayerBoolIs(prop, false), PropNotEquals, and ComponentAbsentAt
+each invert one specific relation, covering the common single-property
+negation without a general wrapper. A disjunction-of-conjunctions shape
+((A∧B)∨(C∧D)) still has no expression (no nested `any`, no `all`) and stays
+LegalCustom. Framework move types whose semantics are inherently negated or
+conditional (ApplyUntil and its subclasses, RoundRobin) stay opaque rather
+than bending this rule.
 
 # The escape hatch
 
@@ -225,28 +233,70 @@ the unchanged LegalForPlayer/LegalForPlayerError/LegalForAnyone fields.
 There is no client-side (TypeScript) evaluator yet; that's a designed-for
 follow-up the wire format and Reads/Facet machinery already anticipate.
 
-# v1 limits (read honestly, not as marketing)
+# v2 limits (read honestly, not as marketing)
 
-  - **`player.X` paths resolve against the game's CurrentPlayerIndex, not the
-    proposing player.** In a simultaneous-move phase — every player
-    proposing at once, the game's own notion of "current player" being
-    Admin or none — `player.X` cannot express "the player who proposed this
-    move"; it returns an error or Unknown instead. This blocked a real
-    migration in a downstream game with a simultaneous-move phase, which was
-    reverted specifically for this reason rather than shipped incorrect.
-  - **No negation.** `any` is the only compositor; there is no `not`. A
-    negated condition needs a purpose-built predicate (rule 2 above) or
-    LegalCustom.
-  - **The composition seam is moves.Default and moves.CurrentPlayer only.**
-    Every other framework move type in package moves — FixUp, StartPhase,
-    DealCountComponents, FinishTurn, RoundRobin, and the rest — is opaque in
-    v1: it does not implement the contribution interface, so a move
-    embedding one of them and declaring WithPreconditions fails at boot,
-    naming the unsupported base type. Extending the seam is one-at-a-time
-    follow-up work, each requiring its own golden-equivalence tests.
+v1 shipped counts as an unused facet (FacetCount existed, no predicate read
+it), no typed equality, no move-field-indexed player paths, and only the
+bare playerBool/ComponentPresentAt negation-free leaves. The completeness
+round (design spec 2026-07-12) closed those four gaps — StackCount/
+StackEmpty/StackNotEmpty, PropEquals/PropNotEquals, the
+players[move.<Field>].<Prop> path kind, and PlayerBoolIs/ComponentAbsentAt,
+respectively — and widened the composition seam. What's left, honestly:
+
+  - **`proposer.X` — proposer-relative legality with no move field naming
+    the proposer — is still unsupported.** `player.X` paths resolve against
+    the game's CurrentPlayerIndex, not the proposing player, and in a
+    simultaneous-move phase (every player proposing at once, the game's own
+    "current player" being Admin or none) that's not "the player who
+    proposed this move" — it returns an error or Unknown instead. The
+    completeness round's players[move.<Field>].<Prop> path kind fixes the
+    common shape of this gap (a move field, e.g. moves.CurrentPlayer's own
+    TargetPlayerIndex, names the relevant player — the exact case that
+    blocked and then unblocked a downstream game's simultaneous-move-phase
+    migration). What remains unsupported is deriving the path from the
+    proposer with NO move field naming them at all — that needs a
+    LegalForAnyone redesign (per-player existential evaluation), deferred to
+    a future round.
+  - **AllActivePlayers' inner leaf only accepts int/bool-typed properties.**
+    PlayerBool/PlayerBoolIs, player-path PropAtLeast/PropCompare, or an Any
+    of those — never an enum- or PlayerIndex-typed property, even though
+    PropEquals now supports both at the top level. A per-player quantifier
+    over "has everyone voted" (PlayerIndex-typed) or "everyone selected
+    class X" (enum-typed) has no expression yet. Found migrating a
+    werewolf-shaped game; not yet closed.
+  - **Negation is explicit-leaf-only, not general.** PlayerBoolIs(prop,
+    false), PropNotEquals, and ComponentAbsentAt cover single-property
+    negation; there is still no general `not` wrapper and no `all`
+    compositor, so a disjunction-of-conjunctions shape ((A∧B)∨(C∧D)) has no
+    expression and stays LegalCustom.
+  - **DynamicComponentValues have no path grammar equivalent.** A check
+    reading a component's per-game dynamic values (as opposed to its static
+    chest-defined Values()) — a card's current face-up type, a species'
+    population counter — always needs LegalCustom. Across every game
+    surveyed so far, this is the single most common reason a real move
+    stays partially opaque.
+  - **The composition seam is moves.Default, moves.CurrentPlayer,
+    moves.FixUp, moves.FixUpMulti, and moves.StartPhase.** All five declare
+    no Legal() override of their own (a source-parse test enforces this
+    invariant, so a future override is a boot-red test forcing a conscious
+    seam decision). Every other framework move type in package moves —
+    DealCountComponents, FinishTurn, RoundRobin, and the rest — is opaque:
+    it does not implement the contribution interface, so a move embedding
+    one of them and declaring WithPreconditions fails at boot, naming the
+    unsupported base type. FinishTurn/DealCountComponents specifically stay
+    blocked because a partial contribution could desync the ledger;
+    round-robin/progression-aware predicates are future work.
   - **MayMoveTo/MayMoveToSlot take a single index field**, used for both the
     source lookup and (for MayMoveToSlot) the destination slot. There is no
     variant that names two different indices.
+  - **An unknown enum value name (PropEquals/PropNotEquals) is a
+    LegalUnknown at evaluate time, not a boot-time construction error.** A
+    constructor-time typo guard catches the common case when a chest is
+    available at construction, but the wider "unknown enum name = boot
+    error" design aspiration isn't fully delivered — closing it for real
+    needs either a wider constructor signature (example state reachable at
+    construction) or a dedicated boot-validation hook, neither of which
+    exists yet.
   - **Bucket reordering narrows the "historical first-failure message"
     claim.** The plan evaluator splits a move's plan into a field-independent
     bucket (no move.* reads) and a field-dependent bucket (>=1 move.* read),
@@ -255,10 +305,12 @@ follow-up the wire format and Reads/Facet machinery already anticipate.
     proposerIsCurrentPlayer reads move.TargetPlayerIndex (field-dependent),
     a field-independent authored check that would have run AFTER the
     proposer check in the old linear chain can now report its failure
-    FIRST, for inputs that fail both simultaneously. Real migrations
-    documented and test-asserted this divergence rather than hiding it (see
-    each migrated game's legal_golden_test.go and this repo's
-    knownMessageOrderingDivergence-style maps).
+    FIRST, for inputs that fail both simultaneously. players[move.<Field>].X
+    reads are ALSO field-dependent (they read a move field), so this applies
+    to them too. Real migrations documented and test-asserted this
+    divergence rather than hiding it (see each migrated game's
+    legal_golden_test.go and this repo's knownMessageOrderingDivergence-style
+    maps).
 
 None of these are dead ends — LegalCustom always works, and each gap above
 is exactly the shape of thing rule 1-3 above is designed to grow the catalog
