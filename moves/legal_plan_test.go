@@ -271,6 +271,75 @@ func TestCurrentPlayerOptInProposerAtom(t *testing.T) {
 	}
 }
 
+// --- CurrentPlayer opt-in suppressing the proposer atom (final-review boot
+// guard: this suppression is ineffective on Legal() itself, since
+// CurrentPlayer.Legal's imperative proposer check runs regardless of the
+// plan) ---
+
+//boardgame:codegen
+type moveCurrentPlayerSuppressedProposer struct {
+	CurrentPlayer
+}
+
+func (m *moveCurrentPlayerSuppressedProposer) Apply(state boardgame.State) error { return nil }
+
+// TestCurrentPlayerSuppressedProposerIsBootError (final review finding):
+// WithoutPrecondition("proposerIsCurrentPlayer") on a move embedding
+// CurrentPlayer would remove the contributed proposer atom from the plan
+// (so the ledger/client would report the move legal for any proposer) while
+// CurrentPlayer.Legal's imperative proposer-equivalence check keeps running
+// unconditionally after its super-call — a ledger/actual divergence. Boot
+// must reject this combination naming the move, rather than let a client
+// silently disagree with the server about legality.
+func TestCurrentPlayerSuppressedProposerIsBootError(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveCurrentPlayerSuppressedProposer),
+				WithMoveName("Current Player Suppressed Proposer"),
+				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutPrecondition("proposerIsCurrentPlayer"),
+			),
+		)
+	}
+
+	_, err := newGameManager(installer)
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Current Player Suppressed Proposer")).IsTrue()
+		assert.For(t, "names the mechanism").ThatActual(strings.Contains(err.Error(), "proposerIsCurrentPlayer")).IsTrue()
+		assert.For(t, "names CurrentPlayer").ThatActual(strings.Contains(err.Error(), "CurrentPlayer")).IsTrue()
+	}
+}
+
+// TestDefaultSuppressedProposerStillBoots (final review finding, contrast
+// case): the identical WithoutPrecondition("proposerIsCurrentPlayer") call
+// on a moves.Default-embedding move (which never contributes that atom in
+// the first place, and has no imperative proposer check to diverge from)
+// still boots cleanly — the boot guard above is CurrentPlayer-specific, not
+// a blanket ban on suppressing this name. moveDeclaredPreconditions
+// (contributed_preconditions_test.go) already exercises this exact
+// suppression on a Default-embedding move via
+// TestWithPreconditionsRoundTrip; this test pins the "boots without error"
+// half directly and by name, next to its CurrentPlayer counterpart above.
+func TestDefaultSuppressedProposerStillBoots(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(
+			auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Default Suppressed Proposer"),
+				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutPrecondition("proposerIsCurrentPlayer"),
+			),
+		)
+	}
+
+	_, err := newGameManager(installer)
+	assert.For(t, "boots (Default has no proposer check to diverge from)").ThatActual(err).IsNil()
+}
+
 // --- Registry-merge boot test ---
 
 //boardgame:codegen

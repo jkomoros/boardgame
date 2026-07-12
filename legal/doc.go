@@ -132,6 +132,16 @@ without its own bespoke base type. It does not remove an authored
 WithPreconditions spec; those are simply not passed in the first place if
 you don't want them.
 
+"proposerIsCurrentPlayer" is suppressible ONLY on a moves.Default-embedding
+move (where it does nothing anyway, since Default never contributes it in
+the first place — the entry is symmetry, not function). On a
+moves.CurrentPlayer-embedding move it is a boot error: CurrentPlayer.Legal()
+runs its proposer-equivalence check imperatively, unconditionally, after its
+super-call into Default.Legal, so suppressing the contributed atom would
+silently desync the plan/ledger (which would then say "legal") from Legal()
+itself (which still rejects a wrong proposer). If a CurrentPlayer-based move
+genuinely needs no proposer check, embed moves.Default instead.
+
 A `Legal()` override that super-calls into the frozen chain (the existing,
 universal embedding pattern — `if err := m.CurrentPlayer.Legal(...); err !=
 nil { ... }`) is fully compatible: the super-call evaluates the plan for an

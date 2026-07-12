@@ -418,6 +418,27 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 			return fmt.Errorf("move %q declares preconditions but embeds unsupported framework move type %q: only moves.Default and moves.CurrentPlayer support declarative legality in v1", mType.Name(), base)
 		}
 
+		// Final-review finding: on a CurrentPlayer-embedding move,
+		// CurrentPlayer.Legal() runs its proposer-equivalence check
+		// imperatively and UNCONDITIONALLY after its super-call into
+		// Default.Legal (moves/current_player.go) — the super-call is where
+		// the plan seam lives (see the invariant note on
+		// buildLegalPlanFromPredicates below), but the imperative check right
+		// after it is not part of the plan and cannot be suppressed by
+		// removing a plan atom. So WithoutPrecondition("proposerIsCurrentPlayer")
+		// on such a move would suppress the CONTRIBUTED atom from the plan
+		// (making the ledger/client report the move as legal for any
+		// proposer) while Legal() itself keeps rejecting a wrong proposer —
+		// a ledger/actual divergence. Catch it at boot rather than let it
+		// silently desynchronize the client.
+		if legalMoveEmbedsCurrentPlayer(move) {
+			for _, name := range suppressions {
+				if name == "proposerIsCurrentPlayer" {
+					return fmt.Errorf("move %q suppresses \"proposerIsCurrentPlayer\" but embeds moves.CurrentPlayer: suppressing the proposer atom on a CurrentPlayer-embedding move has no effect on Legal() (the imperative check still runs) and would desynchronize the client ledger; embed moves.Default instead", mType.Name())
+				}
+			}
+		}
+
 		var contributed []LegalSpec
 		if contributor, ok := move.(legalContributor); ok {
 			contributed = contributor.ContributedPreconditions()
@@ -510,6 +531,15 @@ func assembleLegalSpecList(contributed, authored []LegalSpec, suppressions []str
 // never evaluates against a real *Game — see legalPlan.evaluate, which skips
 // the memo whenever ctx.State.Game() is nil regardless of moveName). specs is
 // the parallel serializable spec list.
+//
+// Invariant: the super-call into Default.Legal evaluates this plan EXACTLY
+// ONCE per Legal() call. For a Default-embedding move that covers the whole
+// chain. A CurrentPlayer-embedding opted-in move additionally runs
+// CurrentPlayer.Legal's own imperative proposer-equivalence residue after
+// that single super-call — verified equivalent to the plan's contributed
+// proposerIsCurrentPlayer atom by each migrated game's golden tests (see
+// legalMoveEmbedsCurrentPlayer above for the case where the two could
+// diverge).
 func buildLegalPlanFromPredicates(moveName string, predicates []*LegalPredicate, specs []LegalSpec, move Move) *legalPlan {
 	plan := &legalPlan{specs: specs, moveName: moveName}
 	for _, pred := range predicates {
@@ -603,7 +633,7 @@ func (g *GameManager) probeLegalReachable(mType *moveType, exampleState Immutabl
 	g.legalProbeReached = false
 
 	if !reached {
-		return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain)", mType.Name())
+		return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it", mType.Name())
 	}
 	return nil
 }
@@ -624,15 +654,49 @@ const legalMovesPackagePathSuffix = "boardgame/moves"
 // built on either walks clean; a move built on DealCountComponents,
 // StartPhase, FinishTurn, etc. surfaces that type's name.
 func legalUnsupportedMovesBaseType(move Move) string {
+	var found string
+	legalWalkMovesEmbeds(move, func(name string) bool {
+		if name != "Default" && name != "CurrentPlayer" {
+			found = name
+			return true
+		}
+		return false
+	})
+	return found
+}
+
+// legalMoveEmbedsCurrentPlayer reports whether move's embed graph includes
+// moves.CurrentPlayer (final-review finding, assembleLegalPlans above):
+// CurrentPlayer.Legal() runs an imperative proposer-equivalence check
+// UNCONDITIONALLY after its super-call to Default.Legal, so suppressing the
+// contributed "proposerIsCurrentPlayer" atom removes it from the plan/ledger
+// without removing the enforcement — assembleLegalPlans uses this to reject
+// that combination at boot rather than let client and server disagree.
+func legalMoveEmbedsCurrentPlayer(move Move) bool {
+	return legalWalkMovesEmbeds(move, func(name string) bool {
+		return name == "CurrentPlayer"
+	})
+}
+
+// legalWalkMovesEmbeds walks move's anonymous-embed graph depth-first,
+// calling visit with the name of every embedded framework moves-package type
+// found (e.g. "Default", "CurrentPlayer", "StartPhase", ...), stopping and
+// returning true as soon as visit returns true. Shared by
+// legalUnsupportedMovesBaseType (the v1 seam check, looking for the first
+// name outside the Default/CurrentPlayer allow-list) and
+// legalMoveEmbedsCurrentPlayer (the proposer-suppression guard above,
+// looking specifically for "CurrentPlayer") so both consumers walk the exact
+// same embed graph the exact same way.
+func legalWalkMovesEmbeds(move Move, visit func(name string) bool) bool {
 	seen := make(map[reflect.Type]bool)
 
-	var walk func(t reflect.Type) string
-	walk = func(t reflect.Type) string {
+	var walk func(t reflect.Type) bool
+	walk = func(t reflect.Type) bool {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem()
 		}
 		if t.Kind() != reflect.Struct || seen[t] {
-			return ""
+			return false
 		}
 		seen[t] = true
 
@@ -649,16 +713,15 @@ func legalUnsupportedMovesBaseType(move Move) string {
 				continue
 			}
 			if strings.HasSuffix(ft.PkgPath(), legalMovesPackagePathSuffix) {
-				name := ft.Name()
-				if name != "Default" && name != "CurrentPlayer" {
-					return name
+				if visit(ft.Name()) {
+					return true
 				}
 			}
-			if found := walk(ft); found != "" {
-				return found
+			if walk(ft) {
+				return true
 			}
 		}
-		return ""
+		return false
 	}
 
 	return walk(reflect.TypeOf(move))
