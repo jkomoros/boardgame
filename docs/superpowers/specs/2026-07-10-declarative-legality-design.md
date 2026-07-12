@@ -353,7 +353,11 @@ type PreconditionPlan struct {
   authored atoms in declaration order; `custom` always last. No Cost-sorting
   in v1** — what you declare is what runs, in the order you wrote it (least
   surprise; migrated moves keep their historical first-failure messages
-  without snapshot churn). `Cost` stays on every predicate as metadata: docs
+  without snapshot churn). Caveat (footgun batch F7): the field-independent →
+  field-dependent bucket split in the next bullet takes precedence ACROSS
+  buckets, so this holds only within a bucket — a field-independent check
+  declared after a field-dependent one still evaluates, and reports its
+  failure, first. `Cost` stays on every predicate as metadata: docs
   and lints use it ("expensive predicate declared before cheap ones"), and a
   future opt-in reordering can use it without a representation change.
   Deterministic order ⇒ the same state always reports the same failure.

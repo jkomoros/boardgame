@@ -197,7 +197,10 @@ pass WithPreconditions. A move that does opt in gets its checks assembled
 into a plan at NewGameManager (base-derived checks — phase, move-progression,
 stack constraints, and for CurrentPlayer the proposer check — first, then the
 authored WithPreconditions specs in order); Default.Legal() then evaluates
-that plan instead of running the old chain. [WithoutPrecondition] suppresses
+that plan instead of running the old chain. One ordering caveat: checks that
+read no move.* path all evaluate (and report their failure) before any check
+that does, regardless of declaration order — declaration order is preserved
+only within each of those two groups. [WithoutPrecondition] suppresses
 one of those base-derived checks by its stable name (pass the exported
 constants: [PreconditionInPhase], [PreconditionInProgression],
 [PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer]) for a

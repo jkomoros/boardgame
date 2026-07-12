@@ -201,9 +201,16 @@ overrides the table via an optional delegate method:
 	    ConfigureLegalTemplates() map[string]string
 	}
 
-validated at NewGameManager: every template key referenced by any declared
-Spec, FailT call, or Errorf call must resolve to registered text — an
-unregistered key is a boot error naming the move, never a runtime surprise.
+validated at NewGameManager: every template key referenced by a declared
+Spec (a WithMessage override) or listed in a predicate's EmittedTemplates
+metadata (which every catalog constructor populates with the keys its
+Evaluate can FailT with) must resolve to registered text — an unregistered
+key there is a boot error naming the move, never a runtime surprise. That
+guarantee is scoped to declared Specs and EmittedTemplates: a FailT or
+Errorf key born INSIDE arbitrary Go — a LegalCustom body, or an emission
+path a game-registered predicate didn't list in EmittedTemplates — cannot be
+boot-validated (closures are not introspectable), and an unregistered key
+there degrades at render time to RenderMessage's bare-key fallback instead.
 Use Spec.WithMessage("your.key") on any catalog builder's return value to
 point that one predicate's failure at a specific key instead of its
 predicate-level default; see memory's
@@ -242,11 +249,36 @@ example (examples/checkers/main.go's ConfigurePredicateConstructors): a
 board-geometry check with no natural fit in a game-agnostic catalog, but
 which is still a genuine relation over one path (a space index), so it
 becomes a small, named, serializable game-registered predicate rather than
-LegalCustom residue. A game-registered predicate's declared Reads is honored
-by convention — there is no framework-level verification that a
-game-supplied Evaluate func only touches what it declares; keep Reads
-conservative (over-approximate rather than under-approximate) so client
-evaluability calculations (see below) stay honest. Alongside
+LegalCustom residue.
+
+Two hard requirements on a game-registered Evaluate, and the consequences of
+breaking them:
+
+Declared Reads must cover every path Evaluate touches — over-approximate,
+never under-approximate. Reads is an honor system (a Go closure cannot be
+introspected), and the failure mode of UNDER-declaring a move.* (or
+players[move.*]) read is much worse than a client-side evaluability skew:
+plan assembly sorts a predicate with no declared move reads into the
+field-independent bucket, whose verdict is memoized keyed on (move type,
+state version, proposer) — WITHOUT the move's field values — so the SERVER
+ITSELF serves a stale verdict when only the move's fields change. The boot
+gauntlet smoke-probes the common shape of this bug: each field-independent
+game-registered predicate is evaluated once against the example state with a
+sentinel move whose property reader panics on any access, and touching the
+move's properties is a boot error naming the move and the predicate. Do not
+lean on the probe, though — it cannot see a move read that is conditional on
+state the example state doesn't exhibit, or one made through a concrete type
+assertion on ctx.Move rather than ctx.ResolvePath/ctx.Move.Reader(), so an
+honest Reads declaration remains YOUR responsibility.
+
+Evaluate must be a pure function of its LegalContext: no time, no
+randomness, no I/O, no mutation, nothing outside ctx. Verdicts are memoized
+and replayed (the same field-independent memo above) and are assumed
+reproducible everywhere a verdict crosses a boundary (ledger, logs, a future
+client evaluator); an impure Evaluate makes the cached verdict silently
+wrong with no error anywhere.
+
+Alongside
 EmittedTemplates (the keys your Evaluate can FailT with, boot-validated
 against the game's template table), a game-registered predicate SHOULD also
 populate EmittedBindings: a map from each emitted template key to the

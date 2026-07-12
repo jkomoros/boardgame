@@ -78,12 +78,16 @@ type legalTemplateConfigurer interface {
 
 // legalPlan is the per-opted-in-move-type evaluation plan, built once at
 // NewGameManager (design spec §4). Predicates are split into buckets by
-// whether they read any move.* path; the split exists so a later task can
-// memoize the field-independent half across the move-forms player+admin
-// double pass (keyed without the move). Evaluation order is plan order —
-// contributed atoms first (base-first), then authored atoms in declaration
-// order, then custom — with NO Cost sort (design spec §4: what you declare is
-// what runs, in the order you wrote it).
+// whether they read any move.* path; the split exists so the
+// field-independent half can be memoized across the move-forms player+admin
+// double pass (keyed without the move). Evaluation order is bucket order
+// first — every fieldIndependent predicate, then every fieldDependent one,
+// then custom — and plan order (contributed atoms base-first, then authored
+// atoms in declaration order) only WITHIN each bucket, with NO Cost sort.
+// The design spec §4's "what you declare is what runs, in the order you
+// wrote it" therefore holds within a bucket but not across buckets (footgun
+// batch F7): a field-independent check declared after a field-dependent one
+// still evaluates, and reports its failure, first.
 type legalPlan struct {
 	// moveName is the owning move type's name (mType.Name()), used as part
 	// of the field-independent memo's key (legal_memo.go) so a lookup can't
