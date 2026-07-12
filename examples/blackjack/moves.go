@@ -278,35 +278,34 @@ func (m *moveCurrentPlayerHit) Apply(state boardgame.State) error {
  *
  * moveCurrentPlayerStand Implementation
  *
- * Stays fully imperative, same rationale as moveCurrentPlayerHit above: both
- * checks are "this bool field must be FALSE", and the catalog has no
- * negation primitive (legal.PlayerBool only passes when true). No natural
- * WithPreconditions candidate; not forced.
- *
  **************************************************/
 
-func (m *moveCurrentPlayerStand) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, players := concreteStates(state)
-
-	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if currentPlayer.Eliminated {
-		return errors.New("the current player has already busted")
-	}
-
-	if currentPlayer.Stood {
-		return errors.New("the current player already stood")
-	}
-
-	return nil
-
-}
-
+// Legal() is deliberately absent: this move opted into declarative legality.
+// The original stale comment claimed moveCurrentPlayerStand could not migrate
+// because both its gates are "this bool field must be FALSE" and v1's catalog
+// had no negation primitive (legal.PlayerBool only passes when true). The
+// completeness round shipped legal.PlayerBoolIs(prop, want), so the gates are
+// now legal.PlayerBoolIs("Eliminated", false) and legal.PlayerBoolIs("Stood",
+// false), added via WithPreconditions in main.go's ConfigureMoves; the
+// proposer/current-player check is contributed base-first by
+// moves.CurrentPlayer. The declaration order is preserved within the
+// field-independent bucket, so Eliminated's message wins if both are somehow
+// true, matching the legacy body's top-to-bottom order. The original
+// imperative body (kept only as legacyLegalMoveCurrentPlayerStand, a private
+// copy in legal_golden_test.go, for golden-equivalence testing) read:
+//
+//	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+//		return err
+//	}
+//	game, players := concreteStates(state)
+//	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
+//	if currentPlayer.Eliminated {
+//		return errors.New("the current player has already busted")
+//	}
+//	if currentPlayer.Stood {
+//		return errors.New("the current player already stood")
+//	}
+//	return nil
 func (m *moveCurrentPlayerStand) Apply(state boardgame.State) error {
 
 	game, players := concreteStates(state)

@@ -257,6 +257,19 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveCurrentPlayerStand),
 				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
+				// Declarative migration: Legal() is deleted (see moves.go);
+				// its two negated-boolean gates are now these preconditions.
+				// The InPhase(phaseNormalPlay) atom is contributed by
+				// moves.AddForPhase and the proposer/current-player atom is
+				// contributed base-first by moves.CurrentPlayer, so neither is
+				// authored here. Order matters: Eliminated FIRST so its message
+				// wins if both are somehow true, matching the legacy body's
+				// top-to-bottom order (both gates are field-independent, so
+				// declaration order is preserved within the bucket).
+				moves.WithPreconditions(
+					legal.PlayerBoolIs("Eliminated", false).WithMessage("stand.already_busted"),
+					legal.PlayerBoolIs("Stood", false).WithMessage("stand.already_stood"),
+				),
 			),
 			auto.MustConfig(
 				new(moveRevealHiddenCard),
@@ -337,15 +350,21 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 }
 
-// ConfigureLegalTemplates supplies the one game-specific template key
-// moveStartRoundCleanup's WithPreconditions plan overrides (design spec
-// §8): legal.AllActivePlayers' default message ("not every active player
-// satisfies the required condition") is generic, so the "cleanup.
-// players_unfinished" override carries the exact legacy string from the
-// pre-migration Legal() body instead.
+// ConfigureLegalTemplates supplies the game-specific template keys the
+// migrated moves' WithPreconditions plans override (design spec §8):
+//   - "cleanup.players_unfinished" (moveStartRoundCleanup): legal.
+//     AllActivePlayers' default message ("not every active player satisfies
+//     the required condition") is generic, so this override carries the exact
+//     legacy string from the pre-migration Legal() body.
+//   - "stand.already_busted" / "stand.already_stood" (moveCurrentPlayerStand):
+//     legal.PlayerBoolIs's default message (TemplatePlayerBool, e.g. "requires
+//     Eliminated to be false") is generic, so these overrides carry the exact
+//     legacy strings from that move's pre-migration Legal() body.
 func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 	return map[string]string{
 		"cleanup.players_unfinished": "not all active players have finished their turn",
+		"stand.already_busted":       "the current player has already busted",
+		"stand.already_stood":        "the current player already stood",
 	}
 }
 

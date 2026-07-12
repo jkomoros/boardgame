@@ -229,3 +229,178 @@ func TestGoldenLegalMoveStartRoundCleanup(t *testing.T) {
 		})
 	}
 }
+
+/**************************************************
+ *
+ * moveCurrentPlayerStand golden coverage
+ *
+ **************************************************/
+
+// blackjackStandProposers mirrors examples/pig/legal_golden_test.go's
+// pigProposers: the four proposer identities worth distinguishing for a
+// moves.CurrentPlayer move — the current player (legal turn owner), some other
+// concrete player (fails the proposer check), AdminPlayerIndex (a wildcard
+// that passes the proposer check), and ObserverPlayerIndex (fails). This move
+// (unlike moveStartRoundCleanup) DOES embed moves.CurrentPlayer, so the
+// proposer identity matters and admin/currentPlayer must be distinguished.
+func blackjackStandProposers(t *testing.T, state boardgame.State) map[string]boardgame.PlayerIndex {
+	t.Helper()
+	currentPlayer := state.CurrentPlayerIndex()
+	var otherPlayer boardgame.PlayerIndex = -1
+	for i := range state.ImmutablePlayerStates() {
+		pIdx := boardgame.PlayerIndex(i)
+		if pIdx != currentPlayer {
+			otherPlayer = pIdx
+			break
+		}
+	}
+	if otherPlayer < 0 {
+		t.Fatal("legal_golden: could not find a non-current player")
+	}
+	return map[string]boardgame.PlayerIndex{
+		"currentPlayer": currentPlayer,
+		"otherPlayer":   otherPlayer,
+		"admin":         boardgame.AdminPlayerIndex,
+		"observer":      boardgame.ObserverPlayerIndex,
+	}
+}
+
+// legacyLegalMoveCurrentPlayerStand is a hand-copied snapshot of
+// moveCurrentPlayerStand's Legal() method exactly as it read before this
+// migration (see moves.go's doc comment for the original source). The
+// proposer checks replicate moves.CurrentPlayer.Legal's
+// TargetPlayerIndex/proposer logic directly (NOT via m.CurrentPlayer.Legal,
+// which would dispatch into the migrated plan). The Default.Legal phase check
+// that CurrentPlayer.Legal super-calls is omitted here for the same reason
+// pig's legacyLegalMoveCountDie omits it: every fixture is a fresh default
+// game sitting in phaseNormalPlay, so that phase gate always passes (returns
+// nil) and cannot change the result.
+func legacyLegalMoveCurrentPlayerStand(m *moveCurrentPlayerStand, state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	currentPlayer := state.CurrentPlayerIndex()
+	targetPlayerIndex := m.TargetPlayerIndex.EnsureValid(state)
+
+	if !targetPlayerIndex.Valid(state) {
+		return errors.New("The specified target player is not valid")
+	}
+	if targetPlayerIndex < 0 {
+		return errors.New("The specified target player is not valid")
+	}
+	if !targetPlayerIndex.Equivalent(currentPlayer) {
+		return errors.New("it's not your turn")
+	}
+	if !targetPlayerIndex.Equivalent(proposer) {
+		return errors.New("it's not your turn")
+	}
+
+	game, players := concreteStates(state)
+	p := players[game.CurrentPlayer.EnsureValid(state)]
+
+	if p.Eliminated {
+		return errors.New("the current player has already busted")
+	}
+
+	if p.Stood {
+		return errors.New("the current player already stood")
+	}
+
+	return nil
+}
+
+// knownMessageOrderingDivergenceStand names (fixture, proposer) combinations
+// where the migrated plan disagrees with the legacy oracle on WHICH message
+// wins (nil-ness ALWAYS matches), for the documented bucket-reordering reason:
+// both legal.PlayerBoolIs gates read no move.* path, so they land in the
+// field-INDEPENDENT bucket and evaluate BEFORE the contributed proposer atom
+// (field-dependent), reversing their legacy relative order. This only bites
+// when a bool gate actually FAILS (the "eliminated" and "stood" fixtures) AND
+// the proposer check would also fail ("otherPlayer"/"observer"): legacy
+// reports "it's not your turn" first, the plan reports the bool-gate message
+// first. The "default" fixture has both bools false (gates PASS), so the
+// contributed proposer atom runs and, when it fails, wins byte-for-byte in
+// both orderings — no divergence. "admin" NEVER diverges: AdminPlayerIndex is
+// a wildcard that passes the proposer check in both the legacy oracle
+// (targetPlayerIndex.Equivalent(admin) == true) and the plan's proposer atom,
+// so it reaches the bool gate in both and the same bool message wins.
+// moveCurrentPlayerStand is a PLAYER move (phaseNormalPlay), not a fixup, so
+// there is no setup-memo artifact — every proposer cell recomputes fresh.
+var knownMessageOrderingDivergenceStand = map[string]bool{
+	"eliminated/otherPlayer": true,
+	"eliminated/observer":    true,
+	"stood/otherPlayer":      true,
+	"stood/observer":         true,
+}
+
+func TestGoldenLegalMoveCurrentPlayerStand(t *testing.T) {
+	type fixture struct {
+		name string
+		game *boardgame.Game
+	}
+
+	var fixtures []fixture
+
+	// default: a fresh game (the current player has Eliminated=false,
+	// Stood=false), so both gates PASS — legal for the current player.
+	{
+		game := newStartRoundCleanupGame(t)
+		fixtures = append(fixtures, fixture{"default", game})
+	}
+
+	// eliminated: the current player's Eliminated forced true — the first
+	// gate FAILS ("the current player has already busted").
+	{
+		game := newStartRoundCleanupGame(t)
+		state, ok := game.CurrentState().(boardgame.State)
+		if !ok {
+			t.Fatal("legal_golden: CurrentState() was not mutable")
+		}
+		if err := state.CurrentPlayer().ReadSetter().SetBoolProp("Eliminated", true); err != nil {
+			t.Fatalf("legal_golden: setting Eliminated: %v", err)
+		}
+		fixtures = append(fixtures, fixture{"eliminated", game})
+	}
+
+	// stood: the current player's Stood forced true (Eliminated stays false,
+	// so the second gate is the one that FAILS — "the current player already
+	// stood").
+	{
+		game := newStartRoundCleanupGame(t)
+		state, ok := game.CurrentState().(boardgame.State)
+		if !ok {
+			t.Fatal("legal_golden: CurrentState() was not mutable")
+		}
+		if err := state.CurrentPlayer().ReadSetter().SetBoolProp("Stood", true); err != nil {
+			t.Fatalf("legal_golden: setting Stood: %v", err)
+		}
+		fixtures = append(fixtures, fixture{"stood", game})
+	}
+
+	for _, fx := range fixtures {
+		fx := fx
+		state := fx.game.CurrentState()
+		move := fx.game.MoveByName("Current Player Stand")
+		if move == nil {
+			t.Fatal("legal_golden: no \"Current Player Stand\" move found")
+		}
+		mv, ok := move.(*moveCurrentPlayerStand)
+		if !ok {
+			t.Fatal("legal_golden: \"Current Player Stand\" move was not a *moveCurrentPlayerStand")
+		}
+
+		for proposerName, proposer := range blackjackStandProposers(t, state.(boardgame.State)) {
+			t.Run(fx.name+"/"+proposerName, func(t *testing.T) {
+				legacyErr := legacyLegalMoveCurrentPlayerStand(mv, state, proposer)
+				actualErr := mv.Legal(state, proposer)
+
+				if (legacyErr == nil) != (actualErr == nil) {
+					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
+				}
+				if knownMessageOrderingDivergenceStand[fx.name+"/"+proposerName] {
+					return
+				}
+				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
+					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
+				}
+			})
+		}
+	}
+}
