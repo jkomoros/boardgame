@@ -259,8 +259,9 @@ func checkNoNestedAny(pred *LegalPredicate) error {
 // any-compositor predicate: at least 2 subs required. Its Reads is the
 // union of its children's Reads, its Cost the max of its children's Cost,
 // and its Evaluate implements the Kleene truth table (spec §6): any child
-// Pass -> Pass; else if any child Unknown -> Unknown; else Fail, with the
-// spec's Message key if set, else the "legal.any_failed" template.
+// Pass -> Pass; else if any child Unknown -> Unknown; else Fail. Both
+// non-Pass outcomes carry the spec's Message key if set, else the
+// "legal.any_failed" template (see evalLegalAnyKleene).
 //
 // resolve is expected to already be bound (by the caller, resolveLegalSpecs)
 // so that resolving any of spec's subs — including a nested "any", however
@@ -302,23 +303,42 @@ func resolveLegalAnySpec(spec LegalSpec, resolve func(LegalSpec) (*LegalPredicat
 
 // evalLegalAnyKleene implements the Kleene truth table for the "any"
 // compositor (spec §6): any child Pass -> Pass; else if any child Unknown
-// -> Unknown; else Fail (all children Fail), with a LegalMessage built from
-// template. Each child is evaluated via evalLegalPredicate so a panicking
+// -> Unknown; else Fail (all children Fail). Both non-Pass outcomes carry a
+// LegalMessage built from template (the spec's Message override, or the
+// "legal.any_failed" default) — LegalVerdict explicitly permits a Message on
+// LegalUnknown, and an Unknown here means "could not confirm that any
+// alternative holds", which renders to the player exactly like the all-Fail
+// case; the Unknown's Reason additionally names the FIRST unknown
+// sub-predicate for logs/debugging (footgun-batch F6: previously the Unknown
+// verdict carried only a bare anonymous Reason and dropped the template
+// entirely). Each child is evaluated via evalLegalPredicate so a panicking
 // or invalid-verdict child degrades to Unknown for that child rather than
 // propagating.
 func evalLegalAnyKleene(subs []*LegalPredicate, ctx LegalContext, template string) LegalVerdict {
 	sawUnknown := false
+	var firstUnknown *LegalPredicate
 	for _, sub := range subs {
 		v := evalLegalPredicate(sub, ctx)
 		switch v.Outcome {
 		case LegalPass:
 			return LegalVerdict{Outcome: LegalPass}
 		case LegalUnknown:
+			if !sawUnknown {
+				firstUnknown = sub
+			}
 			sawUnknown = true
 		}
 	}
 	if sawUnknown {
-		return LegalVerdict{Outcome: LegalUnknown, Reason: "a sub-predicate of \"any\" was unknown"}
+		name := "<nil>"
+		if firstUnknown != nil {
+			name = firstUnknown.Name
+		}
+		return LegalVerdict{
+			Outcome: LegalUnknown,
+			Message: &LegalMessage{Template: template},
+			Reason:  fmt.Sprintf("sub-predicate %q of %q was unknown", name, legalAnyCompositorName),
+		}
 	}
 	return LegalVerdict{
 		Outcome: LegalFail,

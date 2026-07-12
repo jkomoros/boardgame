@@ -253,6 +253,35 @@ func TestLegalAnyKleeneTruthTable(t *testing.T) {
 		v := evalLegalPredicate(preds[0], LegalContext{})
 		assert.For(t).ThatActual(v.Message.Template).Equals("custom.failed")
 	})
+
+	// Footgun-batch F6: an any(Fail, Unknown) Unknown verdict must carry the
+	// same Message the all-Fail case would (LegalVerdict explicitly permits a
+	// Message on LegalUnknown), and its Reason must identify WHICH
+	// sub-predicate was unknown — not a bare "something was unknown".
+	t.Run("fail-unknown Unknown carries default template and names the unknown child", func(t *testing.T) {
+		preds, err := resolveLegalSpecs([]LegalSpec{{Name: "any", Sub: []LegalSpec{{Name: "alwaysFail"}, {Name: "alwaysUnknown"}}}}, registry, nil, nil, nil)
+		assert.For(t).ThatActual(err).IsNil()
+		v := evalLegalPredicate(preds[0], LegalContext{})
+		assert.For(t).ThatActual(v.Outcome).Equals(LegalUnknown)
+		assert.For(t).ThatActual(v.Message).IsNotNil()
+		if v.Message != nil {
+			assert.For(t).ThatActual(v.Message.Template).Equals("legal.any_failed")
+		}
+		assert.For(t).ThatActual(strings.Contains(v.Reason, "alwaysUnknown")).Equals(true)
+	})
+
+	t.Run("fail-unknown Unknown carries spec Message override when set", func(t *testing.T) {
+		spec := LegalSpec{Name: "any", Sub: []LegalSpec{{Name: "alwaysUnknown"}, {Name: "alwaysFail"}}}.WithMessage("custom.failed")
+		preds, err := resolveLegalSpecs([]LegalSpec{spec}, registry, nil, nil, nil)
+		assert.For(t).ThatActual(err).IsNil()
+		v := evalLegalPredicate(preds[0], LegalContext{})
+		assert.For(t).ThatActual(v.Outcome).Equals(LegalUnknown)
+		assert.For(t).ThatActual(v.Message).IsNotNil()
+		if v.Message != nil {
+			assert.For(t).ThatActual(v.Message.Template).Equals("custom.failed")
+		}
+		assert.For(t).ThatActual(strings.Contains(v.Reason, "alwaysUnknown")).Equals(true)
+	})
 }
 
 // TestLegalAnyKleeneTruthTableExhaustiveThreeWay covers Finding 3: rather
