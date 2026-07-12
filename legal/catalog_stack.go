@@ -67,6 +67,11 @@ var defaultTemplateKeys = []string{
 	TemplateInPhase,
 	TemplateInProgression,
 	TemplateStackConstraints,
+	// Task 2 (legality-completeness round, catalog_count.go) additions:
+	// count/emptiness predicates on FacetCount/FacetNonEmpty.
+	TemplateStackCount,
+	TemplateStackEmpty,
+	TemplateStackNotEmpty,
 }
 
 // ComponentPresentAt returns a Spec for the "componentPresentAt" predicate:
@@ -371,6 +376,9 @@ func DefaultConstructors() []*PredicateConstructor {
 		componentPropEqualsCurrentPlayerConstructor(),
 		inPhaseConstructor(),
 		stackConstraintsConstructor(),
+		stackCountConstructor(),
+		stackEmptyConstructor(),
+		stackNotEmptyConstructor(),
 	}
 }
 

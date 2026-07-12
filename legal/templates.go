@@ -65,6 +65,9 @@ var defaultTemplates = map[string]string{
 	TemplateInPhase:                       "{detail}",
 	TemplateInProgression:                 "{detail}",
 	TemplateStackConstraints:              "{detail}",
+	TemplateStackCount:                    "requires the stack's count ({count}) to be {op} {n}",
+	TemplateStackEmpty:                    "requires the stack to be empty",
+	TemplateStackNotEmpty:                 "requires the stack to not be empty",
 	legalAnyFailedTemplate:                "none of the required conditions were satisfied",
 }
 

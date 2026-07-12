@@ -1,0 +1,30 @@
+{
+  "predicate": "stackCount",
+  "cases": [
+    {
+      "spec": {"name": "stackCount", "args": ["game.HiddenCards", ">=", "20"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "stackCount", "args": ["game.HiddenCards", "==", "5"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.stack_count"
+    },
+    {
+      "spec": {"name": "stackCount", "args": ["game.VisibleCards", "==", "0"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "stackCount", "args": ["game.NoSuchStackProp", ">=", "0"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

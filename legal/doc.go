@@ -234,12 +234,6 @@ follow-up the wire format and Reads/Facet machinery already anticipate.
     move"; it returns an error or Unknown instead. This blocked a real
     migration in a downstream game with a simultaneous-move phase, which was
     reverted specifically for this reason rather than shipped incorrect.
-  - **No count/stack-size predicate.** There is no catalog predicate for
-    "this stack has at least N components" (Stack.NumComponents() >= n),
-    even though the Read machinery already has a FacetCount facet designed
-    for exactly this purpose — no predicate uses it yet. Several real
-    migrations across example and downstream games were blocked on this and
-    stayed LegalCustom.
   - **No negation.** `any` is the only compositor; there is no `not`. A
     negated condition needs a purpose-built predicate (rule 2 above) or
     LegalCustom.

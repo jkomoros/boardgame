@@ -476,6 +476,9 @@ func TestDefaultConstructors(t *testing.T) {
 		"componentPropEqualsCurrentPlayer": true,
 		"inPhase":                          true,
 		"stackConstraints":                 true,
+		"stackCount":                       true,
+		"stackEmpty":                       true,
+		"stackNotEmpty":                    true,
 	}
 	if len(constructors) != len(wantNames) {
 		t.Fatalf("len(legal.DefaultConstructors()) = %d, want %d", len(constructors), len(wantNames))
@@ -543,6 +546,9 @@ func TestDefaultTemplateKeysCoversAllTemplates(t *testing.T) {
 		legal.TemplateInPhase,
 		legal.TemplateInProgression,
 		legal.TemplateStackConstraints,
+		legal.TemplateStackCount,
+		legal.TemplateStackEmpty,
+		legal.TemplateStackNotEmpty,
 	}
 	keys := legal.DefaultTemplateKeys()
 	if len(keys) != len(want) {
