@@ -11,6 +11,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -157,19 +158,67 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 		auto.MustConfig(new(moveVisibleShuffleCards),
 			moves.WithMoveName("Visible Shuffle"),
+			// Declarative migration (design spec §6, Task 7): Legal() is
+			// deleted (see moves.go); the pre-migration body was a single
+			// FanStack.NumComponents() > 1 threshold check.
+			moves.WithPreconditions(
+				legal.StackCount("game.FanStack", ">", 1).WithMessage("debuganimations.fan_stack_too_small"),
+			),
 		),
 		auto.MustConfig(new(moveShuffleCards),
 			moves.WithMoveName("Shuffle"),
+			// Declarative migration (design spec §6, Task 7): same gate as
+			// moveVisibleShuffleCards above.
+			moves.WithPreconditions(
+				legal.StackCount("game.FanStack", ">", 1).WithMessage("debuganimations.fan_stack_too_small"),
+			),
 		),
 		auto.MustConfig(new(moveMoveBetweenHidden)),
 		auto.MustConfig(new(moveMoveToken)),
 		auto.MustConfig(new(moveMoveTokenSanitized)),
-		auto.MustConfig(new(moveStartMoveAllComponentsToHidden)),
-		auto.MustConfig(new(moveStartMoveAllComponentsToVisible)),
+		auto.MustConfig(new(moveStartMoveAllComponentsToHidden),
+			// Declarative migration (design spec §6, Task 7): Legal() is
+			// deleted (see moves.go); WithPreconditions' implicit AND
+			// composes the two pre-migration threshold checks exactly.
+			moves.WithPreconditions(
+				legal.StackNotEmpty("game.AllVisibleStack").WithMessage("debuganimations.all_visible_stack_empty"),
+				legal.StackEmpty("game.AllHiddenStack").WithMessage("debuganimations.all_hidden_stack_occupied"),
+			),
+		),
+		auto.MustConfig(new(moveStartMoveAllComponentsToVisible),
+			// Declarative migration (design spec §6, Task 7): mirror of
+			// moveStartMoveAllComponentsToHidden above.
+			moves.WithPreconditions(
+				legal.StackNotEmpty("game.AllHiddenStack").WithMessage("debuganimations.all_hidden_stack_empty"),
+				legal.StackEmpty("game.AllVisibleStack").WithMessage("debuganimations.all_visible_stack_occupied"),
+			),
+		),
 		auto.MustConfig(new(moveShuffleHidden),
 			moves.WithMoveName("Shuffle Hidden"),
+			// Declarative migration (design spec §6, Task 7): Legal() is
+			// deleted (see moves.go); the pre-migration body was a single
+			// FanDiscard.NumComponents() < 1 threshold check (negated here
+			// as StackNotEmpty).
+			moves.WithPreconditions(
+				legal.StackNotEmpty("game.FanDiscard").WithMessage("debuganimations.fan_discard_empty"),
+			),
 		),
 	)
+}
+
+// ConfigureLegalTemplates supplies the debuganimations.* template keys the
+// WithPreconditions plans above reference (design spec §6, Task 7), with
+// the verbatim legacy strings from each move's pre-migration Legal() body
+// (see moves.go's comments).
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		"debuganimations.fan_stack_too_small":        "Aren't enough cards to shuffle",
+		"debuganimations.fan_discard_empty":          "FanDiscard has no cards to shuffle",
+		"debuganimations.all_visible_stack_empty":    "No components in visible stack to move",
+		"debuganimations.all_hidden_stack_occupied":  "The hidden stack already has items. Use the 'To Visible' move",
+		"debuganimations.all_hidden_stack_empty":     "No components in hidden stack to move",
+		"debuganimations.all_visible_stack_occupied": "The visible stack already has items. Use the 'To Hidden' move",
+	}
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
