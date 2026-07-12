@@ -143,6 +143,63 @@ func TestAddOrderedForPhaseEndsWithStartPhase(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNotNil()
 }
 
+// zeroIterationRoundRobinMoveInstaller mirrors the phaseSetUp progression of
+// defaultMoveInstaller, but the first move is a
+// DealComponentsUntilPlayerCountReached whose TargetCount is 0. Because every
+// player already has 0 or more components in their Hand, every player's
+// PlayerConditionMet is already true, so the round robin's ConditionMet is
+// satisfied before the move ever starts -- a zero-iteration round robin.
+func zeroIterationRoundRobinMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+
+	auto := NewAutoConfigurer(manager.Delegate())
+
+	return Combine(
+		AddOrderedForPhase(phaseSetUp,
+			auto.MustConfig(
+				new(DealComponentsUntilPlayerCountReached),
+				WithMoveName("Deal Cards Until Zero"),
+				WithGameProperty("DrawStack"),
+				WithPlayerProperty("Hand"),
+				WithTargetCount(0),
+			),
+			auto.MustConfig(
+				new(StartPhase),
+				WithPhaseToStart(phaseNormalPlayDrawCard, phaseEnum),
+			),
+		),
+		AddForPhase(phaseNormalPlay,
+			auto.MustConfig(
+				new(moveCurrentPlayerDraw),
+				WithMoveName("Draw Card"),
+			),
+		),
+	)
+}
+
+// TestZeroIterationRoundRobinLegal is a framework-level regression test for a
+// bug where a round robin move whose ConditionMet was already satisfied before
+// it started (e.g. a DealComponentsUntilPlayerCountReached targeting a count
+// every player already meets) was still reported legal to start. Apply() would
+// then immediately trip its "found to be finished in our Apply, but it should
+// have been marked finished before" invariant, failing game creation. The move
+// must instead be reported not-legal so fixup convergence skips it.
+func TestZeroIterationRoundRobinLegal(t *testing.T) {
+	manager, err := newGameManager(zeroIterationRoundRobinMoveInstaller)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	game, err := manager.NewDefaultGame()
+
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(game).IsNotNil()
+
+	//The zero-iteration deal should have dealt nothing.
+	_, playerStates := concreteStates(game.CurrentState())
+	for i, player := range playerStates {
+		assert.For(t, i).ThatActual(player.Hand.NumComponents()).Equals(0)
+	}
+}
+
 func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
 
 	auto := NewAutoConfigurer(manager.Delegate())
