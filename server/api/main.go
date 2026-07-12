@@ -1734,14 +1734,20 @@ func legalFormOpaque(moveItem *moveForm, move boardgame.Move, state boardgame.Im
 //     Fails) would disable a button ProposeMove accepts. For an opted-in
 //     move withOUT an override, move.Legal IS the plan evaluation
 //     (moves.Default.Legal's LegalEvaluatePlan seam), evaluated hot-path
-//     (short-circuit) with the field-independent bucket's verdict served
-//     from the memo the caller's full-ledger pass just populated
-//     (legal_memo.go: the key is moveName/version/proposer, so the
-//     playerIndex call hits the player pass's entry and the admin call
-//     gets its own) — and its error text byte-matches what
-//     LegalRenderVerdict would have produced for the plan verdict, since
-//     full-ledger mode latches the same first-non-Pass verdict hot-path
-//     mode short-circuits on (see LegalEvaluateLedger's doc comment).
+//     (short-circuit). Cost honesty: full-ledger mode never consults OR
+//     populates the field-independent memo (legal_plan.go's fullLedger
+//     branch bypasses evaluateFieldIndependentMemoized), so the FIRST
+//     forms request at a given version evaluates the field-independent
+//     bucket up to three times (ledger pass + the two Legal() calls, each
+//     a memo miss that then populates its own moveName/version/proposer
+//     key); only REPEAT requests at the same version get memo hits, and
+//     only for the two hot-path calls. Bounded and version-amortized, but
+//     not free — do not cite the memo as making these calls free on the
+//     first request. The error text byte-matches what LegalRenderVerdict
+//     would have produced for the plan verdict, since full-ledger mode
+//     latches the same first-non-Pass verdict hot-path mode
+//     short-circuits on (see LegalEvaluateLedger's doc comment; pinned by
+//     legal_ledger_test.go's byte-identity assertion).
 //   - The admin call is deliberately NOT derived from entries by exempting
 //     a known proposer-reading atom's verdict: that approach is only
 //     correct if proposerIsCurrentPlayer (legal/catalog_players.go) is the
