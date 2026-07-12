@@ -53,6 +53,7 @@ func TestExportConformanceFixtures(t *testing.T) {
 			CurrentPlayerIndex: int(fx.state.CurrentPlayerIndex()),
 			State:              json.RawMessage(fx.state.StorageRecord()),
 			Move:               exportMoveProps(t, fx.move),
+			Chest:              exportChest(t, fx.chest),
 		}
 
 		b, err := json.MarshalIndent(exported, "", "  ")
@@ -72,6 +73,26 @@ type exportedFixture struct {
 	CurrentPlayerIndex int                    `json:"currentPlayerIndex"`
 	State              json.RawMessage        `json:"state"`
 	Move               map[string]interface{} `json:"move"`
+	Chest              json.RawMessage        `json:"chest"`
+}
+
+// exportChest serializes the fixture's ComponentChest exactly as it ships on
+// /info (server/api/main.go: gin.H "Chest" = game.Manager().Chest()), so the TS
+// evaluator runs the SAME chest representation in the conformance test and in
+// production. Enum/component predicates (propEquals's enum arm,
+// componentPresentAtKey, componentPropEqualsCurrentPlayer) need it: the state
+// serializes an enum prop as its value NAME with no enum identity, and a deck
+// component's immutable Values (e.g. checkers token Color) live only here, not
+// in the state's dynamic Components.
+func exportChest(t *testing.T, chest *boardgame.ComponentChest) json.RawMessage {
+	if chest == nil {
+		return json.RawMessage("null")
+	}
+	b, err := json.Marshal(chest)
+	if err != nil {
+		t.Fatalf("marshal chest: %v", err)
+	}
+	return json.RawMessage(b)
 }
 
 // exportMoveProps flattens a move's readable properties into a JSON object for

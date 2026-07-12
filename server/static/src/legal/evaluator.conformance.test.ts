@@ -39,6 +39,7 @@ interface ExportedFixture {
   currentPlayerIndex: number;
   state: EvalContext['state'];
   move: Record<string, unknown> | null;
+  chest: EvalContext['chest'];
 }
 
 const loadJSON = <T,>(p: string): T => JSON.parse(readFileSync(p, 'utf8')) as T;
@@ -68,6 +69,7 @@ for (const predicate of IMPLEMENTED) {
         move: fx.move,
         currentPlayerIndex: fx.currentPlayerIndex,
         proposer: c.proposer,
+        chest: fx.chest,
       };
       const verdict = evaluateSpec(c.spec, ctx);
       assert.equal(

@@ -150,31 +150,29 @@
           -1
         ],
         "IDs": [
-          "4de9c67808a9f7f9fc4f9232d442a04024d18aeb",
+          "b839d9f562b498c39acd426eef5fb1bf2daedf70",
           "",
-          "2b0d460ef9b47d30ce5d6ee859b2c932c330817f",
+          "263e5e4a950b53dd91da5399bd201b903eb15d87",
           "",
-          "12bfe5f70b5d42f7063a68ec5e7c0663d50e3e82",
+          "f3049224d303c4e2b279a60372712b6e1ba2fa00",
           "",
-          "81d7b469b73f781821cc0015c2bf4447e5ef5f7a",
+          "e7f448cae2e29d8a36a8c0f261377836ee32b1be",
           "",
-          "7bb08db709ab7d017240cd1b0921a1605385ccca",
+          "b57d1f7dd4f1f283ce2dc6a7a4c999d39bc4390e",
           "",
-          "1ba1c639ae8d78cbe93d11dbab10aa5be241be3c",
+          "bd6891b92e41f5ff1bc40abfcec96ccd353b1c63",
           "",
-          "b7f624da1f70665778bb30814c5157b28e7cd5b6",
+          "0c35db590d30da648f85c188176e21bb9f94c7f6",
           "",
-          "3282dca14fc3548f2aa9784fbe71dfb110b00054",
+          "68190d0e45863c8a97c75145bdba85e9f0444816",
           "",
-          "6be76a2522eff22bf06c377c8ba029f5e079b43e",
+          "455fbcf5457f2045579843e84c37c4dae0c7ebdf",
           "",
-          "91f13d103c71740debd757fd46a762ad55d3c2bd",
+          "a30a084e8454152a7eb45ddff66f09932771b419",
           "",
-          "6c5ad76bc756f0075bfc6661465b665ae5bc3bb4",
+          "862fc6d7c302cf0df8ec815fefd320a883f952e0",
           "",
-          "3d1860328373551141b90a09a0ea4bc905099160",
-          "",
-          "",
+          "6388618b889ecbf21cf59192401ac7c88a4cd0bc",
           "",
           "",
           "",
@@ -190,56 +188,58 @@
           "",
           "",
           "",
-          "a5a07cf1b3cdcfcd76631648feb1270f18f0194f",
           "",
-          "3c2ef94dec4230a8a36a97c3d294fcacbce15b13",
           "",
-          "a47a21d02d56411caf39745ccc0338047a7a6397",
+          "d15066bc01220fcd20aca58d9a8729f047a3d768",
           "",
-          "0cbd59479106ad72584c6fb263e374c7d28395b1",
+          "cb006887609d835c41742102ba9c85947e346f6a",
           "",
-          "a47ddcf00b70204db5303a2255a16ec835c80cf6",
+          "9e6a0aa8833f58d891149563ef08eb911681b733",
           "",
-          "7e86a5ea2e7b306add5d4123a14c30d3fdcebce3",
+          "b24e07690d9024ca02c141449158c0f4402a79ec",
           "",
-          "6334f8eca22b764a92bbe057f50d85d343052893",
+          "ebf174c30af1fa5353954239c417c6fb097744e5",
           "",
-          "1b24393672f0befb4263f08938da27c35f109182",
+          "918f4b57d2a275ab7f112709728a7e35dc9ee4da",
           "",
-          "1f7498f8fed7cfc133cb925da84e7d1d094016f4",
+          "6283a65a17a1414a62eb35aa8ea8aa25c9bda7ec",
           "",
-          "8425846cebd8e85f6c1a80b8a3e117c31ab6ce15",
+          "368604e1e27a1892be99e29378d1ac0aaadc5349",
           "",
-          "7497c4269108725af74d19281ec0373e2482650a",
+          "12127d20d928dfc3083fc726c09aaef1386072f5",
           "",
-          "6d0054d5eebe7276cdb7682d26bad3e33bddc2e9",
+          "0bf0ba66506926aec0f421bea37ea28b6393d5d8",
+          "",
+          "361002d0aaab9a12c3bfef455e9d0262100d03b0",
+          "",
+          "b0101e8f33eb3a820371fc1082aafc13300359cb",
           ""
         ],
         "IDsLastSeen": {
-          "0cbd59479106ad72584c6fb263e374c7d28395b1": 9,
-          "12bfe5f70b5d42f7063a68ec5e7c0663d50e3e82": 15,
-          "1b24393672f0befb4263f08938da27c35f109182": 5,
-          "1ba1c639ae8d78cbe93d11dbab10aa5be241be3c": 18,
-          "1f7498f8fed7cfc133cb925da84e7d1d094016f4": 4,
-          "2b0d460ef9b47d30ce5d6ee859b2c932c330817f": 14,
-          "3282dca14fc3548f2aa9784fbe71dfb110b00054": 20,
-          "3c2ef94dec4230a8a36a97c3d294fcacbce15b13": 11,
-          "3d1860328373551141b90a09a0ea4bc905099160": 24,
-          "4de9c67808a9f7f9fc4f9232d442a04024d18aeb": 13,
-          "6334f8eca22b764a92bbe057f50d85d343052893": 6,
-          "6be76a2522eff22bf06c377c8ba029f5e079b43e": 21,
-          "6c5ad76bc756f0075bfc6661465b665ae5bc3bb4": 23,
-          "6d0054d5eebe7276cdb7682d26bad3e33bddc2e9": 1,
-          "7497c4269108725af74d19281ec0373e2482650a": 2,
-          "7bb08db709ab7d017240cd1b0921a1605385ccca": 17,
-          "7e86a5ea2e7b306add5d4123a14c30d3fdcebce3": 7,
-          "81d7b469b73f781821cc0015c2bf4447e5ef5f7a": 16,
-          "8425846cebd8e85f6c1a80b8a3e117c31ab6ce15": 3,
-          "91f13d103c71740debd757fd46a762ad55d3c2bd": 22,
-          "a47a21d02d56411caf39745ccc0338047a7a6397": 10,
-          "a47ddcf00b70204db5303a2255a16ec835c80cf6": 8,
-          "a5a07cf1b3cdcfcd76631648feb1270f18f0194f": 12,
-          "b7f624da1f70665778bb30814c5157b28e7cd5b6": 19
+          "0bf0ba66506926aec0f421bea37ea28b6393d5d8": 3,
+          "0c35db590d30da648f85c188176e21bb9f94c7f6": 19,
+          "12127d20d928dfc3083fc726c09aaef1386072f5": 4,
+          "263e5e4a950b53dd91da5399bd201b903eb15d87": 14,
+          "361002d0aaab9a12c3bfef455e9d0262100d03b0": 2,
+          "368604e1e27a1892be99e29378d1ac0aaadc5349": 5,
+          "455fbcf5457f2045579843e84c37c4dae0c7ebdf": 21,
+          "6283a65a17a1414a62eb35aa8ea8aa25c9bda7ec": 6,
+          "6388618b889ecbf21cf59192401ac7c88a4cd0bc": 24,
+          "68190d0e45863c8a97c75145bdba85e9f0444816": 20,
+          "862fc6d7c302cf0df8ec815fefd320a883f952e0": 23,
+          "918f4b57d2a275ab7f112709728a7e35dc9ee4da": 7,
+          "9e6a0aa8833f58d891149563ef08eb911681b733": 10,
+          "a30a084e8454152a7eb45ddff66f09932771b419": 22,
+          "b0101e8f33eb3a820371fc1082aafc13300359cb": 1,
+          "b24e07690d9024ca02c141449158c0f4402a79ec": 9,
+          "b57d1f7dd4f1f283ce2dc6a7a4c999d39bc4390e": 17,
+          "b839d9f562b498c39acd426eef5fb1bf2daedf70": 13,
+          "bd6891b92e41f5ff1bc40abfcec96ccd353b1c63": 18,
+          "cb006887609d835c41742102ba9c85947e346f6a": 11,
+          "d15066bc01220fcd20aca58d9a8729f047a3d768": 12,
+          "e7f448cae2e29d8a36a8c0f261377836ee32b1be": 16,
+          "ebf174c30af1fa5353954239c417c6fb097744e5": 8,
+          "f3049224d303c4e2b279a60372712b6e1ba2fa00": 15
         },
         "ShuffleCount": 0,
         "Size": 64
@@ -249,30 +249,30 @@
         "Indexes": [],
         "IDs": [],
         "IDsLastSeen": {
-          "0cbd59479106ad72584c6fb263e374c7d28395b1": 0,
-          "12bfe5f70b5d42f7063a68ec5e7c0663d50e3e82": 0,
-          "1b24393672f0befb4263f08938da27c35f109182": 0,
-          "1ba1c639ae8d78cbe93d11dbab10aa5be241be3c": 0,
-          "1f7498f8fed7cfc133cb925da84e7d1d094016f4": 0,
-          "2b0d460ef9b47d30ce5d6ee859b2c932c330817f": 0,
-          "3282dca14fc3548f2aa9784fbe71dfb110b00054": 0,
-          "3c2ef94dec4230a8a36a97c3d294fcacbce15b13": 0,
-          "3d1860328373551141b90a09a0ea4bc905099160": 0,
-          "4de9c67808a9f7f9fc4f9232d442a04024d18aeb": 0,
-          "6334f8eca22b764a92bbe057f50d85d343052893": 0,
-          "6be76a2522eff22bf06c377c8ba029f5e079b43e": 0,
-          "6c5ad76bc756f0075bfc6661465b665ae5bc3bb4": 0,
-          "6d0054d5eebe7276cdb7682d26bad3e33bddc2e9": 0,
-          "7497c4269108725af74d19281ec0373e2482650a": 0,
-          "7bb08db709ab7d017240cd1b0921a1605385ccca": 0,
-          "7e86a5ea2e7b306add5d4123a14c30d3fdcebce3": 0,
-          "81d7b469b73f781821cc0015c2bf4447e5ef5f7a": 0,
-          "8425846cebd8e85f6c1a80b8a3e117c31ab6ce15": 0,
-          "91f13d103c71740debd757fd46a762ad55d3c2bd": 0,
-          "a47a21d02d56411caf39745ccc0338047a7a6397": 0,
-          "a47ddcf00b70204db5303a2255a16ec835c80cf6": 0,
-          "a5a07cf1b3cdcfcd76631648feb1270f18f0194f": 0,
-          "b7f624da1f70665778bb30814c5157b28e7cd5b6": 0
+          "0bf0ba66506926aec0f421bea37ea28b6393d5d8": 0,
+          "0c35db590d30da648f85c188176e21bb9f94c7f6": 0,
+          "12127d20d928dfc3083fc726c09aaef1386072f5": 0,
+          "263e5e4a950b53dd91da5399bd201b903eb15d87": 0,
+          "361002d0aaab9a12c3bfef455e9d0262100d03b0": 0,
+          "368604e1e27a1892be99e29378d1ac0aaadc5349": 0,
+          "455fbcf5457f2045579843e84c37c4dae0c7ebdf": 0,
+          "6283a65a17a1414a62eb35aa8ea8aa25c9bda7ec": 0,
+          "6388618b889ecbf21cf59192401ac7c88a4cd0bc": 0,
+          "68190d0e45863c8a97c75145bdba85e9f0444816": 0,
+          "862fc6d7c302cf0df8ec815fefd320a883f952e0": 0,
+          "918f4b57d2a275ab7f112709728a7e35dc9ee4da": 0,
+          "9e6a0aa8833f58d891149563ef08eb911681b733": 0,
+          "a30a084e8454152a7eb45ddff66f09932771b419": 0,
+          "b0101e8f33eb3a820371fc1082aafc13300359cb": 0,
+          "b24e07690d9024ca02c141449158c0f4402a79ec": 0,
+          "b57d1f7dd4f1f283ce2dc6a7a4c999d39bc4390e": 0,
+          "b839d9f562b498c39acd426eef5fb1bf2daedf70": 0,
+          "bd6891b92e41f5ff1bc40abfcec96ccd353b1c63": 0,
+          "cb006887609d835c41742102ba9c85947e346f6a": 0,
+          "d15066bc01220fcd20aca58d9a8729f047a3d768": 0,
+          "e7f448cae2e29d8a36a8c0f261377836ee32b1be": 0,
+          "ebf174c30af1fa5353954239c417c6fb097744e5": 0,
+          "f3049224d303c4e2b279a60372712b6e1ba2fa00": 0
         },
         "ShuffleCount": 0
       }
@@ -312,5 +312,277 @@
     "SpaceIndex": "0_0",
     "TargetPlayerIndex": 0,
     "TokenIndexToMove": "0_0"
+  },
+  "chest": {
+    "Decks": {
+      "Tokens": [
+        {
+          "Index": 0,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 1,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 2,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 3,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 4,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 5,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 6,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 7,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 8,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 9,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 10,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 11,
+          "Values": {
+            "Color": "Black"
+          }
+        },
+        {
+          "Index": 12,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 13,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 14,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 15,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 16,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 17,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 18,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 19,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 20,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 21,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 22,
+          "Values": {
+            "Color": "Red"
+          }
+        },
+        {
+          "Index": 23,
+          "Values": {
+            "Color": "Red"
+          }
+        }
+      ]
+    },
+    "Enums": {
+      "color": {
+        "DefaultValue": 0,
+        "Values": {
+          "0": "Red",
+          "4": "Black"
+        }
+      },
+      "phase": {
+        "DefaultValue": 0,
+        "Values": {
+          "0": "Setup",
+          "1": "Playing"
+        }
+      },
+      "spaces": {
+        "DefaultValue": 0,
+        "Dimensions": [
+          8,
+          8
+        ],
+        "Values": {
+          "0": "0_0",
+          "1": "0_1",
+          "10": "1_2",
+          "11": "1_3",
+          "12": "1_4",
+          "13": "1_5",
+          "14": "1_6",
+          "15": "1_7",
+          "16": "2_0",
+          "17": "2_1",
+          "18": "2_2",
+          "19": "2_3",
+          "2": "0_2",
+          "20": "2_4",
+          "21": "2_5",
+          "22": "2_6",
+          "23": "2_7",
+          "24": "3_0",
+          "25": "3_1",
+          "26": "3_2",
+          "27": "3_3",
+          "28": "3_4",
+          "29": "3_5",
+          "3": "0_3",
+          "30": "3_6",
+          "31": "3_7",
+          "32": "4_0",
+          "33": "4_1",
+          "34": "4_2",
+          "35": "4_3",
+          "36": "4_4",
+          "37": "4_5",
+          "38": "4_6",
+          "39": "4_7",
+          "4": "0_4",
+          "40": "5_0",
+          "41": "5_1",
+          "42": "5_2",
+          "43": "5_3",
+          "44": "5_4",
+          "45": "5_5",
+          "46": "5_6",
+          "47": "5_7",
+          "48": "6_0",
+          "49": "6_1",
+          "5": "0_5",
+          "50": "6_2",
+          "51": "6_3",
+          "52": "6_4",
+          "53": "6_5",
+          "54": "6_6",
+          "55": "6_7",
+          "56": "7_0",
+          "57": "7_1",
+          "58": "7_2",
+          "59": "7_3",
+          "6": "0_6",
+          "60": "7_4",
+          "61": "7_5",
+          "62": "7_6",
+          "63": "7_7",
+          "7": "0_7",
+          "8": "1_0",
+          "9": "1_1"
+        }
+      }
+    },
+    "Constants": {
+      "BOARD_SIZE": 64
+    },
+    "LegalTemplates": {
+      "checkers.black_spaces_only": "you can only move to spaces that are black",
+      "checkers.illegal_dest": "spaceIndex does not represent a legal space for that token to move to",
+      "checkers.no_more_components": "No more components to place",
+      "checkers.no_token_there": "That space does not have a component in it",
+      "checkers.not_your_token": "that token isn't your token to move",
+      "legal.all_active_players_failed": "not every active player satisfies the required condition",
+      "legal.already_revealed": "that card has already been revealed",
+      "legal.any_failed": "none of the required conditions were satisfied",
+      "legal.component_missing": "there is no component at index {index}",
+      "legal.component_missing_key": "there is no component at key {key}",
+      "legal.component_present_unexpected": "there is unexpectedly a component at index {index}",
+      "legal.component_prop_not_current_player": "the component's {prop} does not match the current player's {prop}",
+      "legal.in_phase": "{detail}",
+      "legal.in_progression": "{detail}",
+      "legal.may_not_move_to": "{detail}",
+      "legal.no_card_here": "there is no card at that index",
+      "legal.no_component_to_move": "there is no component at index {index} to move",
+      "legal.player_bool": "requires {prop} to be {want}",
+      "legal.prop_at_least": "requires at least {min}, but the current value is {value}",
+      "legal.prop_compare": "requires the current value ({value}) to be {op} {n}",
+      "legal.prop_equals": "requires the current value ({value}) to equal {want}",
+      "legal.prop_not_equals": "requires the current value ({value}) to not equal {want}",
+      "legal.proposer_not_your_turn": "{detail}",
+      "legal.proposer_target_invalid": "{detail}",
+      "legal.stack_constraints": "{detail}",
+      "legal.stack_count": "requires the stack's count ({count}) to be {op} {n}",
+      "legal.stack_empty": "requires the stack to be empty",
+      "legal.stack_not_empty": "requires the stack to not be empty"
+    }
   }
 }

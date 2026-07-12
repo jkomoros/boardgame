@@ -34,6 +34,27 @@ export interface LegalSpec {
   message?: string;
 }
 
+/** A chest enum as it ships on /info: int-string key -> value NAME. */
+export interface ChestEnum {
+  DefaultValue: number;
+  /** int-as-string -> value name, e.g. {"0":"Red","4":"Black"}. */
+  Values: Record<string, string>;
+  /** Present only for range enums (e.g. checkers' "spaces"). */
+  Dimensions?: number[];
+}
+/** One deck component's IMMUTABLE values (state carries only dynamic values). */
+export interface ChestDeckComponent {
+  Index: number;
+  Values: Record<string, unknown>; // e.g. { Color: "Red" }
+}
+/** The ComponentChest as it ships on /info (server GameChest). */
+export interface GameChest {
+  Decks: Record<string, ChestDeckComponent[]>;
+  Enums: Record<string, ChestEnum>;
+  Constants?: Record<string, unknown> | null;
+  LegalTemplates?: Record<string, string>;
+}
+
 export interface EvalContext {
   /** The RawGameState the client already holds (server StorageRecord shape). */
   state: RawGameState;
@@ -43,6 +64,13 @@ export interface EvalContext {
   currentPlayerIndex: number;
   /** The proposer of this evaluation. */
   proposer: number;
+  /**
+   * The chest from /info (GameChest), or null if not yet loaded. Enum/component
+   * predicates fail-closed to Unknown when this is null: the state serializes an
+   * enum prop as its value NAME with no enum identity, and a deck component's
+   * immutable values (e.g. a token's Color) live only in the chest.
+   */
+  chest: GameChest | null;
 }
 
 const pass = (): LegalVerdict => ({ outcome: 'pass' });
@@ -163,6 +191,71 @@ function stackNumComponents(stack: RawStack): number {
 // slot idx of the stack is occupied (in-bounds and not the -1 sentinel).
 function stackComponentPresent(stack: RawStack, idx: number): boolean {
   return idx >= 0 && idx < stack.Indexes.length && stack.Indexes[idx] !== -1;
+}
+
+// --- chest-backed enum / component resolution -----------------------------
+//
+// The RawGameState serializes an enum property as its value NAME ("Red",
+// "0_0") and a PlayerIndex as a bare int, carrying NO property type. The Go
+// catalog switches on the resolved PropertyType; the client recovers the enum
+// by MEMBERSHIP against the /info chest — find the enum whose value-name set
+// contains the actual name. Anything unreproducible (no chest, name in no
+// enum) is fail-closed to Unknown, matching Go's UnknownVerdict paths.
+
+interface EnumMatch {
+  /** The integer key of the value within its enum (== the stack slot index). */
+  key: number;
+  /** The full value-name set of the matching enum. */
+  names: Set<string>;
+}
+
+// enumForValue finds the chest enum whose Values contains valueName and returns
+// that value's integer key plus the enum's full value-name set. The enum
+// identity comes from the resolved value (which serializes only as a name).
+// Returns null if no enum contains valueName — the value is then a plain string
+// / the chest is absent.
+function enumForValue(chest: GameChest | null, valueName: string): EnumMatch | null {
+  if (!chest || !chest.Enums) return null;
+  for (const enumName of Object.keys(chest.Enums)) {
+    const e = chest.Enums[enumName];
+    if (!e || !e.Values) continue;
+    for (const intStr of Object.keys(e.Values)) {
+      if (e.Values[intStr] === valueName) {
+        return { key: Number.parseInt(intStr, 10), names: new Set(Object.values(e.Values)) };
+      }
+    }
+  }
+  return null;
+}
+
+// resolveEnumKey resolves an enum-valued path (Go resolveEnumPath, used for the
+// stack KEY of componentPresentAtKey / componentPropEqualsCurrentPlayer). The
+// path resolves to a value NAME (string); its integer key comes from the chest
+// enum containing it. Missing/non-string/unknown-name -> ok:false -> Unknown.
+function resolveEnumKey(path: string, ctx: EvalContext): { key: number; name: string; ok: boolean } {
+  const r = resolvePath(path, ctx);
+  if (!r.ok || typeof r.value !== 'string') return { key: 0, name: '', ok: false };
+  const found = enumForValue(ctx.chest, r.value);
+  if (!found) return { key: 0, name: '', ok: false };
+  return { key: found.key, name: r.value, ok: true };
+}
+
+// lookupComponentValue reads a deck component's IMMUTABLE property from the
+// chest (Go: comp.Values().Reader().ImmutableEnumProp(prop)). The state's
+// Components carry only dynamic values, so the immutable value (e.g. a token's
+// Color) is reachable only here. Returns undefined if unreachable -> Unknown.
+function lookupComponentValue(
+  chest: GameChest | null,
+  deckName: string,
+  compIndex: number,
+  prop: string,
+): unknown {
+  if (!chest || !chest.Decks) return undefined;
+  const deck = chest.Decks[deckName];
+  if (!Array.isArray(deck) || compIndex < 0 || compIndex >= deck.length) return undefined;
+  const comp = deck[compIndex];
+  if (!comp || !comp.Values) return undefined;
+  return comp.Values[prop];
 }
 
 // --- predicates ------------------------------------------------------------
@@ -290,6 +383,114 @@ function evalComponentPresence(wantPresent: boolean, defaultTemplate: string) {
 const evalComponentPresentAt = evalComponentPresence(true, 'legal.component_missing');
 const evalComponentAbsentAt = evalComponentPresence(false, 'legal.component_present_unexpected');
 
+// propEquals / propNotEquals mirror catalog_compare.go propEqualsFamilyConstructor:
+// resolve args[0], then dispatch on the RESOLVED value's shape (Go dispatches on
+// PropertyType, which the state does not carry — see the chest helpers above).
+// Negation flips only a DEFINITE match; an Unknown (unresolvable path,
+// unparseable target for the resolved type, unknown enum name) is NEVER flipped
+// to Pass, exactly as Go's `if negate { match = !match }` sits after every
+// UnknownVerdict early-return.
+function evalPropEqualsFamily(negate: boolean, defaultTemplate: string) {
+  return (spec: LegalSpec, ctx: EvalContext): LegalVerdict => {
+    const args = spec.args;
+    if (!args || args.length !== 2) return unknown();
+    const [path, value] = args;
+    const r = resolvePath(path, ctx);
+    if (!r.ok) return unknown();
+
+    let actual: string;
+    let matched: boolean;
+    const v = r.value;
+
+    if (typeof v === 'boolean') {
+      // Go TypeBool arm: target must be exactly "true"/"false".
+      if (value !== 'true' && value !== 'false') return unknown();
+      actual = String(v);
+      matched = v === (value === 'true');
+    } else if (typeof v === 'number' && Number.isInteger(v)) {
+      // Go TypeInt / TypePlayerIndex arms. The state serializes BOTH as a bare
+      // int, so route by the TARGET spelling: "observer" -> -1, "admin" -> -2
+      // (the real Go constants — ObserverPlayerIndex=-1, AdminPlayerIndex=-2),
+      // otherwise an int literal (integer equality is identical for either type).
+      let want: number;
+      if (value === 'observer') want = -1;
+      else if (value === 'admin') want = -2;
+      else {
+        const n = Number.parseInt(value, 10);
+        if (Number.isNaN(n)) return unknown();
+        want = n;
+      }
+      actual = String(v);
+      matched = v === want;
+    } else if (typeof v === 'string') {
+      // Go TypeEnum arm: recover the enum by membership, then require the TARGET
+      // to be a valid value NAME in that SAME enum (Go: an unknown value name ->
+      // Unknown). A genuine string prop (value in no enum) -> Unknown, matching
+      // Go's TypeString default branch. This is the KEY case: player.Color
+      // "Bogus" -> Unknown, "Black" -> fail, "Red" -> pass.
+      const found = enumForValue(ctx.chest, v);
+      if (!found) return unknown();
+      if (!found.names.has(value)) return unknown();
+      actual = v;
+      matched = v === value;
+    } else {
+      // Stacks/objects/null (Go: TypeStack etc. -> default -> Unknown).
+      return unknown();
+    }
+
+    if (negate) matched = !matched;
+    if (matched) return pass();
+    const template = spec.message && spec.message.length > 0 ? spec.message : defaultTemplate;
+    return failT(template, { value: actual, want: value });
+  };
+}
+const evalPropEquals = evalPropEqualsFamily(false, 'legal.prop_equals');
+const evalPropNotEquals = evalPropEqualsFamily(true, 'legal.prop_not_equals');
+
+// componentPresentAtKey mirrors catalog_stack.go componentPresentAtKeyConstructor:
+// resolve the enum-keyed slot (args[1]) and the stack (args[0]); Pass iff
+// ImmutableComponentAtKey(key) != nil (== occupancy of slot int(key)).
+function evalComponentPresentAtKey(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  const args = spec.args;
+  if (!args || args.length !== 2) return unknown();
+  const [stackPath, keyField] = args;
+  const keyR = resolveEnumKey(keyField, ctx);
+  if (!keyR.ok) return unknown();
+  const r = resolveStackPath(stackPath, ctx);
+  if (!r.ok) return unknown();
+  if (stackComponentPresent(r.stack, keyR.key)) return pass();
+  const template = spec.message && spec.message.length > 0 ? spec.message : 'legal.component_missing_key';
+  return failT(template, { key: keyR.name });
+}
+
+// componentPropEqualsCurrentPlayer mirrors catalog_purpose.go: the component at
+// the enum-keyed slot (args[1]) of stack (args[0]) has a prop (args[2]) whose
+// value equals the CURRENT player's own prop of the same name. The component's
+// value comes from the CHEST deck (immutable), the player's from the state. No
+// component at the slot, or any unresolvable side, -> Unknown.
+function evalComponentPropEqualsCurrentPlayer(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  const args = spec.args;
+  if (!args || args.length !== 3) return unknown();
+  const [stackPath, keyField, prop] = args;
+  const keyR = resolveEnumKey(keyField, ctx);
+  if (!keyR.ok) return unknown();
+  const r = resolveStackPath(stackPath, ctx);
+  if (!r.ok) return unknown();
+  // Component at slot int(key): stack.Indexes[key] is the deck component index;
+  // -1 / out-of-range means the slot is empty (Go: comp == nil -> Unknown).
+  const compIndex =
+    keyR.key >= 0 && keyR.key < r.stack.Indexes.length ? r.stack.Indexes[keyR.key] : -1;
+  if (compIndex < 0) return unknown();
+  const compVal = lookupComponentValue(ctx.chest, r.stack.Deck, compIndex, prop);
+  if (typeof compVal !== 'string') return unknown();
+  const playerR = resolvePath(`player.${prop}`, ctx);
+  if (!playerR.ok || typeof playerR.value !== 'string') return unknown();
+  if (compVal === playerR.value) return pass();
+  const template =
+    spec.message && spec.message.length > 0 ? spec.message : 'legal.component_prop_not_current_player';
+  return failT(template, { prop });
+}
+
 type PredicateFn = (spec: LegalSpec, ctx: EvalContext) => LegalVerdict;
 
 const PREDICATES: Record<string, PredicateFn> = {
@@ -301,6 +502,10 @@ const PREDICATES: Record<string, PredicateFn> = {
   stackNotEmpty: evalStackNotEmpty,
   componentPresentAt: evalComponentPresentAt,
   componentAbsentAt: evalComponentAbsentAt,
+  propEquals: evalPropEquals,
+  propNotEquals: evalPropNotEquals,
+  componentPresentAtKey: evalComponentPresentAtKey,
+  componentPropEqualsCurrentPlayer: evalComponentPropEqualsCurrentPlayer,
 };
 
 /** The predicate registry names the narrow evaluator can currently reproduce. */
