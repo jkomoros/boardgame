@@ -124,6 +124,47 @@ function resolveBoolPath(path: string, ctx: EvalContext): { value: boolean; ok: 
   return { value: r.value, ok: true };
 }
 
+// A stack in RawGameState is { Deck, Indexes, ... } where Indexes is the
+// component index in each slot and -1 marks an empty slot (sized stacks) —
+// growable stacks carry no -1 padding, so `Indexes !== -1` count is universally
+// NumComponents().
+interface RawStack {
+  Deck: string;
+  Indexes: number[];
+}
+function isRawStack(v: unknown): v is RawStack {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    Array.isArray((v as RawStack).Indexes) &&
+    typeof (v as RawStack).Deck === 'string'
+  );
+}
+
+// resolveStackPath resolves a path to a stack (Go resolveStackPath). Missing /
+// non-stack -> ok:false -> Unknown.
+function resolveStackPath(path: string, ctx: EvalContext): { stack: RawStack; ok: boolean } {
+  const r = resolvePath(path, ctx);
+  if (!r.ok || !isRawStack(r.value)) {
+    return { stack: { Deck: '', Indexes: [] }, ok: false };
+  }
+  return { stack: r.value, ok: true };
+}
+
+// stackNumComponents mirrors Go's Stack.NumComponents(): the number of occupied
+// slots (a slot is occupied iff its index is not the -1 empty sentinel).
+function stackNumComponents(stack: RawStack): number {
+  let n = 0;
+  for (const idx of stack.Indexes) if (idx !== -1) n++;
+  return n;
+}
+
+// stackComponentAt mirrors Go's Stack.ImmutableComponentAt(idx) != nil: whether
+// slot idx of the stack is occupied (in-bounds and not the -1 sentinel).
+function stackComponentPresent(stack: RawStack, idx: number): boolean {
+  return idx >= 0 && idx < stack.Indexes.length && stack.Indexes[idx] !== -1;
+}
+
 // --- predicates ------------------------------------------------------------
 
 const COMPARE_OPS: Record<string, (value: number, n: number) => boolean> = {
@@ -192,12 +233,74 @@ function evalPlayerBool(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
   return failT(template, { prop, want: String(want) });
 }
 
+// stackCount mirrors legal/catalog_count.go stackCountConstructor: resolve the
+// stack at args[0], compare NumComponents() to n (args[2]) via op (args[1]);
+// unresolvable -> Unknown; else Pass or FailT("legal.stack_count",{value,op,n}).
+function evalStackCount(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  const args = spec.args;
+  if (!args || args.length !== 3) return unknown();
+  const [path, op, nStr] = args;
+  const cmp = COMPARE_OPS[op];
+  if (!cmp) return unknown();
+  const n = Number.parseInt(nStr, 10);
+  if (Number.isNaN(n)) return unknown();
+  const r = resolveStackPath(path, ctx);
+  if (!r.ok) return unknown();
+  const count = stackNumComponents(r.stack);
+  if (cmp(count, n)) return pass();
+  const template = spec.message && spec.message.length > 0 ? spec.message : 'legal.stack_count';
+  return failT(template, { value: count, op, n });
+}
+
+// stackEmpty / stackNotEmpty mirror stackEmptinessConstructor: Pass iff
+// NumComponents()==0 equals wantEmpty; bindingless Fail template.
+function evalStackEmptiness(wantEmpty: boolean, defaultTemplate: string) {
+  return (spec: LegalSpec, ctx: EvalContext): LegalVerdict => {
+    const args = spec.args;
+    if (!args || args.length !== 1) return unknown();
+    const r = resolveStackPath(args[0], ctx);
+    if (!r.ok) return unknown();
+    const empty = stackNumComponents(r.stack) === 0;
+    if (empty === wantEmpty) return pass();
+    const template = spec.message && spec.message.length > 0 ? spec.message : defaultTemplate;
+    return failT(template, {});
+  };
+}
+const evalStackEmpty = evalStackEmptiness(true, 'legal.stack_empty');
+const evalStackNotEmpty = evalStackEmptiness(false, 'legal.stack_not_empty');
+
+// componentPresentAt / componentAbsentAt mirror catalog_stack.go: resolve int
+// idxField (args[1]) + stack (args[0]); Pass iff the slot's occupancy matches
+// wantPresent; else FailT(template, {index}).
+function evalComponentPresence(wantPresent: boolean, defaultTemplate: string) {
+  return (spec: LegalSpec, ctx: EvalContext): LegalVerdict => {
+    const args = spec.args;
+    if (!args || args.length !== 2) return unknown();
+    const [stackPath, idxField] = args;
+    const idxR = resolveIntPath(idxField, ctx);
+    if (!idxR.ok) return unknown();
+    const r = resolveStackPath(stackPath, ctx);
+    if (!r.ok) return unknown();
+    const present = stackComponentPresent(r.stack, idxR.value);
+    if (present === wantPresent) return pass();
+    const template = spec.message && spec.message.length > 0 ? spec.message : defaultTemplate;
+    return failT(template, { index: idxR.value });
+  };
+}
+const evalComponentPresentAt = evalComponentPresence(true, 'legal.component_missing');
+const evalComponentAbsentAt = evalComponentPresence(false, 'legal.component_present_unexpected');
+
 type PredicateFn = (spec: LegalSpec, ctx: EvalContext) => LegalVerdict;
 
 const PREDICATES: Record<string, PredicateFn> = {
   propCompare: evalPropCompare,
   propAtLeast: evalPropAtLeast,
   playerBool: evalPlayerBool,
+  stackCount: evalStackCount,
+  stackEmpty: evalStackEmpty,
+  stackNotEmpty: evalStackNotEmpty,
+  componentPresentAt: evalComponentPresentAt,
+  componentAbsentAt: evalComponentAbsentAt,
 };
 
 /** The predicate registry names the narrow evaluator can currently reproduce. */
