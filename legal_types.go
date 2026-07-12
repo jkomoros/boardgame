@@ -160,6 +160,11 @@ const (
 	// LegalFacetOrder means the predicate reads only the order of items at
 	// the path, not their values.
 	LegalFacetOrder
+	// LegalFacetNonEmpty means the predicate reads only whether the path is
+	// empty or not. It survives every policy except Hidden, because
+	// PolicyNonEmpty reveals exactly emptiness — an emptiness predicate must
+	// stay client-evaluable under it (pre-spec critique finding 4).
+	LegalFacetNonEmpty
 )
 
 // LegalPropPath is a property path in the state resolver's path grammar,

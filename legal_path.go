@@ -222,25 +222,21 @@ func resolveProp(p LegalPropPath, propName string, reader PropertyReader) (inter
 }
 
 // facetSurvives reports whether reading facet from a property sanitized
-// with policy yields trustworthy data, per the design spec §6 table. This is
-// what makes client evaluability precise under sanitization: a predicate
-// that only needs FacetCount from a stack stays evaluable under PolicyLen,
-// even though PolicyLen hides the stack's actual values.
+// with policy yields trustworthy data, per the design spec §1 and §6 tables.
+// This is what makes client evaluability precise under sanitization: a
+// predicate that only needs FacetCount from a stack stays evaluable under
+// PolicyLen, even though PolicyLen hides the stack's actual values.
 //
-// Truth table (spec §6):
+// Truth table (spec §1, §6):
 //   - LegalFacetValues survives PolicyVisible only.
 //   - LegalFacetCount survives PolicyVisible, PolicyOrder, and PolicyLen.
 //   - LegalFacetOccupancy survives PolicyVisible and PolicyOrder.
 //   - LegalFacetOrder survives PolicyVisible and PolicyOrder.
-//   - Nothing survives PolicyHidden or PolicyNonEmpty.
-//
-// PolicyNonEmpty is a deliberate conservative call, not a spec oversight:
-// PolicyNonEmpty only reveals whether a group has zero or more-than-zero
-// items (sanitization.go's "0 components or a single generic component"),
-// which is strictly less information than a count. Treating FacetCount as
-// surviving PolicyNonEmpty would let a predicate report e.g. "3 cards left"
-// to a viewer who is only supposed to be able to tell "empty or not," so
-// FacetCount (like every other facet) does not survive PolicyNonEmpty here.
+//   - LegalFacetNonEmpty survives PolicyVisible, PolicyOrder, PolicyLen, and
+//     PolicyNonEmpty (everything except PolicyHidden). Rationale: PolicyNonEmpty
+//     reveals exactly emptiness; an emptiness predicate must stay
+//     client-evaluable under it.
+//   - Nothing survives PolicyHidden.
 func facetSurvives(policy Policy, facet LegalFacet) bool {
 	switch facet {
 	case LegalFacetValues:
@@ -251,6 +247,8 @@ func facetSurvives(policy Policy, facet LegalFacet) bool {
 		return policy == PolicyVisible || policy == PolicyOrder
 	case LegalFacetOrder:
 		return policy == PolicyVisible || policy == PolicyOrder
+	case LegalFacetNonEmpty:
+		return policy == PolicyVisible || policy == PolicyOrder || policy == PolicyLen || policy == PolicyNonEmpty
 	default:
 		return false
 	}

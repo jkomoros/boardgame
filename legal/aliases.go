@@ -22,6 +22,9 @@ type Cost = boardgame.LegalCost
 // Facet is an alias for boardgame.LegalFacet.
 type Facet = boardgame.LegalFacet
 
+// FacetNonEmpty is an alias for boardgame.LegalFacetNonEmpty.
+const FacetNonEmpty = boardgame.LegalFacetNonEmpty
+
 // PropPath is an alias for boardgame.LegalPropPath.
 type PropPath = boardgame.LegalPropPath
 

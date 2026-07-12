@@ -236,12 +236,13 @@ func TestResolveLegalPathInvalidCurrentPlayer(t *testing.T) {
 }
 
 func TestFacetSurvives(t *testing.T) {
-	// Full 5 policy x 4 facet truth table (spec §6, task-2 brief):
+	// Full 5 policy x 5 facet truth table (spec §1, §6):
 	//   FacetValues:    Visible only
 	//   FacetCount:     Visible, Order, Len
 	//   FacetOccupancy: Visible, Order
 	//   FacetOrder:     Visible, Order
-	//   Nothing survives NonEmpty or Hidden.
+	//   FacetNonEmpty:  Visible, Order, Len, NonEmpty
+	//   Nothing survives Hidden.
 	want := map[LegalFacet]map[Policy]bool{
 		LegalFacetValues: {
 			PolicyVisible:  true,
@@ -271,6 +272,13 @@ func TestFacetSurvives(t *testing.T) {
 			PolicyNonEmpty: false,
 			PolicyHidden:   false,
 		},
+		LegalFacetNonEmpty: {
+			PolicyVisible:  true,
+			PolicyOrder:    true,
+			PolicyLen:      true,
+			PolicyNonEmpty: true,
+			PolicyHidden:   false,
+		},
 	}
 
 	facetNames := map[LegalFacet]string{
@@ -278,6 +286,7 @@ func TestFacetSurvives(t *testing.T) {
 		LegalFacetCount:     "FacetCount",
 		LegalFacetOccupancy: "FacetOccupancy",
 		LegalFacetOrder:     "FacetOrder",
+		LegalFacetNonEmpty:  "FacetNonEmpty",
 	}
 	policyNames := map[Policy]string{
 		PolicyVisible:  "Visible",
@@ -287,7 +296,7 @@ func TestFacetSurvives(t *testing.T) {
 		PolicyHidden:   "Hidden",
 	}
 
-	facets := []LegalFacet{LegalFacetValues, LegalFacetCount, LegalFacetOccupancy, LegalFacetOrder}
+	facets := []LegalFacet{LegalFacetValues, LegalFacetCount, LegalFacetOccupancy, LegalFacetOrder, LegalFacetNonEmpty}
 	policies := []Policy{PolicyVisible, PolicyOrder, PolicyLen, PolicyNonEmpty, PolicyHidden}
 
 	for _, facet := range facets {
