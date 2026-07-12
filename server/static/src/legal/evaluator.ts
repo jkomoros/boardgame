@@ -114,6 +114,16 @@ function resolveIntPath(path: string, ctx: EvalContext): { value: number; ok: bo
   return { value: r.value, ok: true };
 }
 
+// resolveBoolPath resolves a path and requires a boolean value (Go
+// resolveBoolPath). Missing/non-bool -> ok:false -> Unknown.
+function resolveBoolPath(path: string, ctx: EvalContext): { value: boolean; ok: boolean } {
+  const r = resolvePath(path, ctx);
+  if (!r.ok || typeof r.value !== 'boolean') {
+    return { value: false, ok: false };
+  }
+  return { value: r.value, ok: true };
+}
+
 // --- predicates ------------------------------------------------------------
 
 const COMPARE_OPS: Record<string, (value: number, n: number) => boolean> = {
@@ -144,10 +154,50 @@ function evalPropCompare(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
   return failT(template, { value: r.value, op, n });
 }
 
+// propAtLeast mirrors legal/catalog_compare.go propAtLeastConstructor: resolve
+// an int at args[0], Pass iff value >= n (args[1]); unresolvable/non-int ->
+// Unknown; else FailT("legal.prop_at_least", {value, min}).
+function evalPropAtLeast(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  const args = spec.args;
+  if (!args || args.length !== 2) return unknown();
+  const [path, nStr] = args;
+  const n = Number.parseInt(nStr, 10);
+  if (Number.isNaN(n)) return unknown();
+  const r = resolveIntPath(path, ctx);
+  if (!r.ok) return unknown();
+  if (r.value >= n) return pass();
+  const template = spec.message && spec.message.length > 0 ? spec.message : 'legal.prop_at_least';
+  return failT(template, { value: r.value, min: n });
+}
+
+// playerBool mirrors legal/catalog_compare.go playerBoolConstructor: resolve
+// the CURRENT player's bool prop args[0], Pass iff it equals want (args[1],
+// "true"/"false", default true); unresolvable/non-bool -> Unknown; else
+// FailT("legal.player_bool", {prop, want}). want is bound as its "true"/"false"
+// string (Go strconv.FormatBool), matching the Go bindings byte-for-byte.
+function evalPlayerBool(spec: LegalSpec, ctx: EvalContext): LegalVerdict {
+  const args = spec.args;
+  if (!args || (args.length !== 1 && args.length !== 2)) return unknown();
+  const prop = args[0];
+  let want = true;
+  if (args.length === 2) {
+    if (args[1] === 'true') want = true;
+    else if (args[1] === 'false') want = false;
+    else return unknown(); // Go: playerBoolWant errors -> construction failure
+  }
+  const r = resolveBoolPath(`player.${prop}`, ctx);
+  if (!r.ok) return unknown();
+  if (r.value === want) return pass();
+  const template = spec.message && spec.message.length > 0 ? spec.message : 'legal.player_bool';
+  return failT(template, { prop, want: String(want) });
+}
+
 type PredicateFn = (spec: LegalSpec, ctx: EvalContext) => LegalVerdict;
 
 const PREDICATES: Record<string, PredicateFn> = {
   propCompare: evalPropCompare,
+  propAtLeast: evalPropAtLeast,
+  playerBool: evalPlayerBool,
 };
 
 /** The predicate registry names the narrow evaluator can currently reproduce. */
