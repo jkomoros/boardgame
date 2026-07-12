@@ -84,9 +84,19 @@ func TestValidateLegalPath(t *testing.T) {
 		assert.For(t).ThatActual(err).IsNil()
 	})
 
-	t.Run("valid players[move.Field] path, int-typed field", func(t *testing.T) {
+	t.Run("int-typed field is a boot error suggesting PlayerIndex (footgun F9)", func(t *testing.T) {
+		// An int-typed field is grammatically index-shaped, but nothing marks
+		// it as a PLAYER index: a plain int (a score, a count, a slot number)
+		// silently indexes a wrong-but-valid player. Boot validation only
+		// accepts TypePlayerIndex, and the error suggests the fix.
 		err := validateLegalPath("players[move.ScoreIncrement].Hand", exampleState, moveReader)
-		assert.For(t).ThatActual(err).IsNil()
+		assert.For(t).ThatActual(err).IsNotNil()
+		if err == nil {
+			return
+		}
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "players[move.ScoreIncrement].Hand")).Equals(true)
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "ScoreIncrement")).Equals(true)
+		assert.For(t).ThatActual(strings.Contains(err.Error(), "boardgame.PlayerIndex")).Equals(true)
 	})
 
 	t.Run("players[move.Field] path with nil moveReader is an error", func(t *testing.T) {

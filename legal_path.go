@@ -169,8 +169,16 @@ func validateLegalPath(p LegalPropPath, exampleState ImmutableState, moveReader 
 		if !ok {
 			return fmt.Errorf("boardgame: legal path %q: move field %q does not exist", p, parsed.moveField)
 		}
-		if fieldType != TypePlayerIndex && fieldType != TypeInt {
-			return fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypePlayerIndex or TypeInt", p, parsed.moveField, fieldType)
+		// Footgun-batch F9: only TypePlayerIndex is accepted. An int-typed
+		// field is grammatically index-shaped, but nothing marks it as a
+		// PLAYER index — a plain int (a score, a count, a slot number) that
+		// happens to land in range silently indexes a wrong-but-valid player,
+		// with no error to catch it. Every real usage surveyed (moves.
+		// CurrentPlayer's TargetPlayerIndex, darwin, valentine, tictactoe)
+		// already uses a boardgame.PlayerIndex-typed field, which both
+		// documents intent and gets PlayerIndex's own validity semantics.
+		if fieldType != TypePlayerIndex {
+			return fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypePlayerIndex — declare the field as boardgame.PlayerIndex (an int-typed field is not accepted: nothing marks a plain int as a player index, so a wrong-but-in-range value would silently read another player's state)", p, parsed.moveField, fieldType)
 		}
 		if exampleState == nil {
 			return fmt.Errorf("boardgame: legal path %q: no example state provided to validate against", p)
@@ -258,9 +266,17 @@ func resolveLegalPath(p LegalPropPath, state ImmutableState, move Move) (interfa
 		case TypePlayerIndex:
 			index = fieldVal.(PlayerIndex)
 		case TypeInt:
+			// Kept for evaluation-time tolerance only: boot validation
+			// (validateLegalPath above, footgun-batch F9) rejects int-typed
+			// fields, so a DECLARED players[move.<Field>] path can never
+			// reach this branch. It remains reachable via an ad-hoc
+			// ctx.ResolvePath call from a predicate's Evaluate on a path it
+			// never declared — the Reads honor-system hole — where erroring
+			// would just trade a wrong-player read for an Unknown; boot is
+			// the right place to reject, and does.
 			index = PlayerIndex(fieldVal.(int))
 		default:
-			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypePlayerIndex or TypeInt", p, parsed.moveField, fieldType)
+			return nil, TypeIllegal, fmt.Errorf("boardgame: legal path %q: move field %q has PropertyType %v, expected TypePlayerIndex", p, parsed.moveField, fieldType)
 		}
 		players := state.ImmutablePlayerStates()
 		if index < 0 || int(index) >= len(players) {
