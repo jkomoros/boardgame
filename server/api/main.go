@@ -1726,10 +1726,27 @@ func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.Immut
 			results = append(results, movePreviewBatchResult{Legal: false, Error: err.Error()})
 			continue
 		}
-		form := s.legalMoveForm(game, state, move, playerIndex)
-		results = append(results, movePreviewBatchResult{Legal: form.LegalForPlayer, Error: form.LegalForPlayerError})
+		results = append(results, previewLegalityResult(move, state, playerIndex))
 	}
 	return results, nil
+}
+
+// previewLegalityResult computes ONE candidate's {Legal, Error} the lean way:
+// the single move.Legal(state, playerIndex) call that legalFormOpaque /
+// legalFormFromLedger derive LegalForPlayer/LegalForPlayerError from, without
+// building the Preconditions ledger or the LegalForAnyone call — both of which
+// the batch discards (the client reads only Legal/Error). Byte-identical to
+// reading those two fields off legalMoveForm (pinned by the batch parity tests),
+// but ~1 evaluation per candidate instead of ~3 plus a thrown-away ledger.
+// Observer matches legalMoveForm's Observer branch: {false, ""} (skip the call).
+func previewLegalityResult(move boardgame.Move, state boardgame.ImmutableState, playerIndex boardgame.PlayerIndex) movePreviewBatchResult {
+	if playerIndex == boardgame.ObserverPlayerIndex {
+		return movePreviewBatchResult{Legal: false}
+	}
+	if err := move.Legal(state, playerIndex); err != nil {
+		return movePreviewBatchResult{Legal: false, Error: err.Error()}
+	}
+	return movePreviewBatchResult{Legal: true}
 }
 
 // movePreviewBatchHandler is the batch sibling of movePreviewHandler: given a
