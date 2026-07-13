@@ -128,11 +128,10 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 // predicate, "checkers.spaceIsBlack" (design spec §1/§8): the FIRST real use
 // of the game-registered predicate extension path (legal.ConstructorConfigurer),
 // consumed via type-assertion on this delegate at NewGameManager, the same
-// way legal.TemplateConfigurer below is. ExtendDefaults returns the full
-// built-in catalog (legal.DefaultConstructors()) plus this one addition, so
-// checkers keeps every universal predicate for free.
+// way legal.TemplateConfigurer below is. Delegate constructors overlay the
+// built-in catalog, so this method returns only the game-specific addition.
 func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstructor {
-	return legal.ExtendDefaults(&legal.PredicateConstructor{
+	return []*legal.PredicateConstructor{{
 		Name: "checkers.spaceIsBlack",
 		Constructor: func(spec legal.Spec, _ *boardgame.ComponentChest,
 			_ func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
@@ -181,7 +180,7 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 				},
 			}, nil
 		},
-	})
+	}}
 }
 
 // ConfigureLegalTemplates supplies the checkers.* template keys moveMoveToken's

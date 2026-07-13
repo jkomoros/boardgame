@@ -306,30 +306,6 @@ func legacyLegalMoveCurrentPlayerStand(m *moveCurrentPlayerStand, state boardgam
 	return nil
 }
 
-// knownMessageOrderingDivergenceStand names (fixture, proposer) combinations
-// where the migrated plan disagrees with the legacy oracle on WHICH message
-// wins (nil-ness ALWAYS matches), for the documented bucket-reordering reason:
-// both legal.PlayerBoolIs gates read no move.* path, so they land in the
-// field-INDEPENDENT bucket and evaluate BEFORE the contributed proposer atom
-// (field-dependent), reversing their legacy relative order. This only bites
-// when a bool gate actually FAILS (the "eliminated" and "stood" fixtures) AND
-// the proposer check would also fail ("otherPlayer"/"observer"): legacy
-// reports "it's not your turn" first, the plan reports the bool-gate message
-// first. The "default" fixture has both bools false (gates PASS), so the
-// contributed proposer atom runs and, when it fails, wins byte-for-byte in
-// both orderings — no divergence. "admin" NEVER diverges: AdminPlayerIndex is
-// a wildcard that passes the proposer check in both the legacy oracle
-// (targetPlayerIndex.Equivalent(admin) == true) and the plan's proposer atom,
-// so it reaches the bool gate in both and the same bool message wins.
-// moveCurrentPlayerStand is a PLAYER move (phaseNormalPlay), not a fixup, so
-// there is no setup-memo artifact — every proposer cell recomputes fresh.
-var knownMessageOrderingDivergenceStand = map[string]bool{
-	"eliminated/otherPlayer": true,
-	"eliminated/observer":    true,
-	"stood/otherPlayer":      true,
-	"stood/observer":         true,
-}
-
 func TestGoldenLegalMoveCurrentPlayerStand(t *testing.T) {
 	type fixture struct {
 		name string
@@ -393,9 +369,6 @@ func TestGoldenLegalMoveCurrentPlayerStand(t *testing.T) {
 
 				if (legacyErr == nil) != (actualErr == nil) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
-				}
-				if knownMessageOrderingDivergenceStand[fx.name+"/"+proposerName] {
-					return
 				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
 					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())

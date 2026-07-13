@@ -78,6 +78,28 @@ func TestLegalPlanEvaluateFieldOrder(t *testing.T) {
 	assert.For(t).ThatActual(verdict.Message.Template).Equals("dep")
 }
 
+func TestLegalPlanPreservesDeclarationOrderAcrossMemoClasses(t *testing.T) {
+	manager := newTestGameManger(t)
+	move := manager.ExampleMoveByName("Test")
+	predicates := []*LegalPredicate{
+		legalPlanTestPred("dependentFirst", LegalFail, moveReadOf("move.CardIndex")),
+		legalPlanTestPred("independentSecond", LegalFail),
+	}
+	plan := buildLegalPlanFromPredicates("Test", predicates, []LegalSpec{
+		{Name: "dependentFirst"},
+		{Name: "independentSecond"},
+	}, move)
+
+	verdict, _ := plan.evaluate(LegalContext{}, false)
+	assert.For(t, "first declared failure wins").ThatActual(verdict.Message.Template).Equals("dependentFirst")
+
+	verdict, entries := plan.evaluate(LegalContext{}, true)
+	assert.For(t, "ledger verdict preserves order").ThatActual(verdict.Message.Template).Equals("dependentFirst")
+	assert.For(t, "ledger entry count").ThatActual(len(entries)).Equals(2)
+	assert.For(t, "ledger first entry").ThatActual(entries[0].Name).Equals("dependentFirst")
+	assert.For(t, "ledger second entry").ThatActual(entries[1].Name).Equals("independentSecond")
+}
+
 func TestLegalPlanEvaluateFailClosed(t *testing.T) {
 	// A predicate that returns the invalid zero-value verdict must be
 	// treated as Unknown (not Pass), and Unknown is non-Pass so the plan
@@ -529,7 +551,7 @@ func TestBuildLegalRegistryAndTemplatesOverlaysDelegate(t *testing.T) {
 	assert.For(t).ThatActual(templates["game.specific"]).Equals("a game-specific template")
 
 	// The game-registered set (footgun-batch F3's probe scope) contains
-	// exactly the delegate-supplied names that are NOT universal defaults.
+	// exactly the delegate-supplied names.
 	assert.For(t).ThatActual(gameRegistered["gameSpecificPred"]).Equals(true)
 	assert.For(t).ThatActual(gameRegistered["defaultPred"]).Equals(false)
 }

@@ -101,6 +101,14 @@ func TestLegalSpecWithMessageReturnsCopy(t *testing.T) {
 	}
 }
 
+func TestLegalSpecWithTemplateKeyReturnsCopy(t *testing.T) {
+	original := LegalSpec{Name: "foo"}
+	modified := original.WithTemplateKey("some.key")
+	if original.Message != "" || modified.Message != "some.key" {
+		t.Fatalf("WithTemplateKey mutated original or failed to set key: original=%+v modified=%+v", original, modified)
+	}
+}
+
 // TestLegalBindingValueMarshalJSON verifies that LegalBindingValue marshals
 // as the bare JSON value of whichever single field is set.
 func TestLegalBindingValueMarshalJSON(t *testing.T) {
@@ -128,6 +136,14 @@ func TestLegalBindingValueMarshalJSON(t *testing.T) {
 				t.Fatalf("Marshal = %s, want %s", data, tc.want)
 			}
 		})
+	}
+}
+
+func TestLegalBindingValueMarshalJSONRejectsMultipleFields(t *testing.T) {
+	s := "foo"
+	i := 42
+	if _, err := json.Marshal(LegalBindingValue{S: &s, I: &i}); err == nil {
+		t.Fatal("Marshal accepted a LegalBindingValue with multiple fields set")
 	}
 }
 

@@ -108,9 +108,8 @@ func (d *Default) ContributedPreconditions() []legal.Spec {
 // DeclaredPreconditions returns this move type's authored specs (from
 // WithPreconditions, in declaration order) and suppression names (from
 // WithoutPrecondition), as configured via auto.Config. A nil specs return
-// means this move type has not opted in to declarative legality at all —
-// core is expected to treat a nil specs slice as "not opted in", per the
-// design spec §2's "declaring is implementing" rule.
+// means there are no authored specs; DeclarativeLegalityEnabled separately
+// distinguishes an explicit contributed-only or LegalCustom-only opt-in.
 func (d *Default) DeclaredPreconditions() ([]legal.Spec, []string) {
 	config := d.CustomConfiguration()
 
@@ -118,6 +117,14 @@ func (d *Default) DeclaredPreconditions() ([]legal.Spec, []string) {
 	suppressions, _ := config[configPropSuppressedPreconditions].([]string)
 
 	return specs, suppressions
+}
+
+// DeclarativeLegalityEnabled reports whether WithDeclarativeLegality was
+// supplied. Core uses this explicit marker to distinguish an intentional
+// zero-authored-spec plan from a move that never opted in.
+func (d *Default) DeclarativeLegalityEnabled() bool {
+	enabled, _ := d.CustomConfiguration()[configPropDeclarativeLegality].(bool)
+	return enabled
 }
 
 // ContributedPreconditions returns Default's own contributed specs

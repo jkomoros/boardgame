@@ -47,6 +47,18 @@ var legalCompareOps = map[string]func(value, n int) bool{
 	">=": func(value, n int) bool { return value >= n },
 }
 
+// Comparison operators accepted by PropCompare and StackCount. String
+// literals remain supported; these constants improve discoverability and
+// avoid spelling mistakes without breaking existing callers.
+const (
+	OpEqual              = "=="
+	OpNotEqual           = "!="
+	OpLessThan           = "<"
+	OpLessThanOrEqual    = "<="
+	OpGreaterThan        = ">"
+	OpGreaterThanOrEqual = ">="
+)
+
 // PropAtLeast returns a Spec for the "propAtLeast" predicate: Passes if the
 // int property at path is >= n. Works for any int prop reachable via the
 // catalog's path grammar (game.X, player.X, move.X).

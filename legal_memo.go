@@ -48,11 +48,16 @@ observed in a torn state.
 
 // legalFieldIndepMemoKey is the field-independent legality memo's key
 // (design spec §5's honest table): one entry per (move type, state version,
-// proposer).
+// proposer, predicate ordinal).
 type legalFieldIndepMemoKey struct {
 	moveName string
 	version  int
 	proposer PlayerIndex
+	// predicate is the field-independent predicate's stable ordinal within
+	// the plan. Caching each verdict separately lets evaluation walk the
+	// original declaration order even when independent and dependent
+	// predicates are interleaved.
+	predicate int
 }
 
 // legalFieldIndepMemoGet returns the memoized field-independent verdict for

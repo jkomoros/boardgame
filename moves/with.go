@@ -32,6 +32,7 @@ const configPropAllowDuplicates = fullyQualifiedPackageName + "AllowDuplicates"
 const configPropRequireAdmin = fullyQualifiedPackageName + "RequireAdmin"
 const configPropPreconditions = fullyQualifiedPackageName + "Preconditions"
 const configPropSuppressedPreconditions = fullyQualifiedPackageName + "SuppressedPreconditions"
+const configPropDeclarativeLegality = fullyQualifiedPackageName + "DeclarativeLegality"
 
 // CustomConfigurationOption is a function that takes a PropertyCollection and
 // modifies a key on it. This package defines a number of functions that return
@@ -256,8 +257,8 @@ func WithAllowDuplicates() CustomConfigurationOption {
 }
 
 // WithPreconditions returns a function configuration option suitable for
-// being passed to auto.Config. Passing it is how a move type opts in to
-// declarative legality (design spec §2): the specs, in order, are appended
+// being passed to auto.Config. Passing at least one spec opts a move type in
+// to declarative legality (design spec §2): the specs, in order, are appended
 // to whatever has already been passed to earlier WithPreconditions calls
 // for this move type (mirroring WithLegalPhases' accumulate-across-calls
 // behavior). See moves.Default.DeclaredPreconditions, which reads this
@@ -273,6 +274,17 @@ func WithPreconditions(specs ...legal.Spec) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		previous, _ := config[configPropPreconditions].([]legal.Spec)
 		config[configPropPreconditions] = append(previous, specs...)
+	}
+}
+
+// WithDeclarativeLegality explicitly opts a move into the declarative
+// legality plan even when it has no authored preconditions. Use it for a
+// contributed-only plan, for a LegalCustom-only plan, or when suppressing
+// every contributed precondition intentionally. Moves with one or more
+// WithPreconditions specs are already opted in and do not need this option.
+func WithDeclarativeLegality() CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropDeclarativeLegality] = true
 	}
 }
 
@@ -295,10 +307,10 @@ func WithPreconditions(specs ...legal.Spec) CustomConfigurationOption {
 // move never had — e.g. PreconditionInProgression on a move with no move
 // progression) is a boot error listing the move's real contributed names,
 // and WithoutPrecondition on a move that never opts in via
-// WithPreconditions is a boot error too, listing every dead suppression
-// name on the move (without the opt-in there is no plan to edit, so the
-// frozen imperative chain runs unchanged — the suppression cannot have any
-// effect).
+// WithPreconditions or WithDeclarativeLegality is a boot error too, listing
+// every dead suppression name on the move (without the opt-in there is no
+// plan to edit, so the frozen imperative chain runs unchanged — the
+// suppression cannot have any effect).
 func WithoutPrecondition(name string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		previous, _ := config[configPropSuppressedPreconditions].([]string)

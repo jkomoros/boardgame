@@ -81,17 +81,17 @@ func legalMemoAdvanceVersion(t *testing.T, game *Game) {
 // actually evaluated, so tests can distinguish a memo hit (calls unchanged)
 // from a miss (calls incremented).
 func countingFieldIndependentPlan(moveName string, calls *int) *legalPlan {
-	return &legalPlan{
-		moveName: moveName,
-		fieldIndependent: []*LegalPredicate{
-			{
-				Name: "counting",
-				Evaluate: func(ctx LegalContext) LegalVerdict {
-					*calls++
-					return LegalVerdict{Outcome: LegalPass}
-				},
-			},
+	pred := &LegalPredicate{
+		Name: "counting",
+		Evaluate: func(ctx LegalContext) LegalVerdict {
+			*calls++
+			return LegalVerdict{Outcome: LegalPass}
 		},
+	}
+	return &legalPlan{
+		moveName:         moveName,
+		fieldIndependent: []*LegalPredicate{pred},
+		ordered:          []legalPlanStep{{predicate: pred, memoIndex: 0}},
 	}
 }
 
@@ -118,6 +118,48 @@ func TestLegalPlanFieldIndependentMemoHitAcrossDoubleEvaluation(t *testing.T) {
 	v2, _ := plan.evaluate(ctx, false)
 	assert.For(t).ThatActual(v2.Outcome).Equals(LegalPass)
 	assert.For(t).ThatActual(calls).Equals(1)
+}
+
+func TestLegalPlanMemoDoesNotReorderInterleavedPredicates(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+	state := game.CurrentState()
+
+	dependentCalls := 0
+	independentCalls := 0
+	dependent := &LegalPredicate{
+		Name:  "dependentFirst",
+		Reads: []LegalRead{moveReadOf("move.X")},
+		Evaluate: func(ctx LegalContext) LegalVerdict {
+			dependentCalls++
+			return LegalVerdict{Outcome: LegalPass}
+		},
+	}
+	independent := &LegalPredicate{
+		Name: "independentSecond",
+		Evaluate: func(ctx LegalContext) LegalVerdict {
+			independentCalls++
+			return LegalVerdict{Outcome: LegalPass}
+		},
+	}
+	plan := &legalPlan{
+		moveName:         "InterleavedMemoMove",
+		fieldIndependent: []*LegalPredicate{independent},
+		fieldDependent:   []*LegalPredicate{dependent},
+		ordered: []legalPlanStep{
+			{predicate: dependent, fieldDependent: true, memoIndex: -1},
+			{predicate: independent, memoIndex: 0},
+		},
+	}
+	ctx := LegalContext{State: state, Proposer: AdminPlayerIndex}
+
+	plan.evaluate(ctx, false)
+	plan.evaluate(ctx, false)
+	assert.For(t, "dependent runs per move").ThatActual(dependentCalls).Equals(2)
+	assert.For(t, "independent verdict is memoized").ThatActual(independentCalls).Equals(1)
+
+	_, entries := plan.evaluate(ctx, true)
+	assert.For(t, "ledger first entry").ThatActual(entries[0].Name).Equals("dependentFirst")
+	assert.For(t, "ledger second entry").ThatActual(entries[1].Name).Equals("independentSecond")
 }
 
 // TestLegalPlanFieldIndependentMemoMissAcrossProposer proves the memo key

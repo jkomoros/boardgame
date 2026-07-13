@@ -95,6 +95,15 @@ var knownBugFixNilnessDivergence = map[string]bool{
 	"default/observer":    true,
 }
 
+// The same bug fix changes first-failure text when both the formerly ignored
+// proposer check and the die-counted gate fail. Both paths remain illegal;
+// the corrected proposer check now wins in the plan's declared base-first
+// order.
+var knownBugFixMessageDivergence = map[string]bool{
+	"dieNotCounted/otherPlayer": true,
+	"dieNotCounted/observer":    true,
+}
+
 func TestGoldenLegalMoveRollDice(t *testing.T) {
 	type fixture struct {
 		name string
@@ -151,6 +160,9 @@ func TestGoldenLegalMoveRollDice(t *testing.T) {
 				if (legacyErr == nil) != (actualErr == nil) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
 				}
+				if knownBugFixMessageDivergence[fx.name+"/"+proposerName] {
+					return
+				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
 					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
 				}
@@ -198,23 +210,6 @@ func legacyLegalMoveDoneTurn(m *moveDoneTurn, state boardgame.ImmutableState, pr
 	}
 
 	return nil
-}
-
-// knownMessageOrderingDivergence names (fixture, proposer) combinations
-// where the migrated plan is EXPECTED to disagree with the legacy oracle on
-// WHICH message wins (nil-ness always matches), for the SAME
-// bucket-reordering reason documented in
-// examples/memory/legal_golden_test.go (Task 11): legal.PlayerBool
-// ("DieCounted") reads no move.* path, so it lands in moveDoneTurn's
-// field-INDEPENDENT bucket and evaluates before the contributed proposer
-// check (field-dependent), reversing their legacy relative order. Only
-// "dieNotCounted" combined with a failing proposer check exercises this
-// (the "default" and "alreadyDone" fixtures have DieCounted true, so the
-// proposer check — when it fails — always wins in both legacy and migrated
-// order, matching trivially).
-var knownMessageOrderingDivergence = map[string]bool{
-	"dieNotCounted/otherPlayer": true,
-	"dieNotCounted/observer":    true,
 }
 
 func TestGoldenLegalMoveDoneTurn(t *testing.T) {
@@ -274,9 +269,6 @@ func TestGoldenLegalMoveDoneTurn(t *testing.T) {
 				if (legacyErr == nil) != (actualErr == nil) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
 				}
-				if knownMessageOrderingDivergence[fx.name+"/"+proposerName] {
-					return
-				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
 					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
 				}
@@ -324,23 +316,6 @@ func legacyLegalMoveCountDie(m *moveCountDie, state boardgame.ImmutableState, pr
 	}
 
 	return nil
-}
-
-// knownMessageOrderingDivergenceCountDie names (fixture, proposer)
-// combinations where the migrated plan disagrees with the legacy oracle on
-// WHICH message wins (nil-ness always matches), for the same bucket-reordering
-// reason as moveDoneTurn above: PlayerBoolIs("DieCounted", false) reads no
-// move.* path, so it lands in the field-INDEPENDENT bucket and evaluates
-// before the contributed proposer atom (field-dependent), reversing their
-// legacy order. Only the "default" fixture (a fresh game, DieCounted==true →
-// gate FAILS) combined with a failing proposer check exercises this: legacy
-// reports "it's not your turn" first, the plan reports "the most recent die
-// roll has already been counted" first. The "dieNotCounted" fixture has
-// DieCounted==false (gate PASSES), so the contributed proposer atom runs and,
-// when it fails, wins byte-for-byte in both orderings.
-var knownMessageOrderingDivergenceCountDie = map[string]bool{
-	"default/otherPlayer": true,
-	"default/observer":    true,
 }
 
 func TestGoldenLegalMoveCountDie(t *testing.T) {
@@ -409,9 +384,6 @@ func TestGoldenLegalMoveCountDie(t *testing.T) {
 
 				if (legacyErr == nil) != (actualErr == nil) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
-				}
-				if knownMessageOrderingDivergenceCountDie[fx.name+"/"+proposerName] {
-					return
 				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
 					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())

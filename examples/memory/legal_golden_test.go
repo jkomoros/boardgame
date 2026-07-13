@@ -228,46 +228,6 @@ func revealCardGoldenFixtures(t *testing.T) []revealCardGoldenFixture {
 	return fixtures
 }
 
-// knownMessageOrderingDivergence names (fixture, proposer) combinations
-// where the migrated plan is EXPECTED to disagree with the legacy oracle on
-// WHICH message wins, even though both agree the move is illegal (nil-ness
-// always matches). This is a genuine, documented architectural finding from
-// this golden harness, not a test bug:
-//
-// Legacy Legal() evaluates strictly in declaration order: CurrentPlayer's
-// proposer check (a super-call) runs before moveRevealCard's own
-// CardsLeftToReveal check. The migrated plan's SPEC order matches that
-// exactly ([proposerIsCurrentPlayer (contributed), PropAtLeast,
-// RevealableCardAt, MayMoveToSlot (authored)] — see main.go). But
-// legalPlan.evaluate (legal_plan.go) does NOT evaluate strictly in spec
-// order: design spec §5's memoization architecture splits a plan into a
-// fieldIndependent bucket (no move.* reads) and a fieldDependent bucket (at
-// least one move.* read), and evaluates the ENTIRE fieldIndependent bucket
-// before ANY fieldDependent predicate, regardless of declaration order.
-// legal.PropAtLeast("player.CardsLeftToReveal", 1) reads no move.* path, so
-// it lands in fieldIndependent; legal.ProposerIsCurrentPlayer() reads
-// "move.TargetPlayerIndex", so it lands in fieldDependent — meaning
-// CardsLeftToReveal is checked BEFORE the proposer check in the migrated
-// plan, the reverse of the legacy order. legal.RevealableCardAt and
-// legal.MayMoveToSlot both read "move.CardIndex" too, so they stay
-// fieldDependent and keep their legacy relative order after the proposer
-// check.
-//
-// Net effect: for a proposer that is BOTH not the current player AND whose
-// target player has zero CardsLeftToReveal, legacy reports "it's not your
-// turn" while the migrated plan reports "You have no cards left to reveal
-// this turn". Both are illegal (nil-ness matches); only the FIRST-failure
-// message differs. This narrows design spec §8's "migrated moves keep their
-// historical first-failure messages" claim: it holds only when a move's
-// declaration order and its field-independent/field-dependent split agree
-// on ordering, which is not guaranteed in general. See the Task 11 report
-// for the full writeup; this is a Named Review Risk realized, not a defect
-// in this migration.
-var knownMessageOrderingDivergence = map[string]bool{
-	"zeroCardsLeft/otherPlayer": true,
-	"zeroCardsLeft/observer":    true,
-}
-
 // TestGoldenLegalMoveRevealCard is the design spec §9 "golden equivalence"
 // test for memory's flagship declarative migration (spec §8): for every
 // fixture above, cross every proposer worth distinguishing (the current
@@ -310,9 +270,6 @@ func TestGoldenLegalMoveRevealCard(t *testing.T) {
 
 				if (legacyErr == nil) != (actualErr == nil) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
-				}
-				if knownMessageOrderingDivergence[fixture.name+"/"+proposerName] {
-					return
 				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
 					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())
@@ -458,34 +415,6 @@ func hideCardsGoldenFixtures(t *testing.T) []hideCardsGoldenFixture {
 	return fixtures
 }
 
-// knownMessageOrderingDivergenceHide names (fixture, proposer) combinations
-// where the migrated plan is EXPECTED to disagree with the legacy oracle on
-// WHICH message wins, even though both agree the move is illegal (nil-ness
-// always matches). Same architectural finding as moveRevealCard's
-// knownMessageOrderingDivergence above: legalPlan.evaluate runs the ENTIRE
-// field-independent bucket before ANY field-dependent predicate, regardless of
-// declaration order (design spec §5's memoization split). moveHideCards's two
-// gates (PropCompare on player.*, StackNotEmpty on game.*) read no move.* path,
-// so both land field-INDEPENDENT; the contributed proposer atom reads
-// move.TargetPlayerIndex, so it lands field-DEPENDENT — meaning the gates are
-// checked BEFORE the proposer check in the plan, the reverse of the legacy
-// order (super-call first).
-//
-// This bites ONLY in the "default" fixture, where both gates already fail:
-// for a proposer that also fails the proposer check (a non-current, non-admin
-// proposer), legacy reports "it's not your turn" (proposer check first) while
-// the plan reports "You still have to reveal more cards before your turn is
-// over" (PropCompare, the first field-independent gate). admin does NOT diverge
-// (its proposer atom passes, so it reaches the same failing gate in both
-// orderings), and the "bothPass" fixture does not diverge at all (its gates
-// pass, so the proposer atom runs and, when it fails, wins byte-for-byte in
-// both orderings). This is a normal player move, not a fixup, so there is no
-// setup-memo artifact — every proposer cell recomputes fresh.
-var knownMessageOrderingDivergenceHide = map[string]bool{
-	"default/otherPlayer": true,
-	"default/observer":    true,
-}
-
 // TestGoldenLegalMoveHideCards is the design spec §9 "golden equivalence" test
 // for moveHideCards's Workstream 9 re-migration: for every fixture above, cross
 // every proposer worth distinguishing (the current player, a different concrete
@@ -527,9 +456,6 @@ func TestGoldenLegalMoveHideCards(t *testing.T) {
 
 				if (legacyErr == nil) != (actualErr == nil) {
 					t.Fatalf("nil-ness mismatch: legacy=%v actual=%v", legacyErr, actualErr)
-				}
-				if knownMessageOrderingDivergenceHide[fixture.name+"/"+proposerName] {
-					return
 				}
 				if legacyErr != nil && legacyErr.Error() != actualErr.Error() {
 					t.Fatalf("message mismatch:\n legacy: %q\n actual: %q", legacyErr.Error(), actualErr.Error())

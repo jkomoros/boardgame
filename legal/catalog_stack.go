@@ -455,8 +455,8 @@ func mayMoveToSlotConstructor() *PredicateConstructor {
 // consumed via a type-assertion on the delegate by NewGameManager's plan
 // assembly (boardgame/legal_plan.go), which overlays the returned
 // constructors (by Name) on the process-wide defaults. Absence means the game
-// uses only the default catalog. A delegate that wants the built-in catalog
-// plus its own returns ExtendDefaults(...) here.
+// uses only the default catalog. Return only additions or intentional
+// overrides; the built-in catalog is retained automatically.
 type ConstructorConfigurer interface {
 	// ConfigurePredicateConstructors returns this game's predicate
 	// constructors. Names matching a built-in override it; new names extend
@@ -465,9 +465,7 @@ type ConstructorConfigurer interface {
 }
 
 // DefaultConstructors returns the full set of pre-built
-// LegalPredicateConstructors provided by this package. Games consuming the
-// default catalog get these for free; games registering additional
-// predicates of their own use ExtendDefaults instead.
+// LegalPredicateConstructors provided by this package.
 func DefaultConstructors() []*PredicateConstructor {
 	return []*PredicateConstructor{
 		propAtLeastConstructor(),
@@ -492,10 +490,9 @@ func DefaultConstructors() []*PredicateConstructor {
 	}
 }
 
-// ExtendDefaults returns DefaultConstructors() with extra appended. This is
-// a convenience for a delegate's ConfigurePredicateConstructors when a game
-// wants the built-in catalog plus its own predicates (e.g. checkers'
-// spaceIsBlack, design spec §8).
+// ExtendDefaults returns DefaultConstructors() with extra appended.
+// Deprecated: ConfigurePredicateConstructors is overlaid on the defaults, so
+// delegates should return only their additions or intentional overrides.
 func ExtendDefaults(extra ...*PredicateConstructor) []*PredicateConstructor {
 	return append(DefaultConstructors(), extra...)
 }

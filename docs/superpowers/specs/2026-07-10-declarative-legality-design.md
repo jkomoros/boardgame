@@ -353,16 +353,14 @@ type PreconditionPlan struct {
   authored atoms in declaration order; `custom` always last. No Cost-sorting
   in v1** — what you declare is what runs, in the order you wrote it (least
   surprise; migrated moves keep their historical first-failure messages
-  without snapshot churn). Caveat (footgun batch F7): the field-independent →
-  field-dependent bucket split in the next bullet takes precedence ACROSS
-  buckets, so this holds only within a bucket — a field-independent check
-  declared after a field-dependent one still evaluates, and reports its
-  failure, first. `Cost` stays on every predicate as metadata: docs
+  without snapshot churn). Field-independent predicates are memoized
+  individually, so caching never changes this observable order. `Cost` stays on every predicate as metadata: docs
   and lints use it ("expensive predicate declared before cheap ones"), and a
   future opt-in reordering can use it without a representation change.
   Deterministic order ⇒ the same state always reports the same failure.
-- Order: field-independent → field-dependent (with a bound move; this is
-  #761's split) → custom. Note the critique correction: the proposer check is
+- Classification: field-independent predicates may be memoized; field-dependent
+  predicates require a bound move. Both remain in plan order, followed by
+  custom. Note the critique correction: the proposer check is
   field-**dependent** (it reads `move.TargetPlayerIndex`), so the plan
   preserves today's error-precedence for turn violations.
 - **Hot paths short-circuit** on first Fail (fixup loop, ProposeMove).
@@ -667,17 +665,11 @@ design decision.
   since its `gameState` implements neither `BeforeLeavePhaser` nor
   `BeforeEnterPhaser`.
 
-- **Bucket-reordering narrows the "historical first-failure message"
-  claim (§4).** The plan evaluator splits a plan into a field-independent
-  bucket (no `move.*` reads) and a field-dependent bucket, evaluating the
-  entire field-independent bucket first regardless of authored declaration
-  order. Since `proposerIsCurrentPlayer` is field-dependent (reads
-  `move.TargetPlayerIndex`), a field-independent authored check that ran
-  AFTER the proposer check in the old linear chain can now report first.
-  Real migrations (memory, checkers, and every ../games migration) hit this
-  and documented it per-case (`knownMessageOrderingDivergence`-style maps in
-  each game's golden test) rather than treating it as a regression — nil-ness
-  never diverges, only which message wins a tie.
+- **Bucket-reordering was removed in the API-polish follow-up (§4).** The
+  original implementation evaluated the field-independent bucket before the
+  field-dependent bucket, changing first-failure messages. The follow-up
+  memoizes field-independent predicates individually while traversing the
+  original plan order; golden tests no longer whitelist those divergences.
 
 - **`legal.Predicate1` (§8's checkers sample) does not exist.** The
   literal spelling in the shipped checkers migration is a bare

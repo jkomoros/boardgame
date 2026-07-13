@@ -1,6 +1,7 @@
 package moves
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -90,7 +91,7 @@ type moveCustomLegalerNoOptIn struct {
 }
 
 func (m *moveCustomLegalerNoOptIn) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	return nil
+	return errors.New("custom-only rejection")
 }
 
 func (m *moveCustomLegalerNoOptIn) Apply(state boardgame.State) error { return nil }
@@ -707,6 +708,34 @@ func TestCustomLegalerWithoutOptInIsBootError(t *testing.T) {
 	}
 }
 
+func TestCustomLegalerExplicitOptInRunsWithoutAuthoredPreconditions(t *testing.T) {
+	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return Add(auto.MustConfig(
+			new(moveCustomLegalerNoOptIn),
+			WithMoveName("Custom Legaler Explicit Opt In"),
+			WithDeclarativeLegality(),
+		))
+	}
+
+	manager, err := newGameManager(installer)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	if manager == nil {
+		return
+	}
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "game").ThatActual(err).IsNil()
+	move := game.MoveByName("Custom Legaler Explicit Opt In")
+	assert.For(t, "move").ThatActual(move).IsNotNil()
+	if move != nil {
+		err = move.Legal(game.CurrentState(), boardgame.AdminPlayerIndex)
+		assert.For(t, "custom rejection").ThatActual(err).IsNotNil()
+		if err != nil {
+			assert.For(t, "custom body ran").ThatActual(err.Error()).Equals("custom-only rejection")
+		}
+	}
+}
+
 // TestValidSuppressionBootsAndSuppresses (F2 contrast case): a suppression
 // that names a check the move actually contributes is the supported pattern
 // and must keep working — the game boots, and the suppressed check really
@@ -1092,6 +1121,31 @@ func TestBootProbeCatchesUndeclaredMoveRead(t *testing.T) {
 			assert.For(t, "error names", want).ThatActual(strings.Contains(err.Error(), want)).IsTrue()
 		}
 	})
+}
+
+func TestBootProbeCatchesUndeclaredMoveReadInBuiltinOverride(t *testing.T) {
+	override := probeTestConstructor("propAtLeast", nil,
+		func(ctx legal.Context) legal.Verdict {
+			if _, _, err := ctx.ResolvePath("move.TargetPlayerIndex"); err != nil {
+				return legal.UnknownVerdict(err.Error())
+			}
+			return legal.PassVerdict()
+		})
+	_, err := newProbeTestManager(
+		[]*legal.PredicateConstructor{override},
+		func(auto *AutoConfigurer) boardgame.MoveConfig {
+			return auto.MustConfig(
+				new(moveDeclarativeOptIn),
+				WithMoveName("Sneaky Builtin Override"),
+				WithPreconditions(legal.Spec{Name: "propAtLeast"}),
+			)
+		},
+	)
+	assert.For(t, "boot error").ThatActual(err).IsNotNil()
+	if err != nil {
+		assert.For(t, "names move").ThatActual(strings.Contains(err.Error(), "Sneaky Builtin Override")).IsTrue()
+		assert.For(t, "names predicate").ThatActual(strings.Contains(err.Error(), "propAtLeast")).IsTrue()
+	}
 }
 
 // TestBootProbeAllowsStateOnlyGameRegistered (F3 contrast case): a

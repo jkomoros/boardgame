@@ -73,6 +73,19 @@ type LegalBindingValue struct {
 // zero-value LegalBindingValue violates the exactly-one-field-set
 // invariant.
 func (b LegalBindingValue) MarshalJSON() ([]byte, error) {
+	set := 0
+	if b.S != nil {
+		set++
+	}
+	if b.I != nil {
+		set++
+	}
+	if b.B != nil {
+		set++
+	}
+	if set != 1 {
+		return nil, fmt.Errorf("boardgame: LegalBindingValue must have exactly one field set; got %d", set)
+	}
 	switch {
 	case b.S != nil:
 		return json.Marshal(*b.S)
@@ -81,7 +94,7 @@ func (b LegalBindingValue) MarshalJSON() ([]byte, error) {
 	case b.B != nil:
 		return json.Marshal(*b.B)
 	default:
-		return nil, fmt.Errorf("boardgame: LegalBindingValue has no field set")
+		panic("unreachable")
 	}
 }
 
@@ -215,4 +228,11 @@ type LegalSpec struct {
 func (s LegalSpec) WithMessage(templateKey string) LegalSpec {
 	s.Message = templateKey
 	return s
+}
+
+// WithTemplateKey returns a copy of s whose failure message uses templateKey.
+// It is the explicit-name equivalent of WithMessage; WithMessage remains for
+// source compatibility.
+func (s LegalSpec) WithTemplateKey(templateKey string) LegalSpec {
+	return s.WithMessage(templateKey)
 }

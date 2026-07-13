@@ -124,14 +124,12 @@ It is never cached, has no serialized form, and a client sees its verdict as
 Go. Return legal.Errorf(templateKey, bindings) to keep the failure
 structured (template key + bindings, renderable and greppable exactly like a
 declarative Fail); a plain error still works and is wrapped as a one-off
-template. A move implementing LegalCustom must have opted in via
-WithPreconditions with at least one real spec — "declaring is implementing";
-an empty WithPreconditions() call does not count, so LegalCustom alone,
-without any declarative gates, would never be consulted — and is therefore a
-boot error naming the move (footgun-batch F5): LegalCustom is wrapped only as
-the custom tail of an assembled plan, and a move with no authored
-preconditions has no plan, so the residue would silently fail open rather than
-gate anything. LegalCustom combined with a wholesale Legal() override on the
+template. A move implementing LegalCustom must opt in either with at least one
+WithPreconditions spec or explicitly with moves.WithDeclarativeLegality().
+The explicit option is the natural spelling for a LegalCustom-only or
+contributed-only plan. LegalCustom without either opt-in is a boot error naming
+the move, preventing the custom body from silently failing open. LegalCustom
+combined with a wholesale Legal() override on the
 same type is a boot error too: the override would orphan both the declared
 plan and the residue.
 
@@ -256,9 +254,10 @@ implement it):
 	    ConfigurePredicateConstructors() []*PredicateConstructor
 	}
 
-Return ExtendDefaults(yourConstructor, ...) to keep the full built-in catalog
-plus your addition; return DefaultConstructors() (or the built-ins directly)
-to decline extension. checkers' `checkers.spaceIsBlack` is the reference
+Return only your additions or intentional overrides; the framework overlays
+them on the full built-in catalog automatically. A delegate that does not
+implement the interface keeps the defaults unchanged. checkers'
+`checkers.spaceIsBlack` is the reference
 example (examples/checkers/main.go's ConfigurePredicateConstructors): a
 board-geometry check with no natural fit in a game-agnostic catalog, but
 which is still a genuine relation over one path (a space index), so it
@@ -387,20 +386,11 @@ respectively — and widened the composition seam. What's left, honestly:
     needs either a wider constructor signature (example state reachable at
     construction) or a dedicated boot-validation hook, neither of which
     exists yet.
-  - **Bucket reordering narrows the "historical first-failure message"
-    claim.** The plan evaluator splits a move's plan into a field-independent
-    bucket (no move.* reads) and a field-dependent bucket (>=1 move.* read),
-    evaluating the entire field-independent bucket before any
-    field-dependent predicate — regardless of declaration order. Since
-    proposerIsCurrentPlayer reads move.TargetPlayerIndex (field-dependent),
-    a field-independent authored check that would have run AFTER the
-    proposer check in the old linear chain can now report its failure
-    FIRST, for inputs that fail both simultaneously. players[move.<Field>].X
-    reads are ALSO field-dependent (they read a move field), so this applies
-    to them too. Real migrations documented and test-asserted this
-    divergence rather than hiding it (see each migrated game's
-    legal_golden_test.go and this repo's knownMessageOrderingDivergence-style
-    maps).
+  - **Memoization does not reorder checks.** Field-independent verdicts are
+    cached per predicate, but the evaluator and ledger always traverse the
+    contributed/authored declaration order. A later state-only check can
+    never jump ahead of an earlier move-field check merely because it is
+    cacheable.
 
 None of these are dead ends — LegalCustom always works, and each gap above
 is exactly the shape of thing rule 1-3 above is designed to grow the catalog

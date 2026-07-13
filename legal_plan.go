@@ -60,6 +60,10 @@ type legalDeclarer interface {
 	DeclaredPreconditions() ([]LegalSpec, []string)
 }
 
+type legalExplicitEnabler interface {
+	DeclarativeLegalityEnabled() bool
+}
+
 // legalConstructorConfigurer is the core-side structural view of
 // legal.ConstructorConfigurer (design spec §1): an optional delegate
 // interface supplying game-registered predicate constructors, overlaid on the
@@ -77,30 +81,25 @@ type legalTemplateConfigurer interface {
 }
 
 // legalPlan is the per-opted-in-move-type evaluation plan, built once at
-// NewGameManager (design spec §4). Predicates are split into buckets by
-// whether they read any move.* path; the split exists so the
-// field-independent half can be memoized across the move-forms player+admin
-// double pass (keyed without the move). Evaluation order is bucket order
-// first — every fieldIndependent predicate, then every fieldDependent one,
-// then custom — and plan order (contributed atoms base-first, then authored
-// atoms in declaration order) only WITHIN each bucket, with NO Cost sort.
-// The design spec §4's "what you declare is what runs, in the order you
-// wrote it" therefore holds within a bucket but not across buckets (footgun
-// batch F7): a field-independent check declared after a field-dependent one
-// still evaluates, and reports its failure, first.
+// NewGameManager (design spec §4). ordered preserves contributed/authored
+// declaration order. The two buckets remain as indexes for memo/probe work,
+// but never determine observable evaluation or ledger order.
 type legalPlan struct {
 	// moveName is the owning move type's name (mType.Name()), used as part
 	// of the field-independent memo's key (legal_memo.go) so a lookup can't
 	// collide across move types sharing a game.
 	moveName string
-	// fieldIndependent holds resolved predicates with no move.* reads, in
-	// plan order.
+	// fieldIndependent indexes resolved predicates with no move.* reads for
+	// memoization and boot probes; it does not determine evaluation order.
 	fieldIndependent []*LegalPredicate
-	// fieldDependent holds resolved predicates that read at least one move.*
-	// path (proposerIsCurrentPlayer among them — it reads
-	// move.TargetPlayerIndex), in plan order, evaluated after every
-	// fieldIndependent predicate.
+	// fieldDependent indexes resolved predicates that read at least one
+	// move.* path (proposerIsCurrentPlayer among them — it reads
+	// move.TargetPlayerIndex); it does not determine evaluation order.
 	fieldDependent []*LegalPredicate
+	// ordered is the authoritative evaluation order. Each independent step
+	// carries its stable memo ordinal, allowing its individual verdict to be
+	// cached without hoisting it ahead of earlier dependent predicates.
+	ordered []legalPlanStep
 	// custom is the CustomLegaler escape-hatch wrapper (opaque,
 	// unserializable, CostExpensive), evaluated dead last, or nil if the
 	// move type does not implement CustomLegaler.
@@ -112,6 +111,12 @@ type legalPlan struct {
 	// predicate's originating spec shape), preserved for the ledger and
 	// wire format.
 	specs []LegalSpec
+}
+
+type legalPlanStep struct {
+	predicate      *LegalPredicate
+	fieldDependent bool
+	memoIndex      int
 }
 
 // LegalVerdictEntry is one predicate's line in a full-ledger evaluation
@@ -139,18 +144,18 @@ type LegalVerdictEntry struct {
 	Reads []LegalRead
 }
 
-// evaluate runs the plan against ctx. Evaluation order is fieldIndependent →
-// fieldDependent → custom, each in plan order (design spec §4).
+// evaluate runs the plan against ctx in contributed/authored declaration
+// order, followed by the custom tail (design spec §4).
 //
 // In hot-path mode (fullLedger == false) it short-circuits on the FIRST
 // non-Pass verdict (Fail OR Unknown — fail-closed: an Unknown means legality
 // could not be confirmed, so the move is treated as not legal and its verdict
 // returned, exactly as a Fail would be), preserving today's first-failure
-// error precedence; the returned entry slice is nil. In this mode the
-// fieldIndependent bucket's overall verdict is served from (and stored into)
-// ctx.State.Game()'s field-independent memo (design spec §5's honest table,
-// legal_memo.go) rather than always re-evaluated — see
-// evaluateFieldIndependentMemoized. A ctx with no Game to anchor a memo to
+// error precedence; the returned entry slice is nil. In this mode each
+// field-independent predicate's verdict is served from (and stored into)
+// ctx.State.Game()'s memo (design spec §5's honest table, legal_memo.go)
+// without moving that predicate from its declared position. A ctx with no
+// Game to anchor a memo to
 // (e.g. a probe or an isolated test evaluating against ExampleState()) just
 // evaluates fresh every time, with no memo interaction at all.
 //
@@ -159,9 +164,8 @@ type LegalVerdictEntry struct {
 // overall verdict the first non-Pass encountered (or Pass if all passed).
 // Every predicate is run through evalLegalPredicate, so a panicking or
 // invalid-verdict predicate degrades to a fail-closed Unknown, never to Pass.
-// Full-ledger mode never consults or populates the memo: it needs a fresh
-// per-predicate entry for every bucket member, which a cached bucket-level
-// verdict can't supply.
+// Full-ledger mode never consults or populates the memo: it produces fresh
+// per-predicate entries in declaration order.
 func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, []LegalVerdictEntry) {
 	if p == nil {
 		// A nil plan cannot confirm legality; fail closed.
@@ -173,15 +177,16 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 
 	var entries []LegalVerdictEntry
 
-	consider := func(pred *LegalPredicate, fieldDependent bool) bool {
-		v := evalLegalPredicate(pred, ctx)
+	consider := func(step legalPlanStep) bool {
+		pred := step.predicate
+		v := p.evaluateStep(ctx, step, fullLedger)
 		if fullLedger {
 			entries = append(entries, LegalVerdictEntry{
 				Name:           pred.Name,
 				Args:           pred.Args,
 				Verdict:        v,
 				Serializable:   pred.Serializable(),
-				FieldDependent: fieldDependent,
+				FieldDependent: step.fieldDependent,
 				Reads:          pred.Reads,
 			})
 		}
@@ -195,28 +200,23 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 		return false
 	}
 
-	if fullLedger {
-		for _, pred := range p.fieldIndependent {
-			if consider(pred, false) {
-				return overall, nil
-			}
+	steps := p.ordered
+	if len(steps) == 0 {
+		// Compatibility for low-level tests and internally hand-built plans.
+		for i, pred := range p.fieldIndependent {
+			steps = append(steps, legalPlanStep{predicate: pred, memoIndex: i})
 		}
-	} else {
-		if verdict := p.evaluateFieldIndependentMemoized(ctx); verdict.Outcome != LegalPass {
-			return verdict, nil
+		for _, pred := range p.fieldDependent {
+			steps = append(steps, legalPlanStep{predicate: pred, fieldDependent: true, memoIndex: -1})
 		}
-		// Passed (or the bucket was empty): fall through to fieldDependent /
-		// custom below with overall/haveOverall still at their Pass/false
-		// zero values, exactly as if the fieldIndependent loop above had run
-		// and found nothing to complain about.
 	}
-	for _, pred := range p.fieldDependent {
-		if consider(pred, true) {
+	for _, step := range steps {
+		if consider(step) {
 			return overall, nil
 		}
 	}
 	if p.custom != nil {
-		if consider(p.custom, true) {
+		if consider(legalPlanStep{predicate: p.custom, fieldDependent: true, memoIndex: -1}) {
 			return overall, nil
 		}
 	}
@@ -224,30 +224,24 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 	return overall, entries
 }
 
-// evaluateFieldIndependentMemoized returns p's fieldIndependent bucket's
-// overall verdict (Pass if every member passed, else the FIRST non-pass
-// verdict encountered, in plan order — exactly what the fieldIndependent
-// loop in evaluate's fullLedger branch would compute), consulting and
-// populating ctx.State.Game()'s field-independent memo (design spec §5,
-// legal_memo.go) keyed on (p.moveName, ctx.State.Version(), ctx.Proposer).
-//
-// If ctx.State (or its Game()) is nil there is nowhere to anchor a memo, so
-// this just evaluates the bucket fresh with no caching at all — the
-// behavior every existing isolated test (evaluating against a bare
-// LegalContext{} or ExampleState(), whose Game() is nil) already exercises.
-func (p *legalPlan) evaluateFieldIndependentMemoized(ctx LegalContext) LegalVerdict {
+func (p *legalPlan) evaluateStep(ctx LegalContext, step legalPlanStep, fullLedger bool) LegalVerdict {
+	if fullLedger || step.fieldDependent {
+		return evalLegalPredicate(step.predicate, ctx)
+	}
 	game := legalMemoGame(ctx)
 	if game == nil {
-		return evaluateLegalPredicateBucket(p.fieldIndependent, ctx)
+		return evalLegalPredicate(step.predicate, ctx)
 	}
-
-	key := legalFieldIndepMemoKey{moveName: p.moveName, version: ctx.State.Version(), proposer: ctx.Proposer}
-
+	key := legalFieldIndepMemoKey{
+		moveName:  p.moveName,
+		version:   ctx.State.Version(),
+		proposer:  ctx.Proposer,
+		predicate: step.memoIndex,
+	}
 	if verdict, ok := game.legalFieldIndepMemoGet(key); ok {
 		return verdict
 	}
-
-	verdict := evaluateLegalPredicateBucket(p.fieldIndependent, ctx)
+	verdict := evalLegalPredicate(step.predicate, ctx)
 	game.legalFieldIndepMemoSet(key, verdict)
 	return verdict
 }
@@ -262,21 +256,6 @@ func legalMemoGame(ctx LegalContext) *Game {
 		return nil
 	}
 	return ctx.State.Game()
-}
-
-// evaluateLegalPredicateBucket evaluates preds in order via
-// evalLegalPredicate, short-circuiting on and returning the FIRST non-Pass
-// verdict, or a Pass verdict if every predicate passed (or preds is empty).
-// This is the same short-circuit semantics evaluate's fieldIndependent loop
-// uses, factored out so evaluateFieldIndependentMemoized can compute a
-// cache-miss's value without duplicating it.
-func evaluateLegalPredicateBucket(preds []*LegalPredicate, ctx LegalContext) LegalVerdict {
-	for _, pred := range preds {
-		if v := evalLegalPredicate(pred, ctx); v.Outcome != LegalPass {
-			return v
-		}
-	}
-	return LegalVerdict{Outcome: LegalPass}
 }
 
 // LegalProbeActive is engine-internal plumbing for the declarative-legality
@@ -400,7 +379,7 @@ func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
 // WithPreconditions alone would just re-trigger this error.
 func legalCustomWithoutOptInError(moveName string, optInCapable bool) error {
 	reason := "it declares no WithPreconditions specs"
-	fix := "opt in with at least one WithPreconditions spec"
+	fix := "opt in with WithDeclarativeLegality, or add at least one WithPreconditions spec"
 	if !optInCapable {
 		reason = "its base type does not support declarative legality (only moves.Default, moves.CurrentPlayer, moves.FixUp, moves.FixUpMulti, and moves.StartPhase do)"
 		fix = "switch to one of those base types and opt in via WithPreconditions"
@@ -410,14 +389,15 @@ func legalCustomWithoutOptInError(moveName string, optInCapable bool) error {
 
 // assembleLegalPlans is called once at the end of NewGameManager (after moves
 // are installed and the example state exists). For every installed move type
-// that has opted in to declarative legality (declares WithPreconditions), it
+// that has opted in to declarative legality (declares WithPreconditions or
+// explicitly enables a zero-authored-spec plan), it
 // verifies the move is on a supported base (design spec §5's seam:
 // legalSupportedMovesBaseTypes — Default, CurrentPlayer, FixUp, FixUpMulti,
 // StartPhase), assembles and validates its plan, stores it, and probes that
 // the declarations are actually reachable. Any failure is a boot error naming
 // the offending move (and, for the seam check, the unsupported base type). A
-// move with no authored preconditions is left entirely alone: no plan, no
-// probe — its frozen chain runs at runtime exactly as today.
+// move with neither form of opt-in is left entirely alone: no plan, no probe
+// — its frozen chain runs at runtime exactly as today.
 func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 	registry, templateTable, gameRegistered := g.buildLegalRegistryAndTemplates()
 	g.legalTemplateTable = templateTable
@@ -444,7 +424,11 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 			continue
 		}
 		authored, suppressions := declarer.DeclaredPreconditions()
-		if len(authored) == 0 {
+		explicitlyEnabled := false
+		if enabler, ok := move.(legalExplicitEnabler); ok {
+			explicitlyEnabled = enabler.DeclarativeLegalityEnabled()
+		}
+		if len(authored) == 0 && !explicitlyEnabled {
 			// Not opted in (design spec §2). Frozen chain runs at runtime.
 			//
 			// But a move that implements CustomLegaler while not opted in is
@@ -454,8 +438,8 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 			// LegalCustom is never wrapped and never consulted. Every check
 			// the author put in that body silently stops being enforced (fails
 			// open) with zero boot signal. legal/doc.go states the requirement
-			// ("a move implementing LegalCustom must have opted in via
-			// WithPreconditions with at least one real spec"); enforce it at
+			// that a move implementing LegalCustom must opt in explicitly or
+			// declare at least one real precondition; enforce it at
 			// boot rather than let the residue silently vanish. This precedes
 			// the suppression check below because a dead LegalCustom is the
 			// more fundamental mistake (a bare WithoutPrecondition is merely
@@ -480,7 +464,7 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 				for i, name := range suppressions {
 					quoted[i] = fmt.Sprintf("%q", name)
 				}
-				return fmt.Errorf("move %q calls WithoutPrecondition(%s) but never opts in via WithPreconditions: suppressions only remove atoms from the declarative plan, and a move with no authored WithPreconditions specs has no plan — its frozen imperative chain runs unchanged, still enforcing whatever checks it always ran (whether or not one of them corresponds to a suppressed name), so every suppression here is dead config (opt in with at least one WithPreconditions spec, or drop the WithoutPrecondition calls)", mType.Name(), strings.Join(quoted, ", "))
+				return fmt.Errorf("move %q calls WithoutPrecondition(%s) but never opts in to declarative legality: suppressions only remove atoms from the declarative plan, and this move has no plan — its frozen imperative chain runs unchanged, still enforcing whatever checks it always ran (whether or not one of them corresponds to a suppressed name), so every suppression here is dead config (add WithDeclarativeLegality or at least one WithPreconditions spec, or drop the WithoutPrecondition calls)", mType.Name(), strings.Join(quoted, ", "))
 			}
 			continue
 		}
@@ -586,23 +570,12 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 // own game-registered constructors / template overrides, if it implements the
 // optional legal.ConstructorConfigurer / legal.TemplateConfigurer interfaces.
 //
-// The third return is the set of GAME-REGISTERED predicate names: names the
-// delegate supplied that do not exist in the universal default registry at
-// all. It feeds legalProbeUndeclaredMoveReads (footgun-batch F3), which
-// deliberately probes only game-registered predicates — the universal
-// catalog's Reads are audited in-repo. Membership is by NAME, not identity:
-// legal.ExtendDefaults returns fresh copies of the default constructors, so
-// pointer comparison would misclassify every catalog predicate as
-// game-registered for any game using it. The one blind spot is a delegate
-// OVERRIDING a universal name with its own implementation — that override
-// keeps the universal name, so it is not probed.
+// The third return is the set of predicate names supplied by the delegate.
+// It feeds legalProbeUndeclaredMoveReads (footgun-batch F3). Universal
+// constructors are audited in-repo, but every delegate-supplied constructor
+// is probed, including one that deliberately overrides a universal name.
 func (g *GameManager) buildLegalRegistryAndTemplates() (map[string]*LegalPredicateConstructor, map[string]string, map[string]bool) {
 	registry, templates := legalRegistrySnapshot()
-
-	defaultNames := make(map[string]bool, len(registry))
-	for name := range registry {
-		defaultNames[name] = true
-	}
 
 	var gameRegistered map[string]bool
 	if cc, ok := g.delegate.(legalConstructorConfigurer); ok {
@@ -610,12 +583,10 @@ func (g *GameManager) buildLegalRegistryAndTemplates() (map[string]*LegalPredica
 			if ctor == nil || ctor.Name == "" {
 				continue
 			}
-			if !defaultNames[ctor.Name] {
-				if gameRegistered == nil {
-					gameRegistered = make(map[string]bool)
-				}
-				gameRegistered[ctor.Name] = true
+			if gameRegistered == nil {
+				gameRegistered = make(map[string]bool)
 			}
+			gameRegistered[ctor.Name] = true
 			registry[ctor.Name] = ctor
 		}
 	}
@@ -687,11 +658,11 @@ func assembleLegalSpecList(contributed, authored []LegalSpec, suppressions []str
 	return specs
 }
 
-// buildLegalPlanFromPredicates splits resolved predicates into the plan's
-// field-independent / field-dependent buckets (by whether a predicate reads
-// any move.* path — see legalReadsIncludeMovePath), preserving plan order
-// within each bucket, and appends the CustomLegaler wrapper (if move
-// implements CustomLegaler) as the plan's custom tail. moveName is stored on
+// buildLegalPlanFromPredicates records resolved predicates in authoritative
+// declaration order and also indexes them into field-independent/dependent
+// buckets (by whether they read a move.* path) for memoization and probes. It
+// appends the CustomLegaler wrapper (if move implements CustomLegaler) as the
+// plan's custom tail. moveName is stored on
 // the plan for the field-independent memo's key (legal_memo.go); pass "" if
 // the caller doesn't care about memoization (e.g. an isolated test that
 // never evaluates against a real *Game — see legalPlan.evaluate, which skips
@@ -711,8 +682,11 @@ func buildLegalPlanFromPredicates(moveName string, predicates []*LegalPredicate,
 	for _, pred := range predicates {
 		if legalReadsIncludeMovePath(pred.Reads) {
 			plan.fieldDependent = append(plan.fieldDependent, pred)
+			plan.ordered = append(plan.ordered, legalPlanStep{predicate: pred, fieldDependent: true, memoIndex: -1})
 		} else {
+			memoIndex := len(plan.fieldIndependent)
 			plan.fieldIndependent = append(plan.fieldIndependent, pred)
+			plan.ordered = append(plan.ordered, legalPlanStep{predicate: pred, memoIndex: memoIndex})
 		}
 	}
 	if _, ok := move.(CustomLegaler); ok {
@@ -723,22 +697,18 @@ func buildLegalPlanFromPredicates(moveName string, predicates []*LegalPredicate,
 }
 
 // legalPlanAllReads returns the de-duplicated union of every plan predicate's
-// Reads, in first-seen order (field-independent, then field-dependent).
+// Reads, in first-seen declaration order.
 func legalPlanAllReads(plan *legalPlan) []LegalRead {
 	seen := make(map[LegalRead]bool)
 	var out []LegalRead
-	add := func(preds []*LegalPredicate) {
-		for _, pred := range preds {
-			for _, r := range pred.Reads {
-				if !seen[r] {
-					seen[r] = true
-					out = append(out, r)
-				}
+	for _, step := range plan.ordered {
+		for _, r := range step.predicate.Reads {
+			if !seen[r] {
+				seen[r] = true
+				out = append(out, r)
 			}
 		}
 	}
-	add(plan.fieldIndependent)
-	add(plan.fieldDependent)
 	return out
 }
 
