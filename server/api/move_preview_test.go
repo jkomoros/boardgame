@@ -267,12 +267,70 @@ func TestMovePreviewBatchHandler(t *testing.T) {
 	t.Run("oversized body renders Failure (MaxBytesReader guard)", func(t *testing.T) {
 		// A body past the 1 MiB cap must be shed by http.MaxBytesReader so
 		// BindJSON errors out rather than buffering it all.
-		big := `{"MoveType":"` + strings.Repeat("x", maxLegalPreviewBatchBodyBytes+1024) + `","Candidates":[]}`
+		big := `{"MoveType":"` + strings.Repeat("x", maxLegalPreviewBodyBytes+1024) + `","Candidates":[]}`
 		_, resp := call(http.MethodPost, big)
 		if resp["Status"] != "Failure" {
 			t.Errorf("an oversized body should render Failure, got %v", resp["Status"])
 		}
 	})
+}
+
+// TestMovePreviewBatchHandlerAdminPerspective pins must-fix #2 at the HTTP layer:
+// an admin previewing "as player N" (admin=1&player=N, with admin allowed) must
+// have legality evaluated as player N — not as the observer/session player. A
+// regression that dropped the player/admin resolution would evaluate every
+// candidate as the current player and wrongly report legal, re-graying the whole
+// board for the admin. Observable via a real tictactoe game: only the current
+// player may place on the empty board.
+func TestMovePreviewBatchHandlerAdminPerspective(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("building tictactoe manager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("building tictactoe game: %v", err)
+	}
+	s := &Server{logger: logrus.New()}
+
+	const body = `{"MoveType":"Place Token","Candidates":[{"Args":{"Slot":"0"}},{"Args":{"Slot":"1"}},{"Args":{"Slot":"2"}}]}`
+
+	// callAsAdmin previews as an admin acting as the given player: admin=1 &
+	// player=N in the query, ctxAdminAllowedKey set so calcIsAdmin honors it.
+	callAsAdmin := func(t *testing.T, player int) []interface{} {
+		t.Helper()
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/game/tictactoe/g/movePreviewBatch?admin=1&player="+strconv.Itoa(player), strings.NewReader(body))
+		c.Request.Header.Set("Content-Type", "application/json")
+		c.Set(ctxGameKey, game)
+		c.Set(ctxAdminAllowedKey, true)
+		s.movePreviewBatchHandler(c)
+		var resp map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("response not JSON (%q): %v", w.Body.String(), err)
+		}
+		if resp["Status"] != "Success" {
+			t.Fatalf("admin as player %d: want Success, got Status=%v Error=%v", player, resp["Status"], resp["Error"])
+		}
+		return resp["Results"].([]interface{})
+	}
+
+	// Current player (0): the empty board is fully open.
+	for i, r := range callAsAdmin(t, 0) {
+		if m := r.(map[string]interface{}); m["Legal"] != true {
+			t.Errorf("admin as current player 0, slot %d: Legal=%v, want true", i, m["Legal"])
+		}
+	}
+	// Non-current player (1): not their turn -> every slot illegal. The proposer
+	// param must be honored; ignoring it (evaluating as current player 0) would
+	// wrongly return legal here — the exact regression must-fix #2 guards.
+	for i, r := range callAsAdmin(t, 1) {
+		if m := r.(map[string]interface{}); m["Legal"] == true {
+			t.Errorf("admin as non-current player 1, slot %d: Legal=true, want false (not their turn)", i)
+		}
+	}
 }
 
 // TestLegalMoveFormsBatchRealTictactoeGame runs the batch preview against a REAL

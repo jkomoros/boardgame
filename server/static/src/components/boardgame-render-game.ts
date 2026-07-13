@@ -121,11 +121,14 @@ class BoardgameRenderGame extends LitElement {
 
   // previewAsPlayer / previewAsAdmin are the SAME (player, admin) perspective the
   // /info fetch uses (game-view passes requestedPlayer + _admin), so the board's
-  // legality preview agrees with the moveLegality already shown and with what a
-  // board click actually submits as. For a non-admin the server ignores the
-  // player param (admin=0 -> it uses the seat), so this is a no-op there; in
-  // admin "make moves as player N" it makes the preview evaluate as N instead of
-  // graying the whole board.
+  // legality preview agrees with the moveLegality already displayed. For a
+  // non-admin the server ignores the player param (admin=0 -> it uses the seat),
+  // so this is a no-op there; in admin "make moves as player N" it makes the
+  // preview evaluate as N instead of graying the whole board. (In the edge case
+  // where an admin unchecks "make moves as viewing player", a tap submits as the
+  // admin index while preview grays per the viewed player — self-consistent with
+  // the displayed /info legality, and strictly better than the old wholesale
+  // graying.)
   @property({ type: Number })
   previewAsPlayer = 0;
 
@@ -582,9 +585,9 @@ class BoardgameRenderGame extends LitElement {
   // (previewSpec(), null unless the game opted in), batch-checks their legality
   // on the server WITHOUT applying anything, and pushes the illegal spaces back
   // onto the renderer for graying. It previews from the (previewAsPlayer,
-  // previewAsAdmin) perspective — the same one /info uses and a board click
-  // submits as — so graying agrees with the displayed legality in both normal
-  // and admin "make moves as player N" modes.
+  // previewAsAdmin) perspective — the same one /info uses — so graying agrees
+  // with the displayed legality in both normal and admin "make moves as player
+  // N" modes.
   private async _refreshPreview() {
     const renderer = this.renderer as
       | (HTMLElement & {
@@ -608,8 +611,8 @@ class BoardgameRenderGame extends LitElement {
     }
 
     const seq = ++this._previewSeq;
-    // Preview from the same perspective /info uses (and that a board click
-    // submits as): pass player + admin. For a non-admin the server ignores the
+    // Preview from the same (player, admin) perspective /info uses, so graying
+    // agrees with the displayed legality. For a non-admin the server ignores the
     // player param (admin=0), so this resolves to the seat exactly as before.
     const response = await movePreviewBatch(
       this.gameName,

@@ -1641,6 +1641,10 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 		return
 	}
 
+	// Cap the body BEFORE anything reads it (effectivePlayerIndex + getMoveFromForm
+	// both hit c.PostForm, which buffers a form/multipart body via ParseForm).
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLegalPreviewBodyBytes)
+
 	proposer := s.effectivePlayerIndex(c)
 
 	move, err := s.getMoveFromForm(c, game)
@@ -1686,10 +1690,15 @@ type movePreviewBatchResult struct {
 // (checkers is 64, tictactoe 9) so it never constrains legitimate use.
 const maxLegalPreviewBatchCandidates = 1024
 
-// maxLegalPreviewBatchBodyBytes bounds the movePreviewBatch request body so a
-// client can't force the server to buffer an arbitrarily large JSON payload
-// before the candidate cap above even applies.
-const maxLegalPreviewBatchBodyBytes = 1 << 20 // 1 MiB
+// maxLegalPreviewBodyBytes bounds a preview request body (both the single and
+// batch endpoints) so a client can't force the server to buffer an arbitrarily
+// large payload. It must be applied BEFORE anything reads the body — including
+// effectivePlayerIndex, whose getRequestAdmin/getRequestPlayerIndex fall through
+// to c.PostForm (which triggers gin's ParseForm/ParseMultipartForm and buffers
+// the whole body) for a form/multipart Content-Type. The legitimate client
+// sends player+admin as query params with a JSON body, which ParseForm does not
+// read, so the cap only ever bites an oversized/abusive request.
+const maxLegalPreviewBodyBytes = 1 << 20 // 1 MiB
 
 // legalMoveFormsBatch computes legality for many candidate arg-sets of a single
 // move type against one state, WITHOUT applying any of them — the primitive
@@ -1769,14 +1778,17 @@ func (s *Server) movePreviewBatchHandler(c *gin.Context) {
 		return
 	}
 
+	// Cap the body BEFORE anything reads it — effectivePlayerIndex's PostForm
+	// fallback would otherwise buffer a form/multipart body via ParseForm before
+	// BindJSON's cap could apply.
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLegalPreviewBodyBytes)
+
 	proposer := s.effectivePlayerIndex(c)
 
 	var req struct {
 		MoveType   string                      `json:"MoveType"`
 		Candidates []movePreviewBatchCandidate `json:"Candidates"`
 	}
-	// Cap the body size so an oversized payload is shed before it's buffered.
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLegalPreviewBatchBodyBytes)
 	if err := c.BindJSON(&req); err != nil {
 		r.Error(errors.New("Couldn't parse batch preview request: " + err.Error()))
 		return
