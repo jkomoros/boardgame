@@ -113,6 +113,19 @@ export class BoardgameBaseGameRenderer<
   }
 
   /**
+   * requestPreviewRefresh asks the host (boardgame-render-game) to re-run this
+   * renderer's previewSpec() and refresh the board's legality graying. Call it
+   * after LOCAL interaction state that previewSpec() reads changes WITHOUT a
+   * server round-trip — e.g. a multi-step move where the player just selected a
+   * source piece, so the legal destinations are now different. State / move-form
+   * / viewing-player changes already trigger a refresh automatically; this hook
+   * is only for renderer-local state the host can't observe.
+   */
+  protected requestPreviewRefresh(): void {
+    this.dispatchEvent(new CustomEvent('preview-refresh-requested', { composed: true, bubbles: true }));
+  }
+
+  /**
    * Returns true if the named move is structurally possible right now (legal
    * for any player / admin). Use this to hide buttons entirely when a move
    * isn't applicable in the current game phase.

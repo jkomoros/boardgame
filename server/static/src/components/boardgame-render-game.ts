@@ -163,6 +163,10 @@ class BoardgameRenderGame extends LitElement {
 
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
+  // Fired (composed) by the inner renderer via requestPreviewRefresh() when its
+  // LOCAL interaction state changes (e.g. a multi-step move selected a source
+  // piece) so previewSpec() must be re-evaluated without a state/turn change.
+  private _boundPreviewRefreshRequested?: (e: Event) => void;
   private _animationWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
   // Largest declared settle time (delay + duration + endDelay) reported by
   // any gated play() in the current cycle, via the will-animate event. Used
@@ -189,6 +193,11 @@ class BoardgameRenderGame extends LitElement {
 
     this.addEventListener('will-animate', this._boundComponentWillAnimate);
     this.addEventListener('animation-done', this._boundComponentAnimationDone);
+
+    // A renderer whose previewSpec() depends on local interaction state
+    // (multi-step moves) fires this to force a debounced re-preview.
+    this._boundPreviewRefreshRequested = () => this._scheduleRefreshPreview();
+    this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
@@ -201,6 +210,9 @@ class BoardgameRenderGame extends LitElement {
     }
     if (this._boundComponentAnimationDone) {
       this.removeEventListener('animation-done', this._boundComponentAnimationDone);
+    }
+    if (this._boundPreviewRefreshRequested) {
+      this.removeEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     }
     // Clean up watchdog timer to prevent firing after element is removed.
     if (this._animationWatchdogTimer !== null) {

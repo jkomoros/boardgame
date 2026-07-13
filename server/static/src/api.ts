@@ -245,6 +245,17 @@ export interface MovePreviewResponse {
  * every keystroke. Sends form-encoded args (MoveType plus one entry per field),
  * matching the real move endpoint's parsing.
  *
+ * Intentionally DIFFERENT from movePreviewBatch, which is not accidental drift:
+ * this single primitive is the RICH one — it returns the full moveForm including
+ * the Preconditions ledger, for a focused "explain why this exact move is/isn't
+ * legal as you edit its fields" UI (the intended consumer; none ships yet, so
+ * the board graying uses the batch). movePreviewBatch is the COMPACT one —
+ * {Legal, Error} per candidate, nested Args JSON — for graying many board cells
+ * in one round-trip, where the ledger would be dead weight ×N. Footgun: because
+ * this flattens args alongside MoveType in the form body, a move whose field is
+ * literally named "MoveType" would collide with the selector (the batch's nested
+ * Args is immune); no real move does, but a new consumer should know.
+ *
  * @param args - field name -> raw string value, exactly as the move form submits
  * @param params - optional query params (e.g. { player } to preview as a
  *   specific seat); omit to preview as the session's player, like submitMove
