@@ -46,3 +46,43 @@ export function disabledSpacesFromResults(
   }
   return disabled;
 }
+
+/**
+ * samePreviewSpaces reports whether two grayed-space lists are identical, so the
+ * caller can skip re-assigning previewDisabledSpaces (and the board re-render it
+ * triggers) when a refresh produced the same set. disabledSpacesFromResults
+ * yields spaces in stable candidate order, so an order-sensitive compare is both
+ * correct and cheap.
+ */
+export function samePreviewSpaces(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * previewOutcome is the pure decision a completed batch-preview refresh makes,
+ * extracted so the (otherwise DOM/async) staleness + error-retention logic is
+ * unit-testable:
+ *   - 'drop-stale'   — a newer refresh superseded this one (seq moved) OR the
+ *                      renderer this response was for is no longer mounted; do
+ *                      nothing (never gray a board a later refresh owns).
+ *   - 'keep-on-error'— still current, but the server returned no data (network/
+ *                      server error); leave the prior graying rather than
+ *                      flashing the whole board back to enabled.
+ *   - 'apply'        — still current, mounted, and data present; gray from it.
+ * Staleness is checked before the error branch: a superseded errored response
+ * must not touch the board.
+ */
+export function previewOutcome(o: {
+  startedSeq: number;
+  currentSeq: number;
+  rendererStillMounted: boolean;
+  hasData: boolean;
+}): 'apply' | 'drop-stale' | 'keep-on-error' {
+  if (o.startedSeq !== o.currentSeq || !o.rendererStillMounted) return 'drop-stale';
+  if (!o.hasData) return 'keep-on-error';
+  return 'apply';
+}

@@ -5,7 +5,12 @@ import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import { movePreviewBatch } from '../api.js';
-import { disabledSpacesFromResults, type MovePreviewSpec } from '../legal/previewLegality.js';
+import {
+  disabledSpacesFromResults,
+  samePreviewSpaces,
+  previewOutcome,
+  type MovePreviewSpec,
+} from '../legal/previewLegality.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 
@@ -601,14 +606,20 @@ class BoardgameRenderGame extends LitElement {
       spec.candidates.map((c) => ({ Args: c.args })),
       { player: this.previewAsPlayer, admin: this.previewAsAdmin ? 1 : 0 },
     );
-    // A newer refresh superseded this one, or the same renderer is no longer
-    // mounted — drop this now-stale response.
-    if (seq !== this._previewSeq || this.renderer !== renderer) return;
-    // On a network/server error, leave the prior graying in place rather than
-    // flashing the whole board back to enabled.
-    if (!response.data) return;
+    const outcome = previewOutcome({
+      startedSeq: seq,
+      currentSeq: this._previewSeq,
+      rendererStillMounted: this.renderer === renderer,
+      hasData: !!response.data,
+    });
+    if (outcome !== 'apply' || !response.data) return;
 
-    renderer.previewDisabledSpaces = disabledSpacesFromResults(spec.candidates, response.data.Results);
+    // Only reassign (and thus re-render the board) when the grayed set actually
+    // changed.
+    const next = disabledSpacesFromResults(spec.candidates, response.data.Results);
+    if (!samePreviewSpaces(next, renderer.previewDisabledSpaces ?? [])) {
+      renderer.previewDisabledSpaces = next;
+    }
   }
 
   private static _deriveLegality(moveForms: MoveForm[] | null): Record<string, MoveLegalityInfo> {

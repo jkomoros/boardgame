@@ -6,7 +6,12 @@
 // behavior pinned here.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { disabledSpacesFromResults, type PreviewCandidate } from './previewLegality.ts';
+import {
+  disabledSpacesFromResults,
+  samePreviewSpaces,
+  previewOutcome,
+  type PreviewCandidate,
+} from './previewLegality.ts';
 
 const cand = (space: number): PreviewCandidate => ({ space, args: { Slot: String(space) } });
 
@@ -36,4 +41,43 @@ test('undefined results grays every candidate (fail safe)', () => {
 
 test('no candidates -> no disabled spaces', () => {
   assert.deepEqual(disabledSpacesFromResults([], [{ Legal: true }]), []);
+});
+
+// samePreviewSpaces — the guard that skips re-rendering the board when the
+// grayed set hasn't actually changed (disabledSpacesFromResults yields spaces in
+// stable candidate order, so an order-sensitive compare is correct).
+test('samePreviewSpaces: identical arrays are equal', () => {
+  assert.equal(samePreviewSpaces([0, 4, 8], [0, 4, 8]), true);
+  assert.equal(samePreviewSpaces([], []), true);
+});
+
+test('samePreviewSpaces: different length or members are not equal', () => {
+  assert.equal(samePreviewSpaces([0, 4], [0, 4, 8]), false);
+  assert.equal(samePreviewSpaces([0, 4, 8], [0, 5, 8]), false);
+  assert.equal(samePreviewSpaces([0, 4, 8], [8, 4, 0]), false); // order matters (stable candidate order)
+});
+
+// previewOutcome — the completed-refresh decision: apply only when this refresh
+// is still the latest (seq unchanged), its renderer is still mounted, and the
+// server actually returned data; otherwise drop it (superseded) or keep prior
+// graying (transient error).
+test('previewOutcome: latest + mounted + data -> apply', () => {
+  assert.equal(previewOutcome({ startedSeq: 3, currentSeq: 3, rendererStillMounted: true, hasData: true }), 'apply');
+});
+
+test('previewOutcome: a newer refresh superseded this one -> drop-stale', () => {
+  assert.equal(previewOutcome({ startedSeq: 3, currentSeq: 4, rendererStillMounted: true, hasData: true }), 'drop-stale');
+});
+
+test('previewOutcome: renderer no longer mounted -> drop-stale (even with data)', () => {
+  assert.equal(previewOutcome({ startedSeq: 3, currentSeq: 3, rendererStillMounted: false, hasData: true }), 'drop-stale');
+});
+
+test('previewOutcome: latest + mounted but no data (error) -> keep-on-error', () => {
+  assert.equal(previewOutcome({ startedSeq: 3, currentSeq: 3, rendererStillMounted: true, hasData: false }), 'keep-on-error');
+});
+
+test('previewOutcome: staleness beats the error branch', () => {
+  // Superseded AND errored: we drop (don't touch graying), we don't "keep".
+  assert.equal(previewOutcome({ startedSeq: 1, currentSeq: 2, rendererStillMounted: true, hasData: false }), 'drop-stale');
 });
