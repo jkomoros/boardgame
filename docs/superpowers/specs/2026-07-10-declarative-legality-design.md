@@ -553,7 +553,7 @@ constraints:
 ```go
 // in checkers' delegate:
 func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstructor {
-    return legal.ExtendDefaults(&legal.PredicateConstructor{
+    return []*legal.PredicateConstructor{{
         Name: "checkers.spaceIsBlack",
         Constructor: func(spec legal.Spec, _ *boardgame.ComponentChest,
             _ func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
@@ -570,7 +570,7 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
                 },
             }, nil
         },
-    })
+    }}
 }
 
 auto.Config(new(moveMoveToken),

@@ -568,8 +568,7 @@ func TestMayMoveFacetHonesty(t *testing.T) {
 }
 
 // TestDefaultConstructors verifies DefaultConstructors returns exactly the
-// catalog built in this task, and that ExtendDefaults appends without
-// mutating DefaultConstructors' own result.
+// catalog built in this task.
 func TestDefaultConstructors(t *testing.T) {
 	constructors := legal.DefaultConstructors()
 	wantNames := map[string]bool{
@@ -604,27 +603,6 @@ func TestDefaultConstructors(t *testing.T) {
 	}
 	if len(wantNames) != 0 {
 		t.Errorf("missing constructor names: %v", wantNames)
-	}
-}
-
-func TestExtendDefaults(t *testing.T) {
-	custom := &legal.PredicateConstructor{
-		Name: "custom",
-		Constructor: func(spec legal.Spec, chest *boardgame.ComponentChest, resolve func(legal.Spec) (*legal.Predicate, error)) (*legal.Predicate, error) {
-			return nil, nil
-		},
-	}
-
-	extended := legal.ExtendDefaults(custom)
-	defaultLen := len(legal.DefaultConstructors())
-	if len(extended) != defaultLen+1 {
-		t.Fatalf("len(extended) = %d, want %d", len(extended), defaultLen+1)
-	}
-	if extended[len(extended)-1].Name != "custom" {
-		t.Fatalf("last constructor = %q, want custom", extended[len(extended)-1].Name)
-	}
-	if len(legal.DefaultConstructors()) != defaultLen {
-		t.Fatalf("legal.DefaultConstructors() was mutated by legal.ExtendDefaults")
 	}
 }
 

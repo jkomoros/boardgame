@@ -197,7 +197,6 @@ func ComponentPresentAtKey(stackPath, keyField string) Spec // enum-keyed varian
 func MayMoveTo(srcPath, dstPath, idxField string) Spec      // wraps ImmutableComponentInstance.MayMoveTo
 func MayMoveToSlot(srcPath, dstPath, idxField string) Spec  // component.go:127,138 precedent
 func DefaultConstructors() []*boardgame.LegalPredicateConstructor
-func ExtendDefaults(extra ...*boardgame.LegalPredicateConstructor) []*boardgame.LegalPredicateConstructor
 ```
 
 Reads facets: presence checks declare `FacetOccupancy` on the stack path; `PropAtLeast/Compare` declare `FacetValues`; `MayMoveTo*` declares occupancy on both stacks + values on move field. Every Fail uses a default template key (`legal.prop_at_least`, `legal.component_missing`, ...) overridable via `Spec.Message`.
@@ -482,7 +481,7 @@ Migrations per spec §8 exactly: memory `moveRevealCard` (delete Legal(), WithPr
 
 **Files:** `examples/checkers/{moves.go,main.go,components.go}`; then survey `examples/{tictactoe,pig,werewolf,debuganimations}/moves.go`.
 
-Checkers per spec §8: game-registered `checkers.spaceIsBlack` via `ConfigurePredicateConstructors` (ExtendDefaults), declarative gates (ComponentPresentAtKey, ComponentPropEqualsCurrentPlayer, spaceIsBlack), capture-graph walk → `LegalCustom` returning `legal.Errorf("checkers.illegal_dest", nil)`. Then survey each remaining example: migrate moves the catalog covers (goldens each); leave hard-custom in LegalCustom; moves embedding unsupported base types stay untouched (document per game in the commit message).
+Checkers per spec §8: game-registered `checkers.spaceIsBlack` via `ConfigurePredicateConstructors` (delegate additions overlay the defaults automatically), declarative gates (ComponentPresentAtKey, ComponentPropEqualsCurrentPlayer, spaceIsBlack), capture-graph walk → `LegalCustom` returning `legal.Errorf("checkers.illegal_dest", nil)`. Then survey each remaining example: migrate moves the catalog covers (goldens each); leave hard-custom in LegalCustom; moves embedding unsupported base types stay untouched (document per game in the commit message).
 
 - [ ] Steps: checkers first (failing goldens → migrate → green → commit), then one commit per surveyed game.
 

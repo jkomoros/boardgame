@@ -489,10 +489,3 @@ func DefaultConstructors() []*PredicateConstructor {
 		propNotEqualsConstructor(),
 	}
 }
-
-// ExtendDefaults returns DefaultConstructors() with extra appended.
-// Deprecated: ConfigurePredicateConstructors is overlaid on the defaults, so
-// delegates should return only their additions or intentional overrides.
-func ExtendDefaults(extra ...*PredicateConstructor) []*PredicateConstructor {
-	return append(DefaultConstructors(), extra...)
-}
