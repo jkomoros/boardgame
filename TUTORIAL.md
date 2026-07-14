@@ -2604,6 +2604,28 @@ Sometimes you want animations to overlap rather than playing fully sequentially.
 
 These three hooks compose cleanly: `animationLength` controls how long an animation takes (or skips it with a negative value), `delayAnimation` adds a pause after the animation completes before applying the next state, and `animationOverlap` allows the next state to be installed before the current animation finishes.
 
+Companion Table/Hand surfaces add one deliberate constraint: animation cycles
+that must agree across physical screens use the framework's version timeline.
+The current protocol gives each version an 800ms slot—at most 600ms of motion
+plus 200ms to render and pre-arm the next state. For these synchronized cycles,
+the framework caps `animationLength` and `animateBetween` duration at 600ms and
+does not apply `animationOverlap`; this prevents different renderers from
+drifting by pacing their queues differently. Solo games and local-only effects
+retain the normal hook behavior above.
+
+Game renderers normally need no timing code. A call such as
+`this.animator?.animateBetween(card, source, 300)` automatically uses the
+installed version's companion slot. For an effect that exists only on this
+screen, say so explicitly:
+
+```ts
+this.animator?.animateBetween(card, source, 900, { timing: 'immediate' });
+```
+
+Advanced test or orchestration code can instead pass
+`{ timing: { localStartAtMs: timestamp } }`. See
+`docs/companion-mode-authoring.md` for the complete Table/Hand conventions.
+
 In the future there will be a number of other attributes and method override
 points, and they'll be described here.
 

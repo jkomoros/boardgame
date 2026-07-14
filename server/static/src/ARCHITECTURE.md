@@ -289,32 +289,33 @@ same logical event — e.g. a card dealt from the table to a phone — to start
 animating on both screens at roughly the same wall-clock instant, even
 though each screen receives its own WebSocket push and renders independently.
 
-- The server stamps every `version-timing` socket message with
-  `serverSentAt` and `serverPlayAt` (`serverSentAt + ANIMATION_LEAD_MS`).
-- `companion-sync.ts`'s `CompanionSyncEstimator` maintains a rolling,
-  minimum-wins one-way-latency estimate from `serverSentAt` (variance only
-  ever adds delay, so the minimum sample is the closest thing to true
-  one-way transit time). `companionSync.localEquivalent(serverEpochMs)`
+- The server notifier owns a monotonic animation lane per game. An idle lane
+  starts at `serverSentAt + 500ms`; rapid versions reserve 800ms-spaced slots
+  (600ms synchronized motion + 200ms preparation),
+  so fix-up versions cannot all target the same instant. Every socket receives
+  the same frame, and a reconnect receives the existing slot for its current
+  version rather than inventing a new target.
+- Socket setup performs three clock-sync request/reply rounds. The estimator
+  uses the offset from the lowest-RTT midpoint sample, avoiding direct
+  one-way-route bias; version timing samples remain a legacy-server fallback.
+  `companionSync.localEquivalent(serverEpochMs)`
   converts a server timestamp into the local-clock instant of the same
   wall-clock moment; with fewer than 3 samples it falls back to the raw
   server timestamp (animations play immediately — safe degradation).
-- On the state-manager side, `boardgame-game-state-manager`'s
-  `_scheduleNextStateBundle()` — on companion surfaces only, solo games are
-  unaffected — reads `latestServerPlayAt()` and, if set, arms a
-  `_scheduledInstallTimerId` so the next state bundle installs at the
-  locally-converted play-at instant rather than immediately. The wait is
-  clamped to [0, 2000]ms so a bad estimate or stale timestamp can never hang
-  the game; `readyForNextState()` (fired when the gate closes) and any
-  fresh enqueue cancel a previously-armed timer to avoid double-installs.
-- Game renderer code that flies a stub between screens (see
-  `BoardgameTableViewBase`'s `autoFlyDeals`/`updated()` and
-  `BoardgameHandViewBase`'s `autoFlyIncoming`/`updated()`) reads the same
-  `latestServerPlayAt()` value, converts it via `companionSync
-  .localEquivalent()`, and passes it as `startAtMs` to
-  `animator.animateBetween(..., { startAtMs })` — so the departure flight on
-  the Table and the arrival flight on the Hand are scheduled against the
-  same server-anchored instant, reading as one coherent cross-screen motion
-  rather than two independently-timed animations.
+- `CompanionAnimationTimeline` stores timing by `(gameID, version)`, not as a
+  mutable latest value. A version waits at most 200ms for its sibling timing
+  frame; missing timing or a cold estimator degrades to immediate playback.
+- `_scheduleNextStateBundle()` resolves the pending bundle's exact version,
+  installs it before the target, and carries its scoped policy through
+  `boardgame-game-view` into the shared animator. Delayed WAAPI uses backwards
+  fill so the source pose remains visible until compositor-owned launch.
+- `animateBetween()` uses the installed version's start automatically. Table,
+  Hand, and game-authored flights therefore share the same scheduling path and
+  contain no socket/clock logic. Callers can pass `{ timing: 'immediate' }` for
+  a local effect, or `{ timing: { localStartAtMs } }` for an explicit timeline.
+  Synchronized motion is capped at the protocol's declared maximum and does
+  not use renderer overlap; overruns therefore cannot make surfaces pace their
+  queues independently.
 - The game-over verdict (`renderGameOverBanner()` / the Hand header's
   outcome text) is gated on the mirrored `animating` flag described above,
   so the outcome banner can't race ahead of a still-in-flight companion

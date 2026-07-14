@@ -452,14 +452,13 @@ export class BoardgameTableViewBase<GS, PS> extends LitElement {
     @property() isHost: boolean;
     @property() roomLocked: boolean;
     @property() roomCode: string;
-    @property() serverPlayAt: number | null;        // for animation timing
 
     // Helper renders — call these from your render() where you want them
     protected renderAvatarStrip(): TemplateResult { ... }
     protected renderHostControls(): TemplateResult { ... }   // SkipTurn button when applicable
     protected renderFakeDeckRow(): TemplateResult { ... }    // §8
 
-    // FLIP animator wired automatically; respects serverPlayAt for cross-screen sync.
+    // Shared animator wired automatically; its version timeline is framework-owned.
 }
 ```
 
@@ -472,7 +471,6 @@ export class BoardgameHandViewBase<GS, PS> extends LitElement {
     @property() state: FullGameState<GS, PS>;       // PlayerIndex(n)-sanitized
     @property() viewingAs: PlayerIndex;
     @property() seatPresentations: SeatPresentation[];
-    @property() serverPlayAt: number | null;
 
     // Convenience: shortcut to this player's own state
     protected get playerState(): PS { return this.state.Players[this.viewingAs]; }
@@ -489,7 +487,8 @@ Cross-cutting concerns the *framework* handles (the author doesn't think about):
 
 - Cookie reading + surface selection (done by the loader).
 - FLIP wiring (auto, via existing animator).
-- `serverPlayAt` scheduling (auto).
+- Version-bound `serverPlayAt` scheduling inside the shared animator (auto;
+  `animateBetween(..., { timing: 'immediate' })` opts a local effect out).
 - Presence indicators (`absentPlayers` is just a prop; author renders it however they want, or uses the avatar-strip helper which renders the standard treatment).
 
 Things deliberately *not* in the bases — kept as Lit `ReactiveController`s or out-of-class entirely so they're opt-in composable, not inherited bundles:
@@ -555,7 +554,9 @@ To stay backward-compatible, this spec introduces a **new sibling message type `
 type versionTiming struct {
     Version      int   `json:"version"`
     ServerSentAt int64 `json:"serverSentAt"`  // ms since epoch, set at broadcast
-    ServerPlayAt int64 `json:"serverPlayAt"`  // serverSentAt + ANIMATION_LEAD_MS (default 250)
+    ServerPlayAt int64 `json:"serverPlayAt"`  // reserved slot on the game's animation lane
+    SlotDurationMS int `json:"slotDurationMs"`
+    MaxAnimationDurationMS int `json:"maxAnimationDurationMs"`
 }
 ```
 
@@ -563,26 +564,27 @@ Outbound socket frames for the client (two frames, in this order):
 
 ```json
 { "type": "version",         "data": 42 }
-{ "type": "version-timing",  "data": { "version": 42, "serverSentAt": 1779712345678, "serverPlayAt": 1779712345928 } }
+{ "type": "version-timing",  "data": { "version": 42, "serverSentAt": 1779712345678, "serverPlayAt": 1779712346178, "slotDurationMs": 800, "maxAnimationDurationMs": 600 } }
 ```
 
-New clients that handle `"version-timing"` correlate it to the same version number from the preceding `"version"` message. If `"version-timing"` doesn't arrive within 200ms after `"version"` (e.g., legacy server), the client falls back to "play immediately on state-fetch" — graceful degradation.
+The first slot after an idle period is `serverSentAt + 500ms`. Rapid consecutive versions reserve monotonically increasing 800ms slots: at most 600ms of synchronized motion plus 200ms to render and pre-arm the next queued state. The timing frame declares both values so this is an explicit protocol policy, not a transport-layer guess about current CSS. A reconnect to the current version reuses its existing reserved slot.
+
+New clients that handle `"version-timing"` index it by `(gameID, version)`, rather than retaining a global latest value. If `"version-timing"` doesn't arrive within 200ms after `"version"` (e.g., legacy server), the client falls back to "play immediately on state-fetch" — graceful degradation.
 
 Client logic on receipt:
 
-1. Record `localRxMs = Date.now()` (epoch ms) immediately.
-2. Compute one-way latency sample: `oneWayMs = localRxMs - serverSentAt`. Keep a rolling-30 buffer; the **minimum** of recent samples is the best estimate of pure one-way delivery time (variance only adds, never subtracts).
-3. Compute local equivalent of `serverPlayAt`: `localPlayAt = serverPlayAt + minOneWayMs` (mapped into local clock). Schedule the animation playback with `setTimeout(playFn, localPlayAt - localRxMs)`.
-4. Fire the HTTP state-fetch in parallel. The animation runs against the new state when the fetch resolves; FLIP measures "before" before the state install, "after" after.
+1. On socket open, send three `clock-sync` request/reply rounds. Compute each clock offset from the request/response midpoint and retain the offset from the lowest-round-trip sample.
+2. Record `localRxMs = Date.now()` (epoch ms) immediately for each timing frame. Legacy servers without clock-sync replies may still warm the older minimum one-way fallback from these frames.
+3. Compute the local equivalent of that version's `serverPlayAt` from the midpoint offset. Carry it with that version's state bundle; never substitute a later version's timing.
+4. Fire the HTTP state-fetch in parallel. The state manager installs each queued bundle before its resolved slot; delayed WAAPI uses backwards fill to hold the source pose and launch from the compositor timeline. The shared animator uses that slot by default for `animateBetween`, including game-authored bespoke flights; `{ timing: 'immediate' }` is the explicit local-only escape hatch.
 
-If `localPlayAt - localRxMs < 0` (play-at already past) or fewer than 3 samples have been collected, animation plays immediately on state-fetch resolution.
+If the target is more than one slot stale, implausibly far in the future, or fewer than three samples have been collected, the timing context is discarded and animation plays immediately.
 
 **Documented limitations**:
-- Asymmetric routes (cell + Wi-Fi) bias the minimum-wins estimator; bias is consistent per surface, so each surface is self-consistent, but cross-surface drift is bounded by the route asymmetry rather than the variance.
-- JS GC pauses and background-tab throttling can shift `setTimeout` firing by 50-200ms; we accept this in V1.
-- First version-change notify after connect beats the 30-sample window; first deal animation may be visibly uncoordinated.
+- Strongly asymmetric request/response routes can still bias midpoint estimation by half the asymmetry.
+- A main thread blocked past the preparation window cannot pre-arm WAAPI; that surface degrades to an immediate late animation rather than holding state indefinitely.
 
-V1 ships this minimal primitive; future iteration can layer in explicit clock-sync rounds if playtests show the median-LAN baseline is insufficient.
+The server enqueues version + timing as one socket batch. A full queue closes the socket so it reconnects and resynchronizes; it never silently receives a version without its timing sibling.
 
 ## 9. Presence & Host Controls
 

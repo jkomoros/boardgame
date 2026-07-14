@@ -18,7 +18,11 @@ const FAKE_PASSWORD = 'animtest-password';
 // flow in verify-fix.spec.ts to transcribe -- see task brief correction):
 //   /list-games -> pick game type card -> Create Game -> (if not yet signed
 //   in) Email/Password -> fill fake credentials -> Sign In.
-export async function createOfflineGame(page: Page, gameName: string): Promise<void> {
+export async function createOfflineGame(
+  page: Page,
+  gameName: string,
+  options: { companionMode?: boolean; adminMode?: boolean } = {},
+): Promise<void> {
   const label = GAME_TYPE_LABELS[gameName];
   if (!label) {
     throw new Error(`Unknown game type "${gameName}"; add it to GAME_TYPE_LABELS in helpers.ts`);
@@ -29,24 +33,28 @@ export async function createOfflineGame(page: Page, gameName: string): Promise<v
   await page.getByRole('combobox', { name: 'Game Type', exact: true }).click();
   await page.getByRole('option', { name: new RegExp(`^${label}`) }).click();
 
+  if (options.companionMode) {
+    const companionMode = page.locator('md-switch[name="companionMode"]');
+    await expect(companionMode).toBeVisible();
+    if (!await companionMode.evaluate((el) => (el as any).selected === true)) {
+      await companionMode.click();
+    }
+  }
+
   await page.getByRole('button', { name: 'Create Game' }).click();
 
   // If this is a fresh (unauthenticated) browser context, offline-dev-mode
   // shows a fake-login dialog. Sign in with Email/Password and a fake
   // account; this is idempotent across repeated calls within the same test
   // (same fake credentials -> same fake account).
-  const emailPasswordButton = page.getByRole('button', { name: 'Email/Password' });
-  if (await emailPasswordButton.isVisible().catch(() => false)) {
-    await emailPasswordButton.click();
-    await page.getByRole('textbox', { name: 'Email' }).fill(FAKE_EMAIL);
-    await page.getByRole('textbox', { name: 'Password' }).fill(FAKE_PASSWORD);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-  }
+  await signInOffline(page);
 
   // Now on /game/<gameName>/<id>/. Wait for the game renderer to mount.
   await page.waitForURL(new RegExp(`/game/${gameName}/`));
   await page.waitForSelector('boardgame-render-game', { timeout: 15000 });
   await page.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined, undefined, { timeout: 15000 });
+
+  if (options.adminMode === false) return;
 
   // The game creator is not automatically seated as an *active* player in
   // the roster UI sense (both slots render "Sitting out" even though the
@@ -76,6 +84,39 @@ export async function createOfflineGame(page: Page, gameName: string): Promise<v
   if (isChecked) {
     await makeMovesCheckbox.click();
   }
+}
+
+// Authenticates the current page as the stable offline-dev test identity.
+// Useful when a test needs to join an existing game without creating a
+// throwaway game (and without enabling the admin-only controls).
+export async function signInOffline(page: Page): Promise<void> {
+  const emailPasswordButton = page.getByRole('button', { name: 'Email/Password' });
+  if (await emailPasswordButton.isVisible().catch(() => false)) {
+    await emailPasswordButton.click();
+    await page.getByRole('textbox', { name: 'Email' }).fill(FAKE_EMAIL);
+    await page.getByRole('textbox', { name: 'Password' }).fill(FAKE_PASSWORD);
+    await page.getByRole('button', { name: 'Sign In' }).click();
+  }
+}
+
+// Joins an existing companion-mode room through the same guest flow a phone
+// uses after scanning the Table QR code. Symmetric games auto-assign a seat;
+// asymmetric games expose a seat grid, where this helper chooses the first
+// open slot.
+export async function joinCompanionAsGuest(
+  page: Page,
+  roomCode: string,
+  gameName: string,
+): Promise<void> {
+  await page.goto(`/join?code=${encodeURIComponent(roomCode)}`);
+  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await page.getByRole('button', { name: 'Looks good — join!' }).click();
+  const openSeat = page.locator('.slot:not(.filled)').first();
+  if (await openSeat.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await openSeat.click();
+  }
+  await page.waitForURL(new RegExp(`/game/${gameName}/`), { timeout: 20000 });
+  await page.waitForSelector('boardgame-render-game', { timeout: 15000 });
 }
 
 // Turns on the header's "Admin Mode" switch, revealing the admin debug
@@ -128,7 +169,7 @@ export async function makeAdminFormMove(page: Page, moveDisplayName: string): Pr
   const moveRow = page.getByText(moveDisplayName, { exact: true });
   await expect(moveRow).toBeVisible({ timeout: 5000 });
   await moveRow.click();
-  const makeMoveButton = page.getByText('Make Move', { exact: true }).first();
+  const makeMoveButton = page.getByText('Make Move', { exact: true }).filter({ visible: true }).first();
   await expect(makeMoveButton).toBeVisible({ timeout: 5000 });
   await makeMoveButton.click();
 

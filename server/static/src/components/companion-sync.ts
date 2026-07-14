@@ -1,139 +1,219 @@
 /**
- * companion-sync implements the client-side cross-screen animation sync
- * estimator (spec §8.4). The Table+Hand companion mode wants the same
- * card to fly across two physical devices at roughly the same wall-clock
- * instant — for V1 we don't promise frame-perfect alignment, just visible
- * coherence.
+ * Cross-screen clock estimation and version-bound animation scheduling.
  *
- * The server stamps every "version-timing" socket message with
- * serverSentAt (ms since epoch, captured at broadcast) and serverPlayAt
- * (serverSentAt + ANIMATION_LEAD_MS, the wall-clock instant clients
- * should target).
- *
- * On the client, we maintain a minimum-wins one-way latency estimator
- * over the last 30 frames. The minimum sample is the closest estimate of
- * pure one-way delivery time (variance only ever adds; never subtracts).
- * That offset is then used to convert serverPlayAt into a local epoch ms
- * value, which game renderers can schedule animation timers against:
- *
- *   const playAtLocal = companionSync.localEquivalent(msg.serverPlayAt);
- *   const delay = Math.max(0, playAtLocal - Date.now());
- *   setTimeout(() => doAnimation(), delay);
- *
- * Limitations (spec §8.4):
- * - Asymmetric routes (phone on cell, projector on Wi-Fi) bias the
- *   minimum-wins estimator, but the bias is consistent per surface,
- *   so each side is self-consistent.
- * - JS GC pauses and background-tab throttling can shift setTimeout
- *   firing by 50-200ms — we accept this in V1.
- * - First state push beats the 30-sample window. Animations play
- *   immediately on state install when fewer than 3 samples are present.
+ * The server announces a version and then sends a sibling timing frame. A
+ * timing value is meaningful only for that exact (game, version) pair: HTTP
+ * version fetches may return several queued bundles, so a mutable "latest"
+ * timestamp cannot safely drive them. CompanionAnimationTimeline is the one
+ * client-side owner of that association.
  */
 
-interface VersionTimingMessage {
+export interface VersionTimingMessage {
   version: number;
   serverSentAt: number;
   serverPlayAt: number;
+  slotDurationMs: number;
+  maxAnimationDurationMs: number;
 }
 
-class CompanionSyncEstimator {
-  private samples: number[] = [];
+export interface ClockSyncMessage {
+  clientSentAt: number;
+  serverAt: number;
+}
+
+export interface VersionAnimationContext {
+  version: number;
+  startAtMs: number;
+  slotDurationMs: number;
+  maxAnimationDurationMs: number;
+}
+
+export type CompanionSchedule =
+  | { kind: 'scheduled'; context: VersionAnimationContext }
+  | { kind: 'awaiting-timing'; waitMs: number }
+  | { kind: 'immediate' };
+
+const TIMING_GRACE_MS = 200;
+// Emergency ceiling only. Normal retention is lifecycle-based: the state
+// manager forgets a version after installing/skipping it and resetGame clears
+// navigation leftovers, so a throttled but legitimate queue is not evicted
+// merely because another surface drains at a different pace.
+const MAX_RECORDED_VERSIONS = 4096;
+
+export function usableAnimationContext(
+  context: VersionAnimationContext,
+  localNow = Date.now(),
+  maxFutureWaitMs = 10_000,
+): VersionAnimationContext | null {
+  const untilStart = context.startAtMs - localNow;
+  if (untilStart > maxFutureWaitMs) return null;
+  if (untilStart < -context.slotDurationMs) return null;
+  return context;
+}
+
+export class CompanionSyncEstimator {
+  private oneWaySamples: number[] = [];
+  private clockSamples: Array<{ offset: number; roundTrip: number }> = [];
   private readonly windowSize = 30;
   private readonly minSamplesForEstimate = 3;
 
-  /**
-   * ingest is called for each "version-timing" socket message. Records the
-   * one-way latency sample (localNow - serverSentAt) into the rolling
-   * window.
-   */
-  ingest(msg: VersionTimingMessage): void {
-    const oneWay = Date.now() - msg.serverSentAt;
-    this.samples.push(oneWay);
-    if (this.samples.length > this.windowSize) {
-      this.samples.shift();
-    }
+  ingest(msg: VersionTimingMessage, localNow = Date.now()): void {
+    const oneWay = localNow - msg.serverSentAt;
+    this.oneWaySamples.push(oneWay);
+    if (this.oneWaySamples.length > this.windowSize) this.oneWaySamples.shift();
   }
 
-  /**
-   * minOffset returns the rolling-window minimum one-way latency, or
-   * null if not enough samples have been collected to commit to an
-   * estimate. Game code that gets null should play animations
-   * immediately on state install (V1 graceful degradation).
-   */
+  ingestClockSync(msg: ClockSyncMessage, localReceivedAt = Date.now()): void {
+    if (!msg || !Number.isFinite(msg.clientSentAt) || !Number.isFinite(msg.serverAt)) return;
+    const roundTrip = Math.max(0, localReceivedAt - msg.clientSentAt);
+    const localMidpoint = msg.clientSentAt + roundTrip / 2;
+    this.clockSamples.push({ offset: localMidpoint - msg.serverAt, roundTrip });
+    if (this.clockSamples.length > this.windowSize) this.clockSamples.shift();
+  }
+
   minOffset(): number | null {
-    if (this.samples.length < this.minSamplesForEstimate) return null;
-    return Math.min(...this.samples);
+    if (this.clockSamples.length >= this.minSamplesForEstimate) {
+      return this.clockSamples.reduce((best, sample) =>
+        sample.roundTrip < best.roundTrip ? sample : best).offset;
+    }
+    // Backward-compatible fallback for servers without clock-sync replies.
+    if (this.oneWaySamples.length < this.minSamplesForEstimate) return null;
+    return Math.min(...this.oneWaySamples);
   }
 
-  /**
-   * localEquivalent converts a server-side epoch ms timestamp into the
-   * local-clock epoch ms instant at which the same wall-clock moment
-   * occurs. Falls back to the server timestamp itself if the estimator
-   * doesn't have enough samples — which usually means the animation
-   * fires immediately on receive (the safe default).
-   */
   localEquivalent(serverEpochMs: number): number {
     const offset = this.minOffset();
-    if (offset === null) {
-      // Not enough samples — return the server timestamp directly.
-      // Callers should then use max(0, ts - Date.now()) which will be
-      // negative for past timestamps (animations play immediately).
-      return serverEpochMs;
-    }
-    return serverEpochMs + offset;
+    return offset === null ? serverEpochMs : serverEpochMs + offset;
   }
 
-  /** sampleCount is exposed for diagnostics / tests. */
   sampleCount(): number {
-    return this.samples.length;
+    return Math.max(this.clockSamples.length, this.oneWaySamples.length);
   }
 }
 
-export const companionSync = new CompanionSyncEstimator();
+interface RecordedTiming {
+  serverPlayAt: number;
+  slotDurationMs: number;
+  maxAnimationDurationMs: number;
+}
 
-// Test seam (mirrors window.__bgAnimTestHooks): the estimator + play-at
-// singletons are otherwise module-private, so the cross-screen sync spec
-// (tests/animations/waapi-companion.spec.ts) has no way to drive them
-// deterministically across two browser contexts. Cost is two property
-// writes at module load; harmless in production.
+export class CompanionAnimationTimeline {
+  readonly estimator = new CompanionSyncEstimator();
+  private readonly timings = new Map<string, RecordedTiming>();
+  private readonly announcements = new Map<string, number>();
+
+  announce(gameID: string, version: number, localNow = Date.now()): void {
+    if (!gameID || !Number.isInteger(version)) return;
+    this.recordBounded(this.announcements, this.key(gameID, version), localNow);
+  }
+
+  ingest(gameID: string, msg: VersionTimingMessage, localNow = Date.now()): void {
+    if (!gameID || !this.validTiming(msg)) return;
+    this.estimator.ingest(msg, localNow);
+    const key = this.key(gameID, msg.version);
+    this.recordBounded(this.timings, key, {
+      serverPlayAt: msg.serverPlayAt,
+      slotDurationMs: msg.slotDurationMs,
+      maxAnimationDurationMs: msg.maxAnimationDurationMs,
+    });
+  }
+
+  ingestClockSync(msg: ClockSyncMessage, localReceivedAt = Date.now()): void {
+    this.estimator.ingestClockSync(msg, localReceivedAt);
+  }
+
+  /**
+   * Resolve the exact version's schedule. A just-announced version waits up to
+   * 200ms for its sibling timing frame; missing timing and a cold estimator
+   * both deliberately degrade to immediate playback.
+   */
+  schedule(gameID: string, version: number, localNow = Date.now()): CompanionSchedule {
+    const key = this.key(gameID, version);
+    const timing = this.timings.get(key);
+    if (timing) {
+      if (this.estimator.minOffset() === null) return { kind: 'immediate' };
+      return {
+        kind: 'scheduled',
+        context: {
+          version,
+          startAtMs: this.estimator.localEquivalent(timing.serverPlayAt),
+          slotDurationMs: timing.slotDurationMs,
+          maxAnimationDurationMs: timing.maxAnimationDurationMs,
+        },
+      };
+    }
+
+    const announcedAt = this.announcements.get(key);
+    if (announcedAt !== undefined) {
+      const waitMs = TIMING_GRACE_MS - (localNow - announcedAt);
+      if (waitMs > 0) return { kind: 'awaiting-timing', waitMs };
+    }
+    return { kind: 'immediate' };
+  }
+
+  resetGame(gameID: string): void {
+    const prefix = `${gameID}\u0000`;
+    for (const key of this.timings.keys()) {
+      if (key.startsWith(prefix)) this.timings.delete(key);
+    }
+    for (const key of this.announcements.keys()) {
+      if (key.startsWith(prefix)) this.announcements.delete(key);
+    }
+  }
+
+  forgetVersion(gameID: string, version: number): void {
+    const key = this.key(gameID, version);
+    this.timings.delete(key);
+    this.announcements.delete(key);
+  }
+
+  private key(gameID: string, version: number): string {
+    return `${gameID}\u0000${version}`;
+  }
+
+  private validTiming(msg: VersionTimingMessage): boolean {
+    return !!msg && Number.isInteger(msg.version) &&
+      Number.isFinite(msg.serverSentAt) && Number.isFinite(msg.serverPlayAt) &&
+      msg.serverPlayAt >= msg.serverSentAt && Number.isFinite(msg.slotDurationMs) &&
+      msg.slotDurationMs > 0 && Number.isFinite(msg.maxAnimationDurationMs) &&
+      msg.maxAnimationDurationMs >= 0 && msg.maxAnimationDurationMs <= msg.slotDurationMs;
+  }
+
+  private recordBounded<T>(map: Map<string, T>, key: string, value: T): void {
+    // Refresh insertion order when a duplicate frame is received.
+    map.delete(key);
+    map.set(key, value);
+    while (map.size > MAX_RECORDED_VERSIONS) {
+      const oldest = map.keys().next().value as string | undefined;
+      if (oldest === undefined) break;
+      map.delete(oldest);
+    }
+  }
+}
+
+export const companionTimeline = new CompanionAnimationTimeline();
+// Kept as a focused clock-estimator export for diagnostics and callers that
+// need timestamp conversion without schedule lookup.
+export const companionSync = companionTimeline.estimator;
+
+export function ingestVersionTiming(gameID: string, data: VersionTimingMessage): void {
+  companionTimeline.ingest(gameID, data);
+}
+
 declare global {
   interface Window {
     __bgCompanionSync?: {
       estimator: CompanionSyncEstimator;
-      latestServerPlayAt: () => number | null;
-      ingestVersionTiming: (data: VersionTimingMessage) => void;
+      timeline: CompanionAnimationTimeline;
+      ingestVersionTiming: (gameID: string, data: VersionTimingMessage) => void;
     };
   }
 }
+
 if (typeof window !== 'undefined') {
   window.__bgCompanionSync = {
     estimator: companionSync,
-    latestServerPlayAt,
+    timeline: companionTimeline,
     ingestVersionTiming,
   };
-}
-
-// _latestServerPlayAt is the server-anchored play-at instant from the
-// most recent version-timing message. Game renderers can read it via
-// latestServerPlayAt() and feed it to companionSync.localEquivalent()
-// to schedule cross-screen animation playback at a clock-aligned
-// instant. Updated by ingestVersionTiming on every state push.
-let _latestServerPlayAt: number | null = null;
-
-export function latestServerPlayAt(): number | null {
-  return _latestServerPlayAt;
-}
-
-/**
- * ingestVersionTiming is the boardgame-game-state-manager hook that
- * forwards inbound "version-timing" socket messages into the estimator.
- * Kept as a free function so the state manager doesn't need to import
- * the singleton directly.
- */
-export function ingestVersionTiming(data: VersionTimingMessage): void {
-  if (!data || typeof data.serverSentAt !== 'number') {
-    return;
-  }
-  companionSync.ingest(data);
-  _latestServerPlayAt = typeof data.serverPlayAt === 'number' ? data.serverPlayAt : null;
 }

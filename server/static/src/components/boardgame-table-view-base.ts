@@ -3,7 +3,6 @@ import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 import { apiPath } from '../util.js';
-import { companionSync, latestServerPlayAt } from './companion-sync.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -108,11 +107,6 @@ export class BoardgameTableViewBase<
       .map((n, i) => (n > (prev[i] ?? 0) ? i : -1))
       .filter((i) => i >= 0);
     if (grew.length === 0) return;
-    // Companion sync (#798): launch every departure at the same
-    // server-anchored instant the phones launch their arrivals, so the
-    // deal reads as one coherent motion across screens. undefined ⇒ now.
-    const playAt = latestServerPlayAt();
-    const startAtMs = playAt !== null ? companionSync.localEquivalent(playAt) : undefined;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       for (const playerIndex of grew) {
         const stub = this.shadowRoot?.getElementById(`stub:p${playerIndex}:hand`);
@@ -121,7 +115,7 @@ export class BoardgameTableViewBase<
         // bottom edge — visually, a card leaving the deck toward that
         // player. The matching arrival plays on their phone (see
         // BoardgameHandViewBase.autoFlyIncoming).
-        this.animator?.animateBetween(stub, source, 600, { startAtMs });
+        this.animator?.animateBetween(stub, source, 600);
       }
     }));
   }

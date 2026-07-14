@@ -3,6 +3,26 @@ import { query } from 'lit/decorators.js';
 import './boardgame-component-stack.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
+import type { VersionAnimationContext } from './companion-sync.js';
+
+export type AnimationTimingPolicy =
+  | 'version'
+  | 'immediate'
+  | { localStartAtMs: number };
+
+export interface AnimateBetweenOptions {
+  /** Defaults to the installed version's companion slot. */
+  timing?: AnimationTimingPolicy;
+}
+
+export interface ComponentAnimatorAPI {
+  animateBetween(
+    realId: string | HTMLElement,
+    stubId: string | HTMLElement,
+    durationMs?: number,
+    opts?: AnimateBetweenOptions,
+  ): Promise<void>;
+}
 
 interface ComponentRecord {
   offsets?: OffsetRect;
@@ -46,6 +66,10 @@ interface AnimatingComponentRecord {
 }
 
 export class BoardgameComponentAnimator extends LitElement {
+  // Supplied by boardgame-render-game for the currently installing version.
+  // Public so the wrapper can set it, but game renderers normally need no
+  // timing plumbing: animateBetween consumes it by default.
+  animationContext: VersionAnimationContext | null = null;
   // Note: Can't use @query decorator because 'animate' method conflicts with Element.animate()
   private get stackElement(): BoardgameComponentStack {
     return this.shadowRoot!.querySelector('#stack')!;
@@ -231,18 +255,15 @@ export class BoardgameComponentAnimator extends LitElement {
    * Settlement (anim.finished, or the cancel rejection) is ground truth
    * for "done".
    *
-   * opts.startAtMs is a local-clock (Date.now()-comparable) instant at
-   * which the flight should visually begin — the companion-sync scheduled
-   * play-at (spec §8.4). The WAAPI `delay` is clamp(startAtMs - Date.now(),
-   * 0, 2000): a bad/stale estimate can never hold a card in flight for more
-   * than 2s, and a past instant plays immediately. Omitting it (solo games)
-   * yields delay 0, i.e. the original instant-start behaviour.
+   * The current version's companion slot is used automatically. A caller may
+   * choose immediate timing for a deliberately local animation, or supply an
+   * explicit local start through the discriminated timing policy.
    */
   async animateBetween(
     realId: string | HTMLElement,
     stubId: string | HTMLElement,
     durationMs: number = 500,
-    opts?: { startAtMs?: number },
+    opts?: AnimateBetweenOptions,
   ): Promise<void> {
     const real = this._resolveAnimationTarget(realId);
     const stub = this._resolveAnimationTarget(stubId);
@@ -267,11 +288,38 @@ export class BoardgameComponentAnimator extends LitElement {
       return;
     }
     // Companion-sync scheduling (spec §8.4): defer the flight so Table and
-    // Hand launch the same card within estimator error. Clamped to [0,2000]
-    // so a bad estimate can never wedge the card in flight.
-    const delay = opts?.startAtMs
-      ? Math.min(2000, Math.max(0, opts.startAtMs - Date.now()))
+    // Hand launch the same card within estimator error. Version contexts are
+    // validated by the state manager; explicit local starts are honored as
+    // written rather than silently shifted to an arbitrary clamp.
+    const timing = opts?.timing ?? 'version';
+    const now = Date.now();
+    const candidateContext = timing === 'version' ? this.animationContext : null;
+    // A version context is scoped to its slot. Event-driven animation code
+    // running later must not inherit an ambient historical duration cap.
+    const context = candidateContext && now <= candidateContext.startAtMs + candidateContext.slotDurationMs
+      ? candidateContext
+      : null;
+    const startAtMs = timing === 'immediate'
+      ? null
+      : timing === 'version'
+        ? context?.startAtMs ?? null
+        : timing.localStartAtMs;
+    let effectiveDurationMs = durationMs;
+    if (context && durationMs > context.maxAnimationDurationMs) {
+      console.warn(
+        `[animator] synchronized animation requested ${durationMs}ms; ` +
+        `capping to the version slot's ${context.maxAnimationDurationMs}ms contract. ` +
+        `Use { timing: 'immediate' } for a longer local-only effect.`,
+      );
+      effectiveDurationMs = context.maxAnimationDurationMs;
+    }
+    const delay = startAtMs !== null && startAtMs !== undefined
+      ? Math.max(0, startAtMs - now)
       : 0;
+    // Backwards fill holds the inverted/from keyframe during the delay, so
+    // installing state early does not flash the element at its final position.
+    // It stops applying as soon as the animation finishes; no persistent style.
+    const fill: FillMode = delay > 0 ? 'backwards' : 'none';
     const keyframes: Keyframe[] = [
       { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
       { transform: real.style.transform || 'none' },
@@ -282,8 +330,12 @@ export class BoardgameComponentAnimator extends LitElement {
     // rather than anim.ready because WAAPI's `ready` resolves when the
     // DELAY phase starts, not the active (visible) phase.
     const realTag = real.tagName.toLowerCase() + (real.id ? `#${real.id}` : '');
+    let playHookTimer: number | null = null;
     if (delay > 0) {
-      window.setTimeout(() => animHooks.record('play', 'fly:' + realTag), delay);
+      playHookTimer = window.setTimeout(() => {
+        playHookTimer = null;
+        animHooks.record('play', 'fly:' + realTag);
+      }, delay);
     } else {
       animHooks.record('play', 'fly:' + realTag);
     }
@@ -293,8 +345,8 @@ export class BoardgameComponentAnimator extends LitElement {
     // registers a will-animate/animation-done pair and joins the item's
     // live set. This closes two holes that raw real.animate() left open
     // (#798): (a) the completion gate could close — and the game-over
-    // verdict banner appear — while a synced deal flight (up to 2000ms sync
-    // delay + duration) was still mid-air; (b) prepare()'s interruption
+    // verdict banner appear — while a delayed synced deal flight was still
+    // mid-air; (b) prepare()'s interruption
     // pass (finishAllAnimations) couldn't reach a raw flight to settle it
     // before measuring a new cycle. play() supplies its own default timing
     // (duration = --animation-length), so we override with the caller's
@@ -303,17 +355,19 @@ export class BoardgameComponentAnimator extends LitElement {
     // test uses) have no play() and keep the raw-element fallback below.
     if (typeof (real as any).play === 'function') {
       const anim = (real as any).play(real, keyframes,
-        { duration: durationMs, delay, easing: 'ease-out', fill: 'none' });
+        { duration: effectiveDurationMs, delay, easing: 'ease-out', fill });
       // play() returns null under noAnimate; nothing is in flight then.
       if (anim) await anim.finished.catch(() => {});
+      if (playHookTimer !== null) window.clearTimeout(playHookTimer);
       return;
     }
 
     const anim = real.animate(keyframes,
-      { duration: durationMs, delay, easing: 'ease-out', fill: 'none' });
+      { duration: effectiveDurationMs, delay, easing: 'ease-out', fill });
     // Settlement is ground truth: finished resolves on completion, rejects
     // on cancel (element removed mid-flight) — both mean "done" here.
     await anim.finished.catch(() => {});
+    if (playHookTimer !== null) window.clearTimeout(playHookTimer);
   }
 
   // CRITICAL: Double microtask delay for Polymer databinding completion

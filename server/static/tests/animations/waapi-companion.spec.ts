@@ -1,24 +1,23 @@
 import { test, expect } from '@playwright/test';
-import { createOfflineGame } from './helpers';
+import { createOfflineGame, joinCompanionAsGuest } from './helpers';
 
 // Companion-mode cross-screen animation sync (#798, spec §8.4). The
 // Table surface (shared projector) and Hand surfaces (players' phones)
 // must launch the same card flight at roughly the same wall-clock
 // instant. Two mechanisms cooperate:
 //
-//   1. boardgame-game-state-manager delays INSTALL of a state bundle to
-//      the server-anchored serverPlayAt (converted to local-clock ms via
-//      companionSync.localEquivalent), but only on companion surfaces.
-//   2. boardgame-component-animator.animateBetween accepts a startAtMs
-//      and puts clamp(startAtMs - Date.now(), 0, 2000) into the WAAPI
-//      flight's `delay`, so the visible motion begins at that instant.
+//   1. boardgame-game-state-manager installs each version early with its
+//      server-anchored animation context, but only on companion surfaces.
+//   2. boardgame-component-animator receives that version-bound start from
+//      render-game and uses it as animateBetween's default, so semantic
+//      Table/Hand/game code contains no transport timing plumbing.
 //
 // These specs drive the real production singletons (exposed on
 // window.__bgCompanionSync, mirroring window.__bgAnimTestHooks) and the
 // real animateBetween, then assert the cross-context skew is well under
 // the 250ms coherence threshold (drift was ~1000ms before #798). Skew
 // alone doesn't discriminate a correct sync from both surfaces ignoring
-// startAtMs and firing immediately (they'd still agree with each other),
+// the version context and firing immediately (they'd still agree),
 // so the test also asserts each surface's absolute play instant lands
 // near the shared target time — see the per-page offset assertions below.
 
@@ -40,7 +39,13 @@ test.describe('companion-sync estimator', () => {
       // it was cold before. ingest records (Date.now() - serverSentAt).
       const now = Date.now();
       for (let i = 0; i < 4; i++) {
-        est.ingest({ version: 1000 + i, serverSentAt: now - 250, serverPlayAt: now });
+        est.ingest({
+          version: 1000 + i,
+          serverSentAt: now - 250,
+          serverPlayAt: now,
+          slotDurationMs: 800,
+          maxAnimationDurationMs: 600,
+        });
       }
       const offsetAfter = est.minOffset();
       const afterWarm = est.localEquivalent(server);
@@ -136,10 +141,19 @@ test.describe('cross-screen synced auto-fly', () => {
           a.style.cssText = 'position:fixed;top:10px;left:10px;width:20px;height:20px';
           b.style.cssText = 'position:fixed;top:400px;left:400px;width:20px;height:20px';
           document.body.append(a, b);
+          // This is the production path: render-game assigns the installed
+          // version's context to the animator and semantic renderer code calls
+          // animateBetween without passing timing.
+          animator.animationContext = {
+            version: 42,
+            startAtMs: startAt,
+            slotDurationMs: 800,
+            maxAnimationDurationMs: 600,
+          };
           // Fire-and-forget: the flight resolves ~600ms after its delay
           // elapses; we only need the 'play' hook it records at visual
           // start, which we read below after awaiting the shared instant.
-          void animator.animateBetween(a, b, 300, { startAtMs: startAt });
+          void animator.animateBetween(a, b, 300);
         }, startAtMs);
       };
 
@@ -198,6 +212,116 @@ test.describe('cross-screen synced auto-fly', () => {
       await tableCtx.close();
       await handCtx.close();
     }
+  });
+
+  test('real blackjack move stays synchronized through socket, bundle queue, renderers, and auto-fly', async ({ browser }) => {
+    const tableCtx = await browser.newContext();
+    const handCtx = await browser.newContext();
+    const playerTwoCtx = await browser.newContext();
+    const controller = await tableCtx.newPage();
+    const hand = await handCtx.newPage();
+    const playerTwo = await playerTwoCtx.newPage();
+    try {
+      await createOfflineGame(controller, 'blackjack', { companionMode: true, adminMode: false });
+      const sharedGame = new URL(controller.url());
+      const roomCode = (await controller.locator('.room-code-giant').textContent())?.trim();
+      expect(roomCode).toMatch(/^[A-Z]{4,5}$/);
+      // Blackjack needs two seated players to leave the gathering phase.
+      // Join both through the real QR-code guest path; the first phone is
+      // seat zero and supplies the measured Hit below.
+      await joinCompanionAsGuest(hand, roomCode!, 'blackjack');
+      await joinCompanionAsGuest(playerTwo, roomCode!, 'blackjack');
+      const tableUrl = new URL(sharedGame);
+      tableUrl.searchParams.set('display', 'table');
+      // Keep the creator page open for lifecycle coverage; a second page in
+      // its authenticated context is the actual shared Table surface.
+      const table = await tableCtx.newPage();
+      await table.goto(tableUrl.toString());
+
+      const rendererReady = async (page: typeof table, tag: string) => {
+        await page.waitForFunction(([fnSrc, selector]) => {
+          // eslint-disable-next-line no-eval
+          const deepQueryFirst = eval(`(${fnSrc})`);
+          return !!deepQueryFirst(document, selector)
+            && (window as any).__bgCompanionSync?.estimator?.sampleCount() >= 3;
+        }, [`(${deepQueryFirstScript.toString()})()`, tag], { timeout: 20000 });
+      };
+      await Promise.all([
+        rendererReady(table, 'boardgame-render-game-blackjack-table'),
+        rendererReady(hand, 'boardgame-render-game-blackjack-hand'),
+      ]);
+      const hit = hand.getByRole('button', { name: 'Hit', exact: true });
+      await expect(hit).toBeEnabled({ timeout: 20000 });
+      // A new Blackjack game deals through a sequence of automatic moves.
+      // Measure a deliberate Hit only after that sequence has reached a legal,
+      // quiescent player turn on every surface. Hit becomes legal just before
+      // the last reveal fix-up, so allow two protocol slots for that final
+      // automatic version before requiring the gates to be closed.
+      const waitForQuiescence = (page: typeof table) => page.waitForFunction((fnSrc) => {
+        // eslint-disable-next-line no-eval
+        const deepQueryFirst = eval(`(${fnSrc})`);
+        const renderGame = deepQueryFirst(document, 'boardgame-render-game') as any;
+        return renderGame && !renderGame.isAnimating;
+      }, `(${deepQueryFirstScript.toString()})()`, { timeout: 20000 });
+      await controller.waitForTimeout(1600);
+      await Promise.all([controller, table, hand].map(waitForQuiescence));
+      await Promise.all([
+        table.evaluate(() => (window as any).__bgAnimTestHooks.reset()),
+        hand.evaluate(() => (window as any).__bgAnimTestHooks.reset()),
+      ]);
+      await hit.click();
+
+      const readFly = async (page: typeof table) => {
+        await page.waitForFunction(() => (window as any).__bgAnimTestHooks.log.some(
+          (entry: any) => entry.ev === 'play' && entry.detail?.startsWith('fly:'),
+        ), undefined, { timeout: 15000 });
+        return page.evaluate(() => {
+          const entry = (window as any).__bgAnimTestHooks.log.find(
+            (item: any) => item.ev === 'play' && item.detail?.startsWith('fly:'),
+          );
+          return performance.timeOrigin + entry.t;
+        });
+      };
+      const [tableStart, handStart] = await Promise.all([readFly(table), readFly(hand)]);
+      expect(Math.abs(tableStart - handStart)).toBeLessThan(250);
+    } finally {
+      await tableCtx.close();
+      await handCtx.close();
+      await playerTwoCtx.close();
+    }
+  });
+
+  test('a deliberately local flight can opt out of the version timeline', async ({ page }) => {
+    await createOfflineGame(page, 'blackjack');
+    await page.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined);
+    const result = await page.evaluate(async () => {
+      const animator = document.createElement('boardgame-component-animator') as any;
+      document.body.appendChild(animator);
+      await animator.updateComplete;
+      const real = document.createElement('div');
+      const stub = document.createElement('div');
+      real.style.cssText = 'position:fixed;top:10px;left:10px;width:20px;height:20px';
+      stub.style.cssText = 'position:fixed;top:300px;left:300px;width:20px;height:20px';
+      document.body.append(real, stub);
+      animator.animationContext = {
+        version: 42,
+        startAtMs: Date.now() + 800,
+        slotDurationMs: 800,
+        maxAnimationDurationMs: 600,
+      };
+      (window as any).__bgAnimTestHooks.reset();
+      const before = Date.now();
+      void animator.animateBetween(real, stub, 50, { timing: 'immediate' });
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      return {
+        elapsed: Date.now() - before,
+        played: (window as any).__bgAnimTestHooks.log.some(
+          (entry: any) => entry.ev === 'play' && entry.detail?.startsWith('fly:'),
+        ),
+      };
+    });
+    expect(result.played).toBe(true);
+    expect(result.elapsed).toBeLessThan(300);
   });
 });
 
@@ -285,7 +409,10 @@ test.describe('verdict gating on animation completion', () => {
     // production render-game + its REAL animator against a REAL card, and
     // asserts the render-game[is-animating] gate is open mid-flight and
     // closed only after settlement.
-    await createOfflineGame(page, 'debuganimations');
+    // This assertion drives the renderer directly and does not need the
+    // admin panel; skipping that setup also avoids its view-as transition
+    // racing this page.evaluate with a navigation.
+    await createOfflineGame(page, 'debuganimations', { adminMode: false });
 
     // Quiescent baseline: gate closed.
     await page.waitForFunction(() => {
@@ -293,7 +420,21 @@ test.describe('verdict gating on animation completion', () => {
       return h.gateCloses >= h.gateOpens;
     }, undefined, { timeout: 20000 });
 
-    const result = await page.evaluate(async (fnSrc: string) => {
+    // The wrapper mounts before the game-specific renderer has necessarily
+    // stamped its first card. Wait for the actual test prerequisites rather
+    // than racing the initial Lit render.
+    const waitForProbeTargets = () => page.waitForFunction((fnSrc: string) => {
+        // eslint-disable-next-line no-eval
+        const deepQueryFirst = eval(`(${fnSrc})`);
+        const rg = deepQueryFirst(document, 'boardgame-render-game') as any;
+        const animator = rg?.shadowRoot?.querySelector('#animator');
+        const card = deepQueryFirst(document, 'boardgame-card')
+          || deepQueryFirst(document, 'boardgame-component');
+        return !!rg && !!animator && !!card;
+      }, `(${deepQueryFirstScript.toString()})()`, { timeout: 15000 });
+    await waitForProbeTargets();
+
+    const runProbe = () => page.evaluate(async (fnSrc: string) => {
       // eslint-disable-next-line no-eval
       const deepQueryFirst = eval(`(${fnSrc})`);
       const rg = deepQueryFirst(document, 'boardgame-render-game') as any;
@@ -323,11 +464,15 @@ test.describe('verdict gating on animation completion', () => {
       document.body.appendChild(stub);
 
       // Fire-and-forget so we can sample the gate WHILE the flight is live.
-      const flightDone = animator.animateBetween(card, stub, 300);
+      const flightDone = animator.animateBetween(card, stub, 1000);
 
-      // Let the will-animate bubble to render-game and flip the gate.
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      await rg.updateComplete;
+      // Let the will-animate bubble to render-game and flip the gate. Poll
+      // within the deliberately long flight instead of assuming one frame is
+      // sufficient under a loaded full-suite browser worker.
+      const gateDeadline = performance.now() + 500;
+      while (!rg.hasAttribute('is-animating') && performance.now() < gateDeadline) {
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+      }
       const midFlightAnimating = rg.hasAttribute('is-animating');
 
       // Now let the flight settle; the animation-done must close the gate.
@@ -338,6 +483,19 @@ test.describe('verdict gating on animation completion', () => {
       stub.remove();
       return { setupOk: true, hasPlay, midFlightAnimating, afterAnimating };
     }, `(${deepQueryFirstScript.toString()})()`);
+    let result: Awaited<ReturnType<typeof runProbe>> | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        result = await runProbe();
+        break;
+      } catch (error) {
+        const navigated = error instanceof Error && error.message.includes('Execution context was destroyed');
+        if (!navigated || attempt === 2) throw error;
+        await page.waitForLoadState('domcontentloaded');
+        await waitForProbeTargets();
+      }
+    }
+    if (!result) throw new Error('gate probe did not produce a result');
 
     expect(result.setupOk, 'render-game, its animator, and a real card must all be present').toBe(true);
     expect(result.hasPlay, 'the real card must be an animatable item with play()').toBe(true);

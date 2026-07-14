@@ -127,8 +127,25 @@ Works out of the box for card games:
   from the deck toward the bottom edge. No element = no animation — the
   id's presence is the entire opt-in.
 - Bespoke needs: set the flags false and call
-  `this.animator.animateBetween(cardIdOrElement, targetIdOrElement, ms)`.
-  The first argument visually ARRIVES FROM the second's position.
+  `this.animator?.animateBetween(cardIdOrElement, targetIdOrElement, ms)`.
+  The first argument visually ARRIVES FROM the second's position. The framework
+  automatically schedules this against the current version's cross-screen
+  timeline; there is no timing property to pass through your renderer.
+- For an intentionally local effect (for example, a tap flourish that has no
+  matching event on another screen), opt out explicitly:
+  `this.animator?.animateBetween(card, source, 300, { timing: 'immediate' })`.
+  Advanced code may instead use
+  `{ timing: { localStartAtMs: someTimestamp } }`.
+
+Each game version owns its own animation slot. Rapid automatic/fix-up moves are
+spaced on the server's per-game lane, and queued HTTP state bundles retain their
+matching slot. The protocol currently reserves 800ms per synchronized version:
+up to 600ms of visible motion and 200ms to prepare the next queued state. The
+framework caps synchronized animation hooks and `animateBetween` calls at 600ms
+and disables `animationOverlap` for those cycles; use immediate timing for a
+longer effect that has no cross-screen counterpart. State installs before the
+target and WAAPI holds the source frame until launch. If timing is unavailable
+or unusable, the context is discarded completely and state installs immediately.
 
 ## Host actions and ForceFinishTurn
 

@@ -25,12 +25,23 @@ const absentThreshold = 30 * time.Second
 // counts up smoothly without thrashing.
 const absentScanInterval = 5 * time.Second
 
-// animationLeadMS is the default delay between when the server broadcasts
-// a state change and when clients should start the resulting animation.
-// 250ms gives typical LAN/Wi-Fi enough head-time to converge without
+// animationLeadMS is the minimum delay between when the server broadcasts
+// an idle-lane state change and when clients should start its animation.
+// 500ms gives typical LAN/Wi-Fi enough time to fetch, render, and pre-arm
 // feeling laggy (spec §8.4). Per-game override via the (future)
 // CompanionAnimationLeadDelegate hook.
-const animationLeadMS = 250
+const animationLeadMS = 500
+
+// Companion animation timing is an explicit protocol contract, not an
+// incidental copy of one renderer's current duration. A synchronized cycle
+// gets 600ms of visible motion and 200ms for the next queued bundle to render
+// and pre-arm before its slot. Custom longer effects must opt out of version
+// synchronization on the client.
+const (
+	companionAnimationDurationMS = 600
+	companionAnimationPrepareMS  = 200
+	companionAnimationSlotMS     = companionAnimationDurationMS + companionAnimationPrepareMS
+)
 
 // socketMessage is the JSON-framed WebSocket message format.
 // Clients should feature-detect: if the message starts with "{", parse as
@@ -117,6 +128,11 @@ type versionNotifier struct {
 	// guarded by absentMu since reads happen on HTTP handler goroutines.
 	absent   map[string]map[boardgame.PlayerIndex]bool
 	absentMu sync.RWMutex
+
+	// animationLaneTail is the tail of each game's server-owned animation
+	// lane. workLoop is its sole reader/writer, matching the sockets map's
+	// channel discipline and avoiding a second synchronization mechanism.
+	animationLaneTail map[string]animationLaneEntry
 }
 
 // AbsentPlayers returns the current absent-player set for the given gameID,
@@ -140,7 +156,7 @@ type socket struct {
 	gameID   string
 	notifier *versionNotifier
 	conn     *websocket.Conn
-	send     chan []byte
+	send     chan socketFrameBatch
 
 	// playerIndex is the seat this socket is bound to, or
 	// ObserverPlayerIndex for unseated viewers (Table view connections,
@@ -148,6 +164,20 @@ type socket struct {
 	// effectivePlayerIndex(c). Heartbeats from this socket are recorded
 	// against (gameID, playerIndex).
 	playerIndex boardgame.PlayerIndex
+	// initialVersion is sent by registerSocket inside the notifier workLoop,
+	// where an existing canonical timing for this version can be reused.
+	initialVersion int
+}
+
+// socketFrameBatch is one atomic queue item. The version and its timing frame
+// must either both enter the socket queue or neither does; otherwise one slow
+// companion silently abandons the canonical animation lane while staying
+// connected.
+type socketFrameBatch [][]byte
+
+type animationLaneEntry struct {
+	version      int
+	serverPlayAt int64
 }
 
 func (s *Server) checkOriginForSocket(r *http.Request) bool {
@@ -188,19 +218,15 @@ func (s *Server) socketHandler(c *gin.Context) {
 
 func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNotifier, playerIndex boardgame.PlayerIndex) *socket {
 	result := &socket{
-		notifier:    notifier,
-		conn:        conn,
-		send:        make(chan []byte, 1024), // headroom for version+timing frame pairs under mobile-browser throttling
-		gameID:      game.ID(),
-		playerIndex: playerIndex,
+		notifier:       notifier,
+		conn:           conn,
+		send:           make(chan socketFrameBatch, 512), // same 1024-frame headroom, but paired frames enqueue atomically
+		gameID:         game.ID(),
+		playerIndex:    playerIndex,
+		initialVersion: game.Version(),
 	}
 	go result.readPump()
 	go result.writePump()
-
-	//As soon as the socket is opened, send the current version. That way if
-	//the connection broke right when the version changed, we'll still catch up.
-	versionData, timingData := marshalVersionFrames(game.Version())
-	result.SendMessage(versionData, timingData)
 
 	return result
 }
@@ -244,6 +270,17 @@ func (s *socket) readPump() {
 			}
 			continue
 		}
+		if msg.Type == "clock-sync" {
+			data, ok := msg.Data.(map[string]interface{})
+			clientSentAt, valid := data["clientSentAt"].(float64)
+			if ok && valid {
+				s.SendSocketMessage("clock-sync", map[string]interface{}{
+					"clientSentAt": clientSentAt,
+					"serverAt":     time.Now().UnixMilli(),
+				})
+				continue
+			}
+		}
 
 		s.notifier.server.logger.Warnln("Unexpectedly got a message from client", logrus.Fields{
 			"Message": message,
@@ -264,7 +301,7 @@ func (s *socket) writePump() {
 	}()
 	for {
 		select {
-		case message, ok := <-s.send:
+		case batch, ok := <-s.send:
 			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
@@ -272,7 +309,11 @@ func (s *socket) writePump() {
 				return
 			}
 
-			s.conn.WriteMessage(websocket.TextMessage, message)
+			for _, message := range batch {
+				if err := s.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+					return
+				}
+			}
 		case <-ticker.C:
 			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := s.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
@@ -287,26 +328,21 @@ func (s *socket) writePump() {
 // socket. Both payloads are built ONCE per broadcast in workLoop (see the
 // notifyVersion case) so every client in the game receives byte-identical
 // frames — in particular the same serverPlayAt instant, which is the whole
-// point of the timing frame (spec §8.4). The version frame keeps the
-// close-on-full behavior (gorilla chat pattern: the client reconnects and
-// catches up); the timing frame is advisory and is silently dropped when
-// the buffer is full rather than adding close pressure.
+// point of the timing frame (spec §8.4). They are one queue item: a full
+// buffer closes the connection so the client reconnects and catches up,
+// rather than leaving it connected with version data but no canonical time.
 func (s *socket) SendMessage(versionData, timingData []byte) {
+	batch := socketFrameBatch{versionData}
+	if timingData != nil {
+		batch = append(batch, timingData)
+	}
 	select {
-	case s.send <- versionData:
+	case s.send <- batch:
 	default:
 		// Buffer full — close the connection so the client reconnects
 		// and catches up from the current version (gorilla chat pattern).
 		s.conn.Close()
 		return
-	}
-
-	if timingData == nil {
-		return
-	}
-	select {
-	case s.send <- timingData:
-	default:
 	}
 }
 
@@ -314,19 +350,20 @@ func (s *socket) SendMessage(versionData, timingData []byte) {
 // for one broadcast. timingData may be nil if marshaling fails (callers
 // tolerate it); versionData always marshals (falls back to the bare
 // version number for pathological cases).
-func marshalVersionFrames(version int) (versionData, timingData []byte) {
+func marshalVersionFrames(version int, serverSentAt, serverPlayAt int64) (versionData, timingData []byte) {
 	msg := socketMessage{Type: "version", Data: version}
 	versionData, err := json.Marshal(msg)
 	if err != nil {
 		versionData = []byte(strconv.Itoa(version))
 	}
-	now := time.Now().UnixMilli()
 	timing := socketMessage{
 		Type: "version-timing",
 		Data: map[string]interface{}{
-			"version":      version,
-			"serverSentAt": now,
-			"serverPlayAt": now + animationLeadMS,
+			"version":                version,
+			"serverSentAt":           serverSentAt,
+			"serverPlayAt":           serverPlayAt,
+			"slotDurationMs":         companionAnimationSlotMS,
+			"maxAnimationDurationMs": companionAnimationDurationMS,
 		},
 	}
 	timingData, terr := json.Marshal(timing)
@@ -336,14 +373,41 @@ func marshalVersionFrames(version int) (versionData, timingData []byte) {
 	return versionData, timingData
 }
 
+// nextAnimationPlayAt reserves the next slot in a game's animation lane.
+// Idle games restart at the normal short lead; bursty version notifications
+// advance monotonically instead of all pointing at effectively the same time.
+func nextAnimationPlayAt(now, previous int64) int64 {
+	result := now + animationLeadMS
+	if paced := previous + companionAnimationSlotMS; paced > result {
+		result = paced
+	}
+	return result
+}
+
+func reserveAnimationLane(now int64, version int, tail animationLaneEntry, hasTail bool) (animationLaneEntry, bool) {
+	if hasTail && version < tail.version {
+		return tail, false
+	}
+	if hasTail && version == tail.version {
+		return tail, true
+	}
+	return animationLaneEntry{
+		version: version, serverPlayAt: nextAnimationPlayAt(now, tail.serverPlayAt),
+	}, true
+}
+
 func (s *socket) SendChatNotification(notification chatNotification) {
-	msg := socketMessage{Type: "chat", Data: notification}
+	s.SendSocketMessage("chat", notification)
+}
+
+func (s *socket) SendSocketMessage(msgType string, payload interface{}) {
+	msg := socketMessage{Type: msgType, Data: payload}
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return
 	}
 	select {
-	case s.send <- data:
+	case s.send <- socketFrameBatch{data}:
 	default:
 		s.conn.Close()
 	}
@@ -351,18 +415,19 @@ func (s *socket) SendChatNotification(notification chatNotification) {
 
 func newVersionNotifier(s *Server) *versionNotifier {
 	result := &versionNotifier{
-		sockets:       make(map[string]map[*socket]bool),
-		register:      make(chan *socket),
-		unregister:    make(chan *socket),
-		notifyVersion: make(chan gameVersionChanged),
-		notifyChat:    make(chan chatBroadcast),
-		heartbeat:       make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
-		modeChanged:     make(chan modeChangedRecord, 4),
-		presenceChanged: make(chan string, 16),
-		doneChan:        make(chan bool),
-		server:        s,
-		lastHeartbeat: make(map[string]map[boardgame.PlayerIndex]time.Time),
-		absent:        make(map[string]map[boardgame.PlayerIndex]bool),
+		sockets:           make(map[string]map[*socket]bool),
+		register:          make(chan *socket),
+		unregister:        make(chan *socket),
+		notifyVersion:     make(chan gameVersionChanged),
+		notifyChat:        make(chan chatBroadcast),
+		heartbeat:         make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
+		modeChanged:       make(chan modeChangedRecord, 4),
+		presenceChanged:   make(chan string, 16),
+		doneChan:          make(chan bool),
+		server:            s,
+		lastHeartbeat:     make(map[string]map[boardgame.PlayerIndex]time.Time),
+		absent:            make(map[string]map[boardgame.PlayerIndex]bool),
+		animationLaneTail: make(map[string]animationLaneEntry),
 	}
 	go result.workLoop()
 	return result
@@ -407,9 +472,20 @@ func (v *versionNotifier) workLoop() {
 			//Send message
 			bucket, ok := v.sockets[rec.ID]
 			if ok {
+				tail, hasTail := v.animationLaneTail[rec.ID]
+				now := time.Now().UnixMilli()
+				reserved, shouldBroadcast := reserveAnimationLane(now, rec.Version, tail, hasTail)
+				if !shouldBroadcast {
+					v.server.logger.Warnln("Ignoring regressing socket version", logrus.Fields{
+						"ID": rec.ID, "Version": rec.Version, "LaneVersion": tail.version,
+					})
+					continue
+				}
 				//Someone's listening! Marshal once; every socket gets
 				//byte-identical frames (and one shared serverPlayAt).
-				versionData, timingData := marshalVersionFrames(rec.Version)
+				v.animationLaneTail[rec.ID] = reserved
+				playAt := reserved.serverPlayAt
+				versionData, timingData := marshalVersionFrames(rec.Version, now, playAt)
 				for socket := range bucket {
 					socket.SendMessage(versionData, timingData)
 				}
@@ -615,7 +691,7 @@ func (v *versionNotifier) broadcastSocketMessage(gameID, msgType string, data in
 	}
 	for socket := range bucket {
 		select {
-		case socket.send <- payload:
+		case socket.send <- socketFrameBatch{payload}:
 		default:
 			// Slow client; drop this frame for them. They'll catch up
 			// on the next state refetch or reconnect.
@@ -638,6 +714,17 @@ func (v *versionNotifier) registerSocket(s *socket) {
 	}
 
 	bucket[s] = true
+
+	// Catch-up must reuse the canonical target if this is the version already
+	// at the tail of the lane. Giving a reconnecting phone a fresh now+lead
+	// target would desynchronize it from a table still waiting for that slot.
+	now := time.Now().UnixMilli()
+	playAt := now + animationLeadMS
+	if tail, ok := v.animationLaneTail[s.gameID]; ok && tail.version == s.initialVersion {
+		playAt = tail.serverPlayAt
+	}
+	versionData, timingData := marshalVersionFrames(s.initialVersion, now, playAt)
+	s.SendMessage(versionData, timingData)
 }
 
 func (v *versionNotifier) unregisterSocket(s *socket) {
@@ -661,5 +748,6 @@ func (v *versionNotifier) unregisterSocket(s *socket) {
 	// the lastHeartbeat/absent maps leak unboundedly.
 	if len(bucket) == 0 {
 		delete(v.sockets, s.gameID)
+		delete(v.animationLaneTail, s.gameID)
 	}
 }

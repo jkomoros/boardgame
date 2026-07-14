@@ -276,6 +276,9 @@ export class BoardgameApp extends connect(store)(LitElement) {
       transform: translateX(0);
     }
     :host([companion-surface]) .drawer-backdrop {
+      display: none !important;
+    }
+    :host([companion-surface]) .drawer-backdrop.visible {
       display: block !important;
     }
     :host([companion-surface]) .menu-button {

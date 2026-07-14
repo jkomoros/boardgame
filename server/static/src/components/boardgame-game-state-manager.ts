@@ -1,7 +1,8 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 
-import { ingestVersionTiming, companionSync, latestServerPlayAt } from './companion-sync.js';
+import { companionTimeline, ingestVersionTiming, usableAnimationContext } from './companion-sync.js';
+import type { VersionAnimationContext } from './companion-sync.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { store } from '../store.js';
 import {
@@ -41,6 +42,7 @@ import type { MoveForm } from '../types/api';
 
 // Matches --animation-length: 0.5s default in boardgame-game-view.ts
 const DEFAULT_ANIMATION_LENGTH_MS = 500;
+const MAX_COMPANION_WAIT_MS = 10_000;
 
 /**
  * StateManager keeps track of fetching state bundles from the server and
@@ -129,6 +131,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   private _overlapTimerId: ReturnType<typeof setTimeout> | null = null;
   private _scheduledInstallTimerId: ReturnType<typeof setTimeout> | null = null;
+  private _waitingForTimingVersion: number | null = null;
+  // Invalidates timeout/RAF callbacks when a newer scheduling decision wins.
+  private _installScheduleGeneration = 0;
 
   // Track previous values for change detection
   private _prevTargetVersion = -1;
@@ -419,15 +424,30 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       try {
         const msg = JSON.parse(data);
         if (msg.type === 'version') {
-          store.dispatch(setTargetVersion(msg.data));
+          if (this.gameRoute) {
+            companionTimeline.announce(this.gameRoute.id, msg.data);
+          }
+          if (Number.isInteger(msg.data) && msg.data > this.targetVersion) {
+            store.dispatch(setTargetVersion(msg.data));
+          }
         } else if (msg.type === 'version-timing') {
           // Companion-mode cross-screen animation sync (spec §8.4).
           // Sibling to 'version' — old clients ignore it. Carries
           // serverSentAt + serverPlayAt; we feed them into the
-          // minimum-wins one-way latency estimator on
-          // window._companionSync so the Table+Hand renderers can
-          // schedule animations at a server-anchored wall-clock instant.
-          ingestVersionTiming(msg.data);
+          // version-bound timeline and minimum-wins latency estimator so
+          // the shared animator can target a server-anchored instant.
+          if (this.gameRoute) {
+            ingestVersionTiming(this.gameRoute.id, msg.data);
+            // A fetched bundle can beat its sibling timing frame on a very
+            // fast local connection. Only reschedule the bundle explicitly
+            // waiting in the 200ms grace window; never advance a later bundle
+            // while the current animation gate is still open.
+            if (this._waitingForTimingVersion === msg.data?.version) {
+              this._scheduleNextStateBundle();
+            }
+          }
+        } else if (msg.type === 'clock-sync') {
+          companionTimeline.ingestClockSync(msg.data);
         } else if (msg.type === 'mode-changed') {
           // Companion-mode → solo downgrade triggered by host
           // switchToSolo (spec §9.6). Clear THIS game's surface cookie
@@ -466,7 +486,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       console.warn('Socket message was not a valid version number:', data);
       return;
     }
-    store.dispatch(setTargetVersion(version));
+    if (version > this.targetVersion) store.dispatch(setTargetVersion(version));
   }
 
   private _socketError(e: Event) {
@@ -477,6 +497,15 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _socketOpened(e: Event) {
     store.dispatch(socketConnected());
     this._startHeartbeat();
+    // Warm the midpoint clock estimator before the first real move. Three
+    // quick request/reply samples let it select the lowest-RTT offset instead
+    // of treating gameplay versions as clock-sync warmup.
+    for (let i = 0; i < 3; i++) {
+      this._socket?.send(JSON.stringify({
+        type: 'clock-sync',
+        data: { clientSentAt: Date.now(), nonce: i },
+      }));
+    }
   }
 
   private _socketClosed(e: CloseEvent) {
@@ -538,6 +567,8 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   // When everything should be reset
   reset() {
+    this._installScheduleGeneration++;
+    this._waitingForTimingVersion = null;
     if (this._overlapTimerId !== null) {
       clearTimeout(this._overlapTimerId);
       this._overlapTimerId = null;
@@ -546,6 +577,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       clearTimeout(this._scheduledInstallTimerId);
       this._scheduledInstallTimerId = null;
     }
+    if (this.gameRoute) companionTimeline.resetGame(this.gameRoute.id);
     store.dispatch(setLastFetchedVersion(0));
     store.dispatch(setTargetVersion(-1));
     store.dispatch(setCurrentVersion(0));
@@ -633,6 +665,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _scheduleNextStateBundle() {
     if (!this._pendingBundles.length) return;
 
+    const generation = ++this._installScheduleGeneration;
+    this._waitingForTimingVersion = null;
+
     // A re-schedule (e.g. from readyForNextState(), the overlap timer, or a
     // fresh enqueue) supersedes any previously-armed scheduled-install
     // timer, so cancel it here to avoid arming a second timer that could
@@ -660,6 +695,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
             if (this._pendingBundles.length > 1) {
               // Skip this bundle by dequeuing it
               store.dispatch(dequeueStateBundle());
+              if (this.gameRoute && Number.isInteger(nextBundle.game?.Version)) {
+                companionTimeline.forgetVersion(this.gameRoute.id, nextBundle.game.Version);
+              }
               this._scheduleNextStateBundle();
               return;
             }
@@ -671,53 +709,87 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       }
     }
 
-    // Companion sync (#798): if the server stamped a play-at time for this
-    // version and we're on a companion surface (Table or Hand), delay the
-    // install so both surfaces start the same animation within estimator
-    // error. Solo games keep instant installs. Clamped so a bad estimate
-    // can never hang the game (spec §8.4: Error handling).
+    // Companion sync (#798): resolve timing for THIS bundle's version. HTTP
+    // catch-up responses may contain several bundles; consulting a mutable
+    // "latest" timestamp here would assign all of them the final version's
+    // slot. Solo games remain immediate.
     const surface = this.gameRoute ? surfaceForGame(this.gameRoute.id) : null;
     if (surface === 'table' || surface === 'hand') {
-      const playAt = latestServerPlayAt();
-      if (playAt !== null) {
-        const local = companionSync.localEquivalent(playAt);
-        const rawWait = local - Date.now();
-        if (rawWait > 2000) {
-          console.warn('[state-manager] serverPlayAt over 2s in the future; clamping wait to 2s');
-        }
-        const wait = Math.min(2000, Math.max(0, rawWait));
-        if (wait > 8) { // sub-frame waits aren't worth a timer
+      const nextBundle = this._pendingBundles[0];
+      const version = nextBundle?.game?.Version;
+      if (this.gameRoute && Number.isInteger(version)) {
+        const schedule = companionTimeline.schedule(this.gameRoute.id, version);
+        if (schedule.kind === 'awaiting-timing') {
+          this._waitingForTimingVersion = version;
           this._scheduledInstallTimerId = setTimeout(() => {
+            if (generation !== this._installScheduleGeneration) return;
             this._scheduledInstallTimerId = null;
-            this._asyncFireNextStateBundle(effectiveAnimationLength);
-          }, wait);
+            this._scheduleNextStateBundle();
+          }, schedule.waitMs);
           return;
         }
-        if (rawWait < -2000) {
-          console.warn('[state-manager] serverPlayAt over 2s stale; installing immediately');
+
+        if (schedule.kind === 'scheduled') {
+          const context = usableAnimationContext(schedule.context, Date.now(), MAX_COMPANION_WAIT_MS);
+          if (context) {
+            if (effectiveAnimationLength > context.maxAnimationDurationMs) {
+              console.warn(
+                `[state-manager] companion animation length ${effectiveAnimationLength}ms exceeds ` +
+                `${context.maxAnimationDurationMs}ms version contract; capping synchronized cycle`,
+              );
+              effectiveAnimationLength = context.maxAnimationDurationMs;
+              this.dispatchEvent(new CustomEvent('set-animation-length', {
+                composed: true, bubbles: true, detail: effectiveAnimationLength,
+              }));
+            }
+            // Install and render BEFORE the target. animateBetween pre-arms a
+            // backwards-filled WAAPI delay so both surfaces can hand timing to
+            // the compositor rather than waking JS at the launch instant.
+            this._asyncFireNextStateBundle(effectiveAnimationLength, context, generation);
+          } else {
+            console.warn('[state-manager] version animation target is unusable; installing immediately');
+            this._asyncFireNextStateBundle(effectiveAnimationLength, null, generation);
+          }
+          return;
         }
       }
     }
 
-    this._asyncFireNextStateBundle(effectiveAnimationLength);
+    this._asyncFireNextStateBundle(effectiveAnimationLength, null, generation);
   }
 
-  private _asyncFireNextStateBundle(effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS) {
+  private _asyncFireNextStateBundle(
+    effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS,
+    animationContext: VersionAnimationContext | null = null,
+    generation = this._installScheduleGeneration,
+  ) {
     // Not entirely sure why this has to be done this way, but it needs to be
     // done outside of the current task, even when fired from a timeout.
-    window.requestAnimationFrame(() => this._fireNextStateBundle(effectiveAnimationLength));
+    window.requestAnimationFrame(() => this._fireNextStateBundle(effectiveAnimationLength, animationContext, generation));
   }
 
-  private _fireNextStateBundle(effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS) {
+  private _fireNextStateBundle(
+    effectiveAnimationLength = DEFAULT_ANIMATION_LENGTH_MS,
+    animationContext: VersionAnimationContext | null = null,
+    generation = this._installScheduleGeneration,
+  ) {
+    if (generation !== this._installScheduleGeneration) return;
     // Called when the next state bundle should be installed NOW.
     // Dequeue from Redux and fire event
     if (this._pendingBundles.length > 0) {
       const bundle = this._pendingBundles[0];
       store.dispatch(dequeueStateBundle());
-      this.dispatchEvent(new CustomEvent('install-state-bundle', { composed: true, bubbles: true, detail: bundle }));
+      this.dispatchEvent(new CustomEvent('install-state-bundle', {
+        composed: true,
+        bubbles: true,
+        detail: { ...bundle, animationContext },
+      }));
+      if (this.gameRoute && Number.isInteger(bundle.game?.Version)) {
+        companionTimeline.forgetVersion(this.gameRoute.id, bundle.game.Version);
+      }
 
       // Check for overlap: start next animation early if renderer requests it
-      if (this._pendingBundles.length > 0) {
+      if (this._pendingBundles.length > 0 && animationContext === null) {
         const renderer = this.activeRenderer;
         if (renderer?.animationOverlap) {
           const nextBundle = this._pendingBundles[0];
