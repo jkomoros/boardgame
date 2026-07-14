@@ -69,6 +69,16 @@ func (g *GameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 // you could get a panic from applying too many FixUp moves. Wil emit debug
 // information about why certain fixup moves didn't apply if the Manager's log
 // level is Debug or higher.
+//
+// Iterates GameManager.CandidateMoves(state) rather than every configured
+// move type (design spec §5's "Phase bucketing" engine win, #640): moves
+// declaratively impossible in state's current phase are skipped with zero
+// Legal() evaluations. This is the v1 integration point for that index —
+// the loop itself, and its first-match-wins semantics, are unchanged; only
+// the candidate list feeding it is now pre-filtered. An opaque (non-opted-in)
+// move is always a candidate (the superset property), so this is a
+// zero-behavior-change for any move that hasn't adopted declarative
+// legality.
 func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgame.Move {
 
 	isDebug := g.Manager().Logger().Level >= logrus.DebugLevel
@@ -83,7 +93,7 @@ func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgam
 		logEntry.Debug("***** ProposeFixUpMove called *****")
 	}
 
-	for _, move := range state.Game().Moves() {
+	for _, move := range g.Manager().CandidateMoves(state) {
 
 		var entry *logrus.Entry
 		if isDebug {

@@ -49,6 +49,8 @@ server/static/screenshots/
 /*.txt
 *.pid
 temp_serve_*/
+boardgame-util/temp_gametypes_*/
+server/static/game-src/*
 research/
 /screenshots/
 

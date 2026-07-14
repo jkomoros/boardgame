@@ -4,6 +4,13 @@ import './boardgame-component-animator.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
+import { movePreviewBatch } from '../api.js';
+import {
+  disabledSpacesFromResults,
+  samePreviewSpaces,
+  previewOutcome,
+  type MovePreviewSpec,
+} from '../legal/previewLegality.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 
@@ -112,6 +119,22 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Number })
   currentPlayerIndex = 0;
 
+  // previewAsPlayer / previewAsAdmin are the SAME (player, admin) perspective the
+  // /info fetch uses (game-view passes requestedPlayer + _admin), so the board's
+  // legality preview agrees with the moveLegality already displayed. For a
+  // non-admin the server ignores the player param (admin=0 -> it uses the seat),
+  // so this is a no-op there; in admin "make moves as player N" it makes the
+  // preview evaluate as N instead of graying the whole board. (In the edge case
+  // where an admin unchecks "make moves as viewing player", a tap submits as the
+  // admin index while preview grays per the viewed player — self-consistent with
+  // the displayed /info legality, and strictly better than the old wholesale
+  // graying.)
+  @property({ type: Number })
+  previewAsPlayer = 0;
+
+  @property({ type: Boolean })
+  previewAsAdmin = false;
+
   @property({ type: Boolean })
   socketActive = false;
 
@@ -143,6 +166,10 @@ class BoardgameRenderGame extends LitElement {
 
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
+  // Fired (composed) by the inner renderer via requestPreviewRefresh() when its
+  // LOCAL interaction state changes (e.g. a multi-step move selected a source
+  // piece) so previewSpec() must be re-evaluated without a state/turn change.
+  private _boundPreviewRefreshRequested?: (e: Event) => void;
   private _animationWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
   // Largest declared settle time (delay + duration + endDelay) reported by
   // any gated play() in the current cycle, via the will-animate event. Used
@@ -169,6 +196,11 @@ class BoardgameRenderGame extends LitElement {
 
     this.addEventListener('will-animate', this._boundComponentWillAnimate);
     this.addEventListener('animation-done', this._boundComponentAnimationDone);
+
+    // A renderer whose previewSpec() depends on local interaction state
+    // (multi-step moves) fires this to force a debounced re-preview.
+    this._boundPreviewRefreshRequested = () => this._scheduleRefreshPreview();
+    this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
@@ -182,11 +214,22 @@ class BoardgameRenderGame extends LitElement {
     if (this._boundComponentAnimationDone) {
       this.removeEventListener('animation-done', this._boundComponentAnimationDone);
     }
+    if (this._boundPreviewRefreshRequested) {
+      this.removeEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
+    }
     // Clean up watchdog timer to prevent firing after element is removed.
     if (this._animationWatchdogTimer !== null) {
       clearTimeout(this._animationWatchdogTimer);
       this._animationWatchdogTimer = null;
     }
+    // Same for the debounced legality-preview timer: if we're torn down mid-
+    // debounce, don't fire a stray movePreviewBatch / write to a dead renderer.
+    // Bumping the seq also invalidates any batch already in flight.
+    if (this._previewTimer !== null) {
+      clearTimeout(this._previewTimer);
+      this._previewTimer = null;
+    }
+    this._previewSeq++;
   }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -226,6 +269,19 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('state')) {
       this._stateChanged(this.state, changedProperties.get('state') as any);
+    }
+
+    // Refresh the board's target-legality preview when anything it depends on
+    // moves: the game state, the move forms (which move types exist / are
+    // legal), or who we're viewing as. Debounced + coalesced in the scheduler.
+    if (
+      changedProperties.has('state') ||
+      changedProperties.has('moveForms') ||
+      changedProperties.has('viewingAsPlayer') ||
+      changedProperties.has('previewAsPlayer') ||
+      changedProperties.has('previewAsAdmin')
+    ) {
+      this._scheduleRefreshPreview();
     }
 
     if (changedProperties.has('companionInfo')) {
@@ -508,6 +564,79 @@ class BoardgameRenderGame extends LitElement {
     (this.renderer as any).moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
   }
 
+  // Board legality preview (movePreviewBatch). Kept view-local rather than in
+  // Redux: preview results are ephemeral, tied to the exact candidate set of the
+  // current head state, and consumed only by the renderer — putting them in the
+  // store would add a slice plus staleness/keying concerns for no shared
+  // consumer. _previewTimer debounces bursts of state/turn changes into one
+  // request; _previewSeq drops a response the game has already moved past.
+  private _previewTimer: ReturnType<typeof setTimeout> | null = null;
+  private _previewSeq = 0;
+
+  private _scheduleRefreshPreview() {
+    if (this._previewTimer !== null) clearTimeout(this._previewTimer);
+    this._previewTimer = setTimeout(() => {
+      this._previewTimer = null;
+      void this._refreshPreview();
+    }, 150);
+  }
+
+  // _refreshPreview asks the game renderer for its preview candidates
+  // (previewSpec(), null unless the game opted in), batch-checks their legality
+  // on the server WITHOUT applying anything, and pushes the illegal spaces back
+  // onto the renderer for graying. It previews from the (previewAsPlayer,
+  // previewAsAdmin) perspective — the same one /info uses — so graying agrees
+  // with the displayed legality in both normal and admin "make moves as player
+  // N" modes.
+  private async _refreshPreview() {
+    const renderer = this.renderer as
+      | (HTMLElement & {
+          previewSpec?: () => MovePreviewSpec | null;
+          previewDisabledSpaces?: number[];
+        })
+      | null;
+    if (!renderer || typeof renderer.previewSpec !== 'function') return;
+    if (!this.gameName || !this.gameId) return;
+
+    const spec = renderer.previewSpec();
+    if (!spec || spec.candidates.length === 0) {
+      // Opted out (or nothing to check right now) — clear any stale graying.
+      // Bump the seq FIRST so a batch still in flight from a prior refresh can't
+      // resolve later and re-gray the board we just cleared.
+      this._previewSeq++;
+      if (renderer.previewDisabledSpaces && renderer.previewDisabledSpaces.length) {
+        renderer.previewDisabledSpaces = [];
+      }
+      return;
+    }
+
+    const seq = ++this._previewSeq;
+    // Preview from the same (player, admin) perspective /info uses, so graying
+    // agrees with the displayed legality. For a non-admin the server ignores the
+    // player param (admin=0), so this resolves to the seat exactly as before.
+    const response = await movePreviewBatch(
+      this.gameName,
+      this.gameId,
+      spec.moveName,
+      spec.candidates.map((c) => ({ Args: c.args })),
+      { player: this.previewAsPlayer, admin: this.previewAsAdmin ? 1 : 0 },
+    );
+    const outcome = previewOutcome({
+      startedSeq: seq,
+      currentSeq: this._previewSeq,
+      rendererStillMounted: this.renderer === renderer,
+      hasData: !!response.data,
+    });
+    if (outcome !== 'apply' || !response.data) return;
+
+    // Only reassign (and thus re-render the board) when the grayed set actually
+    // changed.
+    const next = disabledSpacesFromResults(spec.candidates, response.data.Results);
+    if (!samePreviewSpaces(next, renderer.previewDisabledSpaces ?? [])) {
+      renderer.previewDisabledSpaces = next;
+    }
+  }
+
   private static _deriveLegality(moveForms: MoveForm[] | null): Record<string, MoveLegalityInfo> {
     const result: Record<string, MoveLegalityInfo> = {};
     if (!moveForms) return result;
@@ -622,6 +751,11 @@ class BoardgameRenderGame extends LitElement {
       // _notifyAnimationsDone won't fire it again if it's already fired.
       window.requestAnimationFrame(() => this._notifyAnimationsDone());
     }
+
+    // Kick off the initial target-legality preview for the freshly-mounted
+    // renderer (updated()'s change-driven refresh won't fire for props that were
+    // already set before this renderer existed).
+    this._scheduleRefreshPreview();
   }
 
   override render() {

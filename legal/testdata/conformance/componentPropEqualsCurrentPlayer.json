@@ -1,0 +1,30 @@
+{
+  "predicate": "componentPropEqualsCurrentPlayer",
+  "cases": [
+    {
+      "spec": {"name": "componentPropEqualsCurrentPlayer", "args": ["game.Spaces", "move.TokenIndexToMove", "Color"]},
+      "fixture": "checkersOwnToken",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "componentPropEqualsCurrentPlayer", "args": ["game.Spaces", "move.TokenIndexToMove", "Color"]},
+      "fixture": "checkersOpponentToken",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.component_prop_not_current_player"
+    },
+    {
+      "spec": {"name": "componentPropEqualsCurrentPlayer", "args": ["game.Spaces", "move.TokenIndexToMove", "Color"]},
+      "fixture": "checkersEmptySpace",
+      "proposer": 0,
+      "expect": "unknown"
+    },
+    {
+      "spec": {"name": "componentPropEqualsCurrentPlayer", "args": ["game.Spaces", "move.TokenIndexToMove", "Color"]},
+      "fixture": "checkersNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

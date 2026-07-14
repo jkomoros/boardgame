@@ -1,0 +1,398 @@
+package boardgame
+
+import (
+	"strconv"
+	"sync"
+	"testing"
+
+	"github.com/jkomoros/boardgame/enum"
+	"github.com/workfit/tester/assert"
+)
+
+/*
+legal_memo_test.go exercises design spec §5's two per-game memos
+(legal_memo.go): the field-independent legality memo (consulted from
+legal_plan.go's legalPlan.evaluate) and the move-tape memo (LegalTapeMemo,
+consumed by moves/default.go's historicalMovesSincePhaseTransition — see
+moves/legal_tape_memo_test.go for the cross-package sharing test, since that
+requires package moves' Default/inProgression machinery, which core cannot
+import).
+*/
+
+// legalMemoTestMove is a plain, non-fixup, always-legal move (baseMove, NOT
+// baseFixUpMove — a fixup version would get auto-applied forever by
+// ProposeFixUpMove during setUp, since it's always legal). Used only to
+// deterministically advance a test game's version.
+type legalMemoTestMove struct {
+	baseMove
+}
+
+func (m *legalMemoTestMove) Reader() PropertyReader { return getDefaultReader(m) }
+func (m *legalMemoTestMove) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(m)
+}
+func (m *legalMemoTestMove) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(m)
+}
+func (m *legalMemoTestMove) Legal(state ImmutableState, proposer PlayerIndex) error { return nil }
+func (m *legalMemoTestMove) Apply(state State) error                                { return nil }
+
+var legalMemoTestMoveConfig = NewMoveConfig(
+	"Legal Memo Test Move",
+	func() Move { return new(legalMemoTestMove) },
+	nil,
+)
+
+// newLegalMemoTestGame boots a minimal manager whose only move type is
+// legalMemoTestMove (always legal, does nothing on Apply, never a fixup),
+// then sets up and returns a real, running *Game — giving these tests a
+// genuine version sequence to advance through applyMove, without any of the
+// precondition fuss a "real" move type would bring.
+func newLegalMemoTestGame(t *testing.T) *Game {
+	t.Helper()
+
+	moveInstaller := func(manager *GameManager) []MoveConfig {
+		return []MoveConfig{legalMemoTestMoveConfig}
+	}
+
+	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())
+	assert.For(t).ThatActual(err).IsNil()
+
+	game, err := manager.newGameImpl("", "")
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(game.setUp(0, nil, nil)).IsNil()
+
+	return game
+}
+
+// legalMemoAdvanceVersion applies legalMemoTestMove directly (bypassing the
+// ProposeMove channel/mainLoop dance — game.applyMove is synchronous and
+// unexported, fine to call directly within this package) to
+// deterministically advance game's version by exactly one.
+func legalMemoAdvanceVersion(t *testing.T, game *Game) {
+	t.Helper()
+	move := game.MoveByName("Legal Memo Test Move")
+	assert.For(t).ThatActual(move).IsNotNil()
+	assert.For(t).ThatActual(game.applyMove(move, AdminPlayerIndex, false, 0, selfInitiatorSentinel)).IsNil()
+}
+
+// countingFieldIndependentPlan returns a legalPlan with a single
+// fieldIndependent predicate that increments *calls every time it's
+// actually evaluated, so tests can distinguish a memo hit (calls unchanged)
+// from a miss (calls incremented).
+func countingFieldIndependentPlan(moveName string, calls *int) *legalPlan {
+	pred := &LegalPredicate{
+		Name: "counting",
+		Evaluate: func(ctx LegalContext) LegalVerdict {
+			*calls++
+			return LegalVerdict{Outcome: LegalPass}
+		},
+	}
+	return &legalPlan{
+		moveName:         moveName,
+		fieldIndependent: []*LegalPredicate{pred},
+		ordered:          []legalPlanStep{{predicate: pred, memoIndex: 0}},
+	}
+}
+
+// TestLegalPlanFieldIndependentMemoHitAcrossDoubleEvaluation is the
+// concrete scenario the memo exists for (design spec §5's honest table):
+// base/game_delegate.go's ProposeFixUpMove evaluates a candidate fixup
+// move's Legal() to select it, then game.go's applyMove evaluates Legal()
+// AGAIN on that exact move at the exact same (version, proposer=Admin) to
+// actually apply it. The field-independent bucket must be computed once,
+// not twice.
+func TestLegalPlanFieldIndependentMemoHitAcrossDoubleEvaluation(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+	state := game.CurrentState()
+
+	calls := 0
+	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
+	ctx := LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}
+
+	v1, _ := plan.evaluate(ctx, false)
+	assert.For(t).ThatActual(v1.Outcome).Equals(LegalPass)
+	assert.For(t).ThatActual(calls).Equals(1)
+
+	// Same (moveName, version, proposer): HIT, no re-evaluation.
+	v2, _ := plan.evaluate(ctx, false)
+	assert.For(t).ThatActual(v2.Outcome).Equals(LegalPass)
+	assert.For(t).ThatActual(calls).Equals(1)
+}
+
+func TestLegalPlanMemoDoesNotReorderInterleavedPredicates(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+	state := game.CurrentState()
+
+	dependentCalls := 0
+	independentCalls := 0
+	dependent := &LegalPredicate{
+		Name:  "dependentFirst",
+		Reads: []LegalRead{moveReadOf("move.X")},
+		Evaluate: func(ctx LegalContext) LegalVerdict {
+			dependentCalls++
+			return LegalVerdict{Outcome: LegalPass}
+		},
+	}
+	independent := &LegalPredicate{
+		Name: "independentSecond",
+		Evaluate: func(ctx LegalContext) LegalVerdict {
+			independentCalls++
+			return LegalVerdict{Outcome: LegalPass}
+		},
+	}
+	plan := &legalPlan{
+		moveName:         "InterleavedMemoMove",
+		fieldIndependent: []*LegalPredicate{independent},
+		fieldDependent:   []*LegalPredicate{dependent},
+		ordered: []legalPlanStep{
+			{predicate: dependent, fieldDependent: true, memoIndex: -1},
+			{predicate: independent, memoIndex: 0},
+		},
+	}
+	ctx := LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}
+
+	plan.evaluate(ctx, false)
+	plan.evaluate(ctx, false)
+	assert.For(t, "dependent runs per move").ThatActual(dependentCalls).Equals(2)
+	assert.For(t, "independent verdict is memoized").ThatActual(independentCalls).Equals(1)
+
+	_, entries := plan.evaluate(ctx, true)
+	assert.For(t, "ledger first entry").ThatActual(entries[0].Name).Equals("dependentFirst")
+	assert.For(t, "ledger second entry").ThatActual(entries[1].Name).Equals("independentSecond")
+}
+
+// TestLegalPlanFieldIndependentMemoMissAcrossProposer proves the memo key
+// includes proposer: evaluating the SAME plan/version against a different
+// proposer is a fresh miss, not a stale hit.
+func TestLegalPlanFieldIndependentMemoMissAcrossProposer(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+	state := game.CurrentState()
+
+	calls := 0
+	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
+
+	plan.evaluate(LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}, false)
+	assert.For(t).ThatActual(calls).Equals(1)
+
+	plan.evaluate(LegalContext{State: state, ProposerPlayerIndex: PlayerIndex(0)}, false)
+	assert.For(t).ThatActual(calls).Equals(2)
+}
+
+// TestLegalPlanFieldIndependentMemoMissAcrossMoveName proves the memo key
+// includes the move type name: two different opted-in move types never
+// collide in the same game's memo.
+func TestLegalPlanFieldIndependentMemoMissAcrossMoveName(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+	state := game.CurrentState()
+
+	calls := 0
+	planA := countingFieldIndependentPlan("MoveA", &calls)
+	planB := countingFieldIndependentPlan("MoveB", &calls)
+	ctx := LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}
+
+	planA.evaluate(ctx, false)
+	assert.For(t).ThatActual(calls).Equals(1)
+
+	planB.evaluate(ctx, false)
+	assert.For(t).ThatActual(calls).Equals(2)
+}
+
+// TestLegalPlanFieldIndependentMemoEvictsOnVersionAdvance proves the
+// "bound memory: keep only the current head version per game" eviction
+// rule (design spec §5's honest table): once the game's version advances,
+// a query at the OLD version is a fresh miss again (its entry was
+// discarded, not merely superseded), and the new head version starts its
+// own cache.
+func TestLegalPlanFieldIndependentMemoEvictsOnVersionAdvance(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+
+	calls := 0
+	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
+
+	v0State := game.CurrentState()
+	ctxV0 := LegalContext{State: v0State, ProposerPlayerIndex: AdminPlayerIndex}
+
+	plan.evaluate(ctxV0, false)
+	assert.For(t).ThatActual(calls).Equals(1)
+	plan.evaluate(ctxV0, false)
+	assert.For(t).ThatActual(calls).Equals(1) // still a hit before advancing
+
+	legalMemoAdvanceVersion(t, game)
+	assert.For(t).ThatActual(game.Version()).Equals(v0State.Version() + 1)
+
+	ctxV1 := LegalContext{State: game.CurrentState(), ProposerPlayerIndex: AdminPlayerIndex}
+	plan.evaluate(ctxV1, false)
+	assert.For(t).ThatActual(calls).Equals(2) // new version: fresh miss
+
+	// Bound memory, checked DIRECTLY (not just inferred from a miss): the
+	// v0 entry must be gone from the map itself, not merely shadowed by a
+	// version guard on read — a broken eviction that updates the recorded
+	// head version without actually clearing the map would leak unboundedly
+	// while still LOOKING like a miss from the outside. len == 1 proves only
+	// the current head version's single entry is resident.
+	assert.For(t).ThatActual(len(game.legalFieldIndepMemo)).Equals(1)
+
+	plan.evaluate(ctxV1, false)
+	assert.For(t).ThatActual(calls).Equals(2) // new head version now caches too
+
+	// Bound memory: the old (evicted) v0 entry is gone. A hypothetical
+	// re-query against v0State (stale but still holds a valid version
+	// number) is a miss again, not resurrected from some larger cache.
+	plan.evaluate(ctxV0, false)
+	assert.For(t).ThatActual(calls).Equals(3)
+}
+
+// TestLegalPlanFieldIndependentMemoSkippedWithNoGame proves the memo is
+// simply inert (never consulted, never populated, no panic) whenever
+// ctx.State has no backing *Game — e.g. GameManager.ExampleState(), or a
+// bare LegalContext{} — which is the isolated-test / probe shape every
+// other legal_plan_test.go test already exercises.
+func TestLegalPlanFieldIndependentMemoSkippedWithNoGame(t *testing.T) {
+	manager := newTestGameManger(t)
+
+	calls := 0
+	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
+	ctx := LegalContext{State: manager.ExampleState(), ProposerPlayerIndex: AdminPlayerIndex}
+
+	plan.evaluate(ctx, false)
+	assert.For(t).ThatActual(calls).Equals(1)
+
+	// No Game to memoize against: every evaluation is a fresh miss.
+	plan.evaluate(ctx, false)
+	assert.For(t).ThatActual(calls).Equals(2)
+}
+
+// TestLegalTapeMemoHitMissEviction is a direct unit test of Game.LegalTapeMemo
+// (legal_memo.go): a hit for the exact same (version, phase) never calls
+// compute again; a different version OR a different phase is a miss; and
+// advancing to a new (version, phase) evicts whatever was cached before,
+// so returning to an old key recomputes rather than resurrecting stale
+// data — the same "keep only current head" bound as the field-independent
+// memo above.
+func TestLegalTapeMemoHitMissEviction(t *testing.T) {
+	game := testDefaultGame(t, false)
+
+	calls := 0
+	compute := func() []*MoveStorageRecord {
+		calls++
+		return []*MoveStorageRecord{{Name: "x"}}
+	}
+
+	r1 := game.LegalTapeMemo(1, phaseSetUp, compute)
+	assert.For(t).ThatActual(calls).Equals(1)
+	assert.For(t).ThatActual(len(r1)).Equals(1)
+
+	// Hit: same (version, phase).
+	r2 := game.LegalTapeMemo(1, phaseSetUp, compute)
+	assert.For(t).ThatActual(calls).Equals(1)
+	assert.For(t).ThatActual(len(r2)).Equals(1)
+
+	// Miss: different version.
+	game.LegalTapeMemo(2, phaseSetUp, compute)
+	assert.For(t).ThatActual(calls).Equals(2)
+
+	// Miss: same version, different phase.
+	game.LegalTapeMemo(2, phaseNormal, compute)
+	assert.For(t).ThatActual(calls).Equals(3)
+
+	// Eviction: going back to (1, phaseSetUp) recomputes — that entry was
+	// discarded when the cache moved on, not resurrected.
+	game.LegalTapeMemo(1, phaseSetUp, compute)
+	assert.For(t).ThatActual(calls).Equals(4)
+}
+
+// TestLegalMemoConcurrentAccessRace proves both per-Game memo caches
+// (g.legalFieldIndepMemo and g.legalTapeMemo, both legal_memo.go) are safe
+// under the concurrent access pattern this codebase actually has:
+// server/api's generateFormsWithLegality (server/api/main.go) calls
+// move.Legal() from an HTTP-handler goroutine while Game.mainLoop's own
+// goroutine is simultaneously evaluating Legal() during fixups — both
+// populating and evicting the SAME two maps on the SAME shared *Game.
+//
+// Before Game.legalMemoMu existed, this reliably crashed `go test -race`
+// with a hard "fatal error: concurrent map writes" (or "concurrent map read
+// and map write"): Go's map implementation detects unsynchronized
+// concurrent access itself and calls throw(), which is an unrecoverable
+// process abort — not an ordinary reported data race, and not something a
+// deferred recover() in the test can catch. See this package's Task 9
+// memo-synchronization report for the RED (pre-fix) run's captured crash
+// output.
+//
+// Run in isolation with: go test -race -run TestLegalMemoConcurrentAccessRace .
+func TestLegalMemoConcurrentAccessRace(t *testing.T) {
+	game := newLegalMemoTestGame(t)
+
+	// Precompute several distinct game versions up front, single-threaded,
+	// so the concurrent section below exercises ONLY the two memo caches
+	// (via legalMemoMu) — not the separate, pre-existing, out-of-scope race
+	// on g.version/g.cachedCurrentState that concurrently calling
+	// CurrentState()/applyMove would also trip and that this finding is not
+	// about.
+	const numVersions = 8
+	states := make([]ImmutableState, numVersions)
+	states[0] = game.CurrentState()
+	for i := 1; i < numVersions; i++ {
+		legalMemoAdvanceVersion(t, game)
+		states[i] = game.CurrentState()
+	}
+
+	// A trivial always-pass fieldIndependent plan, parameterized by move
+	// name, so legalFieldIndepMemoGet/Set see genuinely different keys
+	// (moveName x version x proposer) across goroutines — forcing real map
+	// churn, including legalFieldIndepMemoSet's evict-and-rekey path,
+	// rather than every goroutine hammering one already-cached entry.
+	passPlan := func(moveName string) *legalPlan {
+		return &legalPlan{
+			moveName: moveName,
+			fieldIndependent: []*LegalPredicate{
+				{
+					Name: "alwaysPass",
+					Evaluate: func(ctx LegalContext) LegalVerdict {
+						return LegalVerdict{Outcome: LegalPass}
+					},
+				},
+			},
+		}
+	}
+
+	const numGoroutines = 32
+	const numIterations = 200
+
+	var wg sync.WaitGroup
+	for gIdx := 0; gIdx < numGoroutines; gIdx++ {
+		wg.Add(1)
+		go func(gIdx int) {
+			defer wg.Done()
+
+			// Simulates N concurrent HTTP-handler goroutines (server/api's
+			// generateFormsWithLegality) each repeatedly evaluating Legal()
+			// for an opted-in move, racing against each other AND against
+			// the version churn simulated by the precomputed states slice
+			// (standing in for mainLoop's own concurrent evaluation +
+			// eviction during fixups).
+			plan := passPlan("MemoRaceMove" + strconv.Itoa(gIdx%4))
+			for i := 0; i < numIterations; i++ {
+				state := states[(gIdx+i)%numVersions]
+				proposer := PlayerIndex((gIdx + i) % 3)
+				ctx := LegalContext{State: state, ProposerPlayerIndex: proposer}
+
+				verdict, _ := plan.evaluate(ctx, false)
+				if verdict.Outcome != LegalPass {
+					t.Errorf("expected LegalPass, got %v", verdict.Outcome)
+					return
+				}
+
+				phase := enum.EnumKey(phaseSetUp)
+				if i%2 == 0 {
+					phase = phaseNormal
+				}
+				compute := func() []*MoveStorageRecord {
+					return []*MoveStorageRecord{{Name: "race"}}
+				}
+				game.LegalTapeMemo(state.Version(), phase, compute)
+			}
+		}(gIdx)
+	}
+	wg.Wait()
+}

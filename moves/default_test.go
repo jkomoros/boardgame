@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/workfit/tester/assert"
 	"strconv"
 	"testing"
@@ -935,7 +936,7 @@ func TestMoveProgression(t *testing.T) {
 
 		group := Serial(test.pattern...)
 
-		err := matchTape(group, test.tape)
+		err := matchTape(group, test.tape, legal.Context{})
 
 		if !assert.For(t, i, test.description).ThatActual(err == nil).Equals(test.expectedResult).Passed() {
 			if err != nil {

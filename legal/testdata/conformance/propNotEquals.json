@@ -1,0 +1,69 @@
+{
+  "predicate": "propNotEquals",
+  "cases": [
+    {
+      "spec": {"name": "propNotEquals", "args": ["player.CardsLeftToReveal", "0"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["player.CardsLeftToReveal", "2"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_not_equals"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["player.PlayerInactive", "true"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["player.PlayerInactive", "false"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_not_equals"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["player.Color", "Black"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["player.Color", "Red"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_not_equals"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["player.Color", "Bogus"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["move.TargetPlayerIndex", "1"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["move.TargetPlayerIndex", "0"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_not_equals"
+    },
+    {
+      "spec": {"name": "propNotEquals", "args": ["game.HiddenCards", "foo"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

@@ -4,7 +4,6 @@ Package path includes a few simple convenience methods for dealing with paths
 package path
 
 import (
-	"bytes"
 	"errors"
 	"os"
 	"os/exec"
@@ -43,27 +42,16 @@ func AbsoluteGoPkgPath(pkgImport string) (string, error) {
 		return "", errors.New("go tool not installed")
 	}
 
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-
-	cmd := exec.Command("go", "list", "-f='{{.Dir}}'", pkgImport)
-	cmd.Stdout = buf
-	cmd.Stderr = errBuf
-
-	if err := cmd.Run(); err != nil {
-		return "", errors.New("go list failed: " + err.Error() + ": " + errBuf.String())
+	cmd := exec.Command("go", "list", "-f", "{{.Dir}}", pkgImport)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.New("go list failed: " + err.Error() + ": " + string(output))
 	}
 
-	outputParts := strings.Split(buf.String(), "\n")
-
-	if len(outputParts) < 1 {
+	result := strings.TrimSpace(string(output))
+	if result == "" {
 		return "", errors.New("No content returned from go list unexpectedly")
 	}
-
-	result := outputParts[0]
-
-	result = strings.TrimPrefix(result, "'")
-	result = strings.TrimSuffix(result, "'")
 
 	return result, nil
 

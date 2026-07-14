@@ -40,6 +40,13 @@ export interface GameInfoResponse extends BaseApiResponse {
   ViewingAsPlayer: number;
   /** Version of the state being returned (may differ from Game.Version) */
   StateVersion: number;
+  /**
+   * Stamps the shape of the declarative-legality wire format (design spec
+   * §6). A client with an older bundled catalog should treat unknown
+   * predicate names as evaluable:false and defer to the server's own
+   * verdicts rather than mis-evaluating them itself.
+   */
+  LegalCatalogVersion: number;
 }
 
 /**
@@ -85,6 +92,57 @@ export interface MoveForm {
   LegalForAnyone?: boolean;
   /** Whether this move is a gathering "start game" move (e.g., CloseAllSeats) */
   IsGatheringStart?: boolean;
+  /**
+   * Per-predicate declarative-legality ledger (design spec §6). Present
+   * only for a move type that opted in to declarative legality
+   * (WithLegalPreconditions); absent for an opaque (un-migrated) move, whose
+   * legality is fully described by LegalForPlayer/LegalForPlayerError/
+   * LegalForAnyone alone. No UI reads this yet (Task 10 ships the wire
+   * format only) -- it is plumbed through selectMoveLegality
+   * (selectors.ts) as MoveLegalityInfo.preconditions for future use.
+   */
+  Preconditions?: PreconditionEntry[];
+}
+
+/**
+ * One predicate's line in a MoveForm's Preconditions ledger (design spec
+ * §6). Mirrors server/api/main.go's preconditionEntry.
+ */
+export interface PreconditionEntry {
+  /** Predicate's registry name ("any" for a compositor, "custom" for the CustomLegaler escape hatch). */
+  name: string;
+  /** Predicate's string args; absent for compositors/custom. */
+  args?: string[];
+  /** Three-valued outcome. */
+  verdict: 'pass' | 'fail' | 'unknown';
+  /** Present only for a non-Pass verdict. */
+  message?: PreconditionMessage;
+  /**
+   * Whether a client could reproduce this entry's verdict itself:
+   * has-a-wire-form AND every declared Read survives the viewer's
+   * sanitization. When false, message.bindings (if any) has been stripped
+   * server-side (the #693 guard) -- only the template key ships.
+   */
+  evaluable: boolean;
+  /**
+   * True for a field-dependent verdict: computed against a server-chosen
+   * (DefaultsForState-bound) move, so a different choice of move field
+   * values could evaluate differently.
+   */
+  provisional?: boolean;
+}
+
+/** The Message half of a PreconditionEntry -- template key plus (subject to the #693 guard) bindings. */
+export interface PreconditionMessage {
+  /** Template key to look up in the chest's LegalTemplates table. */
+  template: string;
+  /**
+   * Named values substituted into the template body. Absent whenever the
+   * owning entry's evaluable is false (design spec §6, #693 guard):
+   * bindings are derived from state a less-privileged viewer may not be
+   * allowed to see.
+   */
+  bindings?: Record<string, string | number | boolean>;
 }
 
 /**

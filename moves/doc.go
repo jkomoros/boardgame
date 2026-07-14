@@ -175,6 +175,48 @@ know when the move is legal. Technically they're just convenience wrappers (each
 describes the straightforward things it's doing), but in practice they're the
 best way to do it. See the tutorial in the main package for more.
 
+# Declarative Legality
+
+[Default], [CurrentPlayer], [FixUp], [FixUpMulti], and [StartPhase] support an additional, optional way to express
+a move's legality: instead of (or alongside) overriding Legal(), pass
+[WithLegalPreconditions] to auto.Config with one or more legal.Spec values built
+from the [legal] package's predicate catalog:
+
+	auto.MustConfig(
+	    new(moveRevealCard),
+	    moves.WithLegalPreconditions(
+	        legal.PropAtLeast("player.CardsLeftToReveal", 1),
+	        legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+	        legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+	    ),
+	)
+
+This is purely sugar: existing imperative behavior is unchanged for any move that doesn't
+pass WithLegalPreconditions. A move that does opt in gets its checks assembled
+into a plan at NewGameManager (base-derived checks — phase, move-progression,
+stack constraints, and for CurrentPlayer the proposer check — first, then the
+authored WithLegalPreconditions specs in order); Default.Legal() then evaluates
+that plan instead of running the old chain. Memoized state-only checks retain
+that same observable order. Calling [WithLegalPreconditions] with no specs
+opts in a contributed-only move; implementing boardgame.CustomLegaler opts in
+automatically. [WithoutLegalPrecondition] suppresses
+one of those base-derived checks by its stable name (pass the exported
+constants: [PreconditionInPhase], [PreconditionInProgression],
+[PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer]) for a
+move that wants to opt out of something it would otherwise inherit — the
+[ForceFinishTurn] "inherit nothing" pattern, now expressible without a
+bespoke base type. Suppressions are boot-validated: a name the move doesn't
+actually contribute is a NewGameManager error naming the move
+(see [WithoutLegalPrecondition]'s own doc). For legality that isn't a simple relation over a property
+path — arithmetic, graph walks, anything with real Go logic —
+[boardgame.CustomLegaler]'s LegalCustom method runs as imperative residue
+after every declared precondition passes; see the [legal] package doc for the
+full authoring guide, the catalog's rules of growth, and its honest limits
+(the supported seam is [Default], [CurrentPlayer], [FixUp], [FixUpMulti],
+and [StartPhase]; other framework move bases remain opaque).
+See the tutorial's "Declarative Move Legality" section for a complete worked
+example.
+
 # Move Type Hierarchy
 
 The moves in this package are all defined as a hierarchy of structs that

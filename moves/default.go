@@ -3,7 +3,6 @@ package moves
 import (
 	"log"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 //go:generate boardgame-util codegen
@@ -338,6 +338,28 @@ func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) b
 // return true.
 func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
+	// Declarative-legality seam (design spec "prime guarantee"). These two
+	// checks run FIRST THING and are pure sugar for un-opted-in moves:
+	//   1. The boot probe (rule 4): during NewGameManager, the engine calls
+	//      each opted-in move's Legal() against a probe. Reaching here proves
+	//      the move's declarations are reachable; we record that and return
+	//      nil immediately (the probe observes reachability, not a verdict).
+	//   2. The opt-in plan path: if this move type opted in via
+	//      WithLegalPreconditions, its assembled plan REPLACES this frozen chain —
+	//      evaluated exactly once here, so a super-calling Legal() override
+	//      composes its own imperative residue around the plan without
+	//      double-evaluating the contributed atoms.
+	// For a move that did NOT opt in, both calls are cheap no-ops and control
+	// falls through to the byte-for-byte-unchanged frozen chain below.
+	if manager := state.Manager(); manager != nil {
+		if manager.LegalProbeActive() {
+			return nil
+		}
+		if handled, err := manager.LegalEvaluatePlan(d.Name(), state, d.TopLevelStruct(), proposer); handled {
+			return err
+		}
+	}
+
 	if err := d.legalInPhase(state); err != nil {
 		return err
 	}
@@ -368,23 +390,11 @@ func (d *Default) legalStackConstraints(state boardgame.ImmutableState) error {
 		return nil
 	}
 
-	reader := state.ImmutableGameState().Reader()
-
-	srcStack, err := reader.ImmutableStackProp(srcName)
-	if err != nil || srcStack == nil {
-		return nil
-	}
-	dstStack, err := reader.ImmutableStackProp(dstName)
-	if err != nil || dstStack == nil {
-		return nil
-	}
-
-	first := srcStack.ImmutableFirst()
-	if first == nil {
-		return nil
-	}
-
-	return first.MayMoveTo(dstStack)
+	// The actual check is extracted to core (boardgame.LegalStackConstraintsCheck,
+	// legal_framework.go) so that this frozen chain and legal's
+	// "stackConstraints" wrapper predicate (legal/catalog_framework.go) call
+	// exactly one implementation. See that file's doc comment.
+	return boardgame.LegalStackConstraintsCheck(state, srcName, dstName)
 }
 
 func (d *Default) legalPhases() []enum.EnumKey {
@@ -424,58 +434,38 @@ func currentPhaseInfo(state boardgame.ImmutableState) (enum.ImmutableVal, enum.E
 // the current phase of the game.
 func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 
-	legalPhases := d.legalPhases()
-
-	if len(legalPhases) == 0 {
-		//If PhaseEnum is a TreeEnum, this is basically equivalent to the
-		//legalPhases being []int{0}.
-		return nil
-	}
-
-	currentPhaseVal, currentPhase := currentPhaseInfo(state)
-
-	var treeEnum enum.TreeEnum
-	if currentPhaseVal != nil {
-		if e := currentPhaseVal.Enum(); e != nil {
-			treeEnum = e.TreeEnum()
-		}
-	}
-
-	//totalCurrentPhases is all of the current phases we could be considered
-	//to be in. Defaults to an []EnumKey with just the current phase.
-	totalCurrentPhases := []enum.EnumKey{currentPhase}
-
-	if treeEnum != nil {
-		//If PhaseEnum is a tree, then the phase we're in for this purpose is
-		//all ancestor phases.
-		totalCurrentPhases = treeEnum.Ancestors(currentPhase)
-	}
-
-	for _, phase := range legalPhases {
-		for _, candidateCurrentPhase := range totalCurrentPhases {
-			if phase == candidateCurrentPhase {
-				return nil
-			}
-		}
-	}
-
-	phaseName := strconv.Itoa(currentPhase.Int())
-
-	if currentPhaseVal != nil {
-		phaseName = currentPhaseVal.String()
-	}
-
-	return errors.New("Move is not legal in phase " + phaseName)
+	// The actual check is extracted to core (boardgame.LegalInPhaseCheck,
+	// legal_framework.go) so that this frozen chain and legal's "inPhase"
+	// wrapper predicate (legal/catalog_framework.go) call exactly one
+	// implementation. See that file's doc comment.
+	return boardgame.LegalInPhaseCheck(state, d.legalPhases())
 }
 
+// historicalMovesSincePhaseTransition is memoized per (game, upToVersion,
+// targetPhase) via game.LegalTapeMemo (boardgame/legal_memo.go, design spec
+// §5's "Tape memoization" engine win) — this retires the TODO that used to
+// live right here ("ideally we'd memoize this so all base moves for this
+// game for this version could use the result... make sure the lifetime of
+// the cache does not extend beyond the lifetime of the game, or is purged
+// every so often"): the memo lives ON the *boardgame.Game, so it is
+// garbage-collected with the game and is bounded to at most one
+// (version, phase) pair resident at a time — see LegalTapeMemo's doc
+// comment. Both this frozen chain (legalMoveInProgression, below) and the
+// "inProgression" declarative predicate (catalog_framework.go) call this
+// same method, so they share one tape walk per (game, version) by
+// construction.
 func (d *Default) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase enum.EnumKey) []*boardgame.MoveStorageRecord {
+	return game.LegalTapeMemo(upToVersion, targetPhase, func() []*boardgame.MoveStorageRecord {
+		return computeHistoricalMovesSincePhaseTransition(game, upToVersion, targetPhase)
+	})
+}
+
+// computeHistoricalMovesSincePhaseTransition is the actual (uncached) tape
+// walk; historicalMovesSincePhaseTransition above wraps it in the memo. See
+// that method's doc comment.
+func computeHistoricalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase enum.EnumKey) []*boardgame.MoveStorageRecord {
 
 	moves := game.MoveRecords(upToVersion)
-
-	//TODO: ideally we'd memoize this so all base moves for this game for this
-	//version could use the result. If we do that, we'll want to make sure the
-	//lifetime of the cache does not extend beyond the lifetime of the game,
-	//or is purged every so often.
 
 	if len(moves) == 0 {
 		return nil
@@ -576,7 +566,16 @@ func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, propose
 		Name: d.Name(),
 	})
 
-	return matchTape(group, movesToNames(historicalMoves))
+	// ctx carries state/proposer to matchTape so a StatefulMoveProgressionGroup
+	// (e.g. RepeatFromProp, #644) anywhere in group's tree can resolve a
+	// state-driven count — see groups.go's StatefulMoveProgressionGroup and
+	// design spec §7's "named plumbing change". Move/Chest are left zero:
+	// move-tape matching has never needed them, and the legal.Read this
+	// package declares for "inProgression" (catalog_framework.go) doesn't
+	// include any move.* path.
+	ctx := legal.Context{State: state, ProposerPlayerIndex: proposer}
+
+	return matchTape(group, movesToNames(historicalMoves), ctx)
 
 }
 
@@ -612,11 +611,17 @@ func movesToNames(moves []*boardgame.MoveStorageRecord) []string {
 	return result
 }
 
-func matchTape(group MoveProgressionGroup, historicalMoves []string) error {
+// matchTape walks group against the tape built from historicalMoves, via
+// satisfiedDispatch(group, tapeStart, ctx) — so a StatefulMoveProgressionGroup
+// (e.g. RepeatFromProp, #644) anywhere in group's tree receives ctx, while a
+// plain MoveProgressionGroup (everything before this task, and any
+// third-party group) is evaluated exactly as before. See groups.go's
+// StatefulMoveProgressionGroup doc comment for the full rationale.
+func matchTape(group MoveProgressionGroup, historicalMoves []string, ctx legal.Context) error {
 
 	tapeStart := makeTape(historicalMoves)
 
-	rest, err := group.Satisfied(tapeStart)
+	rest, err := satisfiedDispatch(group, tapeStart, ctx)
 
 	defaultErr := errors.NewFriendly("The move was not legal at this phase in the progression")
 

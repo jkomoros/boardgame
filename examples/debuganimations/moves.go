@@ -7,6 +7,51 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
+/*
+Declarative-legality survey (design spec §8, Task 12; count-gate
+re-migration, design spec §6, Task 7): every move type in this file embeds
+moves.Default (a SUPPORTED v1-seam base type — design spec §2), so none is
+blocked by the base-type seam the way checkers' movePlaceToken or werewolf's
+three move types are. Task 12 found two independent catalog gaps blocking
+all eleven move types then in this file; Task 7 closes gap #1 (legal/
+catalog_count.go's StackCount/StackEmpty/StackNotEmpty, design spec §6 §1)
+and migrates the five moves it unblocks — see legal_golden_test.go for the
+goldens. Gap #2 remains open and still blocks the moves below it.
+
+ 1. STACK-SIZE/COUNT PREDICATE — CLOSED (Task 7). moveShuffleHidden,
+    moveVisibleShuffleCards, moveShuffleCards, moveStartMoveAllComponentsToHidden,
+    and moveStartMoveAllComponentsToVisible are now fully declarative:
+    Legal() is deleted from each; their thresholds are expressed via
+    legal.StackCount/legal.StackEmpty/legal.StackNotEmpty in main.go's
+    ConfigureMoves, with legacy message text preserved verbatim through
+    ConfigureLegalTemplates. Golden-equivalence coverage for all five lives
+    in legal_golden_test.go.
+
+ 2. NO ALL-COMPOSITOR / NESTED ANY COMPOSITOR EXISTS (open — design spec §6
+    non-goals). "any" is v1's only compositor (an OR of leaf verdicts —
+    design spec §1's anti-tarpit rules) and it does not nest; WithLegalPreconditions'
+    own top-level list is an implicit AND, but there is no way to express
+    "(A and B) or (C and D)" — a fixed pair of known-good toggle states,
+    now that gap #1 is closed this is the LAST remaining blocker for
+    moveMoveCardBetweenFanStacks (FanStack==6∧FanDiscard==3 ∨ FanStack==5∧
+    FanDiscard==4), moveMoveBetweenHidden, moveMoveToken, and
+    moveMoveTokenSanitized (same fixed-toggle-pair shape) — nor any plain
+    negation, which still blocks moveFlipHiddenCard's XOR occupancy check
+    (pig's moveCountDie/moveDoneTurn hit the same negation gap, Task 12's
+    pig commit). These five moves stay LegalCustom, byte-for-byte
+    unchanged, until an `all`/nested-`any` compositor exists.
+
+Two moves are blocked by neither gap, but by something the catalog was
+simply never built to express at all: moveMoveCardBetweenShortStacks and
+moveMoveCardBetweenDrawAndDiscardStacks choose WHICH stack is source and
+which is destination based on a move-field bool (m.FromFirst/m.FromDraw) —
+the catalog's path grammar (boardgame/legal_path.go's parseLegalPath) has no
+conditional/indirect path resolution for STACK paths (design spec §6 §3
+only adds move-field-indexed PLAYER paths — players[move.Field].Prop — not
+an analogous stack-selecting form), only fixed "kind.Property" literals
+known at WithLegalPreconditions-authoring time. Byte-for-byte unchanged.
+*/
+
 //boardgame:codegen
 type moveMoveCardBetweenShortStacks struct {
 	moves.Default
@@ -297,21 +342,16 @@ func (m *moveVisibleShuffleCards) HelpText() string {
 	return "Performs a visible shuffle"
 }
 
-func (m *moveVisibleShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.Default.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, _ := concreteStates(state)
-
-	if game.FanStack.NumComponents() > 1 {
-		return nil
-	}
-
-	return errors.New("Aren't enough cards to shuffle")
-}
-
+// Legal is deleted (Task 7, design spec §6): declarative migration via
+// moves.WithLegalPreconditions(legal.StackCount("game.FanStack", ">", 1)) in
+// main.go's ConfigureMoves. See legal_golden_test.go for the golden
+// coverage proving equivalence with the pre-migration body (below, for the
+// record):
+//
+//	if game.FanStack.NumComponents() > 1 {
+//		return nil
+//	}
+//	return errors.New("Aren't enough cards to shuffle")
 func (m *moveVisibleShuffleCards) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
@@ -330,21 +370,10 @@ func (m *moveShuffleCards) HelpText() string {
 	return "Performs a secret shuffle"
 }
 
-func (m *moveShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.Default.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, _ := concreteStates(state)
-
-	if game.FanStack.NumComponents() > 1 {
-		return nil
-	}
-
-	return errors.New("Aren't enough cards to shuffle")
-}
-
+// Legal is deleted (Task 7, design spec §6): declarative migration via
+// moves.WithLegalPreconditions(legal.StackCount("game.FanStack", ">", 1)) in
+// main.go's ConfigureMoves — same gate as moveVisibleShuffleCards. See
+// legal_golden_test.go for the golden coverage.
 func (m *moveShuffleCards) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
@@ -486,25 +515,20 @@ func (m *moveStartMoveAllComponentsToHidden) HelpText() string {
 	return "Moves all components from visible to hidden"
 }
 
-func (m *moveStartMoveAllComponentsToHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.Default.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game := state.ImmutableGameState().(*gameState)
-
-	if game.AllVisibleStack.NumComponents() < 1 {
-		return errors.New("No components in visible stack to move")
-	}
-
-	if game.AllHiddenStack.NumComponents() > 0 {
-		return errors.New("The hidden stack already has items. Use the 'To Visible' move")
-	}
-
-	return nil
-}
-
+// Legal is deleted (Task 7, design spec §6): declarative migration via
+// moves.WithLegalPreconditions(legal.StackNotEmpty("game.AllVisibleStack"),
+// legal.StackEmpty("game.AllHiddenStack")) in main.go's ConfigureMoves —
+// WithLegalPreconditions' implicit AND composes the two checks exactly as the
+// pre-migration body did. See legal_golden_test.go for the golden coverage
+// proving equivalence with the pre-migration body (below, for the record):
+//
+//	if game.AllVisibleStack.NumComponents() < 1 {
+//		return errors.New("No components in visible stack to move")
+//	}
+//	if game.AllHiddenStack.NumComponents() > 0 {
+//		return errors.New("The hidden stack already has items. Use the 'To Visible' move")
+//	}
+//	return nil
 func (m *moveStartMoveAllComponentsToHidden) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
@@ -528,25 +552,11 @@ func (m *moveStartMoveAllComponentsToVisible) HelpText() string {
 	return "Moves all components from hidden to visible"
 }
 
-func (m *moveStartMoveAllComponentsToVisible) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.Default.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game := state.ImmutableGameState().(*gameState)
-
-	if game.AllHiddenStack.NumComponents() < 1 {
-		return errors.New("No components in hidden stack to move")
-	}
-
-	if game.AllVisibleStack.NumComponents() > 0 {
-		return errors.New("The visible stack already has items. Use the 'To Hidden' move")
-	}
-
-	return nil
-}
-
+// Legal is deleted (Task 7, design spec §6): declarative migration via
+// moves.WithLegalPreconditions(legal.StackNotEmpty("game.AllHiddenStack"),
+// legal.StackEmpty("game.AllVisibleStack")) in main.go's ConfigureMoves —
+// mirror of moveStartMoveAllComponentsToHidden. See legal_golden_test.go
+// for the golden coverage.
 func (m *moveStartMoveAllComponentsToVisible) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
@@ -570,21 +580,16 @@ func (m *moveShuffleHidden) HelpText() string {
 	return "Shuffles the fan discard pile and increments the shuffle count"
 }
 
-func (m *moveShuffleHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.Default.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game := state.ImmutableGameState().(*gameState)
-
-	if game.FanDiscard.NumComponents() < 1 {
-		return errors.New("FanDiscard has no cards to shuffle")
-	}
-
-	return nil
-}
-
+// Legal is deleted (Task 7, design spec §6): declarative migration via
+// moves.WithLegalPreconditions(legal.StackNotEmpty("game.FanDiscard")) in
+// main.go's ConfigureMoves. See legal_golden_test.go for the golden
+// coverage proving equivalence with the pre-migration body (below, for the
+// record):
+//
+//	if game.FanDiscard.NumComponents() < 1 {
+//		return errors.New("FanDiscard has no cards to shuffle")
+//	}
+//	return nil
 func (m *moveShuffleHidden) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)

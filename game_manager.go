@@ -40,6 +40,28 @@ type GameManager struct {
 	logger                    *logrus.Logger
 	variantConfig             VariantConfig
 	constraintConstructors    map[string]*StackConstraintConstructor
+	// legalPlans holds the assembled declarative-legality plan for each
+	// move type that opted in via WithLegalPreconditions, keyed by move name.
+	// nil (or a missing key) means the move runs its frozen imperative
+	// chain — see legal_plan.go. Built once at NewGameManager
+	// (assembleLegalPlans); read-only thereafter.
+	legalPlans map[string]*legalPlan
+	// legalTemplateTable is the game's merged legality template table
+	// (legal.DefaultTemplates overlaid with the delegate's own
+	// ConfigureLegalTemplates), used to render plan failure verdicts. Built
+	// once at NewGameManager; read-only thereafter.
+	legalTemplateTable map[string]string
+	// legalProbing/legalProbeReached are the boot-only probe flags (design
+	// spec "prime guarantee" rule 4). Set/read solely during
+	// NewGameManager's single-threaded assembleLegalPlans, before any game
+	// runs; stable-false at runtime. See LegalProbeActive.
+	legalProbing      bool
+	legalProbeReached bool
+	// legalIndex is the boot-assembled phase index (design spec §5),
+	// consulted by CandidateMoves. nil until buildLegalIndex runs (at the
+	// end of NewGameManager, right after assembleLegalPlans) — see
+	// legal_index.go. Read-only thereafter.
+	legalIndex *legalIndex
 }
 
 // Internals returns a ManagerInternals for this manager. All of the methods on
@@ -318,6 +340,18 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		}
 
 	}
+
+	// Assemble declarative-legality plans for any move type that opted in
+	// via WithLegalPreconditions, and probe that its declarations are reachable
+	// (design spec §4 + "prime guarantee" rule 4). Moves that did not opt in
+	// are untouched: their frozen imperative Legal() chain runs as today.
+	if err := result.assembleLegalPlans(exampleState); err != nil {
+		return nil, errors.New("Failed to assemble declarative legality plans: " + err.Error())
+	}
+
+	// Build the phase index (design spec §5) now that every move's plan (or
+	// lack thereof) is known. Must run after assembleLegalPlans.
+	result.buildLegalIndex()
 
 	// Verify that if any PlayerState implements Seater (e.g. embeds
 	// behaviors.Seat), then at least one move implements SeatPlayerMover.

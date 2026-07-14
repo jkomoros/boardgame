@@ -11,6 +11,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/dice"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -134,21 +135,59 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(moveRollDice),
 			moves.WithHelpText("Rolls the dice for the current player"),
+			// Declarative migration (design spec §8 survey, Task 12):
+			// Legal() is deleted (see moves.go); this plan replaces it
+			// exactly except for the pre-existing bug that comment
+			// documents (a discarded proposer-check error).
+			moves.WithLegalPreconditions(
+				legal.PlayerBool("DieCounted").WithMessage("pig.roll_not_counted"),
+			),
 		),
 		auto.MustConfig(
 			new(moveDoneTurn),
 			moves.WithHelpText("Played when a player is done with their turn and wants to keep their score."),
+			// Declarative migration (design spec §8 survey, Task 12):
+			// Legal() is deleted (see moves.go); the DieCounted gate is
+			// declarative, including the negated Done bool.
+			moves.WithLegalPreconditions(
+				legal.PlayerBool("DieCounted").WithMessage("pig.done_roll_not_counted"),
+				legal.PlayerBoolIs("Done", false).WithMessage("pig.already_done"),
+			),
 		),
 		auto.MustConfig(
 			new(moveCountDie),
 			moves.WithHelpText("After a die has been rolled, tabulating its impact"),
 			moves.WithIsFixUp(true),
+			// Declarative migration (Workstream 9 re-migration): Legal() is
+			// deleted (see moves.go); its single negated-boolean gate is now
+			// this precondition. The proposer/current-player check is
+			// contributed base-first by moves.CurrentPlayer.
+			moves.WithLegalPreconditions(
+				legal.PlayerBoolIs("DieCounted", false).WithMessage("pig.roll_already_counted"),
+			),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
 			moves.WithHelpText("Advance to the next player when the current player has busted or said they are done."),
 		),
 	)
+}
+
+// ConfigureLegalTemplates supplies the pig.* template keys moveRollDice's
+// and moveDoneTurn's WithLegalPreconditions plans and moveDoneTurn's LegalCustom
+// residue reference (design spec §8 survey, Task 12), with the verbatim
+// legacy strings from each move's pre-migration Legal() body (see moves.go's
+// comments). moveRollDice and moveDoneTurn had two DIFFERENT capitalizations
+// of the same sentence ("Your..." vs "your..."), which is why they need two
+// distinct keys rather than sharing legal.DefaultTemplates()'s generic
+// TemplatePlayerBool text.
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		"pig.roll_not_counted":      "Your most recent roll has not yet been counted",
+		"pig.done_roll_not_counted": "your most recent roll has not yet been counted",
+		"pig.already_done":          "you already signaled that you are done",
+		"pig.roll_already_counted":  "the most recent die roll has already been counted",
+	}
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

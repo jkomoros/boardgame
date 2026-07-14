@@ -12,6 +12,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -143,11 +144,29 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(movePlaceToken),
 			moves.WithHelpText("Place a player's token in a specific space."),
+			// Declarative migration (Task 7 survey re-check, design spec §6
+			// §3): Legal() is deleted (see moves.go); the token-availability
+			// gate is now declarative via the players[move.Field].Prop path
+			// kind, with the MayMoveToSlot check surviving as LegalCustom
+			// residue.
+			moves.WithLegalPreconditions(
+				legal.StackNotEmpty("players[move.TargetPlayerIndex].UnusedTokens").WithMessage("tictactoe.no_tokens_left"),
+			),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
 		),
 	)
+}
+
+// ConfigureLegalTemplates supplies the tictactoe.* template key
+// movePlaceToken's WithLegalPreconditions plan references (Task 7 survey
+// re-check, design spec §6 §3), with the verbatim legacy string from the
+// pre-migration Legal() body (see moves.go's comment).
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		"tictactoe.no_tokens_left": "there aren't any remaining tokens for the current player to place",
+	}
 }
 
 func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {

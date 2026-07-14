@@ -1,0 +1,355 @@
+package legal_test
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/legal"
+)
+
+// TestAny covers the "any" builder's shape only: per Any's doc comment,
+// builders stay dumb — the >= 2 subs requirement, depth-1 enforcement, and
+// Kleene evaluation semantics are all owned and exhaustively tested by core
+// (boardgame's legal_predicate_test.go: TestResolveLegalSpecsAnyRequiresTwoSubs,
+// TestResolveLegalSpecsAnyDepthTwoRejected, TestLegalAnyKleeneTruthTable*).
+func TestAny(t *testing.T) {
+	sub1 := legal.PlayerBool("Eliminated")
+	sub2 := legal.PlayerBool("Stood")
+	spec := legal.Any(sub1, sub2)
+	if spec.Name != "any" {
+		t.Fatalf("Name = %q, want any", spec.Name)
+	}
+	if len(spec.Sub) != 2 || spec.Sub[0].Name != "playerBool" || spec.Sub[1].Name != "playerBool" {
+		t.Fatalf("Sub = %+v", spec.Sub)
+	}
+
+	// "any" is intentionally NOT a registered PredicateConstructor: core
+	// intercepts the name directly (legalAnyCompositorName in
+	// legal_predicate.go) so it can never be shadowed by a registry entry.
+	for _, c := range legal.DefaultConstructors() {
+		if c.Name == "any" {
+			t.Fatal(`legal.DefaultConstructors() must not register a constructor named "any" — core intercepts it directly`)
+		}
+	}
+}
+
+// TestAllActivePlayers covers AllActivePlayers' shape, Reads (the
+// "players[*].X" quantifier-only paths, one per inner leaf), and
+// pass/fail/unknown against the blackjack fixtures — the design spec §8
+// acid test (AllActivePlayers(Any(PlayerBool("Eliminated"),
+// PlayerBool("Stood")))).
+func TestAllActivePlayers(t *testing.T) {
+	spec := legal.AllActivePlayers(legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")))
+	if spec.Name != "allActivePlayers" {
+		t.Fatalf("Name = %q, want allActivePlayers", spec.Name)
+	}
+	if len(spec.Sub) != 1 || spec.Sub[0].Name != "any" {
+		t.Fatalf("Sub = %+v", spec.Sub)
+	}
+
+	pred := resolvePredicateForTest(t, spec)
+	wantReads := map[string]bool{
+		"players[*].Eliminated": true,
+		"players[*].Stood":      true,
+	}
+	if len(pred.Reads) != len(wantReads) {
+		t.Fatalf("Reads = %+v, want %d entries", pred.Reads, len(wantReads))
+	}
+	for _, r := range pred.Reads {
+		if !wantReads[string(r.Path)] {
+			t.Errorf("unexpected legal.Read %+v", r)
+		}
+		if r.Facet != boardgame.LegalFacetValues {
+			t.Errorf("legal.Read %+v: legal.Facet = %v, want LegalFacetValues", r, r.Facet)
+		}
+	}
+
+	// Pass: every active player has Stood (blackjackAllFinished).
+	allFinished := buildLegalFixture(t, "blackjackAllFinished")
+	if v := pred.Evaluate(allFinished.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("blackjackAllFinished: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+
+	// Fail: player 0 has neither Eliminated nor Stood.
+	oneUnfinished := buildLegalFixture(t, "blackjackOneUnfinished")
+	v := pred.Evaluate(oneUnfinished.context(0))
+	if v.Outcome != legal.Fail {
+		t.Fatalf("blackjackOneUnfinished: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
+	}
+	if v.Message == nil || v.Message.Template != legal.TemplateAllActivePlayers {
+		t.Fatalf("blackjackOneUnfinished: legal.Message = %+v, want template %q", v.Message, legal.TemplateAllActivePlayers)
+	}
+
+	// Pass: player 0 is the same as blackjackOneUnfinished (neither
+	// condition true), but it's also PlayerInactive, so it's skipped
+	// entirely — every ACTIVE player has Stood.
+	inactiveSkipped := buildLegalFixture(t, "blackjackInactiveSkipped")
+	if v := pred.Evaluate(inactiveSkipped.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("blackjackInactiveSkipped: legal.Outcome = %v, want legal.Pass (%+v) — an inactive player's unfinished state must not fail the quantifier", v.Outcome, v)
+	}
+
+	// Unknown: inner references a bool prop that doesn't exist on
+	// blackjack's playerState.
+	unknownPred := resolvePredicateForTest(t, legal.AllActivePlayers(legal.PlayerBool("NoSuchBoolProp")))
+	if v := unknownPred.Evaluate(allFinished.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("nonexistent inner prop: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
+	}
+
+	// Custom message overrides the default template.
+	overridden := resolvePredicateForTest(t, legal.AllActivePlayers(legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood"))).WithMessage("custom.key"))
+	if v := overridden.Evaluate(oneUnfinished.context(0)); v.Message == nil || v.Message.Template != "custom.key" {
+		t.Fatalf("WithMessage override: legal.Message = %+v, want template custom.key", v.Message)
+	}
+}
+
+// TestAllActivePlayersSingleLeaf covers the non-"any" inner shape (a bare
+// playerBool/propAtLeast/propCompare, no compositor).
+func TestAllActivePlayersSingleLeaf(t *testing.T) {
+	spec := legal.AllActivePlayers(legal.PlayerBool("Stood"))
+	pred := resolvePredicateForTest(t, spec)
+	if len(pred.Reads) != 1 || pred.Reads[0].Path != "players[*].Stood" {
+		t.Fatalf("Reads = %+v", pred.Reads)
+	}
+
+	allFinished := buildLegalFixture(t, "blackjackAllFinished")
+	if v := pred.Evaluate(allFinished.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("blackjackAllFinished: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+
+	oneUnfinished := buildLegalFixture(t, "blackjackOneUnfinished")
+	if v := pred.Evaluate(oneUnfinished.context(0)); v.Outcome != legal.Fail {
+		t.Fatalf("blackjackOneUnfinished: legal.Outcome = %v, want legal.Fail", v.Outcome)
+	}
+}
+
+// TestAllActivePlayersV1InnerRestriction pins the v1 boot error for any
+// inner spec name beyond playerBool/propAtLeast/propCompare/any, including
+// a nested "any" beneath the top-level "any" (depth-1, same rule as core's
+// own any-compositor).
+func TestAllActivePlayersV1InnerRestriction(t *testing.T) {
+	t.Run("unsupported leaf name", func(t *testing.T) {
+		_, err := resolveSpecViaRegistry(legal.AllActivePlayers(legal.ComponentPresentAt("game.Spaces", "move.Idx")), legal.DefaultConstructors(), nil)
+		if err == nil {
+			t.Fatal("expected a boot error for an unsupported inner predicate name")
+		}
+	})
+
+	t.Run("nested any beneath any is rejected (depth-1)", func(t *testing.T) {
+		nested := legal.AllActivePlayers(legal.Any(
+			legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
+			legal.PlayerBool("Stood"),
+		))
+		_, err := resolveSpecViaRegistry(nested, legal.DefaultConstructors(), nil)
+		if err == nil {
+			t.Fatal("expected a boot error for a nested any beneath legal.AllActivePlayers' any")
+		}
+	})
+
+	t.Run("any with fewer than 2 subs is rejected", func(t *testing.T) {
+		// Hand-build a Spec with a single-element Sub — Any() itself won't
+		// stop a caller from doing this (builders stay dumb).
+		spec := legal.AllActivePlayers(legal.Spec{Name: "any", Sub: []legal.Spec{legal.PlayerBool("Stood")}})
+		_, err := resolveSpecViaRegistry(spec, legal.DefaultConstructors(), nil)
+		if err == nil {
+			t.Fatal("expected a boot error for an any with fewer than 2 subs")
+		}
+	})
+
+	t.Run("propAtLeast/propCompare must be player-path", func(t *testing.T) {
+		_, err := resolveSpecViaRegistry(legal.AllActivePlayers(legal.PropAtLeast("game.NumCards", 1)), legal.DefaultConstructors(), nil)
+		if err == nil {
+			t.Fatal("expected a boot error for a non-player-path propAtLeast inner spec")
+		}
+		_, err2 := resolveSpecViaRegistry(legal.AllActivePlayers(legal.PropCompare("game.NumCards", "==", 1)), legal.DefaultConstructors(), nil)
+		if err2 == nil {
+			t.Fatal("expected a boot error for a non-player-path propCompare inner spec")
+		}
+	})
+
+	t.Run("wrong Sub count on allActivePlayers itself", func(t *testing.T) {
+		_, err := resolveSpecViaRegistry(legal.Spec{Name: "allActivePlayers", Sub: []legal.Spec{legal.PlayerBool("Stood"), legal.PlayerBool("Eliminated")}}, legal.DefaultConstructors(), nil)
+		if err == nil {
+			t.Fatal("expected a boot error for allActivePlayers with more than 1 Sub")
+		}
+	})
+}
+
+// TestAllActivePlayersInnerPlayerBoolIs covers spec §4's negation-leaf
+// requirement: AllActivePlayers' restricted inner-grammar must accept
+// playerBool's 2-arg (want) form, e.g.
+// AllActivePlayers(PlayerBoolIs("DoneWithPhase", false)) — not just the
+// legacy 1-arg (want=true) spelling. Uses blackjack's Stood bool prop
+// directly (rather than a named fixture) so both "every active player has
+// Stood=false" (Pass) and "one active player has Stood=true" (Fail) are
+// exercised.
+func TestAllActivePlayersInnerPlayerBoolIs(t *testing.T) {
+	spec := legal.AllActivePlayers(legal.PlayerBoolIs("Stood", false))
+	if len(spec.Sub) != 1 || spec.Sub[0].Name != "playerBool" || len(spec.Sub[0].Args) != 2 || spec.Sub[0].Args[1] != "false" {
+		t.Fatalf("Sub = %+v, want a 2-arg playerBool inner spec with want=false", spec.Sub)
+	}
+
+	pred := resolvePredicateForTest(t, spec)
+	if len(pred.Reads) != 1 || pred.Reads[0].Path != "players[*].Stood" || pred.Reads[0].Facet != boardgame.LegalFacetValues {
+		t.Fatalf("Reads = %+v", pred.Reads)
+	}
+
+	// Pass: every active player has Stood == false.
+	allNotStoodGame, allNotStood := newBlackjackGame(t)
+	for _, p := range allNotStood.PlayerStates() {
+		if err := p.ReadSetter().SetBoolProp("Stood", false); err != nil {
+			t.Fatalf("legal: setting Stood: %v", err)
+		}
+	}
+	if v := pred.Evaluate((legalFixture{state: allNotStood, chest: allNotStoodGame.Manager().Chest()}).context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("all Stood=false: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+
+	// Fail: player 0 has Stood == true (want=false requires it be false).
+	oneStoodGame, oneStood := newBlackjackGame(t)
+	players := oneStood.PlayerStates()
+	for i, p := range players {
+		if err := p.ReadSetter().SetBoolProp("Stood", i == 0); err != nil {
+			t.Fatalf("legal: setting Stood: %v", err)
+		}
+	}
+	v := pred.Evaluate((legalFixture{state: oneStood, chest: oneStoodGame.Manager().Chest()}).context(0))
+	if v.Outcome != legal.Fail {
+		t.Fatalf("player 0 Stood=true: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
+	}
+	if v.Message == nil || v.Message.Template != legal.TemplateAllActivePlayers {
+		t.Fatalf("legal.Message = %+v, want template %q", v.Message, legal.TemplateAllActivePlayers)
+	}
+
+	// A bad want arg on the inner playerBool is a construction-time error,
+	// same as the top-level predicate.
+	badSpec := legal.AllActivePlayers(legal.Spec{Name: "playerBool", Args: []string{"Stood", "nope"}})
+	if _, err := resolveSpecViaRegistry(badSpec, legal.DefaultConstructors(), nil); err == nil {
+		t.Fatal("expected an error constructing allActivePlayers' inner playerBool with an invalid want arg")
+	}
+}
+
+// TestProposerIsCurrentPlayer covers ProposerIsCurrentPlayer's shape, Reads
+// (incl. the FIELD-DEPENDENT move.TargetPlayerIndex read — spec §4),
+// pass/fail(x2 distinct branches)/unknown, and the string-parity guarantee:
+// each Fail Verdict's "detail" binding carries the EXACT legacy string from
+// moves/current_player.go, verbatim.
+func TestProposerIsCurrentPlayer(t *testing.T) {
+	spec := legal.ProposerIsCurrentPlayer()
+	if spec.Name != "proposerIsCurrentPlayer" {
+		t.Fatalf("Name = %q, want proposerIsCurrentPlayer", spec.Name)
+	}
+
+	pred := resolvePredicateForTest(t, spec)
+	if len(pred.Reads) != 2 {
+		t.Fatalf("Reads = %+v, want 2 entries", pred.Reads)
+	}
+	moveRead, ok := findRead(pred.Reads, "move.TargetPlayerIndex")
+	if !ok {
+		t.Fatal("no legal.Read found for move.TargetPlayerIndex")
+	}
+	if moveRead.Facet != boardgame.LegalFacetValues {
+		t.Fatalf("move.TargetPlayerIndex legal.Facet = %v, want LegalFacetValues", moveRead.Facet)
+	}
+	// FIELD-DEPENDENT (spec §4): the presence of a move.* Read is exactly
+	// what puts this predicate in a plan's fieldDependent bucket rather
+	// than fieldIndependent — see legalReadsIncludeMovePath in core
+	// (unexported; this is the external-package pin of the same property).
+	if !strings.HasPrefix(string(moveRead.Path), "move.") {
+		t.Fatalf("expected move.TargetPlayerIndex's legal.Read.Path to have a move.* prefix, got %q", moveRead.Path)
+	}
+	if _, ok := findRead(pred.Reads, "game.CurrentPlayer"); !ok {
+		t.Fatal("no legal.Read found for game.CurrentPlayer")
+	}
+
+	// Pass: move.TargetPlayerIndex defaults to player 0 (its PlayerIndex
+	// zero value), matching both the current player (0) and the proposer
+	// (0) in memoryDefault.
+	pass := buildLegalFixture(t, "memoryDefault")
+	if v := pred.Evaluate(pass.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("memoryDefault proposer=0: legal.Outcome = %v, want legal.Pass (%+v)", v.Outcome, v)
+	}
+
+	// Fail branch 1: TargetPlayerIndex (1) != current player (0). Legacy
+	// string: moves/current_player.go:56.
+	targetMismatch := buildLegalFixture(t, "memoryTargetPlayerOne")
+	v := pred.Evaluate(targetMismatch.context(0))
+	if v.Outcome != legal.Fail {
+		t.Fatalf("memoryTargetPlayerOne: legal.Outcome = %v, want legal.Fail (%+v)", v.Outcome, v)
+	}
+	if v.Message == nil || v.Message.Template != legal.TemplateProposerNotYourTurn {
+		t.Fatalf("memoryTargetPlayerOne: legal.Message = %+v, want template %q", v.Message, legal.TemplateProposerNotYourTurn)
+	}
+	if got := v.Message.Bindings["detail"]; got.S == nil || *got.S != "it's not your turn" {
+		t.Fatalf("memoryTargetPlayerOne: detail binding = %+v, want the verbatim legacy string %q", got, "it's not your turn")
+	}
+
+	// Fail branch 2: TargetPlayerIndex (0) == current player (0), but
+	// proposer (1) != TargetPlayerIndex. Same legacy string, different
+	// triggering condition (moves/current_player.go:60).
+	v2 := pred.Evaluate(pass.context(1))
+	if v2.Outcome != legal.Fail {
+		t.Fatalf("memoryDefault proposer=1: legal.Outcome = %v, want legal.Fail (%+v)", v2.Outcome, v2)
+	}
+	if got := v2.Message.Bindings["detail"]; got.S == nil || *got.S != "it's not your turn" {
+		t.Fatalf("memoryDefault proposer=1: detail binding = %+v, want the verbatim legacy string %q", got, "it's not your turn")
+	}
+
+	// Fail branch 3: TargetPlayerIndex is a special negative index
+	// (ObserverPlayerIndex) — PlayerIndex.Valid() alone treats it as
+	// "valid", but the explicit `< 0` check in moves/current_player.go:51-53
+	// rejects it as a move target. Legacy string: moves/current_player.go:48/52.
+	targetObserver := buildLegalFixture(t, "memoryTargetObserver")
+	v3 := pred.Evaluate(targetObserver.context(0))
+	if v3.Outcome != legal.Fail {
+		t.Fatalf("memoryTargetObserver: legal.Outcome = %v, want legal.Fail (%+v)", v3.Outcome, v3)
+	}
+	if v3.Message == nil || v3.Message.Template != legal.TemplateProposerTargetInvalid {
+		t.Fatalf("memoryTargetObserver: legal.Message = %+v, want template %q", v3.Message, legal.TemplateProposerTargetInvalid)
+	}
+	if got := v3.Message.Bindings["detail"]; got.S == nil || *got.S != "The specified target player is not valid" {
+		t.Fatalf("memoryTargetObserver: detail binding = %+v, want the verbatim legacy string %q", got, "The specified target player is not valid")
+	}
+
+	// Unknown: nil move (Reads declares move.TargetPlayerIndex, so this
+	// exercises resolvePlayerIndexPath's own nil-move error, not the
+	// runtime undeclared-move-read guard).
+	noMove := buildLegalFixture(t, "memoryNoMove")
+	if v := pred.Evaluate(noMove.context(0)); v.Outcome != legal.Unknown {
+		t.Fatalf("memoryNoMove: legal.Outcome = %v, want legal.Unknown (%+v)", v.Outcome, v)
+	}
+}
+
+// TestProposerIsCurrentPlayerTakesNoArgs pins that the predicate rejects a
+// spec with args (it has none to accept).
+func TestProposerIsCurrentPlayerTakesNoArgs(t *testing.T) {
+	spec := legal.Spec{Name: "proposerIsCurrentPlayer", Args: []string{"unexpected"}}
+	if _, err := resolveSpecViaRegistry(spec, legal.DefaultConstructors(), nil); err == nil {
+		t.Fatal("expected an error constructing proposerIsCurrentPlayer with args")
+	}
+}
+
+func TestProposerIsPlayerFromMove(t *testing.T) {
+	spec := legal.ProposerIsPlayerFromMove("TargetPlayerIndex")
+	if spec.Name != "proposerIsPlayerFromMove" || spec.AdminPolicy != boardgame.LegalAdminBypass {
+		t.Fatalf("spec = %+v", spec)
+	}
+	pred := resolvePredicateForTest(t, spec)
+	if len(pred.Reads) != 1 || pred.Reads[0].Path != "move.TargetPlayerIndex" {
+		t.Fatalf("Reads = %+v", pred.Reads)
+	}
+
+	fixture := buildLegalFixture(t, "memoryDefault")
+	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("matching proposer: %+v", v)
+	}
+	for name, proposer := range map[string]boardgame.PlayerIndex{
+		"other":    1,
+		"observer": boardgame.ObserverPlayerIndex,
+		"any":      boardgame.AnyPlayerIndex,
+	} {
+		if v := pred.Evaluate(fixture.context(proposer)); v.Outcome != legal.Fail {
+			t.Fatalf("%s proposer: %+v, want Fail", name, v)
+		}
+	}
+}

@@ -143,6 +143,70 @@ func TestAddOrderedForPhaseEndsWithStartPhase(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNotNil()
 }
 
+// zeroIterationRoundRobinMoveInstaller mirrors the phaseSetUp progression of
+// defaultMoveInstaller, but the first move is a
+// DealComponentsUntilPlayerCountReached whose TargetCount is 0. Because every
+// player already has 0 or more components in their Hand, every player's
+// PlayerConditionMet is already true, so the round robin's ConditionMet is
+// satisfied before the move ever starts -- a zero-iteration round robin.
+func zeroIterationRoundRobinMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+
+	auto := NewAutoConfigurer(manager.Delegate())
+
+	return Combine(
+		AddOrderedForPhase(phaseSetUp,
+			auto.MustConfig(
+				new(DealComponentsUntilPlayerCountReached),
+				WithMoveName("Deal Cards Until Zero"),
+				WithGameProperty("DrawStack"),
+				WithPlayerProperty("Hand"),
+				WithTargetCount(0),
+			),
+			auto.MustConfig(
+				new(StartPhase),
+				WithPhaseToStart(phaseNormalPlayDrawCard, phaseEnum),
+			),
+		),
+		AddForPhase(phaseNormalPlay,
+			auto.MustConfig(
+				new(moveCurrentPlayerDraw),
+				WithMoveName("Draw Card"),
+			),
+		),
+	)
+}
+
+// TestZeroIterationRoundRobinLegal is a framework-level regression test for a
+// bug where a round robin move whose ConditionMet was already satisfied before
+// it started (e.g. a DealComponentsUntilPlayerCountReached targeting a count
+// every player already meets) would trip Apply()'s "found to be finished in
+// our Apply, but it should have been marked finished before" invariant,
+// failing game creation. The fix lives in RoundRobin.Apply: after
+// startRoundRobin resets the shared round-robin state, an already-met
+// condition finishes the round robin cleanly (zero iterations) and returns
+// nil. It deliberately does NOT live in Legal(): ConditionMet reads the
+// shared RoundRobinRoundCount, which is only reset inside Apply's
+// startRoundRobin, so a Legal-side check reads stale state from the previous
+// round robin and mis-rejects legitimate starts (a Legal-based fix regressed
+// blackjack; see round_robin.go's comment). This test asserts game creation
+// succeeds and the zero-iteration deal dealt nothing.
+func TestZeroIterationRoundRobinLegal(t *testing.T) {
+	manager, err := newGameManager(zeroIterationRoundRobinMoveInstaller)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	game, err := manager.NewDefaultGame()
+
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(game).IsNotNil()
+
+	//The zero-iteration deal should have dealt nothing.
+	_, playerStates := concreteStates(game.CurrentState())
+	for i, player := range playerStates {
+		assert.For(t, i).ThatActual(player.Hand.NumComponents()).Equals(0)
+	}
+}
+
 func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
 
 	auto := NewAutoConfigurer(manager.Delegate())

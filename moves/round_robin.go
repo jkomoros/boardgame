@@ -341,7 +341,22 @@ func (r *RoundRobin) Apply(state boardgame.State) error {
 	}
 
 	if conditionMetter.ConditionMet(state) == nil {
-		return errors.New("the round robin was found to be finished in our Apply, but it should have been marked finished before")
+		//The round robin's condition is already met the moment it starts, so
+		//there is genuinely no player to act on (a zero-iteration round robin).
+		//This happens, for example, when a DealComponentsUntilPlayerCountReached
+		//targets a count that every player already satisfies (e.g. a target of 0
+		//for every dealt player mat). We can't detect this in Legal(): for
+		//RoundRobinNumRounds subclasses ConditionMet depends on
+		//RoundRobinRoundCount, which is only reset to 0 by startRoundRobin()
+		//above, so before starting it still holds the stale count from the
+		//previous round robin. Now that we've started (and reset the count),
+		//finish cleanly rather than erroring. The move record we leave behind
+		//makes Legal()'s last-move-name guard refuse to restart us, so fixup
+		//convergence moves on instead of looping.
+		if err := r.finishRoundRobin(state); err != nil {
+			return errors.New("Couldn't finish empty round robin: " + err.Error())
+		}
+		return nil
 	}
 
 	nextPlayer, _ := r.nextPlayerIndex(state)

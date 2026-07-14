@@ -3,6 +3,7 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/legal"
 )
 
 const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
@@ -29,6 +30,9 @@ const configPropRequireExplicitStart = fullyQualifiedPackageName + "RequireExpli
 const configPropUnique = fullyQualifiedPackageName + "Unique"
 const configPropAllowDuplicates = fullyQualifiedPackageName + "AllowDuplicates"
 const configPropRequireAdmin = fullyQualifiedPackageName + "RequireAdmin"
+const configPropPreconditions = fullyQualifiedPackageName + "Preconditions"
+const configPropSuppressedPreconditions = fullyQualifiedPackageName + "SuppressedPreconditions"
+const configPropLegalPlanEnabled = fullyQualifiedPackageName + "LegalPlanEnabled"
 
 // CustomConfigurationOption is a function that takes a PropertyCollection and
 // modifies a key on it. This package defines a number of functions that return
@@ -249,6 +253,57 @@ func WithUnique() CustomConfigurationOption {
 func WithAllowDuplicates() CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropAllowDuplicates] = true
+	}
+}
+
+// WithLegalPreconditions returns a function configuration option suitable for
+// being passed to auto.Config. Calling this option opts a move type in to
+// declarative legality, even when specs is empty. The specs, in order, are appended
+// to whatever has already been passed to earlier WithLegalPreconditions calls
+// for this move type (mirroring WithLegalPhases' accumulate-across-calls
+// behavior). See moves.Default.DeclaredPreconditions, which reads this
+// configuration back out, and moves.PreconditionsProvider /
+// moves.Default.ContributedPreconditions for how these authored specs
+// combine with the base type's own contributed specs (inPhase/
+// inProgression/stackConstraints/proposerIsCurrentPlayer) at plan-assembly
+// time. Declaring WithLegalPreconditions does not, by itself, change Legal()'s
+// behavior for a move that also overrides Legal() without super-calling
+// into the frozen chain — see the design spec's "prime guarantee" for the
+// boot-time probe that catches that mistake.
+func WithLegalPreconditions(specs ...legal.Spec) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropLegalPlanEnabled] = true
+		previous, _ := config[configPropPreconditions].([]legal.Spec)
+		config[configPropPreconditions] = append(previous, specs...)
+	}
+}
+
+// WithoutLegalPrecondition returns a function configuration option suitable for
+// being passed to auto.Config. It suppresses one CONTRIBUTED precondition
+// (one of the framework's own stable names — pass the exported constants
+// [PreconditionInPhase], [PreconditionInProgression],
+// [PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer]
+// rather than raw strings — design spec §2) by name, for a move type that
+// wants to opt out of an inherited check entirely (the
+// moves.ForceFinishTurn "inherit nothing" pattern, now expressible
+// declaratively). Suppression names accumulate across multiple calls, like
+// WithLegalPreconditions accumulates specs. It does not remove an AUTHORED spec
+// passed via WithLegalPreconditions; those are simply not passed in the first
+// place.
+//
+// Suppressions are validated by NewGameManager's boot gauntlet, so a
+// WithoutLegalPrecondition call can never silently do nothing: a name that
+// matches no spec the move actually contributes (a typo, or a check the
+// move never had — e.g. PreconditionInProgression on a move with no move
+// progression) is a boot error listing the move's real contributed names.
+// Calling WithoutLegalPrecondition opts the move into declarative legality;
+// the suppression is itself an explicit request to assemble a plan. Every
+// suppression is boot-validated against the move's actual contributions.
+func WithoutLegalPrecondition(name PreconditionName) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropLegalPlanEnabled] = true
+		previous, _ := config[configPropSuppressedPreconditions].([]string)
+		config[configPropSuppressedPreconditions] = append(previous, string(name))
 	}
 }
 

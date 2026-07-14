@@ -1,8 +1,6 @@
 package pig
 
 import (
-	"errors"
-
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
@@ -29,23 +27,33 @@ type moveCountDie struct {
  *
  **************************************************/
 
-func (m *moveRollDice) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return nil
-	}
-
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if !p.DieCounted {
-		return errors.New("Your most recent roll has not yet been counted")
-	}
-
-	return nil
-}
-
+// Legal() is deliberately absent: this move opted into declarative legality
+// (design spec §8 survey, Task 12) via the moves.WithLegalPreconditions call in
+// main.go's ConfigureMoves. The original imperative body (kept only as
+// legacyLegalMoveRollDice, a private copy in legal_golden_test.go, for
+// golden-equivalence testing) read:
+//
+//	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+//		return nil
+//	}
+//	game, players := concreteStates(state)
+//	p := players[game.CurrentPlayer.EnsureValid(state)]
+//	if !p.DieCounted {
+//		return errors.New("Your most recent roll has not yet been counted")
+//	}
+//	return nil
+//
+// Pre-existing bug fixed by this migration (flagged in the Task 12 report,
+// not hidden): the super-call's error was discarded ("return nil" instead
+// of "return err"), so a proposer who was NOT the current player always
+// passed this check -- only the DieCounted gate below actually mattered.
+// The migrated plan's contributed proposer atom (legal.ProposerIsCurrentPlayer,
+// added base-first by moves.CurrentPlayer.ContributedPreconditions) has no
+// such bug, so a wrong-proposer roll is now correctly rejected. This is a
+// deliberate, documented behavior IMPROVEMENT that "declaring is
+// implementing" sanctions (the frozen-chain guarantee only protects moves
+// that do NOT opt in) -- see legal_golden_test.go's
+// knownBugFixNilnessDivergence for the golden-equivalence handling.
 func (m *moveRollDice) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
@@ -66,27 +74,24 @@ func (m *moveRollDice) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-func (m *moveDoneTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if !p.DieCounted {
-		return errors.New("your most recent roll has not yet been counted")
-	}
-
-	if p.Done {
-		return errors.New("you already signaled that you are done")
-	}
-
-	return nil
-}
-
+// Legal() is deliberately absent: both stored bool gates are declared with
+// PlayerBool/PlayerBoolIs in ConfigureMoves. The original imperative body
+// (kept only as
+// legacyLegalMoveDoneTurn, a private copy in legal_golden_test.go, for
+// golden-equivalence testing) read:
+//
+//	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+//		return err
+//	}
+//	game, players := concreteStates(state)
+//	p := players[game.CurrentPlayer.EnsureValid(state)]
+//	if !p.DieCounted {
+//		return errors.New("your most recent roll has not yet been counted")
+//	}
+//	if p.Done {
+//		return errors.New("you already signaled that you are done")
+//	}
+//	return nil
 func (m *moveDoneTurn) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
@@ -103,23 +108,27 @@ func (m *moveDoneTurn) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-func (m *moveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if p.DieCounted {
-		return errors.New("the most recent die roll has already been counted")
-	}
-
-	return nil
-}
-
+// Legal() is deliberately absent: this move opted into declarative legality.
+// The original stale comment (Task 12) claimed moveCountDie could not migrate
+// because its only gate is a NEGATED boolean (DieCounted must be false) and
+// v1's catalog had no negation primitive. The completeness round shipped
+// legal.PlayerBoolIs(prop, want), so the gate is now
+// legal.PlayerBoolIs("DieCounted", false), added via WithLegalPreconditions in
+// main.go's ConfigureMoves (Workstream 9 re-migration); the
+// proposer/current-player check is contributed base-first by
+// moves.CurrentPlayer. The original imperative body (kept only as
+// legacyLegalMoveCountDie, a private copy in legal_golden_test.go, for
+// golden-equivalence testing) read:
+//
+//	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+//		return err
+//	}
+//	game, players := concreteStates(state)
+//	p := players[game.CurrentPlayer.EnsureValid(state)]
+//	if p.DieCounted {
+//		return errors.New("the most recent die roll has already been counted")
+//	}
+//	return nil
 func (m *moveCountDie) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 

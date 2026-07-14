@@ -7,8 +7,10 @@ import (
 	"github.com/mattes/migrate"
 	"github.com/workfit/tester/assert"
 	"log"
+	"net"
 	"os"
 	"testing"
+	"time"
 )
 
 const (
@@ -82,6 +84,11 @@ func GetTestDatabase(t *testing.T) *StorageManager {
 }
 
 func TestStorageManager(t *testing.T) {
+	conn, err := net.DialTimeout("tcp", "localhost:3306", 250*time.Millisecond)
+	if err != nil {
+		t.Skip("MySQL integration test requires a server on localhost:3306")
+	}
+	conn.Close()
 
 	test.Test(func() test.StorageManager {
 		return GetTestDatabase(t)

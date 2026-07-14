@@ -1,0 +1,24 @@
+{
+  "predicate": "stackEmpty",
+  "cases": [
+    {
+      "spec": {"name": "stackEmpty", "args": ["game.VisibleCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "stackEmpty", "args": ["game.HiddenCards"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.stack_empty"
+    },
+    {
+      "spec": {"name": "stackEmpty", "args": ["game.NoSuchStackProp"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

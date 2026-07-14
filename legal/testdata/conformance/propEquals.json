@@ -1,0 +1,81 @@
+{
+  "predicate": "propEquals",
+  "cases": [
+    {
+      "spec": {"name": "propEquals", "args": ["player.CardsLeftToReveal", "2"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["player.CardsLeftToReveal", "0"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_equals"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["player.PlayerInactive", "false"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["player.PlayerInactive", "true"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_equals"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["player.Color", "Red"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["player.Color", "Black"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_equals"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["player.Color", "Bogus"]},
+      "fixture": "checkersDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["move.TargetPlayerIndex", "0"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["move.TargetPlayerIndex", "observer"]},
+      "fixture": "memoryTargetObserver",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["move.TargetPlayerIndex", "1"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.prop_equals"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.HiddenCards", "foo"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    },
+    {
+      "spec": {"name": "propEquals", "args": ["game.NoSuchIntProp", "0"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

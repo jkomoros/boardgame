@@ -93,7 +93,7 @@ func TestBasic(t *testing.T) {
 			"",
 			false,
 			"saferanduse",
-			".",
+			"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg/testdata/saferanduse",
 		},
 	}
 

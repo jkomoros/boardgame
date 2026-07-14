@@ -1,0 +1,31 @@
+{
+  "predicate": "componentAbsentAt",
+  "cases": [
+    {
+      "spec": {"name": "componentAbsentAt", "args": ["game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "componentAbsentAt", "args": ["game.HiddenCards", "move.CardIndex"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.component_present_unexpected"
+    },
+    {
+      "spec": {"name": "componentAbsentAt", "args": ["game.VisibleCards", "move.CardIndex"]},
+      "fixture": "memoryVisibleOccupied",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.component_present_unexpected"
+    },
+    {
+      "spec": {"name": "componentAbsentAt", "args": ["game.HiddenCards", "move.CardIndex"]},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

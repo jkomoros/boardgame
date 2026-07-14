@@ -3,6 +3,8 @@
  * Replaces iron-ajax/boardgame-ajax with modern fetch-based approach.
  */
 
+import type { MoveForm } from './types/api';
+
 // API_HOST is defined in index.html
 declare const API_HOST: string;
 
@@ -222,4 +224,101 @@ export async function apiPost<T>(
       friendlyError: 'Unable to connect to the server',
     };
   }
+}
+
+/**
+ * Response from the single-move legality preview endpoint: the same moveForm the
+ * /info endpoint ships, with its legality fields
+ * (LegalForPlayer/LegalForPlayerError/Preconditions) computed against the
+ * current state for the given args.
+ */
+export interface MovePreviewResponse {
+  Form: MoveForm;
+}
+
+/**
+ * Asks the server whether one move — with the given field args — is currently
+ * legal for the requesting player, WITHOUT applying it. Returns the same
+ * moveForm shape (legality booleans + the advisory Preconditions ledger) the
+ * /info forms carry, so a client can show enabled/disabled + a reason as the
+ * player edits a move's args. Side-effect-free on the server, so safe to call on
+ * every keystroke. Sends form-encoded args (MoveType plus one entry per field),
+ * matching the real move endpoint's parsing.
+ *
+ * Intentionally DIFFERENT from movePreviewBatch, which is not accidental drift:
+ * this single primitive is the RICH one — it returns the full moveForm including
+ * the Preconditions ledger, for a focused "explain why this exact move is/isn't
+ * legal as you edit its fields" UI (the intended consumer; none ships yet, so
+ * the board graying uses the batch). movePreviewBatch is the COMPACT one —
+ * {Legal, Error} per candidate, nested Args JSON — for graying many board cells
+ * in one round-trip, where the ledger would be dead weight ×N. Footgun: because
+ * this flattens args alongside MoveType in the form body, a move whose field is
+ * literally named "MoveType" would collide with the selector (the batch's nested
+ * Args is immune); no real move does, but a new consumer should know.
+ *
+ * @param args - field name -> raw string value, exactly as the move form submits
+ * @param params - optional query params (e.g. { player } to preview as a
+ *   specific seat); omit to preview as the session's player, like submitMove
+ */
+export async function movePreview(
+  gameName: string,
+  gameId: string,
+  moveType: string,
+  args: Record<string, string> = {},
+  params?: Record<string, string | number | boolean>
+): Promise<ApiResponse<MovePreviewResponse>> {
+  return apiPost<MovePreviewResponse>(
+    buildGameUrl(gameName, gameId, 'movePreview', params),
+    { MoveType: moveType, ...args },
+    'application/x-www-form-urlencoded'
+  );
+}
+
+/**
+ * One arg-set to evaluate in a batch preview: the field values (fieldName ->
+ * string) to bind before checking legality.
+ */
+export interface MovePreviewCandidate {
+  Args: Record<string, string>;
+}
+
+/**
+ * One candidate's legality, returned in the same order as the request's
+ * candidates.
+ */
+export interface MovePreviewBatchResult {
+  Legal: boolean;
+  Error?: string;
+}
+
+/**
+ * Response from the batch legality preview endpoint: one result per requested
+ * candidate, in order.
+ */
+export interface MovePreviewBatchResponse {
+  Results: MovePreviewBatchResult[];
+}
+
+/**
+ * Evaluates many candidate arg-sets of ONE move type in a single round-trip —
+ * the call that lets a board gray all its illegal targets at once instead of one
+ * request per cell. Results come back in candidate order (correlate by index).
+ * Sends JSON {MoveType, Candidates}. Never applies anything.
+ *
+ * @param candidates - the arg-sets to test, e.g. one per board cell
+ * @param params - optional query params (e.g. { player }); omit to preview as
+ *   the session's player
+ */
+export async function movePreviewBatch(
+  gameName: string,
+  gameId: string,
+  moveType: string,
+  candidates: MovePreviewCandidate[],
+  params?: Record<string, string | number | boolean>
+): Promise<ApiResponse<MovePreviewBatchResponse>> {
+  return apiPost<MovePreviewBatchResponse>(
+    buildGameUrl(gameName, gameId, 'movePreviewBatch', params),
+    { MoveType: moveType, Candidates: candidates },
+    'application/json'
+  );
 }

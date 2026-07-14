@@ -39,8 +39,12 @@ func allFunc(currentCount, length int) error {
 	return errors.New("too many count have occurred")
 }
 
-// CountAny will return nil if currentCount is 1, denoting that any item has matched.
-// Equivalent to CountBetween(0,1).
+// CountAny will return nil if currentCount is precisely 1, denoting that any
+// single item has matched. Equivalent to CountExactly(1) — note it does NOT
+// accept zero matches. (An earlier version of this comment claimed
+// equivalence to CountBetween(0,1); that was never what the implementation
+// did, and the exactly-one behavior is what CountAll's doc cross-reference
+// and existing progressions rely on.)
 func CountAny() ValidCounter {
 	return anyFunc
 }

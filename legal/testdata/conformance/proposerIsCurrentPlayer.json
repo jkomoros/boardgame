@@ -1,0 +1,38 @@
+{
+  "predicate": "proposerIsCurrentPlayer",
+  "cases": [
+    {
+      "spec": {"name": "proposerIsCurrentPlayer"},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "proposerIsCurrentPlayer"},
+      "fixture": "memoryTargetPlayerOne",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.proposer_not_your_turn"
+    },
+    {
+      "spec": {"name": "proposerIsCurrentPlayer"},
+      "fixture": "memoryDefault",
+      "proposer": 1,
+      "expect": "fail",
+      "template": "legal.proposer_not_your_turn"
+    },
+    {
+      "spec": {"name": "proposerIsCurrentPlayer"},
+      "fixture": "memoryTargetObserver",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.proposer_target_invalid"
+    },
+    {
+      "spec": {"name": "proposerIsCurrentPlayer"},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

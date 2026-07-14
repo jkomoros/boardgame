@@ -188,16 +188,40 @@ func (c *ComponentChest) finish() {
 	}
 }
 
-// MarshalJSON returns all of the decks, connstants, and enums in this chest.
+// MarshalJSON returns all of the decks, connstants, enums, and legal
+// templates in this chest. LegalTemplates rides the chest JSON for the same
+// reason Enums always has (design spec §6, "Explainability": "shipped to
+// the client inside the chest JSON, exactly the channel enums already
+// ride"): it is per-manager (built once at NewGameManager, identical for
+// every game of this game type), so it belongs alongside the other
+// per-manager constants rather than in any per-game response. It is the
+// game's merged legal.DefaultTemplates() overlaid with the delegate's own
+// legal.TemplateConfigurer table (see buildLegalRegistryAndTemplates); nil
+// (omitted) for a game type with no declarative-legality moves at all,
+// since c.manager.legalTemplateTable is nil until assembleLegalPlans
+// allocates it.
 func (c *ComponentChest) MarshalJSON() ([]byte, error) {
 	obj := struct {
-		Decks     map[string]*Deck
-		Enums     *enum.Set
-		Constants map[string]interface{}
+		Decks          map[string]*Deck
+		Enums          *enum.Set
+		Constants      map[string]interface{}
+		LegalTemplates map[string]string `json:",omitempty"`
 	}{
 		c.decks,
 		c.enums,
 		c.constants,
+		c.legalTemplates(),
 	}
 	return DefaultMarshalJSON(obj)
+}
+
+// legalTemplates returns this chest's owning manager's merged legal
+// template table, or nil if the chest has no manager yet (shouldn't happen
+// post-boot, but MarshalJSON must not panic on a not-yet-finished chest) or
+// the manager has no declarative-legality moves at all.
+func (c *ComponentChest) legalTemplates() map[string]string {
+	if c.manager == nil {
+		return nil
+	}
+	return c.manager.legalTemplateTable
 }

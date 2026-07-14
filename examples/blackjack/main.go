@@ -13,6 +13,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/playingcards"
+	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -227,20 +228,60 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveStartRoundCleanup),
 				moves.WithHelpText("When all players have finished, transitions to round cleanup."),
+				// moves.WithPhaseToStart restored (Task 7, design spec §6
+				// A6): moveStartRoundCleanup re-embeds moves.StartPhase (see
+				// moves.go's doc comment) now that the seam allows it, so
+				// StartPhase.Apply -> PhaseToStart needs this configured
+				// again, exactly as the other StartPhase moves in this file
+				// do. moves.WithIsFixUp(true) is gone: moves.StartPhase
+				// embeds moves.FixUp, which defaults IsFixUp to true, so the
+				// explicit override from the moves.Default-embedding interim
+				// shape is no longer needed.
 				moves.WithPhaseToStart(phaseRoundCleanup, phaseEnum),
+				// Declarative migration (design spec §8's second flagship
+				// acid test): Legal() is deleted (see moves.go); this plan
+				// replaces it exactly. Default's own inPhase(phaseNormalPlay)
+				// atom (contributed automatically by moves.AddForPhase's
+				// WithLegalPhases call) runs first, matching the legacy
+				// super-call to StartPhase.Legal -> Default.Legal.
+				moves.WithLegalPreconditions(
+					legal.AllActivePlayers(
+						legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
+					).WithMessage("cleanup.players_unfinished"),
+				),
 			),
 			auto.MustConfig(
 				new(moveCurrentPlayerHit),
 				moves.WithHelpText("The current player hits, drawing a card."),
+				moves.WithLegalPreconditions(
+					legal.PlayerBoolIs("Eliminated", false).WithMessage("hit.already_busted"),
+					legal.StackNotEmpty("game.DrawStack").WithMessage("hit.no_cards_left"),
+				),
 			),
 			auto.MustConfig(
 				new(moveCurrentPlayerStand),
 				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
+				// Declarative migration: Legal() is deleted (see moves.go);
+				// its two negated-boolean gates are now these preconditions.
+				// The InPhase(phaseNormalPlay) atom is contributed by
+				// moves.AddForPhase and the proposer/current-player atom is
+				// contributed base-first by moves.CurrentPlayer, so neither is
+				// authored here. Order matters: Eliminated FIRST so its message
+				// wins if both are somehow true, matching the legacy body's
+				// top-to-bottom order (both gates are field-independent, so
+				// declaration order is preserved within the bucket).
+				moves.WithLegalPreconditions(
+					legal.PlayerBoolIs("Eliminated", false).WithMessage("stand.already_busted"),
+					legal.PlayerBoolIs("Stood", false).WithMessage("stand.already_stood"),
+				),
 			),
 			auto.MustConfig(
 				new(moveRevealHiddenCard),
 				moves.WithHelpText("Reveals the hidden card in the user's hand"),
 				moves.WithIsFixUp(true),
+				moves.WithLegalPreconditions(
+					legal.StackNotEmpty("player.HiddenHand").WithMessage("reveal.no_hidden_card"),
+				),
 			),
 			auto.MustConfig(
 				new(moves.FinishTurn),
@@ -314,6 +355,27 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 	)
 
+}
+
+// ConfigureLegalTemplates supplies the game-specific template keys the
+// migrated moves' WithLegalPreconditions plans override (design spec §8):
+//   - "cleanup.players_unfinished" (moveStartRoundCleanup): legal.
+//     AllActivePlayers' default message ("not every active player satisfies
+//     the required condition") is generic, so this override carries the exact
+//     legacy string from the pre-migration Legal() body.
+//   - "stand.already_busted" / "stand.already_stood" (moveCurrentPlayerStand):
+//     legal.PlayerBoolIs's default message (TemplatePlayerBool, e.g. "requires
+//     Eliminated to be false") is generic, so these overrides carry the exact
+//     legacy strings from that move's pre-migration Legal() body.
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+	return map[string]string{
+		"cleanup.players_unfinished": "not all active players have finished their turn",
+		"stand.already_busted":       "the current player has already busted",
+		"stand.already_stood":        "the current player already stood",
+		"hit.already_busted":         "Current player is busted",
+		"hit.no_cards_left":          "No cards left in draw stack",
+		"reveal.no_hidden_card":      "Target player has no cards to reveal",
+	}
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

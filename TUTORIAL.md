@@ -599,25 +599,270 @@ if your move is a FixUp move it's best to embed it so that
 
 Many Player moves can only be made by the CurrentPlayer. This move encodes which player the move applies to (set automatically in `DefaultsForState`) and also includes the logic to verify that the `proposer` of the move is allowed to make the move, and is modifiying their own state. (This logic is slightly tricky because it needs to accomodate `AdminPlayerIndex` making moves on behalf of any player).
 
-In typical use you embed this struct, and then check its Legal method at the top of your own Legal method, as in this example from memory:
+In typical use you embed this struct, and then either declare your move's legality (see "Declarative Move Legality" just below — this is the primary, recommended way today) or, for logic the declarative catalog can't express, override `Legal` and call the embedded type's `Legal` at the top of your own. (memory's `moveHideCards` was once the example here; its checks — how many cards are left to reveal, and whether any card is still showing — turned out to be expressible declaratively, so it has since been migrated. See "Declarative Move Legality" below.)
+
+A check that genuinely *cannot* be declared is a comparison between two components' values. memory's `moveCaptureCards` captures the two face-up cards only if they are the *same type*, comparing the `Type` of one revealed card against the `Type` of another — and the catalog has no "two components' properties equal each other" primitive (nor a Timer-state predicate, which its sibling `moveStartHideCardsTimer` also needs). It embeds `moves.FixUp` rather than `moves.CurrentPlayer`, but the escape-hatch shape is identical — super-call the embedded `Legal` first, then add your own checks:
 
 ```go
+// examples/memory/moves.go — moveCaptureCards.Legal (abridged)
+func (m *moveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	game, _ := concreteStates(state)
+
+	// ... gather the two face-up cards into revealedCards ...
+
+	cardOneType := revealedCards[0].Values().(*cardValue).Type
+	cardTwoType := revealedCards[1].Values().(*cardValue).Type
+
+	if cardOneType != cardTwoType {
+		return errors.New("The two revealed cards are not of the same type")
+	}
+
+	return nil
+}
+```
+
+Similarly, note that if you have your own logic in `DefaultsForState`, you should not forget to also call the embedded `DefaultsForState`.
+
+##### Declarative Move Legality
+
+Everything above — overriding `Legal()`, calling your embedded type's `Legal()` first, returning `errors.New(...)` for each failure condition — still works, forever. But for a large and growing class of legality checks, you don't have to write a `Legal()` method at all. Instead you *declare* the conditions as data, and the framework evaluates them for you.
+
+**This is purely sugar — read this paragraph before anything else in this section.** `Legal(state, proposer) error` remains the ground-truth contract. The imperative chain you just read about remains unchanged for every move that doesn't opt in. Declarative legality is an additional way to write a `Legal()`-equivalent for moves based on `moves.Default`, `moves.CurrentPlayer`, `moves.FixUp`, `moves.FixUpMulti`, or `moves.StartPhase`.
+
+###### A real before/after
+
+Here is memory's `moveRevealCard`, a `moves.CurrentPlayer` move, before this framework feature existed. This is not an invented example — it's the actual `Legal()` body that shipped for years, preserved verbatim in a comment in the current source (`examples/memory/moves.go:39-62`) for exactly this kind of historical reference:
+
+```go
+// examples/memory/moves.go:39-62 (historical -- preserved in a comment, no
+// longer compiled; see the "after" below for what replaced it)
+func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+        return err
+    }
+    game, players := concreteStates(state)
+    p := players[game.CurrentPlayer.EnsureValid(state)]
+    if p.CardsLeftToReveal < 1 {
+        return errors.New("You have no cards left to reveal this turn")
+    }
+    c := game.HiddenCards.ImmutableComponentAt(m.CardIndex)
+    if c == nil {
+        if game.VisibleCards.ImmutableComponentAt(m.CardIndex) == nil {
+            return errors.New("there is no card at that index")
+        }
+        return errors.New("that card has already been revealed")
+    }
+    return c.MayMoveToSlot(game.VisibleCards, m.CardIndex)
+}
+```
+
+Three checks, each with its own hand-written error string, plus a `MayMoveToSlot` pre-check to guarantee `Apply()`'s `MoveTo` call can't fail. Here is the *entire* move today — `Legal()` is gone:
+
+```go
+// examples/memory/moves.go:19-23 (verbatim)
+//boardgame:codegen
 type moveRevealCard struct {
     moves.CurrentPlayer
     CardIndex int
 }
 
-func (m *moveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+// DefaultsForState is unchanged -- omitted here, see moves.go.
+// Apply is unchanged -- omitted here, see moves.go.
+```
 
-    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-        return err
+The three checks moved to where the move is *installed*, in `main.go`'s `ConfigureMoves`, as data instead of code:
+
+```go
+// examples/memory/main.go:309-311,317-322 (verbatim)
+revealCardConfig := auto.MustConfig(
+    new(moveRevealCard),
+    moves.WithHelpText("Reveals the card at the specified location"),
+    moves.WithLegalPreconditions(
+        legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("reveal.no_cards_left"),
+        legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+        legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+    ),
+)
+```
+
+`moves.CurrentPlayer.Legal` — still called, exactly as before, since `moveRevealCard` no longer overrides `Legal()` at all — now detects the declared plan and evaluates it instead of running a chain. It runs, in order: `CurrentPlayer`'s own contributed proposer check (unchanged), then these three, base-first-then-declaration-order, exactly matching the old chain's checks and their historical first-failure precedence. `RevealableCardAt` is memory's one *purpose-built* predicate — a 12-line hand-written `Evaluate` function living in the catalog (`legal/catalog_purpose.go`) for the two-branch "no card here" vs. "already revealed" disambiguation that isn't a simple relation over one path; see "The escape hatch" below for when to reach for a purpose-built predicate versus `LegalCustom`.
+
+One string needed to be preserved explicitly, since the catalog's generic default text for `PropAtLeast`'s failure doesn't match the old bespoke message:
+
+```go
+// examples/memory/main.go:365-369 (verbatim)
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+    return map[string]string{
+        "reveal.no_cards_left": "You have no cards left to reveal this turn",
     }
-
-    // Logic specific to this move type goes here.
 }
 ```
 
-Similarly, note that if you have your own logic in `DefaultsForState`, you should not forget to also call the embedded `DefaultsForState`.
+`RevealableCardAt`'s two Fail branches and `MayMoveToSlot`'s pass-through already default to the exact legacy text (`legal.DefaultTemplates()`), so no override was needed for those. See "Templates" below.
+
+###### `WithLegalPreconditions` and the catalog
+
+`moves.WithLegalPreconditions(specs ...legal.Spec)` is a `CustomConfigurationOption`, passed to `auto.Config`/`auto.MustConfig` just like `WithHelpText` or `WithSourceProperty`. Calling it opts a move in, even with zero specs; the zero-argument spelling publishes and evaluates only the move base's contributed checks. Each `legal.Spec` names one predicate from the `legal` package's catalog (`peer to constraints — see package legal`); at boot, `NewGameManager` resolves every spec, validates every path it references, and assembles one ordered plan per move type: the move's *contributed* specs (derived automatically from the supported move base's own configuration — phase, move-progression, stack constraints, and, for `CurrentPlayer`, the proposer check) first, then your authored specs from `WithLegalPreconditions`, in the order you wrote them. Field-independent predicates may be memoized, but memoization never changes evaluation or ledger order. Implementing `LegalCustom` or calling `WithoutLegalPrecondition` also opts the move in automatically, because each is already an unambiguous request to assemble a plan.
+
+For an existing `Legal()` method: confirm its base is supported; remove the base super-call; move fixed path-shaped gates into `WithLegalPreconditions` in their original order; and, if algorithmic residue remains, rename `Legal` to `LegalCustom`. `LegalCustom` automatically opts the move in and runs last. Keep a wholesale `Legal()` only for unsupported bases or logic that cannot safely compose with a plan.
+
+The most common catalog predicates (full list: `legal.DefaultConstructors()`; representative signatures are compile-checked in `examples/memory/tutorial_snippets_test.go`):
+
+| Predicate | Passes when | Facet read |
+|---|---|---|
+| `legal.PropAtLeast(path string, n int)` | the int property at `path` is `>= n` | values |
+| `legal.PropCompare(path, op string, n int)` | the int property at `path` compares to `n` via `op` (`"<"`, `"<="`, `">"`, `">="`, `"=="`, `"!="`) | values |
+| `legal.PlayerBool(prop string)` | the bool property `prop` on the relevant player is `true` (sugar for `PlayerBoolIs(prop, true)`) | values |
+| `legal.PlayerBoolIs(prop string, want bool)` | the bool property `prop` on the relevant player equals `want` — the negation leaf for player bools (e.g. `PlayerBoolIs("DoneWithPhase", false)`) | values |
+| `legal.PlayerBoolAt(player legal.PlayerSelector, prop string, want bool)` | the selected player's bool property equals `want`; use a semantic behavior helper below when one exists | values |
+| `legal.PlayerHasSubmitted` / `PlayerHasNotSubmitted` | the selected player's `behaviors.PlayerSubmission` flag has the requested state | values |
+| `legal.PlayerIsActive` / `PlayerIsInactive` | the selected player's `behaviors.InactivePlayer` flag has the requested state | values |
+| `legal.PlayerSeatIsFilled` / `PlayerSeatIsClosed` | the selected player's `behaviors.Seat` flag is true | values |
+| `legal.PlayerIsAdmin` | the selected player's `behaviors.GameAdministrator` flag is true | values |
+| `legal.StackCount(path, op string, n int)` | the stack at `path`'s `NumComponents()` compares to `n` via `op` (same op vocabulary as `PropCompare`) | count |
+| `legal.StackEmpty(path string)` | the stack at `path` has zero components | non-empty (safe to reveal under `PolicyNonEmpty`) |
+| `legal.StackNotEmpty(path string)` | the stack at `path` has at least one component | non-empty |
+| `legal.PropEquals(path, value string)` | the property at `path` equals `value` — dispatches on the property's resolved type: int (`value` parses as int), bool (`"true"`/`"false"`), enum (`value` is a value NAME), or `PlayerIndex` (`value` is an int, or `"observer"`/`"admin"`) | values |
+| `legal.PropNotEquals(path, value string)` | the exact negation of `PropEquals` (an `Unknown` — unparseable value, unknown enum name — is never flipped to a Pass) | values |
+| `legal.ComponentPresentAt(stackPath, idxField string)` | the stack at `stackPath` has a non-nil component at the int index named by `idxField` | occupancy |
+| `legal.ComponentAbsentAt(stackPath, idxField string)` | the exact negation of `ComponentPresentAt` — no component at that index | occupancy |
+| `legal.ComponentPresentAtKey(stackPath, keyField string)` | like above, but the slot is identified by an enum-valued key (e.g. a board position) | occupancy |
+| `legal.MayMoveTo(srcPath, dstPath, idxField string)` | the component at `idxField` in `srcPath` could legally move into `dstPath` (`ImmutableComponentInstance.MayMoveTo`) | values |
+| `legal.MayMoveToSlot(srcPath, dstPath, idxField string)` | like above, but into the *same* index slot in `dstPath` (the "mirrored stacks" pattern, e.g. memory's `HiddenCards`/`VisibleCards`) | occupancy (src) + values (dst, idx) |
+| `legal.Any(subs ...legal.Spec)` | at least one of `subs` passes (Kleene: Pass beats Unknown beats Fail) | union of children |
+| `legal.AllActivePlayers(inner legal.Spec)` | `inner` holds for every active (non-inactive) player; `inner` must be `PlayerBool`/`PlayerBoolIs`, a player-path `PropAtLeast`/`PropCompare`, or an `Any` of those (int/bool-typed inner leaves only — see Limits) | per-player values |
+| `legal.RevealableCardAt(hiddenPath, visiblePath, idxField string)` | purpose-built two-branch occupancy check (see above) | occupancy |
+| `legal.ComponentPropEqualsCurrentPlayer(stackPath, keyField, prop string)` | the named component property at that slot equals the current player's identity (checkers' color↔player mapping) | values |
+
+`legal.ProposerIsCurrentPlayer()` exists too, but you'll rarely author it directly — `moves.CurrentPlayer` contributes it automatically, matching what `CurrentPlayer.Legal()` always checked. For a move that acts on behalf of a player named by one of its fields without requiring that player to be the current player, author `legal.ProposerIsPlayerFromMove("TargetPlayerIndex")`; admin engine moves bypass that actor check explicitly, while Observer and Any are rejected as actors.
+
+**Path grammar**, for any predicate above that takes a `path`/`stackPath`/`idxField` string argument: `"game.X"`, `"player.X"` (the current player), `"proposer.X"` (the concrete proposing player), `"move.X"` (a field on the move being evaluated), `"players[*].X"` (quantifier-only, inside `AllActivePlayers`), and `"players[move.<Field>].<Prop>"` — the player state of whichever player the move's own `<Field>` names. That field must be `boardgame.PlayerIndex`-typed; a plain int is a boot error because nothing marks it as a player index.
+
+For behavior-aware predicates, prefer typed selectors instead of writing those paths yourself:
+
+```go
+moves.WithLegalPreconditions(
+    // Correct during simultaneous play, where CurrentPlayer may be AnyPlayerIndex.
+    legal.PlayerHasNotSubmitted(legal.Proposer()),
+    // Select a player through a PlayerIndex field on the move.
+    legal.PlayerSeatIsFilled(legal.PlayerFromMove("TargetPlayerIndex")),
+)
+```
+
+`legal.CurrentPlayer()` selects `player.X`; `legal.Proposer()` selects `proposer.X`; and `legal.PlayerFromMove("Field")` selects `players[move.Field].X`. `PlayerSelector` is symbolic: all three variants share one player-index-source resolver and never manufacture a player for a sentinel. During simultaneous play `AnyPlayerIndex` is only the current-player wildcard; the proposer remains concrete. Observer and Any are invalid proposers. Semantic behavior helpers used with `Proposer()` explicitly bypass actor eligibility for `AdminPlayerIndex`; current-player and move-selected state requirements still run.
+
+Behavior helpers describe canonical persisted bool fields; they do not call arbitrary behavior methods or inject policy merely because state embeds a behavior. The move explicitly chooses the rule, player, and polarity.
+
+**The catalog's rule of growth:** first prefer a general relation over a property path. Add a purpose-built predicate such as `RevealableCardAt` only for small, reusable branchy logic that cannot be expressed by those relations. Arithmetic, loops, and hidden game-specific business logic belong in computed state or `LegalCustom`, never an inline lambda.
+
+###### Templates
+
+Every declarative failure carries a `Message{Template, Bindings}` — a template *key*, never a pre-baked string — so it can be localized, grepped, and re-rendered anywhere (server logs, the fixup rejection log, someday a TS client). `legal.DefaultTemplates()` ships default English text for every built-in predicate's failure. A game overrides or adds keys via an optional delegate method, validated at boot (an unregistered key referenced anywhere is a boot error naming the move):
+
+```go
+// examples/blackjack/main.go:343-347 (verbatim)
+func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
+    return map[string]string{
+        "cleanup.players_unfinished": "not all active players have finished their turn",
+    }
+}
+```
+
+Use `.WithMessage("your.key")` on any `legal.Spec` to point its failure at a specific key instead of the predicate's default, as memory's `PropAtLeast(...).WithMessage("reveal.no_cards_left")` did above.
+
+###### The escape hatch: `LegalCustom` and `WithoutLegalPrecondition`
+
+Not everything belongs in the catalog, and that's fine — it's not a gap to be worked around, it's the design. Two knobs handle the remaining cases:
+
+**`LegalCustom`** runs imperative code *after* every declared precondition has passed — the residue that doesn't fit a relation-over-a-path. Checkers' `moveMoveToken` combines three declarative gates with one purpose-built predicate, then a graph-walk of legal capture/move destinations that stays fully imperative:
+
+```go
+// examples/checkers/moves.go:165-187 (verbatim)
+func (m *moveMoveToken) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+    g := state.ImmutableGameState().(*gameState)
+
+    c := g.Spaces.ImmutableComponentAtKey(m.TokenIndexToMove.Value())
+
+    t := c.Values().(*token)
+
+    //If it's one of the legal spaces, great.
+    for _, space := range t.FreeNextSpaces(state, m.TokenIndexToMove.Value().Int()) {
+        if m.SpaceIndex.Value().Int() == space {
+            return nil
+        }
+    }
+
+    for _, space := range t.LegalCaptureSpaces(state, m.TokenIndexToMove.Value().Int()) {
+        if m.SpaceIndex.Value().Int() == space {
+            return nil
+        }
+    }
+
+    return legal.Errorf("checkers.illegal_dest", nil)
+}
+```
+
+`legal.Errorf(templateKey, bindings)` returns an `error` that carries a structured, template-rendered message, exactly like a declarative Fail — use it instead of `errors.New` inside `LegalCustom` when you want the same explainability the catalog gets for free. A plain `errors.New` still works; it's wrapped as a one-off template. Implementing `LegalCustom` automatically opts a supported move into declarative legality, so a custom-only move needs no ceremonial constructor option. `LegalCustom` on an unsupported base or on a move that also wholesale-overrides `Legal()` is a boot error, since no safe plan seam could reach it.
+
+**`WithoutLegalPrecondition(name moves.PreconditionName)`** suppresses one *contributed* check by its stable name — pass one of the exported constants `moves.PreconditionInPhase`, `moves.PreconditionInProgression`, `moves.PreconditionStackConstraints`, or `moves.PreconditionProposerIsCurrentPlayer` — for a move that wants to opt out of something it would otherwise inherit. Calling it also opts the move in; requiring a separate marker would make an explicit suppression silently inert:
+
+```go
+// synthetic example, compile-checked in
+// examples/memory/tutorial_snippets_test.go's
+// TestTutorialSnippetWithoutLegalPrecondition
+auto.Config(
+    new(moveCaptureCards), // embeds moves.FixUp
+    moves.WithLegalPhases(phaseNormalPlay), // usually via moves.AddForPhase
+    moves.WithoutLegalPrecondition(moves.PreconditionInPhase), // legal in ANY phase
+)
+```
+
+Suppression is validated at boot, so it can never silently do nothing:
+
+- A name that matches **no check the move actually contributes** is a boot error naming the move, the unmatched name, and the move's real contributed names. This catches both a typo (`"inphase"` — another reason to pass the constants, which make typos a compile error) and suppressing a check the move never had (e.g. `moves.PreconditionInProgression` on a move with no move progression — in the example above, dropping the `WithLegalPhases` line would make the `inPhase` suppression itself a boot error).
+- A suppression automatically assembles a plan, even when it is the move's only declarative configuration.
+- Suppressing `moves.PreconditionProposerIsCurrentPlayer` on a move that embeds `moves.CurrentPlayer` is a **boot error** of its own: the plan can drop the atom, but `CurrentPlayer.Legal()`'s own imperative proposer check still runs — the suppression would be a no-op on actual legality while telling the client the move is proposable by anyone, exactly the client/server divergence the system exists to prevent. If a move genuinely shouldn't be proposer-gated, embed `moves.Default` (or `moves.FixUp`) instead of `moves.CurrentPlayer`.
+
+###### What the client gets for free
+
+None of this requires the client to change anything — `LegalForPlayer`, `LegalForPlayerError`, and `LegalForAnyone` on each move form are unchanged, byte-identical for an opaque (non-declarative) move. But for a move that opted in, the server ships an additional per-predicate ledger alongside them (`server/api/main.go:80-121`; schematic — field names match `server/api/main.go`'s `preconditionEntry` struct tags; not literal output):
+
+```jsonc
+"Preconditions": [
+  {"name": "proposerIsCurrentPlayer", "verdict": "pass", "evaluable": true, "provisional": true},
+  {"name": "propAtLeast", "args": ["player.CardsLeftToReveal", "1"], "verdict": "fail",
+   "message": {"template": "reveal.no_cards_left"}, "evaluable": true},
+  {"name": "custom", "verdict": "unknown", "evaluable": false}
+]
+```
+
+Each entry is `pass`/`fail`/`unknown` for one named predicate, plus:
+
+- **`evaluable`** — whether the generic client catalog knows the predicate's semantics, its complete expression is serialized, and every property it reads survives sanitization for the viewer. Game predicates default to false; `LegalCustom` is false; compositors or quantifiers whose child expression is not shipped are false.
+- **`provisional`** — this verdict was computed against server-chosen default field values (the same caveat `LegalForPlayer` already carries at the whole-move level), so filling out the move's form differently could change the answer.
+- **`message`** — present on `fail`/`unknown`; bindings are stripped entirely when `evaluable` is `false`, so a lower-privileged viewer is never handed data derived from state they can't see, even indirectly through a binding.
+
+Today the *server* is still the one evaluating every predicate (there is no TypeScript evaluator yet — a designed-for follow-up); the ledger's value right now is explainability (a structured reason for every check, not just one flattened error string) and future-proofing the wire format for client-side evaluation later.
+
+###### Limits (read this before relying on the catalog)
+
+The wire catalog is v4. It includes counts, typed equality, move-field-indexed player paths, explicit negation leaves, typed proposer selectors, explicit admin policy, and the stricter client-evaluability contract. Some honest boundaries remain:
+
+- **`player.X` still means current player, not proposer.** Use `legal.Proposer()` for a proposing player's persisted behavior state during simultaneous play, or `legal.PlayerFromMove("Field")` when the move explicitly names the relevant player. Proposer reads are conservatively marked client-evaluable only when every player's sanitization policy exposes that property; this avoids assuming the ledger viewer and proposer are always the same identity.
+- **Stack-count/emptiness now has catalog primitives** (`StackCount`/`StackEmpty`/`StackNotEmpty`, above) — the v1 gap that blocked the most real migrations (debuganimations, pass, darwin, valentine all hit it) is closed.
+- **Typed equality now has a catalog primitive** (`PropEquals`/`PropNotEquals`, above) — int/bool/enum/`PlayerIndex` compares, including the `"observer"`/`"admin"` specials, no longer force a fallback to `LegalCustom`. One honest wrinkle: an unknown enum value NAME or a mismatched-type value is a `LegalUnknown` at *evaluate* time, not a boot-time construction error (a constructor-time typo guard catches most cases when a chest is available, but the "unknown enum name = boot error" design-doc aspiration isn't fully delivered — see the completeness-round spec's implementation notes).
+- **Negation is explicit-leaf-only, not general.** `PlayerBoolIs(prop, false)`, `PropNotEquals`, and `ComponentAbsentAt` cover common single-property negations; `any` remains the only compositor, so `(A∧B)∨(C∧D)` stays `LegalCustom`.
+- **`AllActivePlayers`'s inner leaf only accepts int/bool-typed properties** (`PlayerBool`/`PlayerBoolIs`, player-path `PropAtLeast`/`PropCompare`, or an `Any` of those) — a per-player quantifier over an enum- or `PlayerIndex`-typed property (e.g. "every active player has voted", where the vote is a `PlayerIndex`) has no expression yet, even though `PropEquals` supports those types at the top level. Real gap, not yet closed — found migrating a werewolf-shaped game.
+- **The composition seam is `moves.Default`, `moves.CurrentPlayer`, `moves.FixUp`, `moves.FixUpMulti`, and `moves.StartPhase`.** `CurrentPlayer` has a plan-aware `Legal` override and returns after its `Default.Legal` super-call evaluates a plan, avoiding duplicate proposer enforcement. Other framework move types remain opaque and reject declarative configuration at boot.
+- **`MayMoveTo`/`MayMoveToSlot` take a single index field**, used for both the source lookup and (for `MayMoveToSlot`) the destination slot — there's no variant for a source index and a *different* destination index.
+- **`DynamicComponentValues` still have no path grammar equivalent.** A check that reads a component's per-game dynamic values (as opposed to its static chest-defined `Values()`) — a card's current face-up type after a swap, a species' population counter, and the like — has no declarative expression at all; it always needs `LegalCustom`. This is the single most common reason a real move stays partially opaque across every game surveyed so far.
+
+None of these are dead ends: the escape hatch (`LegalCustom`) always works, and every one of these is exactly the kind of gap the catalog's "growth rule" above is designed to fill in, one purpose-built predicate at a time, as real games need it.
 
 ##### moves.FinishTurn
 
@@ -734,30 +979,18 @@ The `Name` property is a unique-within-this-game-package, human-readable name fo
 
 The most important aspect is the `Constructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
 
+`moveHideCards` is legal when two conditions hold: the current player has finished revealing (`CardsLeftToReveal` is no longer positive), and a card is still showing to hide. Rather than write a `Legal` method, it *declares* those conditions on its config — the recommended approach (see "Declarative Move Legality" above):
+
 ```go
-func (m *moveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-        return err
-    }
-
-    game, players := concreteStates(state)
-
-    p := players[game.CurrentPlayer]
-
-    if p.CardsLeftToReveal > 0 {
-        return errors.New("You still have to reveal more cards before your turn is over")
-    }
-
-    if game.VisibleCards.NumComponents() < 1 {
-        return errors.New("No cards left to hide!")
-    }
-
-    return nil
-}
+moves.WithLegalPreconditions(
+    legal.PropCompare("player.CardsLeftToReveal", "<=", 0).WithMessage("hide.cards_still_to_reveal"),
+    legal.StackNotEmpty("game.VisibleCards").WithMessage("hide.no_cards_to_hide"),
+)
 ```
 
-This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Default includes important logic in its Legal implementation.
+attached to the move when it is installed (the "Declarative Move Legality" section above shows the mechanics). The framework evaluates these in place of a `Legal` method, and `moves.CurrentPlayer`'s own proposer/current-player check is contributed automatically — so the two verbatim legacy strings above are the only game-specific part.
+
+The imperative alternative still works for any move, and is exactly what the frozen chain runs for moves that don't opt in: override `Legal`, super-call the embedded type's `Legal` first (always — even `moves.Default` contributes important logic), then add your own checks. Use that shape (see the `moves.CurrentPlayer` section above) when a check can't be declared.
 
 ```go
 func (m *moveHideCards) Apply(state boardgame.State) error {
@@ -1309,6 +1542,8 @@ You can use `boardgame-status-text` to render text that will automatically show 
 - `isMovePossible(moveName)` — returns `true` if the move is structurally legal (legal for any player / admin). Use this to **hide** buttons entirely (e.g. when the move doesn't apply in the current game phase).
 
 The legality info includes three fields per move: `LegalForPlayer` (is it legal for this player?), `LegalForPlayerError` (the error message if not), and `LegalForAnyone` (is it legal for anyone?). These are server-authoritative — no game logic duplication needed in the client.
+
+For a move whose author opted in to declarative legality (see "Declarative Move Legality" above), the move form also carries a `Preconditions` ledger — one entry per declared check, with its own pass/fail/unknown verdict, whether a client could in principle re-derive that verdict itself (`evaluable`), and whether it's provisional (computed against server-default field values). There is no client-side evaluator yet (`isMoveCurrentlyLegal`/`isMovePossible` above remain the whole story for now, and they already reflect the server's declarative evaluation for opted-in moves); the ledger exists today for explainability and to future-proof the wire format for client-side evaluation later.
 
 #### Generated Move Name Constants
 
