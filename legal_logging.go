@@ -47,7 +47,7 @@ func legalFixupRejectionPredicateName(manager *GameManager, moveName string, sta
 		return ""
 	}
 
-	_, entries := plan.evaluate(LegalContext{State: state, Move: move, Proposer: proposer, Chest: manager.chest}, true)
+	_, entries := plan.evaluate(LegalContext{State: state, Move: move, ProposerPlayerIndex: proposer, Chest: manager.chest}, true)
 	for _, entry := range entries {
 		if entry.Verdict.Outcome != LegalPass {
 			return entry.Name

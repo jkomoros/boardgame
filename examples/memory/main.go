@@ -314,7 +314,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		// in the same order the old imperative chain ran (CurrentPlayer's
 		// proposer check is contributed automatically, then these three in
 		// declaration order).
-		moves.WithPreconditions(
+		moves.WithLegalPreconditions(
 			legal.PropAtLeast("player.CardsLeftToReveal", 1).WithMessage("reveal.no_cards_left"),
 			legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 			legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
@@ -332,7 +332,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		// wrongly reject a negative value the imperative `>0` treats as legal)
 		// mirrors `if CardsLeftToReveal > 0 { fail }`; StackNotEmpty mirrors
 		// `if VisibleCards.NumComponents() < 1 { fail }`.
-		moves.WithPreconditions(
+		moves.WithLegalPreconditions(
 			legal.PropCompare("player.CardsLeftToReveal", "<=", 0).WithMessage("hide.cards_still_to_reveal"),
 			legal.StackNotEmpty("game.VisibleCards").WithMessage("hide.no_cards_to_hide"),
 		),
@@ -355,10 +355,16 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(moveCaptureCards),
 			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
+			moves.WithLegalPreconditions(
+				legal.StackCount("game.VisibleCards", legal.OpEqual, 2).WithMessage("memory.two_cards_required"),
+			),
 		),
 		auto.MustConfig(
 			new(moveStartHideCardsTimer),
 			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
+			moves.WithLegalPreconditions(
+				legal.StackCount("game.VisibleCards", legal.OpEqual, 2).WithMessage("memory.two_cards_required"),
+			),
 		),
 	)
 }
@@ -384,6 +390,7 @@ func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 		"reveal.no_cards_left":       "You have no cards left to reveal this turn",
 		"hide.cards_still_to_reveal": "You still have to reveal more cards before your turn is over",
 		"hide.no_cards_to_hide":      "no cards left to hide",
+		"memory.two_cards_required":  "there aren't two cards showing",
 	}
 }
 

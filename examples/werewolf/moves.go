@@ -26,7 +26,7 @@ import (
 // cited here no longer applies. In practice that doesn't create any work:
 // this move has no Legal() override of its own (it relies entirely on
 // moves.StartPhase's -> moves.Default's frozen chain) and declares no
-// custom gate, so there is nothing to opt into WithPreconditions for — an
+// custom gate, so there is nothing to opt into WithLegalPreconditions for — an
 // open seam doesn't manufacture content where none exists. Unaffected by
 // this task.
 //

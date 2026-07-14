@@ -71,6 +71,7 @@ func stackCountConstructor() *PredicateConstructor {
 
 			return &Predicate{
 				Name:             "stackCount",
+				ClientEvaluable:  true,
 				Args:             spec.Args,
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetCount}},
 				Cost:             boardgame.LegalCostCheap,
@@ -118,6 +119,7 @@ func stackEmptinessConstructor(name string, template string, wantEmpty bool) *Pr
 
 			return &Predicate{
 				Name:             name,
+				ClientEvaluable:  true,
 				Args:             spec.Args,
 				Reads:            []Read{{Path: PropPath(path), Facet: FacetNonEmpty}},
 				Cost:             boardgame.LegalCostCheap,

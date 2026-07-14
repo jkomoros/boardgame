@@ -416,7 +416,7 @@ func (d *legalLedgerDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(legalLedgerMoveOptedIn),
 			moves.WithMoveName("Opted In"),
-			moves.WithPreconditions(
+			moves.WithLegalPreconditions(
 				// game.HiddenCounter starts at 0, so this always fails --
 				// exactly what the bindings-stripping / evaluable tests
 				// need (a real Fail carrying real Bindings to strip).
@@ -442,7 +442,7 @@ type legalLedgerMoveOptedIn struct {
 
 func (m *legalLedgerMoveOptedIn) Apply(state boardgame.State) error { return nil }
 
-// legalLedgerMoveOpaque never calls WithPreconditions -- an opaque
+// legalLedgerMoveOpaque never calls WithLegalPreconditions -- an opaque
 // (non-opted-in) move type sharing this fixture's manager, so a single test
 // game can exercise both the ledger path and the frozen two-call path.
 type legalLedgerMoveOpaque struct {

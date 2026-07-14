@@ -1,0 +1,24 @@
+{
+  "predicate": "playerBoolAt",
+  "cases": [
+    {
+      "spec": {"name": "playerBoolAt", "args": ["player.SeatFilled", "true"]},
+      "fixture": "memorySeatFilled",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "playerBoolAt", "args": ["proposer.SeatFilled", "false"]},
+      "fixture": "memorySeatFilled",
+      "proposer": 0,
+      "expect": "fail",
+      "template": "legal.player_bool"
+    },
+    {
+      "spec": {"name": "playerBoolAt", "args": ["proposer.SeatFilled", "false"]},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    }
+  ]
+}

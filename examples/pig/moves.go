@@ -3,7 +3,6 @@ package pig
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
-	"github.com/jkomoros/boardgame/legal"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -29,7 +28,7 @@ type moveCountDie struct {
  **************************************************/
 
 // Legal() is deliberately absent: this move opted into declarative legality
-// (design spec §8 survey, Task 12) via the moves.WithPreconditions call in
+// (design spec §8 survey, Task 12) via the moves.WithLegalPreconditions call in
 // main.go's ConfigureMoves. The original imperative body (kept only as
 // legacyLegalMoveRollDice, a private copy in legal_golden_test.go, for
 // golden-equivalence testing) read:
@@ -75,12 +74,9 @@ func (m *moveRollDice) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-// Legal() is deliberately absent: this move opted into declarative legality
-// (design spec §8 survey, Task 12) PARTIALLY -- only the DieCounted gate has
-// a catalog primitive (legal.PlayerBool); the "already done" check has none
-// (v1's catalog has no negated-boolean predicate -- see LegalCustom below
-// and the Task 12 report's design-feedback note), so it survives as
-// imperative residue. The original imperative body (kept only as
+// Legal() is deliberately absent: both stored bool gates are declared with
+// PlayerBool/PlayerBoolIs in ConfigureMoves. The original imperative body
+// (kept only as
 // legacyLegalMoveDoneTurn, a private copy in legal_golden_test.go, for
 // golden-equivalence testing) read:
 //
@@ -96,18 +92,6 @@ func (m *moveRollDice) Apply(state boardgame.State) error {
 //		return errors.New("you already signaled that you are done")
 //	}
 //	return nil
-func (m *moveDoneTurn) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	_, players := concreteStates(state)
-
-	p := players[state.CurrentPlayerIndex().EnsureValid(state)]
-
-	if p.Done {
-		return legal.Errorf("pig.already_done", nil)
-	}
-
-	return nil
-}
-
 func (m *moveDoneTurn) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
@@ -129,7 +113,7 @@ func (m *moveDoneTurn) Apply(state boardgame.State) error {
 // because its only gate is a NEGATED boolean (DieCounted must be false) and
 // v1's catalog had no negation primitive. The completeness round shipped
 // legal.PlayerBoolIs(prop, want), so the gate is now
-// legal.PlayerBoolIs("DieCounted", false), added via WithPreconditions in
+// legal.PlayerBoolIs("DieCounted", false), added via WithLegalPreconditions in
 // main.go's ConfigureMoves (Workstream 9 re-migration); the
 // proposer/current-player check is contributed base-first by
 // moves.CurrentPlayer. The original imperative body (kept only as

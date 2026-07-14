@@ -34,6 +34,7 @@ func TestDefaultTemplatePlaceholdersCoveredByEmittedBindings(t *testing.T) {
 		"propAtLeast":                      PropAtLeast("game.Counter", 1),
 		"propCompare":                      PropCompare("game.Counter", "==", 1),
 		"playerBool":                       PlayerBool("SomeBool"),
+		"playerBoolAt":                     PlayerBoolAt(CurrentPlayer(), "SomeBool", true),
 		"propEquals":                       PropEquals("game.Counter", "1"),
 		"propNotEquals":                    PropNotEquals("game.Counter", "1"),
 		"componentPresentAt":               ComponentPresentAt("game.SomeStack", "move.SomeIndex"),
@@ -43,6 +44,7 @@ func TestDefaultTemplatePlaceholdersCoveredByEmittedBindings(t *testing.T) {
 		"mayMoveToSlot":                    MayMoveToSlot("game.SrcStack", "game.DstStack", "move.SomeIndex"),
 		"allActivePlayers":                 AllActivePlayers(PlayerBool("SomeBool")),
 		"proposerIsCurrentPlayer":          ProposerIsCurrentPlayer(),
+		"proposerIsPlayerFromMove":         ProposerIsPlayerFromMove("TargetPlayerIndex"),
 		"revealableCardAt":                 RevealableCardAt("game.HiddenStack", "game.VisibleStack", "move.SomeIndex"),
 		"componentPropEqualsCurrentPlayer": ComponentPropEqualsCurrentPlayer("game.SomeStack", "move.SomeKey", "Color"),
 		"inPhase":                          InPhase(),
@@ -100,6 +102,22 @@ func TestDefaultTemplatePlaceholdersCoveredByEmittedBindings(t *testing.T) {
 	// key covered so the completeness sweep below stays honest about where
 	// its proof lives.
 	covered[TemplateInProgression] = true
+	// These behavior-aware templates are selected by semantic wrappers around
+	// playerBoolAt. They intentionally carry no placeholders.
+	for _, key := range []string{
+		TemplatePlayerAlreadySubmitted,
+		TemplatePlayerNotSubmitted,
+		TemplatePlayerInactive,
+		TemplatePlayerActive,
+		TemplateSeatNotFilled,
+		TemplateSeatNotClosed,
+		TemplatePlayerNotAdmin,
+	} {
+		if placeholders := boardgame.LegalTemplatePlaceholders(table[key]); len(placeholders) != 0 {
+			t.Errorf("behavior template %q unexpectedly references placeholders %v", key, placeholders)
+		}
+		covered[key] = true
+	}
 
 	// The core "any" compositor (resolved by boardgame.resolveLegalSpecs,
 	// never through this registry) attaches NO bindings to its Fail/Unknown

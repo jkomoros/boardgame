@@ -28,7 +28,14 @@ import (
 // VOCABULARY did, which is what this stamp tracks. No design argument in
 // the completeness round relies on client-side skew handling, since that
 // doesn't exist until sub-project B — this bump is forward pin only.
-const LegalCatalogVersion = 2
+//
+// v2 -> v3 adds the playerBoolAt predicate and proposer.X path kind used by
+// typed behavior-aware player selectors.
+//
+// v3 -> v4 adds LegalSpec.adminPolicy and tightens the ledger's evaluable
+// contract to require a generic client implementation, not merely a
+// serializable predicate with viewer-visible reads.
+const LegalCatalogVersion = 4
 
 // LegalOutcome is the three-valued verdict returned by legality evaluation.
 // The zero value is deliberately invalid (neither LegalPass, LegalFail, nor
@@ -221,7 +228,21 @@ type LegalSpec struct {
 	Sub []LegalSpec `json:"sub,omitempty"`
 	// Message, if set, overrides the predicate's default template key.
 	Message string `json:"message,omitempty"`
+	// AdminPolicy controls how this predicate behaves when the engine/admin
+	// is the proposer. The zero value evaluates normally. AdminBypass is only
+	// valid for proposer-dependent predicates reading proposer or move fields.
+	AdminPolicy LegalAdminPolicy `json:"adminPolicy,omitempty"`
 }
+
+// LegalAdminPolicy describes the explicit AdminPlayerIndex behavior of a
+// predicate. It is predicate policy, not player-path resolution policy: an
+// admin never masquerades as a concrete player state.
+type LegalAdminPolicy string
+
+const (
+	LegalAdminEvaluate LegalAdminPolicy = ""
+	LegalAdminBypass   LegalAdminPolicy = "bypass"
+)
 
 // WithMessage returns a copy of s with Message set to templateKey. s itself
 // is not modified.
@@ -235,4 +256,12 @@ func (s LegalSpec) WithMessage(templateKey string) LegalSpec {
 // source compatibility.
 func (s LegalSpec) WithTemplateKey(templateKey string) LegalSpec {
 	return s.WithMessage(templateKey)
+}
+
+// WithAdminBypass marks a proposer-dependent eligibility predicate as
+// satisfied for AdminPlayerIndex. Boot validation restricts its reads to the
+// proposer and move fields.
+func (s LegalSpec) WithAdminBypass() LegalSpec {
+	s.AdminPolicy = LegalAdminBypass
+	return s
 }

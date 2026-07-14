@@ -283,6 +283,7 @@ func propEqualsFamilyConstructor(name, defaultTemplate string, negate bool) *Pre
 
 			return &Predicate{
 				Name:             name,
+				ClientEvaluable:  true,
 				Args:             spec.Args,
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostTrivial,
@@ -381,6 +382,7 @@ func propAtLeastConstructor() *PredicateConstructor {
 
 			return &Predicate{
 				Name:             "propAtLeast",
+				ClientEvaluable:  true,
 				Args:             spec.Args,
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostCheap,
@@ -430,6 +432,7 @@ func propCompareConstructor() *PredicateConstructor {
 
 			return &Predicate{
 				Name:             "propCompare",
+				ClientEvaluable:  true,
 				Args:             spec.Args,
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostCheap,
@@ -499,6 +502,7 @@ func playerBoolConstructor() *PredicateConstructor {
 
 			return &Predicate{
 				Name:             "playerBool",
+				ClientEvaluable:  true,
 				Args:             spec.Args,
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
 				Cost:             boardgame.LegalCostTrivial,

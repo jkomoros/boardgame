@@ -244,7 +244,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				// atom (contributed automatically by moves.AddForPhase's
 				// WithLegalPhases call) runs first, matching the legacy
 				// super-call to StartPhase.Legal -> Default.Legal.
-				moves.WithPreconditions(
+				moves.WithLegalPreconditions(
 					legal.AllActivePlayers(
 						legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
 					).WithMessage("cleanup.players_unfinished"),
@@ -253,6 +253,10 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveCurrentPlayerHit),
 				moves.WithHelpText("The current player hits, drawing a card."),
+				moves.WithLegalPreconditions(
+					legal.PlayerBoolIs("Eliminated", false).WithMessage("hit.already_busted"),
+					legal.StackNotEmpty("game.DrawStack").WithMessage("hit.no_cards_left"),
+				),
 			),
 			auto.MustConfig(
 				new(moveCurrentPlayerStand),
@@ -266,7 +270,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				// wins if both are somehow true, matching the legacy body's
 				// top-to-bottom order (both gates are field-independent, so
 				// declaration order is preserved within the bucket).
-				moves.WithPreconditions(
+				moves.WithLegalPreconditions(
 					legal.PlayerBoolIs("Eliminated", false).WithMessage("stand.already_busted"),
 					legal.PlayerBoolIs("Stood", false).WithMessage("stand.already_stood"),
 				),
@@ -275,6 +279,9 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moveRevealHiddenCard),
 				moves.WithHelpText("Reveals the hidden card in the user's hand"),
 				moves.WithIsFixUp(true),
+				moves.WithLegalPreconditions(
+					legal.StackNotEmpty("player.HiddenHand").WithMessage("reveal.no_hidden_card"),
+				),
 			),
 			auto.MustConfig(
 				new(moves.FinishTurn),
@@ -351,7 +358,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 }
 
 // ConfigureLegalTemplates supplies the game-specific template keys the
-// migrated moves' WithPreconditions plans override (design spec §8):
+// migrated moves' WithLegalPreconditions plans override (design spec §8):
 //   - "cleanup.players_unfinished" (moveStartRoundCleanup): legal.
 //     AllActivePlayers' default message ("not every active player satisfies
 //     the required condition") is generic, so this override carries the exact
@@ -365,6 +372,9 @@ func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {
 		"cleanup.players_unfinished": "not all active players have finished their turn",
 		"stand.already_busted":       "the current player has already busted",
 		"stand.already_stood":        "the current player already stood",
+		"hit.already_busted":         "Current player is busted",
+		"hit.no_cards_left":          "No cards left in draw stack",
+		"reveal.no_hidden_card":      "Target player has no cards to reveal",
 	}
 }
 

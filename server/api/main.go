@@ -85,7 +85,7 @@ type moveForm struct {
 	IsGatheringStart    bool   `json:",omitempty"`
 	// Preconditions is the per-predicate declarative-legality ledger (design
 	// spec §6) for a move type that opted in to declarative legality
-	// (WithPreconditions). It is absent (nil, hence omitempty) for an opaque
+	// (WithLegalPreconditions). It is absent (nil, hence omitempty) for an opaque
 	// move — one with no assembled plan — so an un-migrated game's moveForm
 	// JSON is byte-identical to the pre-Task-10 shape.
 	Preconditions []preconditionEntry `json:",omitempty"`
@@ -106,11 +106,10 @@ type preconditionEntry struct {
 	// to the #693 guard below) its bindings. Absent on a Pass verdict.
 	Message *legalMessageJSON `json:"message,omitempty"`
 	// Evaluable reports whether a CLIENT (not just the server) could
-	// reproduce this entry's verdict: entry.Serializable AND every one of
-	// its declared Reads survives the requesting viewer's sanitization
-	// (design spec §6). An "any" compositor is evaluable iff every child
-	// is, automatically, since its Reads is already the union of its
-	// children's.
+	// reproduce this entry's verdict: its semantics are implemented by the
+	// generic client catalog, it is serializable, and every declared Read
+	// survives the requesting viewer's sanitization. Game predicates and
+	// compositors whose child specs are not shipped are false.
 	Evaluable bool `json:"evaluable"`
 	// Provisional marks a field-dependent verdict: it was computed against
 	// a server-chosen (DefaultsForState-bound) move, so a different choice
@@ -1838,7 +1837,7 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 //
 //   - Opaque (no assembled plan): the frozen two-Legal()-call path, byte-
 //     identical to the pre-Task-10 server — see legalFormOpaque.
-//   - Opted-in (WithPreconditions): the SAME two Legal() calls derive the
+//   - Opted-in (WithLegalPreconditions): the SAME two Legal() calls derive the
 //     LegalForPlayer/LegalForPlayerError/LegalForAnyone booleans (they are
 //     the ground truth — the exact calls game.ProposeMove gates on), and a
 //     player-perspective full-ledger evaluation
@@ -1992,7 +1991,7 @@ func legalFormFromLedger(moveItem *moveForm, state boardgame.ImmutableState, mov
 // verdict a viewer cannot independently confirm must not leak the state
 // values that produced it, only the template key naming WHY it failed).
 func buildPreconditionEntry(state boardgame.ImmutableState, viewer boardgame.PlayerIndex, entry boardgame.LegalVerdictEntry) preconditionEntry {
-	evaluable := entry.Serializable && boardgame.LegalReadsEvaluable(state, viewer, entry.Reads)
+	evaluable := entry.ClientEvaluable && entry.Serializable && boardgame.LegalReadsEvaluable(state, viewer, entry.Reads)
 
 	out := preconditionEntry{
 		Name:        entry.Name,

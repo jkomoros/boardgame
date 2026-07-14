@@ -56,7 +56,7 @@ func (f legalFixture) context(proposer boardgame.PlayerIndex) legal.Context {
 	return legal.Context{
 		State:    f.state,
 		Move:     f.move,
-		Proposer: proposer,
+		ProposerPlayerIndex: proposer,
 		Chest:    f.chest,
 	}
 }

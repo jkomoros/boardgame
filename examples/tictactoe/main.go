@@ -149,7 +149,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			// gate is now declarative via the players[move.Field].Prop path
 			// kind, with the MayMoveToSlot check surviving as LegalCustom
 			// residue.
-			moves.WithPreconditions(
+			moves.WithLegalPreconditions(
 				legal.StackNotEmpty("players[move.TargetPlayerIndex].UnusedTokens").WithMessage("tictactoe.no_tokens_left"),
 			),
 		),
@@ -160,7 +160,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 }
 
 // ConfigureLegalTemplates supplies the tictactoe.* template key
-// movePlaceToken's WithPreconditions plan references (Task 7 survey
+// movePlaceToken's WithLegalPreconditions plan references (Task 7 survey
 // re-check, design spec §6 §3), with the verbatim legacy string from the
 // pre-migration Legal() body (see moves.go's comment).
 func (g *gameDelegate) ConfigureLegalTemplates() map[string]string {

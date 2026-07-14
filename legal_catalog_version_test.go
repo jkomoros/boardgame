@@ -15,19 +15,14 @@ func TestLegalCatalogVersionIsPositive(t *testing.T) {
 	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion > 0).Equals(true)
 }
 
-// TestLegalCatalogVersionIsCompletenessRoundValue pins the EXACT value
-// (completeness-round design spec §6, Task 8's single version bump): 2,
-// bumped from 1 because this round's new predicate names (stackCount,
-// stackEmpty, stackNotEmpty, propEquals, propNotEquals, componentAbsentAt),
-// playerBool's optional second arg, and the players[move.<Field>].<Prop>
-// path grammar kind are all vocabulary an older (v1) client's evaluator
-// could not safely interpret — see legal_types.go's doc comment for the
-// full "v1 -> v2" rationale. Unlike TestLegalCatalogVersionIsPositive
+// TestLegalCatalogVersionIncludesAdminPolicy pins the exact v4 value. See
+// legal_types.go for the full version history. Unlike
+// TestLegalCatalogVersionIsPositive
 // (which stays true forever), this test is DELIBERATELY exact: it must be
 // updated by hand on any future bump, forcing a conscious decision rather
 // than a silent drift.
-func TestLegalCatalogVersionIsCompletenessRoundValue(t *testing.T) {
-	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(2)
+func TestLegalCatalogVersionIncludesAdminPolicy(t *testing.T) {
+	assert.For(t, "catalog version").ThatActual(LegalCatalogVersion).Equals(4)
 }
 
 // TestComponentChestMarshalIncludesLegalTemplates pins that the chest JSON

@@ -7,11 +7,11 @@ package gamepkg
 import (
 	"errors"
 	"go/ast"
-	"go/build"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -173,10 +173,9 @@ func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 	//We also ensure we have a good value for importPath now, so that Import()
 	//later can just return a string, not (string, error)
 
-	goPkg, err := build.ImportDir(absPath, 0)
-
+	listedImport, listedName, err := goListPackage(absPath)
 	if err != nil {
-		return nil, false, errors.New("Couldn't read package: " + err.Error())
+		return nil, false, err
 	}
 
 	if err := result.randUseSafe(); err != nil {
@@ -184,14 +183,31 @@ func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 	}
 
 	if importPath != "" {
-		if importPath != goPkg.ImportPath {
-			return nil, true, errors.New("The provided import path does not agree with what go.build thinks the import path is: " + importPath + " : " + goPkg.ImportPath)
+		if importPath != listedImport {
+			return nil, true, errors.New("the provided import path does not agree with go list: " + importPath + " : " + listedImport)
 		}
 	}
-	result.importPath = goPkg.ImportPath
-	result.name = goPkg.Name
+	result.importPath = listedImport
+	result.name = listedName
 
 	return result, true, nil
+}
+
+// goListPackage returns module-aware package metadata for absPath. go/build's
+// ImportDir derives import paths only from GOPATH and reports synthetic paths
+// when a module checkout lives elsewhere.
+func goListPackage(absPath string) (importPath, name string, err error) {
+	cmd := exec.Command("go", "list", "-f", "{{.ImportPath}}\n{{.Name}}", ".")
+	cmd.Dir = absPath
+	output, cmdErr := cmd.CombinedOutput()
+	if cmdErr != nil {
+		return "", "", errors.New("couldn't read package with go list: " + cmdErr.Error() + ": " + strings.TrimSpace(string(output)))
+	}
+	parts := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", errors.New("go list returned incomplete package metadata for " + absPath)
+	}
+	return parts[0], parts[1], nil
 }
 
 // AbsolutePath returns the absolute path where the package in question resides

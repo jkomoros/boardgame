@@ -198,7 +198,7 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 		auto.MustConfig(
 			new(moveDeclaredPreconditions),
 			WithMoveName("Declared Preconditions"),
-			// Footgun-batch F2 note: WithoutPrecondition names must match
+			// Footgun-batch F2 note: WithoutLegalPrecondition names must match
 			// CONTRIBUTED spec names at boot, so this fixture contributes
 			// the two checks it then suppresses (the original fixture
 			// suppressed "proposerIsCurrentPlayer"/"stackConstraints"
@@ -207,7 +207,7 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 			WithLegalPhases(phaseSetUp),
 			WithSourceProperty("DrawStack"),
 			WithDestinationProperty("DiscardStack"),
-			WithPreconditions(
+			WithLegalPreconditions(
 				legal.PropAtLeast("game.Counter", 1),
 			),
 			// Task 8 note: this second spec must reference a property that
@@ -219,13 +219,13 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 			// playerState (game_test.go) carries no bool property, so that path
 			// now fails boot validation. player.Counter (an int on playerState)
 			// resolves, and a distinct predicate type still exercises the
-			// accumulate-across-WithPreconditions-calls behavior this test
+			// accumulate-across-WithLegalPreconditions-calls behavior this test
 			// documents.
-			WithPreconditions(
+			WithLegalPreconditions(
 				legal.PropCompare("player.Counter", ">=", 0),
 			),
-			WithoutPrecondition(PreconditionInPhase),
-			WithoutPrecondition(PreconditionStackConstraints),
+			WithoutLegalPrecondition(PreconditionInPhase),
+			WithoutLegalPrecondition(PreconditionStackConstraints),
 		),
 		auto.MustConfig(
 			new(moveNoDeclaredPreconditions),
@@ -234,16 +234,14 @@ func declaredPreconditionsMoveInstaller(manager *boardgame.GameManager) []boardg
 	)
 }
 
-// TestWithPreconditionsRoundTrip covers WithPreconditions/WithoutPrecondition
+// TestWithLegalPreconditionsRoundTrip covers WithLegalPreconditions/WithoutLegalPrecondition
 // round-tripping through auto.Config and back out via
-// Default.DeclaredPreconditions: specs from MULTIPLE WithPreconditions calls
+// Default.DeclaredPreconditions: specs from MULTIPLE WithLegalPreconditions calls
 // accumulate in declaration order (mirroring WithLegalPhases' own
 // accumulate-across-calls behavior, moves/with.go:97-107), suppression names
-// from multiple WithoutPrecondition calls likewise accumulate, and a move
-// that never called WithPreconditions at all reports nil (not an empty
-// non-nil slice) — the design spec §2's "declaring is implementing": nil
-// specifically means "not opted in".
-func TestWithPreconditionsRoundTrip(t *testing.T) {
+// from multiple WithoutLegalPrecondition calls likewise accumulate. Plan
+// enablement is tracked separately from whether the authored slice is nil.
+func TestWithLegalPreconditionsRoundTrip(t *testing.T) {
 	manager, err := newGameManager(declaredPreconditionsMoveInstaller)
 	assert.For(t, "manager").ThatActual(err).IsNil()
 	game, err := manager.NewDefaultGame()
@@ -259,9 +257,11 @@ func TestWithPreconditionsRoundTrip(t *testing.T) {
 	assert.For(t, "suppression count").ThatActual(len(suppressions)).Equals(2)
 	assert.For(t, "suppression 0").ThatActual(suppressions[0]).Equals("inPhase")
 	assert.For(t, "suppression 1").ThatActual(suppressions[1]).Equals("stackConstraints")
+	assert.For(t, "configured move enabled").ThatActual(declared.LegalPlanEnabled()).IsTrue()
 
 	notDeclared := game.MoveByName("No Declared Preconditions").(*moveNoDeclaredPreconditions)
 	nilSpecs, nilSuppressions := notDeclared.DeclaredPreconditions()
 	assert.For(t, "nil specs when not opted in").ThatActual(nilSpecs == nil).IsTrue()
 	assert.For(t, "nil suppressions when not configured").ThatActual(nilSuppressions == nil).IsTrue()
+	assert.For(t, "unconfigured move disabled").ThatActual(notDeclared.LegalPlanEnabled()).IsFalse()
 }

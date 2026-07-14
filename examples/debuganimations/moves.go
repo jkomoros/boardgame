@@ -29,7 +29,7 @@ goldens. Gap #2 remains open and still blocks the moves below it.
 
  2. NO ALL-COMPOSITOR / NESTED ANY COMPOSITOR EXISTS (open — design spec §6
     non-goals). "any" is v1's only compositor (an OR of leaf verdicts —
-    design spec §1's anti-tarpit rules) and it does not nest; WithPreconditions'
+    design spec §1's anti-tarpit rules) and it does not nest; WithLegalPreconditions'
     own top-level list is an implicit AND, but there is no way to express
     "(A and B) or (C and D)" — a fixed pair of known-good toggle states,
     now that gap #1 is closed this is the LAST remaining blocker for
@@ -49,7 +49,7 @@ the catalog's path grammar (boardgame/legal_path.go's parseLegalPath) has no
 conditional/indirect path resolution for STACK paths (design spec §6 §3
 only adds move-field-indexed PLAYER paths — players[move.Field].Prop — not
 an analogous stack-selecting form), only fixed "kind.Property" literals
-known at WithPreconditions-authoring time. Byte-for-byte unchanged.
+known at WithLegalPreconditions-authoring time. Byte-for-byte unchanged.
 */
 
 //boardgame:codegen
@@ -343,7 +343,7 @@ func (m *moveVisibleShuffleCards) HelpText() string {
 }
 
 // Legal is deleted (Task 7, design spec §6): declarative migration via
-// moves.WithPreconditions(legal.StackCount("game.FanStack", ">", 1)) in
+// moves.WithLegalPreconditions(legal.StackCount("game.FanStack", ">", 1)) in
 // main.go's ConfigureMoves. See legal_golden_test.go for the golden
 // coverage proving equivalence with the pre-migration body (below, for the
 // record):
@@ -371,7 +371,7 @@ func (m *moveShuffleCards) HelpText() string {
 }
 
 // Legal is deleted (Task 7, design spec §6): declarative migration via
-// moves.WithPreconditions(legal.StackCount("game.FanStack", ">", 1)) in
+// moves.WithLegalPreconditions(legal.StackCount("game.FanStack", ">", 1)) in
 // main.go's ConfigureMoves — same gate as moveVisibleShuffleCards. See
 // legal_golden_test.go for the golden coverage.
 func (m *moveShuffleCards) Apply(state boardgame.State) error {
@@ -516,9 +516,9 @@ func (m *moveStartMoveAllComponentsToHidden) HelpText() string {
 }
 
 // Legal is deleted (Task 7, design spec §6): declarative migration via
-// moves.WithPreconditions(legal.StackNotEmpty("game.AllVisibleStack"),
+// moves.WithLegalPreconditions(legal.StackNotEmpty("game.AllVisibleStack"),
 // legal.StackEmpty("game.AllHiddenStack")) in main.go's ConfigureMoves —
-// WithPreconditions' implicit AND composes the two checks exactly as the
+// WithLegalPreconditions' implicit AND composes the two checks exactly as the
 // pre-migration body did. See legal_golden_test.go for the golden coverage
 // proving equivalence with the pre-migration body (below, for the record):
 //
@@ -553,7 +553,7 @@ func (m *moveStartMoveAllComponentsToVisible) HelpText() string {
 }
 
 // Legal is deleted (Task 7, design spec §6): declarative migration via
-// moves.WithPreconditions(legal.StackNotEmpty("game.AllHiddenStack"),
+// moves.WithLegalPreconditions(legal.StackNotEmpty("game.AllHiddenStack"),
 // legal.StackEmpty("game.AllVisibleStack")) in main.go's ConfigureMoves —
 // mirror of moveStartMoveAllComponentsToHidden. See legal_golden_test.go
 // for the golden coverage.
@@ -581,7 +581,7 @@ func (m *moveShuffleHidden) HelpText() string {
 }
 
 // Legal is deleted (Task 7, design spec §6): declarative migration via
-// moves.WithPreconditions(legal.StackNotEmpty("game.FanDiscard")) in
+// moves.WithLegalPreconditions(legal.StackNotEmpty("game.FanDiscard")) in
 // main.go's ConfigureMoves. See legal_golden_test.go for the golden
 // coverage proving equivalence with the pre-migration body (below, for the
 // record):

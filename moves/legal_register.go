@@ -12,7 +12,7 @@ layering: core ← legal ← moves). See boardgame/legal_registry.go's package
 doc for the full rationale.
 
 Any game that uses declarative legality necessarily imports package moves
-(WithPreconditions/WithoutPrecondition live here), and importing moves runs
+(WithLegalPreconditions/WithoutLegalPrecondition live here), and importing moves runs
 this init() before NewGameManager, so by boot time core's default registry is
 populated. The registration is of the UNIVERSAL catalog only — legal's
 built-in predicates plus the one framework predicate ("inProgression") that

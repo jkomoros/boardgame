@@ -79,10 +79,9 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				// base-first ahead of it. The remaining two gates
 				// (MayMoveToSlot against a fixed source index, then
 				// spaceIsBlack) stay imperative, in their original order, in
-				// the move's LegalCustom. This one precondition also satisfies
-				// the boot rule that a LegalCustom move must opt in via at
-				// least one WithPreconditions spec.
-				moves.WithPreconditions(
+				// the move's LegalCustom. LegalCustom itself opts the move in;
+				// this spec exists because it is a natural client-visible gate.
+				moves.WithLegalPreconditions(
 					legal.StackNotEmpty("game.UnusedTokens").
 						WithMessage("checkers.no_more_components"),
 				),
@@ -112,7 +111,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				// then these three in declaration order, then LegalCustom's
 				// capture-graph-walk residue — see moves.go's comment for
 				// the full mapping).
-				moves.WithPreconditions(
+				moves.WithLegalPreconditions(
 					legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove").
 						WithMessage("checkers.no_token_there"),
 					legal.ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color").
@@ -184,7 +183,7 @@ func (g *gameDelegate) ConfigurePredicateConstructors() []*legal.PredicateConstr
 }
 
 // ConfigureLegalTemplates supplies the checkers.* template keys moveMoveToken's
-// and movePlaceToken's WithPreconditions plans (and moveMoveToken's LegalCustom
+// and movePlaceToken's WithLegalPreconditions plans (and moveMoveToken's LegalCustom
 // residue) reference (design spec §8): three override the generic catalog
 // defaults with the exact legacy strings from moveMoveToken's pre-migration
 // Legal() body (see moves.go's comment for the mapping), one

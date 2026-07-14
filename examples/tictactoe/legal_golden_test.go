@@ -11,7 +11,7 @@ import (
 /*
 Golden-equivalence harness for movePlaceToken's PARTIAL declarative
 migration (Task 7 survey re-check, design spec §6 §3): the
-token-availability gate moved to WithPreconditions
+token-availability gate moved to WithLegalPreconditions
 (legal.StackNotEmpty("players[move.TargetPlayerIndex].UnusedTokens")); the
 MayMoveToSlot check survives as LegalCustom residue (see moves.go's doc
 comment). Follows examples/memory and examples/pig's legal_golden_test.go

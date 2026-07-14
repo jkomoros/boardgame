@@ -86,8 +86,9 @@ func revealableCardAtConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "revealableCardAt",
-				Args: spec.Args,
+				Name:            "revealableCardAt",
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					{Path: PropPath(hiddenPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(visiblePath), Facet: boardgame.LegalFacetOccupancy},
@@ -155,8 +156,9 @@ func componentPropEqualsCurrentPlayerConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "componentPropEqualsCurrentPlayer",
-				Args: spec.Args,
+				Name:            "componentPropEqualsCurrentPlayer",
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					// FacetValues on stackPath (not FacetOccupancy): this
 					// predicate reads the VALUE of a property on the

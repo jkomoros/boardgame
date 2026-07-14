@@ -85,11 +85,11 @@ func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 //     UnusedTokens.NumComponents() == 0) is exactly legal.StackNotEmpty's Pass
 //     condition, so it becomes legal.StackNotEmpty("game.UnusedTokens").
 //     WithMessage("checkers.no_more_components"), declared via
-//     WithPreconditions in main.go's ConfigureMoves. FixUpMulti's phase +
+//     WithLegalPreconditions in main.go's ConfigureMoves. FixUpMulti's phase +
 //     move-progression checks are contributed base-first ahead of it,
 //     unchanged. This single precondition is also what opts the move in,
 //     satisfying the boot rule that a LegalCustom move must declare at least
-//     one WithPreconditions spec.
+//     one WithLegalPreconditions spec.
 //   - MayMoveToSlot stays in LegalCustom: it compares a FIXED source index (0,
 //     "first" of UnusedTokens) against move.TargetIndex for the destination —
 //     two DIFFERENT indices. legal.MayMoveToSlot only expresses the
@@ -138,7 +138,7 @@ type moveMoveToken struct {
 }
 
 // Legal() is deliberately absent: this move opted into declarative legality
-// (design spec §8's checkers acid test) via the moves.WithPreconditions call
+// (design spec §8's checkers acid test) via the moves.WithLegalPreconditions call
 // in main.go's ConfigureMoves, plus the LegalCustom escape hatch just below
 // for the one piece of residue the catalog cannot express (the capture-graph
 // walk). moves.CurrentPlayer.Legal (promoted, since this type no longer

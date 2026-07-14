@@ -79,7 +79,7 @@ func (m *moveSuperCallOverrideOptIn) Apply(state boardgame.State) error { return
 // --- CustomLegaler implemented WITHOUT opting in (footgun batch F5) ---
 //
 // A move that implements boardgame.CustomLegaler (LegalCustom) but declares no
-// WithPreconditions specs is not opted in, so no plan is assembled and its
+// WithLegalPreconditions specs is not opted in, so no plan is assembled and its
 // LegalCustom is never wrapped or consulted — the residue silently never runs
 // (fails open). legal/doc.go documents this as a hard author requirement; the
 // F5 boot check turns the honor-system requirement into a fail-closed boot
@@ -107,7 +107,7 @@ func TestPurelySugarOptInEvaluatesPlan(t *testing.T) {
 			auto.MustConfig(
 				new(moveDeclarativeOptIn),
 				WithMoveName("Declarative Opt In"),
-				WithPreconditions(alwaysFailPrecondition()),
+				WithLegalPreconditions(alwaysFailPrecondition()),
 			),
 		)
 	}
@@ -142,7 +142,7 @@ func TestProbeWholesaleOverrideIsBootError(t *testing.T) {
 			auto.MustConfig(
 				new(moveWholesaleOverrideOptIn),
 				WithMoveName("Wholesale Override Opt In"),
-				WithPreconditions(alwaysFailPrecondition()),
+				WithLegalPreconditions(alwaysFailPrecondition()),
 			),
 		)
 	}
@@ -166,7 +166,7 @@ func TestProbeSuperCallOverrideBootsAndEvaluates(t *testing.T) {
 			auto.MustConfig(
 				new(moveSuperCallOverrideOptIn),
 				WithMoveName("Super Call Override Opt In"),
-				WithPreconditions(alwaysFailPrecondition()),
+				WithLegalPreconditions(alwaysFailPrecondition()),
 			),
 		)
 	}
@@ -190,7 +190,7 @@ func TestProbeSuperCallOverrideBootsAndEvaluates(t *testing.T) {
 // TestUnsupportedBaseTypeStartPhaseBootsAndEvaluates (design spec §5, Task 6
 // Step 2): moves.StartPhase joined the seam allowlist (it declares no Legal()
 // override of its own — its legality IS Default.Legal, exactly like a bare
-// Default-embedding move). A move embedding StartPhase with WithPreconditions
+// Default-embedding move). A move embedding StartPhase with WithLegalPreconditions
 // now boots cleanly AND its plan actually evaluates, proven the same way
 // TestProbeSuperCallOverrideBootsAndEvaluates proves it for a super-calling
 // Default override: an always-fail declared precondition's template surfaces
@@ -208,7 +208,7 @@ func TestUnsupportedBaseTypeStartPhaseBootsAndEvaluates(t *testing.T) {
 			auto.MustConfig(
 				new(moveStartPhaseDrawAgain),
 				WithMoveName("Start Phase Opt In"),
-				WithPreconditions(alwaysFailPrecondition()),
+				WithLegalPreconditions(alwaysFailPrecondition()),
 			),
 		)
 	}
@@ -244,7 +244,7 @@ type moveFixUpOptIn struct {
 func (m *moveFixUpOptIn) Apply(state boardgame.State) error { return nil }
 
 // TestFixUpBaseTypeBootsAndEvaluates: a move embedding moves.FixUp with
-// WithPreconditions boots cleanly and its plan evaluates.
+// WithLegalPreconditions boots cleanly and its plan evaluates.
 func TestFixUpBaseTypeBootsAndEvaluates(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
@@ -252,7 +252,7 @@ func TestFixUpBaseTypeBootsAndEvaluates(t *testing.T) {
 			auto.MustConfig(
 				new(moveFixUpOptIn),
 				WithMoveName("FixUp Opt In"),
-				WithPreconditions(alwaysFailPrecondition()),
+				WithLegalPreconditions(alwaysFailPrecondition()),
 			),
 		)
 	}
@@ -284,7 +284,7 @@ type moveFixUpMultiOptIn struct {
 func (m *moveFixUpMultiOptIn) Apply(state boardgame.State) error { return nil }
 
 // TestFixUpMultiBaseTypeBootsAndEvaluates: a move embedding moves.FixUpMulti
-// with WithPreconditions boots cleanly and its plan evaluates — the full
+// with WithLegalPreconditions boots cleanly and its plan evaluates — the full
 // opt-in path the design spec §5 FixUpMulti precondition (proven separately
 // by moves/preconditions_test.go's TestFixUpMultiProgressionAtomEquivalence,
 // which this test does not duplicate: that test proves the "inProgression"
@@ -298,7 +298,7 @@ func TestFixUpMultiBaseTypeBootsAndEvaluates(t *testing.T) {
 			auto.MustConfig(
 				new(moveFixUpMultiOptIn),
 				WithMoveName("FixUpMulti Opt In"),
-				WithPreconditions(alwaysFailPrecondition()),
+				WithLegalPreconditions(alwaysFailPrecondition()),
 			),
 		)
 	}
@@ -337,7 +337,7 @@ func TestUnsupportedBaseTypeDealCountComponentsIsBootError(t *testing.T) {
 			auto.MustConfig(
 				new(moveDealCards),
 				WithMoveName("Deal Opt In"),
-				WithPreconditions(alwaysFailPrecondition()),
+				WithLegalPreconditions(alwaysFailPrecondition()),
 			),
 		)
 	}
@@ -373,7 +373,7 @@ func TestCurrentPlayerOptInProposerAtom(t *testing.T) {
 				WithMoveName("Current Player Opt In"),
 				// A trivially-satisfiable authored precondition, so the only
 				// thing that can fail is the contributed proposer atom.
-				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithLegalPreconditions(legal.PropAtLeast("game.Counter", 0)),
 			),
 		)
 	}
@@ -403,10 +403,7 @@ func TestCurrentPlayerOptInProposerAtom(t *testing.T) {
 	}
 }
 
-// --- CurrentPlayer opt-in suppressing the proposer atom (final-review boot
-// guard: this suppression is ineffective on Legal() itself, since
-// CurrentPlayer.Legal's imperative proposer check runs regardless of the
-// plan) ---
+// --- CurrentPlayer opt-in suppressing the proposer atom ---
 
 //boardgame:codegen
 type moveCurrentPlayerSuppressedProposer struct {
@@ -415,49 +412,43 @@ type moveCurrentPlayerSuppressedProposer struct {
 
 func (m *moveCurrentPlayerSuppressedProposer) Apply(state boardgame.State) error { return nil }
 
-// TestCurrentPlayerSuppressedProposerIsBootError (final review finding):
-// WithoutPrecondition(PreconditionProposerIsCurrentPlayer) on a move embedding
-// CurrentPlayer would remove the contributed proposer atom from the plan
-// (so the ledger/client would report the move legal for any proposer) while
-// CurrentPlayer.Legal's imperative proposer-equivalence check keeps running
-// unconditionally after its super-call — a ledger/actual divergence. Boot
-// must reject this combination naming the move, rather than let a client
-// silently disagree with the server about legality.
-func TestCurrentPlayerSuppressedProposerIsBootError(t *testing.T) {
+// TestCurrentPlayerSuppressedProposerIsEffective proves CurrentPlayer's frozen
+// imperative check does not run after Default.Legal has evaluated a plan.
+func TestCurrentPlayerSuppressedProposerIsEffective(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
 		return Add(
 			auto.MustConfig(
 				new(moveCurrentPlayerSuppressedProposer),
 				WithMoveName("Current Player Suppressed Proposer"),
-				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition(PreconditionProposerIsCurrentPlayer),
+				WithLegalPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutLegalPrecondition(PreconditionProposerIsCurrentPlayer),
 			),
 		)
 	}
 
-	_, err := newGameManager(installer)
-	assert.For(t, "boot error").ThatActual(err).IsNotNil()
-	if err != nil {
-		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Current Player Suppressed Proposer")).IsTrue()
-		assert.For(t, "names the mechanism").ThatActual(strings.Contains(err.Error(), "proposerIsCurrentPlayer")).IsTrue()
-		assert.For(t, "names CurrentPlayer").ThatActual(strings.Contains(err.Error(), "CurrentPlayer")).IsTrue()
+	manager, err := newGameManager(installer)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	if manager == nil {
+		return
 	}
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "game").ThatActual(err).IsNil()
+	move := game.MoveByName("Current Player Suppressed Proposer").(*moveCurrentPlayerSuppressedProposer)
+	move.TargetPlayerIndex = 1
+	assert.For(t, "wrong proposer allowed after explicit suppression").ThatActual(move.Legal(game.CurrentState(), 1)).IsNil()
 }
 
 // TestDefaultSuppressedProposerIsBootError (contrast case, updated by the
 // footgun batch's F2 suppression validation): the identical
-// WithoutPrecondition(PreconditionProposerIsCurrentPlayer) call on a
+// WithoutLegalPrecondition(PreconditionProposerIsCurrentPlayer) call on a
 // moves.Default-embedding move used to boot cleanly as a silent no-op —
 // Default never contributes that atom, so the suppression matched nothing
 // and was dropped at plan assembly. Under F2 an unmatched suppression name
 // is a boot error (it can only ever be a typo or an opt-out of a check the
 // move never had), so the same call now fails boot — via the GENERIC
 // unmatched-name guard, not the CurrentPlayer-specific divergence guard its
-// counterpart above exercises. The two errors are deliberately distinct:
-// this one says the atom was never contributed; that one says the atom IS
-// contributed but suppressing it would desynchronize the client ledger from
-// CurrentPlayer.Legal's imperative check.
+// counterpart above exercises: this move never contributed the atom.
 func TestDefaultSuppressedProposerIsBootError(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
@@ -465,8 +456,8 @@ func TestDefaultSuppressedProposerIsBootError(t *testing.T) {
 			auto.MustConfig(
 				new(moveDeclarativeOptIn),
 				WithMoveName("Default Suppressed Proposer"),
-				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition(PreconditionProposerIsCurrentPlayer),
+				WithLegalPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutLegalPrecondition(PreconditionProposerIsCurrentPlayer),
 			),
 		)
 	}
@@ -508,13 +499,13 @@ func TestRegistryMergeInProgressionBoots(t *testing.T) {
 				),
 			),
 			AddOrderedForPhase(phaseNormalPlayDrawCard,
-				// This move opts in (WithPreconditions) AND, via
+				// This move opts in (WithLegalPreconditions) AND, via
 				// AddOrderedForPhase, gets a move progression — so its
 				// contributed specs include "inProgression".
 				auto.MustConfig(
 					new(moveProgressionOptInA),
 					WithMoveName("Registry Merge Progression A"),
-					WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
+					WithLegalPreconditions(legal.PropAtLeast("game.Counter", 0)),
 				),
 				auto.MustConfig(
 					new(NoOp),
@@ -531,7 +522,7 @@ func TestRegistryMergeInProgressionBoots(t *testing.T) {
 
 // TestContributedOnlyIsNotOptedIn (design spec §2 "declaring is
 // implementing"): a move configured with WithLegalPhases but NO
-// WithPreconditions does NOT opt in, so it is not probed and runs its frozen
+// WithLegalPreconditions does NOT opt in, so it is not probed and runs its frozen
 // chain. Proven by pairing WithLegalPhases with a wholesale Legal() override:
 // were it treated as opted-in, the probe would boot-fail (as the wholesale
 // override case does); because contributions alone don't opt in, it boots.
@@ -543,7 +534,7 @@ func TestContributedOnlyIsNotOptedIn(t *testing.T) {
 				new(moveWholesaleOverrideOptIn),
 				WithMoveName("Contributed Only Not Opted In"),
 				// Contributes an inPhase spec, but declares NO
-				// WithPreconditions — so it is not opted in.
+				// WithLegalPreconditions — so it is not opted in.
 				WithLegalPhases(phaseNormalPlayDrawCard),
 			),
 		)
@@ -553,16 +544,16 @@ func TestContributedOnlyIsNotOptedIn(t *testing.T) {
 	assert.For(t, "boots (not opted in, no probe)").ThatActual(err).IsNil()
 }
 
-// --- WithoutPrecondition boot validation (footgun batch F2) ---
+// --- WithoutLegalPrecondition boot validation (footgun batch F2) ---
 //
-// WithoutPrecondition is fire-and-forget config: before these guards, a
+// WithoutLegalPrecondition is fire-and-forget config: before these guards, a
 // suppression whose name matched nothing (a typo, or a check the move never
 // contributed) was silently dropped at plan assembly, and a suppression on a
-// move that never opted in via WithPreconditions was dead config while the
+// move that never opted in via WithLegalPreconditions was dead config while the
 // frozen chain kept enforcing the "suppressed" check. All three flavors are
 // now boot errors naming the move.
 
-// TestSuppressionTypoIsBootError (F2 flavor 1a): a WithoutPrecondition name
+// TestSuppressionTypoIsBootError (F2 flavor 1a): a WithoutLegalPrecondition name
 // that matches no contributed spec name because it is misspelled ("inphase"
 // for "inPhase") must fail boot naming the move, the unmatched name, and the
 // move's actual contributed names — not silently no-op while the phase check
@@ -575,8 +566,8 @@ func TestSuppressionTypoIsBootError(t *testing.T) {
 				new(moveDeclarativeOptIn),
 				WithMoveName("Suppression Typo"),
 				WithLegalPhases(phaseSetUp),
-				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition("inphase"), // typo: real name is "inPhase"
+				WithLegalPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutLegalPrecondition("inphase"), // typo: real name is "inPhase"
 			),
 		)
 	}
@@ -604,8 +595,8 @@ func TestSuppressionNotContributedIsBootError(t *testing.T) {
 				new(moveDeclarativeOptIn),
 				WithMoveName("Suppression Not Contributed"),
 				WithLegalPhases(phaseSetUp),
-				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition(PreconditionInProgression),
+				WithLegalPreconditions(legal.PropAtLeast("game.Counter", 0)),
+				WithoutLegalPrecondition(PreconditionInProgression),
 			),
 		)
 	}
@@ -618,93 +609,35 @@ func TestSuppressionNotContributedIsBootError(t *testing.T) {
 	}
 }
 
-// TestSuppressionWithoutOptInIsBootError (F2 flavor 2): WithoutPrecondition
-// on a move with NO authored WithPreconditions specs is dead config — the
-// move is not opted in, no plan exists, and the frozen imperative chain
-// runs unchanged (whether or not any of its checks corresponds to the
-// suppressed name). Boot must reject it rather than let the author believe
-// the check is off.
-func TestSuppressionWithoutOptInIsBootError(t *testing.T) {
-	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
-		auto := NewAutoConfigurer(manager.Delegate())
-		return Add(
-			auto.MustConfig(
-				new(moveDeclarativeOptIn),
-				WithMoveName("Suppression Without Opt In"),
-				WithLegalPhases(phaseSetUp),
-				// NO WithPreconditions: not opted in, so this suppression
-				// could never take effect.
-				WithoutPrecondition(PreconditionInPhase),
-			),
-		)
-	}
-
-	_, err := newGameManager(installer)
-	assert.For(t, "boot error").ThatActual(err).IsNotNil()
-	if err != nil {
-		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Suppression Without Opt In")).IsTrue()
-		assert.For(t, "points at the missing opt-in").ThatActual(strings.Contains(err.Error(), "WithPreconditions")).IsTrue()
-	}
-}
-
-// TestSuppressionWithoutOptInListsAllNames (wave-1 review M1): when a
-// not-opted-in move carries MULTIPLE dead suppressions, the flavor-2 boot
-// error must report every dead name, not just the first — an author fixing
-// the error by deleting only the named call would just trade one boot error
-// for another, once per remaining suppression.
-func TestSuppressionWithoutOptInListsAllNames(t *testing.T) {
-	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
-		auto := NewAutoConfigurer(manager.Delegate())
-		return Add(
-			auto.MustConfig(
-				new(moveDeclarativeOptIn),
-				WithMoveName("Suppression Multi Without Opt In"),
-				WithLegalPhases(phaseSetUp),
-				// NO WithPreconditions: not opted in, so BOTH suppressions
-				// are dead config.
-				WithoutPrecondition(PreconditionInPhase),
-				WithoutPrecondition(PreconditionInProgression),
-			),
-		)
-	}
-
-	_, err := newGameManager(installer)
-	assert.For(t, "boot error").ThatActual(err).IsNotNil()
-	if err != nil {
-		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Suppression Multi Without Opt In")).IsTrue()
-		assert.For(t, "lists the first dead name").ThatActual(strings.Contains(err.Error(), `"inPhase"`)).IsTrue()
-		assert.For(t, "lists the second dead name").ThatActual(strings.Contains(err.Error(), `"inProgression"`)).IsTrue()
-	}
-}
-
-// --- CustomLegaler-without-opt-in boot validation (footgun batch F5) ---
-
-// TestCustomLegalerWithoutOptInIsBootError (F5): a move that implements
-// boardgame.CustomLegaler (LegalCustom) but declares no WithPreconditions is
-// not opted in — no plan is assembled, so LegalCustom is never wrapped and
-// never runs. Every check the author put in LegalCustom silently stops being
-// enforced (fails open), with zero boot signal. legal/doc.go documents that a
-// LegalCustom move must opt in via WithPreconditions; boot must enforce it,
-// naming the move and pointing at the missing opt-in.
-func TestCustomLegalerWithoutOptInIsBootError(t *testing.T) {
+// TestCustomLegalerAutomaticallyOptsIn verifies that LegalCustom itself is an
+// unambiguous request for a declarative plan; no constructor marker is needed.
+func TestCustomLegalerAutomaticallyOptsIn(t *testing.T) {
 	installer := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
 		return Add(
 			auto.MustConfig(
 				new(moveCustomLegalerNoOptIn),
-				WithMoveName("Custom Legaler Without Opt In"),
+				WithMoveName("Custom Legaler Automatic Opt In"),
 				WithLegalPhases(phaseSetUp),
-				// NO WithPreconditions: not opted in, so LegalCustom is dead.
 			),
 		)
 	}
 
-	_, err := newGameManager(installer)
-	assert.For(t, "boot error").ThatActual(err).IsNotNil()
-	if err != nil {
-		assert.For(t, "names the move").ThatActual(strings.Contains(err.Error(), "Custom Legaler Without Opt In")).IsTrue()
-		assert.For(t, "names LegalCustom").ThatActual(strings.Contains(err.Error(), "LegalCustom")).IsTrue()
-		assert.For(t, "points at the missing opt-in").ThatActual(strings.Contains(err.Error(), "WithPreconditions")).IsTrue()
+	manager, err := newGameManager(installer)
+	assert.For(t, "boots").ThatActual(err).IsNil()
+	if manager == nil {
+		return
+	}
+	game, err := manager.NewDefaultGame()
+	assert.For(t, "game").ThatActual(err).IsNil()
+	move := game.MoveByName("Custom Legaler Automatic Opt In")
+	assert.For(t, "move").ThatActual(move).IsNotNil()
+	if move != nil {
+		err = move.Legal(game.CurrentState(), boardgame.AdminPlayerIndex)
+		assert.For(t, "custom rejection").ThatActual(err).IsNotNil()
+		if err != nil {
+			assert.For(t, "custom body ran").ThatActual(err.Error()).Equals("custom-only rejection")
+		}
 	}
 }
 
@@ -714,7 +647,7 @@ func TestCustomLegalerExplicitOptInRunsWithoutAuthoredPreconditions(t *testing.T
 		return Add(auto.MustConfig(
 			new(moveCustomLegalerNoOptIn),
 			WithMoveName("Custom Legaler Explicit Opt In"),
-			WithDeclarativeLegality(),
+			WithLegalPreconditions(),
 		))
 	}
 
@@ -751,8 +684,7 @@ func TestValidSuppressionBootsAndSuppresses(t *testing.T) {
 				// The game never enters phaseDrawAgain in these tests, so if
 				// the contributed inPhase atom survived, Legal() would fail.
 				WithLegalPhases(phaseDrawAgain),
-				WithPreconditions(legal.PropAtLeast("game.Counter", 0)),
-				WithoutPrecondition(PreconditionInPhase),
+				WithoutLegalPrecondition(PreconditionInPhase),
 			),
 		)
 	}
@@ -802,7 +734,7 @@ func TestBootValidatesTemplatePlaceholdersAgainstEmittedBindings(t *testing.T) {
 				auto.MustConfig(
 					new(moveDeclarativeOptIn),
 					WithMoveName(moveName),
-					WithPreconditions(specs...),
+					WithLegalPreconditions(specs...),
 				),
 			)
 		}
@@ -943,7 +875,7 @@ func TestBootValidatesGameRegisteredEmittedBindings(t *testing.T) {
 				auto.MustConfig(
 					new(moveDeclarativeOptIn),
 					WithMoveName(moveName),
-					WithPreconditions(spec),
+					WithLegalPreconditions(spec),
 				),
 			)
 		}
@@ -1086,7 +1018,7 @@ func TestBootProbeCatchesUndeclaredMoveRead(t *testing.T) {
 				return auto.MustConfig(
 					new(moveDeclarativeOptIn),
 					WithMoveName("Sneaky Move Read"),
-					WithPreconditions(legal.Spec{Name: "test.sneakyMoveRead"}),
+					WithLegalPreconditions(legal.Spec{Name: "test.sneakyMoveRead"}),
 				)
 			},
 		)
@@ -1106,7 +1038,7 @@ func TestBootProbeCatchesUndeclaredMoveRead(t *testing.T) {
 				return auto.MustConfig(
 					new(moveDeclarativeOptIn),
 					WithMoveName("Sneaky Any Move Read"),
-					WithPreconditions(legal.Any(
+					WithLegalPreconditions(legal.Any(
 						legal.Spec{Name: "test.sneakyMoveRead"},
 						legal.PropAtLeast("game.Counter", 1000),
 					)),
@@ -1137,7 +1069,7 @@ func TestBootProbeCatchesUndeclaredMoveReadInBuiltinOverride(t *testing.T) {
 			return auto.MustConfig(
 				new(moveDeclarativeOptIn),
 				WithMoveName("Sneaky Builtin Override"),
-				WithPreconditions(legal.Spec{Name: "propAtLeast"}),
+				WithLegalPreconditions(legal.Spec{Name: "propAtLeast"}),
 			)
 		},
 	)
@@ -1167,7 +1099,7 @@ func TestBootProbeAllowsStateOnlyGameRegistered(t *testing.T) {
 			return auto.MustConfig(
 				new(moveDeclarativeOptIn),
 				WithMoveName("State Only Game Registered"),
-				WithPreconditions(legal.Spec{Name: "test.stateOnly"}),
+				WithLegalPreconditions(legal.Spec{Name: "test.stateOnly"}),
 			)
 		},
 	)
@@ -1197,7 +1129,7 @@ func TestBootProbeSkipsFieldDependentGameRegistered(t *testing.T) {
 			return auto.MustConfig(
 				new(moveCurrentPlayerOptIn),
 				WithMoveName("Declared Move Read"),
-				WithPreconditions(legal.Spec{Name: "test.declaredMoveRead"}),
+				WithLegalPreconditions(legal.Spec{Name: "test.declaredMoveRead"}),
 			)
 		},
 	)
@@ -1222,7 +1154,7 @@ func TestBootProbeIgnoresUnrelatedPanics(t *testing.T) {
 			return auto.MustConfig(
 				new(moveDeclarativeOptIn),
 				WithMoveName("Unrelated Panic"),
-				WithPreconditions(legal.Spec{Name: "test.unrelatedPanic"}),
+				WithLegalPreconditions(legal.Spec{Name: "test.unrelatedPanic"}),
 			)
 		},
 	)

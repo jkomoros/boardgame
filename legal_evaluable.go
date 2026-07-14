@@ -32,6 +32,9 @@ neither of which package server/api can reach.
 //   - "player.X" reads resolve against st's actual current player — the
 //     same player resolveLegalPath itself reads against — so evaluability
 //     is judged against THAT player's sanitization policy for viewer.
+//   - "proposer.X" reads conservatively require the facet to survive for
+//     every player. LegalReadEvaluable intentionally has no proposer argument;
+//     this avoids assuming that proposer and viewer are the same identity.
 //   - "players[*].X" reads (quantifier-only, e.g. AllActivePlayers' inner
 //     leaf) require the facet to survive for EVERY player: a per-player
 //     quantifier's verdict is a function of every iterated player's value,
@@ -85,7 +88,7 @@ func LegalReadEvaluable(st ImmutableState, viewer PlayerIndex, read LegalRead) b
 			return false
 		}
 		return facetSurvives(legalPolicyForProp(transformation.Players[current], parsed.prop), read.Facet)
-	case pathPlayersAll, pathPlayersMoveField:
+	case pathProposer, pathPlayersAll, pathPlayersMoveField:
 		if len(transformation.Players) == 0 {
 			return false
 		}

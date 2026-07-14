@@ -56,7 +56,7 @@ func TestInProgressionMatch(t *testing.T) {
 
 	// Pass: with an empty tape (no progression moves proposed yet since the
 	// phase transition), "Freeze Progression A" is next.
-	v := pred.Evaluate(legal.Context{State: state, Proposer: 0})
+	v := pred.Evaluate(legal.Context{State: state, ProposerPlayerIndex: 0})
 	if v.Outcome != legal.Pass {
 		t.Fatalf("Freeze Progression A, empty tape: Outcome = %v, want Pass (%+v)", v.Outcome, v)
 	}
@@ -84,7 +84,7 @@ func TestInProgressionReject(t *testing.T) {
 	// Fail: "Freeze Progression B" proposed before "Freeze Progression A"
 	// (same case TestLegalChainStringFreeze pins via the frozen chain).
 	pred := resolveInProgressionForTest(t, "Freeze Progression B")
-	v := pred.Evaluate(legal.Context{State: state, Proposer: 0})
+	v := pred.Evaluate(legal.Context{State: state, ProposerPlayerIndex: 0})
 	if v.Outcome != legal.Fail {
 		t.Fatalf("Freeze Progression B, empty tape: Outcome = %v, want Fail (%+v)", v.Outcome, v)
 	}
@@ -110,12 +110,12 @@ func TestInProgressionUnknown(t *testing.T) {
 
 	pred := resolveInProgressionForTest(t, "Freeze Progression A")
 
-	if v := pred.Evaluate(legal.Context{State: nil, Proposer: 0}); v.Outcome != legal.Unknown {
+	if v := pred.Evaluate(legal.Context{State: nil, ProposerPlayerIndex: 0}); v.Outcome != legal.Unknown {
 		t.Fatalf("nil state: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
 	}
 
 	unregistered := resolveInProgressionForTest(t, "No Such Move")
-	if v := unregistered.Evaluate(legal.Context{State: state, Proposer: 0}); v.Outcome != legal.Unknown {
+	if v := unregistered.Evaluate(legal.Context{State: state, ProposerPlayerIndex: 0}); v.Outcome != legal.Unknown {
 		t.Fatalf("unregistered move name: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
 	}
 }

@@ -41,7 +41,7 @@ type GameManager struct {
 	variantConfig             VariantConfig
 	constraintConstructors    map[string]*StackConstraintConstructor
 	// legalPlans holds the assembled declarative-legality plan for each
-	// move type that opted in via WithPreconditions, keyed by move name.
+	// move type that opted in via WithLegalPreconditions, keyed by move name.
 	// nil (or a missing key) means the move runs its frozen imperative
 	// chain — see legal_plan.go. Built once at NewGameManager
 	// (assembleLegalPlans); read-only thereafter.
@@ -342,7 +342,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	}
 
 	// Assemble declarative-legality plans for any move type that opted in
-	// via WithPreconditions, and probe that its declarations are reachable
+	// via WithLegalPreconditions, and probe that its declarations are reachable
 	// (design spec §4 + "prime guarantee" rule 4). Moves that did not opt in
 	// are untouched: their frozen imperative Legal() chain runs as today.
 	if err := result.assembleLegalPlans(exampleState); err != nil {

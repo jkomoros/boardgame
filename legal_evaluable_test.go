@@ -172,6 +172,18 @@ func TestLegalReadEvaluablePlayersMoveFieldHiddenForOther(t *testing.T) {
 	assert.For(t, "observer").ThatActual(LegalReadEvaluable(state, ObserverPlayerIndex, read)).Equals(false)
 }
 
+func TestLegalReadEvaluableProposerIsConservativeAcrossPlayers(t *testing.T) {
+	game := testDefaultGame(t, false)
+	state := game.CurrentState()
+
+	visible := LegalRead{Path: "proposer.IsFoo", Facet: LegalFacetValues}
+	hiddenForOthers := LegalRead{Path: "proposer.MovesLeftThisTurn", Facet: LegalFacetValues}
+
+	assert.For(t, "universally visible proposer property").ThatActual(LegalReadEvaluable(state, 0, visible)).Equals(true)
+	assert.For(t, "own value is still conservative").ThatActual(LegalReadEvaluable(state, 0, hiddenForOthers)).Equals(false)
+	assert.For(t, "admin remains omniscient").ThatActual(LegalReadEvaluable(state, AdminPlayerIndex, hiddenForOthers)).Equals(true)
+}
+
 // TestLegalReadEvaluablePlayersMoveFieldOccupancySurvivesOrder exercises the
 // facet dimension of the pathPlayersMoveField fix: facetSurvives' table says
 // LegalFacetOccupancy (unlike LegalFacetValues) survives PolicyOrder, so a

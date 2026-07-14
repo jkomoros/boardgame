@@ -39,6 +39,15 @@ func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame
 	if err := c.Default.Legal(state, proposer); err != nil {
 		return err
 	}
+	if manager := state.Manager(); manager != nil {
+		// Default.Legal already evaluated the assembled plan, including this
+		// type's contributed proposer predicate. During boot probing it also
+		// intentionally returns before ordinary legality. Do not run the frozen
+		// imperative copy a second time in either case.
+		if manager.LegalProbeActive() || manager.LegalPlanAssembled(c.Name()) {
+			return nil
+		}
+	}
 
 	currentPlayer := state.CurrentPlayerIndex()
 

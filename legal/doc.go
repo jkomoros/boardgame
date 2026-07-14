@@ -19,7 +19,7 @@ move that doesn't opt in. `Legal(state, proposer) error` remains the
 ground-truth contract. `moves.Default.Legal()`, `moves.CurrentPlayer.Legal()`,
 and every other framework move type's `Legal()` keep their existing
 implementations, byte-for-byte: same checks, same order, same error strings.
-A move opts in per-type by passing `moves.WithPreconditions(...)` to
+A move opts in per-type by passing `moves.WithLegalPreconditions(...)` to
 `auto.Config`/`auto.MustConfig` AND not wholesale-overriding `Legal()` (it may
 still implement CustomLegaler, below). For an opted-in move,
 `moves.Default.Legal()` detects the declared plan at call time and evaluates
@@ -32,7 +32,7 @@ capability in this package that requires a game to adopt it.
 
 	auto.MustConfig(
 	    new(moveRevealCard),
-	    moves.WithPreconditions(
+	    moves.WithLegalPreconditions(
 	        legal.PropAtLeast("player.CardsLeftToReveal", 1).
 	            WithMessage("reveal.no_cards_left"),
 	        legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
@@ -40,8 +40,10 @@ capability in this package that requires a game to adopt it.
 	    ),
 	)
 
-Each argument to WithPreconditions is a Spec built by one of this package's
+Each argument to WithLegalPreconditions is a Spec built by one of this package's
 catalog functions (PropAtLeast, PropCompare, PlayerBool, PlayerBoolIs,
+PlayerBoolAt, PlayerHasSubmitted, PlayerHasNotSubmitted, PlayerIsActive,
+PlayerIsInactive, PlayerSeatIsFilled, PlayerSeatIsClosed, PlayerIsAdmin,
 StackCount, StackEmpty, StackNotEmpty, PropEquals, PropNotEquals,
 ComponentPresentAt, ComponentAbsentAt, ComponentPresentAtKey, MayMoveTo,
 MayMoveToSlot, Any, AllActivePlayers, RevealableCardAt,
@@ -53,7 +55,7 @@ move and the path — never a mid-game surprise), and one ordered plan is
 assembled per opted-in move type: that move type's own *contributed* specs
 first (derived automatically from moves.Default/CurrentPlayer's existing
 configuration — inPhase, inProgression, stackConstraints, and, for
-CurrentPlayer, proposerIsCurrentPlayer), then the authored WithPreconditions
+CurrentPlayer, proposerIsCurrentPlayer), then the authored WithLegalPreconditions
 specs in declaration order. Evaluation short-circuits on the first Fail, in
 plan order — no cost-based reordering in v1, so migrated moves keep their
 historical first-failure message (see "Bucket reordering" below for the one
@@ -124,30 +126,26 @@ It is never cached, has no serialized form, and a client sees its verdict as
 Go. Return legal.Errorf(templateKey, bindings) to keep the failure
 structured (template key + bindings, renderable and greppable exactly like a
 declarative Fail); a plain error still works and is wrapped as a one-off
-template. A move implementing LegalCustom must opt in either with at least one
-WithPreconditions spec or explicitly with moves.WithDeclarativeLegality().
-The explicit option is the natural spelling for a LegalCustom-only or
-contributed-only plan. LegalCustom without either opt-in is a boot error naming
-the move, preventing the custom body from silently failing open. LegalCustom
-combined with a wholesale Legal() override on the
+template. Implementing LegalCustom automatically opts a move on a supported
+base into declarative legality; a custom-only move needs no constructor marker.
+LegalCustom combined with a wholesale Legal() override on the
 same type is a boot error too: the override would orphan both the declared
 plan and the residue.
 
-WithoutPrecondition(name string) suppresses one *contributed* check by its
+WithoutLegalPrecondition(name moves.PreconditionName) suppresses one *contributed* check by its
 stable name (moves.Default/CurrentPlayer's own, never a game-authored one):
 pass the exported constants moves.PreconditionInPhase,
 moves.PreconditionInProgression, moves.PreconditionStackConstraints, or
 moves.PreconditionProposerIsCurrentPlayer rather than raw strings. Use it
 when a move needs to opt out of something it would otherwise inherit — the
 moves.ForceFinishTurn "inherit nothing" pattern, now expressible without
-its own bespoke base type. It does not remove an authored WithPreconditions
+its own bespoke base type. It does not remove an authored WithLegalPreconditions
 spec; those are simply not passed in the first place if you don't want
 them.
 
-Suppression depends on the opt-in: WithoutPrecondition only edits the
-declarative plan, and only a move with at least one authored
-WithPreconditions spec HAS a plan. NewGameManager's boot gauntlet enforces
-this, so a suppression can never silently do nothing. Three boot errors,
+WithoutLegalPrecondition itself opts the move in, so a suppression can never
+be dead configuration merely because there are no authored specs. The boot
+gauntlet still enforces two important errors,
 each naming the offending move:
 
   - An unmatched name: the suppression names no spec the move actually
@@ -158,13 +156,6 @@ each naming the offending move:
     moves.PreconditionProposerIsCurrentPlayer on a moves.Default-embedding
     move, which never contributes that atom). The error lists the move's
     real contributed spec names.
-
-  - Suppression without opt-in: WithoutPrecondition on a move with no
-    authored WithPreconditions specs. The move is not opted in, no plan
-    exists, and the frozen imperative chain runs unchanged — still enforcing
-    whatever checks it always ran, whether or not one of them corresponds to
-    a suppressed name — so the suppression is dead config masquerading as an
-    opt-out. The error lists every dead suppression name on the move.
 
   - moves.PreconditionProposerIsCurrentPlayer on a
     moves.CurrentPlayer-embedding move: CurrentPlayer.Legal() runs its
@@ -303,10 +294,9 @@ the same placeholder/binding boot check every catalog predicate gets (see
 pattern. The metadata is optional for backward compatibility: a predicate
 with a nil EmittedBindings map skips this validation entirely, and a
 template/binding mismatch then only shows up as a bare placeholder name in
-rendered output. A game-registered predicate degrades gracefully on a
-client with no TypeScript implementation of it: its ledger entry reports
-evaluable:false and the server remains the source of truth, exactly like
-CustomLegaler.
+rendered output. A game-registered predicate defaults to evaluable:false even
+when serializable; serialization does not imply a generic client knows its
+semantics. The server remains the source of truth, exactly like CustomLegaler.
 
 # What client evaluation gets, today
 
@@ -322,7 +312,7 @@ the unchanged LegalForPlayer/LegalForPlayerError/LegalForAnyone fields.
 There is no client-side (TypeScript) evaluator yet; that's a designed-for
 follow-up the wire format and Reads/Facet machinery already anticipate.
 
-# v2 limits (read honestly, not as marketing)
+# v4 limits (read honestly, not as marketing)
 
 v1 shipped counts as an unused facet (FacetCount existed, no predicate read
 it), no typed equality, no move-field-indexed player paths, and only the
@@ -332,20 +322,16 @@ StackEmpty/StackNotEmpty, PropEquals/PropNotEquals, the
 players[move.<Field>].<Prop> path kind, and PlayerBoolIs/ComponentAbsentAt,
 respectively — and widened the composition seam. What's left, honestly:
 
-  - **`proposer.X` — proposer-relative legality with no move field naming
-    the proposer — is still unsupported.** `player.X` paths resolve against
-    the game's CurrentPlayerIndex, not the proposing player, and in a
-    simultaneous-move phase (every player proposing at once, the game's own
-    "current player" being Admin or none) that's not "the player who
-    proposed this move" — it returns an error or Unknown instead. The
-    completeness round's players[move.<Field>].<Prop> path kind fixes the
-    common shape of this gap (a move field, e.g. moves.CurrentPlayer's own
-    TargetPlayerIndex, names the relevant player — the exact case that
-    blocked and then unblocked a downstream game's simultaneous-move-phase
-    migration). What remains unsupported is deriving the path from the
-    proposer with NO move field naming them at all — that needs a
-    LegalForAnyone redesign (per-player existential evaluation), deferred to
-    a future round.
+  - **Current player and proposer are deliberately distinct.** `player.X`
+    resolves against CurrentPlayerIndex; `proposer.X` resolves against the
+    concrete proposing player and therefore works during simultaneous play.
+    Prefer CurrentPlayer(), Proposer(), or PlayerFromMove("Field") rather
+    than assembling behavior paths by hand. Proposer-read client
+    evaluability is conservative across every player because the public
+    evaluability API receives a viewer, not a trusted proposer. These helpers
+    return a typed PlayerSelector backed by one internal player-index-source
+    resolver. Semantic behavior conditions on Proposer carry explicit admin
+    bypass policy; Observer and Any are never valid actors.
   - **AllActivePlayers' inner leaf only accepts int/bool-typed properties.**
     PlayerBool/PlayerBoolIs, player-path PropAtLeast/PropCompare, or an Any
     of those — never an enum- or PlayerIndex-typed property, even though
@@ -371,7 +357,7 @@ respectively — and widened the composition seam. What's left, honestly:
     seam decision). Every other framework move type in package moves —
     DealCountComponents, FinishTurn, RoundRobin, and the rest — is opaque:
     it does not implement the contribution interface, so a move embedding
-    one of them and declaring WithPreconditions fails at boot, naming the
+    one of them and declaring WithLegalPreconditions fails at boot, naming the
     unsupported base type. FinishTurn/DealCountComponents specifically stay
     blocked because a partial contribution could desync the ledger;
     round-robin/progression-aware predicates are future work.

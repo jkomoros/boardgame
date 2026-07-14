@@ -32,7 +32,7 @@ type moveCurrentPlayerStand struct {
 // players have either busted or stood.
 //
 // Declarative migration (design spec §8's second flagship acid test):
-// Legal() is deleted; this move opts in via moves.WithPreconditions(
+// Legal() is deleted; this move opts in via moves.WithLegalPreconditions(
 // AllActivePlayers(Any(PlayerBool("Eliminated"), PlayerBool("Stood")))) in
 // main.go, matching spec §8 verbatim.
 //
@@ -59,7 +59,7 @@ type moveCurrentPlayerStand struct {
 // faithful stand-in for StartPhase.Apply; restoring the embed is simply
 // undoing that stand-in now that it's no longer necessary. Legal() itself
 // is unaffected either way: design spec §5 established that StartPhase's
-// legality IS Default.Legal verbatim (no override), so the WithPreconditions
+// legality IS Default.Legal verbatim (no override), so the WithLegalPreconditions
 // plan composes identically regardless of which of the two base types is
 // embedded. Verified behavior-preserving by the pre-existing full-game
 // TestGolden (JSON replay) and legal_golden_test.go both staying green. The
@@ -209,48 +209,22 @@ func (m *moveIncrementRoundsCompleted) Apply(state boardgame.State) error {
  *
  * moveCurrentPlayerHit Implementation
  *
- * Stays fully imperative (spec §8's "hand-value arithmetic... stay in
- * LegalCustom" survey, applied honestly per the Task 11 brief's "if NO
- * declarative gates apply naturally, leave the move fully imperative/opaque
- * and document why; do not force it"): moves.CurrentPlayer is a supported
- * v1-seam base, but none of this move's OWN checks has a catalog builder --
- * "Eliminated must be false" and the HandValue() comparison are both
- * negations/computed-value checks the catalog has no primitive for (no
- * "NOT playerBool", and HandValue() is a delegate-computed player property,
- * not a stored field reachable via the player.* path grammar), and the
- * DrawStack-has-a-card-at-index-0 / MayMoveTo checks need a move.* idxField
- * naming a literal 0, which no field on this move provides without adding
- * one purely to satisfy the catalog API (forcing it). With zero natural
- * WithPreconditions candidates, opting in just to reach LegalCustom would
- * violate boardgame's "declaring is implementing" rule for nothing (an
- * empty authored spec list is treated as not-opted-in regardless). Left
- * byte-for-byte unchanged from pre-Task-11.
+ * The persisted gates (not eliminated and a non-empty draw stack) are
+ * declarative. HandValue arithmetic and the component MayMoveTo check remain
+ * in LegalCustom because they are computed/value-level rules.
  *
  **************************************************/
 
-func (m *moveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
+func (m *moveCurrentPlayerHit) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	currentPlayer := players[game.CurrentPlayer.EnsureValid(state)]
-
-	if currentPlayer.Eliminated {
-		return errors.New("Current player is busted")
-	}
 
 	if currentPlayer.HandValue() >= targetScore {
 		return errors.New("Current player is already at target scores")
 	}
 
 	first := game.DrawStack.ImmutableFirst()
-	if first == nil {
-		return errors.New("No cards left in draw stack")
-	}
-
 	return first.MayMoveTo(currentPlayer.VisibleHand)
 }
 
@@ -286,7 +260,7 @@ func (m *moveCurrentPlayerHit) Apply(state boardgame.State) error {
 // had no negation primitive (legal.PlayerBool only passes when true). The
 // completeness round shipped legal.PlayerBoolIs(prop, want), so the gates are
 // now legal.PlayerBoolIs("Eliminated", false) and legal.PlayerBoolIs("Stood",
-// false), added via WithPreconditions in main.go's ConfigureMoves; the
+// false), added via WithLegalPreconditions in main.go's ConfigureMoves; the
 // proposer/current-player check is contributed base-first by
 // moves.CurrentPlayer. The declaration order is preserved within the
 // field-independent bucket, so Eliminated's message wins if both are somehow
@@ -321,30 +295,18 @@ func (m *moveCurrentPlayerStand) Apply(state boardgame.State) error {
  *
  * moveRevealHiddenCard Implementation
  *
- * Stays fully imperative, same rationale family as moveCurrentPlayerHit/
- * Stand above: both checks need a component-presence/MayMoveTo predicate
- * anchored at index 0 ("first"), which the catalog only supports via a
- * move.* idxField -- and this move has no field naming a literal 0 without
- * adding one purely to satisfy the catalog API. No natural WithPreconditions
- * candidate; not forced.
+ * HiddenHand non-empty is declarative. The first component's MayMoveTo check
+ * remains in LegalCustom because it examines component values at a fixed
+ * position rather than a move-selected index.
  *
  **************************************************/
 
-func (m *moveRevealHiddenCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-
-	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
-		return err
-	}
-
+func (m *moveRevealHiddenCard) LegalCustom(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	_, players := concreteStates(state)
 
 	p := players[m.TargetPlayerIndex]
 
 	first := p.HiddenHand.ImmutableFirst()
-	if first == nil {
-		return errors.New("Target player has no cards to reveal")
-	}
-
 	if err := first.MayMoveTo(p.VisibleHand); err != nil {
 		return err
 	}

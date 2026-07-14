@@ -239,7 +239,7 @@ the one framework type in the widened allowlist whose AllowMultipleInProgression
 override actually changes progression-matching behavior — FixUp and StartPhase
 don't touch it). This holds BY CONSTRUCTION: inProgressionConstructor's
 Evaluate does not reimplement progression matching, it calls
-checker.legalMoveInProgression(ctx.State, ctx.Proposer) — literally the same
+checker.legalMoveInProgression(ctx.State, ctx.ProposerPlayerIndex) — literally the same
 private method (moves/default.go, promoted from *Default through
 FixUpMulti's embed chain: FixUpMulti -> FixUp -> Default) that
 Default.Legal()'s frozen chain calls, and AllowMultipleInProgression is
@@ -250,7 +250,7 @@ against a real, live tape (not just by reading the source), per the Task 6
 brief's "prove it, don't just assert it by construction" instruction.
 
 Because the seam allowlist does not yet admit FixUpMulti, this test cannot
-opt the move in via WithPreconditions and compare against Legal() itself
+opt the move in via WithLegalPreconditions and compare against Legal() itself
 (that path is exactly what Step 2 unlocks). Instead it drives a REAL game
 tape through a NOT-opted-in FixUpMulti-embedding move (so its Legal() runs
 the ordinary frozen chain and ProposeMove's own legality gate is the source
@@ -277,7 +277,7 @@ func (m *moveFreezeFixUpMultiProgression) Apply(state boardgame.State) error {
 // phaseNormalPlayDrawCard consisting of a FixUpMulti-embedding move (so
 // AllowMultipleInProgression() is true, inherited from FixUpMulti) followed
 // by a NoOp guard that closes the progression out. The FixUpMulti move is
-// NOT opted in (no WithPreconditions — the seam does not admit it yet) and is
+// NOT opted in (no WithLegalPreconditions — the seam does not admit it yet) and is
 // configured WithIsFixUp(false) so it can be proposed manually, mirroring
 // freezeMoveInstaller's "Freeze Start Normal Play" pattern above.
 func fixUpMultiProgressionInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
@@ -337,7 +337,7 @@ func fixUpMultiInProgressionAtomLegal(t *testing.T, moveName string, state board
 		t.Fatal("inProgression predicate constructor returned a nil predicate")
 	}
 
-	verdict := predicate.Evaluate(legal.Context{State: state, Proposer: proposer})
+	verdict := predicate.Evaluate(legal.Context{State: state, ProposerPlayerIndex: proposer})
 	return verdict.Outcome == legal.Pass
 }
 

@@ -328,3 +328,28 @@ func TestProposerIsCurrentPlayerTakesNoArgs(t *testing.T) {
 		t.Fatal("expected an error constructing proposerIsCurrentPlayer with args")
 	}
 }
+
+func TestProposerIsPlayerFromMove(t *testing.T) {
+	spec := legal.ProposerIsPlayerFromMove("TargetPlayerIndex")
+	if spec.Name != "proposerIsPlayerFromMove" || spec.AdminPolicy != boardgame.LegalAdminBypass {
+		t.Fatalf("spec = %+v", spec)
+	}
+	pred := resolvePredicateForTest(t, spec)
+	if len(pred.Reads) != 1 || pred.Reads[0].Path != "move.TargetPlayerIndex" {
+		t.Fatalf("Reads = %+v", pred.Reads)
+	}
+
+	fixture := buildLegalFixture(t, "memoryDefault")
+	if v := pred.Evaluate(fixture.context(0)); v.Outcome != legal.Pass {
+		t.Fatalf("matching proposer: %+v", v)
+	}
+	for name, proposer := range map[string]boardgame.PlayerIndex{
+		"other":    1,
+		"observer": boardgame.ObserverPlayerIndex,
+		"any":      boardgame.AnyPlayerIndex,
+	} {
+		if v := pred.Evaluate(fixture.context(proposer)); v.Outcome != legal.Fail {
+			t.Fatalf("%s proposer: %+v, want Fail", name, v)
+		}
+	}
+}

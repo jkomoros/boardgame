@@ -108,7 +108,7 @@ func TestLegalPlanFieldIndependentMemoHitAcrossDoubleEvaluation(t *testing.T) {
 
 	calls := 0
 	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
-	ctx := LegalContext{State: state, Proposer: AdminPlayerIndex}
+	ctx := LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}
 
 	v1, _ := plan.evaluate(ctx, false)
 	assert.For(t).ThatActual(v1.Outcome).Equals(LegalPass)
@@ -150,7 +150,7 @@ func TestLegalPlanMemoDoesNotReorderInterleavedPredicates(t *testing.T) {
 			{predicate: independent, memoIndex: 0},
 		},
 	}
-	ctx := LegalContext{State: state, Proposer: AdminPlayerIndex}
+	ctx := LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}
 
 	plan.evaluate(ctx, false)
 	plan.evaluate(ctx, false)
@@ -172,10 +172,10 @@ func TestLegalPlanFieldIndependentMemoMissAcrossProposer(t *testing.T) {
 	calls := 0
 	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
 
-	plan.evaluate(LegalContext{State: state, Proposer: AdminPlayerIndex}, false)
+	plan.evaluate(LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}, false)
 	assert.For(t).ThatActual(calls).Equals(1)
 
-	plan.evaluate(LegalContext{State: state, Proposer: PlayerIndex(0)}, false)
+	plan.evaluate(LegalContext{State: state, ProposerPlayerIndex: PlayerIndex(0)}, false)
 	assert.For(t).ThatActual(calls).Equals(2)
 }
 
@@ -189,7 +189,7 @@ func TestLegalPlanFieldIndependentMemoMissAcrossMoveName(t *testing.T) {
 	calls := 0
 	planA := countingFieldIndependentPlan("MoveA", &calls)
 	planB := countingFieldIndependentPlan("MoveB", &calls)
-	ctx := LegalContext{State: state, Proposer: AdminPlayerIndex}
+	ctx := LegalContext{State: state, ProposerPlayerIndex: AdminPlayerIndex}
 
 	planA.evaluate(ctx, false)
 	assert.For(t).ThatActual(calls).Equals(1)
@@ -211,7 +211,7 @@ func TestLegalPlanFieldIndependentMemoEvictsOnVersionAdvance(t *testing.T) {
 	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
 
 	v0State := game.CurrentState()
-	ctxV0 := LegalContext{State: v0State, Proposer: AdminPlayerIndex}
+	ctxV0 := LegalContext{State: v0State, ProposerPlayerIndex: AdminPlayerIndex}
 
 	plan.evaluate(ctxV0, false)
 	assert.For(t).ThatActual(calls).Equals(1)
@@ -221,7 +221,7 @@ func TestLegalPlanFieldIndependentMemoEvictsOnVersionAdvance(t *testing.T) {
 	legalMemoAdvanceVersion(t, game)
 	assert.For(t).ThatActual(game.Version()).Equals(v0State.Version() + 1)
 
-	ctxV1 := LegalContext{State: game.CurrentState(), Proposer: AdminPlayerIndex}
+	ctxV1 := LegalContext{State: game.CurrentState(), ProposerPlayerIndex: AdminPlayerIndex}
 	plan.evaluate(ctxV1, false)
 	assert.For(t).ThatActual(calls).Equals(2) // new version: fresh miss
 
@@ -253,7 +253,7 @@ func TestLegalPlanFieldIndependentMemoSkippedWithNoGame(t *testing.T) {
 
 	calls := 0
 	plan := countingFieldIndependentPlan("MemoTestMove", &calls)
-	ctx := LegalContext{State: manager.ExampleState(), Proposer: AdminPlayerIndex}
+	ctx := LegalContext{State: manager.ExampleState(), ProposerPlayerIndex: AdminPlayerIndex}
 
 	plan.evaluate(ctx, false)
 	assert.For(t).ThatActual(calls).Equals(1)
@@ -375,7 +375,7 @@ func TestLegalMemoConcurrentAccessRace(t *testing.T) {
 			for i := 0; i < numIterations; i++ {
 				state := states[(gIdx+i)%numVersions]
 				proposer := PlayerIndex((gIdx + i) % 3)
-				ctx := LegalContext{State: state, Proposer: proposer}
+				ctx := LegalContext{State: state, ProposerPlayerIndex: proposer}
 
 				verdict, _ := plan.evaluate(ctx, false)
 				if verdict.Outcome != LegalPass {

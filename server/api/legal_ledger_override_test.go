@@ -74,7 +74,7 @@ func (d *legalLedgerOverrideDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(legalLedgerMoveResidue),
 			moves.WithMoveName("Residue"),
-			moves.WithPreconditions(
+			moves.WithLegalPreconditions(
 				// Passes on every real game (FinishSetUp seeds 7 >= 5) --
 				// the plan's verdict is Pass, so ONLY the imperative
 				// residue makes this move illegal.
@@ -84,7 +84,7 @@ func (d *legalLedgerOverrideDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(legalLedgerMoveEarlyNil),
 			moves.WithMoveName("Early Nil"),
-			moves.WithPreconditions(
+			moves.WithLegalPreconditions(
 				// Fails on every real game (7 < 1000) -- the plan's verdict
 				// is Fail, so ONLY the override's early-return-nil makes
 				// this move legal.
@@ -94,7 +94,7 @@ func (d *legalLedgerOverrideDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	)
 }
 
-// legalLedgerMoveResidue opts in via WithPreconditions AND keeps a
+// legalLedgerMoveResidue opts in via WithLegalPreconditions AND keeps a
 // super-calling Legal() override with imperative residue -- the exact
 // composition the design spec's prime-guarantee rule 4 blesses. The
 // super-call runs first (so the boot reachability probe reaches
@@ -122,7 +122,7 @@ func (m *legalLedgerMoveResidue) Legal(state boardgame.ImmutableState, proposer 
 	return nil
 }
 
-// legalLedgerMoveEarlyNil opts in via WithPreconditions but its Legal()
+// legalLedgerMoveEarlyNil opts in via WithLegalPreconditions but its Legal()
 // override conditionally early-returns nil BEFORE super-calling -- legal by
 // ground truth while its plan verdict is Fail. The early return only
 // triggers on a FinishSetUp-seeded (real-game) state; on the probe's

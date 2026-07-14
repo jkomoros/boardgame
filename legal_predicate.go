@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"fmt"
+	"sort"
 )
 
 // LegalContext is the entire vocabulary a LegalPredicate's Evaluate func may
@@ -17,8 +18,10 @@ type LegalContext struct {
 	// runtime guard that protects a predicate that touches ctx.Move despite
 	// not declaring a move.* read.
 	Move Move
-	// Proposer is the player proposing the move.
-	Proposer PlayerIndex
+	// ProposerPlayerIndex is the runtime PlayerIndex proposing the move. It is
+	// a concrete player during ordinary play and AdminPlayerIndex for engine
+	// actions; ObserverPlayerIndex and AnyPlayerIndex are never actors.
+	ProposerPlayerIndex PlayerIndex
 	// Chest is the game's component chest.
 	Chest *ComponentChest
 }
@@ -47,6 +50,22 @@ type LegalPredicate struct {
 	// touch of a nil ctx.Move are all converted to a fail-closed
 	// LegalUnknown instead of propagating.
 	Evaluate func(ctx LegalContext) LegalVerdict
+	// RequiredReadTypes optionally pins the PropertyType expected at each
+	// declared path. Boot validation rejects a present-but-wrongly-typed
+	// property instead of allowing every runtime evaluation to become Unknown.
+	RequiredReadTypes map[LegalPropPath]PropertyType
+	// AdminPolicy is copied from the originating spec. AdminBypass is legal
+	// only for proposer-dependent predicates and prevents them from trying to
+	// resolve AdminPlayerIndex as an ordinary player.
+	AdminPolicy LegalAdminPolicy
+	// UsesProposer declares that Evaluate depends on the proposing actor even
+	// when that dependency is not represented by a proposer.* Read (for
+	// example, comparing the proposer with a move's PlayerIndex field).
+	UsesProposer bool
+	// ClientEvaluable means the generic client catalog knows this predicate's
+	// semantics. Serialization alone is insufficient: game-defined predicates
+	// and compositors without serialized children are deliberately false.
+	ClientEvaluable bool
 	// EmittedTemplates is the conservative set of template keys this
 	// predicate's Evaluate may emit in a Fail (or Message-carrying Unknown)
 	// verdict — the effective keys AFTER any Spec.Message override was
@@ -169,12 +188,12 @@ const legalAnyCompositorName = "any"
 // paths are validated via validateLegalPath, so a typo in a Read's path
 // fails at boot (naming the offending predicate and path) rather than
 // surfacing mid-game. Because validateLegalPath needs both an example state
-// (for game.*/player.*/players[*].* paths) and a move reader (for move.*
+// (for game.*/player.*/proposer.*/players[*].* paths) and a move reader (for move.*
 // paths), resolveLegalSpecs takes both as explicit parameters, beyond the
 // three the brief sketched (specs, registry, chest) — a deviation
 // documented here and forwarded from Task 2's reviewer note. Either may be
 // nil to skip the corresponding class of path validation: exampleState nil
-// skips game.*/player.*/players[*].* validation, moveReader nil skips
+// skips game.*/player.*/proposer.*/players[*].* validation, moveReader nil skips
 // move.* validation. nil is also today's production default for moveReader
 // until a later task wires NewGameManager to pass the real example move's
 // reader; passing nil for both is convenient for isolated
@@ -226,6 +245,7 @@ func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateCon
 		if pred == nil {
 			return nil, fmt.Errorf("boardgame: legal spec %q: constructor returned a nil predicate", spec.Name)
 		}
+		pred.AdminPolicy = spec.AdminPolicy
 		return pred, nil
 	}
 
@@ -243,12 +263,54 @@ func resolveLegalSpecs(specs []LegalSpec, registry map[string]*LegalPredicateCon
 		if err := checkNoNestedAny(pred); err != nil {
 			return nil, fmt.Errorf("boardgame: legal spec %q: %w", spec.Name, err)
 		}
-		if err := validateLegalReadsForBoot(pred.Reads, exampleState, moveReader); err != nil {
+		if err := validateLegalPredicateForBoot(pred, exampleState, moveReader); err != nil {
 			return nil, fmt.Errorf("boardgame: legal spec %q: %w", spec.Name, err)
 		}
 		result = append(result, pred)
 	}
 	return result, nil
+}
+
+func validateLegalPredicateForBoot(pred *LegalPredicate, exampleState ImmutableState, moveReader PropertyReader) error {
+	if pred == nil {
+		return nil
+	}
+	switch pred.AdminPolicy {
+	case LegalAdminEvaluate:
+	case LegalAdminBypass:
+		if !pred.UsesProposer {
+			return fmt.Errorf("predicate %q uses AdminBypass without declaring proposer dependence", pred.Name)
+		}
+		for _, read := range pred.Reads {
+			parsed, err := parseLegalPath(read.Path)
+			if err != nil || (parsed.kind != pathProposer && parsed.kind != pathMove) {
+				return fmt.Errorf("predicate %q uses AdminBypass but read %q is neither proposer-scoped nor a move field", pred.Name, read.Path)
+			}
+		}
+	default:
+		return fmt.Errorf("predicate %q has unknown admin policy %q", pred.Name, pred.AdminPolicy)
+	}
+	if err := validateLegalReadsForBoot(pred.Reads, exampleState, moveReader); err != nil {
+		return err
+	}
+	paths := make([]string, 0, len(pred.RequiredReadTypes))
+	for path := range pred.RequiredReadTypes {
+		paths = append(paths, string(path))
+	}
+	sort.Strings(paths)
+	for _, rawPath := range paths {
+		path := LegalPropPath(rawPath)
+		expected := pred.RequiredReadTypes[path]
+		if err := validateLegalPathType(path, expected, exampleState, moveReader); err != nil {
+			return err
+		}
+	}
+	for _, sub := range pred.Sub {
+		if err := validateLegalPredicateForBoot(sub, exampleState, moveReader); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // checkNoNestedAny walks pred's Sub tree (the already-resolved
@@ -404,7 +466,7 @@ func maxLegalCost(subs []*LegalPredicate) LegalCost {
 // validateLegalReadsForBoot validates every path in reads via
 // validateLegalPath, skipping a given Read if the validation target it
 // needs is nil: a move.* Read is skipped if moveReader is nil, and a
-// game.*/player.*/players[*].* Read is skipped if exampleState is nil. A
+// game.*/player.*/proposer.*/players[*].* Read is skipped if exampleState is nil. A
 // malformed path (one that fails to parse at all) is always an error,
 // regardless of exampleState/moveReader.
 func validateLegalReadsForBoot(reads []LegalRead, exampleState ImmutableState, moveReader PropertyReader) error {
@@ -447,6 +509,9 @@ func evalLegalPredicate(p *LegalPredicate, ctx LegalContext) (verdict LegalVerdi
 	}
 	if p.Evaluate == nil {
 		return LegalVerdict{Outcome: LegalUnknown, Reason: fmt.Sprintf("predicate %q has no Evaluate function", p.Name)}
+	}
+	if ctx.ProposerPlayerIndex == AdminPlayerIndex && p.AdminPolicy == LegalAdminBypass {
+		return LegalVerdict{Outcome: LegalPass}
 	}
 
 	defer func() {

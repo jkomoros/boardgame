@@ -40,7 +40,7 @@ func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 //     "players[move.TargetPlayerIndex].UnusedTokens" (TargetPlayerIndex is
 //     a PlayerIndex-typed field on the embedded moves.CurrentPlayer, so it
 //     satisfies spec §3's <Field> requirement exactly). Declared via
-//     WithPreconditions in main.go; Legal() itself is deleted.
+//     WithLegalPreconditions in main.go; Legal() itself is deleted.
 //
 //  2. The MayMoveToSlot check is NOT migratable and survives as
 //     LegalCustom residue, below: it compares a FIXED index (0 — "first" of

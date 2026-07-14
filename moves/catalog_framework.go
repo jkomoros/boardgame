@@ -141,7 +141,7 @@ func inProgressionConstructor() *legal.PredicateConstructor {
 					if !ok {
 						return legal.UnknownVerdict("moves: inProgression: move " + moveName + " does not embed moves.Default")
 					}
-					if err := checker.legalMoveInProgression(ctx.State, ctx.Proposer); err != nil {
+					if err := checker.legalMoveInProgression(ctx.State, ctx.ProposerPlayerIndex); err != nil {
 						return legal.FailT(template, map[string]legal.BindingValue{
 							"detail": legal.String(err.Error()),
 						})

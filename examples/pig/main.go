@@ -139,7 +139,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			// Legal() is deleted (see moves.go); this plan replaces it
 			// exactly except for the pre-existing bug that comment
 			// documents (a discarded proposer-check error).
-			moves.WithPreconditions(
+			moves.WithLegalPreconditions(
 				legal.PlayerBool("DieCounted").WithMessage("pig.roll_not_counted"),
 			),
 		),
@@ -148,11 +148,10 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			moves.WithHelpText("Played when a player is done with their turn and wants to keep their score."),
 			// Declarative migration (design spec §8 survey, Task 12):
 			// Legal() is deleted (see moves.go); the DieCounted gate is
-			// declarative, the "already done" gate has no catalog
-			// primitive (negated boolean) and survives as LegalCustom
-			// residue -- see moves.go's doc comment.
-			moves.WithPreconditions(
+			// declarative, including the negated Done bool.
+			moves.WithLegalPreconditions(
 				legal.PlayerBool("DieCounted").WithMessage("pig.done_roll_not_counted"),
+				legal.PlayerBoolIs("Done", false).WithMessage("pig.already_done"),
 			),
 		),
 		auto.MustConfig(
@@ -163,7 +162,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			// deleted (see moves.go); its single negated-boolean gate is now
 			// this precondition. The proposer/current-player check is
 			// contributed base-first by moves.CurrentPlayer.
-			moves.WithPreconditions(
+			moves.WithLegalPreconditions(
 				legal.PlayerBoolIs("DieCounted", false).WithMessage("pig.roll_already_counted"),
 			),
 		),
@@ -175,7 +174,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 }
 
 // ConfigureLegalTemplates supplies the pig.* template keys moveRollDice's
-// and moveDoneTurn's WithPreconditions plans and moveDoneTurn's LegalCustom
+// and moveDoneTurn's WithLegalPreconditions plans and moveDoneTurn's LegalCustom
 // residue reference (design spec §8 survey, Task 12), with the verbatim
 // legacy strings from each move's pre-migration Legal() body (see moves.go's
 // comments). moveRollDice and moveDoneTurn had two DIFFERENT capitalizations

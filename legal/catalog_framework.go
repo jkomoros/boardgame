@@ -52,7 +52,7 @@ const (
 // moves/default.go's legalInPhase check verbatim (via
 // boardgame.LegalInPhaseCheck); Default.ContributedPreconditions constructs
 // this spec automatically from a move type's WithLegalPhases configuration,
-// but it may also be authored directly via WithPreconditions.
+// but it may also be authored directly via WithLegalPreconditions.
 func InPhase(phases ...enum.EnumKey) Spec {
 	args := make([]string, len(phases))
 	for i, p := range phases {
@@ -96,8 +96,9 @@ func inPhaseConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "inPhase",
-				Args: spec.Args,
+				Name:            "inPhase",
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					// By-convention Read, in the same spirit as
 					// proposerIsCurrentPlayer's "game.CurrentPlayer"
@@ -153,8 +154,9 @@ func stackConstraintsConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "stackConstraints",
-				Args: spec.Args,
+				Name:            "stackConstraints",
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					{Path: PropPath("game." + srcName), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath("game." + dstName), Facet: boardgame.LegalFacetValues},

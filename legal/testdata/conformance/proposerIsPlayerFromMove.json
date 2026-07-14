@@ -1,0 +1,31 @@
+{
+  "predicate": "proposerIsPlayerFromMove",
+  "cases": [
+    {
+      "spec": {"name": "proposerIsPlayerFromMove", "args": ["TargetPlayerIndex"], "adminPolicy": "bypass"},
+      "fixture": "memoryDefault",
+      "proposer": 0,
+      "expect": "pass"
+    },
+    {
+      "spec": {"name": "proposerIsPlayerFromMove", "args": ["TargetPlayerIndex"], "adminPolicy": "bypass"},
+      "fixture": "memoryDefault",
+      "proposer": 1,
+      "expect": "fail",
+      "template": "legal.proposer_not_move_player"
+    },
+    {
+      "spec": {"name": "proposerIsPlayerFromMove", "args": ["TargetPlayerIndex"], "adminPolicy": "bypass"},
+      "fixture": "memoryDefault",
+      "proposer": -1,
+      "expect": "fail",
+      "template": "legal.proposer_not_move_player"
+    },
+    {
+      "spec": {"name": "proposerIsPlayerFromMove", "args": ["TargetPlayerIndex"], "adminPolicy": "bypass"},
+      "fixture": "memoryNoMove",
+      "proposer": 0,
+      "expect": "unknown"
+    }
+  ]
+}

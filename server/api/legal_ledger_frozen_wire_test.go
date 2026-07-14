@@ -46,7 +46,7 @@ those two:
 InactivateEmptySeat from main.go's ConfigureMoves, which are unmodified
 framework move types werewolf never overrides Legal() on, and which
 legalUnsupportedMovesBaseType would flag too — moot here since none of them
-declare WithPreconditions in the first place). Every one of legalUnsupported-
+declare WithLegalPreconditions in the first place). Every one of legalUnsupported-
 MovesBaseType's checks is a hard boot-time gate (legal_plan.go), not a
 judgment call, so this is a durable "stays opaque" guarantee, not a
 survey-cycle-scoped one — unlike checkers/memory, no genuinely-natural

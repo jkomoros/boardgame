@@ -18,10 +18,10 @@ comments right in TUTORIAL.md -- those don't need a second compiled copy
 here. This file exists for the tutorial's remaining snippets, which are
 illustrative rather than lifted from one exact call site: the catalog
 predicate builder cheat-sheet (every constructor signature the tutorial's
-table claims exists, called for real) and the WithoutPrecondition
+table claims exists, called for real) and the WithoutLegalPrecondition
 escape-from-inheritance pattern (design spec §2's "ForceFinishTurn, now
 expressible declaratively" -- there is no in-repo game that actually calls
-WithoutPrecondition yet, so the tutorial's example is necessarily
+WithoutLegalPrecondition yet, so the tutorial's example is necessarily
 synthetic and must be proven to compile and Config() cleanly here).
 */
 
@@ -31,17 +31,26 @@ synthetic and must be proven to compile and Config() cleanly here).
 // that these names/signatures are real, not documentation prose.
 func TestTutorialSnippetCatalogPredicates(t *testing.T) {
 	specs := map[string]legal.Spec{
-		"propAtLeast":                   legal.PropAtLeast("player.CardsLeftToReveal", 1),
-		"propCompare":                   legal.PropCompare("game.AttackStrength", ">", 0),
-		"playerBool":                    legal.PlayerBool("Eliminated"),
-		"componentPresentAt":            legal.ComponentPresentAt("game.HiddenCards", "move.CardIndex"),
-		"componentPresentAtKey":         legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove"),
-		"mayMoveTo":                     legal.MayMoveTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-		"mayMoveToSlot":                 legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
-		"any":                           legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
-		"allActivePlayers":              legal.AllActivePlayers(legal.PlayerBool("Eliminated")),
-		"proposerIsCurrentPlayer":       legal.ProposerIsCurrentPlayer(),
-		"revealableCardAt":              legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+		"propAtLeast":                      legal.PropAtLeast("player.CardsLeftToReveal", 1),
+		"propCompare":                      legal.PropCompare("game.AttackStrength", ">", 0),
+		"playerBool":                       legal.PlayerBool("Eliminated"),
+		"playerBoolIs":                     legal.PlayerBoolIs("Eliminated", false),
+		"playerBoolAt":                     legal.PlayerBoolAt(legal.Proposer(), "Eliminated", false),
+		"stackCount":                       legal.StackCount("game.VisibleCards", "==", 2),
+		"stackEmpty":                       legal.StackEmpty("game.VisibleCards"),
+		"stackNotEmpty":                    legal.StackNotEmpty("game.HiddenCards"),
+		"propEquals":                       legal.PropEquals("game.NumCards", "20"),
+		"propNotEquals":                    legal.PropNotEquals("game.NumCards", "0"),
+		"componentPresentAt":               legal.ComponentPresentAt("game.HiddenCards", "move.CardIndex"),
+		"componentAbsentAt":                legal.ComponentAbsentAt("game.VisibleCards", "move.CardIndex"),
+		"componentPresentAtKey":            legal.ComponentPresentAtKey("game.Spaces", "move.TokenIndexToMove"),
+		"mayMoveTo":                        legal.MayMoveTo("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+		"mayMoveToSlot":                    legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
+		"any":                              legal.Any(legal.PlayerBool("Eliminated"), legal.PlayerBool("Stood")),
+		"allActivePlayers":                 legal.AllActivePlayers(legal.PlayerBool("Eliminated")),
+		"proposerIsCurrentPlayer":          legal.ProposerIsCurrentPlayer(),
+		"proposerIsPlayerFromMove":         legal.ProposerIsPlayerFromMove("TargetPlayerIndex"),
+		"revealableCardAt":                 legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 		"componentPropEqualsCurrentPlayer": legal.ComponentPropEqualsCurrentPlayer("game.Spaces", "move.TokenIndexToMove", "Color"),
 	}
 
@@ -52,15 +61,14 @@ func TestTutorialSnippetCatalogPredicates(t *testing.T) {
 	}
 }
 
-// TestTutorialSnippetWithoutPrecondition proves the tutorial's
-// WithoutPrecondition example -- a move that opts in to declarative
-// legality with one authored check while suppressing an inherited
-// contributed one, the moves.ForceFinishTurn "inherit nothing" pattern
+// TestTutorialSnippetWithoutLegalPrecondition proves the tutorial's
+// WithoutLegalPrecondition example -- a suppression that itself opts the move
+// into declarative legality, the moves.ForceFinishTurn "inherit nothing" pattern
 // design spec §2 calls out -- actually compiles and Config()s cleanly.
 // This needs a real, manager-attached delegate (AutoConfigurer.Config
 // calls into a.delegate.Manager()), so it builds a throwaway
 // GameManager rather than calling auto.Config in isolation.
-func TestTutorialSnippetWithoutPrecondition(t *testing.T) {
+func TestTutorialSnippetWithoutLegalPrecondition(t *testing.T) {
 	manager, err := boardgame.NewGameManager(NewDelegate(), storagememory.NewStorageManager())
 	if err != nil {
 		t.Fatalf("tutorial_snippets: building manager: %v", err)
@@ -72,9 +80,8 @@ func TestTutorialSnippetWithoutPrecondition(t *testing.T) {
 	// embedding moves.FixUp; it is NOT actually reconfigured in the running
 	// game by this call -- Config() just builds a MoveConfig value, it does
 	// not register or mutate anything on the live manager. This exercises
-	// exactly the syntax the tutorial teaches: WithPreconditions to opt in,
-	// WithoutPrecondition to suppress an inherited contributed check by its
-	// stable name (the moves.Precondition* constants).
+	// exactly the syntax the tutorial teaches: WithoutLegalPrecondition both
+	// opts in and suppresses an inherited contribution by its stable name.
 	//
 	// The WithLegalPhases call matters (footgun-batch F2): boot validates
 	// every suppression against the move's ACTUAL contributed spec names, so
@@ -90,19 +97,16 @@ func TestTutorialSnippetWithoutPrecondition(t *testing.T) {
 	// moves.CurrentPlayer-embedding move is a BOOT ERROR (the imperative
 	// proposer check in CurrentPlayer.Legal would still run, desyncing the
 	// client ledger from actual legality — see legal/doc.go's
-	// WithoutPrecondition section). Suppress only checks the plan actually
+	// WithoutLegalPrecondition section). Suppress only checks the plan actually
 	// controls; on a CurrentPlayer move, embed moves.Default instead if you
 	// truly need proposer-free semantics.
 	_, err = auto.Config(
 		new(moveCaptureCards),
 		moves.WithLegalPhases(1),
-		moves.WithPreconditions(
-			legal.StackNotEmpty("game.VisibleCards"),
-		),
-		moves.WithoutPrecondition(moves.PreconditionInPhase),
+		moves.WithoutLegalPrecondition(moves.PreconditionInPhase),
 	)
 	if err != nil {
-		t.Fatalf("tutorial_snippets: WithoutPrecondition example failed to Config: %v", err)
+		t.Fatalf("tutorial_snippets: WithoutLegalPrecondition example failed to Config: %v", err)
 	}
 }
 

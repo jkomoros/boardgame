@@ -18,6 +18,7 @@ func TestParseLegalPath(t *testing.T) {
 	}{
 		{"game path", "game.DrawStack", false, pathGame, "DrawStack", ""},
 		{"player path", "player.CardsLeftToReveal", false, pathPlayer, "CardsLeftToReveal", ""},
+		{"proposer path", "proposer.PlayerSubmitted", false, pathProposer, "PlayerSubmitted", ""},
 		{"players[*] path", "players[*].Stood", false, pathPlayersAll, "Stood", ""},
 		{"move path", "move.CardIndex", false, pathMove, "CardIndex", ""},
 		{"nested prop is not itself rejected by parse", "game.Sub.Field", false, pathGame, "Sub.Field", ""},
@@ -67,6 +68,20 @@ func TestValidateLegalPath(t *testing.T) {
 	t.Run("valid player path", func(t *testing.T) {
 		err := validateLegalPath("player.Score", exampleState, nil)
 		assert.For(t).ThatActual(err).IsNil()
+	})
+
+	t.Run("valid proposer path", func(t *testing.T) {
+		err := validateLegalPath("proposer.Score", exampleState, nil)
+		assert.For(t).ThatActual(err).IsNil()
+	})
+
+	t.Run("expected property type is validated", func(t *testing.T) {
+		assert.For(t).ThatActual(validateLegalPathType("proposer.IsFoo", TypeBool, exampleState, nil)).IsNil()
+		err := validateLegalPathType("proposer.Score", TypeBool, exampleState, nil)
+		assert.For(t).ThatActual(err).IsNotNil()
+		if err != nil {
+			assert.For(t).ThatActual(strings.Contains(err.Error(), "expected TypeBool")).Equals(true)
+		}
 	})
 
 	t.Run("valid players[*] path", func(t *testing.T) {
@@ -204,6 +219,24 @@ func TestResolveLegalPath(t *testing.T) {
 		assert.For(t).ThatActual(err).IsNil()
 		assert.For(t).ThatActual(propType).Equals(TypeBool)
 		assert.For(t).ThatActual(val).Equals(false)
+	})
+
+	t.Run("proposer.X resolves the proposing player's prop", func(t *testing.T) {
+		ctx := LegalContext{State: state, ProposerPlayerIndex: PlayerIndex(1)}
+		val, propType, err := ctx.ResolvePath("proposer.Score")
+		assert.For(t).ThatActual(err).IsNil()
+		assert.For(t).ThatActual(propType).Equals(TypeInt)
+		want, wantErr := state.ImmutablePlayerStates()[1].Reader().IntProp("Score")
+		assert.For(t).ThatActual(wantErr).IsNil()
+		assert.For(t).ThatActual(val).Equals(want)
+	})
+
+	t.Run("proposer.X rejects special proposers", func(t *testing.T) {
+		for _, proposer := range []PlayerIndex{AdminPlayerIndex, ObserverPlayerIndex, AnyPlayerIndex} {
+			ctx := LegalContext{State: state, ProposerPlayerIndex: proposer}
+			_, _, err := ctx.ResolvePath("proposer.Score")
+			assert.For(t).ThatActual(err).IsNotNil()
+		}
 	})
 
 	t.Run("move.X round-trips string", func(t *testing.T) {

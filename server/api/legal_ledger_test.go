@@ -58,6 +58,25 @@ func assertLegalForAnyoneParity(t *testing.T, move boardgame.Move, state boardga
 	}
 }
 
+func TestBuildPreconditionEntryRequiresClientCatalogSupport(t *testing.T) {
+	entry := boardgame.LegalVerdictEntry{
+		Name:            "gameOnlyPredicate",
+		Verdict:         boardgame.LegalVerdict{Outcome: boardgame.LegalPass},
+		Serializable:    true,
+		ClientEvaluable: false,
+	}
+	got := buildPreconditionEntry(nil, boardgame.AdminPlayerIndex, entry)
+	if got.Evaluable {
+		t.Fatal("serializable game predicate without client support was marked evaluable")
+	}
+
+	entry.ClientEvaluable = true
+	got = buildPreconditionEntry(nil, boardgame.AdminPlayerIndex, entry)
+	if !got.Evaluable {
+		t.Fatal("client-known serializable predicate was not marked evaluable for admin")
+	}
+}
+
 func TestGenerateFormsWithLegalityOptedInLedgerShape(t *testing.T) {
 	game, _ := newLegalLedgerGame(t)
 	s := &Server{}

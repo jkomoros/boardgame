@@ -67,6 +67,13 @@ var defaultTemplateKeys = []string{
 	TemplatePropAtLeast,
 	TemplatePropCompare,
 	TemplatePlayerBool,
+	TemplatePlayerAlreadySubmitted,
+	TemplatePlayerNotSubmitted,
+	TemplatePlayerInactive,
+	TemplatePlayerActive,
+	TemplateSeatNotFilled,
+	TemplateSeatNotClosed,
+	TemplatePlayerNotAdmin,
 	TemplateComponentMissing,
 	TemplateComponentMissingKey,
 	TemplateNoComponentToMove,
@@ -174,8 +181,9 @@ func componentPresentAtConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "componentPresentAt",
-				Args: spec.Args,
+				Name:            "componentPresentAt",
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
@@ -227,8 +235,9 @@ func componentAbsentAtConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "componentAbsentAt",
-				Args: spec.Args,
+				Name:            "componentAbsentAt",
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
@@ -278,8 +287,9 @@ func componentPresentAtKeyConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "componentPresentAtKey",
-				Args: spec.Args,
+				Name:            "componentPresentAtKey",
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(keyField), Facet: boardgame.LegalFacetValues},
@@ -388,8 +398,9 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: name,
-				Args: spec.Args,
+				Name:            name,
+				ClientEvaluable: true,
+				Args:            spec.Args,
 				Reads: []Read{
 					{Path: PropPath(srcPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
@@ -471,6 +482,7 @@ func DefaultConstructors() []*PredicateConstructor {
 		propAtLeastConstructor(),
 		propCompareConstructor(),
 		playerBoolConstructor(),
+		playerBoolAtConstructor(),
 		componentPresentAtConstructor(),
 		componentAbsentAtConstructor(),
 		componentPresentAtKeyConstructor(),
@@ -478,6 +490,7 @@ func DefaultConstructors() []*PredicateConstructor {
 		mayMoveToSlotConstructor(),
 		allActivePlayersConstructor(),
 		proposerIsCurrentPlayerConstructor(),
+		proposerIsPlayerFromMoveConstructor(),
 		revealableCardAtConstructor(),
 		componentPropEqualsCurrentPlayerConstructor(),
 		inPhaseConstructor(),

@@ -177,44 +177,43 @@ best way to do it. See the tutorial in the main package for more.
 
 # Declarative Legality
 
-[Default] and [CurrentPlayer] support an additional, optional way to express
+[Default], [CurrentPlayer], [FixUp], [FixUpMulti], and [StartPhase] support an additional, optional way to express
 a move's legality: instead of (or alongside) overriding Legal(), pass
-[WithPreconditions] to auto.Config with one or more legal.Spec values built
+[WithLegalPreconditions] to auto.Config with one or more legal.Spec values built
 from the [legal] package's predicate catalog:
 
 	auto.MustConfig(
 	    new(moveRevealCard),
-	    moves.WithPreconditions(
+	    moves.WithLegalPreconditions(
 	        legal.PropAtLeast("player.CardsLeftToReveal", 1),
 	        legal.RevealableCardAt("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 	        legal.MayMoveToSlot("game.HiddenCards", "game.VisibleCards", "move.CardIndex"),
 	    ),
 	)
 
-This is purely sugar: [Default.Legal] and [CurrentPlayer.Legal]'s existing
-imperative behavior is unchanged, byte-for-byte, for any move that doesn't
-pass WithPreconditions. A move that does opt in gets its checks assembled
+This is purely sugar: existing imperative behavior is unchanged for any move that doesn't
+pass WithLegalPreconditions. A move that does opt in gets its checks assembled
 into a plan at NewGameManager (base-derived checks — phase, move-progression,
 stack constraints, and for CurrentPlayer the proposer check — first, then the
-authored WithPreconditions specs in order); Default.Legal() then evaluates
+authored WithLegalPreconditions specs in order); Default.Legal() then evaluates
 that plan instead of running the old chain. Memoized state-only checks retain
-that same observable order. [WithDeclarativeLegality] explicitly opts in a
-contributed-only or LegalCustom-only move. [WithoutPrecondition] suppresses
+that same observable order. Calling [WithLegalPreconditions] with no specs
+opts in a contributed-only move; implementing boardgame.CustomLegaler opts in
+automatically. [WithoutLegalPrecondition] suppresses
 one of those base-derived checks by its stable name (pass the exported
 constants: [PreconditionInPhase], [PreconditionInProgression],
 [PreconditionStackConstraints], [PreconditionProposerIsCurrentPlayer]) for a
 move that wants to opt out of something it would otherwise inherit — the
 [ForceFinishTurn] "inherit nothing" pattern, now expressible without a
 bespoke base type. Suppressions are boot-validated: a name the move doesn't
-actually contribute, or a WithoutPrecondition call on a move that never
-opted in via WithPreconditions or WithDeclarativeLegality, is a NewGameManager error naming the move
-(see [WithoutPrecondition]'s own doc). For legality that isn't a simple relation over a property
+actually contribute is a NewGameManager error naming the move
+(see [WithoutLegalPrecondition]'s own doc). For legality that isn't a simple relation over a property
 path — arithmetic, graph walks, anything with real Go logic —
 [boardgame.CustomLegaler]'s LegalCustom method runs as imperative residue
 after every declared precondition passes; see the [legal] package doc for the
-full authoring guide, the catalog's rules of growth, and its honest v1
-limits (only [Default]/[CurrentPlayer] support this — every other move type
-below, [FixUp] included, stays fully opaque and requires Legal() as before).
+full authoring guide, the catalog's rules of growth, and its honest limits
+(the supported seam is [Default], [CurrentPlayer], [FixUp], [FixUpMulti],
+and [StartPhase]; other framework move bases remain opaque).
 See the tutorial's "Declarative Move Legality" section for a complete worked
 example.
 

@@ -13,7 +13,7 @@ import (
 This file is the declarative-legality evaluation engine (design spec §4) and
 its boot-time assembly. It is the campaign's highest-risk surface: it must
 deliver the "prime guarantee" that a move which does NOT declare
-WithPreconditions behaves byte-for-byte as it does today (the frozen chain in
+WithLegalPreconditions behaves byte-for-byte as it does today (the frozen chain in
 moves/default.go runs unchanged), while a move that DOES declare them has its
 imperative chain replaced by plan evaluation — with the switch detected
 behaviorally at boot by a probe, never statically.
@@ -51,17 +51,16 @@ type legalContributor interface {
 }
 
 // legalDeclarer is the core-side structural view of the DeclaredPreconditions
-// half of the same moves-package surface: authored WithPreconditions specs
-// (in declaration order) and WithoutPrecondition suppression names. A nil/
-// empty authored-specs return means the move type has NOT opted in (design
-// spec §2: "declaring is implementing" — authored specs are the opt-in
-// signal; contributions or suppressions alone do not opt in).
+// half of the same moves-package surface: authored WithLegalPreconditions specs
+// (in declaration order) and WithoutLegalPrecondition suppression names.
+// Opt-in is reported separately because an empty WithLegalPreconditions call,
+// a suppression, or LegalCustom can intentionally assemble a zero-authored plan.
 type legalDeclarer interface {
 	DeclaredPreconditions() ([]LegalSpec, []string)
 }
 
 type legalExplicitEnabler interface {
-	DeclarativeLegalityEnabled() bool
+	LegalPlanEnabled() bool
 }
 
 // legalConstructorConfigurer is the core-side structural view of
@@ -136,6 +135,9 @@ type LegalVerdictEntry struct {
 	// Serializable reports whether this predicate has a wire form (false for
 	// the custom wrapper and any predicate containing one).
 	Serializable bool
+	// ClientEvaluable reports that the generic client catalog knows this
+	// predicate's semantics. It is independent of viewer-specific visibility.
+	ClientEvaluable bool
 	// FieldDependent reports whether this predicate reads any move.* path
 	// (its verdict is provisional on the server-chosen move fields).
 	FieldDependent bool
@@ -182,12 +184,13 @@ func (p *legalPlan) evaluate(ctx LegalContext, fullLedger bool) (LegalVerdict, [
 		v := p.evaluateStep(ctx, step, fullLedger)
 		if fullLedger {
 			entries = append(entries, LegalVerdictEntry{
-				Name:           pred.Name,
-				Args:           pred.Args,
-				Verdict:        v,
-				Serializable:   pred.Serializable(),
-				FieldDependent: step.fieldDependent,
-				Reads:          pred.Reads,
+				Name:            pred.Name,
+				Args:            pred.Args,
+				Verdict:         v,
+				Serializable:    pred.Serializable(),
+				ClientEvaluable: pred.ClientEvaluable,
+				FieldDependent:  step.fieldDependent,
+				Reads:           pred.Reads,
 			})
 		}
 		if v.Outcome != LegalPass && !haveOverall {
@@ -235,7 +238,7 @@ func (p *legalPlan) evaluateStep(ctx LegalContext, step legalPlanStep, fullLedge
 	key := legalFieldIndepMemoKey{
 		moveName:  p.moveName,
 		version:   ctx.State.Version(),
-		proposer:  ctx.Proposer,
+		proposer:  ctx.ProposerPlayerIndex,
 		predicate: step.memoIndex,
 	}
 	if verdict, ok := game.legalFieldIndepMemoGet(key); ok {
@@ -278,6 +281,13 @@ func (g *GameManager) LegalProbeActive() bool {
 	return false
 }
 
+// LegalPlanAssembled reports whether moveName has an assembled declarative
+// plan. Framework move types use it after a Default.Legal super-call to avoid
+// re-running legality that the plan already contributed and evaluated.
+func (g *GameManager) LegalPlanAssembled(moveName string) bool {
+	return g != nil && g.legalPlans != nil && g.legalPlans[moveName] != nil
+}
+
 // LegalEvaluatePlan is engine-internal plumbing the frozen framework chain
 // calls (moves.Default.Legal) to run the opt-in plan path. If the move type
 // named moveName is opted in (a plan was assembled for it at boot), it
@@ -297,10 +307,10 @@ func (g *GameManager) LegalEvaluatePlan(moveName string, state ImmutableState, m
 	}
 
 	ctx := LegalContext{
-		State:    state,
-		Move:     move,
-		Proposer: proposer,
-		Chest:    g.chest,
+		State:               state,
+		Move:                move,
+		ProposerPlayerIndex: proposer,
+		Chest:               g.chest,
 	}
 	verdict, _ := plan.evaluate(ctx, false)
 	err := verdict.Error()
@@ -336,10 +346,10 @@ func (g *GameManager) LegalEvaluateLedger(moveName string, state ImmutableState,
 	}
 
 	ctx := LegalContext{
-		State:    state,
-		Move:     move,
-		Proposer: proposer,
-		Chest:    g.chest,
+		State:               state,
+		Move:                move,
+		ProposerPlayerIndex: proposer,
+		Chest:               g.chest,
 	}
 	verdict, entries := plan.evaluate(ctx, true)
 	return verdict, entries, true
@@ -365,31 +375,16 @@ func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
 	return err.Error()
 }
 
-// legalCustomWithoutOptInError is the footgun-batch F5 boot error: a move
-// implements CustomLegaler (LegalCustom) but is not opted in to declarative
-// legality, so no plan is assembled, LegalCustom is never wrapped as the plan's
-// custom tail (buildLegalPlanFromPredicates), and the residue silently never
-// runs (fails open) with zero boot signal. Both no-plan paths in
-// assembleLegalPlans route here, and the diagnosis/fix differ by path, so
-// optInCapable distinguishes them: true means the move is a legalDeclarer with
-// no authored specs (its base supports opt-in; adding WithPreconditions fixes
-// it); false means the move is not a legalDeclarer at all — its base type
-// provides no DeclaredPreconditions surface (e.g. a core base.Move), so it
-// cannot opt in without switching to a supported base, and adding
-// WithPreconditions alone would just re-trigger this error.
-func legalCustomWithoutOptInError(moveName string, optInCapable bool) error {
-	reason := "it declares no WithPreconditions specs"
-	fix := "opt in with WithDeclarativeLegality, or add at least one WithPreconditions spec"
-	if !optInCapable {
-		reason = "its base type does not support declarative legality (only moves.Default, moves.CurrentPlayer, moves.FixUp, moves.FixUpMulti, and moves.StartPhase do)"
-		fix = "switch to one of those base types and opt in via WithPreconditions"
-	}
-	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom) but is not opted in to declarative legality: LegalCustom runs only as the custom tail of an assembled plan, and this move has no plan because %s — so its LegalCustom is never consulted and every check in that body silently stops being enforced (%s, or move the LegalCustom logic into a Legal() override)", moveName, reason, fix)
+// legalCustomUnsupportedBaseError reports a LegalCustom method that cannot be
+// attached to a declarative plan because the move does not embed a supported
+// moves-package base. LegalCustom automatically opts supported moves in.
+func legalCustomUnsupportedBaseError(moveName string) error {
+	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom), which automatically opts into declarative legality, but its base type does not support declarative legality (only moves.Default, moves.CurrentPlayer, moves.FixUp, moves.FixUpMulti, and moves.StartPhase do); switch to one of those base types or move the LegalCustom logic into a Legal() override", moveName)
 }
 
 // assembleLegalPlans is called once at the end of NewGameManager (after moves
 // are installed and the example state exists). For every installed move type
-// that has opted in to declarative legality (declares WithPreconditions or
+// that has opted in to declarative legality (declares WithLegalPreconditions or
 // explicitly enables a zero-authored-spec plan), it
 // verifies the move is on a supported base (design spec §5's seam:
 // legalSupportedMovesBaseTypes — Default, CurrentPlayer, FixUp, FixUpMulti,
@@ -419,53 +414,18 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 			// no-authored-specs path below — so reject it here too, before this
 			// guard would skip the move.
 			if _, isCustom := move.(CustomLegaler); isCustom {
-				return legalCustomWithoutOptInError(mType.Name(), false)
+				return legalCustomUnsupportedBaseError(mType.Name())
 			}
 			continue
 		}
 		authored, suppressions := declarer.DeclaredPreconditions()
+		_, hasCustom := move.(CustomLegaler)
 		explicitlyEnabled := false
 		if enabler, ok := move.(legalExplicitEnabler); ok {
-			explicitlyEnabled = enabler.DeclarativeLegalityEnabled()
+			explicitlyEnabled = enabler.LegalPlanEnabled()
 		}
-		if len(authored) == 0 && !explicitlyEnabled {
-			// Not opted in (design spec §2). Frozen chain runs at runtime.
-			//
-			// But a move that implements CustomLegaler while not opted in is
-			// dead config (footgun-batch F5): LegalCustom is wrapped as the
-			// plan's custom tail (buildLegalPlanFromPredicates), and a move
-			// with no authored WithPreconditions gets no plan at all — so
-			// LegalCustom is never wrapped and never consulted. Every check
-			// the author put in that body silently stops being enforced (fails
-			// open) with zero boot signal. legal/doc.go states the requirement
-			// that a move implementing LegalCustom must opt in explicitly or
-			// declare at least one real precondition; enforce it at
-			// boot rather than let the residue silently vanish. This precedes
-			// the suppression check below because a dead LegalCustom is the
-			// more fundamental mistake (a bare WithoutPrecondition is merely
-			// inert; a dead LegalCustom drops real gating logic).
-			if _, isCustom := move.(CustomLegaler); isCustom {
-				return legalCustomWithoutOptInError(mType.Name(), true)
-			}
-			// A WithoutPrecondition call on a not-opted-in move is dead
-			// config (footgun-batch F2 flavor 2): suppressions only shape
-			// the declarative plan, and this move has no plan, so no
-			// suppression can have any effect. Reject at boot rather than
-			// let the suppressions silently do nothing. The error lists
-			// EVERY dead name (wave-1 review M1) so the author fixes them
-			// all in one pass, and deliberately does NOT claim the frozen
-			// chain "still enforces the check the suppression names" — the
-			// named check may never have been in the frozen chain either
-			// (e.g. "inProgression" on a move with no configured
-			// progression); the only thing certainly true is that the
-			// frozen chain runs unchanged.
-			if len(suppressions) > 0 {
-				quoted := make([]string, len(suppressions))
-				for i, name := range suppressions {
-					quoted[i] = fmt.Sprintf("%q", name)
-				}
-				return fmt.Errorf("move %q calls WithoutPrecondition(%s) but never opts in to declarative legality: suppressions only remove atoms from the declarative plan, and this move has no plan — its frozen imperative chain runs unchanged, still enforcing whatever checks it always ran (whether or not one of them corresponds to a suppressed name), so every suppression here is dead config (add WithDeclarativeLegality or at least one WithPreconditions spec, or drop the WithoutPrecondition calls)", mType.Name(), strings.Join(quoted, ", "))
-			}
+		if len(authored) == 0 && !explicitlyEnabled && !hasCustom {
+			// Not opted in. The frozen imperative chain runs unchanged.
 			continue
 		}
 
@@ -474,27 +434,6 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		// imperative Legal() would interleave wrongly with plan evaluation.
 		if base := legalUnsupportedMovesBaseType(move); base != "" {
 			return fmt.Errorf("move %q declares preconditions but embeds unsupported framework move type %q: only moves.Default, moves.CurrentPlayer, moves.FixUp, moves.FixUpMulti, and moves.StartPhase support declarative legality (the seam allowlist is legalSupportedMovesBaseTypes in legal_plan.go, enforced structurally by moves/seam_source_test.go — widening it requires that type to declare no Legal() override of its own)", mType.Name(), base)
-		}
-
-		// Final-review finding: on a CurrentPlayer-embedding move,
-		// CurrentPlayer.Legal() runs its proposer-equivalence check
-		// imperatively and UNCONDITIONALLY after its super-call into
-		// Default.Legal (moves/current_player.go) — the super-call is where
-		// the plan seam lives (see the invariant note on
-		// buildLegalPlanFromPredicates below), but the imperative check right
-		// after it is not part of the plan and cannot be suppressed by
-		// removing a plan atom. So WithoutPrecondition("proposerIsCurrentPlayer")
-		// on such a move would suppress the CONTRIBUTED atom from the plan
-		// (making the ledger/client report the move as legal for any
-		// proposer) while Legal() itself keeps rejecting a wrong proposer —
-		// a ledger/actual divergence. Catch it at boot rather than let it
-		// silently desynchronize the client.
-		if legalMoveEmbedsCurrentPlayer(move) {
-			for _, name := range suppressions {
-				if name == "proposerIsCurrentPlayer" {
-					return fmt.Errorf("move %q suppresses \"proposerIsCurrentPlayer\" but embeds moves.CurrentPlayer: suppressing the proposer atom on a CurrentPlayer-embedding move has no effect on Legal() (the imperative check still runs) and would desynchronize the client ledger; embed moves.Default instead", mType.Name())
-				}
-			}
 		}
 
 		var contributed []LegalSpec
@@ -601,7 +540,7 @@ func (g *GameManager) buildLegalRegistryAndTemplates() (map[string]*LegalPredica
 }
 
 // validateLegalSuppressions is the footgun-batch F2 flavor-1 boot check for
-// one opted-in move type: every WithoutPrecondition name must match at least
+// one opted-in move type: every WithoutLegalPrecondition name must match at least
 // one CONTRIBUTED spec name (suppression removes contributed atoms only —
 // see assembleLegalSpecList below — so an unmatched name could never have
 // any effect). An unmatched name is a boot error naming the move, the
@@ -629,7 +568,7 @@ func validateLegalSuppressions(moveName string, contributed []LegalSpec, suppres
 
 	for _, name := range suppressions {
 		if !names[name] {
-			return fmt.Errorf("move %q suppresses %q via WithoutPrecondition but contributes no spec with that name: suppression only removes a CONTRIBUTED atom from the plan, so an unmatched name is either a typo or an opt-out of a check this move never had (this move's contributed spec names: %s)", moveName, name, contributedDesc)
+			return fmt.Errorf("move %q suppresses %q via WithoutLegalPrecondition but contributes no spec with that name: suppression only removes a CONTRIBUTED atom from the plan, so an unmatched name is either a typo or an opt-out of a check this move never had (this move's contributed spec names: %s)", moveName, name, contributedDesc)
 		}
 	}
 	return nil
@@ -638,7 +577,7 @@ func validateLegalSuppressions(moveName string, contributed []LegalSpec, suppres
 // assembleLegalSpecList produces the final ordered spec list for a plan
 // (design spec §2's "Plan assembly"): contributed atoms first (base-first,
 // deterministic), then authored atoms in declaration order, MINUS any
-// contributed atom whose Name is in suppressions (WithoutPrecondition
+// contributed atom whose Name is in suppressions (WithoutLegalPrecondition
 // suppresses inherited contributions only — authored atoms are never
 // suppressed, they are the opt-in itself).
 func assembleLegalSpecList(contributed, authored []LegalSpec, suppressions []string) []LegalSpec {
@@ -669,14 +608,9 @@ func assembleLegalSpecList(contributed, authored []LegalSpec, suppressions []str
 // the memo whenever ctx.State.Game() is nil regardless of moveName). specs is
 // the parallel serializable spec list.
 //
-// Invariant: the super-call into Default.Legal evaluates this plan EXACTLY
-// ONCE per Legal() call. For a Default-embedding move that covers the whole
-// chain. A CurrentPlayer-embedding opted-in move additionally runs
-// CurrentPlayer.Legal's own imperative proposer-equivalence residue after
-// that single super-call — verified equivalent to the plan's contributed
-// proposerIsCurrentPlayer atom by each migrated game's golden tests (see
-// legalMoveEmbedsCurrentPlayer above for the case where the two could
-// diverge).
+// Invariant: the super-call into Default.Legal evaluates this plan exactly
+// once per Legal call. Supported framework types return after that super-call;
+// they do not re-run frozen imperative copies of contributed predicates.
 func buildLegalPlanFromPredicates(moveName string, predicates []*LegalPredicate, specs []LegalSpec, move Move) *legalPlan {
 	plan := &legalPlan{specs: specs, moveName: moveName}
 	for _, pred := range predicates {
@@ -729,7 +663,7 @@ func newLegalCustomWrapper() *LegalPredicate {
 			if !ok {
 				return LegalVerdict{Outcome: LegalUnknown, Reason: "custom: move does not implement CustomLegaler"}
 			}
-			err := cl.LegalCustom(ctx.State, ctx.Proposer)
+			err := cl.LegalCustom(ctx.State, ctx.ProposerPlayerIndex)
 			if err == nil {
 				return LegalVerdict{Outcome: LegalPass}
 			}
@@ -901,10 +835,10 @@ func legalProbeUndeclaredMoveReads(moveName string, plan *legalPlan, gameRegiste
 	}
 
 	ctx := LegalContext{
-		State:    exampleState,
-		Move:     &legalProbeSentinelMove{Move: exampleMove},
-		Proposer: ObserverPlayerIndex,
-		Chest:    chest,
+		State:               exampleState,
+		Move:                &legalProbeSentinelMove{Move: exampleMove},
+		ProposerPlayerIndex: ObserverPlayerIndex,
+		Chest:               chest,
 	}
 
 	var walk func(pred *LegalPredicate) error
@@ -1037,28 +971,11 @@ func legalUnsupportedMovesBaseType(move Move) string {
 	return found
 }
 
-// legalMoveEmbedsCurrentPlayer reports whether move's embed graph includes
-// moves.CurrentPlayer (final-review finding, assembleLegalPlans above):
-// CurrentPlayer.Legal() runs an imperative proposer-equivalence check
-// UNCONDITIONALLY after its super-call to Default.Legal, so suppressing the
-// contributed "proposerIsCurrentPlayer" atom removes it from the plan/ledger
-// without removing the enforcement — assembleLegalPlans uses this to reject
-// that combination at boot rather than let client and server disagree.
-func legalMoveEmbedsCurrentPlayer(move Move) bool {
-	return legalWalkMovesEmbeds(move, func(name string) bool {
-		return name == "CurrentPlayer"
-	})
-}
-
 // legalWalkMovesEmbeds walks move's anonymous-embed graph depth-first,
 // calling visit with the name of every embedded framework moves-package type
 // found (e.g. "Default", "CurrentPlayer", "StartPhase", ...), stopping and
-// returning true as soon as visit returns true. Shared by
-// legalUnsupportedMovesBaseType (the v1 seam check, looking for the first
-// name outside the Default/CurrentPlayer allow-list) and
-// legalMoveEmbedsCurrentPlayer (the proposer-suppression guard above,
-// looking specifically for "CurrentPlayer") so both consumers walk the exact
-// same embed graph the exact same way.
+// returning true as soon as visit returns true. legalUnsupportedMovesBaseType
+// uses it to find the first framework embed outside the supported seam.
 func legalWalkMovesEmbeds(move Move, visit func(name string) bool) bool {
 	seen := make(map[reflect.Type]bool)
 

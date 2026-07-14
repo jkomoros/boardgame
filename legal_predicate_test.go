@@ -518,3 +518,39 @@ func TestMaxLegalCost(t *testing.T) {
 	}
 	assert.For(t).ThatActual(maxLegalCost(subs)).Equals(LegalCostExpensive)
 }
+
+func TestAdminBypassIsExplicitPredicatePolicy(t *testing.T) {
+	calls := 0
+	pred := &LegalPredicate{
+		Name:         "actorEligibility",
+		Reads:        []LegalRead{{Path: "proposer.SeatFilled", Facet: LegalFacetValues}},
+		AdminPolicy:  LegalAdminBypass,
+		UsesProposer: true,
+		Evaluate: func(ctx LegalContext) LegalVerdict {
+			calls++
+			return LegalVerdict{Outcome: LegalFail}
+		},
+	}
+
+	v := evalLegalPredicate(pred, LegalContext{ProposerPlayerIndex: AdminPlayerIndex})
+	assert.For(t).ThatActual(v.Outcome).Equals(LegalPass)
+	assert.For(t).ThatActual(calls).Equals(0)
+
+	v = evalLegalPredicate(pred, LegalContext{ProposerPlayerIndex: PlayerIndex(0)})
+	assert.For(t).ThatActual(v.Outcome).Equals(LegalFail)
+	assert.For(t).ThatActual(calls).Equals(1)
+}
+
+func TestAdminBypassRejectsNonProposerReads(t *testing.T) {
+	pred := &LegalPredicate{
+		Name:         "unsafeBypass",
+		Reads:        []LegalRead{{Path: "game.Phase", Facet: LegalFacetValues}},
+		AdminPolicy:  LegalAdminBypass,
+		UsesProposer: true,
+	}
+	err := validateLegalPredicateForBoot(pred, nil, nil)
+	assert.For(t).ThatActual(err).IsNotNil()
+	if err == nil || !strings.Contains(err.Error(), "neither proposer-scoped nor a move field") {
+		t.Fatalf("error = %v, want proposer-or-move diagnostic", err)
+	}
+}

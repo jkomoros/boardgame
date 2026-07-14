@@ -256,7 +256,7 @@ func TestCustomLegalerWithoutDeclarerIsBootError(t *testing.T) {
 		// Path-B-specific guidance: the reason this move has no plan is that
 		// its base type is not opt-in-capable, not merely that specs are
 		// absent — so the message must point at switching base, not just
-		// adding WithPreconditions (which alone would re-trigger this error).
+		// adding WithLegalPreconditions (which alone would re-trigger this error).
 		assert.For(t, "explains the base type is not opt-in-capable").ThatActual(strings.Contains(err.Error(), "does not support declarative legality")).IsTrue()
 	}
 }

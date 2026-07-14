@@ -31,6 +31,9 @@ const (
 	// "detail", the verbatim legacy error string from
 	// moves/current_player.go:56/60 ("it's not your turn").
 	TemplateProposerNotYourTurn = "legal.proposer_not_your_turn"
+	// TemplateProposerNotMovePlayer is the default Fail template key for
+	// ProposerIsPlayerFromMove. No bindings.
+	TemplateProposerNotMovePlayer = "legal.proposer_not_move_player"
 )
 
 // Any returns a Spec for the "any" compositor: Passes if at least one of
@@ -73,6 +76,19 @@ func AllActivePlayers(inner Spec) Spec {
 // proposerIsCurrentPlayerConstructor for the byte-for-byte mapping.
 func ProposerIsCurrentPlayer() Spec {
 	return Spec{Name: "proposerIsCurrentPlayer"}
+}
+
+// ProposerIsPlayerFromMove passes when field is a concrete PlayerIndex move
+// property naming the proposer. AdminPlayerIndex bypasses this actor check;
+// ObserverPlayerIndex and AnyPlayerIndex are never valid proposing actors.
+// This is useful when a move acts for an explicitly selected player without
+// requiring that player to be the game's current player.
+func ProposerIsPlayerFromMove(field string) Spec {
+	return Spec{
+		Name:        "proposerIsPlayerFromMove",
+		Args:        []string{field},
+		AdminPolicy: boardgame.LegalAdminBypass,
+	}
 }
 
 // playerPathProp validates that path is a "player.X" path and returns X. It
@@ -320,7 +336,9 @@ func allActivePlayersConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:             "allActivePlayers",
+				Name: "allActivePlayers",
+				// The wire entry does not yet carry the quantified inner spec.
+				ClientEvaluable:  false,
 				Reads:            reads,
 				Cost:             boardgame.LegalCostModerate,
 				EmittedTemplates: []string{template},
@@ -398,7 +416,8 @@ func proposerIsCurrentPlayerConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name: "proposerIsCurrentPlayer",
+				Name:            "proposerIsCurrentPlayer",
+				ClientEvaluable: true,
 				Reads: []Read{
 					// FIELD-DEPENDENT (spec §4): this Read is the reason
 					// proposerIsCurrentPlayer belongs in a plan's
@@ -463,12 +482,53 @@ func proposerIsCurrentPlayerConstructor() *PredicateConstructor {
 						})
 					}
 
-					if !targetPlayerIndex.Equivalent(ctx.Proposer) {
+					if !targetPlayerIndex.Equivalent(ctx.ProposerPlayerIndex) {
 						return FailT(notYourTurnTemplate, map[string]BindingValue{
 							"detail": String("it's not your turn"),
 						})
 					}
 
+					return PassVerdict()
+				},
+			}, nil
+		},
+	}
+}
+
+func proposerIsPlayerFromMoveConstructor() *PredicateConstructor {
+	return &PredicateConstructor{
+		Name: "proposerIsPlayerFromMove",
+		Constructor: func(spec Spec, chest *boardgame.ComponentChest, resolve func(Spec) (*Predicate, error)) (*Predicate, error) {
+			if len(spec.Args) != 1 || spec.Args[0] == "" {
+				return nil, fmt.Errorf("legal: proposerIsPlayerFromMove requires 1 non-empty arg (move PlayerIndex field), got %v", spec.Args)
+			}
+			path := "move." + spec.Args[0]
+			template := spec.Message
+			if template == "" {
+				template = TemplateProposerNotMovePlayer
+			}
+			return &Predicate{
+				Name:              "proposerIsPlayerFromMove",
+				Args:              spec.Args,
+				Reads:             []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{PropPath(path): boardgame.TypePlayerIndex},
+				Cost:              boardgame.LegalCostTrivial,
+				ClientEvaluable:   true,
+				UsesProposer:      true,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: nil},
+				Evaluate: func(ctx Context) Verdict {
+					if ctx.State == nil {
+						return UnknownVerdict("legal: proposerIsPlayerFromMove: state was nil")
+					}
+					target, err := resolvePlayerIndexPath(path, ctx)
+					if err != nil {
+						return UnknownVerdict(err.Error())
+					}
+					target = target.EnsureValid(ctx.State)
+					if target < 0 || !target.Valid(ctx.State) || ctx.ProposerPlayerIndex < 0 || !target.Equivalent(ctx.ProposerPlayerIndex) {
+						return FailT(template)
+					}
 					return PassVerdict()
 				},
 			}, nil

@@ -345,7 +345,7 @@ func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.Playe
 	//      the move's declarations are reachable; we record that and return
 	//      nil immediately (the probe observes reachability, not a verdict).
 	//   2. The opt-in plan path: if this move type opted in via
-	//      WithPreconditions, its assembled plan REPLACES this frozen chain —
+	//      WithLegalPreconditions, its assembled plan REPLACES this frozen chain —
 	//      evaluated exactly once here, so a super-calling Legal() override
 	//      composes its own imperative residue around the plan without
 	//      double-evaluating the contributed atoms.
@@ -573,7 +573,7 @@ func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, propose
 	// move-tape matching has never needed them, and the legal.Read this
 	// package declares for "inProgression" (catalog_framework.go) doesn't
 	// include any move.* path.
-	ctx := legal.Context{State: state, Proposer: proposer}
+	ctx := legal.Context{State: state, ProposerPlayerIndex: proposer}
 
 	return matchTape(group, movesToNames(historicalMoves), ctx)
 

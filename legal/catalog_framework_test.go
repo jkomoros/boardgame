@@ -56,7 +56,7 @@ func TestInPhase(t *testing.T) {
 	}
 
 	_, state := newBlackjackGame(t)
-	ctx := legal.Context{State: state, Proposer: 0}
+	ctx := legal.Context{State: state, ProposerPlayerIndex: 0}
 
 	// Pass: current phase (phaseNormalPlay) is in the list.
 	if v := pred.Evaluate(ctx); v.Outcome != legal.Pass {
@@ -81,7 +81,7 @@ func TestInPhase(t *testing.T) {
 	}
 
 	// Unknown: nil state.
-	if v := pred.Evaluate(legal.Context{State: nil, Proposer: 0}); v.Outcome != legal.Unknown {
+	if v := pred.Evaluate(legal.Context{State: nil, ProposerPlayerIndex: 0}); v.Outcome != legal.Unknown {
 		t.Fatalf("nil state: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
 	}
 }
@@ -128,7 +128,7 @@ func TestStackConstraints(t *testing.T) {
 	}
 
 	// Unknown: nil state.
-	if v := pred.Evaluate(legal.Context{State: nil, Proposer: 0}); v.Outcome != legal.Unknown {
+	if v := pred.Evaluate(legal.Context{State: nil, ProposerPlayerIndex: 0}); v.Outcome != legal.Unknown {
 		t.Fatalf("nil state: Outcome = %v, want Unknown (%+v)", v.Outcome, v)
 	}
 }

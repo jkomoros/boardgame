@@ -95,7 +95,7 @@ export interface MoveForm {
   /**
    * Per-predicate declarative-legality ledger (design spec §6). Present
    * only for a move type that opted in to declarative legality
-   * (WithPreconditions); absent for an opaque (un-migrated) move, whose
+   * (WithLegalPreconditions); absent for an opaque (un-migrated) move, whose
    * legality is fully described by LegalForPlayer/LegalForPlayerError/
    * LegalForAnyone alone. No UI reads this yet (Task 10 ships the wire
    * format only) -- it is plumbed through selectMoveLegality

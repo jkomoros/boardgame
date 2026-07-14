@@ -83,17 +83,17 @@ func TestInProgressionTapeSharedAcrossMoveTypes(t *testing.T) {
 	// whichever move queries it first, one of these would diverge from
 	// TestLegalChainStringFreeze's independently-pinned frozen-chain
 	// results.
-	vB := predB.Evaluate(legal.Context{State: state, Proposer: 0})
+	vB := predB.Evaluate(legal.Context{State: state, ProposerPlayerIndex: 0})
 	if vB.Outcome != legal.Fail {
 		t.Fatalf("Freeze Progression B (queried first): Outcome = %v, want Fail (%+v)", vB.Outcome, vB)
 	}
 
-	vA := predA.Evaluate(legal.Context{State: state, Proposer: 0})
+	vA := predA.Evaluate(legal.Context{State: state, ProposerPlayerIndex: 0})
 	if vA.Outcome != legal.Pass {
 		t.Fatalf("Freeze Progression A (queried second, after B populated the shared tape): Outcome = %v, want Pass (%+v)", vA.Outcome, vA)
 	}
 
-	vA2 := predA.Evaluate(legal.Context{State: state, Proposer: 0})
+	vA2 := predA.Evaluate(legal.Context{State: state, ProposerPlayerIndex: 0})
 	if vA2.Outcome != legal.Pass {
 		t.Fatalf("Freeze Progression A (queried a third time): Outcome = %v, want Pass (%+v)", vA2.Outcome, vA2)
 	}

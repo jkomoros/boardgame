@@ -5,43 +5,40 @@ import (
 )
 
 /*
-This file wires moves.Default and moves.CurrentPlayer into the declarative
-legality composition seam (design spec §2/§3): PreconditionsProvider is the
+This file wires Default, CurrentPlayer, FixUp, FixUpMulti, and StartPhase into
+the declarative legality composition seam: PreconditionsProvider is the
 optional interface core consults (a later task) to derive a move type's
 plan, base-first contributed specs (ContributedPreconditions) plus authored
-specs from WithPreconditions (DeclaredPreconditions), minus
-WithoutPrecondition suppressions.
+specs from WithLegalPreconditions (DeclaredPreconditions), minus
+WithoutLegalPrecondition suppressions.
 
-v1 scope note (design spec §2): only Default and CurrentPlayer implement
-PreconditionsProvider. Every other framework move type in this package
-(DealCountComponents, FinishTurn, RoundRobin, etc.) is opaque in v1 — it does
-NOT implement this interface, so a move embedding one of them and passing
-WithPreconditions to auto.Config gets no plan-evaluation behavior from that
-alone (a later task's boot-time probe is what turns that into a named boot
-error rather than a silently-ignored declaration).
+Other framework move types (DealCountComponents, FinishTurn, RoundRobin, etc.)
+remain opaque; configuring them declaratively is a named boot error.
 */
 
 // The stable names of the framework-contributed precondition checks — the
 // exact names moves.Default/CurrentPlayer's ContributedPreconditions specs
-// carry, and therefore the only names WithoutPrecondition can meaningfully
+// carry, and therefore the only names WithoutLegalPrecondition can meaningfully
 // suppress. Pass these constants instead of raw string literals: a
 // misspelled or non-contributed name is a boot error (NewGameManager's
 // gauntlet validates every suppression against the move's actual
 // contributed spec names), and the constants make that class of typo a
 // compile-time non-issue.
+type PreconditionName string
+
 const (
 	// PreconditionInPhase is the contributed phase check, present when the
 	// move was configured with WithLegalPhases (including via
 	// AddForPhase/AddOrderedForPhase).
-	PreconditionInPhase = "inPhase"
+	PreconditionInPhase PreconditionName = "inPhase"
 	// PreconditionInProgression is the contributed move-progression check,
 	// present when the move was configured with WithLegalMoveProgression
 	// (including via AddOrderedForPhase).
-	PreconditionInProgression = "inProgression"
+	PreconditionInProgression PreconditionName = "inProgression"
 	// PreconditionStackConstraints is the contributed source/destination
 	// stack-size check, present when the move was configured with BOTH
 	// WithSourceProperty and WithDestinationProperty.
-	PreconditionStackConstraints = "stackConstraints"
+	PreconditionStackConstraints PreconditionName = "stackConstraints"
 	// PreconditionProposerIsCurrentPlayer is the proposer-equivalence check
 	// moves.CurrentPlayer contributes on top of Default's specs. Note that
 	// suppressing it on a CurrentPlayer-embedding move is a boot error in
@@ -49,7 +46,7 @@ const (
 	// run, desynchronizing the client ledger — embed moves.Default
 	// instead), and on a Default-embedding move it is never contributed at
 	// all, so suppressing it there is an unmatched-name boot error too.
-	PreconditionProposerIsCurrentPlayer = "proposerIsCurrentPlayer"
+	PreconditionProposerIsCurrentPlayer PreconditionName = "proposerIsCurrentPlayer"
 )
 
 // PreconditionsProvider is the optional interface core consults (design spec
@@ -106,10 +103,10 @@ func (d *Default) ContributedPreconditions() []legal.Spec {
 }
 
 // DeclaredPreconditions returns this move type's authored specs (from
-// WithPreconditions, in declaration order) and suppression names (from
-// WithoutPrecondition), as configured via auto.Config. A nil specs return
-// means there are no authored specs; DeclarativeLegalityEnabled separately
-// distinguishes an explicit contributed-only or LegalCustom-only opt-in.
+// WithLegalPreconditions, in declaration order) and suppression names (from
+// WithoutLegalPrecondition), as configured via auto.Config. A nil specs return
+// means there are no authored specs; LegalPlanEnabled separately reports
+// whether configuration explicitly requested a plan.
 func (d *Default) DeclaredPreconditions() ([]legal.Spec, []string) {
 	config := d.CustomConfiguration()
 
@@ -119,11 +116,11 @@ func (d *Default) DeclaredPreconditions() ([]legal.Spec, []string) {
 	return specs, suppressions
 }
 
-// DeclarativeLegalityEnabled reports whether WithDeclarativeLegality was
-// supplied. Core uses this explicit marker to distinguish an intentional
+// LegalPlanEnabled reports whether WithLegalPreconditions or
+// WithoutLegalPrecondition requested a plan. It distinguishes an intentional
 // zero-authored-spec plan from a move that never opted in.
-func (d *Default) DeclarativeLegalityEnabled() bool {
-	enabled, _ := d.CustomConfiguration()[configPropDeclarativeLegality].(bool)
+func (d *Default) LegalPlanEnabled() bool {
+	enabled, _ := d.CustomConfiguration()[configPropLegalPlanEnabled].(bool)
 	return enabled
 }
 
