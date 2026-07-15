@@ -289,15 +289,19 @@ same logical event — e.g. a card dealt from the table to a phone — to start
 animating on both screens at roughly the same wall-clock instant, even
 though each screen receives its own WebSocket push and renders independently.
 
-- The server notifier owns a monotonic animation lane per game. An idle lane
+- The server notifier owns a monotonic animation lane per observed game. An idle lane
   starts at `serverSentAt + 500ms`; rapid versions reserve 800ms-spaced slots
   (600ms synchronized motion + 200ms preparation),
-  so fix-up versions cannot all target the same instant. Every socket receives
-  the same frame, and a reconnect receives the existing slot for its current
+  so visible fix-up versions cannot all target the same instant. With no
+  listeners, notifications coalesce to the latest version at `now + 500ms`
+  instead of accumulating an invisible future backlog. Every socket receives
+  the same frame, and a reconnect receives the retained slot for its current
   version rather than inventing a new target.
 - Socket setup performs three clock-sync request/reply rounds. The estimator
   uses the offset from the lowest-RTT midpoint sample, avoiding direct
-  one-way-route bias; version timing samples remain a legacy-server fallback.
+  one-way-route bias; complete timing-policy frames provide a one-way fallback
+  when clock-sync replies are unavailable. Older frames without the declared
+  slot policy are rejected rather than partially interpreted.
   `companionSync.localEquivalent(serverEpochMs)`
   converts a server timestamp into the local-clock instant of the same
   wall-clock moment; with fewer than 3 samples it falls back to the raw
@@ -306,16 +310,18 @@ though each screen receives its own WebSocket push and renders independently.
   mutable latest value. A version waits at most 200ms for its sibling timing
   frame; missing timing or a cold estimator degrades to immediate playback.
 - `_scheduleNextStateBundle()` resolves the pending bundle's exact version,
-  installs it before the target, and carries its scoped policy through
+  installs it inside the 200ms preparation window, and carries its scoped policy through
   `boardgame-game-view` into the shared animator. Delayed WAAPI uses backwards
   fill so the source pose remains visible until compositor-owned launch.
-- `animateBetween()` uses the installed version's start automatically. Table,
-  Hand, and game-authored flights therefore share the same scheduling path and
-  contain no socket/clock logic. Callers can pass `{ timing: 'immediate' }` for
-  a local effect, or `{ timing: { localStartAtMs } }` for an explicit timeline.
-  Synchronized motion is capped at the protocol's declared maximum and does
-  not use renderer overlap; overruns therefore cannot make surfaces pace their
-  queues independently.
+- The common `play()` primitive resolves the installed context through the
+  composed render tree, so stack FLIP, property effects, standalone dice, and
+  game-authored animatable items share the same target automatically.
+  `animateBetween()` uses that policy too. Both APIs accept
+  `{ timing: 'immediate' }` for a local effect or
+  `{ timing: { localStartAtMs } }` for an explicit local timeline.
+  Stagger, visible duration, and post-animation hold share one remaining-slot
+  budget; effects that cannot begin before its end are omitted. Synchronized
+  cycles do not use renderer overlap.
 - The game-over verdict (`renderGameOverBanner()` / the Hand header's
   outcome text) is gated on the mirrored `animating` flag described above,
   so the outcome banner can't race ahead of a still-in-flight companion

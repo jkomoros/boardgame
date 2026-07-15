@@ -74,6 +74,69 @@ test.describe('companion-sync estimator', () => {
 test.describe('cross-screen synced auto-fly', () => {
   test.setTimeout(120000);
 
+  test('common play policy covers composed-tree providers and the full remaining budget', async ({ page }) => {
+    await createOfflineGame(page, 'blackjack');
+    const result = await page.evaluate(() => {
+      const provider = document.createElement('div') as any;
+      const item = document.createElement('boardgame-animatable-item') as any;
+      provider.appendChild(item);
+      document.body.appendChild(provider);
+      const now = Date.now();
+      provider.animationContext = {
+        version: 77,
+        startAtMs: now + 300,
+        slotDurationMs: 800,
+        maxAnimationDurationMs: 600,
+      };
+      const inherited = item.play(item, [{ opacity: '0' }, { opacity: '1' }],
+        { duration: 200, delay: 50 });
+      const inheritedTiming = inherited.effect.getTiming();
+      inherited.cancel();
+      const local = item.play(item, [{ opacity: '0' }, { opacity: '1' }],
+        { duration: 20 }, { timing: 'immediate' });
+      const localTiming = local.effect.getTiming();
+      local.cancel();
+
+      delete provider.animationContext;
+      item.animationContext = {
+        version: 78,
+        startAtMs: Date.now() - 500,
+        slotDurationMs: 800,
+        maxAnimationDurationMs: 600,
+      };
+      const skipped = item.play(item, [{ opacity: '0' }, { opacity: '1' }],
+        { duration: 200, delay: 150 });
+
+      item.animationContext = {
+        version: 79,
+        startAtMs: Date.now(),
+        slotDurationMs: 800,
+        maxAnimationDurationMs: 600,
+      };
+      item.postAnimationDelay = 1000;
+      const held = item.play(item, [{ opacity: '0' }, { opacity: '1' }],
+        { duration: 400 });
+      const heldTiming = held.effect.getTiming();
+      held.cancel();
+      provider.remove();
+      return {
+        inheritedDelay: Number(inheritedTiming.delay),
+        inheritedDuration: Number(inheritedTiming.duration),
+        localDelay: Number(localTiming.delay),
+        skipped: skipped === null,
+        heldDuration: Number(heldTiming.duration),
+        heldEndDelay: Number(heldTiming.endDelay),
+      };
+    });
+    expect(result.inheritedDelay).toBeGreaterThan(250);
+    expect(result.inheritedDelay).toBeLessThan(450);
+    expect(result.inheritedDuration).toBe(200);
+    expect(result.localDelay).toBe(0);
+    expect(result.skipped).toBe(true);
+    expect(result.heldDuration).toBe(0);
+    expect(result.heldEndDelay).toBe(600);
+  });
+
   // Two independent browser contexts stand in for the Table projector and
   // a player's phone. Each drives the REAL animateBetween with the SAME
   // absolute startAtMs (a shared wall-clock target on this one machine).
@@ -167,11 +230,11 @@ test.describe('cross-screen synced auto-fly', () => {
       const readFirstFly = async (page: typeof table) => {
         await page.waitForFunction(() => {
           const h = (window as any).__bgAnimTestHooks;
-          return h.log.some((e: any) => e.ev === 'play' && typeof e.detail === 'string' && e.detail.startsWith('fly:'));
+          return h.log.some((e: any) => e.ev === 'active' && typeof e.detail === 'string' && e.detail.startsWith('fly:'));
         }, undefined, { timeout: 15000 });
         return page.evaluate(() => {
           const h = (window as any).__bgAnimTestHooks;
-          const entry = h.log.find((e: any) => e.ev === 'play' && typeof e.detail === 'string' && e.detail.startsWith('fly:'));
+          const entry = h.log.find((e: any) => e.ev === 'active' && typeof e.detail === 'string' && e.detail.startsWith('fly:'));
           // Normalize to an absolute, cross-context-comparable epoch-ms
           // instant. performance.now() (entry.t) is relative to each
           // page's own timeOrigin; adding timeOrigin makes them shareable.
@@ -272,30 +335,34 @@ test.describe('cross-screen synced auto-fly', () => {
       await hit.click();
 
       const readCycle = async (page: typeof table) => {
-        await page.waitForFunction((fnSrc) => {
-          // eslint-disable-next-line no-eval
-          const deepQueryFirst = eval(`(${fnSrc})`);
+        await page.waitForFunction(() => {
           const hooks = (window as any).__bgAnimTestHooks.log;
-          const renderGame = deepQueryFirst(document, 'boardgame-render-game') as any;
-          return hooks.some((entry: any) => entry.ev === 'play' && entry.detail?.startsWith('fly:'))
-            && hooks.some((entry: any) => entry.ev === 'active')
-            && Number.isFinite(renderGame?.animationContext?.startAtMs);
-        }, `(${deepQueryFirstScript.toString()})()`, { timeout: 15000 });
-        return page.evaluate((fnSrc) => {
-          // eslint-disable-next-line no-eval
-          const deepQueryFirst = eval(`(${fnSrc})`);
+          const fly = hooks.find((entry: any) =>
+            entry.ev === 'active' && entry.detail?.startsWith('fly:') && Number.isInteger(entry.version));
+          return !!fly
+            && hooks.some((entry: any) => entry.ev === 'active'
+              && !entry.detail?.startsWith('fly:') && entry.version === fly.version)
+            && hooks.some((entry: any) => entry.ev === 'install' && entry.version === fly.version);
+        }, undefined, { timeout: 15000 });
+        return page.evaluate(() => {
           const hooks = (window as any).__bgAnimTestHooks.log;
           const fly = hooks.find(
-            (item: any) => item.ev === 'play' && item.detail?.startsWith('fly:'),
+            (item: any) => item.ev === 'active' && item.detail?.startsWith('fly:')
+              && Number.isInteger(item.version),
           );
-          const ordinary = hooks.find((item: any) => item.ev === 'active');
-          const renderGame = deepQueryFirst(document, 'boardgame-render-game') as any;
+          const ordinary = hooks.find((item: any) => item.ev === 'active'
+            && !item.detail?.startsWith('fly:') && item.version === fly.version);
+          const install = hooks.find((item: any) =>
+            item.ev === 'install' && item.version === fly.version);
           return {
-            targetAt: renderGame.animationContext.startAtMs,
+            version: fly.version,
+            targetAt: fly.targetAtMs,
             flyAt: performance.timeOrigin + fly.t,
             ordinaryAt: performance.timeOrigin + ordinary.t,
+            installAt: performance.timeOrigin + install.t,
+            ordinaryTargetAt: ordinary.targetAtMs,
           };
-        }, `(${deepQueryFirstScript.toString()})()`);
+        });
       };
       const [tableCycle, handCycle] = await Promise.all([readCycle(table), readCycle(hand)]);
       expect(Math.abs(tableCycle.flyAt - handCycle.flyAt)).toBeLessThan(250);
@@ -306,6 +373,9 @@ test.describe('cross-screen synced auto-fly', () => {
         // Merely being equally immediate on both pages cannot pass this.
         expect(Math.abs(cycle.flyAt - cycle.targetAt)).toBeLessThan(250);
         expect(Math.abs(cycle.ordinaryAt - cycle.targetAt)).toBeLessThan(250);
+        expect(cycle.ordinaryTargetAt).toBe(cycle.targetAt);
+        expect(cycle.installAt).toBeLessThanOrEqual(cycle.targetAt + 50);
+        expect(cycle.installAt).toBeGreaterThanOrEqual(cycle.targetAt - 350);
       }
     } finally {
       await tableCtx.close();
@@ -339,7 +409,7 @@ test.describe('cross-screen synced auto-fly', () => {
       return {
         elapsed: Date.now() - before,
         played: (window as any).__bgAnimTestHooks.log.some(
-          (entry: any) => entry.ev === 'play' && entry.detail?.startsWith('fly:'),
+          (entry: any) => entry.ev === 'active' && entry.detail?.startsWith('fly:'),
         ),
       };
     });

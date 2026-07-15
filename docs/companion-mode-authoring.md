@@ -151,6 +151,12 @@ cycle late receives only its remaining visible-motion budget, so it cannot
 spill into the next slot. If timing is unavailable or no visible budget remains,
 the context is discarded completely and state installs immediately.
 
+Custom components that call the framework's `play()` inherit this policy too.
+Use `{ timing: 'immediate' }` as the fourth argument for a tap flourish or
+other local-only effect. Stack stagger, visible duration, and
+`post-animation-delay` share the slot's remaining budget; an effect that can no
+longer begin in the slot is omitted rather than snapping late.
+
 ## Host actions and ForceFinishTurn
 
 If your game uses turn-based play, register `moves.ForceFinishTurn` in a

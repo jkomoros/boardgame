@@ -50,6 +50,24 @@ test('timing received during grace becomes the version schedule', () => {
   });
 });
 
+test('reconnect timing may target an already-started cycle', () => {
+  const timeline = new CompanionAnimationTimeline();
+  warm(timeline, 10_000);
+  timeline.ingest('game', {
+    version: 9,
+    serverSentAt: 10_500,
+    serverPlayAt: 10_400,
+    ...policy,
+  }, 10_525);
+  const schedule = timeline.schedule('game', 9, 10_550);
+  assert.equal(schedule.kind, 'scheduled');
+  if (schedule.kind !== 'scheduled') return;
+  assert.deepEqual(usableAnimationContext(schedule.context, 10_650), {
+    ...schedule.context,
+    maxAnimationDurationMs: 375,
+  });
+});
+
 test('cold estimator degrades to immediate playback', () => {
   const timeline = new CompanionAnimationTimeline();
   timeline.ingest('game', { version: 1, serverSentAt: 1_000, serverPlayAt: 1_250, ...policy }, 1_025);

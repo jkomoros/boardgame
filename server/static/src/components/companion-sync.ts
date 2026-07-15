@@ -181,8 +181,8 @@ export class CompanionAnimationTimeline {
   private validTiming(msg: VersionTimingMessage): boolean {
     return !!msg && Number.isInteger(msg.version) &&
       Number.isFinite(msg.serverSentAt) && Number.isFinite(msg.serverPlayAt) &&
-      msg.serverPlayAt >= msg.serverSentAt && Number.isFinite(msg.slotDurationMs) &&
-      msg.slotDurationMs > 0 && Number.isFinite(msg.maxAnimationDurationMs) &&
+      Number.isFinite(msg.slotDurationMs) && msg.slotDurationMs > 0 &&
+      Number.isFinite(msg.maxAnimationDurationMs) &&
       msg.maxAnimationDurationMs >= 0 && msg.maxAnimationDurationMs <= msg.slotDurationMs;
   }
 

@@ -178,6 +178,10 @@ type socketFrameBatch [][]byte
 type animationLaneEntry struct {
 	version      int
 	serverPlayAt int64
+	// pacesNext is true only for a real version transition. Registration
+	// baselines get timing for atomic catch-up but must not delay the first
+	// subsequent move by consuming an otherwise invisible slot.
+	pacesNext bool
 }
 
 func (s *Server) checkOriginForSocket(r *http.Request) bool {
@@ -213,6 +217,7 @@ func (s *Server) socketHandler(c *gin.Context) {
 
 	socket := newSocket(game, conn, s.notifier, playerIndex)
 	s.notifier.register <- socket
+	socket.startPumps()
 
 }
 
@@ -225,10 +230,14 @@ func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNoti
 		playerIndex:    playerIndex,
 		initialVersion: game.Version(),
 	}
-	go result.readPump()
-	go result.writePump()
-
 	return result
+}
+
+func (s *socket) startPumps() {
+	// Registration happens first, so readPump can never enqueue unregister
+	// before workLoop has installed this socket in its bucket.
+	go s.readPump()
+	go s.writePump()
 }
 
 func (s *socket) readPump() {
@@ -384,15 +393,19 @@ func nextAnimationPlayAt(now, previous int64) int64 {
 	return result
 }
 
-func reserveAnimationLane(now int64, version int, tail animationLaneEntry, hasTail bool) (animationLaneEntry, bool) {
+func reserveAnimationLane(now int64, version int, tail animationLaneEntry, hasTail, paceFromTail bool) (animationLaneEntry, bool) {
 	if hasTail && version < tail.version {
 		return tail, false
 	}
 	if hasTail && version == tail.version {
 		return tail, true
 	}
+	previous := int64(0)
+	if hasTail && paceFromTail && tail.pacesNext {
+		previous = tail.serverPlayAt
+	}
 	return animationLaneEntry{
-		version: version, serverPlayAt: nextAnimationPlayAt(now, tail.serverPlayAt),
+		version: version, serverPlayAt: nextAnimationPlayAt(now, previous), pacesNext: true,
 	}, true
 }
 
@@ -474,8 +487,13 @@ func (v *versionNotifier) workLoop() {
 			// may register just after it and must catch up to this version rather
 			// than receive its stale handshake snapshot.
 			tail, hasTail := v.animationLaneTail[rec.ID]
+			bucket, hasListeners := v.sockets[rec.ID]
 			now := time.Now().UnixMilli()
-			reserved, shouldBroadcast := reserveAnimationLane(now, rec.Version, tail, hasTail)
+			// Unobserved transitions coalesce at now+lead. Pacing every invisible
+			// fix-up would create a far-future backlog for the next reconnect.
+			reserved, shouldBroadcast := reserveAnimationLane(
+				now, rec.Version, tail, hasTail, hasListeners && len(bucket) > 0,
+			)
 			if !shouldBroadcast {
 				v.server.logger.Warnln("Ignoring regressing socket version", logrus.Fields{
 					"ID": rec.ID, "Version": rec.Version, "LaneVersion": tail.version,
@@ -484,8 +502,7 @@ func (v *versionNotifier) workLoop() {
 			}
 			v.animationLaneTail[rec.ID] = reserved
 
-			bucket, ok := v.sockets[rec.ID]
-			if ok {
+			if hasListeners {
 				// Someone's listening! Marshal once; every socket gets
 				// byte-identical frames (and one shared serverPlayAt).
 				versionData, timingData := marshalVersionFrames(rec.Version, now, reserved.serverPlayAt)
@@ -740,8 +757,9 @@ func (v *versionNotifier) registerSocket(s *socket) {
 		// Storage may be ahead of the notifier after startup. Make that
 		// snapshot canonical so later registrations reuse the same target.
 		var ok bool
-		tail, ok = reserveAnimationLane(now, version, tail, hasTail)
+		tail, ok = reserveAnimationLane(now, version, tail, hasTail, false)
 		if ok {
+			tail.pacesNext = false
 			v.animationLaneTail[s.gameID] = tail
 			hasTail = true
 		}

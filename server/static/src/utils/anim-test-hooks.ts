@@ -7,6 +7,8 @@ export interface AnimHookEntry {
   t: number;
   ev: string;
   detail?: string;
+  version?: number;
+  targetAtMs?: number;
 }
 
 class AnimHooks {
@@ -17,7 +19,11 @@ class AnimHooks {
   settles = 0;
   log: AnimHookEntry[] = [];
 
-  record(ev: 'gate-open' | 'gate-close' | 'watchdog' | 'play' | 'active' | 'settle', detail?: string) {
+  record(
+    ev: 'gate-open' | 'gate-close' | 'watchdog' | 'play' | 'active' | 'install' | 'settle',
+    detail?: string,
+    timing?: { version?: number; targetAtMs?: number },
+  ) {
     switch (ev) {
       case 'gate-open': this.gateOpens++; break;
       case 'gate-close': this.gateCloses++; break;
@@ -25,7 +31,7 @@ class AnimHooks {
       case 'play': this.plays++; break;
       case 'settle': this.settles++; break;
     }
-    this.log.push({ t: performance.now(), ev, detail });
+    this.log.push({ t: performance.now(), ev, detail, ...timing });
     if (this.log.length > 5000) this.log.splice(0, 1000);
   }
 

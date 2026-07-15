@@ -4,6 +4,7 @@ import { property } from 'lit/decorators.js';
 import { companionTimeline, ingestVersionTiming, usableAnimationContext } from './companion-sync.js';
 import type { VersionAnimationContext } from './companion-sync.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
+import { animHooks } from '../utils/anim-test-hooks.js';
 import { store } from '../store.js';
 import {
   fetchGameInfo,
@@ -792,6 +793,12 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     if (this._pendingBundles.length > 0) {
       const bundle = this._pendingBundles[0];
       store.dispatch(dequeueStateBundle());
+      if (animationContext) {
+        animHooks.record('install', undefined, {
+          version: animationContext.version,
+          targetAtMs: animationContext.startAtMs,
+        });
+      }
       this.dispatchEvent(new CustomEvent('install-state-bundle', {
         composed: true,
         bubbles: true,

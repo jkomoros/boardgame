@@ -5,11 +5,9 @@ import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 import { usableAnimationContext } from './companion-sync.js';
 import type { VersionAnimationContext } from './companion-sync.js';
+import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
 
-export type AnimationTimingPolicy =
-  | 'version'
-  | 'immediate'
-  | { localStartAtMs: number };
+export type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
 
 export interface AnimateBetweenOptions {
   /** Defaults to the installed version's companion slot. */
@@ -226,6 +224,27 @@ export class BoardgameComponentAnimator extends LitElement {
     return null;
   }
 
+  private _recordAnimationActive(
+    anim: Animation,
+    delay: number,
+    detail: string,
+    context: VersionAnimationContext | null,
+  ) {
+    const observe = () => {
+      const currentTime = anim.currentTime;
+      if (typeof currentTime === 'number' && currentTime + 0.5 >= delay) {
+        animHooks.record('active', detail, context ? {
+          version: context.version,
+          targetAtMs: context.startAtMs,
+        } : undefined);
+        return;
+      }
+      if (anim.playState === 'idle' || anim.playState === 'finished') return;
+      requestAnimationFrame(observe);
+    };
+    requestAnimationFrame(observe);
+  }
+
   /**
    * animateBetween runs a one-off FLIP animation moving the element with id
    * `realId` from the on-screen position of `stubId` (or vice versa). Used
@@ -326,21 +345,7 @@ export class BoardgameComponentAnimator extends LitElement {
       { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
       { transform: real.style.transform || 'none' },
     ];
-    // Record a 'play' hook at the moment the flight VISUALLY begins (after
-    // the sync delay elapses), so the cross-screen skew test can compare
-    // launch instants across surfaces. We stamp it via a matching timer
-    // rather than anim.ready because WAAPI's `ready` resolves when the
-    // DELAY phase starts, not the active (visible) phase.
     const realTag = real.tagName.toLowerCase() + (real.id ? `#${real.id}` : '');
-    let playHookTimer: number | null = null;
-    if (delay > 0) {
-      playHookTimer = window.setTimeout(() => {
-        playHookTimer = null;
-        animHooks.record('play', 'fly:' + realTag);
-      }, delay);
-    } else {
-      animHooks.record('play', 'fly:' + realTag);
-    }
 
     // When the flight target is a real animatable item (a boardgame-card /
     // -component), route through its play() so the flight is GATED: it
@@ -358,9 +363,10 @@ export class BoardgameComponentAnimator extends LitElement {
     if (typeof (real as any).play === 'function') {
       const anim = (real as any).play(real, keyframes,
         { duration: effectiveDurationMs, delay, easing: 'ease-out', fill },
-        { versionTiming: false, recordActive: false });
+        { timing: 'immediate' }, { recordActive: false });
       // play() returns null under noAnimate; nothing is in flight then.
       if (anim) {
+        this._recordAnimationActive(anim, delay, 'fly:' + realTag, context);
         await anim.finished.catch(() => {});
         // The Animation promise and play()'s settlement bookkeeping are
         // separate promise reactions. Do not resolve animateBetween until
@@ -369,16 +375,15 @@ export class BoardgameComponentAnimator extends LitElement {
           await (real as any).settled();
         }
       }
-      if (playHookTimer !== null) window.clearTimeout(playHookTimer);
       return;
     }
 
     const anim = real.animate(keyframes,
       { duration: effectiveDurationMs, delay, easing: 'ease-out', fill });
+    this._recordAnimationActive(anim, delay, 'fly:' + realTag, context);
     // Settlement is ground truth: finished resolves on completion, rejects
     // on cancel (element removed mid-flight) — both mean "done" here.
     await anim.finished.catch(() => {});
-    if (playHookTimer !== null) window.clearTimeout(playHookTimer);
   }
 
   // CRITICAL: Double microtask delay for Polymer databinding completion

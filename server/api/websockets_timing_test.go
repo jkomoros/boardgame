@@ -112,7 +112,9 @@ func TestNotificationWithoutListenersStillCatchesUpRegistration(t *testing.T) {
 
 	// Both channels are unbuffered. Once the registration send is accepted,
 	// workLoop has necessarily finished reserving the preceding notification.
-	v.notifyVersion <- gameVersionChanged{ID: "game", Version: 43}
+	for version := 43; version <= 142; version++ {
+		v.notifyVersion <- gameVersionChanged{ID: "game", Version: version}
+	}
 	s := &socket{gameID: "game", initialVersion: 42, send: make(chan socketFrameBatch, 1)}
 	v.register <- s
 	batch := <-s.send
@@ -121,8 +123,17 @@ func TestNotificationWithoutListenersStillCatchesUpRegistration(t *testing.T) {
 	if err := json.Unmarshal(batch[0], &version); err != nil {
 		t.Fatal(err)
 	}
-	if version.Data.(float64) != 43 {
-		t.Fatalf("register sent version %v, want notification's 43", version.Data)
+	if version.Data.(float64) != 142 {
+		t.Fatalf("register sent version %v, want latest notification's 142", version.Data)
+	}
+	var timing socketMessage
+	if err := json.Unmarshal(batch[1], &timing); err != nil {
+		t.Fatal(err)
+	}
+	data := timing.Data.(map[string]interface{})
+	lead := data["serverPlayAt"].(float64) - data["serverSentAt"].(float64)
+	if lead > animationLeadMS+100 {
+		t.Fatalf("listenerless burst built a future backlog: lead=%vms", lead)
 	}
 }
 
@@ -136,17 +147,49 @@ func TestSendMessageEnqueuesVersionAndTimingAtomically(t *testing.T) {
 }
 
 func TestReserveAnimationLaneIsIdempotentAndRejectsRegression(t *testing.T) {
-	first, ok := reserveAnimationLane(1_000, 10, animationLaneEntry{}, false)
+	first, ok := reserveAnimationLane(1_000, 10, animationLaneEntry{}, false, true)
 	if !ok {
 		t.Fatal("first reservation unexpectedly rejected")
 	}
-	duplicate, ok := reserveAnimationLane(1_100, 10, first, true)
+	duplicate, ok := reserveAnimationLane(1_100, 10, first, true, true)
 	if !ok || duplicate != first {
 		t.Fatalf("duplicate changed lane: first=%#v duplicate=%#v ok=%v", first, duplicate, ok)
 	}
-	regressed, ok := reserveAnimationLane(1_200, 9, first, true)
+	regressed, ok := reserveAnimationLane(1_200, 9, first, true, true)
 	if ok || regressed != first {
 		t.Fatalf("regression was not rejected: first=%#v got=%#v ok=%v", first, regressed, ok)
+	}
+}
+
+func TestUnobservedVersionsCoalesceInsteadOfBuildingBacklog(t *testing.T) {
+	var tail animationLaneEntry
+	hasTail := false
+	for version := 1; version <= 100; version++ {
+		var ok bool
+		tail, ok = reserveAnimationLane(1_000+int64(version), version, tail, hasTail, false)
+		if !ok {
+			t.Fatalf("version %d unexpectedly rejected", version)
+		}
+		hasTail = true
+	}
+	want := int64(1_100 + animationLeadMS)
+	if tail.serverPlayAt != want {
+		t.Fatalf("unobserved burst target = %d, want coalesced %d", tail.serverPlayAt, want)
+	}
+}
+
+func TestRegistrationBaselineDoesNotConsumeNextMoveSlot(t *testing.T) {
+	baseline, ok := reserveAnimationLane(1_000, 10, animationLaneEntry{}, false, false)
+	if !ok {
+		t.Fatal("baseline reservation unexpectedly rejected")
+	}
+	baseline.pacesNext = false
+	next, ok := reserveAnimationLane(1_050, 11, baseline, true, true)
+	if !ok {
+		t.Fatal("next move unexpectedly rejected")
+	}
+	if next.serverPlayAt != 1_050+animationLeadMS {
+		t.Fatalf("first move target = %d, want fresh lead", next.serverPlayAt)
 	}
 }
 
