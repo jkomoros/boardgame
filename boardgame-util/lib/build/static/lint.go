@@ -72,7 +72,7 @@ const gameSrcTypeCheckTSConfig = `{
   "extends": "./tsconfig.json",
   "compilerOptions": { "rootDir": ".", "noEmit": true, "declaration": false, "composite": false },
   "include": ["src/**/*", "game-src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }`
 
 // TypeCheckGameSrc runs `tsc --noEmit` over the assembled static dir,

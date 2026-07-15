@@ -215,7 +215,13 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 	}
 
 	fmt.Println("Copying base static resources")
-	if err := CopyStaticResources(directory, copyFiles); err != nil {
+	// Production inputs must be real files. Vite follows a symlinked index.html
+	// to the framework source tree and then rejects its resolved path as an
+	// emitted asset name outside the build root. A production bundle should be
+	// portable anyway, so copy top-level files even when the caller did not
+	// explicitly request --copy-files. Directories may remain linked while Vite
+	// consumes them; dist contains the final self-contained output.
+	if err := CopyStaticResources(directory, copyFiles || prodBuild); err != nil {
 		return "", errors.New("Couldn't copy static resources")
 	}
 

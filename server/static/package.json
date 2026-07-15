@@ -15,6 +15,7 @@
     "type-check:strict": "tsc --noEmit -p tsconfig.strict.json",
     "type-check:strict-migration": "tsc --noEmit -p tsconfig.strict-migration.json",
     "test:unit": "node --test 'src/**/*.test.ts'",
+    "test:facade-production": "node tests/renderer/facade-production.mjs",
     "test": "npm run test:e2e",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

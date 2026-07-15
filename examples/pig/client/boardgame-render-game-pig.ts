@@ -1,8 +1,5 @@
 import '@material/web/button/filled-button.js';
-import '../../src/components/boardgame-die.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
-import '../../src/components/boardgame-fading-text.js';
-import { html, css } from 'lit';
+import { BoardgameBaseGameRenderer, html, css } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import type { GameState, PlayerState } from './_types.js';

@@ -3,6 +3,7 @@ package static
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -19,5 +20,11 @@ func TestTypeCheckGameSrcNoGameSrc(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(dir, "tsconfig.gamesrc.json")); statErr == nil {
 		t.Fatal("TypeCheckGameSrc wrote a tsconfig despite no game-src folder")
+	}
+}
+
+func TestGameSrcTypeCheckExcludesFrameworkUnitTests(t *testing.T) {
+	if !strings.Contains(gameSrcTypeCheckTSConfig, `"src/**/*.test.ts"`) {
+		t.Fatal("assembled game-src type-check must exclude framework unit tests")
 	}
 }

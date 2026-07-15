@@ -297,22 +297,22 @@ a compatibility promise.
   `server/static/tsconfig*.json`, test configuration
 - Add focused Go tests under `boardgame-util/lib/build/static/`
 
-- [ ] Record actual serialized component/stack/player shapes from representative
+- [x] Record actual serialized component/stack/player shapes from representative
   Pig, Tic-tac-toe, Memory, Blackjack, Werewolf, and Monroe states.
-- [ ] Inventory imports, properties, events, casts, action paths, and deck view
+- [x] Inventory imports, properties, events, casts, action paths, and deck view
   registration across `examples/` and `../games`; classify each symbol as legacy,
   candidate facade, experimental, or internal.
-- [ ] Export one deliberately small experimental facade: base renderer, `html`,
+- [x] Export one deliberately small experimental facade: base renderer, `html`,
   `css`, and only the primitives needed by Pig.
-- [ ] Prove the same import resolves from framework source, assembled temporary
+- [x] Prove the same import resolves from framework source, assembled temporary
   static directory with symlinked `game-src`, TypeScript, Vite development,
   Vite production, Node/browser tests, and one external game.
-- [ ] Decide from evidence whether the public spelling can be an
+- [x] Decide from evidence whether the public spelling can be an
   `@boardgame/client` alias or must initially be `../../src/client.js`. Do not
   paper over differing resolution behavior with game-specific paths.
-- [ ] Add tests that fail if the chosen facade cannot resolve in an assembled
+- [x] Add tests that fail if the chosen facade cannot resolve in an assembled
   workspace.
-- [ ] Commit only the baseline, facade spike, configuration, and tests.
+- [x] Commit only the baseline, facade spike, configuration, and tests.
 
 **Review gate:** An adversarial reviewer checks that `client.ts` exports no
 legacy moustache/template machinery merely for convenience and that no current
