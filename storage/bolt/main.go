@@ -127,6 +127,13 @@ func keyForAgentState(gameID string, player boardgame.PlayerIndex) []byte {
 	return []byte(gameID + "-" + player.String())
 }
 
+// cloneBucketValue detaches a value from Bolt's mmap. Bucket.Get values are
+// valid only for the lifetime of their transaction; callers below decode or
+// return them after View closes, when a concurrent database growth may remap.
+func cloneBucketValue(value []byte) []byte {
+	return append([]byte(nil), value...)
+}
+
 // Name returns 'bolt'
 func (s *StorageManager) Name() string {
 	return "bolt"
@@ -151,7 +158,7 @@ func (s *StorageManager) State(gameID string, version int) (boardgame.StateStora
 			return errors.New("Couldn't get bucket")
 		}
 
-		record = b.Get(keyForState(gameID, version))
+		record = cloneBucketValue(b.Get(keyForState(gameID, version)))
 		return nil
 	})
 
@@ -190,7 +197,7 @@ func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorag
 			return errors.New("Couldn't get bucket")
 		}
 
-		record = b.Get(keyForMove(gameID, version))
+		record = cloneBucketValue(b.Get(keyForMove(gameID, version)))
 		return nil
 	})
 
@@ -221,7 +228,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 		if b == nil {
 			return errors.New("Couldn't open bucket")
 		}
-		rawRecord = b.Get(keyForGame(id))
+		rawRecord = cloneBucketValue(b.Get(keyForGame(id)))
 		return nil
 	})
 
@@ -345,7 +352,7 @@ func (s *StorageManager) AgentState(gameID string, player boardgame.PlayerIndex)
 			return errors.New("Couldn't open agent states bucket")
 		}
 
-		result = aBucket.Get(keyForAgentState(gameID, player))
+		result = cloneBucketValue(aBucket.Get(keyForAgentState(gameID, player)))
 		return nil
 
 	})
@@ -427,7 +434,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 			return errors.New("Couldn't open extended games bucket")
 		}
 
-		rawRecord = eBucket.Get(keyForGame(id))
+		rawRecord = cloneBucketValue(eBucket.Get(keyForGame(id)))
 
 		return nil
 	})
@@ -467,7 +474,7 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 			return errors.New("Couldn't open extended games bucket")
 		}
 
-		rawRecord = eBucket.Get(keyForGame(id))
+		rawRecord = cloneBucketValue(eBucket.Get(keyForGame(id)))
 
 		return nil
 	})
@@ -534,7 +541,7 @@ func (s *StorageManager) SeatPresentation(gameID string, playerIndex boardgame.P
 		if b == nil {
 			return errors.New("Couldn't open seat presentations bucket")
 		}
-		rawRecord = b.Get(keyForSeatPresentation(gameID, playerIndex))
+		rawRecord = cloneBucketValue(b.Get(keyForSeatPresentation(gameID, playerIndex)))
 		return nil
 	})
 

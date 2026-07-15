@@ -1,12 +1,35 @@
 import { LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
+import { usableAnimationContext } from './companion-sync.js';
+import type { VersionAnimationContext } from './companion-sync.js';
+
+export type AnimationTimingPolicy =
+  | 'version'
+  | 'immediate'
+  | { localStartAtMs: number };
+
+export interface PlayOptions {
+  gated?: boolean;
+  /** Defaults to the installed version slot; use immediate for a local effect. */
+  timing?: AnimationTimingPolicy;
+}
+
+interface PlayInstrumentation {
+  recordActive?: boolean;
+}
 
 export class BoardgameAnimatableItem extends LitElement {
   @property({ type: Boolean })
   noAnimate = false;
 
+  // Installed by the shared animator for the state version currently being
+  // rendered. Keeping this on the common play primitive makes ordinary FLIP
+  // and property animations participate without game-renderer plumbing.
+  animationContext: VersionAnimationContext | null = null;
+
   private _liveAnimations = new Set<Animation>();
+  private _activeHookFrames = new Map<Animation, number>();
   private _liveGatedCount = 0;
   private _settledResolvers: Array<() => void> = [];
 
@@ -53,12 +76,30 @@ export class BoardgameAnimatableItem extends LitElement {
     return this._liveGatedCount > 0;
   }
 
+  private _ambientAnimationContext(): VersionAnimationContext | null {
+    // Prefer the render-game provider over a component's cached value. This
+    // crosses shadow roots and slots, so standalone dice and game-authored
+    // animatable items get the same context as stack-managed components.
+    let node: Node | null = this.assignedSlot ?? this.parentNode;
+    while (node) {
+      if ('animationContext' in node) {
+        return (node as Node & { animationContext: VersionAnimationContext | null }).animationContext;
+      }
+      if (node instanceof ShadowRoot) {
+        node = node.host;
+      } else {
+        node = (node as Element).assignedSlot ?? node.parentNode;
+      }
+    }
+    return this.animationContext;
+  }
+
   // play is the single entry point for starting an animation on this item
   // (host element, #inner, or any shadow child). Ground truth for
   // completion is the returned Animation's settlement — there is nothing
   // to guess (spec: WAAPI rewrite).
   play(element: HTMLElement, keyframes: Keyframe[], timing?: OptionalEffectTiming,
-       opts?: { gated?: boolean }): Animation | null {
+       opts?: PlayOptions, instrumentation?: PlayInstrumentation): Animation | null {
     if (this.noAnimate) return null;
     const gated = (opts?.gated ?? true) && this.waitForAnimation;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -68,12 +109,43 @@ export class BoardgameAnimatableItem extends LitElement {
       fill: 'none',
       ...timing,
     };
-    // endDelay (post-animation-delay) intentionally still applies under
-    // prefers-reduced-motion: it's gameplay pacing (letting a matched pair
-    // linger before capture), not motion, so honoring it is correct even
-    // when the visible motion is collapsed to duration 0.
+    // endDelay is part of the synchronized occupancy budget, not an
+    // after-the-fact addition that may push the queue into later slots.
     if (this.postAnimationDelay > 0 && resolvedTiming.endDelay === undefined) {
       resolvedTiming.endDelay = this.postAnimationDelay;
+    }
+
+    const numeric = (value: unknown): number =>
+      typeof value === 'number' && isFinite(value) ? value : 0;
+    const timingPolicy = opts?.timing ?? 'version';
+    const now = Date.now();
+    let activeContext: VersionAnimationContext | null = null;
+    if (timingPolicy === 'version') {
+      const candidate = this._ambientAnimationContext();
+      const context = candidate ? usableAnimationContext(candidate, now) : null;
+      if (context) {
+        activeContext = context;
+        const localDelay = Math.max(0, numeric(resolvedTiming.delay));
+        // If staggering alone reaches the end of the remaining slot, the
+        // resting styles are already final; omit a late snap entirely.
+        if (localDelay >= context.maxAnimationDurationMs) return null;
+        const untilStart = Math.max(0, context.startAtMs - now);
+        const requestedDuration = Math.max(0, numeric(resolvedTiming.duration));
+        const requestedEndDelay = Math.max(0, numeric(resolvedTiming.endDelay));
+        const afterStagger = context.maxAnimationDurationMs - localDelay;
+        const boundedEndDelay = Math.min(requestedEndDelay, afterStagger);
+        const availableDuration = Math.max(0, afterStagger - boundedEndDelay);
+        resolvedTiming.delay = untilStart + localDelay;
+        resolvedTiming.duration = Math.min(requestedDuration, availableDuration);
+        resolvedTiming.endDelay = boundedEndDelay;
+        // Hold the opening (inverted/property-before) frame while waiting for
+        // the shared target, including any per-stack stagger after it.
+        if (numeric(resolvedTiming.delay) > 0) resolvedTiming.fill = 'backwards';
+      }
+    } else if (timingPolicy !== 'immediate') {
+      const localDelay = Math.max(0, numeric(resolvedTiming.delay));
+      resolvedTiming.delay = Math.max(0, timingPolicy.localStartAtMs - now) + localDelay;
+      if (numeric(resolvedTiming.delay) > 0) resolvedTiming.fill = 'backwards';
     }
     const anim = element.animate(keyframes, resolvedTiming);
     this._liveAnimations.add(anim);
@@ -95,6 +167,24 @@ export class BoardgameAnimatableItem extends LitElement {
       }
     }
     animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
+    if (instrumentation?.recordActive !== false) {
+      const detail = this.tagName.toLowerCase() + (this.id ? `#${this.id}` : '');
+      const delay = typeof resolvedTiming.delay === 'number' ? resolvedTiming.delay : 0;
+      const observeActive = () => {
+        if (!this._liveAnimations.has(anim)) return;
+        const currentTime = anim.currentTime;
+        if (typeof currentTime === 'number' && currentTime + 0.5 >= delay) {
+          this._activeHookFrames.delete(anim);
+          animHooks.record('active', detail, activeContext ? {
+            version: activeContext.version,
+            targetAtMs: activeContext.startAtMs,
+          } : undefined);
+          return;
+        }
+        this._activeHookFrames.set(anim, requestAnimationFrame(observeActive));
+      };
+      this._activeHookFrames.set(anim, requestAnimationFrame(observeActive));
+    }
     // finished rejects on cancel(); both paths are settlement for us.
     anim.finished.catch(() => {}).finally(() => this._animationSettled(anim, gated));
     return anim;
@@ -102,6 +192,11 @@ export class BoardgameAnimatableItem extends LitElement {
 
   private _animationSettled(anim: Animation, gated: boolean) {
     if (!this._liveAnimations.delete(anim)) return; // already accounted
+    const activeFrame = this._activeHookFrames.get(anim);
+    if (activeFrame !== undefined) {
+      cancelAnimationFrame(activeFrame);
+      this._activeHookFrames.delete(anim);
+    }
     animHooks.record('settle', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
     if (!gated) return;
     this._liveGatedCount--;

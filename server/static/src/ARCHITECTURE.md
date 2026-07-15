@@ -289,32 +289,39 @@ same logical event — e.g. a card dealt from the table to a phone — to start
 animating on both screens at roughly the same wall-clock instant, even
 though each screen receives its own WebSocket push and renders independently.
 
-- The server stamps every `version-timing` socket message with
-  `serverSentAt` and `serverPlayAt` (`serverSentAt + ANIMATION_LEAD_MS`).
-- `companion-sync.ts`'s `CompanionSyncEstimator` maintains a rolling,
-  minimum-wins one-way-latency estimate from `serverSentAt` (variance only
-  ever adds delay, so the minimum sample is the closest thing to true
-  one-way transit time). `companionSync.localEquivalent(serverEpochMs)`
+- The server notifier owns a monotonic animation lane per observed game. An idle lane
+  starts at `serverSentAt + 500ms`; rapid versions reserve 800ms-spaced slots
+  (600ms synchronized motion + 200ms preparation),
+  so visible fix-up versions cannot all target the same instant. With no
+  listeners, notifications coalesce to the latest version at `now + 500ms`
+  instead of accumulating an invisible future backlog. Every socket receives
+  the same frame, and a reconnect receives the retained slot for its current
+  version rather than inventing a new target.
+- Socket setup performs three clock-sync request/reply rounds. The estimator
+  uses the offset from the lowest-RTT midpoint sample, avoiding direct
+  one-way-route bias; complete timing-policy frames provide a one-way fallback
+  when clock-sync replies are unavailable. Older frames without the declared
+  slot policy are rejected rather than partially interpreted.
+  `companionSync.localEquivalent(serverEpochMs)`
   converts a server timestamp into the local-clock instant of the same
   wall-clock moment; with fewer than 3 samples it falls back to the raw
   server timestamp (animations play immediately — safe degradation).
-- On the state-manager side, `boardgame-game-state-manager`'s
-  `_scheduleNextStateBundle()` — on companion surfaces only, solo games are
-  unaffected — reads `latestServerPlayAt()` and, if set, arms a
-  `_scheduledInstallTimerId` so the next state bundle installs at the
-  locally-converted play-at instant rather than immediately. The wait is
-  clamped to [0, 2000]ms so a bad estimate or stale timestamp can never hang
-  the game; `readyForNextState()` (fired when the gate closes) and any
-  fresh enqueue cancel a previously-armed timer to avoid double-installs.
-- Game renderer code that flies a stub between screens (see
-  `BoardgameTableViewBase`'s `autoFlyDeals`/`updated()` and
-  `BoardgameHandViewBase`'s `autoFlyIncoming`/`updated()`) reads the same
-  `latestServerPlayAt()` value, converts it via `companionSync
-  .localEquivalent()`, and passes it as `startAtMs` to
-  `animator.animateBetween(..., { startAtMs })` — so the departure flight on
-  the Table and the arrival flight on the Hand are scheduled against the
-  same server-anchored instant, reading as one coherent cross-screen motion
-  rather than two independently-timed animations.
+- `CompanionAnimationTimeline` stores timing by `(gameID, version)`, not as a
+  mutable latest value. A version waits at most 200ms for its sibling timing
+  frame; missing timing or a cold estimator degrades to immediate playback.
+- `_scheduleNextStateBundle()` resolves the pending bundle's exact version,
+  installs it inside the 200ms preparation window, and carries its scoped policy through
+  `boardgame-game-view` into the shared animator. Delayed WAAPI uses backwards
+  fill so the source pose remains visible until compositor-owned launch.
+- The common `play()` primitive resolves the installed context through the
+  composed render tree, so stack FLIP, property effects, standalone dice, and
+  game-authored animatable items share the same target automatically.
+  `animateBetween()` uses that policy too. Both APIs accept
+  `{ timing: 'immediate' }` for a local effect or
+  `{ timing: { localStartAtMs } }` for an explicit local timeline.
+  Stagger, visible duration, and post-animation hold share one remaining-slot
+  budget; effects that cannot begin before its end are omitted. Synchronized
+  cycles do not use renderer overlap.
 - The game-over verdict (`renderGameOverBanner()` / the Hand header's
   outcome text) is gated on the mirrored `animating` flag described above,
   so the outcome banner can't race ahead of a still-in-flight companion

@@ -2593,16 +2593,55 @@ You can modify a number of properties of animations. The most simple is the
 `--animation-length` CSS var, which the built-in components respect for how
 long all of their animations will take. Sometimes you want all animations for a certain move to take a certain amount of time, and it's confusing/error prone to set the values in CSS. If your game renderer defines `animationLength(fromMove, toMove)` then it will be consulted before each state bundle is installed. If the value is 0, then no override is set and the default CSS values for animation length take precedence. If it is greater than zero, than a temporary `--animation-length` value will be set above your renderer (interpreting that number as millisecondes), overriding the default value until another one is set. And if the value is negative, the animation will be skipped entirely. `BoardgameBaseGameRenderer` provides a default `animationLength` that just returns 0.
 
-Sometimes you want to delay applying a new state for a bit, to give the player
-time to notice what happened. For example, in memory when a second card is
-flipped over that matches the first, we want to wait a second or two before
-'capturing' the cards. This is distinct from the actual animation itself, because it's a pre-delay before applying the next animation. If your game renderer has a `delayAnimation(fromMove,toMove)` method, it will be consulted, passing the last move applied and the new move, to see how long we should wait before applying the next state. `BoardgameBaseGameRenderer` provides a default `delayAnimation` that simply always returns 0, but you can override it. In this example, you might check to see if the `toMove` has the name of `Capture Cards`, and it it does return 1000, which signifies that the engine should wait 1 full second before animating the cards to their new locations.
+Sometimes you want the completed state to remain visible for a beat before the
+next state is installed. For example, Memory leaves a matching pair face-up so
+players can recognize it before the cards are captured. Put
+`post-animation-delay="1000"` on the relevant `boardgame-component-stack` (or
+animatable item). The stack forwards the value to its components; their WAAPI
+animations hold the completion gate for that many milliseconds after visible
+motion. Prefer deriving the value from current rendered state, as Memory's
+`_revealHoldMs()` does. There is no renderer `delayAnimation` hook.
 
 The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
 
 Sometimes you want animations to overlap rather than playing fully sequentially. For example, when dealing cards to players, you might want the next card to start moving before the previous one has finished. If your game renderer defines `animationOverlap(fromMove, toMove)`, it will be consulted before each state bundle is installed. The return value is a fraction between 0 and 1 representing how much of the current animation should play before the next state is installed. A return value of 0 (the default) means the current animation must complete entirely before the next state is applied. A value of 0.5 means the next state will be installed when the current animation is 50% complete. Values outside the 0-1 range are clamped. This is useful for cascade effects where multiple animations should overlap smoothly instead of playing one after another.
 
-These three hooks compose cleanly: `animationLength` controls how long an animation takes (or skips it with a negative value), `delayAnimation` adds a pause after the animation completes before applying the next state, and `animationOverlap` allows the next state to be installed before the current animation finishes.
+These controls compose cleanly: `animationLength` controls motion duration (or
+skips an intermediate bundle with a negative value), `post-animation-delay`
+holds a component's completed state, and `animationOverlap` lets a solo cycle
+install its next state before the current cycle finishes.
+
+Companion Table/Hand surfaces add one deliberate constraint: animation cycles
+that must agree across physical screens use the framework's version timeline.
+The current protocol gives each version an 800ms slot—at most 600ms of motion
+plus 200ms to render and pre-arm the next state. For these synchronized cycles,
+the framework budgets each component's stagger, visible duration, and
+`post-animation-delay` together inside the remaining 600ms motion window. An
+effect whose stagger would begin after that window is omitted; an oversized
+hold shortens visible motion rather than delaying later slots. Ordinary FLIP
+and property effects use the same policy as `animateBetween`, and
+`animationOverlap` is disabled. Solo games and explicitly local effects retain
+the normal behavior above.
+
+Game renderers normally need no timing code. A call such as
+`this.animator?.animateBetween(card, source, 300)` automatically uses the
+installed version's companion slot. For an effect that exists only on this
+screen, say so explicitly:
+
+```ts
+this.animator?.animateBetween(card, source, 900, { timing: 'immediate' });
+```
+
+Custom animatable components use the identical policy through `play()`:
+
+```ts
+this.play(this, keyframes, { duration: 300 }); // current version slot
+this.play(this, keyframes, { duration: 300 }, { timing: 'immediate' });
+```
+
+Advanced test or orchestration code can instead pass
+`{ timing: { localStartAtMs: timestamp } }`. See
+`docs/companion-mode-authoring.md` for the complete Table/Hand conventions.
 
 In the future there will be a number of other attributes and method override
 points, and they'll be described here.

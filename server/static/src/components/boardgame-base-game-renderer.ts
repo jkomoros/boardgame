@@ -4,6 +4,7 @@ import type { MoveLegalityInfo } from '../selectors.js';
 import type { MovePreviewSpec } from '../legal/previewLegality.js';
 import type { FullGameState } from '../types/boardgame-types.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
+import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
 
 export class BoardgameBaseGameRenderer<
   GS extends object = Record<string, unknown>,
@@ -73,7 +74,7 @@ export class BoardgameBaseGameRenderer<
    * `this.animator?.animateBetween(cardId, 'hand-top-edge')`. Null before
    * the renderer is attached (or in tests outside boardgame-render-game).
    */
-  protected get animator(): { animateBetween(realId: string | HTMLElement, stubId: string | HTMLElement, durationMs?: number, opts?: { startAtMs?: number }): Promise<void> } | null {
+  protected get animator(): ComponentAnimatorAPI | null {
     const root = this.getRootNode();
     if (!(root instanceof ShadowRoot)) return null;
     return root.querySelector('#animator') as any;

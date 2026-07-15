@@ -127,8 +127,35 @@ Works out of the box for card games:
   from the deck toward the bottom edge. No element = no animation — the
   id's presence is the entire opt-in.
 - Bespoke needs: set the flags false and call
-  `this.animator.animateBetween(cardIdOrElement, targetIdOrElement, ms)`.
-  The first argument visually ARRIVES FROM the second's position.
+  `this.animator?.animateBetween(cardIdOrElement, targetIdOrElement, ms)`.
+  The first argument visually ARRIVES FROM the second's position. The framework
+  automatically schedules this against the current version's cross-screen
+  timeline; there is no timing property to pass through your renderer.
+- For an intentionally local effect (for example, a tap flourish that has no
+  matching event on another screen), opt out explicitly:
+  `this.animator?.animateBetween(card, source, 300, { timing: 'immediate' })`.
+  Advanced code may instead use
+  `{ timing: { localStartAtMs: someTimestamp } }`.
+
+Each game version owns its own animation slot. Rapid automatic/fix-up moves are
+spaced on the server's per-game lane, and queued HTTP state bundles retain their
+matching slot. The protocol currently reserves 800ms per synchronized version:
+up to 600ms of visible motion and 200ms to prepare the next queued state. The
+framework applies the slot to its whole animation pipeline: ordinary FLIP
+movement, card/die property effects, automatic deals, and `animateBetween`
+calls. Visible motion is capped at 600ms and `animationOverlap` is disabled for
+those cycles; use immediate timing for a longer effect that has no cross-screen
+counterpart. State installs during the 200ms preparation window before the
+target, and WAAPI holds each opening frame until launch. A client joining a
+cycle late receives only its remaining visible-motion budget, so it cannot
+spill into the next slot. If timing is unavailable or no visible budget remains,
+the context is discarded completely and state installs immediately.
+
+Custom components that call the framework's `play()` inherit this policy too.
+Use `{ timing: 'immediate' }` as the fourth argument for a tap flourish or
+other local-only effect. Stack stagger, visible duration, and
+`post-animation-delay` share the slot's remaining budget; an effect that can no
+longer begin in the slot is omitted rather than snapping late.
 
 ## Host actions and ForceFinishTurn
 

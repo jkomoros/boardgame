@@ -4,6 +4,7 @@
  */
 
 import type { MoveForm } from './api';
+import type { VersionAnimationContext } from '../components/companion-sync';
 
 /**
  * Raw game state from server (unexpanded).
@@ -86,4 +87,6 @@ export interface StateBundle {
   moveForms: MoveForm[] | null;
   /** Player index viewing this state */
   viewingAsPlayer: number;
+  /** Scoped animation policy reserved for this exact companion version. */
+  animationContext?: VersionAnimationContext | null;
 }

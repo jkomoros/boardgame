@@ -193,6 +193,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _currentState: any = null;
 
   @property({ type: Object, attribute: false })
+  _animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
+
+  @property({ type: Object, attribute: false })
   _chest: any = null;
 
   @property({ type: Array, attribute: false })
@@ -336,6 +339,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         <boardgame-render-game
           id="render"
           .state=${this._currentState}
+          .animationContext=${this._animationContext}
           .diagram=${this.game ? this.game.Diagram : ''}
           .renderer=${this.activeRenderer}
           @renderer-changed=${this._handleRendererChanged}
@@ -575,10 +579,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.game = null;
     this.moveForms = null;
     this.viewingAsPlayer = 0;
+    this._animationContext = null;
     this._firstStateBundle = true;
   }
 
   private _installStateBundle(bundle: StateBundle) {
+    // Set the version's animation context before publishing its state. The
+    // render-game wrapper applies it to the shared animator before assigning
+    // the new state to the game renderer.
+    this._animationContext = bundle.animationContext ?? null;
     store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
 
     // Update view state in Redux (replaces direct property assignment)

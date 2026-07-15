@@ -70,6 +70,11 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Object })
   state: any = null;
 
+  // Scoped timing policy associated with the exact installed game version.
+  // The shared animator consumes it as animateBetween's default.
+  @property({ type: Object })
+  animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
+
   @property({ type: Object })
   chest: any = null;
 
@@ -234,6 +239,10 @@ class BoardgameRenderGame extends LitElement {
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
+
+    if (changedProperties.has('animationContext') && this._animator) {
+      this._animator.animationContext = this.animationContext;
+    }
 
     if (changedProperties.has('diagram')) {
       this._diagramChanged(this.diagram);
@@ -523,6 +532,9 @@ class BoardgameRenderGame extends LitElement {
 
   private _stateChanged(newState: any, oldState: any) {
     if (!this.renderer) return;
+    if (this._animator) {
+      this._animator.animationContext = this.animationContext;
+    }
     const stateWasNull = ((this.renderer as any).state == null);
     if (newState && !stateWasNull) {
       this._resetAnimating();
@@ -724,6 +736,9 @@ class BoardgameRenderGame extends LitElement {
     ele.gameId = this.gameId;
     ele.isOwner = this.isOwner;
     ele.animating = this.isAnimating;
+    if (this._animator) {
+      this._animator.animationContext = this.animationContext;
+    }
 
     // Assign this.renderer BEFORE applying companion props:
     // _applyCompanionPropsToRenderer calls _recomputeIsHost which guards
