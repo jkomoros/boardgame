@@ -178,12 +178,12 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
   @property({ type: Array })
   legalTokenColors: string[] = [];
 
-  override animationLength(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  override animationLength(_fromMove: Record<string, unknown> | null, _toMove: Record<string, unknown> | null): number {
     if (this.slowAnimations) return 5000;
     return 0;
   }
 
-  override animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  override animationOverlap(_fromMove: Record<string, unknown> | null, _toMove: Record<string, unknown> | null): number {
     if (!this.slowAnimations) return 0;
     // When slow animations are enabled, overlap by 30% so multiple
     // animations visually cascade instead of playing fully sequentially.

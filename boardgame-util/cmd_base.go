@@ -28,6 +28,7 @@ type boardgameUtil struct {
 	EmitMoveNames emitMoveNames
 	EmitMoveArgs  emitMoveArgs
 	EmitTypes     emitTypes
+	CheckClient   checkClient
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -110,6 +111,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.EmitMoveNames,
 		&b.EmitMoveArgs,
 		&b.EmitTypes,
+		&b.CheckClient,
 	}
 }
 

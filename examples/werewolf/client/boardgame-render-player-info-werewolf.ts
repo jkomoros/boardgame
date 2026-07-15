@@ -12,7 +12,7 @@ import type { PlayerState } from './_types.js';
  * eliminated / voted / thinking — which is safe for all viewers.
  */
 class BoardgameRenderPlayerInfoWerewolf extends LitElement {
-  static styles = css`
+  static override styles = css`
     .status {
       font-size: 12px;
       opacity: 0.8;
@@ -24,7 +24,7 @@ class BoardgameRenderPlayerInfoWerewolf extends LitElement {
   `;
 
   @property({ type: Object })
-  state: any = null;
+  state: unknown = null;
 
   @property({ type: Number })
   playerIndex = 0;

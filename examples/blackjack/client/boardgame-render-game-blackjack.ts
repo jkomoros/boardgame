@@ -63,7 +63,7 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
         </boardgame-component-stack>
       </div>
       <div id="players">
-        ${repeat(this.state?.Players || [], (player, index) => index, (player, index) => html`
+        ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
           <div class="player flex ${this._bustedClass(player.Eliminated)}">
             <strong>Player ${index}</strong>
             <boardgame-component-stack
