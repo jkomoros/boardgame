@@ -25,6 +25,15 @@ client-side duplicate of server legality.
 - Framework: `/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame`
 - External game corpus: `/Users/jkomoros/Code/go/src/github.com/jkomoros/games`
 
+**Two-repository protocol:** Treat framework and games as independent
+repositories. Before any external migration, require both worktrees clean except
+for explicitly recorded unrelated files, fetch their bases, and create a
+dedicated matching branch in `games`. Never edit or commit external-game files
+on `master`, never stage across repository boundaries, and report status/tests
+and commit SHAs separately. Framework primitives and framework-owned fixtures
+must land without depending on uncommitted sibling-repository state. An external
+migration records the minimum framework commit it requires.
+
 The unrelated untracked `SECURITY-INCIDENT-injection-canary.md` must remain
 untouched. Never use `git add .` or `git add -A`.
 
@@ -96,6 +105,14 @@ graphic board before attempting a broad component catalog.
 10. **Do not freeze accidents.** Inventory existing deep imports and behavior,
     but compatibility governance covers only a deliberately curated public
     facade after it has survived the assembled build and real corpus.
+11. **Input responsibility is explicit.** Never infer that a move field is
+    optional or framework-provided by observing one execution of arbitrary,
+    state-dependent `DefaultsForState`. Standard behaviors contribute metadata;
+    custom configurations resolve ambiguity explicitly.
+12. **Dependency direction is enforced.** Generated contracts depend on public
+    facade types; renderers/controllers depend on snapshots and services;
+    primitives depend on action/controller interfaces; only host adapters may
+    import Redux, raw API/socket modules, or internal selectors.
 
 ## Twelve creator stories and their desired minimum path
 
@@ -119,15 +136,27 @@ Stories 9–12 are acceptance narratives and small capability probes until a
 supporting abstraction is actively being built. Do not create four speculative
 fake games.
 
+**Traceability:** Pig proves zero-input action and semantic die in Task 7;
+Tic-tac-toe proves generic target state plus square-grid presentation in Task 8;
+Monroe proves authored geometry in Task 9 and defers typed cards to roadmap C;
+Checkers proves source/destination in roadmap A; Memory proves timers, typed
+cards, and result hold in B/C/D; Blackjack proves zones/outcome and then paired
+surface identity in C/D; Werewolf proves private simultaneous choices in E.
+Scrabble, Catan, 7 Wonders, and Scotland Yard each receive a small compile/API
+probe when their seam is designed so early APIs cannot assume numeric cells,
+single-player turns, public actions, or one screen; their visual/game-specific
+rules remain custom until evidence supports another shared primitive.
+
 ## Success metrics
 
 - A freshly scaffolded game strict-compiles, production-builds, loads, and
   successfully proposes one generated typed move.
 - Migrated creators import only the curated facade; deep imports are classified
   legacy/internal and are not added to the stable API manifest.
-- Safe game code contains no `any`, unexplained double casts, `@ts-ignore`, or
-  omitted safety generics. `@ts-expect-error` requires a reason and tracking
-  issue.
+- New safe APIs, compile fixtures, and fully migrated renderers contain no `any`,
+  unexplained double casts, `@ts-ignore`, or omitted safety generics.
+  `@ts-expect-error` requires a reason and tracking issue outside deliberate
+  negative compile-contract fixtures.
 - Move submission rejects missing, extra, mistyped, nonintegral, and invalid-enum
   author inputs in development and fails safely in production.
 - Canonical interactive fixtures pass keyboard and axe checks and retain focus
@@ -140,6 +169,71 @@ fake games.
   than today's Pig and Tic-tac-toe renderers.
 - The first tranche keeps existing animation, solo, companion, and Go tests
   green; no new retry-based flake masking is introduced.
+- No author-input disposition is inferred from sample `DefaultsForState`
+  execution; ambiguous custom defaults fail with an actionable configuration
+  diagnostic.
+- Aliased and spread objects with extra move fields fail compile-contract
+  fixtures, not only fresh object literals.
+- Generated-client/server author-schema skew fails closed before submission.
+- No proposal is silently discarded by animation, stale-state, or transport
+  gating; the user and creator receive a structured blocked/rejected result.
+- Renderer snapshots and generated expanded state are deeply readonly to creator
+  code.
+- Critical Lit tag/property/event mistakes fail intentional CI fixtures.
+- No new `any`, broad double cast, or suppression is introduced. Each touched
+  renderer records its remaining legacy-debt count; “migrated” means that count
+  is zero. Negative compile fixtures may use `@ts-expect-error` only with the
+  exact invariant they prove.
+- Pig, Tic-tac-toe, and the spatial proof record before/after imports, casts,
+  imperative handlers, manually synchronized properties, and renderer lines.
+
+## Normative execution order after sub-agent review
+
+The detailed task sections below describe work packages. Execute them in this
+dependency order; do not assume their original document order is an
+implementation dependency:
+
+0. Establish reproducible green gates and a renderer-test Playwright shard.
+1. Inventory actual behavior and prove facade resolution.
+2A. Define the explicit author-input disposition/codec seam.
+2B. Generate the author-input contract, runtime schema, fingerprint, freshness,
+   and staged atomic replacement.
+3A. Correct expanded renderer/component types.
+3B. Prove one unregistered generated bound `GameRenderer`.
+5. Establish a new green, package-scoped strict authoring project and
+   `check-client` foundation.
+6A. Build the minimal fixture host and a snapshot adapter over existing renderer
+   properties.
+7. Build typed request transport and `MoveAction`; fully migrate Pig.
+4. Build the final Lit scaffold, minimal visual compositions, quickstart, and
+   end-to-end conformance against the now-proven action API.
+8. Build `TargetAction` and the accessible square-grid adapter; migrate
+   Tic-tac-toe.
+9A. Build the spatial-artwork contract and framework-owned SVG fixture.
+9B. On a separate `games` branch, migrate only Monroe's geometry and Move-to-Room
+   interaction; record remaining deck/card debt.
+10. Run the tranche review and stop.
+
+This order corrects three original contradictions: the scaffold no longer
+teaches an action API that does not exist; the fixture host no longer assumes a
+snapshot replacement that has not been designed; and Pig is only fully migrated
+once `MoveAction` exists.
+
+### Task 0: Establish reproducible green gates
+
+- [ ] Record exact currently green commands and classify every existing failure.
+  Repair stale harness tests or use only a narrow temporary exclusion tied to a
+  tracking issue; never create a broad accepted-failure baseline.
+- [ ] Create a renderer-fixture Playwright configuration that starts/stops its
+  own server on an allocated port, uses `retries: 0`, and does not inherit the
+  real-time animation suite's global sequential-worker constraint.
+- [ ] Keep real animation/companion tests in their existing sequential shard.
+- [ ] Require each implementation work package to state: failing test/compile
+  fixture; smallest implementation; focused green command; regression commands;
+  and named-file commit boundary.
+- [ ] Use focused commands where applicable: generator/static/stub/API Go tests,
+  `npm run type-check`, new `type-check:authoring`, unit tests, and explicit
+  Playwright spec paths with `--reporter=line`.
 
 ## Diagnostic policy
 
@@ -158,6 +252,16 @@ fake games.
 - Duplicate keys, malformed geometry, out-of-bounds targets, invalid move input,
   and contract/catalog skew are deterministic structural failures and fail
   closed.
+
+Each first-tranche `BGCLIENT` diagnostic must have a table-driven acceptance row
+covering trigger, stable code, startup/build/runtime severity, fail-open versus
+fail-closed behavior, remediation text, and unit/browser fixture. At minimum,
+cover facade resolution, stale generated schema, missing/extra/mistyped action
+input, duplicate/unknown targets, preview key/cardinality mismatch, SVG fetch/
+parse/sanitization failure, duplicate/missing geometry keys, missing label/order/
+anchor, piece-to-unknown-space, ambiguous overlapping rectangular hotspots, and
+an action attached to a component that cannot provide interactive semantics.
+Diagnostics must not leak private state or inject server/artwork markup.
 
 ## First vertical implementation tranche
 
@@ -211,28 +315,60 @@ boilerplate, so define creator inputs before enforcing them.
 - [ ] Trace where move defaults, proposer/current-player injection, enum
   association, and field serialization are represented. Document unsupported or
   ambiguous cases before changing output.
-- [ ] Define a generated schema separating author input type from wire type and
-  recording required/defaulted/context-provided fields.
-- [ ] Preserve native author types: integer/number, boolean, string, enum union,
-  slices, and optional fields. Serialization to form strings remains internal.
+- [ ] Define the authoritative per-`MoveConfig` author-input disposition seam.
+  Dispositions are `required`, `server-defaulted` (omit or explicitly override),
+  `context-owned` (forbidden to the safe author API), and `unsupported`.
+  Standard move behaviors contribute dispositions automatically and
+  `auto.MustConfig` collects them so common move structs need no custom methods.
+  Custom configuration has an explicit option for unusual/defaulted fields.
+  Never infer responsibility by calling `DefaultsForState` on one example state.
+- [ ] Treat unclassified supported fields as required. Manager construction or
+  generation fails with move and field names on contradictory providers,
+  context-owned overrides, ambiguous custom defaults, or unsupported fields.
+- [ ] Allow a disposition to name a validated author codec distinct from the Go
+  property/wire type. Standard codecs cover integer-as-string, finite numbers,
+  booleans, enums, player indexes, and strings. Custom codecs are explicit
+  advanced registrations with round-trip tests.
+- [ ] Define a generated schema separating author input, expanded creator model,
+  and internal form-encoded wire type while recording dispositions and codecs.
+- [ ] Preserve supported native author types: integer/number, boolean, string,
+  enum union, and optional fields. Serialization to form strings remains
+  internal; collection types remain unsupported until the following decision
+  gate proves their transport.
 - [ ] Add generator fixtures for: zero-input move; one required field; configured
   default; proposer/current-player context field; optional versus zero default;
-  enum; boolean; slice; and explicit target-player override.
+  enum; boolean; server-defaulted-but-overrideable field; context-owned forbidden
+  field; state-dependent custom default; the same Go struct configured under two
+  move names with different dispositions; ambiguous custom default failure; and
+  explicit target-player override.
+- [ ] Treat slice inputs as a decision gate, not an assumed feature. Either prove
+  an unambiguous end-to-end transport for empty/repeated/numeric/enum arrays and
+  server parsing, or emit an actionable unsupported-field diagnostic and defer
+  slices.
 - [ ] Prove Pig Roll Dice is zero-input, Tic-tac-toe Place Token requires only
   `Slot: number`, and Checkers Move Token accepts numeric indexes.
 - [ ] Generate runtime metadata for exact author-input validation: required
   fields, primitive/integer constraints, enums, and serialization.
-- [ ] Keep generated output atomic: write temporary files, compile/validate the
-  complete set, and replace old files only after success.
+- [ ] Emit one deterministic author-schema fingerprint in the generated runtime
+  module and expose the expected fingerprint through server static/game info.
+  Old-client/new-server and new-client/old-server tests must fail closed before
+  proposal with a structured stale-generation diagnostic.
+- [ ] Generate the complete set in staging and validate it before touching
+  destinations. Replace each destination by same-filesystem atomic rename. A
+  pre-replacement failure leaves old files untouched; a crash during the rename
+  phase may leave mixed generations, which `--check` plus the shared fingerprint
+  must detect deterministically.
 - [ ] Add `--check` freshness behavior; stale or partial generated contracts must
-  fail.
+  fail and `--check` performs zero writes. Test second-game extraction failure,
+  TypeScript validation failure, read-only packages, missing client directories,
+  crash/skew simulation, and output determinism independent of map/package order.
 
 **Review gate:** Compare generated author inputs against actual default behavior
 for every example move family. A reviewer must specifically look for fields that
 are defaulted only in some configurations and fields whose zero value is
 semantically distinct from omission.
 
-### Task 3: Correct wire types and prove one generated bound renderer
+### Task 3: Correct expanded renderer types and prove one bound renderer
 
 **Likely files:**
 
@@ -242,26 +378,49 @@ semantically distinct from omission.
 - `server/static/src/components/boardgame-base-game-renderer.ts`
 - generated client contract fixtures
 
-- [ ] Correct component values to match `.Values` and `.DynamicValues`, including
-  IDs, deck/game metadata, hidden/partial components, and fixed-stack null slots.
+- [ ] Name and separate the sanitized server wire payload, immutable expanded
+  renderer snapshot, generated creator move input, and internal form transport.
+  Creator APIs never expose form-encoded strings.
+- [ ] Model a visible component with required visible metadata/`.Values`, an
+  explicit hidden/opaque `{}` variant, and `null` separately for empty fixed-stack
+  positions. Provide an `isVisibleComponent()` guard. Keep `.DynamicValues`
+  optional where deck configuration or sanitization can omit it.
+- [ ] Add compile/runtime fixtures for visible, hidden, null, fixed-stack null,
+  dynamic-values, and no-static-values cases.
 - [ ] Replace misleading precision with `unknown` or honest optionality when
   computed or sanitized type information is unavailable.
-- [ ] Investigate whether computed global/player fields are reflectable. Generate
-  known shapes when provable; provide an explicit game augmentation point rather
-  than claiming `Record<string, unknown>` is strongly typed.
+- [ ] Generate framework/game computed fields only from an authoritative declared
+  schema. Arbitrary/state-dependent `Computed*Properties` cannot be inferred by
+  one execution; absent a declaration, use separate `GameComputed`/
+  `PlayerComputed` augmentation points or `unknown`. Test that conditional keys
+  do not become falsely required.
+- [ ] Document that TypeScript cannot prove a sanitized typed value represents
+  unsanitized truth; privacy is enforced by server policy and viewer-matrix tests.
 - [ ] Correct public component-stack declarations to match the implementation.
-- [ ] Generate one bound `GameRenderer` whose state and move service cannot lose
-  safety by omitting generics.
-- [ ] Make zero-input moves expose `propose()` and exact-input moves reject extra
-  fields at compile time as well as runtime.
+- [ ] Generate one thin, abstract, unregistered `GameRenderer` bound to a single
+  `GameClientContract` tying expanded state, computed augmentation, component
+  catalog, move inputs, runtime schema, and fingerprint together. It imports one
+  shared facade runtime, performs no `customElements.define`, and has no widening
+  generic defaults.
+- [ ] Make creator snapshots and generated arrays/properties deeply readonly;
+  optionally freeze snapshots in development. Service identity remains stable
+  while snapshot identity changes once per installed version.
+- [ ] Make zero-input moves expose `propose()` with no argument. Exact-input APIs
+  infer the actual argument type and reject extra keys from object literals,
+  aliased variables, and spread objects, with runtime validation as defense in
+  depth.
+- [ ] Add negative compile fixtures for missing fields, fresh/aliased/spread extra
+  fields, forbidden context-owned fields, wrong enums, fractional integers,
+  zero-input arguments, and parameterized proposal without binding.
 - [ ] Keep an explicitly named unsafe compatibility base only if a real corpus
   game cannot yet migrate; record the reason and removal condition.
-- [ ] Migrate Pig only as the first proof and remove its avoidable casts/legacy
-  action attributes.
+- [ ] Make Pig compile through the bound renderer as the first proof, but do not
+  call it fully migrated until Task 7 replaces its action paths.
 
 **Review gate:** Prove class/module identity, Lit reactivity, tree-shaking, and
-custom-element registration in source and assembled builds before generating
-Table, Hand, or PlayerInfo bound runtime classes.
+custom-element registration in source and assembled builds; also prove no
+duplicate Lit runtime, no facade/generated-module cycle, HMR, and two games in
+one shell before generating Table, Hand, or PlayerInfo bound runtime classes.
 
 ### Task 4: Modern Lit/TypeScript scaffold and end-to-end conformance
 
@@ -274,13 +433,29 @@ Table, Hand, or PlayerInfo bound runtime classes.
 
 - [ ] Replace Polymer `.js` renderer and player-info templates with Lit
   TypeScript using generated bound classes and the proven facade.
-- [ ] Generate a minimal renderer that looks respectable without custom CSS and
-  demonstrates one typed action without duplicating legality wiring.
+- [ ] Add a deliberately small experimental composition subset so “reasonable
+  zero-configuration output” is tested, not aspirational:
+  `boardgame-game-surface` (responsive header/main/status/action slots),
+  `boardgame-action-bar` (wrapping, touch spacing, primary/secondary grouping),
+  and `boardgame-game-status` (polite live turn/pending/rejection/outcome region).
+  Give each semantic CSS custom properties with fallbacks, stable high-value CSS
+  parts, container-query defaults, no mandatory Material theme, zero-CSS usable
+  output, and a headless/custom-markup escape hatch. Keep them experimental until
+  Task 10; do not pull player panels, card zones, timers, dialogs, or history into
+  this tranche.
+- [ ] Generate a minimal renderer that uses the proven `MoveAction` and these
+  compositions, looks intentional without custom CSS, and does not duplicate
+  legality/pending/error wiring.
 - [ ] Generate current file extensions, imports, custom-element registration,
   and `HTMLElementTagNameMap` support.
-- [ ] Add a conformance test that creates a temporary game through the public
-  CLI, generates all contracts, strict-compiles, production-builds, loads the
-  renderer, and successfully proposes one move.
+- [ ] Build `boardgame-util` from the checked-out source into the test temporary
+  directory and invoke that binary's public noninteractive stub command; never
+  use a globally installed binary. Assemble the result through the same static
+  build path production uses—the generated game has no independent npm project.
+- [ ] Add conformance tests that generate all contracts, strict-compile,
+  production-build, and load the renderer; then mount it in the fixture host and
+  assert the exact proposal. Keep a separate Pig real-server journey proving the
+  same action reaches the API.
 - [ ] Compile rendered documentation snippets or derive them from tested source.
 - [ ] Replace the contradictory quickstart and import guidance. Defer the full
   task cookbook until MoveAction and target APIs stabilize.
@@ -295,9 +470,14 @@ Table, Hand, or PlayerInfo bound runtime classes.
 - `server/static/package.json`
 - Vite checker/overlay integration selected during implementation
 
+- [ ] Record existing whole-framework advanced-strict debt; the count may only
+  shrink. Create a new green authoring project covering the facade, all new or
+  materially modified headless modules, generated contracts, fixture host, and
+  selected `game-src`. Do not normalize known failures into accepted output and
+  do not silently exclude new framework files.
 - [ ] Add a fatal package-scoped command that runs generated-file freshness,
-  strict TypeScript, and Lit-aware checks over the framework plus selected
-  `game-src`.
+  authoring-project strict TypeScript, and Lit-aware checks. Whole-framework
+  advanced-strict cleanup remains an explicit migration task.
 - [ ] Enable `strict`, `noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `noPropertyAccessFromIndexSignature`,
   `noImplicitOverride`, `useUnknownInCatchVariables`, `noImplicitReturns`, and
@@ -310,6 +490,21 @@ Table, Hand, or PlayerInfo bound runtime classes.
 - [ ] Make `check-client` fatal immediately. Keep ordinary `serve` and production
   rollout changes for after the known corpus is migrated so the branch remains
   incrementally usable.
+- [ ] Select and pin command-line lint/Lit analysis tools that exit nonzero in CI;
+  a tsserver/editor-only plugin is insufficient. Prove the tools with failing
+  fixtures for explicit `any`, unexplained suppression, unknown custom element,
+  misspelled property, wrong property value, boolean attribute/property misuse,
+  and invalid event-detail handler. If no checker can reliably prove a critical
+  binding, provide a typed helper rather than overstating safety.
+- [ ] Keep TypeScript versions consistent across framework, scaffold, assembled
+  workspace, and external games. Check local/framework declarations even if
+  third-party dependency declarations require a separately justified skip.
+- [ ] Commit `package.json` and `package-lock.json` together for every tooling
+  change; add axe dependencies with one deliberately inaccessible red fixture.
+- [ ] Add an initial CI workflow once the authoring project is green: focused Go
+  generator/static/stub/API tests, generation freshness, authoring strict/unit
+  checks, scaffold conformance, and a Chromium renderer-fixture shard with
+  retries disabled and lockfile-based dependency/browser setup.
 
 ### Task 6: Minimal deterministic renderer fixture host
 
@@ -320,6 +515,9 @@ Table, Hand, or PlayerInfo bound runtime classes.
 - Browser component/fixture tests under `server/static/tests/renderers/`
 - `server/static/playwright.config.ts`
 
+- [ ] Introduce a tested snapshot adapter over existing renderer properties for
+  fixtures; do not replace broad host property plumbing before `MoveAction` is
+  green.
 - [ ] Mount a renderer with a typed snapshot: state, viewing/current player,
   legality, version, outcome, and surface.
 - [ ] Provide a proposal spy and request correlation suitable for later pending
@@ -327,12 +525,20 @@ Table, Hand, or PlayerInfo bound runtime classes.
 - [ ] Capture runtime/console diagnostics as test failures.
 - [ ] Support explicit phone, tablet, and desktop viewports.
 - [ ] Add initial fixtures for Pig and Tic-tac-toe using hand-authored expanded
-  client states. Do not build a golden importer yet.
+  client states built with typed builders plus `satisfies`; carry a fixture schema
+  version so drift fails loudly. Do not build a golden importer yet.
 - [ ] Add focused axe and keyboard helpers; run them against one representative
   interaction rather than every state.
 - [ ] Use reduced motion except where animation is the behavior under test.
 - [ ] Keep real-server animation timing tests in their existing sequential shard;
   do not globally fake `requestAnimationFrame`, WAAPI, and companion clocks.
+- [ ] Add measurable default-quality assertions at approximately 320, 768, and
+  1280 CSS pixels: no horizontal overflow, visible/touchable primary action,
+  preserved board aspect ratio, no overlap at 200% text zoom, visible focus in
+  normal/forced-colors modes, adequate default contrast, comprehensible reduced
+  motion, intentional empty/loading/error/finished states, and accessible
+  wrapping/truncation of long names. Screenshot only the scaffold, grid, and
+  spatial proof; test geometry numerically.
 
 ### Task 7: Exact `MoveAction` semantic core, proven in Pig
 
@@ -345,30 +551,51 @@ Table, Hand, or PlayerInfo bound runtime classes.
 - `server/static/src/utils/move-validation.ts`
 - Pig renderer and fixture tests
 
-- [ ] Introduce an immutable replacement `RendererSnapshot` for state/version/
-  viewer/outcome and stable services for moves and animation. Do not create one
-  giant mutable context bag.
-- [ ] Preserve Lit reactivity and version identity with tests before replacing
-  loose property plumbing broadly.
+- [ ] Introduce stable services plus the tested snapshot adapter; do not replace
+  broad host property plumbing in the same commit as action semantics. After the
+  action path is green, migrate one host seam at a time with identity/reactivity
+  tests. Never create one giant mutable context bag.
+- [ ] Replace the fire-and-forget proposal seam with a typed transport service
+  returning a discriminated success, server-rejection, network-failure, blocked,
+  or stale-snapshot result and a local request identity. The HTTP promise is
+  sufficient for initial correlation; no server echo is required.
+- [ ] Use a global single-flight submission lock by default so two different
+  actions from the same stale snapshot cannot race. The lock ends when the POST
+  resolves, so legitimate consecutive identical moves remain possible.
+- [ ] Make animation gating an explicit blocked action state, never a silently
+  dropped `propose-move` event. Provide an accessible error/status surface and a
+  typed telemetry callback; production returns a safe result rather than
+  throwing the renderer.
 - [ ] Expose zero-input `this.move(moves.RollDice).propose()`.
-- [ ] For parameterized moves expose a bound action whose status distinguishes
-  `unknown`, `checking`, `legal`, and `illegal`; do not claim baseline/default
-  legality is argument-specific legality.
+- [ ] Design `MoveAction` as separate discriminated facts rather than one
+  overloaded status: baseline `availability`; bound preview
+  `not-needed|unchecked|checking|legal|illegal|failed`; submission
+  `idle|pending|rejected`; derived fail-closed `canPropose`; and structured
+  reason. `LegalForAnyone` is structural and never enables a viewer's control.
+- [ ] Make `with(args)` return an immutable action tied to the snapshot/version
+  that created it. `propose()` fails closed if retained across a newer version.
+  Preview requests carry version, viewer, candidate-set hash, request identity,
+  and cancellation; late results cannot mutate current status. Bind callable
+  methods so direct Lit handler usage cannot lose `this`.
 - [ ] Preserve structured precondition reasons currently dropped when legality
   is derived for renderers.
-- [ ] Scope pending/error state to a request identity or explicitly retain a
-  global submission lock. Never expose a precise-looking per-action pending flag
-  without a precise source.
-- [ ] Prevent duplicate submission only for the same outstanding request; do not
-  suppress legitimate consecutive moves with the same name.
+- [ ] Compare the generated/server author-schema fingerprints before preview or
+  proposal and fail closed on skew.
 - [ ] Upgrade runtime validation from unknown-key warnings to exact required,
   extra, primitive, integer, finite, enum, and schema-version validation.
 - [ ] In development, attempted invalid/illegal proposals produce an actionable
   diagnostic and accessible feedback. Production fails safely and exposes a
   telemetry hook rather than throwing the whole renderer.
-- [ ] Add one framework action button or styling-neutral consumer. Add a generic
-  Lit directive only if a real Material/custom-element consumer demonstrates the
-  need.
+- [ ] Add `boardgame-action-button` with native semantics, `.action=${action}` on
+  framework interactives such as die/card/targets, and one documented binding
+  adapter proven against `md-filled-button`. The binding owns activation,
+  `aria-disabled`, pending/rejection/reason presentation, and a minimum 44x44 CSS
+  pixel pointer target. Noninteractive components remain inert until an action is
+  supplied; states are never conveyed by color alone.
+- [ ] Isolate ambient legacy descendant `propose-move`/`data-arg-*` scraping in a
+  compatibility adapter outside the curated facade. Test that an unrelated child
+  with a `proposeMove` property cannot accidentally submit. Keep arbitrary visual
+  attributes separate from unsafe behavioral forwarding.
 - [ ] Migrate Pig fully and compare creator code size and behavior to the
   baseline.
 
@@ -385,17 +612,32 @@ Table, Hand, or PlayerInfo bound runtime classes.
 - [ ] Create a small generic target interaction for independent candidates. A
   target key is not restricted to numeric grids, though this first adapter uses
   numeric cells.
+- [ ] Keep `TargetAction<Key>` fully headless. Expose a generic target collection,
+  a separate square-grid presentation adapter, and ordinary custom Lit markup as
+  consumers; unusual boards never have to pretend to be row-major grids.
 - [ ] Bind exact native move arguments and own preview debouncing, stale response
   rejection, loading/error/unknown/legal states, and version reset.
 - [ ] Let the board consume one interaction object rather than separately
   receiving handlers, preview specs, disabled arrays, and refresh requests.
-- [ ] Implement appropriate grid/gridcell semantics, roving focus, arrow-key
-  navigation, Enter/Space activation, disabled/selected state, and synthesized
-  coordinate labels with author overrides.
+- [ ] Choose and document one DOM focus model: roving-focus gridcells or native
+  buttons inside gridcells. Illegal targets remain discoverable where grid
+  navigation requires it via `aria-disabled` plus guarded activation rather than
+  being removed from the focus model.
+- [ ] Specify initial focus when no target is legal; arrows/Home/End and row
+  boundaries; Enter/Space; focus after success, rejection, version refresh, and
+  selected-piece removal; selected-source versus destination semantics; and
+  `aria-busy` during preview without announcing every intermediate refresh.
+- [ ] Synthesize occupant-aware labels such as “B3, your token, selected,” with
+  author overrides and discoverable illegality reasons. Validate forced colors,
+  high contrast, reduced motion, coarse pointers, 200% text zoom, and indicators
+  that do not rely on color alone.
 - [ ] Preserve focus across preview and state refreshes.
 - [ ] Loudly diagnose rows x columns versus stack-size mismatch, out-of-bounds
   targets, duplicate candidates, mapper exceptions, and preview cardinality
   mismatch.
+- [ ] Also diagnose nonpositive/nonintegral or excessive dimensions, duplicate
+  mapped keys, and nonunique accessible labels. Include a regression for the
+  current coordinate-label layout being clipped by an overflow-hidden board.
 - [ ] Migrate Tic-tac-toe to the intended minimum path and measure the reduction
   in renderer wiring.
 
@@ -403,7 +645,7 @@ Table, Hand, or PlayerInfo bound runtime classes.
 draft/rebase, drag/drop, and modal ownership. Extract them from later real games;
 do not make `TargetAction` a workflow DSL.
 
-### Task 9: Authored SVG board with accessible hotspots, proven in Monroe
+### Task 9: Authored SVG geometry and accessible interaction, then Monroe proof
 
 **Framework files:**
 
@@ -416,25 +658,58 @@ do not make `TargetAction` a workflow DSL.
 - `../games/murdermrmonroe/client/boardgame-render-game-murdermrmonroe.ts`
 - its authored `board.svg` and types only as needed
 
-- [ ] Harden SVG loading: require `response.ok`, display a visible safe error,
-  validate parser/root, and diagnose zero, duplicate, or malformed spaces.
-- [ ] Resolve nested artwork targets with explicit data attributes/closest
-  semantics rather than `event.target.id`.
-- [ ] Separate authored geometry from action/legality. Geometry answers where a
-  space/region/anchor is; target interaction answers what selecting it means.
-- [ ] Support named keys such as `kitchen` alongside numeric stack slots.
-- [ ] Overlay stable native hotspot controls positioned from artwork-space
-  geometry. Provide selected, legal, disabled, and focus visuals without
-  mutating the artwork's semantic source.
+- [ ] Land the framework primitive and a minimal copied/framework-owned SVG
+  fixture first. The framework commit must not depend on uncommitted `../games`.
+- [ ] Define an explicit `BoardGeometry<Key>` contract containing hit region,
+  keyboard order, accessible label, focus anchor, and piece/animation anchor.
+  Keep those three geometry concepts separate. `TargetAction<Key>` supplies
+  legality/activation; `BoardPiece<Key>` supplies stable identity, space, visual
+  reference, and placement strategy.
+- [ ] Make `data-board-space`, `data-board-label`, and optional authored order/
+  anchors (or a typed sidecar) the intended SVG model. Retain `spacePrefix` only
+  as a migration adapter. Add build/check extraction or validation so literal
+  keys can form a `SpaceKey` union and misspellings fail before an empty box.
+- [ ] Provide `piecesFromSizedStacks(...)` as a convenience adapter rather than
+  making implicit stack-slot-to-SVG-index coupling the principal API.
+- [ ] Harden SVG loading: require `response.ok` and sane content, abort or
+  generation-token stale requests when the URL changes, ignore completion after
+  disconnect, reject parser errors/non-SVG roots/missing or invalid `viewBox`,
+  and show an accessible visible failure state with retry where appropriate.
+- [ ] Define and enforce the trusted-artwork boundary. If arbitrary SVG remains
+  accepted, sanitize scripts, event-handler attributes, `foreignObject`, unsafe
+  links/schemes, and external resource loads before insertion. Never interpolate
+  unescaped creator keys/prefixes into selectors or reflect diagnostic markup as
+  HTML.
+- [ ] Diagnose zero/duplicate/malformed keys, duplicate order, missing labels,
+  invisible/zero-sized regions, `getBBox` failures, nonfinite transforms, unknown
+  piece/target keys, and stack/space cardinality mismatch.
+- [ ] Resolve nested SVG interaction with explicit closest/data semantics rather
+  than `event.target.id`, including keys containing punctuation.
+- [ ] Prototype real-region pointer hit testing, a coordinated native keyboard
+  focus control at the focus anchor, a visible focus/highlight layer derived from
+  source geometry, and an always-available compact list representation. Use
+  rectangular overlay buttons only for nonoverlapping geometry that proves them
+  correct; bounding boxes are not the universal model for concave/transformed/
+  overlapping regions.
 - [ ] Keep pieces/markers in a separate pointer-events-safe layer and expose
-  stable animation anchors for FLIP/`animateBetween`.
-- [ ] Recompute coordinate transforms using SVG CTM/`ResizeObserver`; test at
-  two aspect ratios and after resize.
+  stable animation anchors without obscuring component interaction or animation
+  measurement.
+- [ ] Transform each element through its own/ancestor CTM, not only the root SVG.
+  Test nested transformed groups, nonzero `viewBox`, `preserveAspectRatio`
+  letterboxing modes, CSS/container resize, page zoom, polygon/path regions,
+  distinct region/focus/piece anchors, and rapid ResizeObserver notifications
+  without loops.
+- [ ] Add a development geometry inspector displaying keys, order, hit regions,
+  anchors, labels, unknown pieces, and overlaps.
 - [ ] Resolve labels from an explicit label map, SVG `aria-label`/`title`, or a
   loud development diagnostic. Supply keyboard order and a compact list
   fallback for screen-reader and small-screen use.
 - [ ] Connect the same typed target action/preview contract used by the grid.
-- [ ] Migrate Monroe and prove custom visuals remain ordinary game-owned Lit/SVG.
+- [ ] After the framework proof is committed, create a dedicated `games` branch
+  and migrate only Monroe's board geometry, position projection, and Move-to-Room
+  interaction. Record remaining `any`, deck/card template, and legacy action debt;
+  full Monroe migration waits for typed component rendering. Prove custom visuals
+  remain ordinary game-owned Lit/SVG.
 
 **Next adapter, not part of the first proof:** raster artwork plus normalized
 hotspot manifest and explicit `object-fit` coordinate mapping. Pan/zoom, routes,
@@ -442,16 +717,20 @@ edges, and vertices follow without changing the action contract.
 
 ### Task 10: First-tranche review and stop gate
 
-- [ ] Run strict client checks for the framework, examples, and `../games` paths
-  touched by the tranche.
-- [ ] Run Go tests, client unit tests, selected renderer fixtures, keyboard/axe,
-  phone/tablet/desktop layout checks, and the full existing animation/companion
-  regression suite relevant to touched primitives.
+- [ ] Record an explicit command/result matrix rather than “relevant tests”:
+  focused generator/gametypes/static/stub/API Go packages; full `go test ./...`
+  with any unrelated environment exclusions named; `npm run type-check`;
+  `type-check:authoring`; unit tests; exact renderer fixture specs; keyboard/axe;
+  320/768/1280 and 200%-text checks; scaffold conformance; and the existing
+  animation/companion specs touching modified primitives.
 - [ ] Run a scaffold-from-clean-temporary-directory conformance test.
 - [ ] Have one adversarial reviewer inspect public API elegance and type escape
   hatches, one inspect real-game migration and creator code, and one inspect
   build/test robustness.
 - [ ] Compare success metrics and record unresolved design questions.
+- [ ] Record framework and games branch names, SHAs, clean/dirty status, tests,
+  remaining legacy-debt counts, and the framework minimum required by the games
+  migration.
 - [ ] Stop and ask for user review before implementing the later roadmap.
 
 ## Migration and fatal-check rollout
@@ -475,7 +754,7 @@ known renderers are migrated and green:
 - make production client checks fatal;
 - remove legacy APIs rather than maintaining two co-equal authoring models,
   unless an explicit external compatibility requirement is discovered and
-  approved.
+approved.
 
 ## Later roadmap: re-plan after Task 10
 
