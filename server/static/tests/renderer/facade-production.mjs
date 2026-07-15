@@ -16,9 +16,10 @@ try {
   await symlink(resolve(staticRoot, 'src'), resolve(assembled, 'src'), 'junction');
   await symlink(resolve(staticRoot, 'node_modules'), resolve(assembled, 'node_modules'), 'junction');
   await symlink(resolve(repoRoot, 'examples/pig/client'), resolve(assembled, 'game-src/pig'), 'junction');
+  await symlink(resolve(repoRoot, 'examples/memory/client'), resolve(assembled, 'game-src/memory'), 'junction');
 
   await writeFile(resolve(assembled, 'entry.ts'),
-    "import './game-src/pig/boardgame-render-game-pig.ts';\n");
+    "import './game-src/pig/boardgame-render-game-pig.ts';\nimport './game-src/memory/boardgame-render-game-memory.ts';\n");
   await writeFile(resolve(assembled, 'vite.config.mjs'), `
     import { defineConfig } from 'vite';
     import { resolve } from 'node:path';

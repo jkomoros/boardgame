@@ -1,6 +1,7 @@
 import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
+import type { FullGameState } from '../types/boardgame-types.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 import { apiPath } from '../util.js';
 
@@ -43,11 +44,11 @@ export interface SeatPresentation {
  * client. Phase 4 fills in renderFakeDeckRow for cross-screen animations.
  */
 export class BoardgameTableViewBase<
-  GS extends object = Record<string, unknown>,
-  PS extends object = Record<string, unknown>,
-  MN extends string = string,
-  MA extends Record<string, object> = Record<string, Record<string, unknown>>
-> extends BoardgameBaseGameRenderer<GS, PS, MN, MA> {
+  S extends FullGameState<object, object, object, object, object>,
+  C extends object,
+  MN extends string,
+  MA extends Record<string, object>,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA> {
 
   /**
    * Per-seat avatar + name records, indexed by player index. May contain
@@ -249,10 +250,10 @@ export class BoardgameTableViewBase<
     // giant lobby banner never shrank. And a version-based check would be
     // wrong anyway: seat claims bump the version while the lobby is still
     // gathering.)
-    const players = (this.state?.Players ?? []) as Array<Record<string, unknown>>;
+    const players = this.state?.Players ?? [];
     const claimed = new Set(this.seatPresentations.map((s) => s.playerIndex));
     const roomSettled = players.length > 0 && players.every((p, i) =>
-      claimed.has(i) || p.SeatClosed === true || p.PlayerInactive === true);
+      claimed.has(i) || Reflect.get(p, 'SeatClosed') === true || Reflect.get(p, 'PlayerInactive') === true);
     if (roomSettled || this.gameFinished) {
       // Game has started — render a small persistent badge in the corner
       // rather than the giant pre-game banner.

@@ -1,20 +1,15 @@
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-token.js';
 import '../../src/components/boardgame-game-board.js';
 import '../../src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
-import type { GameState, PlayerState } from './_types.js';
 import type { MovePreviewSpec } from '../../src/legal/previewLegality.js';
 
-class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName, MoveInputs> {
-	protected override readonly moveInputSchema = generatedMoveInputSchema;
-	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
+class BoardgameRenderGameCheckers extends GameRenderer {
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
       boardgame-game-board {
         max-width: 500px;

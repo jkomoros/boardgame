@@ -5,7 +5,8 @@
  * FLIP animation system and the game rendering pipeline.
  */
 
-import { AnimatingProps } from './animation';
+import type { AnimatingProps } from './animation';
+import type { ExpandedStack } from './boardgame-types';
 
 /**
  * Base interface for animatable components.
@@ -111,52 +112,49 @@ export interface BoardgameTokenElement extends BoardgameComponentElement {
  * Container that lays out multiple components with animations.
  */
 export interface BoardgameComponentStackElement extends BoardgameAnimatableItemElement {
-  /** Array of component data to render */
-  stack: ComponentData[];
+  /** Expanded stack snapshot to render, or null while no stack is selected. */
+  stack: ExpandedStack | null;
 
-  /** Layout algorithm: 'stack', 'grid', 'fan', 'pile', 'spread' */
+  /** Layout algorithm used to position the stack's components. */
   layout: StackLayout;
 
-  /** Deck name for rendering components */
-  deck: string;
+  /** Deck and game names inferred from the current stack. */
+  deckName: string;
+  gameName: string;
 
-  /** Whether stack is interactive */
-  interactive: boolean;
+  /** Last-seen counters used by the animation coordinator. */
+  idsLastSeen: Readonly<Record<string, number>> | null;
 
-  /** Number of columns (for grid layout) */
-  numCols: number;
-
-  /** Spacing between components */
-  spacing: number;
-
-  /** If true, messy pile layout (random offsets) */
+  /** Whether to apply deterministic random rotation outside board layouts. */
   messy: boolean;
+  messiness: number;
 
-  /** Angle for fan layout (degrees) */
-  fanAngle: number;
+  /** Whether an empty stack should omit its default spacer component. */
+  noDefaultSpacer: boolean;
+
+  /** Number of columns used by the board layout. */
+  boardCols: number;
+
+  /** Pixel positions used by the spatial layout, indexed by stack slot. */
+  spatialPositions: Array<{ top: number; left: number } | null>;
+
+  /** Number of visual placeholder components added to the rendered stack. */
+  fauxComponents: number;
+
+  /** Per-component animation delay, expressed as a fraction of animation length. */
+  stagger: number;
+
+  /** Properties copied onto each generated component element. */
+  componentAttrs: Record<string, unknown>;
+
+  /** Currently rendered real and faux component elements. */
+  readonly Components: BoardgameComponentElement[];
 }
 
 /**
  * Stack layout algorithms.
  */
-export type StackLayout = 'stack' | 'grid' | 'fan' | 'pile' | 'spread';
-
-/**
- * Component data structure passed to stacks.
- */
-export interface ComponentData {
-  /** Component deck name */
-  deck: string;
-
-  /** Component index within deck */
-  index: number;
-
-  /** Additional rendering values */
-  values?: Record<string, any>;
-
-  /** Component ID for animation tracking */
-  id?: string;
-}
+export type StackLayout = 'stack' | 'grid' | 'fan' | 'pile' | 'spread' | 'board' | 'spatial';
 
 /**
  * Component animator interface.

@@ -5,7 +5,7 @@ import { glyphForSlug } from '../../src/components/companion-avatar-catalog.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
-import type { GameState, PlayerState } from './_types.js';
+import type { ComponentCatalog, State } from './_types.js';
 
 /**
  * Werewolf Hand view (each player's phone). Connects as PlayerIndex(n)
@@ -13,7 +13,7 @@ import type { GameState, PlayerState } from './_types.js';
  * behaviors.PlayerRole). Shows role, voting buttons, and game status.
  */
 @customElement('boardgame-render-game-werewolf-hand')
-export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName, MoveInputs> {
+export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
 	protected override readonly moveInputSchema = generatedMoveInputSchema;
 	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
   static override styles = [
@@ -121,7 +121,7 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
 
   override render() {
     const game = this.state?.Game;
-    const player = this.playerState as PlayerState | undefined;
+    const player = this.playerState;
     const allPlayers = this.state?.Players ?? [];
     const phase = game?.Phase ?? 'Gathering';
 

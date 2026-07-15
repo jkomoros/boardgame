@@ -8,7 +8,7 @@ import type { MdSwitch } from '@material/web/switch/switch.js';
 import type { MdSlider } from '@material/web/slider/slider.js';
 import type { MdFilledSelect } from '@material/web/select/filled-select.js';
 import '../../src/components/boardgame-deck-defaults.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-fading-text.js';
@@ -17,14 +17,12 @@ import '../../src/components/boardgame-token.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
-class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+class BoardgameRenderGameDebuganimations extends GameRenderer {
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
       .slow {
         --animation-length: 5s;

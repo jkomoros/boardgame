@@ -7,6 +7,18 @@
  */
 export { html, css } from 'lit';
 export { BoardgameBaseGameRenderer } from './components/boardgame-base-game-renderer.js';
+export { isVisibleComponent } from './types/boardgame-types.js';
+export type {
+  Component,
+  CatalogComponent,
+  DeepReadonly,
+  ExpandedBoard,
+  ExpandedStack,
+  FullGameState,
+  GameChest,
+  OpaqueComponent,
+  VisibleComponent,
+} from './types/boardgame-types.js';
 export {
   assertMoveInputSchemaFingerprint,
   serializeCreatorMoveInput,

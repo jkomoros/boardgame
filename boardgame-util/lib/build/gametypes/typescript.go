@@ -1,6 +1,7 @@
 package gametypes
 
 import (
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -15,15 +16,17 @@ func GenerateTypeScript(result TypeResult) string {
 
 	// Determine which imports we need
 	needsBoard := false
+	needsExpandedBoard := false
 	needsExpandedStack := false
 	needsExpandedTimer := false
 	needsRawStack := false
+	needsCatalogComponent := len(result.Decks) > 0
 
 	for _, f := range result.GameFields {
-		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsBoard)
+		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsExpandedBoard)
 	}
 	for _, f := range result.PlayerFields {
-		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsBoard)
+		checkFieldImports(f, &needsExpandedStack, &needsExpandedTimer, &needsExpandedBoard)
 	}
 	// Check dynamic fields for RawStack imports
 	for _, deck := range result.Decks {
@@ -31,16 +34,25 @@ func GenerateTypeScript(result TypeResult) string {
 			if f.Type == "TypeStack" {
 				needsRawStack = true
 			}
+			if f.Type == "TypeBoard" {
+				needsBoard = true
+			}
 		}
 	}
 
 	// Build import line (alphabetical order)
 	var imports []string
+	if needsCatalogComponent {
+		imports = append(imports, "CatalogComponent")
+	}
 	if needsBoard {
 		imports = append(imports, "Board")
 	}
 	if needsExpandedStack {
 		imports = append(imports, "ExpandedStack")
+	}
+	if needsExpandedBoard {
+		imports = append(imports, "ExpandedBoard")
 	}
 	if needsExpandedTimer {
 		imports = append(imports, "ExpandedTimer")
@@ -49,6 +61,7 @@ func GenerateTypeScript(result TypeResult) string {
 	if needsRawStack {
 		imports = append(imports, "RawStack")
 	}
+	sort.Strings(imports)
 
 	b.WriteString("import type { ")
 	b.WriteString(strings.Join(imports, ", "))
@@ -93,13 +106,27 @@ func GenerateTypeScript(result TypeResult) string {
 		b.WriteString(interfaceName)
 		b.WriteString(" {\n")
 		for _, f := range deck.Fields {
-			b.WriteString("  ")
+			b.WriteString("  readonly ")
 			b.WriteString(f.Name)
 			b.WriteString(": ")
 			b.WriteString(baseFieldTypeToTS(f, result.Enums))
 			b.WriteString(";\n")
 		}
 		b.WriteString("}\n\n")
+	}
+
+	if len(result.Decks) > 0 {
+		b.WriteString("export interface ComponentCatalog {\n")
+		for _, deck := range result.Decks {
+			b.WriteString("  readonly ")
+			b.WriteString(tsQuoted(deck.Name))
+			b.WriteString(": readonly ")
+			b.WriteString(catalogComponentTypeForDeck(deck))
+			b.WriteString("[];\n")
+		}
+		b.WriteString("}\n\n")
+	} else {
+		b.WriteString("export type ComponentCatalog = Readonly<Record<string, never>>;\n\n")
 	}
 
 	// Generate dynamic component value interfaces (one per deck that has dynamic fields)
@@ -116,7 +143,7 @@ func GenerateTypeScript(result TypeResult) string {
 		b.WriteString(interfaceName)
 		b.WriteString(" {\n")
 		for _, f := range deck.DynamicFields {
-			b.WriteString("  ")
+			b.WriteString("  readonly ")
 			b.WriteString(f.Name)
 			b.WriteString(": ")
 			b.WriteString(dynamicFieldTypeToTS(f, result.Enums))
@@ -125,42 +152,154 @@ func GenerateTypeScript(result TypeResult) string {
 		b.WriteString("}\n\n")
 	}
 
+	// Components in the serialized state contain per-component dynamic
+	// values, keyed by deck. This is deliberately separate from the resolved
+	// component catalogue used by expanded stacks.
+	hasDynamicComponents := false
+	for _, deck := range result.Decks {
+		if len(deck.DynamicFields) > 0 {
+			hasDynamicComponents = true
+			break
+		}
+	}
+	if hasDynamicComponents {
+		b.WriteString("export interface DynamicComponentValues {\n")
+		for _, deck := range result.Decks {
+			if len(deck.DynamicFields) == 0 {
+				continue
+			}
+			b.WriteString("  readonly ")
+			b.WriteString(tsQuoted(deck.Name))
+			b.WriteString(": readonly ")
+			b.WriteString(toPascalCase(deck.Name))
+			b.WriteString("DynamicComponentValues[];\n")
+		}
+		b.WriteString("}\n\n")
+	} else {
+		b.WriteString("export type DynamicComponentValues = Readonly<Record<string, never>>;\n\n")
+	}
+
 	// Generate GameState interface
+	b.WriteString("export interface GameComputed extends Readonly<Record<string, unknown>> {}\n\n")
+	b.WriteString("export interface PlayerComputed extends Readonly<Record<string, unknown>> {}\n\n")
+
 	b.WriteString("export interface GameState {\n")
 	for _, f := range result.GameFields {
-		b.WriteString("  ")
+		b.WriteString("  readonly ")
 		b.WriteString(f.Name)
 		b.WriteString(": ")
 		b.WriteString(stateFieldTypeToTS(f, result.Decks, result.Enums))
 		b.WriteString(";\n")
 	}
-	b.WriteString("  Computed?: Record<string, unknown>;\n")
+	b.WriteString("  readonly Computed?: GameComputed;\n")
 	b.WriteString("}\n\n")
 
 	// Generate PlayerState interface
 	b.WriteString("export interface PlayerState {\n")
 	for _, f := range result.PlayerFields {
-		b.WriteString("  ")
+		b.WriteString("  readonly ")
 		b.WriteString(f.Name)
 		b.WriteString(": ")
 		b.WriteString(stateFieldTypeToTS(f, result.Decks, result.Enums))
 		b.WriteString(";\n")
 	}
-	b.WriteString("  Computed?: Record<string, unknown>;\n")
+	b.WriteString("  readonly Computed?: PlayerComputed;\n")
 	b.WriteString("}\n\n")
 
 	// Generate State type alias
-	b.WriteString("export type State = FullGameState<GameState, PlayerState>;\n")
+	b.WriteString("export type State = FullGameState<GameState, PlayerState, GameComputed, PlayerComputed, DynamicComponentValues>;\n")
 
 	return b.String()
 }
 
-func checkFieldImports(f FieldInfo, needsStack, needsTimer, needsBoard *bool) {
+// GenerateRendererTypeScript produces the thin, unregistered game-bound base.
+// It contains no framework internals and installs the generated runtime schema
+// exactly once for every renderer that extends it.
+func GenerateRendererTypeScript() string {
+	return `/*
+ * Auto-generated by boardgame-util. DO NOT EDIT.
+ */
+
+import { BoardgameBaseGameRenderer } from '../../src/client.js';
+import {
+  moveInputSchema,
+  moveInputSchemaFingerprint,
+  type MoveInputs,
+} from './_move_args.js';
+import type { MoveName } from './_move_names.js';
+import type {
+  ComponentCatalog,
+  DynamicComponentValues,
+  GameComputed,
+  GameState,
+  PlayerComputed,
+  PlayerState,
+  State,
+} from './_types.js';
+
+/** Complete compile-time contract for this game's renderer surface. */
+export interface GameClientContract {
+  readonly State: State;
+  readonly GameState: GameState;
+  readonly PlayerState: PlayerState;
+  readonly GameComputed: GameComputed;
+  readonly PlayerComputed: PlayerComputed;
+  readonly Components: ComponentCatalog;
+  readonly DynamicComponents: DynamicComponentValues;
+  readonly MoveName: MoveName;
+  readonly MoveInputs: MoveInputs;
+}
+
+/** Extend this class, then register only your concrete renderer element. */
+export abstract class GameRenderer extends BoardgameBaseGameRenderer<
+  GameClientContract['State'],
+  GameClientContract['Components'],
+  GameClientContract['MoveName'],
+  GameClientContract['MoveInputs']
+> {
+  protected override readonly moveInputSchema = moveInputSchema;
+  protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
+}
+`
+}
+
+func catalogComponentTypeForDeck(deck DeckInfo) string {
+	staticType, _ := deckValueTypes(deck)
+	return "CatalogComponent<" + staticType + ">"
+}
+
+func deckValueTypes(deck DeckInfo) (string, string) {
+	staticType := "Readonly<Record<string, never>>"
+	dynamicType := "Readonly<Record<string, unknown>>"
+	name := toPascalCase(deck.Name)
+	if len(deck.Fields) > 0 && name != "" {
+		staticType = name + "ComponentValues"
+	}
+	if len(deck.DynamicFields) > 0 && name != "" {
+		dynamicType = name + "DynamicComponentValues"
+	}
+	return staticType, dynamicType
+}
+
+func findDeck(name string, decks []DeckInfo) (DeckInfo, bool) {
+	for _, deck := range decks {
+		if deck.Name == name {
+			return deck, true
+		}
+	}
+	return DeckInfo{}, false
+}
+
+func tsQuoted(value string) string {
+	return `"` + escapeForTS(value) + `"`
+}
+
+func checkFieldImports(f FieldInfo, needsStack, needsTimer, needsExpandedBoard *bool) {
 	switch f.Type {
 	case "TypeStack":
 		*needsStack = true
 	case "TypeBoard":
-		*needsBoard = true
+		*needsExpandedBoard = true
 	case "TypeTimer":
 		*needsTimer = true
 	}
@@ -179,13 +318,13 @@ func baseFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
 	case "TypePlayerIndex":
 		return "number"
 	case "TypeIntSlice":
-		return "number[]"
+		return "readonly number[]"
 	case "TypeBoolSlice":
-		return "boolean[]"
+		return "readonly boolean[]"
 	case "TypeStringSlice":
-		return "string[]"
+		return "readonly string[]"
 	case "TypePlayerIndexSlice":
-		return "number[]"
+		return "readonly number[]"
 	case "TypeEnum":
 		if f.EnumName != "" {
 			return toPascalCase(f.EnumName) + "Value"
@@ -193,9 +332,9 @@ func baseFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
 		return "string"
 	case "TypeEnumSlice":
 		if f.EnumName != "" {
-			return toPascalCase(f.EnumName) + "Value[]"
+			return "readonly " + toPascalCase(f.EnumName) + "Value[]"
 		}
-		return "string[]"
+		return "readonly string[]"
 	default:
 		return "unknown"
 	}
@@ -224,29 +363,17 @@ func stateFieldTypeToTS(f FieldInfo, decks []DeckInfo, enums []EnumInfo) string 
 	case "TypeTimer":
 		return "ExpandedTimer"
 	case "TypeStack":
-		if f.DeckName != "" {
-			for _, d := range decks {
-				if d.Name != f.DeckName {
-					continue
-				}
-				hasStatic := len(d.Fields) > 0
-				hasDynamic := len(d.DynamicFields) > 0
-				name := toPascalCase(f.DeckName)
-
-				switch {
-				case hasStatic && hasDynamic:
-					return "ExpandedStack<" + name + "ComponentValues, " + name + "DynamicComponentValues>"
-				case hasStatic:
-					return "ExpandedStack<" + name + "ComponentValues>"
-				case hasDynamic:
-					return "ExpandedStack<Record<string, unknown>, " + name + "DynamicComponentValues>"
-				}
-				break
-			}
+		if deck, ok := findDeck(f.DeckName, decks); ok {
+			staticType, dynamicType := deckValueTypes(deck)
+			return "ExpandedStack<" + staticType + ", " + dynamicType + ">"
 		}
 		return "ExpandedStack"
 	case "TypeBoard":
-		return "Board"
+		if deck, ok := findDeck(f.DeckName, decks); ok {
+			staticType, dynamicType := deckValueTypes(deck)
+			return "ExpandedBoard<" + staticType + ", " + dynamicType + ">"
+		}
+		return "ExpandedBoard"
 	default:
 		return baseFieldTypeToTS(f, enums)
 	}

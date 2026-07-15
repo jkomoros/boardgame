@@ -1,7 +1,7 @@
 import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import '@material/web/progress/linear-progress.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-fading-text.js';
@@ -9,15 +9,12 @@ import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
-import type { CardsComponentValues, GameState, PlayerState } from './_types.js';
+import type { CardsComponentValues } from './_types.js';
+import { isVisibleComponent } from '../../src/client.js';
 
-class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName, MoveInputs> {
-	protected override readonly moveInputSchema = generatedMoveInputSchema;
-	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
+class BoardgameRenderGameMemory extends GameRenderer {
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
       md-linear-progress {
         width: 100%;
@@ -75,17 +72,16 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, Pla
   // VisibleCards.Components is a fixed-size (SizedStack) array padded with
   // nulls at unrevealed slots, matching the template's own
   // {{item.Values.Type}} access -- component field values live under
-  // `.Values`, not directly on the component (that nesting isn't reflected
-  // in the shared Component<T> TS type, so read defensively).
+  // `.Values`, not directly on the component. Opaque occupied slots are `{}`
+  // and must be narrowed with the shared guard before reading card values.
   private _revealHoldMs(): number {
     const components = this.state?.Game?.VisibleCards?.Components;
     if (!components) return 0;
-    const revealed = components.filter((c): c is NonNullable<typeof c> => !!c);
+    const revealed = components.filter(isVisibleComponent);
     if (revealed.length !== 2) return 0;
-    const [first, second] = revealed as unknown as { Values?: CardsComponentValues }[];
-    const firstType = first.Values?.Type;
-    const secondType = second.Values?.Type;
-    if (firstType === undefined || secondType === undefined) return 0;
+    const [first, second] = revealed;
+    const firstType: CardsComponentValues['Type'] = first!.Values.Type;
+    const secondType: CardsComponentValues['Type'] = second!.Values.Type;
     return firstType === secondType ? 1000 : 0;
   }
 

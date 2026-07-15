@@ -6,7 +6,7 @@ import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-deck-defaults.js';
 import { MoveNames, type MoveName } from './_move_names.js';
 import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
-import type { GameState, PlayerState } from './_types.js';
+import type { ComponentCatalog, State } from './_types.js';
 
 /**
  * Blackjack Hand view (the player's phone). Connects as PlayerIndex(n);
@@ -17,7 +17,7 @@ import type { GameState, PlayerState } from './_types.js';
  * V1 MVP minimal styling.
  */
 @customElement('boardgame-render-game-blackjack-hand')
-export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName, MoveInputs> {
+export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
 	protected override readonly moveInputSchema = generatedMoveInputSchema;
 	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
   static override styles = [
@@ -83,7 +83,7 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
   ];
 
   override render() {
-    const player = this.playerState as any;
+    const player = this.playerState;
     const canAct = this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerHit);
     return html`
       ${this.renderTopEdgeAnchor()}

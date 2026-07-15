@@ -8,20 +8,28 @@ export type PhaseValue = "Gathering" | "Day" | "Night";
 
 export type RoleValue = "Villager" | "Werewolf";
 
+export type ComponentCatalog = Readonly<Record<string, never>>;
+
+export type DynamicComponentValues = Readonly<Record<string, never>>;
+
+export interface GameComputed extends Readonly<Record<string, unknown>> {}
+
+export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
+
 export interface GameState {
-  Phase: PhaseValue;
-  RoundNumber: number;
-  Computed?: Record<string, unknown>;
+  readonly Phase: PhaseValue;
+  readonly RoundNumber: number;
+  readonly Computed?: GameComputed;
 }
 
 export interface PlayerState {
-  Eliminated: boolean;
-  PlayerInactive: boolean;
-  Role: RoleValue;
-  SeatClosed: boolean;
-  SeatFilled: boolean;
-  Vote: number;
-  Computed?: Record<string, unknown>;
+  readonly Eliminated: boolean;
+  readonly PlayerInactive: boolean;
+  readonly Role: RoleValue;
+  readonly SeatClosed: boolean;
+  readonly SeatFilled: boolean;
+  readonly Vote: number;
+  readonly Computed?: PlayerComputed;
 }
 
-export type State = FullGameState<GameState, PlayerState>;
+export type State = FullGameState<GameState, PlayerState, GameComputed, PlayerComputed, DynamicComponentValues>;

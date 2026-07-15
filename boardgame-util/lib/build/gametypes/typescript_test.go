@@ -67,14 +67,14 @@ func TestBaseFieldTypeToTS(t *testing.T) {
 		{FieldInfo{Type: "TypeInt"}, "number"},
 		{FieldInfo{Type: "TypeString"}, "string"},
 		{FieldInfo{Type: "TypePlayerIndex"}, "number"},
-		{FieldInfo{Type: "TypeIntSlice"}, "number[]"},
-		{FieldInfo{Type: "TypeBoolSlice"}, "boolean[]"},
-		{FieldInfo{Type: "TypeStringSlice"}, "string[]"},
-		{FieldInfo{Type: "TypePlayerIndexSlice"}, "number[]"},
+		{FieldInfo{Type: "TypeIntSlice"}, "readonly number[]"},
+		{FieldInfo{Type: "TypeBoolSlice"}, "readonly boolean[]"},
+		{FieldInfo{Type: "TypeStringSlice"}, "readonly string[]"},
+		{FieldInfo{Type: "TypePlayerIndexSlice"}, "readonly number[]"},
 		{FieldInfo{Type: "TypeEnum", EnumName: "color"}, "ColorValue"},
 		{FieldInfo{Type: "TypeEnum"}, "string"},
-		{FieldInfo{Type: "TypeEnumSlice", EnumName: "color"}, "ColorValue[]"},
-		{FieldInfo{Type: "TypeEnumSlice"}, "string[]"},
+		{FieldInfo{Type: "TypeEnumSlice", EnumName: "color"}, "readonly ColorValue[]"},
+		{FieldInfo{Type: "TypeEnumSlice"}, "readonly string[]"},
 		{FieldInfo{Type: "TypeSomethingUnknown"}, "unknown"},
 	}
 
@@ -129,16 +129,16 @@ func TestStateFieldTypeToTS(t *testing.T) {
 		expected string
 	}{
 		{FieldInfo{Type: "TypeTimer"}, "ExpandedTimer"},
-		{FieldInfo{Type: "TypeStack", DeckName: "cards"}, "ExpandedStack<CardsComponentValues>"},
-		{FieldInfo{Type: "TypeStack", DeckName: "tokens"}, "ExpandedStack"},
+		{FieldInfo{Type: "TypeStack", DeckName: "cards"}, "ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>"},
+		{FieldInfo{Type: "TypeStack", DeckName: "tokens"}, "ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, unknown>>>"},
 		{FieldInfo{Type: "TypeStack"}, "ExpandedStack"},
-		{FieldInfo{Type: "TypeBoard"}, "Board"},
+		{FieldInfo{Type: "TypeBoard"}, "ExpandedBoard"},
 		{FieldInfo{Type: "TypeEnum", EnumName: "phase"}, "PhaseValue"},
 		{FieldInfo{Type: "TypeBool"}, "boolean"},
 		// Deck with both static and dynamic fields
 		{FieldInfo{Type: "TypeStack", DeckName: "dice"}, "ExpandedStack<DiceComponentValues, DiceDynamicComponentValues>"},
 		// Deck with dynamic fields only
-		{FieldInfo{Type: "TypeStack", DeckName: "pieces"}, "ExpandedStack<Record<string, unknown>, PiecesDynamicComponentValues>"},
+		{FieldInfo{Type: "TypeStack", DeckName: "pieces"}, "ExpandedStack<Readonly<Record<string, never>>, PiecesDynamicComponentValues>"},
 	}
 
 	for _, tc := range tests {
@@ -180,7 +180,7 @@ func TestGenerateTypeScript(t *testing.T) {
 	}
 
 	// Check imports
-	if !strings.Contains(ts, "import type { ExpandedStack, FullGameState }") {
+	if !strings.Contains(ts, "import type { CatalogComponent, ExpandedStack, FullGameState }") {
 		t.Errorf("wrong imports, got:\n%s", ts)
 	}
 
@@ -195,26 +195,62 @@ func TestGenerateTypeScript(t *testing.T) {
 	}
 
 	// Check GameState
-	if !strings.Contains(ts, "DrawStack: ExpandedStack<CardsComponentValues>;") {
+	if !strings.Contains(ts, "readonly DrawStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;") {
 		t.Error("missing typed DrawStack in GameState")
 	}
 
 	// Check PlayerState
-	if !strings.Contains(ts, "Hand: ExpandedStack<CardsComponentValues>;") {
+	if !strings.Contains(ts, "readonly Hand: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;") {
 		t.Error("missing typed Hand in PlayerState")
 	}
-	if !strings.Contains(ts, "Score: number;") {
+	if !strings.Contains(ts, "readonly Score: number;") {
 		t.Error("missing Score in PlayerState")
 	}
 
 	// Check Computed field
-	if !strings.Contains(ts, "Computed?: Record<string, unknown>;") {
+	if !strings.Contains(ts, "readonly Computed?: GameComputed;") || !strings.Contains(ts, "readonly Computed?: PlayerComputed;") {
 		t.Error("missing Computed field")
 	}
 
 	// Check State type alias
-	if !strings.Contains(ts, "export type State = FullGameState<GameState, PlayerState>;") {
+	if !strings.Contains(ts, "export type State = FullGameState<GameState, PlayerState, GameComputed, PlayerComputed, DynamicComponentValues>;") {
 		t.Error("missing State type alias")
+	}
+}
+
+func TestGenerateTypeScriptEmitsHonestComponentCatalog(t *testing.T) {
+	ts := GenerateTypeScript(TypeResult{Decks: []DeckInfo{
+		{Name: "cards", Fields: []FieldInfo{{Name: "Suit", Type: "TypeString"}}},
+		{Name: "tokens", DynamicFields: []FieldInfo{{Name: "Active", Type: "TypeBool"}}},
+		{Name: "markers"},
+	}})
+	for _, want := range []string{
+		`readonly "cards": readonly CatalogComponent<CardsComponentValues>[];`,
+		`readonly "tokens": readonly CatalogComponent<Readonly<Record<string, never>>>[];`,
+		`readonly "markers": readonly CatalogComponent<Readonly<Record<string, never>>>[];`,
+		`readonly "tokens": readonly TokensDynamicComponentValues[];`,
+	} {
+		if !strings.Contains(ts, want) {
+			t.Errorf("missing %q:\n%s", want, ts)
+		}
+	}
+}
+
+func TestGenerateRendererTypeScriptBindsCompleteContractWithoutRegistration(t *testing.T) {
+	ts := GenerateRendererTypeScript()
+	for _, want := range []string{
+		"export interface GameClientContract",
+		"export abstract class GameRenderer extends BoardgameBaseGameRenderer<",
+		"protected override readonly moveInputSchema = moveInputSchema;",
+		"readonly Components: ComponentCatalog;",
+		"GameClientContract['State']",
+	} {
+		if !strings.Contains(ts, want) {
+			t.Errorf("missing %q:\n%s", want, ts)
+		}
+	}
+	if strings.Contains(ts, "customElements.define") {
+		t.Fatal("generated abstract renderer registered a custom element")
 	}
 }
 
@@ -231,10 +267,10 @@ func TestGenerateTypeScriptWithBoard(t *testing.T) {
 
 	ts := GenerateTypeScript(result)
 
-	if !strings.Contains(ts, "Board, FullGameState") {
+	if !strings.Contains(ts, "CatalogComponent, ExpandedBoard, FullGameState") {
 		t.Errorf("missing Board import, got:\n%s", ts)
 	}
-	if !strings.Contains(ts, "Spaces: Board;") {
+	if !strings.Contains(ts, "Spaces: ExpandedBoard<TokensComponentValues, Readonly<Record<string, unknown>>>;") {
 		t.Errorf("Board field not typed correctly, got:\n%s", ts)
 	}
 }
@@ -344,8 +380,8 @@ func TestGenerateTypeScriptWithDynamicOnly(t *testing.T) {
 		t.Errorf("missing PiecesDynamicComponentValues, got:\n%s", ts)
 	}
 
-	// Stack should use Record<string, unknown> for first param
-	if !strings.Contains(ts, "Pieces: ExpandedStack<Record<string, unknown>, PiecesDynamicComponentValues>;") {
+	// No static values means the visible Values object is exactly empty.
+	if !strings.Contains(ts, "Pieces: ExpandedStack<Readonly<Record<string, never>>, PiecesDynamicComponentValues>;") {
 		t.Errorf("missing dynamic-only ExpandedStack, got:\n%s", ts)
 	}
 }

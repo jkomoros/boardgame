@@ -62,10 +62,10 @@ test('legacy declarative controls cannot bypass generated schema freshness', asy
     renderer.serverMoveInputSchemaFingerprint = 'server-fingerprint';
 
     let proposals = 0;
-    let errorMessage = '';
+    const errorMessages: string[] = [];
     renderer.addEventListener('propose-move', () => proposals++);
     const captureError = (event: ErrorEvent) => {
-      errorMessage = event.error instanceof Error ? event.error.message : event.message;
+      errorMessages.push(event.error instanceof Error ? event.error.message : event.message);
       event.preventDefault();
     };
     window.addEventListener('error', captureError);
@@ -78,11 +78,27 @@ test('legacy declarative controls cannot bypass generated schema freshness', asy
     button.click();
     await Promise.resolve();
 
+    const unbound = document.createElement('boardgame-base-game-renderer') as HTMLElement & {
+      updateComplete: Promise<unknown>;
+    };
+    unbound.addEventListener('propose-move', () => proposals++);
+    document.body.append(unbound);
+    await unbound.updateComplete;
+    const legacyButton = document.createElement('button');
+    legacyButton.setAttribute('propose-move', 'Choose');
+    unbound.append(legacyButton);
+    legacyButton.click();
+    await Promise.resolve();
+
     window.removeEventListener('error', captureError);
     renderer.remove();
-    return { proposals, errorMessage };
+    unbound.remove();
+    return { proposals, errorMessages };
   });
 
   expect(result.proposals).toBe(0);
-  expect(result.errorMessage).toContain('Generated move inputs are stale');
+  expect(result.errorMessages).toEqual(expect.arrayContaining([
+    expect.stringContaining('Generated move inputs are stale'),
+    expect.stringContaining('extend the generated GameRenderer base'),
+  ]));
 });

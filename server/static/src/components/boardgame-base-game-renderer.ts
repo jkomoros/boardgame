@@ -2,7 +2,7 @@ import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import type { MovePreviewSpec } from '../legal/previewLegality.js';
-import type { FullGameState } from '../types/boardgame-types.js';
+import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
 import {
@@ -11,11 +11,19 @@ import {
   type MoveInputSchema,
 } from '../moves/input.js';
 
+type MoveInputFor<
+  K extends string,
+  Inputs extends Record<string, object>,
+> = K extends keyof Inputs ? Inputs[K] : Record<string, unknown>;
+
+type ExactMoveInput<Expected extends object, Actual extends Expected> = Actual &
+  Record<Exclude<keyof Actual, keyof Expected>, never>;
+
 export class BoardgameBaseGameRenderer<
-  GS extends object = Record<string, unknown>,
-  PS extends object = Record<string, unknown>,
-  MN extends string = string,
-  MA extends Record<string, object> = Record<string, Record<string, unknown>>
+  S extends FullGameState<object, object, object, object, object>,
+  C extends object,
+  MN extends string,
+  MA extends Record<string, object>,
 > extends LitElement {
   /** Generated safe-input contract installed by a bound/game renderer. */
   protected readonly moveInputSchema: MoveInputSchema | null = null;
@@ -25,10 +33,10 @@ export class BoardgameBaseGameRenderer<
   @property({ type: String, attribute: false })
   serverMoveInputSchemaFingerprint: string | null = null;
   @property({ type: Object })
-  state: FullGameState<GS, PS> | null = null;
+  state: S | null = null;
 
   @property({ type: Object })
-  chest: Record<string, unknown> | null = null;
+  chest: GameChest<C> | null = null;
 
   @property({ type: String })
   diagram = '';
@@ -149,7 +157,7 @@ export class BoardgameBaseGameRenderer<
 
   /**
    * Type-safe move proposal. When your game renderer extends
-   * `BoardgameBaseGameRenderer<GameState, PlayerState, MoveName, MoveArgs>`,
+   * `BoardgameBaseGameRenderer<State, ComponentCatalog, MoveName, MoveArgs>`,
    * this method provides compile-time checking that the move name is valid
    * and the arguments match the expected fields.
    *
@@ -158,20 +166,21 @@ export class BoardgameBaseGameRenderer<
    * import { MoveNames, type MoveName } from './_move_names.js';
    * import type { MoveInputs } from './_move_args.js';
    *
-   * class MyRenderer extends BoardgameBaseGameRenderer<GS, PS, MoveName, MoveInputs> {
+   * class MyRenderer extends BoardgameBaseGameRenderer<State, ComponentCatalog, MoveName, MoveInputs> {
    *   handleClick() {
    *     this.proposeMove(MoveNames.RevealCard, { CardIndex: 3 });
    *   }
    * }
    * ```
    */
-  proposeMove<K extends MN & string>(
+  proposeMove<
+    K extends MN & string,
+    Actual extends MoveInputFor<K, MA> = MoveInputFor<K, MA>,
+  >(
     moveName: K,
-    ...args: K extends keyof MA
-      ? {} extends MA[K]
-        ? [args?: MA[K]]
-        : [args: MA[K]]
-      : [args: Record<string, unknown>]
+    ...args: {} extends MoveInputFor<K, MA>
+      ? [args?: ExactMoveInput<MoveInputFor<K, MA>, Actual>]
+      : [args: ExactMoveInput<MoveInputFor<K, MA>, Actual>]
   ): void {
     this._proposeMoveNative(moveName, args[0] ?? {});
   }
@@ -180,26 +189,18 @@ export class BoardgameBaseGameRenderer<
     // Convert all values to strings for the server (form-encoded submission).
     // Booleans must be "1"/"0" (not "true"/"false") because the server uses
     // strconv.Atoi for boolean fields.
-    let stringArgs: Readonly<Record<string, string>>;
-    if (this.moveInputSchema || this.moveInputSchemaFingerprint) {
-      if (!this.moveInputSchema || !this.moveInputSchemaFingerprint) {
-        throw new Error('Incomplete generated move-input contract on renderer');
-      }
-      stringArgs = serializeCreatorMoveInputForServer(
-        this.moveInputSchema,
-        this.moveInputSchemaFingerprint,
-        this.serverMoveInputSchemaFingerprint,
-        moveName,
-        nativeArgs,
+    if (!this.moveInputSchema || !this.moveInputSchemaFingerprint) {
+      throw new Error(
+        'Renderer has no generated move-input contract; extend the generated GameRenderer base',
       );
-    } else {
-      // Explicit legacy compatibility path for renderers not yet bound to a
-      // generated contract.
-      stringArgs = Object.fromEntries(Object.entries(nativeArgs as Record<string, unknown>).map(([key, value]) => [
-        key,
-        typeof value === 'boolean' ? (value ? '1' : '0') : String(value),
-      ]));
     }
+    const stringArgs = serializeCreatorMoveInputForServer(
+      this.moveInputSchema,
+      this.moveInputSchemaFingerprint,
+      this.serverMoveInputSchemaFingerprint,
+      moveName,
+      nativeArgs,
+    );
     this.dispatchEvent(new CustomEvent('propose-move', {
       composed: true,
       bubbles: true,

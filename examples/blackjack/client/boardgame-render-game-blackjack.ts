@@ -2,18 +2,16 @@ import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-card.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-fading-text.js';
 import '../../src/components/boardgame-deck-defaults.js';
 import { html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+class BoardgameRenderGameBlackjack extends GameRenderer {
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
       #draw, #players {
         display: flex;
