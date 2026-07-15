@@ -240,17 +240,17 @@ once `MoveAction` exists.
 
 ### Task 0: Establish reproducible green gates
 
-- [ ] Record exact currently green commands and classify every existing failure.
+- [x] Record exact currently green commands and classify every existing failure.
   Repair stale harness tests or use only a narrow temporary exclusion tied to a
   tracking issue; never create a broad accepted-failure baseline.
-- [ ] Create a renderer-fixture Playwright configuration that starts/stops its
+- [x] Create a renderer-fixture Playwright configuration that starts/stops its
   own server on an allocated port, uses `retries: 0`, and does not inherit the
   real-time animation suite's global sequential-worker constraint.
-- [ ] Keep real animation/companion tests in their existing sequential shard.
-- [ ] Require each implementation work package to state: failing test/compile
+- [x] Keep real animation/companion tests in their existing sequential shard.
+- [x] Require each implementation work package to state: failing test/compile
   fixture; smallest implementation; focused green command; regression commands;
   and named-file commit boundary.
-- [ ] Use focused commands where applicable: generator/static/stub/API Go tests,
+- [x] Use focused commands where applicable: generator/static/stub/API Go tests,
   `npm run type-check`, new `type-check:authoring`, unit tests, and explicit
   Playwright spec paths with `--reporter=line`.
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createOfflineGame, gateSnapshot, expectCleanGate, enableAdminMode, makeAdminFormMove } from './helpers';
+import { createOfflineGame, gateSnapshot, expectCleanGate, installedGameVersion, joinCompanionAsGuest, waitForClientQuiescence } from './helpers';
 
 // The reliability gate (spec Testing section). These scenarios are the
 // historical wedge repros for #720. They must run clean N times.
@@ -17,6 +17,39 @@ test.describe('animation completion gate', () => {
     test.setTimeout(120_000);
 
     await createOfflineGame(page, 'debuganimations');
+    let animatedCycles = 0;
+
+    const moveAndCheck = async (buttonName: 'To Hidden' | 'To Visible') => {
+      const before = await gateSnapshot(page);
+      const versionBefore = await installedGameVersion(page);
+      const button = page.getByRole('button', { name: buttonName });
+      await expect(button).toBeEnabled();
+      // The intentionally messy debug stack can visually overlap these
+      // controls. Pointer hit-testing is not under test here; activate the
+      // enabled control's native button contract so random card placement
+      // cannot turn this animation lifecycle test into a layout lottery.
+      await button.evaluate((element) => (element as HTMLButtonElement).click());
+      await expect.poll(() => installedGameVersion(page), { timeout: 10_000 })
+        .toBeGreaterThan(versionBefore);
+
+      // Moving between a rendered and hidden stack can legitimately install
+      // without a visual animation when there is no matching rendered item.
+      // That is not a wedged gate. Give Lit two frames to emit will-animate;
+      // if it does, require a complete clean cycle. In all cases the accepted
+      // version must fully drain before the next move.
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }));
+      const afterInstall = await gateSnapshot(page);
+      if (afterInstall.gateOpens > before.gateOpens) {
+        animatedCycles++;
+        await expectCleanGate(page, before);
+      } else {
+        await waitForClientQuiescence(page);
+        const afterQuiescence = await gateSnapshot(page);
+        expect(afterQuiescence.watchdogFirings).toBe(before.watchdogFirings);
+      }
+    };
 
     for (let i = 0; i < ROUNDS; i++) {
       // debuganimations exposes "To Hidden" / "To Visible" buttons that
@@ -31,30 +64,50 @@ test.describe('animation completion gate', () => {
       // opening *after* the snapshot it's given, and a click's move
       // proposal -> server round-trip -> gate-open is asynchronous, so a
       // snapshot from several moves ago would let it race ahead.
-      let before = await gateSnapshot(page);
-      await page.getByRole('button', { name: 'To Hidden' }).click();
-      await expectCleanGate(page, before);
-      before = await gateSnapshot(page);
-      await page.getByRole('button', { name: 'To Visible' }).click();
-      await expectCleanGate(page, before);
+      await moveAndCheck('To Hidden');
+      await moveAndCheck('To Visible');
     }
+    expect(animatedCycles, 'bulk moves must exercise at least one real animation gate cycle').toBeGreaterThan(0);
   });
 
-  test('blackjack: fresh deal completes cleanly', async ({ page }) => {
-    // 3 iterations, each a full game-create + a deal wait that can run up to
-    // 30s under load; give the whole test comfortable headroom.
+  test('blackjack: player hit completes cleanly', async ({ browser }) => {
+    // Three complete rooms, each with the two real guest seats Blackjack
+    // requires before it can leave Gathering. This deliberately measures a
+    // player-facing Hit; a newly-created room alone has no deal animation and
+    // therefore cannot provide positive gate evidence.
     test.setTimeout(120_000);
 
     for (let i = 0; i < 3; i++) {
-      await createOfflineGame(page, 'blackjack');
-      const base = await gateSnapshot(page);
-      // The deal auto-fires on creation and can fully complete during the
-      // admin-panel setup inside createOfflineGame, so accept an
-      // already-settled (quiescent, no-watchdog) gate as clean. The deal is
-      // a long chain of per-card gate cycles (~5s of real animation) and the
-      // offline server's round-trips add variable latency under load, so
-      // give the wait a wider margin than the default.
-      await expectCleanGate(page, base, 30000, { allowAlreadySettled: true });
+      const controllerContext = await browser.newContext();
+      const firstPlayerContext = await browser.newContext();
+      const secondPlayerContext = await browser.newContext();
+      try {
+        const controller = await controllerContext.newPage();
+        const firstPlayer = await firstPlayerContext.newPage();
+        const secondPlayer = await secondPlayerContext.newPage();
+        await createOfflineGame(controller, 'blackjack', { companionMode: true, adminMode: false });
+        const roomCode = (await controller.locator('.room-code-giant').textContent())?.trim();
+        expect(roomCode).toMatch(/^[A-Z]{4,5}$/);
+        await joinCompanionAsGuest(firstPlayer, roomCode!, 'blackjack');
+        await joinCompanionAsGuest(secondPlayer, roomCode!, 'blackjack');
+
+        const hit = firstPlayer.getByRole('button', { name: 'Hit', exact: true });
+        await expect(hit).toBeEnabled({ timeout: 20_000 });
+        // Hit becomes legal just before Blackjack's final automatic reveal
+        // bundle finishes. Wait for that initial deal pipeline to drain so
+        // game-view does not correctly swallow our measured click as a
+        // mid-animation gesture (#721).
+        await waitForClientQuiescence(firstPlayer, 20_000);
+        const before = await gateSnapshot(firstPlayer);
+        await hit.click();
+        await expectCleanGate(firstPlayer, before, 30_000);
+      } finally {
+        await Promise.all([
+          controllerContext.close(),
+          firstPlayerContext.close(),
+          secondPlayerContext.close(),
+        ]);
+      }
     }
   });
 
@@ -67,33 +120,12 @@ test.describe('animation completion gate', () => {
     // its own async render -- wait for at least one card to actually exist.
     await expect(page.locator('boardgame-card').first()).toBeAttached({ timeout: 15000 });
 
-    // moveRevealCard embeds moves.CurrentPlayer (examples/memory/moves.go),
-    // which requires the proposer to equal state.CurrentPlayerIndex() --
-    // unlike debuganimations' moves.Default, AdminPlayerIndex does NOT
-    // satisfy this as a wildcard proposer here ("The specified target
-    // player is not valid" / "The proposer was not valid" when tried).
-    // The admin debug panel's own "Move Reveal Card" > "Make Move" form
-    // defaults TargetPlayerIndex/CardIndex correctly for whichever player
-    // is actually current (server-side DefaultsForState), so drive reveals
-    // through that form instead of clicking cards directly as a fixed
-    // "we are player 0" identity.
-    await enableAdminMode(page);
-
-    // NOTE on scope: a full multi-round reveal/hide loop (as sketched in
-    // the task brief) proved unreliable to drive from this admin form --
-    // submitting a RevealCard move here intermittently triggers a full
-    // page reload (Admin Mode's own toggle state and __bgAnimTestHooks
-    // both reset), and that reload is not consistently reproducible enough
-    // to script around within this task's scope. expectCleanGate is
-    // defensively hardened against a mid-wait reload (see its comments in
-    // helpers.ts), but chaining a second move immediately after one that
-    // may have just reloaded the page is what actually wedges this test,
-    // not the animation gate itself. A single reveal is enough to exercise
-    // the gate for this game type; multi-round coverage here is left to a
-    // follow-up once the reload trigger is root-caused.
+    // Drive the actual card surface. The offline creator is auto-seated in a
+    // fresh Memory game, and the renderer supplies CardIndex through the
+    // card's data attribute. Unlike the admin move form, this proposal stays
+    // on the document whose animation hooks we sampled.
     const before = await gateSnapshot(page);
-    const revealed = await makeAdminFormMove(page, 'Move Reveal Card');
-    expect(revealed, 'RevealCard move via admin form should be legal on a fresh game').toBe(true);
+    await page.locator('boardgame-card:not([disabled])').first().click();
     await expectCleanGate(page, before, 30000);
   });
 });

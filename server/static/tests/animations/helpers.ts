@@ -1,4 +1,4 @@
-import { Page, expect, test } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 
 // Display names shown in the "Game Type" combobox on /list-games, keyed by
 // the internal game name used in URLs (/game/<name>/<id>/).
@@ -67,9 +67,8 @@ export async function createOfflineGame(
   // logic), use the built-in admin panel: Admin Mode -> View as Admin ->
   // uncheck "Make Moves As ViewingAsPlayer" makes every subsequent move
   // proposal use AdminPlayerIndex, which game.go's applyMove() always
-  // accepts for moves.Default-based moves (moves.CurrentPlayer-based moves,
-  // e.g. examples/memory's RevealCard, need a different approach -- see
-  // makeAdminFormMove).
+  // accepts for moves.Default-based moves. Player-scoped moves should be
+  // exercised through a real seated-player surface instead.
   await enableAdminMode(page);
   await page.getByText('Admin', { exact: true }).click();
 
@@ -134,52 +133,16 @@ export async function enableAdminMode(page: Page): Promise<void> {
   // off) an already-enabled switch. Read the live JS property instead.
   const isSelected = await adminSwitch.evaluate((el) => (el as any).selected === true);
   if (!isSelected) {
-    await adminSwitch.click();
+    // This is harness setup, not a switch interaction test. The fixed game
+    // surface can cover the off-canvas drawer at some viewport/scroll
+    // positions, so drive the switch's public property/change contract
+    // directly and deterministically.
+    await adminSwitch.evaluate((el) => {
+      (el as any).selected = true;
+      el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+    });
+    await expect.poll(() => adminSwitch.evaluate((el) => (el as any).selected === true)).toBe(true);
   }
-}
-
-// Submits a move via the admin panel's "Moves" section instead of clicking
-// in-game UI as a specific seated player.
-//
-// Why this exists: examples/memory's RevealCard move embeds
-// moves.CurrentPlayer (examples/memory/moves.go), which requires the
-// proposer to equal state.CurrentPlayerIndex() exactly -- unlike
-// moves.Default-based moves (e.g. debuganimations'), AdminPlayerIndex does
-// NOT satisfy this as a wildcard proposer here; proposing as our own seat
-// (player 0) fails whenever it isn't actually our turn, and proposing as
-// AdminPlayerIndex fails moves.CurrentPlayer's TargetPlayerIndex.Valid()
-// check outright. The admin panel's own move form defaults
-// TargetPlayerIndex (and other fields, e.g. CardIndex) correctly for
-// whichever player is actually current (server-side DefaultsForState), so
-// submitting through it sidesteps needing to track turn order from the
-// test.
-//
-// Returns false (without throwing) if the move was illegal -- e.g. no
-// cards left, wrong phase -- since that's an expected "nothing left to do"
-// end state for a test loop, not an infrastructure failure. Returns true
-// if the move was accepted (HTTP 200 without a "Couldn't..." error
-// dialog).
-export async function makeAdminFormMove(page: Page, moveDisplayName: string): Promise<boolean> {
-  // Admin Mode is a client-only UI toggle (not persisted server-side), and
-  // some move round-trips in this app cause a full page reload that resets
-  // it -- re-enable defensively so the "Moves" panel is actually present
-  // before trying to use it.
-  await enableAdminMode(page);
-
-  const moveRow = page.getByText(moveDisplayName, { exact: true });
-  await expect(moveRow).toBeVisible({ timeout: 5000 });
-  await moveRow.click();
-  const makeMoveButton = page.getByText('Make Move', { exact: true }).filter({ visible: true }).first();
-  await expect(makeMoveButton).toBeVisible({ timeout: 5000 });
-  await makeMoveButton.click();
-
-  const errorDialog = page.locator('md-dialog[open]').filter({ hasText: "Couldn't" });
-  const sawError = await errorDialog.first().isVisible({ timeout: 3000 }).catch(() => false);
-  if (sawError) {
-    await page.getByRole('button', { name: 'OK' }).click().catch(() => {});
-    return false;
-  }
-  return true;
 }
 
 export interface GateSnapshot {
@@ -190,20 +153,53 @@ export interface GateSnapshot {
   settles: number;
 }
 
-export async function gateSnapshot(page: Page): Promise<GateSnapshot> {
-  return page.evaluate(() => {
-    // Stamp a reload sentinel on the live window. A full page reload
-    // installs a brand-new window (and a fresh __bgAnimTestHooks at 0), so
-    // the sentinel's absence later is an unambiguous, race-free signal that
-    // a reload happened -- unlike inferring it from counters, which the
-    // fresh page can re-climb past `since.gateOpens` before we sample.
-    (window as any).__gateProbeToken = ((window as any).__gateProbeToken || 0) + 1;
-    const h = (window as any).__bgAnimTestHooks;
-    return {
-      gateOpens: h.gateOpens, gateCloses: h.gateCloses,
-      watchdogFirings: h.watchdogFirings, plays: h.plays, settles: h.settles,
-    };
+export async function waitForClientQuiescence(page: Page, timeoutMs = 20000): Promise<void> {
+  await page.waitForFunction(async () => {
+    const hooks = (window as any).__bgAnimTestHooks;
+    if (!hooks || hooks.gateCloses < hooks.gateOpens) return false;
+    const { store } = await import('/src/store.ts');
+    return (store.getState().game?.animation?.pendingBundles?.length ?? 0) === 0;
+  }, undefined, { timeout: timeoutMs });
+  const renderGame = page.locator('boardgame-render-game').first();
+  await expect.poll(
+    () => renderGame.evaluate((element) => (element as any).isAnimating === false),
+    { timeout: timeoutMs },
+  ).toBe(true);
+  // Let listeners reacting to the final all-animations-done/dequeue events
+  // finish their Lit update before the next user gesture.
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  }));
+}
+
+export async function installedGameVersion(page: Page): Promise<number> {
+  return page.evaluate(async () => {
+    const { store } = await import('/src/store.ts');
+    return store.getState().game?.animation?.lastFiredBundle?.game?.Version ?? -1;
   });
+}
+
+export async function gateSnapshot(page: Page): Promise<GateSnapshot> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await page.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined);
+    try {
+      return await page.evaluate(() => {
+        // Stamp a reload sentinel so a later navigation cannot masquerade as
+        // successful gate completion with freshly reset counters.
+        (window as any).__gateProbeToken = ((window as any).__gateProbeToken || 0) + 1;
+        const h = (window as any).__bgAnimTestHooks;
+        return {
+          gateOpens: h.gateOpens, gateCloses: h.gateCloses,
+          watchdogFirings: h.watchdogFirings, plays: h.plays, settles: h.settles,
+        };
+      });
+    } catch (error) {
+      const navigated = error instanceof Error && error.message.includes('Execution context was destroyed');
+      if (!navigated || attempt === 2) throw error;
+      await page.waitForLoadState('domcontentloaded');
+    }
+  }
+  throw new Error('animation hooks did not stabilize');
 }
 
 // Waits for the animation gate to be quiescent (closes caught up with
@@ -237,25 +233,10 @@ export async function expectCleanGate(
   opts: { allowAlreadySettled?: boolean } = {}
 ) {
   const allowAlreadySettled = opts.allowAlreadySettled ?? false;
-  // Defensive: some move round-trips in this app (observed on
-  // examples/memory) trigger a page reload, which briefly makes
-  // __bgAnimTestHooks undefined and would throw inside the waitForFunction
-  // predicates below with a raw property access. Wait for it to exist
-  // (again) first.
+  // Wait for the hooks before sampling, but never treat their reset after a
+  // reload as successful completion: a reload destroys the evidence this
+  // assertion exists to verify.
   await page.waitForFunction(() => (window as any).__bgAnimTestHooks !== undefined, undefined, { timeout: timeoutMs });
-  // If a page reload happened, __bgAnimTestHooks was reinstalled fresh at
-  // 0 -- `gateOpens` can now be *below* since.gateOpens (a counter reset,
-  // not a wedge). Treat that as "already opened" (the reload itself proves
-  // the state round-trip that would have opened the gate happened) rather
-  // than waiting forever for a monotonic increase that will never come; a
-  // reset also makes the watchdogFirings delta meaningless, so skip that
-  // assertion for this call (a reset gate is definitionally not wedged).
-  //
-  // Reset is detected two ways, either of which is decisive: (1) the reload
-  // sentinel gateSnapshot stamped is gone -- a reload swapped in a fresh
-  // window; or (2) gateOpens dropped below `since`. The sentinel closes a
-  // race where a reloaded page re-climbs gateOpens back to >= since before
-  // we ever observe the dip, which used to hang this wait until timeout.
   const openedOrReset = await page.waitForFunction(([sinceGateOpens, allowSettled]) => {
     if ((window as any).__gateProbeToken === undefined) return 'reset';
     const h = (window as any).__bgAnimTestHooks;
@@ -264,7 +245,7 @@ export async function expectCleanGate(
     // No fresh open past `since`. For auto-firing scenarios, a gate that is
     // already quiescent (closes caught up) is the clean, already-completed
     // outcome -- accept it rather than hanging on an open that won't come.
-    if (allowSettled && h.gateCloses >= h.gateOpens) return 'settled';
+    if (allowSettled && h.gateOpens > 0 && h.gateCloses >= h.gateOpens) return 'settled';
     return false;
   }, [since.gateOpens, allowAlreadySettled] as [number, boolean], { timeout: timeoutMs }).then((h) => h.jsonValue());
   await page.waitForFunction(() => {
@@ -272,21 +253,23 @@ export async function expectCleanGate(
     return h.gateCloses >= h.gateOpens;
   }, undefined, { timeout: timeoutMs });
   if (openedOrReset === 'reset') {
-    console.warn('[expectCleanGate] page reloaded mid-check — watchdog assertion SKIPPED for this cycle');
-    try {
-      test.info().annotations.push({
-        type: 'warning',
-        description: 'expectCleanGate: reload detected, watchdog assertion skipped',
-      });
-    } catch {
-      // Called outside a test context; annotation is optional
-    }
-    // Best-effort check: after reload, counters restarted at 0, so any
-    // non-zero watchdogFirings indicates a post-reload wedge.
-    const afterReload = await gateSnapshot(page);
-    expect(afterReload.watchdogFirings, 'animation watchdog must never fire (post-reload check)').toBe(0);
-    return;
+    throw new Error('page reloaded while waiting for animation completion; gate evidence was lost');
   }
+  // A gate can close while a later server bundle is still queued. Returning
+  // before that queue drains lets a caller's next click race the next
+  // animation and be intentionally swallowed by game-view (#721). "Clean"
+  // therefore means the whole client pipeline is quiescent, not merely that
+  // one gate-close event has been recorded.
+  await waitForClientQuiescence(page, timeoutMs);
   const now = await gateSnapshot(page);
+  // This definitive sample comes after every queued bundle drains: a later
+  // bundle cannot wedge, be watchdog-closed, and disappear behind an earlier
+  // clean gate assertion.
   expect(now.watchdogFirings, 'animation watchdog must never fire').toBe(since.watchdogFirings);
+  if (allowAlreadySettled) {
+    expect(now.gateOpens, 'an auto-fired animation must open the gate at least once').toBeGreaterThan(0);
+    if (now.plays > 0) {
+      expect(now.settles, 'every instrumented play must settle').toBeGreaterThanOrEqual(now.plays);
+    }
+  }
 }

@@ -9,6 +9,13 @@ const apiPort = Number(process.env.BOARDGAME_API_PORT || 8888);
 
 export default defineConfig({
   root: '.',
+  // Game renderers are discovered dynamically, so Vite's initial crawl cannot
+  // see all of their dependencies. Prebundle the known dynamic Lit directive
+  // to prevent a mid-test dependency-optimization reload from erasing runtime
+  // animation evidence.
+  optimizeDeps: {
+    include: ['lit/directives/style-map.js'],
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
