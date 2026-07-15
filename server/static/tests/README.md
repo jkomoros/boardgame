@@ -1,16 +1,24 @@
-# Playwright E2E Testing Guide
+# Playwright Testing Guide
 
-This directory contains end-to-end tests using Playwright. The setup is designed to work seamlessly with `boardgame-util serve`.
+This directory contains two deliberately separate Playwright shards. Renderer
+authoring fixtures own their server lifecycle and can run in parallel. The
+real-time animation/companion suite reuses a developer server and stays
+sequential because animation timing and shared game state make parallelism
+misleading.
 
 ## Quick Start
 
 ### Running Tests
 
 ```bash
-# Terminal 1: Start the dev server
+# Self-contained renderer-authoring fixtures (no server setup required)
+cd server/static
+npm run test:renderer
+
+# Real-time animation/companion tests: Terminal 1
 boardgame-util serve
 
-# Terminal 2: Run tests (in server/static directory)
+# Real-time animation/companion tests: Terminal 2
 cd server/static
 npm run test:e2e              # Run tests headlessly
 npm run test:e2e:headed       # Run with visible browser
@@ -19,9 +27,17 @@ npm run test:e2e:debug        # Run in debug mode
 npm run test:e2e:report       # View test results
 ```
 
-## Configuration
+## Configurations
 
-The Playwright configuration is in `playwright.config.ts` with these key settings:
+`playwright.renderer.config.ts` is the reliable renderer-authoring gate:
+
+- starts and stops `boardgame-util serve` itself;
+- allocates isolated API and Vite ports on `127.0.0.1`;
+- uses in-memory storage and offline development mode;
+- runs only `tests/renderer`, permits parallel workers, and uses zero retries;
+- preserves traces, screenshots, and videos for the first failing attempt.
+
+`playwright.config.ts` drives the existing real-time suite:
 
 - **baseURL**: `http://localhost:8080` - Connects to Vite server from boardgame-util serve
 - **reuseExistingServer**: `true` - Uses existing Vite server, doesn't start/stop it
@@ -33,8 +49,10 @@ The Playwright configuration is in `playwright.config.ts` with these key setting
 ```
 tests/
 ├── README.md           # This file
+├── BASELINE.md         # Known-green gates and classified pre-existing debt
 ├── fixtures.ts         # Helper functions for tests
 ├── global.d.ts         # TypeScript declarations
+├── renderer/           # Self-contained authoring/integration fixtures
 ├── basic/              # Basic smoke tests
 │   └── homepage.spec.ts
 └── navigation/         # Navigation tests (add as needed)
@@ -89,11 +107,14 @@ test('game with animations', async ({ page }) => {
 
 ## Key Points
 
-1. **Always start boardgame-util serve first** - Tests expect the server to be running on port 8080
-2. **Single worker mode** - Tests run sequentially to avoid animation timing issues
-3. **Headless by default** - Use `HEADED=1` to see the browser
-4. **Reuses existing server** - Won't interfere with your running dev server
-5. **Screenshots on failure** - Automatically captured to help debugging
+1. `test:renderer` starts its own server; do not start one first or hard-code its
+   ports in a test.
+2. Renderer fixtures must be isolated enough to pass with parallel workers and
+   `retries: 0`.
+3. Real-time tests require `boardgame-util serve` on the default ports and run
+   with one worker.
+4. Both shards are headless by default; use `HEADED=1` to see the browser.
+5. Failure artifacts are retained for debugging.
 
 ## Debugging Tips
 
@@ -118,7 +139,8 @@ Console output from the browser is captured in `.playwright-mcp/` directory.
 ## Common Issues
 
 ### Port 8080 Not Available
-Make sure `boardgame-util serve` is running before executing tests.
+This only affects `test:e2e`. Make sure its manually started server is running
+on the default port. `test:renderer` allocates its own ports.
 
 ### Tests Timing Out
 Increase timeout in `playwright.config.ts` or use `waitForAnimationQueue()` to wait for animations.
@@ -134,7 +156,10 @@ For continuous integration, set the `CI` environment variable:
 CI=1 npm run test:e2e
 ```
 
-This enables:
+For the legacy real-time shard this enables:
 - GitHub Actions reporter
 - Automatic retries (2 attempts)
 - `forbidOnly` check to prevent `.only` in tests
+
+The renderer shard intentionally keeps retries disabled in CI so flakes are
+visible rather than converted into apparent passes.

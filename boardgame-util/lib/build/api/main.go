@@ -3,11 +3,13 @@ package api
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"go/format"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	buildstatic "github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
@@ -94,15 +96,18 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, e
 	buf := new(bytes.Buffer)
 
 	storageImport := storage.Import()
+	storageConstructor := storage.Constructor(options.StorageLiteralArgs)
 
 	if storageImport != "" {
-		storageImport = "\"" + storageImport + "\""
+		storageAlias := availableStorageAlias(pkgs)
+		storageImport = storageAlias + " \"" + storageImport + "\""
+		storageConstructor = strings.Replace(storageConstructor, storage.String()+".", storageAlias+".", 1)
 	}
 
 	err := apiTemplate.Execute(buf, map[string]interface{}{
 		"pkgs":                  pkgs,
 		"storageImport":         storageImport,
-		"storageConstructor":    storage.Constructor(options.StorageLiteralArgs),
+		"storageConstructor":    storageConstructor,
 		"options":               options,
 		"companionCapableGames": buildstatic.CompanionCapableGames(pkgs),
 	})
@@ -119,6 +124,26 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, e
 
 	return formatted, nil
 
+}
+
+func availableStorageAlias(pkgs []*gamepkg.Pkg) string {
+	used := map[string]bool{"api": true}
+	for _, pkg := range pkgs {
+		used[pkg.Name()] = true
+	}
+	return availableImportAlias(used)
+}
+
+func availableImportAlias(used map[string]bool) string {
+	for suffix := 0; ; suffix++ {
+		candidate := "boardgamestorage"
+		if suffix > 0 {
+			candidate += fmt.Sprint(suffix)
+		}
+		if !used[candidate] {
+			return candidate
+		}
+	}
 }
 
 // Clean removes the api/ directory (code and binary) that was generated

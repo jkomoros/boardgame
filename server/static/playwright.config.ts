@@ -12,6 +12,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   // Test directory
   testDir: './tests',
+  // Self-starting renderer contract fixtures have their own parallel shard.
+  testIgnore: '**/renderer/**',
 
   // Run tests sequentially to avoid animation timing issues
   fullyParallel: false,

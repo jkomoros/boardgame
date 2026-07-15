@@ -37,6 +37,25 @@ migration records the minimum framework commit it requires.
 The unrelated untracked `SECURITY-INCIDENT-injection-canary.md` must remain
 untouched. Never use `git add .` or `git add -A`.
 
+## `boardgame-util` modernization scope
+
+The creator-facing CLI is part of the renderer API. This tranche modernizes it
+where it directly shapes the authoring loop:
+
+- `serve` owns a supervised, reproducible Vite/API session, supports arbitrary
+  allocated ports, exits cleanly, and does not leave child processes behind;
+- `stub` emits strict Lit/TypeScript using the public facade and generated game
+  contracts, writes atomically, and refuses destructive overwrites by default;
+- `check-client` provides one documented local/CI gate with structured
+  diagnostics for generation, type, lint, assembly, and focused fixture checks;
+- generation reports stable outputs and actionable failures rather than relying
+  on incidental compiler or shell behavior.
+
+Database administration, deployment, and other unrelated commands are not part
+of this tranche unless they block the renderer workflow. Modernization must
+preserve scriptability: stable exit codes, non-interactive defaults, and useful
+plain terminal output remain requirements.
+
 ## Why this work comes before more components
 
 The framework already has strong animation, server-authoritative legality, and

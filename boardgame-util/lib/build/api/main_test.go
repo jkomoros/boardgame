@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
@@ -44,6 +45,45 @@ func TestOverrideCode(t *testing.T) {
 	assert.For(t).ThatActual(string(code)).Equals(apiOverrideExpected).ThenDiffOnFail()
 }
 
+func TestStorageImportCannotCollideWithGamePackage(t *testing.T) {
+	pkgs, err := gamepkg.AllPackages([]string{
+		"github.com/jkomoros/boardgame/examples/memory",
+	}, "")
+	assert.For(t).ThatActual(err).IsNil()
+
+	code, err := Code(pkgs, StorageMemory, nil)
+	assert.For(t).ThatActual(err).IsNil()
+
+	text := string(code)
+	if !strings.Contains(text, "\"github.com/jkomoros/boardgame/examples/memory\"") {
+		t.Fatal("generated code did not import the Memory game")
+	}
+	if !strings.Contains(text, "boardgamestorage \"github.com/jkomoros/boardgame/storage/memory\"") {
+		t.Fatal("generated code did not alias the memory storage import")
+	}
+	if !strings.Contains(text, "boardgamestorage.NewStorageManager()") {
+		t.Fatal("generated code did not use the storage alias in its constructor")
+	}
+}
+
+func TestAvailableStorageAliasAvoidsPackageNames(t *testing.T) {
+	pkgs, err := gamepkg.AllPackages([]string{
+		"github.com/jkomoros/boardgame/examples/memory",
+	}, "")
+	assert.For(t).ThatActual(err).IsNil()
+
+	// The real package proves ordinary discovery. A small package-name seam
+	// test proves aliases remain deterministic even when the preferred spelling
+	// is occupied; constructing a synthetic gamepkg.Pkg would require reaching
+	// through that package's intentionally private fields.
+	if alias := availableImportAlias(map[string]bool{"boardgamestorage": true}); alias != "boardgamestorage1" {
+		t.Fatalf("alias = %q, want boardgamestorage1", alias)
+	}
+	if alias := availableStorageAlias(pkgs); alias != "boardgamestorage" {
+		t.Fatalf("alias = %q, want boardgamestorage", alias)
+	}
+}
+
 var apiExpected = `/*
 A server binary generated automatically by 'boardgame-util/lib/build/api/Build()'
 */
@@ -54,7 +94,7 @@ import (
 	"github.com/jkomoros/boardgame/examples/checkers"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/jkomoros/boardgame/server/api"
-	"github.com/jkomoros/boardgame/storage/bolt"
+	boardgamestorage "github.com/jkomoros/boardgame/storage/bolt"
 )
 
 // companionCapableGames is the list of game names that ship the Table+Hand
@@ -70,7 +110,7 @@ var companionCapableGames = []string{
 
 func main() {
 
-	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
+	storage := api.NewServerStorageManager(boardgamestorage.NewStorageManager(".database"))
 	defer storage.Close()
 	api.NewServer(storage,
 		blackjack.NewDelegate(),
@@ -91,7 +131,7 @@ import (
 	"github.com/jkomoros/boardgame/examples/checkers"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/jkomoros/boardgame/server/api"
-	"github.com/jkomoros/boardgame/storage/bolt"
+	boardgamestorage "github.com/jkomoros/boardgame/storage/bolt"
 )
 
 var overrides []config.OptionOverrider
@@ -113,7 +153,7 @@ var companionCapableGames = []string{
 
 func main() {
 
-	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
+	storage := api.NewServerStorageManager(boardgamestorage.NewStorageManager(".database"))
 	defer storage.Close()
 	api.NewServer(storage,
 		blackjack.NewDelegate(),

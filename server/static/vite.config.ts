@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const staticPort = Number(process.env.BOARDGAME_STATIC_PORT || 8080);
+const apiPort = Number(process.env.BOARDGAME_API_PORT || 8888);
 
 export default defineConfig({
   root: '.',
@@ -17,11 +19,12 @@ export default defineConfig({
     }
   },
   server: {
-    port: 8080,
+    port: staticPort,
+    strictPort: true,
     open: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:8888',
+        target: `http://127.0.0.1:${apiPort}`,
         changeOrigin: true,
         ws: true  // Enable WebSocket proxying
       }
