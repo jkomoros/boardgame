@@ -105,7 +105,7 @@ func emitTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) error {
 	return installGeneratedGameTypes(generated)
 }
 
-func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) ([]generatedGameTypeFile, error) {
+func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly ...bool) ([]generatedGameTypeFile, error) {
 
 	dir, err := os.MkdirTemp(".", "temp_gametypes_")
 	if err != nil {
@@ -113,15 +113,22 @@ func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) ([]g
 	}
 	defer func() {
 		if removeErr := os.RemoveAll(dir); removeErr != nil {
-			fmt.Printf("Warning: couldn't clean up temp dir %s: %v\n", dir, removeErr)
+			fmt.Fprintf(os.Stderr, "Warning: couldn't clean up temp dir %s: %v\n", dir, removeErr)
 		}
 	}()
 
-	fmt.Println("Extracting type information from game packages")
+	fmt.Fprintln(os.Stderr, "Extracting type information from game packages")
 	results, err := gametypes.Build(dir, pkgs)
 
 	if err != nil {
 		return nil, fmt.Errorf("couldn't build game types: %w", err)
+	}
+	resultImports := make([]string, 0, len(results))
+	for _, result := range results {
+		resultImports = append(resultImports, result.ImportPath)
+	}
+	if err := validateClientExtractionResults(pkgs, resultImports, "game-type"); err != nil {
+		return nil, err
 	}
 
 	// Build a map from import path to pkg for quick lookup
@@ -134,7 +141,7 @@ func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) ([]g
 	for _, result := range results {
 		pkg, ok := pkgByImport[result.ImportPath]
 		if !ok {
-			fmt.Printf("Warning: no package found for import path %s, skipping\n", result.ImportPath)
+			fmt.Fprintf(os.Stderr, "Warning: no package found for import path %s, skipping\n", result.ImportPath)
 			continue
 		}
 
@@ -142,7 +149,7 @@ func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) ([]g
 			continue
 		}
 
-		if pkg.ReadOnly() {
+		if pkg.ReadOnly() && !(len(includeReadOnly) > 0 && includeReadOnly[0]) {
 			continue
 		}
 
@@ -174,7 +181,7 @@ func checkGeneratedGameTypes(generated []generatedGameTypeFile) error {
 	}
 	sort.Strings(stale)
 	if len(stale) > 0 {
-		return fmt.Errorf("%s", strings.Join(stale, ", "))
+		return staleGeneratedClientContracts(strings.Join(stale, ", "))
 	}
 	return nil
 }
@@ -355,7 +362,7 @@ func installGeneratedGameTypes(generated []generatedGameTypeFile) error {
 		generated[i].tempPath = ""
 		generated[i].installed = true
 		if generated[i].gameFields != 0 || generated[i].playerFields != 0 {
-			fmt.Printf("  Generated %s/client/_types.ts and _game_renderer.ts (%d game fields, %d player fields)\n", generated[i].gameName, generated[i].gameFields, generated[i].playerFields)
+			fmt.Fprintf(os.Stderr, "  Generated %s/client/_types.ts and _game_renderer.ts (%d game fields, %d player fields)\n", generated[i].gameName, generated[i].gameFields, generated[i].playerFields)
 		}
 	}
 	for i := range generated {

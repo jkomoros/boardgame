@@ -10,6 +10,7 @@ import (
 
 	"github.com/bobziuchkovski/writ"
 	staticbuild "github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
 type checkClient struct {
@@ -27,9 +28,9 @@ func (c *checkClient) HelpText() string {
 	return c.Name() + ` runs the framework's pinned strict TypeScript checker once,
 then checks every configured game client in an isolated assembled package. It
 is fatal when any diagnostic is reported and is suitable for local and CI use.
-
-This first foundation checks TypeScript contracts. Generated-file freshness and
-Lit-aware authoring lint are separate follow-up slices and are not yet included.`
+It also verifies that move names, move inputs, expanded state types, and the
+bound renderer base are current without rewriting creator files. Lit-aware
+authoring lint is a separate follow-up slice.`
 }
 
 func (c *checkClient) WritOptions() []*writ.Option {
@@ -57,7 +58,39 @@ func (c *checkClient) Run(p writ.Path, positional []string) {
 		inputs = append(inputs, staticbuild.ClientCheckPackage{ImportPath: pkg.Import(), Name: pkg.Name(), ClientFolder: pkg.ClientFolder()})
 	}
 	report, err := staticbuild.CheckClient(frameworkDir, inputs)
+	if err == nil {
+		if freshnessErr := checkGeneratedClientContracts(c.Base(), packages); freshnessErr != nil {
+			if isStaleGeneratedClientContracts(freshnessErr) {
+				report = staticbuild.NewClientCheckResult(append(report.Diagnostics, staticbuild.ClientDiagnostic{
+					Source: "boardgame", Code: "BGCLIENT0002", Severity: "error",
+					Message: freshnessErr.Error(), Remediation: "Run boardgame-util emit-types and commit every generated client contract.",
+				}))
+			} else {
+				err = fmt.Errorf("BGCLIENT0001: generated-contract extraction or validation failed: %w", freshnessErr)
+			}
+		}
+	}
 	c.finish(report, err)
+}
+
+func checkGeneratedClientContracts(base *boardgameUtil, packages []*gamepkg.Pkg) error {
+	generated, err := generateGameTypesForPackages(base, packages, true)
+	if err != nil {
+		return fmt.Errorf("couldn't extract generated state contracts: %w", err)
+	}
+	if err := emitMoveNamesForPackages(base, packages, true); err != nil {
+		return err
+	}
+	if err := emitMoveArgsForPackages(base, packages, true); err != nil {
+		return err
+	}
+	if err := validateGeneratedGameTypesTypeScript(generated); err != nil {
+		return err
+	}
+	if err := checkGeneratedGameTypes(generated); err != nil {
+		return fmt.Errorf("generated state/renderer contracts are stale: %w", err)
+	}
+	return nil
 }
 
 func (c *checkClient) finish(report staticbuild.ClientCheckReport, infrastructureErr error) {

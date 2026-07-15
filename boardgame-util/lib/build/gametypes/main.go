@@ -360,15 +360,15 @@ func main() {
 		storage := memorystorage.NewStorageManager()
 		manager, err := boardgame.NewGameManager(entry.delegate, storage)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: couldn't create manager for %s: %v\n", entry.delegate.Name(), err)
-			continue
+			fmt.Fprintf(os.Stderr, "Error: couldn't create manager for %s: %v\n", entry.delegate.Name(), err)
+			os.Exit(1)
 		}
 
 		// Use ExampleState for fully inflated state (enum vals know their enums)
 		exampleState := manager.ExampleState()
 		if exampleState == nil {
-			fmt.Fprintf(os.Stderr, "Warning: ExampleState() returned nil for %s, skipping\n", entry.delegate.Name())
-			continue
+			fmt.Fprintf(os.Stderr, "Error: ExampleState() returned nil for %s\n", entry.delegate.Name())
+			os.Exit(1)
 		}
 
 		// discoveredEnums collects enum definitions found via runtime resolution

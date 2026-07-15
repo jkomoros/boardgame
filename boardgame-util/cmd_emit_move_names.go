@@ -77,6 +77,7 @@ they are regenerated each time but should be committed to source control.`
 // client/ directory. It is used by both the emit-move-names command and the
 // serve command.
 func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ...bool) error {
+	checkOnly := len(check) > 0 && check[0]
 
 	dir, err := ioutil.TempDir(".", "temp_movenames_")
 	if err != nil {
@@ -84,15 +85,22 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 	}
 	defer func() {
 		if removeErr := os.RemoveAll(dir); removeErr != nil {
-			fmt.Printf("Warning: couldn't clean up temp dir %s: %v\n", dir, removeErr)
+			fmt.Fprintf(os.Stderr, "Warning: couldn't clean up temp dir %s: %v\n", dir, removeErr)
 		}
 	}()
 
-	fmt.Println("Extracting move names from game packages")
+	fmt.Fprintln(os.Stderr, "Extracting move names from game packages")
 	results, err := movenames.Build(dir, pkgs)
 
 	if err != nil {
 		return fmt.Errorf("couldn't build move names: %w", err)
+	}
+	resultImports := make([]string, 0, len(results))
+	for _, result := range results {
+		resultImports = append(resultImports, result.ImportPath)
+	}
+	if err := validateClientExtractionResults(pkgs, resultImports, "move-name"); err != nil {
+		return err
 	}
 
 	// Build a map from import path to pkg for quick lookup
@@ -105,7 +113,7 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 	for _, result := range results {
 		pkg, ok := pkgByImport[result.ImportPath]
 		if !ok {
-			fmt.Printf("Warning: no package found for import path %s, skipping\n", result.ImportPath)
+			fmt.Fprintf(os.Stderr, "Warning: no package found for import path %s, skipping\n", result.ImportPath)
 			continue
 		}
 
@@ -113,7 +121,7 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 			continue
 		}
 
-		if pkg.ReadOnly() {
+		if pkg.ReadOnly() && !checkOnly {
 			continue
 		}
 
@@ -122,7 +130,7 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 			gameName: result.PackageName, moves: len(result.MoveNames),
 		})
 	}
-	return installGeneratedMoveNames(generated, len(check) > 0 && check[0])
+	return installGeneratedMoveNames(generated, checkOnly)
 }
 
 func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) error {
@@ -136,7 +144,7 @@ func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) e
 			}
 		}
 		if len(stale) > 0 {
-			return fmt.Errorf("generated move-name contracts are stale: %s", strings.Join(stale, ", "))
+			return staleGeneratedClientContracts(fmt.Sprintf("generated move-name contracts are stale: %s", strings.Join(stale, ", ")))
 		}
 		return nil
 	}
@@ -144,7 +152,7 @@ func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) e
 		if err := os.WriteFile(file.path, file.contents, 0644); err != nil {
 			return fmt.Errorf("couldn't write _move_names.ts for %s: %w", file.gameName, err)
 		}
-		fmt.Printf("  Generated %s/client/_move_names.ts (%d moves)\n", file.gameName, file.moves)
+		fmt.Fprintf(os.Stderr, "  Generated %s/client/_move_names.ts (%d moves)\n", file.gameName, file.moves)
 	}
 	return nil
 }

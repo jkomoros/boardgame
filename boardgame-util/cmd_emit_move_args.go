@@ -90,15 +90,22 @@ func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check boo
 	}
 	defer func() {
 		if removeErr := os.RemoveAll(dir); removeErr != nil {
-			fmt.Printf("Warning: couldn't clean up temp dir %s: %v\n", dir, removeErr)
+			fmt.Fprintf(os.Stderr, "Warning: couldn't clean up temp dir %s: %v\n", dir, removeErr)
 		}
 	}()
 
-	fmt.Println("Extracting move field info from game packages")
+	fmt.Fprintln(os.Stderr, "Extracting move field info from game packages")
 	results, err := moveargs.Build(dir, pkgs)
 
 	if err != nil {
 		return fmt.Errorf("couldn't build move args: %w", err)
+	}
+	resultImports := make([]string, 0, len(results))
+	for _, result := range results {
+		resultImports = append(resultImports, result.ImportPath)
+	}
+	if err := validateClientExtractionResults(pkgs, resultImports, "move-input"); err != nil {
+		return err
 	}
 
 	// Build a map from import path to pkg for quick lookup
@@ -111,7 +118,7 @@ func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check boo
 	for _, result := range results {
 		pkg, ok := pkgByImport[result.ImportPath]
 		if !ok {
-			fmt.Printf("Warning: no package found for import path %s, skipping\n", result.ImportPath)
+			fmt.Fprintf(os.Stderr, "Warning: no package found for import path %s, skipping\n", result.ImportPath)
 			continue
 		}
 
@@ -119,7 +126,7 @@ func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check boo
 			continue
 		}
 
-		if pkg.ReadOnly() {
+		if pkg.ReadOnly() && !check {
 			continue
 		}
 		if err := moveargs.ValidateTypeScriptSchema(result.Moves); err != nil {
@@ -225,9 +232,9 @@ func installGeneratedMoveArgs(generated []generatedMoveArgsFile, check bool) err
 			}
 		}
 		if len(stale) > 0 {
-			return fmt.Errorf("generated move-input contracts are stale: %s", strings.Join(stale, ", "))
+			return staleGeneratedClientContracts(fmt.Sprintf("generated move-input contracts are stale: %s", strings.Join(stale, ", ")))
 		}
-		fmt.Printf("Verified %d generated move-input contracts\n", len(generated))
+		fmt.Fprintf(os.Stderr, "Verified %d generated move-input contracts\n", len(generated))
 		return nil
 	}
 
@@ -269,7 +276,7 @@ func installGeneratedMoveArgs(generated []generatedMoveArgsFile, check bool) err
 			return fmt.Errorf("couldn't atomically replace _move_args.ts for %s: %w", generated[i].gameName, err)
 		}
 		generated[i].tempPath = ""
-		fmt.Printf("  Generated %s/client/_move_args.ts (%d moves)\n", generated[i].gameName, generated[i].moves)
+		fmt.Fprintf(os.Stderr, "  Generated %s/client/_move_args.ts (%d moves)\n", generated[i].gameName, generated[i].moves)
 	}
 
 	return nil
