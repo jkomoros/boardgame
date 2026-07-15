@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 
 type emitTypes struct {
 	baseSubCommand
+	Check bool
 }
 
 func (e *emitTypes) Run(p writ.Path, positional []string) {
@@ -34,20 +36,34 @@ func (e *emitTypes) Run(p writ.Path, positional []string) {
 	if err != nil {
 		e.Base().errAndQuit("Couldn't emit types: " + err.Error())
 	}
-	if err := emitMoveNamesForPackages(e.Base(), pkgs); err != nil {
+	if err := emitMoveNamesForPackages(e.Base(), pkgs, e.Check); err != nil {
 		e.Base().errAndQuit("Couldn't emit move names required by client contracts: " + err.Error())
 	}
-	if err := emitMoveArgsForPackages(e.Base(), pkgs, false); err != nil {
+	if err := emitMoveArgsForPackages(e.Base(), pkgs, e.Check); err != nil {
 		e.Base().errAndQuit("Couldn't emit move inputs required by client contracts: " + err.Error())
 	}
 	if err := validateGeneratedGameTypesTypeScript(generated); err != nil {
 		e.Base().errAndQuit("Couldn't validate generated client contracts: " + err.Error())
 	}
-	if err := installGeneratedGameTypes(generated); err != nil {
-		e.Base().errAndQuit("Couldn't install generated client contracts: " + err.Error())
+	if e.Check {
+		if err := checkGeneratedGameTypes(generated); err != nil {
+			e.Base().errAndQuit("Generated client contracts are stale: " + err.Error())
+		}
+	} else {
+		if err := installGeneratedGameTypes(generated); err != nil {
+			e.Base().errAndQuit("Couldn't install generated client contracts: " + err.Error())
+		}
 	}
 
-	fmt.Println("Successfully generated client contract files")
+	if e.Check {
+		fmt.Println("Generated client contract files are current")
+	} else {
+		fmt.Println("Successfully generated client contract files")
+	}
+}
+
+func (e *emitTypes) WritOptions() []*writ.Option {
+	return []*writ.Option{{Names: []string{"check"}, Description: "Verify every generated client contract is current without writing files.", Decoder: writ.NewFlagDecoder(&e.Check), Flag: true}}
 }
 
 func (e *emitTypes) Name() string {
@@ -146,6 +162,21 @@ type generatedGameTypeFile struct {
 	contents                             []byte
 	gameFields, playerFields             int
 	hadOriginal, installed               bool
+}
+
+func checkGeneratedGameTypes(generated []generatedGameTypeFile) error {
+	var stale []string
+	for _, file := range generated {
+		current, err := os.ReadFile(file.path)
+		if err != nil || !bytes.Equal(current, file.contents) {
+			stale = append(stale, file.path)
+		}
+	}
+	sort.Strings(stale)
+	if len(stale) > 0 {
+		return fmt.Errorf("%s", strings.Join(stale, ", "))
+	}
+	return nil
 }
 
 func validateGeneratedGameTypesTypeScript(generated []generatedGameTypeFile) error {

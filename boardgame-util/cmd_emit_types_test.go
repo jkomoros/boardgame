@@ -35,6 +35,27 @@ func TestInstallGeneratedGameTypesPreservesOldFilesWhenStagingFails(t *testing.T
 	}
 }
 
+func TestCheckGeneratedGameTypesIsNonMutating(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "_types.ts")
+	if err := os.WriteFile(path, []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkGeneratedGameTypes([]generatedGameTypeFile{{path: path, contents: []byte("new")}}); err == nil {
+		t.Fatal("checkGeneratedGameTypes() succeeded for stale output")
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != "old" {
+		t.Fatalf("freshness check mutated output: %q", contents)
+	}
+	if err := checkGeneratedGameTypes([]generatedGameTypeFile{{path: path, contents: []byte("old")}}); err != nil {
+		t.Fatalf("current output failed check: %v", err)
+	}
+}
+
 func TestInstallGeneratedGameTypesReportsAndPreservesFailedRestore(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "client")
 	if err := os.MkdirAll(dir, 0700); err != nil {
