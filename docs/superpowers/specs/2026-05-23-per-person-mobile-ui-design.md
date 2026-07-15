@@ -567,18 +567,18 @@ Outbound socket frames for the client (two frames, in this order):
 { "type": "version-timing",  "data": { "version": 42, "serverSentAt": 1779712345678, "serverPlayAt": 1779712346178, "slotDurationMs": 800, "maxAnimationDurationMs": 600 } }
 ```
 
-The first slot after an idle period is `serverSentAt + 500ms`. Rapid consecutive versions reserve monotonically increasing 800ms slots: at most 600ms of synchronized motion plus 200ms to render and pre-arm the next queued state. The timing frame declares both values so this is an explicit protocol policy, not a transport-layer guess about current CSS. A reconnect to the current version reuses its existing reserved slot.
+The first slot after an idle period is `serverSentAt + 500ms`. Rapid consecutive versions reserve monotonically increasing 800ms slots: at most 600ms of synchronized motion plus 200ms to render and pre-arm the next queued state. The timing frame declares both values so this is an explicit protocol policy, not a transport-layer guess about current CSS. Registration sends the newer of its handshake snapshot and the notifier's retained lane version, reusing that version's reserved slot; this also covers a move committed while the socket was registering.
 
-New clients that handle `"version-timing"` index it by `(gameID, version)`, rather than retaining a global latest value. If `"version-timing"` doesn't arrive within 200ms after `"version"` (e.g., legacy server), the client falls back to "play immediately on state-fetch" — graceful degradation.
+New clients that handle `"version-timing"` index it by `(gameID, version)`, rather than retaining a global latest value. If a complete, valid `"version-timing"` frame doesn't arrive within 200ms after `"version"`, the client falls back to "play immediately on state-fetch". Raw legacy version notifications still fetch state, but do not provide synchronized timing.
 
 Client logic on receipt:
 
 1. On socket open, send three `clock-sync` request/reply rounds. Compute each clock offset from the request/response midpoint and retain the offset from the lowest-round-trip sample.
-2. Record `localRxMs = Date.now()` (epoch ms) immediately for each timing frame. Legacy servers without clock-sync replies may still warm the older minimum one-way fallback from these frames.
+2. Record `localRxMs = Date.now()` (epoch ms) immediately for each complete timing-policy frame. When clock-sync replies are unavailable, these frames may still warm the minimum one-way fallback; older timing frames that omit the slot policy are invalid rather than partially interpreted.
 3. Compute the local equivalent of that version's `serverPlayAt` from the midpoint offset. Carry it with that version's state bundle; never substitute a later version's timing.
-4. Fire the HTTP state-fetch in parallel. The state manager installs each queued bundle before its resolved slot; delayed WAAPI uses backwards fill to hold the source pose and launch from the compositor timeline. The shared animator uses that slot by default for `animateBetween`, including game-authored bespoke flights; `{ timing: 'immediate' }` is the explicit local-only escape hatch.
+4. Fire the HTTP state-fetch in parallel. The state manager installs each queued bundle in its preparation window; delayed WAAPI uses backwards fill to hold the source pose and launch from the compositor timeline. The common animation primitive applies that slot to ordinary FLIP/property effects as well as `animateBetween`, including game-authored bespoke flights; `{ timing: 'immediate' }` is the explicit local-only escape hatch for the latter.
 
-If the target is more than one slot stale, implausibly far in the future, or fewer than three samples have been collected, the timing context is discarded and animation plays immediately.
+If the target has no visible-motion budget left, is implausibly far in the future, or fewer than three samples have been collected, the timing context is discarded and animation plays immediately. A merely late target has its remaining duration shortened so it still ends inside its slot.
 
 **Documented limitations**:
 - Strongly asymmetric request/response routes can still bias midpoint estimation by half the asymmetry.

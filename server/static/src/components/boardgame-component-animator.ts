@@ -3,6 +3,7 @@ import { query } from 'lit/decorators.js';
 import './boardgame-component-stack.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
+import { usableAnimationContext } from './companion-sync.js';
 import type { VersionAnimationContext } from './companion-sync.js';
 
 export type AnimationTimingPolicy =
@@ -133,6 +134,7 @@ export class BoardgameComponentAnimator extends LitElement {
       const components = collections[i].Components;
       for (let j = 0; j < components.length; j++) {
         const c = components[j];
+        c.animationContext = this.animationContext;
         if (typeof c.finishAllAnimations === 'function') c.finishAllAnimations();
       }
     }
@@ -294,10 +296,10 @@ export class BoardgameComponentAnimator extends LitElement {
     const timing = opts?.timing ?? 'version';
     const now = Date.now();
     const candidateContext = timing === 'version' ? this.animationContext : null;
-    // A version context is scoped to its slot. Event-driven animation code
-    // running later must not inherit an ambient historical duration cap.
-    const context = candidateContext && now <= candidateContext.startAtMs + candidateContext.slotDurationMs
-      ? candidateContext
+    // A late launch may consume only the visible budget still remaining.
+    // Once that budget is gone the context is discarded completely.
+    const context = candidateContext
+      ? usableAnimationContext(candidateContext, now)
       : null;
     const startAtMs = timing === 'immediate'
       ? null
@@ -355,9 +357,18 @@ export class BoardgameComponentAnimator extends LitElement {
     // test uses) have no play() and keep the raw-element fallback below.
     if (typeof (real as any).play === 'function') {
       const anim = (real as any).play(real, keyframes,
-        { duration: effectiveDurationMs, delay, easing: 'ease-out', fill });
+        { duration: effectiveDurationMs, delay, easing: 'ease-out', fill },
+        { versionTiming: false, recordActive: false });
       // play() returns null under noAnimate; nothing is in flight then.
-      if (anim) await anim.finished.catch(() => {});
+      if (anim) {
+        await anim.finished.catch(() => {});
+        // The Animation promise and play()'s settlement bookkeeping are
+        // separate promise reactions. Do not resolve animateBetween until
+        // the latter has closed the render-game completion gate too.
+        if (typeof (real as any).settled === 'function') {
+          await (real as any).settled();
+        }
+      }
       if (playHookTimer !== null) window.clearTimeout(playHookTimer);
       return;
     }
@@ -721,11 +732,13 @@ export class BoardgameComponentAnimator extends LitElement {
         const component = components[j];
         if (component.id === '') continue;
         component.noAnimate = false;
+        component.animationContext = this.animationContext;
         allComponents.push(component);
       }
     }
     for (const ac of this._animatingComponents) {
       ac.component.noAnimate = false;
+      ac.component.animationContext = this.animationContext;
       allComponents.push(ac.component);
     }
 

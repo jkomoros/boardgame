@@ -74,10 +74,14 @@ test('clock sync uses the offset from the lowest-round-trip sample', () => {
   assert.equal(timeline.estimator.minOffset(), 60);
 });
 
-test('unusable future or stale targets discard the context completely', () => {
+test('future targets are bounded and late targets consume only remaining duration', () => {
   const base = { version: 4, slotDurationMs: 800, maxAnimationDurationMs: 600 };
   assert.equal(usableAnimationContext({ ...base, startAtMs: 11_001 }, 1_000, 10_000), null);
-  assert.equal(usableAnimationContext({ ...base, startAtMs: 199 }, 1_000, 10_000), null);
+  assert.equal(usableAnimationContext({ ...base, startAtMs: 400 }, 1_000, 10_000), null);
+  assert.deepEqual(
+    usableAnimationContext({ ...base, startAtMs: 500 }, 1_000, 10_000),
+    { ...base, startAtMs: 500, maxAnimationDurationMs: 100 },
+  );
   assert.deepEqual(
     usableAnimationContext({ ...base, startAtMs: 1_500 }, 1_000, 10_000),
     { ...base, startAtMs: 1_500 },

@@ -21,16 +21,17 @@ func newTestNotifier(t *testing.T) *versionNotifier {
 	// stay zero. newVersionNotifier reads s.server.logger.
 	srv := &Server{logger: logrus.New()}
 	v := &versionNotifier{
-		sockets:       map[string]map[*socket]bool{},
-		register:      make(chan *socket),
-		unregister:    make(chan *socket),
-		notifyVersion: make(chan gameVersionChanged),
-		notifyChat:    make(chan chatBroadcast),
-		heartbeat:     make(chan heartbeatRecord, 4),
-		doneChan:      make(chan bool),
-		server:        srv,
-		lastHeartbeat: map[string]map[boardgame.PlayerIndex]time.Time{},
-		absent:        map[string]map[boardgame.PlayerIndex]bool{},
+		sockets:           map[string]map[*socket]bool{},
+		register:          make(chan *socket),
+		unregister:        make(chan *socket),
+		notifyVersion:     make(chan gameVersionChanged),
+		notifyChat:        make(chan chatBroadcast),
+		heartbeat:         make(chan heartbeatRecord, 4),
+		doneChan:          make(chan bool),
+		server:            srv,
+		lastHeartbeat:     map[string]map[boardgame.PlayerIndex]time.Time{},
+		absent:            map[string]map[boardgame.PlayerIndex]bool{},
+		animationLaneTail: map[string]animationLaneEntry{},
 	}
 	return v
 }

@@ -47,8 +47,14 @@ export function usableAnimationContext(
 ): VersionAnimationContext | null {
   const untilStart = context.startAtMs - localNow;
   if (untilStart > maxFutureWaitMs) return null;
-  if (untilStart < -context.slotDurationMs) return null;
-  return context;
+  const lateness = Math.max(0, -untilStart);
+  const remainingDuration = context.maxAnimationDurationMs - lateness;
+  // A late client may still join the shared cycle, but it must only consume
+  // the part of the visible-animation budget that remains. Starting a fresh
+  // full-duration effect here would spill into the next version's slot.
+  if (remainingDuration <= 0) return null;
+  if (remainingDuration === context.maxAnimationDurationMs) return context;
+  return { ...context, maxAnimationDurationMs: remainingDuration };
 }
 
 export class CompanionSyncEstimator {
@@ -76,7 +82,8 @@ export class CompanionSyncEstimator {
       return this.clockSamples.reduce((best, sample) =>
         sample.roundTrip < best.roundTrip ? sample : best).offset;
     }
-    // Backward-compatible fallback for servers without clock-sync replies.
+    // One-way fallback when timing-policy frames are available but the
+    // optional clock-sync exchange has not produced enough samples yet.
     if (this.oneWaySamples.length < this.minSamplesForEstimate) return null;
     return Math.min(...this.oneWaySamples);
   }

@@ -271,19 +271,42 @@ test.describe('cross-screen synced auto-fly', () => {
       ]);
       await hit.click();
 
-      const readFly = async (page: typeof table) => {
-        await page.waitForFunction(() => (window as any).__bgAnimTestHooks.log.some(
-          (entry: any) => entry.ev === 'play' && entry.detail?.startsWith('fly:'),
-        ), undefined, { timeout: 15000 });
-        return page.evaluate(() => {
-          const entry = (window as any).__bgAnimTestHooks.log.find(
+      const readCycle = async (page: typeof table) => {
+        await page.waitForFunction((fnSrc) => {
+          // eslint-disable-next-line no-eval
+          const deepQueryFirst = eval(`(${fnSrc})`);
+          const hooks = (window as any).__bgAnimTestHooks.log;
+          const renderGame = deepQueryFirst(document, 'boardgame-render-game') as any;
+          return hooks.some((entry: any) => entry.ev === 'play' && entry.detail?.startsWith('fly:'))
+            && hooks.some((entry: any) => entry.ev === 'active')
+            && Number.isFinite(renderGame?.animationContext?.startAtMs);
+        }, `(${deepQueryFirstScript.toString()})()`, { timeout: 15000 });
+        return page.evaluate((fnSrc) => {
+          // eslint-disable-next-line no-eval
+          const deepQueryFirst = eval(`(${fnSrc})`);
+          const hooks = (window as any).__bgAnimTestHooks.log;
+          const fly = hooks.find(
             (item: any) => item.ev === 'play' && item.detail?.startsWith('fly:'),
           );
-          return performance.timeOrigin + entry.t;
-        });
+          const ordinary = hooks.find((item: any) => item.ev === 'active');
+          const renderGame = deepQueryFirst(document, 'boardgame-render-game') as any;
+          return {
+            targetAt: renderGame.animationContext.startAtMs,
+            flyAt: performance.timeOrigin + fly.t,
+            ordinaryAt: performance.timeOrigin + ordinary.t,
+          };
+        }, `(${deepQueryFirstScript.toString()})()`);
       };
-      const [tableStart, handStart] = await Promise.all([readFly(table), readFly(hand)]);
-      expect(Math.abs(tableStart - handStart)).toBeLessThan(250);
+      const [tableCycle, handCycle] = await Promise.all([readCycle(table), readCycle(hand)]);
+      expect(Math.abs(tableCycle.flyAt - handCycle.flyAt)).toBeLessThan(250);
+      expect(Math.abs(tableCycle.ordinaryAt - handCycle.ordinaryAt)).toBeLessThan(250);
+      for (const cycle of [tableCycle, handCycle]) {
+        // Cross-screen flights and the ordinary FLIP/property pipeline must
+        // each launch near their own page's clock-converted server target.
+        // Merely being equally immediate on both pages cannot pass this.
+        expect(Math.abs(cycle.flyAt - cycle.targetAt)).toBeLessThan(250);
+        expect(Math.abs(cycle.ordinaryAt - cycle.targetAt)).toBeLessThan(250);
+      }
     } finally {
       await tableCtx.close();
       await handCtx.close();
@@ -419,6 +442,17 @@ test.describe('verdict gating on animation completion', () => {
       const h = (window as any).__bgAnimTestHooks;
       return h.gateCloses >= h.gateOpens;
     }, undefined, { timeout: 20000 });
+    // The initial info install can close one cycle immediately before a
+    // queued automatic bundle opens the next. Require a short quiet period so
+    // that unrelated state-cycle reset cannot overwrite this isolated probe's
+    // gate while its flight is running.
+    await page.waitForTimeout(500);
+    await page.waitForFunction((fnSrc: string) => {
+      // eslint-disable-next-line no-eval
+      const deepQueryFirst = eval(`(${fnSrc})`);
+      const rg = deepQueryFirst(document, 'boardgame-render-game') as any;
+      return rg && !rg.hasAttribute('is-animating');
+    }, `(${deepQueryFirstScript.toString()})()`, { timeout: 20000 });
 
     // The wrapper mounts before the game-specific renderer has necessarily
     // stamped its first card. Wait for the actual test prerequisites rather
@@ -448,6 +482,14 @@ test.describe('verdict gating on animation completion', () => {
         return { setupOk: false, hasPlay: false, midFlightAnimating: null, afterAnimating: null };
       }
       const hasPlay = typeof (card as any).play === 'function';
+
+      // The counter-based page baseline can become quiescent a microtask
+      // before this particular card's settlement bookkeeping. Make the probe
+      // itself independent of any initial-deal animation still owned by the
+      // card; otherwise its pre-existing gated count can prevent this flight
+      // from emitting a fresh will-animate/animation-done pair.
+      (card as any).finishAllAnimations();
+      await (card as any).settled();
 
       // Open the completion gate exactly as a state-change cycle would, so
       // there is a live gate for the flight to hold. (_resetAnimating is

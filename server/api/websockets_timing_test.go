@@ -83,6 +83,49 @@ func TestRegisterSocketReusesCurrentVersionLaneTiming(t *testing.T) {
 	}
 }
 
+func TestRegisterSocketCatchesUpPastHandshakeSnapshot(t *testing.T) {
+	v := newTestNotifier(t)
+	v.animationLaneTail["game"] = animationLaneEntry{version: 43, serverPlayAt: 4_500}
+	s := &socket{gameID: "game", initialVersion: 42, send: make(chan socketFrameBatch, 1)}
+	v.registerSocket(s)
+
+	batch := <-s.send
+	var version socketMessage
+	if err := json.Unmarshal(batch[0], &version); err != nil {
+		t.Fatal(err)
+	}
+	var timing socketMessage
+	if err := json.Unmarshal(batch[1], &timing); err != nil {
+		t.Fatal(err)
+	}
+	data := timing.Data.(map[string]interface{})
+	if version.Data.(float64) != 43 || data["version"].(float64) != 43 ||
+		data["serverPlayAt"].(float64) != 4_500 {
+		t.Fatalf("register sent stale handshake version: version=%#v timing=%#v", version, timing)
+	}
+}
+
+func TestNotificationWithoutListenersStillCatchesUpRegistration(t *testing.T) {
+	v := newTestNotifier(t)
+	go v.workLoop()
+	t.Cleanup(func() { v.done() })
+
+	// Both channels are unbuffered. Once the registration send is accepted,
+	// workLoop has necessarily finished reserving the preceding notification.
+	v.notifyVersion <- gameVersionChanged{ID: "game", Version: 43}
+	s := &socket{gameID: "game", initialVersion: 42, send: make(chan socketFrameBatch, 1)}
+	v.register <- s
+	batch := <-s.send
+
+	var version socketMessage
+	if err := json.Unmarshal(batch[0], &version); err != nil {
+		t.Fatal(err)
+	}
+	if version.Data.(float64) != 43 {
+		t.Fatalf("register sent version %v, want notification's 43", version.Data)
+	}
+}
+
 func TestSendMessageEnqueuesVersionAndTimingAtomically(t *testing.T) {
 	s := &socket{send: make(chan socketFrameBatch, 1)}
 	s.SendMessage([]byte("version"), []byte("timing"))

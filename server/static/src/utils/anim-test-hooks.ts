@@ -17,7 +17,7 @@ class AnimHooks {
   settles = 0;
   log: AnimHookEntry[] = [];
 
-  record(ev: 'gate-open' | 'gate-close' | 'watchdog' | 'play' | 'settle', detail?: string) {
+  record(ev: 'gate-open' | 'gate-close' | 'watchdog' | 'play' | 'active' | 'settle', detail?: string) {
     switch (ev) {
       case 'gate-open': this.gateOpens++; break;
       case 'gate-close': this.gateCloses++; break;

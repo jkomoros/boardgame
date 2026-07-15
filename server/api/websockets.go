@@ -469,23 +469,26 @@ func (v *versionNotifier) workLoop() {
 				"ID":      rec.ID,
 				"Version": rec.Version,
 			})
-			//Send message
+			// Reserve the authoritative lane even when nobody is listening.
+			// A socket whose handshake started just before this notification
+			// may register just after it and must catch up to this version rather
+			// than receive its stale handshake snapshot.
+			tail, hasTail := v.animationLaneTail[rec.ID]
+			now := time.Now().UnixMilli()
+			reserved, shouldBroadcast := reserveAnimationLane(now, rec.Version, tail, hasTail)
+			if !shouldBroadcast {
+				v.server.logger.Warnln("Ignoring regressing socket version", logrus.Fields{
+					"ID": rec.ID, "Version": rec.Version, "LaneVersion": tail.version,
+				})
+				continue
+			}
+			v.animationLaneTail[rec.ID] = reserved
+
 			bucket, ok := v.sockets[rec.ID]
 			if ok {
-				tail, hasTail := v.animationLaneTail[rec.ID]
-				now := time.Now().UnixMilli()
-				reserved, shouldBroadcast := reserveAnimationLane(now, rec.Version, tail, hasTail)
-				if !shouldBroadcast {
-					v.server.logger.Warnln("Ignoring regressing socket version", logrus.Fields{
-						"ID": rec.ID, "Version": rec.Version, "LaneVersion": tail.version,
-					})
-					continue
-				}
-				//Someone's listening! Marshal once; every socket gets
-				//byte-identical frames (and one shared serverPlayAt).
-				v.animationLaneTail[rec.ID] = reserved
-				playAt := reserved.serverPlayAt
-				versionData, timingData := marshalVersionFrames(rec.Version, now, playAt)
+				// Someone's listening! Marshal once; every socket gets
+				// byte-identical frames (and one shared serverPlayAt).
+				versionData, timingData := marshalVersionFrames(rec.Version, now, reserved.serverPlayAt)
 				for socket := range bucket {
 					socket.SendMessage(versionData, timingData)
 				}
@@ -531,6 +534,7 @@ func (v *versionNotifier) workLoop() {
 // without locking.
 func (v *versionNotifier) scanStaleHeartbeats() {
 	cutoff := time.Now().Add(-absentThreshold)
+	laneCutoffMS := time.Now().Add(-5 * time.Minute).UnixMilli()
 	changedGames := make(map[string]bool)
 	var gamesToEvict []string
 
@@ -571,9 +575,18 @@ func (v *versionNotifier) scanStaleHeartbeats() {
 
 	for _, gameID := range gamesToEvict {
 		delete(v.lastHeartbeat, gameID)
+		delete(v.animationLaneTail, gameID)
 		v.absentMu.Lock()
 		delete(v.absent, gameID)
 		v.absentMu.Unlock()
+	}
+	// Lane entries also exist for notifications that arrived with no sockets,
+	// and therefore may have no heartbeat map to drive the eviction above.
+	// Retain them long enough for ordinary reconnects, then bound the map.
+	for gameID, tail := range v.animationLaneTail {
+		if _, hasSockets := v.sockets[gameID]; !hasSockets && tail.serverPlayAt < laneCutoffMS {
+			delete(v.animationLaneTail, gameID)
+		}
 	}
 
 	for gameID := range changedGames {
@@ -715,15 +728,29 @@ func (v *versionNotifier) registerSocket(s *socket) {
 
 	bucket[s] = true
 
-	// Catch-up must reuse the canonical target if this is the version already
-	// at the tail of the lane. Giving a reconnecting phone a fresh now+lead
-	// target would desynchronize it from a table still waiting for that slot.
+	// Catch-up uses whichever is newer: the handshake's storage snapshot or
+	// the lane version already observed by workLoop. This closes the race where
+	// a move commits between newSocket's snapshot and this registration.
 	now := time.Now().UnixMilli()
+	version := s.initialVersion
+	tail, hasTail := v.animationLaneTail[s.gameID]
+	if hasTail && tail.version >= version {
+		version = tail.version
+	} else {
+		// Storage may be ahead of the notifier after startup. Make that
+		// snapshot canonical so later registrations reuse the same target.
+		var ok bool
+		tail, ok = reserveAnimationLane(now, version, tail, hasTail)
+		if ok {
+			v.animationLaneTail[s.gameID] = tail
+			hasTail = true
+		}
+	}
 	playAt := now + animationLeadMS
-	if tail, ok := v.animationLaneTail[s.gameID]; ok && tail.version == s.initialVersion {
+	if hasTail {
 		playAt = tail.serverPlayAt
 	}
-	versionData, timingData := marshalVersionFrames(s.initialVersion, now, playAt)
+	versionData, timingData := marshalVersionFrames(version, now, playAt)
 	s.SendMessage(versionData, timingData)
 }
 
@@ -748,6 +775,5 @@ func (v *versionNotifier) unregisterSocket(s *socket) {
 	// the lastHeartbeat/absent maps leak unboundedly.
 	if len(bucket) == 0 {
 		delete(v.sockets, s.gameID)
-		delete(v.animationLaneTail, s.gameID)
 	}
 }

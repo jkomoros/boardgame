@@ -1,12 +1,28 @@
 import { LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
+import { usableAnimationContext } from './companion-sync.js';
+import type { VersionAnimationContext } from './companion-sync.js';
+
+interface PlayOptions {
+  gated?: boolean;
+  /** Internal: animateBetween has already resolved its explicit timing policy. */
+  versionTiming?: boolean;
+  /** Internal: animateBetween records its more specific fly launch hook. */
+  recordActive?: boolean;
+}
 
 export class BoardgameAnimatableItem extends LitElement {
   @property({ type: Boolean })
   noAnimate = false;
 
+  // Installed by the shared animator for the state version currently being
+  // rendered. Keeping this on the common play primitive makes ordinary FLIP
+  // and property animations participate without game-renderer plumbing.
+  animationContext: VersionAnimationContext | null = null;
+
   private _liveAnimations = new Set<Animation>();
+  private _activeHookTimers = new Map<Animation, number>();
   private _liveGatedCount = 0;
   private _settledResolvers: Array<() => void> = [];
 
@@ -58,7 +74,7 @@ export class BoardgameAnimatableItem extends LitElement {
   // completion is the returned Animation's settlement — there is nothing
   // to guess (spec: WAAPI rewrite).
   play(element: HTMLElement, keyframes: Keyframe[], timing?: OptionalEffectTiming,
-       opts?: { gated?: boolean }): Animation | null {
+       opts?: PlayOptions): Animation | null {
     if (this.noAnimate) return null;
     const gated = (opts?.gated ?? true) && this.waitForAnimation;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -68,6 +84,24 @@ export class BoardgameAnimatableItem extends LitElement {
       fill: 'none',
       ...timing,
     };
+    if (opts?.versionTiming !== false && this.animationContext) {
+      const now = Date.now();
+      const context = usableAnimationContext(this.animationContext, now);
+      if (context) {
+        const numeric = (value: unknown): number =>
+          typeof value === 'number' && isFinite(value) ? value : 0;
+        const localDelay = Math.max(0, numeric(resolvedTiming.delay));
+        const untilStart = Math.max(0, context.startAtMs - now);
+        const requestedDuration = Math.max(0, numeric(resolvedTiming.duration));
+        const availableDuration = Math.max(0,
+          context.maxAnimationDurationMs - localDelay);
+        resolvedTiming.delay = untilStart + localDelay;
+        resolvedTiming.duration = Math.min(requestedDuration, availableDuration);
+        // Hold the opening (inverted/property-before) frame while waiting for
+        // the shared target, including any per-stack stagger after it.
+        if (numeric(resolvedTiming.delay) > 0) resolvedTiming.fill = 'backwards';
+      }
+    }
     // endDelay (post-animation-delay) intentionally still applies under
     // prefers-reduced-motion: it's gameplay pacing (letting a matched pair
     // linger before capture), not motion, so honoring it is correct even
@@ -95,6 +129,19 @@ export class BoardgameAnimatableItem extends LitElement {
       }
     }
     animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
+    if (opts?.recordActive !== false) {
+      const detail = this.tagName.toLowerCase() + (this.id ? `#${this.id}` : '');
+      const delay = typeof resolvedTiming.delay === 'number' ? resolvedTiming.delay : 0;
+      if (delay > 0) {
+        const timer = window.setTimeout(() => {
+          this._activeHookTimers.delete(anim);
+          animHooks.record('active', detail);
+        }, delay);
+        this._activeHookTimers.set(anim, timer);
+      } else {
+        animHooks.record('active', detail);
+      }
+    }
     // finished rejects on cancel(); both paths are settlement for us.
     anim.finished.catch(() => {}).finally(() => this._animationSettled(anim, gated));
     return anim;
@@ -102,6 +149,11 @@ export class BoardgameAnimatableItem extends LitElement {
 
   private _animationSettled(anim: Animation, gated: boolean) {
     if (!this._liveAnimations.delete(anim)) return; // already accounted
+    const activeTimer = this._activeHookTimers.get(anim);
+    if (activeTimer !== undefined) {
+      window.clearTimeout(activeTimer);
+      this._activeHookTimers.delete(anim);
+    }
     animHooks.record('settle', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
     if (!gated) return;
     this._liveGatedCount--;

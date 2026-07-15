@@ -742,10 +742,23 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
                 composed: true, bubbles: true, detail: effectiveAnimationLength,
               }));
             }
-            // Install and render BEFORE the target. animateBetween pre-arms a
-            // backwards-filled WAAPI delay so both surfaces can hand timing to
-            // the compositor rather than waking JS at the launch instant.
-            this._asyncFireNextStateBundle(effectiveAnimationLength, context, generation);
+            // Install only inside the protocol's preparation window. This is
+            // early enough to render and pre-arm backwards-filled WAAPI
+            // animations, without exposing the next logical state seconds
+            // before its visible cycle begins.
+            const preparationLeadMs = Math.max(0,
+              context.slotDurationMs - context.maxAnimationDurationMs);
+            const installDelayMs = Math.max(0,
+              context.startAtMs - preparationLeadMs - Date.now());
+            if (installDelayMs > 0) {
+              this._scheduledInstallTimerId = setTimeout(() => {
+                if (generation !== this._installScheduleGeneration) return;
+                this._scheduledInstallTimerId = null;
+                this._asyncFireNextStateBundle(effectiveAnimationLength, context, generation);
+              }, installDelayMs);
+            } else {
+              this._asyncFireNextStateBundle(effectiveAnimationLength, context, generation);
+            }
           } else {
             console.warn('[state-manager] version animation target is unusable; installing immediately');
             this._asyncFireNextStateBundle(effectiveAnimationLength, null, generation);
