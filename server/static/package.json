@@ -14,6 +14,8 @@
     "type-check": "tsc --noEmit",
     "type-check:strict": "tsc --noEmit -p tsconfig.strict.json",
     "type-check:strict-migration": "tsc --noEmit -p tsconfig.strict-migration.json",
+    "type-check:authoring": "node scripts/check-client.mjs --project tsconfig.authoring.json",
+    "test:check-client": "node --test scripts/check-client.test.mjs",
     "test:unit": "node --test 'src/**/*.test.ts'",
     "test:facade-production": "node tests/renderer/facade-production.mjs",
     "test": "npm run test:e2e",
