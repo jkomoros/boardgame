@@ -2,9 +2,12 @@ import '@material/web/button/filled-button.js';
 import { BoardgameBaseGameRenderer, html, css } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
+import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
 import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGamePig extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+class BoardgameRenderGamePig extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName, MoveInputs> {
+	protected override readonly moveInputSchema = generatedMoveInputSchema;
+	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

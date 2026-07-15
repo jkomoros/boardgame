@@ -5,6 +5,11 @@ import type { MovePreviewSpec } from '../legal/previewLegality.js';
 import type { FullGameState } from '../types/boardgame-types.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
+import {
+  creatorMoveInputFromLegacyStrings,
+  serializeCreatorMoveInputForServer,
+  type MoveInputSchema,
+} from '../moves/input.js';
 
 export class BoardgameBaseGameRenderer<
   GS extends object = Record<string, unknown>,
@@ -12,6 +17,13 @@ export class BoardgameBaseGameRenderer<
   MN extends string = string,
   MA extends Record<string, object> = Record<string, Record<string, unknown>>
 > extends LitElement {
+  /** Generated safe-input contract installed by a bound/game renderer. */
+  protected readonly moveInputSchema: MoveInputSchema | null = null;
+  protected readonly moveInputSchemaFingerprint: string | null = null;
+
+  /** Canonical fingerprint supplied by the current server /info response. */
+  @property({ type: String, attribute: false })
+  serverMoveInputSchemaFingerprint: string | null = null;
   @property({ type: Object })
   state: FullGameState<GS, PS> | null = null;
 
@@ -144,9 +156,9 @@ export class BoardgameBaseGameRenderer<
    * Usage in a game renderer:
    * ```
    * import { MoveNames, type MoveName } from './_move_names.js';
-   * import type { MoveArgs } from './_move_args.js';
+   * import type { MoveInputs } from './_move_args.js';
    *
-   * class MyRenderer extends BoardgameBaseGameRenderer<GS, PS, MoveName, MoveArgs> {
+   * class MyRenderer extends BoardgameBaseGameRenderer<GS, PS, MoveName, MoveInputs> {
    *   handleClick() {
    *     this.proposeMove(MoveNames.RevealCard, { CardIndex: 3 });
    *   }
@@ -155,18 +167,38 @@ export class BoardgameBaseGameRenderer<
    */
   proposeMove<K extends MN & string>(
     moveName: K,
-    args: K extends keyof MA ? MA[K] : Record<string, unknown>
+    ...args: K extends keyof MA
+      ? {} extends MA[K]
+        ? [args?: MA[K]]
+        : [args: MA[K]]
+      : [args: Record<string, unknown>]
   ): void {
+    this._proposeMoveNative(moveName, args[0] ?? {});
+  }
+
+  private _proposeMoveNative(moveName: string, nativeArgs: unknown): void {
     // Convert all values to strings for the server (form-encoded submission).
     // Booleans must be "1"/"0" (not "true"/"false") because the server uses
     // strconv.Atoi for boolean fields.
-    const stringArgs: Record<string, string> = {};
-    for (const [key, value] of Object.entries(args)) {
-      if (typeof value === 'boolean') {
-        stringArgs[key] = value ? '1' : '0';
-      } else {
-        stringArgs[key] = String(value);
+    let stringArgs: Readonly<Record<string, string>>;
+    if (this.moveInputSchema || this.moveInputSchemaFingerprint) {
+      if (!this.moveInputSchema || !this.moveInputSchemaFingerprint) {
+        throw new Error('Incomplete generated move-input contract on renderer');
       }
+      stringArgs = serializeCreatorMoveInputForServer(
+        this.moveInputSchema,
+        this.moveInputSchemaFingerprint,
+        this.serverMoveInputSchemaFingerprint,
+        moveName,
+        nativeArgs,
+      );
+    } else {
+      // Explicit legacy compatibility path for renderers not yet bound to a
+      // generated contract.
+      stringArgs = Object.fromEntries(Object.entries(nativeArgs as Record<string, unknown>).map(([key, value]) => [
+        key,
+        typeof value === 'boolean' ? (value ? '1' : '0') : String(value),
+      ]));
     }
     this.dispatchEvent(new CustomEvent('propose-move', {
       composed: true,
@@ -268,7 +300,7 @@ export class BoardgameBaseGameRenderer<
     if (!moveName) return;
 
     const data = ele.dataset;
-    const args: Record<string, string | undefined> = {};
+    const args: Record<string, string> = {};
 
     for (const key in data) {
       if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
@@ -277,14 +309,14 @@ export class BoardgameBaseGameRenderer<
       // Handle the case where the attribute was literally just data-arg
       if (!effectiveKey) continue;
       // The first character is now upperCase, which is desired as per Move field convention
-      args[effectiveKey] = data[key];
+      const value = data[key];
+      if (value !== undefined) args[effectiveKey] = value;
     }
 
-    this.dispatchEvent(new CustomEvent('propose-move', {
-      composed: true,
-      bubbles: true,
-      detail: { name: moveName, arguments: args }
-    }));
+    const nativeArgs = this.moveInputSchema
+      ? creatorMoveInputFromLegacyStrings(this.moveInputSchema, moveName, args)
+      : args;
+    this._proposeMoveNative(moveName, nativeArgs);
   }
 
   override render() {

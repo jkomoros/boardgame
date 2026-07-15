@@ -62,6 +62,10 @@ type GameManager struct {
 	// end of NewGameManager, right after assembleLegalPlans) — see
 	// legal_index.go. Read-only thereafter.
 	legalIndex *legalIndex
+	// moveInputSchema and its fingerprint are validated and frozen during
+	// manager construction, then shared by generation and server /info.
+	moveInputSchema            []MoveInputSchemaMove
+	moveInputSchemaFingerprint string
 }
 
 // Internals returns a ManagerInternals for this manager. All of the methods on
@@ -340,6 +344,12 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		}
 
 	}
+	moveInputSchema, err := BuildMoveInputSchema(result)
+	if err != nil {
+		return nil, errors.New("Failed to build creator move-input schema: " + err.Error())
+	}
+	result.moveInputSchema = moveInputSchema
+	result.moveInputSchemaFingerprint = FingerprintMoveInputSchema(moveInputSchema)
 
 	// Assemble declarative-legality plans for any move type that opted in
 	// via WithLegalPreconditions, and probe that its declarations are reachable

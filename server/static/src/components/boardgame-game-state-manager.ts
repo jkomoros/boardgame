@@ -854,6 +854,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       // object for solo-mode games (CompanionInfo is always present in
       // the response but its sub-fields are zero-valued).
       companionInfo: data.CompanionInfo || null,
+			moveInputSchemaFingerprint: data.MoveInputSchemaFingerprint,
     };
 
     this.dispatchEvent(new CustomEvent('install-game-static-info', { composed: true, bubbles: true, detail: gameInfo }));

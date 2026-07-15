@@ -146,6 +146,9 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Array, attribute: false })
   moveForms: MoveForm[] | null = null;
 
+	@property({ type: String, attribute: false })
+	moveInputSchemaFingerprint: string | null = null;
+
   @property({ type: Number })
   defaultAnimationLength = 0;
 
@@ -275,6 +278,10 @@ class BoardgameRenderGame extends LitElement {
     if (changedProperties.has('moveForms')) {
       this._moveFormsChanged(this.moveForms);
     }
+
+		if (changedProperties.has('moveInputSchemaFingerprint')) {
+			this._moveInputSchemaFingerprintChanged(this.moveInputSchemaFingerprint);
+		}
 
     if (changedProperties.has('state')) {
       this._stateChanged(this.state, changedProperties.get('state') as any);
@@ -576,6 +583,11 @@ class BoardgameRenderGame extends LitElement {
     (this.renderer as any).moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
   }
 
+	private _moveInputSchemaFingerprintChanged(fingerprint: string | null) {
+		if (!this.renderer) return;
+		(this.renderer as any).serverMoveInputSchemaFingerprint = fingerprint;
+	}
+
   // Board legality preview (movePreviewBatch). Kept view-local rather than in
   // Redux: preview results are ephemeral, tied to the exact candidate set of the
   // current head state, and consumed only by the renderer — putting them in the
@@ -729,6 +741,7 @@ class BoardgameRenderGame extends LitElement {
     ele.currentPlayerIndex = this.currentPlayerIndex;
     ele.chest = this.chest;
     ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
+		ele.serverMoveInputSchemaFingerprint = this.moveInputSchemaFingerprint;
     // Pass game name + ID + companion props through so the Table/Hand
     // view bases can call host endpoints (which require these in the URL
     // path) and render the avatar strip, room code banner, etc.

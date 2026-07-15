@@ -4,7 +4,7 @@ import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-
 import { glyphForSlug } from '../../src/components/companion-avatar-catalog.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
-import type { MoveArgs } from './_move_args.js';
+import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
 import type { GameState, PlayerState } from './_types.js';
 
 /**
@@ -13,7 +13,9 @@ import type { GameState, PlayerState } from './_types.js';
  * behaviors.PlayerRole). Shows role, voting buttons, and game status.
  */
 @customElement('boardgame-render-game-werewolf-hand')
-export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName, MoveArgs> {
+export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName, MoveInputs> {
+	protected override readonly moveInputSchema = generatedMoveInputSchema;
+	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
   static override styles = [
     BoardgameHandViewBase.styles,
     css`
@@ -201,7 +203,6 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
               <div class="vote-buttons">
                 ${voteTargets.map(t => html`
                   <button @click=${() => this.proposeMove(moveName, {
-                    TargetPlayerIndex: myIndex,
                     VoteTarget: t.index,
                   })}>
                     ${t.label}

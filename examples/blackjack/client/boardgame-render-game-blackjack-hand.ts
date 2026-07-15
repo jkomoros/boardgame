@@ -5,6 +5,7 @@ import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-deck-defaults.js';
 import { MoveNames, type MoveName } from './_move_names.js';
+import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
 import type { GameState, PlayerState } from './_types.js';
 
 /**
@@ -16,7 +17,9 @@ import type { GameState, PlayerState } from './_types.js';
  * V1 MVP minimal styling.
  */
 @customElement('boardgame-render-game-blackjack-hand')
-export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName> {
+export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName, MoveInputs> {
+	protected override readonly moveInputSchema = generatedMoveInputSchema;
+	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
   static override styles = [
     BoardgameHandViewBase.styles,
     css`
@@ -100,8 +103,8 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
           : ''}
       </div>
       <div class="actions">
-        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerHit, { TargetPlayerIndex: this.viewingAs })}>Hit</button>
-        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerStand, { TargetPlayerIndex: this.viewingAs })}>Stand</button>
+        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerHit)}>Hit</button>
+        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerStand)}>Stand</button>
       </div>
     `;
   }

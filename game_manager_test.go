@@ -240,3 +240,21 @@ func TestGameManagerSetUp(t *testing.T) {
 	}
 
 }
+
+func TestGameManagerBuildsMoveInputSchemaDuringBoot(t *testing.T) {
+	manager := newTestGameManger(t)
+	schema, err := BuildMoveInputSchema(manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(schema) == 0 {
+		t.Fatal("boot-time move-input schema was empty for a manager with player moves")
+	}
+	fingerprint, err := MoveInputSchemaFingerprint(manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fingerprint == "" || fingerprint != FingerprintMoveInputSchema(schema) {
+		t.Fatalf("fingerprint %q did not describe cached schema", fingerprint)
+	}
+}

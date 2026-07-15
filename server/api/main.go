@@ -1497,6 +1497,11 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		r.Error(errors.New("Couldn't serialize json: " + err.Error()))
 		return
 	}
+	moveInputFingerprint, err := boardgame.MoveInputSchemaFingerprint(game.Manager())
+	if err != nil {
+		r.Error(errors.New("Couldn't build move-input schema: " + err.Error()))
+		return
+	}
 
 	// Companion-mode bundle: everything the Table+Hand view bases need to
 	// render avatar strips, "Waiting…" badges, room code, host controls.
@@ -1535,16 +1540,20 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		// unknown predicate names as evaluable:false and defers to the
 		// server's own verdicts rather than mis-evaluating them itself.
 		"LegalCatalogVersion": boardgame.LegalCatalogVersion,
-		"Forms":               s.generateFormsWithLegality(game, state, playerIndex),
-		"Game":                gameJSON,
-		"Error":               s.lastErrorMessage,
-		"Players":             s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
-		"ViewingAsPlayer":     playerIndex,
-		"HasEmptySlots":       hasEmptySlots,
-		"GameOpen":            gameInfo.Open,
-		"GameVisible":         gameInfo.Visible,
-		"IsOwner":             isOwner,
-		"CompanionInfo":       companionInfo,
+		// MoveInputSchemaFingerprint is generated from the same canonical schema
+		// as _move_args.ts. Safe creator APIs fail closed before proposal when it
+		// differs from their bundled fingerprint.
+		"MoveInputSchemaFingerprint": moveInputFingerprint,
+		"Forms":                      s.generateFormsWithLegality(game, state, playerIndex),
+		"Game":                       gameJSON,
+		"Error":                      s.lastErrorMessage,
+		"Players":                    s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
+		"ViewingAsPlayer":            playerIndex,
+		"HasEmptySlots":              hasEmptySlots,
+		"GameOpen":                   gameInfo.Open,
+		"GameVisible":                gameInfo.Visible,
+		"IsOwner":                    isOwner,
+		"CompanionInfo":              companionInfo,
 		//The StateVersion is almost always the Game.Version, except in the
 		//special case described above where lots of fix up moves have been
 		//applied but no player moves yet. State blobs used to include their own

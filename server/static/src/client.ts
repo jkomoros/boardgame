@@ -7,6 +7,20 @@
  */
 export { html, css } from 'lit';
 export { BoardgameBaseGameRenderer } from './components/boardgame-base-game-renderer.js';
+export {
+  assertMoveInputSchemaFingerprint,
+  serializeCreatorMoveInput,
+  serializeCreatorMoveInputForServer,
+  validateCreatorMoveInput,
+  MoveInputValidationError,
+  StaleMoveInputSchemaError,
+} from './moves/input.js';
+export type {
+  MoveInputSchema,
+  MoveInputSchemaField,
+  MoveInputSchemaMove,
+  MoveInputValidationResult,
+} from './moves/input.js';
 
 // Importing the facade registers the zero-configuration primitives used by
 // the Pig proving renderer. Their classes are intentionally not exported yet:
@@ -14,4 +28,3 @@ export { BoardgameBaseGameRenderer } from './components/boardgame-base-game-rend
 // methods inherited from today's legacy elements.
 import './components/boardgame-die.js';
 import './components/boardgame-fading-text.js';
-

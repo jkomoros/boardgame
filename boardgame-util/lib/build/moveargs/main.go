@@ -142,7 +142,6 @@ import (
 	"os"
 
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/base"
 	memorystorage "github.com/jkomoros/boardgame/storage/memory"
 	{{- range .pkgs}}
 	"{{.Import}}"
@@ -154,38 +153,10 @@ type delegateEntry struct {
 	importPath string
 }
 
-type moveFieldInfo struct {
-	Name     string ` + "`" + `json:"name"` + "`" + `
-	Type     string ` + "`" + `json:"type"` + "`" + `
-	EnumName string ` + "`" + `json:"enumName,omitempty"` + "`" + `
-}
-
-type moveInfo struct {
-	Name   string          ` + "`" + `json:"name"` + "`" + `
-	Fields []moveFieldInfo ` + "`" + `json:"fields"` + "`" + `
-}
-
 type moveArgsResult struct {
-	PackageName string     ` + "`" + `json:"packageName"` + "`" + `
-	ImportPath  string     ` + "`" + `json:"importPath"` + "`" + `
-	Moves       []moveInfo ` + "`" + `json:"moves"` + "`" + `
-}
-
-func propTypeToString(t boardgame.PropertyType) string {
-	switch t {
-	case boardgame.TypeInt:
-		return "int"
-	case boardgame.TypeBool:
-		return "bool"
-	case boardgame.TypeString:
-		return "string"
-	case boardgame.TypePlayerIndex:
-		return "playerIndex"
-	case boardgame.TypeEnum:
-		return "enum"
-	default:
-		return ""
-	}
+	PackageName string                          ` + "`" + `json:"packageName"` + "`" + `
+	ImportPath  string                          ` + "`" + `json:"importPath"` + "`" + `
+	Moves       []boardgame.MoveInputSchemaMove ` + "`" + `json:"moves"` + "`" + `
 }
 
 func main() {
@@ -201,42 +172,14 @@ func main() {
 		storage := memorystorage.NewStorageManager()
 		manager, err := boardgame.NewGameManager(entry.delegate, storage)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: couldn't create manager for %s: %v\n", entry.delegate.Name(), err)
-			continue
+			fmt.Fprintf(os.Stderr, "Couldn't create manager for %s: %v\n", entry.delegate.Name(), err)
+			os.Exit(1)
 		}
 
-		var moves []moveInfo
-		for _, move := range manager.ExampleMoves() {
-			if base.IsFixUp(move) {
-				continue
-			}
-
-			var fields []moveFieldInfo
-			for fieldName, fieldType := range move.ReadSetter().Props() {
-				typeStr := propTypeToString(fieldType)
-				if typeStr == "" {
-					continue // Skip unsupported types (stacks, timers, etc.)
-				}
-
-				fi := moveFieldInfo{
-					Name: fieldName,
-					Type: typeStr,
-				}
-
-				// For enum fields, include the enum name
-				if fieldType == boardgame.TypeEnum {
-					if enumVal, err := move.ReadSetter().ImmutableEnumProp(fieldName); err == nil && enumVal != nil {
-						fi.EnumName = enumVal.Enum().Name()
-					}
-				}
-
-				fields = append(fields, fi)
-			}
-
-			moves = append(moves, moveInfo{
-				Name:   move.Info().Name(),
-				Fields: fields,
-			})
+		moves, err := boardgame.BuildMoveInputSchema(manager)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't resolve creator inputs for %s: %v\n", entry.delegate.Name(), err)
+			os.Exit(1)
 		}
 
 		results = append(results, moveArgsResult{

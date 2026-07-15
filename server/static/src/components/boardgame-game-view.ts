@@ -216,6 +216,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Object, attribute: false })
   _companionInfo: import('../types/store').CompanionInfo | null = null;
 
+	@property({ type: String, attribute: false })
+	_moveInputSchemaFingerprint: string | null = null;
+
   @property({ type: String, attribute: false })
   _pageExtra = '';
 
@@ -356,7 +359,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .socketActive=${this.socketActive}
           .active=${this.selected}
           .chest=${this._chest}
-          .moveForms=${this.moveForms}>
+					.moveForms=${this.moveForms}
+					.moveInputSchemaFingerprint=${this._moveInputSchemaFingerprint}>
         </boardgame-render-game>
       </div>
       <!-- Not chrome despite the name: admin-controls owns the move-form
@@ -535,6 +539,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleGameStaticInfo(e: CustomEvent) {
     const bundle = e.detail;
+		this._moveInputSchemaFingerprint = bundle.moveInputSchemaFingerprint ?? null;
     store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner, bundle.companionInfo));
   }
 
@@ -579,6 +584,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.game = null;
     this.moveForms = null;
     this.viewingAsPlayer = 0;
+		this._moveInputSchemaFingerprint = null;
     this._animationContext = null;
     this._firstStateBundle = true;
   }

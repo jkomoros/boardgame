@@ -447,7 +447,8 @@ export const fetchGameInfo = (
     game: data.Game,
     forms: expandedForms,
     viewingAsPlayer: data.ViewingAsPlayer,
-    stateVersion: data.StateVersion
+		stateVersion: data.StateVersion,
+		moveInputSchemaFingerprint: data.MoveInputSchemaFingerprint,
   });
 
   // Install the initial game state so animations can work

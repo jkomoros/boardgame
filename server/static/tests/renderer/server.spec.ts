@@ -46,3 +46,43 @@ test('assembled Pig renderer resolves the experimental client facade', async ({ 
   await expect(page.locator('boardgame-die')).toBeAttached();
   expect(failedRendererRequests).toEqual([]);
 });
+
+test('legacy declarative controls cannot bypass generated schema freshness', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-base-game-renderer.ts');
+    const renderer = document.createElement('boardgame-base-game-renderer') as HTMLElement & {
+      updateComplete: Promise<unknown>;
+      moveInputSchema: unknown;
+      moveInputSchemaFingerprint: string;
+      serverMoveInputSchemaFingerprint: string;
+    };
+    renderer.moveInputSchema = [{ name: 'Choose', fields: [] }];
+    renderer.moveInputSchemaFingerprint = 'client-fingerprint';
+    renderer.serverMoveInputSchemaFingerprint = 'server-fingerprint';
+
+    let proposals = 0;
+    let errorMessage = '';
+    renderer.addEventListener('propose-move', () => proposals++);
+    const captureError = (event: ErrorEvent) => {
+      errorMessage = event.error instanceof Error ? event.error.message : event.message;
+      event.preventDefault();
+    };
+    window.addEventListener('error', captureError);
+    document.body.append(renderer);
+    await renderer.updateComplete;
+
+    const button = document.createElement('button');
+    button.setAttribute('propose-move', 'Choose');
+    renderer.append(button);
+    button.click();
+    await Promise.resolve();
+
+    window.removeEventListener('error', captureError);
+    renderer.remove();
+    return { proposals, errorMessage };
+  });
+
+  expect(result.proposals).toBe(0);
+  expect(result.errorMessage).toContain('Generated move inputs are stale');
+});

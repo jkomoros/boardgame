@@ -10,9 +10,12 @@ import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
+import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
 import type { CardsComponentValues, GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName, MoveInputs> {
+	protected override readonly moveInputSchema = generatedMoveInputSchema;
+	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
   static override styles = [
     ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
     css`

@@ -325,7 +325,8 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 				Game: action.game,
 				Forms: action.forms,
 				ViewingAsPlayer: action.viewingAsPlayer,
-				StateVersion: action.stateVersion
+				StateVersion: action.stateVersion,
+				MoveInputSchemaFingerprint: action.moveInputSchemaFingerprint,
 			}
 		};
 	case FETCH_GAME_VERSION_SUCCESS:

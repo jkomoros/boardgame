@@ -147,6 +147,7 @@ export interface FetchGameInfoSuccessAction {
   forms: MoveForm[] | null;
   viewingAsPlayer: number;
   stateVersion: number;
+  moveInputSchemaFingerprint: string;
 }
 
 export interface FetchGameInfoFailureAction {

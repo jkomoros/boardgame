@@ -47,6 +47,8 @@ export interface GameInfoResponse extends BaseApiResponse {
    * verdicts rather than mis-evaluating them itself.
    */
   LegalCatalogVersion: number;
+  /** Canonical server move-input contract; generated clients must match it. */
+  MoveInputSchemaFingerprint: string;
 }
 
 /**
