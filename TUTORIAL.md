@@ -1517,6 +1517,31 @@ its default slot for status or callout content. Drop down to
 `boardgame-component-stack` when you need board/spatial geometry or unusual
 animation plumbing.
 
+When a renderer has one arbitrary panel per player, let
+`boardgame-player-grid` own the collection layout instead of repeating flexbox
+breakpoints in the game:
+
+```typescript
+html`<boardgame-player-grid>
+  ${this.state?.Players.map((player, playerIndex) => html`
+    <boardgame-component-zone
+      label=${`Player ${playerIndex + 1}'s cards`}
+      .stack=${player.Hand}
+      .componentView=${this.cards}>
+    </boardgame-component-zone>
+  `)}
+</boardgame-player-grid>`
+```
+
+It provides a named Players region, visible heading, useful empty state, and an
+auto-fitting grid that collapses to one column in narrow containers. The
+children remain ordinary game-owned Lit content, so a panel can be a component
+zone, score card, controls, or any custom element. Use `label` for a different
+collection name, `hide-heading` when the visible heading would be redundant,
+and `--boardgame-player-grid-min-width` / `--boardgame-player-grid-gap` for
+layout tuning. Blank labels, invalid heading levels, and blank enabled empty
+states fail loudly.
+
 The internal stack creates stable card hosts and rerenders their light-DOM content with
 Lit whenever their logical slot changes. The view is local to this renderer, so
 two games may use the same deck name without a global registration collision.

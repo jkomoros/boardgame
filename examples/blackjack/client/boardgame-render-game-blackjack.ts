@@ -19,10 +19,14 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
-      #draw, #players {
+      #draw {
         display: flex;
         flex-direction: row;
         align-items: center;
+      }
+
+      #players {
+        --boardgame-player-grid-min-width: 14rem;
       }
 
       .flex {
@@ -72,10 +76,10 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
           messy>
         </boardgame-component-zone>
       </div>
-      <div id="players">
+      <boardgame-player-grid id="players">
         ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
           <boardgame-component-zone
-              class="player flex ${this._bustedClass(player.Eliminated)}"
+              class="player ${this._bustedClass(player.Eliminated)}"
               label="Player ${index} hand"
               .stack="${player.Hand}"
               .componentView=${this.cards.withProperties({ rotated: true })}
@@ -85,7 +89,7 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
               <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
           </boardgame-component-zone>
         `)}
-      </div>
+      </boardgame-player-grid>
       <boardgame-fading-text
         .trigger="${this.isCurrentPlayer}"
         message="Your Turn"

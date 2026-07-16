@@ -1011,6 +1011,14 @@ First evidence-driven primitive tranche (2026-07-16):
   premature, duplicate, invalid, or mislabelled winners and sentinel viewers;
   provide parts/tokens and reduced-motion behavior. Compose it back into Table,
   solo Blackjack, and generated scaffold output.
+- [x] Add `boardgame-player-grid` for the repeated arbitrary-player-panel
+  collection in Blackjack, Pass, and generated scaffold output. Keep it free of
+  game-state assumptions: ordinary slotted children sit in a named semantic
+  region with a visible heading, useful empty state, and container-responsive
+  auto-fit columns. Expose stable parts and gap/minimum-width tokens; reject
+  blank labels, invalid heading levels, and blank enabled empty states. Prove
+  wide/narrow layout, semantics, empty/hidden-heading modes, facade typing, and
+  runtime diagnostics.
 
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design

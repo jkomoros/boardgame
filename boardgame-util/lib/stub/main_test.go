@@ -59,6 +59,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		"cardView<GameState['DrawStack']>",
 		"<boardgame-component-zone",
 		"<boardgame-game-outcome",
+		"<boardgame-player-grid>",
 		"label=\"Draw pile\"",
 		".componentView=${this.cards}",
 		"component.Values.Value",

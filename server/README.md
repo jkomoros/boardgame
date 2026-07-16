@@ -87,6 +87,26 @@ For more complex processing, render ordinary Lit content from the view or use
 `componentView()` with a fresh registered custom element extending
 `BoardgameComponent`. Invalid factories fail loudly.
 
+Wrap one game-owned panel per player in `boardgame-player-grid`. It supplies a
+named Players region, heading, empty state, and an auto-fitting responsive grid
+without imposing a player-state schema or panel appearance:
+
+```typescript
+html`<boardgame-player-grid>
+  ${this.state?.Players.map((player, playerIndex) => html`
+    <boardgame-component-zone
+      label=${`Player ${playerIndex + 1}'s cards`}
+      .stack=${player.Hand}
+      .componentView=${this.cards}>
+    </boardgame-component-zone>
+  `)}
+</boardgame-player-grid>`
+```
+
+Use `hide-heading` only when another visible heading already names the
+collection. Tune `--boardgame-player-grid-min-width` and
+`--boardgame-player-grid-gap`; children remain arbitrary Lit content.
+
 
 ### Optional: boardgame-fading-text
 

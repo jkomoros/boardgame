@@ -11,8 +11,6 @@ class BoardgameRenderGameCheckers extends GameRenderer {
   });
   static override styles = css`
     :host { display: block; }
-    .players { display: flex; flex-wrap: wrap; gap: 1rem; }
-    .player { flex: 1 1 12rem; }
   `;
 
   override render() {
@@ -34,7 +32,7 @@ class BoardgameRenderGameCheckers extends GameRenderer {
           Draw a card
         </boardgame-action-button>
       </boardgame-action-bar>
-      <div class="players">
+      <boardgame-player-grid>
         ${this.state?.Players.map((player, index) => html`
           <boardgame-component-zone
               class="player"
@@ -48,7 +46,7 @@ class BoardgameRenderGameCheckers extends GameRenderer {
             </boardgame-fading-text>
           </boardgame-component-zone>
         `)}
-      </div>
+      </boardgame-player-grid>
       <boardgame-fading-text
         .trigger=${this.isCurrentPlayer}
         message="Your Turn" suppress="falsey">

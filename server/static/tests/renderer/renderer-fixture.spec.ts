@@ -930,6 +930,92 @@ test('game outcome waits for settled animation and renders public or personal ve
   }
 });
 
+test('player grid supplies named responsive layout and a useful empty state', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/client.ts');
+      const grid = document.createElement('boardgame-player-grid');
+      grid.style.width = '50rem';
+      document.body.append(grid);
+      await grid.updateComplete;
+      const region = grid.shadowRoot?.querySelector('#region');
+      const heading = grid.shadowRoot?.querySelector('#heading');
+      const layout = grid.shadowRoot?.querySelector('#grid') as HTMLElement | null;
+      const empty = {
+        label: heading?.textContent?.trim(),
+        regionLabel: region?.getAttribute('aria-labelledby'),
+        headingRole: heading?.getAttribute('role'),
+        headingLevel: heading?.getAttribute('aria-level'),
+        text: grid.shadowRoot?.querySelector('#empty')?.textContent?.trim(),
+        part: grid.shadowRoot?.querySelector('#empty')?.getAttribute('part'),
+      };
+
+      for (let index = 0; index < 3; index += 1) {
+        const player = document.createElement('section');
+        player.textContent = `Player ${index + 1}`;
+        grid.append(player);
+      }
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await grid.updateComplete;
+      const wideColumns = layout ? getComputedStyle(layout).gridTemplateColumns.split(' ').length : 0;
+      const emptyAfterPlayers = grid.shadowRoot?.querySelector('#empty') !== null;
+      grid.style.width = '14rem';
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const narrowColumns = layout ? getComputedStyle(layout).gridTemplateColumns.split(' ').length : 0;
+      grid.hideHeading = true;
+      await grid.updateComplete;
+      const hiddenHeadingClass = grid.shadowRoot?.querySelector('#heading')?.getAttribute('class');
+
+      const renderError = (name: string, value: unknown) => {
+        const element = document.createElement('boardgame-player-grid') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        element[name] = value;
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const blankLabel = renderError('label', ' ');
+      const invalidHeading = renderError('headingLevel', 0);
+      const blankEmpty = renderError('emptyLabel', ' ');
+      return {
+        empty,
+        wideColumns,
+        narrowColumns,
+        emptyAfterPlayers,
+        hiddenHeadingClass,
+        blankLabel,
+        invalidHeading,
+        blankEmpty,
+      };
+    });
+
+    expect(result.empty).toEqual({
+      label: 'Players',
+      regionLabel: 'heading',
+      headingRole: 'heading',
+      headingLevel: '2',
+      text: 'No players',
+      part: 'empty',
+    });
+    expect(result.wideColumns).toBe(3);
+    expect(result.narrowColumns).toBe(1);
+    expect(result.emptyAfterPlayers).toBe(false);
+    expect(result.hiddenHeadingClass).toBe('visually-hidden');
+    expect(result.blankLabel).toContain('label must be a non-empty player collection name');
+    expect(result.invalidHeading).toContain('headingLevel must be a safe integer from 1 through 6');
+    expect(result.blankEmpty).toContain('emptyLabel must be non-empty');
+    const axeResult = await new AxeBuilder({ page }).include('boardgame-player-grid').analyze();
+    expect(axeResult.violations).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

@@ -808,8 +808,6 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
 {{- end}}
   static override styles = css[[BACKTICK]]
     :host { display: block; }
-    .players { display: flex; flex-wrap: wrap; gap: 1rem; }
-    .player { flex: 1 1 12rem; }
   [[BACKTICK]];
 
   override render() {
@@ -834,7 +832,7 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
         </boardgame-action-button>
       </boardgame-action-bar>
       {{- end}}
-      <div class="players">
+      <boardgame-player-grid>
         ${this.state?.Players.map((player, index) => html[[BACKTICK]]
           <boardgame-component-zone
               class="player"
@@ -848,7 +846,7 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
             </boardgame-fading-text>
           </boardgame-component-zone>
         [[BACKTICK]])}
-      </div>
+      </boardgame-player-grid>
       <boardgame-fading-text
         .trigger=${this.isCurrentPlayer}
         message="Your Turn" suppress="falsey">
