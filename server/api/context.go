@@ -458,11 +458,25 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 
 	//TODO: should we use gin's Binding to do this instead?
 
-	// The move endpoint marks every form field "present" (c.PostForm returns ""
-	// for an absent field), so a missing required field still errors exactly as
-	// before — the move form is always submitted whole.
+	inputFields, err := boardgame.ResolveMoveInputFields(move)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't resolve move input contract: %w", err)
+	}
+	dispositionByName := make(map[string]boardgame.MoveInputDisposition, len(inputFields))
+	for _, field := range inputFields {
+		dispositionByName[field.Name] = field.Disposition
+	}
+
+	// Required creator input remains fail-closed when omitted. Context-owned,
+	// server-defaulted, and unsupported fields preserve the value installed by
+	// MoveByName/DefaultsForState when the request omits them. This is the server
+	// half of the generated creator contract: a zero-input CurrentPlayer move
+	// must not require a renderer to smuggle TargetPlayerIndex over the wire.
 	if err := bindMoveFields(move, func(name string) (string, bool) {
-		return c.PostForm(name), true
+		if raw, present := c.GetPostForm(name); present {
+			return raw, true
+		}
+		return "", dispositionByName[name] == boardgame.MoveInputRequired
 	}); err != nil {
 		return nil, err
 	}
@@ -472,8 +486,8 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 
 // bindMoveFields binds a move's form fields from get, which returns each field's
 // raw string value and whether it was supplied. It is the shared arg-binding
-// used by getMoveFromForm (form-encoded args from the move endpoint — every
-// field "present", so an absent required field errors) and the batch preview
+// used by getMoveFromForm (form-encoded args from the move endpoint — its input
+// contract decides whether omission is an error or preserves a default) and the batch preview
 // handler (per-candidate JSON args — a field NOT supplied is left at its
 // DefaultsForState value, so a candidate can vary just the fields it cares about
 // and let sensible defaults stand for the rest, e.g. TargetPlayerIndex). It only

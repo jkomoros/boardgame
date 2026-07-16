@@ -83,6 +83,7 @@ export interface TargetActionHost<Input extends object, MoveName extends string>
     changed: () => void,
   ) => void;
   readonly hydrate: (action: BoundMoveAction<MoveName, Input>, preview: MoveActionPreview) => void;
+  readonly notify: (action: BoundMoveAction<MoveName, Input>, notifyManaged: boolean) => void;
 }
 
 interface TargetRecord<Key extends TargetKey, MoveName extends string, Input extends object>
@@ -172,6 +173,11 @@ export function cancelTargetActionPreview(action: TargetAction<TargetKey>): void
   if (action instanceof TargetActionImplementation) action.cancel();
 }
 
+/** Host lifecycle hook for live action dependencies outside snapshot identity. */
+export function notifyTargetActionLiveStateChanged(action: TargetAction<TargetKey>): void {
+  if (action instanceof TargetActionImplementation) action.notifyLiveStateChanged();
+}
+
 class TargetActionImplementation<Key extends TargetKey, MoveName extends string, Input extends object>
 implements TargetAction<Key, MoveName, Input> {
   readonly candidates: readonly TargetCandidate<Key, MoveName, Input>[];
@@ -234,6 +240,16 @@ implements TargetAction<Key, MoveName, Input> {
     this.#abort?.abort();
     this.#abort = null;
     this.#operation = null;
+  }
+
+  notifyLiveStateChanged(): void {
+    for (const record of this.#records) {
+      // Wake controls subscribed directly to each candidate, but suppress the
+      // candidate's managed callback: that would notify this coordinator once
+      // per candidate. One coalesced target notification below is sufficient.
+      this.#host.notify(record.action, false);
+    }
+    this.changed();
   }
 
   private startPreview(): Promise<TargetActionPreview> {

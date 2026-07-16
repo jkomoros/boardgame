@@ -300,6 +300,17 @@ export function cancelMoveActionPreview(action: BoundMoveAction<string, object>)
   internal[CANCEL_PREVIEW]?.();
 }
 
+/**
+ * Host lifecycle hook for live dependencies that intentionally do not change
+ * an action's snapshot identity (for example, the animation gate). Cached
+ * actions keep stable identity, so their subscribed controls need an explicit
+ * notification when one of those dependencies changes.
+ */
+export function notifyMoveActionLiveStateChanged(action: BoundMoveAction<string, object>): void {
+  const internal = action as MoveActionImplementation<string, object>;
+  internal.notifyLiveStateChanged();
+}
+
 export type MoveActionFor<MoveName extends string, Input extends object> =
   Record<string, never> extends Input
     ? BoundMoveAction<MoveName, Input>
@@ -467,6 +478,10 @@ implements BoundMoveAction<MoveName, Input> {
       hydrate: (action, preview) => {
         const internal = action as MoveActionImplementation<MoveName, Input>;
         internal[HYDRATE_PREVIEW](preview);
+      },
+      notify: (action, notifyManaged) => {
+        const internal = action as MoveActionImplementation<MoveName, Input>;
+        internal.notifyLiveStateChanged(notifyManaged);
       },
     });
   }
@@ -756,6 +771,11 @@ implements BoundMoveAction<MoveName, Input> {
 
   private notifyListeners(): void {
     for (const listener of this.#listeners) notifyListener(listener);
+  }
+
+  notifyLiveStateChanged(notifyManaged = true): void {
+    if (notifyManaged) this.#managedChanged?.();
+    this.notifyListeners();
   }
 }
 

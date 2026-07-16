@@ -11,9 +11,54 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
+	blackjack "github.com/jkomoros/boardgame/examples/blackjack"
 	tictactoe "github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/sirupsen/logrus"
 )
+
+func TestMoveFormBindingPreservesContextDefaultsButRejectsMissingRequiredInput(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &Server{}
+
+	blackjackManager, err := boardgame.NewGameManager(blackjack.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("building blackjack manager: %v", err)
+	}
+	blackjackGame, err := blackjackManager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("building blackjack game: %v", err)
+	}
+	request := func(moveType string) *gin.Context {
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		values := url.Values{"MoveType": {moveType}}
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/move", strings.NewReader(values.Encode()))
+		ctx.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return ctx
+	}
+	move, err := s.getMoveFromForm(request("Current Player Hit"), blackjackGame)
+	if err != nil {
+		t.Fatalf("zero-input Current Player Hit should preserve TargetPlayerIndex default: %v", err)
+	}
+	target, err := move.Reader().PlayerIndexProp("TargetPlayerIndex")
+	if err != nil {
+		t.Fatalf("reading TargetPlayerIndex: %v", err)
+	}
+	if target != blackjackGame.CurrentState().CurrentPlayerIndex() {
+		t.Errorf("TargetPlayerIndex = %d, want current player %d", target, blackjackGame.CurrentState().CurrentPlayerIndex())
+	}
+
+	tictactoeManager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("building tictactoe manager: %v", err)
+	}
+	tictactoeGame, err := tictactoeManager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("building tictactoe game: %v", err)
+	}
+	if _, err := s.getMoveFromForm(request("Place Token"), tictactoeGame); err == nil || !strings.Contains(err.Error(), "Slot") {
+		t.Fatalf("missing required Slot should fail loudly, got %v", err)
+	}
+}
 
 // TestLegalMoveFormPreviewMatchesMoveLegalAndDoesNotApply pins the two core
 // promises of the movePreview endpoint's legality builder (legalMoveForm):

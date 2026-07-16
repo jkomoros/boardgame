@@ -15,6 +15,7 @@ import {
   cancelMoveActionPreview,
   createMoveAction,
   moveSnapshotKey,
+  notifyMoveActionLiveStateChanged,
   type MoveActionFor,
   type MoveActionService,
   type MovePreviewTransport,
@@ -22,6 +23,7 @@ import {
 } from '../moves/action.js';
 import {
   cancelTargetActionPreview,
+  notifyTargetActionLiveStateChanged,
   type TargetAction,
   type TargetKey,
   type TargetPreviewTransport,
@@ -363,6 +365,17 @@ export class BoardgameBaseGameRenderer<
       this.#moveActionCache.clear();
       this.#targetActionCache.clear();
       this.#lastMoveSnapshotKey = snapshotKey;
+    } else if (changedProperties.has('animating')) {
+      // Animation state is deliberately not part of snapshot identity: a
+      // button should keep the same action (and preview) while the visual gate
+      // opens and closes. Notify subscribed controls because passing that same
+      // cached object through Lit does not trigger their property update.
+      for (const action of this.#moveActionCache.values()) {
+        notifyMoveActionLiveStateChanged(action);
+      }
+      for (const action of this.#targetActionCache.values()) {
+        notifyTargetActionLiveStateChanged(action);
+      }
     }
   }
 

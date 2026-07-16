@@ -7,7 +7,11 @@ import {
   type MoveActionSnapshot,
 } from './action.ts';
 import { serializeCreatorMoveInput, validateCreatorMoveInput } from './input.ts';
-import type { TargetPreviewRequest, TargetPreviewTransportResult } from './target-action.ts';
+import {
+  notifyTargetActionLiveStateChanged,
+  type TargetPreviewRequest,
+  type TargetPreviewTransportResult,
+} from './target-action.ts';
 
 type Names = 'Place';
 type Inputs = { Place: { Slot: number } };
@@ -82,6 +86,26 @@ test('candidate subscriptions coalesce into one correlated batch and activation 
   assert.equal((await targets.get(2)?.action.activate())?.kind, 'success');
   assert.deepEqual(value.submissions, [{ Slot: '2' }]);
   for (const unsubscribe of unsubscribes) unsubscribe();
+});
+
+test('host live-state invalidation reaches cached target candidates', async () => {
+  const value = fixture(async request => ({
+    kind: 'success', results: request.candidates.map(candidate => ({ id: candidate.id, legal: true })),
+  }));
+  const targets = value.builder.targets([0], Slot => ({ Slot }));
+  const candidate = targets.get(0)!.action;
+  let candidateNotifications = 0;
+  let targetNotifications = 0;
+  const unsubscribe = candidate.subscribe(() => { candidateNotifications++; });
+  const unsubscribeTarget = targets.subscribe(() => { targetNotifications++; });
+  await targets.ensurePreview();
+  candidateNotifications = 0;
+  targetNotifications = 0;
+  notifyTargetActionLiveStateChanged(targets);
+  assert.equal(candidateNotifications, 1);
+  assert.equal(targetNotifications, 1);
+  unsubscribe();
+  unsubscribeTarget();
 });
 
 test('recreation is cached and malformed correlation fails every candidate closed', async () => {

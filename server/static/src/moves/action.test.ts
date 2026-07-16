@@ -4,6 +4,7 @@ import {
   MoveSubmissionGate,
   cancelMoveActionPreview,
   createMoveAction,
+  notifyMoveActionLiveStateChanged,
   type MoveActionFor,
   type MoveActionLegality,
   type MoveActionService,
@@ -92,6 +93,22 @@ test('zero-input actions propose successfully and keep bound methods', async () 
     proposingAsPlayer: 0, proposingAsAdmin: false,
   }]);
   assert.equal(move.submission.kind, 'idle');
+});
+
+test('host live-state invalidation notifies a cached action without replacing it', async () => {
+  let animating = true;
+  const actionContext = context({ currentAnimating: () => animating });
+  const move = action('Roll', actionContext);
+  const cached = action('Roll', actionContext);
+  assert.equal(cached, move);
+  assert.equal(move.reason?.code, 'animation-running');
+  let notifications = 0;
+  const unsubscribe = move.subscribe(() => { notifications++; });
+  animating = false;
+  notifyMoveActionLiveStateChanged(move);
+  assert.equal(move.reason, null);
+  assert.equal(notifications, 1);
+  unsubscribe();
 });
 
 test('with(args) is immutable and invalid native input fails safely', async () => {

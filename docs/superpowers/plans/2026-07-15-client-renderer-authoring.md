@@ -904,10 +904,12 @@ First component-view tranche (2026-07-16):
 - [x] Exercise dynamic values and a registered custom component host in the
   browser lifecycle proof, in addition to their strict compile contracts.
 - [ ] Prove both paths in real games, then migrate solo/companion Blackjack and
-  one external game before removing the global moustache registry. The focused
-  companion Blackjack test currently fails on the unchanged legacy renderer as
-  well (Hand remains animation-gated after the server reaches normal play), so
-  that baseline must be repaired before it can distinguish a view regression.
+  one external game before removing the global moustache registry.
+- [x] Repair the companion Blackjack baseline that blocked that proof: cached
+  actions now notify subscribed controls when the live animation gate changes,
+  without losing stable identity or preview state; omitted context-owned move
+  fields now retain server defaults while omitted required creator input still
+  fails loudly. The real socket/bundle/Table/Hand/auto-fly Hit test passes.
 
 ### D. Evidence-driven compositions
 
