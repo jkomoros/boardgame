@@ -1,3 +1,26 @@
+# boardgame-util
+
+`boardgame-util` is the game-authoring CLI. A normal client workflow is:
+
+```sh
+boardgame-util stub examplegame
+boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
+boardgame-util check-client
+boardgame-util serve --offline-dev-mode
+```
+
+`stub` creates strict Lit/TypeScript renderers and their Go game package.
+`emit-types` refreshes the atomic generated state, move, board-space, and bound
+renderer contracts. `check-client` is the non-interactive local/CI gate: it
+checks generated-file freshness and compiles each configured game client in
+isolation with pinned strict TypeScript, Lit binding analysis, and creator-code
+policy diagnostics. `serve` performs the same generation/assembly work, then
+supervises the API and Vite children until one clean `Ctrl+C` shutdown.
+
+Use `build api` and `build static` for explicit production artifacts. Generation
+and checks fail nonzero with actionable diagnostics; they do not silently accept
+partial output or weaken a game's TypeScript configuration.
+
 ## Providing configuration to boardgame-util
 
 You configure boardgame-util via one or more config.json files. The name of the
@@ -14,7 +37,7 @@ impossible for you to accidentally commit the information in
 config.SECRET.json. Generally you want to keep all of the non-secret aspects
 in config.
 
-Within a config file there are three sub configs: "base", dev" and "prod".
+Within a config file there are three sub configs: "base", "dev", and "prod".
 "base" is never used directly, but it sets defaults that "dev" and "prod" will
 override and extend.
 
@@ -23,7 +46,7 @@ which one to use at start up based on the GIN_MODE environment variable.
 
 ### AllowedOrigins
 
-AllowedOrigins*is a comma-delimited list of origins to use in CORS that should
+AllowedOrigins is a comma-delimited list of origins to use in CORS that should
 be allowed to access your endpoint.
 
 ### DefaultPort
@@ -51,11 +74,14 @@ legitimate, will use faux authentication clientside (showing a red dot), and
 will disable loading roboto fonts in index.html. This is an extremely
 dangerous option and may not be enabled in prod.
 
-Typically you only want to enable this in certain conditions, like when you're developing on an airplane. For that reason it's not common to set this in your config.json; typically you instead pass `--offline-dev-mode` to `boardgaume-util serve` to enable it only temporarily.
+Typically you only want to enable this in certain conditions, like when you're
+developing on an airplane. For that reason it is uncommon to set this in your
+config file; pass `--offline-dev-mode` to `boardgame-util serve` to enable it
+only temporarily.
 
 ### AdminUserIds
 
-When adminmode chcecking is enabled (which is the default, see above), only
+When admin-mode checking is enabled (which is the default, see above), only
 users whose userId is in this list will be allowed to enable admin mode. You
 can find the userIds in the Firebase user console.
 

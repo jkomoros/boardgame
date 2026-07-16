@@ -1090,6 +1090,12 @@ First evidence-driven primitive tranche (2026-07-16):
   registration decorators, typed actions, `.Values`/`.DynamicValues`, assembled
   TypeScript clients, and `check-client` consistently from the first renderer
   section through the worked and player-info examples.
+- [x] Replace unsafe/stale CLI onboarding: the quick start and offline guide no
+  longer hard-code one developer's path, background unsupervised children,
+  sleep for readiness, or recommend `kill -9`. They now lead with the fatal
+  client gate, supervised foreground `serve`, memory/offline options, safe port
+  overrides, clean shutdown, and the current game inventory. Give
+  `boardgame-util` itself a concise renderer-authoring command loop.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject
