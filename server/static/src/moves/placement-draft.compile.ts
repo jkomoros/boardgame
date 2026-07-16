@@ -26,7 +26,7 @@ draft.assign('b', 1);
 draft.targetFor('a');
 draft.itemAt(1);
 draft.action?.activate();
-const controls = document.createElement('boardgame-placement-draft-controls');
+const controls = document.createElement('boardgame-draft-controls');
 controls.draft = draft;
 
 // @ts-expect-error item keys retain their literal union

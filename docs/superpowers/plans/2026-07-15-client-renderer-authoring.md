@@ -1099,9 +1099,15 @@ system phase.
   bounded item-to-target overlay with select/place and pointer assignment over
   the same checked mutation, undo/clear, safe-clear or explicit keep-valid
   snapshot rebasing, visible prune notices, and one ordinary typed
-  snapshot-bound commit action. `boardgame-placement-draft-controls` makes the
+  snapshot-bound commit action. Shared `boardgame-draft-controls` makes the
   count, status, reasons, responsive Commit/Undo/Clear, and announcement path
   automatic while leaving game-specific tile and board presentation ordinary.
+- [x] Multi-select/payment draft: `SelectionDraftController` adds bounded,
+  immutable toggle/select/deselect, undo/clear, safe snapshot rebasing, visible
+  prune notices, and one exact typed commit for cards/resources without
+  pretending local state is private. Placement and selection now share the
+  single structural `DraftControlsBinding` and `boardgame-draft-controls`; the
+  placement-only component introduced on this branch is removed before release.
 - [x] Public simultaneous readiness: strict, bounded `ReadinessParticipant`
   state and `boardgame-readiness` make counts, progress, participant status,
   completion, live announcements, responsive presentation, and loud malformed

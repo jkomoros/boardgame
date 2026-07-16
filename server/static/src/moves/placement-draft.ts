@@ -58,6 +58,11 @@ export interface PlacementDraftBinding<
   readonly notice: PlacementDraftNotice<Item, Target> | null;
   readonly minimumPlacements: number;
   readonly maximumPlacements: number;
+  /** Common surface consumed by boardgame-draft-controls. */
+  readonly count: number;
+  readonly minimumCount: number;
+  readonly maximumCount: number;
+  readonly status: string;
   readonly canUndo: boolean;
   readonly canClear: boolean;
   selectItem(item: Item): void;
@@ -157,6 +162,12 @@ implements ReactiveController {
       notice: this.#notice,
       minimumPlacements: minPlacements,
       maximumPlacements: maxPlacements,
+      count: this.#placements.length,
+      minimumCount: minPlacements,
+      maximumCount: maxPlacements,
+      status: this.#selectedItem !== null
+        ? 'Item selected. Choose a destination.'
+        : `${this.#placements.length} placement${this.#placements.length === 1 ? '' : 's'} drafted.`,
       canUndo: this.#history.length > 0,
       canClear: this.#placements.length > 0 || this.#selectedItem !== null,
       selectItem: this.selectItem,
@@ -173,7 +184,7 @@ implements ReactiveController {
 
   readonly selectItem = (item: Item): void => {
     this.#requireItem(item);
-    this.#selectedItem = Object.is(this.#selectedItem, item) ? null : item;
+    this.#selectedItem = this.#selectedItem === item ? null : item;
     this.#host.requestUpdate();
   };
 
@@ -187,12 +198,12 @@ implements ReactiveController {
   readonly assign = (item: Item, target: Target): void => {
     this.#requireItem(item);
     this.#requireTarget(target);
-    const occupied = this.#placements.find(placement => Object.is(placement.target, target));
-    if (occupied && !Object.is(occupied.item, item)) {
+    const occupied = this.#placements.find(placement => placement.target === target);
+    if (occupied && occupied.item !== item) {
       throw new Error(`PlacementDraftController target ${JSON.stringify(target)} is already occupied`);
     }
-    const existing = this.#placements.findIndex(placement => Object.is(placement.item, item));
-    if (existing >= 0 && Object.is(this.#placements[existing]!.target, target)) {
+    const existing = this.#placements.findIndex(placement => placement.item === item);
+    if (existing >= 0 && this.#placements[existing]!.target === target) {
       if (this.#selectedItem !== null) {
         this.#selectedItem = null;
         this.#host.requestUpdate();
@@ -215,11 +226,11 @@ implements ReactiveController {
 
   readonly removeItem = (item: Item): void => {
     this.#requireItem(item);
-    const index = this.#placements.findIndex(placement => Object.is(placement.item, item));
+    const index = this.#placements.findIndex(placement => placement.item === item);
     if (index < 0) return;
     this.#remember();
     this.#placements = Object.freeze(this.#placements.filter((_, candidate) => candidate !== index));
-    if (Object.is(this.#selectedItem, item)) this.#selectedItem = null;
+    if (this.#selectedItem === item) this.#selectedItem = null;
     this.#notice = null;
     this.#host.requestUpdate();
   };

@@ -679,8 +679,8 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
   const result = await page.evaluate(async () => {
     const { PlacementDraftController } = await import('/src/moves/placement-draft.ts');
     const { MoveSubmissionGate, createMoveAction } = await import('/src/moves/action.ts');
-    await import('/src/components/boardgame-placement-draft-controls.ts');
-    const controls = document.createElement('boardgame-placement-draft-controls');
+    await import('/src/components/boardgame-draft-controls.ts');
+    const controls = document.createElement('boardgame-draft-controls');
     controls.style.display = 'block';
     controls.style.width = '300px';
     controls.label = 'Word placement';
@@ -768,7 +768,7 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
     const clearedCount = controls.draft.placements.length;
     const direction = getComputedStyle(root.querySelector('#buttons')!).flexDirection;
 
-    const invalid = document.createElement('boardgame-placement-draft-controls');
+    const invalid = document.createElement('boardgame-draft-controls');
     document.body.append(invalid);
     let invalidError = '';
     try { await invalid.updateComplete; } catch (error) {
@@ -782,17 +782,17 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
   });
   expect(result).toEqual({
     initialStatus: '0 placements drafted.',
-    initialReason: 'Add 2 more placements before committing',
+    initialReason: 'Add 2 more before committing',
     completeCount: '2 / 2',
     undoneCount: 1,
     submissions: 1,
     notice: 'The game changed, so the local draft was cleared. Dismiss',
     clearedCount: 0,
     direction: 'column',
-    invalidError: expect.stringContaining('.draft must be a PlacementDraftController binding'),
+    invalidError: expect.stringContaining('.draft must be a placement or selection draft binding'),
   });
   const axeResult = await new AxeBuilder({ page })
-    .include('boardgame-placement-draft-controls')
+    .include('boardgame-draft-controls')
     .analyze();
   expect(axeResult.violations).toEqual([]);
 });

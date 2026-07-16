@@ -2004,11 +2004,11 @@ render() {
         ?disabled=${draft.selectedItem === null || draft.itemAt(square) !== undefined}
         @click=${() => draft.place(square)}>${square}</button>`)}
     </div>
-    <boardgame-placement-draft-controls
+    <boardgame-draft-controls
       label="Word placement"
       commit-label="Play word"
       .draft=${draft}>
-    </boardgame-placement-draft-controls>`;
+    </boardgame-draft-controls>`;
 }
 ```
 
@@ -2029,6 +2029,44 @@ from the current immutable placement list, so normal schema validation,
 animation/submission gates, preview, `ExpectedVersion`, and stale-snapshot
 failure all remain in force. Network failures retain the draft for retry;
 success consumes the snapshot until the authoritative next state arrives.
+
+When choices do not have destinations—cards to discard, resources to trade,
+payment cards, or simultaneous picks—use the sibling `SelectionDraftController`.
+It deliberately shares the same stock controls:
+
+```typescript
+private readonly payment = new SelectionDraftController<string>(this);
+
+const draft = this.payment.bind({
+  candidates: resourceCardIDs,
+  minSelected: 2,
+  maxSelected: 4,
+  action: selected => this.move(MoveNames.Pay).with({
+    Cards: selected.join(','),
+  }),
+});
+
+return html`
+  <div aria-label="Payment cards">
+    ${resourceCardIDs.map(id => html`<button
+      type="button"
+      aria-pressed=${String(draft.isSelected(id))}
+      @click=${() => draft.toggle(id)}>${id}</button>`)}
+  </div>
+  <boardgame-draft-controls
+    label="Payment"
+    commit-label="Pay"
+    .draft=${draft}>
+  </boardgame-draft-controls>`;
+```
+
+`toggle`, `select`, and `deselect` all enforce the same typed candidate set and
+maximum. Selection order is stable, the arrays are frozen, undo is bounded,
+and `clear` remains the snapshot-change default. Explicit `keep-valid` rebasing
+retains only keys still offered by the new authoritative snapshot and announces
+what was pruned. Both draft controllers expose the one small
+`DraftControlsBinding` surface, so Commit/Undo/Clear behavior stays consistent
+while the game keeps ownership of card, resource, or board presentation.
 
 For a wholly custom interaction, call `activate()` from the user's gesture and
 mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`

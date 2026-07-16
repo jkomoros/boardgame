@@ -92,7 +92,7 @@ export type { ActionBarAlignment, ActionBarOrientation } from './components/boar
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
 export type { BoardViewportChange } from './components/boardgame-board-viewport.js';
-export type { PlacementDraftControlsBinding } from './components/boardgame-placement-draft-controls.js';
+export type { DraftControlsBinding } from './components/boardgame-draft-controls.js';
 export type {
   InspectorChangeReason,
   InspectorOpenChangedDetail,
@@ -106,6 +106,13 @@ export type {
   ReadinessState,
 } from './status/readiness.js';
 export { readinessPresentation } from './status/readiness.js';
+export {
+  SelectionDraftController,
+  type SelectionDraftBinding,
+  type SelectionDraftNotice,
+  type SelectionDraftOptions,
+  type SelectionDraftRebasePolicy,
+} from './moves/selection-draft.js';
 export {
   AdminPlayerIndex,
   AnyPlayerIndex,
@@ -148,7 +155,7 @@ import './components/boardgame-die.js';
 import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';
-import './components/boardgame-placement-draft-controls.js';
+import './components/boardgame-draft-controls.js';
 import './components/boardgame-inspector.js';
 import './components/boardgame-readiness.js';
 import './components/boardgame-component-zone.js';
