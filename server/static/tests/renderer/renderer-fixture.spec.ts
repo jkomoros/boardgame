@@ -930,6 +930,121 @@ test('game outcome waits for settled animation and renders public or personal ve
   }
 });
 
+test('game surface supplies a semantic responsive shell with optional named regions', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/client.ts');
+      const surface = document.createElement('boardgame-game-surface');
+      surface.heading = 'Fixture game';
+      surface.style.width = '50rem';
+      surface.style.setProperty('--boardgame-game-surface-max-width', '34rem');
+
+      const headerAction = document.createElement('button');
+      headerAction.slot = 'header';
+      headerAction.textContent = 'Rules';
+      const content = document.createElement('div');
+      content.textContent = 'Board';
+      const status = document.createElement('p');
+      status.slot = 'status';
+      status.textContent = 'Your turn';
+      status.setAttribute('role', 'status');
+      const actions = document.createElement('div');
+      actions.slot = 'actions';
+      actions.textContent = 'Actions';
+      const footer = document.createElement('small');
+      footer.slot = 'footer';
+      footer.textContent = 'Round 1';
+      surface.append(headerAction, content, status, actions, footer);
+      document.body.append(surface);
+      await surface.updateComplete;
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await surface.updateComplete;
+
+      const root = surface.shadowRoot;
+      const shell = root?.querySelector('#surface') as HTMLElement | null;
+      const header = root?.querySelector('#header') as HTMLElement | null;
+      const heading = root?.querySelector('#heading');
+      const wideDirection = header ? getComputedStyle(header).flexDirection : '';
+      const initial = {
+        labelReference: shell?.getAttribute('aria-labelledby'),
+        heading: heading?.textContent?.trim(),
+        headingRole: heading?.getAttribute('role'),
+        headingLevel: heading?.getAttribute('aria-level'),
+        surfacePart: shell?.getAttribute('part'),
+        contentPart: root?.querySelector('#content')?.getAttribute('part'),
+        statusHidden: (root?.querySelector('#status') as HTMLElement | null)?.hidden,
+        actionsHidden: (root?.querySelector('#actions') as HTMLElement | null)?.hidden,
+        footerHidden: (root?.querySelector('#footer') as HTMLElement | null)?.hidden,
+        shellWidth: shell?.getBoundingClientRect().width ?? 0,
+      };
+
+      surface.style.width = '20rem';
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const narrowDirection = header ? getComputedStyle(header).flexDirection : '';
+      actions.remove();
+      footer.remove();
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await surface.updateComplete;
+      const emptied = {
+        actionsHidden: (root?.querySelector('#actions') as HTMLElement | null)?.hidden,
+        footerHidden: (root?.querySelector('#footer') as HTMLElement | null)?.hidden,
+      };
+
+      surface.hideHeading = true;
+      await surface.updateComplete;
+      const hiddenHeadingClass = root?.querySelector('#heading')?.getAttribute('class');
+
+      const renderError = (name: string, value: unknown) => {
+        const element = document.createElement('boardgame-game-surface') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        element.heading = 'Valid';
+        element[name] = value;
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+
+      return {
+        initial,
+        wideDirection,
+        narrowDirection,
+        emptied,
+        hiddenHeadingClass,
+        blankHeading: renderError('heading', ' '),
+        invalidHeadingLevel: renderError('headingLevel', 7),
+      };
+    });
+
+    expect(result.initial).toMatchObject({
+      labelReference: 'heading',
+      heading: 'Fixture game',
+      headingRole: 'heading',
+      headingLevel: '2',
+      surfacePart: 'surface',
+      contentPart: 'content',
+      statusHidden: false,
+      actionsHidden: false,
+      footerHidden: false,
+    });
+    expect(result.initial.shellWidth).toBeCloseTo(34 * 16, 0);
+    expect(result.wideDirection).toBe('row');
+    expect(result.narrowDirection).toBe('column');
+    expect(result.emptied).toEqual({ actionsHidden: true, footerHidden: true });
+    expect(result.hiddenHeadingClass).toBe('visually-hidden');
+    expect(result.blankHeading).toContain('heading must be a non-empty game name');
+    expect(result.invalidHeadingLevel).toContain('headingLevel must be a safe integer from 1 through 6');
+    const axeResult = await new AxeBuilder({ page }).include('boardgame-game-surface').analyze();
+    expect(axeResult.violations).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('player grid supplies named responsive layout and a useful empty state', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

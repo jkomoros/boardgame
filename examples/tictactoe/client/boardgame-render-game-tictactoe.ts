@@ -31,18 +31,20 @@ class BoardgameRenderGameTictactoe extends GameRenderer {
       )
       : null;
     return html`
-      <h2>Tictactoe</h2>
-      <boardgame-game-board
-        rows="3" cols="3"
-        .stack=${slots ?? null}
-        .componentView=${this.tokens}
-        .action=${places}>
-      </boardgame-game-board>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+      <boardgame-game-surface heading="Tic-tac-toe">
+        <boardgame-game-board
+          rows="3" cols="3"
+          .stack=${slots ?? null}
+          .componentView=${this.tokens}
+          .action=${places}>
+        </boardgame-game-board>
+        <boardgame-fading-text
+          slot="status"
+          .trigger="${this.isCurrentPlayer}"
+          message="Your Turn"
+          suppress="falsey">
+        </boardgame-fading-text>
+      </boardgame-game-surface>
     `;
   }
 }

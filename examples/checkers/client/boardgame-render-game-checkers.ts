@@ -42,17 +42,20 @@ class BoardgameRenderGameCheckers extends GameRenderer {
       ),
     });
     return html`
-      <boardgame-game-board
-        rows="8" cols="8" checkerboard
-        .stack="${spaces}"
-        .componentView=${this.tokens}
-        .sourceDestination=${interaction}>
-      </boardgame-game-board>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+      <boardgame-game-surface heading="Checkers">
+        <boardgame-game-board
+          rows="8" cols="8" checkerboard
+          .stack="${spaces}"
+          .componentView=${this.tokens}
+          .sourceDestination=${interaction}>
+        </boardgame-game-board>
+        <boardgame-fading-text
+          slot="status"
+          .trigger="${this.isCurrentPlayer}"
+          message="Your Turn"
+          suppress="falsey">
+        </boardgame-fading-text>
+      </boardgame-game-surface>
     `;
   }
 }

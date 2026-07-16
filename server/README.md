@@ -121,6 +121,28 @@ Use `hide-heading` only when another visible heading already names the
 collection. Tune `--boardgame-player-grid-min-width` and
 `--boardgame-player-grid-gap`; children remain arbitrary Lit content.
 
+### Game surface
+
+Use `boardgame-game-surface` as the semantic, responsive root of an ordinary
+solo renderer:
+
+```typescript
+html`<boardgame-game-surface heading="Memory">
+  <boardgame-game-outcome slot="status" ...></boardgame-game-outcome>
+  <!-- Primary board and zones use the default slot. -->
+  <boardgame-action-bar slot="actions" label="Memory actions">
+    <!-- Typed controls. -->
+  </boardgame-action-bar>
+</boardgame-game-surface>`
+```
+
+Its optional `status`, `actions`, and `footer` regions are omitted when their
+slots are unassigned; `header` content sits beside the required heading. The
+centered max width, responsive padding, CSS
+parts, and `--boardgame-game-surface-*` tokens make the zero-CSS result useful
+while keeping all game content and styling game-owned. Blank headings and
+invalid heading levels fail loudly.
+
 
 ### Optional: boardgame-fading-text
 

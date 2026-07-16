@@ -105,6 +105,7 @@ import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';
 import './components/boardgame-component-zone.js';
 import './components/boardgame-game-outcome.js';
+import './components/boardgame-game-surface.js';
 import './components/boardgame-player-grid.js';
 import './components/boardgame-status-text.js';
 import './components/boardgame-timer.js';

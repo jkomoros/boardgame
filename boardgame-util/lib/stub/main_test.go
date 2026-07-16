@@ -57,6 +57,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 	playerInfo := string(contents["checkers/client/boardgame-render-player-info-checkers.ts"])
 	for _, required := range []string{
 		"cardView<GameState['DrawStack']>",
+		"<boardgame-game-surface heading=\"Checkers\">",
 		"<boardgame-component-zone",
 		"<boardgame-game-outcome",
 		"<boardgame-player-grid>",
@@ -65,7 +66,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		"component.Values.Value",
 		".componentView=${this.cards.withProperties({ rotated: true })}",
 		"<boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>",
-		"<boardgame-action-bar label=\"Turn actions\">",
+		"<boardgame-action-bar slot=\"actions\" label=\"Turn actions\">",
 		"player.Computed?.GameScore ?? 0",
 	} {
 		if !strings.Contains(client, required) {

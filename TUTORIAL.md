@@ -1494,6 +1494,38 @@ pooling, and FLIP animation identity. Each factory used with `componentView`
 must return a fresh registered component element of one consistent type; invalid
 factories fail loudly.
 
+Start an ordinary solo renderer with `boardgame-game-surface`. It supplies the
+game's semantic heading, centered responsive bounds, safe narrow-screen
+spacing, and named regions without imposing a visual theme or knowing anything
+about your state:
+
+```typescript
+return html`<boardgame-game-surface heading="Memory">
+  <boardgame-game-outcome
+    slot="status"
+    .finished=${this.gameFinished}
+    .animating=${this.animating}
+    .winners=${this.gameWinners}>
+  </boardgame-game-outcome>
+
+  <!-- The board, zones, and other primary content use the default slot. -->
+
+  <boardgame-action-bar slot="actions" label="Memory actions">
+    <!-- Typed action controls. -->
+  </boardgame-action-bar>
+</boardgame-game-surface>`;
+```
+
+The optional `status`, `actions`, and `footer` regions disappear when their
+slots are unassigned; `header` content sits beside the required heading. The
+heading is visible by default; use `heading-level` only
+to fit the surrounding document outline, and `hide-heading` only when another
+visible heading already names the game. Style the stable `surface`, `header`,
+`heading`, `status`, `content`, `actions`, and `footer` parts, or tune
+`--boardgame-game-surface-max-width`, `--boardgame-game-surface-padding`, and
+`--boardgame-game-surface-gap`. Drop down to ordinary Lit markup when a game
+needs a deliberately unusual shell.
+
 Then stamping those components is as simple as binding a sanitized stack to a
 `boardgame-component-zone` from your Lit renderer:
 

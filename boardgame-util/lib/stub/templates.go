@@ -813,44 +813,48 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]
-      <boardgame-game-outcome
-        .finished=${this.gameFinished}
-        .animating=${this.animating}
-        .winners=${this.gameWinners}
-        .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
-      </boardgame-game-outcome>
-      <boardgame-component-zone
-        label="Draw pile"
-        .stack=${this.state?.Game.DrawStack ?? null}
-        .componentView=${this.cards}
-        layout="stack" messy>
-      </boardgame-component-zone>
+      <boardgame-game-surface heading="{{uppercaseFirst .Name}}">
+        <boardgame-game-outcome
+          slot="status"
+          .finished=${this.gameFinished}
+          .animating=${this.animating}
+          .winners=${this.gameWinners}
+          .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
+        </boardgame-game-outcome>
+        <boardgame-component-zone
+          label="Draw pile"
+          .stack=${this.state?.Game.DrawStack ?? null}
+          .componentView=${this.cards}
+          layout="stack" messy>
+        </boardgame-component-zone>
       {{- if .EnableExampleMoves }}
-      <boardgame-action-bar label="Turn actions">
-        <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
-          Draw a card
-        </boardgame-action-button>
-      </boardgame-action-bar>
+        <boardgame-action-bar slot="actions" label="Turn actions">
+          <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
+            Draw a card
+          </boardgame-action-button>
+        </boardgame-action-bar>
       {{- end}}
-      <boardgame-player-grid>
-        ${this.state?.Players.map((player, index) => html[[BACKTICK]]
-          <boardgame-component-zone
-              class="player"
-              label="Player ${index + 1} hand"
-              .stack=${player.Hand}
-              .componentView=${this.cards.withProperties({ rotated: true })}
-              layout="fan" messy>
-            <boardgame-fading-text
-              .trigger=${player.Computed?.GameScore ?? 0}
-              auto-message="diff-up">
-            </boardgame-fading-text>
-          </boardgame-component-zone>
-        [[BACKTICK]])}
-      </boardgame-player-grid>
-      <boardgame-fading-text
-        .trigger=${this.isCurrentPlayer}
-        message="Your Turn" suppress="falsey">
-      </boardgame-fading-text>
+        <boardgame-player-grid>
+          ${this.state?.Players.map((player, index) => html[[BACKTICK]]
+            <boardgame-component-zone
+                class="player"
+                label="Player ${index + 1} hand"
+                .stack=${player.Hand}
+                .componentView=${this.cards.withProperties({ rotated: true })}
+                layout="fan" messy>
+              <boardgame-fading-text
+                .trigger=${player.Computed?.GameScore ?? 0}
+                auto-message="diff-up">
+              </boardgame-fading-text>
+            </boardgame-component-zone>
+          [[BACKTICK]])}
+        </boardgame-player-grid>
+        <boardgame-fading-text
+          slot="status"
+          .trigger=${this.isCurrentPlayer}
+          message="Your Turn" suppress="falsey">
+        </boardgame-fading-text>
+      </boardgame-game-surface>
     [[BACKTICK]];
     {{- else }}
     return html[[BACKTICK]]

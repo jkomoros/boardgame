@@ -24,21 +24,24 @@ class BoardgameRenderGamePig extends GameRenderer {
 
   override render() {
     return html`
-      <div class="container">
-        <boardgame-die
-          .item="${this.state?.Game?.Die?.Components?.[0]}"
-          .action="${this.move(MoveNames.RollDice)}">
-        </boardgame-die>
-        <div class="flex"></div>
-        <boardgame-action-button .action="${this.move(MoveNames.DoneTurn)}">
-          Done
-        </boardgame-action-button>
-      </div>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+      <boardgame-game-surface heading="Pig">
+        <div class="container">
+          <boardgame-die
+            .item="${this.state?.Game?.Die?.Components?.[0]}"
+            .action="${this.move(MoveNames.RollDice)}">
+          </boardgame-die>
+          <div class="flex"></div>
+          <boardgame-action-button .action="${this.move(MoveNames.DoneTurn)}">
+            Done
+          </boardgame-action-button>
+        </div>
+        <boardgame-fading-text
+          slot="status"
+          .trigger="${this.isCurrentPlayer}"
+          message="Your Turn"
+          suppress="falsey">
+        </boardgame-fading-text>
+      </boardgame-game-surface>
     `;
   }
 }

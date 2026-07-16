@@ -50,51 +50,55 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
 
   override render() {
     return html`
-      <boardgame-game-outcome
-        .finished=${this.gameFinished}
-        .animating=${this.animating}
-        .winners=${this.gameWinners}
-        .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
-      </boardgame-game-outcome>
-      <div id="draw">
-        <boardgame-component-zone
-          label="Draw pile"
-          .stack="${this.state?.Game?.DrawStack}"
-          .componentView=${this.cards}
-          layout="stack"
-          messy>
-        </boardgame-component-zone>
-        <boardgame-action-bar class="flex" label="Blackjack actions">
-          <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
-          <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
-        </boardgame-action-bar>
-        <boardgame-component-zone
-          label="Discard pile"
-          .stack="${this.state?.Game?.DiscardStack}"
-          .componentView=${this.cards}
-          layout="stack"
-          messy>
-        </boardgame-component-zone>
-      </div>
-      <boardgame-player-grid id="players">
-        ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
+      <boardgame-game-surface heading="Blackjack">
+        <boardgame-game-outcome
+          slot="status"
+          .finished=${this.gameFinished}
+          .animating=${this.animating}
+          .winners=${this.gameWinners}
+          .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
+        </boardgame-game-outcome>
+        <div id="draw">
           <boardgame-component-zone
-              class="player ${this._bustedClass(player.Eliminated)}"
-              label="Player ${index} hand"
-              .stack="${player.Hand}"
-              .componentView=${this.cards.withProperties({ rotated: true })}
-              layout="fan"
-              messy>
-              <boardgame-fading-text .trigger="${player.Eliminated}" message="Busted!"></boardgame-fading-text>
-              <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
+            label="Draw pile"
+            .stack="${this.state?.Game?.DrawStack}"
+            .componentView=${this.cards}
+            layout="stack"
+            messy>
           </boardgame-component-zone>
-        `)}
-      </boardgame-player-grid>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+          <boardgame-action-bar class="flex" label="Blackjack actions">
+            <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
+            <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
+          </boardgame-action-bar>
+          <boardgame-component-zone
+            label="Discard pile"
+            .stack="${this.state?.Game?.DiscardStack}"
+            .componentView=${this.cards}
+            layout="stack"
+            messy>
+          </boardgame-component-zone>
+        </div>
+        <boardgame-player-grid id="players">
+          ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
+            <boardgame-component-zone
+                class="player ${this._bustedClass(player.Eliminated)}"
+                label="Player ${index} hand"
+                .stack="${player.Hand}"
+                .componentView=${this.cards.withProperties({ rotated: true })}
+                layout="fan"
+                messy>
+                <boardgame-fading-text .trigger="${player.Eliminated}" message="Busted!"></boardgame-fading-text>
+                <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
+            </boardgame-component-zone>
+          `)}
+        </boardgame-player-grid>
+        <boardgame-fading-text
+          slot="status"
+          .trigger="${this.isCurrentPlayer}"
+          message="Your Turn"
+          suppress="falsey">
+        </boardgame-fading-text>
+      </boardgame-game-surface>
     `;
   }
 }

@@ -970,6 +970,15 @@ these pieces internally while preserving existing helper/template overrides.
 
 First evidence-driven primitive tranche (2026-07-16):
 
+- [x] Add `boardgame-game-surface` after six framework renderers and all three
+  external solo renderers independently repeated root headings, width/padding,
+  and status/action placement. Require one semantic heading; provide default
+  content plus header/status/actions/footer slots; unassigned optional regions
+  vanish. Keep responsive bounds, parts, and tokens theme-neutral. Prove strict
+  property contracts, wide/narrow layout, runtime diagnostics, and axe; migrate
+  Pig, Tic-tac-toe, Checkers, Memory, solo Blackjack, Werewolf, Pass, Valentine,
+  Murder Mr Monroe, and generated scaffold output while leaving diagnostic and
+  companion-specific surfaces custom.
 - [x] Modernize `boardgame-status-text`, a primitive repeated by seven framework
   and external games, around a typed `.value` string/number contract instead of
   hidden slotted content plus DOM mutation observation. Register it from the

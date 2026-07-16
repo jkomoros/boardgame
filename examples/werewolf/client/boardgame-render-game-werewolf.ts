@@ -12,7 +12,6 @@ class BoardgameRenderGameWerewolf extends GameRenderer {
     css`
       :host {
         display: block;
-        padding: 24px;
         font-family: system-ui, sans-serif;
       }
       pre {
@@ -24,8 +23,9 @@ class BoardgameRenderGameWerewolf extends GameRenderer {
 
   override render() {
     return html`
-      <h2>Werewolf</h2>
-      <pre>${this.diagram || 'Waiting for state...'}</pre>
+      <boardgame-game-surface heading="Werewolf">
+        <pre>${this.diagram || 'Waiting for state...'}</pre>
+      </boardgame-game-surface>
     `;
   }
 }

@@ -81,60 +81,65 @@ class BoardgameRenderGameMemory extends GameRenderer {
       cardSlots, cardIndex => ({ CardIndex: cardIndex }),
     );
     return html`
-      <h2>Memory</h2>
-      <div>
-        <boardgame-component-stack
-          layout="grid"
-          messy
-          post-animation-delay="${this._revealHoldMs()}"
-          .stack="${cardStack}"
-          .componentView=${this.cards}
-          .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
-        </boardgame-component-stack>
+      <boardgame-game-surface heading="Memory">
+        <div>
+          <boardgame-component-stack
+            layout="grid"
+            messy
+            post-animation-delay="${this._revealHoldMs()}"
+            .stack="${cardStack}"
+            .componentView=${this.cards}
+            .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+          </boardgame-component-stack>
+          <boardgame-fading-text
+            message="Match"
+            .trigger="${this.state?.Game?.Cards?.Components?.length}">
+          </boardgame-fading-text>
+        </div>
+        <div class="discards">
+          <div class="discard-pile">
+            <boardgame-player-badge player-index="0" compact></boardgame-player-badge>
+            <boardgame-component-stack
+              layout="stack"
+              .stack="${this.state?.Players?.[0]?.WonCards}"
+              .componentView=${this.cards}
+              messy
+              components-disabled>
+            </boardgame-component-stack>
+          </div>
+          <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
+          <boardgame-card spacer></boardgame-card>
+          <div class="discard-pile">
+            <boardgame-player-badge player-index="1" compact></boardgame-player-badge>
+            <boardgame-component-stack
+              layout="stack"
+              messy
+              .stack="${this.state?.Players?.[1]?.WonCards}"
+              .componentView=${this.cards}
+              components-disabled>
+            </boardgame-component-stack>
+          </div>
+        </div>
+        <boardgame-action-bar slot="actions" label="Memory actions">
+          <boardgame-action-button
+            id="hide"
+            .action=${this.move(MoveNames.HideCards)}>
+            Hide Cards
+          </boardgame-action-button>
+        </boardgame-action-bar>
+        <boardgame-timer
+          slot="status"
+          id="timeleft"
+          label="Cards hide in"
+          .timer=${this.state?.Game?.HideCardsTimer ?? null}>
+        </boardgame-timer>
         <boardgame-fading-text
-          message="Match"
-          .trigger="${this.state?.Game?.Cards?.Components?.length}">
+          slot="status"
+          .trigger="${this.isCurrentPlayer}"
+          message="Your Turn"
+          suppress="falsey">
         </boardgame-fading-text>
-      </div>
-      <div class="discards">
-        <div class="discard-pile">
-          <boardgame-player-badge player-index="0" compact></boardgame-player-badge>
-          <boardgame-component-stack
-            layout="stack"
-            .stack="${this.state?.Players?.[0]?.WonCards}"
-            .componentView=${this.cards}
-            messy
-            components-disabled>
-          </boardgame-component-stack>
-        </div>
-        <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
-        <boardgame-card spacer></boardgame-card>
-        <div class="discard-pile">
-          <boardgame-player-badge player-index="1" compact></boardgame-player-badge>
-          <boardgame-component-stack
-            layout="stack"
-            messy
-            .stack="${this.state?.Players?.[1]?.WonCards}"
-            .componentView=${this.cards}
-            components-disabled>
-          </boardgame-component-stack>
-        </div>
-      </div>
-      <boardgame-action-button
-        id="hide"
-        .action=${this.move(MoveNames.HideCards)}>
-        Hide Cards
-      </boardgame-action-button>
-      <boardgame-timer
-        id="timeleft"
-        label="Cards hide in"
-        .timer=${this.state?.Game?.HideCardsTimer ?? null}>
-      </boardgame-timer>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+      </boardgame-game-surface>
     `;
   }
 }
