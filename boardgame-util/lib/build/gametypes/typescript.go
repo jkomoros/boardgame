@@ -179,6 +179,27 @@ func GenerateTypeScript(result TypeResult) string {
 		b.WriteString("export type DynamicComponentValues = Readonly<Record<string, never>>;\n\n")
 	}
 
+	if len(result.Constants) > 0 {
+		b.WriteString("export interface GameConstants {\n")
+		for _, constant := range result.Constants {
+			b.WriteString("  readonly ")
+			b.WriteString(tsQuoted(constant.Name))
+			b.WriteString(": ")
+			switch constant.Kind {
+			case "number", "boolean":
+				b.WriteString(constant.Value)
+			case "string":
+				b.WriteString(tsQuoted(constant.Value))
+			default:
+				b.WriteString("never")
+			}
+			b.WriteString(";\n")
+		}
+		b.WriteString("}\n\n")
+	} else {
+		b.WriteString("export type GameConstants = Readonly<Record<string, never>>;\n\n")
+	}
+
 	// Generate GameState interface
 	b.WriteString("export interface GameComputed extends Readonly<Record<string, unknown>> {}\n\n")
 	b.WriteString("export interface PlayerComputed extends Readonly<Record<string, unknown>> {}\n\n")
@@ -235,6 +256,7 @@ import type { MoveName } from './_move_names.js';
 import type {
   ComponentCatalog,
   DynamicComponentValues,
+  GameConstants,
   GameComputed,
   GameState,
   PlayerComputed,
@@ -251,6 +273,7 @@ export interface GameClientContract {
   readonly PlayerComputed: PlayerComputed;
   readonly Components: ComponentCatalog;
   readonly DynamicComponents: DynamicComponentValues;
+  readonly Constants: GameConstants;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
   readonly RendererTag:
@@ -264,7 +287,8 @@ export abstract class GameRenderer extends BoardgameBaseGameRenderer<
   GameClientContract['State'],
   GameClientContract['Components'],
   GameClientContract['MoveName'],
-  GameClientContract['MoveInputs']
+  GameClientContract['MoveInputs'],
+  GameClientContract['Constants']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -275,7 +299,8 @@ export abstract class TableRenderer extends BoardgameTableViewBase<
   GameClientContract['State'],
   GameClientContract['Components'],
   GameClientContract['MoveName'],
-  GameClientContract['MoveInputs']
+  GameClientContract['MoveInputs'],
+  GameClientContract['Constants']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -286,7 +311,8 @@ export abstract class HandRenderer extends BoardgameHandViewBase<
   GameClientContract['State'],
   GameClientContract['Components'],
   GameClientContract['MoveName'],
-  GameClientContract['MoveInputs']
+  GameClientContract['MoveInputs'],
+  GameClientContract['Constants']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;

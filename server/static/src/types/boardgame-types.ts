@@ -129,7 +129,7 @@ export interface GameChest<
   readonly Enums?: Readonly<Record<string, {
     readonly Values?: Readonly<Record<string, string>>;
   }>>;
-  /** Framework constants remain opaque until a generated contract describes them. */
+  /** Exact names and values are supplied by each game's generated contract. */
   readonly Constants?: DeepReadonly<K>;
   readonly LegalTemplates?: Readonly<Record<string, string>>;
 }

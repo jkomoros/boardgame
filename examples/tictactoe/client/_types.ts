@@ -16,6 +16,10 @@ export interface ComponentCatalog {
 
 export type DynamicComponentValues = Readonly<Record<string, never>>;
 
+export interface GameConstants {
+  readonly "TOTAL_DIM": 9;
+}
+
 export interface GameComputed extends Readonly<Record<string, unknown>> {}
 
 export interface PlayerComputed extends Readonly<Record<string, unknown>> {}

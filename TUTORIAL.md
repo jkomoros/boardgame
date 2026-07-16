@@ -2185,9 +2185,9 @@ These files follow the same convention as `auto_reader.go` and `auto_enum.go`: t
 
 When you run `boardgame-util serve` (or `boardgame-util emit-types`), the tool
 also generates `client/_types.ts` and `client/_game_renderer.ts` for each game
-package. The first exports typed state, player, component, computed-value, and
-enum contracts. The second binds those types plus move names and native author
-inputs into the renderer bases and exact registration decorators:
+package. The first exports typed state, player, component, computed-value,
+constant, and enum contracts. The second binds those types plus move names and
+native author inputs into the renderer bases and exact registration decorators:
 
 ```typescript
 // Auto-generated — DO NOT EDIT.
@@ -2198,6 +2198,11 @@ export type PhaseValue = "Setup" | "Playing";
 export interface CardsComponentValues {
   Rank: string;
   Suit: string;
+}
+
+export interface GameConstants {
+  readonly "numCards": 52;
+  readonly "friendly": true;
 }
 
 export interface GameState {
@@ -2225,6 +2230,8 @@ import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 export class BoardgameRenderGameMyGame extends GameRenderer {
   // this.state?.Game?.DrawStack is now typed as ExpandedStack<CardsComponentValues>
   // this.state?.Players?.[0]?.Score is now typed as number
+  // this.chest?.Constants?.numCards is the literal type 52
+  // this.chest?.Constants?.numCard is a compile error — no dynamic keys
   // this.isMoveCurrentlyLegal("Bad Name") is a compile error — only valid move names allowed
 }
 ```
@@ -3393,6 +3400,12 @@ Your `GameDelegate` can define constants by returning a map of constants to valu
 Of course, you don't need to actually return anything from that method to define normal constants in your package. There are two primary reasons to define them: 1) if you need them client-side, and 2) if you want to use them in a tag-based struct auto-inflater.
 
 Constants that are exported via `ConfigureConstants()` will automatically be transmitted client-side.
+`boardgame-util emit-types` also generates an exact `GameConstants` contract
+for them and binds it to your generated renderer bases. In a renderer,
+`this.chest?.Constants?.TOTAL_DIM` is typed and autocompleted; misspelled or
+undeclared keys fail compilation. The framework transport remains generic, but
+game creators should use the generated renderer base rather than casting the
+constants object or declaring a hand-written index signature.
 
 Constants can also be used as the int argument in a tag-based struct auto-inflation. For example, see the tictactoe example:
 

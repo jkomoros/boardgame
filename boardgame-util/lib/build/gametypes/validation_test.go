@@ -53,3 +53,20 @@ func TestValidateTypeResultAcceptsDistinctContract(t *testing.T) {
 		t.Fatalf("ValidateTypeResult() unexpected error: %v", err)
 	}
 }
+
+func TestValidateTypeResultRejectsInvalidConstants(t *testing.T) {
+	tests := map[string][]ConstantInfo{
+		"empty name":     {{Name: "", Kind: "string", Value: "x"}},
+		"duplicate name": {{Name: "same", Kind: "string", Value: "x"}, {Name: "same", Kind: "string", Value: "y"}},
+		"unknown kind":   {{Name: "x", Kind: "object", Value: "{}"}},
+		"bad integer":    {{Name: "x", Kind: "number", Value: "1.5"}},
+		"bad boolean":    {{Name: "x", Kind: "boolean", Value: "yes"}},
+	}
+	for name, constants := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := ValidateTypeResult(TypeResult{Constants: constants}); err == nil {
+				t.Fatal("ValidateTypeResult() succeeded, want error")
+			}
+		})
+	}
+}

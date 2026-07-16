@@ -3,6 +3,7 @@ package gametypes
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 )
 
 var typeScriptIdentifier = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
@@ -13,12 +14,36 @@ var typeScriptIdentifier = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 func ValidateTypeResult(result TypeResult) error {
 	declared := map[string]string{
 		"ComponentCatalog":       "framework component catalog",
+		"GameConstants":          "framework game constants",
 		"DynamicComponentValues": "framework dynamic component values",
 		"GameComputed":           "framework game computed values",
 		"PlayerComputed":         "framework player computed values",
 		"GameState":              "framework game state",
 		"PlayerState":            "framework player state",
 		"State":                  "framework full state",
+	}
+	seenConstants := make(map[string]bool)
+	for _, constant := range result.Constants {
+		if constant.Name == "" {
+			return fmt.Errorf("game constant name may not be empty")
+		}
+		if seenConstants[constant.Name] {
+			return fmt.Errorf("game constants contain duplicate name %q", constant.Name)
+		}
+		seenConstants[constant.Name] = true
+		switch constant.Kind {
+		case "number":
+			if _, err := strconv.Atoi(constant.Value); err != nil {
+				return fmt.Errorf("game constant %q has invalid integer value %q", constant.Name, constant.Value)
+			}
+		case "boolean":
+			if _, err := strconv.ParseBool(constant.Value); err != nil {
+				return fmt.Errorf("game constant %q has invalid boolean value %q", constant.Name, constant.Value)
+			}
+		case "string":
+		default:
+			return fmt.Errorf("game constant %q has unsupported kind %q", constant.Name, constant.Kind)
+		}
 	}
 	declare := func(name, source string) error {
 		if !typeScriptIdentifier.MatchString(name) {

@@ -26,6 +26,10 @@ export interface DynamicComponentValues {
   readonly "Tokens": readonly TokensDynamicComponentValues[];
 }
 
+export interface GameConstants {
+  readonly "BOARD_SIZE": 64;
+}
+
 export interface GameComputed extends Readonly<Record<string, unknown>> {}
 
 export interface PlayerComputed extends Readonly<Record<string, unknown>> {}

@@ -21,6 +21,8 @@ export interface DynamicComponentValues {
   readonly "dice": readonly DiceDynamicComponentValues[];
 }
 
+export type GameConstants = Readonly<Record<string, never>>;
+
 export interface GameComputed extends Readonly<Record<string, unknown>> {}
 
 export interface PlayerComputed extends Readonly<Record<string, unknown>> {}

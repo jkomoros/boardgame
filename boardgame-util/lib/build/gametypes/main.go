@@ -36,14 +36,23 @@ type EnumInfo struct {
 	Values []string `json:"values"`
 }
 
+// ConstantInfo describes a configured game constant and its exact primitive
+// value. ConfigureConstants only accepts int, bool, and string values.
+type ConstantInfo struct {
+	Name  string `json:"name"`
+	Kind  string `json:"kind"`
+	Value string `json:"value"`
+}
+
 // TypeResult is the result of extracting type information for a single game package.
 type TypeResult struct {
-	PackageName  string      `json:"packageName"`
-	ImportPath   string      `json:"importPath"`
-	GameFields   []FieldInfo `json:"gameFields"`
-	PlayerFields []FieldInfo `json:"playerFields"`
-	Decks        []DeckInfo  `json:"decks"`
-	Enums        []EnumInfo  `json:"enums"`
+	PackageName  string         `json:"packageName"`
+	ImportPath   string         `json:"importPath"`
+	GameFields   []FieldInfo    `json:"gameFields"`
+	PlayerFields []FieldInfo    `json:"playerFields"`
+	Decks        []DeckInfo     `json:"decks"`
+	Enums        []EnumInfo     `json:"enums"`
+	Constants    []ConstantInfo `json:"constants"`
 }
 
 // Build generates a temporary Go binary that imports all game packages,
@@ -187,6 +196,12 @@ type enumInfo struct {
 	Values []string ` + "`" + `json:"values"` + "`" + `
 }
 
+type constantInfo struct {
+	Name  string ` + "`" + `json:"name"` + "`" + `
+	Kind  string ` + "`" + `json:"kind"` + "`" + `
+	Value string ` + "`" + `json:"value"` + "`" + `
+}
+
 type typeResult struct {
 	PackageName  string      ` + "`" + `json:"packageName"` + "`" + `
 	ImportPath   string      ` + "`" + `json:"importPath"` + "`" + `
@@ -194,6 +209,7 @@ type typeResult struct {
 	PlayerFields []fieldInfo ` + "`" + `json:"playerFields"` + "`" + `
 	Decks        []deckInfo  ` + "`" + `json:"decks"` + "`" + `
 	Enums        []enumInfo  ` + "`" + `json:"enums"` + "`" + `
+	Constants    []constantInfo ` + "`" + `json:"constants"` + "`" + `
 }
 
 type delegateEntry struct {
@@ -386,6 +402,28 @@ func main() {
 
 		// Extract deck component value fields
 		chest := manager.Chest()
+		constantNames := chest.ConstantNames()
+		sort.Strings(constantNames)
+		var constants []constantInfo
+		for _, name := range constantNames {
+			constant := constantInfo{Name: name}
+			switch value := chest.Constant(name).(type) {
+			case int:
+				constant.Kind = "number"
+				constant.Value = fmt.Sprint(value)
+			case bool:
+				constant.Kind = "boolean"
+				constant.Value = fmt.Sprint(value)
+			case string:
+				constant.Kind = "string"
+				constant.Value = value
+			default:
+				fmt.Fprintf(os.Stderr, "Error: constant %q for %s has unsupported type %T\n", name, entry.delegate.Name(), value)
+				os.Exit(1)
+			}
+			constants = append(constants, constant)
+		}
+
 		deckNames := chest.DeckNames()
 		sort.Strings(deckNames)
 
@@ -488,6 +526,7 @@ func main() {
 			PlayerFields: playerFields,
 			Decks:        decks,
 			Enums:        enums,
+			Constants:    constants,
 		})
 	}
 

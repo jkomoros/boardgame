@@ -26,7 +26,8 @@ export class BoardgameHandViewBase<
   C extends object,
   MN extends string,
   MA extends Record<string, object>,
-> extends BoardgameBaseGameRenderer<S, C, MN, MA> {
+  K extends object = object,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K> {
 
   /**
    * The player index this Hand view is bound to. Equals viewingAsPlayer

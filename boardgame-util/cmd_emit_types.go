@@ -80,11 +80,11 @@ func (e *emitTypes) Description() string {
 func (e *emitTypes) HelpText() string {
 	return e.Name() + ` generates a _types.ts file in each game's client/ directory
 containing typed interfaces for GameState, PlayerState, component values,
-DynamicComponentValues, and enums. It also refreshes _move_names.ts and
-_move_args.ts, then generates _game_renderer.ts, the zero-generic base class
-game renderers extend. The complete generated surface is strictly validated
-before state/renderer outputs are installed. These contracts provide type
-safety and IDE autocomplete across state and moves.
+DynamicComponentValues, configured constants, and enums. It also refreshes
+_move_names.ts and _move_args.ts, then generates _game_renderer.ts, the
+zero-generic base class game renderers extend. The complete generated surface
+is strictly validated before state/renderer outputs are installed. These
+contracts provide type safety and IDE autocomplete across state and moves.
 
 Enum fields are resolved at runtime, so even enums from imported packages
 (e.g. playingcards Suit/Rank) are emitted as typed string literal unions.
@@ -221,19 +221,19 @@ export type ExpandedTimer = unknown;
 export type FullGameState<GS, PS, GC, PC, DC> = { readonly Game: GS; readonly Players: readonly PS[]; readonly Components?: DC; readonly Computed?: { readonly Global?: GC; readonly Players?: readonly PC[] } };
 export type RawStack = unknown;
 `
-	frameworkClient := `export abstract class BoardgameBaseGameRenderer<S, C extends object, M extends string, A extends Readonly<Record<M, object>>> extends HTMLElement {
+	frameworkClient := `export abstract class BoardgameBaseGameRenderer<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object> extends HTMLElement {
   protected readonly moveInputSchema!: unknown;
   protected readonly moveInputSchemaFingerprint!: string;
   readonly state!: S;
-  readonly chest!: { readonly Decks?: C };
+  readonly chest!: { readonly Decks?: C; readonly Constants?: K };
 }
 export abstract class BoardgameBasePlayerInfoRenderer<S, PS> extends HTMLElement {
   state!: S | null;
   playerIndex!: number;
   playerState!: PS | null;
 }
-export abstract class BoardgameTableViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>> extends BoardgameBaseGameRenderer<S, C, M, A> {}
-export abstract class BoardgameHandViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>> extends BoardgameBaseGameRenderer<S, C, M, A> {}
+export abstract class BoardgameTableViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object> extends BoardgameBaseGameRenderer<S, C, M, A, K> {}
+export abstract class BoardgameHandViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>, K extends object = object> extends BoardgameBaseGameRenderer<S, C, M, A, K> {}
 `
 	if err := os.WriteFile(filepath.Join(frameworkDir, "types", "boardgame-types.ts"), []byte(frameworkTypes), 0600); err != nil {
 		return fmt.Errorf("couldn't stage TypeScript type declarations: %w", err)

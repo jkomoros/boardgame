@@ -17,6 +17,7 @@ import type { MoveName } from './_move_names.js';
 import type {
   ComponentCatalog,
   DynamicComponentValues,
+  GameConstants,
   GameComputed,
   GameState,
   PlayerComputed,
@@ -33,6 +34,7 @@ export interface GameClientContract {
   readonly PlayerComputed: PlayerComputed;
   readonly Components: ComponentCatalog;
   readonly DynamicComponents: DynamicComponentValues;
+  readonly Constants: GameConstants;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
   readonly RendererTag:
@@ -46,7 +48,8 @@ export abstract class GameRenderer extends BoardgameBaseGameRenderer<
   GameClientContract['State'],
   GameClientContract['Components'],
   GameClientContract['MoveName'],
-  GameClientContract['MoveInputs']
+  GameClientContract['MoveInputs'],
+  GameClientContract['Constants']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -57,7 +60,8 @@ export abstract class TableRenderer extends BoardgameTableViewBase<
   GameClientContract['State'],
   GameClientContract['Components'],
   GameClientContract['MoveName'],
-  GameClientContract['MoveInputs']
+  GameClientContract['MoveInputs'],
+  GameClientContract['Constants']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -68,7 +72,8 @@ export abstract class HandRenderer extends BoardgameHandViewBase<
   GameClientContract['State'],
   GameClientContract['Components'],
   GameClientContract['MoveName'],
-  GameClientContract['MoveInputs']
+  GameClientContract['MoveInputs'],
+  GameClientContract['Constants']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;

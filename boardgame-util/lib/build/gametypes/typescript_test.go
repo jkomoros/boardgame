@@ -170,6 +170,11 @@ func TestGenerateTypeScript(t *testing.T) {
 		Enums: []EnumInfo{
 			{Name: "phase", Values: []string{"Setup", "Playing"}},
 		},
+		Constants: []ConstantInfo{
+			{Name: "numCards", Kind: "number", Value: "9"},
+			{Name: "friendly", Kind: "boolean", Value: "true"},
+			{Name: "display-label", Kind: "string", Value: "Cards \"left\""},
+		},
 	}
 
 	ts := GenerateTypeScript(result)
@@ -187,6 +192,17 @@ func TestGenerateTypeScript(t *testing.T) {
 	// Check enum
 	if !strings.Contains(ts, `export type PhaseValue = "Setup" | "Playing";`) {
 		t.Error("missing or wrong PhaseValue enum")
+	}
+
+	for _, want := range []string{
+		`export interface GameConstants {`,
+		`readonly "numCards": 9;`,
+		`readonly "friendly": true;`,
+		`readonly "display-label": "Cards \"left\"";`,
+	} {
+		if !strings.Contains(ts, want) {
+			t.Errorf("missing generated constant %q:\n%s", want, ts)
+		}
 	}
 
 	// Check component values interface
@@ -255,10 +271,12 @@ func TestGenerateRendererTypeScriptBindsCompleteContractAndExactRegistration(t *
 		"'boardgame-render-game-sample', 'game', 'GameRenderer', GameRenderer, constructor",
 		"protected override readonly moveInputSchema = moveInputSchema;",
 		"readonly Components: ComponentCatalog;",
+		"readonly Constants: GameConstants;",
 		"readonly RendererTag:",
 		"'boardgame-render-game-sample-table'",
 		"'boardgame-render-game-sample-hand'",
 		"GameClientContract['State']",
+		"GameClientContract['Constants']",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("missing %q:\n%s", want, ts)
@@ -320,6 +338,9 @@ func TestGenerateTypeScriptEmpty(t *testing.T) {
 	}
 	if !strings.Contains(ts, "export interface PlayerState {") {
 		t.Error("missing PlayerState interface")
+	}
+	if !strings.Contains(ts, "export type GameConstants = Readonly<Record<string, never>>;") {
+		t.Error("missing closed empty constants contract")
 	}
 	// Should only import FullGameState
 	if !strings.Contains(ts, "import type { FullGameState }") {

@@ -1142,6 +1142,13 @@ First evidence-driven primitive tranche (2026-07-16):
   duplicate chest types; and remove ambient string-to-`any` escape hatches so
   core code cannot pretend it knows creator-defined keys and unknown envelope
   fields cannot enter Redux unnoticed.
+- [x] Generate an exact, closed `GameConstants` contract from each game's
+  `ConfigureConstants` result and carry it automatically through Game, Table,
+  and Hand renderer bases. Preserve primitive literal values, use a closed
+  empty contract for games without constants, reject malformed extractor data,
+  and keep an unbound framework chest opaque so nonexistent and misspelled
+  creator keys fail compilation. Regenerate and compile the bundled and external
+  game corpora, and teach constants through the generated base in the tutorial.
 - [x] Extend the same fail-closed transport to list and create-game flows:
   replace `any[]` manager/game state with shared exact manager, variant, agent,
   player, and game-list contracts; bound and copy the Go payloads; normalize nil

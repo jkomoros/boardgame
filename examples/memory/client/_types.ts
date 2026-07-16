@@ -15,6 +15,8 @@ export interface ComponentCatalog {
 
 export type DynamicComponentValues = Readonly<Record<string, never>>;
 
+export type GameConstants = Readonly<Record<string, never>>;
+
 export interface GameComputed extends Readonly<Record<string, unknown>> {}
 
 export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
