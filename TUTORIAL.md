@@ -1703,9 +1703,11 @@ That is the complete common-case interaction wiring. The stack owns pointer and
 Enter/Space activation, live legality and pending state, `aria-disabled`, focus
 semantics, explanations, subscriptions, and cleanup while preserving component
 identity and movement animations. Use `null` at a slot that is deliberately not
-interactive. The array must contain exactly one entry per stack slot; a mismatch,
-an unbound action, or mixing `.componentActions` with legacy proposal attributes
-throws an actionable error instead of silently targeting the wrong card.
+interactive. The array must contain exactly one entry per stack slot; a mismatch
+or an unbound action throws an actionable error instead of silently targeting
+the wrong card. Removed proposal keys such as `proposeMove`, `indexAttributes`,
+and `data-arg-*` are rejected even through `.unsafeComponentAttrs`; they cannot
+make a component look interactive or bypass the typed action path.
 
 For more complex processing, render ordinary Lit content in the view callback.
 If the host itself must be custom, use `componentView()` with a factory that

@@ -292,8 +292,7 @@ class BoardgameDie extends BoardgameAnimatableItem {
   override render() {
     const action = this.action;
     const bound = isBoundMoveAction(action);
-    const legacyInteractive = this.hasAttribute('propose-move');
-    const interactive = bound || legacyInteractive;
+    const interactive = bound;
     const effectiveDisabled = this.disabled || !interactive || (bound && !action.canActivate);
     const baseReason = bound
       ? action.reason?.message

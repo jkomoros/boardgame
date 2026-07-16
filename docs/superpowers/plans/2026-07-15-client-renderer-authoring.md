@@ -620,6 +620,9 @@ one shell before generating Table, Hand, or PlayerInfo bound runtime classes.
   adapter and the direct `proposeMove()` shortcut. Legacy renderer attributes
   are inert; `move()` is the sole creator proposal entry point and always keeps
   snapshot, preview, animation, pending, and discriminated-result semantics.
+- [x] Remove component-stack `indexAttributes`/proposal forwarding as well.
+  Removed behavioral keys fail loudly through `.unsafeComponentAttrs`, and a
+  legacy `propose-move` attribute cannot make a die appear interactive.
 - [x] Migrate Pig fully and compare creator code size and behavior to the
   baseline. The renderer fell from 54 to 46 lines and from eight direct module/
   type imports to three facade/generated imports; two manually synchronized

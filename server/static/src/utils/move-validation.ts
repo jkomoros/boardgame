@@ -4,7 +4,7 @@
  * Validates arguments against the MoveForm.Fields schema already available
  * on the client. This catches wrong field names, wrong types, and missing
  * fields at runtime — the safety net for code paths that don't use the
- * typed proposeMove() helper (e.g., data-arg-* attributes, gathering pickers).
+ * framework-internal proposal events (for example gathering pickers).
  */
 import type { MoveForm, MoveFormField } from '../types/api';
 

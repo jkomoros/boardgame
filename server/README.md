@@ -80,7 +80,9 @@ dynamic control. Unknown layouts and invalid geometry fail loudly at runtime.
 Prefer the component view's typed `properties` callback for card or token
 presentation. Use `.componentView=${this.cards.withProperties({ rotated: true })}`
 for stack-specific typed properties. `.unsafeComponentAttrs` is reserved for
-custom host properties with no typed representation. Bind interactions with typed actions:
+custom presentation properties with no typed representation; removed proposal
+keys (`proposeMove`, `indexAttributes`, and `data-arg-*`) fail loudly there.
+Bind interactions with typed actions:
 
 ```typescript
 const reveals = this.move(MoveNames.RevealCard).targets(

@@ -1,6 +1,5 @@
 import { LitElement, html, css, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import { dashToCamelCase } from '../utils/case-map.js';
 import type { BoardgameComponentElement } from '../types/components';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
@@ -620,8 +619,15 @@ export class BoardgameComponentStack extends LitElement {
 
   }
 
-  private _attributesForComponents(): Map<string, any> {
-    const attrs = new Map(Object.entries(this.unsafeComponentAttrs));
+  private _attributesForComponents(): Map<string, unknown> {
+    const forbidden = Object.keys(this.unsafeComponentAttrs).find(key =>
+      key === 'proposeMove' || key === 'propose-move'
+      || key === 'indexAttributes' || key === 'index-attributes'
+      || key.startsWith('data-arg-'));
+    if (forbidden) {
+      throw new Error(`boardgame-component-stack: unsafeComponentAttrs.${forbidden} is removed; use componentActions for moves and view.withProperties() for per-slot presentation`);
+    }
+    const attrs = new Map<string, unknown>(Object.entries(this.unsafeComponentAttrs));
     if (this.componentsDisabled) attrs.set('disabled', true);
 
     // Forward the stack's own post-animation-delay / wait-for-animation
@@ -661,7 +667,6 @@ export class BoardgameComponentStack extends LitElement {
 
     const applyToElement = (ele: Element) => {
       for (const [key, val] of attrs) {
-        if (key === 'indexAttributes') continue;
         (ele as any)[key] = val;
       }
     };
@@ -715,9 +720,6 @@ export class BoardgameComponentStack extends LitElement {
     }
     if (this.componentsDisabled) {
       throw new Error('boardgame-component-stack: componentActions cannot be combined with componentsDisabled');
-    }
-    if ('proposeMove' in this.unsafeComponentAttrs || 'indexAttributes' in this.unsafeComponentAttrs) {
-      throw new Error('boardgame-component-stack: componentActions cannot be combined with legacy proposal attributes');
     }
     this.componentActions.forEach((action, index) => {
       if (action !== null && !isBoundMoveAction(action)) {
@@ -868,7 +870,6 @@ export class BoardgameComponentStack extends LitElement {
    */
   private _insertNodesBoardMode(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const attrs = this._attributesForComponents();
-    const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
     const stackIds = this.stack?.IDs;
 
     // Build a map of component ID → existing DOM element
@@ -939,14 +940,7 @@ export class BoardgameComponentStack extends LitElement {
       }
 
       for (const [key, val] of attrs) {
-        if (key === 'indexAttributes') continue;
         anyEle[key] = val;
-      }
-
-      for (const name of attributesToIndex) {
-        const finalName = dashToCamelCase(name);
-        anyEle[finalName] = slotIndex;
-        anyEle.setAttribute(name, String(slotIndex));
       }
     }
   }
@@ -957,7 +951,6 @@ export class BoardgameComponentStack extends LitElement {
    */
   private _insertNodesDefault(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const attrs = this._attributesForComponents();
-    const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
 
     let componentIndex = 0;
 
@@ -990,14 +983,7 @@ export class BoardgameComponentStack extends LitElement {
       }
 
       for (const [key, val] of attrs) {
-        if (key === 'indexAttributes') continue;
         ele[key] = val;
-      }
-
-      for (const name of attributesToIndex) {
-        const finalName = dashToCamelCase(name);
-        ele[finalName] = componentIndex;
-        ele.setAttribute(name, componentIndex);
       }
 
       componentIndex++;

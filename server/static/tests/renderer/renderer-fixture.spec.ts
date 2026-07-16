@@ -255,6 +255,49 @@ test('component stacks bind typed actions by slot and reject ambiguous wiring', 
   }
 });
 
+test('removed component proposal configuration is inert or fails loudly', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-die.ts');
+    await import('/src/components/boardgame-component-stack.ts');
+    const die = document.createElement('boardgame-die') as HTMLElement & { updateComplete: Promise<unknown> };
+    die.setAttribute('propose-move', 'Roll');
+    document.body.append(die);
+    await die.updateComplete;
+    const dieButton = die.shadowRoot?.querySelector<HTMLButtonElement>('button');
+
+    const errorFor = async (unsafeComponentAttrs: Record<string, unknown>) => {
+      const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        unsafeComponentAttrs: Record<string, unknown>;
+        updateComplete: Promise<unknown>;
+      };
+      stack.unsafeComponentAttrs = unsafeComponentAttrs;
+      document.body.append(stack);
+      try { await stack.updateComplete; return '<missing error>'; }
+      catch (error) { return error instanceof Error ? error.message : String(error); }
+      finally { stack.remove(); }
+    };
+    return {
+      dieDisabled: dieButton?.disabled,
+      dieLabel: dieButton?.getAttribute('aria-label'),
+      errors: await Promise.all([
+        errorFor({ proposeMove: 'Choose' }),
+        errorFor({ indexAttributes: 'card-index' }),
+        errorFor({ 'data-arg-card-index': 2 }),
+      ]),
+    };
+  });
+  expect(result).toEqual({
+    dieDisabled: true,
+    dieLabel: 'Die',
+    errors: [
+      expect.stringContaining('componentActions for moves'),
+      expect.stringContaining('view.withProperties()'),
+      expect.stringContaining('componentActions for moves'),
+    ],
+  });
+});
+
 test('renderer-scoped component views preserve hosts and distinguish visible, hidden, and empty slots', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
