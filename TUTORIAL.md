@@ -1640,6 +1640,44 @@ reason. Use `.labelFor=${...}` when its default “B1, occupied” labels are no
 specific enough. Non-grid UIs can render `target.candidates` directly and use
 each candidate's `.action`; `TargetAction` itself has no layout assumptions.
 
+For a source-then-destination board (checkers, chess, tactical movement), add a
+single Lit reactive controller. It resets selection automatically when the
+renderer snapshot changes; the ordinary target action still owns all legality
+and submission behavior:
+
+```typescript
+private readonly moveToken = new SourceDestinationController<number>(this);
+
+render() {
+  const spaces = this.state?.Game.Spaces ?? null;
+  const components = spaces?.Components ?? [];
+  const playerColor = this.state?.Players[this.proposingAsPlayer]?.Color;
+  const interaction = this.moveToken.bind({
+    sources: components.flatMap((piece, index) =>
+      isVisibleComponent(piece) && piece.Values.Color === playerColor
+        ? [index]
+        : []),
+    destinations: TokenIndexToMove => this.move(MoveNames.MoveToken).targets(
+      components.flatMap((piece, SpaceIndex) => piece ? [] : [SpaceIndex]),
+      SpaceIndex => ({ TokenIndexToMove, SpaceIndex }),
+    ),
+  });
+
+  return html`<boardgame-game-board
+    rows="8" cols="8"
+    .stack=${spaces}
+    .sourceDestination=${interaction}>
+  </boardgame-game-board>`;
+}
+```
+
+The board owns re-selection, Escape-to-cancel, accessible selected/source
+labels, legal-destination highlighting, and clearing after success. Illegal
+destinations keep the source selected and expose the server reason. Source and
+destination keys must be disjoint, in range, finite, and unique; ambiguous
+configuration fails loudly. Creators do not maintain a parallel selected index,
+preview request, disabled-space array, string serialization, or click handler.
+
 For a wholly custom interaction, call `activate()` from the user's gesture and
 mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`
 retries a transient exact-preview failure before proposing. For headless

@@ -4,6 +4,7 @@ import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-deck-defaults.js';
+import '../../src/components/boardgame-action-button.js';
 import { MoveNames, type MoveName } from './_move_names.js';
 import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
 import type { ComponentCatalog, State } from './_types.js';
@@ -65,26 +66,14 @@ export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCat
         justify-content: center;
         gap: 12px;
       }
-      .actions button {
-        padding: 16px 32px;
+      .actions boardgame-action-button {
         font-size: 18px;
-        border-radius: 8px;
-        border: 2px solid white;
-        background: transparent;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .actions button[disabled] {
-        opacity: 0.35;
-        cursor: default;
       }
     `,
   ];
 
   override render() {
     const player = this.playerState;
-    const canAct = this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerHit);
     return html`
       ${this.renderTopEdgeAnchor()}
       ${this.renderHandHeader()}
@@ -103,8 +92,8 @@ export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCat
           : ''}
       </div>
       <div class="actions">
-        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerHit)}>Hit</button>
-        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerStand)}>Stand</button>
+        <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
+        <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
       </div>
     `;
   }

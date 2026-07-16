@@ -50,6 +50,12 @@ export type {
   TargetCandidate,
   TargetKey,
 } from './moves/target-action.js';
+export { SourceDestinationController } from './moves/source-destination.js';
+export type {
+  SourceDestinationBinding,
+  SourceDestinationHost,
+  SourceDestinationOptions,
+} from './moves/source-destination.js';
 export type {
   BoardPiece,
   BoardGeometry,

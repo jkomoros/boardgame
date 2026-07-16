@@ -857,11 +857,12 @@ approved.
 
 ### A. Source/destination and small move drafts
 
-- Extract a `SourceDestinationController` from Checkers.
-- Auto-reset on state/version change; preserve or cancel only through explicit
-  policy.
-- Support reselect, Escape/cancel, accessible selection announcement, and bound
-  destination preview.
+- [x] Extract a `SourceDestinationController` from Checkers. It auto-resets on
+  state, version, route, epoch, and proposal-perspective changes; supports
+  reselect, Escape/cancel, accessible selection announcements, successful
+  submission clearing, and batched bound destination preview. The controller
+  owns only local source state while `TargetAction` and `boardgame-game-board`
+  retain transport and presentation responsibilities.
 - Use Valentine to determine whether a small partial `MoveDraft` is warranted.
   It may accumulate exact author-input fields and submit only when complete; it
   must not own layout, gestures, or modal sequencing.

@@ -2,6 +2,7 @@ import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
 import { glyphForSlug } from '../../src/components/companion-avatar-catalog.js';
+import '../../src/components/boardgame-action-button.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
@@ -75,22 +76,8 @@ export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCata
         flex-direction: column;
         gap: 8px;
       }
-      .vote-buttons button {
-        padding: 14px 24px;
-        font-size: 16px;
-        border-radius: 8px;
-        border: 2px solid #555;
-        background: #2a2a3e;
-        color: #e0e0e0;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .vote-buttons button:active {
-        background: #3a3a5e;
-      }
-      .vote-buttons button:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
+      .vote-buttons boardgame-action-button {
+        align-self: stretch;
       }
       .voted-message {
         text-align: center;
@@ -168,6 +155,14 @@ export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCata
 
     // Determine the correct move name for this phase
     const moveName = phase === 'Night' ? MoveNames.CastNightVote : MoveNames.CastVote;
+    const voteIndexes = voteTargets.map(target => target.index);
+    const votes = moveName === MoveNames.CastNightVote
+      ? this.move(MoveNames.CastNightVote).targets(
+        voteIndexes, VoteTarget => ({ VoteTarget }),
+      )
+      : this.move(MoveNames.CastVote).targets(
+        voteIndexes, VoteTarget => ({ VoteTarget }),
+      );
 
     return html`
       ${this.renderTopEdgeAnchor()}
@@ -202,11 +197,9 @@ export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCata
               <h2>${phase === 'Day' ? 'Vote to eliminate:' : 'Choose a target:'}</h2>
               <div class="vote-buttons">
                 ${voteTargets.map(t => html`
-                  <button @click=${() => this.proposeMove(moveName, {
-                    VoteTarget: t.index,
-                  })}>
+                  <boardgame-action-button .action=${votes.get(t.index)?.action ?? null}>
                     ${t.label}
-                  </button>
+                  </boardgame-action-button>
                 `)}
               </div>
             </div>

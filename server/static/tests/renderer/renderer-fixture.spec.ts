@@ -496,6 +496,76 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
   });
 });
 
+test('Checkers composes source selection with typed destination actions', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    await page.evaluate(async () => {
+      await import('/game-src/checkers/boardgame-render-game-checkers.ts');
+      const { checkersRendererFixture } = await import(
+        '/game-src/checkers/boardgame-render-fixtures-checkers.ts'
+      );
+      const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+      const handle = await mountRendererFixture(checkersRendererFixture);
+      (globalThis as unknown as { __checkersFixtureHandle: typeof handle }).__checkersFixtureHandle = handle;
+    });
+
+    const board = page.locator('boardgame-game-board');
+    const source = board.locator('.cell[data-index="17"]');
+    const sourceCell = source.locator('xpath=..');
+    const destination = board.locator('.cell[data-index="26"]');
+    await expect(source).toHaveAttribute('aria-label', /Selectable source/);
+    await source.click();
+    await expect(sourceCell).toHaveAttribute('aria-selected', 'true');
+    await expect(destination).toHaveAttribute('aria-disabled', 'false');
+    await destination.click();
+
+    const proposal = await page.evaluate(() => {
+      const handle = (globalThis as unknown as {
+        __checkersFixtureHandle: { readonly proposals: readonly unknown[] };
+      }).__checkersFixtureHandle;
+      return handle.proposals[0];
+    });
+    expect(proposal).toMatchObject({
+      snapshotVersion: 3,
+      name: 'Move Token',
+      arguments: { TokenIndexToMove: '17', SpaceIndex: '26' },
+    });
+    await expect(sourceCell).toHaveAttribute('aria-selected', 'false');
+
+    await source.click();
+    await expect(sourceCell).toHaveAttribute('aria-selected', 'true');
+    await source.press('Escape');
+    await expect(sourceCell).toHaveAttribute('aria-selected', 'false');
+    await source.click();
+    await expect(sourceCell).toHaveAttribute('aria-selected', 'true');
+    await page.evaluate(async () => {
+      const { checkersRendererFixture } = await import(
+        '/game-src/checkers/boardgame-render-fixtures-checkers.ts'
+      );
+      const handle = (globalThis as unknown as {
+        __checkersFixtureHandle: {
+          update(snapshot: typeof checkersRendererFixture.snapshot): Promise<void>;
+          dispose(): void;
+        };
+      }).__checkersFixtureHandle;
+      await handle.update({ ...checkersRendererFixture.snapshot, version: 4 });
+    });
+    await expect(sourceCell).toHaveAttribute('aria-selected', 'false');
+    const axeResult = await new AxeBuilder({ page })
+      .include('[data-renderer-fixture]')
+      .withRules(['aria-required-children', 'aria-required-parent', 'button-name'])
+      .analyze();
+    expect(axeResult.violations).toEqual([]);
+    diagnostics.assertEmpty();
+    await page.evaluate(() => {
+      (globalThis as unknown as { __checkersFixtureHandle: { dispose(): void } })
+        .__checkersFixtureHandle.dispose();
+    });
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('Tic-tac-toe fixture proposes native numeric targets and stays bounded at canonical widths', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
@@ -676,6 +746,17 @@ test('game board rejects contradictory geometry and accessibility configuration 
       rejects({ rows: 1, cols: 2, labelFor: () => 'same' }),
       rejects({
         rows: 1,
+        cols: 1,
+        action: { candidates: [], subscribe: () => () => undefined },
+        sourceDestination: { selectedSource: null, sources: [], action: null, selectSource: () => undefined, clear: () => undefined },
+      }),
+      rejects({
+        rows: 1,
+        cols: 2,
+        sourceDestination: { selectedSource: null, sources: [2], action: null, selectSource: () => undefined, clear: () => undefined },
+      }),
+      rejects({
+        rows: 1,
         cols: 2,
         action: {
           candidates: [{ key: 0 }, { key: 0 }],
@@ -695,6 +776,8 @@ test('game board rejects contradictory geometry and accessibility configuration 
     expect.stringMatching(/labelFor failed for cell 0: boom/),
     expect.stringMatching(/labelFor must return a string for cell 0/),
     expect.stringMatching(/labels must be unique/),
+    expect.stringMatching(/mutually exclusive/),
+    expect.stringMatching(/source key 2 is outside 0 through 1/),
     expect.stringMatching(/keys must cover exactly 0 through 1/),
   ]);
 });
