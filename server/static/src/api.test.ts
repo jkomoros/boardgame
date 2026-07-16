@@ -133,18 +133,31 @@ test('malformed failure metadata cannot masquerade as structured stale data', as
   assert.equal(result.actualVersion, undefined);
 });
 
-test('conventional HTTP JSON transport preserves status errors and custom headers', async () => {
-  const capturedPost = stubFetch({ error: 'Seat already taken', filled: [true, false] }, 409);
+test('conventional HTTP JSON transport preserves typed failures and custom headers', async () => {
+  const failure = { error: 'Seat already taken', code: 'SEAT_TAKEN', slots: [] };
+  const capturedPost = stubFetch(failure, 409);
   const failed = await apiHttpPost('/api/join/seat', { gameID: 'GAME', seatPick: 0 }, {
     headers: { Authorization: 'Bearer token' },
   });
   assert.equal(failed.status, 409);
   assert.equal(failed.data, undefined);
   assert.equal(failed.error, 'Seat already taken');
+  assert.equal(failed.code, 'SEAT_TAKEN');
+  assert.deepEqual(failed.failureBody, failure);
   assert.equal(capturedPost().opts.headers.Authorization, 'Bearer token');
   assert.deepEqual(JSON.parse(capturedPost().opts.body), { gameID: 'GAME', seatPick: 0 });
 
   stubFetch({ gameID: 'GAME', slots: [] });
   const succeeded = await apiHttpGet('/api/join/seat-options');
   assert.deepEqual(succeeded.data, { gameID: 'GAME', slots: [] });
+});
+
+test('conventional HTTP cancellation is silent and distinguishable from a network failure', async () => {
+  (globalThis as unknown as { fetch: unknown }).fetch = async () => {
+    throw new DOMException('cancelled', 'AbortError');
+  };
+  const result = await apiHttpGet('/api/join/seat-options', { signal: new AbortController().signal });
+  assert.equal(result.status, 0);
+  assert.equal(result.aborted, true);
+  assert.equal(result.error, undefined);
 });

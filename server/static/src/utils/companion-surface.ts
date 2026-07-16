@@ -18,6 +18,10 @@ export function surfaceForGame(gameId: string): 'table' | 'hand' | null {
   const display = params.get('display');
   if (display === 'table' || display === 'hand') return display;
   if (gameId) {
+    try {
+      const local = window.localStorage.getItem(`boardgame-surface:${gameId}`);
+      if (local === 'table' || local === 'hand') return local;
+    } catch { /* storage may be disabled; the cookie remains the fallback */ }
     const cookieName = `surface_${gameId}=`;
     const cookies = document.cookie.split('; ');
     for (const c of cookies) {
@@ -28,4 +32,33 @@ export function surfaceForGame(gameId: string): 'table' | 'hand' | null {
     }
   }
   return null;
+}
+
+/**
+ * Records presentation intent on the frontend origin. The API also writes a
+ * cookie, but that cookie is invisible when API_HOST and the web application
+ * use different origins. This value only chooses a renderer; server-side auth
+ * and state sanitization remain authoritative for private information.
+ */
+export function rememberSurfaceForGame(gameId: string, surface: 'table' | 'hand'): void {
+  if (!gameId) throw new Error('gameId is required to remember a companion surface');
+  try {
+    window.localStorage.setItem(`boardgame-surface:${gameId}`, surface);
+  } catch { /* cookie/query fallback still works when storage is unavailable */ }
+}
+
+export function forgetSurfaceForGame(gameId: string): void {
+  if (!gameId) return;
+  try { window.localStorage.removeItem(`boardgame-surface:${gameId}`); } catch { /* ignored */ }
+}
+
+export function forgetAllCompanionSurfaces(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key?.startsWith('boardgame-surface:')) keys.push(key);
+    }
+    for (const key of keys) window.localStorage.removeItem(key);
+  } catch { /* ignored */ }
 }

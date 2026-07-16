@@ -13,10 +13,13 @@ import { gamePath } from '../util.js';
 import {
   decodeJoinResponse,
   decodeJoinSeatResponse,
+  decodeJoinProblem,
   decodeSeatOptionsResponse,
   type JoinResponse,
   type SeatOptionsResponse,
 } from '../types/join-response.js';
+import { forgetAllCompanionSurfaces, rememberSurfaceForGame } from '../utils/companion-surface.js';
+import { codeFromJoinRoute, JoinSessionScope, type JoinOperation } from '../join/join-session.js';
 
 /**
  * boardgame-join-view is the phone-side flow for joining a Table+Hand
@@ -121,6 +124,8 @@ export class BoardgameJoinView extends LitElement {
       border-radius: 8px;
       cursor: pointer;
       text-align: center;
+      background: white;
+      font: inherit;
     }
     .slot.filled {
       cursor: not-allowed;
@@ -152,7 +157,10 @@ export class BoardgameJoinView extends LitElement {
 
 
   @property({ type: String })
-  pageExtra = '';
+  route = '';
+
+  @property({ type: Boolean })
+  selected = false;
 
   @state() private _step: Step = 'code';
   @state() private _error = '';
@@ -164,58 +172,24 @@ export class BoardgameJoinView extends LitElement {
   @state() private _firebaseUID = '';
   @state() private _firebaseToken = '';
   @state() private _selectedSeat: number | null = null;
+  @state() private _problemCode = '';
+  @state() private _existingIdentityLabel = '';
+
+  private _sessionScope = new JoinSessionScope();
+  private _attemptID = '';
+  private _authGeneration = 0;
 
   // _unsubscribeIdTokenChanged is the cleanup handle returned by Firebase's
   // onIdTokenChanged subscription. Stashed here so disconnectedCallback can
   // call it; otherwise the listener leaks across navigations.
   private _unsubscribeIdTokenChanged: (() => void) | null = null;
 
-  private _popstateHandler = (e: PopStateEvent) => {
-    if (e.state && e.state.step) {
-      // After a mid-flow reload, history entries for later steps can
-      // survive while _joinResponse (in-memory only) is gone. Restoring
-      // such a step would strand the user on a panel whose buttons
-      // silently no-op — fall back to the code step instead.
-      if (e.state.step !== 'code' && !this._joinResponse) {
-        this._step = 'code';
-        return;
-      }
-      this._step = e.state.step;
-    }
-  };
-
   private _setStep(step: Step) {
     this._step = step;
-    history.pushState({ step }, '', window.location.pathname + window.location.search);
   }
 
   override connectedCallback() {
     super.connectedCallback();
-    window.addEventListener('popstate', this._popstateHandler);
-    history.replaceState({ step: 'code' }, '', window.location.pathname + window.location.search);
-    // Roll a default avatar+name for the front door.
-    this._reroll();
-    // If the URL carries "?code=XXXX" (the QR on the Table view encodes
-    // /join?code=<room code>), prefill AND auto-submit: scanning the QR is
-    // an unambiguous statement of intent, so don't make the phone tap Join
-    // on a code it didn't type. Malformed values just prefill; a bad-but-
-    // well-formed code falls back to the code step with the server's error.
-    const params = new URLSearchParams(window.location.search);
-    const codeParam = params.get('code');
-    if (codeParam) {
-      this._codeInput = codeParam.toUpperCase();
-      if (/^[A-Za-z]{4,5}$/.test(codeParam)) {
-        this._submitCode();
-      }
-    } else {
-      // No QR param: prefill (but don't auto-submit) the last code this
-      // tab validated, so a mid-flow reload is one tap to recover.
-      try {
-        const last = sessionStorage.getItem('join-last-code');
-        if (last) this._codeInput = last;
-      } catch { /* private mode */ }
-    }
-
     // Firebase anon (and Google) ID tokens are JWTs with a 1-hour TTL.
     // Subscribe to onIdTokenChanged so a long-lived join flow (or a
     // future re-auth-protected request) sees the freshest token.
@@ -224,14 +198,22 @@ export class BoardgameJoinView extends LitElement {
     const OFFLINE_DEV_MODE = Boolean(CONFIG && CONFIG.offline_dev_mode);
     if (!OFFLINE_DEV_MODE) {
       this._unsubscribeIdTokenChanged = firebase.auth().onIdTokenChanged(async (user) => {
+        const authGeneration = ++this._authGeneration;
         if (!user) {
           this._firebaseUID = '';
           this._firebaseToken = '';
+          this._existingIdentityLabel = '';
           return;
         }
-        this._firebaseUID = user.uid;
+        this._firebaseUID = '';
+        this._firebaseToken = '';
+        this._existingIdentityLabel = '';
         try {
-          this._firebaseToken = await user.getIdToken();
+          const token = await user.getIdToken();
+          if (authGeneration !== this._authGeneration || firebase.auth().currentUser?.uid !== user.uid) return;
+          this._firebaseUID = user.uid;
+          this._firebaseToken = token;
+          this._existingIdentityLabel = user.displayName || user.email || (user.isAnonymous ? 'returning guest' : 'signed-in player');
         } catch (err) {
           console.warn('Failed to refresh Firebase ID token:', err);
         }
@@ -241,10 +223,93 @@ export class BoardgameJoinView extends LitElement {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
-    window.removeEventListener('popstate', this._popstateHandler);
+    this._deactivate();
     if (this._unsubscribeIdTokenChanged) {
       this._unsubscribeIdTokenChanged();
       this._unsubscribeIdTokenChanged = null;
+    }
+  }
+
+  protected override updated(changed: Map<PropertyKey, unknown>) {
+    if (changed.has('selected') || changed.has('route')) {
+      if (this.selected) this._activate(this.route);
+      else this._deactivate();
+    }
+    if (changed.has('_step')) {
+      const heading = this.renderRoot.querySelector<HTMLElement>('.step:not(.hidden) [data-step-heading]');
+      heading?.focus();
+    }
+  }
+
+  private _activate(route: string) {
+    const key = route || '?';
+    if (!this._sessionScope.activate(key)) return;
+    this._step = 'code';
+    this._error = '';
+    this._problemCode = '';
+    this._joinResponse = null;
+    this._seatOptions = null;
+    this._selectedSeat = null;
+    this._attemptID = crypto.randomUUID();
+    this._reroll();
+
+    if (Boolean(CONFIG && CONFIG.offline_dev_mode)) {
+      try {
+        const uid = localStorage.getItem('faux-firebase-email') || '';
+        if (uid) {
+          this._firebaseUID = uid;
+          this._firebaseToken = 'dev-mode-token';
+          this._existingIdentityLabel = localStorage.getItem('faux-firebase-display-name') || uid;
+        }
+      } catch { /* private mode */ }
+    }
+
+    const codeParam = codeFromJoinRoute(route);
+    if (codeParam) {
+      this._codeInput = codeParam.toUpperCase();
+      if (/^[A-Za-z]{4,5}$/.test(codeParam)) void this._submitCode();
+    } else {
+      try { this._codeInput = sessionStorage.getItem('join-last-code') || ''; } catch { this._codeInput = ''; }
+    }
+  }
+
+  private _deactivate() {
+    this._sessionScope.deactivate();
+  }
+
+  private _startOver() {
+    this._sessionScope.activate((this.route || '?') + '#restart-' + crypto.randomUUID());
+    this._step = 'code';
+    this._error = '';
+    this._problemCode = '';
+    this._joinResponse = null;
+    this._seatOptions = null;
+    this._selectedSeat = null;
+    this._attemptID = crypto.randomUUID();
+  }
+
+  private _beginOperation(): JoinOperation {
+    return this._sessionScope.begin();
+  }
+
+  private _isCurrent(operation: JoinOperation): boolean {
+    return this.selected && this._sessionScope.isCurrent(operation);
+  }
+
+  private _recoveryStep(code: string | undefined, fallback: Step): Step {
+    switch (code) {
+      case 'JOIN_TICKET_REQUIRED':
+      case 'JOIN_EXPIRED':
+        return 'code';
+      case 'AUTH_REQUIRED':
+      case 'AUTH_INVALID':
+        return 'identity';
+      case 'ROOM_LOCKED':
+      case 'ROOM_FINISHED':
+      case 'ROOM_FULL':
+        return 'error';
+      default:
+        return fallback;
     }
   }
 
@@ -254,68 +319,106 @@ export class BoardgameJoinView extends LitElement {
     this._avatarSlug = identity.slug;
   }
 
+  private _handleAvatarKey(event: KeyboardEvent, slug: string) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    const current = PRIMARIES.indexOf(slug);
+    const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+    const next = PRIMARIES[(current + delta + PRIMARIES.length) % PRIMARIES.length];
+    if (!next) return;
+    this._avatarSlug = next;
+    void this.updateComplete.then(() => {
+      this.renderRoot.querySelector<HTMLElement>(`.primary-tile[data-avatar="${next}"]`)?.focus();
+    });
+  }
+
   private async _submitCode() {
+    if (this._step === 'submitting') return;
     this._error = '';
+    this._problemCode = '';
     const code = this._codeInput.trim().toUpperCase();
     if (!code) {
-      this._error = 'Enter the 4-letter code shown on the projector';
+      this._error = 'Enter the 4- or 5-letter code shown on the shared screen';
       return;
     }
+    const operation = this._beginOperation();
+    this._step = 'submitting';
     try {
-      const response = await apiHttpPost(buildApiUrl('join'), { code });
+      const response = await apiHttpPost(buildApiUrl('join'), { code }, { signal: operation.controller.signal });
+      if (!this._isCurrent(operation) || response.aborted) return;
       if (response.status === 429) {
         this._error = 'Too many requests — slow down and try again in a moment';
+        this._step = 'code';
         return;
       }
       if (!response.data) {
         this._error = response.error || response.friendlyError || 'Room not found';
+        this._problemCode = response.code || '';
+        this._step = 'code';
         return;
       }
       this._joinResponse = decodeJoinResponse(response.data);
+      if (this._joinResponse.availableSeats === 0) {
+        this._problemCode = 'ROOM_FULL';
+        this._error = 'There are no open seats. Returning players can continue to recover their seat, or you can watch.';
+      }
       // Remember the validated code for this tab so a mid-flow reload
       // (which loses _joinResponse and falls back to the code step)
       // doesn't make the player squint at the projector again.
       try { sessionStorage.setItem('join-last-code', code); } catch { /* private mode */ }
       this._setStep('identity');
     } catch (e) {
+      if (!this._isCurrent(operation)) return;
       this._error = 'Unable to join: ' + (e instanceof Error ? e.message : String(e));
+      this._step = 'code';
     }
   }
 
   private async _continueAsGuest() {
+    if (this._step !== 'identity') return;
     this._error = '';
+    const operation = this._beginOperation();
+    this._step = 'submitting';
     try {
       const OFFLINE_DEV_MODE = Boolean(CONFIG && CONFIG.offline_dev_mode);
+      let uid: string;
+      let token: string;
       if (OFFLINE_DEV_MODE) {
         // In offline dev mode we don't have Firebase — synthesize a UID and
         // replace the faux persisted identity, mirroring how
         // signInAnonymously() replaces the Firebase user in production. If
         // we skipped this, the game page's auth bootstrap would re-validate
         // as the previously signed-in faux user and orphan the seat claim.
-        this._firebaseUID = 'anon-' + Math.random().toString(36).slice(2, 14);
-        this._firebaseToken = 'dev-mode-token';
-        fauxSignInAsGuest(this._firebaseUID, 'Guest');
+        uid = 'anon-' + Math.random().toString(36).slice(2, 14);
+        token = 'dev-mode-token';
+        fauxSignInAsGuest(uid, 'Guest');
       } else {
         const cred = await firebase.auth().signInAnonymously();
         if (!cred.user) {
           this._error = 'Anonymous sign-in failed';
+          this._step = 'identity';
           return;
         }
-        this._firebaseUID = cred.user.uid;
-        this._firebaseToken = await cred.user.getIdToken();
+        uid = cred.user.uid;
+        token = await cred.user.getIdToken();
       }
+      if (!this._isCurrent(operation)) return;
+      forgetAllCompanionSurfaces();
+      this._firebaseUID = uid;
+      this._firebaseToken = token;
+      this._existingIdentityLabel = 'returning guest';
       this._setStep('avatar');
     } catch (e) {
+      if (!this._isCurrent(operation)) return;
       this._error = 'Sign-in failed: ' + (e instanceof Error ? e.message : String(e));
+      this._step = 'identity';
     }
   }
 
-  private async _continueWithGoogle() {
-    // V1 stub — falls back to anonymous in offline dev mode; real Google
-    // sign-in for prod is left as a P2.5 follow-up (depends on the
-    // existing signInWithGoogle thunk in actions/user.ts). For now nudge
-    // the user to anonymous to keep the autonomous flow moving.
-    this._error = 'Google sign-in for the join flow is coming soon — use Continue as guest for now.';
+  private _continueWithExistingIdentity() {
+    if (this._step !== 'identity' || !this._firebaseUID || !this._firebaseToken) return;
+    this._error = '';
+    this._setStep('avatar');
   }
 
   private _acceptAvatarAndProceed() {
@@ -337,15 +440,20 @@ export class BoardgameJoinView extends LitElement {
 
   private async _fetchSeatOptions() {
     if (!this._joinResponse) return;
+    const operation = this._beginOperation();
     try {
       const response = await apiHttpGet(buildApiUrl('join/seat-options', { gameID: this._joinResponse.gameID }), {
         headers: {
           'Authorization': 'Bearer ' + this._firebaseToken,
+          'X-Boardgame-Join-Ticket': this._joinResponse.joinTicket,
         },
+        signal: operation.controller.signal,
       });
+      if (!this._isCurrent(operation) || response.aborted) return;
       if (!response.data) {
         this._error = response.error || response.friendlyError || 'Failed to load seats';
-        this._step = 'error';
+        this._problemCode = response.code || '';
+        this._step = this._recoveryStep(response.code, 'error');
         return;
       }
       const seatOptions = decodeSeatOptionsResponse(response.data);
@@ -360,6 +468,7 @@ export class BoardgameJoinView extends LitElement {
       }
       this._seatOptions = seatOptions;
     } catch (e) {
+      if (!this._isCurrent(operation)) return;
       this._error = 'Network error: ' + (e instanceof Error ? e.message : String(e));
       this._step = 'error';
     }
@@ -367,8 +476,11 @@ export class BoardgameJoinView extends LitElement {
 
   private async _submitSeat() {
     if (!this._joinResponse) return;
+    if (this._step === 'submitting') return;
     this._step = 'submitting';
     this._error = '';
+    this._problemCode = '';
+    const operation = this._beginOperation();
     try {
       const body: Record<string, unknown> = {
         gameID: this._joinResponse.gameID,
@@ -376,15 +488,30 @@ export class BoardgameJoinView extends LitElement {
         displayName: this._displayName,
         avatarSlug: this._avatarSlug,
         seatPick: this._selectedSeat !== null ? this._selectedSeat : -1,
+        attemptID: this._attemptID,
       };
       const response = await apiHttpPost(buildApiUrl('join/seat'), body, {
         headers: {
           'Authorization': 'Bearer ' + this._firebaseToken,
+          'X-Boardgame-Join-Ticket': this._joinResponse.joinTicket,
         },
+        signal: operation.controller.signal,
       });
+      if (!this._isCurrent(operation) || response.aborted) return;
       if (!response.data) {
         this._error = response.error || response.friendlyError || 'Failed to join';
-        this._step = this._joinResponse.requiresSeatPicker ? 'seat' : 'avatar';
+        this._problemCode = response.code || '';
+        if (response.failureBody && response.code === 'SEAT_TAKEN') {
+          try {
+            const problem = decodeJoinProblem(response.failureBody);
+            if (problem.slots && this._seatOptions) {
+              this._seatOptions = { ...this._seatOptions, slots: problem.slots };
+            }
+          } catch {
+            void this._fetchSeatOptions();
+          }
+        }
+        this._step = this._recoveryStep(response.code, this._joinResponse.requiresSeatPicker ? 'seat' : 'avatar');
         return;
       }
       const seated = decodeJoinSeatResponse(response.data);
@@ -394,11 +521,14 @@ export class BoardgameJoinView extends LitElement {
       if (seated.playerIndex >= this._joinResponse.maxPlayers) {
         throw new Error('Seat result player index was outside this game');
       }
+      rememberSurfaceForGame(seated.gameID, 'hand');
+      try { sessionStorage.removeItem('join-last-code'); } catch { /* private mode */ }
       // Navigate to the game's Hand view. The surface=hand cookie was set
       // by the server in the response above; the loader at
       // boardgame-render-game.ts will pick the -hand.ts renderer on load.
       window.location.href = gamePath(seated.gameName, seated.gameID);
     } catch (e) {
+      if (!this._isCurrent(operation)) return;
       this._error = 'Unable to claim seat: ' + (e instanceof Error ? e.message : String(e));
       this._step = this._joinResponse.requiresSeatPicker ? 'seat' : 'avatar';
     }
@@ -412,7 +542,7 @@ export class BoardgameJoinView extends LitElement {
   // "Room is full" isn't a dead end: the game is real and public state is
   // watchable — offer the Table view as a spectator path.
   private get _roomFull(): boolean {
-    return /room is full/i.test(this._error);
+    return this._problemCode === 'ROOM_FULL';
   }
 
   private _watchInstead() {
@@ -424,15 +554,18 @@ export class BoardgameJoinView extends LitElement {
     return html`
       <h2>Join a game</h2>
       ${this._error ? html`
-        <div class="error">${this._error}</div>
+        <div class="error" role="alert">${this._error}</div>
         ${this._roomFull && this._joinResponse ? html`
           <button @click=${this._watchInstead}>Watch this game instead</button>
         ` : ''}
       ` : ''}
 
       <div class="step ${this._step === 'code' ? '' : 'hidden'}">
-        <p>Enter the 4-letter code shown on the shared screen.</p>
+        <h3 data-step-heading tabindex="-1">Enter room code</h3>
+        <form @submit=${(e: SubmitEvent) => { e.preventDefault(); void this._submitCode(); }}>
+        <label for="room-code">Enter the 4- or 5-letter code shown on the shared screen.</label>
         <input
+          id="room-code"
           class="code-input"
           maxlength="5"
           inputmode="text"
@@ -443,19 +576,25 @@ export class BoardgameJoinView extends LitElement {
           pattern="[A-Za-z]{4,5}"
           .value=${this._codeInput}
           @input=${(e: Event) => { this._codeInput = (e.target as HTMLInputElement).value.toUpperCase(); }}
-          @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); this._submitCode(); } }}
           placeholder="ABCD"
         />
-        <button class="primary" @click=${this._submitCode}>Join</button>
+        <button type="submit" class="primary">Join</button>
+        </form>
       </div>
 
       <div class="step ${this._step === 'identity' ? '' : 'hidden'}">
+        <h3 data-step-heading tabindex="-1">Choose how to join</h3>
         ${this._joinResponse ? html`<p>Joining <strong>${this._joinResponse.gameDisplayName}</strong></p>` : ''}
-        <button class="primary" @click=${this._continueAsGuest}>Continue as guest</button>
+        ${this._existingIdentityLabel && this._firebaseUID && this._firebaseToken ? html`
+          <button class="primary" @click=${this._continueWithExistingIdentity}>Continue as ${this._existingIdentityLabel}</button>
+          <br />
+        ` : ''}
+        <button class=${this._existingIdentityLabel ? '' : 'primary'} @click=${this._continueAsGuest}>Use a new guest identity</button>
         <button disabled title="Google sign-in for the join flow is coming soon">Sign in with Google (coming soon)</button>
       </div>
 
       <div class="step ${this._step === 'avatar' ? '' : 'hidden'}">
+        <h3 data-step-heading tabindex="-1">Choose your table identity</h3>
         <div class="avatar-front-door">
           <div class="glyph">${glyphForSlug(this._avatarSlug)}</div>
           <div class="name">${this._displayName}</div>
@@ -468,23 +607,26 @@ export class BoardgameJoinView extends LitElement {
       </div>
 
       <div class="step ${this._step === 'avatarCustomize' ? '' : 'hidden'}">
-        <p>Pick your avatar</p>
+        <h3 data-step-heading tabindex="-1">Customize your table identity</h3>
+        <p id="avatar-legend">Pick your avatar</p>
         <div class="primary-grid" role="radiogroup" aria-label="Avatar selection">
           ${PRIMARIES.map(p => html`
-            <div
+            <button type="button"
               class="primary-tile ${this._avatarSlug === p ? 'selected' : ''}"
               role="radio"
-              tabindex="0"
+              data-avatar=${p}
+              tabindex=${this._avatarSlug === p ? '0' : '-1'}
               aria-checked=${this._avatarSlug === p ? 'true' : 'false'}
               aria-label="Avatar ${p}"
               @click=${() => { this._avatarSlug = p; }}
-              @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._avatarSlug = p; } }}>
+              @keydown=${(e: KeyboardEvent) => this._handleAvatarKey(e, p)}>
               ${p}
-            </div>
+            </button>
           `)}
         </div>
-        <p style="margin-top:24px">Edit your name</p>
+        <label for="display-name" style="display:block;margin-top:24px">Edit your name</label>
         <input
+          id="display-name"
           class="code-input"
           maxlength="24"
           .value=${this._displayName}
@@ -496,29 +638,31 @@ export class BoardgameJoinView extends LitElement {
       </div>
 
       <div class="step ${this._step === 'seat' ? '' : 'hidden'}">
-        <p>Pick a seat</p>
+        <h3 data-step-heading tabindex="-1">Pick a seat</h3>
         ${this._seatOptions ? html`
-          <div class="slot-grid">
+          <div class="slot-grid" aria-label="Available seats">
             ${this._seatOptions.slots.map(slot => html`
-              <div class="slot ${slot.filled ? 'filled' : ''}"
-                   @click=${() => { if (!slot.filled) this._pickSeat(slot.playerIndex); }}>
+              <button type="button" class="slot ${!slot.available ? 'filled' : ''}"
+                   ?disabled=${!slot.available}
+                   @click=${() => { if (slot.available) this._pickSeat(slot.playerIndex); }}>
                 <div>${slot.label}</div>
-                ${slot.filled ? html`
-                  <small>${slot.avatarSlug ? glyphForSlug(slot.avatarSlug) + ' ' : ''}${slot.displayName || 'Taken'}</small>
+                ${!slot.available ? html`
+                  <small>${slot.avatarSlug ? glyphForSlug(slot.avatarSlug) + ' ' : ''}${slot.displayName || (slot.status === 'agent' ? 'Computer' : slot.status === 'closed' ? 'Closed' : 'Taken')}</small>
                 ` : html`<small class="open-label">open</small>`}
-              </div>
+              </button>
             `)}
           </div>
-        ` : html`<p>Loading…</p>`}
+        ` : html`<p role="status" aria-live="polite">Loading seats…</p>`}
       </div>
 
       <div class="step ${this._step === 'submitting' ? '' : 'hidden'}">
-        <p>Joining…</p>
+        <h3 data-step-heading tabindex="-1">Working</h3>
+        <p role="status" aria-live="polite">Joining…</p>
       </div>
 
       <div class="step ${this._step === 'error' ? '' : 'hidden'}">
-        <p>Something went wrong: ${this._error}</p>
-        <button @click=${() => { this._step = 'code'; this._error = ''; }}>Start over</button>
+        <h3 data-step-heading tabindex="-1">Could not join</h3>
+        <button @click=${this._startOver}>Start over</button>
       </div>
     `;
   }

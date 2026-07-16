@@ -578,6 +578,16 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 	//TODO: should we validate that this is a real userId?
 
 	var player playerStorageRecord
+	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameID=? and UserID=?", game.ID, userID)
+	if err == nil {
+		if player.PlayerIndex == int64(playerIndex) {
+			return nil
+		}
+		return errors.New("That user is already assigned to another seat in this game")
+	}
+	if err != sql.ErrNoRows {
+		return errors.New("Failed to check existing user assignment: " + err.Error())
+	}
 
 	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameID=? and PlayerIndex=?", game.ID, int(playerIndex))
 
@@ -599,21 +609,13 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 		return nil
 	}
 
-	//Update the row, if it wasn't an error.
-
 	if err != nil {
 		return errors.New("Failed to retrieve existing Player line: " + err.Error())
 	}
-
-	player.UserID = userID
-
-	_, err = s.dbMap.Update(player)
-
-	if err != nil {
-		return errors.New("Couldn't update player line: " + err.Error())
+	if player.UserID == userID {
+		return nil
 	}
-
-	return nil
+	return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
 
 }
 

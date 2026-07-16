@@ -9,6 +9,7 @@ import (
 	"log"
 	"reflect"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -359,8 +360,46 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 	assert.For(t).ThatActual(ids).Equals([]string{userID, ""})
 
 	err = storage.SetPlayerForGame(game.ID(), 0, userID)
+	assert.For(t).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(err).IsNotNil()
+	otherUserID := "other-user"
+	assert.For(t).ThatActual(storage.UpdateUser(&users.StorageRecord{ID: otherUserID})).IsNil()
+	assert.For(t).ThatActual(storage.SetPlayerForGame(game.ID(), 0, otherUserID)).IsNotNil()
+	assert.For(t).ThatActual(storage.SetPlayerForGame(game.ID(), 1, userID)).IsNotNil()
+
+	// The storage boundary, not just an HTTP-process mutex, must arbitrate a
+	// final-seat race. This protects multi-process deployments and direct
+	// storage callers from overwriting a winner.
+	contenders := []string{"racing-user-a", "racing-user-b"}
+	for _, contender := range contenders {
+		assert.For(t).ThatActual(storage.UpdateUser(&users.StorageRecord{ID: contender})).IsNil()
+	}
+	results := make(chan error, len(contenders))
+	var ready sync.WaitGroup
+	ready.Add(len(contenders))
+	start := make(chan struct{})
+	for _, contender := range contenders {
+		go func(uid string) {
+			ready.Done()
+			<-start
+			results <- storage.SetPlayerForGame(game.ID(), 1, uid)
+		}(contender)
+	}
+	ready.Wait()
+	close(start)
+	successes := 0
+	for range contenders {
+		if <-results == nil {
+			successes++
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("final-seat race had %d successful writers; want exactly one", successes)
+	}
+	ids = storage.UserIDsForGame(game.ID())
+	if ids[1] != contenders[0] && ids[1] != contenders[1] {
+		t.Fatalf("final seat contains %q; want one of the racing users", ids[1])
+	}
 }
 
 // AgentsTest does the basic tests of Agents.

@@ -238,6 +238,9 @@ func (s *Server) switchToSoloHandler(c *gin.Context) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
 		return
 	}
+	joinLock := s.getSeatJoinLock(gameID)
+	joinLock.Lock()
+	defer joinLock.Unlock()
 
 	eGame, err := s.storage.ExtendedGame(gameID)
 	if err != nil || eGame == nil {
@@ -306,6 +309,9 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
 		return
 	}
+	joinLock := s.getSeatJoinLock(gameID)
+	joinLock.Lock()
+	defer joinLock.Unlock()
 
 	eGame, err := s.storage.ExtendedGame(gameID)
 	if err != nil || eGame == nil {

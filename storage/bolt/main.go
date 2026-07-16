@@ -629,36 +629,44 @@ func (s *StorageManager) GameByRoomCode(code string) (string, error) {
 
 // SetPlayerForGame implements that method from the server api storagemanager interface
 func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
-
-	ids := s.UserIDsForGame(gameID)
-
-	if ids == nil {
-		return errors.New("Couldn't fetch original player indexes for that game")
-	}
-
-	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game")
-	}
-
-	if ids[playerIndex] != "" {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
-	}
-
 	user := s.GetUserByID(userID)
-
 	if user == nil {
 		return errors.New("That userId does not describe an existing user")
 	}
-
-	ids[playerIndex] = userID
-
-	err := s.db.Update(func(tx *bolt.Tx) error {
+	game, err := s.Game(gameID)
+	if err != nil || game == nil {
+		return errors.New("Couldn't fetch game for player association")
+	}
+	err = s.db.Update(func(tx *bolt.Tx) error {
 		gUBucket := tx.Bucket(gameUsersBucket)
 
 		if gUBucket == nil {
 			return errors.New("Couldn't open game useres bucket")
 		}
 
+		var ids []string
+		if stored := gUBucket.Get(keyForGame(gameID)); stored != nil {
+			if err := json.Unmarshal(stored, &ids); err != nil {
+				return errors.New("Unable to decode player associations: " + err.Error())
+			}
+		} else {
+			ids = make([]string, game.NumPlayers)
+		}
+		if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
+			return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game")
+		}
+		for i, existing := range ids {
+			if existing == userID {
+				if boardgame.PlayerIndex(i) == playerIndex {
+					return nil
+				}
+				return errors.New("That userId is already assigned to another seat in this game")
+			}
+		}
+		if ids[playerIndex] != "" {
+			return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
+		}
+		ids[playerIndex] = userID
 		blob, err := json.Marshal(ids)
 
 		if err != nil {

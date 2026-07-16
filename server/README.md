@@ -378,6 +378,19 @@ Use the `boardgame-util db` tool. Sitting in the directory with your config.SECR
 
 `boardgame-util db --prod setup`
 
+Table+Hand deployments must also provide the same high-entropy join-ticket
+secret to every API instance:
+
+```sh
+BOARDGAME_JOIN_TICKET_SECRET="at-least-32-random-characters"
+```
+
+Release-mode servers fail closed when it is absent. For zero-downtime key
+rotation, deploy the new value as `BOARDGAME_JOIN_TICKET_SECRET` and the old
+value as `BOARDGAME_JOIN_TICKET_PREVIOUS_SECRET`; remove the previous value
+after the ten-minute ticket lifetime. These values belong in the deployment's
+secret manager, never in client configuration or source control.
+
 If you want to set up your API server to be at e.g. https://api.mydomain.com, follow the instructions [https://cloud.google.com/appengine/docs/flexible/go/using-custom-domains-and-ssl](here).
 
 ## Deploying

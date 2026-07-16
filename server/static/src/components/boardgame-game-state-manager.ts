@@ -3,7 +3,7 @@ import { property } from 'lit/decorators.js';
 
 import { companionTimeline, ingestVersionTiming, usableAnimationContext } from './companion-sync.js';
 import type { VersionAnimationContext } from './companion-sync.js';
-import { surfaceForGame } from '../utils/companion-surface.js';
+import { forgetSurfaceForGame, surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 import { store } from '../store.js';
 import {
@@ -734,6 +734,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _clearSurfaceCookieForThisGame() {
     if (!this.gameRoute) return;
     document.cookie = 'surface_' + this.gameRoute.id + '=; Path=/; Max-Age=0';
+    forgetSurfaceForGame(this.gameRoute.id);
   }
 
   updateData() {

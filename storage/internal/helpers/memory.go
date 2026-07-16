@@ -187,6 +187,9 @@ func (s *ExtendedMemoryStorageManager) GameByRoomCode(code string) (string, erro
 func (s *ExtendedMemoryStorageManager) UserIDsForGame(gameID string) []string {
 	s.usersForGamesLock.RLock()
 	ids := s.usersForGames[gameID]
+	if ids != nil {
+		ids = append([]string(nil), ids...)
+	}
 	s.usersForGamesLock.RUnlock()
 
 	if ids == nil {
@@ -202,28 +205,36 @@ func (s *ExtendedMemoryStorageManager) UserIDsForGame(gameID string) []string {
 
 // SetPlayerForGame implemnts that part of the server storage interface.
 func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
-	ids := s.UserIDsForGame(gameID)
-
-	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game.")
-	}
-
-	if ids[playerIndex] != "" {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken.")
-	}
-
 	user := s.GetUserByID(userID)
-
 	if user == nil {
 		return errors.New("That uid does not describe an existing user")
 	}
-
-	ids[playerIndex] = userID
-
+	game, _ := s.gameChecker.Game(gameID)
+	if game == nil {
+		return errors.New("That game does not exist")
+	}
 	s.usersForGamesLock.Lock()
+	defer s.usersForGamesLock.Unlock()
+	ids := s.usersForGames[gameID]
+	if ids == nil {
+		ids = make([]string, game.NumPlayers)
+	}
+	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
+		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game.")
+	}
+	for i, existing := range ids {
+		if existing == userID {
+			if boardgame.PlayerIndex(i) == playerIndex {
+				return nil
+			}
+			return errors.New("That uid is already assigned to another seat in this game")
+		}
+	}
+	if ids[playerIndex] != "" {
+		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken.")
+	}
+	ids[playerIndex] = userID
 	s.usersForGames[gameID] = ids
-	s.usersForGamesLock.Unlock()
-
 	return nil
 }
 

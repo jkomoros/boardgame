@@ -2,6 +2,7 @@ import type { ThunkAction } from 'redux-thunk';
 import type { RootState, UserInfo } from '../types/store';
 import { apiPost, buildApiUrl } from '../api.js';
 import { decodeAuthResponse, type AuthResponse } from '../types/auth-response.js';
+import { forgetAllCompanionSurfaces } from '../utils/companion-surface.js';
 
 export const UPDATE_USER = 'UPDATE_USER';
 export const VERIFYING_AUTH = 'VERIFYING_AUTH';
@@ -126,6 +127,7 @@ function fauxSignOut(): void {
 //rather than any previously signed-in faux user. Only meaningful in
 //OFFLINE_DEV_MODE; used by the companion-mode join flow.
 export function fauxSignInAsGuest(uid: string, displayName: string): void {
+	forgetAllCompanionSurfaces();
   new fauxFirebaseUser(uid, displayName);
 }
 
@@ -212,6 +214,7 @@ const firebaseUserUpdated = (fUser: firebase.User | fauxFirebaseUser | null): Us
 };
 
 export const signOut = (): UserThunk => (dispatch) => {
+	forgetAllCompanionSurfaces();
     if (OFFLINE_DEV_MODE) {
         fauxSignOut();
         dispatch(firebaseUserUpdated(null));

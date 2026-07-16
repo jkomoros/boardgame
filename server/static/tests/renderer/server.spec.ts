@@ -84,6 +84,16 @@ test('companion guest join validates room, seat options, and seat result through
   expect(fields['GameName']).toBe('blackjack');
   expect(fields['GameID']).toEqual(expect.any(String));
   expect(fields['CompanionRoomCode']).toMatch(/^[A-Z]{4,5}$/);
+  const roomCode = String(fields['CompanionRoomCode']);
+  const gameID = String(fields['GameID']);
+
+  const lookupResponse = await page.request.post('/api/join', { data: { code: roomCode } });
+  expect(lookupResponse.ok()).toBe(true);
+  const lookup = await lookupResponse.json() as { joinTicket: string };
+  expect(lookup.joinTicket).toEqual(expect.any(String));
+  const ticketlessOptions = await page.request.get(`/api/join/seat-options?gameID=${encodeURIComponent(gameID)}`);
+  expect(ticketlessOptions.status()).toBe(401);
+  expect(await ticketlessOptions.json()).toMatchObject({ code: 'JOIN_TICKET_REQUIRED' });
 
   const infoContract = await page.evaluate(async ({ gameID }) => {
     const response = await fetch(`/api/game/blackjack/${encodeURIComponent(gameID)}/info`);
@@ -110,6 +120,11 @@ test('companion guest join validates room, seat options, and seat result through
   expect((await lockResponse).ok()).toBe(true);
   await expect(roomLock).toBeChecked();
   await expect(table.locator('.host-feedback')).toContainText('Room locked');
+  const lockedOptions = await page.request.get(`/api/join/seat-options?gameID=${encodeURIComponent(gameID)}`, {
+    headers: { 'X-Boardgame-Join-Ticket': lookup.joinTicket },
+  });
+  expect(lockedOptions.status()).toBe(409);
+  expect(await lockedOptions.json()).toMatchObject({ code: 'ROOM_LOCKED' });
 
   // Host actions are intentionally limited to one mutation per second.
   await page.waitForTimeout(1_050);
@@ -122,10 +137,31 @@ test('companion guest join validates room, seat options, and seat result through
   await expect(table.locator('.host-feedback')).toContainText('Room unlocked');
 
   await page.goto(`/join?code=${encodeURIComponent(String(fields['CompanionRoomCode']))}`);
-  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await page.getByRole('button', { name: 'Use a new guest identity' }).click();
   await page.getByRole('button', { name: 'Looks good — join!' }).click();
   await page.waitForURL(/\/game\/blackjack\//, { timeout: 20_000 });
   await expect(page.locator('boardgame-render-game-blackjack-hand')).toBeAttached({ timeout: 15_000 });
+
+  // A response-loss/reload retry for the same authenticated identity is
+  // ordinary success and must never allocate another seat.
+  const returningUID = await page.evaluate(() => localStorage.getItem('faux-firebase-email'));
+  expect(returningUID).toEqual(expect.any(String));
+  const retryLookupResponse = await page.request.post('/api/join', { data: { code: roomCode } });
+  expect(retryLookupResponse.ok()).toBe(true);
+  const retryLookup = await retryLookupResponse.json() as { joinTicket: string };
+  const retryClaim = await page.request.post('/api/join/seat', {
+    headers: { 'X-Boardgame-Join-Ticket': retryLookup.joinTicket },
+    data: {
+      gameID,
+      uid: returningUID,
+      displayName: 'ReturningFox',
+      avatarSlug: '🦊',
+      seatPick: -1,
+      attemptID: 'lost-response-retry',
+    },
+  });
+  expect(retryClaim.ok()).toBe(true);
+  expect(await retryClaim.json()).toMatchObject({ gameID, resumed: true });
 });
 
 test('assembled Pig renderer reports a real server rejection without advancing state', async ({ page }) => {

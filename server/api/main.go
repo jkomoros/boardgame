@@ -67,6 +67,14 @@ type Server struct {
 	// resolution behavior. Lazy-allocated by getSeatJoinLock.
 	seatJoinLocks   map[string]*sync.Mutex
 	seatJoinLocksMu sync.Mutex
+
+	// joinTicketKey signs short-lived, game-bound proof that a phone supplied
+	// the room code. NewServer initializes a development fallback; Start
+	// replaces it with the deployment-shared production secret.
+	joinTicketKey []byte
+	// joinTicketPreviousKey permits zero-downtime secret rotation for tickets
+	// issued during the prior ten-minute TTL window.
+	joinTicketPreviousKey []byte
 }
 
 // corsOrigins adapts the documented comma-delimited configuration format to
@@ -227,6 +235,7 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		// game night. Idle buckets evict after 10 minutes.
 		joinRateLimiter: newRateLimiter(40, 0.5, 10*time.Minute),
 		seatJoinLocks:   make(map[string]*sync.Mutex),
+		joinTicketKey:   newJoinTicketKey(),
 	}
 
 	storage.server = result
@@ -738,6 +747,12 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 }
 
 func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, user *users.StorageRecord) error {
+	// Persist the association before publishing pending SeatPlayer work. The
+	// storage backend is the cross-process linearization point; if another API
+	// instance won this seat, we must not leave a ghost pending fix-up behind.
+	if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
+		return err
+	}
 	if len(s.managers[game.Name()].seatPlayerMoves) > 0 {
 		//This is a game that uses SeatPlayer move, so instead of adding the
 		//player right now we should go into pending mode to inject the player.
@@ -779,7 +794,7 @@ func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, 
 		//is pending but before theyr'e actually seated. See #221.
 	}
 
-	return s.storage.SetPlayerForGame(game.ID(), slot, user.ID)
+	return nil
 }
 
 func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
@@ -2518,13 +2533,38 @@ func (s *Server) Start() {
 		return
 	}
 
-	if v := os.Getenv("GIN_MODE"); v == "release" {
+	releaseMode := os.Getenv("GIN_MODE") == "release"
+	if releaseMode {
 		s.logger.Infoln("Using release mode config")
 		s.config = config.Prod
 	} else {
 		s.logger.Infoln("Using dev mode config")
 		s.config = config.Dev
 		s.logger.SetLevel(logrus.DebugLevel)
+	}
+
+	// Every API instance in a deployment must use the same signing key.
+	// Development may use the process-local key initialized by NewServer;
+	// production fails closed instead of creating tickets that randomly fail
+	// when the next request reaches another instance.
+	if secret := os.Getenv("BOARDGAME_JOIN_TICKET_SECRET"); secret != "" {
+		if len(secret) < 32 {
+			s.logger.Errorln("BOARDGAME_JOIN_TICKET_SECRET must be at least 32 characters")
+			return
+		}
+		s.joinTicketKey = joinTicketKeyFromSecret(secret)
+		if previous := os.Getenv("BOARDGAME_JOIN_TICKET_PREVIOUS_SECRET"); previous != "" {
+			if len(previous) < 32 {
+				s.logger.Errorln("BOARDGAME_JOIN_TICKET_PREVIOUS_SECRET must be at least 32 characters")
+				return
+			}
+			s.joinTicketPreviousKey = joinTicketKeyFromSecret(previous)
+		}
+	} else if releaseMode {
+		s.logger.Errorln("BOARDGAME_JOIN_TICKET_SECRET is required in release mode")
+		return
+	} else {
+		s.logger.Warnln("BOARDGAME_JOIN_TICKET_SECRET is unset; join tickets will be invalidated by a dev-server restart")
 	}
 
 	if s.config.Firebase == nil {
@@ -2565,7 +2605,7 @@ func (s *Server) Start() {
 		// send a Firebase bearer token from the phone (cross-origin
 		// during dev because the API runs on a different port than the
 		// static server).
-		RequestHeaders: "content-type, Origin, Authorization",
+		RequestHeaders: "content-type, Origin, Authorization, X-Boardgame-Join-Ticket",
 		ExposedHeaders: "content-type",
 		Methods:        "GET, POST",
 		Credentials:    true,
