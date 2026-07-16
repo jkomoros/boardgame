@@ -1461,27 +1461,38 @@ but in practice it is best to bind their `item` attribute to each component item
 
 boardgame-card's size can be affected by two css properties: --component-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate smoothly.
 
-It can be finicky to set all of the cards correctly for the animation to work as
-you want; the easiest way is to set boardgame-card-stack's stack property to the
-stack in the state, and then ensure you have a template for that deck defined in a `<boardgame-deck-defaults>` element.
+It can be finicky to keep card DOM identity stable enough for animation. Define
+one renderer-scoped Lit view and give it to each stack that displays that deck.
+The generated stack type makes component values strict, and the discriminated
+`kind` forces unusual sanitized states to be handled deliberately:
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to use the `boardgame-deck-defaults` element in your renderer's template and include a template for your deck.
+```typescript
+import { cardView, html } from '../../src/client.js';
+import type { GameState } from './_types.js';
 
-```html
-<!-- define a simple front if no processing required -->
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-      <div>
-        {{item.Values.Type}}
-      </div>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
-<!-- boardgame-component-stacks that print from the deck `cards` will automatically stamp that item -->
+private readonly cards = cardView<GameState['Cards']>({
+  render: ({ kind, component }) => kind === 'visible'
+    ? html`<div>${component.Values.Type}</div>`
+    : null,
+  properties: ({ kind }) => ({
+    rotated: true,
+    faceUp: kind === 'visible',
+  }),
+});
 ```
 
-Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
+`kind` is `visible`, `hidden`, or `empty`. A visible component has the exact
+generated `.Values` and optional `.DynamicValues` types. A hidden component is
+intentionally opaque; render no front content and the standard card displays
+its back. An empty sized-stack slot becomes a spacer. `cardView` and `tokenView`
+type-check standard host properties. `componentView` is the escape hatch for a
+custom element extending `BoardgameComponent`.
+
+Create views once as renderer fields, not inside `render()`. The stable recipe
+lets the stack retain component hosts across snapshots, which preserves focus,
+pooling, and FLIP animation identity. Each factory used with `componentView`
+must return a fresh registered component element of one consistent type; invalid
+factories fail loudly.
 
 Then stamping those components is as simple as binding a sanitized stack to a
 `boardgame-component-stack` from your Lit renderer:
@@ -1491,15 +1502,22 @@ html`<boardgame-component-stack
   layout="stack"
   messy
   .stack=${this.state?.Players[0]?.WonCards ?? null}
+  .componentView=${this.cards}
   .componentAttrs=${{ disabled: true }}>
 </boardgame-component-stack>`
 ```
 
-The `boardgame-component-stack` will automatically instantiate and bind components as defined in the defaults for that deck name.
+The stack creates stable card hosts and rerenders their light-DOM content with
+Lit whenever their logical slot changes. The view is local to this renderer, so
+two games may use the same deck name without a global registration collision.
 
-Use `.componentAttrs` for presentation shared by every stamped component, such
-as `rotated`, `disabled`, or a game-owned visual property. Do not put move names
-or move arguments in it. For one typed action per slot, create a target
+`boardgame-deck-defaults` and its `{{item...}}` strings are the legacy template
+path. Existing renderers may migrate incrementally, but new renderers and the
+generated scaffold use typed component views.
+
+Prefer the view's typed `properties` callback for standard card/token
+presentation. `.componentAttrs` remains a lower-level escape hatch for shared
+game-owned properties. Do not put move names or move arguments in it. For one typed action per slot, create a target
 collection and pass its actions in stack order:
 
 ```typescript

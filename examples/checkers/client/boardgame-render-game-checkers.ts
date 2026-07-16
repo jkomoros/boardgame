@@ -2,8 +2,9 @@ import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-token.js';
 import '../../src/components/boardgame-game-board.js';
 import '../../src/components/boardgame-fading-text.js';
-import { html, css, isVisibleComponent, SourceDestinationController } from '../../src/client.js';
+import { html, css, isVisibleComponent, SourceDestinationController, tokenView } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
+import type { GameState } from './_types.js';
 
 class BoardgameRenderGameCheckers extends GameRenderer {
   static override styles = [
@@ -17,6 +18,12 @@ class BoardgameRenderGameCheckers extends GameRenderer {
   ];
 
   private readonly moveToken = new SourceDestinationController<number>(this);
+  private readonly tokens = tokenView<GameState['Spaces']>({
+    properties: ({ kind, component }) => ({
+      type: 'disc',
+      color: kind === 'visible' ? component.Values.Color : '',
+    }),
+  });
 
   override render() {
     const spaces = this.state?.Game?.Spaces ?? null;
@@ -35,14 +42,10 @@ class BoardgameRenderGameCheckers extends GameRenderer {
       ),
     });
     return html`
-      <boardgame-deck-defaults>
-        <template deck="tokens">
-          <boardgame-token type="disc" color="{{item.Values.Color}}"></boardgame-token>
-        </template>
-      </boardgame-deck-defaults>
       <boardgame-game-board
         rows="8" cols="8" checkerboard
         .stack="${spaces}"
+        .componentView=${this.tokens}
         .sourceDestination=${interaction}>
       </boardgame-game-board>
       <boardgame-fading-text

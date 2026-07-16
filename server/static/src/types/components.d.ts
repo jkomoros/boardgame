@@ -7,6 +7,8 @@
 
 import type { AnimatingProps } from './animation';
 import type { ExpandedStack } from './boardgame-types';
+import type { ComponentView } from '../components/component-view';
+import type { BoundMoveAction } from '../moves/action';
 
 /**
  * Base interface for animatable components.
@@ -146,6 +148,12 @@ export interface BoardgameComponentStackElement extends BoardgameAnimatableItemE
 
   /** Properties copied onto each generated component element. */
   componentAttrs: Record<string, unknown>;
+
+  /** Renderer-scoped typed Lit recipe for component hosts and content. */
+  componentView: ComponentView | null;
+
+  /** One exact bound action or explicit null for each logical stack slot. */
+  componentActions: readonly (BoundMoveAction<string, object> | null)[];
 
   /** Currently rendered real and faux component elements. */
   readonly Components: BoardgameComponentElement[];

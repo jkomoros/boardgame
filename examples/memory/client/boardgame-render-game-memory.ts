@@ -3,14 +3,19 @@ import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-fading-text.js';
-import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
-import type { CardsComponentValues } from './_types.js';
-import { isVisibleComponent } from '../../src/client.js';
+import type { CardsComponentValues, GameState } from './_types.js';
+import { cardView, isVisibleComponent } from '../../src/client.js';
 
 class BoardgameRenderGameMemory extends GameRenderer {
+  private readonly cards = cardView<GameState['Cards']>({
+    render: ({ kind, component }) => kind === 'visible'
+      ? html`<div>${component.Values.Type}</div>`
+      : null,
+  });
+
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
@@ -90,15 +95,6 @@ class BoardgameRenderGameMemory extends GameRenderer {
       cardSlots, cardIndex => ({ CardIndex: cardIndex }),
     );
     return html`
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card>
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-deck-defaults>
       <h2>Memory</h2>
       <div>
         <boardgame-component-stack
@@ -106,6 +102,7 @@ class BoardgameRenderGameMemory extends GameRenderer {
           messy
           post-animation-delay="${this._revealHoldMs()}"
           .stack="${cardStack}"
+          .componentView=${this.cards}
           .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
         </boardgame-component-stack>
         <boardgame-fading-text
@@ -119,6 +116,7 @@ class BoardgameRenderGameMemory extends GameRenderer {
           <boardgame-component-stack
             layout="stack"
             .stack="${this.state?.Players?.[0]?.WonCards}"
+            .componentView=${this.cards}
             messy
             .componentAttrs=${{ disabled: true }}>
           </boardgame-component-stack>
@@ -131,6 +129,7 @@ class BoardgameRenderGameMemory extends GameRenderer {
             layout="stack"
             messy
             .stack="${this.state?.Players?.[1]?.WonCards}"
+            .componentView=${this.cards}
             .componentAttrs=${{ disabled: true }}>
           </boardgame-component-stack>
         </div>

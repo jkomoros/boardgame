@@ -5,6 +5,8 @@ import './boardgame-card.js';
 import { dashToCamelCase } from '../utils/case-map.js';
 import type { BoardgameComponentElement } from '../types/components';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
+import type { ComponentView } from './component-view.js';
+import { createComponentForView, updateComponentFromView } from './component-view.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -354,6 +356,10 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Array, attribute: false })
   componentActions: readonly (BoundMoveAction<string, object> | null)[] = [];
 
+  /** Renderer-scoped, typed Lit content for this stack's component hosts. */
+  @property({ attribute: false })
+  componentView: ComponentView | null = null;
+
   private _componentPool: any[] = [];
   private _componentActionUnsubscribes: (() => void)[] = [];
   private _componentActionOriginals = new Map<HTMLElement, {
@@ -518,6 +524,9 @@ export class BoardgameComponentStack extends LitElement {
     if (changedProperties.has('componentAttrs')) {
       this._applyComponentAttrsToChildren();
     }
+    if (changedProperties.has('componentView')) {
+      this._componentViewChanged(changedProperties.get('componentView') as ComponentView | null | undefined);
+    }
     if (changedProperties.has('componentActions') || changedProperties.has('componentAttrs') || changedProperties.has('stack')) {
       this._subscribeComponentActions();
       this._applyComponentActionState();
@@ -542,6 +551,8 @@ export class BoardgameComponentStack extends LitElement {
     if (this._componentPool.length > 0) {
       return this._componentPool.pop();
     }
+
+    if (this.componentView) return createComponentForView(this.componentView);
 
     const templateFunction = this.templateClass;
 
@@ -698,10 +709,14 @@ export class BoardgameComponentStack extends LitElement {
 
     let component = null;
 
+    if (this.componentView) {
+      component = createComponentForView(this.componentView);
+    }
+
     // Extract the component tag name from the template
     const templateFunction = this.templateClass;
 
-    if (templateFunction) {
+    if (!component && templateFunction) {
       // Call the function to get a cloned DocumentFragment
       const fragment = templateFunction();
 
@@ -1081,6 +1096,7 @@ export class BoardgameComponentStack extends LitElement {
       }
 
       this._updateTemplateBindings(anyEle, item);
+      if (this.componentView) updateComponentFromView(this.componentView, anyEle, item, slotIndex);
 
       if (anyEle.instance) {
         anyEle.instance.item = item;
@@ -1132,6 +1148,7 @@ export class BoardgameComponentStack extends LitElement {
       }
 
       this._updateTemplateBindings(ele, componentsInfo[componentIndex]);
+      if (this.componentView) updateComponentFromView(this.componentView, ele, item, componentIndex);
 
       if (ele.instance) {
         ele.instance.item = componentsInfo[componentIndex];
@@ -1158,7 +1175,7 @@ export class BoardgameComponentStack extends LitElement {
   private _generateChildren() {
     // If templates aren't registered yet (common during startup when
     // deck-defaults hasn't connected), retry after a short delay.
-    if (!this.templateClass && this.stack?.Components?.length && this._componentPool.length === 0) {
+    if (!this.componentView && !this.templateClass && this.stack?.Components?.length && this._componentPool.length === 0) {
       if (!this._pendingGenerateRetry) {
         this._pendingGenerateRetry = requestAnimationFrame(() => {
           this._pendingGenerateRetry = null;
@@ -1168,6 +1185,19 @@ export class BoardgameComponentStack extends LitElement {
       return;
     }
     this._insertNodes(this.stack ? this.stack.Components : [], this);
+  }
+
+  private _componentViewChanged(previous: ComponentView | null | undefined): void {
+    if (previous === undefined && this.componentView === null) return;
+    if (previous === this.componentView) return;
+    this._componentPool = [];
+    for (const child of [...this.children]) {
+      if (!child.hasAttribute('boardgame-component')) continue;
+      const component = child as HTMLElement & { beforeOrphaned?: () => void };
+      component.beforeOrphaned?.();
+      child.remove();
+    }
+    this._generateChildren();
   }
 
   private _slotChanged(firstRender: boolean) {

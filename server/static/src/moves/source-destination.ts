@@ -1,5 +1,10 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
-import { MAX_TARGET_ACTION_CANDIDATES, type TargetAction, type TargetKey } from './target-action.js';
+import type { TargetAction, TargetKey } from './target-action.js';
+
+// Keep source selection bounded independently of the destination collection.
+// A type-only dependency also lets Node execute this controller's TypeScript
+// unit tests from a clean checkout without relying on stale emitted .js files.
+const MAX_SOURCE_DESTINATION_SOURCES = 1024;
 
 export interface SourceDestinationBinding<
   Key extends TargetKey,
@@ -122,8 +127,8 @@ export class SourceDestinationController<Key extends TargetKey> implements React
 function validateSources<Key extends TargetKey>(sources: readonly Key[]): readonly Key[] {
   if (!Array.isArray(sources)) throw new Error('SourceDestinationController sources must be an array');
   const copy = [...sources];
-  if (copy.length > MAX_TARGET_ACTION_CANDIDATES) {
-    throw new Error(`SourceDestinationController has ${copy.length} sources; maximum is ${MAX_TARGET_ACTION_CANDIDATES}`);
+  if (copy.length > MAX_SOURCE_DESTINATION_SOURCES) {
+    throw new Error(`SourceDestinationController has ${copy.length} sources; maximum is ${MAX_SOURCE_DESTINATION_SOURCES}`);
   }
   const seen = new Set<TargetKey>();
   copy.forEach((key, index) => {

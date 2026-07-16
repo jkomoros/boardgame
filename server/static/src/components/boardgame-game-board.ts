@@ -26,6 +26,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import './boardgame-component-stack.js';
+import type { ComponentView } from './component-view.js';
 import { MAX_TARGET_ACTION_CANDIDATES, type TargetAction } from '../moves/target-action.js';
 import type { SourceDestinationBinding } from '../moves/source-destination.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
@@ -268,6 +269,10 @@ export class BoardgameGameBoard extends LitElement {
   /** Attributes to forward to child components in the stack. */
   @property({ type: Object, attribute: false })
   componentAttrs: Record<string, unknown> = {};
+
+  /** Renderer-scoped component recipe passed to the board's inner stack. */
+  @property({ attribute: false })
+  componentView: ComponentView | null = null;
 
   /** Whether to show coordinate labels (1-8, A-H). */
   @property({ type: Boolean, reflect: true })
@@ -578,6 +583,7 @@ export class BoardgameGameBoard extends LitElement {
             .boardCols="${this.cols}"
             .boardRows="${this.rows}"
             .stack="${this.stack}"
+            .componentView=${this.componentView}
             .componentAttrs="${this.componentAttrs}"
             no-default-spacer>
           </boardgame-component-stack>

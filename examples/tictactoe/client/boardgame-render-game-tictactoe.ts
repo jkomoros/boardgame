@@ -4,8 +4,14 @@ import '../../src/components/boardgame-game-board.js';
 import '../../src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
+import type { GameState } from './_types.js';
+import { tokenView } from '../../src/client.js';
 
 class BoardgameRenderGameTictactoe extends GameRenderer {
+  private readonly tokens = tokenView<GameState['Slots']>({
+    properties: () => ({ type: 'chip' }),
+  });
+
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
@@ -26,14 +32,10 @@ class BoardgameRenderGameTictactoe extends GameRenderer {
       : null;
     return html`
       <h2>Tictactoe</h2>
-      <boardgame-deck-defaults>
-        <template deck="tokens">
-          <boardgame-token type="chip"></boardgame-token>
-        </template>
-      </boardgame-deck-defaults>
       <boardgame-game-board
         rows="3" cols="3"
         .stack=${slots ?? null}
+        .componentView=${this.tokens}
         .action=${places}>
       </boardgame-game-board>
       <boardgame-fading-text

@@ -256,6 +256,79 @@ test('component stacks bind typed actions by slot and reject ambiguous wiring', 
   }
 });
 
+test('renderer-scoped component views preserve hosts and distinguish visible, hidden, and empty slots', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-stack.ts');
+      const { cardView, html } = await import('/src/client.ts');
+      const visible = (id: string, rank: string) => ({
+        Index: 0, Values: { rank }, Deck: 'cards', GameName: 'view-test', ID: id,
+      });
+      const makeStack = (components: readonly unknown[], ids: readonly string[]) => ({
+        Deck: 'cards', Indexes: components.map((_item, index) => index), IDs: ids,
+        IDsLastSeen: {}, ShuffleCount: 0, Size: components.length,
+        GameName: 'view-test', Components: components,
+      });
+      const view = cardView({
+        render: (context: { kind: string; component: { Values?: { rank?: string } } | null }) =>
+          context.kind === 'visible' ? html`<span class="rank">${context.component?.Values?.rank}</span>` : null,
+        properties: (context: { kind: string }) => context.kind === 'visible' ? { rotated: true } : {},
+      });
+      const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        stack: unknown;
+        componentView: unknown;
+        updateComplete: Promise<unknown>;
+      };
+      stack.componentView = view;
+      stack.stack = makeStack([visible('a', 'A'), {}, null], ['a', 'hidden', '']);
+      document.body.append(stack);
+      await stack.updateComplete;
+      const firstCards = [...stack.querySelectorAll('boardgame-card')] as Array<HTMLElement & {
+        rotated: boolean;
+        spacer: boolean;
+        item: unknown;
+        updateComplete: Promise<unknown>;
+      }>;
+      await Promise.all(firstCards.map(card => card.updateComplete));
+      const before = firstCards.map(card => ({
+        text: card.textContent?.trim() ?? '',
+        rotated: card.rotated,
+        spacer: card.spacer,
+      }));
+
+      stack.stack = makeStack([{}, visible('b', 'K'), null], ['hidden', 'b', '']);
+      await stack.updateComplete;
+      const secondCards = [...stack.querySelectorAll('boardgame-card')] as typeof firstCards;
+      await Promise.all(secondCards.map(card => card.updateComplete));
+      const after = secondCards.map(card => ({
+        text: card.textContent?.trim() ?? '',
+        rotated: card.rotated,
+        spacer: card.spacer,
+      }));
+      const stableHosts = firstCards.every((card, index) => card === secondCards[index]);
+
+      stack.remove();
+      return { before, after, stableHosts };
+    });
+
+    expect(result.before).toEqual([
+      { text: 'A', rotated: true, spacer: false },
+      { text: '', rotated: false, spacer: false },
+      { text: '', rotated: false, spacer: true },
+    ]);
+    expect(result.after).toEqual([
+      { text: '', rotated: false, spacer: false },
+      { text: 'K', rotated: true, spacer: false },
+      { text: '', rotated: false, spacer: true },
+    ]);
+    expect(result.stableHosts).toBe(true);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

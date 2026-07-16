@@ -889,6 +889,22 @@ global registry, and do not rewrite stamping and author syntax simultaneously.
 Migrate one token deck, then a card deck with dynamic values, then companion
 surfaces. Deprecate moustache templates only after every invariant passes.
 
+First component-view tranche (2026-07-16):
+
+- [x] Add renderer-scoped `cardView`, `tokenView`, and custom `componentView`
+  recipes with a strict visible/hidden/empty context and typed host properties.
+- [x] Feed Lit content through the existing stable stack hosts rather than
+  replacing the FLIP/pooling lifecycle; verify host identity across snapshots.
+- [x] Fail loudly for invalid, reused, unregistered, or type-changing custom
+  component factories, and restore omitted pooled host properties.
+- [x] Pass views through `boardgame-game-board`; prove token decks in
+  Tic-tac-toe and Checkers and a card deck in Memory.
+- [x] Switch the generated tutorial scaffold and tutorial guidance to the typed
+  view path while retaining legacy deck templates only for incremental migration.
+- [ ] Prove dynamic card values and custom game component hosts, then migrate
+  solo/companion Blackjack and one external game before removing the global
+  moustache registry.
+
 ### D. Evidence-driven compositions
 
 Add only pieces repeated by at least two real games:

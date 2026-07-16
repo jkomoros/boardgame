@@ -789,12 +789,11 @@ func TestNewManager(t *testing.T) {
 
 `
 
-const templateContentsRenderGameTs = `import { css, html } from '../../src/client.js';
+const templateContentsRenderGameTs = `import { css, html{{if .EnableExampleClient}}, cardView{{end}} } from '../../src/client.js';
 import { GameRenderer } from './_game_renderer.js';
 {{- if .EnableExampleClient }}
+import type { GameState } from './_types.js';
 import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-fading-text.js';
 {{- end}}
 {{- if .EnableExampleMoves }}
@@ -802,6 +801,13 @@ import { MoveNames } from './_move_names.js';
 {{- end}}
 
 class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
+{{- if .EnableExampleClient }}
+  private readonly cards = cardView<GameState['DrawStack']>({
+    render: ({ kind, component }) => kind === 'visible'
+      ? html[[BACKTICK]]<strong>${component.Values.Value}</strong>[[BACKTICK]]
+      : null,
+  });
+{{- end}}
   static override styles = css[[BACKTICK]]
     :host { display: block; }
     .players { display: flex; flex-wrap: wrap; gap: 1rem; }
@@ -811,15 +817,9 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card>
-            <strong>{{"{{item.Values.Value}}"}}</strong>
-          </boardgame-card>
-        </template>
-      </boardgame-deck-defaults>
       <boardgame-component-stack
         .stack=${this.state?.Game.DrawStack ?? null}
+        .componentView=${this.cards}
         layout="stack" messy>
       </boardgame-component-stack>
       {{- if .EnableExampleMoves }}
@@ -833,6 +833,7 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
             <strong>Player ${index + 1}</strong>
             <boardgame-component-stack
               .stack=${player.Hand}
+              .componentView=${this.cards}
               layout="fan" messy
               .componentAttrs=${[[ rotated: true ]]}>
             </boardgame-component-stack>
