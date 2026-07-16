@@ -849,11 +849,10 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
             </boardgame-component-zone>
           [[BACKTICK]])}
         </boardgame-player-grid>
-        <boardgame-fading-text
+        <boardgame-turn-status
           slot="status"
-          .trigger=${this.isCurrentPlayer}
-          message="Your Turn" suppress="falsey">
-        </boardgame-fading-text>
+          .turn=${this.turnStatus}>
+        </boardgame-turn-status>
       </boardgame-game-surface>
     [[BACKTICK]];
     {{- else }}

@@ -133,12 +133,10 @@ class BoardgameRenderGameMemory extends GameRenderer {
           label="Cards hide in"
           .timer=${this.state?.Game?.HideCardsTimer ?? null}>
         </boardgame-timer>
-        <boardgame-fading-text
+        <boardgame-turn-status
           slot="status"
-          .trigger="${this.isCurrentPlayer}"
-          message="Your Turn"
-          suppress="falsey">
-        </boardgame-fading-text>
+          .turn=${this.turnStatus}>
+        </boardgame-turn-status>
       </boardgame-game-surface>
     `;
   }

@@ -133,6 +133,8 @@ html`<boardgame-game-surface heading="Memory">
   <boardgame-action-bar slot="actions" label="Memory actions">
     <!-- Typed controls. -->
   </boardgame-action-bar>
+  <boardgame-turn-status slot="status" .turn=${this.turnStatus}>
+  </boardgame-turn-status>
 </boardgame-game-surface>`
 ```
 
@@ -142,6 +144,14 @@ centered max width, responsive padding, CSS
 parts, and `--boardgame-game-surface-*` tokens make the zero-CSS result useful
 while keeping all game content and styling game-owned. Blank headings and
 invalid heading levels fail loudly.
+
+The renderer base's typed `turnStatus` getter gives the turn primitive everything
+it needs in one binding. It distinguishes the acting player, other players,
+observers, admins, and simultaneous turns, and suppresses stale output during
+animation or after completion. Optional `.playerLabels` replaces fallback
+“Player 1” names. The client facade exports the named `ObserverPlayerIndex`,
+`AdminPlayerIndex`, and `AnyPlayerIndex` constants and player-index guards; do
+not repeat their numeric values in renderer code.
 
 
 ### Optional: boardgame-fading-text

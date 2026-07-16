@@ -67,6 +67,8 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		".componentView=${this.cards.withProperties({ rotated: true })}",
 		"<boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>",
 		"<boardgame-action-bar slot=\"actions\" label=\"Turn actions\">",
+		"<boardgame-turn-status",
+		".turn=${this.turnStatus}",
 		"player.Computed?.GameScore ?? 0",
 	} {
 		if !strings.Contains(client, required) {

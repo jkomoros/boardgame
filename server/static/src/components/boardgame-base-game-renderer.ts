@@ -29,6 +29,11 @@ import {
   type TargetPreviewTransport,
 } from '../moves/target-action.js';
 import { LegacyProposalAdapter } from '../moves/legacy-proposal-adapter.js';
+import {
+  AdminPlayerIndex,
+  AnyPlayerIndex,
+  type TurnStatusContext,
+} from '../status/turn-status.js';
 
 type MoveInputFor<
   K extends string,
@@ -172,10 +177,20 @@ export class BoardgameBaseGameRenderer<
 
   get isCurrentPlayer(): boolean {
     // AdminPlayerIndex (-2): admin can always act
-    if (this.viewingAsPlayer === -2) return true;
+    if (this.viewingAsPlayer === AdminPlayerIndex) return true;
     // AnyPlayerIndex (-3): any player can act (simultaneous phase)
-    if (this.currentPlayerIndex === -3) return true;
+    if (this.currentPlayerIndex === AnyPlayerIndex) return true;
     return this.currentPlayerIndex === this.viewingAsPlayer;
+  }
+
+  /** Complete, sentinel-aware input for the standard turn-status primitive. */
+  get turnStatus(): TurnStatusContext {
+    return {
+      currentPlayerIndex: this.currentPlayerIndex,
+      viewerPlayerIndex: this.viewingAsPlayer,
+      finished: this.gameFinished,
+      animating: this.animating,
+    };
   }
 
   /**

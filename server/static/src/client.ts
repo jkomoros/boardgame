@@ -75,6 +75,20 @@ export type { StatusTextAutoMessage, StatusTextValue } from './components/boardg
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
+export {
+  AdminPlayerIndex,
+  AnyPlayerIndex,
+  ObserverPlayerIndex,
+  isConcretePlayerIndex,
+  isKnownPlayerIndex,
+  turnStatusPresentation,
+} from './status/turn-status.js';
+export type {
+  SpecialPlayerIndex,
+  TurnStatusContext,
+  TurnStatusKind,
+  TurnStatusPresentation,
+} from './status/turn-status.js';
 export { TimerController } from './timers/timer-service.js';
 export type {
   TimerCadence,
@@ -109,4 +123,5 @@ import './components/boardgame-game-surface.js';
 import './components/boardgame-player-grid.js';
 import './components/boardgame-status-text.js';
 import './components/boardgame-timer.js';
+import './components/boardgame-turn-status.js';
 import './components/boardgame-spatial-board.js';

@@ -35,12 +35,10 @@ class BoardgameRenderGamePig extends GameRenderer {
             Done
           </boardgame-action-button>
         </div>
-        <boardgame-fading-text
+        <boardgame-turn-status
           slot="status"
-          .trigger="${this.isCurrentPlayer}"
-          message="Your Turn"
-          suppress="falsey">
-        </boardgame-fading-text>
+          .turn=${this.turnStatus}>
+        </boardgame-turn-status>
       </boardgame-game-surface>
     `;
   }

@@ -1513,6 +1513,11 @@ return html`<boardgame-game-surface heading="Memory">
   <boardgame-action-bar slot="actions" label="Memory actions">
     <!-- Typed action controls. -->
   </boardgame-action-bar>
+
+  <boardgame-turn-status
+    slot="status"
+    .turn=${this.turnStatus}>
+  </boardgame-turn-status>
 </boardgame-game-surface>`;
 ```
 
@@ -1525,6 +1530,20 @@ visible heading already names the game. Style the stable `surface`, `header`,
 `--boardgame-game-surface-max-width`, `--boardgame-game-surface-padding`, and
 `--boardgame-game-surface-gap`. Drop down to ordinary Lit markup when a game
 needs a deliberately unusual shell.
+
+`this.turnStatus` is the generated renderer base's complete turn-presentation
+context. The component shows “Your turn” to the acting player, names the current
+player for another player or an observer, describes simultaneous turns, and
+does not mislabel the admin perspective. It withholds stale announcements while
+state animations are running and after the game finishes. Use `.playerLabels`
+for display names, or `active-label` / `simultaneous-label` to adjust the two
+standard messages. Custom phase, readiness, and multi-step workflow text remains
+ordinary game-owned Lit content beside this primitive.
+
+The facade also exports `ObserverPlayerIndex`, `AdminPlayerIndex`, and
+`AnyPlayerIndex` with the same values and names as Go. Prefer these constants and
+the `isConcretePlayerIndex()` / `isKnownPlayerIndex()` guards over client-side
+magic negative numbers.
 
 Then stamping those components is as simple as binding a sanitized stack to a
 `boardgame-component-zone` from your Lit renderer:

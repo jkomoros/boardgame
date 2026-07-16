@@ -1045,6 +1045,125 @@ test('game surface supplies a semantic responsive shell with optional named regi
   }
 });
 
+test('turn status names ordinary, observer, admin, and simultaneous perspectives honestly', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { AdminPlayerIndex, AnyPlayerIndex, ObserverPlayerIndex } = await import('/src/client.ts');
+      const status = document.createElement('boardgame-turn-status');
+      document.body.append(status);
+      const show = async (currentPlayerIndex: number, viewerPlayerIndex: number, extras = {}) => {
+        status.turn = {
+          currentPlayerIndex,
+          viewerPlayerIndex,
+          finished: false,
+          animating: false,
+          ...extras,
+        };
+        await status.updateComplete;
+        const element = status.shadowRoot?.querySelector('#status');
+        return element ? {
+          text: element.textContent?.trim(),
+          part: element.getAttribute('part'),
+          role: element.getAttribute('role'),
+          live: element.getAttribute('aria-live'),
+          atomic: element.getAttribute('aria-atomic'),
+        } : null;
+      };
+
+      const active = await show(0, 0);
+      status.playerLabels = ['Ada', 'Grace'];
+      const waiting = await show(1, 0);
+      const observer = await show(0, ObserverPlayerIndex);
+      const admin = await show(0, AdminPlayerIndex);
+      const simultaneousPlayer = await show(AnyPlayerIndex, 0);
+      const simultaneousObserver = await show(AnyPlayerIndex, ObserverPlayerIndex);
+      const animating = await show(0, 0, { animating: true });
+      const finished = await show(0, 0, { finished: true });
+
+      const renderError = (turn: unknown, playerLabels: unknown = []) => {
+        const element = document.createElement('boardgame-turn-status') as HTMLElement & {
+          turn: unknown;
+          playerLabels: unknown;
+          render(): unknown;
+        };
+        element.turn = turn;
+        element.playerLabels = playerLabels;
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const base = { currentPlayerIndex: 0, viewerPlayerIndex: 0, finished: false, animating: false };
+      const invalidActiveLabel = document.createElement('boardgame-turn-status') as HTMLElement & {
+        turn: typeof base;
+        activeLabel: unknown;
+        render(): unknown;
+      };
+      invalidActiveLabel.turn = base;
+      invalidActiveLabel.activeLabel = false;
+      let activeLabelError = '<resolved>';
+      try {
+        invalidActiveLabel.render();
+      } catch (error) {
+        activeLabelError = error instanceof Error ? error.message : String(error);
+      }
+      return {
+        active,
+        waiting,
+        observer,
+        admin,
+        simultaneousPlayer,
+        simultaneousObserver,
+        animating,
+        finished,
+        missingField: renderError({ currentPlayerIndex: 0, viewerPlayerIndex: 0 }),
+        invalidViewer: renderError({ ...base, viewerPlayerIndex: AnyPlayerIndex }),
+        unknownField: renderError({ ...base, phase: 'Playing' }),
+        blankLabel: renderError(base, ['']),
+        activeLabelError,
+      };
+    });
+
+    expect(result.active).toEqual({
+      text: 'Your turn',
+      part: 'status active',
+      role: 'status',
+      live: 'polite',
+      atomic: 'true',
+    });
+    expect(result.waiting?.text).toBe("Grace's turn");
+    expect(result.waiting?.part).toBe('status waiting');
+    expect(result.observer?.text).toBe("Ada's turn");
+    expect(result.admin?.text).toBe("Ada's turn");
+    expect(result.simultaneousPlayer?.text).toBe('Your turn');
+    expect(result.simultaneousObserver).toMatchObject({
+      text: 'All players may act',
+      part: 'status simultaneous',
+    });
+    expect(result.animating).toBeNull();
+    expect(result.finished).toBeNull();
+    expect(result.missingField).toContain('must contain exactly');
+    expect(result.invalidViewer).toContain('viewerPlayerIndex must be a concrete player');
+    expect(result.unknownField).toContain('must contain exactly');
+    expect(result.blankLabel).toContain('playerLabels must contain only non-empty strings');
+    expect(result.activeLabelError).toContain('activeLabel must be a non-empty string');
+
+    await page.evaluate(() => {
+      const status = document.querySelector('boardgame-turn-status');
+      if (!status) throw new Error('turn status disappeared');
+      status.turn = { currentPlayerIndex: 0, viewerPlayerIndex: 0, finished: false, animating: false };
+    });
+    const axeResult = await new AxeBuilder({ page }).include('boardgame-turn-status').analyze();
+    expect(axeResult.violations).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('player grid supplies named responsive layout and a useful empty state', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

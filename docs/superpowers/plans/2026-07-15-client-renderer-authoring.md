@@ -979,6 +979,15 @@ First evidence-driven primitive tranche (2026-07-16):
   Pig, Tic-tac-toe, Checkers, Memory, solo Blackjack, Werewolf, Pass, Valentine,
   Murder Mr Monroe, and generated scaffold output while leaving diagnostic and
   companion-specific surfaces custom.
+- [x] Replace five duplicated `isCurrentPlayer`/“Your Turn” fading callouts with
+  a sentinel-aware persistent `boardgame-turn-status`. Export named client
+  Observer/Admin/AnyPlayerIndex constants matching Go, replace magic numbers in
+  the renderer base, and expose one typed `turnStatus` context so the common
+  binding is a single property. Distinguish acting, waiting, observer/admin, and
+  simultaneous perspectives; gate animation and finished state; keep custom
+  phase/readiness text game-owned. Prove the pure matrix, exact runtime shape,
+  strict negative contracts, live-region semantics, axe, five real examples,
+  and generated scaffold output.
 - [x] Modernize `boardgame-status-text`, a primitive repeated by seven framework
   and external games, around a typed `.value` string/number contract instead of
   hidden slotted content plus DOM mutation observation. Register it from the

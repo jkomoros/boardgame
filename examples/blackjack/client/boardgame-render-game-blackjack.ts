@@ -92,12 +92,10 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
             </boardgame-component-zone>
           `)}
         </boardgame-player-grid>
-        <boardgame-fading-text
+        <boardgame-turn-status
           slot="status"
-          .trigger="${this.isCurrentPlayer}"
-          message="Your Turn"
-          suppress="falsey">
-        </boardgame-fading-text>
+          .turn=${this.turnStatus}>
+        </boardgame-turn-status>
       </boardgame-game-surface>
     `;
   }
