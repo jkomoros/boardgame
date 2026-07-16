@@ -520,18 +520,10 @@ class BoardgameRenderGame extends LitElement {
 
   private _recomputeIsHost() {
     if (!(this.renderer instanceof BoardgameTableViewBase)) return;
-    // Prefer the server's own verdict (CompanionInfo.IsHost, computed with
-    // the same Owner-or-override + surface-cookie rule the host-action
-    // endpoints enforce) so a host promoted via /claimHost sees controls
-    // even though they aren't the Owner. Fall back to the local derivation
-    // for older payloads that lack the field.
-    const info = this.companionInfo;
-    if (info && typeof info.IsHost === 'boolean') {
-      this.renderer.isHost = info.IsHost;
-      return;
-    }
-    const surface = surfaceForGame(this.gameId);
-    this.renderer.isHost = this.isOwner && surface === 'table';
+    // Host authority is a server verdict backed by the active Table lease.
+    // Never reconstruct it from presentation state: a stale local `table`
+    // surface is not a capability and must not expose controls optimistically.
+    this.renderer.isHost = this.companionInfo?.IsHost === true;
   }
 
   private _activeChanged(newValue: boolean) {

@@ -39,6 +39,12 @@ test('socket decoder fails closed for behavior-changing frames', () => {
   assert.throws(() => decodeSocketFrame(JSON.stringify({
     type: 'presence-changed', data: { gameID: '' },
   })), /gameID must be/);
+	assert.deepEqual(decodeSocketFrame(JSON.stringify({
+		type: 'table-session-changed', data: { gameID: 'GAME' },
+	})), { type: 'table-session-changed', gameID: 'GAME' });
+	assert.deepEqual(decodeSocketFrame(JSON.stringify({
+		type: 'table-lease-lost', data: { gameID: 'GAME' },
+	})), { type: 'table-lease-lost', gameID: 'GAME' });
 });
 
 test('socket decoder preserves forward compatibility without copying unknown data', () => {

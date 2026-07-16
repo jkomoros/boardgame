@@ -17,6 +17,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 )
@@ -32,10 +33,11 @@ const (
 	tableAgentStates       = "agentstates"
 	tableSeatPresentations = "seatpresentations"
 	tableChatMessages      = "chatmessages"
+	tableTableLeases       = "companiontableleases"
 )
 
 const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
-	"g.Created, g.Modified, e.Open, e.Visible, e.Owner, e.CompanionRoomCode, e.CompanionLocked, e.CompanionHostOverride"
+	"g.Created, g.Modified, e.Open, e.Visible, e.Owner, e.CompanionRoomCode, e.CompanionLocked"
 
 const baseCombinedFromQuery = "from " + tableGames + " g, " + tableExtendedGames + " e"
 
@@ -118,6 +120,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(moveStorageRecord{}, tableMoves).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(chatStorageRecord{}, tableChatMessages).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(seatPresentationStorageRecord{}, tableSeatPresentations).SetKeys(true, "ID")
+	s.dbMap.AddTableWithName(tableLeaseStorageRecord{}, tableTableLeases).SetKeys(false, "GameID")
 
 	// Create chat table if it doesn't exist (auto-migration for chat)
 	s.dbMap.CreateTablesIfNotExists()
@@ -340,6 +343,74 @@ func (s *StorageManager) ClearSeatPresentation(gameID string, playerIndex boardg
 	}
 	_, err := s.dbMap.Exec("delete from "+tableSeatPresentations+" where GameID = ? and PlayerIndex = ?", gameID, int64(playerIndex))
 	return err
+}
+
+// CompanionTableLease implements the server storage interface.
+func (s *StorageManager) CompanionTableLease(gameID string) (*tablelease.StorageRecord, error) {
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+	var record tableLeaseStorageRecord
+	if err := s.dbMap.SelectOne(&record, "select * from "+tableTableLeases+" where GameID = ?", gameID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return record.ToStorageRecord(), nil
+}
+
+// CompareAndSwapCompanionTableLease implements the server storage interface.
+func (s *StorageManager) CompareAndSwapCompanionTableLease(gameID string, expectedGeneration uint64, replacement *tablelease.StorageRecord) (*tablelease.StorageRecord, bool, error) {
+	if !s.connected {
+		return nil, false, errors.New("Database not connected yet")
+	}
+	if gameID == "" {
+		return nil, false, errors.New("empty game ID")
+	}
+	if replacement == nil {
+		return nil, false, errors.New("nil companion Table lease replacement")
+	}
+	if replacement.GameID != "" && replacement.GameID != gameID {
+		return nil, false, errors.New("companion Table lease game ID mismatch")
+	}
+	if expectedGeneration == ^uint64(0) {
+		return nil, false, errors.New("companion Table lease generation exhausted")
+	}
+
+	next := replacement.Clone()
+	next.GameID = gameID
+	next.Generation = expectedGeneration + 1
+	stored := newTableLeaseStorageRecord(next)
+
+	if expectedGeneration == 0 {
+		if err := s.dbMap.Insert(stored); err == nil {
+			return next.Clone(), true, nil
+		} else {
+			// A concurrent insert is the expected losing path. Distinguish it
+			// from infrastructure errors by requiring the winning row to exist.
+			current, readErr := s.CompanionTableLease(gameID)
+			if readErr != nil || current == nil {
+				return nil, false, err
+			}
+			return current, false, nil
+		}
+	}
+
+	result, err := s.dbMap.Exec("update "+tableTableLeases+" set Generation = ?, DeviceID = ?, SecretDigest = ?, HolderUserID = ?, Expires = ? where GameID = ? and Generation = ?",
+		next.Generation, next.DeviceID, next.SecretDigest, next.HolderUserID, next.Expires, gameID, expectedGeneration)
+	if err != nil {
+		return nil, false, err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return nil, false, err
+	}
+	if rows == 1 {
+		return next.Clone(), true, nil
+	}
+	current, err := s.CompanionTableLease(gameID)
+	return current, false, err
 }
 
 // GameByRoomCode looks up a gameID by CompanionRoomCode. Returns "" with

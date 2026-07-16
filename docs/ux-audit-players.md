@@ -36,7 +36,8 @@ the rest are the ranked backlog.*
   seat with your hand — cookies do the work, no re-join ceremony.
 - **Room security matches the vibe.** Codes are rate-limited (10/min/IP),
   locked/finished rooms 404 identically to bad codes (no existence leak),
-  host controls 403 for non-hosts, host-takeover has a 30s staleness gate.
+  host controls reject non-lease devices; Table recovery uses an expiring
+  socket-renewed lease and a storage-backed first-winner takeover.
 
 ## Fixed during this audit
 

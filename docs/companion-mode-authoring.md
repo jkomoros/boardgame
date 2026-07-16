@@ -176,10 +176,20 @@ prints a startup warning when a companion-capable game omits it; simultaneous
 games may intentionally omit it, while turn-based games should treat the
 warning as a broken host recovery path.
 
+Shared-screen ownership and recovery are framework-owned. The Table holds a
+short-lived, HttpOnly device lease that its socket renews; local renderer
+selection never grants host authority. If the Table disappears, seated Hands
+automatically receive a takeover control after the reconnect grace period.
+Simultaneous attempts are resolved atomically, and a displaced screen is
+paused. Game renderers do not add a recovery button, heartbeat, host identity,
+or lease handling—the framework chrome remains present even when an author
+completely replaces the Table or Hand renderer layout.
+
 ## Testing your surfaces on one machine
 
-`?display=table` / `?display=hand` on a game URL override the surface
-cookie — open the same game in two tabs to see both sides. Note the two
+`?display=table` / `?display=hand` on a game URL override renderer selection
+for visual testing only; `?display=table` never grants the fenced Table lease
+or host actions. Open the same game in two tabs to inspect both sides. Note the two
 tabs share one signed-in identity; for true multi-identity testing use a
 second browser profile, or claim seats via `curl` against
 `POST /api/join/seat` in `--offline-dev-mode`.

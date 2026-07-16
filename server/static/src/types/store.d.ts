@@ -24,18 +24,24 @@ export interface CompanionSeatPresentation {
   avatarSlug: string;
 }
 
+export interface CompanionTableSession {
+  Status: 'active' | 'available';
+  IsThisTable: boolean;
+  CanTakeOver: boolean;
+  /** Server-authoritative delay before checking whether an active Table died. */
+  RetryAfterMs: number;
+}
+
 export interface CompanionInfo {
   CompanionMode: boolean;
   RoomCode: string;
   RoomLocked: boolean;
   SeatPresentations: CompanionSeatPresentation[];
   Absent: number[];
-  /**
-   * Server-computed: whether THIS session may use host actions
-   * (Owner-or-claimHost-override + table-surface cookie). Clients display
-   * host controls from this rather than re-deriving the rule.
-   */
-  IsHost?: boolean;
+  /** Ownership and recovery state for the single shared Table display. */
+  TableSession: CompanionTableSession;
+  /** Server-computed authority verdict for host actions on this request. */
+  IsHost: boolean;
 }
 
 /**

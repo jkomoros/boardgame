@@ -23,12 +23,6 @@ type StorageRecord struct {
 	// CompanionLocked, when true, prevents new phones from joining the room
 	// even if the code is known. Host-controlled. Always false for solo-mode.
 	CompanionLocked bool
-	// CompanionHostOverride is the userID of a player who has claimed host
-	// privileges after the original Owner went stale (spec §9.4). When set,
-	// IsHost recognizes EITHER eGame.Owner OR this override as host.
-	// Empty for new games — the original Owner is host by default. Cleared
-	// when the game reaches Finished.
-	CompanionHostOverride string
 }
 
 // CombinedStorageRecord combines the base GameStorageRecord and StorageRecord

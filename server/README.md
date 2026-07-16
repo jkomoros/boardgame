@@ -383,6 +383,7 @@ secret to every API instance:
 
 ```sh
 BOARDGAME_JOIN_TICKET_SECRET="at-least-32-random-characters"
+BOARDGAME_TABLE_LEASE_SECRET="a-different-at-least-32-character-secret"
 ```
 
 Release-mode servers fail closed when it is absent. For zero-downtime key
@@ -390,6 +391,12 @@ rotation, deploy the new value as `BOARDGAME_JOIN_TICKET_SECRET` and the old
 value as `BOARDGAME_JOIN_TICKET_PREVIOUS_SECRET`; remove the previous value
 after the ten-minute ticket lifetime. These values belong in the deployment's
 secret manager, never in client configuration or source control.
+
+`BOARDGAME_TABLE_LEASE_SECRET` must be identical on every API instance. It
+keeps lost-response Table recovery retries idempotent and is intentionally
+separate from the rotating join-ticket key. Do not rotate it while companion
+games created under the old value may still be active; use a stop-the-world
+deployment after those sessions finish when rotation is necessary.
 
 If you want to set up your API server to be at e.g. https://api.mydomain.com, follow the instructions [https://cloud.google.com/appengine/docs/flexible/go/using-custom-domains-and-ssl](here).
 

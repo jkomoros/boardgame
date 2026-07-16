@@ -56,7 +56,7 @@ test('offline authentication preserves encoded identity fields through the real 
 });
 
 test('companion guest join validates room, seat options, and seat result through the real server', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const email = 'typed-join-host@example.com';
   await page.goto('/');
   await page.evaluate(({ email }) => {
@@ -162,6 +162,16 @@ test('companion guest join validates room, seat options, and seat result through
   });
   expect(retryClaim.ok()).toBe(true);
   expect(await retryClaim.json()).toMatchObject({ gameID, resumed: true });
+
+	// The original Table socket disappeared when this browser entered the
+	// join flow. Even though its HttpOnly lease cookie still exists, the Hand
+	// socket must not renew it. After the grace period, framework-owned recovery
+	// appears and promotes exactly this device back to the Table.
+	const takeover = page.getByRole('button', { name: 'Take over shared Table' });
+	await expect(takeover).toBeVisible({ timeout: 50_000 });
+	await takeover.click();
+	await expect(page.locator('boardgame-render-game-blackjack-table')).toBeAttached({ timeout: 15_000 });
+	await expect(page.getByRole('checkbox', { name: 'Lock room (no new joins)' })).toBeVisible();
 });
 
 test('assembled Pig renderer reports a real server rejection without advancing state', async ({ page }) => {

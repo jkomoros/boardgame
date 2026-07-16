@@ -13,6 +13,8 @@
  * boardgame-game-view (hiding solo chrome on companion surfaces) so the
  * two can never disagree about what surface is active.
  */
+const ephemeralTableDeviceIDs = new Map<string, string>();
+
 export function surfaceForGame(gameId: string): 'table' | 'hand' | null {
   const params = new URLSearchParams(window.location.search);
   const display = params.get('display');
@@ -61,4 +63,31 @@ export function forgetAllCompanionSurfaces(): void {
     }
     for (const key of keys) window.localStorage.removeItem(key);
   } catch { /* ignored */ }
+}
+
+/** Stable, non-secret browser identity used only to make Table acquisition
+ * idempotent when a committed HTTP response is lost. Authority still requires
+ * the server-issued HttpOnly credential. */
+export function tableRecoveryDeviceID(gameId: string): string {
+	if (!gameId) throw new Error('gameId is required for a Table recovery device ID');
+	const key = `boardgame-table-device:${gameId}`;
+	try {
+		const existing = window.localStorage.getItem(key);
+		if (existing && /^[a-f0-9]{32}$/.test(existing)) return existing;
+		const bytes = new Uint8Array(16);
+		window.crypto.getRandomValues(bytes);
+		const created = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+		window.localStorage.setItem(key, created);
+		return created;
+	} catch {
+		// Storage can be unavailable in privacy modes. A per-page ID still
+		// makes ordinary retries idempotent for the life of this document.
+		const bytes = new Uint8Array(16);
+		window.crypto.getRandomValues(bytes);
+		const existing = ephemeralTableDeviceIDs.get(gameId);
+		if (existing) return existing;
+		const created = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+		ephemeralTableDeviceIDs.set(gameId, created);
+		return created;
+	}
 }

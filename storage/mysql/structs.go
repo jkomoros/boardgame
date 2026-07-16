@@ -11,6 +11,7 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
@@ -52,33 +53,31 @@ type gameStorageRecord struct {
 }
 
 type extendedGameStorageRecord struct {
-	ID                    string `db:",size:16"`
-	Open                  bool
-	Visible               bool
-	Owner                 string `db:",size:128"`
-	CompanionRoomCode     string `db:",size:8"` // 4-letter code, possible 5-letter fallback
-	CompanionLocked       bool
-	CompanionHostOverride string `db:",size:128"` // userID that claimed host after Owner went stale
+	ID                string `db:",size:16"`
+	Open              bool
+	Visible           bool
+	Owner             string `db:",size:128"`
+	CompanionRoomCode string `db:",size:8"` // 4-letter code, possible 5-letter fallback
+	CompanionLocked   bool
 }
 
 // Used for pulling out of a db with a join
 type combinedGameStorageRecord struct {
-	Name                  string
-	ID                    string
-	SecretSalt            string
-	Version               int64
-	Winners               string
-	Finished              bool
-	NumPlayers            int64
-	Agents                string
-	Created               int64
-	Modified              int64
-	Open                  bool
-	Visible               bool
-	Owner                 string
-	CompanionRoomCode     string
-	CompanionLocked       bool
-	CompanionHostOverride string
+	Name              string
+	ID                string
+	SecretSalt        string
+	Version           int64
+	Winners           string
+	Finished          bool
+	NumPlayers        int64
+	Agents            string
+	Created           int64
+	Modified          int64
+	Open              bool
+	Visible           bool
+	Owner             string
+	CompanionRoomCode string
+	CompanionLocked   bool
 }
 
 type stateStorageRecord struct {
@@ -120,6 +119,43 @@ type seatPresentationStorageRecord struct {
 	PlayerIndex int64
 	DisplayName string `db:",size:128"`
 	AvatarSlug  string `db:",size:256"`
+}
+
+type tableLeaseStorageRecord struct {
+	GameID       string `db:",size:16"`
+	Generation   uint64
+	DeviceID     string `db:",size:128"`
+	SecretDigest string `db:",size:64"`
+	HolderUserID string `db:",size:128"`
+	Expires      int64
+}
+
+func newTableLeaseStorageRecord(record *tablelease.StorageRecord) *tableLeaseStorageRecord {
+	if record == nil {
+		return nil
+	}
+	return &tableLeaseStorageRecord{
+		GameID:       record.GameID,
+		Generation:   record.Generation,
+		DeviceID:     record.DeviceID,
+		SecretDigest: record.SecretDigest,
+		HolderUserID: record.HolderUserID,
+		Expires:      record.Expires,
+	}
+}
+
+func (r *tableLeaseStorageRecord) ToStorageRecord() *tablelease.StorageRecord {
+	if r == nil {
+		return nil
+	}
+	return &tablelease.StorageRecord{
+		GameID:       r.GameID,
+		Generation:   r.Generation,
+		DeviceID:     r.DeviceID,
+		SecretDigest: r.SecretDigest,
+		HolderUserID: r.HolderUserID,
+		Expires:      r.Expires,
+	}
 }
 
 func (r *seatPresentationStorageRecord) ToStorageRecord() *seatpresentation.StorageRecord {
@@ -305,12 +341,11 @@ func (c *combinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 			Modified:   time.Unix(0, c.Modified),
 		},
 		StorageRecord: extendedgame.StorageRecord{
-			Open:                  c.Open,
-			Visible:               c.Visible,
-			Owner:                 c.Owner,
-			CompanionRoomCode:     c.CompanionRoomCode,
-			CompanionLocked:       c.CompanionLocked,
-			CompanionHostOverride: c.CompanionHostOverride,
+			Open:              c.Open,
+			Visible:           c.Visible,
+			Owner:             c.Owner,
+			CompanionRoomCode: c.CompanionRoomCode,
+			CompanionLocked:   c.CompanionLocked,
 		},
 	}
 
@@ -323,22 +358,21 @@ func newCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 	}
 
 	return &combinedGameStorageRecord{
-		Name:                  combined.Name,
-		ID:                    combined.ID,
-		SecretSalt:            combined.SecretSalt,
-		Version:               int64(combined.Version),
-		Winners:               winnersToString(combined.Winners),
-		NumPlayers:            int64(combined.NumPlayers),
-		Finished:              combined.Finished,
-		Agents:                agentsToString(combined.Agents),
-		Created:               combined.Created.UnixNano(),
-		Modified:              combined.Modified.UnixNano(),
-		Open:                  combined.Open,
-		Visible:               combined.Visible,
-		Owner:                 combined.Owner,
-		CompanionRoomCode:     combined.CompanionRoomCode,
-		CompanionLocked:       combined.CompanionLocked,
-		CompanionHostOverride: combined.CompanionHostOverride,
+		Name:              combined.Name,
+		ID:                combined.ID,
+		SecretSalt:        combined.SecretSalt,
+		Version:           int64(combined.Version),
+		Winners:           winnersToString(combined.Winners),
+		NumPlayers:        int64(combined.NumPlayers),
+		Finished:          combined.Finished,
+		Agents:            agentsToString(combined.Agents),
+		Created:           combined.Created.UnixNano(),
+		Modified:          combined.Modified.UnixNano(),
+		Open:              combined.Open,
+		Visible:           combined.Visible,
+		Owner:             combined.Owner,
+		CompanionRoomCode: combined.CompanionRoomCode,
+		CompanionLocked:   combined.CompanionLocked,
 	}
 
 }
@@ -349,12 +383,11 @@ func (e *extendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecor
 	}
 
 	return &extendedgame.StorageRecord{
-		Open:                  e.Open,
-		Visible:               e.Visible,
-		Owner:                 e.Owner,
-		CompanionRoomCode:     e.CompanionRoomCode,
-		CompanionLocked:       e.CompanionLocked,
-		CompanionHostOverride: e.CompanionHostOverride,
+		Open:              e.Open,
+		Visible:           e.Visible,
+		Owner:             e.Owner,
+		CompanionRoomCode: e.CompanionRoomCode,
+		CompanionLocked:   e.CompanionLocked,
 	}
 }
 
@@ -364,12 +397,11 @@ func newExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *extendedGa
 	}
 
 	return &extendedGameStorageRecord{
-		Open:                  eGame.Open,
-		Visible:               eGame.Visible,
-		Owner:                 eGame.Owner,
-		CompanionRoomCode:     eGame.CompanionRoomCode,
-		CompanionLocked:       eGame.CompanionLocked,
-		CompanionHostOverride: eGame.CompanionHostOverride,
+		Open:              eGame.Open,
+		Visible:           eGame.Visible,
+		Owner:             eGame.Owner,
+		CompanionRoomCode: eGame.CompanionRoomCode,
+		CompanionLocked:   eGame.CompanionLocked,
 	}
 }
 

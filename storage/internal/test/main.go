@@ -9,6 +9,7 @@ import (
 	"log"
 	"reflect"
 	"sort"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
 )
@@ -54,7 +56,100 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 	UsersTest(factory, testName, connectConfig, t)
 	AgentsTest(factory, testName, connectConfig, t)
 	ListingTest(factory, testName, connectConfig, t)
+	TableLeaseTest(factory, connectConfig, t)
 
+}
+
+// TableLeaseTest verifies that a storage manager provides a true atomic CAS
+// boundary for companion Table ownership. In particular, this catches
+// read-then-write implementations that work in single-request tests but admit
+// multiple winners under contention.
+func TableLeaseTest(factory StorageManagerFactory, connectConfig string, t *testing.T) {
+	storage := factory()
+	defer storage.Close()
+	defer storage.CleanUp()
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err.Error())
+	}
+
+	const gameID = "lease-cas-test"
+	lease, err := storage.CompanionTableLease(gameID)
+	if err != nil || lease != nil {
+		t.Fatalf("new lease should be absent; got lease=%+v err=%v", lease, err)
+	}
+	if _, _, err := storage.CompareAndSwapCompanionTableLease(gameID, 0, nil); err == nil {
+		t.Fatal("nil lease replacement should be rejected")
+	}
+	if _, _, err := storage.CompareAndSwapCompanionTableLease(gameID, 0, &tablelease.StorageRecord{GameID: "other"}); err == nil {
+		t.Fatal("mismatched lease game ID should be rejected")
+	}
+
+	const contenders = 24
+	type result struct {
+		lease   *tablelease.StorageRecord
+		swapped bool
+		err     error
+	}
+	results := make(chan result, contenders)
+	var wg sync.WaitGroup
+	for i := 0; i < contenders; i++ {
+		wg.Add(1)
+		go func(contender int) {
+			defer wg.Done()
+			current, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 0, &tablelease.StorageRecord{
+				DeviceID:     "device-" + strconv.Itoa(contender),
+				SecretDigest: "digest-" + strconv.Itoa(contender),
+				HolderUserID: "user-" + strconv.Itoa(contender),
+				Expires:      int64(1000 + contender),
+			})
+			results <- result{current, swapped, err}
+		}(i)
+	}
+	wg.Wait()
+	close(results)
+
+	winners := 0
+	for result := range results {
+		if result.err != nil {
+			t.Fatalf("contending CAS returned error: %v", result.err)
+		}
+		if result.lease == nil || result.lease.Generation != 1 {
+			t.Fatalf("contending CAS returned invalid current lease: %+v", result.lease)
+		}
+		if result.swapped {
+			winners++
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("initial CAS had %d winners; want exactly 1", winners)
+	}
+
+	stored, err := storage.CompanionTableLease(gameID)
+	if err != nil || stored == nil || stored.Generation != 1 || stored.GameID != gameID {
+		t.Fatalf("invalid stored winning lease: %+v err=%v", stored, err)
+	}
+	winnerDevice := stored.DeviceID
+	stored.DeviceID = "mutated-by-caller"
+	storedAgain, err := storage.CompanionTableLease(gameID)
+	if err != nil || storedAgain.DeviceID != winnerDevice {
+		t.Fatalf("lease read was not a defensive copy: %+v err=%v", storedAgain, err)
+	}
+
+	renewed, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 1, &tablelease.StorageRecord{
+		DeviceID: winnerDevice, SecretDigest: "renewed", HolderUserID: "holder", Expires: 5000,
+	})
+	if err != nil || !swapped || renewed.Generation != 2 || renewed.SecretDigest != "renewed" {
+		t.Fatalf("valid renewal failed: %+v swapped=%v err=%v", renewed, swapped, err)
+	}
+	stale, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 1, &tablelease.StorageRecord{DeviceID: "stale"})
+	if err != nil || swapped || stale == nil || stale.Generation != 2 || stale.DeviceID != winnerDevice {
+		t.Fatalf("stale CAS did not return current record: %+v swapped=%v err=%v", stale, swapped, err)
+	}
+
+	released, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 2, &tablelease.StorageRecord{})
+	if err != nil || !swapped || released.Generation != 3 || released.DeviceID != "" || released.SecretDigest != "" {
+		t.Fatalf("release tombstone failed: %+v swapped=%v err=%v", released, swapped, err)
+	}
 }
 
 // BasicTest does the basic tests

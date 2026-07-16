@@ -665,15 +665,23 @@ For V1, phase-driven games where an absent player blocks phase advance fall into
 
 ### 9.4 Host Transfer
 
-**Host privileges require the Table surface** (`surface_<gameID>=table` cookie + connected Table-view socket). A returning Owner who reconnects from a phone (no Table cookie) is just a regular player at that moment, NOT the host. This matters because the original projector may be dead and the Owner is rejoining via mobile.
+**Host privileges belong to one fenced Table-device lease**, not to the game
+owner, a user override, or the JavaScript-readable `surface_<gameID>` renderer
+preference. The server gives the initial Table a random HttpOnly credential and
+stores only its digest, generation, holder audit ID, and expiry. Its socket
+renews that lease on immediate and ten-second heartbeats.
 
-If `eGame.Owner` has no heartbeat-fresh Table connection for 30s, any seated player with a Table cookie OR any seated player who claims via the Hand view may claim host via `POST /api/game/<id>/claimHost`. First claim wins; ties broken by lowest player index. Successful claim writes `CompanionHostOverride = <claimingUserID>` to `eGame`. The override is durable for the rest of the session.
+Every host action validates the unexpired persisted lease and its credential.
+After the reconnect grace period expires, the owner or any seated player may
+use the framework-owned Hand recovery control, which calls
+`POST /api/game/<name>/<id>/tableLease/acquire`. Storage compares and swaps the
+lease generation, so simultaneous claimants have exactly one winner across
+processes and stale credentials are fenced out. The winner becomes the Table;
+the displaced screen receives a terminal paused state. `CompanionHostOverride`
+and `/claimHost` no longer exist.
 
-`IsHost(user, gameID)` returns true if:
-- `surface_<gameID>=table` cookie is present AND (user == eGame.Owner OR user == eGame.CompanionHostOverride), OR
-- (user == eGame.CompanionHostOverride) regardless of surface (a "promoted player" keeps host powers even when reading on their phone).
-
-Note: the original Owner on a phone after their projector dies and a transfer has happened is **NOT** automatically host — they are just a player. They can choose to take a different device to the Table surface (regain table cookie) and then they're co-host with the override.
+Renderer selection remains presentation-only. It can choose a Table module for
+developer testing, but cannot grant host controls or mutate host state.
 
 ### 9.5 Reconnection
 
@@ -827,7 +835,7 @@ One real session with 4 humans before V1 ships.
 - "Waiting for Alice…" projector affordance.
 - `moves.ForceFinishTurn` (new file `moves/force_finish_turn.go`).
 - Host `hostSkipTurn` endpoint — Skip button appears ONLY on the current player's badge when absent (§9.3).
-- Host transfer (`claimHost`) + audit logging (V1: server logger; dedicated table deferred) from host endpoints.
+- Fenced Table-device lease + atomic Hand recovery + audit logging from host endpoints.
 - Host = table-surface requirement encoded in `IsHost`.
 
 ### Phase 4 — Animations (PR 4)

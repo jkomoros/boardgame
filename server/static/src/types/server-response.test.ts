@@ -38,6 +38,13 @@ function info() {
       RoomLocked: false,
       SeatPresentations: null,
       Absent: null,
+      IsHost: false,
+      TableSession: {
+        Status: 'available',
+        IsThisTable: false,
+        CanTakeOver: false,
+        RetryAfterMs: 0,
+      },
     },
   };
 }
@@ -136,6 +143,32 @@ test('game-info decoder names malformed nested server fields', () => {
     }),
     /CurrentState\.Components\.cards must be an array/,
   );
+});
+
+test('game-info decoder validates Table session state combinations', () => {
+  const active = info();
+  active.CompanionInfo.TableSession = {
+    Status: 'active', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 12_000,
+  };
+  assert.deepEqual(decodeGameInfoResponse(active).CompanionInfo?.TableSession, {
+    Status: 'active', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 12_000,
+  });
+
+  const malformedStatus = info();
+  malformedStatus.CompanionInfo.TableSession.Status = 'missing' as 'active';
+  assert.throws(() => decodeGameInfoResponse(malformedStatus), /Status must be "active" or "available"/);
+
+  const contradictoryActive = info();
+  contradictoryActive.CompanionInfo.TableSession = {
+    Status: 'active', IsThisTable: false, CanTakeOver: true, RetryAfterMs: 1,
+  };
+  assert.throws(() => decodeGameInfoResponse(contradictoryActive), /cannot be true while the Table is active/);
+
+  const contradictoryAvailable = info();
+  contradictoryAvailable.CompanionInfo.TableSession = {
+    Status: 'available', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 0,
+  };
+  assert.throws(() => decodeGameInfoResponse(contradictoryAvailable), /cannot be true when the Table is available/);
 });
 
 test('game-version decoder validates bundles and bounds untrusted collections', () => {

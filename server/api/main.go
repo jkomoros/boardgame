@@ -23,6 +23,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/sirupsen/logrus"
 )
@@ -75,6 +76,10 @@ type Server struct {
 	// joinTicketPreviousKey permits zero-downtime secret rotation for tickets
 	// issued during the prior ten-minute TTL window.
 	joinTicketPreviousKey []byte
+	// tableLeaseKey deterministically derives retry-stable device credentials.
+	// Unlike the short-lived ticket key, this key is not rotated while live
+	// companion sessions exist.
+	tableLeaseKey []byte
 }
 
 // corsOrigins adapts the documented comma-delimited configuration format to
@@ -236,6 +241,7 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		joinRateLimiter: newRateLimiter(40, 0.5, 10*time.Minute),
 		seatJoinLocks:   make(map[string]*sync.Mutex),
 		joinTicketKey:   newJoinTicketKey(),
+		tableLeaseKey:   newJoinTicketKey(),
 	}
 
 	storage.server = result
@@ -923,6 +929,7 @@ func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageReco
 	// renderer on the redirect. Solo-mode games leave CompanionRoomCode
 	// empty + don't get a surface cookie (renderer falls back to solo).
 	var roomCode string
+	var initialTableDeviceID, initialTableSecret, initialTableDigest string
 	if companionMode {
 		code, codeErr := GenerateRoomCode(func(candidate string) (bool, error) {
 			id, gerr := s.storage.GameByRoomCode(candidate)
@@ -938,6 +945,11 @@ func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageReco
 		}
 		eGame.CompanionRoomCode = code
 		roomCode = code
+		initialTableDeviceID, initialTableSecret, initialTableDigest, err = s.newTableLeaseCredential(game.ID())
+		if err != nil {
+			r.Error(errors.New("Couldn't create shared-screen credentials: " + err.Error()))
+			return
+		}
 		// Surface cookie scoped to the gameID — see surfaceCookieName().
 		// Path "/" so the loader sees it on the game page.
 		s.setSurfaceCookie(c, game.ID(), "table")
@@ -946,6 +958,27 @@ func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageReco
 	if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
 		r.Error(errors.New("Couldn't save extended game metadata: " + err.Error()))
 		return
+	}
+	if companionMode {
+		lease, swapped, leaseErr := s.storage.CompareAndSwapCompanionTableLease(game.ID(), 0, &tablelease.StorageRecord{
+			DeviceID: initialTableDeviceID, SecretDigest: initialTableDigest,
+			HolderUserID: owner.ID, Expires: time.Now().Add(tableLeaseTTL).UnixMilli(),
+		})
+		if leaseErr != nil || !swapped {
+			// The core game is already durable at this point. Remove the room
+			// admission path so a failed lease bootstrap cannot leave a
+			// joinable companion room with no controlling Table.
+			eGame.CompanionRoomCode = ""
+			eGame.CompanionLocked = false
+			if rollbackErr := s.storage.UpdateExtendedGame(game.ID(), eGame); rollbackErr != nil {
+				s.logger.Errorln("Failed to roll back companion metadata after Table lease bootstrap failure:", rollbackErr)
+			}
+			c.SetCookie(surfaceCookieName(game.ID()), "", -1, "/", "", !s.config.OfflineDevMode, false)
+			r.Error(errors.New("Couldn't reserve the shared screen"))
+			return
+		}
+		_ = lease
+		s.setTableLeaseCookie(c, game.ID(), initialTableDeviceID, initialTableSecret)
 	}
 
 	resp := gin.H{
@@ -1400,21 +1433,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	r := s.newRenderer(c)
 
-	// Server-computed host verdict for the companion bundle. Uses the same
-	// rule as the host-action endpoints (Owner-or-override + table-surface
-	// cookie), so the client can display host controls for exactly the
-	// requests the server would authorize — including a host promoted via
-	// /claimHost, who is not the Owner and would otherwise never see them.
-	isHostViewer := false
-	if gameInfo != nil && gameInfo.CompanionRoomCode != "" {
-		hostUserID := gameInfo.Owner
-		if gameInfo.CompanionHostOverride != "" {
-			hostUserID = gameInfo.CompanionHostOverride
-		}
-		isHostViewer = s.isHost(c, gameID, hostUserID)
-	}
-
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion, isHostViewer)
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion)
 
 }
 
@@ -1506,7 +1525,7 @@ func (s *Server) collectSeatPresentations(gameID string, numPlayers int) []gin.H
 	return out
 }
 
-func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int, isHostViewer bool) {
+func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
 		return
@@ -1572,6 +1591,34 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 	if companionMode {
 		seatPresentations = s.collectSeatPresentations(game.ID(), game.NumPlayers())
 	}
+	tableStatus := "available"
+	tableRetryAfterMS := int64(0)
+	var tableLease *tablelease.StorageRecord
+	if companionMode {
+		var tableLeaseErr error
+		tableLease, tableLeaseErr = s.storage.CompanionTableLease(game.ID())
+		if tableLeaseErr != nil {
+			r.Error(errors.New("Couldn't load shared-screen status: " + tableLeaseErr.Error()))
+			return
+		}
+	}
+	now := time.Now()
+	tableActive := companionMode && tableLeaseActive(tableLease, now)
+	isHostViewer := false
+	if tableActive {
+		tableStatus = "active"
+		tableRetryAfterMS = tableLease.Expires - now.UnixMilli()
+		if tableRetryAfterMS < 0 {
+			tableRetryAfterMS = 0
+		}
+		if surface, surfaceErr := r.c.Cookie(surfaceCookieName(game.ID())); surfaceErr == nil && surface == "table" {
+			if credential, credentialErr := r.c.Cookie(tableLeaseCookieName(game.ID())); credentialErr == nil {
+				isHostViewer = tableLeaseCredentialMatches(tableLease, credential)
+			}
+		}
+	}
+	canTakeOver := companionMode && tableStatus == "available" && user != nil &&
+		s.tableLeaseEligible(game.ID(), user.ID) && !game.Finished()
 	companionInfo := gin.H{
 		"CompanionMode":     companionMode,
 		"RoomCode":          gameInfo.CompanionRoomCode,
@@ -1582,6 +1629,10 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		// cookie) — the client displays host controls from this rather
 		// than re-deriving the rule and drifting.
 		"IsHost": isHostViewer,
+		"TableSession": gin.H{
+			"Status": tableStatus, "IsThisTable": isHostViewer,
+			"CanTakeOver": canTakeOver, "RetryAfterMs": tableRetryAfterMS,
+		},
 		// Absent is the list of player indices currently flagged absent by
 		// the heartbeat scan (spec §9.1). The Table view uses this to draw
 		// "Waiting for Alice (m:ss)" badges and to decide whether to show
@@ -2566,6 +2617,18 @@ func (s *Server) Start() {
 	} else {
 		s.logger.Warnln("BOARDGAME_JOIN_TICKET_SECRET is unset; join tickets will be invalidated by a dev-server restart")
 	}
+	if secret := os.Getenv("BOARDGAME_TABLE_LEASE_SECRET"); secret != "" {
+		if len(secret) < 32 {
+			s.logger.Errorln("BOARDGAME_TABLE_LEASE_SECRET must be at least 32 characters")
+			return
+		}
+		s.tableLeaseKey = joinTicketKeyFromSecret(secret)
+	} else if releaseMode {
+		s.logger.Errorln("BOARDGAME_TABLE_LEASE_SECRET is required in release mode")
+		return
+	} else {
+		s.logger.Warnln("BOARDGAME_TABLE_LEASE_SECRET is unset; Table recovery credentials will be invalidated by a dev-server restart")
+	}
 
 	if s.config.Firebase == nil {
 		s.logger.Errorln("No firebase config provided in active mode. Required for auth.")
@@ -2658,10 +2721,11 @@ func (s *Server) Start() {
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
 			protectedGameAPIGroup.POST("chat", s.chatSendHandler)
-			// Companion-mode host actions (spec §9). All require a logged-in
-			// user; further gated by isHost() / seated checks in the handlers.
+			// Companion-mode host actions (spec §9). Mutations require the
+			// active fenced Table credential; acquisition requires the owner or
+			// a seated player after the old lease expires.
 			protectedGameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
-			protectedGameAPIGroup.POST("claimHost", s.claimHostHandler)
+			protectedGameAPIGroup.POST("tableLease/acquire", s.acquireTableLeaseHandler)
 			protectedGameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
 			protectedGameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
 		}

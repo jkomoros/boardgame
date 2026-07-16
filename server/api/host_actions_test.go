@@ -7,25 +7,54 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/sirupsen/logrus"
 	"github.com/workfit/tester/assert"
 )
 
-// TestIsHostRequiresSurfaceTableCookie pins the spec §9.4 rule: a user
-// (even the original game Owner) on a phone with no surface=table
-// cookie is NOT host. This is the load-bearing gate that keeps host
-// privileges with the projector.
+type hostLeaseStorage struct {
+	StorageManager
+	extended *extendedgame.StorageRecord
+	lease    *tablelease.StorageRecord
+}
+
+func (s *hostLeaseStorage) ExtendedGame(string) (*extendedgame.StorageRecord, error) {
+	return s.extended, nil
+}
+
+func (s *hostLeaseStorage) CompanionTableLease(string) (*tablelease.StorageRecord, error) {
+	return s.lease.Clone(), nil
+}
+
+func hostLeaseTestServer(t *testing.T) (*Server, string) {
+	t.Helper()
+	credentialServer := &Server{tableLeaseKey: []byte("0123456789abcdef0123456789abcdef")}
+	deviceID, secret, digest, err := credentialServer.newTableLeaseCredential("gameXYZ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	storage := &hostLeaseStorage{
+		extended: &extendedgame.StorageRecord{CompanionRoomCode: "ROOM"},
+		lease: &tablelease.StorageRecord{
+			DeviceID: deviceID, SecretDigest: digest, Expires: time.Now().Add(time.Minute).UnixMilli(),
+		},
+	}
+	return &Server{storage: NewServerStorageManager(storage), logger: logrus.New()}, deviceID + "." + secret
+}
+
+// TestIsHostRequiresSurfaceTableCookie pins the rule that a valid capability
+// on a browser currently acting as a Hand cannot keep the Table alive.
 func TestIsHostRequiresSurfaceTableCookie(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	s := &Server{
-		logger: logrus.New(),
-	}
+	s, credential := hostLeaseTestServer(t)
 
 	// Build a gin.Context with NO surface cookie set. Even with a
 	// matching userID, isHost should reject.
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/game/x/y/hostSkipTurn", nil)
+	c.Request.AddCookie(&http.Cookie{Name: tableLeaseCookieName("gameXYZ"), Value: credential})
 
 	// (We can't easily wire getUser() without a full Server; this test
 	// covers the cookie-absent branch where the function returns false
@@ -36,24 +65,30 @@ func TestIsHostRequiresSurfaceTableCookie(t *testing.T) {
 	}
 }
 
-// TestIsHostRequiresSurfaceTableValue: cookie present but with the wrong
-// value (surface=hand) should also reject — the phone surface is not the
-// table surface.
+// TestIsHostRequiresSurfaceTableValue covers the complete authority tuple:
+// companion game + unexpired lease + exact secret + explicit Table surface.
 func TestIsHostRequiresSurfaceTableValue(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	s := &Server{
-		logger: logrus.New(),
-	}
+	s, credential := hostLeaseTestServer(t)
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	req := httptest.NewRequest(http.MethodPost, "/api/game/x/y/hostSkipTurn", nil)
 	req.AddCookie(&http.Cookie{Name: surfaceCookieName("gameXYZ"), Value: "hand"})
+	req.AddCookie(&http.Cookie{Name: tableLeaseCookieName("gameXYZ"), Value: credential})
 	c.Request = req
 
 	got := s.isHost(c, "gameXYZ", "ownerUID")
 	if got {
 		t.Error("isHost returned true with surface=hand cookie; expected false (spec §9.4)")
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/game/x/y/hostSkipTurn", nil)
+	req.AddCookie(&http.Cookie{Name: surfaceCookieName("gameXYZ"), Value: "table"})
+	req.AddCookie(&http.Cookie{Name: tableLeaseCookieName("gameXYZ"), Value: credential})
+	c.Request = req
+	if !s.isHost(c, "gameXYZ", "ignored") {
+		t.Error("isHost rejected a valid fenced Table credential")
 	}
 }
 

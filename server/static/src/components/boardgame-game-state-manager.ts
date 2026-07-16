@@ -609,6 +609,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this.fetchInfo();
       return;
     }
+    if (frame.type === 'table-session-changed' || frame.type === 'table-lease-lost') {
+      if (!this.gameRoute || frame.gameID !== this.gameRoute.id) {
+        console.warn('Ignored Table-session frame for a different game:', frame.gameID);
+        return;
+      }
+      this.fetchInfo();
+      return;
+    }
     if (frame.type === 'chat') {
       this.dispatchEvent(new CustomEvent('chat-notification', {
         composed: true,
@@ -705,6 +713,11 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   private _startHeartbeat() {
     this._stopHeartbeat();
+	// Renew a Table lease immediately. Waiting for the first interval would
+	// burn a quarter of the grace window during every connection/reload.
+	if (this._socket && this._socket.readyState === WebSocket.OPEN) {
+		this._socket.send(JSON.stringify({ type: 'heartbeat' }));
+	}
     // 10s cadence: server's absentThreshold is 30s, so one missed
     // heartbeat (e.g. brief network burp) doesn't flap the absent flag.
     this._heartbeatTimer = window.setInterval(() => {

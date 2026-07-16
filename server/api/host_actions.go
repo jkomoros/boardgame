@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 	"sync"
@@ -62,45 +61,25 @@ func hostActionAllowed(gameID, userID string) bool {
 	return true
 }
 
-// isHost returns true iff:
-//   - the request bears a surface=table cookie scoped to gameID, AND
-//   - the authenticated user matches the supplied hostUserID (which is
-//     either the original game Owner OR the CompanionHostOverride, as
-//     resolved by resolveHost).
-//
-// A returning Owner reconnecting on a phone (no surface=table cookie) is
-// NOT host until they switch to a Table surface — this is the spec §9.4
-// rule that keeps host privileges with the projector.
+// isHost is retained as a small compatibility-shaped helper for the existing
+// call sites. hostUserID is intentionally ignored: authority belongs to the
+// active fenced Table credential, never to renderer intent or user identity.
 func (s *Server) isHost(c *gin.Context, gameID, hostUserID string) bool {
-	// Surface check: must have the table-surface cookie for this game.
-	surfaceCookie, err := c.Cookie(surfaceCookieName(gameID))
-	if err != nil || surfaceCookie != "table" {
-		return false
-	}
-	// Identity check.
-	user := s.getUser(c)
-	if user == nil {
-		return false
-	}
-	return user.ID == hostUserID
+	_, ok := s.activeTableLeaseForRequest(c, gameID)
+	return ok
 }
 
-// resolveHost loads the eGame for gameID and returns (ownerOrOverride,
-// resolveErr). ownerOrOverride is the userID that has host privilege
-// right now (either the original Owner, or the CompanionHostOverride if
-// set). Returns "" + err on lookup failure.
+// resolveHost returns the active lease holder for audit/rate-limit labels.
+// It does not grant authority; isHost validates the separate secret cookie.
 func (s *Server) resolveHost(gameID string) (string, error) {
-	eGame, err := s.storage.ExtendedGame(gameID)
+	lease, err := s.storage.CompanionTableLease(gameID)
 	if err != nil {
 		return "", err
 	}
-	if eGame == nil {
-		return "", errors.New("no such game")
+	if lease == nil {
+		return "", nil
 	}
-	if eGame.CompanionHostOverride != "" {
-		return eGame.CompanionHostOverride, nil
-	}
-	return eGame.Owner, nil
+	return lease.HolderUserID, nil
 }
 
 // auditHostAction logs a structured record of a host action. V1 emits to
@@ -188,6 +167,14 @@ func (s *Server) hostSkipTurnHandler(c *gin.Context) {
 		c.JSON(http.StatusNotImplemented, gin.H{"error": "this game does not support host SkipTurn (ForceFinishTurn move not registered)"})
 		return
 	}
+	if renewal := s.refreshTableLeaseForAction(c, gameID); renewal != tableLeaseRenewed {
+		status := http.StatusConflict
+		if renewal == tableLeaseRenewRetryable {
+			status = http.StatusServiceUnavailable
+		}
+		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
+		return
+	}
 
 	if err := <-game.ProposeMove(mover, boardgame.AdminPlayerIndex); err != nil {
 		s.auditHostAction("hostSkipTurn", gameID, userID, err.Error(), false)
@@ -250,11 +237,23 @@ func (s *Server) switchToSoloHandler(c *gin.Context) {
 
 	eGame.CompanionRoomCode = ""
 	eGame.CompanionLocked = false
+	if renewal := s.refreshTableLeaseForAction(c, gameID); renewal != tableLeaseRenewed {
+		status := http.StatusConflict
+		if renewal == tableLeaseRenewRetryable {
+			status = http.StatusServiceUnavailable
+		}
+		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
+		return
+	}
 	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {
 		s.auditHostAction("switchToSolo", gameID, userID, err.Error(), false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update game: " + err.Error()})
 		return
 	}
+	if credential, cookieErr := c.Cookie(tableLeaseCookieName(gameID)); cookieErr == nil {
+		s.releaseTableLease(gameID, credential)
+	}
+	clearTableLeaseCookie(c, gameID)
 
 	// Clear the surface cookie for this game on the host's browser.
 	// Max-Age=-1 (or 0 in some browsers) triggers immediate expiration.
@@ -320,6 +319,14 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 	}
 
 	eGame.CompanionLocked = body.Locked
+	if renewal := s.refreshTableLeaseForAction(c, gameID); renewal != tableLeaseRenewed {
+		status := http.StatusConflict
+		if renewal == tableLeaseRenewRetryable {
+			status = http.StatusServiceUnavailable
+		}
+		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
+		return
+	}
 	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {
 		s.auditHostAction("setRoomLock", gameID, userID, err.Error(), false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update game: " + err.Error()})
@@ -328,98 +335,4 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 
 	s.auditHostAction("setRoomLock", gameID, userID, "locked="+strconv.FormatBool(body.Locked), true)
 	c.JSON(http.StatusOK, gin.H{"ok": true, "locked": body.Locked})
-}
-
-// claimHostHandler implements POST /api/game/:name/:id/claimHost.
-// Per spec §9.4: any seated player can claim host if the current host
-// (eGame.Owner OR existing CompanionHostOverride) has no heartbeat-fresh
-// table-surface socket. The claimer's userID is recorded as
-// CompanionHostOverride. Note: concurrent claims are read-modify-write
-// with no per-game lock, so the LAST write wins (not first-claim-wins).
-// Acceptable under the trusted-friends-in-person threat model — both
-// claimers are seated players, and the rate limit (1/sec per user)
-// bounds the churn. A CAS-style storage write would be needed for a
-// hostile-multiplayer deployment.
-func (s *Server) claimHostHandler(c *gin.Context) {
-	game := s.getGame(c)
-	if game == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
-		return
-	}
-	gameID := game.ID()
-
-	user := s.getUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "must be signed in to claim host"})
-		return
-	}
-
-	// Rate limit like other host actions.
-	if !hostActionAllowed(gameID, user.ID) {
-		c.JSON(http.StatusTooManyRequests, gin.H{"error": "rate limited — wait a moment"})
-		return
-	}
-
-	// Caller must be seated in this game.
-	playerIndex := s.effectivePlayerIndex(c)
-	if playerIndex < 0 {
-		c.JSON(http.StatusForbidden, gin.H{"error": "must be seated to claim host"})
-		return
-	}
-
-	eGame, err := s.storage.ExtendedGame(gameID)
-	if err != nil || eGame == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
-		return
-	}
-
-	// Determine the current host's userID.
-	currentHost := eGame.Owner
-	if eGame.CompanionHostOverride != "" {
-		currentHost = eGame.CompanionHostOverride
-	}
-
-	// Already host? No-op success.
-	if user.ID == currentHost {
-		c.JSON(http.StatusOK, gin.H{"ok": true, "alreadyHost": true})
-		return
-	}
-
-	// Stale-host gate. Full table-surface heartbeat tracking would let us
-	// detect "Owner is currently looking at the Table" precisely; we
-	// don't have that today (the socket struct doesn't record surface).
-	// Coarser proxy: refuse the claim unless the game's last activity
-	// (eGame.Modified, updated on every move) is older than 30s. A live
-	// game with the host actually playing is constantly moving; if it's
-	// been 30s+ with no state change, the host is probably gone.
-	//
-	// This is intentionally lenient: it doesn't stop a malicious player
-	// from claiming when the Owner is just thinking for 30s. But it
-	// stops trivial racing immediately after game-create and gives the
-	// Owner time to recover from a transient disconnect. The "trusted
-	// friends in person" threat model accepts this; spec §9.4.
-	gameRecord, err := s.storage.Game(gameID)
-	if err != nil || gameRecord == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
-		return
-	}
-	const stalenessGate = 30 * time.Second
-	timeSinceModified := time.Since(gameRecord.Modified)
-	if timeSinceModified < stalenessGate {
-		s.auditHostAction("claimHost", gameID, user.ID, "rejected: host activity within 30s window", false)
-		c.JSON(http.StatusConflict, gin.H{
-			"error":            "current host appears active; try again in a few seconds",
-			"secondsRemaining": int((stalenessGate - timeSinceModified).Seconds()) + 1,
-		})
-		return
-	}
-
-	eGame.CompanionHostOverride = user.ID
-	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {
-		s.auditHostAction("claimHost", gameID, user.ID, err.Error(), false)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write host override: " + err.Error()})
-		return
-	}
-	s.auditHostAction("claimHost", gameID, user.ID, "override claimed (was "+currentHost+")", true)
-	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

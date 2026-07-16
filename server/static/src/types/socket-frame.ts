@@ -58,6 +58,8 @@ export type SocketFrame =
   | { type: 'clock-sync'; clock: ClockSyncMessage }
   | { type: 'mode-changed'; gameID: string; newMode: 'solo' }
   | { type: 'presence-changed'; gameID: string }
+  | { type: 'table-session-changed'; gameID: string }
+  | { type: 'table-lease-lost'; gameID: string }
   | { type: 'chat'; channel: string; messageID: string }
   | { type: 'unknown'; wireType: string };
 
@@ -113,6 +115,10 @@ function decodeJsonFrame(value: unknown): SocketFrame {
     };
   }
   if (type === 'presence-changed') {
+    const data = record(frame['data'], 'Socket frame.data');
+    return { type, gameID: string(data['gameID'], 'Socket frame.data.gameID') };
+  }
+  if (type === 'table-session-changed' || type === 'table-lease-lost') {
     const data = record(frame['data'], 'Socket frame.data');
     return { type, gameID: string(data['gameID'], 'Socket frame.data.gameID') };
   }
