@@ -1198,6 +1198,14 @@ First evidence-driven primitive tranche (2026-07-16):
   companion surface. Give every bundled example a useful typed player summary,
   and prove delayed-route races, missing registration, wrong-base failures, and
   same-game companion surface changes in an isolated browser.
+- [x] Make generated registration decorators the earliest renderer contract
+  boundary: validate the constructor against the exact generated surface base
+  before touching the registry, replace browser-native duplicate errors with a
+  game-, surface-, tag-, and constructor-named diagnostic, and keep the ordinary
+  decorator common case unchanged. Prove both duplicate registration and
+  cross-surface reuse through the generated Pig contract in a real browser, and
+  document the four matching decorators as the only creator-facing registration
+  path.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

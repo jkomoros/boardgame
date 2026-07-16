@@ -81,31 +81,73 @@ export abstract class PlayerInfoRenderer extends BoardgameBasePlayerInfoRenderer
 > {}
 
 type RendererConstructor<Base extends HTMLElement> = new () => Base;
+type AbstractRendererConstructor<Base extends HTMLElement> = abstract new () => Base;
+
+function rendererConstructorName(constructor: object): string {
+  const name = (constructor as { readonly name?: unknown }).name;
+  return typeof name === 'string' && name ? name : '(anonymous renderer)';
+}
+
+function registerRenderer<Base extends HTMLElement>(
+  tagName: string,
+  surfaceName: string,
+  expectedBaseName: string,
+  expectedBase: AbstractRendererConstructor<Base>,
+  constructor: RendererConstructor<Base>,
+): void {
+  const constructorName = rendererConstructorName(constructor);
+  if (!(constructor.prototype instanceof expectedBase)) {
+    throw new Error(
+      '[pig] ' + surfaceName + ' renderer ' + constructorName +
+      ' must extend the generated ' + expectedBaseName + ' base',
+    );
+  }
+  const existing = customElements.get(tagName);
+  if (existing) {
+    throw new Error(
+      '[pig] cannot register ' + surfaceName + ' renderer ' + constructorName +
+      ' as <' + tagName + '>: that tag is already registered by ' + rendererConstructorName(existing),
+    );
+  }
+  customElements.define(tagName, constructor);
+}
 
 /** Register the ordinary game surface under its generated exact tag. */
 export function registerGameRenderer<T extends RendererConstructor<GameRenderer>>(
   constructor: T,
 ): void {
-  customElements.define('boardgame-render-game-pig', constructor);
+  registerRenderer(
+    'boardgame-render-game-pig', 'game', 'GameRenderer', GameRenderer, constructor,
+  );
 }
 
 /** Register the companion shared-screen surface under its generated exact tag. */
 export function registerTableRenderer<T extends RendererConstructor<TableRenderer>>(
   constructor: T,
 ): void {
-  customElements.define('boardgame-render-game-pig-table', constructor);
+  registerRenderer(
+    'boardgame-render-game-pig-table', 'table', 'TableRenderer', TableRenderer, constructor,
+  );
 }
 
 /** Register the companion private-player surface under its generated exact tag. */
 export function registerHandRenderer<T extends RendererConstructor<HandRenderer>>(
   constructor: T,
 ): void {
-  customElements.define('boardgame-render-game-pig-hand', constructor);
+  registerRenderer(
+    'boardgame-render-game-pig-hand', 'hand', 'HandRenderer', HandRenderer, constructor,
+  );
 }
 
 /** Register the player-info surface under its generated exact tag. */
 export function registerPlayerInfoRenderer<T extends RendererConstructor<PlayerInfoRenderer>>(
   constructor: T,
 ): void {
-  customElements.define('boardgame-render-player-info-pig', constructor);
+  registerRenderer(
+    'boardgame-render-player-info-pig',
+    'player info',
+    'PlayerInfoRenderer',
+    PlayerInfoRenderer,
+    constructor,
+  );
 }

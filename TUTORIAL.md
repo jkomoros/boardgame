@@ -2229,6 +2229,15 @@ export class BoardgameRenderGameMyGame extends GameRenderer {
 }
 ```
 
+The generated registration decorators are also runtime contract boundaries.
+They reject a renderer that extends the wrong generated surface base and report
+duplicate exact tags immediately, with the game name, renderer class, tag, and
+expected base in the error. Use the matching generated decorator for each
+surface (`registerGameRenderer`, `registerTableRenderer`,
+`registerHandRenderer`, or `registerPlayerInfoRenderer`) instead of calling
+`customElements.define()` yourself; this keeps both TypeScript and runtime
+diagnostics precise.
+
 **Enum types** are generated as string literal unions. If your game or any imported package (like `playingcards`) defines enums, the corresponding fields will use the union type instead of `string`. For example, if your enum has values "Red" and "Blue", the generated type will be `"Red" | "Blue"`.
 
 **Component values** are generated as interfaces matching the fields on your component value structs. Stack fields in your state are typed as `ExpandedStack<YourComponentValues>`, giving you autocomplete on `component.Values.FieldName`.

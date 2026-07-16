@@ -2827,6 +2827,46 @@ test('player renderer load failures are visible and reject the wrong base', asyn
   await expect(alert).toContainText('boardgame-util check-client');
 });
 
+test('generated registration helpers fail early with game-specific diagnostics', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    const contract = await import('/game-src/pig/_game_renderer.ts');
+    class FirstGameRenderer extends contract.GameRenderer {}
+    class SecondGameRenderer extends contract.GameRenderer {}
+    class GameRendererUsedAsTable extends contract.GameRenderer {}
+
+    contract.registerGameRenderer(FirstGameRenderer);
+    let duplicateMessage = '';
+    try {
+      contract.registerGameRenderer(SecondGameRenderer);
+    } catch (error) {
+      duplicateMessage = error instanceof Error ? error.message : String(error);
+    }
+
+    let wrongBaseMessage = '';
+    try {
+      contract.registerTableRenderer(GameRendererUsedAsTable as never);
+    } catch (error) {
+      wrongBaseMessage = error instanceof Error ? error.message : String(error);
+    }
+
+    return {
+      duplicateMessage,
+      wrongBaseMessage,
+      registeredConstructor: customElements.get('boardgame-render-game-pig')?.name,
+    };
+  });
+
+  expect(result).toEqual({
+    duplicateMessage:
+      '[pig] cannot register game renderer SecondGameRenderer as <boardgame-render-game-pig>: ' +
+      'that tag is already registered by FirstGameRenderer',
+    wrongBaseMessage:
+      '[pig] table renderer GameRendererUsedAsTable must extend the generated TableRenderer base',
+    registeredConstructor: 'FirstGameRenderer',
+  });
+});
+
 test('dynamic host rejects missing registrations and renderers that bypass the generated base', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {
