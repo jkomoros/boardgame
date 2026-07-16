@@ -28,6 +28,23 @@ export {
   StaleMoveInputSchemaError,
 } from './moves/input.js';
 export type {
+  BoundMoveAction,
+  MoveActionAvailability,
+  MoveActionBuilder,
+  MoveActionFor,
+  MoveActionPrecondition,
+  MoveActionPreview,
+  MoveActionReason,
+  MoveActionReasonCode,
+  MoveActionSubmission,
+  MoveActionTelemetryEvent,
+  MoveProposalResult,
+} from './moves/action.js';
+export { bindMoveAction } from './moves/action-binding.js';
+export type { MoveActionBindingOptions } from './moves/action-binding.js';
+export type {
+  MoveInputErrorCode,
+  MoveInputIssue,
   MoveInputSchema,
   MoveInputSchemaField,
   MoveInputSchemaMove,
@@ -40,3 +57,4 @@ export type {
 // methods inherited from today's legacy elements.
 import './components/boardgame-die.js';
 import './components/boardgame-fading-text.js';
+import './components/boardgame-action-button.js';

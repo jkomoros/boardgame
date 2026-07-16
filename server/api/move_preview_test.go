@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -54,6 +55,85 @@ func TestLegalMoveFormPreviewMatchesMoveLegalAndDoesNotApply(t *testing.T) {
 	// (2) side-effect-free: previewing must not advance the game version.
 	if got := game.Version(); got != versionBefore {
 		t.Errorf("preview advanced the game version %d -> %d; the preview path must never apply a move", versionBefore, got)
+	}
+}
+
+func TestDoMakeMoveReturnsStructuredStaleSnapshot(t *testing.T) {
+	game, _ := newLegalLedgerGame(t)
+	move := game.MoveByName("Opted In")
+	if move == nil {
+		t.Fatal("could not find the Opted In move")
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/game/test/id/move", nil)
+	s := &Server{logger: logrus.New()}
+	r := s.newRenderer(c)
+	versionBefore := game.Version()
+	staleVersion := game.Version() - 1
+	s.doMakeMove(r, game, boardgame.AdminPlayerIndex, move, &staleVersion)
+	if game.Version() != versionBefore {
+		t.Fatalf("stale proposal mutated game version from %d to %d", versionBefore, game.Version())
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["Code"] != "STALE_SNAPSHOT" {
+		t.Fatalf("Code = %v; want STALE_SNAPSHOT; response: %s", response["Code"], w.Body.String())
+	}
+	if int(response["ExpectedVersion"].(float64)) != staleVersion ||
+		int(response["ActualVersion"].(float64)) != game.Version() {
+		t.Fatalf("version metadata = %v; game version = %d", response, game.Version())
+	}
+}
+
+func TestMovePreviewExpectedVersionIsStructuredAndSideEffectFree(t *testing.T) {
+	game, _ := newLegalLedgerGame(t)
+	version := game.Version()
+	request := func(expected string) map[string]any {
+		t.Helper()
+		body := url.Values{
+			"MoveType": {"Opted In"}, "ExpectedVersion": {expected}, "TargetPlayerIndex": {"0"},
+		}.Encode()
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/game/test/id/movePreview", strings.NewReader(body))
+		c.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		s := &Server{logger: logrus.New()}
+		s.setGame(c, game)
+		s.setViewingAsPlayer(c, boardgame.AdminPlayerIndex)
+		s.movePreviewHandler(c)
+		var response map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Fatalf("decode response %q: %v", w.Body.String(), err)
+		}
+		return response
+	}
+
+	matching := request(strconv.Itoa(version))
+	if matching["Status"] != "Success" || matching["Form"] == nil {
+		t.Fatalf("matching preview = %v; want Success with Form", matching)
+	}
+	if game.Version() != version {
+		t.Fatalf("matching preview mutated version from %d to %d", version, game.Version())
+	}
+
+	staleVersion := version + 1
+	stale := request(strconv.Itoa(staleVersion))
+	if stale["Code"] != "STALE_SNAPSHOT" || stale["Form"] != nil {
+		t.Fatalf("stale preview = %v; want structured stale without Form", stale)
+	}
+	if int(stale["ExpectedVersion"].(float64)) != staleVersion ||
+		int(stale["ActualVersion"].(float64)) != version {
+		t.Fatalf("stale metadata = %v; want %d -> %d", stale, staleVersion, version)
+	}
+	for _, invalid := range []string{"-1", "not-a-version"} {
+		response := request(invalid)
+		if response["Status"] != "Failure" || response["Form"] != nil {
+			t.Fatalf("ExpectedVersion %q response = %v; want Failure without Form", invalid, response)
+		}
 	}
 }
 

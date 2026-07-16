@@ -52,6 +52,19 @@ test('rejects non-object roots with structured diagnostics', () => {
   }
 });
 
+test('reserved proposal protocol fields are rejected as context-owned', () => {
+  for (const name of ['MoveType', 'admin', 'player', 'ExpectedVersion']) {
+    const reservedSchema = [{
+      name: 'Reserved',
+      fields: [{ name, wireType: 'string', disposition: 'required', codec: 'string' }],
+    }] as const satisfies MoveInputSchema;
+    const result = validateCreatorMoveInput(reservedSchema, 'Reserved', { [name]: 'value' });
+    assert.equal(result.valid, false);
+    assert.equal(result.errors[0]?.code, 'context-owned-field');
+    assert.match(result.errors[0]?.message ?? '', /reserved/);
+  }
+});
+
 test('fingerprints fail closed for mismatch and absence', () => {
   assert.doesNotThrow(() => assertMoveInputSchemaFingerprint('same', 'same'));
   assert.throws(() => assertMoveInputSchemaFingerprint('client', 'server'), StaleMoveInputSchemaError);

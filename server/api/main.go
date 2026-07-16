@@ -1,6 +1,7 @@
 package api
 
 import (
+	stderrors "errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -318,6 +319,10 @@ func (s *Server) newRenderer(c *gin.Context) *renderer {
 }
 
 func (r *renderer) Error(f *errors.Friendly) {
+	r.errorWithFields(f, nil)
+}
+
+func (r *renderer) errorWithFields(f *errors.Friendly, extra gin.H) {
 	if r.rendered {
 		r.s.logger.Errorln("Error called on already-rendered renderer")
 	}
@@ -328,11 +333,15 @@ func (r *renderer) Error(f *errors.Friendly) {
 
 	r.writeCookie()
 
-	r.c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"Status":        "Failure",
 		"Error":         f.Error(),
 		"FriendlyError": f.FriendlyError(),
-	})
+	}
+	for key, value := range extra {
+		response[key] = value
+	}
+	r.c.JSON(http.StatusOK, response)
 
 	fields := logrus.Fields{}
 
@@ -1584,6 +1593,15 @@ func (s *Server) moveHandler(c *gin.Context) {
 	}
 
 	proposer := s.effectivePlayerIndex(c)
+	var expectedVersion *int
+	if raw, provided := c.GetPostForm("ExpectedVersion"); provided {
+		parsed, parseErr := strconv.Atoi(raw)
+		if parseErr != nil || parsed < 0 {
+			r.Error(errors.New("ExpectedVersion must be a non-negative integer"))
+			return
+		}
+		expectedVersion = &parsed
+	}
 
 	move, err := s.getMoveFromForm(c, game)
 
@@ -1601,13 +1619,28 @@ func (s *Server) moveHandler(c *gin.Context) {
 		return
 	}
 
-	s.doMakeMove(r, game, proposer, move)
+	s.doMakeMove(r, game, proposer, move, expectedVersion)
 
 }
 
-func (s *Server) doMakeMove(r *renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) {
+func (s *Server) doMakeMove(r *renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move, expectedVersion *int) {
 
-	if err := <-game.ProposeMove(move, proposer); err != nil {
+	var proposal <-chan error
+	if expectedVersion == nil {
+		proposal = game.ProposeMove(move, proposer)
+	} else {
+		proposal = game.ProposeMoveAtVersion(move, proposer, *expectedVersion)
+	}
+	if err := <-proposal; err != nil {
+		var stale *boardgame.StaleVersionError
+		if stderrors.As(err, &stale) {
+			r.errorWithFields(errors.New(err.Error()).WithFriendly("The game changed; try the move again."), gin.H{
+				"Code":            "STALE_SNAPSHOT",
+				"ExpectedVersion": stale.Expected,
+				"ActualVersion":   stale.Actual,
+			})
+			return
+		}
 
 		if f, ok := err.(*errors.Friendly); ok {
 			r.Error(f)
@@ -1654,6 +1687,21 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLegalPreviewBodyBytes)
 
 	proposer := s.effectivePlayerIndex(c)
+	expectedVersion := game.Version()
+	if raw, provided := c.GetPostForm("ExpectedVersion"); provided {
+		parsed, parseErr := strconv.Atoi(raw)
+		if parseErr != nil || parsed < 0 {
+			r.Error(errors.New("ExpectedVersion must be a non-negative integer"))
+			return
+		}
+		expectedVersion = parsed
+	}
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale move preview").WithFriendly("The game changed; check the move again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
+		return
+	}
 
 	move, err := s.getMoveFromForm(c, game)
 
@@ -1666,7 +1714,18 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 		return
 	}
 
-	form := s.legalMoveForm(game, game.CurrentState(), move, proposer)
+	state := game.State(expectedVersion)
+	if state == nil {
+		r.Error(errors.New("Could not load the requested preview state"))
+		return
+	}
+	form := s.legalMoveForm(game, state, move, proposer)
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale move preview").WithFriendly("The game changed; check the move again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
+		return
+	}
 
 	r.Success(gin.H{
 		"Form": form,

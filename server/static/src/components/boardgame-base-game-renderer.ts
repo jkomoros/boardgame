@@ -6,10 +6,21 @@ import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
 import {
-  creatorMoveInputFromLegacyStrings,
   serializeCreatorMoveInputForServer,
+  validateCreatorMoveInput,
   type MoveInputSchema,
 } from '../moves/input.js';
+import {
+  MoveSubmissionGate,
+  cancelMoveActionPreview,
+  createMoveAction,
+  moveSnapshotKey,
+  type MoveActionFor,
+  type MoveActionService,
+  type MovePreviewTransport,
+  type MoveTransport,
+} from '../moves/action.js';
+import { LegacyProposalAdapter } from '../moves/legacy-proposal-adapter.js';
 
 type MoveInputFor<
   K extends string,
@@ -34,6 +45,72 @@ export class BoardgameBaseGameRenderer<
   serverMoveInputSchemaFingerprint: string | null = null;
   @property({ type: Object })
   state: S | null = null;
+
+  @property({ type: String, attribute: false })
+  gameName = '';
+
+  @property({ type: String, attribute: false })
+  gameId = '';
+
+  @property({ type: Number, attribute: false })
+  gameVersion = 0;
+
+  @property({ type: Number, attribute: false })
+  snapshotEpoch = 0;
+
+  @property({ type: Number, attribute: false })
+  proposingAsPlayer = 0;
+
+  @property({ type: Boolean, attribute: false })
+  proposingAsAdmin = false;
+
+  @property({ attribute: false })
+  moveTransport: MoveTransport | null = null;
+
+  @property({ attribute: false })
+  movePreviewTransport: MovePreviewTransport | null = null;
+
+  @property({ attribute: false })
+  moveSubmissionGate: MoveSubmissionGate = new MoveSubmissionGate();
+
+  readonly #moveActionCache = new Map<string, import('../moves/action.js').BoundMoveAction<string, object>>();
+  readonly #legacyProposalAdapter = new LegacyProposalAdapter(
+    this,
+    () => this.moveInputSchema,
+    (moveName, nativeArguments) => this._proposeMoveNative(moveName, nativeArguments),
+  );
+  readonly #moveActionService: MoveActionService = {
+    currentClientSchemaFingerprint: () => this.moveInputSchemaFingerprint ?? '',
+    currentServerSchemaFingerprint: () => this.serverMoveInputSchemaFingerprint,
+    currentTransport: () => this.moveTransport,
+    currentPreviewTransport: () => this.movePreviewTransport,
+    currentGate: () => this.moveSubmissionGate,
+    nextRequestID: () => `${this.gameId || 'game'}-v${this.gameVersion}-move-${++this.#moveRequestSequence}`,
+    validate: (moveName, input) => this.moveInputSchema
+      ? validateCreatorMoveInput(this.moveInputSchema, moveName, input).errors
+      : [],
+    serialize: (moveName, input) => {
+      if (!this.moveInputSchema || !this.moveInputSchemaFingerprint) {
+        throw new Error('Renderer has no generated move-input contract; extend the generated GameRenderer base');
+      }
+      return serializeCreatorMoveInputForServer(
+        this.moveInputSchema,
+        this.moveInputSchemaFingerprint,
+        this.serverMoveInputSchemaFingerprint,
+        moveName,
+        input,
+      );
+    },
+    changed: () => this.requestUpdate(),
+    telemetry: event => this.dispatchEvent(new CustomEvent('move-action-result', {
+      bubbles: true,
+      composed: true,
+      detail: event,
+    })),
+    actionCache: this.#moveActionCache,
+  };
+  #lastMoveSnapshotKey = '';
+  #moveRequestSequence = 0;
 
   @property({ type: Object })
   chest: GameChest<C> | null = null;
@@ -185,6 +262,28 @@ export class BoardgameBaseGameRenderer<
     this._proposeMoveNative(moveName, args[0] ?? {});
   }
 
+  /**
+   * Creates the canonical typed action for creator-authored controls. Zero-input
+   * moves can propose immediately; required-input moves expose only with(args)
+   * until their exact generated native input is bound.
+   */
+  move<K extends MN & string>(name: K): MoveActionFor<K, MoveInputFor<K, MA>> {
+    const snapshotKey = this._moveSnapshotKey();
+    return createMoveAction<K, MN, MA>(name, this.#moveActionService, {
+      snapshotKey,
+      currentSnapshotKey: () => this._moveSnapshotKey(),
+      snapshotVersion: this.gameVersion,
+      currentSnapshotVersion: () => this.gameVersion,
+      viewingAsPlayer: this.viewingAsPlayer,
+      proposingAsPlayer: this.proposingAsPlayer,
+      proposingAsAdmin: this.proposingAsAdmin,
+      currentLegality: () => this.moveLegality[name],
+      currentAnimating: () => this.animating,
+      baselineLegalityApplies: this.proposingAsPlayer === this.viewingAsPlayer,
+      actionCacheKey: snapshotKey,
+    });
+  }
+
   private _proposeMoveNative(moveName: string, nativeArgs: unknown): void {
     // Convert all values to strings for the server (form-encoded submission).
     // Booleans must be "1"/"0" (not "true"/"false") because the server uses
@@ -228,23 +327,40 @@ export class BoardgameBaseGameRenderer<
     return false;
   }
 
-  private _boundHandleButtonTapped?: (e: Event) => void;
-
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-    this._boundHandleButtonTapped = (e: Event) => this._handleButtonTapped(e);
-
-    // CHANGED: tap → click (Polymer event → standard event)
-    this.addEventListener('click', this._boundHandleButtonTapped);
-    this.addEventListener('component-tapped', this._boundHandleButtonTapped);
+  override connectedCallback() {
+    super.connectedCallback();
+    this.#legacyProposalAdapter.connect();
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
-    if (this._boundHandleButtonTapped) {
-      this.removeEventListener('click', this._boundHandleButtonTapped);
-      this.removeEventListener('component-tapped', this._boundHandleButtonTapped);
+    for (const action of this.#moveActionCache.values()) cancelMoveActionPreview(action);
+    this.#moveActionCache.clear();
+    this.#lastMoveSnapshotKey = '';
+    this.#legacyProposalAdapter.disconnect();
+  }
+
+  protected override willUpdate(changedProperties: Map<PropertyKey, unknown>): void {
+    super.willUpdate(changedProperties);
+    const snapshotKey = this._moveSnapshotKey();
+    if (snapshotKey !== this.#lastMoveSnapshotKey) {
+      for (const action of this.#moveActionCache.values()) cancelMoveActionPreview(action);
+      this.#moveActionCache.clear();
+      this.#lastMoveSnapshotKey = snapshotKey;
     }
+  }
+
+  private _moveSnapshotKey(): string {
+    return moveSnapshotKey({
+      gameName: this.gameName,
+      gameID: this.gameId,
+      epoch: this.snapshotEpoch,
+      version: this.gameVersion,
+      viewingAsPlayer: this.viewingAsPlayer,
+      proposingAsPlayer: this.proposingAsPlayer,
+      proposingAsAdmin: this.proposingAsAdmin,
+      serverSchemaFingerprint: this.serverMoveInputSchemaFingerprint,
+    });
   }
 
   // animationLength is consulted when applying an animation to configure the
@@ -263,61 +379,6 @@ export class BoardgameBaseGameRenderer<
   // 0-1 are clamped. See also animationLength.
   animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
     return 0;
-  }
-
-  private _handleButtonTapped(e: Event): void {
-    const composedPath = e.composedPath();
-    let ele: HTMLElement | null = null;
-
-    for (const tempEle of composedPath) {
-      // Runtime type check (no unsafe casts)
-      if (!(tempEle instanceof Element)) continue;
-      if (!tempEle.hasAttribute) continue;
-
-      // Only accept string-valued proposeMove properties: the renderer
-      // element itself (and anything extending BoardgameBaseGameRenderer)
-      // has a proposeMove METHOD, which must not be mistaken for the
-      // legacy string-property/attribute convention.
-      const rawProposeMove = (tempEle as Element & { proposeMove?: unknown }).proposeMove;
-      const proposeMove = (typeof rawProposeMove === 'string' ? rawProposeMove : null) || tempEle.getAttribute('propose-move');
-      if (proposeMove) {
-        // found it!
-        ele = tempEle as HTMLElement;
-        break;
-      }
-    }
-
-    if (!ele) {
-      return;
-    }
-
-    if (ele.hasAttribute('boardgame-component') && e.type === 'click') {
-      // Cards we'll fire on the component-tapped, not the click.
-      return;
-    }
-
-    const rawMoveName = (ele as HTMLElement & { proposeMove?: unknown }).proposeMove;
-    const moveName = (typeof rawMoveName === 'string' ? rawMoveName : null) || ele.getAttribute('propose-move');
-    if (!moveName) return;
-
-    const data = ele.dataset;
-    const args: Record<string, string> = {};
-
-    for (const key in data) {
-      if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
-      if (!key.startsWith('arg')) continue;
-      let effectiveKey = key.replace('arg', '');
-      // Handle the case where the attribute was literally just data-arg
-      if (!effectiveKey) continue;
-      // The first character is now upperCase, which is desired as per Move field convention
-      const value = data[key];
-      if (value !== undefined) args[effectiveKey] = value;
-    }
-
-    const nativeArgs = this.moveInputSchema
-      ? creatorMoveInputFromLegacyStrings(this.moveInputSchema, moveName, args)
-      : args;
-    this._proposeMoveNative(moveName, nativeArgs);
   }
 
   override render() {

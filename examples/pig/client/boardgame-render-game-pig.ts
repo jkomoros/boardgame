@@ -1,4 +1,3 @@
-import '@material/web/button/filled-button.js';
 import { html, css } from '../../src/client.js';
 import { GameRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
@@ -27,16 +26,13 @@ class BoardgameRenderGamePig extends GameRenderer {
     return html`
       <div class="container">
         <boardgame-die
-          propose-move="${MoveNames.RollDice}"
           .item="${this.state?.Game?.Die?.Components?.[0]}"
-          ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.RollDice)}">
+          .action="${this.move(MoveNames.RollDice)}">
         </boardgame-die>
         <div class="flex"></div>
-        <md-filled-button
-          propose-move="${MoveNames.DoneTurn}"
-          ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.DoneTurn)}">
+        <boardgame-action-button .action="${this.move(MoveNames.DoneTurn)}">
           Done
-        </md-filled-button>
+        </boardgame-action-button>
       </div>
       <boardgame-fading-text
         .trigger="${this.isCurrentPlayer}"

@@ -49,8 +49,15 @@ import {
   updateViewState,
   setRequestedPlayer,
   setAutoCurrentPlayer,
-  fetchGameInfo
+  fetchGameInfo,
+  submitMove,
 } from '../actions/game.js';
+import {
+  MoveSubmissionGate,
+  type MovePreviewTransport,
+  type MoveTransport,
+} from '../moves/action.js';
+import { movePreview } from '../api.js';
 
 import type { StateBundle } from '../types/game-state';
 import type { MoveForm } from '../types/api';
@@ -217,7 +224,69 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _companionInfo: import('../types/store').CompanionInfo | null = null;
 
 	@property({ type: String, attribute: false })
-	_moveInputSchemaFingerprint: string | null = null;
+  _moveInputSchemaFingerprint: string | null = null;
+
+  @property({ type: Number, attribute: false })
+  _moveSnapshotEpoch = 0;
+
+  @property({ type: Number, attribute: false })
+  _proposingAsPlayer = 0;
+
+  private readonly _moveSubmissionGate = new MoveSubmissionGate();
+  private readonly _moveTransport: MoveTransport = {
+    submit: async request => {
+      const route = this._gameRoute;
+      if (!route) {
+        return { kind: 'network-failure', error: 'The game route is unavailable' };
+      }
+      return submitMove(route, {
+        ...request.arguments,
+        MoveType: request.name,
+        admin: request.proposingAsAdmin ? '1' : '0',
+        player: String(request.proposingAsPlayer),
+        ExpectedVersion: String(request.snapshotVersion),
+      })(store.dispatch);
+    },
+  };
+  private readonly _movePreviewTransport: MovePreviewTransport = {
+    preview: async request => {
+      const route = this._gameRoute;
+      if (!route) {
+        return { kind: 'failure', error: 'The game route is unavailable', retryable: false };
+      }
+      const response = await movePreview(
+        route.name,
+        route.id,
+        request.name,
+        { ...request.arguments, ExpectedVersion: String(request.snapshotVersion) },
+        { player: request.proposingAsPlayer, admin: request.proposingAsAdmin ? 1 : 0 },
+        request.signal,
+      );
+      if (response.error) {
+        if (response.code === 'STALE_SNAPSHOT') {
+          return {
+            kind: 'stale-snapshot',
+            expectedVersion: response.expectedVersion ?? request.snapshotVersion,
+            actualVersion: response.actualVersion ?? this._lastFetchedVersion,
+          };
+        }
+        return {
+          kind: 'failure',
+          error: response.error,
+          friendlyError: response.friendlyError,
+          retryable: response.status === 0,
+        };
+      }
+      const form = response.data?.Form;
+      if (!form) return { kind: 'failure', error: 'Move preview returned no form', retryable: true };
+      return {
+        kind: 'success',
+        legal: form.LegalForPlayer ?? false,
+        ...(form.LegalForPlayerError ? { error: form.LegalForPlayerError } : {}),
+        ...(form.Preconditions ? { preconditions: form.Preconditions } : {}),
+      };
+    },
+  };
 
   @property({ type: String, attribute: false })
   _pageExtra = '';
@@ -348,6 +417,13 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           @renderer-changed=${this._handleRendererChanged}
           .gameName=${this._gameRoute ? this._gameRoute.name : ''}
           .gameId=${this._gameRoute ? this._gameRoute.id : ''}
+          .gameVersion=${this.game ? this.game.Version : 0}
+          .snapshotEpoch=${this._moveSnapshotEpoch}
+          .proposingAsPlayer=${this._proposingAsPlayer}
+          .proposingAsAdmin=${this._admin}
+          .moveTransport=${this._moveTransport}
+          .movePreviewTransport=${this._movePreviewTransport}
+          .moveSubmissionGate=${this._moveSubmissionGate}
           .companionInfo=${this._companionInfo}
           .isOwner=${this._isOwner}
           .gameFinished=${this.game ? this.game.Finished : false}
@@ -378,7 +454,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         .currentState=${this._currentState}
         .animating=${this._animating}
         @requested-player-changed=${this._handleRequestedPlayerChanged}
-        @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}>
+        @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}
+        @move-as-player-changed=${this._handleMoveAsPlayerChanged}>
       </boardgame-admin-controls>
       ${companionSurface ? '' : html`
       <boardgame-chat-panel
@@ -414,6 +491,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // Sync view state from Redux
     this.game = selectGame(state);
     this.viewingAsPlayer = selectViewingAsPlayer(state);
+    this._admin = selectAdmin(state);
+    if (!this._admin || this._adminEle?.makeMovesAsViewingAsPlayer !== false) {
+      this._proposingAsPlayer = this.viewingAsPlayer;
+    }
     this.requestedPlayer = selectRequestedPlayer(state);
     this.autoCurrentPlayer = selectAutoCurrentPlayer(state);
     this.moveForms = selectMoveForms(state);
@@ -435,7 +516,6 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       this._companionSurface = surfaceGameId ? surfaceForGame(surfaceGameId) : null;
     }
     this._loggedIn = selectLoggedIn(state);
-    this._admin = selectAdmin(state);
     this._page = selectPage(state);
     this._lastFetchedVersion = selectLastFetchedVersion(state);
     this._playerColors = selectPlayerColors(state);
@@ -461,6 +541,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleAutoCurrentPlayerChanged(e: CustomEvent) {
     store.dispatch(setAutoCurrentPlayer(e.detail.value));
+  }
+
+  private _handleMoveAsPlayerChanged(e: CustomEvent) {
+    this._proposingAsPlayer = e.detail.value;
   }
 
   private _handleSocketActiveChanged(e: CustomEvent) {
@@ -584,8 +668,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.game = null;
     this.moveForms = null;
     this.viewingAsPlayer = 0;
-		this._moveInputSchemaFingerprint = null;
+    this._moveInputSchemaFingerprint = null;
     this._animationContext = null;
+    this._moveSnapshotEpoch += 1;
     this._firstStateBundle = true;
   }
 
@@ -594,6 +679,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // render-game wrapper applies it to the shared animator before assigning
     // the new state to the game renderer.
     this._animationContext = bundle.animationContext ?? null;
+    this._moveSnapshotEpoch += 1;
     store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
 
     // Update view state in Redux (replaces direct property assignment)

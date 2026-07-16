@@ -116,6 +116,9 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
   @property({ type: Number })
   moveAsPlayer = 0;
 
+  @property({ type: Number })
+  gameVersion = 0;
+
   // animating mirrors boardgame-render-game's isAnimating, threaded down
   // through boardgame-admin-controls. While true, submit buttons are
   // disabled unless noAnimationDisable opts out (#721) — proposing a move
@@ -283,6 +286,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
               <input type="hidden" name="MoveType" value="${item.Name}">
               <input type="hidden" name="admin" value="${this.boolToInt(this.admin)}">
               <input type="hidden" name="player" value="${this.moveAsPlayer}">
+              <input type="hidden" name="ExpectedVersion" value="${this.gameVersion}">
               ${repeat(item.Fields || [], (field) => field.Name, (field) => html`
                 <strong>${field.Name}</strong>
                 ${when(

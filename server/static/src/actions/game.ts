@@ -4,6 +4,7 @@ import { store } from '../store.js';
 import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/store';
 import type { ApiResponse } from '../api';
 import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
+import type { MoveTransportResult } from '../moves/action.js';
 import type {
   UpdateGameRouteAction,
   UpdateGameStaticInfoAction,
@@ -351,23 +352,70 @@ export const joinGame = (gameRoute: GameRoute) => async (dispatch: Dispatch): Pr
 /**
  * Submit a move to the game
  */
+const moveSubmissionFlights = new Map<string, Promise<MoveTransportResult>>();
+const consumedMoveVersions = new Map<string, string>();
+
 export const submitMove = (
   gameRoute: GameRoute,
   moveData: Record<string, string>
-) => async (dispatch: Dispatch): Promise<void> => {
-  dispatch({ type: SUBMIT_MOVE_REQUEST });
-
-  const url = buildGameUrl(gameRoute.name, gameRoute.id, 'move');
-  const response = await apiPost(url, moveData, 'application/x-www-form-urlencoded');
-
-  if (response.error) {
+) => async (dispatch: Dispatch): Promise<MoveTransportResult> => {
+  const routeKey = `${gameRoute.name}/${gameRoute.id}`;
+  const expectedVersion = moveData['ExpectedVersion'];
+  if (moveSubmissionFlights.has(routeKey)) {
+    const result = {
+      kind: 'server-rejection' as const,
+      code: 'CLIENT_SUBMISSION_BUSY',
+      error: 'Another move submission is already in flight',
+      friendlyError: 'Wait for the current move to finish.',
+    };
     dispatch({
       type: SUBMIT_MOVE_FAILURE,
-      error: response.error,
-      friendlyError: response.friendlyError
+      error: result.error,
+      friendlyError: result.friendlyError,
     });
-  } else {
+    return result;
+  }
+  if (expectedVersion !== undefined && consumedMoveVersions.get(routeKey) === expectedVersion) {
+    const result = {
+      kind: 'server-rejection' as const,
+      code: 'CLIENT_SNAPSHOT_CONSUMED',
+      error: `Game version ${expectedVersion} already submitted a move`,
+      friendlyError: 'Waiting for the accepted move to update the game.',
+    };
+    dispatch({ type: SUBMIT_MOVE_FAILURE, error: result.error, friendlyError: result.friendlyError });
+    return result;
+  }
+
+  const operation = (async (): Promise<MoveTransportResult> => {
+    dispatch({ type: SUBMIT_MOVE_REQUEST });
+    const url = buildGameUrl(gameRoute.name, gameRoute.id, 'move');
+    const response = await apiPost(url, moveData, 'application/x-www-form-urlencoded');
+    if (response.error) {
+      dispatch({
+        type: SUBMIT_MOVE_FAILURE,
+        error: response.error,
+        friendlyError: response.friendlyError,
+      });
+      return response.status === 0
+        ? { kind: 'network-failure', error: response.error, friendlyError: response.friendlyError }
+        : {
+          kind: 'server-rejection',
+          error: response.error,
+          friendlyError: response.friendlyError,
+          code: response.code,
+          expectedVersion: response.expectedVersion,
+          actualVersion: response.actualVersion,
+        };
+    }
+    if (expectedVersion !== undefined) consumedMoveVersions.set(routeKey, expectedVersion);
     dispatch({ type: SUBMIT_MOVE_SUCCESS });
+    return { kind: 'success' };
+  })();
+  moveSubmissionFlights.set(routeKey, operation);
+  try {
+    return await operation;
+  } finally {
+    if (moveSubmissionFlights.get(routeKey) === operation) moveSubmissionFlights.delete(routeKey);
   }
 };
 

@@ -1532,13 +1532,69 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 ##### boardgame-base-game-renderer
 
-`boardgame-base-game-renderer` is a superclass that it generally makes sense for your renderer to subclass. It provides two main capabilities: move proposal via markup, and server-authoritative move legality.
+Game renderers should extend the generated `GameRenderer` in
+`client/_game_renderer.ts`. It binds `boardgame-base-game-renderer` to the
+generated state, component, move-name, native move-input, schema-fingerprint,
+and renderer-tag contracts for your game.
 
-**Move Proposal:** If an interface element is tapped that has a `propose-move="MOVENAME"`, then it will automatically dispatch a move to the engine to propose that move. You can also define keys/values to be packaged up with the move as attributes in the format `data-arg-my-arg$="val"`, which will result in the ProposeMove event having an arguments bundle of `{MyArg:"val"}`.
+**Move Proposal:** Build controls from typed actions. A zero-input move is the
+one-liner `this.move(MoveNames.RollDice)`. A move with creator-supplied fields
+uses `this.move(MoveNames.PlaceToken).with({ Slot: 3 })`; required-input actions
+do not expose `propose()` until the exact generated fields are bound.
+
+Prefer a framework control's `.action` property because it owns activation,
+disabled/pending state, accessible explanations, and error presentation:
+
+```typescript
+html`<boardgame-action-button .action=${this.move(MoveNames.DoneTurn)}>
+  Done
+</boardgame-action-button>`
+
+html`<boardgame-die
+  .item=${this.state?.Game.Die.Components[0]}
+  .action=${this.move(MoveNames.RollDice)}>
+</boardgame-die>`
+```
+
+For a custom native control, prefer the element-part binding adapter. It owns
+disabled, pending, title, and ARIA state while connected and restores the
+element's original state when detached. It is proven with Material Web buttons:
+
+```typescript
+html`<md-filled-button ${bindMoveAction(this.move(MoveNames.RollDice))}>
+  Roll
+</md-filled-button>`
+```
+
+Pass `{ disabled: true }` as the adapter's second argument to combine a local
+application constraint with the action state. Since an arbitrary element-part
+cannot create a visible explanation next to itself, prefer
+`boardgame-action-button` whenever the framework control fits; it includes a
+live visible status. The adapter provides `title` and ARIA explanation only.
+Both controls keep transient preview failures activatable: activating again
+retries the legality check before proposing.
+
+For a wholly custom interaction, call `activate()` from the user's gesture and
+mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`
+retries a transient exact-preview failure before proposing. For headless
+one-shot code, `propose()` and `canPropose` deliberately mean “submit only if
+everything is ready now”; `propose` is permanently bound and returns a
+discriminated promise result (`success`, `server-rejection`,
+`network-failure`, `blocked`, or `stale-snapshot`) instead of throwing for an
+ordinary move failure. The adapter or framework control is normally safer.
+Actions fail closed during animation, schema skew, stale state,
+unchecked/failed exact preview, or another pending submission. A
+successful submission consumes that snapshot until a newer state arrives; the
+server also checks the expected version inside its serialized move loop.
+
+The old `propose-move="MOVENAME"` and `data-arg-*` markup remains a compatibility
+adapter for existing renderers. Do not use it in new renderer code: strings,
+manual disabled state, and DOM argument coercion make it much easier to create
+controls that look active but cannot safely submit.
 
 **Move Legality:** The server computes `Legal()` for each non-FixUp move against the current state and ships the result to the client. Your renderer receives this via the `moveLegality` property (set automatically by the framework), and can use two convenience methods:
 
-- `isMoveCurrentlyLegal(moveName)` — returns `true` if the move is legal for the viewing player right now. Use this to **disable** buttons (e.g. when it's not your turn).
+- `isMoveCurrentlyLegal(moveName)` — returns `true` if the move is legal for the viewing player right now. Typed actions consume this automatically; use the helper only for custom presentation.
 - `isMovePossible(moveName)` — returns `true` if the move is structurally legal (legal for any player / admin). Use this to **hide** buttons entirely (e.g. when the move doesn't apply in the current game phase).
 
 The legality info includes three fields per move: `LegalForPlayer` (is it legal for this player?), `LegalForPlayerError` (the error message if not), and `LegalForAnyone` (is it legal for anyone?). These are server-authoritative — no game logic duplication needed in the client.
@@ -1566,7 +1622,9 @@ import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 ```
 
-Pass `MoveName` as the third generic parameter to `BoardgameBaseGameRenderer` so that `isMoveCurrentlyLegal()` and `isMovePossible()` only accept valid move names at compile time (see the class declaration example below).
+The generated `GameRenderer` passes `MoveName` and `MoveInputs` to the framework
+for you, so `move()`, `isMoveCurrentlyLegal()`, and `isMovePossible()` accept
+only generated names without author-written generic parameters.
 
 These files follow the same convention as `auto_reader.go` and `auto_enum.go`: they are regenerated on each serve but should be committed to source control. Only non-FixUp moves (i.e., player-proposable moves) are included.
 
@@ -1604,10 +1662,9 @@ export type State = FullGameState<GameState, PlayerState>;
 Import these types in your renderer to get full type safety and autocomplete on `this.state`:
 
 ```typescript
-import type { GameState, PlayerState } from './_types.js';
-import type { MoveName } from './_move_names.js';
+import { GameRenderer } from './_game_renderer.js';
 
-class BoardgameRenderGameMyGame extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+class BoardgameRenderGameMyGame extends GameRenderer {
   // this.state?.Game?.DrawStack is now typed as ExpandedStack<CardsComponentValues>
   // this.state?.Players?.[0]?.Score is now typed as number
   // this.isMoveCurrentlyLegal("Bad Name") is a compile error — only valid move names allowed
@@ -1640,52 +1697,34 @@ Like `_move_names.ts`, these files are regenerated on each serve but should be c
 
 #### Worked Example
 
-In general your renderer is mostly concerned with stamping out stacks and buttons. With the move legality API, you no longer need to duplicate game logic on the client to decide when buttons should be active — the server tells you.
+In general your renderer stamps state into visual primitives and attaches typed
+actions. Pig's complete interaction code is deliberately boring:
 
-Here's the renderer for Memory:
+```typescript
+import { html } from '../../src/client.js';
+import { GameRenderer } from './_game_renderer.js';
+import { MoveNames } from './_move_names.js';
 
-```html
-    <boardgame-deck-defaults>
-      <template deck="cards">
-        <boardgame-card>
-          <div>
-            {{item.Values.Type}}
-          </div>
-        </boardgame-card>
-      </template>
-    </boardgame-deck-defaults>
-    <h2>Memory</h2>
-    <div>
-      <boardgame-component-stack layout="grid" messy
-        .stack="${this.state?.Game?.Cards}"
-        .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
-      </boardgame-component-stack>
-      <boardgame-fading-text message="Match"
-        .trigger="${this.state?.Game?.Cards?.NumComponents}">
-      </boardgame-fading-text>
-    </div>
-    <div class="discards">
-      <boardgame-component-stack layout="stack" messy
-        .stack="${this.state?.Players?.[0]?.WonCards}"
-        .componentAttrs=${{ disabled: true }}>
-      </boardgame-component-stack>
-      <boardgame-card spacer></boardgame-card>
-      <boardgame-component-stack layout="stack" messy
-        .stack="${this.state?.Players?.[1]?.WonCards}"
-        .componentAttrs=${{ disabled: true }}>
-      </boardgame-component-stack>
-    </div>
-    <md-outlined-button propose-move="${MoveNames.HideCards}"
-      ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.HideCards)}">
-      Hide Cards
-    </md-outlined-button>
+class BoardgameRenderGamePig extends GameRenderer {
+  override render() {
+    return html`
+      <boardgame-die
+        .item=${this.state?.Game.Die.Components[0]}
+        .action=${this.move(MoveNames.RollDice)}>
+      </boardgame-die>
+      <boardgame-action-button .action=${this.move(MoveNames.DoneTurn)}>
+        Done
+      </boardgame-action-button>
+    `;
+  }
+}
 ```
 
-Notice that the Hide Cards button uses `isMoveCurrentlyLegal(MoveNames.HideCards)` instead of a hardcoded string. The `MoveNames` constants are generated from the server's actual move definitions, so they're guaranteed to be correct. The server's `Legal()` check already knows whether the current player has cards to reveal, so the client doesn't need to duplicate that logic.
-
-The flow is: server computes `Legal()` for each non-FixUp move against the final state → ships legality in the state bundle → client receives it via the `moveLegality` property → renderers use `isMoveCurrentlyLegal()` / `isMovePossible()` convenience methods.
-
-It looks like a lot, but it's mostly just about stamping out stacks.
+The generated names prevent typos, generated native inputs prevent missing,
+extra, context-owned, or wrong-primitive arguments, and the action carries the
+server's legality and explanation. The renderer neither duplicates game rules
+nor manually coordinates animation, double-clicks, pending state, stale
+versions, transport errors, or accessibility attributes.
 
 #### Player-info
 

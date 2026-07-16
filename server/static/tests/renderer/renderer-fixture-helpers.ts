@@ -35,8 +35,15 @@ export function captureRendererDiagnostics(page: Page): RendererDiagnosticCaptur
 }
 
 export async function prepareRendererFixturePage(page: Page): Promise<RendererDiagnosticCapture> {
-  await page.goto('/');
-  await page.evaluate(() => document.body.replaceChildren());
+  // Start from a same-origin response that Vite does not transform. An HTML
+  // entrypoint receives Vite's HMR client and can reload several seconds after
+  // `serve` regenerates contracts, destroying a fixture evaluation mid-test.
+  await page.goto('/client_config.js');
+  await page.evaluate(() => {
+    document.open();
+    document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Renderer contract fixture</title></head><body></body></html>');
+    document.close();
+  });
   return captureRendererDiagnostics(page);
 }
 

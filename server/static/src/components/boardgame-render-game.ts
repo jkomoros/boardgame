@@ -13,6 +13,7 @@ import {
 } from '../legal/previewLegality.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
+import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -92,6 +93,27 @@ class BoardgameRenderGame extends LitElement {
   // gameID yet (the loader will operate as solo until it's set).
   @property({ type: String })
   gameId = '';
+
+  @property({ type: Number, attribute: false })
+  gameVersion = 0;
+
+  @property({ type: Number, attribute: false })
+  snapshotEpoch = 0;
+
+  @property({ type: Number, attribute: false })
+  proposingAsPlayer = 0;
+
+  @property({ type: Boolean, attribute: false })
+  proposingAsAdmin = false;
+
+  @property({ attribute: false })
+  moveTransport: MoveTransport | null = null;
+
+  @property({ attribute: false })
+  movePreviewTransport: MovePreviewTransport | null = null;
+
+  @property({ attribute: false })
+  moveSubmissionGate: MoveSubmissionGate | null = null;
 
   @property({ type: Object })
   companionInfo: import('../types/store').CompanionInfo | null = null;
@@ -312,6 +334,16 @@ class BoardgameRenderGame extends LitElement {
       this._applyGameOutcomeToRenderer();
     }
 
+    if (changedProperties.has('gameVersion')
+      || changedProperties.has('snapshotEpoch')
+      || changedProperties.has('proposingAsPlayer')
+      || changedProperties.has('proposingAsAdmin')
+      || changedProperties.has('moveTransport')
+      || changedProperties.has('movePreviewTransport')
+      || changedProperties.has('moveSubmissionGate')) {
+      this._applyMoveActionPropsToRenderer();
+    }
+
     if (changedProperties.has('renderer')) {
       this.dispatchEvent(new CustomEvent('renderer-changed', {
         composed: true, bubbles: true, detail: { value: this.renderer }
@@ -360,6 +392,18 @@ class BoardgameRenderGame extends LitElement {
     const r = this.renderer as any;
     r.gameFinished = this.gameFinished;
     r.gameWinners = this.gameWinners;
+  }
+
+  private _applyMoveActionPropsToRenderer() {
+    if (!this.renderer) return;
+    const renderer = this.renderer as any;
+    renderer.gameVersion = this.gameVersion;
+    renderer.snapshotEpoch = this.snapshotEpoch;
+    renderer.proposingAsPlayer = this.proposingAsPlayer;
+    renderer.proposingAsAdmin = this.proposingAsAdmin;
+    renderer.moveTransport = this.moveTransport;
+    renderer.movePreviewTransport = this.movePreviewTransport;
+    if (this.moveSubmissionGate) renderer.moveSubmissionGate = this.moveSubmissionGate;
   }
 
   // _applyAnimatingToRenderer mirrors isAnimating onto the renderer so the
@@ -669,6 +713,7 @@ class BoardgameRenderGame extends LitElement {
         legalForPlayer: form.LegalForPlayer ?? false,
         legalForAnyone: form.LegalForAnyone ?? false,
         error: form.LegalForPlayerError,
+        preconditions: form.Preconditions,
       };
     }
     return result;
@@ -747,6 +792,13 @@ class BoardgameRenderGame extends LitElement {
     // path) and render the avatar strip, room code banner, etc.
     ele.gameName = this.gameName;
     ele.gameId = this.gameId;
+    ele.gameVersion = this.gameVersion;
+    ele.snapshotEpoch = this.snapshotEpoch;
+    ele.proposingAsPlayer = this.proposingAsPlayer;
+    ele.proposingAsAdmin = this.proposingAsAdmin;
+    ele.moveTransport = this.moveTransport;
+    ele.movePreviewTransport = this.movePreviewTransport;
+    if (this.moveSubmissionGate) ele.moveSubmissionGate = this.moveSubmissionGate;
     ele.isOwner = this.isOwner;
     ele.animating = this.isAnimating;
     if (this._animator) {

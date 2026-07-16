@@ -15,6 +15,9 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   friendlyError?: string;
+  code?: string;
+  expectedVersion?: number;
+  actualVersion?: number;
   status: number;
 }
 
@@ -130,6 +133,9 @@ export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
       status,
       error: jsonData.Error || `Request failed with status ${status}`,
       friendlyError: jsonData.FriendlyError || 'An error occurred',
+      code: typeof jsonData.Code === 'string' ? jsonData.Code : undefined,
+      expectedVersion: typeof jsonData.ExpectedVersion === 'number' ? jsonData.ExpectedVersion : undefined,
+      actualVersion: typeof jsonData.ActualVersion === 'number' ? jsonData.ActualVersion : undefined,
     };
   } catch (error) {
     // Network errors
@@ -158,7 +164,8 @@ export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
 export async function apiPost<T>(
   url: string,
   body: Record<string, any>,
-  contentType: 'application/json' | 'application/x-www-form-urlencoded' = 'application/json'
+  contentType: 'application/json' | 'application/x-www-form-urlencoded' = 'application/json',
+  signal?: AbortSignal,
 ): Promise<ApiResponse<T>> {
   try {
     let requestBody: string;
@@ -185,6 +192,7 @@ export async function apiPost<T>(
       credentials: 'include', // Matches iron-ajax withCredentials: true
       headers,
       body: requestBody,
+      signal,
     });
 
     const status = response.status;
@@ -215,6 +223,9 @@ export async function apiPost<T>(
       status,
       error: jsonData.Error || `Request failed with status ${status}`,
       friendlyError: jsonData.FriendlyError || 'An error occurred',
+      code: typeof jsonData.Code === 'string' ? jsonData.Code : undefined,
+      expectedVersion: typeof jsonData.ExpectedVersion === 'number' ? jsonData.ExpectedVersion : undefined,
+      actualVersion: typeof jsonData.ActualVersion === 'number' ? jsonData.ActualVersion : undefined,
     };
   } catch (error) {
     // Network errors
@@ -251,10 +262,9 @@ export interface MovePreviewResponse {
  * legal as you edit its fields" UI (the intended consumer; none ships yet, so
  * the board graying uses the batch). movePreviewBatch is the COMPACT one —
  * {Legal, Error} per candidate, nested Args JSON — for graying many board cells
- * in one round-trip, where the ledger would be dead weight ×N. Footgun: because
- * this flattens args alongside MoveType in the form body, a move whose field is
- * literally named "MoveType" would collide with the selector (the batch's nested
- * Args is immune); no real move does, but a new consumer should know.
+ * in one round-trip, where the ledger would be dead weight ×N. Generated
+ * contracts reject reserved proposal-protocol field names, and the selector is
+ * written after creator arguments as defense in depth.
  *
  * @param args - field name -> raw string value, exactly as the move form submits
  * @param params - optional query params (e.g. { player } to preview as a
@@ -265,12 +275,14 @@ export async function movePreview(
   gameId: string,
   moveType: string,
   args: Record<string, string> = {},
-  params?: Record<string, string | number | boolean>
+  params?: Record<string, string | number | boolean>,
+  signal?: AbortSignal,
 ): Promise<ApiResponse<MovePreviewResponse>> {
   return apiPost<MovePreviewResponse>(
     buildGameUrl(gameName, gameId, 'movePreview', params),
-    { MoveType: moveType, ...args },
-    'application/x-www-form-urlencoded'
+    { ...args, MoveType: moveType },
+    'application/x-www-form-urlencoded',
+    signal,
   );
 }
 

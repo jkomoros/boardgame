@@ -1,3 +1,9 @@
+import {
+  MoveSubmissionGate,
+  type MovePreviewTransport,
+  type MoveSubmissionRequest,
+} from '../moves/action.js';
+
 export const RENDERER_FIXTURE_SCHEMA_VERSION = 1 as const;
 
 export type RendererFixtureSurface = 'game' | 'table' | 'hand';
@@ -57,6 +63,15 @@ interface RendererFixtureTarget<State extends object> extends HTMLElement {
   gameWinners: number[];
   serverMoveInputSchemaFingerprint: string | null;
   previewDisabledSpaces: number[];
+  gameName: string;
+  gameId: string;
+  gameVersion: number;
+  snapshotEpoch: number;
+  proposingAsPlayer: number;
+  proposingAsAdmin: boolean;
+  moveTransport: { submit(request: MoveSubmissionRequest): Promise<{ readonly kind: 'success' }> };
+  movePreviewTransport: MovePreviewTransport;
+  moveSubmissionGate: MoveSubmissionGate;
   readonly updateComplete: Promise<unknown>;
 }
 
@@ -72,6 +87,7 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
   readonly #proposals: RendererFixtureProposal<Contract['MoveName']>[] = [];
   #snapshot: RendererFixtureSnapshot<Contract>;
   #sequence = 0;
+  readonly #submissionGate = new MoveSubmissionGate();
   readonly #proposalListener: EventListener;
 
   constructor(
@@ -89,14 +105,33 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
       if (!Object.prototype.hasOwnProperty.call(this.#snapshot.moveLegality, event.detail.name)) {
         throw new Error(`Renderer fixture received unknown move proposal: ${event.detail.name}`);
       }
-      this.#sequence += 1;
-      this.#proposals.push(Object.freeze({
-        requestID: `fixture-v${this.#snapshot.version}-request-${this.#sequence}`,
+      this.recordProposal({
+        requestID: `fixture-v${this.#snapshot.version}-request-${++this.#sequence}`,
         snapshotVersion: this.#snapshot.version,
+        viewingAsPlayer: this.#snapshot.viewingAsPlayer,
+        proposingAsPlayer: this.#snapshot.viewingAsPlayer,
+        proposingAsAdmin: this.#snapshot.viewingAsPlayer === -2,
         name: event.detail.name,
-        arguments: Object.freeze({ ...event.detail.arguments }),
-      }));
+        arguments: event.detail.arguments,
+      });
     };
+    renderer.moveTransport = {
+      submit: async request => {
+        this.recordProposal(request);
+        return { kind: 'success' };
+      },
+    };
+    renderer.movePreviewTransport = {
+      preview: async request => {
+        const legality = this.#snapshot.moveLegality[request.name as Contract['MoveName']];
+        return {
+          kind: 'success',
+          legal: legality?.legalForPlayer ?? false,
+          ...(legality?.error ? { error: legality.error } : {}),
+        };
+      },
+    };
+    renderer.moveSubmissionGate = this.#submissionGate;
     this.install(snapshot);
     renderer.addEventListener('propose-move', this.#proposalListener);
   }
@@ -129,6 +164,24 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
     this.renderer.gameWinners = [...snapshot.outcome.winners];
     this.renderer.serverMoveInputSchemaFingerprint = snapshot.serverMoveInputSchemaFingerprint;
     this.renderer.previewDisabledSpaces = [...(snapshot.previewDisabledSpaces ?? [])];
+    this.renderer.gameName = fixtureGameName(this.host.dataset['rendererFixture'] ?? '');
+    this.renderer.gameId = 'fixture';
+    this.renderer.gameVersion = snapshot.version;
+    this.renderer.snapshotEpoch = snapshot.version;
+    this.renderer.proposingAsPlayer = snapshot.viewingAsPlayer;
+    this.renderer.proposingAsAdmin = snapshot.viewingAsPlayer === -2;
+  }
+
+  private recordProposal(request: MoveSubmissionRequest): void {
+    if (!Object.prototype.hasOwnProperty.call(this.#snapshot.moveLegality, request.name)) {
+      throw new Error(`Renderer fixture received unknown move proposal: ${request.name}`);
+    }
+    this.#proposals.push(Object.freeze({
+      requestID: request.requestID,
+      snapshotVersion: request.snapshotVersion,
+      name: request.name as Contract['MoveName'],
+      arguments: Object.freeze({ ...request.arguments }),
+    }));
   }
 }
 
@@ -270,4 +323,8 @@ function isProposalDetail(value: unknown): value is ProposalEventDetail<string> 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function fixtureGameName(tagName: string): string {
+  return tagName.replace(/^boardgame-render-game-/, '').replace(/-(?:table|hand)$/, '');
 }

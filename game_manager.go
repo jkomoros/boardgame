@@ -1108,7 +1108,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*
 // wrapper around ModifiableGame, but in multi-server situations, in the future
 // it would conceivably do an RPC or something. Note that game.triggerFixUp()
 // also does this kind of dispatching.
-func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, proposer PlayerIndex) DelayedError {
+func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, proposer PlayerIndex, expectedVersion *int) DelayedError {
 
 	//The chan that the core logic will tell us the move is done in.
 	errChan := make(DelayedError, 1)
@@ -1135,9 +1135,10 @@ func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, prop
 			}
 
 			workItem := &proposedMoveItem{
-				move:     move,
-				ch:       errChan,
-				proposer: proposer,
+				move:            move,
+				ch:              errChan,
+				proposer:        proposer,
+				expectedVersion: expectedVersion,
 			}
 
 			select {

@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	stderrors "errors"
 	"io/ioutil"
 	"reflect"
 	"strings"
@@ -11,6 +12,26 @@ import (
 	"github.com/jkomoros/boardgame/internal/patchtree"
 	"github.com/workfit/tester/assert"
 )
+
+func TestProposeMoveAtVersionRejectsInsideSerializedLoop(t *testing.T) {
+	game := testDefaultGame(t, true)
+	move := game.MoveByName("Draw Card")
+	if move == nil {
+		t.Fatal("Couldn't find move Draw Card")
+	}
+	expected := game.Version()
+	if err := <-game.ProposeMoveAtVersion(move, AdminPlayerIndex, expected); err != nil {
+		t.Fatalf("first version-bound proposal failed: %v", err)
+	}
+	err := <-game.ProposeMoveAtVersion(game.MoveByName("Draw Card"), AdminPlayerIndex, expected)
+	var stale *StaleVersionError
+	if !stderrors.As(err, &stale) {
+		t.Fatalf("second proposal error = %v; want StaleVersionError", err)
+	}
+	if stale.Expected != expected || stale.Actual != game.Version() {
+		t.Fatalf("stale error = %+v; current version = %d", stale, game.Version())
+	}
+}
 
 type testInfiniteLoopGameDelegate struct {
 	testGameDelegate

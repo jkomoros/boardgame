@@ -92,17 +92,33 @@ it becomes this player's turn.
    `this.gameFinished`/`this.gameWinners` (indexes) — `renderGameOverBanner()`
    and the hand header consume them for you.
 
-3. **Gate action buttons on `isMoveCurrentlyLegal(MoveNames.X)`.** Moves
-   proposed out of turn are rejected client-side with no user feedback;
-   a disabled button is honest UI. See blackjack's hand view.
+3. **Give controls a typed move action.** Prefer
+   `.action=${this.move(MoveNames.X)}` (or
+   `.action=${this.move(MoveNames.X).with({ Field: value })}` for move input).
+   Framework controls then own disabled, pending, stale-snapshot, and accessible
+   error states. Use `isMovePossible()` only when presentation needs to hide an
+   action that is structurally irrelevant.
 
 4. **Label people, not seats.** `this.seatPresentations` (both bases)
    carries each seat's avatar slug + display name from the join flow.
    `glyphForSlug()` renders the avatar. "🐺 WolfBot2", never "Player 1".
 
-5. **Use `proposeMove(MoveNames.X, {…})` with the generated constants** —
-   the typed API catches wrong move names at compile time. If you find
-   yourself writing `as MoveName`, the name is wrong.
+5. **Keep move creation typed end to end.** The generated move name and input
+   maps make unknown names, missing fields, and extra fields compile errors.
+   Required-input actions cannot be proposed before `.with(...)` binds their
+   exact input. If you find yourself writing `as MoveName`, the name is wrong.
+
+For example:
+
+```typescript
+html`<boardgame-action-button
+  .action=${this.move(MoveNames.ChooseRole).with({ Role: role })}>
+  Choose ${role}
+</boardgame-action-button>`
+```
+
+The old `propose-move`/`data-arg-*` DOM protocol remains an existing-renderer
+adapter, not the authoring API for new companion controls.
 
 ## Private state and the seat picker
 

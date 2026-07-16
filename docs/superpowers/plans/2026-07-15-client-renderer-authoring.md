@@ -570,53 +570,59 @@ one shell before generating Table, Hand, or PlayerInfo bound runtime classes.
 - `server/static/src/utils/move-validation.ts`
 - Pig renderer and fixture tests
 
-- [ ] Introduce stable services plus the tested snapshot adapter; do not replace
+- [x] Introduce stable services plus the tested snapshot adapter; do not replace
   broad host property plumbing in the same commit as action semantics. After the
   action path is green, migrate one host seam at a time with identity/reactivity
   tests. Never create one giant mutable context bag.
-- [ ] Replace the fire-and-forget proposal seam with a typed transport service
+- [x] Replace the fire-and-forget proposal seam with a typed transport service
   returning a discriminated success, server-rejection, network-failure, blocked,
   or stale-snapshot result and a local request identity. The HTTP promise is
   sufficient for initial correlation; no server echo is required.
-- [ ] Use a global single-flight submission lock by default so two different
-  actions from the same stale snapshot cannot race. The lock ends when the POST
-  resolves, so legitimate consecutive identical moves remain possible.
-- [ ] Make animation gating an explicit blocked action state, never a silently
+- [x] Use a global single-flight submission lock by default so two different
+  actions from the same stale snapshot cannot race. A successful POST consumes
+  its snapshot until a newer state arrives; rejected/network attempts release
+  the lock for an explicit retry.
+- [x] Make animation gating an explicit blocked action state, never a silently
   dropped `propose-move` event. Provide an accessible error/status surface and a
   typed telemetry callback; production returns a safe result rather than
   throwing the renderer.
-- [ ] Expose zero-input `this.move(moves.RollDice).propose()`.
-- [ ] Design `MoveAction` as separate discriminated facts rather than one
+- [x] Expose zero-input `this.move(moves.RollDice).propose()`.
+- [x] Design `MoveAction` as separate discriminated facts rather than one
   overloaded status: baseline `availability`; bound preview
   `not-needed|unchecked|checking|legal|illegal|failed`; submission
   `idle|pending|rejected`; derived fail-closed `canPropose`; and structured
   reason. `LegalForAnyone` is structural and never enables a viewer's control.
-- [ ] Make `with(args)` return an immutable action tied to the snapshot/version
+- [x] Make `with(args)` return an immutable action tied to the snapshot/version
   that created it. `propose()` fails closed if retained across a newer version.
   Preview requests carry version, viewer, candidate-set hash, request identity,
   and cancellation; late results cannot mutate current status. Bind callable
   methods so direct Lit handler usage cannot lose `this`.
-- [ ] Preserve structured precondition reasons currently dropped when legality
+- [x] Preserve structured precondition reasons currently dropped when legality
   is derived for renderers.
-- [ ] Compare the generated/server author-schema fingerprints before preview or
+- [x] Compare the generated/server author-schema fingerprints before preview or
   proposal and fail closed on skew.
-- [ ] Upgrade runtime validation from unknown-key warnings to exact required,
+- [x] Upgrade runtime validation from unknown-key warnings to exact required,
   extra, primitive, integer, finite, enum, and schema-version validation.
-- [ ] In development, attempted invalid/illegal proposals produce an actionable
+- [x] In development, attempted invalid/illegal proposals produce an actionable
   diagnostic and accessible feedback. Production fails safely and exposes a
   telemetry hook rather than throwing the whole renderer.
-- [ ] Add `boardgame-action-button` with native semantics, `.action=${action}` on
+- [x] Add `boardgame-action-button` with native semantics, `.action=${action}` on
   framework interactives such as die/card/targets, and one documented binding
   adapter proven against `md-filled-button`. The binding owns activation,
   `aria-disabled`, pending/rejection/reason presentation, and a minimum 44x44 CSS
   pixel pointer target. Noninteractive components remain inert until an action is
   supplied; states are never conveyed by color alone.
-- [ ] Isolate ambient legacy descendant `propose-move`/`data-arg-*` scraping in a
+- [x] Isolate ambient legacy descendant `propose-move`/`data-arg-*` scraping in a
   compatibility adapter outside the curated facade. Test that an unrelated child
   with a `proposeMove` property cannot accidentally submit. Keep arbitrary visual
   attributes separate from unsafe behavioral forwarding.
-- [ ] Migrate Pig fully and compare creator code size and behavior to the
-  baseline.
+- [x] Migrate Pig fully and compare creator code size and behavior to the
+  baseline. The renderer fell from 54 to 46 lines and from eight direct module/
+  type imports to three facade/generated imports; two manually synchronized
+  disabled attributes and two ambient proposal attributes became two typed
+  `.action` bindings. Casts and imperative handlers remain zero. Fixture,
+  Material-adapter, keyboard/axe, transport, and stale/rejection behavior are
+  covered by browser contracts.
 
 ### Task 8: `TargetAction` and accessible grid, proven in Tic-tac-toe
 
@@ -636,6 +642,9 @@ one shell before generating Table, Hand, or PlayerInfo bound runtime classes.
   consumers; unusual boards never have to pretend to be row-major grids.
 - [ ] Bind exact native move arguments and own preview debouncing, stale response
   rejection, loading/error/unknown/legal states, and version reset.
+  Task 7 deliberately deduplicates exact previews only per immutable action;
+  collections must use this Task 8 coordinator so a large board cannot create
+  an unbounded fan-out of individual preview requests.
 - [ ] Let the board consume one interaction object rather than separately
   receiving handlers, preview specs, disabled arrays, and refresh requests.
 - [ ] Choose and document one DOM focus model: roving-focus gridcells or native

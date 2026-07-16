@@ -68,14 +68,20 @@ test('movePreviewBatch posts JSON {MoveType,Candidates} to the batch path; resul
   assert.equal(res.data?.Results[1].Error, 'blocked');
 });
 
-test('a Failure envelope surfaces as error/friendlyError, never as legal data', async () => {
-  stubFetch({ Status: 'Failure', Error: 'bad move type', FriendlyError: 'That move is not available' });
+test('a Failure envelope preserves structured stale metadata, never as legal data', async () => {
+  stubFetch({
+    Status: 'Failure', Error: 'bad move type', FriendlyError: 'That move is not available',
+    Code: 'STALE_SNAPSHOT', ExpectedVersion: 3, ActualVersion: 4,
+  });
 
   const res = await movePreview('checkers', 'g1', 'Nope', {});
 
   assert.equal(res.data, undefined);
   assert.equal(res.error, 'bad move type');
   assert.equal(res.friendlyError, 'That move is not available');
+  assert.equal(res.code, 'STALE_SNAPSHOT');
+  assert.equal(res.expectedVersion, 3);
+  assert.equal(res.actualVersion, 4);
 });
 
 test('optional params (e.g. previewing as a specific player) pass through as a query string', async () => {

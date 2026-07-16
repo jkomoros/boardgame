@@ -27,6 +27,8 @@ export interface MoveInputSchemaMove {
 
 export type MoveInputSchema = readonly MoveInputSchemaMove[];
 
+const RESERVED_MOVE_INPUT_FIELDS = new Set(['MoveType', 'admin', 'player', 'ExpectedVersion']);
+
 export type MoveInputErrorCode =
   | 'unknown-move'
   | 'missing-field'
@@ -75,6 +77,13 @@ export function validateCreatorMoveInput(
   }
 
   for (const [name, value] of Object.entries(input)) {
+    if (RESERVED_MOVE_INPUT_FIELDS.has(name)) {
+      errors.push(error(
+        'context-owned-field', moveName, name,
+        `Field ${JSON.stringify(name)} is reserved by the move proposal protocol`,
+      ));
+      continue;
+    }
     const field = byName.get(name);
     if (!field) {
       errors.push(error('unknown-field', moveName, name, `Field ${JSON.stringify(name)} is not defined`));
@@ -219,7 +228,9 @@ function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown
 }
 
 function error(code: MoveInputErrorCode, moveName: string, field: string | undefined, message: string): MoveInputIssue {
-  return { code, moveName, field, message };
+  return field === undefined
+    ? { code, moveName, message }
+    : { code, moveName, field, message };
 }
 
 function invalid(code: MoveInputErrorCode, moveName: string, field: string | undefined, message: string): MoveInputValidationResult {

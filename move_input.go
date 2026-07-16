@@ -10,6 +10,17 @@ import (
 
 const moveInputFieldsConfigKey = "github.com/jkomoros/boardgame.MoveInputFields"
 
+var reservedMoveInputWireNames = map[string]struct{}{
+	"MoveType": {}, "admin": {}, "player": {}, "ExpectedVersion": {},
+}
+
+func validateMoveInputWireName(name string, disposition MoveInputDisposition) error {
+	if _, reserved := reservedMoveInputWireNames[name]; reserved && disposition != MoveInputContextOwned {
+		return fmt.Errorf("field %q collides with a reserved proposal protocol field", name)
+	}
+	return nil
+}
+
 // MoveInputDisposition says who is responsible for supplying a persisted move
 // field. It is deliberately independent of DefaultsForState: responsibility is
 // configuration, not something inferred by executing a default on one state.
@@ -233,6 +244,9 @@ func BuildMoveInputSchema(manager *GameManager) ([]MoveInputSchemaMove, error) {
 		fields := make([]MoveInputSchemaField, 0, len(resolved))
 		props := move.ReadSetter().Props()
 		for _, field := range resolved {
+			if err := validateMoveInputWireName(field.Name, field.Disposition); err != nil {
+				return nil, fmt.Errorf("move %q: %w", moveType.Name(), err)
+			}
 			propType := props[field.Name]
 			item := MoveInputSchemaField{
 				Name:        field.Name,
