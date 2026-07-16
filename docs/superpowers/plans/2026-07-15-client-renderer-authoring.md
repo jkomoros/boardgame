@@ -1074,6 +1074,12 @@ First evidence-driven primitive tranche (2026-07-16):
   exact game tag embedded; migrate every framework and external renderer plus
   scaffold goldens and tutorials. Auxiliary game-local custom elements retain
   ordinary `customElements.define` as the explicit edge path.
+- [x] Preserve that contract through the dynamic host instead of erasing it
+  with property-bag `any`: require every loaded surface to be an actual
+  `BoardgameBaseGameRenderer`, fail before hiding the fallback when a custom
+  element bypasses the generated base, and narrow Table/Hand companion fields
+  through their real classes. Keep interrupted-animation cleanup behind the
+  animator API rather than reaching through its private stack registry.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

@@ -1,7 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import './boardgame-component-animator.js';
-import type { BoardgameComponentStack } from './boardgame-component-stack.js';
+import { BoardgameComponentAnimator } from './boardgame-component-animator.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import { movePreviewBatch } from '../api.js';
@@ -9,13 +8,24 @@ import {
   disabledSpacesFromResults,
   samePreviewSpaces,
   previewOutcome,
-  type MovePreviewSpec,
 } from '../legal/previewLegality.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
 import type { PlayerPresentation } from '../status/player-presentation.js';
+import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
+import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
+import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
+import type { FullGameState, GameChest } from '../types/boardgame-types.js';
+
+type HostedState = FullGameState<object, object, object, object, object>;
+type HostedRenderer = BoardgameBaseGameRenderer<
+  HostedState,
+  object,
+  string,
+  Record<string, object>
+>;
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -71,7 +81,7 @@ class BoardgameRenderGame extends LitElement {
   `;
 
   @property({ type: Object })
-  state: any = null;
+  state: HostedState | null = null;
 
   // Scoped timing policy associated with the exact installed game version.
   // The shared animator consumes it as animateBetween's default.
@@ -79,7 +89,7 @@ class BoardgameRenderGame extends LitElement {
   animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
 
   @property({ type: Object })
-  chest: any = null;
+  chest: GameChest<object> | null = null;
 
   @property({ type: Boolean })
   active = false;
@@ -143,7 +153,7 @@ class BoardgameRenderGame extends LitElement {
 
 
   @property({ type: Object, attribute: false })
-  renderer: HTMLElement | null = null;
+  renderer: HostedRenderer | null = null;
 
   @property({ type: Boolean })
   rendererLoaded = false;
@@ -197,7 +207,7 @@ class BoardgameRenderGame extends LitElement {
   isAnimating = false;
 
   @query('#animator')
-  private _animator?: any;
+  private _animator?: BoardgameComponentAnimator;
 
   @query('#container')
   private _container?: HTMLElement;
@@ -309,12 +319,12 @@ class BoardgameRenderGame extends LitElement {
       this._moveFormsChanged(this.moveForms);
     }
 
-		if (changedProperties.has('moveInputSchemaFingerprint')) {
-			this._moveInputSchemaFingerprintChanged(this.moveInputSchemaFingerprint);
-		}
+    if (changedProperties.has('moveInputSchemaFingerprint')) {
+      this._moveInputSchemaFingerprintChanged(this.moveInputSchemaFingerprint);
+    }
 
     if (changedProperties.has('state')) {
-      this._stateChanged(this.state, changedProperties.get('state') as any);
+      this._stateChanged(this.state);
     }
 
     // Refresh the board's target-legality preview when anything it depends on
@@ -343,8 +353,7 @@ class BoardgameRenderGame extends LitElement {
     }
 
     if (changedProperties.has('playerPresentations') && this.renderer) {
-      (this.renderer as HTMLElement & { playerPresentations: readonly PlayerPresentation[] })
-        .playerPresentations = this.playerPresentations;
+      this.renderer.playerPresentations = this.playerPresentations;
     }
 
     if (changedProperties.has('gameVersion')
@@ -369,7 +378,7 @@ class BoardgameRenderGame extends LitElement {
     if (!this.renderer) {
       return;
     }
-    (this.renderer as any).diagram = newValue;
+    this.renderer.diagram = newValue;
   }
 
   // _companionInfoChanged propagates the companionInfo bundle to the
@@ -383,34 +392,34 @@ class BoardgameRenderGame extends LitElement {
     this._applyCompanionPropsToRenderer(this.renderer);
   }
 
-  private _isOwnerChanged(newValue: boolean) {
+  private _isOwnerChanged(_newValue: boolean) {
     if (!this.renderer) return;
-    (this.renderer as any).isOwner = newValue;
     this._recomputeIsHost();
   }
 
-  private _applyCompanionPropsToRenderer(ele: HTMLElement) {
-    const r = ele as any;
+  private _applyCompanionPropsToRenderer(renderer: HostedRenderer) {
     const info = this.companionInfo;
-    r.seatPresentations = info?.SeatPresentations || [];
-    r.absentPlayers = info?.Absent || [];
-    r.roomCode = info?.RoomCode || '';
-    r.roomLocked = info?.RoomLocked || false;
-    r.companionMode = info?.CompanionMode || false;
+    if (renderer instanceof BoardgameTableViewBase) {
+      renderer.seatPresentations = info?.SeatPresentations ?? [];
+      renderer.absentPlayers = info?.Absent ?? [];
+      renderer.roomCode = info?.RoomCode ?? '';
+      renderer.roomLocked = info?.RoomLocked ?? false;
+    } else if (renderer instanceof BoardgameHandViewBase) {
+      renderer.seatPresentations = info?.SeatPresentations ?? [];
+    }
     this._recomputeIsHost();
     this._applyGameOutcomeToRenderer();
   }
 
   private _applyGameOutcomeToRenderer() {
     if (!this.renderer) return;
-    const r = this.renderer as any;
-    r.gameFinished = this.gameFinished;
-    r.gameWinners = this.gameWinners;
+    this.renderer.gameFinished = this.gameFinished;
+    this.renderer.gameWinners = this.gameWinners;
   }
 
   private _applyMoveActionPropsToRenderer() {
     if (!this.renderer) return;
-    const renderer = this.renderer as any;
+    const renderer = this.renderer;
     renderer.gameVersion = this.gameVersion;
     renderer.snapshotEpoch = this.snapshotEpoch;
     renderer.proposingAsPlayer = this.proposingAsPlayer;
@@ -431,23 +440,23 @@ class BoardgameRenderGame extends LitElement {
   // rather than defaulting to false.
   private _applyAnimatingToRenderer() {
     if (!this.renderer) return;
-    (this.renderer as any).animating = this.isAnimating;
+    this.renderer.animating = this.isAnimating;
   }
 
   private _recomputeIsHost() {
-    if (!this.renderer) return;
+    if (!(this.renderer instanceof BoardgameTableViewBase)) return;
     // Prefer the server's own verdict (CompanionInfo.IsHost, computed with
     // the same Owner-or-override + surface-cookie rule the host-action
     // endpoints enforce) so a host promoted via /claimHost sees controls
     // even though they aren't the Owner. Fall back to the local derivation
     // for older payloads that lack the field.
-    const info = this.companionInfo as any;
+    const info = this.companionInfo;
     if (info && typeof info.IsHost === 'boolean') {
-      (this.renderer as any).isHost = info.IsHost;
+      this.renderer.isHost = info.IsHost;
       return;
     }
     const surface = surfaceForGame(this.gameId);
-    (this.renderer as any).isHost = this.isOwner && surface === 'table';
+    this.renderer.isHost = this.isOwner && surface === 'table';
   }
 
   private _activeChanged(newValue: boolean) {
@@ -478,10 +487,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _clearAllAnimatingComponents() {
     if (!this._animator) return;
-    const stacks: BoardgameComponentStack[] = this._animator.stackElement?._sharedStackList ?? [];
-    for (const stack of stacks) {
-      stack.clearAnimatingComponents();
-    }
+    this._animator.clearAnimatingComponents();
   }
 
   private _resetAnimating() {
@@ -596,12 +602,12 @@ class BoardgameRenderGame extends LitElement {
     this.style.setProperty('--animation-length', `${newValue / 1000}s`);
   }
 
-  private _stateChanged(newState: any, oldState: any) {
+  private _stateChanged(newState: HostedState | null) {
     if (!this.renderer) return;
     if (this._animator) {
       this._animator.animationContext = this.animationContext;
     }
-    const stateWasNull = ((this.renderer as any).state == null);
+    const stateWasNull = this.renderer.state == null;
     if (newState && !stateWasNull) {
       this._resetAnimating();
       // Clear stale faux animating components from any interrupted animation
@@ -612,7 +618,7 @@ class BoardgameRenderGame extends LitElement {
     }
 
     // For Lit renderers, set property directly
-    (this.renderer as any).state = newState;
+    this.renderer.state = newState;
 
     if (newState && !stateWasNull) {
       // Call animateFlip. When all of the things that will be animating have
@@ -624,28 +630,28 @@ class BoardgameRenderGame extends LitElement {
 
   private _viewingAsPlayerChanged(newValue: number) {
     if (!this.renderer) return;
-    (this.renderer as any).viewingAsPlayer = newValue;
+    this.renderer.viewingAsPlayer = newValue;
   }
 
   private _currentPlayerIndexChanged(newValue: number) {
     if (!this.renderer) return;
-    (this.renderer as any).currentPlayerIndex = newValue;
+    this.renderer.currentPlayerIndex = newValue;
   }
 
-  private _chestChanged(newValue: any) {
+  private _chestChanged(newValue: GameChest<object> | null) {
     if (!this.renderer) return;
-    (this.renderer as any).chest = newValue;
+    this.renderer.chest = newValue;
   }
 
   private _moveFormsChanged(moveForms: MoveForm[] | null) {
     if (!this.renderer) return;
-    (this.renderer as any).moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
+    this.renderer.moveLegality = BoardgameRenderGame._deriveLegality(moveForms);
   }
 
-	private _moveInputSchemaFingerprintChanged(fingerprint: string | null) {
-		if (!this.renderer) return;
-		(this.renderer as any).serverMoveInputSchemaFingerprint = fingerprint;
-	}
+  private _moveInputSchemaFingerprintChanged(fingerprint: string | null) {
+    if (!this.renderer) return;
+    this.renderer.serverMoveInputSchemaFingerprint = fingerprint;
+  }
 
   // Board legality preview (movePreviewBatch). Kept view-local rather than in
   // Redux: preview results are ephemeral, tied to the exact candidate set of the
@@ -672,13 +678,8 @@ class BoardgameRenderGame extends LitElement {
   // with the displayed legality in both normal and admin "make moves as player
   // N" modes.
   private async _refreshPreview() {
-    const renderer = this.renderer as
-      | (HTMLElement & {
-          previewSpec?: () => MovePreviewSpec | null;
-          previewDisabledSpaces?: number[];
-        })
-      | null;
-    if (!renderer || typeof renderer.previewSpec !== 'function') return;
+    const renderer = this.renderer;
+    if (!renderer) return;
     if (!this.gameName || !this.gameId) return;
 
     const spec = renderer.previewSpec();
@@ -687,7 +688,7 @@ class BoardgameRenderGame extends LitElement {
       // Bump the seq FIRST so a batch still in flight from a prior refresh can't
       // resolve later and re-gray the board we just cleared.
       this._previewSeq++;
-      if (renderer.previewDisabledSpaces && renderer.previewDisabledSpaces.length) {
+      if (renderer.previewDisabledSpaces.length) {
         renderer.previewDisabledSpaces = [];
       }
       return;
@@ -715,7 +716,7 @@ class BoardgameRenderGame extends LitElement {
     // Only reassign (and thus re-render the board) when the grayed set actually
     // changed.
     const next = disabledSpacesFromResults(spec.candidates, response.data.Results);
-    if (!samePreviewSpaces(next, renderer.previewDisabledSpaces ?? [])) {
+    if (!samePreviewSpaces(next, renderer.previewDisabledSpaces)) {
       renderer.previewDisabledSpaces = next;
     }
   }
@@ -790,10 +791,15 @@ class BoardgameRenderGame extends LitElement {
   }
 
   private _instantiateRenderer(surfaceSuffix: string = '') {
-    // The import loaded! Add it!
+    const tagName = `boardgame-render-game-${this.gameName}${surfaceSuffix}`;
+    const ele = document.createElement(tagName);
+    if (!(ele instanceof BoardgameBaseGameRenderer)) {
+      throw new Error(
+        `Renderer <${tagName}> must extend the generated renderer base; ` +
+        `use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator`,
+      );
+    }
     this.rendererLoaded = true;
-
-    const ele = document.createElement(`boardgame-render-game-${this.gameName}${surfaceSuffix}`) as any;
 
     ele.diagram = this.diagram;
     ele.state = this.state;
@@ -802,7 +808,7 @@ class BoardgameRenderGame extends LitElement {
     ele.playerPresentations = this.playerPresentations;
     ele.chest = this.chest;
     ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
-		ele.serverMoveInputSchemaFingerprint = this.moveInputSchemaFingerprint;
+    ele.serverMoveInputSchemaFingerprint = this.moveInputSchemaFingerprint;
     // Pass game name + ID + companion props through so the Table/Hand
     // view bases can call host endpoints (which require these in the URL
     // path) and render the avatar strip, room code banner, etc.
@@ -816,7 +822,6 @@ class BoardgameRenderGame extends LitElement {
     ele.movePreviewTransport = this.movePreviewTransport;
     ele.targetPreviewTransport = this.targetPreviewTransport;
     if (this.moveSubmissionGate) ele.moveSubmissionGate = this.moveSubmissionGate;
-    ele.isOwner = this.isOwner;
     ele.animating = this.isAnimating;
     if (this._animator) {
       this._animator.animationContext = this.animationContext;
@@ -859,7 +864,7 @@ class BoardgameRenderGame extends LitElement {
     return html`
       <boardgame-component-animator
         id="animator"
-        .ancestorOffsetParent="${this._container}">
+        .ancestorOffsetParent="${this._container ?? null}">
       </boardgame-component-animator>
 
       <div ?hidden="${this.rendererLoaded}">

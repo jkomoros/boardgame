@@ -2502,6 +2502,34 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
   });
 });
 
+test('dynamic host rejects renderer registrations that bypass the generated base', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-render-game.ts');
+    const tagName = 'boardgame-render-game-wrongbase-contract';
+    customElements.define(tagName, class extends HTMLElement {});
+    const host = document.createElement('boardgame-render-game') as HTMLElement & {
+      gameName: string;
+      rendererLoaded: boolean;
+      _instantiateRenderer(surfaceSuffix?: string): void;
+    };
+    host.gameName = 'wrongbase-contract';
+    try {
+      host._instantiateRenderer();
+      return { message: '', rendererLoaded: host.rendererLoaded };
+    } catch (error) {
+      return {
+        message: error instanceof Error ? error.message : String(error),
+        rendererLoaded: host.rendererLoaded,
+      };
+    }
+  });
+  expect(result).toEqual({
+    message: 'Renderer <boardgame-render-game-wrongbase-contract> must extend the generated renderer base; use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator',
+    rendererLoaded: false,
+  });
+});
+
 test('Checkers composes source selection with typed destination actions', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
