@@ -2,9 +2,11 @@ import { LitElement, html, css } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import './boardgame-component-stack.js';
+import './boardgame-board-viewport.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { TargetAction } from '../moves/target-action.js';
 import type { ComponentView } from './component-view.js';
+import type { BoardgameBoardViewport } from './boardgame-board-viewport.js';
 import {
   geometryFromSvg,
   parseTrustedBoardSvg,
@@ -234,6 +236,14 @@ class BoardgameSpatialBoard extends LitElement {
   @property({ type: Boolean, attribute: 'geometry-inspector' })
   geometryInspector = false;
 
+  /** Enable bounded pan/zoom controls and gestures for a large board scene. */
+  @property({ type: Boolean, attribute: 'pan-zoom' })
+  panZoom = false;
+
+  /** Largest magnification when panZoom is enabled. */
+  @property({ type: Number, attribute: 'max-zoom' })
+  maxZoom = 4;
+
   /** True after the SVG has been loaded and inserted into the DOM. */
   @property({ type: Boolean })
   svgLoaded = false;
@@ -256,6 +266,9 @@ class BoardgameSpatialBoard extends LitElement {
 
   @query('#container')
   private _container!: HTMLDivElement;
+
+  @query('boardgame-board-viewport')
+  private _boardViewport?: BoardgameBoardViewport;
 
   private _resizeObserver: ResizeObserver | null = null;
   private _loadController: AbortController | null = null;
@@ -600,14 +613,32 @@ class BoardgameSpatialBoard extends LitElement {
     if (!ctm) throw new Error('boardgame-spatial-board: piece anchor has no screen transform');
     const point = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(ctm);
     const containerRect = this._container.getBoundingClientRect();
+    const scale = this._boardViewport?.view.scale ?? 1;
     const result = {
-      x: point.x - containerRect.left,
-      y: point.y - containerRect.top,
+      x: (point.x - containerRect.left) / scale,
+      y: (point.y - containerRect.top) / scale,
     };
     if (!Number.isFinite(result.x) || !Number.isFinite(result.y)) {
       throw new Error('boardgame-spatial-board: piece anchor produced nonfinite screen coordinates');
     }
     return result;
+  }
+
+  /** Reset an enabled map viewport to its full-board view. */
+  resetViewport(): void {
+    this._boardViewport?.resetView();
+  }
+
+  /** Reveal a known board space in an enabled map viewport. */
+  revealSpace(key: SpatialBoardKey, padding = 24): void {
+    const space = this._resolvedGeometry?.spaces.find(candidate => String(candidate.key) === String(key));
+    if (!space) throw new Error(`boardgame-spatial-board: cannot reveal unknown space ${JSON.stringify(key)}`);
+    this._boardViewport?.reveal(space.focusAnchor, padding);
+  }
+
+  private _focusSpace(space: ResolvedBoardGeometry<SpatialBoardKey>['spaces'][number]): void {
+    space.region.classList.add('focused');
+    this._boardViewport?.reveal(space.focusAnchor);
   }
 
   // ---- Spatial queries (public, backward compat) ----
@@ -725,10 +756,11 @@ class BoardgameSpatialBoard extends LitElement {
         // narrow room wall.
         const regionRect = space.region.getBoundingClientRect();
         const containerRect = this._container.getBoundingClientRect();
-        const minTop = regionRect.top - containerRect.top;
-        const maxTop = regionRect.bottom - containerRect.top - this.tokenSize;
-        const minLeft = regionRect.left - containerRect.left;
-        const maxLeft = regionRect.right - containerRect.left - this.tokenSize;
+        const scale = this._boardViewport?.view.scale ?? 1;
+        const minTop = (regionRect.top - containerRect.top) / scale;
+        const maxTop = (regionRect.bottom - containerRect.top) / scale - this.tokenSize;
+        const minLeft = (regionRect.left - containerRect.left) / scale;
+        const maxLeft = (regionRect.right - containerRect.left) / scale - this.tokenSize;
         const intendedTop = center.y - this.tokenSize / 2 + jitterY;
         const intendedLeft = center.x - this.tokenSize / 2 + jitterX;
 
@@ -760,6 +792,9 @@ class BoardgameSpatialBoard extends LitElement {
         `boardgame-spatial-board: componentViews has ${this.componentViews.length} entries for `
         + `${this._effectiveStacks.length} effective stack layers`,
       );
+    }
+    if (this.panZoom && (!Number.isFinite(this.maxZoom) || this.maxZoom < 1 || this.maxZoom > 16)) {
+      throw new Error('boardgame-spatial-board: maxZoom must be from 1 through 16');
     }
   }
 
@@ -803,6 +838,49 @@ class BoardgameSpatialBoard extends LitElement {
     this._validateRenderInputs();
     const stacks = this._effectiveStacks;
     const hasStacks = stacks.length > 0;
+    const boardScene = html`
+      <div id="container" @click="${this._spaceTapped}">
+        <!-- Board scene is loaded/generated and inserted here -->
+        ${this._resolvedGeometry ? html`
+          <div id="focus-overlay">
+            ${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
+              const position = this._focusPositions.get(String(space.key));
+              const candidate = this._candidateForSpace(space.key);
+              const disabled = candidate
+                ? !candidate.action.canActivate
+                : this.disabledSpaces.includes(Number(space.key));
+              const reason = candidate?.action.reason?.message;
+              return position ? html`<button
+                class="space-focus"
+                type="button"
+                style=${`left:${position.left}px;top:${position.top}px`}
+                aria-label=${reason
+                  ? `${space.label}. ${candidate?.action.canActivate ? 'Retry available' : 'Unavailable'}: ${reason}`
+                  : space.label}
+                aria-disabled=${String(disabled)}
+                @focus=${() => this._focusSpace(space)}
+                @blur=${() => space.region.classList.remove('focused')}
+                @click=${(event: Event) => { event.stopPropagation(); this._activateSpace(space); }}
+              ></button>` : '';
+            })}
+          </div>
+        ` : ''}
+        ${hasStacks ? html`
+          <div id="token-overlay">
+            ${repeat(stacks, (_, i) => i, (s, i) => html`
+              <boardgame-component-stack
+                layout="spatial"
+                .stack="${s}"
+                .spatialPositions="${this._layerPositions[i] || []}"
+                .unsafeComponentAttrs="${this.unsafeComponentAttrs}"
+                .componentView=${this.componentViews.length ? this.componentViews[i] : this.componentView}
+                no-default-spacer>
+              </boardgame-component-stack>
+            `)}
+          </div>
+        ` : ''}
+      </div>
+    `;
 
     return html`
       <div id="board-wrapper" role="region" aria-label=${this.boardLabel}
@@ -812,47 +890,13 @@ class BoardgameSpatialBoard extends LitElement {
           ${this._loadError ? html`Board artwork could not be loaded: ${this._loadError}
             <button type="button" @click=${this._loadBoardSource}>Retry</button>` : ''}
         </p>
-        <div id="container" @click="${this._spaceTapped}">
-          <!-- Board scene is loaded/generated and inserted here -->
-          ${this._resolvedGeometry ? html`
-            <div id="focus-overlay">
-              ${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
-                const position = this._focusPositions.get(String(space.key));
-                const candidate = this._candidateForSpace(space.key);
-                const disabled = candidate
-                  ? !candidate.action.canActivate
-                  : this.disabledSpaces.includes(Number(space.key));
-                const reason = candidate?.action.reason?.message;
-                return position ? html`<button
-                  class="space-focus"
-                  type="button"
-                  style=${`left:${position.left}px;top:${position.top}px`}
-                  aria-label=${reason
-                    ? `${space.label}. ${candidate?.action.canActivate ? 'Retry available' : 'Unavailable'}: ${reason}`
-                    : space.label}
-                  aria-disabled=${String(disabled)}
-                  @focus=${() => space.region.classList.add('focused')}
-                  @blur=${() => space.region.classList.remove('focused')}
-                  @click=${(event: Event) => { event.stopPropagation(); this._activateSpace(space); }}
-                ></button>` : '';
-              })}
-            </div>
-          ` : ''}
-          ${hasStacks ? html`
-            <div id="token-overlay">
-              ${repeat(stacks, (_, i) => i, (s, i) => html`
-                <boardgame-component-stack
-                  layout="spatial"
-                  .stack="${s}"
-                  .spatialPositions="${this._layerPositions[i] || []}"
-                  .unsafeComponentAttrs="${this.unsafeComponentAttrs}"
-                  .componentView=${this.componentViews.length ? this.componentViews[i] : this.componentView}
-                  no-default-spacer>
-                </boardgame-component-stack>
-              `)}
-            </div>
-          ` : ''}
-        </div>
+        ${this.panZoom ? html`
+          <boardgame-board-viewport
+            label=${`${this.boardLabel} navigation`}
+            .maxScale=${this.maxZoom}>
+            ${boardScene}
+          </boardgame-board-viewport>
+        ` : boardScene}
         ${this._resolvedGeometry ? html`
           <details id="space-list">
             <summary>Board spaces</summary>
@@ -865,7 +909,7 @@ class BoardgameSpatialBoard extends LitElement {
                 type="button"
                 aria-disabled=${String(disabled)}
                 title=${reason ?? ''}
-                @focus=${() => space.region.classList.add('focused')}
+                @focus=${() => this._focusSpace(space)}
                 @blur=${() => space.region.classList.remove('focused')}
                 @click=${(event: Event) => {
                   event.stopPropagation();

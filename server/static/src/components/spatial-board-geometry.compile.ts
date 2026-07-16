@@ -6,6 +6,7 @@ import {
   type ExpandedStack,
   type RasterBoardArtwork,
 } from '../client.js';
+import { BoardgameSpatialBoard } from './boardgame-spatial-board.js';
 
 const keys = ['library', 'study'] as const;
 declare const stack: ExpandedStack<object, object>;
@@ -82,3 +83,11 @@ const wrongRasterKey: RasterBoardArtwork<(typeof keys)[number]> = rasterBoardArt
   }],
 });
 void wrongRasterKey;
+
+const spatialBoard = new BoardgameSpatialBoard();
+spatialBoard.panZoom = true;
+spatialBoard.maxZoom = 6;
+spatialBoard.revealSpace(keys[0]);
+spatialBoard.resetViewport();
+// @ts-expect-error maxZoom is numeric
+spatialBoard.maxZoom = 'far';

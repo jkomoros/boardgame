@@ -1070,8 +1070,15 @@ system phase.
 
 ### E. Graphic-board adapters and advanced workflows
 
-- Raster artwork: normalized intrinsic hotspots and explicit object-fit mapping.
-- Large maps: viewport/pan/zoom adapter independent of board geometry.
+- [x] Raster artwork: normalized intrinsic hotspots and explicit object-fit
+  mapping, implemented by `rasterBoardArtwork(...)` through the existing
+  spatial-board interaction pipeline.
+- [x] Large maps: `boardgame-board-viewport` provides a geometry-independent,
+  bounded pan/zoom shell with controls, keyboard, wheel, pointer, pinch,
+  resize clamping, immutable persistence, and reveal/reset APIs. Spatial boards
+  opt in with `pan-zoom`; only the graphic scene transforms while errors and the
+  semantic space list remain stable. Transform-aware focus/piece calculations
+  prevent double scaling.
 - Route/graph/hex games: named spaces, edges, vertices, routes, and layered
   overlays without changing `TargetAction`.
 - Scrabble-like draft: local overlay, undo, version rebase, exact commit, and

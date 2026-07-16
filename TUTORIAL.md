@@ -2535,6 +2535,7 @@ const artwork = rasterBoardArtwork({
 
 return html`<boardgame-spatial-board
   .artwork=${artwork}
+  pan-zoom
   .action=${this.move(MoveNames.MoveToRoom).targets(
     artwork.spaces.map(space => space.key),
     room => ({ TargetLocation: room }),
@@ -2562,6 +2563,23 @@ raster descriptor. The custom `.geometry` callback is SVG-only because raster
 spaces already live in the descriptor. Everything after source loading is
 shared: typed `TargetAction`, piece projections, keyboard/list access, legality
 reasons, responsive positioning, geometry inspection, loading errors, and retry.
+
+For a large map, add the boolean `pan-zoom` attribute as above. The board gets
+bounded zoom/reset controls, keyboard `+`/`-`/arrow/`0` navigation,
+Ctrl/Command-wheel zoom, mouse/touch panning, and pinch zoom. Ordinary taps and
+clicks still reach spaces; a gesture that crosses the drag threshold cannot
+accidentally propose a move. The compact space list and loading/status content
+stay outside the transformed scene. Set `max-zoom` only when the default `4`
+is inappropriate. Call `revealSpace(key)` to bring a moved piece or selected
+location into view, and `resetViewport()` to return to the complete board.
+
+`boardgame-board-viewport` is also available as a standalone building block for
+a custom SVG, canvas, or other large visual. Its default controls work without
+configuration; `view` plus `setView(...)` support route-scoped persistence, and
+`reveal(element)` brings nested light- or shadow-DOM markers into view. It emits
+`board-viewport-change` with the same immutable `{ scale, x, y }` value. Panning
+is clamped after zoom, content resize, host resize, or a lower `max-scale`, so
+blank space cannot become the main view.
 
 `spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
 `boxForSpace()`, and `tokenPosition()` remain migration adapters for older

@@ -2385,6 +2385,183 @@ test('spatial board sanitizes authored geometry and shares typed target activati
   expect(axeResult.violations).toEqual([]);
 });
 
+test('board viewport provides bounded navigation without turning drags into board actions', async ({ page }) => {
+  await page.goto('/client_config.js');
+  await page.evaluate(async () => {
+    await import('/src/components/boardgame-board-viewport.ts');
+    const viewport = document.createElement('boardgame-board-viewport') as HTMLElement & {
+      label: string;
+      maxScale: number;
+      zoomStep: number;
+      view: { readonly scale: number; readonly x: number; readonly y: number };
+      zoomIn(): void;
+      resetView(): void;
+      setView(view: { readonly scale: number; readonly x: number; readonly y: number }): void;
+      updateComplete: Promise<unknown>;
+    };
+    viewport.id = 'viewport-fixture';
+    viewport.label = 'Fixture map navigation';
+    viewport.maxScale = 3;
+    viewport.zoomStep = 0.5;
+    viewport.style.width = '400px';
+    const target = document.createElement('button');
+    target.type = 'button';
+    target.textContent = 'Map target';
+    target.style.cssText = 'display:block;width:100%;height:240px;border:0';
+    target.addEventListener('click', () => {
+      const state = globalThis as unknown as { __viewportClicks?: number };
+      state.__viewportClicks = (state.__viewportClicks ?? 0) + 1;
+    });
+    viewport.append(target);
+    document.body.append(viewport);
+    await viewport.updateComplete;
+    viewport.zoomIn();
+    viewport.zoomIn();
+    await viewport.updateComplete;
+  });
+
+  const viewport = page.locator('#viewport-fixture').locator('#viewport');
+  const bounds = await viewport.boundingBox();
+  if (!bounds) throw new Error('Viewport fixture had no bounds');
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width / 2 + 40, bounds.y + bounds.height / 2 + 20, { steps: 4 });
+  await page.mouse.up();
+  await page.waitForTimeout(0);
+  expect(await page.evaluate(() => (globalThis as unknown as { __viewportClicks?: number }).__viewportClicks ?? 0)).toBe(0);
+  await page.evaluate(async () => {
+    const viewport = document.querySelector('#viewport-fixture') as HTMLElement & {
+      view: { readonly scale: number; readonly x: number; readonly y: number };
+      resetView(): void;
+      setView(view: { readonly scale: number; readonly x: number; readonly y: number }): void;
+      updateComplete: Promise<unknown>;
+    };
+    (globalThis as unknown as { __afterDragView?: typeof viewport.view }).__afterDragView = viewport.view;
+    viewport.resetView();
+    await viewport.updateComplete;
+  });
+  await page.getByRole('button', { name: 'Map target' }).click();
+  expect(await page.evaluate(() => (globalThis as unknown as { __viewportClicks?: number }).__viewportClicks ?? 0)).toBe(1);
+
+  const cdp = await page.context().newCDPSession(page);
+  const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [
+      { id: 1, x: center.x - 30, y: center.y },
+      { id: 2, x: center.x + 30, y: center.y },
+    ],
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [
+      { id: 1, x: center.x - 60, y: center.y },
+      { id: 2, x: center.x + 60, y: center.y },
+    ],
+  });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  const pinchScale = await page.evaluate(() => (
+    document.querySelector('#viewport-fixture') as HTMLElement & { view: { readonly scale: number } }
+  ).view.scale);
+  expect(pinchScale).toBeGreaterThan(1);
+  await page.evaluate(async () => {
+    const viewport = document.querySelector('#viewport-fixture') as HTMLElement & {
+      resetView(): void;
+      updateComplete: Promise<unknown>;
+    };
+    viewport.resetView();
+    await viewport.updateComplete;
+  });
+
+  const result = await page.evaluate(async () => {
+    const viewport = document.querySelector('#viewport-fixture') as HTMLElement & {
+      label: string;
+      maxScale: number;
+      zoomStep: number;
+      view: { readonly scale: number; readonly x: number; readonly y: number };
+      resetView(): void;
+      updateComplete: Promise<unknown>;
+    };
+    const inner = viewport.shadowRoot?.querySelector('#viewport');
+    if (!(inner instanceof HTMLDivElement)) throw new Error('Viewport internals unavailable');
+    const afterDrag = (globalThis as unknown as { __afterDragView?: typeof viewport.view }).__afterDragView;
+    if (!afterDrag) throw new Error('Drag view was not captured');
+    viewport.zoomIn();
+    viewport.zoomIn();
+    await viewport.updateComplete;
+    inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    await viewport.updateComplete;
+    const afterKeyboard = viewport.view;
+    inner.dispatchEvent(new WheelEvent('wheel', { deltaY: -10, bubbles: true }));
+    const afterPlainWheel = viewport.view;
+    inner.dispatchEvent(new WheelEvent('wheel', {
+      deltaY: -10, ctrlKey: true, clientX: 200, clientY: 120, bubbles: true, cancelable: true,
+    }));
+    await viewport.updateComplete;
+    const afterCtrlWheel = viewport.view;
+    viewport.maxScale = 2.2;
+    await viewport.updateComplete;
+    const clampedAfterMaxChange = viewport.view;
+    viewport.setView({ scale: 2.2, x: -10_000, y: -10_000 });
+    viewport.remove();
+    viewport.style.width = '300px';
+    document.body.append(viewport);
+    await viewport.updateComplete;
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const reconnected = viewport.view;
+    viewport.resetView();
+    await viewport.updateComplete;
+    const reset = viewport.view;
+    const invalid = async (properties: Record<string, unknown>) => {
+      const element = document.createElement('boardgame-board-viewport');
+      Object.assign(element, properties);
+      document.body.append(element);
+      try {
+        await (element as typeof element & { updateComplete: Promise<unknown> }).updateComplete;
+        return '<resolved>';
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      } finally {
+        element.remove();
+      }
+    };
+    return {
+      afterDrag,
+      afterKeyboard,
+      afterPlainWheel,
+      afterCtrlWheel,
+      clampedAfterMaxChange,
+      reconnected,
+      reset,
+      status: viewport.shadowRoot?.querySelector('#status')?.textContent,
+      parts: [...(viewport.shadowRoot?.querySelectorAll('[part]') ?? [])].map(element => element.getAttribute('part')),
+      errors: await Promise.all([
+        invalid({ label: ' ' }), invalid({ maxScale: 17 }), invalid({ zoomStep: 0 }),
+      ]),
+    };
+  });
+  expect(result.afterDrag.scale).toBe(2);
+  expect(result.afterDrag.x).toBeGreaterThan(-200);
+  expect(result.afterKeyboard.x).toBeLessThan(result.afterDrag.x);
+  expect(result.afterPlainWheel).toEqual(result.afterKeyboard);
+  expect(result.afterCtrlWheel.scale).toBe(2.5);
+  expect(result.clampedAfterMaxChange.scale).toBe(2.2);
+  expect(result.reconnected.x).toBeGreaterThanOrEqual(-360);
+  expect(result.reset).toEqual({ scale: 1, x: 0, y: 0 });
+  expect(result.status).toBe('100% zoom');
+  expect(result.parts).toEqual(expect.arrayContaining(['toolbar', 'viewport', 'scene', 'zoom-in', 'zoom-out', 'reset']));
+  expect(result.errors).toEqual([
+    expect.stringContaining('label must be a non-empty string'),
+    expect.stringContaining('maxScale must be from 1 through 16'),
+    expect.stringContaining('zoomStep must be greater than 0'),
+  ]);
+  const axeResult = await new AxeBuilder({ page })
+    .include('boardgame-board-viewport')
+    .withRules(['button-name', 'aria-allowed-attr', 'aria-valid-attr-value', 'nested-interactive'])
+    .analyze();
+  expect(axeResult.violations).toEqual([]);
+});
+
 test('spatial board keeps raster artwork, hotspots, focus, and pieces in one responsive coordinate system', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {
@@ -2423,10 +2600,14 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       geometry: unknown;
       pieces: readonly unknown[];
       tokenSize: number;
+      panZoom: boolean;
+      maxZoom: number;
       svgLoaded: boolean;
       updateComplete: Promise<unknown>;
     };
     board.style.width = '320px';
+    board.panZoom = true;
+    board.maxZoom = 3;
     board.artwork = rasterBoardArtwork({ src, spaces, fit: 'contain', viewportAspectRatio: 1 });
     const token = { Index: 0, Values: {}, Deck: 'tokens', GameName: 'fixture', ID: 'raster-token' };
     const stack = {
@@ -2499,18 +2680,44 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
         - (pieceBounds.top + pieceBounds.height / 2 + jitter(1) * 20)),
     );
 
-    const fits: Record<string, { preserve: string | null; focusError: number }> = {};
+    const viewport = root?.querySelector('boardgame-board-viewport') as HTMLElement & {
+      view: { readonly scale: number; readonly x: number; readonly y: number };
+      zoomIn(): void;
+      updateComplete: Promise<unknown>;
+    } | null;
+    if (!viewport) throw new Error('Raster board did not compose its pan/zoom viewport');
+    viewport.zoomIn();
+    viewport.zoomIn();
+    await viewport.updateComplete;
+
+    const fits: Record<string, { preserve: string | null; focusError: number; pieceError: number }> = {};
     for (const fit of ['contain', 'cover', 'fill'] as const) {
       board.artwork = rasterBoardArtwork({ src, spaces, fit, viewportAspectRatio: 1 });
       await board.updateComplete;
       await waitForLoad();
       const info = sceneInfo();
-      fits[fit] = { preserve: info.scene.getAttribute('preserveAspectRatio'), focusError: info.focusError };
+      await info.stackElement.updateComplete;
+      const pieceError = () => {
+        const position = info.stackElement.spatialPositions[0];
+        const container = root?.querySelector('#container')?.getBoundingClientRect();
+        const anchor = info.pieceAnchor.getBoundingClientRect();
+        if (!position || !container) throw new Error('Zoomed raster piece disappeared');
+        return Math.max(
+          Math.abs(position.left + 10 - ((anchor.left + anchor.width / 2 - container.left) / viewport.view.scale + jitter(0) * 20)),
+          Math.abs(position.top + 10 - ((anchor.top + anchor.height / 2 - container.top) / viewport.view.scale + jitter(1) * 20)),
+        );
+      };
+      fits[fit] = {
+        preserve: info.scene.getAttribute('preserveAspectRatio'),
+        focusError: info.focusError,
+        pieceError: pieceError(),
+      };
       for (const width of [260, 640]) {
         board.style.width = `${width}px`;
         await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
         await board.updateComplete;
         fits[fit]!.focusError = Math.max(fits[fit]!.focusError, sceneInfo().focusError);
+        fits[fit]!.pieceError = Math.max(fits[fit]!.pieceError, pieceError());
       }
     }
 
@@ -2560,6 +2767,8 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     return {
       fitPreserves: Object.fromEntries(Object.entries(fits).map(([key, value]) => [key, value.preserve])),
       maxFocusError: Math.max(...Object.values(fits).map(value => value.focusError)),
+      maxZoomedPieceError: Math.max(...Object.values(fits).map(value => value.pieceError)),
+      viewportScale: viewport.view.scale,
       containPieceError,
       finalLabel,
       errors,
@@ -2581,9 +2790,11 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     ],
     lateGeometryError: expect.stringContaining('geometry is only valid with svgUrl'),
     lateGeometrySvgCount: 0,
+    viewportScale: 2,
   });
   expect(result.maxFocusError).toBeLessThanOrEqual(1);
   expect(result.containPieceError).toBeLessThanOrEqual(1);
+  expect(result.maxZoomedPieceError).toBeLessThanOrEqual(1);
   const axeResult = await new AxeBuilder({ page })
     .include('boardgame-spatial-board')
     .withRules(['button-name', 'aria-allowed-attr', 'aria-valid-attr-value', 'nested-interactive'])

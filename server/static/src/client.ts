@@ -81,6 +81,7 @@ export type { StatusTextAutoMessage, StatusTextValue } from './components/boardg
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
+export type { BoardViewportChange } from './components/boardgame-board-viewport.js';
 export {
   AdminPlayerIndex,
   AnyPlayerIndex,
@@ -132,3 +133,4 @@ import './components/boardgame-status-text.js';
 import './components/boardgame-timer.js';
 import './components/boardgame-turn-status.js';
 import './components/boardgame-spatial-board.js';
+import './components/boardgame-board-viewport.js';
