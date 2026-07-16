@@ -73,7 +73,7 @@ func (e *emitMoveArgs) HelpText() string {
 	return e.Name() + ` generates a _move_args.ts file in each game's client/ directory
 containing typed argument interfaces for all player-proposable moves. These types
 provide compile-time safety when proposing moves from client code via the typed
-proposeMove() helper on BoardgameBaseGameRenderer.
+move().with() action API on BoardgameBaseGameRenderer.
 
 The generated files follow the same convention as _move_names.ts and _types.ts:
 they are regenerated each time but should be committed to source control.`

@@ -102,28 +102,15 @@ test('assembled Pig renderer reports a real server rejection without advancing s
   expect(failedRendererRequests).toEqual([]);
 });
 
-test('legacy declarative controls cannot bypass generated schema freshness', async ({ page }) => {
+test('legacy declarative renderer controls are inert', async ({ page }) => {
   await page.goto('/');
   const result = await page.evaluate(async () => {
     await import('/src/components/boardgame-base-game-renderer.ts');
     const renderer = document.createElement('boardgame-base-game-renderer') as HTMLElement & {
       updateComplete: Promise<unknown>;
-      moveInputSchema: unknown;
-      moveInputSchemaFingerprint: string;
-      serverMoveInputSchemaFingerprint: string;
     };
-    renderer.moveInputSchema = [{ name: 'Choose', fields: [] }];
-    renderer.moveInputSchemaFingerprint = 'client-fingerprint';
-    renderer.serverMoveInputSchemaFingerprint = 'server-fingerprint';
-
     let proposals = 0;
-    const errorMessages: string[] = [];
     renderer.addEventListener('propose-move', () => proposals++);
-    const captureError = (event: ErrorEvent) => {
-      errorMessages.push(event.error instanceof Error ? event.error.message : event.message);
-      event.preventDefault();
-    };
-    window.addEventListener('error', captureError);
     document.body.append(renderer);
     await renderer.updateComplete;
 
@@ -132,36 +119,10 @@ test('legacy declarative controls cannot bypass generated schema freshness', asy
     renderer.append(button);
     button.click();
     await Promise.resolve();
-
-    const unbound = document.createElement('boardgame-base-game-renderer') as HTMLElement & {
-      updateComplete: Promise<unknown>;
-    };
-    unbound.addEventListener('propose-move', () => proposals++);
-    document.body.append(unbound);
-    await unbound.updateComplete;
-    const legacyButton = document.createElement('button');
-    legacyButton.setAttribute('propose-move', 'Choose');
-    unbound.append(legacyButton);
-    legacyButton.click();
-    await Promise.resolve();
-
-    const unrelated = document.createElement('button') as HTMLButtonElement & {
-      proposeMove: () => void;
-    };
-    unrelated.proposeMove = () => {};
-    unbound.append(unrelated);
-    unrelated.click();
-    await Promise.resolve();
-
-    window.removeEventListener('error', captureError);
+    const hasProposalShortcut = 'proposeMove' in renderer;
     renderer.remove();
-    unbound.remove();
-    return { proposals, errorMessages };
+    return { proposals, hasProposalShortcut };
   });
 
-  expect(result.proposals).toBe(0);
-  expect(result.errorMessages).toEqual(expect.arrayContaining([
-    expect.stringContaining('Generated move inputs are stale'),
-    expect.stringContaining('extend the generated GameRenderer base'),
-  ]));
+  expect(result).toEqual({ proposals: 0, hasProposalShortcut: false });
 });

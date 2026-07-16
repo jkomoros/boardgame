@@ -616,6 +616,10 @@ one shell before generating Table, Hand, or PlayerInfo bound runtime classes.
   compatibility adapter outside the curated facade. Test that an unrelated child
   with a `proposeMove` property cannot accidentally submit. Keep arbitrary visual
   attributes separate from unsafe behavioral forwarding.
+- [x] After the full known renderer corpus migrated, remove that compatibility
+  adapter and the direct `proposeMove()` shortcut. Legacy renderer attributes
+  are inert; `move()` is the sole creator proposal entry point and always keeps
+  snapshot, preview, animation, pending, and discriminated-result semantics.
 - [x] Migrate Pig fully and compare creator code size and behavior to the
   baseline. The renderer fell from 54 to 46 lines and from eight direct module/
   type imports to three facade/generated imports; two manually synchronized

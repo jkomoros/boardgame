@@ -29,7 +29,6 @@ import {
   type TargetKey,
   type TargetPreviewTransport,
 } from '../moves/target-action.js';
-import { LegacyProposalAdapter } from '../moves/legacy-proposal-adapter.js';
 import {
   AdminPlayerIndex,
   AnyPlayerIndex,
@@ -40,9 +39,6 @@ type MoveInputFor<
   K extends string,
   Inputs extends Record<string, object>,
 > = K extends keyof Inputs ? Inputs[K] : Record<string, unknown>;
-
-type ExactMoveInput<Expected extends object, Actual extends Expected> = Actual &
-  Record<Exclude<keyof Actual, keyof Expected>, never>;
 
 export class BoardgameBaseGameRenderer<
   S extends FullGameState<object, object, object, object, object>,
@@ -92,11 +88,6 @@ export class BoardgameBaseGameRenderer<
 
   readonly #moveActionCache = new Map<string, import('../moves/action.js').BoundMoveAction<string, object>>();
   readonly #targetActionCache = new Map<string, TargetAction<TargetKey, string, object>>();
-  readonly #legacyProposalAdapter = new LegacyProposalAdapter(
-    this,
-    () => this.moveInputSchema,
-    (moveName, nativeArguments) => this._proposeMoveNative(moveName, nativeArguments),
-  );
   readonly #moveActionService: MoveActionService = {
     currentClientSchemaFingerprint: () => this.moveInputSchemaFingerprint ?? '',
     currentServerSchemaFingerprint: () => this.serverMoveInputSchemaFingerprint,
@@ -263,36 +254,6 @@ export class BoardgameBaseGameRenderer<
   }
 
   /**
-   * Type-safe move proposal. When your game renderer extends
-   * `BoardgameBaseGameRenderer<State, ComponentCatalog, MoveName, MoveArgs>`,
-   * this method provides compile-time checking that the move name is valid
-   * and the arguments match the expected fields.
-   *
-   * Usage in a game renderer:
-   * ```
-   * import { MoveNames, type MoveName } from './_move_names.js';
-   * import type { MoveInputs } from './_move_args.js';
-   *
-   * class MyRenderer extends BoardgameBaseGameRenderer<State, ComponentCatalog, MoveName, MoveInputs> {
-   *   handleClick() {
-   *     this.proposeMove(MoveNames.RevealCard, { CardIndex: 3 });
-   *   }
-   * }
-   * ```
-   */
-  proposeMove<
-    K extends MN & string,
-    Actual extends MoveInputFor<K, MA> = MoveInputFor<K, MA>,
-  >(
-    moveName: K,
-    ...args: {} extends MoveInputFor<K, MA>
-      ? [args?: ExactMoveInput<MoveInputFor<K, MA>, Actual>]
-      : [args: ExactMoveInput<MoveInputFor<K, MA>, Actual>]
-  ): void {
-    this._proposeMoveNative(moveName, args[0] ?? {});
-  }
-
-  /**
    * Creates the canonical typed action for creator-authored controls. Zero-input
    * moves can propose immediately; required-input moves expose only with(args)
    * until their exact generated native input is bound.
@@ -312,29 +273,6 @@ export class BoardgameBaseGameRenderer<
       baselineLegalityApplies: this.proposingAsPlayer === this.viewingAsPlayer,
       actionCacheKey: snapshotKey,
     });
-  }
-
-  private _proposeMoveNative(moveName: string, nativeArgs: unknown): void {
-    // Convert all values to strings for the server (form-encoded submission).
-    // Booleans must be "1"/"0" (not "true"/"false") because the server uses
-    // strconv.Atoi for boolean fields.
-    if (!this.moveInputSchema || !this.moveInputSchemaFingerprint) {
-      throw new Error(
-        'Renderer has no generated move-input contract; extend the generated GameRenderer base',
-      );
-    }
-    const stringArgs = serializeCreatorMoveInputForServer(
-      this.moveInputSchema,
-      this.moveInputSchemaFingerprint,
-      this.serverMoveInputSchemaFingerprint,
-      moveName,
-      nativeArgs,
-    );
-    this.dispatchEvent(new CustomEvent('propose-move', {
-      composed: true,
-      bubbles: true,
-      detail: { name: moveName, arguments: stringArgs }
-    }));
   }
 
   /**
@@ -357,11 +295,6 @@ export class BoardgameBaseGameRenderer<
     return false;
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.#legacyProposalAdapter.connect();
-  }
-
   override disconnectedCallback() {
     super.disconnectedCallback();
     for (const action of this.#moveActionCache.values()) cancelMoveActionPreview(action);
@@ -369,7 +302,6 @@ export class BoardgameBaseGameRenderer<
     this.#moveActionCache.clear();
     this.#targetActionCache.clear();
     this.#lastMoveSnapshotKey = '';
-    this.#legacyProposalAdapter.disconnect();
   }
 
   protected override willUpdate(changedProperties: Map<PropertyKey, unknown>): void {

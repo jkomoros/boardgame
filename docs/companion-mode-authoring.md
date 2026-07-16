@@ -117,8 +117,8 @@ html`<boardgame-action-button
 </boardgame-action-button>`
 ```
 
-The old `propose-move`/`data-arg-*` DOM protocol remains an existing-renderer
-adapter, not the authoring API for new companion controls.
+The old renderer `propose-move`/`data-arg-*` DOM protocol is removed. Companion
+controls use the same snapshot-bound typed actions as solo controls.
 
 ## Private state and the seat picker
 
@@ -190,13 +190,12 @@ second browser profile, or claim seats via `curl` against
 
 ## Type-checking your renderers
 
-`boardgame-util serve` transpiles renderers WITHOUT type-checking (fast dev
-loop). A production `boardgame-util build static` type-checks all game
-renderers against the framework types and prints any errors as warnings —
-so run a prod build (or `tsc` over the assembled dir) before shipping. The
+`boardgame-util serve` and production builds run the strict configured-game
+client checker and fail on type, unsafe-escape, stale-generation, or Lit
+binding errors. The
 base classes are generic (`BoardgameTableViewBase<GameState, PlayerState>`
 etc.); pass your generated `_types` and you'll get compile-time checking of
-`playerState` access and `proposeMove` args, with no casts needed.
+`playerState` access and `move(...).with(...)` args, with no casts needed.
 
 ## Known limitations (V1)
 

@@ -2104,10 +2104,12 @@ unchecked/failed exact preview, or another pending submission. A
 successful submission consumes that snapshot until a newer state arrives; the
 server also checks the expected version inside its serialized move loop.
 
-The old `propose-move="MOVENAME"` and `data-arg-*` markup remains a compatibility
-adapter for existing renderers. Do not use it in new renderer code: strings,
-manual disabled state, and DOM argument coercion make it much easier to create
-controls that look active but cannot safely submit.
+The old `propose-move="MOVENAME"`, `data-arg-*`, and direct `proposeMove()`
+renderer APIs have been removed. They bypassed the action's snapshot,
+animation, pending, exact-preview, and result contracts. A legacy-looking
+attribute inside a game renderer is inert; use `move()`, bind required input
+with `with()`, then hand the action to a framework control or call
+`activate()` from a custom gesture.
 
 **Move Legality:** The server computes `Legal()` for each non-FixUp move against the current state and ships the result to the client. Your renderer receives this via the `moveLegality` property (set automatically by the framework), and can use two convenience methods:
 

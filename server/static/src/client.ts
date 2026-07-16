@@ -24,14 +24,6 @@ export type {
   OpaqueComponent,
   VisibleComponent,
 } from './types/boardgame-types.js';
-export {
-  assertMoveInputSchemaFingerprint,
-  serializeCreatorMoveInput,
-  serializeCreatorMoveInputForServer,
-  validateCreatorMoveInput,
-  MoveInputValidationError,
-  StaleMoveInputSchemaError,
-} from './moves/input.js';
 export type {
   BoundMoveAction,
   MoveActionAvailability,

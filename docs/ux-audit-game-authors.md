@@ -21,7 +21,7 @@ walking the "add companion mode to an existing game" journey step by step.
 - The base helpers are à-la-carte: `renderRoomCodeBanner()`,
   `renderAvatarStrip()`, `renderHostControls()`, `renderFakeDeckRow()`,
   `renderHandHeader()`, `renderTopEdgeAnchor()`, plus `playerState`,
-  `viewingAs`, `isMoveCurrentlyLegal()`, typed `proposeMove()`,
+  `viewingAs`, `isMoveCurrentlyLegal()`, typed snapshot-bound `move()` actions,
   `this.animator`.
 
 ## The five traps (ranked by how fast a new author hits them)
