@@ -10,6 +10,12 @@ export type RankValue = "Unknown" | "Ace" | "2" | "3" | "4" | "5" | "6" | "7" | 
 
 export type SuitValue = "�" | "♠" | "♥" | "♣" | "♦" | "Jokers";
 
+export interface GameEnums {
+  readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
+  readonly "Rank": { readonly Values?: Readonly<Record<string, RankValue>> };
+  readonly "Suit": { readonly Values?: Readonly<Record<string, SuitValue>> };
+}
+
 export interface CardsComponentValues {
   readonly Rank: RankValue;
   readonly Suit: SuitValue;

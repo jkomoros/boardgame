@@ -52,7 +52,8 @@ export class BoardgameTableViewBase<
   MN extends string,
   MA extends Record<string, object>,
   K extends object = object,
-> extends BoardgameBaseGameRenderer<S, C, MN, MA, K> {
+  E extends object = object,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E> {
 
   /**
    * Per-seat avatar + name records, indexed by player index. May contain

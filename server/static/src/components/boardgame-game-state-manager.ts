@@ -248,6 +248,11 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
 
+    const previousRoute = changedProperties.get('gameRoute') as typeof this.gameRoute | undefined;
+    const routeChanged = changedProperties.has('gameRoute')
+      && !sameGameRoute(previousRoute ?? null, this.gameRoute);
+    if (routeChanged) this._gameRouteChanged(previousRoute ?? null);
+
     // Get current values from computed properties (reading from Redux)
     const currentTargetVersion = this.targetVersion;
     const currentGameVersion = this.gameVersion;
@@ -265,9 +270,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this.gameVersionPath, currentLastFetchedVersion, currentGameVersion
     );
 
-    // Only update socket URL if active or _infoInstalled changes
-    // gameRoute changes are handled via those dependencies
-    if (changedProperties.has('active') || changedProperties.has('_infoInstalled')) {
+    if (changedProperties.has('active') || changedProperties.has('_infoInstalled') || routeChanged) {
       const newSocketUrl = this._computeSocketUrl(this.active, this._infoInstalled);
       // Only update if the URL actually changed
       // This prevents redundant reconnections during property update cycles
@@ -290,7 +293,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this._loggedInChanged(this.loggedIn);
     }
 
-    if (changedProperties.has('active')) {
+    if (changedProperties.has('active') && !routeChanged) {
       this._activeChanged(this.active);
     }
 
@@ -347,6 +350,20 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       // old one.
       this.gameRoute = null;
     }
+  }
+
+  private _gameRouteChanged(previousRoute: typeof this.gameRoute): void {
+    if (previousRoute) companionTimeline.resetGame(previousRoute.id);
+    // Close synchronously. A queued frame from the previous route must not get
+    // a chance to mutate the newly selected game's target version.
+    this._socketUrl = '';
+    this._socketUrlChanged('');
+    if (this._reconnectTimer !== null) {
+      window.clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    this._stopHeartbeat();
+    this.reset();
   }
 
   private _handleTargetVersionChanged() {
@@ -900,5 +917,12 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 }
 
 customElements.define('boardgame-game-state-manager', BoardgameGameStateManager);
+
+function sameGameRoute(
+  first: { name: string; id: string } | null,
+  second: { name: string; id: string } | null,
+): boolean {
+  return first?.name === second?.name && first?.id === second?.id;
+}
 
 export { BoardgameGameStateManager };

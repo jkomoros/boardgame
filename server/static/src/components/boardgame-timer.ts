@@ -72,7 +72,9 @@ export class BoardgameTimer extends LitElement {
   @property({ type: String, attribute: 'expired-label' })
   expiredLabel = 'Time expired';
 
-  private readonly _clock = new TimerController(this, () => this.timer, { cadence: 'frame' });
+  private readonly _clock = new TimerController(this, () => this.timer, {
+    getCadence: () => this.hideProgress ? 'second' : 'frame',
+  });
 
   override render() {
     this._validateConfiguration();

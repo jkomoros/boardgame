@@ -88,6 +88,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
@@ -257,17 +258,14 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 
 	if prodBuild {
 		// Type-check the game renderers before bundling. Vite/esbuild strip
-		// types without checking, so this is the only gate that catches
-		// renderer type errors. Non-fatal (external games may not be
-		// type-clean); dev `serve` skips this to keep the loop fast.
+		// types without checking, so shipping after diagnostics would silently
+		// discard the creator's contract errors.
 		fmt.Println("Type-checking game renderers")
 		staticDir := filepath.Join(directory, staticSubFolder)
 		if diagnostics, err := TypeCheckGameSrc(staticDir); err != nil {
-			fmt.Println("WARNING: skipped game-renderer type-check: " + err.Error())
-		} else {
-			for _, d := range diagnostics {
-				fmt.Println(d)
-			}
+			return "", fmt.Errorf("couldn't type-check game renderers: %w", err)
+		} else if len(diagnostics) > 0 {
+			return "", fmt.Errorf("game-renderer type-check failed:\n%s", strings.Join(diagnostics, "\n"))
 		}
 
 		fmt.Println("Building bundled resources with Vite")

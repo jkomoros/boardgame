@@ -124,11 +124,13 @@ export interface ExpandedTimer {
 export interface GameChest<
   C extends object = object,
   K extends object = object,
+  E extends object = Readonly<Record<string, {
+    readonly Values?: Readonly<Record<string, string>>;
+  }>>,
 > {
   readonly Decks?: DeepReadonly<C>;
-  readonly Enums?: Readonly<Record<string, {
-    readonly Values?: Readonly<Record<string, string>>;
-  }>>;
+  /** Exact enum names and value unions are supplied by generated contracts. */
+  readonly Enums?: DeepReadonly<E>;
   /** Exact names and values are supplied by each game's generated contract. */
   readonly Constants?: DeepReadonly<K>;
   readonly LegalTemplates?: Readonly<Record<string, string>>;

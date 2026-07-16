@@ -608,20 +608,10 @@ class BoardgameSpatialBoard extends LitElement {
       })
       : null;
     this._refreshCandidates();
-    if (this.action && this._resolvedGeometry) {
-      try {
-        this._validateActionKeys();
-        this._loadError = null;
-        void this.action.ensurePreview();
-      } catch (error) {
-        this._loadError = error instanceof Error ? error.message : String(error);
-        this.dispatchEvent(new CustomEvent('svg-load-error', {
-          composed: true,
-          detail: { message: this._loadError },
-        }));
-      }
+    if (this._resolvedGeometry) {
+      this._revalidateActionConfiguration();
+      if (this.action && this._loadError === null) void this.action.ensurePreview();
     }
-    if (this._resolvedGeometry) this._applyDisabledSpaces();
   }
 
   private _refreshCandidates(): void {

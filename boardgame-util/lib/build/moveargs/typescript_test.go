@@ -98,6 +98,7 @@ func TestValidateTypeScriptSchemaRejectsMalformedAndCollidingNames(t *testing.T)
 		{"numeric symbol", []MoveInfo{{Name: "123 move"}}, "invalid TypeScript identifier"},
 		{"collision", []MoveInfo{{Name: "Move-Token"}, {Name: "Move Token"}}, "both generate"},
 		{"duplicate", []MoveInfo{{Name: "Move"}, {Name: "Move"}}, "appears more than once"},
+		{"unsupported codec", []MoveInfo{{Name: "Move", Fields: []MoveFieldInfo{{Name: "Mystery", Codec: "future"}}}}, "unsupported creator codec"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

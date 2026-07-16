@@ -8,6 +8,13 @@ import (
 
 var typeScriptIdentifier = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
+var supportedPropertyTypes = map[string]bool{
+	"TypeBool": true, "TypeInt": true, "TypeString": true, "TypePlayerIndex": true,
+	"TypeBoolSlice": true, "TypeIntSlice": true, "TypeStringSlice": true,
+	"TypePlayerIndexSlice": true, "TypeEnum": true, "TypeEnumSlice": true,
+	"TypeStack": true, "TypeBoard": true, "TypeTimer": true,
+}
+
 // ValidateTypeResult rejects extractor output that cannot be represented by the
 // generated TypeScript API. Validation is deliberately separate from rendering
 // so callers can validate a complete generation before touching any files.
@@ -16,6 +23,7 @@ func ValidateTypeResult(result TypeResult) error {
 		"ComponentCatalog":       "framework component catalog",
 		"ComputedEnumOption":     "framework computed enum option",
 		"GameConstants":          "framework game constants",
+		"GameEnums":              "framework game enums",
 		"DynamicComponentValues": "framework dynamic component values",
 		"GameComputed":           "framework game computed values",
 		"PlayerComputed":         "framework player computed values",
@@ -34,8 +42,13 @@ func ValidateTypeResult(result TypeResult) error {
 		seenConstants[constant.Name] = true
 		switch constant.Kind {
 		case "number":
-			if _, err := strconv.Atoi(constant.Value); err != nil {
+			value, err := strconv.ParseInt(constant.Value, 10, 64)
+			if err != nil {
 				return fmt.Errorf("game constant %q has invalid integer value %q", constant.Name, constant.Value)
+			}
+			const maxJavaScriptSafeInteger = int64(1<<53 - 1)
+			if value < -maxJavaScriptSafeInteger || value > maxJavaScriptSafeInteger {
+				return fmt.Errorf("game constant %q value %q is outside JavaScript's safe integer range", constant.Name, constant.Value)
 			}
 		case "boolean":
 			if _, err := strconv.ParseBool(constant.Value); err != nil {
@@ -59,6 +72,9 @@ func ValidateTypeResult(result TypeResult) error {
 	validateFields := func(owner string, fields []FieldInfo) error {
 		seen := make(map[string]bool)
 		for _, field := range fields {
+			if !supportedPropertyTypes[field.Type] {
+				return fmt.Errorf("%s field %q has unsupported property type %q", owner, field.Name, field.Type)
+			}
 			if !typeScriptIdentifier.MatchString(field.Name) {
 				return fmt.Errorf("%s field %q is not a valid TypeScript identifier", owner, field.Name)
 			}
@@ -78,6 +94,9 @@ func ValidateTypeResult(result TypeResult) error {
 	validateComputedFields := func(owner string, fields []FieldInfo) error {
 		seen := make(map[string]bool)
 		for _, field := range fields {
+			if !supportedPropertyTypes[field.Type] || field.Type == "TypeStack" || field.Type == "TypeBoard" || field.Type == "TypeTimer" {
+				return fmt.Errorf("%s field %q has unsupported computed-property type %q", owner, field.Name, field.Type)
+			}
 			if field.Name == "" {
 				return fmt.Errorf("%s contains an empty field name", owner)
 			}
@@ -120,6 +139,11 @@ func ValidateTypeResult(result TypeResult) error {
 		if len(deck.Fields) > 0 {
 			if err := declare(base+"ComponentValues", fmt.Sprintf("deck %q static values", deck.Name)); err != nil {
 				return err
+			}
+		}
+		for _, field := range deck.Fields {
+			if field.Type == "TypeStack" || field.Type == "TypeBoard" || field.Type == "TypeTimer" {
+				return fmt.Errorf("deck %q static value %q cannot use stateful property type %q", deck.Name, field.Name, field.Type)
 			}
 		}
 		if len(deck.DynamicFields) > 0 {

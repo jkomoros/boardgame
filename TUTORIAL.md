@@ -2006,7 +2006,7 @@ It owns the local item-to-target state and ordinary undo/clear controls while
 the final commit remains a generated, server-previewed move action:
 
 ```typescript
-import { PlacementDraftController } from '/src/client.js';
+import { PlacementDraftController } from '../../src/client.js';
 
 private readonly wordDraft = new PlacementDraftController<string, number>(this);
 
@@ -2205,20 +2205,37 @@ export interface GameConstants {
   readonly "friendly": true;
 }
 
+export interface GameComputed {
+  readonly CurrentPlayerName: string;
+}
+
+export interface PlayerComputed {
+  readonly Color: string;
+  readonly MayBeActive: boolean;
+}
+
+export type DynamicComponentValues = Readonly<Record<string, never>>;
+
 export interface GameState {
-  CurrentPlayer: number;
-  Phase: PhaseValue;
-  DrawStack: ExpandedStack<CardsComponentValues>;
-  Computed?: Record<string, unknown>;
+  readonly CurrentPlayer: number;
+  readonly Phase: PhaseValue;
+  readonly DrawStack: ExpandedStack<CardsComponentValues>;
+  readonly Computed?: GameComputed;
 }
 
 export interface PlayerState {
-  Hand: ExpandedStack<CardsComponentValues>;
-  Score: number;
-  Computed?: Record<string, unknown>;
+  readonly Hand: ExpandedStack<CardsComponentValues>;
+  readonly Score: number;
+  readonly Computed?: PlayerComputed;
 }
 
-export type State = FullGameState<GameState, PlayerState>;
+export type State = FullGameState<
+  GameState,
+  PlayerState,
+  GameComputed,
+  PlayerComputed,
+  DynamicComponentValues
+>;
 ```
 
 Import these types in your renderer to get full type safety and autocomplete on `this.state`:
@@ -2740,7 +2757,7 @@ region needs an accessible label. `data-board-label` is clearest, while an
 Then bind typed targets and an explicit piece projection:
 
 ```ts
-import { html, piecesFromSizedStacks } from '/src/client.js';
+import { html, piecesFromSizedStacks } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
 import { BoardSpaceKeys } from './_board_spaces.js';
 
@@ -2795,7 +2812,7 @@ describe its spaces in normalized coordinates. You do not need to trace the
 image into SVG or write resize math:
 
 ```ts
-import { html, rasterBoardArtwork } from '/src/client.js';
+import { html, rasterBoardArtwork } from '../../src/client.js';
 
 const artwork = rasterBoardArtwork({
   src: 'game-src/mygame/board.webp',
@@ -2912,7 +2929,7 @@ keeps the line aligned through resize and pan/zoom, and supplies an accessible
 route description without making the decorative line interactive:
 
 ```ts
-import { html, type BoardPathOverlay } from '/src/client.js';
+import { html, type BoardPathOverlay } from '../../src/client.js';
 import { BoardSpaceKeys } from './_board_spaces.js';
 
 type BoardSpace = (typeof BoardSpaceKeys)[number];

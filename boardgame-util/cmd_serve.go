@@ -75,7 +75,7 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 
 	fmt.Println("Generating move name constants")
 	if err := emitMoveNamesForPackages(s.Base(), pkgs); err != nil {
-		fmt.Println("Warning: couldn't generate move names: " + err.Error())
+		s.Base().errAndQuit("Couldn't generate move names: " + err.Error())
 	}
 
 	fmt.Println("Generating move argument types")
@@ -88,7 +88,7 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 
 	fmt.Println("Generating type definitions")
 	if err := emitTypesForPackages(s.Base(), pkgs); err != nil {
-		fmt.Println("Warning: couldn't generate type definitions: " + err.Error())
+		s.Base().errAndQuit("Couldn't generate type definitions: " + err.Error())
 	}
 
 	fmt.Println("Creating temporary binary")

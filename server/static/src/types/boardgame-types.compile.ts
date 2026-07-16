@@ -20,7 +20,8 @@ declare const stateWithDynamicComponents: FullGameState<
 >;
 declare const chest: GameChest<
   { cards: readonly { readonly Index: number; readonly Values: CardValues }[] },
-  { readonly numCards: 9; readonly friendly: true }
+  { readonly numCards: 9; readonly friendly: true },
+  { readonly phase: { readonly Values?: Readonly<Record<string, 'Play' | 'Done'>> } }
 >;
 declare const unboundChest: GameChest;
 
@@ -38,6 +39,7 @@ state.Players[0]!.Score = 3;
 stateWithDynamicComponents.Components?.cards[0]?.FaceUp;
 chest.Decks?.cards[0]?.Values.Suit;
 chest.Constants?.numCards;
+chest.Enums?.phase.Values;
 // @ts-expect-error Static chest entries do not have expanded instance IDs.
 chest.Decks?.cards[0]?.ID;
 // @ts-expect-error Dynamic component snapshots are deeply readonly.
@@ -46,5 +48,7 @@ stateWithDynamicComponents.Components?.cards.push(null);
 unboundChest.Decks?.cards;
 // @ts-expect-error Generated game constants reject nonexistent names.
 chest.Constants?.numCard;
+// @ts-expect-error Generated game enum contracts reject nonexistent names.
+chest.Enums?.phsae;
 // @ts-expect-error Unbound framework chest types do not advertise creator constant names.
 unboundChest.Constants?.numCards;

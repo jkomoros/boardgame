@@ -149,7 +149,7 @@ func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) e
 		return nil
 	}
 	for _, file := range generated {
-		if err := os.WriteFile(file.path, file.contents, 0644); err != nil {
+		if err := atomicWriteBoardSpaceContract(file.path, file.contents); err != nil {
 			return fmt.Errorf("couldn't write _move_names.ts for %s: %w", file.gameName, err)
 		}
 		fmt.Fprintf(os.Stderr, "  Generated %s/client/_move_names.ts (%d moves)\n", file.gameName, file.moves)

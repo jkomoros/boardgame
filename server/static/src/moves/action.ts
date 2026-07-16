@@ -312,7 +312,7 @@ export function notifyMoveActionLiveStateChanged(action: BoundMoveAction<string,
 }
 
 export type MoveActionFor<MoveName extends string, Input extends object> =
-  Record<string, never> extends Input
+  [Input[keyof Input]] extends [never]
     ? BoundMoveAction<MoveName, Input>
     : MoveActionBuilder<MoveName, Input>;
 

@@ -18,6 +18,7 @@ import type {
   ComponentCatalog,
   DynamicComponentValues,
   GameConstants,
+  GameEnums,
   GameComputed,
   GameState,
   PlayerComputed,
@@ -35,6 +36,7 @@ export interface GameClientContract {
   readonly Components: ComponentCatalog;
   readonly DynamicComponents: DynamicComponentValues;
   readonly Constants: GameConstants;
+  readonly Enums: GameEnums;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
   readonly RendererTag:
@@ -49,7 +51,8 @@ export abstract class GameRenderer extends BoardgameBaseGameRenderer<
   GameClientContract['Components'],
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
-  GameClientContract['Constants']
+  GameClientContract['Constants'],
+  GameClientContract['Enums']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -61,7 +64,8 @@ export abstract class TableRenderer extends BoardgameTableViewBase<
   GameClientContract['Components'],
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
-  GameClientContract['Constants']
+  GameClientContract['Constants'],
+  GameClientContract['Enums']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -73,7 +77,8 @@ export abstract class HandRenderer extends BoardgameHandViewBase<
   GameClientContract['Components'],
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
-  GameClientContract['Constants']
+  GameClientContract['Constants'],
+  GameClientContract['Enums']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;

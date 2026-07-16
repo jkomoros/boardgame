@@ -4,6 +4,8 @@
 
 import type { CatalogComponent, ExpandedStack, FullGameState } from '../../src/types/boardgame-types.js';
 
+export type GameEnums = Readonly<Record<string, never>>;
+
 export interface DiceComponentValues {
   readonly Faces: readonly number[];
 }

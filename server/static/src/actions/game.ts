@@ -461,7 +461,7 @@ export const fetchGameInfo = (
   requestedPlayer: number,
   admin: boolean,
   lastFetchedVersion: number
-) => async (dispatch: ThunkDispatch<RootState, unknown, UnknownAction>): Promise<void> => {
+) => async (dispatch: ThunkDispatch<RootState, unknown, UnknownAction>, getState: () => RootState): Promise<void> => {
   dispatch({ type: FETCH_GAME_INFO_REQUEST });
 
   const url = buildGameUrl(
@@ -476,6 +476,10 @@ export const fetchGameInfo = (
   );
 
   const response = await apiGet<unknown>(url);
+
+  // Navigation can replace the active game while this request is in flight.
+  // Never let the previous route's response populate the new route's store.
+  if (!isCurrentGameRoute(getState(), gameRoute)) return;
 
   if (response.error) {
     dispatch({
@@ -574,6 +578,8 @@ export const fetchGameVersion = (
 
   const response = await apiGet<unknown>(url);
 
+  if (!isCurrentGameRoute(getState(), gameRoute)) return;
+
   if (response.error) {
     dispatch({
       type: FETCH_GAME_VERSION_FAILURE,
@@ -634,6 +640,10 @@ export const fetchGameVersion = (
   // and cause the same state to be installed twice (once directly, once via queue),
   // wasting a bundle queue slot and potentially confusing animation tracking.
 };
+
+function isCurrentGameRoute(state: RootState, route: GameRoute): boolean {
+  return state.game?.name === route.name && state.game?.id === route.id;
+}
 
 /**
  * Animation Actions

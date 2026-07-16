@@ -6,6 +6,10 @@ import type { CatalogComponent, ExpandedStack, FullGameState } from '../../src/t
 
 export type PhaseValue = "Normal";
 
+export interface GameEnums {
+  readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
+}
+
 export interface CardsComponentValues {
   readonly Type: string;
 }

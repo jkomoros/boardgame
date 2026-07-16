@@ -390,7 +390,9 @@ export class BoardgameGameBoard extends LitElement {
     const placement = this._placementTarget(index);
     if (placement) return !placement.canPlace;
     const candidate = this._targetAction?.get(index);
-    return candidate ? !candidate.action.canActivate : false;
+    if (candidate) return !candidate.action.canActivate;
+    if (this.sourceDestination) return !this.sourceDestination.sources.includes(index);
+    return false;
   }
 
   private _placementTarget(index: number) {

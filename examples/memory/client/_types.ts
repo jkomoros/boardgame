@@ -4,6 +4,8 @@
 
 import type { CatalogComponent, ExpandedStack, ExpandedTimer, FullGameState } from '../../src/types/boardgame-types.js';
 
+export type GameEnums = Readonly<Record<string, never>>;
+
 export interface CardsComponentValues {
   readonly CardSet: string;
   readonly Type: string;

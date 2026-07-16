@@ -29,6 +29,9 @@ func TestValidateTypeResultRejectsInvalidAndDuplicateFields(t *testing.T) {
 			{Name: "Score", Type: "TypeInt"},
 			{Name: "Score", Type: "TypeInt"},
 		}},
+		"unknown type":              {GameFields: []FieldInfo{{Name: "Mystery", Type: "TypeFuture"}}},
+		"computed interface":        {GameComputedFields: []FieldInfo{{Name: "Cards", Type: "TypeStack"}}},
+		"stateful static component": {Decks: []DeckInfo{{Name: "cards", Fields: []FieldInfo{{Name: "Nested", Type: "TypeBoard"}}}}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := ValidateTypeResult(result); err == nil {
@@ -60,6 +63,7 @@ func TestValidateTypeResultRejectsInvalidConstants(t *testing.T) {
 		"duplicate name": {{Name: "same", Kind: "string", Value: "x"}, {Name: "same", Kind: "string", Value: "y"}},
 		"unknown kind":   {{Name: "x", Kind: "object", Value: "{}"}},
 		"bad integer":    {{Name: "x", Kind: "number", Value: "1.5"}},
+		"unsafe integer": {{Name: "x", Kind: "number", Value: "9007199254740992"}},
 		"bad boolean":    {{Name: "x", Kind: "boolean", Value: "yes"}},
 	}
 	for name, constants := range tests {

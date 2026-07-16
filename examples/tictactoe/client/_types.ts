@@ -6,6 +6,10 @@ import type { CatalogComponent, ExpandedStack, FullGameState } from '../../src/t
 
 export type PhaseValue = "Before First Move" | "After First Move";
 
+export interface GameEnums {
+  readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
+}
+
 export interface TokensComponentValues {
   readonly Value: string;
 }

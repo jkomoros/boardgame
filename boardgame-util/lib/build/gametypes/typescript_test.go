@@ -75,7 +75,7 @@ func TestBaseFieldTypeToTS(t *testing.T) {
 		{FieldInfo{Type: "TypeEnum"}, "string"},
 		{FieldInfo{Type: "TypeEnumSlice", EnumName: "color"}, "readonly ColorValue[]"},
 		{FieldInfo{Type: "TypeEnumSlice"}, "readonly string[]"},
-		{FieldInfo{Type: "TypeSomethingUnknown"}, "unknown"},
+		{FieldInfo{Type: "TypeSomethingUnknown"}, "never"},
 	}
 
 	for _, tc := range tests {
@@ -99,7 +99,7 @@ func TestDynamicFieldTypeToTS(t *testing.T) {
 		{FieldInfo{Type: "TypeInt"}, "number"},
 		{FieldInfo{Type: "TypeString"}, "string"},
 		{FieldInfo{Type: "TypeStack"}, "RawStack"},
-		{FieldInfo{Type: "TypeTimer"}, "Record<string, unknown>"},
+		{FieldInfo{Type: "TypeTimer"}, "ExpandedTimer"},
 		{FieldInfo{Type: "TypeBoard"}, "Board"},
 		{FieldInfo{Type: "TypeEnum", EnumName: "color"}, "ColorValue"},
 		{FieldInfo{Type: "TypeEnum"}, "string"},
@@ -214,6 +214,7 @@ func TestGenerateTypeScript(t *testing.T) {
 
 	for _, want := range []string{
 		`export interface GameComputed {`,
+		`export interface GameEnums {`,
 		`readonly "cards-done": boolean;`,
 		`export interface PlayerComputed {`,
 		`readonly Color: string;`,
@@ -305,11 +306,13 @@ func TestGenerateRendererTypeScriptBindsCompleteContractAndExactRegistration(t *
 		"protected override readonly moveInputSchema = moveInputSchema;",
 		"readonly Components: ComponentCatalog;",
 		"readonly Constants: GameConstants;",
+		"readonly Enums: GameEnums;",
 		"readonly RendererTag:",
 		"'boardgame-render-game-sample-table'",
 		"'boardgame-render-game-sample-hand'",
 		"GameClientContract['State']",
 		"GameClientContract['Constants']",
+		"GameClientContract['Enums']",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("missing %q:\n%s", want, ts)

@@ -169,13 +169,16 @@ function bindProperties<
   properties: SettableComponentProperties<ElementType>,
 ): ComponentView<S, ElementType> {
   const base = source.base ?? source;
-  const overrides = Object.freeze({ ...properties });
+  const overrides = Object.freeze({ ...(source.overrides ?? {}), ...properties });
   return Object.freeze({
     create: base.create,
     options: base.options,
     base,
     overrides,
-    withProperties: (next: SettableComponentProperties<ElementType>) => bindProperties(base, next),
+    withProperties: (next: SettableComponentProperties<ElementType>) => bindProperties(
+      { ...source, base, overrides } as InternalComponentView<S, ElementType>,
+      next,
+    ),
   }) as InternalComponentView<S, ElementType>;
 }
 

@@ -50,6 +50,7 @@ export class BoardgameBaseGameRenderer<
   MN extends string,
   MA extends Record<string, object>,
   K extends object = object,
+  E extends object = object,
 > extends LitElement {
   /** Generated safe-input contract installed by a bound/game renderer. */
   protected readonly moveInputSchema: MoveInputSchema | null = null;
@@ -129,7 +130,7 @@ export class BoardgameBaseGameRenderer<
   #moveRequestSequence = 0;
 
   @property({ type: Object })
-  chest: GameChest<C, K> | null = null;
+  chest: GameChest<C, K, E> | null = null;
 
   @property({ type: String })
   diagram = '';

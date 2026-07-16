@@ -37,6 +37,21 @@ func ValidateTypeScriptSchema(moves []MoveInfo) error {
 			return fmt.Errorf("move names %q and %q both generate TypeScript identifier %q", previous, move.Name, symbol)
 		}
 		seenSymbols[symbol] = move.Name
+		seenFields := make(map[string]bool, len(move.Fields))
+		for _, field := range move.Fields {
+			if !validTypeScriptIdentifier(field.Name) {
+				return fmt.Errorf("move %q field %q is not a valid TypeScript identifier", move.Name, field.Name)
+			}
+			if seenFields[field.Name] {
+				return fmt.Errorf("move %q contains duplicate field %q", move.Name, field.Name)
+			}
+			seenFields[field.Name] = true
+			switch field.Codec {
+			case "integer", "player-index", "boolean", "enum", "string":
+			default:
+				return fmt.Errorf("move %q field %q has unsupported creator codec %q", move.Name, field.Name, field.Codec)
+			}
+		}
 	}
 	return nil
 }
@@ -166,7 +181,7 @@ func fieldTypeToTS(field MoveFieldInfo) string {
 	case "string":
 		return "string"
 	default:
-		return "unknown"
+		return "never"
 	}
 }
 

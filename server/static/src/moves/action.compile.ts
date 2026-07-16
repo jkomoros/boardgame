@@ -6,11 +6,12 @@ import {
 } from './action.js';
 import { bindMoveAction } from './action-binding.js';
 
-type MoveName = 'Roll' | 'Place' | 'Choose';
+type MoveName = 'Roll' | 'Place' | 'Choose' | 'Customize';
 type MoveInputs = {
   Roll: Record<string, never>;
   Place: { Slot: number };
   Choose: { Choice: 'red' | 'blue'; Confirm?: boolean };
+  Customize: { Label?: string };
 };
 
 declare const service: MoveActionService;
@@ -31,6 +32,11 @@ void bindMoveAction(place.with({ Slot: 3 }));
 const choose = createMoveAction<'Choose', MoveName, MoveInputs>('Choose', service, snapshot);
 void choose.with({ Choice: 'red' }).propose();
 void choose.with({ Choice: 'blue', Confirm: true }).propose();
+const customize = createMoveAction<'Customize', MoveName, MoveInputs>('Customize', service, snapshot);
+void customize.with({}).propose();
+void customize.with({ Label: 'custom' }).propose();
+// @ts-expect-error Defaultable creator fields still require explicit binding.
+void customize.propose();
 
 // @ts-expect-error Required-input actions cannot be proposed before binding arguments.
 void place.propose();

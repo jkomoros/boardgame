@@ -307,14 +307,51 @@ test('game state manager isolates socket routes and owns the socket lifecycle', 
         manager.remove();
         await new Promise(resolve => window.setTimeout(resolve, 300));
 
+        const nativeFetch = globalThis.fetch;
+        globalThis.fetch = () => new Promise<Response>(() => undefined);
+        const routed = document.createElement('boardgame-game-state-manager') as TestManager & {
+          active: boolean;
+          gameRoute: { name: string; id: string } | null;
+          _infoInstalled: boolean;
+          targetVersion: number;
+        };
+        routed.gameRoute = { name: 'alpha', id: 'A' };
+        routed.active = true;
+        document.body.append(routed);
+        await routed.updateComplete;
+        routed._infoInstalled = true;
+        await routed.updateComplete;
+        await routed.updateComplete;
+        const alpha = FakeWebSocket.instances[4];
+        if (!alpha) throw new Error('Reactive route did not connect');
+        routed.gameRoute = { name: 'beta', id: 'B' };
+        await routed.updateComplete;
+        const targetAfterChange = routed.targetVersion;
+        alpha.onmessage?.(new MessageEvent('message', { data: '{"type":"version","data":99}' }));
+        await Promise.resolve();
+        const targetAfterStaleFrame = routed.targetVersion;
+        routed._infoInstalled = true;
+        await routed.updateComplete;
+        await routed.updateComplete;
+        const beta = FakeWebSocket.instances[5];
+        if (!beta) throw new Error('Replacement route did not reconnect');
+        const routeUrls = [alpha.url, beta.url];
+        const alphaCloseCount = alpha.closeCount;
+        routed.remove();
+        await new Promise(resolve => window.setTimeout(resolve, 0));
+        globalThis.fetch = nativeFetch;
+
         return {
-          urls: FakeWebSocket.instances.map(socket => socket.url),
-          closeCounts: FakeWebSocket.instances.map(socket => socket.closeCount),
+          urls: FakeWebSocket.instances.slice(0, 4).map(socket => socket.url),
+          closeCounts: FakeWebSocket.instances.slice(0, 4).map(socket => socket.closeCount),
           activeEvents,
           afterStaleCallbacks,
           afterRemoval,
           afterRouteClear,
-          finalCount: FakeWebSocket.instances.length,
+          routeUrls,
+          alphaCloseCount,
+          targetAfterChange,
+          targetAfterStaleFrame,
         };
       } finally {
         window.WebSocket = NativeWebSocket;
@@ -333,7 +370,10 @@ test('game state manager isolates socket routes and owns the socket lifecycle', 
       afterStaleCallbacks: 2,
       afterRemoval: 2,
       afterRouteClear: 3,
-      finalCount: 4,
+      routeUrls: ['/api/game/alpha/A/socket', '/api/game/beta/B/socket'],
+      alphaCloseCount: 1,
+      targetAfterChange: -1,
+      targetAfterStaleFrame: -1,
     });
     diagnostics.assertEmpty();
   } finally {
@@ -757,6 +797,12 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
         stableHost: fauxBefore === fauxAfter,
         rotated: fauxAfter?.rotated,
       };
+      stack.componentView = view.withProperties({ faceUp: true }).withProperties({ rotated: false });
+      await stack.updateComplete;
+      const chainedCard = stack.querySelector('boardgame-card') as
+        (HTMLElement & { faceUp: boolean; rotated: boolean; updateComplete: Promise<unknown> }) | null;
+      await chainedCard?.updateComplete;
+      const chainedBinding = { faceUp: chainedCard?.faceUp, rotated: chainedCard?.rotated };
       stack.componentsDisabled = true;
       await stack.updateComplete;
       const displayOnlyDisabled = reboundCards.map(card => card.disabled);
@@ -797,7 +843,7 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
       customStack.remove();
       return {
         before, after, stableHosts, reboundKeepsHosts, reboundRotated,
-        fauxBinding, displayOnlyDisabled, fauxDisplayOnlyDisabled, customText, missingViewError,
+        fauxBinding, chainedBinding, displayOnlyDisabled, fauxDisplayOnlyDisabled, customText, missingViewError,
       };
     });
 
@@ -815,6 +861,7 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
     expect(result.reboundKeepsHosts).toBe(true);
     expect(result.reboundRotated).toEqual([false, false, false]);
     expect(result.fauxBinding).toEqual({ created: true, stableHost: true, rotated: false });
+    expect(result.chainedBinding).toEqual({ faceUp: true, rotated: false });
     expect(result.displayOnlyDisabled).toEqual([true, true, true]);
     expect(result.fauxDisplayOnlyDisabled).toBe(true);
     expect(result.customText).toBe('Marked custom piece');
@@ -2387,6 +2434,20 @@ test('timer display consumes a scoped clock without rerendering game state', asy
         label: progress?.getAttribute('aria-labelledby'),
       };
 
+      timer.hideProgress = true;
+      await timer.updateComplete;
+      const originalRequestUpdate = timer.requestUpdate.bind(timer);
+      let selectiveUpdates = 0;
+      timer.requestUpdate = (...args: Parameters<typeof timer.requestUpdate>) => {
+        selectiveUpdates++;
+        return originalRequestUpdate(...args);
+      };
+      service.update({ hide: { TimeLeft: 2400, originalTimeLeft: 5000 } });
+      service.update({ hide: { TimeLeft: 1900, originalTimeLeft: 5000 } });
+      await timer.updateComplete;
+      timer.requestUpdate = originalRequestUpdate;
+      timer.hideProgress = false;
+
       timer.format = 'clock';
       service.update({ hide: { TimeLeft: 61_000, originalTimeLeft: 120_000 } });
       await timer.updateComplete;
@@ -2421,6 +2482,7 @@ test('timer display consumes a scoped clock without rerendering game state', asy
       await timer.updateComplete;
       return {
         initial,
+        selectiveUpdates,
         clock,
         elapsed,
         hiddenWhenIdle,
@@ -2431,6 +2493,7 @@ test('timer display consumes a scoped clock without rerendering game state', asy
     });
 
     expect(result.initial).toEqual({ value: '3s', progress: 0.5, status: 'running', label: 'label' });
+    expect(result.selectiveUpdates).toBe(1);
     expect(result.clock).toBe('1:01');
     expect(result.elapsed).toEqual({ value: 'Time expired', announcement: 'Time expired', status: 'elapsed' });
     expect(result.hiddenWhenIdle).toBe(true);
@@ -3282,6 +3345,56 @@ test('game board composes typed placement destinations without parallel click st
   expect(axeResult.violations).toEqual([]);
 });
 
+test('source-destination grids disable cells that cannot perform an interaction', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-game-board.ts');
+    const board = document.createElement('boardgame-game-board') as HTMLElement & {
+      rows: number;
+      cols: number;
+      sourceDestination: unknown;
+      updateComplete: Promise<unknown>;
+    };
+    const base = {
+      sources: [1],
+      selectedSource: null,
+      action: null,
+      selectSource: () => undefined,
+      clear: () => undefined,
+    };
+    board.rows = 1;
+    board.cols = 3;
+    board.sourceDestination = base;
+    document.body.append(board);
+    await board.updateComplete;
+    const disabled = () => [...board.shadowRoot!.querySelectorAll<HTMLButtonElement>('.cell')]
+      .map(cell => cell.getAttribute('aria-disabled') === 'true');
+    const before = disabled();
+    const candidate = {
+      key: 2,
+      action: { canActivate: true, canPropose: true, reason: null },
+    };
+    board.sourceDestination = {
+      ...base,
+      selectedSource: 1,
+      action: {
+        candidates: [candidate],
+        preview: { kind: 'ready' },
+        get: (key: number) => key === 2 ? candidate : undefined,
+        subscribe: () => () => undefined,
+      },
+    };
+    await board.updateComplete;
+    const after = disabled();
+    board.remove();
+    return { before, after };
+  });
+  expect(result).toEqual({
+    before: [true, false, true],
+    after: [true, false, false],
+  });
+});
+
 test('spatial board sanitizes authored geometry and shares typed target activation', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {
@@ -3418,6 +3531,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       }));
       await Promise.resolve();
       focusButton.focus();
+      const focused = region.classList.contains('focused');
 
       // A custom sidecar uses a real sanitized SVG element that has no
       // data-board-space attribute; activation must follow the returned region.
@@ -3479,10 +3593,21 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       await settleGeometry();
       verifyGeometry();
 
+      board.action = { ...action, candidates: [] };
+      await board.updateComplete;
+      await board.updateComplete;
+      const invalidActionStatus = root?.querySelector('#status')?.textContent?.replace(/\s+/g, ' ').trim();
+      board.action = null;
+      await board.updateComplete;
+      await board.updateComplete;
+      const clearedActionError = root?.querySelector('#status')?.hasAttribute('hidden');
+      board.action = action;
+      await board.updateComplete;
+
       const successful = {
         activations,
         label: button.textContent?.trim(),
-        focused: region.classList.contains('focused'),
+        focused,
         scriptCount: root?.querySelectorAll('script').length,
         onclick: region.getAttribute('onclick'),
         unsafeFill: region.getAttribute('fill'),
@@ -3496,6 +3621,8 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         duplicateAnchorError,
         responsiveAnchorError,
         pieceOutsideRegion,
+        invalidActionStatus,
+        clearedActionError,
         componentViewForwarded: componentStack.componentView === tokenView,
         anchorError: Math.max(Math.abs(position.left - expectedLeft), Math.abs(position.top - expectedTop)),
         focusAnchorError: Math.max(
@@ -3562,6 +3689,8 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     artworkHidden: 'true',
     duplicateAnchorError: expect.stringContaining('duplicate data-board-piece-anchor'),
     pieceOutsideRegion: false,
+    invalidActionStatus: expect.stringContaining('target keys do not match geometry'),
+    clearedActionError: true,
     componentViewForwarded: true,
     inspector: expect.stringContaining('room:one/? — Library; group=rooms'),
     postRaceLabel: 'Fast Library',

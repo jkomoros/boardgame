@@ -37,6 +37,9 @@ func GenerateTypeScript(result TypeResult) string {
 			if f.Type == "TypeBoard" {
 				needsBoard = true
 			}
+			if f.Type == "TypeTimer" {
+				needsExpandedTimer = true
+			}
 		}
 	}
 
@@ -90,6 +93,21 @@ func GenerateTypeScript(result TypeResult) string {
 			}
 		}
 		b.WriteString(";\n\n")
+	}
+
+	// Generate component value interfaces (one per deck that has fields)
+	if len(result.Enums) > 0 {
+		b.WriteString("export interface GameEnums {\n")
+		for _, e := range result.Enums {
+			b.WriteString("  readonly ")
+			b.WriteString(tsQuoted(e.Name))
+			b.WriteString(": { readonly Values?: Readonly<Record<string, ")
+			b.WriteString(toPascalCase(e.Name))
+			b.WriteString("Value>> };\n")
+		}
+		b.WriteString("}\n\n")
+	} else {
+		b.WriteString("export type GameEnums = Readonly<Record<string, never>>;\n\n")
 	}
 
 	// Generate component value interfaces (one per deck that has fields)
@@ -301,6 +319,7 @@ import type {
   ComponentCatalog,
   DynamicComponentValues,
   GameConstants,
+  GameEnums,
   GameComputed,
   GameState,
   PlayerComputed,
@@ -318,6 +337,7 @@ export interface GameClientContract {
   readonly Components: ComponentCatalog;
   readonly DynamicComponents: DynamicComponentValues;
   readonly Constants: GameConstants;
+  readonly Enums: GameEnums;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
   readonly RendererTag:
@@ -332,7 +352,8 @@ export abstract class GameRenderer extends BoardgameBaseGameRenderer<
   GameClientContract['Components'],
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
-  GameClientContract['Constants']
+  GameClientContract['Constants'],
+  GameClientContract['Enums']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -344,7 +365,8 @@ export abstract class TableRenderer extends BoardgameTableViewBase<
   GameClientContract['Components'],
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
-  GameClientContract['Constants']
+  GameClientContract['Constants'],
+  GameClientContract['Enums']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -356,7 +378,8 @@ export abstract class HandRenderer extends BoardgameHandViewBase<
   GameClientContract['Components'],
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
-  GameClientContract['Constants']
+  GameClientContract['Constants'],
+  GameClientContract['Enums']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
@@ -516,7 +539,7 @@ func baseFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
 		}
 		return "readonly string[]"
 	default:
-		return "unknown"
+		return "never"
 	}
 }
 
@@ -528,7 +551,7 @@ func dynamicFieldTypeToTS(f FieldInfo, enums []EnumInfo) string {
 	case "TypeStack":
 		return "RawStack"
 	case "TypeTimer":
-		return "Record<string, unknown>"
+		return "ExpandedTimer"
 	case "TypeBoard":
 		return "Board"
 	default:

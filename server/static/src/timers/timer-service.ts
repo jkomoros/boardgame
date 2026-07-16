@@ -17,6 +17,8 @@ export interface TimerReading {
 
 export interface TimerControllerOptions {
   readonly cadence?: TimerCadence;
+  /** Re-evaluated during host updates for controls whose presentation changes cadence. */
+  readonly getCadence?: () => TimerCadence;
 }
 
 interface TimerInfoLike {
@@ -121,10 +123,12 @@ export class TimerController implements ReactiveController {
   readonly host: ReactiveControllerHost & EventTarget;
   readonly getTimer: () => TimerReference | null | undefined;
   readonly cadence: TimerCadence;
+  readonly getCadence: () => TimerCadence;
   private _reading: TimerReading = idleReading();
 
   private _service: TimerService | null = null;
   private _timerId = '';
+  private _subscribedCadence: TimerCadence | null = null;
   private _unsubscribe: (() => void) | null = null;
 
   constructor(
@@ -134,7 +138,11 @@ export class TimerController implements ReactiveController {
   ) {
     this.host = host;
     this.getTimer = getTimer;
+    if (options.cadence !== undefined && options.getCadence !== undefined) {
+      throw new Error('timer controller: provide cadence or getCadence, not both');
+    }
     this.cadence = options.cadence ?? 'second';
+    this.getCadence = options.getCadence ?? (() => this.cadence);
     if (this.cadence !== 'frame' && this.cadence !== 'second') {
       throw new Error(`timer controller: unknown cadence ${JSON.stringify(this.cadence)}`);
     }
@@ -172,6 +180,7 @@ export class TimerController implements ReactiveController {
     this._unsubscribe?.();
     this._unsubscribe = null;
     this._timerId = '';
+    this._subscribedCadence = null;
     this._service = null;
   }
 
@@ -185,20 +194,24 @@ export class TimerController implements ReactiveController {
     if (timer.IsTimer !== true || typeof timer.ID !== 'string') {
       throw new Error('timer controller: timer must be a generated timer reference with IsTimer=true and a string ID');
     }
-    this._replaceSubscription(timer.ID);
+    this._replaceSubscription(timer.ID, this.getCadence());
   }
 
-  private _replaceSubscription(timerId: string): void {
-    if (timerId === this._timerId) return;
+  private _replaceSubscription(timerId: string, cadence: TimerCadence = this.getCadence()): void {
+    if (cadence !== 'frame' && cadence !== 'second') {
+      throw new Error(`timer controller: unknown cadence ${JSON.stringify(cadence)}`);
+    }
+    if (timerId === this._timerId && cadence === this._subscribedCadence) return;
     this._unsubscribe?.();
     this._unsubscribe = null;
     this._timerId = timerId;
+    this._subscribedCadence = timerId ? cadence : null;
     if (!timerId || !this._service) {
       this._reading = idleReading();
       return;
     }
     let subscribing = true;
-    this._unsubscribe = this._service.subscribe(timerId, this.cadence, reading => {
+    this._unsubscribe = this._service.subscribe(timerId, cadence, reading => {
       this._reading = reading;
       if (!subscribing) this.host.requestUpdate();
     });

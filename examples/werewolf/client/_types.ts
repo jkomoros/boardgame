@@ -8,6 +8,11 @@ export type PhaseValue = "Gathering" | "Day" | "Night";
 
 export type RoleValue = "Villager" | "Werewolf";
 
+export interface GameEnums {
+  readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
+  readonly "role": { readonly Values?: Readonly<Record<string, RoleValue>> };
+}
+
 export type ComponentCatalog = Readonly<Record<string, never>>;
 
 export type DynamicComponentValues = Readonly<Record<string, never>>;
