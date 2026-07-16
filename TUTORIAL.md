@@ -1511,10 +1511,6 @@ The stack creates stable card hosts and rerenders their light-DOM content with
 Lit whenever their logical slot changes. The view is local to this renderer, so
 two games may use the same deck name without a global registration collision.
 
-`boardgame-deck-defaults` and its `{{item...}}` strings are the legacy template
-path. Existing renderers may migrate incrementally, but new renderers and the
-generated scaffold use typed component views.
-
 Prefer the view's typed `properties` callback for standard card/token
 presentation. `.componentAttrs` remains a lower-level escape hatch for shared
 game-owned properties. Do not put move names or move arguments in it. For one typed action per slot, create a target
@@ -1542,18 +1538,10 @@ interactive. The array must contain exactly one entry per stack slot; a mismatch
 an unbound action, or mixing `.componentActions` with legacy proposal attributes
 throws an actionable error instead of silently targeting the wrong card.
 
-If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
-
-```html
-<link rel='import' href='my-complex-card.html'>
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-    	<my-complex-card item="{{item}}"></my-complex-card>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
-```
+For more complex processing, render ordinary Lit content in the view callback.
+If the host itself must be custom, use `componentView()` with a factory that
+returns a fresh registered element extending `BoardgameComponent`. The framework
+checks that the factory never reuses an element or changes host type.
 
 ##### boardgame-fading-text
 

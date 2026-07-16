@@ -2114,11 +2114,9 @@ boardgame-app (app shell, lit-element)
 13. **boardgame-render-player-info** - Player info renderer
 14. **boardgame-status-text** - Game status messages
 15. **boardgame-fading-text** - Animated text effects
-16. **boardgame-deck-defaults** - Default component templates
-
 *Utilities:*
-17. **boardgame-ajax** - HTTP request wrapper (extends iron-ajax)
-18. **game-path-mixin** - URL routing helper
+16. **boardgame-ajax** - HTTP request wrapper (extends iron-ajax)
+17. **game-path-mixin** - URL routing helper
 
 ### Redux State Structure
 
@@ -4667,4 +4665,3 @@ The animation system, in particular, is a standout feature that provides smooth,
 **Document Version:** 1.0
 **Last Updated:** 2026-02-03
 **Framework Versions:** Go 1.13+ (compiles with 1.25.6), Polymer 3.3.0, lit-element 0.7.1
-

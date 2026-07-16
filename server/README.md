@@ -25,62 +25,57 @@ If you create a new renderer component, make sure it's properly imported so the 
 
 One useful element in src/ is boardgame-card, which implements a card that can have an overridable front and back, and can do animations and such.
 
-When you use boardgame-component-stack and boardgame-card in conjunction you'll get powerful animations that just do what you want. They use card.Id and stack.LastIdsSeen to calculate which card is which and animate. It will also do advanced things like cloning old content into the card for when the new state has flipped the card hidden. 
-
-It can be finicky to set all of the cards correctly for the animation to work as you want; the easiest way is to set boardgame-component-stack's stack property to the stack in the state, and then have a dom-repeat with boardgame-card that have item="{{item}}" index="{{index}}", and the card's children how to render if there is content. If you do that, everything will work as expected! This will also automatically set type (see below).
+When you use `boardgame-component-stack` and `boardgame-card` together, the
+framework tracks stable component IDs and automatically animates movement,
+flips, and content changes between state snapshots.
 
 boardgame-card's size can be affected by two css properties: --component-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate via boardgame-component-animator as expected.
 
-It can be finicky to set all of the cards correctly for the animation to work as
-you want; the easiest way is to set boardgame-card-stack's stack property to the
-stack in the state, and then ensure you have a template for that deck defined in a `<boardgame-deck-defaults>` element.
+Define each deck's appearance once with a renderer-scoped, typed component view.
+The generated `GameState` supplies the exact stack type:
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to use the `boardgame-deck-defaults` element in your renderer's template and include a template for your deck.
+```typescript
+private readonly cards = cardView<GameState['DrawStack']>({
+  render: ({ kind, component }) => kind === 'visible'
+    ? html`<div>${component.Values.Type}</div>`
+    : null,
+});
 
-```html
-<!-- define a simple front if no processing required -->
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-      <div>
-        {{item.Values.Type}}
-      </div>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
-<!-- boardgame-component-stacks that print from the deck `cards` will automatically stamp that item -->
+render() {
+  return html`<boardgame-component-stack
+    layout="stack"
+    .stack=${this.state?.Players[0]?.WonCards ?? null}
+    .componentView=${this.cards}
+    .componentAttrs=${{ disabled: true }}>
+  </boardgame-component-stack>`;
+}
 ```
 
-Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
+The view context explicitly distinguishes visible, hidden, and empty slots. The
+stack retains stable component hosts across state snapshots so card identity,
+focus, pooling, and movement animation continue to work.
 
-Then stamping those components is as simple as using a `boardgame-component-stack` and databinding in the stack property:
+Prefer the component view's typed `properties` callback for card or token
+presentation. `.componentAttrs` is available for lower-level shared properties,
+such as rotating every card in one stack. Bind interactions with typed actions:
 
-```html
-<boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
-</boardgame-component-stack>
+```typescript
+const reveals = this.move(MoveNames.RevealCard).targets(
+  cards.Components.map((_card, CardIndex) => CardIndex),
+  CardIndex => ({ CardIndex }),
+);
+
+return html`<boardgame-component-stack
+  layout="grid"
+  .stack=${cards}
+  .componentView=${this.cards}
+  .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+</boardgame-component-stack>`;
 ```
 
-The `boardgame-component-stack` will automatically instantiate and bind components as defined in the defaults for that deck name.
-
-Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
-
-```html
-<boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
-</boardgame-component-stack>
-```
-
-If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
-
-```html
-<link rel='import' href='my-complex-card.html'>
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-    	<my-complex-card item="{{item}}"></my-complex-card>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
-```
+For more complex processing, render ordinary Lit content from the view or use
+`componentView()` with a fresh registered custom element extending
+`BoardgameComponent`. Invalid factories fail loudly.
 
 
 ### Optional: boardgame-fading-text
@@ -89,21 +84,20 @@ The boardgame-fading-text element will render text that animates when changed. T
 
 You can use boardgame-status-text to render text that will also show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
 
-```html
-<!-- you can bind to message attribute -->
-<boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
-
-<!-- you can also just include content which automatically sets message -->
-<boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
+```typescript
+html`<boardgame-status-text
+  .message=${String(this.state?.Game.Cards.Components.length ?? 0)}>
+</boardgame-status-text>`
 ```
 
 ### Optional: BoardgameBaseGameRenderer
 
-If your game renderer inherits from BoardgameBaseGameRenderer, you'll get a few convenience goodies.
-
-Elements that have a propose-move attribute on them anywhere below will, when tapped, fire a propose-move event with that name. It will also include as arguments to that move any attributes named like `data-arg-my-foo`, where the argument would be represnted in the event as `MyFoo`. If you data-bind to that attribute, remember to bind them as attributes, not as properties.
-
-BoardgameBaseGameRenderer also defines a few extra properties, like isCurrentPlayer. 
+Generated game renderers inherit from `BoardgameBaseGameRenderer`. It exposes
+typed `move(...)` actions, state and proposal perspective, current-player
+helpers, and the animation lifecycle. Bind a zero-input action directly with
+`.action=${this.move(MoveNames.RollDice)}`; use `.with({...})` or `.targets(...)`
+for typed inputs. Controls fail closed while legality is unresolved, a proposal
+is pending, or animation gates interaction.
 
 ## Adding new views
 

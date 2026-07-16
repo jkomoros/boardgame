@@ -1,7 +1,5 @@
 import { LitElement, html, css, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import './boardgame-deck-defaults.js';
-import './boardgame-card.js';
 import { dashToCamelCase } from '../utils/case-map.js';
 import type { BoardgameComponentElement } from '../types/components';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
@@ -32,11 +30,6 @@ const pseudoRandomValues = [
 ];
 
 const sharedStackList: BoardgameComponentStack[] = [];
-
-// WeakMaps to store original template text for re-evaluation on component reuse.
-// Keyed by DOM nodes, so they survive component pooling and auto-cleanup on GC.
-const originalTextTemplates = new WeakMap<Text, string>();
-const originalAttrTemplates = new WeakMap<Element, Map<string, string>>();
 
 export class BoardgameComponentStack extends LitElement {
   static override styles = css`
@@ -149,10 +142,6 @@ export class BoardgameComponentStack extends LitElement {
       flex-direction: row;
       justify-content: space-around;
       width: 100%;
-    }
-
-    #container.spread #slot-holder ::slotted(dom-repeat) {
-      display: none;
     }
 
     .spread ::slotted([boardgame-component]:hover),
@@ -379,17 +368,6 @@ export class BoardgameComponentStack extends LitElement {
     return sharedStackList;
   }
 
-  get deckDefaults(): any {
-    if (!this.shadowRoot) return null;
-
-    let ele = this.shadowRoot.querySelector('boardgame-deck-defaults');
-    if (ele) return ele;
-
-    ele = document.createElement('boardgame-deck-defaults');
-    this.shadowRoot.appendChild(ele);
-    return ele;
-  }
-
   get offsetComponent(): any {
     const components = this._realComponents;
     if (components.length > 0) return components[0];
@@ -429,12 +407,6 @@ export class BoardgameComponentStack extends LitElement {
     if (!this.fauxComponentsContainer) return [];
     const fauxComponents = this.fauxComponentsContainer.querySelectorAll('[boardgame-component]');
     return [...fauxComponents];
-  }
-
-  get templateClass(): any {
-    const defaults = this.deckDefaults;
-    if (!defaults) return null;
-    return defaults.templateForDeck(this.gameName, this.deckName);
   }
 
   override connectedCallback() {
@@ -510,9 +482,6 @@ export class BoardgameComponentStack extends LitElement {
       this.container.style.setProperty('--board-rows', String(this.boardRows));
     }
 
-    // stack property change is now handled in the setter directly
-    // No need to handle it here anymore
-
     if (changedProperties.has('gameName')) {
       this._gameNameChanged();
     }
@@ -526,6 +495,10 @@ export class BoardgameComponentStack extends LitElement {
     }
     if (changedProperties.has('componentView')) {
       this._componentViewChanged(changedProperties.get('componentView') as ComponentView | null | undefined);
+    } else if (changedProperties.has('stack')) {
+      // Reconcile only after Lit has committed every property in the template.
+      // In ordinary markup .stack commonly appears before .componentView.
+      this._generateChildren();
     }
     if (changedProperties.has('componentActions') || changedProperties.has('componentAttrs') || changedProperties.has('stack')) {
       this._subscribeComponentActions();
@@ -552,130 +525,10 @@ export class BoardgameComponentStack extends LitElement {
       return this._componentPool.pop();
     }
 
-    if (this.componentView) return createComponentForView(this.componentView);
-
-    const templateFunction = this.templateClass;
-
-    if (templateFunction) {
-      // Call the function to get a cloned DocumentFragment
-      const fragment = templateFunction();
-
-      // Find the first element child in the fragment
-      for (const child of fragment.childNodes) {
-        if (child.nodeType === 1) { // Element node
-          const ele = child as HTMLElement;
-          // Lit's reflect: true for boardgame-component is async (microtask),
-          // but _insertNodes needs the attribute synchronously to find and
-          // configure components. Set it immediately.
-          if (!ele.hasAttribute('boardgame-component')) {
-            ele.setAttribute('boardgame-component', '');
-          }
-          return ele;
-        }
-      }
-      console.warn('None of the nodes in the template are an element node.');
-      return null;
+    if (!this.componentView) {
+      throw new Error('boardgame-component-stack: set .componentView to a cardView(), tokenView(), or componentView() recipe');
     }
-
-    // Only warn if we have both gameName and deckName set (i.e., we've received
-    // real stack data). During initial startup, templates aren't registered yet
-    // and _stackChanged fires before deck-defaults has connected — that's normal.
-    if (this.gameName && this.deckName) {
-      console.warn('No template class to auto stamp');
-    }
-    return null;
-  }
-
-  /**
-   * Update template bindings in an element with the given item data.
-   * Replaces {{...}} patterns in both text nodes and attributes with actual values.
-   * Stores original templates in WeakMaps so bindings survive component pooling.
-   */
-  private _updateTemplateBindings(element: HTMLElement, itemData: any) {
-    if (!itemData) return;
-
-    // --- Text node bindings ---
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
-    let node: Text | null;
-
-    while ((node = walker.nextNode() as Text | null)) {
-      // Retrieve stored original template, or capture it on first encounter
-      let templateText = originalTextTemplates.get(node);
-      if (templateText === undefined) {
-        const text = node.textContent || '';
-        if (text.includes('{{') && text.includes('}}')) {
-          templateText = text;
-          originalTextTemplates.set(node, text);
-        } else {
-          continue;
-        }
-      }
-
-      // Re-evaluate from the original template every time
-      let result = templateText;
-      const matches = templateText.match(/\{\{([^}]+)\}\}/g);
-      if (matches) {
-        for (const match of matches) {
-          const path = match.replace(/\{\{|\}\}/g, '').trim();
-          const value = this._evaluatePath(itemData, path);
-          result = result.replace(match, value !== undefined ? String(value) : '');
-        }
-      }
-      node.textContent = result;
-    }
-
-    // --- Attribute bindings ---
-    const elements = [element, ...element.querySelectorAll('*')];
-    for (const el of elements) {
-      // Retrieve stored original attribute templates, or capture on first encounter
-      let attrMap = originalAttrTemplates.get(el);
-      if (attrMap === undefined) {
-        attrMap = new Map();
-        for (const attr of el.attributes) {
-          if (attr.value.includes('{{') && attr.value.includes('}}')) {
-            attrMap.set(attr.name, attr.value);
-          }
-        }
-        originalAttrTemplates.set(el, attrMap);
-      }
-      if (attrMap.size === 0) continue;
-
-      for (const [attrName, templateValue] of attrMap) {
-        let result = templateValue;
-        const matches = templateValue.match(/\{\{([^}]+)\}\}/g);
-        if (matches) {
-          for (const match of matches) {
-            const path = match.replace(/\{\{|\}\}/g, '').trim();
-            const value = this._evaluatePath(itemData, path);
-            result = result.replace(match, value !== undefined ? String(value) : '');
-          }
-        }
-        el.setAttribute(attrName, result);
-        // Also set property for Lit reactive system
-        if (attrName in el) {
-          (el as any)[attrName] = result;
-        }
-      }
-    }
-  }
-
-  private _evaluatePath(obj: any, path: string): any {
-    // In Polymer's dom-repeat, `item` was the loop variable. Now data is
-    // passed directly, so strip the `item.` prefix if present.
-    if (path.startsWith('item.')) {
-      path = path.substring(5);
-    }
-    const parts = path.split('.');
-    let current = obj;
-
-    for (const part of parts) {
-      if (current === null || current === undefined) {
-        return undefined;
-      }
-      current = current[part];
-    }
-
-    return current;
+    return createComponentForView(this.componentView);
   }
 
   stackDefault(propName: string): any {
@@ -702,45 +555,13 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   newAnimatingComponent(): any {
-    // CRITICAL: Don't use the component pool for animating components.
-    // Pooled components are cloned from templates and are plain HTMLElements
-    // without custom element methods like prepareForBeingAnimatingComponent().
-    // Instead, create a fresh custom element that has the full prototype chain.
+    // Animating orphans must be fresh hosts; borrowing a live/pool host would
+    // corrupt stable identity and ownership in the source or destination stack.
 
-    let component = null;
-
-    if (this.componentView) {
-      component = createComponentForView(this.componentView);
+    if (!this.componentView) {
+      throw new Error('boardgame-component-stack: cannot animate without .componentView');
     }
-
-    // Extract the component tag name from the template
-    const templateFunction = this.templateClass;
-
-    if (!component && templateFunction) {
-      // Call the function to get a cloned DocumentFragment
-      const fragment = templateFunction();
-
-      // Find the first element child to determine the tag name
-      for (const child of fragment.childNodes) {
-        if (child.nodeType === 1) { // Element node
-          const tagName = (child as HTMLElement).tagName.toLowerCase();
-
-          // Create a fresh custom element instead of using the cloned template
-          component = document.createElement(tagName);
-          // Ensure boardgame-component attribute is set synchronously
-          // (Lit's reflect: true is async)
-          if (!component.hasAttribute('boardgame-component')) {
-            component.setAttribute('boardgame-component', '');
-          }
-          break;
-        }
-      }
-    }
-
-    if (!component) {
-      console.warn('Could not create animating component');
-      return null;
-    }
+    const component = createComponentForView(this.componentView);
 
     const typedComponent = component as unknown as BoardgameComponentElement;
     typedComponent.noAnimate = true;
@@ -779,13 +600,6 @@ export class BoardgameComponentStack extends LitElement {
       this.idsLastSeen = null;
     }
 
-    const repeater = this.querySelector('dom-repeat');
-    if (repeater) {
-      (repeater as any).items = newValue ? newValue.Components : [];
-      return;
-    }
-
-    this._generateChildren();
   }
 
   private _attributesForComponents(): Map<string, any> {
@@ -1095,7 +909,6 @@ export class BoardgameComponentStack extends LitElement {
         anyEle.id = '';
       }
 
-      this._updateTemplateBindings(anyEle, item);
       if (this.componentView) updateComponentFromView(this.componentView, anyEle, item, slotIndex);
 
       if (anyEle.instance) {
@@ -1147,7 +960,6 @@ export class BoardgameComponentStack extends LitElement {
         ele.id = '';
       }
 
-      this._updateTemplateBindings(ele, componentsInfo[componentIndex]);
       if (this.componentView) updateComponentFromView(this.componentView, ele, item, componentIndex);
 
       if (ele.instance) {
@@ -1170,19 +982,9 @@ export class BoardgameComponentStack extends LitElement {
     }
   }
 
-  private _pendingGenerateRetry: number | null = null;
-
   private _generateChildren() {
-    // If templates aren't registered yet (common during startup when
-    // deck-defaults hasn't connected), retry after a short delay.
-    if (!this.componentView && !this.templateClass && this.stack?.Components?.length && this._componentPool.length === 0) {
-      if (!this._pendingGenerateRetry) {
-        this._pendingGenerateRetry = requestAnimationFrame(() => {
-          this._pendingGenerateRetry = null;
-          this._generateChildren();
-        });
-      }
-      return;
+    if (this.stack && !this.componentView) {
+      throw new Error('boardgame-component-stack: a configured stack requires .componentView from cardView(), tokenView(), or componentView()');
     }
     this._insertNodes(this.stack ? this.stack.Components : [], this);
   }
@@ -1201,6 +1003,7 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private _slotChanged(firstRender: boolean) {
+    if (!this.componentView) return;
     const realComponents = this._realComponents;
     const fauxComponentsContainer = this.fauxComponentsContainer;
 

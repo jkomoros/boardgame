@@ -279,10 +279,12 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
       const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
         stack: unknown;
         componentView: unknown;
+        newComponent(): unknown;
         updateComplete: Promise<unknown>;
       };
-      stack.componentView = view;
+      // Match normal Lit source order: .stack is commonly committed first.
       stack.stack = makeStack([visible('a', 'A'), {}, null], ['a', 'hidden', '']);
+      stack.componentView = view;
       document.body.append(stack);
       await stack.updateComplete;
       const firstCards = [...stack.querySelectorAll('boardgame-card')] as Array<HTMLElement & {
@@ -332,9 +334,17 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
       await customStack.updateComplete;
       const customText = customStack.textContent?.trim() ?? '';
 
+      const missingViewStack = document.createElement('boardgame-component-stack') as typeof stack;
+      let missingViewError = '';
+      try {
+        missingViewStack.newComponent();
+      } catch (error) {
+        missingViewError = error instanceof Error ? error.message : String(error);
+      }
+
       stack.remove();
       customStack.remove();
-      return { before, after, stableHosts, customText };
+      return { before, after, stableHosts, customText, missingViewError };
     });
 
     expect(result.before).toEqual([
@@ -349,6 +359,7 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
     ]);
     expect(result.stableHosts).toBe(true);
     expect(result.customText).toBe('Marked custom piece');
+    expect(result.missingViewError).toContain('set .componentView');
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

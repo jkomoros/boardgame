@@ -73,9 +73,8 @@ class BoardgameRenderGameMemory extends GameRenderer {
   // does not apply).
   //
   // VisibleCards.Components is a fixed-size (SizedStack) array padded with
-  // nulls at unrevealed slots, matching the template's own
-  // {{item.Values.Type}} access -- component field values live under
-  // `.Values`, not directly on the component. Opaque occupied slots are `{}`
+  // nulls at unrevealed slots. Component field values live under `.Values`,
+  // not directly on the component. Opaque occupied slots are `{}`
   // and must be narrowed with the shared guard before reading card values.
   private _revealHoldMs(): number {
     const components = this.state?.Game?.VisibleCards?.Components;

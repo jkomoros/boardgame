@@ -926,8 +926,13 @@ First component-view tranche (2026-07-16):
   transitions. Its real slow-animation To Hidden/To Visible gate test passes.
 
 With no known game-owned `<boardgame-deck-defaults>` registrations remaining,
-the legacy registry and moustache-binding fallback can now be removed rather
-than retained as a second authoring model.
+the legacy registry and moustache-binding fallback are removed rather than
+retained as a second authoring model. Stack reconciliation now happens after
+Lit commits both `.stack` and `.componentView`, so normal property source order
+cannot race host creation; a truly missing view fails with an actionable error.
+The registry-free path passes all 15 renderer fixtures and all 26 animation
+tests (including a repaired gate-close test that now waits for reflected
+renderer state instead of racing the diagnostic counter).
 
 ### D. Evidence-driven compositions
 
