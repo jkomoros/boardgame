@@ -1084,6 +1084,12 @@ First evidence-driven primitive tranche (2026-07-16):
   tests without reparsing every file and burying diagnostics in warnings. Move
   the one legacy CommonJS precache config to `.cjs` and make the self-starting
   Playwright config use `import.meta.url` instead of CommonJS globals.
+- [x] Re-audit the primary `TUTORIAL.md` rather than relying on newer appended
+  sections: remove its stale Polymer-era `.js` location, mutable timer/component
+  model, and `propose-move` instructions; teach generated bases, exact
+  registration decorators, typed actions, `.Values`/`.DynamicValues`, assembled
+  TypeScript clients, and `check-client` consistently from the first renderer
+  section through the worked and player-info examples.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

@@ -1373,53 +1373,53 @@ manage these kinds of concepts and security.
 
 ### Renderers
 
-The renderer is a web component with a known name and defined in a known
-location that will be instantiated and passed the state object. This is the
-primary client-side object that you should define. Your renderer will be passed
-four attributes:
+The renderer is a Lit custom element in a known location. It is the primary
+client-side object you define. Extend the generated `GameRenderer`; it receives
+strict reactive properties including:
 
-* **State**, which is the state for the current version, with many properties expanded for
-convenience. This state object will contain all computed properties, for each
-Stack will have the DynamicValues for the component added as a direct property
-of the component, and will have the computed TimeRemaining provided on the
-timer, continuously updated as time passes.
-* **Diagram**, which is the result of your GameDelegate's Diagram() method for this state. It's
-provided primarily as a useful fallback.
-* **viewingAsPlayer**, which is the index of the player who is viewing the game. This might be -1 if
-the viewer is a generic observer who isn't themselves playing the game, or -2 if
-the player is the all-powerful Admin.
-* **currentPlayerIndex**, the index of the player whose turn it is, according to your GameDelegate's
-CurrentPlayerIndex method.
+* **state**, the deeply readonly, expanded snapshot for the current version.
+  Stacks contain visible, hidden, or empty components. Visible component data
+  lives under typed `.Values` and optional `.DynamicValues` properties.
+* **chest**, the sanitized static component catalogue and enum metadata.
+* **diagram**, the result of your `GameDelegate.Diagram()` method, retained as a
+  useful fallback.
+* **viewingAsPlayer** and **currentPlayerIndex**, including the framework's
+  named observer/admin/simultaneous-player sentinels.
+* Typed move actions, legality, player presentations, outcome state, animation
+  state, and stable timer services through the generated base.
 
-The job of your renderer is to take those attributes, render a meaningful visual
-representation, and emit events of type `propose-move` when a player has
-proposed a specific move that should be passed to the server and proposed. In
-practice many renderers look quite similar and basically just define where to
-stamp out components.
+The job of your renderer is to map that snapshot into meaningful Lit markup and
+bind typed actions to framework controls. The framework actions own proposal
+transport, server-authoritative legality, pending/stale state, animation gates,
+and accessible disabled explanations. Renderers do not emit `propose-move`
+events or duplicate game rules.
 
 #### location of renderers
 
 The renderer must be in a specific, known location so it can be imported.
 
-Your renderer web component should be named `boardgame-render-game-GAMENAME`,
-where `GAMENAME` is the name of your game (what your GameDelegate returns from
-the Name() method).
-
-The import will be looked for in `../../game-src/GAMENAME/boardgame-render-game-
-GAMENAME.js`.
+Put the ordinary renderer in
+`client/boardgame-render-game-GAMENAME.ts`, where `GAMENAME` is what your
+`GameDelegate.Name()` returns. Import `GameRenderer` and
+`registerGameRenderer` from the generated `client/_game_renderer.js` module;
+the decorator owns the exact custom-element tag, so you never hand-type it.
 
 Your game type might be imported into many different servers, so it's best
 practice to keep the renderer definition near the package defining your server
 code.
 
-The idiotmatic way to do this is, within the package that defines your game
+The idiomatic way to do this is, within the package that defines your game
 type's go code, have a sub-folder structure, as you can see by looking at
 memory:
 
 ```
 memory/
 ├── client/
-│   ├── boardgame-render-game-memory.js
+│   ├── _game_renderer.ts
+│   ├── _move_args.ts
+│   ├── _move_names.ts
+│   ├── _types.ts
+│   ├── boardgame-render-game-memory.ts
 │   └── boardgame-render-player-info-memory.ts
 ├── agent.go
 ├── agent_test.go
@@ -1433,8 +1433,10 @@ memory/
 
 (We'll get to `boardgame-render-player-info-memory.ts` in a bit.)
 
-When a server is set up (using `boadgame-util build static`), a symlink is
-created from the server resources to the client folders for each game.
+`boardgame-util serve` assembles configured game clients into the development
+package. `boardgame-util build static` does the same for production, and
+`boardgame-util check-client` performs the strict isolated compile/freshness
+gate without starting a server.
 
 By following this convention, you cleanly keep your client views for a game next
 to the server logic, and also make it easy to import the game package into
@@ -2181,7 +2183,11 @@ These files follow the same convention as `auto_reader.go` and `auto_enum.go`: t
 
 #### Generated Type Definitions
 
-When you run `boardgame-util serve` (or `boardgame-util emit-types`), the tool also generates a `client/_types.ts` file for each game package. This file exports typed interfaces for `GameState`, `PlayerState`, component values, and enums:
+When you run `boardgame-util serve` (or `boardgame-util emit-types`), the tool
+also generates `client/_types.ts` and `client/_game_renderer.ts` for each game
+package. The first exports typed state, player, component, computed-value, and
+enum contracts. The second binds those types plus move names and native author
+inputs into the renderer bases and exact registration decorators:
 
 ```typescript
 // Auto-generated — DO NOT EDIT.
@@ -2213,9 +2219,10 @@ export type State = FullGameState<GameState, PlayerState>;
 Import these types in your renderer to get full type safety and autocomplete on `this.state`:
 
 ```typescript
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 
-class BoardgameRenderGameMyGame extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameMyGame extends GameRenderer {
   // this.state?.Game?.DrawStack is now typed as ExpandedStack<CardsComponentValues>
   // this.state?.Players?.[0]?.Score is now typed as number
   // this.isMoveCurrentlyLegal("Bad Name") is a compile error — only valid move names allowed
@@ -2253,10 +2260,11 @@ actions. Pig's complete interaction code is deliberately boring:
 
 ```typescript
 import { html } from '../../src/client.js';
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
 
-class BoardgameRenderGamePig extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGamePig extends GameRenderer {
   override render() {
     return html`
       <boardgame-die
@@ -2310,9 +2318,13 @@ Memory's player-info is therefore small:
 
 ```typescript
 import { html } from '../../src/client.js';
-import { PlayerInfoRenderer } from './_game_renderer.js';
+import {
+  PlayerInfoRenderer,
+  registerPlayerInfoRenderer,
+} from './_game_renderer.js';
 
-class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
   override render() {
     return html`Won Cards
       <boardgame-status-text
@@ -2374,7 +2386,7 @@ boardgame-util stub examplegame
 
 This will start an interactive prompt of a few questions. Feel free to hit [ENTER] to accept the default for each, with the exception of the question that asks if you want tutorial content--accept that. It generates a lot more example code.
 
-(In general if you aren't a beginner you want all of those deafults, but without tutorial content. You can pass `-f` to skip the interactive prompts and accept all of the defaults)
+(In general if you aren't a beginner you want all of those defaults, but without tutorial content. You can pass `-f` to skip the interactive prompts and accept all of the defaults.)
 
 This made a new directory called examplegame and filled it with lots of starter content to demonstrate how to wire up a complete simple game. 
 
@@ -2384,7 +2396,16 @@ You still need to add it to your games list, so run:
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
 ```
 
-Now you can see it by running `boardgame-util serve`.
+First run the same fatal gate you should use in CI:
+
+```sh
+boardgame-util check-client
+```
+
+It regenerates contracts in memory, rejects stale committed output, checks each
+configured client in isolation with the framework's pinned strict TypeScript
+and Lit rules, and reports unsafe escape hatches or deep imports. Then run
+`boardgame-util serve` to play the game.
 
 Remember that as you modify and recompile, you need to run `go generate` every time you modify the defined fields of a struct.
 
