@@ -1116,8 +1116,12 @@ system phase.
   snapshot-bound actions; add server-owned request identity, visibility policy,
   and synchronized reveal before exposing any client abstraction that could
   falsely imply secrecy.
-- Hidden movement: visibility-safe generated surfaces, public log, reveal
-  markers, and viewer-matrix privacy assertions.
+- [x] Transition-envelope privacy: animation bundles expose only readonly move
+  `Name` and `Version`; raw serialized arguments, proposer, initiator, phase,
+  and timestamp never bypass state sanitization through `MoveStorageRecord`.
+  Type animation hooks as `ClientMove` and regression-test the exact JSON keys.
+- Hidden movement remainder: visibility-safe generated surfaces, an explicitly
+  public game-owned log, reveal markers, and viewer-matrix privacy assertions.
 
 ## Test strategy
 

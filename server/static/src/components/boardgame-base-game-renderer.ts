@@ -3,6 +3,7 @@ import { property } from 'lit/decorators.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import type { MovePreviewSpec } from '../legal/previewLegality.js';
 import type { FullGameState, GameChest } from '../types/boardgame-types.js';
+import type { ClientMove } from '../types/api.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
 import {
@@ -412,7 +413,7 @@ export class BoardgameBaseGameRenderer<
   // renderer. Zero will specify default animation length (that is, unset an
   // override style). A negative return value will skip the animation entirely.
   // The default one returns 0 for all combinations. See also animationOverlap.
-  animationLength(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  animationLength(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }
 
@@ -421,7 +422,7 @@ export class BoardgameBaseGameRenderer<
   // still running. 0 (default) = wait for animation to complete (no overlap).
   // 0.5 = start next animation when this one is halfway done. Values outside
   // 0-1 are clamped. See also animationLength.
-  animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }
 

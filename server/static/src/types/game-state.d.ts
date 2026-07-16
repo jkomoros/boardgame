@@ -3,7 +3,7 @@
  * These types represent the core game state data structures used throughout the application.
  */
 
-import type { MoveForm } from './api';
+import type { ClientMove, MoveForm } from './api';
 import type { VersionAnimationContext } from '../components/companion-sync';
 
 /**
@@ -82,7 +82,7 @@ export interface StateBundle {
   /** Game object from server (contains CurrentState and ActiveTimers) */
   game: GameFromServer;
   /** Move that triggered this state (null for initial state) */
-  move: any | null;
+  move: ClientMove | null;
   /** Expanded move forms for this state */
   moveForms: MoveForm[] | null;
   /** Player index viewing this state */

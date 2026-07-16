@@ -3391,6 +3391,14 @@ You can modify a number of properties of animations. The most simple is the
 `--animation-length` CSS var, which the built-in components respect for how
 long all of their animations will take. Sometimes you want all animations for a certain move to take a certain amount of time, and it's confusing/error prone to set the values in CSS. If your game renderer defines `animationLength(fromMove, toMove)` then it will be consulted before each state bundle is installed. If the value is 0, then no override is set and the default CSS values for animation length take precedence. If it is greater than zero, than a temporary `--animation-length` value will be set above your renderer (interpreting that number as millisecondes), overriding the default value until another one is set. And if the value is negative, the animation will be skipped entirely. `BoardgameBaseGameRenderer` provides a default `animationLength` that just returns 0.
 
+Both arguments are `ClientMove | null`. `ClientMove` intentionally contains
+only readonly `Name` and `Version`: enough to select an animation policy, but
+never the storage record's serialized arguments, proposer, initiator, phase, or
+timestamp. Those fields can contain private choices that state sanitization
+correctly hid. Move type names are public catalog metadata, so do not encode a
+secret choice into dynamically generated move names; put the choice in typed
+move fields and authoritative sanitized state as usual.
+
 Sometimes you want the completed state to remain visible for a beat before the
 next state is installed. For example, Memory leaves a matching pair face-up so
 players can recognize it before the cards are captured. Put

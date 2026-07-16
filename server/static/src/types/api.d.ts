@@ -73,7 +73,7 @@ export interface StateBundle {
   /** Which player is viewing */
   ViewingAsPlayer: number;
   /** The move that led to this state (null for initial state) */
-  Move: Move | null;
+  Move: ClientMove | null;
 }
 
 /**
@@ -170,14 +170,12 @@ export interface MoveFormField {
 /**
  * A move that was made in the game.
  */
-export interface Move {
-  /** Move type name */
+export type ClientMove = Readonly<{
+  /** Public move type used only to select animation policy. */
   Name: string;
-  /** Player who made the move */
-  Player: number;
-  /** Move parameters */
-  [key: string]: any;
-}
+  /** State version produced by the move. */
+  Version: number;
+}>;
 
 /**
  * Response from /api/game/{name}/{id}/move endpoint.

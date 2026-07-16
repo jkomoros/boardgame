@@ -16,7 +16,7 @@ import { MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { cardView, isStackLayout, tokenView } from '../../src/client.js';
-import type { StackLayout } from '../../src/client.js';
+import type { ClientMove, StackLayout } from '../../src/client.js';
 import type { GameState } from './_types.js';
 
 class BoardgameRenderGameDebuganimations extends GameRenderer {
@@ -191,12 +191,12 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
   @property({ type: Array })
   legalTokenColors: string[] = [];
 
-  override animationLength(_fromMove: Record<string, unknown> | null, _toMove: Record<string, unknown> | null): number {
+  override animationLength(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     if (this.slowAnimations) return 5000;
     return 0;
   }
 
-  override animationOverlap(_fromMove: Record<string, unknown> | null, _toMove: Record<string, unknown> | null): number {
+  override animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     if (!this.slowAnimations) return 0;
     // When slow animations are enabled, overlap by 30% so multiple
     // animations visually cascade instead of playing fully sequentially.

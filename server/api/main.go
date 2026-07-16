@@ -1108,6 +1108,22 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 }
 
+// clientMoveRecord is intentionally smaller than MoveStorageRecord. Move.Blob
+// contains the proposed fields and may hold a private target or choice; proposer,
+// phase, and initiator metadata can also reveal state that sanitization hid.
+// Renderers only need a stable move type and version to customize animation.
+type clientMoveRecord struct {
+	Name    string
+	Version int
+}
+
+func animationMoveRecord(move *boardgame.MoveStorageRecord) *clientMoveRecord {
+	if move == nil {
+		return nil
+	}
+	return &clientMoveRecord{Name: move.Name, Version: move.Version}
+}
+
 func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) ([]gin.H, error) {
 	var bundles []gin.H
 
@@ -1160,7 +1176,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 
 		bundle := gin.H{
 			"Game":            gameJSON,
-			"Move":            move,
+			"Move":            animationMoveRecord(move),
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           forms,
 		}
