@@ -68,6 +68,40 @@ interface GameRoute {
   id: string;
 }
 
+type GameReadKind = 'info' | 'version';
+interface GameReadFlight {
+  readonly requestID: string;
+  readonly controller: AbortController;
+}
+let gameReadSequence = 0;
+let infoReadFlight: GameReadFlight | null = null;
+let versionReadFlight: GameReadFlight | null = null;
+
+function beginGameRead(kind: GameReadKind, route: GameRoute): GameReadFlight {
+  const previous = kind === 'info' ? infoReadFlight : versionReadFlight;
+  previous?.controller.abort();
+  const flight = {
+    requestID: `${kind}:${route.name}:${route.id}:${++gameReadSequence}`,
+    controller: new AbortController(),
+  };
+  if (kind === 'info') infoReadFlight = flight;
+  else versionReadFlight = flight;
+  return flight;
+}
+
+function finishGameRead(kind: GameReadKind, flight: GameReadFlight): void {
+  if (kind === 'info' && infoReadFlight === flight) infoReadFlight = null;
+  if (kind === 'version' && versionReadFlight === flight) versionReadFlight = null;
+}
+
+export function cancelGameReadFlights(): void {
+  infoReadFlight?.controller.abort();
+  versionReadFlight?.controller.abort();
+  infoReadFlight = null;
+  versionReadFlight = null;
+  store.dispatch({ type: CANCEL_GAME_READS });
+}
+
 export const UPDATE_GAME_ROUTE = 'UPDATE_GAME_ROUTE';
 export const UPDATE_GAME_STATIC_INFO = "UPDATE_GAME_STATIC_INFO";
 export const UPDATE_GAME_CURRENT_STATE = "UPDATE_GAME_CURRENT_STATE";
@@ -104,6 +138,7 @@ export const SET_AUTO_CURRENT_PLAYER = 'SET_AUTO_CURRENT_PLAYER';
 export const UPDATE_MOVE_FORMS = 'UPDATE_MOVE_FORMS';
 export const CLEAR_FETCHED_INFO = 'CLEAR_FETCHED_INFO';
 export const CLEAR_FETCHED_VERSION = 'CLEAR_FETCHED_VERSION';
+export const CANCEL_GAME_READS = 'CANCEL_GAME_READS';
 
 export const updateGameRoute = (pageExtra: string): UpdateGameRouteAction | null => {
     // Strip any query string (e.g. ?display=table used by companion-mode
@@ -462,7 +497,8 @@ export const fetchGameInfo = (
   admin: boolean,
   lastFetchedVersion: number
 ) => async (dispatch: ThunkDispatch<RootState, unknown, UnknownAction>, getState: () => RootState): Promise<void> => {
-  dispatch({ type: FETCH_GAME_INFO_REQUEST });
+  const flight = beginGameRead('info', gameRoute);
+  dispatch({ type: FETCH_GAME_INFO_REQUEST, requestID: flight.requestID });
 
   const url = buildGameUrl(
     gameRoute.name,
@@ -475,15 +511,16 @@ export const fetchGameInfo = (
     }
   );
 
-  const response = await apiGet<unknown>(url);
+  const response = await apiGet<unknown>(url, flight.controller.signal);
+  finishGameRead('info', flight);
 
-  // Navigation can replace the active game while this request is in flight.
-  // Never let the previous route's response populate the new route's store.
-  if (!isCurrentGameRoute(getState(), gameRoute)) return;
+  if (flight.controller.signal.aborted
+    || !isCurrentGameRead(getState(), gameRoute, 'info', flight.requestID)) return;
 
   if (response.error) {
     dispatch({
       type: FETCH_GAME_INFO_FAILURE,
+      requestID: flight.requestID,
       error: response.error,
       friendlyError: response.friendlyError
     });
@@ -494,6 +531,7 @@ export const fetchGameInfo = (
   if (!payload) {
     dispatch({
       type: FETCH_GAME_INFO_FAILURE,
+      requestID: flight.requestID,
       error: 'Game info response was missing its success payload',
       friendlyError: 'The server returned an invalid game response',
     });
@@ -506,6 +544,7 @@ export const fetchGameInfo = (
     console.error('[game-info] rejected server payload:', error);
     dispatch({
       type: FETCH_GAME_INFO_FAILURE,
+      requestID: flight.requestID,
       error: error instanceof Error ? error.message : 'Game info response was invalid',
       friendlyError: 'The server returned an invalid game response',
     });
@@ -517,6 +556,7 @@ export const fetchGameInfo = (
 
   dispatch({
     type: FETCH_GAME_INFO_SUCCESS,
+    requestID: flight.requestID,
     chest: data.Chest,
     playersInfo: data.Players,
     hasEmptySlots: data.HasEmptySlots,
@@ -562,7 +602,8 @@ export const fetchGameVersion = (
     return;
   }
 
-  dispatch({ type: FETCH_GAME_VERSION_REQUEST });
+  const flight = beginGameRead('version', gameRoute);
+  dispatch({ type: FETCH_GAME_VERSION_REQUEST, requestID: flight.requestID });
 
   const url = buildGameUrl(
     gameRoute.name,
@@ -576,13 +617,16 @@ export const fetchGameVersion = (
     }
   );
 
-  const response = await apiGet<unknown>(url);
+  const response = await apiGet<unknown>(url, flight.controller.signal);
+  finishGameRead('version', flight);
 
-  if (!isCurrentGameRoute(getState(), gameRoute)) return;
+  if (flight.controller.signal.aborted
+    || !isCurrentGameRead(getState(), gameRoute, 'version', flight.requestID)) return;
 
   if (response.error) {
     dispatch({
       type: FETCH_GAME_VERSION_FAILURE,
+      requestID: flight.requestID,
       error: response.error,
       friendlyError: response.friendlyError
     });
@@ -593,6 +637,7 @@ export const fetchGameVersion = (
   if (!payload) {
     dispatch({
       type: FETCH_GAME_VERSION_FAILURE,
+      requestID: flight.requestID,
       error: 'Game version response was missing its success payload',
       friendlyError: 'The server returned an invalid game response',
     });
@@ -605,6 +650,7 @@ export const fetchGameVersion = (
     console.error('[game-version] rejected server payload:', error);
     dispatch({
       type: FETCH_GAME_VERSION_FAILURE,
+      requestID: flight.requestID,
       error: error instanceof Error ? error.message : 'Game version response was invalid',
       friendlyError: 'The server returned an invalid game response',
     });
@@ -615,6 +661,7 @@ export const fetchGameVersion = (
     console.log('Version getter returned error: ' + data.Error);
     dispatch({
       type: FETCH_GAME_VERSION_FAILURE,
+      requestID: flight.requestID,
       error: data.Error,
       friendlyError: data.Error
     });
@@ -632,6 +679,7 @@ export const fetchGameVersion = (
 
   dispatch({
     type: FETCH_GAME_VERSION_SUCCESS,
+    requestID: flight.requestID,
     bundles: expandedBundles
   });
 
@@ -641,8 +689,16 @@ export const fetchGameVersion = (
   // wasting a bundle queue slot and potentially confusing animation tracking.
 };
 
-function isCurrentGameRoute(state: RootState, route: GameRoute): boolean {
-  return state.game?.name === route.name && state.game?.id === route.id;
+function isCurrentGameRead(
+  state: RootState,
+  route: GameRoute,
+  kind: GameReadKind,
+  requestID: string,
+): boolean {
+  if (state.game?.name !== route.name || state.game.id !== route.id) return false;
+  return kind === 'info'
+    ? state.game.infoRequestID === requestID
+    : state.game.versionRequestID === requestID;
 }
 
 /**

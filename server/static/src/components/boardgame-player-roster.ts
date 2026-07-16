@@ -311,7 +311,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     this.dispatchEvent(new CustomEvent("refresh-info", { composed: true, bubbles: true }));
   }
 
-  private async _gameRouteChanged(newValue: GameRoute | null): Promise<void> {
+  private async _gameRouteChanged(newValue: GameRoute | null, retry = false): Promise<void> {
     const generation = ++this._rendererLoadGeneration;
     this.rendererLoaded = false;
     this.rendererError = '';
@@ -322,11 +322,25 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
       return;
     }
 
+    const tagName = `boardgame-render-player-info-${newValue.name}`;
+    const existing = customElements.get(tagName);
+    if (existing) {
+      try {
+        this._validateRenderer(existing, tagName);
+        this._rendererLoaded();
+        return;
+      } catch (error) {
+        this.rendererError = this._errorMessage(error);
+        return;
+      }
+    }
+
     try {
       // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode
-      await import(/* @vite-ignore */ `../../game-src/${newValue.name}/boardgame-render-player-info-${newValue.name}.ts`);
+      const baseModulePath = `../../game-src/${newValue.name}/boardgame-render-player-info-${newValue.name}.ts`;
+      const modulePath = retry ? `${baseModulePath}?retry=${generation}` : baseModulePath;
+      await import(/* @vite-ignore */ modulePath);
       if (!this._rendererLoadIsCurrent(generation, newValue)) return;
-      const tagName = `boardgame-render-player-info-${newValue.name}`;
       const constructor = customElements.get(tagName);
       if (!constructor) {
         throw new Error(
@@ -334,16 +348,20 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
           'use @registerPlayerInfoRenderer',
         );
       }
-      if (!(constructor.prototype instanceof BoardgameBasePlayerInfoRenderer)) {
-        throw new Error(
-          `Player renderer <${tagName}> must extend the generated PlayerInfoRenderer base`,
-        );
-      }
+      this._validateRenderer(constructor, tagName);
       this._rendererLoaded();
     } catch (error) {
       if (!this._rendererLoadIsCurrent(generation, newValue)) return;
       this.rendererError = `Failed to load player renderer for ${newValue.name}: ${this._errorMessage(error)}`;
       console.error(`Failed to load player info renderer for ${newValue.name}:`, error);
+    }
+  }
+
+  private _validateRenderer(constructor: CustomElementConstructor, tagName: string): void {
+    if (!(constructor.prototype instanceof BoardgameBasePlayerInfoRenderer)) {
+      throw new Error(
+        `Player renderer <${tagName}> must extend the generated PlayerInfoRenderer base`,
+      );
     }
   }
 
@@ -364,6 +382,10 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     this.rendererLoaded = true;
   }
 
+  private retryRenderer(): void {
+    if (this.gameRoute) void this._gameRouteChanged(this.gameRoute, true);
+  }
+
   render() {
     return html`
       <div class="layout horizontal center">
@@ -380,6 +402,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
       ${this.rendererError ? html`
         <section class="renderer-error" role="alert" aria-live="assertive">
           ${this.rendererError}. Run <code>boardgame-util check-client</code> and fix every diagnostic.
+          <md-outlined-button @click=${this.retryRenderer}>Retry renderer</md-outlined-button>
         </section>
       ` : null}
       <div class="layout horizontal justified players">

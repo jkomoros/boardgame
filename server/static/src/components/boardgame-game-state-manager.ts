@@ -19,7 +19,8 @@ import {
   socketDisconnected,
   socketError,
   clearFetchedInfo,
-  clearFetchedVersion
+  clearFetchedVersion,
+  cancelGameReadFlights,
 } from '../actions/game.js';
 import {
   selectPendingBundles,
@@ -47,6 +48,7 @@ import type { MoveForm, ServerStateBundle } from '../types/api';
 import { clientMoveFromWire } from '../types/client-move.js';
 import { decodeSocketFrame } from '../types/socket-frame.js';
 import type { HostedGameRenderer } from './boardgame-render-game.js';
+import { retryDelayMs } from '../utils/retry-policy.js';
 
 // Matches --animation-length: 0.5s default in boardgame-game-view.ts
 const DEFAULT_ANIMATION_LENGTH_MS = 500;
@@ -113,6 +115,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   @property({ type: Object, attribute: false })
   private _socket: WebSocket | null = null;
   private _reconnectTimer: number | null = null;
+  private _socketRetryAttempt = 0;
+  private _versionRetryAttempt = 0;
+  private _versionRetryTimer: number | null = null;
+  private _versionRequestFrame: number | null = null;
+  private _infoRetryAttempt = 0;
+  private _infoRetryTimer: number | null = null;
+  private _infoRequestFrame: number | null = null;
+  private readonly _onlineHandler = () => this.retryConnection();
 
   // _heartbeatTimer fires every 10 seconds while the socket is open and
   // sends a {"type":"heartbeat"} application-level keepalive. The server's
@@ -183,8 +193,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   stateChanged(state: RootState) {
+    const priorLastFetchedVersion = this.lastFetchedVersion;
     // Sync Redux loading state per-operation (non-duplicated, used for local logic)
     const prevVersionFetching = this._versionFetching;
+    const prevInfoFetching = this._infoFetching;
     this._versionFetching = selectVersionFetching(state);
     this._infoFetching = selectInfoFetching(state);
 
@@ -203,15 +215,20 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     this._lastFiredBundle = selectLastFiredBundle(state);
 
     // Process fetched info when it becomes available
-    if (this._fetchedInfo && this._fetchedInfo !== prevFetchedInfo) {
-      this._handleInfoData(this._fetchedInfo);
+    const receivedInfo = Boolean(this._fetchedInfo && this._fetchedInfo !== prevFetchedInfo);
+    if (receivedInfo) {
+      this._handleInfoData(this._fetchedInfo!);
+      this._clearInfoRetry(true);
       // Clear after processing to prevent re-processing
       store.dispatch(clearFetchedInfo());
     }
 
+    const receivedVersion = Boolean(
+      this._fetchedVersion && this._fetchedVersion !== prevFetchedVersion
+    );
     // Process fetched version when it becomes available
-    if (this._fetchedVersion && this._fetchedVersion !== prevFetchedVersion) {
-      this._handleVersionData(this._fetchedVersion);
+    if (receivedVersion) {
+      this._handleVersionData(this._fetchedVersion!);
       // Clear after processing to prevent re-processing
       store.dispatch(clearFetchedVersion());
     }
@@ -222,13 +239,29 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     const currentLastFetchedVersion = this.lastFetchedVersion;
 
     // Handle targetVersion changes
-    if (this._prevTargetVersion !== currentTargetVersion && currentTargetVersion >= 0) {
+    const targetChanged = this._prevTargetVersion !== currentTargetVersion;
+    if (targetChanged && currentTargetVersion >= 0) {
+      this._clearVersionRetry(true);
+      this._cancelVersionRequestFrame();
       this._handleTargetVersionChanged();
     }
 
-    // Handle version fetch completion - retry fetch if we have a pending target
-    if (prevVersionFetching && !this._versionFetching && currentTargetVersion > currentGameVersion) {
-      this._handleTargetVersionChanged();
+    // A failed read leaves the target pending. Retry with capped backoff rather
+    // than recursively fetching at render speed. A successful read is handled
+    // above and resets the retry budget.
+    if (prevVersionFetching && !this._versionFetching && !receivedVersion &&
+        currentTargetVersion > currentGameVersion) {
+      this._scheduleVersionRetry();
+    }
+    if (receivedVersion && currentLastFetchedVersion > priorLastFetchedVersion) {
+      this._clearVersionRetry(true);
+      if (currentTargetVersion > currentLastFetchedVersion) this._handleTargetVersionChanged();
+    } else if (receivedVersion && currentTargetVersion > currentGameVersion) {
+      // A nominal success that made no progress must not become a hot loop.
+      this._scheduleVersionRetry();
+    }
+    if (prevInfoFetching && !this._infoFetching && !receivedInfo && !this._infoInstalled) {
+      this._scheduleInfoRetry();
     }
 
     // Trigger requestUpdate if properties changed (for updated() lifecycle)
@@ -353,6 +386,12 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _gameRouteChanged(previousRoute: typeof this.gameRoute): void {
+    cancelGameReadFlights();
+    this._clearVersionRetry(true);
+    this._cancelVersionRequestFrame();
+    this._clearInfoRetry(true);
+    this._cancelInfoRequestFrame();
+    this._socketRetryAttempt = 0;
     if (previousRoute) companionTimeline.resetGame(previousRoute.id);
     // Close synchronously. A queued frame from the previous route must not get
     // a chance to mutate the newly selected game's target version.
@@ -389,20 +428,86 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       return;
     }
 
-    // Dispatch the thunk - data will be processed via stateChanged when it arrives
-    requestAnimationFrame(() => {
+    if (this._versionRequestFrame !== null) return;
+    const route = this.gameRoute;
+    const targetVersion = this.targetVersion;
+    const requestedPlayer = this.requestedPlayer;
+    const admin = this.admin;
+    const autoCurrentPlayer = this.autoCurrentPlayer;
+    const lastFetchedVersion = this.lastFetchedVersion;
+    const gameVersion = this.gameVersion;
+
+    // Capture the request identity. A queued frame must not read a newly
+    // selected route with an old route's target or viewer options.
+    this._versionRequestFrame = requestAnimationFrame(() => {
+      this._versionRequestFrame = null;
+      if (!this.isConnected || !sameGameRoute(route, this.gameRoute) ||
+          targetVersion !== this.targetVersion || this._versionFetching) return;
       store.dispatch(
         fetchGameVersion(
-          this.gameRoute!,
-          this.targetVersion,
-          this.requestedPlayer,
-          this.admin,
-          this.autoCurrentPlayer,
-          this.lastFetchedVersion,
-          this.gameVersion
+          route,
+          targetVersion,
+          requestedPlayer,
+          admin,
+          autoCurrentPlayer,
+          lastFetchedVersion,
+          gameVersion
         )
       );
     });
+  }
+
+  private _scheduleVersionRetry(): void {
+    if (this._versionRetryTimer !== null || !this.active || !this.gameRoute) return;
+    if (navigator.onLine === false) return;
+    const route = this.gameRoute;
+    const target = this.targetVersion;
+    const delay = retryDelayMs(this._versionRetryAttempt++);
+    this._versionRetryTimer = window.setTimeout(() => {
+      this._versionRetryTimer = null;
+      if (!sameGameRoute(route, this.gameRoute) || target !== this.targetVersion) return;
+      this._handleTargetVersionChanged();
+    }, delay);
+  }
+
+  private _clearVersionRetry(resetAttempt: boolean): void {
+    if (this._versionRetryTimer !== null) {
+      window.clearTimeout(this._versionRetryTimer);
+      this._versionRetryTimer = null;
+    }
+    if (resetAttempt) this._versionRetryAttempt = 0;
+  }
+
+  private _cancelVersionRequestFrame(): void {
+    if (this._versionRequestFrame === null) return;
+    cancelAnimationFrame(this._versionRequestFrame);
+    this._versionRequestFrame = null;
+  }
+
+  private _scheduleInfoRetry(): void {
+    if (this._infoRetryTimer !== null || !this.active || !this.gameRoute) return;
+    if (navigator.onLine === false) return;
+    const route = this.gameRoute;
+    const delay = retryDelayMs(this._infoRetryAttempt++);
+    this._infoRetryTimer = window.setTimeout(() => {
+      this._infoRetryTimer = null;
+      if (!sameGameRoute(route, this.gameRoute) || this._infoInstalled) return;
+      this.fetchInfo();
+    }, delay);
+  }
+
+  private _clearInfoRetry(resetAttempt: boolean): void {
+    if (this._infoRetryTimer !== null) {
+      window.clearTimeout(this._infoRetryTimer);
+      this._infoRetryTimer = null;
+    }
+    if (resetAttempt) this._infoRetryAttempt = 0;
+  }
+
+  private _cancelInfoRequestFrame(): void {
+    if (this._infoRequestFrame === null) return;
+    cancelAnimationFrame(this._infoRequestFrame);
+    this._infoRequestFrame = null;
   }
 
   private _socketUrlChanged(newValue: string) {
@@ -424,6 +529,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     // If there's no URL, don't establish a socket.
     if (!theUrl) return;
+    if (navigator.onLine === false) return;
 
     const socket = new WebSocket(theUrl);
     this._socket = socket;
@@ -454,6 +560,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       console.warn('Rejected malformed socket frame:', error);
       return;
     }
+
+    // Reset only after protocol-valid traffic. Merely opening and immediately
+    // flapping must continue increasing the backoff budget.
+    this._socketRetryAttempt = 0;
 
     // Signal only after a frame satisfies the protocol. A stream of malformed
     // text must not masquerade as working chat delivery and disable polling.
@@ -538,17 +648,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     // If we closed because we no longer have a valid URL, then
     // _connectSocket will just exit, and this loop won't be called.
 
-    // TODO: exponential backoff on server connect.
+    if (!this._socketUrl || navigator.onLine === false) return;
     const reconnectUrl = this._socketUrl;
+    const delay = retryDelayMs(this._socketRetryAttempt++);
     this._reconnectTimer = window.setTimeout(() => {
       this._reconnectTimer = null;
       // Navigation or an already-open replacement supersedes this timer.
       if (this._socket === null && this._socketUrl === reconnectUrl) this._connectSocket();
-    }, 250);
+    }, delay);
   }
 
   override connectedCallback(): void {
     super.connectedCallback();
+    window.addEventListener('online', this._onlineHandler);
     // A Lit element may be temporarily detached and reinserted without any
     // reactive property changing. Restore the connection that teardown owns.
     if (this._socketUrl && this._socket === null) this._connectSocket();
@@ -556,6 +668,12 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.removeEventListener('online', this._onlineHandler);
+    cancelGameReadFlights();
+    this._clearVersionRetry(true);
+    this._cancelVersionRequestFrame();
+    this._clearInfoRetry(true);
+    this._cancelInfoRequestFrame();
     this._stopHeartbeat();
     if (this._reconnectTimer !== null) {
       window.clearTimeout(this._reconnectTimer);
@@ -566,6 +684,23 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       this._socket = null;
       socket.close();
     }
+  }
+
+  /** Immediately retries all live-session transports after a user action or
+   * the browser's online event. Safe to call repeatedly. */
+  retryConnection(): void {
+    this._socketRetryAttempt = 0;
+    if (this._reconnectTimer !== null) {
+      window.clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    this._clearVersionRetry(true);
+    this._cancelVersionRequestFrame();
+    this._clearInfoRetry(true);
+    this._cancelInfoRequestFrame();
+    if (this._socket === null && this._socketUrl) this._connectSocket();
+    if (this.targetVersion > this.gameVersion) this._handleTargetVersionChanged();
+    if (!this._infoInstalled) this.fetchInfo();
   }
 
   private _startHeartbeat() {
@@ -609,11 +744,20 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   // back; it's still the same game we're viewing as before.
   softReset() {
     this._infoInstalled = false;
-    window.requestAnimationFrame(() => this.updateData());
+    this._clearInfoRetry(true);
+    this._cancelInfoRequestFrame();
+    this._infoRequestFrame = window.requestAnimationFrame(() => {
+      this._infoRequestFrame = null;
+      if (this.isConnected) this.updateData();
+    });
   }
 
   // When everything should be reset
   reset() {
+    this._clearVersionRetry(true);
+    this._cancelVersionRequestFrame();
+    this._clearInfoRetry(true);
+    this._cancelInfoRequestFrame();
     this._installScheduleGeneration++;
     this._waitingForTimingVersion = null;
     if (this._overlapTimerId !== null) {

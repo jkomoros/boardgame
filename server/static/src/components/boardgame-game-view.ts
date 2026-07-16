@@ -51,6 +51,8 @@ import {
   selectPlayerActivity,
   selectPlayerOrder,
   selectGameTimerInfos,
+  selectSocketConnectionAttempts,
+  selectSocketError,
 } from '../selectors.js';
 
 import {
@@ -200,6 +202,12 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   @property({ type: Boolean })
   socketActive = false;
+
+  @property({ type: Number, attribute: false })
+  _socketConnectionAttempts = 0;
+
+  @property({ type: String, attribute: false })
+  _socketError: string | null = null;
 
   @property({ type: Boolean })
   _firstStateBundle = true;
@@ -527,6 +535,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .previewAsPlayer=${this.requestedPlayer}
           .previewAsAdmin=${this._admin}
           .socketActive=${this.socketActive}
+          .connectionAttempts=${this._socketConnectionAttempts}
+          .connectionError=${this._socketError}
+          @retry-connection=${this._handleRetryConnection}
           .active=${this.selected}
           .chest=${this._chest}
 					.moveForms=${this.moveForms}
@@ -622,6 +633,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     }
     this._playerActivity = selectPlayerActivity(state);
     this._playerOrder = selectPlayerOrder(state);
+    this._socketConnectionAttempts = selectSocketConnectionAttempts(state);
+    this._socketError = selectSocketError(state);
   }
 
   private _handleRefreshData(e: Event) {
@@ -650,6 +663,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleSocketActiveChanged(e: CustomEvent) {
     this.socketActive = e.detail.value;
+  }
+
+  private _handleRetryConnection(e: Event) {
+    e.stopPropagation();
+    this._managerEle?.retryConnection();
   }
 
   private _handleRendererChanged(e: CustomEvent) {

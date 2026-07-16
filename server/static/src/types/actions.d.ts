@@ -44,7 +44,8 @@ import {
   SET_AUTO_CURRENT_PLAYER,
   UPDATE_MOVE_FORMS,
   CLEAR_FETCHED_INFO,
-  CLEAR_FETCHED_VERSION
+  CLEAR_FETCHED_VERSION,
+  CANCEL_GAME_READS
 } from '../actions/game';
 
 // ============================================================================
@@ -132,10 +133,12 @@ export interface SubmitMoveFailureAction {
 // Fetch Game Info
 export interface FetchGameInfoRequestAction {
   type: typeof FETCH_GAME_INFO_REQUEST;
+  requestID: string;
 }
 
 export interface FetchGameInfoSuccessAction {
   type: typeof FETCH_GAME_INFO_SUCCESS;
+  requestID: string;
   chest: GameChest;
   playersInfo: PlayerInfo[];
   hasEmptySlots: boolean;
@@ -152,6 +155,7 @@ export interface FetchGameInfoSuccessAction {
 
 export interface FetchGameInfoFailureAction {
   type: typeof FETCH_GAME_INFO_FAILURE;
+  requestID: string;
   error: string;
   friendlyError: string;
 }
@@ -159,15 +163,18 @@ export interface FetchGameInfoFailureAction {
 // Fetch Game Version
 export interface FetchGameVersionRequestAction {
   type: typeof FETCH_GAME_VERSION_REQUEST;
+  requestID: string;
 }
 
 export interface FetchGameVersionSuccessAction {
   type: typeof FETCH_GAME_VERSION_SUCCESS;
+  requestID: string;
   bundles: ServerStateBundle[];
 }
 
 export interface FetchGameVersionFailureAction {
   type: typeof FETCH_GAME_VERSION_FAILURE;
+  requestID: string;
   error: string;
   friendlyError: string;
 }
@@ -274,6 +281,10 @@ export interface ClearFetchedVersionAction {
   type: typeof CLEAR_FETCHED_VERSION;
 }
 
+export interface CancelGameReadsAction {
+  type: typeof CANCEL_GAME_READS;
+}
+
 // ============================================================================
 // Discriminated Union of All Action Types
 // ============================================================================
@@ -314,4 +325,5 @@ export type GameAction =
   | SetAutoCurrentPlayerAction
   | UpdateMoveFormsAction
   | ClearFetchedInfoAction
-  | ClearFetchedVersionAction;
+  | ClearFetchedVersionAction
+  | CancelGameReadsAction;

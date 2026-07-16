@@ -241,6 +241,10 @@ export interface GameState {
   versionFetching: boolean;
   /** Whether a game info fetch is in progress */
   infoFetching: boolean;
+  /** Identity of the only info request allowed to settle this route. */
+  infoRequestID: string | null;
+  /** Identity of the only version request allowed to settle this route. */
+  versionRequestID: string | null;
   /** Whether a configure/join operation is in progress */
   configuring: boolean;
   /** Last error message from fetch operations (null if no error) */
