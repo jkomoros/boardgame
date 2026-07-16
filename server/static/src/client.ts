@@ -98,6 +98,7 @@ export type {
   InspectorOpenChangedDetail,
 } from './components/boardgame-inspector.js';
 export type { ReadinessView } from './components/boardgame-readiness.js';
+export type { SelectionOptionBinding } from './components/boardgame-selection-option.js';
 export type { ClientMove } from './types/api.js';
 export type {
   ReadinessKey,
@@ -159,6 +160,7 @@ import './components/boardgame-action-bar.js';
 import './components/boardgame-draft-controls.js';
 import './components/boardgame-inspector.js';
 import './components/boardgame-readiness.js';
+import './components/boardgame-selection-option.js';
 import './components/boardgame-component-zone.js';
 import './components/boardgame-game-outcome.js';
 import './components/boardgame-game-surface.js';

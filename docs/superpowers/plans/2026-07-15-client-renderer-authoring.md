@@ -1108,6 +1108,9 @@ system phase.
   pretending local state is private. Placement and selection now share the
   single structural `DraftControlsBinding` and `boardgame-draft-controls`; the
   placement-only component introduced on this branch is removed before release.
+  `boardgame-selection-option` supplies the repeated accessible option shell:
+  arbitrary game-owned visuals get a named 44px toggle, pressed/capacity state,
+  keyboard focus, parts/tokens, and loud unknown/nested-interactive failures.
 - [x] Public simultaneous readiness: strict, bounded `ReadinessParticipant`
   state and `boardgame-readiness` make counts, progress, participant status,
   completion, live announcements, responsive presentation, and loud malformed

@@ -797,6 +797,93 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
   expect(axeResult.violations).toEqual([]);
 });
 
+test('selection options own pressed state, capacity, hit targets, and content safety', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-selection-option.ts');
+    const region = document.createElement('div');
+    region.setAttribute('aria-label', 'Resource cards');
+    let selected: readonly string[] = [];
+    const clay = document.createElement('boardgame-selection-option');
+    clay.choice = 'clay'; clay.label = 'Clay card';
+    const art = document.createElement('span');
+    art.textContent = '🧱 Clay';
+    clay.append(art);
+    const ore = document.createElement('boardgame-selection-option');
+    ore.choice = 'ore'; ore.label = 'Ore card';
+    const options = [clay, ore];
+    const refresh = () => {
+      const draft = {
+        candidates: ['clay', 'ore'] as const,
+        selected,
+        maximumSelected: 1,
+        toggle: (choice: string) => {
+          selected = selected.includes(choice) ? [] : [choice];
+          refresh();
+        },
+        isSelected: (choice: string) => selected.includes(choice),
+      };
+      options.forEach(option => { option.draft = draft; });
+    };
+    refresh();
+    region.append(...options);
+    document.body.append(region);
+    await Promise.all(options.map(option => option.updateComplete));
+    const clayButton = clay.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+    const oreButton = ore.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+    const initial = {
+      pressed: clayButton.getAttribute('aria-pressed'),
+      label: clayButton.getAttribute('aria-label'),
+      width: clayButton.getBoundingClientRect().width,
+      height: clayButton.getBoundingClientRect().height,
+      fallback: ore.shadowRoot!.querySelector('[part="fallback"]')?.textContent,
+    };
+    clayButton.click();
+    await Promise.all(options.map(option => option.updateComplete));
+    const atCapacity = {
+      clayPressed: clayButton.getAttribute('aria-pressed'),
+      clayDisabled: clayButton.disabled,
+      oreDisabled: oreButton.disabled,
+    };
+    clayButton.click();
+    await Promise.all(options.map(option => option.updateComplete));
+    const deselected = { oreDisabled: oreButton.disabled, selected };
+
+    const unknown = document.createElement('boardgame-selection-option');
+    unknown.label = 'Unknown'; unknown.choice = 'wood'; unknown.draft = clay.draft;
+    document.body.append(unknown);
+    let unknownError = '';
+    try { await unknown.updateComplete; } catch (error) {
+      unknownError = error instanceof Error ? error.message : String(error);
+    }
+    unknown.remove();
+
+    const nested = document.createElement('boardgame-selection-option');
+    nested.label = 'Nested'; nested.choice = 'clay'; nested.draft = clay.draft;
+    nested.append(document.createElement('button'));
+    document.body.append(nested);
+    let nestedError = '';
+    try { await nested.updateComplete; } catch (error) {
+      nestedError = error instanceof Error ? error.message : String(error);
+    }
+    nested.remove();
+    return { initial, atCapacity, deselected, unknownError, nestedError };
+  });
+  expect(result).toMatchObject({
+    initial: { pressed: 'false', label: 'Clay card', fallback: 'Ore card' },
+    atCapacity: { clayPressed: 'true', clayDisabled: false, oreDisabled: true },
+    deselected: { oreDisabled: false, selected: [] },
+    unknownError: expect.stringContaining('is not a draft candidate'),
+    nestedError: expect.stringContaining('cannot contain interactive content'),
+  });
+  expect(result.initial.width).toBeGreaterThanOrEqual(44);
+  expect(result.initial.height).toBeGreaterThanOrEqual(44);
+  const axeResult = await new AxeBuilder({ page })
+    .include('[aria-label="Resource cards"]')
+    .analyze();
+  expect(axeResult.violations).toEqual([]);
+});
+
 test('inspector supplies modal focus, dismissal, mobile sizing, and loud content contracts', async ({ page }) => {
   await page.goto('/client_config.js');
   await page.setViewportSize({ width: 320, height: 640 });

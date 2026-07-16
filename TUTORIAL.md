@@ -2048,10 +2048,12 @@ const draft = this.payment.bind({
 
 return html`
   <div aria-label="Payment cards">
-    ${resourceCardIDs.map(id => html`<button
-      type="button"
-      aria-pressed=${String(draft.isSelected(id))}
-      @click=${() => draft.toggle(id)}>${id}</button>`)}
+    ${resourceCardIDs.map(id => html`<boardgame-selection-option
+      .draft=${draft}
+      .choice=${id}
+      label=${`Select resource card ${id}`}>
+      <resource-card .cardID=${id}></resource-card>
+    </boardgame-selection-option>`)}
   </div>
   <boardgame-draft-controls
     label="Payment"
@@ -2067,6 +2069,16 @@ retains only keys still offered by the new authoritative snapshot and announces
 what was pruned. Both draft controllers expose the one small
 `DraftControlsBinding` surface, so Commit/Undo/Clear behavior stays consistent
 while the game keeps ownership of card, resource, or board presentation.
+
+`boardgame-selection-option` supplies the accessible shell around each
+game-owned visual. It provides a named 44px native toggle, keyboard focus,
+`aria-pressed`, and capacity handling; once full, unselected choices are
+disabled while selected choices remain available to deselect. It fails loudly
+for blank labels, unknown or inconsistent choices, malformed bindings, and
+nested interactive content. A visible text fallback appears when nothing is
+slotted, and CSS parts and tokens support game-specific styling. Its `disabled`
+property is only an extra presentation gate—the draft remains the authority for
+selection validity.
 
 For a wholly custom interaction, call `activate()` from the user's gesture and
 mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`

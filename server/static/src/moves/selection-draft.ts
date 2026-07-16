@@ -31,6 +31,7 @@ export interface SelectionDraftBinding<
   MoveName extends string,
   Input extends object,
 > {
+  readonly candidates: readonly Key[];
   readonly selected: readonly Key[];
   readonly action: BoundMoveAction<MoveName, Input> | null;
   readonly notice: SelectionDraftNotice<Key> | null;
@@ -108,6 +109,7 @@ export class SelectionDraftController<Key extends TargetKey> implements Reactive
       }
     }
     return Object.freeze({
+      candidates,
       selected: this.#selected,
       action,
       notice: this.#notice,
