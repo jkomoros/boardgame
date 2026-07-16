@@ -1494,6 +1494,12 @@ pooling, and FLIP animation identity. Each factory used with `componentView`
 must return a fresh registered component element of one consistent type; invalid
 factories fail loudly.
 
+Import the renderer facade (`../../src/client.js`) once; it registers the
+curated card, token, stack, board, action, status, layout, and workflow elements.
+Do not add side-effect imports from `src/components`. The strict client checker
+rejects deep imports for facade-owned elements so a renderer cannot accidentally
+depend on an undocumented transitive registration order.
+
 Start an ordinary solo renderer with `boardgame-game-surface`. It supplies the
 game's semantic heading, centered responsive bounds, safe narrow-screen
 spacing, and named regions without imposing a visual theme or knowing anything

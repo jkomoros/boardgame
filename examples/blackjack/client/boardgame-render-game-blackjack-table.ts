@@ -1,8 +1,6 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-card.js';
 import { cardView } from '../../src/client.js';
 import type { MoveName } from './_move_names.js';
 import type { MoveInputs } from './_move_args.js';

@@ -1,9 +1,6 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-action-button.js';
 import { cardView } from '../../src/client.js';
 import { MoveNames, type MoveName } from './_move_names.js';
 import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';

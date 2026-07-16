@@ -1,7 +1,4 @@
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-card.js';
 import { GameRenderer } from './_game_renderer.js';
-import '../../src/components/boardgame-fading-text.js';
 import { html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MoveNames } from './_move_names.js';

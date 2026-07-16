@@ -1047,6 +1047,13 @@ First evidence-driven primitive tranche (2026-07-16):
   richer name/description rows on direct candidate actions as the intentional
   edge-case path. Prove strict negative contracts, loud runtime failures,
   end-to-end proposal, and axe.
+- [x] Make the curated facade the deterministic registration boundary for every
+  public renderer element, including cards, tokens, stacks, and grid boards.
+  Remove redundant deep side-effect imports from all framework and external
+  renderers, and add fatal `BGCLIENT0105` policy diagnostics so future creator
+  code cannot depend on undocumented transitive registration order. Keep the
+  legacy Redux-connected player badge and companion Table/Hand bases explicitly
+  outside this rule until their typed host contracts are replaced.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

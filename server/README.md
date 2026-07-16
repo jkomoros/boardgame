@@ -76,6 +76,9 @@ unusual animation plumbing.
 Stack layout is a closed TypeScript contract: `stack`, `grid`, `fan`, `pile`,
 `spread`, `board`, or `spatial`. Use `isStackLayout()` to narrow values from a
 dynamic control. Unknown layouts and invalid geometry fail loudly at runtime.
+Importing `src/client.js` registers the full curated element set; game renderers
+should not side-effect import individual public component modules. The strict
+client checker reports those deep imports as `BGCLIENT0105`.
 
 Prefer the component view's typed `properties` callback for card or token
 presentation. Use `.componentView=${this.cards.withProperties({ rotated: true })}`

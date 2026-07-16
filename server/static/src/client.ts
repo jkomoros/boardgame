@@ -148,11 +148,15 @@ export type {
   MoveInputValidationResult,
 } from './moves/input.js';
 
-// Importing the facade registers the zero-configuration primitives used by
-// the Pig proving renderer. Their classes are intentionally not exported yet:
-// the supported contract is the custom-element markup, not implementation
-// methods inherited from today's legacy elements.
+// Importing the facade registers every curated renderer primitive. Game code
+// must not depend on transitive or deep component-module side effects. Their
+// classes are intentionally not exported: the supported creator contract is
+// custom-element markup and the facade types, not implementation inheritance.
 import './components/boardgame-die.js';
+import './components/boardgame-card.js';
+import './components/boardgame-token.js';
+import './components/boardgame-component-stack.js';
+import './components/boardgame-game-board.js';
 import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';

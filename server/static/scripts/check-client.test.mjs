@@ -136,6 +136,21 @@ test('creator policy accepts explained suppressions and single assertions', asyn
   assert.deepEqual(JSON.parse(result.stdout).diagnostics, []);
 });
 
+test('creator policy rejects deep imports for facade-registered components', async () => {
+  const project = await fixture([
+    "import '../../src/components/boardgame-card.js';",
+    "import '../../src/components/boardgame-hand-view-base.js';",
+    '',
+  ].join('\n'));
+  const result = await run(project, { creatorPolicy: true });
+  assert.equal(result.exitCode, 1);
+  assert.deepEqual(JSON.parse(result.stdout).diagnostics
+    .filter(({ source }) => source === 'boardgame-client')
+    .map(({ code, line }) => ({ code, line })), [
+      { code: 'BGCLIENT0105', line: 1 },
+    ]);
+});
+
 test('creator policy skips generated root files', async () => {
   const project = await fixture([
     '/*',
