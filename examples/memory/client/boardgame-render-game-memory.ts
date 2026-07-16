@@ -1,4 +1,3 @@
-import '@material/web/progress/linear-progress.js';
 import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-component-stack.js';
@@ -19,10 +18,6 @@ class BoardgameRenderGameMemory extends GameRenderer {
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
-      md-linear-progress {
-        width: 100%;
-      }
-
       .current {
         font-weight: bold;
       }
@@ -50,14 +45,6 @@ class BoardgameRenderGameMemory extends GameRenderer {
       }
     `
   ];
-
-  get maxTimeLeft(): number {
-    return this.computeMaxTimeLeft(this.state?.Game?.HideCardsTimer?.originalTimeLeft ?? 0);
-  }
-
-  private computeMaxTimeLeft(timeLeft: number): number {
-    return Math.max(timeLeft, 100);
-  }
 
   // _revealHoldMs replaces this renderer's old imperative delay-animation
   // hook, which delayed installing the next state by 1000ms whenever the move
@@ -138,11 +125,11 @@ class BoardgameRenderGameMemory extends GameRenderer {
         .action=${this.move(MoveNames.HideCards)}>
         Hide Cards
       </boardgame-action-button>
-      <md-linear-progress
+      <boardgame-timer
         id="timeleft"
-        .value="${(this.state?.Game?.HideCardsTimer?.TimeLeft || 0) / (this.maxTimeLeft || 1)}"
-        .max="${1}">
-      </md-linear-progress>
+        label="Cards hide in"
+        .timer=${this.state?.Game?.HideCardsTimer ?? null}>
+      </boardgame-timer>
       <boardgame-fading-text
         .trigger="${this.isCurrentPlayer}"
         message="Your Turn"

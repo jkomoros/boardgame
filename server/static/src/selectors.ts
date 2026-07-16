@@ -198,7 +198,7 @@ export const selectMoveLegality = createSelector(
 );
 
 // Internal selector for timer infos (will be added to state)
-const selectGameTimerInfos = (state: RootState): Record<string, TimerInfo> | null =>
+export const selectGameTimerInfos = (state: RootState): Record<string, TimerInfo> | null =>
     state.game?.timerInfos || null;
 
 /**

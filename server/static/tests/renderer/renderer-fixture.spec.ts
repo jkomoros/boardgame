@@ -1118,6 +1118,96 @@ test('player info derives typed state and publishes chip presentation without cr
   }
 });
 
+test('timer display consumes a scoped clock without rerendering game state', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const {
+        TIMER_SERVICE_REQUEST_EVENT,
+        TimerService,
+      } = await import('/src/timers/timer-service.ts');
+      await import('/src/client.ts');
+
+      const service = new TimerService();
+      service.update({ hide: { TimeLeft: 2500, originalTimeLeft: 5000 } });
+      const provider = document.createElement('div');
+      provider.addEventListener(TIMER_SERVICE_REQUEST_EVENT, event => {
+        const request = event as CustomEvent<{ accept(service: InstanceType<typeof TimerService>): void }>;
+        event.stopPropagation();
+        request.detail.accept(service);
+      });
+      const timer = document.createElement('boardgame-timer');
+      timer.timer = { ID: 'hide', IsTimer: true };
+      timer.label = 'Cards hide in';
+      provider.append(timer);
+      document.body.append(provider);
+      await timer.updateComplete;
+      const progress = timer.shadowRoot?.querySelector('progress') as HTMLProgressElement | null;
+      const initial = {
+        value: timer.shadowRoot?.querySelector('#value')?.textContent?.trim(),
+        progress: progress?.value,
+        status: timer.shadowRoot?.querySelector('#timer')?.getAttribute('data-status'),
+        label: progress?.getAttribute('aria-labelledby'),
+      };
+
+      timer.format = 'clock';
+      service.update({ hide: { TimeLeft: 61_000, originalTimeLeft: 120_000 } });
+      await timer.updateComplete;
+      const clock = timer.shadowRoot?.querySelector('#value')?.textContent?.trim();
+      service.update({ hide: { TimeLeft: 0, originalTimeLeft: 120_000 } });
+      await timer.updateComplete;
+      const elapsed = {
+        value: timer.shadowRoot?.querySelector('#value')?.textContent?.trim(),
+        announcement: timer.shadowRoot?.querySelector('[role="status"]')?.textContent?.trim(),
+        status: timer.shadowRoot?.querySelector('#timer')?.getAttribute('data-status'),
+      };
+
+      timer.timer = { ID: '', IsTimer: true };
+      await timer.updateComplete;
+      await timer.updateComplete;
+      const hiddenWhenIdle = timer.shadowRoot?.querySelector('#timer') === null;
+
+      const renderError = (name: string, value: unknown) => {
+        const element = document.createElement('boardgame-timer') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        element[name] = value;
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      timer.timer = { ID: 'hide', IsTimer: true };
+      service.update({ hide: { TimeLeft: 1000, originalTimeLeft: 2000 } });
+      await timer.updateComplete;
+      await timer.updateComplete;
+      return {
+        initial,
+        clock,
+        elapsed,
+        hiddenWhenIdle,
+        blankLabel: renderError('label', ' '),
+        invalidFormat: renderError('format', 'minutes'),
+        blankExpired: renderError('expiredLabel', ' '),
+      };
+    });
+
+    expect(result.initial).toEqual({ value: '3s', progress: 0.5, status: 'running', label: 'label' });
+    expect(result.clock).toBe('1:01');
+    expect(result.elapsed).toEqual({ value: 'Time expired', announcement: 'Time expired', status: 'elapsed' });
+    expect(result.hiddenWhenIdle).toBe(true);
+    expect(result.blankLabel).toContain('label must be non-empty');
+    expect(result.invalidFormat).toContain('unknown format');
+    expect(result.blankExpired).toContain('expiredLabel must be non-empty');
+    const axeResult = await new AxeBuilder({ page }).include('boardgame-timer').analyze();
+    expect(axeResult.violations).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

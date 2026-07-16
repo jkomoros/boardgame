@@ -75,6 +75,15 @@ export type { StatusTextAutoMessage, StatusTextValue } from './components/boardg
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
+export { TimerController } from './timers/timer-service.js';
+export type {
+  TimerCadence,
+  TimerControllerOptions,
+  TimerReading,
+  TimerReference,
+  TimerStatus,
+} from './timers/timer-service.js';
+export type { TimerDisplayFormat } from './components/boardgame-timer.js';
 export { isStackLayout } from './components/boardgame-component-stack.js';
 export type { StackLayout } from './components/boardgame-component-stack.js';
 export type {
@@ -98,4 +107,5 @@ import './components/boardgame-component-zone.js';
 import './components/boardgame-game-outcome.js';
 import './components/boardgame-player-grid.js';
 import './components/boardgame-status-text.js';
+import './components/boardgame-timer.js';
 import './components/boardgame-spatial-board.js';

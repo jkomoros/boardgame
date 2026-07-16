@@ -1617,6 +1617,31 @@ html`<boardgame-status-text
 </boardgame-status-text>`
 ```
 
+Game timers are stable references in renderer state, not clocks that force the
+whole game snapshot to change every animation frame. Bind one to the timer
+primitive for an accessible label, countdown, smooth progress, idle hiding,
+and an expiry announcement:
+
+```typescript
+html`<boardgame-timer
+  label="Cards hide in"
+  .timer=${this.state?.Game.HideCardsTimer ?? null}>
+</boardgame-timer>`
+```
+
+Use `format="clock"` for `m:ss`, `hide-progress` or `hide-value` when only one
+representation is useful, and the `timer`, `header`, `label`, `value`, and
+`progress` CSS parts plus `--boardgame-timer-*` tokens for styling. The
+generated timer object intentionally exposes only stable `ID`/`IsTimer`
+identity; live values come from the route-scoped clock so unrelated renderer
+and roster content does not rerender at 60Hz.
+
+For custom UI, construct `new TimerController(this, () => timerReference)` in a
+Lit element and render `controller.reading`. The default second cadence updates
+only when the displayed second changes; request `{ cadence: 'frame' }` only for
+continuous visuals. Controllers unsubscribe on disconnect and fail loudly when
+mounted outside a game view or given a malformed reference.
+
 ##### boardgame-base-game-renderer
 
 Game renderers should extend the generated `GameRenderer` in

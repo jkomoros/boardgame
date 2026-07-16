@@ -114,14 +114,10 @@ export interface ExpandedBoard<
   readonly Spaces: readonly ExpandedStack<T, D>[];
 }
 
-/**
- * An expanded timer as seen by the client after selector expansion.
- */
+/** Stable timer identity in a renderer snapshot; live clock values are selective signals. */
 export interface ExpandedTimer {
   readonly ID: string;
   readonly IsTimer: true;
-  readonly TimeLeft: number;
-  readonly originalTimeLeft: number;
 }
 
 /** Static game metadata delivered beside state snapshots. */

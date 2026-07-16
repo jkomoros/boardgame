@@ -882,8 +882,14 @@ approved.
   roster. Migrate Tic-tac-toe and external Murder Mr Monroe, correct the stale
   `rendererLoaded` attribute binding discovered by the lifecycle proof, and use
   Lit's safe style-map path instead of concatenated inline CSS.
-- Add selective timer signals that update subscribed consumers at an appropriate
-  cadence instead of rerendering the entire state at 60Hz.
+- [x] Add a route-scoped timer service plus `TimerController` with closed
+  second/frame cadence policies and immutable readings, so only subscribed Lit
+  consumers update. Keep generated timer state as stable identity rather than a
+  dishonest live-clock snapshot. Add `boardgame-timer` as the accessible
+  zero-config countdown/progress composition and migrate Memory. Correct the
+  underlying countdown to subtract from its installed baseline and generation-
+  scope animation-frame loops so repeated state installs cannot accelerate a
+  timer or leave concurrent tick loops behind.
 - Add transition/history data only after a real stable contract exists.
 
 ### C. Renderer-scoped Lit-native deck/component rendering

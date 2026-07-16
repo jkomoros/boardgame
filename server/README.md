@@ -140,6 +140,21 @@ html`<boardgame-status-text
 </boardgame-status-text>`
 ```
 
+Bind a generated timer reference to `boardgame-timer` for an accessible
+countdown and progress indicator without rerendering the whole game at 60Hz:
+
+```typescript
+html`<boardgame-timer
+  label="Cards hide in"
+  .timer=${this.state?.Game.HideCardsTimer ?? null}>
+</boardgame-timer>`
+```
+
+Use `format="clock"`, `hide-progress`, or `hide-value` for the common variants.
+For fully custom Lit markup, `TimerController` exposes an immutable selective
+reading and defaults to one update per displayed second; opt into frame cadence
+only for continuous visuals.
+
 Use `boardgame-game-outcome` with the renderer's `gameFinished`, `gameWinners`,
 and `animating` properties. It withholds and does not announce the verdict until
 the final animation settles, handles wins/losses/draws, and rejects contradictory

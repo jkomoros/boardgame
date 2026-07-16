@@ -35,7 +35,8 @@ import {
   selectLastFetchedVersion,
   selectPlayerColors,
   selectPlayerActivity,
-  selectPlayerOrder
+  selectPlayerOrder,
+  selectGameTimerInfos,
 } from '../selectors.js';
 
 import {
@@ -59,6 +60,11 @@ import {
 } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
 import { movePreview, movePreviewBatch } from '../api.js';
+import {
+  TIMER_SERVICE_REQUEST_EVENT,
+  TimerService,
+  type TimerServiceRequestDetail,
+} from '../timers/timer-service.js';
 
 import type { StateBundle } from '../types/game-state';
 import type { MoveForm } from '../types/api';
@@ -380,6 +386,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _companionSurface: 'table' | 'hand' | null = null;
 
   private _surfaceCachedGameId: string | null = null;
+  private readonly _timerService = new TimerService();
 
   // Hide-my-hand privacy shield (hand surface only): when true, an opaque
   // full-viewport overlay covers the private hand so the player can set
@@ -406,6 +413,14 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.addEventListener('all-animations-done', (e: Event) => this._handleAllAnimationsDone(e));
     this.addEventListener('set-animation-length', (e: Event) => this._handleSetAnimationLength(e as CustomEvent));
     this.addEventListener('animating-changed', (e: Event) => this._handleAnimatingChanged(e as CustomEvent));
+    this.addEventListener(TIMER_SERVICE_REQUEST_EVENT, (event: Event) => {
+      const request = event as CustomEvent<TimerServiceRequestDetail>;
+      if (typeof request.detail?.accept !== 'function') {
+        throw new Error('boardgame-game-view: malformed timer service request');
+      }
+      event.stopPropagation();
+      request.detail.accept(this._timerService);
+    });
   }
 
   override render() {
@@ -546,6 +561,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   // action creators then it should be fine.
 
   stateChanged(state: any) {
+    this._timerService.update(selectGameTimerInfos(state));
     // Sync view state from Redux
     this.game = selectGame(state);
     this.viewingAsPlayer = selectViewingAsPlayer(state);

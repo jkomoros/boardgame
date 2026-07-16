@@ -5,6 +5,7 @@ import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/s
 import type { ApiResponse } from '../api';
 import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
 import type { MoveTransportResult } from '../moves/action.js';
+import { remainingTimerMs } from '../timers/timer-clock.js';
 import type {
   UpdateGameRouteAction,
   UpdateGameStaticInfoAction,
@@ -153,7 +154,9 @@ export const installGameState = (
   currentState: RawGameState,
   timerInfos: Record<string, TimerInfo>,
   originalWallClockTime: number
-) => (dispatch: Dispatch, getState: () => RootState) => {
+) => (dispatch: Dispatch, _getState: () => RootState) => {
+
+  const generation = ++timerTickGeneration;
 
   // Extract paths to tick WITHOUT mutating state
   const pathsToTick = extractTimerPaths(currentState, timerInfos);
@@ -172,7 +175,7 @@ export const installGameState = (
   // Store RAW state directly - expansion happens in selectors!
   dispatch(updateGameState(currentState, augmentedTimerInfos, pathsToTick, originalWallClockTime));
 
-  if (pathsToTick.length) window.requestAnimationFrame(doTick);
+  if (pathsToTick.length) window.requestAnimationFrame(() => doTick(generation));
 }
 
 const updateGameState = (
@@ -236,12 +239,15 @@ const extractTimerPathsFromLeaf = (
   });
 }
 
-const doTick = (): void => {
+let timerTickGeneration = 0;
+
+const doTick = (generation: number): void => {
+  if (generation !== timerTickGeneration) return;
   tick();
   const state = store.getState();
   const pathsToTick = state.game ? state.game.pathsToTick : [];
   if (pathsToTick.length > 0) {
-    window.requestAnimationFrame(doTick);
+    window.requestAnimationFrame(() => doTick(generation));
   }
 }
 
@@ -259,7 +265,6 @@ const tick = (): void => {
   if (pathsToTick.length == 0) return;
 
   const now = Date.now();
-  const elapsed = now - originalWallClockStartTime;
 
   // Update timer infos (not the state itself!)
   const newTimerInfos = { ...timerInfos };
@@ -276,9 +281,13 @@ const tick = (): void => {
     const originalInfo = timerInfos[timerID];
     if (!originalInfo) continue;
 
-    // Calculate new TimeLeft based on elapsed time since original wall clock time
-    // originalInfo.TimeLeft is the time left when the state was first received
-    const newTimeLeft = Math.max(0, originalInfo.TimeLeft - elapsed);
+    // Always subtract from the immutable installed baseline. Subtracting from
+    // the prior frame's TimeLeft would apply cumulative elapsed time repeatedly.
+    const newTimeLeft = remainingTimerMs(
+      originalInfo.originalTimeLeft ?? originalInfo.TimeLeft,
+      originalWallClockStartTime,
+      now,
+    );
 
     // Update timer info (preserve originalTimeLeft, update TimeLeft)
     newTimerInfos[timerID] = {
