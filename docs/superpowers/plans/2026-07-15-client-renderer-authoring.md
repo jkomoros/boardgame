@@ -1064,7 +1064,14 @@ First evidence-driven primitive tranche (2026-07-16):
   wide/narrow layout, semantics, empty/hidden-heading modes, facade typing, and
   runtime diagnostics.
 
-Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
+- [x] Add `boardgame-inspector` for the Mysterium/card-art inspection story:
+  ordinary `thumbnail` and `detail` slots get a named trigger, visible title,
+  native modal focus containment/restoration, Escape/backdrop policy, mobile
+  bottom-sheet sizing, scroll containment, forced-colors/reduced-motion support,
+  typed controlled-state events, parts/tokens, and loud empty-content errors.
+  Keep trading/configuration workflow state outside this presentation primitive.
+
+Readiness, trading dialogs, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design
 system phase.
 

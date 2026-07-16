@@ -1674,6 +1674,41 @@ If the host itself must be custom, use `componentView()` with a factory that
 returns a fresh registered element extending `BoardgameComponent`. The framework
 checks that the factory never reuses an element or changes host type.
 
+For card art, rule reminders, maps, or other content that deserves a larger
+view, compose the same game-owned presentation into the inspector. The common
+case needs no event handlers or modal state:
+
+```typescript
+html`<boardgame-inspector
+  label="Moon vision"
+  description="A moonlit path through a forest">
+  <img slot="thumbnail" src=${moonThumbnail} alt="">
+  <figure slot="detail">
+    <img src=${moonArtwork} alt="Moonlit forest path">
+    <figcaption>Follow the path beyond the old oak.</figcaption>
+  </figure>
+</boardgame-inspector>`
+```
+
+The framework turns `thumbnail` into a named 44-pixel-minimum trigger and owns
+the native modal focus trap, Escape and backdrop dismissal, focus restoration,
+scroll containment, phone bottom-sheet sizing, forced colors, and reduced
+motion. The dialog's visible `label` is required; `trigger-label` overrides the
+default “Inspect …” name. Omit the thumbnail for a useful text trigger. Empty
+labels, nested interactive thumbnail controls, or opening without meaningful
+`detail` content fail loudly; the thumbnail is presentation inside the
+framework-owned button.
+
+Set `.dismissible=${false}` only when accidental Escape/backdrop dismissal would
+be harmful; the visible Close control always remains. For route- or
+renderer-owned state, bind the boolean `open` property or call `show()` and
+`close()`. The typed `inspector-open-changed` event reports `trigger`, `escape`,
+`backdrop`, `close-button`, or `programmatic` without making those events game
+state. Theme the exported trigger, dialog, panel, header, title, description,
+close, and content parts or the `--boardgame-inspector-*` tokens. This primitive
+is for presentation/inspection; multi-step trading or configuration workflows
+should keep their domain state in a dedicated controller.
+
 ##### boardgame-fading-text
 
 In many cases you want to draw attention to values that change as the result of moves. For example, when it's the current player's turn you might want to make that fact obvious. A common way to do that is to have that text expand from that location and fade as it does so, drawing attention to the changed value. `boardgame-fading-text` will do this for you.

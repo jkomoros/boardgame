@@ -797,6 +797,131 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
   expect(axeResult.violations).toEqual([]);
 });
 
+test('inspector supplies modal focus, dismissal, mobile sizing, and loud content contracts', async ({ page }) => {
+  await page.goto('/client_config.js');
+  await page.setViewportSize({ width: 320, height: 640 });
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-inspector.ts');
+    const inspector = document.createElement('boardgame-inspector');
+    inspector.label = 'Moon vision';
+    inspector.description = 'A moonlit path through a forest';
+    const thumbnail = document.createElement('span');
+    thumbnail.slot = 'thumbnail';
+    thumbnail.textContent = '🌙';
+    const detail = document.createElement('article');
+    detail.slot = 'detail';
+    detail.textContent = 'Large moonlit vision';
+    inspector.append(thumbnail, detail);
+    const events: { open: boolean; reason: string }[] = [];
+    inspector.addEventListener('inspector-open-changed', event => {
+      events.push((event as CustomEvent<{ open: boolean; reason: string }>).detail);
+    });
+    document.body.append(inspector);
+    await inspector.updateComplete;
+    const root = inspector.shadowRoot!;
+    const trigger = root.querySelector<HTMLButtonElement>('#trigger')!;
+    trigger.click();
+    await inspector.updateComplete;
+    const dialog = root.querySelector<HTMLDialogElement>('dialog')!;
+    const open = dialog.open && dialog.matches(':modal');
+    const labelledBy = dialog.getAttribute('aria-labelledby');
+    const describedBy = dialog.getAttribute('aria-describedby');
+    const activeWhileOpen = root.activeElement?.id;
+    const bounds = dialog.getBoundingClientRect();
+    const escaped = new Promise<void>(resolve => dialog.addEventListener('close', () => resolve(), { once: true }));
+    dialog.dispatchEvent(new Event('cancel', { bubbles: false, cancelable: true }));
+    dialog.close();
+    await escaped;
+    await Promise.resolve();
+    const focusedAfterEscape = root.activeElement?.id;
+
+    inspector.show();
+    await inspector.updateComplete;
+    const backdropClosed = new Promise<void>(resolve => dialog.addEventListener('close', () => resolve(), { once: true }));
+    dialog.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 1, clientY: 1 }));
+    await backdropClosed;
+
+    inspector.dismissible = false;
+    inspector.show();
+    await inspector.updateComplete;
+    const cancel = new Event('cancel', { bubbles: false, cancelable: true });
+    dialog.dispatchEvent(cancel);
+    const escapePrevented = cancel.defaultPrevented;
+    const programmaticallyClosed = new Promise<void>(resolve => dialog.addEventListener('close', () => resolve(), { once: true }));
+    inspector.close();
+    await programmaticallyClosed;
+
+    const missing = document.createElement('boardgame-inspector');
+    missing.label = 'Missing detail';
+    document.body.append(missing);
+    await missing.updateComplete;
+    missing.open = true;
+    let missingError = '';
+    try { await missing.updateComplete; } catch (error) {
+      missingError = error instanceof Error ? error.message : String(error);
+    }
+    await missing.updateComplete.catch(() => undefined);
+    missing.remove();
+
+    const badLabel = document.createElement('boardgame-inspector');
+    badLabel.label = '   ';
+    document.body.append(badLabel);
+    let labelError = '';
+    try { await badLabel.updateComplete; } catch (error) {
+      labelError = error instanceof Error ? error.message : String(error);
+    }
+    badLabel.remove();
+
+    const nestedControl = document.createElement('boardgame-inspector');
+    nestedControl.label = 'Nested control';
+    const nestedButton = document.createElement('button');
+    nestedButton.slot = 'thumbnail';
+    const nestedDetail = document.createElement('span');
+    nestedDetail.slot = 'detail';
+    nestedControl.append(nestedButton, nestedDetail);
+    document.body.append(nestedControl);
+    let thumbnailError = '';
+    try { await nestedControl.updateComplete; } catch (error) {
+      thumbnailError = error instanceof Error ? error.message : String(error);
+    }
+    nestedControl.remove();
+    inspector.dismissible = true;
+    inspector.show();
+    await inspector.updateComplete;
+    return {
+      open, labelledBy, describedBy, activeWhileOpen, focusedAfterEscape,
+      mobileWidth: bounds.width, mobileBottom: Math.abs(bounds.bottom - 640),
+      escapePrevented, events, missingError, labelError, thumbnailError,
+    };
+  });
+  expect(result).toMatchObject({
+    open: true,
+    labelledBy: 'title',
+    describedBy: 'description',
+    activeWhileOpen: 'close',
+    focusedAfterEscape: 'trigger',
+    mobileWidth: 320,
+    mobileBottom: 0,
+    escapePrevented: true,
+    missingError: expect.stringContaining('provide non-empty slot="detail" content'),
+    labelError: expect.stringContaining('label must be a non-empty visible dialog title'),
+    thumbnailError: expect.stringContaining('cannot contain interactive content'),
+  });
+  expect(result.events).toEqual([
+    { open: true, reason: 'trigger' },
+    { open: false, reason: 'escape' },
+    { open: true, reason: 'programmatic' },
+    { open: false, reason: 'backdrop' },
+    { open: true, reason: 'programmatic' },
+    { open: false, reason: 'programmatic' },
+    { open: true, reason: 'programmatic' },
+  ]);
+  const axeResult = await new AxeBuilder({ page })
+    .include('boardgame-inspector')
+    .analyze();
+  expect(axeResult.violations).toEqual([]);
+});
+
 test('component stack exposes its real closed layout contract and rejects invalid geometry', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

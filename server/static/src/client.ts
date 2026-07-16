@@ -93,6 +93,10 @@ export type { ComponentZoneLayout } from './components/boardgame-component-zone.
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
 export type { BoardViewportChange } from './components/boardgame-board-viewport.js';
 export type { PlacementDraftControlsBinding } from './components/boardgame-placement-draft-controls.js';
+export type {
+  InspectorChangeReason,
+  InspectorOpenChangedDetail,
+} from './components/boardgame-inspector.js';
 export {
   AdminPlayerIndex,
   AnyPlayerIndex,
@@ -136,6 +140,7 @@ import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';
 import './components/boardgame-placement-draft-controls.js';
+import './components/boardgame-inspector.js';
 import './components/boardgame-component-zone.js';
 import './components/boardgame-game-outcome.js';
 import './components/boardgame-game-surface.js';
