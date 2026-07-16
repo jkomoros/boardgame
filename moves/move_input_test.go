@@ -120,6 +120,29 @@ func TestCurrentPlayerContributesContextOwnedTarget(t *testing.T) {
 	}
 }
 
+func TestUnrepresentableInheritedContextFieldIsOmittedWithoutHidingCreatorFields(t *testing.T) {
+	contributions := []sourcedMoveInputField{
+		{field: contextOwnedTargetPlayerField(), source: "moves.CurrentPlayer"},
+		{field: boardgame.MoveInputField{Name: "TargetLocation", Disposition: boardgame.MoveInputRequired}, source: "provider"},
+	}
+	got := representableMoveInputContributions(contributions, map[string]boardgame.PropertyType{
+		"TargetLocation": boardgame.TypeInt,
+	})
+	if len(got) != 1 || got[0].field.Name != "TargetLocation" {
+		t.Fatalf("unexpected representable fields: %#v", got)
+	}
+	// A provider-owned field is retained so the ordinary unknown-field check
+	// still rejects it instead of silently weakening a creator contract.
+	providerContext := sourcedMoveInputField{
+		field:  contextOwnedTargetPlayerField(),
+		source: "custom.MoveInputFields",
+	}
+	got = representableMoveInputContributions([]sourcedMoveInputField{providerContext}, nil)
+	if len(got) != 1 {
+		t.Fatalf("provider field was incorrectly hidden: %#v", got)
+	}
+}
+
 func TestMoveInputConfigurationFailsLoudly(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -77,6 +77,8 @@ func collectMoveInputFields(move AutoConfigurableMove, config boardgame.Property
 		return err
 	}
 	contributions = append(contributions, provided...)
+	props := move.ReadSetter().Props()
+	contributions = representableMoveInputContributions(contributions, props)
 	explicit, _ := config[configPropMoveInputDeclarations].([]moveInputDeclaration)
 
 	seen := make(map[string]string, len(contributions)+len(explicit))
@@ -115,7 +117,6 @@ func collectMoveInputFields(move AutoConfigurableMove, config boardgame.Property
 	}
 
 	boardgame.SetMoveInputFields(config, collected)
-	props := move.ReadSetter().Props()
 	for _, field := range collected {
 		propType, ok := props[field.Name]
 		if !ok {
@@ -126,6 +127,29 @@ func collectMoveInputFields(move AutoConfigurableMove, config boardgame.Property
 		}
 	}
 	return nil
+}
+
+// A wrapper move may inherit CurrentPlayer's private marker through multiple
+// embedded bases even when its generated reader deliberately does not flatten
+// that base's TargetPlayerIndex. The field is framework-owned and still gets
+// its Go default, so omitting only this implicit context metadata is safe.
+// Provider and explicit creator fields remain subject to the loud unknown-field
+// validation below.
+func representableMoveInputContributions(
+	contributions []sourcedMoveInputField,
+	props map[string]boardgame.PropertyType,
+) []sourcedMoveInputField {
+	result := make([]sourcedMoveInputField, 0, len(contributions))
+	for _, contribution := range contributions {
+		_, represented := props[contribution.field.Name]
+		implicitContext := contribution.field.Disposition == boardgame.MoveInputContextOwned &&
+			(contribution.source == "moves.CurrentPlayer" || contribution.source == "moves.AnyPlayer")
+		if !represented && implicitContext {
+			continue
+		}
+		result = append(result, contribution)
+	}
+	return result
 }
 
 // providedMoveInputContributions uses Go's ordinary method set. A move may
