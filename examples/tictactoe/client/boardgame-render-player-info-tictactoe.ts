@@ -1,7 +1,8 @@
 import { html } from '../../src/client.js';
-import { PlayerInfoRenderer } from './_game_renderer.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 
-class BoardgameRenderPlayerInfoTictactoe extends PlayerInfoRenderer {
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoTictactoe extends PlayerInfoRenderer {
   override get chip() {
     return { text: this.playerState?.TokenValue ?? '' };
   }
@@ -12,5 +13,3 @@ class BoardgameRenderPlayerInfoTictactoe extends PlayerInfoRenderer {
     return html``;
   }
 }
-
-customElements.define('boardgame-render-player-info-tictactoe', BoardgameRenderPlayerInfoTictactoe);

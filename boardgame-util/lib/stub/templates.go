@@ -790,7 +790,7 @@ func TestNewManager(t *testing.T) {
 `
 
 const templateContentsRenderGameTs = `import { css, html{{if .EnableExampleClient}}, cardView{{end}} } from '../../src/client.js';
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 {{- if .EnableExampleClient }}
 import type { GameState } from './_types.js';
 {{- end}}
@@ -798,7 +798,8 @@ import type { GameState } from './_types.js';
 import { MoveNames } from './_move_names.js';
 {{- end}}
 
-class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
 {{- if .EnableExampleClient }}
   private readonly cards = cardView<GameState['DrawStack']>({
     render: ({ kind, component }) => kind === 'visible'
@@ -866,14 +867,13 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
     {{- end}}
   }
 }
-
-customElements.define('boardgame-render-game-{{.Name}}', BoardgameRenderGame{{uppercaseFirst .Name}});
 `
 
 const templateContentsRenderPlayerInfoTs = `import { html } from '../../src/client.js';
-import { PlayerInfoRenderer } from './_game_renderer.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 
-class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PlayerInfoRenderer {
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PlayerInfoRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]
@@ -885,6 +885,4 @@ class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PlayerInfoRender
     {{- end}}
   }
 }
-
-customElements.define('boardgame-render-player-info-{{.Name}}', BoardgameRenderPlayerInfo{{uppercaseFirst .Name}});
 `

@@ -221,13 +221,13 @@ export type ExpandedTimer = unknown;
 export type FullGameState<GS, PS, GC, PC, DC> = { readonly Game: GS; readonly Players: readonly PS[]; readonly Components?: DC; readonly Computed?: { readonly Global?: GC; readonly Players?: readonly PC[] } };
 export type RawStack = unknown;
 `
-	frameworkClient := `export abstract class BoardgameBaseGameRenderer<S, C extends object, M extends string, A extends Readonly<Record<M, object>>> {
+	frameworkClient := `export abstract class BoardgameBaseGameRenderer<S, C extends object, M extends string, A extends Readonly<Record<M, object>>> extends HTMLElement {
   protected readonly moveInputSchema!: unknown;
   protected readonly moveInputSchemaFingerprint!: string;
   readonly state!: S;
   readonly chest!: { readonly Decks?: C };
 }
-export abstract class BoardgameBasePlayerInfoRenderer<S, PS> {
+export abstract class BoardgameBasePlayerInfoRenderer<S, PS> extends HTMLElement {
   state!: S | null;
   playerIndex!: number;
   playerState!: PS | null;

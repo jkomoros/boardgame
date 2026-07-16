@@ -1,8 +1,9 @@
 import { html, css } from '../../src/client.js';
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
 
-class BoardgameRenderGamePig extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGamePig extends GameRenderer {
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
@@ -43,5 +44,3 @@ class BoardgameRenderGamePig extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-pig', BoardgameRenderGamePig);

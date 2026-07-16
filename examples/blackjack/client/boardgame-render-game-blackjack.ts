@@ -1,11 +1,12 @@
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MoveNames } from './_move_names.js';
 import { cardView } from '../../src/client.js';
 import type { GameState } from './_types.js';
 
-class BoardgameRenderGameBlackjack extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameBlackjack extends GameRenderer {
   private readonly cards = cardView<GameState['DrawStack']>({
     properties: ({ kind, component }) => ({
       suit: kind === 'visible' ? component.Values.Suit : '',
@@ -101,5 +102,3 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-blackjack', BoardgameRenderGameBlackjack);

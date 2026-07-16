@@ -1,8 +1,7 @@
 import { html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
 import { cardView } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
-import { HandRenderer } from './_game_renderer.js';
+import { HandRenderer, registerHandRenderer } from './_game_renderer.js';
 import type { GameState } from './_types.js';
 
 /**
@@ -13,7 +12,7 @@ import type { GameState } from './_types.js';
  *
  * V1 MVP minimal styling.
  */
-@customElement('boardgame-render-game-blackjack-hand')
+@registerHandRenderer
 export class BlackjackHandView extends HandRenderer {
   private readonly cards = cardView<GameState['DrawStack']>({
     properties: ({ kind, component }) => ({

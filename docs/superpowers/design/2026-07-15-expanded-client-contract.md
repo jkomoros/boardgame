@@ -76,18 +76,21 @@ the proposal boundary rather than a misleading compile-time claim.
 `_game_renderer.ts`. Its `GameClientContract` type slots bind the exact state
 (including computed and dynamic-component values), resolved component catalog,
 move names, and creator inputs. Its abstract `GameRenderer` consumes those
-slots and installs the runtime schema and fingerprint. It does not register a
-custom element. A game creator writes only:
+slots and installs the runtime schema and fingerprint. The generated module
+also owns the exact custom-element tag, so a creator writes only:
 
 ```ts
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 
-class BoardgameRenderGameExample extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameExample extends GameRenderer {
   // render and interaction code
 }
-
-customElements.define('boardgame-render-game-example', BoardgameRenderGameExample);
 ```
+
+The tag cannot be mistyped or copied from another game. Registered renderer
+classes are exported so the strict `noUnusedLocals` gate and direct renderer
+tests agree that the class is part of the package API.
 
 The local generated module imports the single framework facade, so source,
 assembled development, and production builds share the same Lit and base-class

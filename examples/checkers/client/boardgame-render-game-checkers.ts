@@ -1,9 +1,10 @@
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css, isVisibleComponent, SourceDestinationController, tokenView } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
 import type { GameState } from './_types.js';
 
-class BoardgameRenderGameCheckers extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameCheckers extends GameRenderer {
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
@@ -54,5 +55,3 @@ class BoardgameRenderGameCheckers extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-checkers', BoardgameRenderGameCheckers);

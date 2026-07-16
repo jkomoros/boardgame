@@ -56,6 +56,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 	client := string(contents["checkers/client/boardgame-render-game-checkers.ts"])
 	playerInfo := string(contents["checkers/client/boardgame-render-player-info-checkers.ts"])
 	for _, required := range []string{
+		"@registerGameRenderer",
 		"cardView<GameState['DrawStack']>",
 		"<boardgame-game-surface heading=\"Checkers\">",
 		"<boardgame-component-zone",
@@ -76,6 +77,9 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		if !strings.Contains(client, required) {
 			t.Errorf("generated client is missing %q", required)
 		}
+	}
+	if !strings.Contains(playerInfo, "@registerPlayerInfoRenderer") {
+		t.Error("generated player-info renderer must use exact generated registration")
 	}
 	if strings.Contains(client, "import '../../src/components/") {
 		t.Error("generated renderer should register supported primitives through the public client facade")

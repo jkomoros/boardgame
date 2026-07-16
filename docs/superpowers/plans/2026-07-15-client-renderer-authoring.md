@@ -1068,6 +1068,12 @@ First evidence-driven primitive tranche (2026-07-16):
   Blackjack, Werewolf, and the companion tutorial. This removes four repeated
   generic arguments and duplicated runtime move-schema wiring from the common
   case while retaining the generic bases as the advanced escape hatch.
+- [x] Remove hand-typed renderer tag names from the creator path. Generate
+  base-restricted `registerGameRenderer`, `registerTableRenderer`,
+  `registerHandRenderer`, and `registerPlayerInfoRenderer` decorators with the
+  exact game tag embedded; migrate every framework and external renderer plus
+  scaffold goldens and tutorials. Auxiliary game-local custom elements retain
+  ordinary `customElements.define` as the explicit edge path.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

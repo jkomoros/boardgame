@@ -1,4 +1,4 @@
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 
 /**
@@ -6,7 +6,8 @@ import { html, css } from 'lit';
  * game state as text. Werewolf is designed for companion mode, so this is
  * deliberately simple.
  */
-class BoardgameRenderGameWerewolf extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameWerewolf extends GameRenderer {
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
@@ -29,5 +30,3 @@ class BoardgameRenderGameWerewolf extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-werewolf', BoardgameRenderGameWerewolf);

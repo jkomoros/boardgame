@@ -1,10 +1,11 @@
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 import type { CardsComponentValues, GameState } from './_types.js';
 import { cardView, isVisibleComponent } from '../../src/client.js';
 
-class BoardgameRenderGameMemory extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameMemory extends GameRenderer {
   private readonly cards = cardView<GameState['Cards']>({
     render: ({ kind, component }) => kind === 'visible'
       ? html`<div>${component.Values.Type}</div>`
@@ -137,5 +138,3 @@ class BoardgameRenderGameMemory extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-memory', BoardgameRenderGameMemory);

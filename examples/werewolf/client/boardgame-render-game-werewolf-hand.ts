@@ -1,7 +1,6 @@
 import { html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
 import { glyphForSlug, targetList } from '../../src/client.js';
-import { HandRenderer } from './_game_renderer.js';
+import { HandRenderer, registerHandRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
 
 /**
@@ -9,7 +8,7 @@ import { MoveNames } from './_move_names.js';
  * so the player can see their own role (via sanitize:"other:hidden" on
  * behaviors.PlayerRole). Shows role, voting buttons, and game status.
  */
-@customElement('boardgame-render-game-werewolf-hand')
+@registerHandRenderer
 export class WerewolfHandView extends HandRenderer {
   static override styles = [
     HandRenderer.styles,

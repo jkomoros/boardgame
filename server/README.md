@@ -243,6 +243,21 @@ helpers, and the animation lifecycle. Bind a zero-input action directly with
 for typed inputs. Controls fail closed while legality is unresolved, a proposal
 is pending, or animation gates interaction.
 
+Register the concrete class with the exact decorator from the generated
+`_game_renderer.js` module:
+
+```typescript
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
+
+@registerGameRenderer
+export class MyRenderer extends GameRenderer { /* ... */ }
+```
+
+The generated `registerTableRenderer`, `registerHandRenderer`, and
+`registerPlayerInfoRenderer` variants enforce both the exact host tag and the
+matching base class. Do not hand-type `customElements.define(...)` for framework
+renderer surfaces; reserve it for genuinely game-local auxiliary elements.
+
 For an ordinary labeled target menu, wrap the target collection with
 `targetList(targets, key => label)` and bind it once to
 `<boardgame-target-list .choices=${...}>`. The list owns batched preview,

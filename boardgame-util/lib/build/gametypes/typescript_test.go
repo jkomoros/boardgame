@@ -236,7 +236,7 @@ func TestGenerateTypeScriptEmitsHonestComponentCatalog(t *testing.T) {
 	}
 }
 
-func TestGenerateRendererTypeScriptBindsCompleteContractWithoutRegistration(t *testing.T) {
+func TestGenerateRendererTypeScriptBindsCompleteContractAndExactRegistration(t *testing.T) {
 	ts := GenerateRendererTypeScript("sample")
 	for _, want := range []string{
 		"export interface GameClientContract",
@@ -244,6 +244,11 @@ func TestGenerateRendererTypeScriptBindsCompleteContractWithoutRegistration(t *t
 		"export abstract class TableRenderer extends BoardgameTableViewBase<",
 		"export abstract class HandRenderer extends BoardgameHandViewBase<",
 		"export abstract class PlayerInfoRenderer extends BoardgameBasePlayerInfoRenderer<",
+		"export function registerGameRenderer",
+		"export function registerTableRenderer",
+		"export function registerHandRenderer",
+		"export function registerPlayerInfoRenderer",
+		"customElements.define('boardgame-render-game-sample'",
 		"protected override readonly moveInputSchema = moveInputSchema;",
 		"readonly Components: ComponentCatalog;",
 		"readonly RendererTag:",
@@ -255,8 +260,8 @@ func TestGenerateRendererTypeScriptBindsCompleteContractWithoutRegistration(t *t
 			t.Errorf("missing %q:\n%s", want, ts)
 		}
 	}
-	if strings.Contains(ts, "customElements.define") {
-		t.Fatal("generated abstract renderer registered a custom element")
+	if strings.Contains(ts, "customElements.define('boardgame-render-game-sample', GameRenderer)") {
+		t.Fatal("generated module registered an abstract renderer at module evaluation")
 	}
 }
 

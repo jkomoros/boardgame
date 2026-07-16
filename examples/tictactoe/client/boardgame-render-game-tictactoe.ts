@@ -1,10 +1,11 @@
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 import type { GameState } from './_types.js';
 import { tokenView } from '../../src/client.js';
 
-class BoardgameRenderGameTictactoe extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameTictactoe extends GameRenderer {
   private readonly tokens = tokenView<GameState['Slots']>({
     properties: () => ({ type: 'chip' }),
   });
@@ -43,5 +44,3 @@ class BoardgameRenderGameTictactoe extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-tictactoe', BoardgameRenderGameTictactoe);

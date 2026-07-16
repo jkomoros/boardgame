@@ -5,7 +5,7 @@ import '@material/web/slider/slider.js';
 import type { MdSwitch } from '@material/web/switch/switch.js';
 import type { MdSlider } from '@material/web/slider/slider.js';
 import type { MdFilledSelect } from '@material/web/select/filled-select.js';
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
@@ -15,7 +15,8 @@ import { cardView, isStackLayout, tokenView } from '../../src/client.js';
 import type { ClientMove, StackLayout } from '../../src/client.js';
 import type { GameState } from './_types.js';
 
-class BoardgameRenderGameDebuganimations extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameDebuganimations extends GameRenderer {
   private readonly cards = cardView<GameState['DrawStack']>({
     render: ({ kind, component }) => kind === 'visible'
       ? html`<div tall>${component.Values.Type}</div>`
@@ -472,5 +473,3 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-debuganimations', BoardgameRenderGameDebuganimations);

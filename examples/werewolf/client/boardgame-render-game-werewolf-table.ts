@@ -1,13 +1,12 @@
-import { customElement } from 'lit/decorators.js';
 import { html, css, type ReadinessParticipant } from '../../src/client.js';
-import { TableRenderer } from './_game_renderer.js';
+import { TableRenderer, registerTableRenderer } from './_game_renderer.js';
 
 /**
  * Werewolf Table view (the shared projector screen). Connects as
  * ObserverPlayerIndex so roles are hidden by sanitization. Shows player
  * status, voting progress, phase info, and win/loss announcements.
  */
-@customElement('boardgame-render-game-werewolf-table')
+@registerTableRenderer
 export class WerewolfTableView extends TableRenderer {
   static override styles = [
     TableRenderer.styles,

@@ -1,5 +1,5 @@
 import { html } from '../../src/client.js';
-import { PlayerInfoRenderer } from './_game_renderer.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 import type { PlayerState } from './_types.js';
 
 declare module './_types.js' {
@@ -8,7 +8,8 @@ declare module './_types.js' {
   }
 }
 
-class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
   private _calculateStatus(playerState: PlayerState | null): string {
     if (playerState?.Eliminated) {
       return 'Busted';
@@ -27,5 +28,3 @@ class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-player-info-blackjack', BoardgameRenderPlayerInfoBlackjack);

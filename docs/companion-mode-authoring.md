@@ -30,10 +30,9 @@ detects the pair at startup and the create-game form grows a
 
 ```ts
 import { html } from '../../src/client.js';
-import { customElement } from 'lit/decorators.js';
-import { TableRenderer } from './_game_renderer.js';
+import { TableRenderer, registerTableRenderer } from './_game_renderer.js';
 
-@customElement('boardgame-render-game-mygame-table')
+@registerTableRenderer
 export class MyGameTableView extends TableRenderer {
   override renderBoard() {
     return html`<!-- your public board here: this.state.Game.… -->`;
@@ -54,10 +53,9 @@ blackjack and werewolf do.
 
 ```ts
 import { html } from '../../src/client.js';
-import { customElement } from 'lit/decorators.js';
-import { HandRenderer } from './_game_renderer.js';
+import { HandRenderer, registerHandRenderer } from './_game_renderer.js';
 
-@customElement('boardgame-render-game-mygame-hand')
+@registerHandRenderer
 export class MyGameHandView extends HandRenderer {
   override renderHand() {
     const me = this.playerState;   // YOUR player's private state

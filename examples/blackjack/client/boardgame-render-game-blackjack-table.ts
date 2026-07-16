@@ -1,7 +1,6 @@
 import { html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
 import { cardView } from '../../src/client.js';
-import { TableRenderer } from './_game_renderer.js';
+import { TableRenderer, registerTableRenderer } from './_game_renderer.js';
 import type { GameState } from './_types.js';
 
 /**
@@ -17,7 +16,7 @@ import type { GameState } from './_types.js';
  * companion_capable_games list so the create-game form gates the
  * toggle on.
  */
-@customElement('boardgame-render-game-blackjack-table')
+@registerTableRenderer
 export class BlackjackTableView extends TableRenderer {
   private readonly cards = cardView<GameState['DrawStack']>({
     properties: ({ kind, component }) => ({

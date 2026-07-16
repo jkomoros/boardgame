@@ -1,7 +1,8 @@
 import { css, html } from '../../src/client.js';
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 
-class BoardgameRenderGameCheckers extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameCheckers extends GameRenderer {
   static override styles = css`
     :host { display: block; }
   `;
@@ -12,5 +13,3 @@ class BoardgameRenderGameCheckers extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-checkers', BoardgameRenderGameCheckers);

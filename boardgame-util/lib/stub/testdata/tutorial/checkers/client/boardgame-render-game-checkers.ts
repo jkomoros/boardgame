@@ -1,9 +1,10 @@
 import { css, html, cardView } from '../../src/client.js';
-import { GameRenderer } from './_game_renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import type { GameState } from './_types.js';
 import { MoveNames } from './_move_names.js';
 
-class BoardgameRenderGameCheckers extends GameRenderer {
+@registerGameRenderer
+export class BoardgameRenderGameCheckers extends GameRenderer {
   private readonly cards = cardView<GameState['DrawStack']>({
     render: ({ kind, component }) => kind === 'visible'
       ? html`<strong>${component.Values.Value}</strong>`
@@ -54,5 +55,3 @@ class BoardgameRenderGameCheckers extends GameRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-game-checkers', BoardgameRenderGameCheckers);

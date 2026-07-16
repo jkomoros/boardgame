@@ -1,7 +1,8 @@
 import { html } from '../../src/client.js';
-import { PlayerInfoRenderer } from './_game_renderer.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 
-class BoardgameRenderPlayerInfoCheckers extends PlayerInfoRenderer {
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoCheckers extends PlayerInfoRenderer {
   override render() {
     return html`
       Number of cards:
@@ -9,5 +10,3 @@ class BoardgameRenderPlayerInfoCheckers extends PlayerInfoRenderer {
     `;
   }
 }
-
-customElements.define('boardgame-render-player-info-checkers', BoardgameRenderPlayerInfoCheckers);

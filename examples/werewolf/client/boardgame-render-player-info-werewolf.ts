@@ -1,5 +1,5 @@
 import { html, css } from '../../src/client.js';
-import { PlayerInfoRenderer } from './_game_renderer.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 
 /**
  * Player-info renderer for werewolf's roster tiles. Shown for every game
@@ -9,7 +9,8 @@ import { PlayerInfoRenderer } from './_game_renderer.js';
  * would leak nothing useful and mislead. It surfaces only public status —
  * eliminated / voted / thinking — which is safe for all viewers.
  */
-class BoardgameRenderPlayerInfoWerewolf extends PlayerInfoRenderer {
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoWerewolf extends PlayerInfoRenderer {
   static override styles = css`
     .status {
       font-size: 12px;
@@ -34,5 +35,3 @@ class BoardgameRenderPlayerInfoWerewolf extends PlayerInfoRenderer {
     return html`<div class="status">\xa0</div>`;
   }
 }
-
-customElements.define('boardgame-render-player-info-werewolf', BoardgameRenderPlayerInfoWerewolf);

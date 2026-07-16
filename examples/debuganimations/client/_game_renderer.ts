@@ -79,3 +79,33 @@ export abstract class PlayerInfoRenderer extends BoardgameBasePlayerInfoRenderer
   GameClientContract['State'],
   GameClientContract['PlayerState']
 > {}
+
+type RendererConstructor<Base extends HTMLElement> = new () => Base;
+
+/** Register the ordinary game surface under its generated exact tag. */
+export function registerGameRenderer<T extends RendererConstructor<GameRenderer>>(
+  constructor: T,
+): void {
+  customElements.define('boardgame-render-game-debuganimations', constructor);
+}
+
+/** Register the companion shared-screen surface under its generated exact tag. */
+export function registerTableRenderer<T extends RendererConstructor<TableRenderer>>(
+  constructor: T,
+): void {
+  customElements.define('boardgame-render-game-debuganimations-table', constructor);
+}
+
+/** Register the companion private-player surface under its generated exact tag. */
+export function registerHandRenderer<T extends RendererConstructor<HandRenderer>>(
+  constructor: T,
+): void {
+  customElements.define('boardgame-render-game-debuganimations-hand', constructor);
+}
+
+/** Register the player-info surface under its generated exact tag. */
+export function registerPlayerInfoRenderer<T extends RendererConstructor<PlayerInfoRenderer>>(
+  constructor: T,
+): void {
+  customElements.define('boardgame-render-player-info-debuganimations', constructor);
+}
