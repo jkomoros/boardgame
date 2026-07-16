@@ -674,6 +674,129 @@ test('action bar supplies named responsive grouping, styling hooks, and closed l
   }
 });
 
+test('placement draft controls make keyboard drafting, undo, rebase, and exact commit visible', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    const { PlacementDraftController } = await import('/src/moves/placement-draft.ts');
+    const { MoveSubmissionGate, createMoveAction } = await import('/src/moves/action.ts');
+    await import('/src/components/boardgame-placement-draft-controls.ts');
+    const controls = document.createElement('boardgame-placement-draft-controls');
+    controls.style.display = 'block';
+    controls.style.width = '300px';
+    controls.label = 'Word placement';
+    controls.commitLabel = 'Play word';
+    let submissions = 0;
+    let request = 0;
+    const gate = new MoveSubmissionGate();
+    const host = {
+      state: {}, gameName: 'words', gameId: 'one', gameVersion: 1, snapshotEpoch: 1,
+      viewingAsPlayer: 0, proposingAsPlayer: 0, proposingAsAdmin: false,
+      addController: () => undefined,
+      removeController: () => undefined,
+      requestUpdate: () => {
+        controls.draft = controller.bind(options);
+      },
+      updateComplete: Promise.resolve(true),
+    };
+    const snapshotKey = () => [
+      host.gameName, host.gameId, host.gameVersion, host.snapshotEpoch,
+      host.viewingAsPlayer, host.proposingAsPlayer, host.proposingAsAdmin ? 1 : 0,
+    ].join('\u0000');
+    const service = {
+      currentClientSchemaFingerprint: () => 'schema',
+      currentServerSchemaFingerprint: () => 'schema',
+      currentTransport: () => ({ submit: async () => { submissions++; return { kind: 'success' as const }; } }),
+      currentPreviewTransport: () => ({ preview: async () => ({ kind: 'success' as const, legal: true }) }),
+      currentTargetPreviewTransport: () => null,
+      currentGate: () => gate,
+      nextRequestID: () => `draft-${++request}`,
+      validate: () => [],
+      serialize: (_name: string, input: unknown) => ({
+        Placements: String((input as { Placements: string }).Placements),
+      }),
+      changed: () => controls.requestUpdate(),
+    };
+    const controller = new PlacementDraftController<string, number>(host);
+    const options = {
+      items: ['a', 'b'], targets: [0, 1], minPlacements: 2, maxPlacements: 2,
+      action: (placements: readonly { item: string; target: number }[]) => {
+        const key = snapshotKey();
+        return createMoveAction('Play', service, {
+          snapshotKey: key,
+          currentSnapshotKey: snapshotKey,
+          snapshotVersion: host.gameVersion,
+          currentSnapshotVersion: () => host.gameVersion,
+          viewingAsPlayer: 0, proposingAsPlayer: 0, proposingAsAdmin: false,
+          currentLegality: () => ({ legalForPlayer: true, legalForAnyone: true }),
+          currentAnimating: () => false,
+          baselineLegalityApplies: true,
+        }).with({ Placements: JSON.stringify(placements) });
+      },
+    };
+    controls.draft = controller.bind(options);
+    document.body.append(controls);
+    await controls.updateComplete;
+    const root = controls.shadowRoot!;
+    const initialStatus = root.querySelector('#status')?.textContent?.trim();
+    const initialCommit = root.querySelector('boardgame-action-button')!;
+    await (initialCommit as typeof initialCommit & { updateComplete: Promise<unknown> }).updateComplete;
+    const initialReason = initialCommit.shadowRoot?.querySelector('#status')?.textContent?.trim();
+
+    controls.draft.selectItem('a');
+    controls.draft.place(0);
+    controls.draft.assign('b', 1);
+    await controls.updateComplete;
+    const completeCount = root.querySelector('#count')?.textContent?.replace(/\s+/g, ' ').trim();
+    const undo = root.querySelector<HTMLButtonElement>('button[part="undo"]')!;
+    undo.click();
+    await controls.updateComplete;
+    const undoneCount = controls.draft.placements.length;
+    controls.draft.assign('b', 1);
+    await controls.updateComplete;
+    const commit = root.querySelector('boardgame-action-button') as HTMLElement & {
+      updateComplete: Promise<unknown>;
+    };
+    await commit.updateComplete;
+    commit.shadowRoot?.querySelector<HTMLButtonElement>('button')?.click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    host.state = {};
+    host.gameVersion++;
+    controls.draft = controller.bind(options);
+    await controls.updateComplete;
+    const notice = root.querySelector('#notice')?.textContent?.replace(/\s+/g, ' ').trim();
+    const clearedCount = controls.draft.placements.length;
+    const direction = getComputedStyle(root.querySelector('#buttons')!).flexDirection;
+
+    const invalid = document.createElement('boardgame-placement-draft-controls');
+    document.body.append(invalid);
+    let invalidError = '';
+    try { await invalid.updateComplete; } catch (error) {
+      invalidError = error instanceof Error ? error.message : String(error);
+    }
+    invalid.remove();
+    return {
+      initialStatus, initialReason, completeCount, undoneCount, submissions,
+      notice, clearedCount, direction, invalidError,
+    };
+  });
+  expect(result).toEqual({
+    initialStatus: '0 placements drafted.',
+    initialReason: 'Add 2 more placements before committing',
+    completeCount: '2 / 2',
+    undoneCount: 1,
+    submissions: 1,
+    notice: 'The game changed, so the local draft was cleared. Dismiss',
+    clearedCount: 0,
+    direction: 'column',
+    invalidError: expect.stringContaining('.draft must be a PlacementDraftController binding'),
+  });
+  const axeResult = await new AxeBuilder({ page })
+    .include('boardgame-placement-draft-controls')
+    .analyze();
+  expect(axeResult.violations).toEqual([]);
+});
+
 test('component stack exposes its real closed layout contract and rejects invalid geometry', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

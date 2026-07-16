@@ -78,6 +78,10 @@ export class BoardgameActionButton extends LitElement {
   @property({ type: String })
   label = '';
 
+  /** Explanation shown while a higher-level workflow has not produced an action yet. */
+  @property({ type: String, attribute: 'unbound-reason' })
+  unboundReason = 'No move action supplied';
+
   #unsubscribe: (() => void) | null = null;
 
   override connectedCallback(): void {
@@ -117,13 +121,16 @@ export class BoardgameActionButton extends LitElement {
     if (!this.label.trim() && !this.textContent?.trim()) {
       throw new Error('boardgame-action-button: provide visible text or a non-empty label for an accessible name');
     }
+    if (action === null && !this.unboundReason.trim()) {
+      throw new Error('boardgame-action-button: unboundReason must explain why no action is available');
+    }
     const bound = action !== null;
     const pending = bound && action.submission.kind === 'pending';
     const disabled = !bound || !action.canActivate;
     const rejection = bound && action.submission.kind === 'rejected' ? action.submission.reason : null;
     const baseReason = bound
       ? action.reason?.message ?? rejection
-      : action ? 'Bind required move input with .with(...)' : 'No move action supplied';
+      : this.unboundReason.trim();
     const reason = bound && action.preview.kind === 'failed' && action.preview.retryable
       ? `${baseReason ?? 'Move legality check failed'}. Activate to retry.`
       : baseReason;

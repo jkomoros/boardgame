@@ -1088,8 +1088,13 @@ system phase.
   responsive layout and pan/zoom using the same piece anchors. Bounded, closed
   validation keeps decorative paths separate from `TargetAction` semantics and
   fails unknown keys, duplicate IDs, malformed routes, and excessive data loudly.
-- Scrabble-like draft: local overlay, undo, version rebase, exact commit, and
-  mandatory non-drag alternative.
+- [x] Scrabble-like draft: `PlacementDraftController` owns an immutable,
+  bounded item-to-target overlay with select/place and pointer assignment over
+  the same checked mutation, undo/clear, safe-clear or explicit keep-valid
+  snapshot rebasing, visible prune notices, and one ordinary typed
+  snapshot-bound commit action. `boardgame-placement-draft-controls` makes the
+  count, status, reasons, responsive Commit/Undo/Clear, and announcement path
+  automatic while leaving game-specific tile and board presentation ordinary.
 - Simultaneous choice/readiness: request/version-scoped private choices and
   synchronized reveal.
 - Hidden movement: visibility-safe generated surfaces, public log, reveal

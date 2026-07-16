@@ -1893,6 +1893,70 @@ destination keys must be disjoint, in range, finite, and unique; ambiguous
 configuration fails loudly. Creators do not maintain a parallel selected index,
 preview request, disabled-space array, string serialization, or click handler.
 
+For a turn assembled locally before one exact move—word tiles, formation
+orders, route planning, or several resource assignments—use a placement draft.
+It owns the local item-to-target state and ordinary undo/clear controls while
+the final commit remains a generated, server-previewed move action:
+
+```typescript
+import { PlacementDraftController } from '/src/client.js';
+
+private readonly wordDraft = new PlacementDraftController<string, number>(this);
+
+render() {
+  const rack = this.state?.Players[this.proposingAsPlayer]?.Rack;
+  const tileIDs = rack?.Components.flatMap(tile => tile ? [tile.ID] : []) ?? [];
+  const squares = Array.from({ length: 225 }, (_, index) => index);
+  const draft = this.wordDraft.bind({
+    items: tileIDs,
+    targets: squares,
+    minPlacements: 1,
+    maxPlacements: 7,
+    action: placements => this.move(MoveNames.PlayTiles).with({
+      // The game chooses its generated wire model; the draft never submits itself.
+      Placements: placements.map(({ item, target }) => `${item}:${target}`).join(','),
+    }),
+  });
+
+  return html`
+    <div aria-label="Rack">
+      ${tileIDs.map(id => html`<button
+        type="button"
+        aria-pressed=${String(draft.selectedItem === id)}
+        @click=${() => draft.selectItem(id)}>${id}</button>`)}
+    </div>
+    <div aria-label="Word board">
+      ${squares.map(square => html`<button
+        type="button"
+        ?disabled=${draft.selectedItem === null || draft.itemAt(square) !== undefined}
+        @click=${() => draft.place(square)}>${square}</button>`)}
+    </div>
+    <boardgame-placement-draft-controls
+      label="Word placement"
+      commit-label="Play word"
+      .draft=${draft}>
+    </boardgame-placement-draft-controls>`;
+}
+```
+
+`selectItem()` followed by `place()` is the required keyboard/click path.
+Optional drag handling calls `assign(item, target)` and therefore cannot bypass
+the same unknown-item, unknown-target, occupancy, or maximum checks. Placements
+are immutable and carry stable IDs; `targetFor()` and `itemAt()` project the
+local overlay without mutating the server snapshot. The stock controls provide
+responsive Commit, Undo, Clear, count, disabled reasons, polite status, and
+rebase notices. Server preview supplies the final legality reason.
+
+The safe rebase default is `clear`: any new version, viewer perspective, game,
+or replaced state clears the draft and visibly explains why. Use
+`rebase: 'keep-valid'` only when stable item and target IDs make preservation
+intentional; unavailable placements are pruned and announced. Undo history is
+bounded and never crosses a snapshot boundary. The commit action is created
+from the current immutable placement list, so normal schema validation,
+animation/submission gates, preview, `ExpectedVersion`, and stale-snapshot
+failure all remain in force. Network failures retain the draft for retry;
+success consumes the snapshot until the authoritative next state arrives.
+
 For a wholly custom interaction, call `activate()` from the user's gesture and
 mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`
 retries a transient exact-preview failure before proposing. For headless

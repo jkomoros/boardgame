@@ -1,5 +1,6 @@
-import type { ReactiveController, ReactiveControllerHost } from 'lit';
+import type { ReactiveController } from 'lit';
 import type { TargetAction, TargetKey } from './target-action.js';
+import { gameSnapshotKey, type GameSnapshotHost } from './snapshot-controller.ts';
 
 // Keep source selection bounded independently of the destination collection.
 // A type-only dependency also lets Node execute this controller's TypeScript
@@ -27,16 +28,7 @@ export interface SourceDestinationOptions<
   readonly destinations: (source: Key) => TargetAction<Key, MoveName, Input>;
 }
 
-export interface SourceDestinationHost extends ReactiveControllerHost {
-  readonly state: object | null;
-  readonly gameName: string;
-  readonly gameId: string;
-  readonly gameVersion: number;
-  readonly snapshotEpoch: number;
-  readonly viewingAsPlayer: number;
-  readonly proposingAsPlayer: number;
-  readonly proposingAsAdmin: boolean;
-}
+export type SourceDestinationHost = GameSnapshotHost;
 
 /**
  * Owns the small piece of local state in a source-then-destination interaction.
@@ -58,7 +50,7 @@ export class SourceDestinationController<Key extends TargetKey> implements React
     options: SourceDestinationOptions<Key, MoveName, Input>,
   ): SourceDestinationBinding<Key, MoveName, Input> {
     const sources = validateSources(options.sources);
-    const snapshotKey = this.#currentSnapshotKey();
+    const snapshotKey = gameSnapshotKey(this.#host);
     if (this.#state !== this.#host.state || this.#snapshotKey !== snapshotKey) {
       this.#state = this.#host.state;
       this.#snapshotKey = snapshotKey;
@@ -109,18 +101,6 @@ export class SourceDestinationController<Key extends TargetKey> implements React
 
   hostDisconnected(): void {
     this.#selectedSource = null;
-  }
-
-  #currentSnapshotKey(): string {
-    return [
-      this.#host.gameName,
-      this.#host.gameId,
-      this.#host.gameVersion,
-      this.#host.snapshotEpoch,
-      this.#host.viewingAsPlayer,
-      this.#host.proposingAsPlayer,
-      this.#host.proposingAsAdmin ? 1 : 0,
-    ].join('\u0000');
   }
 }
 
