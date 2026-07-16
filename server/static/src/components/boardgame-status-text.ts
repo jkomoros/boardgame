@@ -37,6 +37,7 @@ export class BoardgameStatusText extends LitElement {
         aria-atomic=${this.announce ? 'true' : nothing}>${displayValue}</strong>
       <boardgame-fading-text
         aria-hidden="true"
+        .announce=${false}
         .trigger=${displayValue}
         .autoMessage=${this.autoMessage} 
         suppress="falsey">

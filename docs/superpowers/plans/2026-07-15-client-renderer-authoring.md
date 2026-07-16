@@ -967,6 +967,13 @@ First evidence-driven primitive tranche (2026-07-16):
   full corpus, tutorial, server guide, and scaffold source/golden output; prove
   positive behavior, accessibility wiring, negative TypeScript contracts, and
   runtime diagnostics in the renderer fixture.
+- [x] Tighten the underlying `boardgame-fading-text` callout primitive around
+  typed scalar triggers and closed message/suppression policy unions. Preserve
+  existing common-case attributes, add polite atomic announcement and reduced-
+  motion behavior, handle decimal differences without truncation, restart rapid
+  successive animations across a real rendered-frame boundary, and reject
+  non-finite triggers or unknown policies loudly. Export its contract types and
+  prove positive, restart, accessibility, and negative compile/runtime cases.
 
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design

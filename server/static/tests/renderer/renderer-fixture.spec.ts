@@ -457,6 +457,73 @@ test('status text uses typed values, accessible live updates, and loud authoring
   }
 });
 
+test('fading text handles typed scalar policies, decimal diffs, restarts, and invalid configuration', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    // Animation restart is the behavior under test; the rest of this shard uses reduced motion.
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-fading-text.ts');
+      const fading = document.createElement('boardgame-fading-text');
+      fading.style.setProperty('--animation-length', '10s');
+      fading.autoMessage = 'diff';
+      fading.trigger = 1.25;
+      document.body.append(fading);
+      await fading.updateComplete;
+      fading.trigger = 2.75;
+      await fading.updateComplete;
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await fading.updateComplete;
+      const container = fading.shadowRoot?.querySelector('#container');
+      const initial = {
+        message: fading.shadowRoot?.querySelector('#message')?.textContent?.trim(),
+        animating: container?.classList.contains('animating'),
+        role: container?.getAttribute('role'),
+        live: container?.getAttribute('aria-live'),
+      };
+
+      fading.trigger = 4;
+      await fading.updateComplete;
+      fading.trigger = 5;
+      await fading.updateComplete;
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await fading.updateComplete;
+      const restarted = {
+        message: fading.shadowRoot?.querySelector('#message')?.textContent?.trim(),
+        animating: fading.shadowRoot?.querySelector('#container')?.classList.contains('animating'),
+      };
+
+      const renderError = (configure: (element: HTMLElement & Record<string, unknown>) => void) => {
+        const element = document.createElement('boardgame-fading-text') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        configure(element);
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const invalidMessage = renderError(element => { element.message = 7; });
+      const invalidTrigger = renderError(element => { element.trigger = Number.POSITIVE_INFINITY; });
+      const invalidMessagePolicy = renderError(element => { element.autoMessage = 'difference'; });
+      const invalidSuppressPolicy = renderError(element => { element.suppress = 'empty'; });
+      fading.remove();
+      return { initial, restarted, invalidMessage, invalidTrigger, invalidMessagePolicy, invalidSuppressPolicy };
+    });
+
+    expect(result.initial).toEqual({ message: '+1.5', animating: true, role: 'status', live: 'polite' });
+    expect(result.restarted).toEqual({ message: '+1', animating: true });
+    expect(result.invalidMessage).toContain('.message must be a string');
+    expect(result.invalidTrigger).toContain('.trigger numbers must be finite');
+    expect(result.invalidMessagePolicy).toContain('unknown autoMessage');
+    expect(result.invalidSuppressPolicy).toContain('unknown suppress policy');
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

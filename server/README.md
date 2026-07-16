@@ -81,7 +81,11 @@ For more complex processing, render ordinary Lit content from the view or use
 
 ### Optional: boardgame-fading-text
 
-The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block.
+`boardgame-fading-text` renders and politely announces a callout when its typed
+scalar `.trigger` changes. Fixed `message` text and the `new`, `diff`, and
+`diff-up` auto-message policies cover the common cases; falsey/truthy
+suppression is explicit. Invalid policies and non-finite numeric triggers throw
+actionable errors, and reduced-motion preferences collapse the visual effect.
 
 Use `boardgame-status-text` to display a typed string or number, announce its
 changes politely, and show a fading change effect. It uses the `diff-up`

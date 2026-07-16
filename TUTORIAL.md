@@ -1551,7 +1551,13 @@ checks that the factory never reuses an element or changes host type.
 
 In many cases you want to draw attention to values that change as the result of moves. For example, when it's the current player's turn you might want to make that fact obvious. A common way to do that is to have that text expand from that location and fade as it does so, drawing attention to the changed value. `boardgame-fading-text` will do this for you.
 
-The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block. When the animation is over the text will be invisible. This is great for animating messages like "Your Turn" that play centered in the middle of your view when it's the user's turn. There are different policies you can apply to control how this text triggers and what text it shows, see the component documenation for more.
+The `boardgame-fading-text` element renders a polite live-region callout when
+its typed scalar `.trigger` changes. `message="Your Turn"` keeps fixed text;
+`auto-message="new"`, `"diff"`, or `"diff-up"` derives text from the new
+value. `suppress="falsey"` and `"truthy"` cover conditional callouts. Invalid
+policies and non-finite numeric triggers fail loudly. The font size can be
+changed with `--message-font-size`; reduced-motion preferences collapse the
+effect to 1ms while retaining the announcement.
 
 In many cases there are parts of your UI that show a value in them, and when that value changes you want to draw attention to it. For example, if you have some text that shows the number of cards in a given stack, you might want users to notice when that changes.
 

@@ -66,6 +66,8 @@ export type {
 export { piecesFromSizedStacks } from './components/spatial-board-geometry.js';
 export { cardView, componentView, tokenView } from './components/component-view.js';
 export type { ComponentView, ComponentViewContext, ComponentViewOptions } from './components/component-view.js';
+export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';
+export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
 export type {
   MoveInputErrorCode,
   MoveInputIssue,

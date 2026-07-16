@@ -1,7 +1,14 @@
-import { LitElement, html, css } from 'lit';
-import { property, query } from 'lit/decorators.js';
+import { LitElement, html, css, nothing } from 'lit';
+import { property } from 'lit/decorators.js';
 
-class BoardgameFadingText extends LitElement {
+export type FadingTextTrigger = string | number | boolean | null | undefined;
+export type FadingTextAutoMessage = 'diff' | 'diff-up' | 'fixed' | 'new';
+export type FadingTextSuppress = 'none' | 'falsey' | 'truthy';
+
+const autoMessages = new Set<FadingTextAutoMessage>(['diff', 'diff-up', 'fixed', 'new']);
+const suppressPolicies = new Set<FadingTextSuppress>(['none', 'falsey', 'truthy']);
+
+export class BoardgameFadingText extends LitElement {
   static override styles = css`
     #container {
       position: absolute;
@@ -31,6 +38,12 @@ class BoardgameFadingText extends LitElement {
       animation-timing-function: ease-out;
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      .animating #message {
+        animation-duration: 1ms;
+      }
+    }
+
     @keyframes fadetext {
       from {
         opacity: 1.0;
@@ -47,41 +60,28 @@ class BoardgameFadingText extends LitElement {
   message = 'Point Scored';
 
   @property({ type: Object })
-  trigger: any = null;
+  trigger: FadingTextTrigger = null;
 
   @property({ type: String })
-  suppress = 'none';
+  suppress: FadingTextSuppress = 'none';
 
   @property({ type: String })
-  autoMessage = 'fixed';
+  autoMessage: FadingTextAutoMessage = 'fixed';
+
+  /** Announce direct callouts; wrappers such as status-text can disable this. */
+  @property({ type: Boolean })
+  announce = true;
 
   @property({ type: Boolean, attribute: false })
   protected _animating = false;
 
-  @query('#message')
-  private _messageElement?: HTMLElement;
-
-  private _boundAnimationEnded?: () => void;
-  private _previousTriggerValue?: any;
-
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-
-    this._boundAnimationEnded = () => this._animationEnded();
-    if (this._messageElement) {
-      this._messageElement.addEventListener('animationend', this._boundAnimationEnded);
-    }
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this._boundAnimationEnded && this._messageElement) {
-      this._messageElement.removeEventListener('animationend', this._boundAnimationEnded);
-    }
-  }
+  private _previousTriggerValue: FadingTextTrigger;
+  private _animationGeneration = 0;
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
+
+    this._validateConfiguration();
 
     if (changedProperties.has('trigger')) {
       this._triggerChanged(this.trigger, this._previousTriggerValue);
@@ -94,33 +94,38 @@ class BoardgameFadingText extends LitElement {
   }
 
   animateFade(): void {
-    this._animating = true;
+    const generation = ++this._animationGeneration;
+    this._animating = false;
+    void this.updateComplete.then(() => {
+      requestAnimationFrame(() => {
+        if (generation === this._animationGeneration && this.isConnected) {
+          this._animating = true;
+        }
+      });
+    });
   }
 
-  private _triggerChanged(newValue: any, oldValue: any) {
+  private _triggerChanged(newValue: FadingTextTrigger, oldValue: FadingTextTrigger) {
     if (oldValue === undefined) return;
-
-    // If people use us directly newValue and oldValue might be a number...
-    // but for example boardgame-status-text will pass us strings.
-    const newValueAsNumber = parseInt(newValue);
-    const oldValueAsNumber = parseInt(oldValue);
 
     switch (this.autoMessage) {
       case 'diff':
-      case 'diff-up':
-        if (!isNaN(newValueAsNumber) && !isNaN(oldValueAsNumber)) {
+      case 'diff-up': {
+        const newValueAsNumber = this._finiteNumber(newValue);
+        const oldValueAsNumber = this._finiteNumber(oldValue);
+        if (newValueAsNumber !== null && oldValueAsNumber !== null) {
           const diff = newValueAsNumber - oldValueAsNumber;
           if (this.autoMessage === 'diff-up' && diff < 0) {
-            // Skip animating
             return;
           }
           this.message = (diff > 0) ? '+' + diff : String(diff);
         } else {
-          this.message = newValue;
+          this.message = String(newValue ?? '');
         }
         break;
+      }
       case 'new':
-        this.message = newValue;
+        this.message = String(newValue ?? '');
         break;
     }
 
@@ -136,6 +141,32 @@ class BoardgameFadingText extends LitElement {
     this.animateFade();
   }
 
+  private _finiteNumber(value: FadingTextTrigger): number | null {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value !== 'string' || value.trim() === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private _validateConfiguration(): void {
+    if (typeof this.message !== 'string') {
+      throw new Error('boardgame-fading-text: .message must be a string');
+    }
+    if (typeof this.trigger === 'number' && !Number.isFinite(this.trigger)) {
+      throw new Error('boardgame-fading-text: .trigger numbers must be finite');
+    }
+    if (this.trigger !== null && this.trigger !== undefined
+      && !['string', 'number', 'boolean'].includes(typeof this.trigger)) {
+      throw new Error('boardgame-fading-text: .trigger must be a string, number, boolean, null, or undefined');
+    }
+    if (!autoMessages.has(this.autoMessage)) {
+      throw new Error(`boardgame-fading-text: unknown autoMessage "${this.autoMessage}"`);
+    }
+    if (!suppressPolicies.has(this.suppress)) {
+      throw new Error(`boardgame-fading-text: unknown suppress policy "${this.suppress}"`);
+    }
+  }
+
   private _classes(_animating: boolean): string {
     const classes: string[] = [];
     if (_animating) {
@@ -145,9 +176,15 @@ class BoardgameFadingText extends LitElement {
   }
 
   override render() {
+    this._validateConfiguration();
     return html`
-      <div id="container" class="${this._classes(this._animating)}">
-        <div id="message">
+      <div
+        id="container"
+        class="${this._classes(this._animating)}"
+        role=${this.announce ? 'status' : nothing}
+        aria-live=${this.announce ? 'polite' : nothing}
+        aria-atomic=${this.announce ? 'true' : nothing}>
+        <div id="message" @animationend=${this._animationEnded} @animationcancel=${this._animationEnded}>
           ${this.message}
         </div>
       </div>
@@ -156,3 +193,9 @@ class BoardgameFadingText extends LitElement {
 }
 
 customElements.define('boardgame-fading-text', BoardgameFadingText);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-fading-text': BoardgameFadingText;
+  }
+}
