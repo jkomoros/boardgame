@@ -742,11 +742,23 @@ do not make `TargetAction` a workflow DSL.
   loud development diagnostic. Supply keyboard order and a compact list
   fallback for screen-reader and small-screen use.
 - [x] Connect the same typed target action/preview contract used by the grid.
-- [ ] After the framework proof is committed, create a dedicated `games` branch
+- [x] After the framework proof is committed, create a dedicated `games` branch
   and migrate only Monroe's board geometry, position projection, and Move-to-Room
   interaction. Record remaining `any`, deck/card template, and legacy action debt;
   full Monroe migration waits for typed component rendering. Prove custom visuals
   remain ordinary game-owned Lit/SVG.
+
+Task 9 proof: framework commits `7ce5833e`, `145fb0a9`, and `13446504`
+provide the authored-geometry primitive, the nested move-context generation
+fix exposed by `MoveOnGraph`, and explicit sentinel-slot projection. Games
+branch `client-authored-spatial-monroe` commit `3f8ddfd` annotates all 24 real
+room regions, replaces the proposal handler and closed-room array with one
+typed target collection, and projects every player/Monroe location stack with
+an explicit unknown sentinel. The isolated strict client checker reports zero
+diagnostics, the Monroe Go package passes, and the entire Monroe client now has
+zero explicit `any`, `@ts-ignore`, `@ts-expect-error`, or double-unknown casts.
+Typed card templates remain a framework roadmap item, but the game-owned card
+front and player-info elements no longer require unsafe types.
 
 **Next adapter, not part of the first proof:** raster artwork plus normalized
 hotspot manifest and explicit `object-fit` coordinate mapping. Pan/zoom, routes,
