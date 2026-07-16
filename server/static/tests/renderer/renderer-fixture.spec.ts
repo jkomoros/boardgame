@@ -261,7 +261,8 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
   try {
     const result = await page.evaluate(async () => {
       await import('/src/components/boardgame-component-stack.ts');
-      const { cardView, html } = await import('/src/client.ts');
+      const { cardView, componentView, html } = await import('/src/client.ts');
+      const { BoardgameComponent } = await import('/src/components/boardgame-component.ts');
       const visible = (id: string, rank: string) => ({
         Index: 0, Values: { rank }, Deck: 'cards', GameName: 'view-test', ID: id,
       });
@@ -308,8 +309,32 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
       }));
       const stableHosts = firstCards.every((card, index) => card === secondCards[index]);
 
+      class FixturePiece extends BoardgameComponent {
+        label = '';
+      }
+      customElements.define('boardgame-fixture-piece', FixturePiece);
+      const customView = componentView(
+        () => document.createElement('boardgame-fixture-piece'),
+        {
+          render: (context: { kind: string; component: { DynamicValues?: { marked?: boolean } } | null }) =>
+            context.kind === 'visible' && context.component?.DynamicValues?.marked
+              ? html`<strong>Marked custom piece</strong>`
+              : null,
+        },
+      );
+      const customStack = document.createElement('boardgame-component-stack') as typeof stack;
+      customStack.componentView = customView;
+      customStack.stack = makeStack([{
+        ...visible('custom', 'Q'),
+        DynamicValues: { marked: true },
+      }], ['custom']);
+      document.body.append(customStack);
+      await customStack.updateComplete;
+      const customText = customStack.textContent?.trim() ?? '';
+
       stack.remove();
-      return { before, after, stableHosts };
+      customStack.remove();
+      return { before, after, stableHosts, customText };
     });
 
     expect(result.before).toEqual([
@@ -323,6 +348,7 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
       { text: '', rotated: false, spacer: true },
     ]);
     expect(result.stableHosts).toBe(true);
+    expect(result.customText).toBe('Marked custom piece');
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

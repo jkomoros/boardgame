@@ -901,9 +901,13 @@ First component-view tranche (2026-07-16):
   Tic-tac-toe and Checkers and a card deck in Memory.
 - [x] Switch the generated tutorial scaffold and tutorial guidance to the typed
   view path while retaining legacy deck templates only for incremental migration.
-- [ ] Prove dynamic card values and custom game component hosts, then migrate
-  solo/companion Blackjack and one external game before removing the global
-  moustache registry.
+- [x] Exercise dynamic values and a registered custom component host in the
+  browser lifecycle proof, in addition to their strict compile contracts.
+- [ ] Prove both paths in real games, then migrate solo/companion Blackjack and
+  one external game before removing the global moustache registry. The focused
+  companion Blackjack test currently fails on the unchanged legacy renderer as
+  well (Hand remains animation-gated after the server reaches normal play), so
+  that baseline must be repaired before it can distinguish a view regression.
 
 ### D. Evidence-driven compositions
 
