@@ -1,9 +1,6 @@
 import { customElement } from 'lit/decorators.js';
-import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
 import { html, css, type ReadinessParticipant } from '../../src/client.js';
-import type { MoveName } from './_move_names.js';
-import type { MoveInputs } from './_move_args.js';
-import type { ComponentCatalog, State } from './_types.js';
+import { TableRenderer } from './_game_renderer.js';
 
 /**
  * Werewolf Table view (the shared projector screen). Connects as
@@ -11,9 +8,9 @@ import type { ComponentCatalog, State } from './_types.js';
  * status, voting progress, phase info, and win/loss announcements.
  */
 @customElement('boardgame-render-game-werewolf-table')
-export class WerewolfTableView extends BoardgameTableViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
+export class WerewolfTableView extends TableRenderer {
   static override styles = [
-    BoardgameTableViewBase.styles,
+    TableRenderer.styles,
     css`
       :host {
         display: block;

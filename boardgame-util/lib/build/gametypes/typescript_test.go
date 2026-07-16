@@ -241,6 +241,8 @@ func TestGenerateRendererTypeScriptBindsCompleteContractWithoutRegistration(t *t
 	for _, want := range []string{
 		"export interface GameClientContract",
 		"export abstract class GameRenderer extends BoardgameBaseGameRenderer<",
+		"export abstract class TableRenderer extends BoardgameTableViewBase<",
+		"export abstract class HandRenderer extends BoardgameHandViewBase<",
 		"export abstract class PlayerInfoRenderer extends BoardgameBasePlayerInfoRenderer<",
 		"protected override readonly moveInputSchema = moveInputSchema;",
 		"readonly Components: ComponentCatalog;",

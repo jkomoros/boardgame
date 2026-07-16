@@ -1061,6 +1061,13 @@ First evidence-driven primitive tranche (2026-07-16):
   facade registration, shared bounded normalization, and loud index/label/color
   failures. Migrate Memory and make deterministic player identities part of the
   renderer-fixture contract.
+- [x] Make companion surfaces follow the ordinary generated-renderer pattern:
+  generate fully bound `TableRenderer` and `HandRenderer` bases alongside
+  `GameRenderer`, export the underlying advanced bases, seat type, and avatar
+  helper from the facade, ban their deep implementation imports, and migrate
+  Blackjack, Werewolf, and the companion tutorial. This removes four repeated
+  generic arguments and duplicated runtime move-schema wiring from the common
+  case while retaining the generic bases as the advanced escape hatch.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

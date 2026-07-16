@@ -56,8 +56,8 @@ export class BoardgameTableViewBase<
    * gaps (e.g. seat 2 unjoined → no entry for playerIndex=2). The Table
    * view's avatar strip renders one tile per non-empty seat.
    */
-  @property({ type: Array })
-  seatPresentations: SeatPresentation[] = [];
+  @property({ attribute: false })
+  seatPresentations: readonly SeatPresentation[] = Object.freeze([]);
 
   /**
    * Player indices currently flagged absent (heartbeat stale). The Table
@@ -65,8 +65,8 @@ export class BoardgameTableViewBase<
    * avatar tile and (if the absent player is also the current player)
    * exposes a SkipTurn button to the host.
    */
-  @property({ type: Array })
-  absentPlayers: number[] = [];
+  @property({ attribute: false })
+  absentPlayers: readonly number[] = Object.freeze([]);
 
   /**
    * True iff this Table view is being rendered for the host (game creator
@@ -157,12 +157,6 @@ export class BoardgameTableViewBase<
   // were previously trying to dig the gameName out of the sanitized
   // state object via state.Manager.Delegate.Name(), which doesn't exist
   // on the client-side state.
-  @property({ type: String })
-  gameName = '';
-
-  @property({ type: String })
-  gameId = '';
-
   @state()
   private _hostFeedback = '';
 

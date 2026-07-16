@@ -38,20 +38,14 @@ export class BoardgameHandViewBase<
     return this.viewingAsPlayer;
   }
 
-  @property({ type: String })
-  gameName = '';
-
-  @property({ type: String })
-  gameId = '';
-
   /**
    * Per-seat avatar + name records for everyone in the game (same data
    * the Table view receives). The Hand view typically only needs this
    * for a small banner ("Playing as BrightFox") or to show who the
    * current player is.
    */
-  @property({ type: Array })
-  seatPresentations: SeatPresentation[] = [];
+  @property({ attribute: false })
+  seatPresentations: readonly SeatPresentation[] = Object.freeze([]);
 
   /**
    * Convenience shortcut to this player's own substate. Common rendering
@@ -105,7 +99,7 @@ export class BoardgameHandViewBase<
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a
       // console error) — only buzz once the user has interacted.
-      if ((navigator as any).userActivation?.hasBeenActive) {
+      if (navigator.userActivation?.hasBeenActive) {
         navigator.vibrate?.(200);
       }
     }

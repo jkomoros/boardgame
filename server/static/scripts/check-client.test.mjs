@@ -140,6 +140,7 @@ test('creator policy rejects deep imports for facade-registered components', asy
   const project = await fixture([
     "import '../../src/components/boardgame-card.js';",
     "import '../../src/components/boardgame-hand-view-base.js';",
+    "import '../../src/components/companion-avatar-catalog.js';",
     '',
   ].join('\n'));
   const result = await run(project, { creatorPolicy: true });
@@ -148,6 +149,8 @@ test('creator policy rejects deep imports for facade-registered components', asy
     .filter(({ source }) => source === 'boardgame-client')
     .map(({ code, line }) => ({ code, line })), [
       { code: 'BGCLIENT0105', line: 1 },
+      { code: 'BGCLIENT0105', line: 2 },
+      { code: 'BGCLIENT0105', line: 3 },
     ]);
 });
 

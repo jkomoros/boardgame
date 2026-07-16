@@ -43,6 +43,7 @@ const FACADE_COMPONENT_MODULES = new Set([
   'boardgame-game-board',
   'boardgame-game-outcome',
   'boardgame-game-surface',
+  'boardgame-hand-view-base',
   'boardgame-inspector',
   'boardgame-placement-item',
   'boardgame-player-grid',
@@ -52,17 +53,19 @@ const FACADE_COMPONENT_MODULES = new Set([
   'boardgame-selection-option',
   'boardgame-spatial-board',
   'boardgame-status-text',
+  'boardgame-table-view-base',
   'boardgame-target-list',
   'boardgame-timer',
   'boardgame-token',
   'boardgame-turn-status',
+  'companion-avatar-catalog',
 ]);
 const POLICY_MESSAGES = Object.freeze({
   BGCLIENT0101: 'Explicit any is not allowed in creator code; use a precise type or unknown and narrow it.',
   BGCLIENT0102: '@ts-ignore is not allowed in creator code; fix the error or use an explained @ts-expect-error.',
   BGCLIENT0103: '@ts-expect-error requires an explanation on the same line.',
   BGCLIENT0104: 'Nested TypeScript assertions are not allowed; narrow or validate the value instead.',
-  BGCLIENT0105: 'Public renderer components are registered by the client facade; import from src/client.js instead of a deep component module.',
+  BGCLIENT0105: 'Public renderer APIs are exposed by the client facade; import from src/client.js instead of a deep component module.',
 });
 
 function posixPath(value) {

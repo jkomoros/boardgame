@@ -1,10 +1,8 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
 import { cardView } from '../../src/client.js';
-import type { MoveName } from './_move_names.js';
-import type { MoveInputs } from './_move_args.js';
-import type { ComponentCatalog, GameState, State } from './_types.js';
+import { TableRenderer } from './_game_renderer.js';
+import type { GameState } from './_types.js';
 
 /**
  * Blackjack Table view (the shared projector). Connects as
@@ -20,7 +18,7 @@ import type { ComponentCatalog, GameState, State } from './_types.js';
  * toggle on.
  */
 @customElement('boardgame-render-game-blackjack-table')
-export class BlackjackTableView extends BoardgameTableViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
+export class BlackjackTableView extends TableRenderer {
   private readonly cards = cardView<GameState['DrawStack']>({
     properties: ({ kind, component }) => ({
       suit: kind === 'visible' ? component.Values.Suit : '',
@@ -29,7 +27,7 @@ export class BlackjackTableView extends BoardgameTableViewBase<State, ComponentC
   });
 
   static override styles = [
-    BoardgameTableViewBase.styles,
+    TableRenderer.styles,
     css`
       :host {
         display: block;

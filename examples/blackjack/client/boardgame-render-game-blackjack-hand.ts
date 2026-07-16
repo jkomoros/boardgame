@@ -1,10 +1,9 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
 import { cardView } from '../../src/client.js';
-import { MoveNames, type MoveName } from './_move_names.js';
-import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
-import type { ComponentCatalog, GameState, State } from './_types.js';
+import { MoveNames } from './_move_names.js';
+import { HandRenderer } from './_game_renderer.js';
+import type { GameState } from './_types.js';
 
 /**
  * Blackjack Hand view (the player's phone). Connects as PlayerIndex(n);
@@ -15,9 +14,7 @@ import type { ComponentCatalog, GameState, State } from './_types.js';
  * V1 MVP minimal styling.
  */
 @customElement('boardgame-render-game-blackjack-hand')
-export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
-	protected override readonly moveInputSchema = generatedMoveInputSchema;
-	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
+export class BlackjackHandView extends HandRenderer {
   private readonly cards = cardView<GameState['DrawStack']>({
     properties: ({ kind, component }) => ({
       suit: kind === 'visible' ? component.Values.Suit : '',
@@ -25,7 +22,7 @@ export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCat
     }),
   });
   static override styles = [
-    BoardgameHandViewBase.styles,
+    HandRenderer.styles,
     css`
       :host {
         display: block;

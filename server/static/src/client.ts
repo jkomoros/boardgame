@@ -8,6 +8,10 @@
 export { html, css } from 'lit';
 export { BoardgameBaseGameRenderer } from './components/boardgame-base-game-renderer.js';
 export { BoardgameBasePlayerInfoRenderer } from './components/boardgame-base-player-info-renderer.js';
+export { BoardgameTableViewBase } from './components/boardgame-table-view-base.js';
+export { BoardgameHandViewBase } from './components/boardgame-hand-view-base.js';
+export type { SeatPresentation } from './components/boardgame-table-view-base.js';
+export { glyphForSlug } from './components/companion-avatar-catalog.js';
 export type {
   PlayerChipPresentation,
   PlayerChipPresentationChangedDetail,

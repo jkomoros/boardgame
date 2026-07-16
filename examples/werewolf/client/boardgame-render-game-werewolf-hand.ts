@@ -1,12 +1,8 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
-import { glyphForSlug } from '../../src/components/companion-avatar-catalog.js';
-import { targetList } from '../../src/client.js';
+import { glyphForSlug, targetList } from '../../src/client.js';
+import { HandRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
-import type { ComponentCatalog, State } from './_types.js';
 
 /**
  * Werewolf Hand view (each player's phone). Connects as PlayerIndex(n)
@@ -14,11 +10,9 @@ import type { ComponentCatalog, State } from './_types.js';
  * behaviors.PlayerRole). Shows role, voting buttons, and game status.
  */
 @customElement('boardgame-render-game-werewolf-hand')
-export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
-	protected override readonly moveInputSchema = generatedMoveInputSchema;
-	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
+export class WerewolfHandView extends HandRenderer {
   static override styles = [
-    BoardgameHandViewBase.styles,
+    HandRenderer.styles,
     css`
       :host {
         display: block;

@@ -232,6 +232,8 @@ export abstract class BoardgameBasePlayerInfoRenderer<S, PS> {
   playerIndex!: number;
   playerState!: PS | null;
 }
+export abstract class BoardgameTableViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>> extends BoardgameBaseGameRenderer<S, C, M, A> {}
+export abstract class BoardgameHandViewBase<S, C extends object, M extends string, A extends Readonly<Record<M, object>>> extends BoardgameBaseGameRenderer<S, C, M, A> {}
 `
 	if err := os.WriteFile(filepath.Join(frameworkDir, "types", "boardgame-types.ts"), []byte(frameworkTypes), 0600); err != nil {
 		return fmt.Errorf("couldn't stage TypeScript type declarations: %w", err)
