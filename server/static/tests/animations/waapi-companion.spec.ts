@@ -444,7 +444,7 @@ function deepQueryFirstScript() {
 }
 
 test.describe('verdict gating on animation completion', () => {
-  test('game-over banner is suppressed while animating, appears once the gate closes', async ({ page }) => {
+  test('game outcome is suppressed while animating, appears once the gate closes', async ({ page }) => {
     await createOfflineGame(page, 'blackjack');
     const tableUrl = new URL(page.url());
     tableUrl.searchParams.set('display', 'table');
@@ -476,20 +476,21 @@ test.describe('verdict gating on animation completion', () => {
       [`(${deepQueryFirstScript.toString()})()`, props] as const,
     );
 
-    const bannerVisible = () => page.evaluate((fnSrc: string) => {
+    const outcomeVisible = () => page.evaluate((fnSrc: string) => {
       // eslint-disable-next-line no-eval
       const deepQueryFirst = eval(`(${fnSrc})`);
       const r = deepQueryFirst(document, 'boardgame-render-game-blackjack-table') as any;
-      return !!r?.shadowRoot?.querySelector('.game-over-banner');
+      const outcome = r?.shadowRoot?.querySelector('boardgame-game-outcome') as HTMLElement | null;
+      return !!outcome?.shadowRoot?.querySelector('#outcome');
     }, `(${deepQueryFirstScript.toString()})()`);
 
     // gameFinished + animating=true: the verdict must stay hidden.
     await setRendererProps({ gameFinished: true, gameWinners: [0], animating: true });
-    expect(await bannerVisible(), 'banner must be absent while animating=true, even though gameFinished=true').toBe(false);
+    expect(await outcomeVisible(), 'outcome must be absent while animating=true, even though gameFinished=true').toBe(false);
 
     // Gate closes: the verdict must now appear.
     await setRendererProps({ animating: false });
-    expect(await bannerVisible(), 'banner must appear once animating=false and gameFinished=true').toBe(true);
+    expect(await outcomeVisible(), 'outcome must appear once animating=false and gameFinished=true').toBe(true);
   });
 
   test('animateBetween flight on a real card holds the render-game gate until it settles', async ({ page }) => {

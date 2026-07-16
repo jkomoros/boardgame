@@ -833,6 +833,103 @@ test('component zone makes a named stack region, count, and empty state the defa
   }
 });
 
+test('game outcome waits for settled animation and renders public or personal verdicts', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const result = await page.evaluate(async () => {
+      await import('/src/client.ts');
+      const outcome = document.createElement('boardgame-game-outcome');
+      outcome.finished = true;
+      outcome.animating = true;
+      outcome.winners = [0];
+      outcome.winnerLabels = ['Ada'];
+      document.body.append(outcome);
+      await outcome.updateComplete;
+      const gated = outcome.shadowRoot?.querySelector('#outcome') === null;
+
+      outcome.animating = false;
+      await outcome.updateComplete;
+      const section = outcome.shadowRoot?.querySelector('#outcome');
+      const publicVerdict = {
+        text: section?.textContent?.replace(/\s+/g, ' ').trim(),
+        role: section?.getAttribute('role'),
+        live: section?.getAttribute('aria-live'),
+        atomic: section?.getAttribute('aria-atomic'),
+        part: section?.getAttribute('part'),
+        animation: section ? getComputedStyle(section).animationName : null,
+      };
+
+      outcome.viewer = 0;
+      await outcome.updateComplete;
+      const personalWin = outcome.shadowRoot?.querySelector('#message')?.textContent?.trim();
+      outcome.viewer = 1;
+      await outcome.updateComplete;
+      const personalLoss = outcome.shadowRoot?.querySelector('#message')?.textContent?.trim();
+      outcome.winners = [];
+      outcome.winnerLabels = [];
+      await outcome.updateComplete;
+      const draw = outcome.shadowRoot?.querySelector('#message')?.textContent?.trim();
+
+      const renderError = (configure: (element: HTMLElement & Record<string, unknown>) => void) => {
+        const element = document.createElement('boardgame-game-outcome') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        configure(element);
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const unfinishedWinner = renderError(element => { element.winners = [0]; });
+      const duplicateWinner = renderError(element => { element.finished = true; element.winners = [0, 0]; });
+      const invalidViewer = renderError(element => { element.viewer = -1; });
+      const mismatchedLabels = renderError(element => {
+        element.finished = true;
+        element.winners = [0, 1];
+        element.winnerLabels = ['Ada'];
+      });
+      const blankTitle = renderError(element => { element.title = ' '; });
+      return {
+        gated,
+        publicVerdict,
+        personalWin,
+        personalLoss,
+        draw,
+        unfinishedWinner,
+        duplicateWinner,
+        invalidViewer,
+        mismatchedLabels,
+        blankTitle,
+      };
+    });
+
+    expect(result.gated).toBe(true);
+    expect(result.publicVerdict).toEqual({
+      text: 'Game over! Ada wins!',
+      role: 'status',
+      live: 'polite',
+      atomic: 'true',
+      part: 'outcome',
+      animation: 'none',
+    });
+    expect(result.personalWin).toBe('You won!');
+    expect(result.personalLoss).toBe('You lost.');
+    expect(result.draw).toBe("It's a draw.");
+    expect(result.unfinishedWinner).toContain('winners cannot be present before finished is true');
+    expect(result.duplicateWinner).toContain('duplicate winner index');
+    expect(result.invalidViewer).toContain('viewer must be null or a nonnegative safe player index');
+    expect(result.mismatchedLabels).toContain('exactly one label per winner');
+    expect(result.blankTitle).toContain('title must be non-empty');
+    const axeResult = await new AxeBuilder({ page }).include('boardgame-game-outcome').analyze();
+    expect(axeResult.violations).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
@@ -1076,7 +1173,7 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
 test('Checkers composes source selection with typed destination actions', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
-    await page.evaluate(async () => {
+    await retryRendererEvaluation(page, () => page.evaluate(async () => {
       await import('/game-src/checkers/boardgame-render-game-checkers.ts');
       const { checkersRendererFixture } = await import(
         '/game-src/checkers/boardgame-render-fixtures-checkers.ts'
@@ -1084,7 +1181,7 @@ test('Checkers composes source selection with typed destination actions', async 
       const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
       const handle = await mountRendererFixture(checkersRendererFixture);
       (globalThis as unknown as { __checkersFixtureHandle: typeof handle }).__checkersFixtureHandle = handle;
-    });
+    }));
 
     const board = page.locator('boardgame-game-board');
     const source = board.locator('.cell[data-index="17"]');

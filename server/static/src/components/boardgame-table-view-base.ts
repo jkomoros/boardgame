@@ -4,6 +4,7 @@ import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { FullGameState } from '../types/boardgame-types.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 import { apiPath } from '../util.js';
+import './boardgame-game-outcome.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -373,12 +374,6 @@ export class BoardgameTableViewBase<
    * moment, so it's intentionally loud.
    */
   protected renderGameOverBanner(): TemplateResult {
-    // Gate on !animating too: gameFinished can arrive while the final
-    // animation cycle is still playing (the winning move's card is still in
-    // flight), and the verdict must never appear before it lands (#798).
-    // The watchdog force-closes the gate within 4s, so this can never
-    // permanently hide the banner.
-    if (!this.gameFinished || this.animating) return html``;
     // Winners without a seat-presentation row (AI agents never have one;
     // a human's row write is deliberately non-fatal at join) still get
     // announced — by seat label — rather than being silently dropped,
@@ -388,17 +383,12 @@ export class BoardgameTableViewBase<
       return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i + 1}`;
     });
     return html`
-      <div class="game-over-banner">
-        <div class="game-over-title">Game over!</div>
-        ${winnerLabels.length > 0 ? html`
-          <div class="game-over-winners">
-            ${winnerLabels.map((label) => html`
-              <span class="game-over-winner">${label}</span>
-            `)}
-            <span>${winnerLabels.length === 1 ? 'wins!' : 'win!'}</span>
-          </div>
-        ` : html`<div class="game-over-winners">It's a draw.</div>`}
-      </div>
+      <boardgame-game-outcome
+        .finished=${this.gameFinished}
+        .animating=${this.animating}
+        .winners=${this.gameWinners}
+        .winnerLabels=${winnerLabels}>
+      </boardgame-game-outcome>
     `;
   }
 
@@ -495,31 +485,6 @@ export class BoardgameTableViewBase<
       gap: 12px;
       padding: 12px;
       justify-content: center;
-    }
-    .game-over-banner {
-      text-align: center;
-      margin: 24px auto;
-      padding: 24px;
-      max-width: 640px;
-      border-radius: 16px;
-      background: rgba(255, 215, 0, 0.15);
-      border: 2px solid gold;
-    }
-    .game-over-title {
-      font-size: 40px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-    .game-over-winners {
-      font-size: 28px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      align-items: center;
-    }
-    .game-over-winner {
-      font-weight: 700;
     }
     .seat-tile {
       min-width: 80px;

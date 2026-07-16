@@ -46,6 +46,12 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
 
   override render() {
     return html`
+      <boardgame-game-outcome
+        .finished=${this.gameFinished}
+        .animating=${this.animating}
+        .winners=${this.gameWinners}
+        .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
+      </boardgame-game-outcome>
       <div id="draw">
         <boardgame-component-zone
           label="Draw pile"

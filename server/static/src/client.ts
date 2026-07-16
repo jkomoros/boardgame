@@ -70,6 +70,7 @@ export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } fro
 export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
+export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
 export { isStackLayout } from './components/boardgame-component-stack.js';
 export type { StackLayout } from './components/boardgame-component-stack.js';
 export type {
@@ -90,5 +91,6 @@ import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';
 import './components/boardgame-component-zone.js';
+import './components/boardgame-game-outcome.js';
 import './components/boardgame-status-text.js';
 import './components/boardgame-spatial-board.js';

@@ -815,6 +815,12 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]
+      <boardgame-game-outcome
+        .finished=${this.gameFinished}
+        .animating=${this.animating}
+        .winners=${this.gameWinners}
+        .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
+      </boardgame-game-outcome>
       <boardgame-component-zone
         label="Draw pile"
         .stack=${this.state?.Game.DrawStack ?? null}

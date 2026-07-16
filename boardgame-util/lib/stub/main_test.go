@@ -58,6 +58,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 	for _, required := range []string{
 		"cardView<GameState['DrawStack']>",
 		"<boardgame-component-zone",
+		"<boardgame-game-outcome",
 		"label=\"Draw pile\"",
 		".componentView=${this.cards}",
 		"component.Values.Value",

@@ -106,6 +106,12 @@ html`<boardgame-status-text
 </boardgame-status-text>`
 ```
 
+Use `boardgame-game-outcome` with the renderer's `gameFinished`, `gameWinners`,
+and `animating` properties. It withholds and does not announce the verdict until
+the final animation settles, handles wins/losses/draws, and rejects contradictory
+winner data. `viewer=null` is the public form; a nonnegative player index uses
+personal wording.
+
 ### Optional: BoardgameBaseGameRenderer
 
 Generated game renderers inherit from `BoardgameBaseGameRenderer`. It exposes

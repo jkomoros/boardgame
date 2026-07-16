@@ -1661,6 +1661,26 @@ are `start`, `center`, `end`, and `space-between`; invalid values and blank
 accessible labels fail loudly. Theme with `--boardgame-action-gap` or the
 bar's `bar` CSS part.
 
+Render the server-authoritative verdict with the outcome primitive. It stays out
+of the DOM while the final animation is running, then appears and announces the
+result only after the board settles:
+
+```typescript
+html`<boardgame-game-outcome
+  .finished=${this.gameFinished}
+  .animating=${this.animating}
+  .winners=${this.gameWinners}
+  .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
+</boardgame-game-outcome>`
+```
+
+A `null` viewer produces a shared/public “Player N wins” verdict; a player index
+produces “You won” or “You lost.” Empty winners on a finished game means a draw.
+Table renderers may pass `.winnerLabels` in winner order for display names.
+Duplicate/invalid winners, premature winners, label mismatches, and sentinel
+viewer indexes fail loudly. Theme the `outcome`, `title`, `message`, and `winner`
+parts or the `--boardgame-outcome-*` tokens; reduced motion is automatic.
+
 For a board or other set of independent targets, create one typed target action
 directly from the unbound move. The mapper receives each native key and must
 return the exact generated move input:

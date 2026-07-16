@@ -1003,6 +1003,14 @@ First evidence-driven primitive tranche (2026-07-16):
   strict negative contracts, runtime diagnostics, slot/style hooks, and real
   animation identity; migrate Blackjack, Murder Mr Monroe, and generated
   `boardgame-util stub` output as independent framework/corpus/scaffold proofs.
+- [x] Extract `boardgame-game-outcome` from the companion Table banner and the
+  renderer's existing authoritative finished/winners/animation properties.
+  Public and personal perspectives handle named winners, cooperative wins,
+  losses, and draws; the verdict remains absent until the final animation gate
+  settles, then announces once through a polite atomic status region. Reject
+  premature, duplicate, invalid, or mislabelled winners and sentinel viewers;
+  provide parts/tokens and reduced-motion behavior. Compose it back into Table,
+  solo Blackjack, and generated scaffold output.
 
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design
