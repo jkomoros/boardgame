@@ -29,8 +29,9 @@ func (c *checkClient) HelpText() string {
 then checks every configured game client in an isolated assembled package. It
 is fatal when any diagnostic is reported and is suitable for local and CI use.
 It also verifies that move names, move inputs, expanded state types, and the
-bound renderer base are current without rewriting creator files. Lit-aware
-authoring lint is a separate follow-up slice.`
+bound renderer base are current without rewriting creator files. Creator code
+is also checked for unsafe TypeScript escape hatches and for invalid Lit
+property, attribute, and event bindings.`
 }
 
 func (c *checkClient) WritOptions() []*writ.Option {

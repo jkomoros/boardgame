@@ -1,9 +1,10 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
+import type { State } from './_types.js';
 
 class BoardgameRenderPlayerInfoTictactoe extends LitElement {
   @property({ type: Object })
-  state: any = null;
+  state: State | null = null;
 
   @property({ type: Number })
   playerIndex = 0;
@@ -14,7 +15,7 @@ class BoardgameRenderPlayerInfoTictactoe extends LitElement {
 
   // chipColor intentionally not overridden - uses framework computed color
 
-  private _computeChipText(state: any, playerIndex: number): string {
+  private _computeChipText(state: State | null, playerIndex: number): string {
     return state?.Players?.[playerIndex]?.TokenValue || '';
   }
 

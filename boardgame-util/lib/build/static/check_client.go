@@ -191,7 +191,7 @@ func CheckClient(frameworkStaticDir string, packages []ClientCheckPackage) (Clie
 		if err := os.WriteFile(projectPath, append(contents, '\n'), 0600); err != nil {
 			return report, fmt.Errorf("BGCLIENT0001: couldn't write project for %s: %w", game.ImportPath, err)
 		}
-		diagnostics, err := runTypeScriptCheck(runner, projectPath, game.ImportPath)
+		diagnostics, err := runTypeScriptCheck(runner, projectPath, game.ImportPath, "--creator-policy", "--lit")
 		if err != nil {
 			return report, err
 		}
@@ -200,8 +200,10 @@ func CheckClient(frameworkStaticDir string, packages []ClientCheckPackage) (Clie
 	return NewClientCheckResult(report.Diagnostics), nil
 }
 
-func runTypeScriptCheck(runner, project, packageName string) ([]ClientDiagnostic, error) {
-	command := exec.Command("node", runner, "--project", project)
+func runTypeScriptCheck(runner, project, packageName string, options ...string) ([]ClientDiagnostic, error) {
+	arguments := []string{runner, "--project", project}
+	arguments = append(arguments, options...)
+	command := exec.Command("node", arguments...)
 	output, commandErr := command.CombinedOutput()
 	var exitErr *exec.ExitError
 	if commandErr != nil && (!errors.As(commandErr, &exitErr) || (exitErr.ExitCode() != 1 && exitErr.ExitCode() != 2)) {

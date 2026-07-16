@@ -1,19 +1,26 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import '../../src/components/boardgame-status-text.js';
+import type { PlayerState, State } from './_types.js';
+
+declare module './_types.js' {
+  interface PlayerComputed {
+    readonly HandValue?: number;
+  }
+}
 
 class BoardgameRenderPlayerInfoBlackjack extends LitElement {
   @property({ type: Object })
-  state: any = null;
+  state: State | null = null;
 
   @property({ type: Number })
   playerIndex = 0;
 
   @property({ type: Object })
-  playerState: any = null;
+  playerState: PlayerState | null = null;
 
-  private _calculateStatus(playerState: any): string {
-    if (playerState?.Busted) {
+  private _calculateStatus(playerState: PlayerState | null): string {
+    if (playerState?.Eliminated) {
       return 'Busted';
     }
     if (playerState?.Stood) {

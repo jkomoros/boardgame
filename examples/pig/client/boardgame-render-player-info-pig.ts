@@ -1,16 +1,17 @@
 import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import '../../src/components/boardgame-status-text.js';
+import type { PlayerState, State } from './_types.js';
 
 class BoardgameRenderPlayerInfoPig extends LitElement {
   @property({ type: Object })
-  state: any = null;
+  state: State | null = null;
 
   @property({ type: Number })
   playerIndex = 0;
 
   @property({ type: Object })
-  playerState: any = null;
+  playerState: PlayerState | null = null;
 
   override render() {
     return html`
