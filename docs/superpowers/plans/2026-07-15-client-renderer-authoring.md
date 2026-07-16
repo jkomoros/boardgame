@@ -1178,6 +1178,16 @@ First evidence-driven primitive tranche (2026-07-16):
   repeated notifications; retain drafts on failed sends; and make transport or
   contract failures visible with retry. Prove rejection, retry, form encoding,
   draft preservation, success clearing, and deduplication in an isolated browser.
+- [x] Make the WebSocket stream a strict protocol boundary and an owned browser
+  resource: decode bounded exhaustive frame unions instead of trusting parsed
+  JSON or permissive integer prefixes; reject contradictory timing policy;
+  correlate behavior-changing mode/presence frames to the active game; and only
+  advertise a working socket after a valid frame. Bind callbacks and reconnect
+  timers to the socket and route that created them, cancel heartbeat/reconnect
+  work on removal, and restore the connection on reinsertion. Prove malformed
+  and legacy frames in unit tests, preserve unknown-frame forward compatibility,
+  assert the server emits mode-change game identity, and exercise replacement,
+  stale callbacks, removal, and reattachment in an isolated browser.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

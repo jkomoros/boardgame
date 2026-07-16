@@ -45,6 +45,7 @@ import type {
 import type { GameFromServer, RawGameState, StateBundle, TimerInfo } from '../types/game-state';
 import type { MoveForm, ServerStateBundle } from '../types/api';
 import { clientMoveFromWire } from '../types/client-move.js';
+import { decodeSocketFrame } from '../types/socket-frame.js';
 import type { HostedGameRenderer } from './boardgame-render-game.js';
 
 // Matches --animation-length: 0.5s default in boardgame-game-view.ts
@@ -111,6 +112,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   @property({ type: Object, attribute: false })
   private _socket: WebSocket | null = null;
+  private _reconnectTimer: number | null = null;
 
   // _heartbeatTimer fires every 10 seconds while the socket is open and
   // sends a {"type":"heartbeat"} application-level keepalive. The server's
@@ -387,110 +389,108 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _socketUrlChanged(newValue: string) {
-    // Don't tear down an existing connection if the new URL is empty
-    // This can happen during property update cycles
-    if (this._socket && !newValue) {
-      return;
-    }
-
     if (this._socket) {
-      this._socket.close();
+      const oldSocket = this._socket;
       this._socket = null;
+      oldSocket.close();
     }
 
-    this._connectSocket();
+    if (newValue) this._connectSocket();
   }
 
   private _connectSocket() {
+    if (this._reconnectTimer !== null) {
+      window.clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
     const theUrl = this._socketUrl;
 
     // If there's no URL, don't establish a socket.
     if (!theUrl) return;
 
-    this._socket = new WebSocket(theUrl);
+    const socket = new WebSocket(theUrl);
+    this._socket = socket;
 
-    this._socket.onclose = (e) => this._socketClosed(e);
-    this._socket.onerror = (e) => this._socketError(e);
-    this._socket.onmessage = (e) => this._socketMessage(e);
-    this._socket.onopen = (e) => this._socketOpened(e);
+    // A close/message queued by an old route's socket must not mutate the new
+    // route or arm another reconnect loop after this._socket was replaced.
+    socket.onclose = (event) => {
+      if (this._socket !== socket) return;
+      this._socket = null;
+      this._socketClosed(event);
+    };
+    socket.onerror = (event) => {
+      if (this._socket === socket) this._socketError(event);
+    };
+    socket.onmessage = (event) => {
+      if (this._socket === socket) this._socketMessage(event);
+    };
+    socket.onopen = (event) => {
+      if (this._socket === socket) this._socketOpened(event);
+    };
   }
 
   private _socketMessage(e: MessageEvent) {
-    const data = e.data as string;
+    let frame;
+    try {
+      frame = decodeSocketFrame(e.data);
+    } catch (error) {
+      console.warn('Rejected malformed socket frame:', error);
+      return;
+    }
 
-    // Signal that WebSocket is working (chat panel uses this to reduce polling)
+    // Signal only after a frame satisfies the protocol. A stream of malformed
+    // text must not masquerade as working chat delivery and disable polling.
     this.dispatchEvent(new CustomEvent('socket-active', {
       composed: true, bubbles: true,
     }));
 
-    // Feature-detect JSON framing vs legacy raw version numbers
-    if (data.startsWith('{')) {
-      try {
-        const msg = JSON.parse(data);
-        if (msg.type === 'version') {
-          if (this.gameRoute) {
-            companionTimeline.announce(this.gameRoute.id, msg.data);
-          }
-          if (Number.isInteger(msg.data) && msg.data > this.targetVersion) {
-            store.dispatch(setTargetVersion(msg.data));
-          }
-        } else if (msg.type === 'version-timing') {
-          // Companion-mode cross-screen animation sync (spec §8.4).
-          // Sibling to 'version' — old clients ignore it. Carries
-          // serverSentAt + serverPlayAt; we feed them into the
-          // version-bound timeline and minimum-wins latency estimator so
-          // the shared animator can target a server-anchored instant.
-          if (this.gameRoute) {
-            ingestVersionTiming(this.gameRoute.id, msg.data);
-            // A fetched bundle can beat its sibling timing frame on a very
-            // fast local connection. Only reschedule the bundle explicitly
-            // waiting in the 200ms grace window; never advance a later bundle
-            // while the current animation gate is still open.
-            if (this._waitingForTimingVersion === msg.data?.version) {
-              this._scheduleNextStateBundle();
-            }
-          }
-        } else if (msg.type === 'clock-sync') {
-          companionTimeline.ingestClockSync(msg.data);
-        } else if (msg.type === 'mode-changed') {
-          // Companion-mode → solo downgrade triggered by host
-          // switchToSolo (spec §9.6). Clear THIS game's surface cookie
-          // before reloading so the loader picks the solo renderer
-          // (server only set the cookie-clear on the host's response;
-          // phones need to clear themselves). Scoped to this game only:
-          // the browser may hold surface cookies for other in-flight
-          // companion games, and the broadcast is per-game.
-          this._clearSurfaceCookieForThisGame();
-          window.location.reload();
-        } else if (msg.type === 'presence-changed') {
-          // Companion-mode heartbeat scan flipped a player into/out of
-          // the Absent set. Refetch gameInfo so the new Absent list
-          // surfaces in state and the Table view re-renders the
-          // "Waiting for Alice…" badges (spec §9.1).
-          this.fetchInfo();
-        } else if (msg.type === 'chat') {
-          // Dispatch chat notification event for the chat panel to handle
-          this.dispatchEvent(new CustomEvent('chat-notification', {
-            composed: true,
-            bubbles: true,
-            detail: msg.data,
-          }));
-        } else {
-          console.warn('Unknown socket message type:', msg.type);
-        }
-      } catch (err) {
-        console.warn('Failed to parse socket JSON message:', data, err);
+    if (frame.type === 'version') {
+      // Legacy raw frames have no timing sibling, so don't create a grace wait.
+      if (frame.transport === 'json' && this.gameRoute) {
+        companionTimeline.announce(this.gameRoute.id, frame.version);
+      }
+      if (frame.version > this.targetVersion) store.dispatch(setTargetVersion(frame.version));
+      return;
+    }
+    if (frame.type === 'version-timing') {
+      // Companion-mode cross-screen animation sync (spec §8.4).
+      if (this.gameRoute) {
+        ingestVersionTiming(this.gameRoute.id, frame.timing);
+        if (this._waitingForTimingVersion === frame.timing.version) this._scheduleNextStateBundle();
       }
       return;
     }
-
-    // Legacy: raw version number
-    const version = parseInt(data);
-    if (isNaN(version)) {
-      console.warn('Socket message was not a valid version number:', data);
+    if (frame.type === 'clock-sync') {
+      companionTimeline.ingestClockSync(frame.clock);
       return;
     }
-    if (version > this.targetVersion) store.dispatch(setTargetVersion(version));
+    if (frame.type === 'mode-changed') {
+      // Only the decoded one-way transition to solo reaches this branch.
+      if (!this.gameRoute || frame.gameID !== this.gameRoute.id) {
+        console.warn('Ignored mode-change frame for a different game:', frame.gameID);
+        return;
+      }
+      this._clearSurfaceCookieForThisGame();
+      window.location.reload();
+      return;
+    }
+    if (frame.type === 'presence-changed') {
+      if (!this.gameRoute || frame.gameID !== this.gameRoute.id) {
+        console.warn('Ignored presence frame for a different game:', frame.gameID);
+        return;
+      }
+      this.fetchInfo();
+      return;
+    }
+    if (frame.type === 'chat') {
+      this.dispatchEvent(new CustomEvent('chat-notification', {
+        composed: true,
+        bubbles: true,
+        detail: { channel: frame.channel, messageId: frame.messageID },
+      }));
+      return;
+    }
+    console.warn('Unknown socket message type:', frame.wireType);
   }
 
   private _socketError(e: Event) {
@@ -522,7 +522,33 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     // _connectSocket will just exit, and this loop won't be called.
 
     // TODO: exponential backoff on server connect.
-    setTimeout(() => this._connectSocket(), 250);
+    const reconnectUrl = this._socketUrl;
+    this._reconnectTimer = window.setTimeout(() => {
+      this._reconnectTimer = null;
+      // Navigation or an already-open replacement supersedes this timer.
+      if (this._socket === null && this._socketUrl === reconnectUrl) this._connectSocket();
+    }, 250);
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    // A Lit element may be temporarily detached and reinserted without any
+    // reactive property changing. Restore the connection that teardown owns.
+    if (this._socketUrl && this._socket === null) this._connectSocket();
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._stopHeartbeat();
+    if (this._reconnectTimer !== null) {
+      window.clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    if (this._socket) {
+      const socket = this._socket;
+      this._socket = null;
+      socket.close();
+    }
   }
 
   private _startHeartbeat() {

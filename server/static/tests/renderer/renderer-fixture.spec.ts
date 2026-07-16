@@ -215,6 +215,132 @@ test('chat preserves rejected drafts, retries visibly, and deduplicates notifica
   diagnostics.stop();
 });
 
+test('game state manager isolates socket routes and owns the socket lifecycle', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const NativeWebSocket = window.WebSocket;
+      class FakeWebSocket {
+        static readonly instances: FakeWebSocket[] = [];
+        readonly url: string;
+        readyState = 0;
+        closeCount = 0;
+        onclose: ((event: CloseEvent) => void) | null = null;
+        onerror: ((event: Event) => void) | null = null;
+        onmessage: ((event: MessageEvent) => void) | null = null;
+        onopen: ((event: Event) => void) | null = null;
+
+        constructor(url: string | URL) {
+          this.url = String(url);
+          FakeWebSocket.instances.push(this);
+        }
+
+        close() {
+          this.closeCount += 1;
+          this.readyState = 3;
+        }
+
+        send(_data: string | ArrayBufferLike | Blob | ArrayBufferView) {}
+      }
+
+      window.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+      try {
+        (globalThis as unknown as {
+          CONFIG: { offline_dev_mode: boolean; firebase: Record<string, string> };
+        }).CONFIG = {
+          offline_dev_mode: true,
+          firebase: {
+            apiKey: 'fixture',
+            authDomain: 'fixture.invalid',
+            projectId: 'fixture',
+            appId: '1:fixture:web:fixture',
+          },
+        };
+        await import('/src/components/boardgame-game-state-manager.ts');
+        type TestManager = HTMLElement & {
+          _socketUrl: string;
+          updateComplete: Promise<unknown>;
+        };
+        const manager = document.createElement('boardgame-game-state-manager') as TestManager;
+        let activeEvents = 0;
+        manager.addEventListener('socket-active', () => activeEvents += 1);
+
+        document.body.append(manager);
+        await manager.updateComplete;
+        manager._socketUrl = 'ws://fixture.test/first';
+        await manager.updateComplete;
+        const first = FakeWebSocket.instances[0];
+        if (!first) throw new Error('Initial attachment did not connect');
+
+        manager._socketUrl = 'ws://fixture.test/second';
+        await manager.updateComplete;
+        const second = FakeWebSocket.instances[1];
+        if (!second) throw new Error('Route replacement did not connect');
+
+        // Browser callbacks already queued for the replaced connection must be inert.
+        first.onmessage?.(new MessageEvent('message', { data: '{"type":"version","data":99}' }));
+        first.onclose?.(new CloseEvent('close'));
+        await new Promise(resolve => window.setTimeout(resolve, 300));
+        const afterStaleCallbacks = FakeWebSocket.instances.length;
+
+        second.onmessage?.(new MessageEvent('message', { data: '{"type":"version","data":1}' }));
+        manager.remove();
+        await new Promise(resolve => window.setTimeout(resolve, 300));
+        const afterRemoval = FakeWebSocket.instances.length;
+
+        // Reinsertion without a property change must restore the owned resource.
+        document.body.append(manager);
+        const third = FakeWebSocket.instances[2];
+        if (!third) throw new Error('Reattachment did not reconnect');
+
+        // Losing the route must close without reconnecting; restoring it may
+        // connect once, and removal must cancel a natural-close retry.
+        manager._socketUrl = '';
+        await manager.updateComplete;
+        await new Promise(resolve => window.setTimeout(resolve, 300));
+        const afterRouteClear = FakeWebSocket.instances.length;
+        manager._socketUrl = 'ws://fixture.test/second';
+        await manager.updateComplete;
+        const fourth = FakeWebSocket.instances[3];
+        if (!fourth) throw new Error('Restored route did not reconnect');
+        fourth.onclose?.(new CloseEvent('close'));
+        manager.remove();
+        await new Promise(resolve => window.setTimeout(resolve, 300));
+
+        return {
+          urls: FakeWebSocket.instances.map(socket => socket.url),
+          closeCounts: FakeWebSocket.instances.map(socket => socket.closeCount),
+          activeEvents,
+          afterStaleCallbacks,
+          afterRemoval,
+          afterRouteClear,
+          finalCount: FakeWebSocket.instances.length,
+        };
+      } finally {
+        window.WebSocket = NativeWebSocket;
+      }
+    });
+
+    expect(result).toEqual({
+      urls: [
+        'ws://fixture.test/first',
+        'ws://fixture.test/second',
+        'ws://fixture.test/second',
+        'ws://fixture.test/second',
+      ],
+      closeCounts: [1, 1, 1, 0],
+      activeEvents: 1,
+      afterStaleCallbacks: 2,
+      afterRemoval: 2,
+      afterRouteClear: 3,
+      finalCount: 4,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('component stacks bind typed actions by slot and reject ambiguous wiring', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

@@ -208,3 +208,24 @@ func TestSendSocketMessageCreatesOneFrameBatch(t *testing.T) {
 		t.Fatalf("unexpected message: %#v", msg)
 	}
 }
+
+func TestModeChangedFrameCarriesGameIdentity(t *testing.T) {
+	v := newTestNotifier(t)
+	s := &socket{gameID: "game", send: make(chan socketFrameBatch, 1)}
+	v.sockets["game"] = map[*socket]bool{s: true}
+
+	v.doBroadcastModeChanged("game", "solo")
+
+	batch := <-s.send
+	if len(batch) != 1 {
+		t.Fatalf("mode change batch has %d frames, want 1", len(batch))
+	}
+	var msg socketMessage
+	if err := json.Unmarshal(batch[0], &msg); err != nil {
+		t.Fatal(err)
+	}
+	data := msg.Data.(map[string]interface{})
+	if msg.Type != "mode-changed" || data["gameID"] != "game" || data["newMode"] != "solo" {
+		t.Fatalf("unexpected mode change frame: %#v", msg)
+	}
+}
