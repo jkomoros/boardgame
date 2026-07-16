@@ -66,6 +66,7 @@ type GameManager struct {
 	// manager construction, then shared by generation and server /info.
 	moveInputSchema            []MoveInputSchemaMove
 	moveInputSchemaFingerprint string
+	computedProperties         []ComputedProperty
 }
 
 // Internals returns a ManagerInternals for this manager. All of the methods on
@@ -273,6 +274,10 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	chest.manager = result
 
 	delegate.SetManager(result)
+
+	if err := result.installComputedProperties(delegate.ConfigureComputedProperties()); err != nil {
+		return nil, errors.New("Failed to configure computed properties: " + err.Error())
+	}
 
 	// Build the constraint constructor map for struct tag parsing.
 	if ccs := delegate.ConfigureStackConstraintConstructors(); len(ccs) > 0 {

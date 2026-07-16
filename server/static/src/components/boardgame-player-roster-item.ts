@@ -147,11 +147,11 @@ export class BoardgamePlayerRosterItem extends LitElement {
   @property({ type: String })
   chipColor = '';
 
-  // Framework-computed color from ComputedPlayerProperties.
+  // Framework-computed color from FrameworkComputedPlayerProperties.
   @property({ type: String })
   computedColor = '';
 
-  // Whether this player may be active (from ComputedPlayerProperties).
+  // Whether this player may be active (from FrameworkComputedPlayerProperties).
   @property({ type: Boolean })
   mayBeActive = true;
 

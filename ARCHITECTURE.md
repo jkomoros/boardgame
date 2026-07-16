@@ -367,9 +367,12 @@ type GameDelegate interface {
     ConfigureConstants() PropertyCollection
     ConfigureAgents() []Agent
 
-    // Computed properties (optional)
-    ComputedGlobalProperties(state ImmutableState) PropertyCollection
-    ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection
+    // Game-specific computed properties (optional through base.GameDelegate)
+    ConfigureComputedProperties() []ComputedProperty
+
+    // Framework-owned computed properties (provided by base.GameDelegate)
+    FrameworkComputedGlobalProperties(state ImmutableState) PropertyCollection
+    FrameworkComputedPlayerProperties(player ImmutableSubState) PropertyCollection
 
     // Lifecycle hooks (optional)
     BeginSetUp(state State, variant Variant) error
@@ -3094,37 +3097,12 @@ This section outlines strategies for modernizing the framework to use current be
 
 **1. PropertyCollection**
 
-**Current:**
-```go
-type PropertyCollection map[string]interface{}
-
-func (g *gameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
-    return PropertyCollection{
-        "CurrentPlayerName": state.PlayerStates()[game.CurrentPlayer].Name,
-    }
-}
-
-// Client code needs type assertion
-name := props["CurrentPlayerName"].(string)
-```
-
-**With Generics:**
-```go
-type PropertyCollection[T any] map[string]T
-
-// Or type-safe getter:
-func GetProp[T any](props PropertyCollection, name string) (T, error) {
-    // Type-safe retrieval
-}
-
-// Client code is type-safe:
-name, err := GetProp[string](props, "CurrentPlayerName")
-```
-
-**Files to modify:**
-- game_delegate.go
-- property_reader.go
-- All code generation templates
+`PropertyCollection` remains an intentionally heterogeneous internal wire
+container. Creator-authored computed properties no longer expose it directly:
+games use typed `GlobalComputed*` and `PlayerComputed*` declarations, and
+`boardgame-util emit-types` generates each game's exact client keys and value
+types. Remaining generic work here concerns internal readers and setters, not
+the computed-property authoring API.
 
 **2. Reader/Setter Prop() Methods**
 

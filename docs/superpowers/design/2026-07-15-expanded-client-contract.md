@@ -51,19 +51,13 @@ The renderer snapshot is deeply readonly. Generated state fields and slices are
 readonly, as are expanded stack metadata and component values. A new snapshot
 arrives when the host installs a version; creators do not mutate it locally.
 
-Computed properties are not inferred by executing one example state because
-their keys may be conditional. Each generated module instead exports
-`GameComputed` and `PlayerComputed` augmentation interfaces whose unknown index
-signature is honest by default. A game may declare known keys explicitly
-without making an observed one-off key falsely required.
-
-```ts
-declare module './_types.js' {
-  interface GameComputed {
-    readonly PlayerOrder?: readonly number[];
-  }
-}
-```
+Computed properties are declared alongside their evaluators through typed Go
+constructors. The generator reads those declarations—not an observed example
+snapshot—and emits closed, game-specific `GameComputed` and `PlayerComputed`
+interfaces. There is no unknown index signature or declaration-merging step:
+undeclared keys and misspelled accesses fail TypeScript compilation. Framework
+keys are included automatically, while game keys are always present with the
+declared primitive, slice, player-index, or enum-literal type.
 
 Exact proposal typing rejects missing and extra fields even through aliased and
 spread objects. TypeScript's `number` does not distinguish integers from

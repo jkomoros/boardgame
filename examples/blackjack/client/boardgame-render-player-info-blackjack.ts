@@ -2,12 +2,6 @@ import { html } from '../../src/client.js';
 import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 import type { PlayerState } from './_types.js';
 
-declare module './_types.js' {
-  interface PlayerComputed {
-    readonly HandValue?: number;
-  }
-}
-
 @registerPlayerInfoRenderer
 export class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
   private _calculateStatus(playerState: PlayerState | null): string {

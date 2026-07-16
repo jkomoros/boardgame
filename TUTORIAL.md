@@ -1271,7 +1271,7 @@ Each stack must be sanitized the same way--if the components are hidden, then **
 
 The way we do it is by **merging** two stacks together, so they can be used logically as one read-only stack, both server and client-side. There are two types of merged stacks, and they're both created in a similar way. ``NewOveralappedStack`` returns an overlapped stack, and `NewConcatenatedStack` returns a concatenated stack. An overlapped stack takes the first stack provided and returns those components--unless that slot is empty, in which case whatever is in that location of the second slot is returned. For overlapped stacks, both stacks must be fixed size, and they both must be the same size. Concatenated stacks simply have all of the slots of the first stack followed by all of the slots of the second stack.
 
-We can use tag-based auto-inflation for merged stacks, too. We use either `concatenate` or `overlap` and then pass the property names of the input stacks. Note that because Merged Stacks are fundamentally read only, they must be stored in an immutable stack property in your state object. (One of the rare cases where you want a `MergedStack` or `Stack` property but not a `MutableStack`.) Note that to use tag-based auto inflation the properties must be in the same object. If you want to combine two stacks in different SubStates, you can return them as a Computed Property instead (see the section below on computed properties).
+We can use tag-based auto-inflation for merged stacks, too. We use either `concatenate` or `overlap` and then pass the property names of the input stacks. Note that because Merged Stacks are fundamentally read only, they must be stored in an immutable stack property in your state object. (One of the rare cases where you want a `MergedStack` or `Stack` property but not a `MutableStack`.) Tag-based auto-inflation requires the source properties to live on the same object. If the source stacks live in different SubStates, expose the small derived value the renderer actually needs (for example, component IDs or a count) as a typed computed property; stack objects inside `Computed` are not expanded by the client.
 
 When you use merged stacks, the convention is to name the hidden stack `HiddenFoo`, the visible stack `VisibleFoo`, and the merged stack that combines them just `Foo`.
 
@@ -2458,18 +2458,37 @@ When sanitizing dynamic component values, each deck has its own policy. Importan
 
 It's common to define methods on your `gameState` and `playerState` objects to modify the states and also to provide getters for values that can be computed entirely based on the values of specific properties. This works great on the server, but sometimes you want to have those same computed values available on the client in order to do view data-binding more easily.
 
-When a JSON representation of your gameState is being prepared for a player, your delegate's `ComputedGlobalProperties(state State)` and `ComputedPlayerProperties(player SubState)` are called, allowing you to return a map of strings to `interface{}` to include in the JSON. 
+Declare client-visible computed values in `ConfigureComputedProperties()`. Each
+entry couples its name, exact value type, scope, and evaluator, so the runtime
+value and generated TypeScript contract cannot drift. Framework values such as
+player color remain automatic; unlike the old map-mutation API, there is no base
+method to call and no framework map to merge.
 
 Typically this is a simple enumeration of the names of the values and the method calls, like you can see in memory:
 
 ```go
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
-	game, _ := concreteStates(state)
-	return boardgame.PropertyCollection{
-		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
+func (g *gameDelegate) ConfigureComputedProperties() []boardgame.ComputedProperty {
+	return []boardgame.ComputedProperty{
+		boardgame.GlobalComputedBool("CurrentPlayerHasCardsToReveal", func(state boardgame.ImmutableState) bool {
+			game, _ := concreteStates(state)
+			return game.CurrentPlayerHasCardsToReveal()
+		}),
 	}
 }
 ```
+
+Use the matching `GlobalComputed*` or `PlayerComputed*` constructor for bool,
+int, string, player-index, slice, or enum values. Enum constructors also take
+the enum itself, which preserves its generated string-literal union. Manager
+construction rejects empty or duplicate names, nil callbacks, incompatible
+framework overrides, and enums that are not in the game's chest. Configured
+keys are always present; use a stable zero/default value instead of conditionally
+changing the shape of the client contract.
+
+`boardgame-util emit-types` writes these declarations into that game's exact
+`GameComputed` and `PlayerComputed` interfaces. Misspelled or undeclared
+computed keys therefore fail TypeScript compilation without declaration
+merging or hand-written index signatures.
 
 Note that when this method is called, your state will likely aready have been sanitized, which means that **your computed property methods should return reasonable values for sanitized states**. In most cases you don't have to think much about this, because all sanitization transformations keep the objects of the same "shape". But it is something to keep an eye out for.
 

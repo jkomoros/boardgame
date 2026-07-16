@@ -248,12 +248,12 @@ if err := state.Manager().Delegate().ReadyToStart(state); err != nil {
 
 Since `CloseAllSeats` is a player move (extends `Default`, not `FixUp`), its `LegalForPlayerError` is included in the `moveForms` sent to the client. The gathering-start component can display this error next to the disabled "Start Game" button. This solves the error visibility problem — FixUp errors (from `WaitForEnoughPlayers`) are invisible to the client, but player move errors (from `CloseAllSeats`) are visible.
 
-**Error delivery to the client — `ComputedGlobalProperties`:**
+**Error delivery to the client — framework computed properties:**
 
-In addition to the move-form error on `CloseAllSeats`, the `ReadyToStart` error is also surfaced via `ComputedGlobalProperties` for display in the gathering status area:
+In addition to the move-form error on `CloseAllSeats`, the `ReadyToStart` error is also surfaced via the framework-owned global computed values for display in the gathering status area:
 
 ```go
-// In base.GameDelegate.ComputedGlobalProperties():
+// In base.GameDelegate.FrameworkComputedGlobalProperties():
 if err := g.Manager().Delegate().ReadyToStart(state); err != nil {
     result["ReadyToStartError"] = err.Error()
 }
@@ -278,14 +278,14 @@ This is not needed in normal flow (the `CloseAllSeats` gate prevents premature c
 
 ---
 
-### 8. `ComputedProperties` Extensions
+### 8. Framework Computed-Property Extensions
 
 In `base/game_delegate.go`, extend the defaults to auto-detect gathering behaviors:
 
-**ComputedPlayerProperties** — per-player data for the client:
+**FrameworkComputedPlayerProperties** — per-player data for the client:
 
 ```go
-func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
+func (g *GameDelegate) FrameworkComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
     result := boardgame.PropertyCollection{
         "Color":       behaviors.CSSColorForPlayer(player),
         "MayBeActive": g.Manager().Delegate().PlayerMayBeActive(player),
@@ -309,10 +309,10 @@ func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubSta
 }
 ```
 
-**ComputedGlobalProperties** — available values for pickers + readiness error:
+**FrameworkComputedGlobalProperties** — available values for pickers + readiness error:
 
 ```go
-func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+func (g *GameDelegate) FrameworkComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
     result := boardgame.PropertyCollection{}
 
     // Existing: player order

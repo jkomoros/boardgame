@@ -323,11 +323,11 @@ func TestReadyToStartBlocksWaitForEnoughPlayers(t *testing.T) {
 	// Set ReadyToStart to return an error
 	delegate.readyToStartErr = errors.New("teams not balanced")
 
-	// Verify the error propagates through ComputedGlobalProperties
-	computed := manager.Delegate().ComputedGlobalProperties(game.CurrentState())
+	// Verify the error propagates through FrameworkComputedGlobalProperties
+	computed := manager.Delegate().FrameworkComputedGlobalProperties(game.CurrentState())
 	readyErr, ok := computed["ReadyToStartError"]
 	if !ok {
-		t.Error("ComputedGlobalProperties should include ReadyToStartError when ReadyToStart fails")
+		t.Error("FrameworkComputedGlobalProperties should include ReadyToStartError when ReadyToStart fails")
 	}
 	if readyErr != "teams not balanced" {
 		t.Errorf("ReadyToStartError: expected 'teams not balanced', got '%v'", readyErr)
@@ -335,10 +335,10 @@ func TestReadyToStartBlocksWaitForEnoughPlayers(t *testing.T) {
 
 	// Clear the error
 	delegate.readyToStartErr = nil
-	computed = manager.Delegate().ComputedGlobalProperties(game.CurrentState())
+	computed = manager.Delegate().FrameworkComputedGlobalProperties(game.CurrentState())
 	_, hasErr := computed["ReadyToStartError"]
 	if hasErr {
-		t.Error("ComputedGlobalProperties should not include ReadyToStartError when ReadyToStart succeeds")
+		t.Error("FrameworkComputedGlobalProperties should not include ReadyToStartError when ReadyToStart succeeds")
 	}
 }
 
@@ -350,12 +350,12 @@ func TestComputedPropertiesIncludeGatheringData(t *testing.T) {
 		t.Fatal("Couldn't create game:", err)
 	}
 
-	// Check that ComputedGlobalProperties includes AvailableTeams and AvailableRoles
-	computed := manager.Delegate().ComputedGlobalProperties(game.CurrentState())
+	// Check that FrameworkComputedGlobalProperties includes AvailableTeams and AvailableRoles
+	computed := manager.Delegate().FrameworkComputedGlobalProperties(game.CurrentState())
 
 	teams, ok := computed["AvailableTeams"]
 	if !ok {
-		t.Error("ComputedGlobalProperties should include AvailableTeams")
+		t.Error("FrameworkComputedGlobalProperties should include AvailableTeams")
 	}
 	teamList, ok := teams.([]map[string]interface{})
 	if !ok {
@@ -367,7 +367,7 @@ func TestComputedPropertiesIncludeGatheringData(t *testing.T) {
 
 	roles, ok := computed["AvailableRoles"]
 	if !ok {
-		t.Error("ComputedGlobalProperties should include AvailableRoles")
+		t.Error("FrameworkComputedGlobalProperties should include AvailableRoles")
 	}
 	roleList, ok := roles.([]map[string]interface{})
 	if !ok {
@@ -377,13 +377,13 @@ func TestComputedPropertiesIncludeGatheringData(t *testing.T) {
 		t.Errorf("AvailableRoles: expected 3 values, got %d", len(roleList))
 	}
 
-	// Check ComputedPlayerProperties includes TeamValue and RoleValue
-	playerComputed := manager.Delegate().ComputedPlayerProperties(game.CurrentState().ImmutablePlayerStates()[0])
+	// Check FrameworkComputedPlayerProperties includes TeamValue and RoleValue
+	playerComputed := manager.Delegate().FrameworkComputedPlayerProperties(game.CurrentState().ImmutablePlayerStates()[0])
 	if _, ok := playerComputed["TeamValue"]; !ok {
-		t.Error("ComputedPlayerProperties should include TeamValue")
+		t.Error("FrameworkComputedPlayerProperties should include TeamValue")
 	}
 	if _, ok := playerComputed["RoleValue"]; !ok {
-		t.Error("ComputedPlayerProperties should include RoleValue")
+		t.Error("FrameworkComputedPlayerProperties should include RoleValue")
 	}
 }
 
@@ -454,7 +454,7 @@ func TestPlayerIsAdminAutoSet(t *testing.T) {
 	}
 
 	// In a non-server context, SeatPlayer won't fire (no server injection).
-	// But we can check the ComputedPlayerProperties for admin status.
+	// But we can check FrameworkComputedPlayerProperties for admin status.
 	// Since no one is seated, no one should be admin.
 	state := game.CurrentState()
 	for i, ps := range state.ImmutablePlayerStates() {
@@ -514,8 +514,8 @@ func TestComputedPropertiesIncludeIsGameAdmin(t *testing.T) {
 
 	// No one is admin initially
 	state := game.CurrentState()
-	computed := manager.Delegate().ComputedPlayerProperties(state.ImmutablePlayerStates()[0])
+	computed := manager.Delegate().FrameworkComputedPlayerProperties(state.ImmutablePlayerStates()[0])
 	if _, ok := computed["IsGameAdmin"]; ok {
-		t.Error("ComputedPlayerProperties should not include IsGameAdmin when player is not admin")
+		t.Error("FrameworkComputedPlayerProperties should not include IsGameAdmin when player is not admin")
 	}
 }

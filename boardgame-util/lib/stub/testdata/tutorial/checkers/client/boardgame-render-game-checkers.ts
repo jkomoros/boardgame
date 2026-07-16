@@ -42,7 +42,7 @@ export class BoardgameRenderGameCheckers extends GameRenderer {
               .componentView=${this.cards.withProperties({ rotated: true })}
               layout="fan" messy>
             <boardgame-fading-text
-              .trigger=${player.Computed?.GameScore ?? 0}
+              .trigger=${player.Computed?.RoundScore ?? 0}
               auto-message="diff-up">
             </boardgame-fading-text>
           </boardgame-component-zone>

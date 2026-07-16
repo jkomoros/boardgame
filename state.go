@@ -1241,11 +1241,11 @@ func (s *state) computed() *computedProperties {
 		playerProperties := make([]PropertyCollection, len(s.playerStates))
 
 		for i, player := range s.playerStates {
-			playerProperties[i] = s.game.manager.delegate.ComputedPlayerProperties(player)
+			playerProperties[i] = s.game.manager.computedPlayerProperties(player)
 		}
 
 		s.computedValues = &computedProperties{
-			Global:  s.game.manager.delegate.ComputedGlobalProperties(s),
+			Global:  s.game.manager.computedGlobalProperties(s),
 			Players: playerProperties,
 		}
 

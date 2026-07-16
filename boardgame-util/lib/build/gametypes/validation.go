@@ -14,6 +14,7 @@ var typeScriptIdentifier = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 func ValidateTypeResult(result TypeResult) error {
 	declared := map[string]string{
 		"ComponentCatalog":       "framework component catalog",
+		"ComputedEnumOption":     "framework computed enum option",
 		"GameConstants":          "framework game constants",
 		"DynamicComponentValues": "framework dynamic component values",
 		"GameComputed":           "framework game computed values",
@@ -74,11 +75,36 @@ func ValidateTypeResult(result TypeResult) error {
 		}
 		return nil
 	}
+	validateComputedFields := func(owner string, fields []FieldInfo) error {
+		seen := make(map[string]bool)
+		for _, field := range fields {
+			if field.Name == "" {
+				return fmt.Errorf("%s contains an empty field name", owner)
+			}
+			if seen[field.Name] {
+				return fmt.Errorf("%s contains duplicate field %q", owner, field.Name)
+			}
+			seen[field.Name] = true
+			if (field.Type == "TypeEnum" || field.Type == "TypeEnumSlice") && field.EnumName != "" {
+				name := toPascalCase(field.EnumName) + "Value"
+				if !typeScriptIdentifier.MatchString(name) {
+					return fmt.Errorf("%s field %q references enum %q, which generates invalid TypeScript identifier %q", owner, field.Name, field.EnumName, name)
+				}
+			}
+		}
+		return nil
+	}
 
 	if err := validateFields("game state", result.GameFields); err != nil {
 		return err
 	}
 	if err := validateFields("player state", result.PlayerFields); err != nil {
+		return err
+	}
+	if err := validateComputedFields("game computed values", result.GameComputedFields); err != nil {
+		return err
+	}
+	if err := validateComputedFields("player computed values", result.PlayerComputedFields); err != nil {
 		return err
 	}
 	for _, enum := range result.Enums {

@@ -46,13 +46,15 @@ type ConstantInfo struct {
 
 // TypeResult is the result of extracting type information for a single game package.
 type TypeResult struct {
-	PackageName  string         `json:"packageName"`
-	ImportPath   string         `json:"importPath"`
-	GameFields   []FieldInfo    `json:"gameFields"`
-	PlayerFields []FieldInfo    `json:"playerFields"`
-	Decks        []DeckInfo     `json:"decks"`
-	Enums        []EnumInfo     `json:"enums"`
-	Constants    []ConstantInfo `json:"constants"`
+	PackageName          string         `json:"packageName"`
+	ImportPath           string         `json:"importPath"`
+	GameFields           []FieldInfo    `json:"gameFields"`
+	PlayerFields         []FieldInfo    `json:"playerFields"`
+	Decks                []DeckInfo     `json:"decks"`
+	Enums                []EnumInfo     `json:"enums"`
+	Constants            []ConstantInfo `json:"constants"`
+	GameComputedFields   []FieldInfo    `json:"gameComputedFields"`
+	PlayerComputedFields []FieldInfo    `json:"playerComputedFields"`
 }
 
 // Build generates a temporary Go binary that imports all game packages,
@@ -210,6 +212,8 @@ type typeResult struct {
 	Decks        []deckInfo  ` + "`" + `json:"decks"` + "`" + `
 	Enums        []enumInfo  ` + "`" + `json:"enums"` + "`" + `
 	Constants    []constantInfo ` + "`" + `json:"constants"` + "`" + `
+	GameComputedFields   []fieldInfo ` + "`" + `json:"gameComputedFields"` + "`" + `
+	PlayerComputedFields []fieldInfo ` + "`" + `json:"playerComputedFields"` + "`" + `
 }
 
 type delegateEntry struct {
@@ -402,6 +406,17 @@ func main() {
 
 		// Extract deck component value fields
 		chest := manager.Chest()
+		var gameComputedFields []fieldInfo
+		var playerComputedFields []fieldInfo
+		for _, descriptor := range manager.ComputedPropertyDescriptors() {
+			field := fieldInfo{Name: descriptor.Name, Type: descriptor.Type.String(), EnumName: descriptor.EnumName}
+			switch descriptor.Scope {
+			case boardgame.ComputedPropertyScopeGlobal:
+				gameComputedFields = append(gameComputedFields, field)
+			case boardgame.ComputedPropertyScopePlayer:
+				playerComputedFields = append(playerComputedFields, field)
+			}
+		}
 		constantNames := chest.ConstantNames()
 		sort.Strings(constantNames)
 		var constants []constantInfo
@@ -527,6 +542,8 @@ func main() {
 			Decks:        decks,
 			Enums:        enums,
 			Constants:    constants,
+			GameComputedFields: gameComputedFields,
+			PlayerComputedFields: playerComputedFields,
 		})
 	}
 

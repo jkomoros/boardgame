@@ -30,9 +30,29 @@ export interface GameConstants {
   readonly "BOARD_SIZE": 64;
 }
 
-export interface GameComputed extends Readonly<Record<string, unknown>> {}
+export interface ComputedEnumOption {
+  readonly Key: number;
+  readonly Name: string;
+  readonly CSSColor?: string;
+}
 
-export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
+export interface GameComputed {
+  readonly PlayerOrder?: readonly number[];
+  readonly AvailableTeams?: readonly ComputedEnumOption[];
+  readonly AvailableRoles?: readonly ComputedEnumOption[];
+  readonly AvailableColors?: readonly ComputedEnumOption[];
+  readonly ReadyToStartError?: string;
+}
+
+export interface PlayerComputed {
+  readonly Color: string;
+  readonly MayBeActive: boolean;
+  readonly GameScore?: number;
+  readonly TeamValue?: string;
+  readonly RoleValue?: string;
+  readonly ColorValue?: string;
+  readonly IsGameAdmin?: boolean;
+}
 
 export interface GameState {
   readonly CurrentPlayer: number;

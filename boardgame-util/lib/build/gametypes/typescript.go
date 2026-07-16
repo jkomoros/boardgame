@@ -200,9 +200,40 @@ func GenerateTypeScript(result TypeResult) string {
 		b.WriteString("export type GameConstants = Readonly<Record<string, never>>;\n\n")
 	}
 
+	b.WriteString("export interface ComputedEnumOption {\n")
+	b.WriteString("  readonly Key: number;\n")
+	b.WriteString("  readonly Name: string;\n")
+	b.WriteString("  readonly CSSColor?: string;\n")
+	b.WriteString("}\n\n")
+
+	b.WriteString("export interface GameComputed {\n")
+	b.WriteString("  readonly PlayerOrder?: readonly number[];\n")
+	b.WriteString("  readonly AvailableTeams?: readonly ComputedEnumOption[];\n")
+	b.WriteString("  readonly AvailableRoles?: readonly ComputedEnumOption[];\n")
+	b.WriteString("  readonly AvailableColors?: readonly ComputedEnumOption[];\n")
+	b.WriteString("  readonly ReadyToStartError?: string;\n")
+	writeComputedFields(&b, result.GameComputedFields, result.Enums, map[string]bool{
+		"PlayerOrder": true, "AvailableTeams": true, "AvailableRoles": true,
+		"AvailableColors": true, "ReadyToStartError": true,
+	})
+	b.WriteString("}\n\n")
+
+	b.WriteString("export interface PlayerComputed {\n")
+	b.WriteString("  readonly Color: string;\n")
+	b.WriteString("  readonly MayBeActive: boolean;\n")
+	b.WriteString("  readonly GameScore?: number;\n")
+	b.WriteString("  readonly TeamValue?: string;\n")
+	b.WriteString("  readonly RoleValue?: string;\n")
+	b.WriteString("  readonly ColorValue?: string;\n")
+	b.WriteString("  readonly IsGameAdmin?: boolean;\n")
+	writeComputedFields(&b, result.PlayerComputedFields, result.Enums, map[string]bool{
+		"Color": true, "MayBeActive": true, "GameScore": true,
+		"TeamValue": true, "RoleValue": true, "ColorValue": true,
+		"IsGameAdmin": true,
+	})
+	b.WriteString("}\n\n")
+
 	// Generate GameState interface
-	b.WriteString("export interface GameComputed extends Readonly<Record<string, unknown>> {}\n\n")
-	b.WriteString("export interface PlayerComputed extends Readonly<Record<string, unknown>> {}\n\n")
 
 	b.WriteString("export interface GameState {\n")
 	for _, f := range result.GameFields {
@@ -231,6 +262,19 @@ func GenerateTypeScript(result TypeResult) string {
 	b.WriteString("export type State = FullGameState<GameState, PlayerState, GameComputed, PlayerComputed, DynamicComponentValues>;\n")
 
 	return b.String()
+}
+
+func writeComputedFields(b *strings.Builder, fields []FieldInfo, enums []EnumInfo, frameworkNames map[string]bool) {
+	for _, field := range fields {
+		if frameworkNames[field.Name] {
+			continue
+		}
+		b.WriteString("  readonly ")
+		b.WriteString(tsQuoted(field.Name))
+		b.WriteString(": ")
+		b.WriteString(baseFieldTypeToTS(field, enums))
+		b.WriteString(";\n")
+	}
 }
 
 // GenerateRendererTypeScript produces the thin, unregistered game-bound base.

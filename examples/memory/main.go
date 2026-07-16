@@ -57,11 +57,13 @@ func (g *gameDelegate) MaxNumPlayers() int {
 	return 6
 }
 
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
-	result := g.GameDelegate.ComputedGlobalProperties(state)
-	game, _ := concreteStates(state)
-	result["CurrentPlayerHasCardsToReveal"] = game.CurrentPlayerHasCardsToReveal()
-	return result
+func (g *gameDelegate) ConfigureComputedProperties() []boardgame.ComputedProperty {
+	return []boardgame.ComputedProperty{
+		boardgame.GlobalComputedBool("CurrentPlayerHasCardsToReveal", func(state boardgame.ImmutableState) bool {
+			game, _ := concreteStates(state)
+			return game.CurrentPlayerHasCardsToReveal()
+		}),
+	}
 }
 
 const (

@@ -439,26 +439,15 @@ func (g *gameDelegate) Variants() boardgame.VariantConfig {
 
 {{end}}
 {{if .EnableExampleComputedProperties}}
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
-
-	//Start with the base properties (e.g. "PlayerOrder") and add your own.
-	result := g.GameDelegate.ComputedGlobalProperties(state)
-
-	game := state.ImmutableGameState().(*gameState)
-
-	result["CardsDone"] = game.CardsDone()
-	return result
-}
-
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
-
-	//Start with the base properties ("Color", "MayBeActive") and add your own.
-	result := g.GameDelegate.ComputedPlayerProperties(player)
-
-	p := player.(*playerState)
-
-	result["GameScore"] = p.GameScore()
-	return result
+func (g *gameDelegate) ConfigureComputedProperties() []boardgame.ComputedProperty {
+	return []boardgame.ComputedProperty{
+		boardgame.GlobalComputedBool("CardsDone", func(state boardgame.ImmutableState) bool {
+			return state.ImmutableGameState().(*gameState).CardsDone()
+		}),
+		boardgame.PlayerComputedInt("RoundScore", func(player boardgame.ImmutableSubState) int {
+			return player.(*playerState).GameScore()
+		}),
+	}
 }
 
 {{end}}
@@ -847,7 +836,7 @@ export class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
                   .componentView=${this.cards.withProperties({ rotated: true })}
                   layout="fan" messy>
                 <boardgame-fading-text
-                  .trigger=${player.Computed?.GameScore ?? 0}
+                  .trigger=${player.Computed?.RoundScore ?? 0}
                   auto-message="diff-up">
                 </boardgame-fading-text>
               </boardgame-component-zone>

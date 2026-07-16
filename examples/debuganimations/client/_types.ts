@@ -19,9 +19,29 @@ export type DynamicComponentValues = Readonly<Record<string, never>>;
 
 export type GameConstants = Readonly<Record<string, never>>;
 
-export interface GameComputed extends Readonly<Record<string, unknown>> {}
+export interface ComputedEnumOption {
+  readonly Key: number;
+  readonly Name: string;
+  readonly CSSColor?: string;
+}
 
-export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
+export interface GameComputed {
+  readonly PlayerOrder?: readonly number[];
+  readonly AvailableTeams?: readonly ComputedEnumOption[];
+  readonly AvailableRoles?: readonly ComputedEnumOption[];
+  readonly AvailableColors?: readonly ComputedEnumOption[];
+  readonly ReadyToStartError?: string;
+}
+
+export interface PlayerComputed {
+  readonly Color: string;
+  readonly MayBeActive: boolean;
+  readonly GameScore?: number;
+  readonly TeamValue?: string;
+  readonly RoleValue?: string;
+  readonly ColorValue?: string;
+  readonly IsGameAdmin?: boolean;
+}
 
 export interface GameState {
   readonly AllHiddenStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;

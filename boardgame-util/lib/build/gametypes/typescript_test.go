@@ -175,6 +175,13 @@ func TestGenerateTypeScript(t *testing.T) {
 			{Name: "friendly", Kind: "boolean", Value: "true"},
 			{Name: "display-label", Kind: "string", Value: "Cards \"left\""},
 		},
+		GameComputedFields: []FieldInfo{
+			{Name: "cards-done", Type: "TypeBool"},
+		},
+		PlayerComputedFields: []FieldInfo{
+			{Name: "HandValue", Type: "TypeInt"},
+			{Name: "Mood", Type: "TypeEnum", EnumName: "phase"},
+		},
 	}
 
 	ts := GenerateTypeScript(result)
@@ -203,6 +210,23 @@ func TestGenerateTypeScript(t *testing.T) {
 		if !strings.Contains(ts, want) {
 			t.Errorf("missing generated constant %q:\n%s", want, ts)
 		}
+	}
+
+	for _, want := range []string{
+		`export interface GameComputed {`,
+		`readonly "cards-done": boolean;`,
+		`export interface PlayerComputed {`,
+		`readonly Color: string;`,
+		`readonly "HandValue": number;`,
+		`readonly "Mood": PhaseValue;`,
+	} {
+		if !strings.Contains(ts, want) {
+			t.Errorf("missing generated computed contract %q:\n%s", want, ts)
+		}
+	}
+	if strings.Contains(ts, "GameComputed extends Readonly<Record<string, unknown>>") ||
+		strings.Contains(ts, "PlayerComputed extends Readonly<Record<string, unknown>>") {
+		t.Fatal("computed contracts must not advertise dynamic keys")
 	}
 
 	// Check component values interface
@@ -249,6 +273,15 @@ func TestGenerateTypeScriptEmitsHonestComponentCatalog(t *testing.T) {
 		if !strings.Contains(ts, want) {
 			t.Errorf("missing %q:\n%s", want, ts)
 		}
+	}
+}
+
+func TestGenerateTypeScriptDoesNotRedeclareFrameworkComputedOverride(t *testing.T) {
+	ts := GenerateTypeScript(TypeResult{PlayerComputedFields: []FieldInfo{
+		{Name: "Color", Type: "TypeString"},
+	}})
+	if count := strings.Count(ts, "readonly Color: string;"); count != 1 {
+		t.Fatalf("framework Color declarations = %d, want one:\n%s", count, ts)
 	}
 }
 

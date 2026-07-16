@@ -1153,6 +1153,13 @@ First evidence-driven primitive tranche (2026-07-16):
   dynamic component fields. Reserve the framework's open fallback for truly
   unresolved decks; an exact game contract must represent a known absence as
   `Readonly<Record<string, never>>`, so invented dynamic keys fail compilation.
+- [x] Replace game-authored computed-property map mutation with one
+  declaration-plus-callback configuration seam. Typed global/player scalar,
+  slice, player-index, and enum constructors own runtime evaluation and the
+  generated exact contract together; framework values remain automatic and
+  compatible overrides are checked. Reject malformed declarations at manager
+  construction, generate closed `GameComputed`/`PlayerComputed` interfaces,
+  and remove renderer-side declaration merging across both game corpora.
 - [x] Extend the same fail-closed transport to list and create-game flows:
   replace `any[]` manager/game state with shared exact manager, variant, agent,
   player, and game-list contracts; bound and copy the Go payloads; normalize nil

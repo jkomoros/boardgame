@@ -72,7 +72,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		"<boardgame-action-bar slot=\"actions\" label=\"Turn actions\">",
 		"<boardgame-turn-status",
 		".turn=${this.turnStatus}",
-		"player.Computed?.GameScore ?? 0",
+		"player.Computed?.RoundScore ?? 0",
 	} {
 		if !strings.Contains(client, required) {
 			t.Errorf("generated client is missing %q", required)

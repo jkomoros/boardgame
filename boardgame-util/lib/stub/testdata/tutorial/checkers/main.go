@@ -195,26 +195,15 @@ func (g *gameDelegate) Variants() boardgame.VariantConfig {
 	}
 }
 
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
-
-	//Start with the base properties (e.g. "PlayerOrder") and add your own.
-	result := g.GameDelegate.ComputedGlobalProperties(state)
-
-	game := state.ImmutableGameState().(*gameState)
-
-	result["CardsDone"] = game.CardsDone()
-	return result
-}
-
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
-
-	//Start with the base properties ("Color", "MayBeActive") and add your own.
-	result := g.GameDelegate.ComputedPlayerProperties(player)
-
-	p := player.(*playerState)
-
-	result["GameScore"] = p.GameScore()
-	return result
+func (g *gameDelegate) ConfigureComputedProperties() []boardgame.ComputedProperty {
+	return []boardgame.ComputedProperty{
+		boardgame.GlobalComputedBool("CardsDone", func(state boardgame.ImmutableState) bool {
+			return state.ImmutableGameState().(*gameState).CardsDone()
+		}),
+		boardgame.PlayerComputedInt("RoundScore", func(player boardgame.ImmutableSubState) int {
+			return player.(*playerState).GameScore()
+		}),
+	}
 }
 
 // NewDelegate is the primary entrypoint to the package. It implements a
