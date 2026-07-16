@@ -14,8 +14,8 @@ export class BoardgameActionButton extends LitElement {
       padding: 0.65rem 1rem;
       border: 0;
       border-radius: 999px;
-      background: var(--md-sys-color-primary, #2e6b4f);
-      color: var(--md-sys-color-on-primary, white);
+      background: var(--boardgame-action-background, var(--md-sys-color-primary, #2e6b4f));
+      color: var(--boardgame-action-color, var(--md-sys-color-on-primary, white));
       font: inherit;
       font-weight: 600;
       cursor: pointer;
@@ -29,6 +29,30 @@ export class BoardgameActionButton extends LitElement {
     button:focus-visible {
       outline: 3px solid var(--md-sys-color-secondary, #8b7432);
       outline-offset: 3px;
+    }
+
+    #spinner {
+      display: inline-block;
+      width: 0.9em;
+      height: 0.9em;
+      margin-inline-end: 0.45em;
+      border: 2px solid currentColor;
+      border-inline-end-color: transparent;
+      border-radius: 50%;
+      vertical-align: -0.1em;
+      animation: boardgame-action-spin 700ms linear infinite;
+    }
+
+    #spinner[hidden] {
+      display: none;
+    }
+
+    @keyframes boardgame-action-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #spinner { animation-duration: 1.4s; }
     }
 
     #status {
@@ -48,6 +72,10 @@ export class BoardgameActionButton extends LitElement {
 
   @property({ attribute: false })
   action: BoundMoveAction<string, object> | null = null;
+
+  /** Required for icon-only controls; ordinary text content names itself. */
+  @property({ type: String })
+  label = '';
 
   #unsubscribe: (() => void) | null = null;
 
@@ -82,7 +110,13 @@ export class BoardgameActionButton extends LitElement {
 
   override render() {
     const action = this.action;
-    const bound = isBoundMoveAction(action);
+    if (action !== null && !isBoundMoveAction(action)) {
+      throw new Error('boardgame-action-button: .action must be a bound move action from move(...), move(...).with(...), or a target candidate');
+    }
+    if (!this.label.trim() && !this.textContent?.trim()) {
+      throw new Error('boardgame-action-button: provide visible text or a non-empty label for an accessible name');
+    }
+    const bound = action !== null;
     const pending = bound && action.submission.kind === 'pending';
     const disabled = !bound || !action.canActivate;
     const rejection = bound && action.submission.kind === 'rejected' ? action.submission.reason : null;
@@ -94,18 +128,26 @@ export class BoardgameActionButton extends LitElement {
       : baseReason;
     return html`
       <button
+        part="button"
         type="button"
         ?disabled=${disabled}
         aria-disabled=${String(disabled)}
         aria-busy=${String(pending)}
+        aria-label=${this.label.trim() || nothing}
         aria-describedby=${reason ? 'status' : nothing}
         title=${reason ?? nothing}
         @click=${this.#activate}>
-        <slot></slot>
+        <span id="spinner" part="spinner" ?hidden=${!pending} aria-hidden="true"></span>
+        <span part="label"><slot @slotchange=${this.#slotChanged}></slot></span>
       </button>
-      ${reason ? html`<span id="status" role="status" aria-live="polite">${reason}</span>` : nothing}
+      ${reason ? html`<span id="status" part="status" role="status" aria-live="polite">${reason}</span>` : nothing}
     `;
   }
+
+  readonly #slotChanged = (): void => {
+    // Dynamic slot changes can add or remove the control's accessible name.
+    this.requestUpdate();
+  };
 }
 
 customElements.define('boardgame-action-button', BoardgameActionButton);

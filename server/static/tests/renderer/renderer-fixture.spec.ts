@@ -524,6 +524,84 @@ test('fading text handles typed scalar policies, decimal diffs, restarts, and in
   }
 });
 
+test('action button provides accessible names, pending feedback, styling parts, and loud wiring errors', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/game-src/pig/boardgame-render-game-pig.ts');
+      const { pigRendererFixture } = await import('/game-src/pig/boardgame-render-fixtures-pig.ts');
+      const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+      const handle = await mountRendererFixture(pigRendererFixture);
+      const actionButton = handle.renderer.shadowRoot?.querySelector('boardgame-action-button') as
+        (HTMLElement & { action: unknown; updateComplete: Promise<unknown> }) | null;
+      if (!actionButton) throw new Error('Pig did not render its action button');
+      await actionButton.updateComplete;
+      const native = actionButton.shadowRoot?.querySelector('button');
+      const ordinary = {
+        text: actionButton.textContent?.trim(),
+        buttonPart: native?.getAttribute('part'),
+        labelPart: actionButton.shadowRoot?.querySelector('[part="label"]')?.getAttribute('part'),
+      };
+
+      let resolveSubmission: ((result: { readonly kind: 'success' }) => void) | undefined;
+      (handle.renderer as unknown as { moveTransport: unknown }).moveTransport = {
+        submit: () => new Promise(resolve => { resolveSubmission = resolve; }),
+      };
+      native?.click();
+      await actionButton.updateComplete;
+      const pending = {
+        busy: native?.getAttribute('aria-busy'),
+        spinnerHidden: (actionButton.shadowRoot?.querySelector('[part="spinner"]') as HTMLElement | null)?.hidden,
+      };
+      resolveSubmission?.({ kind: 'success' });
+      await Promise.resolve();
+      await actionButton.updateComplete;
+      const settled = {
+        busy: native?.getAttribute('aria-busy'),
+        spinnerHidden: (actionButton.shadowRoot?.querySelector('[part="spinner"]') as HTMLElement | null)?.hidden,
+      };
+
+      const icon = document.createElement('boardgame-action-button');
+      icon.label = 'Draw a card';
+      icon.action = actionButton.action as never;
+      icon.append(document.createElement('svg'));
+      document.body.append(icon);
+      await icon.updateComplete;
+      const iconLabel = icon.shadowRoot?.querySelector('button')?.getAttribute('aria-label');
+
+      const renderError = (configure: (element: HTMLElement & Record<string, unknown>) => void) => {
+        const element = document.createElement('boardgame-action-button') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        configure(element);
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const emptyName = renderError(() => {});
+      const invalidAction = renderError(element => {
+        element.textContent = 'Move';
+        element.action = {};
+      });
+      icon.remove();
+      handle.dispose();
+      return { ordinary, pending, settled, iconLabel, emptyName, invalidAction };
+    });
+
+    expect(result.ordinary).toEqual({ text: 'Done', buttonPart: 'button', labelPart: 'label' });
+    expect(result.pending).toEqual({ busy: 'true', spinnerHidden: false });
+    expect(result.settled).toEqual({ busy: 'false', spinnerHidden: true });
+    expect(result.iconLabel).toBe('Draw a card');
+    expect(result.emptyName).toContain('provide visible text or a non-empty label');
+    expect(result.invalidAction).toContain('.action must be a bound move action');
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

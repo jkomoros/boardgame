@@ -974,6 +974,13 @@ First evidence-driven primitive tranche (2026-07-16):
   successive animations across a real rendered-frame boundary, and reject
   non-finite triggers or unknown policies loudly. Export its contract types and
   prove positive, restart, accessibility, and negative compile/runtime cases.
+- [x] Harden the corpus-wide `boardgame-action-button` without adding creator
+  ceremony: visible text remains the ordinary accessible name, while a typed
+  `label` supports icon-only controls. Reject blank names and non-bound actions
+  loudly, surface pending work with a reduced-motion-safe spinner, and expose
+  stable button/label/spinner/status CSS parts and theme variables. Prove native
+  naming, pending-to-settled state, styling hooks, strict negative contracts,
+  and runtime diagnostics against a real generated Pig action.
 
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design

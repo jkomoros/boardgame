@@ -1617,6 +1617,14 @@ live visible status. The adapter provides `title` and ARIA explanation only.
 Both controls keep transient preview failures activatable: activating again
 retries the legality check before proposing.
 
+`boardgame-action-button` requires visible text so controls cannot silently ship
+without an accessible name. For an icon-only control, set its typed
+`label="Draw a card"`. Invalid or unbound actions throw an actionable authoring
+error. Pending submissions automatically show a reduced-motion-safe spinner;
+the internal `button`, `label`, `spinner`, and `status` CSS parts plus
+`--boardgame-action-background` and `--boardgame-action-color` allow themed
+renderers without replacing its interaction behavior.
+
 For a board or other set of independent targets, create one typed target action
 directly from the unbound move. The mapper receives each native key and must
 return the exact generated move input:
