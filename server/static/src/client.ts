@@ -62,6 +62,8 @@ export type {
 } from './moves/source-destination.js';
 export type {
   BoardPiece,
+  BoardPathOverlay,
+  BoardPathTone,
   BoardGeometry,
   BoardGeometryFactory,
   BoardGeometrySpace,

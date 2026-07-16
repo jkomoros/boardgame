@@ -10,6 +10,19 @@ export interface BoardPiece<Key extends SpatialBoardKey> {
   readonly component: Component<object, object>;
 }
 
+export type BoardPathTone = 'primary' | 'secondary' | 'danger' | 'muted';
+
+/** A noninteractive, accessible route drawn through known board anchors. */
+export interface BoardPathOverlay<Key extends SpatialBoardKey> {
+  readonly id: string;
+  /** Complete accessible description of what the path means. */
+  readonly label: string;
+  /** Two or more geometry keys, connected through their piece anchors. */
+  readonly spaces: readonly Key[];
+  readonly tone?: BoardPathTone;
+  readonly width?: number;
+}
+
 /** Explicit adapter for the common sized-stack representation used by Go state. */
 export function piecesFromSizedStacks<Key extends SpatialBoardKey>(
   stacks: readonly ExpandedStack<object, object>[],

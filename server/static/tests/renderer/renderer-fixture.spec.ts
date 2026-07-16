@@ -2604,6 +2604,7 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       geometry: unknown;
       action: unknown;
       actionGroup: string;
+      pathOverlays: readonly unknown[];
       pieces: readonly unknown[];
       tokenSize: number;
       panZoom: boolean;
@@ -2622,6 +2623,10 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     };
     board.tokenSize = 20;
     board.pieces = [{ id: token.ID, space: 'harbor', stack, slot: 0, component: token }];
+    board.pathOverlays = [{
+      id: 'trade-route', label: 'Trade route from Harbor through Road to Market',
+      spaces: ['harbor', 'road', 'market'], tone: 'secondary', width: 6,
+    }];
     document.body.append(board);
     const waitForLoad = async () => {
       for (let attempt = 0; attempt < 40 && !board.svgLoaded; attempt++) {
@@ -2639,13 +2644,15 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       const image = scene?.querySelector('image');
       const regions = [...(scene?.querySelectorAll('[data-space]') ?? [])];
       const focus = root?.querySelector('.space-focus');
+      const path = root?.querySelector('#path-overlay polyline');
       const stackElement = root?.querySelector('boardgame-component-stack') as HTMLElement & {
         spatialPositions: readonly ({ top: number; left: number } | null)[];
         updateComplete: Promise<unknown>;
       } | null;
       if (!(outer instanceof SVGSVGElement) || !(scene instanceof SVGSVGElement)
         || !(image instanceof SVGImageElement) || regions.length !== 3
-        || !(focus instanceof HTMLButtonElement) || !stackElement) {
+        || !(focus instanceof HTMLButtonElement) || !(path instanceof SVGGraphicsElement)
+        || path.localName !== 'polyline' || !stackElement) {
         throw new Error('Raster scene was incomplete');
       }
       const harbor = regions[0] as SVGGraphicsElement;
@@ -2659,7 +2666,8 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
         return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
       };
       return {
-        outer, scene, image, harbor, focus, focusAnchor, pieceAnchor, stackElement,
+        outer, scene, image, harbor, focus, focusAnchor, pieceAnchor,
+        path: path as SVGPolylineElement, regions, stackElement,
         focusError: Math.max(
           Math.abs(center(focus).x - center(focusAnchor).x),
           Math.abs(center(focus).y - center(focusAnchor).y),
@@ -2696,7 +2704,9 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     viewport.zoomIn();
     await viewport.updateComplete;
 
-    const fits: Record<string, { preserve: string | null; focusError: number; pieceError: number }> = {};
+    const fits: Record<string, {
+      preserve: string | null; focusError: number; pieceError: number; pathError: number;
+    }> = {};
     for (const fit of ['contain', 'cover', 'fill'] as const) {
       board.artwork = rasterBoardArtwork({ src, spaces, fit, viewportAspectRatio: 1 });
       await board.updateComplete;
@@ -2713,10 +2723,24 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
           Math.abs(position.top + 10 - ((anchor.top + anchor.height / 2 - container.top) / viewport.view.scale + jitter(1) * 20)),
         );
       };
+      const pathError = () => {
+        const container = root?.querySelector('#container')?.getBoundingClientRect();
+        if (!container || info.path.points.length !== 3) throw new Error('Route path points disappeared');
+        const anchors = [info.pieceAnchor, info.regions[2]!, info.regions[1]!];
+        return Math.max(...anchors.flatMap((anchor, index) => {
+          const bounds = anchor.getBoundingClientRect();
+          const point = info.path.points.getItem(index);
+          return [
+            Math.abs(point.x - (bounds.left + bounds.width / 2 - container.left) / viewport.view.scale),
+            Math.abs(point.y - (bounds.top + bounds.height / 2 - container.top) / viewport.view.scale),
+          ];
+        }));
+      };
       fits[fit] = {
         preserve: info.scene.getAttribute('preserveAspectRatio'),
         focusError: info.focusError,
         pieceError: pieceError(),
+        pathError: pathError(),
       };
       for (const width of [260, 640]) {
         board.style.width = `${width}px`;
@@ -2724,6 +2748,7 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
         await board.updateComplete;
         fits[fit]!.focusError = Math.max(fits[fit]!.focusError, sceneInfo().focusError);
         fits[fit]!.pieceError = Math.max(fits[fit]!.pieceError, pieceError());
+        fits[fit]!.pathError = Math.max(fits[fit]!.pathError, pathError());
       }
     }
 
@@ -2770,8 +2795,12 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     await board.updateComplete;
     await board.updateComplete;
     const recoveredGroupError = root?.querySelector('#status')?.textContent?.trim() ?? '';
+    const pathDescription = root?.querySelector('#path-descriptions')?.textContent?.replace(/\s+/g, ' ').trim();
+    const pathTone = root?.querySelector('#path-overlay polyline')?.getAttribute('class');
+    const pathWidth = root?.querySelector('#path-overlay polyline')?.getAttribute('stroke-width');
     board.action = null;
     board.actionGroup = '';
+    board.pathOverlays = [];
     await board.updateComplete;
 
     // Rapid replacement must leave only the final descriptor installed.
@@ -2781,7 +2810,9 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     await waitForLoad();
     const finalLabel = root?.querySelector('#space-list button')?.textContent?.trim();
 
-    const errorFor = async (properties: { artwork: unknown; svgUrl?: string; geometry?: unknown }) => {
+    const errorFor = async (properties: {
+      artwork: unknown; svgUrl?: string; geometry?: unknown; pathOverlays?: readonly unknown[];
+    }) => {
       const invalid = document.createElement('boardgame-spatial-board') as typeof board;
       Object.assign(invalid, properties);
       document.body.append(invalid);
@@ -2801,6 +2832,10 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       errorFor({ artwork: rasterBoardArtwork({ src, spaces }), svgUrl: '/also.svg' }),
       errorFor({ artwork: rasterBoardArtwork({ src, spaces }), geometry: () => ({ spaces: [] }) }),
       errorFor({ artwork: rasterBoardArtwork({ src: 'data:image/png;base64,not-an-image', spaces }) }),
+      errorFor({
+        artwork: rasterBoardArtwork({ src, spaces }),
+        pathOverlays: [{ id: 'lost', label: 'Lost route', spaces: ['harbor', 'unknown'] }],
+      }),
     ]);
     const lateInvalid = document.createElement('boardgame-spatial-board') as typeof board;
     lateInvalid.artwork = rasterBoardArtwork({ src, spaces });
@@ -2821,6 +2856,7 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       fitPreserves: Object.fromEntries(Object.entries(fits).map(([key, value]) => [key, value.preserve])),
       maxFocusError: Math.max(...Object.values(fits).map(value => value.focusError)),
       maxZoomedPieceError: Math.max(...Object.values(fits).map(value => value.pieceError)),
+      maxPathError: Math.max(...Object.values(fits).map(value => value.pathError)),
       viewportScale: viewport.view.scale,
       containPieceError,
       finalLabel,
@@ -2830,6 +2866,9 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       unknownGroupError,
       recoveredGroupError,
       generatedGroups: groupedRegions.map(region => region.getAttribute('data-board-group')),
+      pathDescription,
+      pathTone,
+      pathWidth,
       errors,
       lateGeometryError,
       lateGeometrySvgCount,
@@ -2848,10 +2887,14 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     unknownGroupError: expect.stringContaining('actionGroup "missing" has no geometry'),
     recoveredGroupError: '',
     generatedGroups: ['nodes', 'tiles', 'nodes'],
+    pathDescription: 'Trade route from Harbor through Road to Market',
+    pathTone: 'secondary',
+    pathWidth: '6',
     errors: [
       expect.stringContaining('choose svgUrl or artwork, not both'),
       expect.stringContaining('geometry is only valid with svgUrl'),
       expect.stringContaining('could not be decoded'),
+      expect.stringContaining('references unknown space "unknown"'),
     ],
     lateGeometryError: expect.stringContaining('geometry is only valid with svgUrl'),
     lateGeometrySvgCount: 0,
@@ -2860,6 +2903,7 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
   expect(result.maxFocusError).toBeLessThanOrEqual(1);
   expect(result.containPieceError).toBeLessThanOrEqual(1);
   expect(result.maxZoomedPieceError).toBeLessThanOrEqual(1);
+  expect(result.maxPathError).toBeLessThanOrEqual(1);
   const axeResult = await new AxeBuilder({ page })
     .include('boardgame-spatial-board')
     .withRules(['button-name', 'aria-allowed-attr', 'aria-valid-attr-value', 'nested-interactive'])
@@ -2894,12 +2938,29 @@ test('spatial board rejects ambiguous or misaligned component views loudly', asy
       rejects({ stack, componentView: view, componentViews: [view] }),
       rejects({ stacks: [stack, stack], componentViews: [view] }),
       rejects({ componentViews: [view] }),
+      rejects({ pathOverlays: [{ id: 'short', label: 'Short', spaces: ['a'] }] }),
+      rejects({ pathOverlays: [{ id: 'odd', label: 'Odd', spaces: ['a', 'b'], tone: 'rainbow' }] }),
+      rejects({ pathOverlays: [
+        { id: 'same', label: 'First', spaces: ['a', 'b'] },
+        { id: 'same', label: 'Second', spaces: ['b', 'c'] },
+      ] }),
+      rejects({ pathOverlays: [{ id: 'verbose', label: 'x'.repeat(1025), spaces: ['a', 'b'] }] }),
+      rejects({ pathOverlays: Array.from({ length: 17 }, (_, index) => ({
+        id: `large-${index}`,
+        label: `Large route ${index}`,
+        spaces: Array.from({ length: 256 }, (_, point) => point % 2 ? 'a' : 'b'),
+      })) }),
     ]);
   });
   expect(messages).toEqual([
     expect.stringContaining('choose componentView or componentViews, not both'),
     expect.stringContaining('componentViews has 1 entries for 2 effective stack layers'),
     expect.stringContaining('componentViews has 1 entries for 0 effective stack layers'),
+    expect.stringContaining('requires 2 through 256 spaces'),
+    expect.stringContaining('has unknown tone "rainbow"'),
+    expect.stringContaining('duplicate path overlay id "same"'),
+    expect.stringContaining('accessible label of at most 1024 characters'),
+    expect.stringContaining('exceeds the 4096-point total limit'),
   ]);
 });
 

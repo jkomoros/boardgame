@@ -2617,6 +2617,48 @@ in the current compact action list, or receive the visual treatment for an
 illegal candidate. Omit `action-group` for ordinary one-purpose boards; the
 existing exact match against all geometry remains the zero-configuration path.
 
+Routes, supply lines, patrol paths, and other connections between existing
+spaces are data too. Give the board typed path descriptors; it connects each
+space's piece anchor (or its region center when no piece anchor is declared),
+keeps the line aligned through resize and pan/zoom, and supplies an accessible
+route description without making the decorative line interactive:
+
+```ts
+import { html, type BoardPathOverlay } from '/src/client.js';
+import { BoardSpaceKeys } from './_board_spaces.js';
+
+type BoardSpace = (typeof BoardSpaceKeys)[number];
+
+const routes = [
+  {
+    id: 'coastal-supply',
+    label: 'Coastal supply line from Harbor through Road to Market',
+    spaces: ['harbor', 'road', 'market'],
+    tone: 'secondary',
+    width: 6,
+  },
+] as const satisfies readonly BoardPathOverlay<BoardSpace>[];
+
+return html`<boardgame-spatial-board
+  svgUrl="game-src/mygame/board.svg"
+  .pathOverlays=${routes}>
+</boardgame-spatial-board>`;
+```
+
+The required stable `id` lets Lit update a path without rebuilding unrelated
+routes, and the required `label` makes the route meaningful to assistive
+technology. `tone` is the closed set `primary`, `secondary`, `danger`, or
+`muted`; theme them with `--board-path-primary`, `--board-path-secondary`,
+`--board-path-danger`, and `--board-path-muted`, or target the exported `path`
+part. Width is in screen pixels and does not swell when the board zooms.
+
+Unknown spaces, adjacent duplicate points, duplicate IDs, invalid tones or
+widths, and excessive path data fail loudly. Paths deliberately do not create
+new target semantics: author road edges or route choices as ordinary geometry
+spaces/groups and bind a typed `TargetAction`; use `pathOverlays` to show the
+resulting connection. Omit it for the common case—the spatial board needs no
+route configuration.
+
 `spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
 `boxForSpace()`, and `tokenPosition()` remain migration adapters for older
 numeric-ID boards. New renderers should use `data-board-*`, `.action`, and

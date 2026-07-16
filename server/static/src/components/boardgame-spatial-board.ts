@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, svg } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import './boardgame-component-stack.js';
@@ -12,6 +12,7 @@ import {
   parseTrustedBoardSvg,
   rasterArtworkScene,
   type BoardPiece,
+  type BoardPathOverlay,
   type BoardGeometry,
   resolveBoardGeometry,
   type BoardGeometryFactory,
@@ -102,12 +103,46 @@ class BoardgameSpatialBoard extends LitElement {
       inset: 0;
       pointer-events: none;
       overflow: hidden;
+      z-index: 2;
     }
 
     #focus-overlay {
       position: absolute;
       inset: 0;
       pointer-events: none;
+      z-index: 3;
+    }
+
+    #path-overlay {
+      inset: 0;
+      overflow: visible;
+      pointer-events: none;
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      z-index: 1;
+    }
+
+    #path-overlay polyline {
+      fill: none;
+      stroke: var(--board-path-primary, #1565c0);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    #path-overlay polyline.secondary { stroke: var(--board-path-secondary, #7b1fa2); }
+    #path-overlay polyline.danger { stroke: var(--board-path-danger, #b3261e); }
+    #path-overlay polyline.muted { stroke: var(--board-path-muted, #616161); }
+
+    #path-descriptions {
+      block-size: 1px;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      inline-size: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
     }
 
     .space-focus {
@@ -221,6 +256,10 @@ class BoardgameSpatialBoard extends LitElement {
   @property({ type: Array, attribute: false })
   pieces: readonly BoardPiece<SpatialBoardKey>[] = [];
 
+  /** Accessible, pointer-safe routes drawn through known piece anchors. */
+  @property({ type: Array, attribute: false })
+  pathOverlays: readonly BoardPathOverlay<SpatialBoardKey>[] = [];
+
   /** Size of token elements in pixels. */
   @property({ type: Number })
   tokenSize = 24;
@@ -266,6 +305,15 @@ class BoardgameSpatialBoard extends LitElement {
 
   @state()
   private _inspection = '';
+
+  @state()
+  private _resolvedPathOverlays: readonly {
+    readonly id: string;
+    readonly label: string;
+    readonly points: string;
+    readonly tone: 'primary' | 'secondary' | 'danger' | 'muted';
+    readonly width: number;
+  }[] = [];
 
   @state()
   private _loadError: string | null = null;
@@ -341,6 +389,7 @@ class BoardgameSpatialBoard extends LitElement {
 
     if ((changedProperties.has('stack') || changedProperties.has('stacks')
       || changedProperties.has('pieces') || changedProperties.has('tokenSize')
+      || changedProperties.has('pathOverlays')
       || changedProperties.has('componentView') || changedProperties.has('componentViews')) && this.svgLoaded) {
       this._recalculatePositions();
     }
@@ -378,6 +427,7 @@ class BoardgameSpatialBoard extends LitElement {
     this._layerPositions = [];
     this._focusPositions = new Map();
     this._inspection = '';
+    this._resolvedPathOverlays = [];
     this._container.querySelector('svg')?.remove();
     return { generation, controller };
   }
@@ -518,6 +568,7 @@ class BoardgameSpatialBoard extends LitElement {
     this._layerPositions = [];
     this._focusPositions = new Map();
     this._inspection = '';
+    this._resolvedPathOverlays = [];
     this._loadError = null;
   }
 
@@ -756,6 +807,7 @@ class BoardgameSpatialBoard extends LitElement {
       focusPositions.set(String(space.key), { top: center.y, left: center.x });
     }
     this._focusPositions = focusPositions;
+    this._resolvedPathOverlays = this._resolvePathOverlays();
     this._inspection = this.geometryInspector ? this._geometryInspection() : '';
     const stacks = this._effectiveStacks;
     if (stacks.length === 0) {
@@ -851,6 +903,86 @@ class BoardgameSpatialBoard extends LitElement {
     if (this.panZoom && (!Number.isFinite(this.maxZoom) || this.maxZoom < 1 || this.maxZoom > 16)) {
       throw new Error('boardgame-spatial-board: maxZoom must be from 1 through 16');
     }
+    this._validatePathOverlays();
+  }
+
+  private _validatePathOverlays(): void {
+    if (!Array.isArray(this.pathOverlays)) {
+      throw new Error('boardgame-spatial-board: pathOverlays must be an array');
+    }
+    if (this.pathOverlays.length > 256) {
+      throw new Error('boardgame-spatial-board: pathOverlays exceeds the 256-path limit');
+    }
+    const ids = new Set<string>();
+    const tones = new Set(['primary', 'secondary', 'danger', 'muted']);
+    const knownSpaces = this._resolvedGeometry
+      ? new Set(this._resolvedGeometry.spaces.map(space => String(space.key)))
+      : null;
+    let totalPoints = 0;
+    for (const [index, path] of this.pathOverlays.entries()) {
+      if (!path || typeof path !== 'object') throw new Error(`boardgame-spatial-board: path overlay ${index} must be an object`);
+      if (typeof path.id !== 'string' || !path.id.trim() || path.id !== path.id.trim()
+        || path.id.length > 128 || /[\u0000-\u001f\u007f]/.test(path.id)) {
+        throw new Error(`boardgame-spatial-board: path overlay ${index} id must be a trimmed non-empty string of at most 128 characters`);
+      }
+      if (ids.has(path.id)) throw new Error(`boardgame-spatial-board: duplicate path overlay id ${JSON.stringify(path.id)}`);
+      ids.add(path.id);
+      if (typeof path.label !== 'string' || !path.label.trim() || path.label.length > 1024) {
+        throw new Error(`boardgame-spatial-board: path overlay ${JSON.stringify(path.id)} requires an accessible label of at most 1024 characters`);
+      }
+      if (!Array.isArray(path.spaces) || path.spaces.length < 2 || path.spaces.length > 256) {
+        throw new Error(`boardgame-spatial-board: path overlay ${JSON.stringify(path.id)} requires 2 through 256 spaces`);
+      }
+      totalPoints += path.spaces.length;
+      if (totalPoints > 4096) {
+        throw new Error('boardgame-spatial-board: pathOverlays exceeds the 4096-point total limit');
+      }
+      for (let point = 0; point < path.spaces.length; point++) {
+        const key = path.spaces[point];
+        if ((typeof key !== 'string' && typeof key !== 'number')
+          || (typeof key === 'string' && !key.length) || (typeof key === 'number' && !Number.isFinite(key))) {
+          throw new Error(`boardgame-spatial-board: path overlay ${JSON.stringify(path.id)} has an invalid key at point ${point}`);
+        }
+        if (point > 0 && String(path.spaces[point - 1]) === String(key)) {
+          throw new Error(`boardgame-spatial-board: path overlay ${JSON.stringify(path.id)} repeats adjacent space ${JSON.stringify(key)}`);
+        }
+        if (knownSpaces && !knownSpaces.has(String(key))) {
+          throw new Error(`boardgame-spatial-board: path overlay ${JSON.stringify(path.id)} references unknown space ${JSON.stringify(key)}`);
+        }
+      }
+      const tone = path.tone ?? 'primary';
+      if (!tones.has(tone)) {
+        throw new Error(`boardgame-spatial-board: path overlay ${JSON.stringify(path.id)} has unknown tone ${JSON.stringify(tone)}`);
+      }
+      const width = path.width ?? 4;
+      if (!Number.isFinite(width) || width < 1 || width > 32) {
+        throw new Error(`boardgame-spatial-board: path overlay ${JSON.stringify(path.id)} width must be from 1 through 32`);
+      }
+    }
+  }
+
+  private _resolvePathOverlays(): readonly {
+    readonly id: string;
+    readonly label: string;
+    readonly points: string;
+    readonly tone: 'primary' | 'secondary' | 'danger' | 'muted';
+    readonly width: number;
+  }[] {
+    if (!this._resolvedGeometry) return [];
+    const spacesByKey = new Map(
+      this._resolvedGeometry.spaces.map(space => [String(space.key), space] as const),
+    );
+    return Object.freeze(this.pathOverlays.map(path => Object.freeze({
+      id: path.id,
+      label: path.label.trim(),
+      points: path.spaces.map(key => {
+        const space = spacesByKey.get(String(key))!;
+        const point = this._elementCenterPixel(space.pieceAnchor);
+        return `${point.x},${point.y}`;
+      }).join(' '),
+      tone: path.tone ?? 'primary',
+      width: path.width ?? 4,
+    })));
   }
 
   private _validateSourceConfiguration(): void {
@@ -920,6 +1052,18 @@ class BoardgameSpatialBoard extends LitElement {
                 @click=${(event: Event) => { event.stopPropagation(); this._activateSpace(space); }}
               ></button>` : '';
             })}
+          </div>
+        ` : ''}
+        ${this._resolvedPathOverlays.length ? html`
+          <svg id="path-overlay" part="path-overlay" aria-hidden="true">
+            ${repeat(this._resolvedPathOverlays, path => path.id, path => svg`
+              <polyline part="path" class=${path.tone} points=${path.points} stroke-width=${path.width}></polyline>
+            `)}
+          </svg>
+          <div id="path-descriptions" role="list" aria-label="Board routes">
+            ${repeat(this._resolvedPathOverlays, path => path.id, path => html`
+              <span role="listitem">${path.label}</span>
+            `)}
           </div>
         ` : ''}
         ${hasStacks ? html`

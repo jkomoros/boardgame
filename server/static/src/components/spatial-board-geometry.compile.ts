@@ -3,6 +3,7 @@ import {
   rasterBoardArtwork,
   type BoardGeometry,
   type BoardGeometryFactory,
+  type BoardPathOverlay,
   type ExpandedStack,
   type RasterBoardArtwork,
 } from '../client.js';
@@ -53,6 +54,13 @@ const rasterArtwork = rasterBoardArtwork({
 });
 const exactRasterArtwork: RasterBoardArtwork<(typeof keys)[number]> = rasterArtwork;
 void exactRasterArtwork;
+const route = {
+  id: 'secret-passage',
+  label: 'Secret passage from Library to Study',
+  spaces: keys,
+  tone: 'secondary',
+  width: 5,
+} satisfies BoardPathOverlay<(typeof keys)[number]>;
 
 // @ts-expect-error authored geometry must provide the actual pointer-hit region
 const missingRegion: BoardGeometry<'library'> = { spaces: [{ key: 'library', label: 'Library' }] };
@@ -89,7 +97,15 @@ const spatialBoard = new BoardgameSpatialBoard();
 spatialBoard.panZoom = true;
 spatialBoard.maxZoom = 6;
 spatialBoard.actionGroup = 'rooms';
+spatialBoard.pathOverlays = [route];
 spatialBoard.revealSpace(keys[0]);
 spatialBoard.resetViewport();
 // @ts-expect-error maxZoom is numeric
 spatialBoard.maxZoom = 'far';
+
+const invalidRoute: BoardPathOverlay<(typeof keys)[number]> = {
+  id: 'invalid', label: 'Invalid route', spaces: keys,
+  // @ts-expect-error route tones are a closed themeable policy
+  tone: 'rainbow',
+};
+void invalidRoute;
