@@ -2139,13 +2139,13 @@ Then bind typed targets and an explicit piece projection:
 ```ts
 import { html, piecesFromSizedStacks } from '/src/client.js';
 import { MoveNames } from './_move_names.js';
+import { BoardSpaceKeys } from './_board_spaces.js';
 
-const roomKeys = ['library', 'study', 'kitchen'] as const;
 const moveToRoom = this.move(MoveNames.MoveToRoom).targets(
-  roomKeys,
+  BoardSpaceKeys,
   room => ({ TargetLocation: room }),
 );
-const pieces = piecesFromSizedStacks(this.positionStacks, roomKeys);
+const pieces = piecesFromSizedStacks(this.positionStacks, BoardSpaceKeys);
 
 return html`<boardgame-spatial-board
   svgUrl="game-src/mygame/board.svg"
@@ -2153,6 +2153,13 @@ return html`<boardgame-spatial-board
   .pieces=${pieces}>
 </boardgame-spatial-board>`;
 ```
+
+`boardgame-util emit-types` (and the dev server) extracts `_board_spaces.ts`
+from `board.svg`; `boardgame-util emit-board-spaces` does just this step, and
+`--check` verifies freshness. The generated tuple preserves literal keys, so an
+SVG rename makes move/projection code fail strict checking. If a sized stack has
+an enum sentinel with no physical region, make it explicit in the projection:
+`[null, ...BoardSpaceKeys]`.
 
 The component validates duplicate/missing labels, keys, ordering, measurable
 regions and anchors, unknown action/piece keys, and stack cardinality. It uses

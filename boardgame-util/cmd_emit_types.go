@@ -42,6 +42,9 @@ func (e *emitTypes) Run(p writ.Path, positional []string) {
 	if err := emitMoveArgsForPackages(e.Base(), pkgs, e.Check); err != nil {
 		e.Base().errAndQuit("Couldn't emit move inputs required by client contracts: " + err.Error())
 	}
+	if err := emitBoardSpacesForPackages(pkgs, e.Check); err != nil {
+		e.Base().errAndQuit("Couldn't emit authored board spaces: " + err.Error())
+	}
 	if err := validateGeneratedGameTypesTypeScript(generated); err != nil {
 		e.Base().errAndQuit("Couldn't validate generated client contracts: " + err.Error())
 	}

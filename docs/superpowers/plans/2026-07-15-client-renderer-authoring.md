@@ -702,7 +702,7 @@ do not make `TargetAction` a workflow DSL.
   Keep those three geometry concepts separate. `TargetAction<Key>` supplies
   legality/activation; `BoardPiece<Key>` supplies stable identity, space, visual
   reference, and placement strategy.
-- [ ] Make `data-board-space`, `data-board-label`, and optional authored order/
+- [x] Make `data-board-space`, `data-board-label`, and optional authored order/
   anchors (or a typed sidecar) the intended SVG model. Retain `spacePrefix` only
   as a migration adapter. Add build/check extraction or validation so literal
   keys can form a `SpaceKey` union and misspellings fail before an empty box.

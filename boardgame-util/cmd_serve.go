@@ -81,6 +81,9 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 	if err := emitMoveArgsForPackages(s.Base(), pkgs, false); err != nil {
 		s.Base().errAndQuit("Couldn't generate move args: " + err.Error())
 	}
+	if err := emitBoardSpacesForPackages(pkgs, false); err != nil {
+		s.Base().errAndQuit("Couldn't emit authored board spaces: " + err.Error())
+	}
 
 	fmt.Println("Generating type definitions")
 	if err := emitTypesForPackages(s.Base(), pkgs); err != nil {

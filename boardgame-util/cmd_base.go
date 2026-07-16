@@ -16,19 +16,20 @@ import (
 
 type boardgameUtil struct {
 	baseSubCommand
-	Help          help
-	Db            db
-	Codegen       codegen
-	Build         build
-	Clean         clean
-	Serve         serve
-	Config        configCmd
-	Stub          stubCmd
-	Golden        goldenCmd
-	EmitMoveNames emitMoveNames
-	EmitMoveArgs  emitMoveArgs
-	EmitTypes     emitTypes
-	CheckClient   checkClient
+	Help            help
+	Db              db
+	Codegen         codegen
+	Build           build
+	Clean           clean
+	Serve           serve
+	Config          configCmd
+	Stub            stubCmd
+	Golden          goldenCmd
+	EmitMoveNames   emitMoveNames
+	EmitMoveArgs    emitMoveArgs
+	EmitBoardSpaces emitBoardSpaces
+	EmitTypes       emitTypes
+	CheckClient     checkClient
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -110,6 +111,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Golden,
 		&b.EmitMoveNames,
 		&b.EmitMoveArgs,
+		&b.EmitBoardSpaces,
 		&b.EmitTypes,
 		&b.CheckClient,
 	}

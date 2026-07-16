@@ -85,6 +85,9 @@ func checkGeneratedClientContracts(base *boardgameUtil, packages []*gamepkg.Pkg)
 	if err := emitMoveArgsForPackages(base, packages, true); err != nil {
 		return err
 	}
+	if err := emitBoardSpacesForPackages(packages, true); err != nil {
+		return err
+	}
 	if err := validateGeneratedGameTypesTypeScript(generated); err != nil {
 		return err
 	}
