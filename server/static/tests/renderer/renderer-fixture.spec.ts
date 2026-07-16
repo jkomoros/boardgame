@@ -1016,6 +1016,108 @@ test('player grid supplies named responsive layout and a useful empty state', as
   }
 });
 
+test('player info derives typed state and publishes chip presentation without creator events', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/client.ts');
+      await import('/src/components/boardgame-player-roster-item.ts');
+      await import('/game-src/tictactoe/boardgame-render-player-info-tictactoe.ts');
+
+      const roster = document.createElement('boardgame-player-roster-item');
+      roster.gameName = 'tictactoe';
+      roster.active = true;
+      roster.rendererLoaded = true;
+      roster.playerIndex = 0;
+      roster.state = { Players: [{ TokenValue: 'X' }] };
+      document.body.append(roster);
+      await roster.updateComplete;
+      const wrapper = roster.shadowRoot?.querySelector('boardgame-render-player-info') as
+        (HTMLElement & { updateComplete: Promise<boolean>; renderer?: HTMLElement & { updateComplete?: Promise<boolean> } }) | null;
+      if (!wrapper) throw new Error('player-info wrapper was not rendered');
+      await wrapper.updateComplete;
+      if (!wrapper.renderer) throw new Error('game-specific player-info renderer was not instantiated');
+      if (wrapper.renderer.updateComplete) await wrapper.renderer.updateComplete;
+      await roster.updateComplete;
+      const firstText = roster.shadowRoot?.querySelector('.chip')?.textContent?.trim();
+
+      roster.state = { Players: [{ TokenValue: 'O' }] };
+      await roster.updateComplete;
+      await wrapper.updateComplete;
+      if (wrapper.renderer.updateComplete) await wrapper.renderer.updateComplete;
+      await roster.updateComplete;
+      const secondText = roster.shadowRoot?.querySelector('.chip')?.textContent?.trim();
+      const derivedState = (wrapper.renderer as { playerState?: { TokenValue?: string } }).playerState?.TokenValue;
+
+      roster.active = false;
+      await roster.updateComplete;
+      await wrapper.updateComplete;
+      await roster.updateComplete;
+      const clearedWhenInactive = roster.shadowRoot?.querySelector('.chip')?.textContent?.trim();
+      const removedWhenInactive = wrapper.renderer == null;
+      roster.active = true;
+      await roster.updateComplete;
+      await wrapper.updateComplete;
+      if (!wrapper.renderer) throw new Error('player-info renderer was not restored after reactivation');
+      if (wrapper.renderer.updateComplete) await wrapper.renderer.updateComplete;
+      await roster.updateComplete;
+      const restoredWhenActive = roster.shadowRoot?.querySelector('.chip')?.textContent?.trim();
+
+      const { BoardgameBasePlayerInfoRenderer } = await import('/src/client.ts');
+      class Probe extends BoardgameBasePlayerInfoRenderer<
+        { readonly Players: readonly unknown[] },
+        unknown
+      > {}
+      if (!customElements.get('boardgame-player-info-probe-test')) {
+        customElements.define('boardgame-player-info-probe-test', Probe);
+      }
+      const configurationError = (chip: unknown, playerIndex = 0, state: { Players: readonly unknown[] } | null = null) => {
+        const probe = document.createElement('boardgame-player-info-probe-test') as Probe;
+        Object.defineProperty(probe, 'chip', { configurable: true, value: chip });
+        probe.playerIndex = playerIndex;
+        probe.state = state;
+        try {
+          (probe as unknown as { updated(changed: Map<PropertyKey, unknown>): void }).updated(new Map());
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+
+      return {
+        firstText,
+        secondText,
+        derivedState,
+        clearedWhenInactive,
+        removedWhenInactive,
+        restoredWhenActive,
+        invalidIndex: configurationError({}, -1),
+        outOfRange: configurationError({}, 2, { Players: [{}] }),
+        invalidShape: configurationError('X'),
+        invalidText: configurationError({ text: 1 }),
+        invalidColor: configurationError({ color: 'red; background: url(https://invalid.example)' }),
+        unknownField: configurationError({ label: 'X' }),
+      };
+    });
+
+    expect(result.firstText).toBe('X');
+    expect(result.secondText).toBe('O');
+    expect(result.derivedState).toBe('O');
+    expect(result.clearedWhenInactive).toBe('0');
+    expect(result.removedWhenInactive).toBe(true);
+    expect(result.restoredWhenActive).toBe('O');
+    expect(result.invalidIndex).toContain('playerIndex must be a non-negative safe integer');
+    expect(result.outOfRange).toContain('outside the 1-player state');
+    expect(result.invalidShape).toContain('chip must return an object');
+    expect(result.invalidText).toContain('chip.text must be a string');
+    expect(result.invalidColor).toContain('is not a valid CSS color');
+    expect(result.unknownField).toContain('chip contains unknown field label');
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

@@ -873,9 +873,15 @@ approved.
 
 ### B. Typed player-info and selective services
 
-- Add a generated typed PlayerInfo base with derived `playerState` and reactive
-  presentation helpers.
-- Replace bespoke chip-change events and `any` assignments.
+- [x] Add a generated typed PlayerInfo base with a `playerState` getter derived
+  from the exact state/player-index pair, eliminating a separately synchronized
+  property. Reject invalid and out-of-range indexes loudly.
+- [x] Replace bespoke chip properties/events with one typed declarative `chip`
+  presentation getter. The base validates its closed text/color shape and CSS
+  color, emits only on semantic changes, and the dynamic host relays it to the
+  roster. Migrate Tic-tac-toe and external Murder Mr Monroe, correct the stale
+  `rendererLoaded` attribute binding discovered by the lifecycle proof, and use
+  Lit's safe style-map path instead of concatenated inline CSS.
 - Add selective timer signals that update subscribed consumers at an appropriate
   cadence instead of rerendering the entire state at 60Hz.
 - Add transition/history data only after a real stable contract exists.

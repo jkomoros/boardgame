@@ -8,6 +8,10 @@
 export { html, css } from 'lit';
 export { BoardgameBaseGameRenderer } from './components/boardgame-base-game-renderer.js';
 export { BoardgameBasePlayerInfoRenderer } from './components/boardgame-base-player-info-renderer.js';
+export type {
+  PlayerChipPresentation,
+  PlayerChipPresentationChangedDetail,
+} from './components/boardgame-base-player-info-renderer.js';
 export { isVisibleComponent } from './types/boardgame-types.js';
 export type {
   Component,

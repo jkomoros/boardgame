@@ -1,5 +1,6 @@
 import { LitElement, html } from 'lit';
 import { property, query } from 'lit/decorators.js';
+import type { PlayerChipPresentationChangedDetail } from './boardgame-base-player-info-renderer.js';
 
 interface PlayerInfoState {
   readonly Players?: readonly unknown[];
@@ -8,9 +9,6 @@ interface PlayerInfoState {
 interface PlayerInfoRendererElement extends HTMLElement {
   state: PlayerInfoState | null;
   playerIndex: number;
-  playerState: unknown;
-  readonly chipText?: unknown;
-  readonly chipColor?: unknown;
 }
 
 /**
@@ -37,24 +35,11 @@ class BoardgameRenderPlayerInfo extends LitElement {
   @property({ type: Boolean })
   rendererLoaded = false;
 
-  @property({ type: String, attribute: true })
-  chipText = '';
-
-  @property({ type: String, attribute: true })
-  chipColor = '';
-
   @property({ type: Number })
   playerIndex = 0;
 
   @query('#container')
   private _container?: HTMLElement;
-
-  private instantiateWhenReady = false;
-  private instantiateWhenGameNameSet = false;
-
-  get playerState(): unknown {
-    return this._computePlayerState(this.state, this.playerIndex);
-  }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
@@ -71,48 +56,23 @@ class BoardgameRenderPlayerInfo extends LitElement {
       this._rendererLoadedChanged(this.rendererLoaded);
     }
 
-    if (changedProperties.has('state')) {
-      this._stateChanged(this.state, changedProperties.get('state'));
-    }
-
-    if (changedProperties.has('playerIndex') || changedProperties.has('state')) {
-      this._playerStateChanged(this.playerState);
-    }
-  }
-
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-
-    if (this.instantiateWhenReady) {
-      this.instantiateRenderer();
-    }
+    if (changedProperties.has('state')) this._stateChanged(this.state);
+    if (changedProperties.has('playerIndex')) this._playerIndexChanged(this.playerIndex);
   }
 
   private _activeChanged(newValue: boolean) {
-    if (!newValue) {
-      if (!this.renderer) return;
-      if (this.renderer.parentElement) {
-        this.renderer.parentElement.removeChild(this.renderer);
-      }
-      this.renderer = null;
+    if (newValue) {
+      this.instantiateRenderer();
+      return;
     }
-  }
-
-  private _chipTextChanged(e: CustomEvent<{ value?: unknown }>) {
-    if (typeof e.detail.value === 'string') this.chipText = e.detail.value;
-  }
-
-  private _chipColorChanged(e: CustomEvent<{ value?: unknown }>) {
-    if (typeof e.detail.value === 'string') this.chipColor = e.detail.value;
+    this.resetRenderer();
   }
 
   private _gameNameChanged(newValue: string) {
-    if (!newValue) return;
     if (newValue !== this.rendererGameName) {
       this.resetRenderer();
     }
-    if (!this.instantiateWhenGameNameSet) return;
-    this.instantiateRenderer();
+    if (newValue) this.instantiateRenderer();
   }
 
   private _rendererLoadedChanged(newValue: boolean) {
@@ -122,67 +82,53 @@ class BoardgameRenderPlayerInfo extends LitElement {
     }
   }
 
-  private _stateChanged(newState: PlayerInfoState | null, oldState: unknown) {
+  private _stateChanged(newState: PlayerInfoState | null) {
     if (!this.renderer) return;
-
-    // If state changed from non-null to null, skip
-    if (!newState && oldState) {
-      return;
-    }
-
-    // For Lit renderers, just set the property directly
     this.renderer.state = newState;
-    this.requestUpdate();
   }
 
-  private _computePlayerState(state: PlayerInfoState | null, playerIndex: number): unknown {
-    if (!state) return null;
-    return state.Players?.[playerIndex];
-  }
-
-  private _playerStateChanged(newValue: unknown) {
+  private _playerIndexChanged(playerIndex: number): void {
     if (!this.renderer) return;
-    this.renderer.playerState = newValue;
+    this.renderer.playerIndex = playerIndex;
+  }
+
+  private _chipPresentationChanged(event: Event): void {
+    event.stopPropagation();
+    const detail = (event as CustomEvent<PlayerChipPresentationChangedDetail>).detail;
+    this._publishChipPresentation(detail);
+  }
+
+  private _publishChipPresentation(detail: PlayerChipPresentationChangedDetail): void {
+    this.dispatchEvent(new CustomEvent<PlayerChipPresentationChangedDetail>('player-chip-presentation-changed', {
+      bubbles: true,
+      composed: true,
+      detail,
+    }));
   }
 
   resetRenderer() {
-    if (!this._container) return;
-    if (this.renderer) {
-      this._container.removeChild(this.renderer);
-    }
+    this.renderer?.remove();
     this.renderer = null;
     this.rendererGameName = '';
+    this._publishChipPresentation({ text: '', color: '' });
   }
 
   instantiateRenderer() {
-    if (!this.rendererLoaded) return;
-    if (!this._container) {
-      this.instantiateWhenReady = true;
-      return;
-    }
+    if (!this.active || !this.rendererLoaded || !this._container || !this.gameName) return;
+    if (this.renderer && this.rendererGameName === this.gameName) return;
 
-    if (!this.gameName) {
-      this.instantiateWhenGameNameSet = true;
-      return;
+    const tagName = `boardgame-render-player-info-${this.gameName}`;
+    if (!customElements.get(tagName)) {
+      throw new Error(`boardgame-render-player-info: ${tagName} is not registered even though rendererLoaded is true`);
     }
-
-    const ele = document.createElement(`boardgame-render-player-info-${this.gameName}`) as PlayerInfoRendererElement;
+    const ele = document.createElement(tagName) as PlayerInfoRendererElement;
 
     ele.state = this.state;
     ele.playerIndex = this.playerIndex;
-    ele.playerState = this.playerState;
-
-    this.chipText = typeof ele.chipText === 'string' ? ele.chipText : '';
-    this.chipColor = typeof ele.chipColor === 'string' ? ele.chipColor : '';
+    ele.addEventListener('player-chip-presentation-changed', event => this._chipPresentationChanged(event));
 
     this.renderer = ele;
     this.rendererGameName = this.gameName;
-
-    // Listen for chip property changes from the renderer
-    if (this.renderer) {
-      this.renderer.addEventListener('chip-text-changed', (e: Event) => this._chipTextChanged(e as CustomEvent<{ value?: unknown }>));
-      this.renderer.addEventListener('chip-color-changed', (e: Event) => this._chipColorChanged(e as CustomEvent<{ value?: unknown }>));
-    }
 
     this._container.appendChild(ele);
   }

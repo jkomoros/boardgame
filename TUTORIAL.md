@@ -1943,10 +1943,28 @@ The web app also has a bar along the top of the game that lists each player, the
 
 You can add information for each player (like their score) by implementing a
 `boardgame-render-player-info-GAMETYPE` element. Extend the generated
-`PlayerInfoRenderer` from `_game_renderer.ts`; its `state`, `playerIndex`, and
-`playerState` properties are already reactive and strictly typed for your game.
+`PlayerInfoRenderer` from `_game_renderer.ts`; its `state` and `playerIndex`
+properties are reactive and strictly typed for your game. Its typed
+`playerState` getter is derived from those two inputs, so it cannot become stale
+or refer to a different player.
 
-Your player-info renderer can also expose a chipColor and chipText property to override the text of the badge on each player (by default their player index) and what color it is.
+Override the typed `chip` getter to customize the small roster badge. Return a
+`text` string, a CSS `color` string, or both; an empty value retains the
+framework fallback. The framework observes state changes and publishes the
+presentation automatically—do not create reactive chip properties or dispatch
+change events:
+
+```typescript
+override get chip() {
+  return {
+    text: this.playerState?.TokenValue ?? '',
+    color: 'rebeccapurple',
+  };
+}
+```
+
+Wrong value types, unknown fields, invalid CSS colors, negative indexes, and
+indexes outside the current state fail loudly.
 
 Memory's player-info is therefore small:
 

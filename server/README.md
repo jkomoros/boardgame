@@ -15,9 +15,23 @@ That view can fire events of the type "propose-move", with a detail containing "
 
 ### Optional: player info
 
-If you define an element in your GAMENAME/ folder called boardgame-render-player-info-GAMENAME, then it will be insantiated and passed state, expandedState, and playerIndex. Whatever it renders will be shown in the player roster for that player. This is a natural place to put things like score per player and other important status.
+Define `boardgame-render-player-info-GAMENAME` by extending the generated
+`PlayerInfoRenderer`. Its typed `state` and `playerIndex` inputs are reactive;
+its typed `playerState` getter is always derived from them. Whatever it renders
+appears in that player's roster item, which is a natural place for score and
+public status.
 
-if your player-info renderer contains a property called chipText that is a string and has notify:true, that text will be used in the chip on the player picture (a single character is best). If "" is returned, that chip's text will default to just being the index of the player. Similarly, you can define chipColor in a similar way, which should return a valid CSS color. If provided, it will be used instead of the normal colors.
+Override `chip` to customize the small roster badge declaratively:
+
+```typescript
+override get chip() {
+  return { text: this.playerState?.TokenValue ?? '', color: 'rebeccapurple' };
+}
+```
+
+The framework propagates changes automatically. Do not dispatch chip-change
+events or maintain separate chip properties. Invalid fields, types, colors, or
+player indexes fail loudly.
 
 If you create a new renderer component, make sure it's properly imported so the build system can find it.
 
