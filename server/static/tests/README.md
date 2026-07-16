@@ -36,6 +36,9 @@ npm run test:e2e:report       # View test results
 - uses in-memory storage and offline development mode;
 - runs only `tests/renderer`, permits parallel workers, and uses zero retries;
 - preserves traces, screenshots, and videos for the first failing attempt.
+- runs the pinned axe integration; its deliberately inaccessible control
+  fixture proves accessibility violations fail detection instead of silently
+  passing because the analyzer was misconfigured.
 
 `playwright.config.ts` drives the existing real-time suite:
 
@@ -163,3 +166,8 @@ For the legacy real-time shard this enables:
 
 The renderer shard intentionally keeps retries disabled in CI so flakes are
 visible rather than converted into apparent passes.
+
+The repository's `Client quality` workflow installs dependencies with
+`npm ci`, installs the lockfile-selected Chromium build, and runs this shard as
+an independent zero-retry job. Failure traces, screenshots, and videos are
+uploaded for seven days.
