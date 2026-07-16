@@ -74,6 +74,27 @@ class BoardgameRenderGame extends LitElement {
       animation: spin 1s linear infinite;
     }
 
+    #renderer-error {
+      box-sizing: border-box;
+      max-width: 48rem;
+      margin: 1rem auto;
+      padding: 1rem;
+      border: 2px solid var(--md-sys-color-error, #ba1a1a);
+      border-radius: 0.75rem;
+      color: var(--md-sys-color-on-error-container, #410002);
+      background: var(--md-sys-color-error-container, #ffdad6);
+    }
+
+    #renderer-error h2 {
+      margin-block: 0 0.5rem;
+      font-size: 1.1rem;
+    }
+
+    #renderer-error p {
+      margin-block: 0.5rem 0;
+      overflow-wrap: anywhere;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -157,6 +178,9 @@ class BoardgameRenderGame extends LitElement {
 
   @property({ type: Boolean })
   rendererLoaded = false;
+
+  @property({ type: String, attribute: false })
+  rendererError = '';
 
   @property({ type: Number })
   viewingAsPlayer = 0;
@@ -740,6 +764,7 @@ class BoardgameRenderGame extends LitElement {
     // cause a render error
     this.state = null;
     this.rendererLoaded = false;
+    this.rendererError = '';
     this._removeRenderer();
 
     if (!newValue) return;
@@ -763,13 +788,23 @@ class BoardgameRenderGame extends LitElement {
             `[boardgame-render-game] surface renderer ${newValue}${suffix} failed to load; falling back to solo:`,
             innerError,
           );
+          this.rendererError = '';
         }
       }
       await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}.ts`);
       this._instantiateRenderer('');
     } catch (error) {
+      if (!this.rendererError) {
+        this.rendererError = `Failed to load renderer module for ${newValue}: ${this._errorMessage(error)}`;
+      }
       console.error(`Failed to load game renderer for ${newValue}:`, error);
     }
+  }
+
+  private _errorMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    const normalized = message.trim() || 'unknown renderer error';
+    return normalized.length <= 500 ? normalized : `${normalized.slice(0, 497)}...`;
   }
 
   // _surfaceSuffix returns the filename suffix to add to the renderer
@@ -794,11 +829,12 @@ class BoardgameRenderGame extends LitElement {
     const tagName = `boardgame-render-game-${this.gameName}${surfaceSuffix}`;
     const ele = document.createElement(tagName);
     if (!(ele instanceof BoardgameBaseGameRenderer)) {
-      throw new Error(
+      this.rendererError =
         `Renderer <${tagName}> must extend the generated renderer base; ` +
-        `use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator`,
-      );
+        `use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator`;
+      throw new Error(this.rendererError);
     }
+    this.rendererError = '';
     this.rendererLoaded = true;
 
     ele.diagram = this.diagram;
@@ -867,10 +903,18 @@ class BoardgameRenderGame extends LitElement {
         .ancestorOffsetParent="${this._container ?? null}">
       </boardgame-component-animator>
 
-      <div ?hidden="${this.rendererLoaded}">
-        <h2>Diagram of ${this.gameName}</h2>
-        <pre>${this.diagram}</pre>
-      </div>
+      ${this.rendererLoaded ? null : this.rendererError ? html`
+        <section id="renderer-error" role="alert" aria-live="assertive">
+          <h2>Game renderer unavailable</h2>
+          <p>${this.rendererError}</p>
+          <p>Run <code>boardgame-util check-client</code> and fix every reported diagnostic.</p>
+        </section>
+      ` : html`
+        <div>
+          <h2>Diagram of ${this.gameName}</h2>
+          <pre>${this.diagram}</pre>
+        </div>
+      `}
 
       <div id="container">
         <!-- Dynamic renderer will be inserted here -->

@@ -2509,24 +2509,36 @@ test('dynamic host rejects renderer registrations that bypass the generated base
     const tagName = 'boardgame-render-game-wrongbase-contract';
     customElements.define(tagName, class extends HTMLElement {});
     const host = document.createElement('boardgame-render-game') as HTMLElement & {
-      gameName: string;
       rendererLoaded: boolean;
+      rendererError: string;
+      updateComplete: Promise<boolean>;
       _instantiateRenderer(surfaceSuffix?: string): void;
     };
-    host.gameName = 'wrongbase-contract';
+    document.body.append(host);
+    await host.updateComplete;
+    let message = '';
     try {
-      host._instantiateRenderer();
-      return { message: '', rendererLoaded: host.rendererLoaded };
+      host._instantiateRenderer('wrongbase-contract');
     } catch (error) {
-      return {
-        message: error instanceof Error ? error.message : String(error),
-        rendererLoaded: host.rendererLoaded,
-      };
+      message = error instanceof Error ? error.message : String(error);
     }
+    await host.updateComplete;
+    const alert = host.shadowRoot?.querySelector<HTMLElement>('[role="alert"]');
+    const result = {
+      message,
+      rendererLoaded: host.rendererLoaded,
+      rendererError: host.rendererError,
+      alert: alert?.innerText.replace(/\s+/g, ' ').trim() ?? '',
+    };
+    host.remove();
+    return result;
   });
+  const message = 'Renderer <boardgame-render-game-wrongbase-contract> must extend the generated renderer base; use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator';
   expect(result).toEqual({
-    message: 'Renderer <boardgame-render-game-wrongbase-contract> must extend the generated renderer base; use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator',
+    message,
     rendererLoaded: false,
+    rendererError: message,
+    alert: `Game renderer unavailable ${message} Run boardgame-util check-client and fix every reported diagnostic.`,
   });
 });
 

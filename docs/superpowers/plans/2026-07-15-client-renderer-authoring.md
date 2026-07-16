@@ -1096,6 +1096,11 @@ First evidence-driven primitive tranche (2026-07-16):
   client gate, supervised foreground `serve`, memory/offline options, safe port
   overrides, clean shutdown, and the current game inventory. Give
   `boardgame-util` itself a concise renderer-authoring command loop.
+- [x] Make renderer load/registration failures visible, bounded, and
+  actionable instead of console-only blank screens. Keep a failed companion
+  specialization eligible for the existing solo fallback; if the final surface
+  cannot load or does not extend the generated base, retain the diagram area as
+  an assertive error panel that names the failure and points to `check-client`.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject
