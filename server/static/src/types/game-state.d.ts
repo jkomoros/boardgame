@@ -12,8 +12,8 @@ import type { VersionAnimationContext } from '../components/companion-sync';
  * Component indices are expanded to full component objects by the selector.
  */
 export interface RawGameState {
-  /** State version number */
-  Version: number;
+  /** Optional legacy state version; authoritative version lives on GameFromServer. */
+  Version?: number;
   /** Global game state */
   Game: RawPlayerState;
   /** Per-player states */
@@ -44,7 +44,7 @@ export interface TimerInfo {
   /** Current time left in milliseconds */
   TimeLeft: number;
   /** Original time left when timer was started (preserved for reference) */
-  originalTimeLeft: number;
+  originalTimeLeft?: number;
   /** Timer ID (optional, used for tracking) */
   ID?: string;
 }

@@ -156,19 +156,18 @@ export interface PreconditionMessage {
 export interface MoveFormField {
   /** Field name */
   Name: string;
-  /** Field type (e.g., 'string', 'int', 'enum') */
-  Type: string;
-  /** Help text for the field */
-  HelpText?: string;
-  /** For enum fields, the available options */
-  EnumOptions?: unknown[];
-  /** Default value */
-  Default?: unknown;
+  /** Numeric boardgame.PropertyType value from the Go API. */
+  Type: number;
+  /** Current/default wire value for the move property. */
+  DefaultValue: JsonValue;
   /** Name of the enum (used for expansion) */
   EnumName?: string;
   /** Expanded enum values (populated during expansion) */
   Enum?: EnumDefinition;
 }
+
+/** A value that can cross the server's JSON transport boundary. */
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 /** Serialized enum metadata supplied in the game chest. */
 export interface EnumDefinition {

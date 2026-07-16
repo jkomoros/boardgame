@@ -18,21 +18,7 @@ import { store } from '../store.js';
 import { submitMove } from '../actions/game.js';
 import { selectGameError } from '../selectors.js';
 import type { RootState } from '../types/store';
-
-interface MoveField {
-  Name: string;
-  Type: number;
-  DefaultValue: string | number | boolean;
-  Enum?: {
-    Values: Record<string, string>;
-  };
-}
-
-interface MoveConfig {
-  Name: string;
-  HelpText: string;
-  Fields?: MoveField[];
-}
+import type { JsonValue, MoveForm } from '../types/api';
 
 interface GameRoute {
   name: string;
@@ -105,7 +91,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
   `;
 
   @property({ type: Array })
-  config: MoveConfig[] = [];
+  config: MoveForm[] = [];
 
   @property({ type: Boolean })
   admin = false;
@@ -157,7 +143,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
     return bool ? "1" : "0";
   }
 
-  private _prepareValue(val: string | number | boolean): string {
+  private _prepareValue(val: JsonValue): string {
     if (val === true || val === false) {
       return this.boolToInt(val);
     }
@@ -184,7 +170,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       return;
     }
 
-    let moveConfig: MoveConfig | undefined;
+    let moveConfig: MoveForm | undefined;
     for (let i = 0; i < this.config.length; i++) {
       const item = this.config[i];
       // TODO: fuzzy matching (remove whitespace and lowercase compare)

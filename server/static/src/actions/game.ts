@@ -4,6 +4,7 @@ import { store } from '../store.js';
 import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/store';
 import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '../types/game-state';
 import type { GameInfoResponse, GameVersionResponse, MoveForm, ServerStateBundle } from '../types/api';
+import { decodeGameInfoResponse, decodeGameVersionResponse } from '../types/server-response.js';
 import type { MoveTransportResult } from '../moves/action.js';
 import { remainingTimerMs } from '../timers/timer-clock.js';
 import type {
@@ -474,7 +475,7 @@ export const fetchGameInfo = (
     }
   );
 
-  const response = await apiGet<GameInfoResponse>(url);
+  const response = await apiGet<unknown>(url);
 
   if (response.error) {
     dispatch({
@@ -485,11 +486,23 @@ export const fetchGameInfo = (
     return;
   }
 
-  const data = response.data;
-  if (!data) {
+  const payload = response.data;
+  if (!payload) {
     dispatch({
       type: FETCH_GAME_INFO_FAILURE,
       error: 'Game info response was missing its success payload',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
+  let data: GameInfoResponse;
+  try {
+    data = decodeGameInfoResponse(payload);
+  } catch (error) {
+    console.error('[game-info] rejected server payload:', error);
+    dispatch({
+      type: FETCH_GAME_INFO_FAILURE,
+      error: error instanceof Error ? error.message : 'Game info response was invalid',
       friendlyError: 'The server returned an invalid game response',
     });
     return;
@@ -559,7 +572,7 @@ export const fetchGameVersion = (
     }
   );
 
-  const response = await apiGet<GameVersionResponse>(url);
+  const response = await apiGet<unknown>(url);
 
   if (response.error) {
     dispatch({
@@ -570,11 +583,23 @@ export const fetchGameVersion = (
     return;
   }
 
-  const data = response.data;
-  if (!data) {
+  const payload = response.data;
+  if (!payload) {
     dispatch({
       type: FETCH_GAME_VERSION_FAILURE,
       error: 'Game version response was missing its success payload',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
+  let data: GameVersionResponse;
+  try {
+    data = decodeGameVersionResponse(payload);
+  } catch (error) {
+    console.error('[game-version] rejected server payload:', error);
+    dispatch({
+      type: FETCH_GAME_VERSION_FAILURE,
+      error: error instanceof Error ? error.message : 'Game version response was invalid',
       friendlyError: 'The server returned an invalid game response',
     });
     return;

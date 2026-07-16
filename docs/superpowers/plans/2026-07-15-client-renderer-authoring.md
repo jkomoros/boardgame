@@ -1124,6 +1124,13 @@ First evidence-driven primitive tranche (2026-07-16):
   request bodies to unknown-valued records. Share the GET/POST unwrapping path
   so diagnostics cannot drift, with unit coverage for malformed envelopes and
   failure metadata.
+- [x] Validate and normalize game-info and version payloads before Redux accepts
+  them: bound every untrusted collection and JSON default, report the exact
+  malformed path, normalize nullable Go slices, and model wire-only distinctions
+  such as numeric `PropertyType`, optional raw-state versions, nullable winners,
+  and client-installed timer baselines. Reuse the corrected move-form contract
+  in the legacy admin form instead of maintaining a second local shape, and
+  prove the decoder against both focused unit cases and a real Pig server flow.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject
