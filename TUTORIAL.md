@@ -1625,6 +1625,23 @@ the internal `button`, `label`, `spinner`, and `status` CSS parts plus
 `--boardgame-action-background` and `--boardgame-action-color` allow themed
 renderers without replacing its interaction behavior.
 
+Group related choices with the facade-registered action bar. It supplies group
+semantics, consistent spacing, and switches from a wrapping row to full-width
+controls when its own container is narrow:
+
+```typescript
+html`<boardgame-action-bar label="Turn actions">
+  <boardgame-action-button .action=${this.move(MoveNames.Hit)}>Hit</boardgame-action-button>
+  <boardgame-action-button .action=${this.move(MoveNames.Stand)}>Stand</boardgame-action-button>
+</boardgame-action-bar>`
+```
+
+Set `orientation="horizontal"` to opt out of responsive stacking or
+`orientation="vertical"` to stack at every size. The typed `alignment` values
+are `start`, `center`, `end`, and `space-between`; invalid values and blank
+accessible labels fail loudly. Theme with `--boardgame-action-gap` or the
+bar's `bar` CSS part.
+
 For a board or other set of independent targets, create one typed target action
 directly from the unbound move. The mapper receives each native key and must
 return the exact generated move input:

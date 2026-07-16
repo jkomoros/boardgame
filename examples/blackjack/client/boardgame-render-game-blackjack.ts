@@ -54,10 +54,10 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
           messy
           components-disabled>
         </boardgame-component-stack>
-        <div class="flex">
+        <boardgame-action-bar class="flex" label="Blackjack actions">
           <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
           <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
-        </div>
+        </boardgame-action-bar>
         <boardgame-component-stack
           .stack="${this.state?.Game?.DiscardStack}"
           .componentView=${this.cards}

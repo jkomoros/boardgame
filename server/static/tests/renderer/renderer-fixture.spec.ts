@@ -602,6 +602,78 @@ test('action button provides accessible names, pending feedback, styling parts, 
   }
 });
 
+test('action bar supplies named responsive grouping, styling hooks, and closed layout policies', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-action-bar.ts');
+      await import('/src/components/boardgame-action-button.ts');
+      const bar = document.createElement('boardgame-action-bar');
+      bar.style.width = '50rem';
+      for (const text of ['Draw', 'Pass']) {
+        const action = document.createElement('boardgame-action-button');
+        action.textContent = text;
+        bar.append(action);
+      }
+      document.body.append(bar);
+      await bar.updateComplete;
+      const inner = bar.shadowRoot?.querySelector('#bar') as HTMLElement | null;
+      const wide = {
+        role: inner?.getAttribute('role'),
+        label: inner?.getAttribute('aria-label'),
+        part: inner?.getAttribute('part'),
+        direction: inner ? getComputedStyle(inner).flexDirection : null,
+      };
+
+      bar.style.width = '20rem';
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const firstAction = bar.querySelector('boardgame-action-button');
+      const narrow = {
+        direction: inner ? getComputedStyle(inner).flexDirection : null,
+        actionWidth: firstAction
+          ? getComputedStyle(firstAction).getPropertyValue('--boardgame-action-width').trim()
+          : null,
+      };
+
+      bar.style.width = '50rem';
+      bar.orientation = 'vertical';
+      bar.alignment = 'start';
+      await bar.updateComplete;
+      const vertical = {
+        direction: inner ? getComputedStyle(inner).flexDirection : null,
+        alignment: inner ? getComputedStyle(inner).alignItems : null,
+      };
+
+      const renderError = (configure: (element: HTMLElement & Record<string, unknown>) => void) => {
+        const element = document.createElement('boardgame-action-bar') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        configure(element);
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const emptyLabel = renderError(element => { element.label = '  '; });
+      const invalidOrientation = renderError(element => { element.orientation = 'diagonal'; });
+      const invalidAlignment = renderError(element => { element.alignment = 'around'; });
+      bar.remove();
+      return { wide, narrow, vertical, emptyLabel, invalidOrientation, invalidAlignment };
+    });
+
+    expect(result.wide).toEqual({ role: 'group', label: 'Game actions', part: 'bar', direction: 'row' });
+    expect(result.narrow).toEqual({ direction: 'column', actionWidth: '100%' });
+    expect(result.vertical).toEqual({ direction: 'column', alignment: 'flex-start' });
+    expect(result.emptyLabel).toContain('label must be a non-empty accessible group name');
+    expect(result.invalidOrientation).toContain('unknown orientation');
+    expect(result.invalidAlignment).toContain('unknown alignment');
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

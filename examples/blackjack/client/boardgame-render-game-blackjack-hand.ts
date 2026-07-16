@@ -67,12 +67,7 @@ export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCat
            of each other. Size to content instead. */
         width: auto;
       }
-      .actions {
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-      }
-      .actions boardgame-action-button {
+      boardgame-action-bar boardgame-action-button {
         font-size: 18px;
       }
     `,
@@ -92,10 +87,10 @@ export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCat
           ? html`<boardgame-component-stack .stack=${player.VisibleHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan"></boardgame-component-stack>`
           : ''}
       </div>
-      <div class="actions">
+      <boardgame-action-bar label="Blackjack actions">
         <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
         <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
-      </div>
+      </boardgame-action-bar>
     `;
   }
 }

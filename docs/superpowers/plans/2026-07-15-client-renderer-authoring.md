@@ -981,6 +981,13 @@ First evidence-driven primitive tranche (2026-07-16):
   stable button/label/spinner/status CSS parts and theme variables. Prove native
   naming, pending-to-settled state, styling hooks, strict negative contracts,
   and runtime diagnostics against a real generated Pig action.
+- [x] Add the first evidence-backed layout composition,
+  `boardgame-action-bar`, after Blackjack and Murder Mr Monroe independently
+  proved the repeated need. Give the zero-config case a named group, wrapping
+  row, consistent gap, and container-query mobile stack; keep horizontal and
+  vertical orientations plus four alignments as closed typed policies. Expose a
+  stable bar part/token, reject blank labels and unknown policies, prove wide,
+  narrow, and vertical computed layouts in-browser, and migrate both games.
 
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design

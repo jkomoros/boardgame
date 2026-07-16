@@ -9,6 +9,7 @@ export class BoardgameActionButton extends LitElement {
     }
 
     button {
+      width: var(--boardgame-action-width, auto);
       min-width: 44px;
       min-height: 44px;
       padding: 0.65rem 1rem;

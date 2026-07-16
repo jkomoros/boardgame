@@ -68,6 +68,7 @@ export { cardView, componentView, tokenView } from './components/component-view.
 export type { ComponentView, ComponentViewContext, ComponentViewOptions } from './components/component-view.js';
 export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';
 export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
+export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
 export type {
   MoveInputErrorCode,
   MoveInputIssue,
@@ -84,5 +85,6 @@ export type {
 import './components/boardgame-die.js';
 import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
+import './components/boardgame-action-bar.js';
 import './components/boardgame-status-text.js';
 import './components/boardgame-spatial-board.js';
