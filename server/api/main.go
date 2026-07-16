@@ -2495,6 +2495,7 @@ func (s *Server) chatReadHandler(c *gin.Context) {
 	r.Success(gin.H{
 		"Messages":     response,
 		"ViewChannels": policy.ViewChannels,
+		"SendChannels": policy.SendChannels,
 		"UserIDMap":    userIDMap,
 		"ChatConfig": gin.H{
 			"Enabled":         policy.Enabled,

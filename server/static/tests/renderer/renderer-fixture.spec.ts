@@ -138,6 +138,83 @@ test('Pig fixture installs a typed snapshot and correlates zero-input proposals'
   }
 });
 
+test('chat preserves rejected drafts, retries visibly, and deduplicates notifications', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  let postCount = 0;
+  const postedBodies: string[] = [];
+  await page.route('**/api/game/chatgame/GAME/chat*', async route => {
+    if (route.request().method() === 'POST') {
+      postCount += 1;
+      postedBodies.push(route.request().postData() ?? '');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(postCount === 1
+          ? { Status: 'Failure', Error: 'blocked', FriendlyError: 'Chat is paused' }
+          : { Status: 'Success', MessageID: '1' }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        Status: 'Success',
+        Messages: postCount >= 2
+          ? [{ id: '1', channel: 'all', sender: 0, body: 'Keep this draft', timestamp: 100 }]
+          : null,
+        ViewChannels: ['all'],
+        SendChannels: ['all'],
+        UserIDMap: { ada: 0 },
+        ChatConfig: { Enabled: true, PrebakedOnly: false, AllowedMessages: null },
+      }),
+    });
+  });
+
+  await page.evaluate(async () => {
+    await import('/src/components/boardgame-chat-panel.ts');
+    const panel = document.createElement('boardgame-chat-panel') as HTMLElement & {
+      gameRoute: { name: string; id: string };
+      viewingAsPlayer: number;
+      playersInfo: Array<{ IsEmpty: boolean; IsAgent: boolean; DisplayName: string }>;
+      updateComplete: Promise<unknown>;
+    };
+    panel.gameRoute = { name: 'chatgame', id: 'GAME' };
+    panel.viewingAsPlayer = 0;
+    panel.playersInfo = [{ IsEmpty: false, IsAgent: false, DisplayName: 'Ada' }];
+    document.body.append(panel);
+    await panel.updateComplete;
+  });
+
+  const panel = page.locator('boardgame-chat-panel');
+  await expect(panel.locator('.chat-container')).toBeVisible();
+  const input = panel.locator('md-filled-text-field');
+  await input.evaluate((element: Element) => {
+    (element as Element & { value: string }).value = 'Keep this draft';
+  });
+  await panel.getByRole('button', { name: 'Send message' }).click();
+  await expect(panel.getByRole('alert')).toContainText('Chat is paused');
+  await expect.poll(() => input.evaluate((element: Element) => (
+    element as Element & { value: string }
+  ).value)).toBe('Keep this draft');
+
+  await panel.getByRole('button', { name: 'Send message' }).click();
+  await expect(panel.locator('.message')).toHaveCount(1);
+  await expect(panel.locator('.message')).toContainText('Keep this draft');
+  await expect.poll(() => input.evaluate((element: Element) => (
+    element as Element & { value: string }
+  ).value)).toBe('');
+
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('chat-notification')));
+  await expect(panel.locator('.message')).toHaveCount(1);
+  expect(postedBodies.map(body => Object.fromEntries(new URLSearchParams(body)))).toEqual([
+    { channel: 'all', body: 'Keep this draft' },
+    { channel: 'all', body: 'Keep this draft' },
+  ]);
+  diagnostics.assertEmpty();
+  diagnostics.stop();
+});
+
 test('component stacks bind typed actions by slot and reject ambiguous wiring', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

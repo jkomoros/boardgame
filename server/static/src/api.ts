@@ -218,6 +218,7 @@ export function buildGameUrl(
 /**
  * Performs a GET request to the API
  * @param url - Full API URL (use buildApiUrl or buildGameUrl)
+ * @param signal - Optional cancellation signal for lifecycle-bound reads
  * @returns Typed API response
  *
  * @example
@@ -228,7 +229,7 @@ export function buildGameUrl(
  *   console.log(response.data.Game);
  * }
  */
-export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
+export async function apiGet<T>(url: string, signal?: AbortSignal): Promise<ApiResponse<T>> {
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -236,6 +237,7 @@ export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
       headers: {
         'Accept': 'application/json',
       },
+      signal,
     });
 
     return await unwrapApiResponse<T>(response);

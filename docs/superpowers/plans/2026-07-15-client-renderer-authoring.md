@@ -1170,6 +1170,14 @@ First evidence-driven primitive tranche (2026-07-16):
   field/precondition slices arrive as `null`, so the game-info decoder now
   normalizes that canonical empty representation instead of rejecting every
   freshly created game containing a zero-input move.
+- [x] Turn chat into a decoded, lifecycle-safe client service: expose separate
+  view/send channel policies so read-only channels cannot become server-rejected
+  guesses; validate and bound messages, channels, user maps, configuration, and
+  send acknowledgements; normalize Go nil slices; serialize/abort refreshes;
+  reject stale-route responses; resume polling after socket loss; deduplicate
+  repeated notifications; retain drafts on failed sends; and make transport or
+  contract failures visible with retry. Prove rejection, retry, form encoding,
+  draft preservation, success clearing, and deduplication in an isolated browser.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject
