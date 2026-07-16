@@ -39,6 +39,11 @@ func TestBasicGenerate(t *testing.T) {
 	assert.For(t).ThatActual(len(contents)).DoesNotEqual(0)
 
 	assert.For(t).ThatActual(contents["checkers/main.go"]).IsNotNil()
+	assert.For(t).ThatActual(contents["checkers/client/boardgame-render-game-checkers.ts"]).IsNotNil()
+	assert.For(t).ThatActual(contents["checkers/client/boardgame-render-player-info-checkers.ts"]).IsNotNil()
+	if _, exists := contents["checkers/client/boardgame-render-game-checkers.js"]; exists {
+		t.Fatal("legacy JavaScript renderer should not be generated")
+	}
 }
 
 func TestGolden(t *testing.T) {

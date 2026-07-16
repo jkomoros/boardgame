@@ -59,6 +59,11 @@ export interface BoardGeometry<Key extends SpatialBoardKey> {
   readonly spaces: readonly BoardGeometrySpace<Key>[];
 }
 
+/** Build custom geometry from the same sanitized SVG that the board displays. */
+export type BoardGeometryFactory<Key extends SpatialBoardKey> = (
+  svg: SVGSVGElement,
+) => BoardGeometry<Key>;
+
 export interface ResolvedBoardGeometrySpace<Key extends SpatialBoardKey>
   extends Required<BoardGeometrySpace<Key>> {}
 
@@ -68,6 +73,7 @@ export interface ResolvedBoardGeometry<Key extends SpatialBoardKey> {
 }
 
 const MAX_SVG_BYTES = 2 * 1024 * 1024;
+const MAX_BOARD_SPACES = 512;
 const blockedElements = new Set([
   'script', 'foreignobject', 'iframe', 'object', 'embed', 'audio', 'video', 'style',
   'animate', 'animatemotion', 'animatetransform', 'set', 'mpath', 'link',
@@ -107,7 +113,7 @@ export function parseTrustedBoardSvg(source: string): SVGSVGElement {
     fail('SVG must have a finite viewBox with positive width and height');
   }
 
-  for (const element of [...svg.querySelectorAll('*')]) {
+  for (const element of [svg, ...svg.querySelectorAll('*')]) {
     if (blockedElements.has(element.localName.toLowerCase())) {
       element.remove();
       continue;
@@ -144,7 +150,10 @@ export function resolveBoardGeometry<Key extends SpatialBoardKey>(
   geometry: BoardGeometry<Key>,
 ): ResolvedBoardGeometry<Key> {
   if (!geometry.spaces.length) fail('geometry must contain at least one space');
-  const keys = new Set<Key>();
+  if (geometry.spaces.length > MAX_BOARD_SPACES) {
+    fail(`geometry exceeds the ${MAX_BOARD_SPACES}-space limit`);
+  }
+  const keys = new Set<string>();
   const orders = new Set<number>();
   const resolved = geometry.spaces.map((space, index) => {
     if ((typeof space.key !== 'string' && typeof space.key !== 'number')
@@ -152,8 +161,9 @@ export function resolveBoardGeometry<Key extends SpatialBoardKey>(
       || (typeof space.key === 'number' && !Number.isFinite(space.key))) {
       fail(`space ${index} has an invalid key`);
     }
-    if (keys.has(space.key)) fail(`duplicate space key ${JSON.stringify(space.key)}`);
-    keys.add(space.key);
+    const canonicalKey = String(space.key);
+    if (keys.has(canonicalKey)) fail(`duplicate canonical space key ${JSON.stringify(canonicalKey)}`);
+    keys.add(canonicalKey);
     const label = space.label.trim();
     if (!label) fail(`space ${JSON.stringify(space.key)} has no accessible label`);
     const order = space.order ?? index;
@@ -177,10 +187,20 @@ export function resolveBoardGeometry<Key extends SpatialBoardKey>(
 export function geometryFromSvg(svg: SVGSVGElement): BoardGeometry<string> {
   const regions = [...svg.querySelectorAll('[data-board-space]')];
   if (!regions.length) fail('SVG contains no data-board-space regions');
-  const focusAnchors = new Map([...svg.querySelectorAll('[data-board-focus-anchor]')]
-    .map(element => [element.getAttribute('data-board-focus-anchor') ?? '', element]));
-  const pieceAnchors = new Map([...svg.querySelectorAll('[data-board-piece-anchor]')]
-    .map(element => [element.getAttribute('data-board-piece-anchor') ?? '', element]));
+  const regionKeys = new Set(regions.map(element => element.getAttribute('data-board-space') ?? ''));
+  const anchors = (attribute: 'data-board-focus-anchor' | 'data-board-piece-anchor') => {
+    const result = new Map<string, Element>();
+    for (const element of svg.querySelectorAll(`[${attribute}]`)) {
+      const key = element.getAttribute(attribute) ?? '';
+      if (!key) fail(`${attribute} must not be empty`);
+      if (!regionKeys.has(key)) fail(`${attribute} references unknown space ${JSON.stringify(key)}`);
+      if (result.has(key)) fail(`duplicate ${attribute} for space ${JSON.stringify(key)}`);
+      result.set(key, element);
+    }
+    return result;
+  };
+  const focusAnchors = anchors('data-board-focus-anchor');
+  const pieceAnchors = anchors('data-board-piece-anchor');
   return {
     spaces: regions.map((element, index) => {
       const key = element.getAttribute('data-board-space') ?? '';

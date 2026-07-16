@@ -84,7 +84,7 @@ class BoardgameRenderGameCheckers extends GameRenderer {
       </boardgame-deck-defaults>
       <boardgame-game-board
         rows="8" cols="8" checkerboard
-        .stack="${this.state?.Game?.Spaces}"
+        .stack="${this.state?.Game?.Spaces ?? null}"
         .selectedSpace="${this.selectedSpace}"
         .disabledSpaces="${this.previewDisabledSpaces}"
         @space-tapped="${this._onSpaceTapped}">

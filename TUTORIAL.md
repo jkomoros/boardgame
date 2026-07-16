@@ -2134,6 +2134,13 @@ contain punctuation; they are never interpolated into CSS selectors.
 </svg>
 ```
 
+String keys are the default even when they look like `"2"`. If the move field
+is a numeric enum, opt in explicitly on the root with
+`data-board-key-type="number"`; generation then rejects non-canonical or
+JavaScript-unsafe integers instead of guessing from their spelling. Every
+region needs an accessible label. `data-board-label` is clearest, while an
+`aria-label` or direct child `<title>` is also accepted.
+
 Then bind typed targets and an explicit piece projection:
 
 ```ts
@@ -2154,7 +2161,7 @@ return html`<boardgame-spatial-board
 </boardgame-spatial-board>`;
 ```
 
-`boardgame-util emit-types` (and the dev server) extracts `_board_spaces.ts`
+`boardgame-util emit-types` (and dev-server startup) extracts `_board_spaces.ts`
 from `board.svg`; `boardgame-util emit-board-spaces` does just this step, and
 `--check` verifies freshness. The generated tuple preserves literal keys, so an
 SVG rename makes move/projection code fail strict checking. If a sized stack has
@@ -2175,6 +2182,17 @@ While authoring, add the boolean `geometry-inspector` attribute to show the
 resolved key/order/label, region element, focus and piece coordinates, and
 possible bounding-box overlaps. Remove it for the shipped renderer; it is a
 diagnostic view, not game state.
+
+For unusual artwork, pass `.geometry=${svg => ...}`. The callback receives the
+same sanitized, mounted SVG that is displayed and returns `BoardGeometry`, so
+custom regions and distinct anchors can use real measurable elements without
+re-fetching or reaching into the component's shadow root. Pointer activation
+uses those returned regions, not a hidden dependency on data attributes.
+
+Set `board-label` (default: `Game board`) and optional `board-description` for
+overall context. The artwork itself is presentation-only; the generated focus
+buttons and compact list are the single accessible interaction model, avoiding
+duplicate announcements from SVG-editor metadata.
 
 `spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
 `boxForSpace()`, and `tokenPosition()` remain migration adapters for older

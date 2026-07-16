@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/stub"
@@ -47,12 +48,13 @@ func (s *stubCmd) Run(p writ.Path, positional []string) {
 		b.errAndQuit("Couldn't save generated files: " + err.Error())
 	}
 
-	if _, err := os.Stat(gameName); os.IsNotExist(err) {
+	gameDir := filepath.Join(s.Dir, gameName)
+	if _, err := os.Stat(gameDir); os.IsNotExist(err) {
 		b.errAndQuit("Unexpected error: game directory didn't exist after saving")
 	}
 
 	cmd := exec.Command("go", "generate")
-	cmd.Dir = gameName
+	cmd.Dir = gameDir
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 
@@ -60,7 +62,7 @@ func (s *stubCmd) Run(p writ.Path, positional []string) {
 		b.errAndQuit("Go generate failed: " + err.Error())
 	}
 
-	fmt.Println("Generated game in " + gameName)
+	fmt.Println("Generated game in " + gameDir)
 
 }
 

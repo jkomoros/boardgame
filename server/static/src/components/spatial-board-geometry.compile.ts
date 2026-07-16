@@ -1,6 +1,7 @@
 import {
   piecesFromSizedStacks,
   type BoardGeometry,
+  type BoardGeometryFactory,
   type ExpandedStack,
 } from '../client.js';
 
@@ -16,9 +17,15 @@ const geometry = {
     { key: keys[1], label: 'Study', region: studyRegion, order: 1 },
   ],
 } satisfies BoardGeometry<(typeof keys)[number]>;
+const geometryFactory = ((svg) => ({
+  spaces: [...svg.querySelectorAll<SVGGraphicsElement>('[data-board-space]')].map((region, index) => ({
+    key: keys[index]!, label: keys[index]!, region,
+  })),
+})) satisfies BoardGeometryFactory<(typeof keys)[number]>;
 
 void pieces;
 void geometry;
+void geometryFactory;
 
 // @ts-expect-error authored geometry must provide the actual pointer-hit region
 const missingRegion: BoardGeometry<'library'> = { spaces: [{ key: 'library', label: 'Library' }] };

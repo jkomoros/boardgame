@@ -581,7 +581,8 @@ test('game board rejects contradictory geometry and accessibility configuration 
 test('spatial board sanitizes authored geometry and shares typed target activation', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {
-    const source = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 200 100">
+    const source = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 200 100" preserveAspectRatio="xMaxYMin meet"
+      onload="globalThis.__unsafeBoardRoot = true" style="fill:url(https://attacker.invalid/root)">
       <script>globalThis.__unsafeBoardScript = true</script>
       <g transform="translate(20 10)">
         <g data-board-space="room:one/?" data-board-label="Library" data-board-order="3"
@@ -594,6 +595,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         <rect data-board-piece-anchor="room:one/?" x="50" y="30" width="6" height="6" />
         <image href="https://attacker.invalid/tracker.png" x="0" y="0" width="2" height="2" />
       </g>
+      <rect data-decorative-overlay="" x="20" y="10" width="80" height="60" fill="transparent" />
     </svg>`;
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async () => new Response(source, {
@@ -602,6 +604,18 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     });
     try {
       await import('/src/components/boardgame-spatial-board.ts');
+      const geometryHelpers = await import('/src/components/spatial-board-geometry.ts');
+      let duplicateAnchorError = '';
+      try {
+        const duplicateAnchorSvg = geometryHelpers.parseTrustedBoardSvg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+          <rect data-board-space="room" data-board-label="Room" width="10" height="10" />
+          <circle data-board-piece-anchor="room" cx="2" cy="2" r="1" />
+          <circle data-board-piece-anchor="room" cx="3" cy="3" r="1" />
+        </svg>`);
+        geometryHelpers.geometryFromSvg(duplicateAnchorSvg);
+      } catch (error) {
+        duplicateAnchorError = error instanceof Error ? error.message : String(error);
+      }
       let activations = 0;
       const actionState = {
         canActivate: true,
@@ -626,6 +640,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         pieces: readonly unknown[];
         tokenSize: number;
         geometryInspector: boolean;
+        geometry: ((svg: SVGSVGElement) => unknown) | null;
         svgLoaded: boolean;
         updateComplete: Promise<unknown>;
       };
@@ -651,11 +666,14 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       const focusButton = root?.querySelector('.space-focus');
       const pieceAnchor = root?.querySelector('[data-board-piece-anchor]');
       const focusAnchor = root?.querySelector('[data-board-focus-anchor]');
+      const decorativeOverlay = root?.querySelector('[data-decorative-overlay]');
+      const artwork = root?.querySelector('#container > svg');
       const componentStack = root?.querySelector('boardgame-component-stack') as (
         HTMLElement & { spatialPositions: readonly ({ top: number; left: number } | null)[]; updateComplete: Promise<unknown> }
       ) | null;
       if (!(region instanceof SVGElement) || !(inner instanceof SVGElement)
         || !(pieceAnchor instanceof SVGGraphicsElement) || !(focusAnchor instanceof SVGGraphicsElement)
+        || !(decorativeOverlay instanceof SVGGraphicsElement) || !(artwork instanceof SVGSVGElement)
         || !(button instanceof HTMLButtonElement)
         || !(focusButton instanceof HTMLButtonElement)
         || !componentStack) throw new Error('Spatial fixture did not render');
@@ -677,8 +695,75 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       const expectedLeft = anchorBounds.left + anchorBounds.width / 2 - containerBounds.left - 10 + jitter(0) * 20;
       const expectedTop = anchorBounds.top + anchorBounds.height / 2 - containerBounds.top - 10 + jitter(1) * 20;
       inner.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+      const overlayBounds = decorativeOverlay.getBoundingClientRect();
+      decorativeOverlay.dispatchEvent(new MouseEvent('click', {
+        bubbles: true, composed: true,
+        clientX: overlayBounds.left + overlayBounds.width / 2,
+        clientY: overlayBounds.top + overlayBounds.height / 2,
+      }));
       await Promise.resolve();
       focusButton.focus();
+
+      // A custom sidecar uses a real sanitized SVG element that has no
+      // data-board-space attribute; activation must follow the returned region.
+      const sidecarBoard = document.createElement('boardgame-spatial-board') as typeof board;
+      sidecarBoard.svgUrl = '/authored-board.svg';
+      sidecarBoard.action = action;
+      sidecarBoard.geometry = svg => ({ spaces: [{
+        key: candidate.key,
+        label: 'Sidecar Library',
+        region: svg.querySelector('path') as SVGGraphicsElement,
+      }] });
+      document.body.append(sidecarBoard);
+      for (let attempt = 0; attempt < 20 && !sidecarBoard.svgLoaded; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      await sidecarBoard.updateComplete;
+      const sidecarRegion = sidecarBoard.shadowRoot?.querySelector('path');
+      if (!(sidecarRegion instanceof SVGGraphicsElement)) throw new Error('Sidecar path geometry did not render');
+      sidecarRegion.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+      await Promise.resolve();
+      sidecarBoard.remove();
+
+      let responsiveAnchorError = 0;
+      let pieceOutsideRegion = false;
+      const settleGeometry = async () => {
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        await board.updateComplete;
+        await componentStack.updateComplete;
+      };
+      const verifyGeometry = () => {
+        const currentFocus = focusAnchor.getBoundingClientRect();
+        const currentButton = focusButton.getBoundingClientRect();
+        responsiveAnchorError = Math.max(responsiveAnchorError,
+          Math.abs((currentButton.left + currentButton.width / 2) - (currentFocus.left + currentFocus.width / 2)),
+          Math.abs((currentButton.top + currentButton.height / 2) - (currentFocus.top + currentFocus.height / 2)));
+        const currentPosition = componentStack.spatialPositions[0];
+        const currentContainer = root?.querySelector('#container')?.getBoundingClientRect();
+        const currentRegion = region.getBoundingClientRect();
+        if (!currentPosition || !currentContainer) throw new Error('Responsive geometry disappeared');
+        const tokenLeft = currentContainer.left + currentPosition.left;
+        const tokenTop = currentContainer.top + currentPosition.top;
+        pieceOutsideRegion ||= tokenLeft < currentRegion.left - 1 || tokenTop < currentRegion.top - 1
+          || tokenLeft + 20 > currentRegion.right + 1 || tokenTop + 20 > currentRegion.bottom + 1;
+      };
+      for (const width of [320, 768, 1280]) {
+        board.style.width = `${width}px`;
+        await settleGeometry();
+        verifyGeometry();
+      }
+      document.documentElement.style.fontSize = '200%';
+      board.style.setProperty('zoom', '2');
+      await settleGeometry();
+      verifyGeometry();
+      board.style.removeProperty('zoom');
+      document.documentElement.style.fontSize = '';
+      board.style.width = '330px';
+      board.style.width = '900px';
+      board.style.width = '480px';
+      await settleGeometry();
+      verifyGeometry();
+
       const successful = {
         activations,
         label: button.textContent?.trim(),
@@ -689,6 +774,13 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         animationCount: root?.querySelectorAll('animate').length,
         imageHref: root?.querySelector('image')?.getAttribute('href'),
         unsafeScriptRan: Boolean((globalThis as unknown as { __unsafeBoardScript?: boolean }).__unsafeBoardScript),
+        unsafeRootRan: Boolean((globalThis as unknown as { __unsafeBoardRoot?: boolean }).__unsafeBoardRoot),
+        rootOnload: artwork.getAttribute('onload'),
+        rootStyle: artwork.getAttribute('style'),
+        artworkHidden: artwork.getAttribute('aria-hidden'),
+        duplicateAnchorError,
+        responsiveAnchorError,
+        pieceOutsideRegion,
         anchorError: Math.max(Math.abs(position.left - expectedLeft), Math.abs(position.top - expectedTop)),
         focusAnchorError: Math.max(
           Math.abs((focusButtonBounds.left + focusButtonBounds.width / 2)
@@ -739,7 +831,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     }
   });
   expect(result).toMatchObject({
-    activations: 1,
+    activations: 3,
     label: 'Library',
     focused: true,
     scriptCount: 0,
@@ -748,6 +840,12 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     animationCount: 0,
     imageHref: null,
     unsafeScriptRan: false,
+    unsafeRootRan: false,
+    rootOnload: null,
+    rootStyle: null,
+    artworkHidden: 'true',
+    duplicateAnchorError: expect.stringContaining('duplicate data-board-piece-anchor'),
+    pieceOutsideRegion: false,
     inspector: expect.stringContaining('room:one/? — Library'),
     postRaceLabel: 'Fast Library',
     failedSvgCount: 0,
@@ -755,6 +853,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
   });
   expect(result.anchorError).toBeLessThanOrEqual(1);
   expect(result.focusAnchorError).toBeLessThanOrEqual(1);
+  expect(result.responsiveAnchorError).toBeLessThanOrEqual(1);
   const axeResult = await new AxeBuilder({ page })
     .include('boardgame-spatial-board')
     .withRules(['button-name', 'aria-allowed-attr', 'aria-valid-attr-value', 'nested-interactive'])

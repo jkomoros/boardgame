@@ -160,8 +160,8 @@ var templateMap = map[string]string{
 	"{{.Name}}/moves_setup.go":                                   templateContentsDefaultMovesGo,
 	"{{.Name}}/moves_normal.go":                                  templateContentsNormalMovesGo,
 	"{{.Name}}/components.go":                                    templateContentComponentsGo,
-	"{{.Name}}/client/boardgame-render-game-{{.Name}}.js":        templateContentsRenderGameJs,
-	"{{.Name}}/client/boardgame-render-player-info-{{.Name}}.js": templateContentsRenderPlayerInfoJs,
+	"{{.Name}}/client/boardgame-render-game-{{.Name}}.ts":        templateContentsRenderGameTs,
+	"{{.Name}}/client/boardgame-render-player-info-{{.Name}}.ts": templateContentsRenderPlayerInfoTs,
 }
 
 const templateContentsMainGo = `{{if .Description -}}
@@ -789,101 +789,89 @@ func TestNewManager(t *testing.T) {
 
 `
 
-const templateContentsRenderGameJs = `import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
-import { html } from '@polymer/polymer/lib/utils/html-tag.js';
+const templateContentsRenderGameTs = `import { css, html } from '../../src/client.js';
+import { GameRenderer } from './_game_renderer.js';
 {{- if .EnableExampleClient }}
-import '@polymer/polymer/lib/elements/dom-repeat.js';
-import '@polymer/iron-flex-layout/iron-flex-layout.js';
-import '../../src/boardgame-component-stack.js';
-import '../../src/boardgame-card.js';
-import '../../src/boardgame-deck-defaults.js';
-import '../../src/boardgame-fading-text.js';
+import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-fading-text.js';
+{{- end}}
+{{- if .EnableExampleMoves }}
+import { MoveNames } from './_move_names.js';
 {{- end}}
 
-class BoardgameRenderGame{{uppercaseFirst .Name}} extends BoardgameBaseGameRenderer {
+class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
+  static override styles = css[[BACKTICK]]
+    :host { display: block; }
+    .players { display: flex; flex-wrap: wrap; gap: 1rem; }
+    .player { flex: 1 1 12rem; }
+  [[BACKTICK]];
 
-  static get template() {
-  	{{if .EnableExampleClient }}
-  	return html[[BACKTICK]]<style>
-      #players {
-        @apply --layout-horizontal;
-        @apply --layout-center;
-      }
-      .flex {
-        @apply --layout-flex;
-      }
-      .player {
-        @apply --layout-vertical;
-      }
-    </style>
-    <boardgame-deck-defaults>
-      <template deck="examplecards">
-        <boardgame-card rank="{[[item.Values.Value]]}"></boardgame-card>
-      </template>
-    </boardgame-deck-defaults>
-    <boardgame-component-stack stack="{[[state.Game.DrawStack]]}" layout="stack" messy {{if .EnableExampleMoves}} component-propose-move="Draw Card"{{end}}></boardgame-component-stack>
-    <div id="players">
-      <template is="dom-repeat" items="{[[state.Players]]}">
-      	<div class="player flex">
-		    <strong>Player {[[index]]}</strong>
-		    <boardgame-component-stack stack="{[[item.Hand]]}" layout="fan" messy component-rotated>
-		    	<boardgame-fading-text trigger="{[[item.Computed.GameScore]]}" auto-message="diff-up"></boardgame-fading-text>
-		    </boardgame-component-stack>
-	    </div>
-      </template>
-    </div>
-    <boardgame-fading-text trigger="{[[isCurrentPlayer]]}" message="Your Turn" suppress="falsey"></boardgame-fading-text>
-[[BACKTICK]];
-{{else}}
-return html[[BACKTICK]]This is where you game should render itself. See boardgame/server/README.md for more on the components you can use, or check out the examples in boardgame/examples.[[BACKTICK]];
-{{end}}
+  override render() {
+    {{- if .EnableExampleClient }}
+    return html[[BACKTICK]]
+      <boardgame-component-stack
+        .stack=${this.state?.Game.DrawStack}
+        layout="stack" messy>
+      </boardgame-component-stack>
+      {{- if .EnableExampleMoves }}
+      <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
+        Draw a card
+      </boardgame-action-button>
+      {{- end}}
+      <div class="players">
+        ${this.state?.Players.map((player, index) => html[[BACKTICK]]
+          <section class="player">
+            <strong>Player ${index + 1}</strong>
+            <boardgame-component-stack
+              .stack=${player.Hand}
+              layout="fan" messy component-rotated>
+            </boardgame-component-stack>
+            <boardgame-fading-text
+              .trigger=${player.Computed.GameScore}
+              auto-message="diff-up">
+            </boardgame-fading-text>
+          </section>
+        [[BACKTICK]])}
+      </div>
+      <boardgame-fading-text
+        .trigger=${this.isCurrentPlayer}
+        message="Your Turn" suppress="falsey">
+      </boardgame-fading-text>
+    [[BACKTICK]];
+    {{- else }}
+    return html[[BACKTICK]]
+      <p>Build your game renderer here. State and move names are strictly typed.</p>
+    [[BACKTICK]];
+    {{- end}}
   }
-
-  static get is() {
-    return "boardgame-render-game-{{.Name}}"
-  }
-
-  //We don't need to compute any properties that BoardgameBaseGamErenderer
-  //doesn't have.
-
 }
 
-customElements.define(BoardgameRenderGame{{uppercaseFirst .Name}}.is, BoardgameRenderGame{{uppercaseFirst .Name}});
-
+customElements.define('boardgame-render-game-{{.Name}}', BoardgameRenderGame{{uppercaseFirst .Name}});
 `
 
-const templateContentsRenderPlayerInfoJs = `import { PolymerElement } from '@polymer/polymer/polymer-element.js';
-import { html } from '@polymer/polymer/lib/utils/html-tag.js';
-{{if .EnableExampleClient}}
-import '../../src/boardgame-status-text.js';
-{{end}}
+const templateContentsRenderPlayerInfoTs = `import { LitElement, html } from 'lit';
+import { property } from 'lit/decorators.js';
+import type { PlayerState, State } from './_types.js';
+{{- if .EnableExampleClient }}
+import '../../src/components/boardgame-status-text.js';
+{{- end}}
 
-class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PolymerElement {
+class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends LitElement {
+  @property({ type: Object }) state: State | null = null;
+  @property({ type: Number }) playerIndex = 0;
+  @property({ type: Object }) playerState: PlayerState | null = null;
 
-  static get template() {
-  	{{if .EnableExampleClient}}
-		return html[[BACKTICK]]Number of Cards <boardgame-status-text>{[[playerState.Hand.Indexes.length]]}</boardgame-status-text>[[BACKTICK]];
-	{{else}}
-		return html[[BACKTICK]]This is where you render info on player, typically using &lt;boardgame-status-text&gt;.[[BACKTICK]];
-	{{end}}
-
+  override render() {
+    {{- if .EnableExampleClient }}
+    return html[[BACKTICK]]
+      Number of cards:
+      <boardgame-status-text>${this.playerState?.Hand.Indexes.length ?? 0}</boardgame-status-text>
+    [[BACKTICK]];
+    {{- else }}
+    return html[[BACKTICK]]<p>Render player summary information here.</p>[[BACKTICK]];
+    {{- end}}
   }
-
-  static get is() {
-    return "boardgame-render-player-info-{{.Name}}"
-  }
-
-  {{if .EnableExampleClient}}
-  static get properties() {
-    return {
-      state: Object,
-      playerIndex: Number,
-      playerState: Object,
-    }
-  }
-  {{end}}
-
 }
 
-customElements.define(BoardgameRenderPlayerInfo{{uppercaseFirst .Name}}.is, BoardgameRenderPlayerInfo{{uppercaseFirst .Name}});
+customElements.define('boardgame-render-player-info-{{.Name}}', BoardgameRenderPlayerInfo{{uppercaseFirst .Name}});
 `

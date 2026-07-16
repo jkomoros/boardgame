@@ -9,7 +9,7 @@ import {
   parseTrustedBoardSvg,
   type BoardPiece,
   resolveBoardGeometry,
-  type BoardGeometry,
+  type BoardGeometryFactory,
   type ResolvedBoardGeometry,
   type SpatialBoardKey,
 } from './spatial-board-geometry.js';
@@ -180,7 +180,15 @@ class BoardgameSpatialBoard extends LitElement {
 
   /** Optional explicit sidecar. Omit to extract data-board-* attributes. */
   @property({ type: Object, attribute: false })
-  geometry: BoardGeometry<SpatialBoardKey> | null = null;
+  geometry: BoardGeometryFactory<SpatialBoardKey> | null = null;
+
+  /** Accessible name for the interactive board region. */
+  @property({ type: String, attribute: 'board-label' })
+  boardLabel = 'Game board';
+
+  /** Optional extra context announced with the board region. */
+  @property({ type: String, attribute: 'board-description' })
+  boardDescription = '';
 
   /** Single SizedStack for auto-rendering (slot index = space index). */
   @property({ type: Object, attribute: false })
@@ -233,6 +241,7 @@ class BoardgameSpatialBoard extends LitElement {
   private _loadController: AbortController | null = null;
   private _loadGeneration = 0;
   private _unsubscribeAction: (() => void) | null = null;
+  private _candidatesByKey = new Map<string, TargetAction<SpatialBoardKey>['candidates'][number]>();
 
   override connectedCallback() {
     super.connectedCallback();
@@ -317,13 +326,6 @@ class BoardgameSpatialBoard extends LitElement {
       const svgElement = parseTrustedBoardSvg(text);
       if (controller.signal.aborted || generation !== this._loadGeneration || !this.isConnected) return;
 
-      // Clear previous SVG — only remove SVG children, keep overlay
-      const existing = this._container.querySelector('svg');
-      if (existing) this._container.removeChild(existing);
-
-      // Insert SVG as first child (before overlay)
-      this._container.insertBefore(svgElement, this._container.firstChild);
-
       // Legacy migration adapter. New artwork authors data-board-* directly.
       if (!svgElement.querySelector('[data-board-space]') && this.spacePrefix) {
         for (const element of [...svgElement.querySelectorAll('[id]')]) {
@@ -336,9 +338,22 @@ class BoardgameSpatialBoard extends LitElement {
         }
       }
       for (const element of svgElement.querySelectorAll('[data-board-space]')) element.setAttribute('data-space', '');
+      svgElement.setAttribute('aria-hidden', 'true');
+      svgElement.setAttribute('focusable', 'false');
+      for (const element of svgElement.querySelectorAll('[tabindex]')) element.removeAttribute('tabindex');
 
-      this._resolvedGeometry = resolveBoardGeometry(this.geometry ?? geometryFromSvg(svgElement));
+      // Mount temporarily so browser geometry APIs can measure it. The catch
+      // path removes it if any creator contract fails validation.
+      const existing = this._container.querySelector('svg');
+      if (existing) this._container.removeChild(existing);
+      this._container.insertBefore(svgElement, this._container.firstChild);
+
+      const geometry = this.geometry ? this.geometry(svgElement) : geometryFromSvg(svgElement);
+      const resolvedGeometry = resolveBoardGeometry(geometry);
+      this._resolvedGeometry = resolvedGeometry;
       this._validateActionKeys();
+      this._validateRenderInputs();
+
       void this.action?.ensurePreview();
 
       this._applyDisabledSpaces();
@@ -350,6 +365,7 @@ class BoardgameSpatialBoard extends LitElement {
       }));
     } catch (err) {
       if (controller.signal.aborted || generation !== this._loadGeneration || !this.isConnected) return;
+      this._container.querySelector('svg')?.remove();
       this._resolvedGeometry = null;
       this._loadError = err instanceof Error ? err.message : String(err);
       this.dispatchEvent(new CustomEvent('svg-load-error', {
@@ -376,14 +392,29 @@ class BoardgameSpatialBoard extends LitElement {
     this._unsubscribeAction?.();
     this._unsubscribeAction = this.isConnected && this.action
       ? this.action.subscribe(() => {
+        this._refreshCandidates();
         this._applyDisabledSpaces();
         this.requestUpdate();
       })
       : null;
+    this._refreshCandidates();
     if (this.action && this._resolvedGeometry) {
-      this._validateActionKeys();
-      void this.action.ensurePreview();
+      try {
+        this._validateActionKeys();
+        this._loadError = null;
+        void this.action.ensurePreview();
+      } catch (error) {
+        this._loadError = error instanceof Error ? error.message : String(error);
+        this.dispatchEvent(new CustomEvent('svg-load-error', {
+          composed: true,
+          detail: { message: this._loadError },
+        }));
+      }
     }
+  }
+
+  private _refreshCandidates(): void {
+    this._candidatesByKey = new Map((this.action?.candidates ?? []).map(candidate => [String(candidate.key), candidate]));
   }
 
   private _validateActionKeys(): void {
@@ -403,7 +434,7 @@ class BoardgameSpatialBoard extends LitElement {
   }
 
   private _candidateForSpace(key: SpatialBoardKey) {
-    return this.action?.candidates.find(candidate => String(candidate.key) === String(key));
+    return this._candidatesByKey.get(String(key));
   }
 
   private _activateSpace(space: ResolvedBoardGeometry<SpatialBoardKey>['spaces'][number]): void {
@@ -437,11 +468,15 @@ class BoardgameSpatialBoard extends LitElement {
   // ---- Click handling ----
 
   private _spaceTapped(e: Event) {
-    if (!(e.target instanceof Element)) return;
-    const region = e.target.closest('[data-board-space]');
-    const rawKey = region?.getAttribute('data-board-space');
-    if (rawKey === null || rawKey === undefined) return;
-    const space = this._resolvedGeometry?.spaces.find(candidate => String(candidate.key) === rawKey);
+    if (!(e instanceof PointerEvent) && !(e instanceof MouseEvent)) return;
+    const path = [
+      ...e.composedPath(),
+      ...(this.shadowRoot?.elementsFromPoint(e.clientX, e.clientY) ?? []),
+    ];
+    const spaces = this._resolvedGeometry?.spaces ?? [];
+    const space = path.map(node => spaces.find(candidate =>
+      candidate.region === node || (node instanceof Node && candidate.region.contains(node))))
+      .find(candidate => candidate !== undefined);
     if (!space) return;
     this._activateSpace(space);
   }
@@ -522,13 +557,14 @@ class BoardgameSpatialBoard extends LitElement {
    * Called when SVG loads, state changes, or container resizes.
    */
   private _recalculatePositions() {
+    this._validateRenderInputs();
     const focusPositions = new Map<string, { top: number; left: number }>();
     for (const space of this._resolvedGeometry?.spaces ?? []) {
       const center = this._elementCenterPixel(space.focusAnchor);
       focusPositions.set(String(space.key), { top: center.y, left: center.x });
     }
     this._focusPositions = focusPositions;
-    this._inspection = this._geometryInspection();
+    this._inspection = this.geometryInspector ? this._geometryInspection() : '';
     const stacks = this._effectiveStacks;
     if (stacks.length === 0) {
       this._layerPositions = [];
@@ -553,6 +589,9 @@ class BoardgameSpatialBoard extends LitElement {
           if (stack.IDs[piece.slot] !== piece.id) {
             throw new Error(`boardgame-spatial-board: piece ${JSON.stringify(piece.id)} does not match stack slot ${piece.slot}`);
           }
+          if (stack.Components[piece.slot] !== piece.component) {
+            throw new Error(`boardgame-spatial-board: piece ${JSON.stringify(piece.id)} component does not match stack slot ${piece.slot}`);
+          }
           if (!this._resolvedGeometry?.spaces.some(space => String(space.key) === String(piece.space))) {
             throw new Error(`boardgame-spatial-board: piece ${JSON.stringify(piece.id)} references unknown space ${JSON.stringify(piece.space)}`);
           }
@@ -575,9 +614,21 @@ class BoardgameSpatialBoard extends LitElement {
         const jitterX = this._deterministicJitter(slotIndex, layerIndex, 0) * this.tokenSize;
         const jitterY = this._deterministicJitter(slotIndex, layerIndex, 1) * this.tokenSize;
 
+        // Keep the token inside the region's screen-space bounds. Explicit
+        // piece anchors choose the center; jitter must not push it through a
+        // narrow room wall.
+        const regionRect = space.region.getBoundingClientRect();
+        const containerRect = this._container.getBoundingClientRect();
+        const minTop = regionRect.top - containerRect.top;
+        const maxTop = regionRect.bottom - containerRect.top - this.tokenSize;
+        const minLeft = regionRect.left - containerRect.left;
+        const maxLeft = regionRect.right - containerRect.left - this.tokenSize;
+        const intendedTop = center.y - this.tokenSize / 2 + jitterY;
+        const intendedLeft = center.x - this.tokenSize / 2 + jitterX;
+
         positions.push({
-          top: center.y - this.tokenSize / 2 + jitterY,
-          left: center.x - this.tokenSize / 2 + jitterX,
+          top: maxTop >= minTop ? Math.min(maxTop, Math.max(minTop, intendedTop)) : center.y - this.tokenSize / 2,
+          left: maxLeft >= minLeft ? Math.min(maxLeft, Math.max(minLeft, intendedLeft)) : center.x - this.tokenSize / 2,
         });
       }
 
@@ -585,6 +636,16 @@ class BoardgameSpatialBoard extends LitElement {
     }
 
     this._layerPositions = result;
+  }
+
+  private _validateRenderInputs(): void {
+    if (!Number.isFinite(this.tokenSize) || this.tokenSize <= 0) {
+      throw new Error('boardgame-spatial-board: tokenSize must be a finite positive number');
+    }
+    const modes = [this.pieces.length > 0, this.stack !== null, this.stacks.length > 0].filter(Boolean).length;
+    if (modes > 1) {
+      throw new Error('boardgame-spatial-board: choose exactly one of pieces, stack, or stacks');
+    }
   }
 
   private _geometryInspection(): string {
@@ -619,7 +680,9 @@ class BoardgameSpatialBoard extends LitElement {
     const hasStacks = stacks.length > 0;
 
     return html`
-      <div id="board-wrapper">
+      <div id="board-wrapper" role="region" aria-label=${this.boardLabel}
+        aria-describedby=${this.boardDescription ? 'board-description' : undefined}>
+        ${this.boardDescription ? html`<span id="board-description" hidden>${this.boardDescription}</span>` : ''}
         <p id="status" role="status" aria-live="polite" ?hidden=${!this._loadError}>
           ${this._loadError ? html`Board artwork could not be loaded: ${this._loadError}
             <button type="button" @click=${this._loadSvg}>Retry</button>` : ''}

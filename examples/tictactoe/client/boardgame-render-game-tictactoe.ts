@@ -33,7 +33,7 @@ class BoardgameRenderGameTictactoe extends GameRenderer {
       </boardgame-deck-defaults>
       <boardgame-game-board
         rows="3" cols="3"
-        .stack=${slots}
+        .stack=${slots ?? null}
         .action=${places}>
       </boardgame-game-board>
       <boardgame-fading-text

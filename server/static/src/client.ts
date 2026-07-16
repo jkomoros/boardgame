@@ -52,9 +52,8 @@ export type {
 export type {
   BoardPiece,
   BoardGeometry,
+  BoardGeometryFactory,
   BoardGeometrySpace,
-  ResolvedBoardGeometry,
-  ResolvedBoardGeometrySpace,
   SpatialBoardKey,
 } from './components/spatial-board-geometry.js';
 export { piecesFromSizedStacks } from './components/spatial-board-geometry.js';

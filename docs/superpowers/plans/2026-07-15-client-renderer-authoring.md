@@ -731,7 +731,7 @@ do not make `TargetAction` a workflow DSL.
 - [x] Keep pieces/markers in a separate pointer-events-safe layer and expose
   stable animation anchors without obscuring component interaction or animation
   measurement.
-- [ ] Transform each element through its own/ancestor CTM, not only the root SVG.
+- [x] Transform each element through its own/ancestor CTM, not only the root SVG.
   Test nested transformed groups, nonzero `viewBox`, `preserveAspectRatio`
   letterboxing modes, CSS/container resize, page zoom, polygon/path regions,
   distinct region/focus/piece anchors, and rapid ResizeObserver notifications
@@ -748,10 +748,12 @@ do not make `TargetAction` a workflow DSL.
   full Monroe migration waits for typed component rendering. Prove custom visuals
   remain ordinary game-owned Lit/SVG.
 
-Task 9 proof: framework commits `7ce5833e`, `145fb0a9`, and `13446504`
+Task 9 proof: framework commits `7ce5833e`, `145fb0a9`, `13446504`,
+`bc105a38`, and `05b00e0f`
 provide the authored-geometry primitive, the nested move-context generation
 fix exposed by `MoveOnGraph`, and explicit sentinel-slot projection. Games
-branch `client-authored-spatial-monroe` commit `3f8ddfd` annotates all 24 real
+branch `client-authored-spatial-monroe` commits `3f8ddfd` and `35f5d69`
+annotate all 24 real
 room regions, replaces the proposal handler and closed-room array with one
 typed target collection, and projects every player/Monroe location stack with
 an explicit unknown sentinel. The isolated strict client checker reports zero
@@ -772,15 +774,49 @@ edges, and vertices follow without changing the action contract.
   `type-check:authoring`; unit tests; exact renderer fixture specs; keyboard/axe;
   320/768/1280 and 200%-text checks; scaffold conformance; and the existing
   animation/companion specs touching modified primitives.
-- [ ] Run a scaffold-from-clean-temporary-directory conformance test.
-- [ ] Have one adversarial reviewer inspect public API elegance and type escape
+- [x] Run a scaffold-from-clean-temporary-directory conformance test.
+- [x] Have one adversarial reviewer inspect public API elegance and type escape
   hatches, one inspect real-game migration and creator code, and one inspect
   build/test robustness.
-- [ ] Compare success metrics and record unresolved design questions.
+- [x] Compare success metrics and record unresolved design questions.
 - [ ] Record framework and games branch names, SHAs, clean/dirty status, tests,
   remaining legacy-debt counts, and the framework minimum required by the games
   migration.
 - [ ] Stop and ask for user review before implementing the later roadmap.
+
+Task 10 review pass (2026-07-16): three independent adversarial reviews covered
+the public API, Monroe migration, and build/generation lifecycle. Their blocking
+findings were fixed: root SVG attributes are sanitized, custom geometry is a
+callback over the actual sanitized SVG, action dispatch follows explicit regions
+and covered sibling artwork, invalid artwork is removed, duplicate/orphan anchors
+fail loudly, canonical keys cannot collide, inspector work is opt-in and bounded,
+piece jitter is contained, contradictory rendering modes and invalid token sizes
+fail loudly, and the artwork has one deliberate accessibility model. Generator
+keys now default to strings with explicit safe numeric opt-in; filename collisions,
+orphan outputs, size/root/namespace mismatches, read-only packages, and non-atomic
+writes are handled. The starter `-d` path bug was fixed and new games now receive
+strict Lit TypeScript renderer stubs rather than Polymer JavaScript.
+
+Validation matrix so far:
+
+- `go test ./...`: pass, including generator, gametypes, static assembly, stub,
+  API, examples, animation, and companion packages.
+- `npm run type-check`, `type-check:authoring`, `test:unit` (69/69),
+  `test:check-client` (12/12), `test:facade-production`, and `build`: pass.
+- Full renderer Playwright suite: 11/11 pass, including keyboard/axe, root SVG
+  sanitizer attacks, explicit sidecar activation, sibling-overlay hit testing,
+  anchor separation, stale-load races, visible failures, and inspector output.
+- Clean temporary-module `stub -f -d ... authoringproof`: pass; output contains
+  `.ts` Lit renderers and no legacy `.js` renderer.
+- Monroe: `go test ./murdermrmonroe` passes; the full games checker reports no
+  Monroe diagnostic and accepts the numeric authored-board contract.
+
+Known debt discovered by the full games checker is outside Monroe: Pass and
+Valentine remain legacy/unstrict and have stale move-input contracts. The
+transform matrix covers authored `preserveAspectRatio`, nested CTMs, page zoom,
+320/768/1280 widths, 200% text, and coalesced rapid resize while checking focus
+alignment and contained pieces. The later player-info base and typed
+component/deck renderer are still deliberately deferred roadmap seams.
 
 ## Migration and fatal-check rollout
 
