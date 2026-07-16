@@ -56,11 +56,21 @@ test('offline authentication preserves encoded identity fields through the real 
 });
 
 test('companion guest join validates room, seat options, and seat result through the real server', async ({ page }) => {
+  test.setTimeout(60_000);
   const email = 'typed-join-host@example.com';
-  const auth = await page.request.post('/api/auth', {
-    form: { uid: email, token: 'offline-test-token', email, displayname: 'Join Host' },
+  await page.goto('/');
+  await page.evaluate(({ email }) => {
+    localStorage.setItem('faux-firebase-email', email);
+    localStorage.setItem('faux-firebase-display-name', 'Join Host');
+  }, { email });
+  await page.evaluate(async () => {
+    const [{ store }, { firebaseSignIn }] = await Promise.all([
+      import('/src/store.ts'),
+      import('/src/actions/user.ts'),
+    ]);
+    store.dispatch(firebaseSignIn());
   });
-  expect(auth.ok()).toBe(true);
+  await expect(page.locator('boardgame-user')).toContainText('Join Host');
   const createdResponse = await page.request.post('/api/new/game', {
     form: { manager: 'blackjack', numplayers: '2', companionMode: '1' },
   });
@@ -72,7 +82,44 @@ test('companion guest join validates room, seat options, and seat result through
   const fields = created as Readonly<Record<string, unknown>>;
   expect(fields['Status']).toBe('Success');
   expect(fields['GameName']).toBe('blackjack');
+  expect(fields['GameID']).toEqual(expect.any(String));
   expect(fields['CompanionRoomCode']).toMatch(/^[A-Z]{4,5}$/);
+
+  const infoContract = await page.evaluate(async ({ gameID }) => {
+    const response = await fetch(`/api/game/blackjack/${encodeURIComponent(gameID)}/info`);
+    const payload: unknown = await response.json();
+    const { decodeGameInfoResponse } = await import('/src/types/server-response.ts');
+    try {
+      decodeGameInfoResponse(payload);
+      return { ok: true, error: '' };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }, { gameID: String(fields['GameID']) });
+  expect(infoContract).toEqual({ ok: true, error: '' });
+
+  await page.goto(`/game/blackjack/${encodeURIComponent(String(fields['GameID']))}`);
+  const table = page.locator('boardgame-render-game-blackjack-table');
+  await expect(table).toBeAttached({ timeout: 15_000 });
+  const roomLock = table.getByRole('checkbox', { name: 'Lock room (no new joins)' });
+  await expect(roomLock).toBeVisible();
+  const lockResponse = page.waitForResponse(response => (
+    response.request().method() === 'POST' && response.url().endsWith('/setRoomLock')
+  ));
+  await roomLock.check();
+  expect((await lockResponse).ok()).toBe(true);
+  await expect(roomLock).toBeChecked();
+  await expect(table.locator('.host-feedback')).toContainText('Room locked');
+
+  // Host actions are intentionally limited to one mutation per second.
+  await page.waitForTimeout(1_050);
+  const unlockResponse = page.waitForResponse(response => (
+    response.request().method() === 'POST' && response.url().endsWith('/setRoomLock')
+  ));
+  await roomLock.uncheck();
+  expect((await unlockResponse).ok()).toBe(true);
+  await expect(roomLock).not.toBeChecked();
+  await expect(table.locator('.host-feedback')).toContainText('Room unlocked');
 
   await page.goto(`/join?code=${encodeURIComponent(String(fields['CompanionRoomCode']))}`);
   await page.getByRole('button', { name: 'Continue as guest' }).click();

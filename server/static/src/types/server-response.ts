@@ -189,7 +189,9 @@ function decodeMoveForm(value: unknown, path: string): MoveForm {
   const Name = string(item['Name'], `${path}.Name`);
   const HelpText = string(item['HelpText'], `${path}.HelpText`, true);
   let Fields: MoveFormField[] | undefined;
-  if (item['Fields'] !== undefined) {
+  // Go encodes nil slices as null and populated slices as arrays. Both null
+  // and omission mean "this move has no creator-authored fields".
+  if (item['Fields'] !== undefined && item['Fields'] !== null) {
     Fields = array(item['Fields'], `${path}.Fields`, MAX_FORMS)
       .map((field, index) => decodeField(field, `${path}.Fields[${index}]`));
   }
@@ -198,7 +200,7 @@ function decodeMoveForm(value: unknown, path: string): MoveForm {
   optionalBoolean(item['LegalForAnyone'], `${path}.LegalForAnyone`);
   optionalBoolean(item['IsGatheringStart'], `${path}.IsGatheringStart`);
   let Preconditions: PreconditionEntry[] | undefined;
-  if (item['Preconditions'] !== undefined) {
+  if (item['Preconditions'] !== undefined && item['Preconditions'] !== null) {
     Preconditions = array(item['Preconditions'], `${path}.Preconditions`, MAX_FORMS)
       .map((entry, index) => decodePrecondition(entry, `${path}.Preconditions[${index}]`));
   }

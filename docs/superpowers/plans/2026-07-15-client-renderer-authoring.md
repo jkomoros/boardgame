@@ -1161,6 +1161,15 @@ First evidence-driven primitive tranche (2026-07-16):
   navigation. Reject cross-game identity, seat-policy, cardinality, and index
   contradictions, remove the join view's ambient `any`, and prove a real guest
   can create/enter a Blackjack room and land on its Hand renderer.
+- [x] Make Table host controls one typed mutation surface: serialize host
+  actions so rapid clicks cannot trip the shared rate limiter, disable and mark
+  controls busy while a mutation is pending, decode exact conventional-HTTP
+  success bodies, preserve useful server errors, reject contradictory lock
+  acknowledgements, and prove lock/unlock against the real companion server.
+  The real journey also exposed and fixed a strict-boundary drift: Go nil move
+  field/precondition slices arrive as `null`, so the game-info decoder now
+  normalizes that canonical empty representation instead of rejecting every
+  freshly created game containing a zero-input move.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

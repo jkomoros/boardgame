@@ -47,6 +47,14 @@ test('game-info decoder validates and normalizes optional collections', () => {
   assert.equal(decoded.Players[0].DisplayName, 'Ada');
 });
 
+test('game-info decoder normalizes Go nil move slices', () => {
+  const decoded = decodeGameInfoResponse({
+    ...info(),
+    Forms: [{ Name: 'Done', HelpText: '', Fields: null, Preconditions: null }],
+  });
+  assert.deepEqual(decoded.Forms, [{ Name: 'Done', HelpText: '' }]);
+});
+
 test('game-info decoder names malformed nested server fields', () => {
   const malformedState = info();
   malformedState.Game.CurrentState.Players = {} as unknown as object[];

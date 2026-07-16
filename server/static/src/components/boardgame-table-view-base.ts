@@ -3,6 +3,8 @@ import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { FullGameState } from '../types/boardgame-types.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
+import { apiHttpPost, buildGameUrl, type ApiResponse } from '../api.js';
+import { decodeHostActionResponse } from '../types/host-action-response.js';
 import { apiPath } from '../util.js';
 import './boardgame-game-outcome.js';
 
@@ -160,6 +162,9 @@ export class BoardgameTableViewBase<
   @state()
   private _hostFeedback = '';
 
+  @state()
+  private _hostActionPending: 'lock' | 'solo' | 'skip' | null = null;
+
   private _hostFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   private _showHostFeedback(msg: string) {
@@ -198,10 +203,11 @@ export class BoardgameTableViewBase<
   protected renderHostControls(): TemplateResult {
     if (!this.isHost) return html``;
     return html`
-      <div class="host-controls">
+      <div class="host-controls" aria-busy=${this._hostActionPending !== null ? 'true' : 'false'}>
         <label>
           <input type="checkbox"
             .checked=${this.roomLocked}
+            ?disabled=${this._hostActionPending !== null}
             @change=${(e: Event) => this._onLockRoomToggle((e.target as HTMLInputElement).checked)}>
           Lock room (no new joins)
         </label>
@@ -209,14 +215,16 @@ export class BoardgameTableViewBase<
           ? html`
             <div class="switch-to-solo-confirm">
               <span class="warning-text">This may reveal hidden info and cannot be undone.</span>
-              <button class="switch-to-solo danger" @click=${this._onSwitchToSolo}>
+              <button class="switch-to-solo danger" ?disabled=${this._hostActionPending !== null}
+                @click=${this._onSwitchToSolo}>
                 Yes, switch to solo
               </button>
-              <button @click=${this._cancelSwitchToSolo}>Cancel</button>
+              <button ?disabled=${this._hostActionPending !== null} @click=${this._cancelSwitchToSolo}>Cancel</button>
             </div>
           `
           : html`
-            <button class="switch-to-solo" @click=${this._onSwitchToSolo}>
+            <button class="switch-to-solo" ?disabled=${this._hostActionPending !== null}
+              @click=${this._onSwitchToSolo}>
               Switch to solo mode
             </button>
           `
@@ -280,20 +288,25 @@ export class BoardgameTableViewBase<
 
   private async _onLockRoomToggle(locked: boolean) {
     if (!this.gameName || !this.gameId) return;
+    if (this._hostActionPending !== null) {
+      this.requestUpdate();
+      return;
+    }
+    this._hostActionPending = 'lock';
     try {
-      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/setRoomLock`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locked }),
-        credentials: 'include',
-      });
-      if (res.ok) {
-        this._showHostFeedback(locked ? 'Room locked' : 'Room unlocked');
-      } else {
-        this._showHostFeedback('Failed to update lock');
+      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'setRoomLock'), { locked });
+      if (!response.data) {
+        this._showHostFeedback(this._hostActionError(response, 'Failed to update lock'));
+        return;
       }
-    } catch (e) {
-      this._showHostFeedback('Network error — lock toggle failed');
+      const result = decodeHostActionResponse(response.data);
+      if (result.locked !== locked) throw new Error('Server returned contradictory room lock state');
+      this.roomLocked = locked;
+      this._showHostFeedback(locked ? 'Room locked' : 'Room unlocked');
+    } catch (error) {
+      this._showHostFeedback(`Lock toggle failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this._hostActionPending = null;
     }
   }
 
@@ -322,19 +335,25 @@ export class BoardgameTableViewBase<
     this._switchToSoloConfirming = false;
     if (this._switchToSoloTimer) clearTimeout(this._switchToSoloTimer);
     if (!this.gameName || !this.gameId) return;
+    if (this._hostActionPending !== null) return;
+    this._hostActionPending = 'solo';
     try {
-      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/switchToSolo`), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        this._showHostFeedback('Switching to solo mode...');
-      } else {
-        this._showHostFeedback('Switch to solo failed');
+      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'switchToSolo'), {});
+      if (!response.data) {
+        this._showHostFeedback(this._hostActionError(response, 'Switch to solo failed'));
+        return;
       }
-    } catch (e) {
-      this._showHostFeedback('Network error — switch to solo failed');
+      decodeHostActionResponse(response.data);
+      this._showHostFeedback('Switching to solo mode...');
+    } catch (error) {
+      this._showHostFeedback(`Switch to solo failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this._hostActionPending = null;
     }
+  }
+
+  private _hostActionError(response: ApiResponse<unknown>, fallback: string): string {
+    return response.error || response.friendlyError || fallback;
   }
 
   /**
@@ -440,7 +459,8 @@ export class BoardgameTableViewBase<
         <div class="seat-avatar">${glyphForSlug(seat.avatarSlug)}</div>
         <div class="seat-name">${seat.displayName}</div>
         ${absent ? html`<div class="seat-waiting">Waiting…</div>` : ''}
-        ${showSkip ? html`<button class="seat-skip" @click=${() => this._onSkipTurn(seat.playerIndex)}>Skip turn</button>` : ''}
+        ${showSkip ? html`<button class="seat-skip" ?disabled=${this._hostActionPending !== null}
+          @click=${() => this._onSkipTurn(seat.playerIndex)}>Skip turn</button>` : ''}
       </div>
     `;
   }
@@ -450,25 +470,26 @@ export class BoardgameTableViewBase<
       this._showHostFeedback('Cannot skip — game info not loaded yet');
       return;
     }
+    if (this._hostActionPending !== null) return;
+    this._hostActionPending = 'skip';
     try {
-      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/hostSkipTurn`), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Skip failed' }));
-        if (res.status === 429) {
+      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'hostSkipTurn'), {});
+      if (!response.data) {
+        if (response.status === 429) {
           this._showHostFeedback('Please wait a moment before skipping again');
-        } else if (res.status === 409) {
+        } else if (response.status === 409) {
           this._showHostFeedback('Player is not absent yet — wait for them to disconnect');
         } else {
-          this._showHostFeedback(body.error || 'Skip failed');
+          this._showHostFeedback(this._hostActionError(response, 'Skip failed'));
         }
         return;
       }
+      decodeHostActionResponse(response.data);
       this._showHostFeedback('Turn skipped');
-    } catch (e) {
-      this._showHostFeedback('Network error — check your connection');
+    } catch (error) {
+      this._showHostFeedback(`Skip failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this._hostActionPending = null;
     }
   }
 
