@@ -42,18 +42,22 @@ private readonly cards = cardView<GameState['DrawStack']>({
 });
 
 render() {
-  return html`<boardgame-component-stack
+  return html`<boardgame-component-zone
+    label="Won cards"
     layout="stack"
     .stack=${this.state?.Players[0]?.WonCards ?? null}
-    .componentView=${this.cards}
-    components-disabled>
-  </boardgame-component-stack>`;
+    .componentView=${this.cards}>
+  </boardgame-component-zone>`;
 }
 ```
 
 The view context explicitly distinguishes visible, hidden, and empty slots. The
-stack retains stable component hosts across state snapshots so card identity,
-focus, pooling, and movement animation continue to work.
+zone adds a semantic heading, count, empty state, responsive surface, CSS parts,
+and theme tokens, and makes an actionless stack display-only automatically. Its
+internal stack retains stable component hosts across state snapshots so card
+identity, focus, pooling, and movement animation continue to work. Use the
+lower-level `boardgame-component-stack` directly for board/spatial geometry or
+unusual animation plumbing.
 
 Stack layout is a closed TypeScript contract: `stack`, `grid`, `fan`, `pile`,
 `spread`, `board`, or `spatial`. Use `isStackLayout()` to narrow values from a
@@ -70,12 +74,13 @@ const reveals = this.move(MoveNames.RevealCard).targets(
   CardIndex => ({ CardIndex }),
 );
 
-return html`<boardgame-component-stack
+return html`<boardgame-component-zone
+  label="Cards"
   layout="grid"
   .stack=${cards}
   .componentView=${this.cards}
   .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
-</boardgame-component-stack>`;
+</boardgame-component-zone>`;
 ```
 
 For more complex processing, render ordinary Lit content from the view or use

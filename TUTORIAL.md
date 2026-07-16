@@ -1495,19 +1495,29 @@ must return a fresh registered component element of one consistent type; invalid
 factories fail loudly.
 
 Then stamping those components is as simple as binding a sanitized stack to a
-`boardgame-component-stack` from your Lit renderer:
+`boardgame-component-zone` from your Lit renderer:
 
 ```typescript
-html`<boardgame-component-stack
+html`<boardgame-component-zone
+  label="Won cards"
   layout="stack"
   messy
   .stack=${this.state?.Players[0]?.WonCards ?? null}
-  .componentView=${this.cards}
-  components-disabled>
-</boardgame-component-stack>`
+  .componentView=${this.cards}>
+</boardgame-component-zone>`
 ```
 
-The stack creates stable card hosts and rerenders their light-DOM content with
+The zone supplies a named semantic region, visible heading, occupied-item count,
+responsive surface, empty state, CSS parts, and theme tokens. With no actions it
+automatically makes every component display-only. Add `.componentActions` and
+the exact bound actions control interactivity, so there is no separate disabled
+flag to forget. Use `hide-count` or `hide-empty-state` only when those automatic
+elements are inappropriate. Use its `heading-actions` slot for small zone-local controls and
+its default slot for status or callout content. Drop down to
+`boardgame-component-stack` when you need board/spatial geometry or unusual
+animation plumbing.
+
+The internal stack creates stable card hosts and rerenders their light-DOM content with
 Lit whenever their logical slot changes. The view is local to this renderer, so
 two games may use the same deck name without a global registration collision.
 
@@ -1534,11 +1544,13 @@ const reveals = this.move(MoveNames.RevealCard).targets(
   CardIndex => ({ CardIndex }),
 );
 
-return html`<boardgame-component-stack
+return html`<boardgame-component-zone
+  label="Cards"
   layout="grid"
   .stack=${cards}
+  .componentView=${this.cards}
   .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
-</boardgame-component-stack>`;
+</boardgame-component-zone>`;
 ```
 
 That is the complete common-case interaction wiring. The stack owns pointer and

@@ -1,8 +1,6 @@
 import { css, html, cardView } from '../../src/client.js';
 import { GameRenderer } from './_game_renderer.js';
 import type { GameState } from './_types.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-fading-text.js';
 import { MoveNames } from './_move_names.js';
 
 class BoardgameRenderGameCheckers extends GameRenderer {
@@ -19,28 +17,30 @@ class BoardgameRenderGameCheckers extends GameRenderer {
 
   override render() {
     return html`
-      <boardgame-component-stack
+      <boardgame-component-zone
+        label="Draw pile"
         .stack=${this.state?.Game.DrawStack ?? null}
         .componentView=${this.cards}
         layout="stack" messy>
-      </boardgame-component-stack>
-      <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
-        Draw a card
-      </boardgame-action-button>
+      </boardgame-component-zone>
+      <boardgame-action-bar label="Turn actions">
+        <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
+          Draw a card
+        </boardgame-action-button>
+      </boardgame-action-bar>
       <div class="players">
         ${this.state?.Players.map((player, index) => html`
-          <section class="player">
-            <strong>Player ${index + 1}</strong>
-            <boardgame-component-stack
+          <boardgame-component-zone
+              class="player"
+              label="Player ${index + 1} hand"
               .stack=${player.Hand}
               .componentView=${this.cards.withProperties({ rotated: true })}
               layout="fan" messy>
-            </boardgame-component-stack>
             <boardgame-fading-text
               .trigger=${player.Computed?.GameScore ?? 0}
               auto-message="diff-up">
             </boardgame-fading-text>
-          </section>
+          </boardgame-component-zone>
         `)}
       </div>
       <boardgame-fading-text

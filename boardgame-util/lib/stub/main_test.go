@@ -57,15 +57,21 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 	playerInfo := string(contents["checkers/client/boardgame-render-player-info-checkers.ts"])
 	for _, required := range []string{
 		"cardView<GameState['DrawStack']>",
+		"<boardgame-component-zone",
+		"label=\"Draw pile\"",
 		".componentView=${this.cards}",
 		"component.Values.Value",
 		".componentView=${this.cards.withProperties({ rotated: true })}",
 		"<boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>",
+		"<boardgame-action-bar label=\"Turn actions\">",
 		"player.Computed?.GameScore ?? 0",
 	} {
 		if !strings.Contains(client, required) {
 			t.Errorf("generated client is missing %q", required)
 		}
+	}
+	if strings.Contains(client, "import '../../src/components/") {
+		t.Error("generated renderer should register supported primitives through the public client facade")
 	}
 	if !strings.Contains(playerInfo, ".value=${this.playerState?.Hand.Indexes.length ?? 0}") {
 		t.Error("generated player info does not use the typed status-text value API")

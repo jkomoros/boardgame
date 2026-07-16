@@ -994,6 +994,15 @@ First evidence-driven primitive tranche (2026-07-16):
   unknown layouts or invalid numeric/spatial geometry loudly. Prove the contract
   with negative TypeScript fixtures, a browser diagnostic matrix, and the full
   external-game checker before wrapping it in a higher-level zone.
+- [x] Add `boardgame-component-zone` as the evidence-backed card/token
+  composition over ordinary stack, fan, grid, pile, and spread layouts. Its
+  one required label supplies visible/semantic naming; count, empty state,
+  responsive styling, parts, and tokens are automatic; no-action zones fail
+  safe as display-only while bound per-slot actions opt into interaction.
+  Keep board/spatial layouts on their dedicated lower layer. Prove the facade,
+  strict negative contracts, runtime diagnostics, slot/style hooks, and real
+  animation identity; migrate Blackjack, Murder Mr Monroe, and generated
+  `boardgame-util stub` output as independent framework/corpus/scaffold proofs.
 
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design

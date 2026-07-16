@@ -793,8 +793,6 @@ const templateContentsRenderGameTs = `import { css, html{{if .EnableExampleClien
 import { GameRenderer } from './_game_renderer.js';
 {{- if .EnableExampleClient }}
 import type { GameState } from './_types.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-fading-text.js';
 {{- end}}
 {{- if .EnableExampleMoves }}
 import { MoveNames } from './_move_names.js';
@@ -817,30 +815,32 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]
-      <boardgame-component-stack
+      <boardgame-component-zone
+        label="Draw pile"
         .stack=${this.state?.Game.DrawStack ?? null}
         .componentView=${this.cards}
         layout="stack" messy>
-      </boardgame-component-stack>
+      </boardgame-component-zone>
       {{- if .EnableExampleMoves }}
-      <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
-        Draw a card
-      </boardgame-action-button>
+      <boardgame-action-bar label="Turn actions">
+        <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
+          Draw a card
+        </boardgame-action-button>
+      </boardgame-action-bar>
       {{- end}}
       <div class="players">
         ${this.state?.Players.map((player, index) => html[[BACKTICK]]
-          <section class="player">
-            <strong>Player ${index + 1}</strong>
-            <boardgame-component-stack
+          <boardgame-component-zone
+              class="player"
+              label="Player ${index + 1} hand"
               .stack=${player.Hand}
               .componentView=${this.cards.withProperties({ rotated: true })}
               layout="fan" messy>
-            </boardgame-component-stack>
             <boardgame-fading-text
               .trigger=${player.Computed?.GameScore ?? 0}
               auto-message="diff-up">
             </boardgame-fading-text>
-          </section>
+          </boardgame-component-zone>
         [[BACKTICK]])}
       </div>
       <boardgame-fading-text

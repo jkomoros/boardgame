@@ -47,37 +47,37 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
   override render() {
     return html`
       <div id="draw">
-        <boardgame-component-stack
+        <boardgame-component-zone
+          label="Draw pile"
           .stack="${this.state?.Game?.DrawStack}"
           .componentView=${this.cards}
           layout="stack"
-          messy
-          components-disabled>
-        </boardgame-component-stack>
+          messy>
+        </boardgame-component-zone>
         <boardgame-action-bar class="flex" label="Blackjack actions">
           <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
           <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
         </boardgame-action-bar>
-        <boardgame-component-stack
+        <boardgame-component-zone
+          label="Discard pile"
           .stack="${this.state?.Game?.DiscardStack}"
           .componentView=${this.cards}
           layout="stack"
           messy>
-        </boardgame-component-stack>
+        </boardgame-component-zone>
       </div>
       <div id="players">
         ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
-          <div class="player flex ${this._bustedClass(player.Eliminated)}">
-            <strong>Player ${index}</strong>
-            <boardgame-component-stack
+          <boardgame-component-zone
+              class="player flex ${this._bustedClass(player.Eliminated)}"
+              label="Player ${index} hand"
               .stack="${player.Hand}"
               .componentView=${this.cards.withProperties({ rotated: true })}
               layout="fan"
               messy>
               <boardgame-fading-text .trigger="${player.Eliminated}" message="Busted!"></boardgame-fading-text>
               <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
-            </boardgame-component-stack>
-          </div>
+          </boardgame-component-zone>
         `)}
       </div>
       <boardgame-fading-text

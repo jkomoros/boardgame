@@ -69,6 +69,7 @@ export type { ComponentView, ComponentViewContext, ComponentViewOptions } from '
 export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';
 export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
+export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export { isStackLayout } from './components/boardgame-component-stack.js';
 export type { StackLayout } from './components/boardgame-component-stack.js';
 export type {
@@ -88,5 +89,6 @@ import './components/boardgame-die.js';
 import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';
+import './components/boardgame-component-zone.js';
 import './components/boardgame-status-text.js';
 import './components/boardgame-spatial-board.js';

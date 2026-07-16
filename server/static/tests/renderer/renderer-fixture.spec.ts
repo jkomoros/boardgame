@@ -729,6 +729,110 @@ test('component stack exposes its real closed layout contract and rejects invali
   }
 });
 
+test('component zone makes a named stack region, count, and empty state the default', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/client.ts');
+      const zone = document.createElement('boardgame-component-zone');
+      zone.label = 'Draw pile';
+      zone.layout = 'fan';
+      zone.headingLevel = 3;
+      zone.stack = null;
+      zone.messy = true;
+      const headingAction = document.createElement('button');
+      headingAction.slot = 'heading-actions';
+      headingAction.textContent = 'Inspect';
+      zone.append(headingAction);
+      document.body.append(zone);
+      await zone.updateComplete;
+      const stack = zone.shadowRoot?.querySelector('boardgame-component-stack');
+      if (!stack) throw new Error('component zone did not render its stack');
+      await stack.updateComplete;
+      const section = zone.shadowRoot?.querySelector('section');
+      const heading = zone.shadowRoot?.querySelector('#label');
+      const count = zone.shadowRoot?.querySelector('#count');
+      const empty = zone.shadowRoot?.querySelector('#empty');
+      const headingSlot = zone.shadowRoot?.querySelector('slot[name="heading-actions"]') as HTMLSlotElement | null;
+      const defaults = {
+        sectionLabel: section?.getAttribute('aria-labelledby'),
+        zonePart: section?.getAttribute('part'),
+        heading: heading?.textContent,
+        headingRole: heading?.getAttribute('role'),
+        headingLevel: heading?.getAttribute('aria-level'),
+        count: count?.textContent,
+        countLabel: count?.getAttribute('aria-label'),
+        empty: empty?.textContent,
+        assignedHeadingActions: headingSlot?.assignedElements().length,
+        stack: {
+          layout: stack.layout,
+          messy: stack.messy,
+          disabled: stack.componentsDisabled,
+          part: stack.getAttribute('part'),
+        },
+      };
+
+      zone.hideCount = true;
+      zone.hideEmptyState = true;
+      await zone.updateComplete;
+      const suppressed = {
+        count: zone.shadowRoot?.querySelector('#count') !== null,
+        empty: zone.shadowRoot?.querySelector('#empty') !== null,
+      };
+
+      const renderError = (name: string, value: unknown) => {
+        const element = document.createElement('boardgame-component-zone') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        element.label = 'Zone';
+        element[name] = value;
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const blankLabel = renderError('label', '  ');
+      const invalidHeading = renderError('headingLevel', 7);
+      const boardLayout = renderError('layout', 'board');
+      const blankEmpty = (() => {
+        const element = document.createElement('boardgame-component-zone');
+        element.label = 'Zone';
+        element.emptyLabel = ' ';
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      })();
+      zone.remove();
+      return { defaults, suppressed, blankLabel, invalidHeading, boardLayout, blankEmpty };
+    });
+
+    expect(result.defaults).toEqual({
+      sectionLabel: 'label',
+      zonePart: 'zone',
+      heading: 'Draw pile',
+      headingRole: 'heading',
+      headingLevel: '3',
+      count: '0',
+      countLabel: '0 items',
+      empty: 'Empty',
+      assignedHeadingActions: 1,
+      stack: { layout: 'fan', messy: true, disabled: true, part: 'stack' },
+    });
+    expect(result.suppressed).toEqual({ count: false, empty: false });
+    expect(result.blankLabel).toContain('label must be a non-empty visible and accessible name');
+    expect(result.invalidHeading).toContain('headingLevel must be a safe integer from 1 through 6');
+    expect(result.boardLayout).toContain('board and spatial layouts use their dedicated components');
+    expect(result.blankEmpty).toContain('emptyLabel must be non-empty');
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
