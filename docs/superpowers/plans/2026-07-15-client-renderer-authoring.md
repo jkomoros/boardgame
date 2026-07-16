@@ -919,6 +919,15 @@ First component-view tranche (2026-07-16):
   without losing stable identity or preview state; omitted context-owned move
   fields now retain server defaults while omitted required creator input still
   fails loudly. The real socket/bundle/Table/Hand/auto-fly Hit test passes.
+- [x] Migrate every remaining framework example and external game renderer off
+  the global deck-template registry. Pass and Valentine prove ordinary card and
+  token recipes in the external corpus; DebugAnimations proves typed card/token
+  views across hidden, sanitized, faux, pooled, grid, pile, fan, and stack
+  transitions. Its real slow-animation To Hidden/To Visible gate test passes.
+
+With no known game-owned `<boardgame-deck-defaults>` registrations remaining,
+the legacy registry and moustache-binding fallback can now be removed rather
+than retained as a second authoring model.
 
 ### D. Evidence-driven compositions
 
