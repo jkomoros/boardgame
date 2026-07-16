@@ -3,11 +3,11 @@ import { customElement } from 'lit/decorators.js';
 import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-action-button.js';
+import { cardView } from '../../src/client.js';
 import { MoveNames, type MoveName } from './_move_names.js';
 import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
-import type { ComponentCatalog, State } from './_types.js';
+import type { ComponentCatalog, GameState, State } from './_types.js';
 
 /**
  * Blackjack Hand view (the player's phone). Connects as PlayerIndex(n);
@@ -21,6 +21,12 @@ import type { ComponentCatalog, State } from './_types.js';
 export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
 	protected override readonly moveInputSchema = generatedMoveInputSchema;
 	protected override readonly moveInputSchemaFingerprint = generatedMoveInputSchemaFingerprint;
+  private readonly cards = cardView<GameState['DrawStack']>({
+    properties: ({ kind, component }) => ({
+      suit: kind === 'visible' ? component.Values.Suit : '',
+      rank: kind === 'visible' ? component.Values.Rank : '',
+    }),
+  });
   static override styles = [
     BoardgameHandViewBase.styles,
     css`
@@ -79,16 +85,11 @@ export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCat
       ${this.renderHandHeader()}
       <h1>Your Hand</h1>
       <div class="hand">
-        <boardgame-deck-defaults>
-          <template deck="cards">
-            <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-          </template>
-        </boardgame-deck-defaults>
         ${player?.HiddenHand
-          ? html`<boardgame-component-stack .stack=${player.HiddenHand} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.HiddenHand} .componentView=${this.cards} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
           : html`<small>waiting…</small>`}
         ${player?.VisibleHand
-          ? html`<boardgame-component-stack .stack=${player.VisibleHand} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.VisibleHand} .componentView=${this.cards} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
           : ''}
       </div>
       <div class="actions">

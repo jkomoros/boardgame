@@ -2,12 +2,20 @@ import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-card.js';
 import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-fading-text.js';
-import '../../src/components/boardgame-deck-defaults.js';
 import { html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MoveNames } from './_move_names.js';
+import { cardView } from '../../src/client.js';
+import type { GameState } from './_types.js';
 
 class BoardgameRenderGameBlackjack extends GameRenderer {
+  private readonly cards = cardView<GameState['DrawStack']>({
+    properties: ({ kind, component }) => ({
+      suit: kind === 'visible' ? component.Values.Suit : '',
+      rank: kind === 'visible' ? component.Values.Rank : '',
+    }),
+  });
+
   static override styles = [
     ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
@@ -38,14 +46,10 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
 
   override render() {
     return html`
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-        </template>
-      </boardgame-deck-defaults>
       <div id="draw">
         <boardgame-component-stack
           .stack="${this.state?.Game?.DrawStack}"
+          .componentView=${this.cards}
           layout="stack"
           messy
           .componentAttrs=${{ disabled: true }}>
@@ -56,6 +60,7 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
         </div>
         <boardgame-component-stack
           .stack="${this.state?.Game?.DiscardStack}"
+          .componentView=${this.cards}
           layout="stack"
           messy>
         </boardgame-component-stack>
@@ -66,6 +71,7 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
             <strong>Player ${index}</strong>
             <boardgame-component-stack
               .stack="${player.Hand}"
+              .componentView=${this.cards}
               layout="fan"
               messy
               .componentAttrs=${{ rotated: true }}>

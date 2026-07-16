@@ -903,8 +903,10 @@ First component-view tranche (2026-07-16):
   view path while retaining legacy deck templates only for incremental migration.
 - [x] Exercise dynamic values and a registered custom component host in the
   browser lifecycle proof, in addition to their strict compile contracts.
-- [ ] Prove both paths in real games, then migrate solo/companion Blackjack and
-  one external game before removing the global moustache registry.
+- [x] Prove both paths in real games and migrate solo/companion Blackjack; the
+  synchronized real Hit test proves renderer-scoped views preserve stable card
+  identity across socket delivery, queued bundles, Table/Hand FLIP, and auto-fly.
+- [ ] Migrate one external game before removing the global moustache registry.
 - [x] Repair the companion Blackjack baseline that blocked that proof: cached
   actions now notify subscribed controls when the live animation gate changes,
   without losing stable identity or preview state; omitted context-owned move

@@ -3,10 +3,10 @@ import { customElement } from 'lit/decorators.js';
 import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-deck-defaults.js';
+import { cardView } from '../../src/client.js';
 import type { MoveName } from './_move_names.js';
 import type { MoveInputs } from './_move_args.js';
-import type { ComponentCatalog, State } from './_types.js';
+import type { ComponentCatalog, GameState, State } from './_types.js';
 
 /**
  * Blackjack Table view (the shared projector). Connects as
@@ -23,6 +23,13 @@ import type { ComponentCatalog, State } from './_types.js';
  */
 @customElement('boardgame-render-game-blackjack-table')
 export class BlackjackTableView extends BoardgameTableViewBase<State, ComponentCatalog, MoveName, MoveInputs> {
+  private readonly cards = cardView<GameState['DrawStack']>({
+    properties: ({ kind, component }) => ({
+      suit: kind === 'visible' ? component.Values.Suit : '',
+      rank: kind === 'visible' ? component.Values.Rank : '',
+    }),
+  });
+
   static override styles = [
     BoardgameTableViewBase.styles,
     css`
@@ -95,14 +102,9 @@ export class BlackjackTableView extends BoardgameTableViewBase<State, ComponentC
       ${this.renderGameOverBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-        </template>
-      </boardgame-deck-defaults>
       <div class="draw">
         ${this.state?.Game?.DrawStack
-          ? html`<boardgame-component-stack id="deal-source" .stack=${this.state.Game.DrawStack} .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack id="deal-source" .stack=${this.state.Game.DrawStack} .componentView=${this.cards} .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
           : html`<small>waiting for state…</small>`}
       </div>
       <div class="seats">
@@ -111,10 +113,10 @@ export class BlackjackTableView extends BoardgameTableViewBase<State, ComponentC
             <div class="seat-name">${nameFor(i)} · ${p.Score} pts</div>
             <div class="seat-cards">
               ${p.VisibleHand
-                ? html`<boardgame-component-stack .stack=${p.VisibleHand} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+                ? html`<boardgame-component-stack .stack=${p.VisibleHand} .componentView=${this.cards} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
                 : ''}
               ${p.HiddenHand
-                ? html`<boardgame-component-stack .stack=${p.HiddenHand} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+                ? html`<boardgame-component-stack .stack=${p.HiddenHand} .componentView=${this.cards} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
                 : ''}
             </div>
             ${p.Stood ? html`<small>Standing</small>` : ''}
