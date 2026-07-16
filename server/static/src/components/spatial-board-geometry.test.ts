@@ -61,6 +61,7 @@ test('raster artwork freezes normalized geometry and rejects ambiguous inputs', 
       {
         key: 'library',
         label: 'Library',
+        group: 'rooms',
         order: 2,
         region: { shape: 'circle', center: { x: 0.25, y: 0.4 }, radius: 0.08 },
         pieceAnchor: { x: 0.3, y: 0.45 },
@@ -78,6 +79,7 @@ test('raster artwork freezes normalized geometry and rejects ambiguous inputs', 
   assert.ok(Object.isFrozen(artwork));
   assert.ok(Object.isFrozen(artwork.spaces));
   assert.ok(Object.isFrozen(artwork.spaces[0]?.region));
+  assert.equal(artwork.spaces[0]?.group, 'rooms');
   assert.throws(() => rasterBoardArtwork({ src: 'javascript:alert(1)', spaces: artwork.spaces }), /forbidden URL protocol/);
   assert.throws(() => rasterBoardArtwork({ src: 'data:image\/svg+xml,<svg\/>', spaces: artwork.spaces }), /supported raster image/);
   assert.throws(() => rasterBoardArtwork({ src: '/board.png', spaces: [{
@@ -90,6 +92,17 @@ test('raster artwork freezes normalized geometry and rejects ambiguous inputs', 
     key: 'bad', label: 'Bad', region: { shape: 'polygon', points: [{ x: 0, y: 0 }, { x: 0.5, y: 0.5 }, { x: 1, y: 1 }] },
   }] }), /positive area/);
   assert.throws(() => rasterBoardArtwork({ src: '/board.png', spaces: [artwork.spaces[0]!, artwork.spaces[0]!] }), /duplicate canonical/);
+  assert.throws(() => rasterBoardArtwork({ src: '/board.png', spaces: [{
+    ...artwork.spaces[0]!, group: ' rooms',
+  }] }), /surrounding whitespace/);
+  assert.doesNotThrow(() => rasterBoardArtwork({ src: '/board.png', spaces: [
+    { ...artwork.spaces[0]!, key: 'tile', group: 'tiles', order: 0 },
+    { ...artwork.spaces[0]!, key: 'vertex', group: 'vertices', order: 0 },
+  ] }));
+  assert.throws(() => rasterBoardArtwork({ src: '/board.png', spaces: [
+    { ...artwork.spaces[0]!, key: 'tile-a', group: 'tiles', order: 0 },
+    { ...artwork.spaces[0]!, key: 'tile-b', group: 'tiles', order: 0 },
+  ] }), /duplicate keyboard order 0 in group "tiles"/);
   assert.throws(() => rasterArtworkScene(artwork, 20_000, 100), /dimension or .*area limit/);
   assert.throws(() => rasterArtworkScene(artwork, 10_001, 10_001), /dimension or .*area limit/);
   const overflowing = rasterBoardArtwork({

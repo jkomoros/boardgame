@@ -2433,6 +2433,7 @@ contain punctuation; they are never interpolated into CSS selectors.
   <path data-board-space="library"
         data-board-label="Library"
         data-board-order="0"
+        data-board-group="rooms"
         d="..." />
 
   <!-- Optional: interaction, keyboard focus, and pieces may use distinct geometry. -->
@@ -2580,6 +2581,41 @@ configuration; `view` plus `setView(...)` support route-scoped persistence, and
 `board-viewport-change` with the same immutable `{ scale, x, y }` value. Panning
 is clamped after zoom, content resize, host resize, or a lower `max-scale`, so
 blank space cannot become the main view.
+
+A multi-purpose map may contain different target classes at once: for example,
+hex tiles, road edges, and settlement vertices. Give each raster descriptor
+space a `group` (or add `data-board-group` to SVG regions), then scope the
+current typed action explicitly:
+
+```ts
+const VertexGroup = 'vertices';
+const artwork = rasterBoardArtwork({
+  src: 'game-src/mygame/island.webp',
+  spaces: [
+    {
+      key: 'vertex:0:1',
+      label: 'North harbor intersection',
+      group: VertexGroup,
+      region: { shape: 'circle', center: { x: 0.31, y: 0.18 }, radius: 0.025 },
+    },
+    // Tile and edge regions may use their own groups in the same descriptor.
+  ],
+});
+
+return html`<boardgame-spatial-board
+  .artwork=${artwork}
+  action-group=${VertexGroup}
+  .action=${placeSettlementTargets}>
+</boardgame-spatial-board>`;
+```
+
+The action's candidate keys must still match every key in the selected group
+exactly—grouping does not weaken typo or omission detection. A missing group,
+candidate from another group, or incomplete candidate set fails loudly. Other
+regions remain available as piece/animation anchors but do not activate, appear
+in the current compact action list, or receive the visual treatment for an
+illegal candidate. Omit `action-group` for ordinary one-purpose boards; the
+existing exact match against all geometry remains the zero-configuration path.
 
 `spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
 `boxForSpace()`, and `tokenPosition()` remain migration adapters for older

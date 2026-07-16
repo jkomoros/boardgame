@@ -87,6 +87,11 @@ class BoardgameSpatialBoard extends LitElement {
       filter: none !important;
     }
 
+    [data-space].inactive {
+      cursor: default !important;
+      filter: none !important;
+    }
+
     [data-space].focused {
       filter: brightness(1.2) drop-shadow(0 0 4px Highlight);
       outline: 3px solid Highlight;
@@ -187,6 +192,10 @@ class BoardgameSpatialBoard extends LitElement {
   /** Headless legality/activation shared with grid and custom renderers. */
   @property({ type: Object, attribute: false })
   action: TargetAction<SpatialBoardKey> | null = null;
+
+  /** Exact geometry group targeted by action. Empty means every geometry key. */
+  @property({ type: String, attribute: 'action-group' })
+  actionGroup = '';
 
   /** Optional explicit sidecar. Omit to extract data-board-* attributes. */
   @property({ type: Object, attribute: false })
@@ -322,6 +331,10 @@ class BoardgameSpatialBoard extends LitElement {
 
     if (changedProperties.has('action')) this._subscribeAction();
 
+    if (changedProperties.has('actionGroup') && this._resolvedGeometry) {
+      this._revalidateActionConfiguration();
+    }
+
     if (changedProperties.has('disabledSpaces') && this.svgLoaded) {
       this._applyDisabledSpaces();
     }
@@ -382,6 +395,7 @@ class BoardgameSpatialBoard extends LitElement {
     this._container.insertBefore(svgElement, this._container.firstChild);
     const resolvedGeometry = resolveBoardGeometry(geometryForSvg(svgElement));
     this._resolvedGeometry = resolvedGeometry;
+    this._validateActionGroup();
     this._validateActionKeys();
     this._validateRenderInputs();
     void this.action?.ensurePreview();
@@ -530,6 +544,7 @@ class BoardgameSpatialBoard extends LitElement {
         }));
       }
     }
+    if (this._resolvedGeometry) this._applyDisabledSpaces();
   }
 
   private _refreshCandidates(): void {
@@ -538,7 +553,7 @@ class BoardgameSpatialBoard extends LitElement {
 
   private _validateActionKeys(): void {
     if (!this.action || !this._resolvedGeometry) return;
-    const geometryKeyList = this._resolvedGeometry.spaces.map(space => String(space.key));
+    const geometryKeyList = this._actionGeometrySpaces.map(space => String(space.key));
     const targetKeyList = this.action.candidates.map(candidate => String(candidate.key));
     const geometryKeys = new Set(geometryKeyList);
     const targetKeys = new Set(targetKeyList);
@@ -548,7 +563,44 @@ class BoardgameSpatialBoard extends LitElement {
     const missing = [...geometryKeys].filter(key => !targetKeys.has(key));
     const unknown = [...targetKeys].filter(key => !geometryKeys.has(key));
     if (missing.length || unknown.length) {
-      throw new Error(`boardgame-spatial-board: target keys do not match geometry; missing [${missing.join(', ')}], unknown [${unknown.join(', ')}]`);
+      const scope = this.actionGroup ? ` group ${JSON.stringify(this.actionGroup)}` : '';
+      throw new Error(`boardgame-spatial-board: target keys do not match geometry${scope}; missing [${missing.join(', ')}], unknown [${unknown.join(', ')}]`);
+    }
+  }
+
+  private get _actionGeometrySpaces(): ResolvedBoardGeometry<SpatialBoardKey>['spaces'] {
+    const spaces = this._resolvedGeometry?.spaces ?? [];
+    return this.actionGroup ? spaces.filter(space => space.group === this.actionGroup) : spaces;
+  }
+
+  private _validateActionGroup(): void {
+    if (!this._resolvedGeometry) return;
+    if (typeof this.actionGroup !== 'string' || (this.actionGroup && this.actionGroup !== this.actionGroup.trim())) {
+      throw new Error('boardgame-spatial-board: actionGroup must be empty or a non-empty string without surrounding whitespace');
+    }
+    if (this.actionGroup.length > 128 || /[\u0000-\u001f\u007f]/.test(this.actionGroup)) {
+      throw new Error('boardgame-spatial-board: actionGroup must be at most 128 characters without control characters');
+    }
+    if (this.actionGroup && this._actionGeometrySpaces.length === 0) {
+      const available = [...new Set(this._resolvedGeometry.spaces.map(space => space.group).filter(Boolean))];
+      throw new Error(`boardgame-spatial-board: actionGroup ${JSON.stringify(this.actionGroup)} has no geometry; available groups [${available.join(', ')}]`);
+    }
+  }
+
+  private _revalidateActionConfiguration(): void {
+    try {
+      this._validateActionGroup();
+      this._validateActionKeys();
+      this._loadError = null;
+      this._applyDisabledSpaces();
+      this.requestUpdate();
+    } catch (error) {
+      this._loadError = error instanceof Error ? error.message : String(error);
+      this._applyDisabledSpaces();
+      this.dispatchEvent(new CustomEvent('svg-load-error', {
+        composed: true,
+        detail: { message: this._loadError },
+      }));
     }
   }
 
@@ -562,6 +614,7 @@ class BoardgameSpatialBoard extends LitElement {
       if (candidate.action.canActivate) void candidate.action.activate();
       return;
     }
+    if (this.action) return;
     const index = Number(space.key);
     if (!Number.isInteger(index) || this.disabledSpaces.includes(index)) return;
     this.dispatchEvent(new CustomEvent('space-tapped', {
@@ -580,7 +633,9 @@ class BoardgameSpatialBoard extends LitElement {
         ? this.disabledSpaces.includes(space.key)
         : this.disabledSpaces.includes(Number(space.key));
       const actionDisabled = this.action ? !(this._candidateForSpace(space.key)?.action.canActivate ?? false) : false;
-      space.region.classList.toggle('disabled', legacyDisabled || actionDisabled);
+      const inactive = Boolean(this.action && !this._candidateForSpace(space.key));
+      space.region.classList.toggle('inactive', inactive);
+      space.region.classList.toggle('disabled', legacyDisabled || (actionDisabled && !inactive));
     }
   }
 
@@ -824,7 +879,8 @@ class BoardgameSpatialBoard extends LitElement {
     const lines = spaces.map(space => {
       const focus = this._focusPositions.get(String(space.key));
       const piece = this._elementCenterPixel(space.pieceAnchor);
-      return `${space.order}: ${String(space.key)} — ${space.label}; region=<${space.region.localName}>; `
+      return `${space.order}: ${String(space.key)} — ${space.label}; group=${space.group ?? 'all'}; `
+        + `region=<${space.region.localName}>; `
         + `focus=${focus ? `${focus.left.toFixed(1)},${focus.top.toFixed(1)}` : 'missing'}; `
         + `piece=${piece.x.toFixed(1)},${piece.y.toFixed(1)}`;
     });
@@ -846,9 +902,10 @@ class BoardgameSpatialBoard extends LitElement {
             ${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
               const position = this._focusPositions.get(String(space.key));
               const candidate = this._candidateForSpace(space.key);
+              if (this.action && !candidate) return '';
               const disabled = candidate
                 ? !candidate.action.canActivate
-                : this.disabledSpaces.includes(Number(space.key));
+                : this.action ? true : this.disabledSpaces.includes(Number(space.key));
               const reason = candidate?.action.reason?.message;
               return position ? html`<button
                 class="space-focus"
@@ -900,7 +957,7 @@ class BoardgameSpatialBoard extends LitElement {
         ${this._resolvedGeometry ? html`
           <details id="space-list">
             <summary>Board spaces</summary>
-            <div>${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
+            <div>${repeat(this.action ? this._actionGeometrySpaces : this._resolvedGeometry.spaces, space => space.key, space => {
               const candidate = this._candidateForSpace(space.key);
               const legacyDisabled = this.disabledSpaces.includes(Number(space.key));
               const disabled = candidate ? !candidate.action.canActivate : legacyDisabled;

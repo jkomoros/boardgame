@@ -47,6 +47,8 @@ export interface BoardGeometrySpace<Key extends SpatialBoardKey> {
   readonly key: Key;
   readonly label: string;
   readonly order?: number;
+  /** Optional interaction scope for multi-purpose maps (for example tiles, edges, vertices). */
+  readonly group?: string;
   /** Element carrying the real pointer-hit geometry. Defaults to the keyed region. */
   readonly region: SVGGraphicsElement;
   /** Element whose center receives keyboard focus and focus treatment. */
@@ -65,7 +67,9 @@ export type BoardGeometryFactory<Key extends SpatialBoardKey> = (
 ) => BoardGeometry<Key>;
 
 export interface ResolvedBoardGeometrySpace<Key extends SpatialBoardKey>
-  extends Required<BoardGeometrySpace<Key>> {}
+  extends Omit<Required<BoardGeometrySpace<Key>>, 'group'> {
+  readonly group: string | null;
+}
 
 export interface ResolvedBoardGeometry<Key extends SpatialBoardKey> {
   readonly spaces: readonly ResolvedBoardGeometrySpace<Key>[];
@@ -88,6 +92,7 @@ export interface NormalizedBoardSpace<Key extends SpatialBoardKey> {
   readonly key: Key;
   readonly label: string;
   readonly order?: number;
+  readonly group?: string;
   readonly region: NormalizedBoardRegion;
   readonly focusAnchor?: NormalizedBoardPoint;
   readonly pieceAnchor?: NormalizedBoardPoint;
@@ -127,7 +132,7 @@ export function rasterBoardArtwork<Key extends SpatialBoardKey>(
   }
   if (options.spaces.length > MAX_BOARD_SPACES) fail(`geometry exceeds the ${MAX_BOARD_SPACES}-space limit`);
   const keys = new Set<string>();
-  const orders = new Set<number>();
+  const orders = new Set<string>();
   const spaces = options.spaces.map((space, index) => {
     validateSpaceKey(space.key, index);
     const canonicalKey = String(space.key);
@@ -136,14 +141,16 @@ export function rasterBoardArtwork<Key extends SpatialBoardKey>(
     if (typeof space.label !== 'string' || !space.label.trim()) {
       fail(`space ${JSON.stringify(space.key)} has no accessible label`);
     }
+    const group = validateOptionalGroup(space.group, `space ${JSON.stringify(space.key)}`);
     const order = space.order ?? index;
     if (!Number.isSafeInteger(order) || order < 0) fail(`space ${JSON.stringify(space.key)} has invalid order ${order}`);
-    if (orders.has(order)) fail(`duplicate keyboard order ${order}`);
-    orders.add(order);
+    const scopedOrder = `${group ?? ''}\u0000${order}`;
+    if (orders.has(scopedOrder)) fail(`duplicate keyboard order ${order} in group ${JSON.stringify(group ?? 'all')}`);
+    orders.add(scopedOrder);
     const region = freezeRegion(space.region, space.key);
     const focusAnchor = space.focusAnchor ? freezePoint(space.focusAnchor, `space ${JSON.stringify(space.key)} focusAnchor`) : undefined;
     const pieceAnchor = space.pieceAnchor ? freezePoint(space.pieceAnchor, `space ${JSON.stringify(space.key)} pieceAnchor`) : undefined;
-    return Object.freeze({ key: space.key, label: space.label.trim(), order, region, focusAnchor, pieceAnchor });
+    return Object.freeze({ key: space.key, label: space.label.trim(), order, group, region, focusAnchor, pieceAnchor });
   });
   return Object.freeze({
     kind: 'raster' as const,
@@ -211,6 +218,7 @@ export function rasterArtworkScene<Key extends SpatialBoardKey>(
   const geometrySpaces = validated.spaces.map(space => {
     const region = createRegionElement(space.region, intrinsicWidth, intrinsicHeight);
     region.setAttribute('data-space', '');
+    if (space.group) region.setAttribute('data-board-group', space.group);
     region.setAttribute('fill', 'transparent');
     region.setAttribute('stroke', 'transparent');
     region.setAttribute('pointer-events', 'all');
@@ -223,7 +231,7 @@ export function rasterArtworkScene<Key extends SpatialBoardKey>(
       : undefined;
     if (focusAnchor) scene.append(focusAnchor);
     if (pieceAnchor) scene.append(pieceAnchor);
-    return { key: space.key, label: space.label, order: space.order, region, focusAnchor, pieceAnchor };
+    return { key: space.key, label: space.label, order: space.order, group: space.group, region, focusAnchor, pieceAnchor };
   });
   return Object.freeze({ svg, geometry: Object.freeze({ spaces: Object.freeze(geometrySpaces) }) });
 }
@@ -244,6 +252,16 @@ function validateSpaceKey(key: unknown, index: number): void {
     || (typeof key === 'number' && !Number.isFinite(key))) {
     fail(`space ${index} has an invalid key`);
   }
+}
+
+function validateOptionalGroup(group: unknown, description: string): string | undefined {
+  if (group === undefined) return undefined;
+  if (typeof group !== 'string' || !group.trim()) fail(`${description} group must be a non-empty string when provided`);
+  if (group !== group.trim()) fail(`${description} group must not have surrounding whitespace`);
+  if (group.length > 128 || /[\u0000-\u001f\u007f]/.test(group)) {
+    fail(`${description} group must be at most 128 characters without control characters`);
+  }
+  return group;
 }
 
 function freezePoint(point: NormalizedBoardPoint, description: string): Readonly<NormalizedBoardPoint> {
@@ -417,7 +435,7 @@ export function resolveBoardGeometry<Key extends SpatialBoardKey>(
     fail(`geometry exceeds the ${MAX_BOARD_SPACES}-space limit`);
   }
   const keys = new Set<string>();
-  const orders = new Set<number>();
+  const orders = new Set<string>();
   const resolved = geometry.spaces.map((space, index) => {
     if ((typeof space.key !== 'string' && typeof space.key !== 'number')
       || (typeof space.key === 'string' && !space.key.length)
@@ -429,15 +447,18 @@ export function resolveBoardGeometry<Key extends SpatialBoardKey>(
     keys.add(canonicalKey);
     const label = space.label.trim();
     if (!label) fail(`space ${JSON.stringify(space.key)} has no accessible label`);
+    const group = validateOptionalGroup(space.group, `space ${JSON.stringify(space.key)}`);
     const order = space.order ?? index;
     if (!Number.isInteger(order) || order < 0) fail(`space ${JSON.stringify(space.key)} has invalid order ${order}`);
-    if (orders.has(order)) fail(`duplicate keyboard order ${order}`);
-    orders.add(order);
+    const scopedOrder = `${group ?? ''}\u0000${order}`;
+    if (orders.has(scopedOrder)) fail(`duplicate keyboard order ${order} in group ${JSON.stringify(group ?? 'all')}`);
+    orders.add(scopedOrder);
     const region = graphicsElement(space.region, `space ${JSON.stringify(space.key)} region`);
     return Object.freeze({
       key: space.key,
       label,
       order,
+      group: group ?? null,
       region,
       focusAnchor: graphicsElement(space.focusAnchor ?? region, `space ${JSON.stringify(space.key)} focus anchor`),
       pieceAnchor: graphicsElement(space.pieceAnchor ?? region, `space ${JSON.stringify(space.key)} piece anchor`),
@@ -472,10 +493,12 @@ export function geometryFromSvg(svg: SVGSVGElement): BoardGeometry<string> {
         ?? element.getAttribute('aria-label')
         ?? title;
       const rawOrder = element.getAttribute('data-board-order');
+      const group = element.getAttribute('data-board-group') ?? undefined;
       return {
         key,
         label,
         order: rawOrder === null ? index : Number(rawOrder),
+        group,
         region: element as SVGGraphicsElement,
         focusAnchor: focusAnchors.get(key) as SVGGraphicsElement | undefined,
         pieceAnchor: pieceAnchors.get(key) as SVGGraphicsElement | undefined,

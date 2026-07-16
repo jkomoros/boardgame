@@ -16,8 +16,8 @@ declare const studyRegion: SVGGraphicsElement;
 const pieces = piecesFromSizedStacks([stack], keys);
 const geometry = {
   spaces: [
-    { key: keys[0], label: 'Library', region: libraryRegion },
-    { key: keys[1], label: 'Study', region: studyRegion, order: 1 },
+    { key: keys[0], label: 'Library', group: 'rooms', region: libraryRegion },
+    { key: keys[1], label: 'Study', group: 'rooms', region: studyRegion, order: 1 },
   ],
 } satisfies BoardGeometry<(typeof keys)[number]>;
 const geometryFactory = ((svg) => ({
@@ -38,6 +38,7 @@ const rasterArtwork = rasterBoardArtwork({
     {
       key: keys[0],
       label: 'Library',
+      group: 'rooms',
       region: { shape: 'circle', center: { x: 0.25, y: 0.4 }, radius: 0.1 },
       pieceAnchor: { x: 0.3, y: 0.5 },
     },
@@ -87,6 +88,7 @@ void wrongRasterKey;
 const spatialBoard = new BoardgameSpatialBoard();
 spatialBoard.panZoom = true;
 spatialBoard.maxZoom = 6;
+spatialBoard.actionGroup = 'rooms';
 spatialBoard.revealSpace(keys[0]);
 spatialBoard.resetViewport();
 // @ts-expect-error maxZoom is numeric

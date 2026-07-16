@@ -1079,8 +1079,12 @@ system phase.
   opt in with `pan-zoom`; only the graphic scene transforms while errors and the
   semantic space list remain stable. Transform-aware focus/piece calculations
   prevent double scaling.
-- Route/graph/hex games: named spaces, edges, vertices, routes, and layered
-  overlays without changing `TargetAction`.
+- Route/graph/hex games: geometry groups now let one strict `TargetAction` scope
+  itself to named tiles, edges, vertices, routes, or another creator-defined
+  class without weakening exact-key validation; SVG and raster descriptors share
+  the contract, inactive geometry remains available for pieces, and misspelled
+  groups fail visibly. Dynamic layered overlays remain to implement without
+  changing `TargetAction`.
 - Scrabble-like draft: local overlay, undo, version rebase, exact commit, and
   mandatory non-drag alternative.
 - Simultaneous choice/readiness: request/version-scoped private choices and

@@ -2098,6 +2098,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       <script>globalThis.__unsafeBoardScript = true</script>
       <g transform="translate(20 10)">
         <g data-board-space="room:one/?" data-board-label="Library" data-board-order="3"
+          data-board-group="rooms"
           onclick="globalThis.__unsafeBoardClick = true" fill="url(#safe) url(https://attacker.invalid/paint)">
           <path d="M 0 0 h 80 v 60 h -80 z" />
           <circle data-inner="" cx="20" cy="20" r="10" />
@@ -2370,7 +2371,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     duplicateAnchorError: expect.stringContaining('duplicate data-board-piece-anchor'),
     pieceOutsideRegion: false,
     componentViewForwarded: true,
-    inspector: expect.stringContaining('room:one/? — Library'),
+    inspector: expect.stringContaining('room:one/? — Library; group=rooms'),
     postRaceLabel: 'Fast Library',
     failedSvgCount: 0,
     failureStatus: expect.stringContaining('HTTP 404'),
@@ -2580,15 +2581,18 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     const spaces = [
       {
         key: 'harbor', label: 'Harbor', order: 0,
+        group: 'nodes',
         region: { shape: 'circle' as const, center: { x: 0.25, y: 0.5 }, radius: 0.24 },
         focusAnchor: { x: 0.2, y: 0.45 }, pieceAnchor: { x: 0.3, y: 0.55 },
       },
       {
         key: 'market', label: 'Market', order: 1,
+        group: 'tiles',
         region: { shape: 'rect' as const, x: 0.55, y: 0.2, width: 0.35, height: 0.6 },
       },
       {
         key: 'road', label: 'Road', order: 2,
+        group: 'nodes',
         region: { shape: 'polygon' as const, points: [
           { x: 0.42, y: 0.1 }, { x: 0.58, y: 0.5 }, { x: 0.42, y: 0.9 },
         ] },
@@ -2598,6 +2602,8 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       artwork: unknown;
       svgUrl: string;
       geometry: unknown;
+      action: unknown;
+      actionGroup: string;
       pieces: readonly unknown[];
       tokenSize: number;
       panZoom: boolean;
@@ -2721,6 +2727,53 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       }
     }
 
+    let groupActivations = 0;
+    const groupedCandidates = ['harbor', 'road'].map(key => ({
+      key,
+      action: {
+        canActivate: true,
+        reason: null,
+        activate: async () => {
+          groupActivations++;
+          return { kind: 'success', requestID: `group-${key}` };
+        },
+      },
+    }));
+    board.actionGroup = 'nodes';
+    board.action = {
+      candidates: groupedCandidates,
+      preview: { kind: 'ready' },
+      get: (key: string | number) => groupedCandidates.find(candidate => candidate.key === key),
+      ensurePreview: async () => ({ kind: 'ready' }),
+      refreshPreview: async () => ({ kind: 'ready' }),
+      subscribe: () => () => undefined,
+    };
+    await board.updateComplete;
+    const groupedRegions = [...(root?.querySelectorAll('[data-space]') ?? [])];
+    const marketRegion = groupedRegions[1];
+    const harborRegion = groupedRegions[0];
+    if (!(marketRegion instanceof SVGGraphicsElement) || !(harborRegion instanceof SVGGraphicsElement)) {
+      throw new Error('Grouped geometry was unavailable');
+    }
+    const groupedLabels = [...(root?.querySelectorAll('#space-list button') ?? [])]
+      .map(button => button.textContent?.trim());
+    const inactiveMarket = marketRegion.classList.contains('inactive')
+      && !marketRegion.classList.contains('disabled');
+    marketRegion.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    harborRegion.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    await Promise.resolve();
+    board.actionGroup = 'missing';
+    await board.updateComplete;
+    await board.updateComplete;
+    const unknownGroupError = root?.querySelector('#status')?.textContent?.replace(/\s+/g, ' ').trim();
+    board.actionGroup = 'nodes';
+    await board.updateComplete;
+    await board.updateComplete;
+    const recoveredGroupError = root?.querySelector('#status')?.textContent?.trim() ?? '';
+    board.action = null;
+    board.actionGroup = '';
+    await board.updateComplete;
+
     // Rapid replacement must leave only the final descriptor installed.
     board.artwork = rasterBoardArtwork({ src, spaces: [{ ...spaces[0]!, label: 'Stale Harbor' }] });
     board.artwork = rasterBoardArtwork({ src, spaces: [{ ...spaces[0]!, label: 'Final Harbor' }] });
@@ -2771,6 +2824,12 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       viewportScale: viewport.view.scale,
       containPieceError,
       finalLabel,
+      groupedLabels,
+      inactiveMarket,
+      groupActivations,
+      unknownGroupError,
+      recoveredGroupError,
+      generatedGroups: groupedRegions.map(region => region.getAttribute('data-board-group')),
       errors,
       lateGeometryError,
       lateGeometrySvgCount,
@@ -2783,6 +2842,12 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     finalLabel: 'Final Harbor',
     rasterImageCount: 1,
     fallbackLabels: ['Final Harbor'],
+    groupedLabels: ['Harbor', 'Road'],
+    inactiveMarket: true,
+    groupActivations: 1,
+    unknownGroupError: expect.stringContaining('actionGroup "missing" has no geometry'),
+    recoveredGroupError: '',
+    generatedGroups: ['nodes', 'tiles', 'nodes'],
     errors: [
       expect.stringContaining('choose svgUrl or artwork, not both'),
       expect.stringContaining('geometry is only valid with svgUrl'),
