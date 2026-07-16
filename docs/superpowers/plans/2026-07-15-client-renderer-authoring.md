@@ -1102,8 +1102,14 @@ system phase.
   snapshot-bound commit action. `boardgame-placement-draft-controls` makes the
   count, status, reasons, responsive Commit/Undo/Clear, and announcement path
   automatic while leaving game-specific tile and board presentation ordinary.
-- Simultaneous choice/readiness: request/version-scoped private choices and
-  synchronized reveal.
+- [x] Public simultaneous readiness: strict, bounded `ReadinessParticipant`
+  state and `boardgame-readiness` make counts, progress, participant status,
+  completion, live announcements, responsive presentation, and loud malformed
+  state the default. Werewolf day voting proves the sanitized public case.
+- Private simultaneous choice/reveal: keep choice submission on ordinary
+  snapshot-bound actions; add server-owned request identity, visibility policy,
+  and synchronized reveal before exposing any client abstraction that could
+  falsely imply secrecy.
 - Hidden movement: visibility-safe generated surfaces, public log, reveal
   markers, and viewer-matrix privacy assertions.
 

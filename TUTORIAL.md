@@ -1540,6 +1540,44 @@ for display names, or `active-label` / `simultaneous-label` to adjust the two
 standard messages. Custom phase, readiness, and multi-step workflow text remains
 ordinary game-owned Lit content beside this primitive.
 
+For simultaneous phases where readiness itself is public, use the typed
+`boardgame-readiness` building block instead of hand-rolling counts, progress,
+and status announcements:
+
+```typescript
+const voters = this.state.Players.map((player, playerIndex) => ({
+  key: playerIndex,
+  label: this.seatPresentations[playerIndex]?.displayName ?? `Player ${playerIndex}`,
+  state: player.Eliminated ? 'not-required'
+    : player.Vote >= 0 ? 'ready' : 'waiting',
+} as const));
+
+html`<boardgame-readiness
+  label="Day votes"
+  complete-label="All votes cast"
+  progress-label="votes cast"
+  ready-label="Voted"
+  waiting-label="Thinking"
+  not-required-label="Eliminated"
+  .participants=${voters}>
+</boardgame-readiness>`;
+```
+
+The `participants` property is a strict array of stable string/number keys,
+non-empty labels, and the closed states `ready`, `waiting`, or `not-required`.
+The component validates uniqueness and bounds, renders a visible heading,
+progress, participant states, and a polite atomic summary, and supports the
+closed `list` (default) and `summary` views. Empty required sets are explicitly
+“No participants are required,” never misleadingly complete. Theme its exported
+parts or `--boardgame-readiness-*` tokens. The optional progress and three state
+labels let game language say “votes cast,” “Voted,” or “Eliminated” without
+reimplementing the state model.
+
+Only pass readiness already safe for the current viewer. This component does
+not infer private choices, make client state secret, or coordinate a reveal.
+Submit choices through ordinary typed snapshot-bound actions; model visibility
+and synchronized reveal in authoritative game state first.
+
 The facade also exports `ObserverPlayerIndex`, `AdminPlayerIndex`, and
 `AnyPlayerIndex` with the same values and names as Go. Prefer these constants and
 the `isConcretePlayerIndex()` / `isKnownPlayerIndex()` guards over client-side

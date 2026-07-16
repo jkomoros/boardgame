@@ -922,6 +922,93 @@ test('inspector supplies modal focus, dismissal, mobile sizing, and loud content
   expect(axeResult.violations).toEqual([]);
 });
 
+test('readiness makes simultaneous public progress accessible and rejects ambiguous state', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-readiness.ts');
+    const readiness = document.createElement('boardgame-readiness');
+    readiness.label = 'Day votes';
+    readiness.completeLabel = 'All votes cast';
+    readiness.progressLabel = 'votes cast';
+    readiness.readyLabel = 'Voted';
+    readiness.waitingLabel = 'Thinking';
+    readiness.notRequiredLabel = 'Eliminated';
+    readiness.participants = [
+      { key: 0, label: 'Ada', state: 'ready' },
+      { key: 1, label: 'Grace', state: 'waiting' },
+      { key: 2, label: 'Linus', state: 'not-required' },
+    ];
+    document.body.append(readiness);
+    await readiness.updateComplete;
+    const root = readiness.shadowRoot!;
+    const initial = {
+      heading: root.querySelector('#heading')?.textContent,
+      summary: root.querySelector('#summary')?.textContent,
+      progress: root.querySelector<HTMLProgressElement>('progress')?.value,
+      maximum: root.querySelector<HTMLProgressElement>('progress')?.max,
+      states: [...root.querySelectorAll<HTMLElement>('li')].map(item => ({
+        state: item.dataset.state,
+        text: item.textContent?.replace(/\s+/g, ' ').trim(),
+      })),
+    };
+    readiness.participants = [
+      { key: 0, label: 'Ada', state: 'ready' },
+      { key: 1, label: 'Grace', state: 'ready' },
+      { key: 2, label: 'Linus', state: 'not-required' },
+    ];
+    await readiness.updateComplete;
+    const complete = {
+      summary: root.querySelector('#summary')?.textContent,
+      surface: root.querySelector('#surface')?.getAttribute('data-complete'),
+    };
+    readiness.view = 'summary';
+    await readiness.updateComplete;
+    const summaryHidesList = root.querySelector('ul') === null;
+
+    const duplicate = document.createElement('boardgame-readiness');
+    duplicate.participants = [
+      { key: 'same', label: 'Ada', state: 'ready' },
+      { key: 'same', label: 'Grace', state: 'waiting' },
+    ];
+    document.body.append(duplicate);
+    let duplicateError = '';
+    try { await duplicate.updateComplete; } catch (error) {
+      duplicateError = error instanceof Error ? error.message : String(error);
+    }
+    duplicate.remove();
+
+    const invalidView = document.createElement('boardgame-readiness');
+    invalidView.view = 'dense' as never;
+    document.body.append(invalidView);
+    let viewError = '';
+    try { await invalidView.updateComplete; } catch (error) {
+      viewError = error instanceof Error ? error.message : String(error);
+    }
+    invalidView.remove();
+    readiness.view = 'list';
+    await readiness.updateComplete;
+    return { initial, complete, summaryHidesList, duplicateError, viewError };
+  });
+  expect(result).toEqual({
+    initial: {
+      heading: 'Day votes', summary: '1 of 2 votes cast', progress: 1, maximum: 2,
+      states: [
+        { state: 'ready', text: 'Ada Voted' },
+        { state: 'waiting', text: 'Grace Thinking' },
+        { state: 'not-required', text: 'Linus Eliminated' },
+      ],
+    },
+    complete: { summary: 'All votes cast', surface: 'true' },
+    summaryHidesList: true,
+    duplicateError: expect.stringContaining('duplicate participant key'),
+    viewError: expect.stringContaining('view must be "list" or "summary"'),
+  });
+  const axeResult = await new AxeBuilder({ page })
+    .include('boardgame-readiness')
+    .analyze();
+  expect(axeResult.violations).toEqual([]);
+});
+
 test('component stack exposes its real closed layout contract and rejects invalid geometry', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

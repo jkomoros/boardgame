@@ -97,6 +97,15 @@ export type {
   InspectorChangeReason,
   InspectorOpenChangedDetail,
 } from './components/boardgame-inspector.js';
+export type { ReadinessView } from './components/boardgame-readiness.js';
+export type {
+  ReadinessKey,
+  ReadinessLabels,
+  ReadinessParticipant,
+  ReadinessPresentation,
+  ReadinessState,
+} from './status/readiness.js';
+export { readinessPresentation } from './status/readiness.js';
 export {
   AdminPlayerIndex,
   AnyPlayerIndex,
@@ -141,6 +150,7 @@ import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';
 import './components/boardgame-placement-draft-controls.js';
 import './components/boardgame-inspector.js';
+import './components/boardgame-readiness.js';
 import './components/boardgame-component-zone.js';
 import './components/boardgame-game-outcome.js';
 import './components/boardgame-game-surface.js';
