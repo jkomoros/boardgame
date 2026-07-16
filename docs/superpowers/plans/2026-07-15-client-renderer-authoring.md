@@ -731,6 +731,9 @@ do not make `TargetAction` a workflow DSL.
 - [x] Keep pieces/markers in a separate pointer-events-safe layer and expose
   stable animation anchors without obscuring component interaction or animation
   measurement.
+- [x] Forward one renderer-scoped component view through spatial-board for the
+  uniform common case, plus a cardinality-checked `componentViews` array for
+  heterogeneous stack layers. Reject mixed or misaligned configuration loudly.
 - [x] Transform each element through its own/ancestor CTM, not only the root SVG.
   Test nested transformed groups, nonzero `viewBox`, `preserveAspectRatio`
   letterboxing modes, CSS/container resize, page zoom, polygon/path regions,
@@ -759,8 +762,9 @@ typed target collection, and projects every player/Monroe location stack with
 an explicit unknown sentinel. The isolated strict client checker reports zero
 diagnostics, the Monroe Go package passes, and the entire Monroe client now has
 zero explicit `any`, `@ts-ignore`, `@ts-expect-error`, or double-unknown casts.
-Typed card templates remain a framework roadmap item, but the game-owned card
-front and player-info elements no longer require unsafe types.
+The component-view tranche subsequently removed Monroe's remaining global card/
+token templates: the game-owned card front is ordinary typed Lit content, and
+heterogeneous token layers use explicit spatial-board views.
 
 **Next adapter, not part of the first proof:** raster artwork plus normalized
 hotspot manifest and explicit `object-fit` coordinate mapping. Pan/zoom, routes,
@@ -906,7 +910,10 @@ First component-view tranche (2026-07-16):
 - [x] Prove both paths in real games and migrate solo/companion Blackjack; the
   synchronized real Hit test proves renderer-scoped views preserve stable card
   identity across socket delivery, queued bundles, Table/Hand FLIP, and auto-fly.
-- [ ] Migrate one external game before removing the global moustache registry.
+- [x] Migrate Murder Mr Monroe as the external proof: one typed custom card
+  view now serves draw, discard, and action-bound hand zones; typed player and
+  Mr Monroe token views flow through the authored-SVG spatial board without a
+  global deck registry or manual repeated card hosts.
 - [x] Repair the companion Blackjack baseline that blocked that proof: cached
   actions now notify subscribed controls when the live animation gate changes,
   without losing stable identity or preview state; omitted context-owned move

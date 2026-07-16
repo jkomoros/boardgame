@@ -908,6 +908,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     try {
       await import('/src/components/boardgame-spatial-board.ts');
       const geometryHelpers = await import('/src/components/spatial-board-geometry.ts');
+      const componentViews = await import('/src/components/component-view.ts');
       let duplicateAnchorError = '';
       try {
         const duplicateAnchorSvg = geometryHelpers.parseTrustedBoardSvg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
@@ -944,6 +945,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         tokenSize: number;
         geometryInspector: boolean;
         geometry: ((svg: SVGSVGElement) => unknown) | null;
+        componentView: unknown;
         svgLoaded: boolean;
         updateComplete: Promise<unknown>;
       };
@@ -956,6 +958,10 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         Deck: 'tokens', Indexes: [0], IDs: [token.ID], IDsLastSeen: {}, ShuffleCount: 0,
         GameName: 'fixture', Components: [token],
       };
+      const tokenView = componentViews.tokenView({
+        properties: () => ({ type: 'meeple', color: 'teal' }),
+      });
+      board.componentView = tokenView;
       board.pieces = [{ id: token.ID, space: candidate.key, stack, slot: 0, component: token }];
       document.body.append(board);
       for (let attempt = 0; attempt < 20 && !board.svgLoaded; attempt++) {
@@ -972,7 +978,11 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       const decorativeOverlay = root?.querySelector('[data-decorative-overlay]');
       const artwork = root?.querySelector('#container > svg');
       const componentStack = root?.querySelector('boardgame-component-stack') as (
-        HTMLElement & { spatialPositions: readonly ({ top: number; left: number } | null)[]; updateComplete: Promise<unknown> }
+        HTMLElement & {
+          spatialPositions: readonly ({ top: number; left: number } | null)[];
+          componentView: unknown;
+          updateComplete: Promise<unknown>;
+        }
       ) | null;
       if (!(region instanceof SVGElement) || !(inner instanceof SVGElement)
         || !(pieceAnchor instanceof SVGGraphicsElement) || !(focusAnchor instanceof SVGGraphicsElement)
@@ -1084,6 +1094,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         duplicateAnchorError,
         responsiveAnchorError,
         pieceOutsideRegion,
+        componentViewForwarded: componentStack.componentView === tokenView,
         anchorError: Math.max(Math.abs(position.left - expectedLeft), Math.abs(position.top - expectedTop)),
         focusAnchorError: Math.max(
           Math.abs((focusButtonBounds.left + focusButtonBounds.width / 2)
@@ -1149,6 +1160,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     artworkHidden: 'true',
     duplicateAnchorError: expect.stringContaining('duplicate data-board-piece-anchor'),
     pieceOutsideRegion: false,
+    componentViewForwarded: true,
     inspector: expect.stringContaining('room:one/? — Library'),
     postRaceLabel: 'Fast Library',
     failedSvgCount: 0,
@@ -1162,6 +1174,42 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     .withRules(['button-name', 'aria-allowed-attr', 'aria-valid-attr-value', 'nested-interactive'])
     .analyze();
   expect(axeResult.violations).toEqual([]);
+});
+
+test('spatial board rejects ambiguous or misaligned component views loudly', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const messages = await page.evaluate(async () => {
+    await import('/src/components/boardgame-spatial-board.ts');
+    const { tokenView } = await import('/src/components/component-view.ts');
+    const view = tokenView({ properties: () => ({ type: 'meeple' }) });
+    const stack = {
+      Deck: 'tokens', Indexes: [], IDs: [], IDsLastSeen: {}, ShuffleCount: 0,
+      GameName: 'fixture', Components: [],
+    };
+    const rejects = async (properties: Record<string, unknown>): Promise<string> => {
+      const board = document.createElement('boardgame-spatial-board');
+      Object.assign(board, properties);
+      document.body.append(board);
+      try {
+        await (board as typeof board & { updateComplete: Promise<unknown> }).updateComplete;
+        return '<resolved>';
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      } finally {
+        board.remove();
+      }
+    };
+    return Promise.all([
+      rejects({ stack, componentView: view, componentViews: [view] }),
+      rejects({ stacks: [stack, stack], componentViews: [view] }),
+      rejects({ componentViews: [view] }),
+    ]);
+  });
+  expect(messages).toEqual([
+    expect.stringContaining('choose componentView or componentViews, not both'),
+    expect.stringContaining('componentViews has 1 entries for 2 effective stack layers'),
+    expect.stringContaining('componentViews has 1 entries for 0 effective stack layers'),
+  ]);
 });
 
 test('game board reconnects, exposes reasons, avoids double retry, and labels wide coordinates', async ({ page }) => {

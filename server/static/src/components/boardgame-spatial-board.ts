@@ -4,6 +4,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import './boardgame-component-stack.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { TargetAction } from '../moves/target-action.js';
+import type { ComponentView } from './component-view.js';
 import {
   geometryFromSvg,
   parseTrustedBoardSvg,
@@ -210,6 +211,18 @@ class BoardgameSpatialBoard extends LitElement {
   @property({ type: Object, attribute: false })
   componentAttrs: Record<string, unknown> = {};
 
+  /** One renderer-scoped view shared by every spatial stack layer. */
+  @property({ type: Object, attribute: false })
+  componentView: ComponentView | null = null;
+
+  /**
+   * Heterogeneous escape hatch: one view (or explicit null) per effective
+   * stack layer, in the same order as stack/stacks or first appearance in
+   * pieces. Mutually exclusive with componentView and cardinality-checked.
+   */
+  @property({ type: Array, attribute: false })
+  componentViews: readonly (ComponentView | null)[] = [];
+
   /** Development-only geometry report; never required for gameplay. */
   @property({ type: Boolean, attribute: 'geometry-inspector' })
   geometryInspector = false;
@@ -292,7 +305,8 @@ class BoardgameSpatialBoard extends LitElement {
     }
 
     if ((changedProperties.has('stack') || changedProperties.has('stacks')
-      || changedProperties.has('pieces') || changedProperties.has('tokenSize')) && this.svgLoaded) {
+      || changedProperties.has('pieces') || changedProperties.has('tokenSize')
+      || changedProperties.has('componentView') || changedProperties.has('componentViews')) && this.svgLoaded) {
       this._recalculatePositions();
     }
   }
@@ -646,6 +660,15 @@ class BoardgameSpatialBoard extends LitElement {
     if (modes > 1) {
       throw new Error('boardgame-spatial-board: choose exactly one of pieces, stack, or stacks');
     }
+    if (this.componentView !== null && this.componentViews.length > 0) {
+      throw new Error('boardgame-spatial-board: choose componentView or componentViews, not both');
+    }
+    if (this.componentViews.length > 0 && this.componentViews.length !== this._effectiveStacks.length) {
+      throw new Error(
+        `boardgame-spatial-board: componentViews has ${this.componentViews.length} entries for `
+        + `${this._effectiveStacks.length} effective stack layers`,
+      );
+    }
   }
 
   private _geometryInspection(): string {
@@ -676,6 +699,7 @@ class BoardgameSpatialBoard extends LitElement {
   // ---- Render ----
 
   override render() {
+    this._validateRenderInputs();
     const stacks = this._effectiveStacks;
     const hasStacks = stacks.length > 0;
 
@@ -721,6 +745,7 @@ class BoardgameSpatialBoard extends LitElement {
                   .stack="${s}"
                   .spatialPositions="${this._layerPositions[i] || []}"
                   .componentAttrs="${this.componentAttrs}"
+                  .componentView=${this.componentViews.length ? this.componentViews[i] : this.componentView}
                   no-default-spacer>
                 </boardgame-component-stack>
               `)}
