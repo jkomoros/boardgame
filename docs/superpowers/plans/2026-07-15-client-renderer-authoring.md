@@ -818,8 +818,17 @@ Valentine contracts. The combined framework+games strict checker now reports
 zero diagnostics across all nine configured clients. The transform matrix
 covers authored `preserveAspectRatio`, nested CTMs, page zoom,
 320/768/1280 widths, 200% text, and coalesced rapid resize while checking focus
-alignment and contained pieces. The later player-info base and typed
-component/deck renderer are still deliberately deferred roadmap seams.
+alignment and contained pieces. The typed component/deck renderer remains a
+deliberately deferred roadmap seam. The interaction half of that seam is now
+implemented independently: `boardgame-component-stack.componentActions`
+accepts one bound action or explicit `null` per logical slot and owns
+mouse/keyboard activation, focus and ARIA state, live availability, reasons,
+subscriptions, and animated child replacement. Cardinality, invalid actions,
+and mixed legacy wiring fail loudly. Memory proves homogeneous per-card
+targets; Monroe proves heterogeneous actions within one hand and a whole-pile
+action; Valentine proves merged/sanitized hands. The remaining deck template
+syntax can therefore evolve later without coupling renderer registration to
+proposal behavior.
 
 ## Migration and fatal-check rollout
 

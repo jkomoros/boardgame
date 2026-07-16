@@ -4,6 +4,7 @@ import './boardgame-deck-defaults.js';
 import './boardgame-card.js';
 import { dashToCamelCase } from '../utils/case-map.js';
 import type { BoardgameComponentElement } from '../types/components';
+import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -349,12 +350,24 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Object, attribute: false })
   componentAttrs: Record<string, any> = {};
 
+  /** Typed per-slot interaction. Null slots are deliberately noninteractive. */
+  @property({ type: Array, attribute: false })
+  componentActions: readonly (BoundMoveAction<string, object> | null)[] = [];
+
   private _componentPool: any[] = [];
+  private _componentActionUnsubscribes: (() => void)[] = [];
+  private _componentActionOriginals = new Map<HTMLElement, {
+    disabled: boolean | undefined;
+    role: string | null;
+    tabindex: string | null;
+    ariaDisabled: string | null;
+    title: string | null;
+  }>();
   private _pileScaleFactor = 1.0;
   private _randomRotationOffset = 0;
   private _id = '';
   private _style = '';
-  private _boundSlotChanged?: (firstRender: boolean) => void;
+  private _boundSlotChanged?: () => void;
 
   get _sharedStackList(): BoardgameComponentStack[] {
     return sharedStackList;
@@ -421,6 +434,10 @@ export class BoardgameComponentStack extends LitElement {
   override connectedCallback() {
     super.connectedCallback();
     sharedStackList.push(this);
+    this.addEventListener('component-tapped', this._componentTapped);
+    this.addEventListener('keydown', this._componentKeyDown);
+    this._subscribeComponentActions();
+    this._applyComponentActionState();
   }
 
   override disconnectedCallback() {
@@ -435,16 +452,20 @@ export class BoardgameComponentStack extends LitElement {
       }
     }
     if (this._boundSlotChanged && this.componentsSlot) {
-      this.componentsSlot.removeEventListener('slotchange', () => this._slotChanged(false));
+      this.componentsSlot.removeEventListener('slotchange', this._boundSlotChanged);
     }
+    this.removeEventListener('component-tapped', this._componentTapped);
+    this.removeEventListener('keydown', this._componentKeyDown);
+    this._clearComponentActionSubscriptions();
+    this._restoreAllComponentActionState();
   }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     this._componentPool = [];
-    this._boundSlotChanged = (firstRender: boolean) => this._slotChanged(firstRender);
+    this._boundSlotChanged = () => this._slotChanged(false);
     if (this.componentsSlot) {
-      this.componentsSlot.addEventListener('slotchange', () => this._slotChanged(false));
+      this.componentsSlot.addEventListener('slotchange', this._boundSlotChanged);
     }
     this._slotChanged(true);
     this._randomRotationOffset = Math.floor(Math.random() * 21);
@@ -496,6 +517,10 @@ export class BoardgameComponentStack extends LitElement {
 
     if (changedProperties.has('componentAttrs')) {
       this._applyComponentAttrsToChildren();
+    }
+    if (changedProperties.has('componentActions') || changedProperties.has('componentAttrs') || changedProperties.has('stack')) {
+      this._subscribeComponentActions();
+      this._applyComponentActionState();
     }
   }
 
@@ -805,6 +830,135 @@ export class BoardgameComponentStack extends LitElement {
     }
   }
 
+  private readonly _componentTapped = (event: Event): void => {
+    if (!this.componentActions.length) return;
+    const component = event.composedPath().find((target): target is HTMLElement =>
+      target instanceof HTMLElement
+        && target.parentElement === this
+        && target.hasAttribute('boardgame-component'));
+    if (!component) return;
+    event.stopImmediatePropagation();
+    const components = [...this.children].filter(child => child.hasAttribute('boardgame-component'));
+    const action = this.componentActions[components.indexOf(component)];
+    if (action?.canActivate) void action.activate();
+  };
+
+  private readonly _componentKeyDown = (event: KeyboardEvent): void => {
+    if (!this.componentActions.length || (event.key !== 'Enter' && event.key !== ' ')) return;
+    const component = event.composedPath().find((target): target is HTMLElement =>
+      target instanceof HTMLElement
+        && target.parentElement === this
+        && target.hasAttribute('boardgame-component'));
+    if (!component) return;
+    const components = [...this.children].filter(child => child.hasAttribute('boardgame-component'));
+    const action = this.componentActions[components.indexOf(component)];
+    if (!action?.canActivate) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    void action.activate();
+  };
+
+  private _validateComponentActions(): void {
+    if (!this.componentActions.length) return;
+    const components = this.stack?.Components;
+    if (!Array.isArray(components)) return;
+    if (this.componentActions.length !== components.length) {
+      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but stack has ${components.length} slots`);
+    }
+    if ('proposeMove' in this.componentAttrs || 'indexAttributes' in this.componentAttrs) {
+      throw new Error('boardgame-component-stack: componentActions cannot be combined with legacy proposal attributes');
+    }
+    this.componentActions.forEach((action, index) => {
+      if (action !== null && !isBoundMoveAction(action)) {
+        throw new Error(`boardgame-component-stack: componentActions[${index}] is not a bound move action or null`);
+      }
+    });
+  }
+
+  private _clearComponentActionSubscriptions(): void {
+    for (const unsubscribe of this._componentActionUnsubscribes) unsubscribe();
+    this._componentActionUnsubscribes = [];
+  }
+
+  private _subscribeComponentActions(): void {
+    this._clearComponentActionSubscriptions();
+    this._validateComponentActions();
+    if (!this.isConnected) return;
+    this._componentActionUnsubscribes = [...new Set(this.componentActions
+      .filter((action): action is BoundMoveAction<string, object> => action !== null))]
+      .map(action => action.subscribe(() => {
+        this._applyComponentActionState();
+        this.requestUpdate();
+      }));
+  }
+
+  private _applyComponentActionState(): void {
+    const components = [...this.children].filter((element): element is HTMLElement =>
+      element instanceof HTMLElement && element.hasAttribute('boardgame-component'));
+    const currentComponents = new Set(components);
+    for (const component of this._componentActionOriginals.keys()) {
+      if (!currentComponents.has(component)) this._restoreComponentActionState(component);
+    }
+    if (!this.componentActions.length) {
+      this._restoreAllComponentActionState();
+      this._applyComponentAttrsToChildren();
+      return;
+    }
+    this._validateComponentActions();
+    if (!this.stack && components.length !== this.componentActions.length) {
+      if (!this.hasUpdated && components.length === 0) return;
+      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but the stack has ${components.length} rendered components`);
+    }
+    components.forEach((component, index) => {
+      this._captureComponentActionState(component);
+      const action = this.componentActions[index] ?? null;
+      const disabled = !action?.canActivate;
+      (component as HTMLElement & { disabled?: boolean }).disabled = disabled;
+      component.setAttribute('aria-disabled', String(disabled));
+      if (action) {
+        component.setAttribute('role', 'button');
+        component.tabIndex = disabled ? -1 : 0;
+      } else {
+        component.removeAttribute('role');
+        component.tabIndex = -1;
+      }
+      const reason = action?.reason?.message;
+      if (reason) component.setAttribute('title', reason); else component.removeAttribute('title');
+    });
+  }
+
+  private _captureComponentActionState(component: HTMLElement): void {
+    if (this._componentActionOriginals.has(component)) return;
+    this._componentActionOriginals.set(component, {
+      disabled: (component as HTMLElement & { disabled?: boolean }).disabled,
+      role: component.getAttribute('role'),
+      tabindex: component.getAttribute('tabindex'),
+      ariaDisabled: component.getAttribute('aria-disabled'),
+      title: component.getAttribute('title'),
+    });
+  }
+
+  private _restoreComponentActionState(component: HTMLElement): void {
+    const original = this._componentActionOriginals.get(component);
+    if (!original) return;
+    (component as HTMLElement & { disabled?: boolean }).disabled = original.disabled;
+    this._restoreAttribute(component, 'role', original.role);
+    this._restoreAttribute(component, 'tabindex', original.tabindex);
+    this._restoreAttribute(component, 'aria-disabled', original.ariaDisabled);
+    this._restoreAttribute(component, 'title', original.title);
+    this._componentActionOriginals.delete(component);
+  }
+
+  private _restoreAllComponentActionState(): void {
+    for (const component of [...this._componentActionOriginals.keys()]) {
+      this._restoreComponentActionState(component);
+    }
+  }
+
+  private _restoreAttribute(component: HTMLElement, name: string, value: string | null): void {
+    if (value === null) component.removeAttribute(name); else component.setAttribute(name, value);
+  }
+
   private _insertNodes(componentsInfo: any[], hostEle: HTMLElement) {
     const componentCount = hostEle.querySelectorAll('[boardgame-component]').length;
     const childrenToAdd = componentsInfo.length - componentCount;
@@ -852,10 +1006,9 @@ export class BoardgameComponentStack extends LitElement {
     // position and FLIP sees zero displacement.
     if (this.layout === 'board' || this.layout === 'spatial') {
       this._insertNodesBoardMode(componentsInfo, hostEle);
-      return;
+    } else {
+      this._insertNodesDefault(componentsInfo, hostEle);
     }
-
-    this._insertNodesDefault(componentsInfo, hostEle);
   }
 
   /**
@@ -1057,6 +1210,7 @@ export class BoardgameComponentStack extends LitElement {
     }
 
     this._updateComponentClasses();
+    this._applyComponentActionState();
   }
 
   private _updateComponentClasses() {

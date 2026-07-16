@@ -1,5 +1,3 @@
-import '@material/web/button/filled-button.js';
-import '@material/web/button/outlined-button.js';
 import '@material/web/progress/linear-progress.js';
 import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-card.js';
@@ -86,6 +84,11 @@ class BoardgameRenderGameMemory extends GameRenderer {
   }
 
   override render() {
+    const cardStack = this.state?.Game?.Cards ?? null;
+    const cardSlots = cardStack?.Components.map((_component, index) => index) ?? [];
+    const reveals = this.move(MoveNames.RevealCard).targets(
+      cardSlots, cardIndex => ({ CardIndex: cardIndex }),
+    );
     return html`
       <boardgame-deck-defaults>
         <template deck="cards">
@@ -102,8 +105,8 @@ class BoardgameRenderGameMemory extends GameRenderer {
           layout="grid"
           messy
           post-animation-delay="${this._revealHoldMs()}"
-          .stack="${this.state?.Game?.Cards}"
-          .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
+          .stack="${cardStack}"
+          .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
         </boardgame-component-stack>
         <boardgame-fading-text
           message="Match"
@@ -132,12 +135,11 @@ class BoardgameRenderGameMemory extends GameRenderer {
           </boardgame-component-stack>
         </div>
       </div>
-      <md-outlined-button
+      <boardgame-action-button
         id="hide"
-        propose-move="${MoveNames.HideCards}"
-        ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.HideCards)}">
+        .action=${this.move(MoveNames.HideCards)}>
         Hide Cards
-      </md-outlined-button>
+      </boardgame-action-button>
       <md-linear-progress
         id="timeleft"
         .value="${(this.state?.Game?.HideCardsTimer?.TimeLeft || 0) / (this.maxTimeLeft || 1)}"

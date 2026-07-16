@@ -1483,21 +1483,46 @@ In many cases you only have a small number of types of cards in a game, and you 
 
 Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
 
-Then stamping those components is as simple as using a `boardgame-component-stack` and databinding in the stack property:
+Then stamping those components is as simple as binding a sanitized stack to a
+`boardgame-component-stack` from your Lit renderer:
 
-```html
-<boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
-</boardgame-component-stack>
+```typescript
+html`<boardgame-component-stack
+  layout="stack"
+  messy
+  .stack=${this.state?.Players[0]?.WonCards ?? null}
+  .componentAttrs=${{ disabled: true }}>
+</boardgame-component-stack>`
 ```
 
 The `boardgame-component-stack` will automatically instantiate and bind components as defined in the defaults for that deck name.
 
-Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
+Use `.componentAttrs` for presentation shared by every stamped component, such
+as `rotated`, `disabled`, or a game-owned visual property. Do not put move names
+or move arguments in it. For one typed action per slot, create a target
+collection and pass its actions in stack order:
 
-```html
-<boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
-</boardgame-component-stack>
+```typescript
+const cards = this.state?.Game.Cards ?? null;
+const reveals = this.move(MoveNames.RevealCard).targets(
+  cards?.Components.map((_card, cardIndex) => cardIndex) ?? [],
+  CardIndex => ({ CardIndex }),
+);
+
+return html`<boardgame-component-stack
+  layout="grid"
+  .stack=${cards}
+  .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+</boardgame-component-stack>`;
 ```
+
+That is the complete common-case interaction wiring. The stack owns pointer and
+Enter/Space activation, live legality and pending state, `aria-disabled`, focus
+semantics, explanations, subscriptions, and cleanup while preserving component
+identity and movement animations. Use `null` at a slot that is deliberately not
+interactive. The array must contain exactly one entry per stack slot; a mismatch,
+an unbound action, or mixing `.componentActions` with legacy proposal attributes
+throws an actionable error instead of silently targeting the wrong card.
 
 If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
 

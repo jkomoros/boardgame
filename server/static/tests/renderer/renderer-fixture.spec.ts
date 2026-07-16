@@ -135,6 +135,127 @@ test('Pig fixture installs a typed snapshot and correlates zero-input proposals'
   }
 });
 
+test('component stacks bind typed actions by slot and reject ambiguous wiring', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-card.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      await import('/game-src/pig/boardgame-render-game-pig.ts');
+      const { pigRendererFixture } = await import('/game-src/pig/boardgame-render-fixtures-pig.ts');
+      const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+      const { html } = await import('/src/client.ts');
+      const PigRenderer = customElements.get('boardgame-render-game-pig');
+      if (!PigRenderer) throw new Error('Pig renderer was not registered');
+
+      class ComponentActionsRenderer extends PigRenderer {
+        override render() {
+          const renderer = this as unknown as { move(name: string): object };
+          const done = renderer.move('Done Turn');
+          return html`
+            <boardgame-component-stack .componentActions=${[done, null]}>
+              <boardgame-card
+                boardgame-component
+                .item=${{ ID: 'first', Values: { Rank: 'A' } }}>
+              </boardgame-card>
+              <boardgame-card
+                boardgame-component
+                .item=${{ ID: 'second', Values: { Rank: 'K' } }}>
+              </boardgame-card>
+            </boardgame-component-stack>`;
+        }
+      }
+      customElements.define('boardgame-render-game-pig-component-actions', ComponentActionsRenderer);
+      const handle = await mountRendererFixture({
+        ...pigRendererFixture,
+        tagName: 'boardgame-render-game-pig-component-actions',
+      } as never);
+      const stack = handle.renderer.shadowRoot?.querySelector('boardgame-component-stack') as (
+        HTMLElement & {
+          componentActions: readonly unknown[];
+          componentAttrs: Record<string, unknown>;
+          updateComplete: Promise<unknown>;
+        }
+      ) | null;
+      if (!stack) throw new Error('Typed component stack did not render');
+      await stack.updateComplete;
+      const cards = [...stack.querySelectorAll('boardgame-card')];
+      if (cards.length !== 2) throw new Error(`Expected two cards, received ${cards.length}`);
+      const initial = cards.map(card => ({
+        disabled: (card as HTMLElement & { disabled?: boolean }).disabled,
+        ariaDisabled: card.getAttribute('aria-disabled'),
+        role: card.getAttribute('role'),
+        tabIndex: (card as HTMLElement).tabIndex,
+      }));
+      (cards[1].shadowRoot?.querySelector('#outer') as HTMLElement | null)?.click();
+      await Promise.resolve();
+      const proposalsAfterNullSlot = handle.proposals.length;
+      (cards[0].shadowRoot?.querySelector('#outer') as HTMLElement | null)?.click();
+      await Promise.resolve();
+      await handle.update({ ...pigRendererFixture.snapshot, version: 4 });
+      const refreshedCard = handle.renderer.shadowRoot
+        ?.querySelector('boardgame-component-stack boardgame-card') as HTMLElement | null;
+      if (!refreshedCard) throw new Error('Typed component stack lost its first card after refresh');
+      const enter = new KeyboardEvent('keydown', {
+        key: 'Enter', bubbles: true, composed: true, cancelable: true,
+      });
+      const keyboardDefaultPrevented = !refreshedCard.dispatchEvent(enter);
+      await Promise.resolve();
+      const activeActions = stack.componentActions;
+      stack.componentActions = [];
+      await stack.updateComplete;
+      const released = [...stack.querySelectorAll('boardgame-card')].map(card => ({
+        disabled: (card as HTMLElement & { disabled?: boolean }).disabled,
+        ariaDisabled: card.getAttribute('aria-disabled'),
+        role: card.getAttribute('role'),
+        tabIndex: (card as HTMLElement).getAttribute('tabindex'),
+      }));
+      stack.componentActions = activeActions;
+      await stack.updateComplete;
+      (globalThis as unknown as { __componentActionsTest: { handle: typeof handle; stack: typeof stack } })
+        .__componentActionsTest = { handle, stack };
+      return { initial, released, proposalsAfterNullSlot, keyboardDefaultPrevented, proposals: handle.proposals };
+    });
+
+    expect(result.initial).toEqual([
+      { disabled: false, ariaDisabled: 'false', role: 'button', tabIndex: 0 },
+      { disabled: true, ariaDisabled: 'true', role: null, tabIndex: -1 },
+    ]);
+    expect(result.released).toEqual([
+      { disabled: false, ariaDisabled: null, role: null, tabIndex: null },
+      { disabled: false, ariaDisabled: null, role: null, tabIndex: null },
+    ]);
+    expect(result.proposalsAfterNullSlot).toBe(0);
+    expect(result.keyboardDefaultPrevented).toBe(true);
+    expect(result.proposals).toHaveLength(2);
+    expect(result.proposals[0]).toMatchObject({ name: 'Done Turn', arguments: {} });
+    expect(result.proposals[1]).toMatchObject({ snapshotVersion: 4, name: 'Done Turn', arguments: {} });
+    diagnostics.assertEmpty();
+    diagnostics.stop();
+
+    const cardinalityError = await page.evaluate(async () => {
+      const testState = (globalThis as unknown as {
+        __componentActionsTest: {
+          handle: { dispose(): void };
+          stack: { componentActions: readonly unknown[]; updateComplete: Promise<unknown> };
+        };
+      }).__componentActionsTest;
+      testState.stack.componentActions = [testState.stack.componentActions[0]];
+      try {
+        await testState.stack.updateComplete;
+        return '<resolved>';
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      } finally {
+        testState.handle.dispose();
+      }
+    });
+    expect(cardinalityError).toContain('componentActions has 1 entries');
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
