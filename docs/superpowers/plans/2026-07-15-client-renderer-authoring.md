@@ -1188,6 +1188,16 @@ First evidence-driven primitive tranche (2026-07-16):
   and legacy frames in unit tests, preserve unknown-frame forward compatibility,
   assert the server emits mode-change game identity, and exercise replacement,
   stale callbacks, removal, and reattachment in an isolated browser.
+- [x] Make dynamic renderer loading route-owned and loudly contractual: bind
+  game and player-summary imports to the exact game name/ID that requested
+  them; ignore superseded completions; restart interrupted loads on reinsertion;
+  and re-evaluate table/hand/solo selection when only the game ID changes.
+  Require loaded modules to register the exact generated tag and extend the
+  correct generated base, render bounded actionable failures in the game or
+  roster surface, and never silently substitute a solo renderer for a requested
+  companion surface. Give every bundled example a useful typed player summary,
+  and prove delayed-route races, missing registration, wrong-base failures, and
+  same-game companion surface changes in an isolated browser.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

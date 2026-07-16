@@ -2705,7 +2705,129 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
   });
 });
 
-test('dynamic host rejects renderer registrations that bypass the generated base', async ({ page }) => {
+test('dynamic host ignores a module load superseded by a newer game route', async ({ page }) => {
+  await page.goto('/client_config.js');
+  await page.evaluate(async () => {
+    await import('/src/components/boardgame-render-game.ts');
+    const BaseRenderer = customElements.get('boardgame-base-game-renderer');
+    if (!BaseRenderer) throw new Error('Framework renderer base was not registered');
+    customElements.define('boardgame-render-game-secondgame', class extends BaseRenderer {});
+    customElements.define('boardgame-render-game-secondgame-table', class extends BaseRenderer {});
+    type TestHost = HTMLElement & {
+      active: boolean;
+      gameId: string;
+      gameName: string;
+      renderer: HTMLElement | null;
+      rendererError: string;
+      updateComplete: Promise<unknown>;
+      _loadRendererModule(modulePath: string): Promise<unknown>;
+    };
+    const host = document.createElement('boardgame-render-game') as TestHost;
+    let releasePig: (() => void) | undefined;
+    const requestedPaths: string[] = [];
+    host._loadRendererModule = (modulePath: string) => {
+      requestedPaths.push(modulePath);
+      if (modulePath.includes('/pig/')) {
+        return new Promise<void>(resolve => releasePig = resolve);
+      }
+      return Promise.resolve();
+    };
+    host.active = true;
+    host.gameId = 'FIRST';
+    host.gameName = 'pig';
+    document.body.append(host);
+    await host.updateComplete;
+    if (!releasePig) throw new Error('Pig renderer load did not start');
+
+    host.gameId = 'SECOND';
+    host.gameName = 'secondgame';
+    await host.updateComplete;
+    (globalThis as unknown as {
+      __dynamicRendererHost: TestHost;
+      __releasePigRenderer: () => void;
+      __rendererModulePaths: string[];
+    }).__dynamicRendererHost = host;
+    (globalThis as unknown as { __releasePigRenderer: () => void }).__releasePigRenderer = releasePig;
+    (globalThis as unknown as { __rendererModulePaths: string[] }).__rendererModulePaths = requestedPaths;
+  });
+  await expect.poll(() => page.evaluate(() => {
+      const host = (globalThis as unknown as {
+        __dynamicRendererHost: { renderer: HTMLElement | null };
+      }).__dynamicRendererHost;
+      return host.renderer?.tagName.toLowerCase() ?? '';
+  })).toBe('boardgame-render-game-secondgame');
+
+  await page.evaluate(() => (
+    globalThis as unknown as { __releasePigRenderer: () => void }
+  ).__releasePigRenderer());
+  await page.waitForTimeout(50);
+  expect(await page.evaluate(() => {
+      const host = (globalThis as unknown as {
+        __dynamicRendererHost: { renderer: HTMLElement | null; rendererError: string };
+      }).__dynamicRendererHost;
+      return {
+        tagName: host.renderer?.tagName.toLowerCase() ?? '',
+        error: host.rendererError,
+      };
+  })).toEqual({ tagName: 'boardgame-render-game-secondgame', error: '' });
+
+  await page.evaluate(async () => {
+    const host = (globalThis as unknown as {
+      __dynamicRendererHost: HTMLElement & { gameId: string; updateComplete: Promise<unknown> };
+    }).__dynamicRendererHost;
+    document.cookie = 'surface_THIRD=table; Path=/';
+    host.gameId = 'THIRD';
+    await host.updateComplete;
+  });
+  await expect.poll(() => page.evaluate(() => {
+    const host = (globalThis as unknown as {
+      __dynamicRendererHost: { renderer: HTMLElement | null };
+    }).__dynamicRendererHost;
+    return host.renderer?.tagName.toLowerCase() ?? '';
+  })).toBe('boardgame-render-game-secondgame-table');
+  expect(await page.evaluate(() => (
+    globalThis as unknown as { __rendererModulePaths: string[] }
+  ).__rendererModulePaths)).toEqual([
+    '../../game-src/pig/boardgame-render-game-pig.ts',
+    '../../game-src/secondgame/boardgame-render-game-secondgame.ts',
+    '../../game-src/secondgame/boardgame-render-game-secondgame-table.ts',
+  ]);
+});
+
+test('player renderer load failures are visible and reject the wrong base', async ({ page }) => {
+  await page.route('**/game-src/contractplayer/boardgame-render-player-info-contractplayer.ts', route => (
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `customElements.define('boardgame-render-player-info-contractplayer', class extends HTMLElement {});`,
+    })
+  ));
+  await page.goto('/client_config.js');
+  await page.evaluate(async () => {
+    (globalThis as unknown as {
+      CONFIG: { offline_dev_mode: boolean; firebase: Record<string, string> };
+    }).CONFIG = {
+      offline_dev_mode: true,
+      firebase: { apiKey: 'fixture', projectId: 'fixture', appId: '1:fixture:web:fixture' },
+    };
+    await import('/src/components/boardgame-player-roster.ts');
+    const roster = document.createElement('boardgame-player-roster') as HTMLElement & {
+      active: boolean;
+      gameRoute: { name: string; id: string };
+      updateComplete: Promise<unknown>;
+    };
+    roster.active = true;
+    roster.gameRoute = { name: 'contractplayer', id: 'GAME' };
+    document.body.append(roster);
+    await roster.updateComplete;
+  });
+  const alert = page.locator('boardgame-player-roster').getByRole('alert');
+  await expect(alert).toContainText(
+    'Player renderer <boardgame-render-player-info-contractplayer> must extend the generated PlayerInfoRenderer base',
+  );
+  await expect(alert).toContainText('boardgame-util check-client');
+});
+
+test('dynamic host rejects missing registrations and renderers that bypass the generated base', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {
     await import('/src/components/boardgame-render-game.ts');
@@ -2719,6 +2841,12 @@ test('dynamic host rejects renderer registrations that bypass the generated base
     };
     document.body.append(host);
     await host.updateComplete;
+    let missingMessage = '';
+    try {
+      host._instantiateRenderer('missing-contract');
+    } catch (error) {
+      missingMessage = error instanceof Error ? error.message : String(error);
+    }
     let message = '';
     try {
       host._instantiateRenderer('wrongbase-contract');
@@ -2728,6 +2856,7 @@ test('dynamic host rejects renderer registrations that bypass the generated base
     await host.updateComplete;
     const alert = host.shadowRoot?.querySelector<HTMLElement>('[role="alert"]');
     const result = {
+      missingMessage,
       message,
       rendererLoaded: host.rendererLoaded,
       rendererError: host.rendererError,
@@ -2738,6 +2867,7 @@ test('dynamic host rejects renderer registrations that bypass the generated base
   });
   const message = 'Renderer <boardgame-render-game-wrongbase-contract> must extend the generated renderer base; use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator';
   expect(result).toEqual({
+    missingMessage: 'Renderer module loaded but did not register <boardgame-render-game-missing-contract>; use the generated registration decorator for this exact surface',
     message,
     rendererLoaded: false,
     rendererError: message,

@@ -16,6 +16,7 @@ import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import './boardgame-configure-game-properties.js';
 import './boardgame-player-roster-item.js';
+import { BoardgameBasePlayerInfoRenderer } from './boardgame-base-player-info-renderer.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -80,6 +81,15 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
                   inset 0 1px 0 rgba(255, 255, 255, 0.5);
       color: var(--md-sys-color-on-surface, #1C1810);
     }
+
+    .renderer-error {
+      margin: 8px 0;
+      padding: 12px;
+      border: 1px solid var(--md-sys-color-error, #BA1A1A);
+      border-radius: 8px;
+      color: var(--md-sys-color-on-error-container, #410002);
+      background: var(--md-sys-color-error-container, #FFDAD6);
+    }
   `;
 
   @property({ type: Number })
@@ -126,6 +136,11 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
 
   @property({ type: Boolean })
   rendererLoaded = false;
+
+  @property({ type: String, attribute: false })
+  rendererError = '';
+
+  private _rendererLoadGeneration = 0;
 
   // Framework-computed CSS colors per player (from selectPlayerColors).
   @property({ type: Array })
@@ -218,6 +233,18 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     }
   }
 
+  override disconnectedCallback(): void {
+    this._rendererLoadGeneration++;
+    super.disconnectedCallback();
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (this.hasUpdated && this.gameRoute && !this.rendererLoaded) {
+      void this._gameRouteChanged(this.gameRoute);
+    }
+  }
+
   private _isWinner(index: number, winners: number[]): boolean {
     if (!winners) return false;
     for (let i = 0; i < winners.length; i++) {
@@ -285,16 +312,52 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   }
 
   private async _gameRouteChanged(newValue: GameRoute | null): Promise<void> {
-    if (!newValue) return;
+    const generation = ++this._rendererLoadGeneration;
     this.rendererLoaded = false;
+    this.rendererError = '';
+    if (!newValue) return;
+    if (!/^[a-z][a-z0-9]*$/.test(newValue.name)) {
+      this.rendererError = `Invalid player renderer game name ${JSON.stringify(newValue.name)}; expected lowercase letters and digits`;
+      console.error(this.rendererError);
+      return;
+    }
 
     try {
       // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode
       await import(/* @vite-ignore */ `../../game-src/${newValue.name}/boardgame-render-player-info-${newValue.name}.ts`);
+      if (!this._rendererLoadIsCurrent(generation, newValue)) return;
+      const tagName = `boardgame-render-player-info-${newValue.name}`;
+      const constructor = customElements.get(tagName);
+      if (!constructor) {
+        throw new Error(
+          `Player renderer module loaded but did not register <${tagName}>; ` +
+          'use @registerPlayerInfoRenderer',
+        );
+      }
+      if (!(constructor.prototype instanceof BoardgameBasePlayerInfoRenderer)) {
+        throw new Error(
+          `Player renderer <${tagName}> must extend the generated PlayerInfoRenderer base`,
+        );
+      }
       this._rendererLoaded();
     } catch (error) {
+      if (!this._rendererLoadIsCurrent(generation, newValue)) return;
+      this.rendererError = `Failed to load player renderer for ${newValue.name}: ${this._errorMessage(error)}`;
       console.error(`Failed to load player info renderer for ${newValue.name}:`, error);
     }
+  }
+
+  private _rendererLoadIsCurrent(generation: number, route: GameRoute): boolean {
+    return generation === this._rendererLoadGeneration
+      && this.gameRoute?.name === route.name
+      && this.gameRoute.id === route.id
+      && this.isConnected;
+  }
+
+  private _errorMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    const normalized = message.trim() || 'unknown renderer error';
+    return normalized.length <= 500 ? normalized : `${normalized.slice(0, 497)}...`;
   }
 
   private _rendererLoaded(): void {
@@ -314,6 +377,11 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
           configurable>
         </boardgame-configure-game-properties>
       </div>
+      ${this.rendererError ? html`
+        <section class="renderer-error" role="alert" aria-live="assertive">
+          ${this.rendererError}. Run <code>boardgame-util check-client</code> and fix every diagnostic.
+        </section>
+      ` : null}
       <div class="layout horizontal justified players">
         ${repeat(this._orderedIndices, (idx) => idx, (idx) => {
           const item = this.playersInfo[idx];

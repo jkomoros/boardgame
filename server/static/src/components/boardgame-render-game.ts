@@ -182,6 +182,10 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: String, attribute: false })
   rendererError = '';
 
+  // Imports cannot be aborted, so invalidate their completion whenever
+  // navigation selects a different renderer identity or removes this host.
+  private _rendererLoadGeneration = 0;
+
   @property({ type: Number })
   viewingAsPlayer = 0;
 
@@ -302,6 +306,16 @@ class BoardgameRenderGame extends LitElement {
       this._previewTimer = null;
     }
     this._previewSeq++;
+    this._rendererLoadGeneration++;
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    // A module request invalidated by temporary detachment must be restarted
+    // even though Lit sees no renderer-identity property change on reinsertion.
+    if (this.hasUpdated && this.gameName && !this.rendererLoaded) {
+      void this._rendererIdentityChanged(this.gameName, this.gameId);
+    }
   }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -331,8 +345,8 @@ class BoardgameRenderGame extends LitElement {
       this._chestChanged(this.chest);
     }
 
-    if (changedProperties.has('gameName')) {
-      this._gameNameChanged(this.gameName);
+    if (changedProperties.has('gameName') || changedProperties.has('gameId')) {
+      this._rendererIdentityChanged(this.gameName, this.gameId);
     }
 
     if (changedProperties.has('defaultAnimationLength')) {
@@ -759,7 +773,8 @@ class BoardgameRenderGame extends LitElement {
     return result;
   }
 
-  private async _gameNameChanged(newValue: string) {
+  private async _rendererIdentityChanged(gameName: string, gameId: string) {
+    const generation = ++this._rendererLoadGeneration;
     // If there was a state, it might be for a different game type which would
     // cause a render error
     this.state = null;
@@ -767,38 +782,42 @@ class BoardgameRenderGame extends LitElement {
     this.rendererError = '';
     this._removeRenderer();
 
-    if (!newValue) return;
+    if (!gameName) return;
+    if (!/^[a-z][a-z0-9]*$/.test(gameName)) {
+      this.rendererError = `Invalid renderer game name ${JSON.stringify(gameName)}; expected lowercase letters and digits`;
+      console.error(this.rendererError);
+      return;
+    }
 
-    const suffix = this._surfaceSuffix(this.gameId);
+    const suffix = this._surfaceSuffix(gameId);
+    const modulePath = `../../game-src/${gameName}/boardgame-render-game-${gameName}${suffix}.ts`;
 
     try {
       // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode.
-      // If a companion-mode suffix is in play (-table / -hand), try the
-      // suffixed import first; on failure fall back to the solo renderer
-      // with a console warning. This makes solo-mode games safe to load even
-      // when a stale surface cookie is present, and surfaces deployment
-      // errors (missing -table.ts / -hand.ts on a supporting game) loudly.
-      if (suffix) {
-        try {
-          await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}${suffix}.ts`);
-          this._instantiateRenderer(suffix);
-          return;
-        } catch (innerError) {
-          console.warn(
-            `[boardgame-render-game] surface renderer ${newValue}${suffix} failed to load; falling back to solo:`,
-            innerError,
-          );
-          this.rendererError = '';
-        }
-      }
-      await import(/* @vite-ignore */ `../../game-src/${newValue}/boardgame-render-game-${newValue}.ts`);
-      this._instantiateRenderer('');
+      // A requested companion surface is a behavioral contract. Silently
+      // substituting the solo renderer hides deployment mistakes and leaves
+      // the surrounding companion chrome in a contradictory mode.
+      await this._loadRendererModule(modulePath);
+      if (!this._rendererLoadIsCurrent(generation, gameName, gameId)) return;
+      this._instantiateRenderer(suffix);
     } catch (error) {
+      if (!this._rendererLoadIsCurrent(generation, gameName, gameId)) return;
       if (!this.rendererError) {
-        this.rendererError = `Failed to load renderer module for ${newValue}: ${this._errorMessage(error)}`;
+        this.rendererError = `Failed to load renderer module ${modulePath}: ${this._errorMessage(error)}`;
       }
-      console.error(`Failed to load game renderer for ${newValue}:`, error);
+      console.error(`Failed to load game renderer for ${gameName}:`, error);
     }
+  }
+
+  private _rendererLoadIsCurrent(generation: number, gameName: string, gameId: string): boolean {
+    return generation === this._rendererLoadGeneration
+      && gameName === this.gameName
+      && gameId === this.gameId
+      && this.isConnected;
+  }
+
+  private _loadRendererModule(modulePath: string): Promise<unknown> {
+    return import(/* @vite-ignore */ modulePath) as Promise<unknown>;
   }
 
   private _errorMessage(error: unknown): string {
@@ -827,8 +846,14 @@ class BoardgameRenderGame extends LitElement {
 
   private _instantiateRenderer(surfaceSuffix: string = '') {
     const tagName = `boardgame-render-game-${this.gameName}${surfaceSuffix}`;
-    const ele = document.createElement(tagName);
-    if (!(ele instanceof BoardgameBaseGameRenderer)) {
+    const constructor = customElements.get(tagName);
+    if (!constructor) {
+      this.rendererError =
+        `Renderer module loaded but did not register <${tagName}>; ` +
+        `use the generated registration decorator for this exact surface`;
+      throw new Error(this.rendererError);
+    }
+    if (!(constructor.prototype instanceof BoardgameBaseGameRenderer)) {
       this.rendererError =
         `Renderer <${tagName}> must extend the generated renderer base; ` +
         `use GameRenderer, TableRenderer, or HandRenderer with its generated registration decorator`;
@@ -836,6 +861,9 @@ class BoardgameRenderGame extends LitElement {
     }
     this.rendererError = '';
     this.rendererLoaded = true;
+    if (!this.active) return;
+
+    const ele = document.createElement(tagName) as HostedGameRenderer;
 
     ele.diagram = this.diagram;
     ele.state = this.state;

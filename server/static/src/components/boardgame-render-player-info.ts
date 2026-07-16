@@ -1,6 +1,9 @@
 import { LitElement, html } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import type { PlayerChipPresentationChangedDetail } from './boardgame-base-player-info-renderer.js';
+import {
+  BoardgameBasePlayerInfoRenderer,
+  type PlayerChipPresentationChangedDetail,
+} from './boardgame-base-player-info-renderer.js';
 
 interface PlayerInfoState {
   readonly Players?: readonly unknown[];
@@ -122,6 +125,9 @@ class BoardgameRenderPlayerInfo extends LitElement {
       throw new Error(`boardgame-render-player-info: ${tagName} is not registered even though rendererLoaded is true`);
     }
     const ele = document.createElement(tagName) as PlayerInfoRendererElement;
+    if (!(ele instanceof BoardgameBasePlayerInfoRenderer)) {
+      throw new Error(`boardgame-render-player-info: ${tagName} must extend the generated PlayerInfoRenderer base`);
+    }
 
     ele.state = this.state;
     ele.playerIndex = this.playerIndex;
