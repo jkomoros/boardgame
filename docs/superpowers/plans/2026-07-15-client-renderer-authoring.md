@@ -1052,8 +1052,15 @@ First evidence-driven primitive tranche (2026-07-16):
   Remove redundant deep side-effect imports from all framework and external
   renderers, and add fatal `BGCLIENT0105` policy diagnostics so future creator
   code cannot depend on undocumented transitive registration order. Keep the
-  legacy Redux-connected player badge and companion Table/Hand bases explicitly
-  outside this rule until their typed host contracts are replaced.
+  companion Table/Hand bases explicitly outside this rule until their typed
+  host contracts are replaced.
+- [x] Replace the Redux-connected, ambient-store `boardgame-player-badge` with
+  explicit immutable `PlayerPresentation` values supplied by the renderer host.
+  Give creators the one-binding `playerPresentation(index)` common case, useful
+  numbered fixture fallbacks, optional compact accessible rendering, public
+  facade registration, shared bounded normalization, and loud index/label/color
+  failures. Migrate Memory and make deterministic player identities part of the
+  renderer-fixture contract.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

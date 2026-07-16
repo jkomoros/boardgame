@@ -1,5 +1,4 @@
 import { GameRenderer } from './_game_renderer.js';
-import '../../src/components/boardgame-player-badge.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
 import type { CardsComponentValues, GameState } from './_types.js';
@@ -95,7 +94,7 @@ class BoardgameRenderGameMemory extends GameRenderer {
         </div>
         <div class="discards">
           <div class="discard-pile">
-            <boardgame-player-badge player-index="0" compact></boardgame-player-badge>
+            <boardgame-player-badge .player=${this.playerPresentation(0)} compact></boardgame-player-badge>
             <boardgame-component-stack
               layout="stack"
               .stack="${this.state?.Players?.[0]?.WonCards}"
@@ -107,7 +106,7 @@ class BoardgameRenderGameMemory extends GameRenderer {
           <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
           <boardgame-card spacer></boardgame-card>
           <div class="discard-pile">
-            <boardgame-player-badge player-index="1" compact></boardgame-player-badge>
+            <boardgame-player-badge .player=${this.playerPresentation(1)} compact></boardgame-player-badge>
             <boardgame-component-stack
               layout="stack"
               messy

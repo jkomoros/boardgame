@@ -31,6 +31,7 @@ test('Pig fixture installs a typed snapshot and correlates zero-input proposals'
       return {
         host: { ...handle.host.dataset },
         proposals: handle.proposals,
+        player: handle.renderer.playerPresentation(0),
       };
     });
 
@@ -53,6 +54,7 @@ test('Pig fixture installs a typed snapshot and correlates zero-input proposals'
         arguments: {},
       },
     ]);
+    expect(result.player).toEqual({ playerIndex: 0, label: 'Alice', color: '#7c3aed' });
 
     const pending = await page.evaluate(async () => {
       const { pigRendererFixture } = await import('/game-src/pig/boardgame-render-fixtures-pig.ts');
@@ -418,6 +420,61 @@ test('target lists turn exact target collections into accessible previewed choic
   } finally {
     diagnostics.stop();
   }
+});
+
+test('player badges consume explicit typed presentations without ambient store state', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/client.ts');
+    const badge = document.createElement('boardgame-player-badge') as HTMLElement & {
+      player: { playerIndex: number; label: string; color?: string } | null;
+      compact: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    badge.player = { playerIndex: 0, label: 'Alice', color: '#123456' };
+    badge.compact = true;
+    document.body.append(badge);
+    await badge.updateComplete;
+    const avatar = badge.shadowRoot?.querySelector<HTMLElement>('.avatar');
+
+    const errorFor = async (player: unknown): Promise<string> => {
+      const candidate = document.createElement('boardgame-player-badge') as HTMLElement & {
+        player: unknown;
+        updateComplete: Promise<unknown>;
+      };
+      candidate.player = player;
+      document.body.append(candidate);
+      try { await candidate.updateComplete; return '<resolved>'; }
+      catch (error) { return error instanceof Error ? error.message : String(error); }
+      finally { candidate.remove(); }
+    };
+    return {
+      text: avatar?.textContent?.trim(),
+      role: avatar?.getAttribute('role'),
+      label: avatar?.getAttribute('aria-label'),
+      color: avatar?.style.backgroundColor,
+      errors: await Promise.all([
+        errorFor(null),
+        errorFor({ playerIndex: -1, label: 'Alice' }),
+        errorFor({ playerIndex: 0, label: '' }),
+        errorFor({ playerIndex: 0, label: 'Alice', color: 'not a color(' }),
+      ]),
+    };
+  });
+  expect(result).toEqual({
+    text: 'A',
+    role: 'img',
+    label: 'Alice',
+    color: 'rgb(18, 52, 86)',
+    errors: [
+      expect.stringContaining('.player must come from renderer.playerPresentation'),
+      expect.stringContaining('playerIndex must be a non-negative'),
+      expect.stringContaining('player label must be a non-empty'),
+      expect.stringContaining('player color is not valid CSS'),
+    ],
+  });
+  const axeResult = await new AxeBuilder({ page }).include('boardgame-player-badge').analyze();
+  expect(axeResult.violations).toEqual([]);
 });
 
 test('renderer-scoped component views preserve hosts and distinguish visible, hidden, and empty slots', async ({ page }) => {
@@ -2334,6 +2391,17 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
     } catch (error) {
       messages.push(error instanceof Error ? error.message : String(error));
     }
+    try {
+      await mountRendererFixture({
+        ...base,
+        snapshot: {
+          ...base.snapshot,
+          playerPresentations: [{ playerIndex: 1, label: 'Wrong slot' }],
+        },
+      } as never);
+    } catch (error) {
+      messages.push(error instanceof Error ? error.message : String(error));
+    }
     let proposalListenersAdded = 0;
     let proposalListenersRemoved = 0;
     class RejectingRenderer extends HTMLElement {
@@ -2345,6 +2413,10 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
       gameWinners: number[] = [];
       serverMoveInputSchemaFingerprint: string | null = null;
       previewDisabledSpaces: number[] = [];
+      playerPresentations: readonly { playerIndex: number; label: string; color?: string }[] = [];
+      playerPresentation(playerIndex: number) {
+        return this.playerPresentations[playerIndex] ?? { playerIndex, label: `Player ${playerIndex + 1}` };
+      }
       readonly updateComplete = Promise.reject(new Error('deliberate render failure'));
 
       override addEventListener(
@@ -2383,6 +2455,10 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
       gameWinners: number[] = [];
       serverMoveInputSchemaFingerprint: string | null = null;
       previewDisabledSpaces: number[] = [];
+      playerPresentations: readonly { playerIndex: number; label: string; color?: string }[] = [];
+      playerPresentation(playerIndex: number) {
+        return this.playerPresentations[playerIndex] ?? { playerIndex, label: `Player ${playerIndex + 1}` };
+      }
       readonly updateComplete = Promise.resolve();
     }
     customElements.define('boardgame-render-game-accepting', AcceptingRenderer);
@@ -2415,6 +2491,7 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
     'Unsupported renderer fixture schema version: 2',
     'Renderer fixture surface game does not match renderer tag boardgame-render-game-missing-table',
     'Renderer fixture legality is contradictory for move Act',
+    'playerPresentations: presentation 0 must have playerIndex 0, not 1',
     'deliberate render failure',
     'Uncaught Error: Renderer fixture received unknown move proposal: toString',
   ]);

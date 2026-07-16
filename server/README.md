@@ -9,9 +9,12 @@ Sitting in a folder that has a valid config file in it or one of its ancestors, 
 
 ## Writing your client-side views
 
-boardgame-render-game-GAMENAME is the web component that will be instantiated and passed state (where state.Game.Stack.Components is an expanded view of your components for convenience). Your view should render that to the screen in whatever way is reasonable.
-
-That view can fire events of the type "propose-move", with a detail containing "name" for the precise name of the Move to make, and "arguments", which is an object containing the non-default arguments for the move. When that move is emitted, it will effectively fill in the corresponding form fileds for that move (ignoring, and thus leaving at their default, any fields that were not explicitly listed in the arguments object), and then submit the move.
+`boardgame-render-game-GAMENAME` is the generated, typed web component that is
+instantiated with the current expanded game state. Extend its generated
+`GameRenderer` base and import Lit plus public elements from `src/client.js`.
+Bind controls to `this.move(MoveNames.SomeMove)`; use `.with({...})` for one
+typed input or `.targets(...)` for a collection. Do not construct
+`propose-move` events or side-effect import individual public components.
 
 ### Optional: player info
 
@@ -121,6 +124,22 @@ html`<boardgame-player-grid>
   `)}
 </boardgame-player-grid>`
 ```
+
+Use the renderer's `playerPresentation(playerIndex)` for the host-supplied,
+sanitized player name and color. It always returns a useful numbered fallback,
+so ordinary badges require one binding and no Redux/store knowledge:
+
+```typescript
+html`<boardgame-player-badge
+  .player=${this.playerPresentation(playerIndex)}>
+</boardgame-player-badge>`
+```
+
+Add `compact` for an avatar-only badge with the accessible name retained. The
+badge rejects missing presentations, invalid indices, blank/oversized labels,
+and invalid CSS colors loudly. Renderer fixtures accept an optional contiguous
+`playerPresentations` array, making long names, colors, and fallback behavior
+deterministic in browser tests.
 
 Use `hide-heading` only when another visible heading already names the
 collection. Tune `--boardgame-player-grid-min-width` and

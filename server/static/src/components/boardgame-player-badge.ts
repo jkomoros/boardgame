@@ -1,131 +1,98 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { LitElement, css, html, nothing } from 'lit';
+import { property } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import type { PlayerPresentation } from '../status/player-presentation.js';
 
-import { connect } from 'pwa-helpers/connect-mixin.js';
-import { store } from '../store.js';
-import {
-  selectGamePlayersInfo,
-  selectPlayerColors,
-} from '../selectors.js';
-
-import type { RootState } from '../types/store';
-
-/**
- * An inline player identity badge for use in game renderers.
- *
- * Full mode (default): colored circle with initial + display name.
- * Compact mode: small colored circle with initial only.
- *
- * Usage:
- *   <boardgame-player-badge player-index="0"></boardgame-player-badge>
- *   <boardgame-player-badge player-index="1" compact></boardgame-player-badge>
- */
-@customElement('boardgame-player-badge')
-export class BoardgamePlayerBadge extends connect(store)(LitElement) {
-  static styles = css`
+/** Inline player identity from an explicit sanitized renderer presentation. */
+export class BoardgamePlayerBadge extends LitElement {
+  static override styles = css`
     :host {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: var(--boardgame-player-badge-gap, 0.25rem);
       vertical-align: middle;
+      min-width: 0;
     }
 
     .avatar {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
       border-radius: 50%;
+      background: var(--boardgame-player-badge-fallback, #6f685f);
       color: white;
       font-weight: 600;
       text-transform: uppercase;
-      flex-shrink: 0;
+      flex: none;
     }
 
-    .avatar.full {
-      width: 24px;
-      height: 24px;
-      font-size: 12px;
-    }
-
-    .avatar.compact {
-      width: 16px;
-      height: 16px;
-      font-size: 9px;
+    :host([compact]) .avatar {
+      width: 1rem;
+      height: 1rem;
+      font-size: 0.5625rem;
     }
 
     .name {
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
+      max-width: var(--boardgame-player-badge-name-width, 12rem);
       overflow: hidden;
+      font-size: 0.8125rem;
+      font-weight: 500;
       text-overflow: ellipsis;
-      max-width: 120px;
+      white-space: nowrap;
+    }
+
+    @media (forced-colors: active) {
+      .avatar { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
     }
   `;
 
-  @property({ type: Number, attribute: 'player-index' })
-  playerIndex = 0;
+  @property({ attribute: false })
+  player: PlayerPresentation | null = null;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, reflect: true })
   compact = false;
 
-  @property({ type: Array, attribute: false })
-  private _playersInfo: any[] = [];
-
-  @property({ type: Array, attribute: false })
-  private _playerColors: string[] = [];
-
-  stateChanged(state: RootState): void {
-    this._playersInfo = selectGamePlayersInfo(state);
-    this._playerColors = selectPlayerColors(state);
-  }
-
-  private get _playerInfo(): any | null {
-    return this._playersInfo[this.playerIndex] || null;
-  }
-
-  private get _color(): string {
-    if (this._playerColors[this.playerIndex]) {
-      return this._playerColors[this.playerIndex];
-    }
-    // Fall back to hash-based HSL color, consistent with boardgame-player-chip
-    const name = this._playerInfo?.DisplayName || '';
-    if (name) {
-      let hash = 0;
-      for (let i = 0; i < name.length; i++) {
-        hash = ((hash << 5) - hash) + name.charCodeAt(i);
-        hash |= 0;
-      }
-      return `hsl(${hash % 360}, 45%, 40%)`;
-    }
-    return '#857B6E';
-  }
-
-  private get _initial(): string {
-    const name = this._playerInfo?.DisplayName || '';
-    return name ? name[0] : String(this.playerIndex);
-  }
-
-  private get _displayName(): string {
-    return this._playerInfo?.DisplayName || `Player ${this.playerIndex}`;
-  }
-
-  render() {
-    const sizeClass = this.compact ? 'compact' : 'full';
+  override render() {
+    const player = this.#validatedPlayer();
+    const initial = Array.from(player.label)[0]?.toLocaleUpperCase() ?? '?';
+    const avatarLabel = this.compact ? player.label : nothing;
     return html`
       <span
-        class="avatar ${sizeClass}"
-        style="background-color: ${this._color}"
-        role="img"
-        aria-label="${this._displayName}">
-        ${this._initial}
+        class="avatar"
+        part="avatar"
+        style=${styleMap({ backgroundColor: player.color })}
+        role=${this.compact ? 'img' : nothing}
+        aria-label=${avatarLabel}
+        aria-hidden=${this.compact ? nothing : 'true'}>
+        ${initial}
       </span>
-      ${this.compact ? '' : html`
-        <span class="name">${this._displayName}</span>
-      `}
+      ${this.compact ? nothing : html`<span class="name" part="name">${player.label}</span>`}
     `;
   }
+
+  #validatedPlayer(): PlayerPresentation {
+    const player = this.player;
+    if (typeof player !== 'object' || player === null) {
+      throw new Error('boardgame-player-badge: .player must come from renderer.playerPresentation(index)');
+    }
+    if (!Number.isSafeInteger(player.playerIndex) || player.playerIndex < 0) {
+      throw new Error('boardgame-player-badge: playerIndex must be a non-negative safe integer');
+    }
+    if (typeof player.label !== 'string' || !player.label.trim() || player.label.length > 200) {
+      throw new Error('boardgame-player-badge: player label must be a non-empty string of at most 200 characters');
+    }
+    if (player.color !== undefined
+      && (typeof player.color !== 'string' || !player.color.trim()
+        || !CSS.supports('color', player.color))) {
+      throw new Error(`boardgame-player-badge: player color is not valid CSS: ${JSON.stringify(player.color)}`);
+    }
+    return player;
+  }
 }
+
+customElements.define('boardgame-player-badge', BoardgamePlayerBadge);
 
 declare global {
   interface HTMLElementTagNameMap {

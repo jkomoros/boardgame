@@ -245,14 +245,14 @@ export interface ExpandedGameState {
  * Information about a player in the game.
  */
 export interface PlayerInfo {
-  /** Player index in game */
-  index: number;
-  /** Player display name */
-  name: string;
-  /** Player photo URL */
-  photoURL?: string;
-  /** Whether this slot is empty */
-  isEmpty?: boolean;
+  /** Whether this player slot is currently unoccupied. */
+  IsEmpty: boolean;
+  /** Whether the occupied slot is controlled by an agent. */
+  IsAgent: boolean;
+  /** Player display name supplied by the server. */
+  DisplayName: string;
+  /** Optional player photo URL supplied by the server. */
+  PhotoUrl?: string;
 }
 
 /**

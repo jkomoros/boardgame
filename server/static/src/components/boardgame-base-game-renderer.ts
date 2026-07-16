@@ -34,6 +34,10 @@ import {
   AnyPlayerIndex,
   type TurnStatusContext,
 } from '../status/turn-status.js';
+import {
+  fallbackPlayerPresentation,
+  type PlayerPresentation,
+} from '../status/player-presentation.js';
 
 type MoveInputFor<
   K extends string,
@@ -134,6 +138,19 @@ export class BoardgameBaseGameRenderer<
 
   @property({ type: Number })
   currentPlayerIndex = 0;
+
+  /** Public, sanitized player labels/colors supplied by the renderer host. */
+  @property({ attribute: false })
+  playerPresentations: readonly PlayerPresentation[] = Object.freeze([]);
+
+  /** Stable creator-facing presentation with a useful fallback for fixtures. */
+  playerPresentation(playerIndex: number): PlayerPresentation {
+    if (!Number.isSafeInteger(playerIndex) || playerIndex < 0) {
+      return fallbackPlayerPresentation(playerIndex);
+    }
+    return this.playerPresentations.find(player => player.playerIndex === playerIndex)
+      ?? fallbackPlayerPresentation(playerIndex);
+  }
 
   /**
    * Map of move name → legality info, set by boardgame-render-game from the

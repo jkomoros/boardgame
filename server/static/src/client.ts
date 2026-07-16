@@ -128,6 +128,7 @@ export type {
   TurnStatusKind,
   TurnStatusPresentation,
 } from './status/turn-status.js';
+export type { PlayerPresentation } from './status/player-presentation.js';
 export { TimerController } from './timers/timer-service.js';
 export type {
   TimerCadence,
@@ -157,6 +158,7 @@ import './components/boardgame-card.js';
 import './components/boardgame-token.js';
 import './components/boardgame-component-stack.js';
 import './components/boardgame-game-board.js';
+import './components/boardgame-player-badge.js';
 import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';

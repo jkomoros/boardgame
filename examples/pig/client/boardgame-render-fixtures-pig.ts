@@ -62,5 +62,9 @@ export const pigRendererFixture = defineRendererFixture<GameClientContract>({
     outcome: { finished: false, winners: [] },
     surface: 'game',
     serverMoveInputSchemaFingerprint: moveInputSchemaFingerprint,
+    playerPresentations: [
+      { playerIndex: 0, label: 'Alice', color: '#7c3aed' },
+      { playerIndex: 1, label: 'Bob', color: '#0f766e' },
+    ],
   },
 });

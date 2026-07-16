@@ -15,6 +15,7 @@ import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
+import type { PlayerPresentation } from '../status/player-presentation.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -136,6 +137,9 @@ class BoardgameRenderGame extends LitElement {
 
   @property({ type: Array })
   gameWinners: number[] = [];
+
+  @property({ attribute: false })
+  playerPresentations: readonly PlayerPresentation[] = Object.freeze([]);
 
 
   @property({ type: Object, attribute: false })
@@ -336,6 +340,11 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('gameFinished') || changedProperties.has('gameWinners')) {
       this._applyGameOutcomeToRenderer();
+    }
+
+    if (changedProperties.has('playerPresentations') && this.renderer) {
+      (this.renderer as HTMLElement & { playerPresentations: readonly PlayerPresentation[] })
+        .playerPresentations = this.playerPresentations;
     }
 
     if (changedProperties.has('gameVersion')
@@ -790,6 +799,7 @@ class BoardgameRenderGame extends LitElement {
     ele.state = this.state;
     ele.viewingAsPlayer = this.viewingAsPlayer;
     ele.currentPlayerIndex = this.currentPlayerIndex;
+    ele.playerPresentations = this.playerPresentations;
     ele.chest = this.chest;
     ele.moveLegality = BoardgameRenderGame._deriveLegality(this.moveForms);
 		ele.serverMoveInputSchemaFingerprint = this.moveInputSchemaFingerprint;

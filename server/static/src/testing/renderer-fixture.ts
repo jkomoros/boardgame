@@ -4,6 +4,10 @@ import {
   type MoveSubmissionRequest,
 } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
+import {
+  validatePlayerPresentations,
+  type PlayerPresentation,
+} from '../status/player-presentation.js';
 
 export const RENDERER_FIXTURE_SCHEMA_VERSION = 1 as const;
 
@@ -35,6 +39,8 @@ export interface RendererFixtureSnapshot<Contract extends RendererFixtureGameCon
   readonly surface: RendererFixtureSurface;
   readonly serverMoveInputSchemaFingerprint: string;
   readonly previewDisabledSpaces?: readonly number[];
+  /** Explicit identities available through renderer.playerPresentation(index). */
+  readonly playerPresentations?: readonly PlayerPresentation[];
 }
 
 export interface RendererFixtureDefinition<Contract extends RendererFixtureGameContract> {
@@ -64,6 +70,8 @@ interface RendererFixtureTarget<State extends object> extends HTMLElement {
   gameWinners: number[];
   serverMoveInputSchemaFingerprint: string | null;
   previewDisabledSpaces: number[];
+  playerPresentations: readonly PlayerPresentation[];
+  playerPresentation(playerIndex: number): PlayerPresentation;
   gameName: string;
   gameId: string;
   gameVersion: number;
@@ -182,6 +190,7 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
     this.renderer.gameWinners = [...snapshot.outcome.winners];
     this.renderer.serverMoveInputSchemaFingerprint = snapshot.serverMoveInputSchemaFingerprint;
     this.renderer.previewDisabledSpaces = [...(snapshot.previewDisabledSpaces ?? [])];
+    this.renderer.playerPresentations = validatePlayerPresentations(snapshot.playerPresentations ?? []);
     this.renderer.gameName = fixtureGameName(this.host.dataset['rendererFixture'] ?? '');
     this.renderer.gameId = 'fixture';
     this.renderer.gameVersion = snapshot.version;
@@ -295,6 +304,7 @@ function validateSnapshot<Contract extends RendererFixtureGameContract>(
       throw new Error('Renderer fixture disabled-space indexes must be non-negative safe integers');
     }
   }
+  validatePlayerPresentations(snapshot.playerPresentations ?? []);
 }
 
 function validateSurfaceTag(tagName: string, surface: RendererFixtureSurface): void {
@@ -329,6 +339,8 @@ function isRendererFixtureTarget<State extends object>(
     && 'gameWinners' in candidate
     && 'serverMoveInputSchemaFingerprint' in candidate
     && 'previewDisabledSpaces' in candidate
+    && 'playerPresentations' in candidate
+    && typeof candidate.playerPresentation === 'function'
     && candidate.updateComplete instanceof Promise;
 }
 

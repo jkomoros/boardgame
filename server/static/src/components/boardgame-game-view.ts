@@ -9,6 +9,11 @@ import './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
+import {
+  playerPresentations,
+  type PlayerPresentation,
+} from '../status/player-presentation.js';
+import type { PlayerInfo } from '../types/store';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -213,7 +218,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _chest: any = null;
 
   @property({ type: Array, attribute: false })
-  _playersInfo: any[] = [];
+  _playersInfo: PlayerInfo[] = [];
 
   @property({ type: Boolean, attribute: false })
   _hasEmptySlots = false;
@@ -372,6 +377,12 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Array, attribute: false })
   _playerColors: string[] = [];
 
+  @property({ attribute: false })
+  _playerPresentations: readonly PlayerPresentation[] = Object.freeze([]);
+
+  private _presentationPlayersSource: readonly PlayerInfo[] | null = null;
+  private _presentationColorsSource: readonly string[] | null = null;
+
   @property({ type: Array, attribute: false })
   _playerActivity: boolean[] = [];
 
@@ -501,6 +512,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .isOwner=${this._isOwner}
           .gameFinished=${this.game ? this.game.Finished : false}
           .gameWinners=${this.game ? this.game.Winners || [] : []}
+          .playerPresentations=${this._playerPresentations}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .previewAsPlayer=${this.requestedPlayer}
@@ -593,6 +605,12 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._page = selectPage(state);
     this._lastFetchedVersion = selectLastFetchedVersion(state);
     this._playerColors = selectPlayerColors(state);
+    if (this._presentationPlayersSource !== this._playersInfo
+      || this._presentationColorsSource !== this._playerColors) {
+      this._presentationPlayersSource = this._playersInfo;
+      this._presentationColorsSource = this._playerColors;
+      this._playerPresentations = playerPresentations(this._playersInfo, this._playerColors);
+    }
     this._playerActivity = selectPlayerActivity(state);
     this._playerOrder = selectPlayerOrder(state);
   }
