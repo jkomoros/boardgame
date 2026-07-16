@@ -4,6 +4,11 @@ import { decodeGameInfoResponse, decodeGameVersionResponse } from './server-resp
 
 function game(version = 2) {
   return {
+    Name: 'pig',
+    ID: 'GAME',
+    NumPlayers: 2,
+    Agents: ['', ''],
+    Variant: null,
     CurrentState: { Version: version, Game: {}, Players: [{}] },
     ActiveTimers: {},
     Version: version,
@@ -16,7 +21,7 @@ function game(version = 2) {
 function info() {
   return {
     Status: 'Success',
-    Chest: {},
+    Chest: { Decks: null, Enums: {}, Constants: null },
     Players: [{ IsEmpty: false, IsAgent: false, DisplayName: 'Ada' }],
     HasEmptySlots: true,
     GameOpen: true,
@@ -40,11 +45,46 @@ function info() {
 test('game-info decoder validates and normalizes optional collections', () => {
   const decoded = decodeGameInfoResponse(info());
   assert.equal(decoded.Status, 'Success');
+  assert.deepEqual(decoded.Chest.Decks, {});
+  assert.deepEqual(decoded.Chest.Constants, {});
   assert.equal(decoded.Forms, null);
   assert.deepEqual(decoded.CompanionInfo?.SeatPresentations, []);
   assert.deepEqual(decoded.CompanionInfo?.Absent, []);
   assert.equal(decoded.Game.Version, 2);
   assert.equal(decoded.Players[0].DisplayName, 'Ada');
+});
+
+test('game-info decoder isolates opaque creator payloads and drops unknown envelope fields', () => {
+  const source = info() as ReturnType<typeof info> & Record<string, unknown>;
+  source.Chest = { Enums: { Phase: { Values: { Play: 'Play' } } } };
+  source.Game.CurrentState.Game = { Nested: { Value: 1 } };
+  Object.assign(source.Chest, { InjectedChestField: 'drop me' });
+  Object.assign(source.Game.CurrentState, { InjectedStateField: 'drop me' });
+  Object.assign(source.Game, { InjectedGameField: 'drop me' });
+  Object.assign(source.CompanionInfo, { InjectedCompanionField: 'drop me' });
+  source.Game.ActiveTimers = {
+    timer: { TimeLeft: 500, InjectedTimerField: 'drop me' },
+  } as unknown as typeof source.Game.ActiveTimers;
+
+  const decoded = decodeGameInfoResponse(source);
+  const decodedGame = decoded.Game as unknown as Record<string, unknown>;
+  const decodedCompanion = decoded.CompanionInfo as unknown as Record<string, unknown>;
+  const decodedTimer = decoded.Game.ActiveTimers.timer as unknown as Record<string, unknown>;
+  assert.equal((decoded.Chest as unknown as Record<string, unknown>).InjectedChestField, undefined);
+  assert.equal(
+    (decoded.Game.CurrentState as unknown as Record<string, unknown>).InjectedStateField,
+    undefined,
+  );
+  assert.equal(decodedGame.InjectedGameField, undefined);
+  assert.equal(decodedCompanion.InjectedCompanionField, undefined);
+  assert.equal(decodedTimer.InjectedTimerField, undefined);
+
+  (source.Game.CurrentState.Game.Nested as { Value: number }).Value = 2;
+  ((source.Chest.Enums as Record<string, unknown>).Phase as {
+    Values: Record<string, string>;
+  }).Values.Play = 'mutated';
+  assert.deepEqual(decoded.Game.CurrentState.Game, { Nested: { Value: 1 } });
+  assert.equal(decoded.Chest.Enums?.Phase.Values?.Play, 'Play');
 });
 
 test('game-info decoder normalizes Go nil move slices', () => {
@@ -76,6 +116,25 @@ test('game-info decoder names malformed nested server fields', () => {
   assert.throws(
     () => decodeGameInfoResponse(malformedForm),
     /Preconditions\[0\]\.message\.bindings\.secret must be a string, number, or boolean/,
+  );
+
+  assert.throws(
+    () => decodeGameInfoResponse({
+      ...info(),
+      Chest: { Decks: { cards: [{ Index: 1, Values: {} }] } },
+    }),
+    /Chest\.Decks\.cards\[0\]\.Index must equal its canonical index 0/,
+  );
+
+  assert.throws(
+    () => decodeGameInfoResponse({
+      ...info(),
+      Game: {
+        ...game(),
+        CurrentState: { Game: {}, Players: [{}], Components: { cards: {} } },
+      },
+    }),
+    /CurrentState\.Components\.cards must be an array/,
   );
 });
 

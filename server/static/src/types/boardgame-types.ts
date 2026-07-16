@@ -122,11 +122,16 @@ export interface ExpandedTimer {
 
 /** Static game metadata delivered beside state snapshots. */
 export interface GameChest<
-  C extends object = Readonly<Record<string, readonly CatalogComponent[]>>,
+  C extends object = object,
+  K extends object = object,
 > {
   readonly Decks?: DeepReadonly<C>;
-  readonly Enums?: Readonly<Record<string, unknown>>;
-  readonly [key: string]: unknown;
+  readonly Enums?: Readonly<Record<string, {
+    readonly Values?: Readonly<Record<string, string>>;
+  }>>;
+  /** Framework constants remain opaque until a generated contract describes them. */
+  readonly Constants?: DeepReadonly<K>;
+  readonly LegalTemplates?: Readonly<Record<string, string>>;
 }
 
 /**

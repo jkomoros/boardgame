@@ -6,7 +6,12 @@
  */
 
 import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
-import type { EnumDefinition, MoveForm, ServerStateBundle } from './api';
+import type { MoveForm, ServerStateBundle } from './api';
+import type {
+  CatalogComponent,
+  FullGameState,
+  GameChest as RendererGameChest,
+} from './boardgame-types';
 
 /**
  * Companion-mode bundle from the doGameInfo response. Matches the JSON
@@ -245,11 +250,9 @@ export interface GameState {
 /**
  * Game chest containing component configurations and deck defaults.
  */
-export interface GameChest {
-  Enums?: Record<string, EnumDefinition>;
-  [key: string]: any;
-  // TODO: Define specific chest structure based on game architecture
-}
+export type GameChest = RendererGameChest<
+  Readonly<Record<string, readonly CatalogComponent[]>>
+>;
 
 /**
  * Expanded game state with all component references resolved.
@@ -259,9 +262,13 @@ export interface GameChest {
  * in each game's client/ directory (via boardgame-util emit-types).
  * See also FullGameState in types/boardgame-types.ts.
  */
-export interface ExpandedGameState {
-  [key: string]: any;
-}
+export type ExpandedGameState = FullGameState<
+  object,
+  object,
+  object,
+  object,
+  Readonly<Record<string, readonly unknown[]>>
+>;
 
 /**
  * Information about a player in the game.

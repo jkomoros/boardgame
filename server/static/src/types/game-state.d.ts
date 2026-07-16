@@ -3,7 +3,7 @@
  * These types represent the core game state data structures used throughout the application.
  */
 
-import type { ClientMove, MoveForm } from './api';
+import type { ClientMove, JsonValue, MoveForm } from './api';
 import type { VersionAnimationContext } from '../components/companion-sync';
 
 /**
@@ -20,11 +20,11 @@ export interface RawGameState {
   Players: RawPlayerState[];
   /** Computed values (optional, may include computed global and player states) */
   Computed?: {
-    Global?: Record<string, any>;
-    Players?: any[];
+    Global?: RawPlayerState;
+    Players?: RawPlayerState[];
   };
   /** Component values indexed by deck name and index */
-  Components?: Record<string, Record<number, any>>;
+  Components?: Record<string, JsonValue[]>;
 }
 
 /**
@@ -32,9 +32,7 @@ export interface RawGameState {
  * Properties can contain stacks (with Deck/Indexes) or timers (with IsTimer).
  * The exact properties depend on the game type.
  */
-export interface RawPlayerState {
-  [key: string]: any;
-}
+export type RawPlayerState = object;
 
 /**
  * Timer metadata for expansion.
@@ -54,6 +52,16 @@ export interface TimerInfo {
  * This is the structure that comes from the server API.
  */
 export interface GameFromServer {
+  /** Registered game package name. */
+  Name: string;
+  /** Stable game instance identifier. */
+  ID: string;
+  /** Number of player slots configured for this game. */
+  NumPlayers: number;
+  /** Agent name for each configured automated seat. */
+  Agents: string[];
+  /** Selected variant value keyed by variant property name. */
+  Variant: Record<string, string>;
   /** Current raw game state */
   CurrentState: RawGameState;
   /** Active timer information */
@@ -68,8 +76,6 @@ export interface GameFromServer {
   Winners: number[];
   /** Diagram for rendering (optional) */
   Diagram?: string;
-  /** Other game-specific properties */
-  [key: string]: any;
 }
 
 /**

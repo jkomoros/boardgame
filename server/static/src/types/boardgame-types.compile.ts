@@ -19,6 +19,7 @@ declare const stateWithDynamicComponents: FullGameState<
   { cards: readonly ({ FaceUp: boolean } | null)[] }
 >;
 declare const chest: GameChest<{ cards: readonly { readonly Index: number; readonly Values: CardValues }[] }>;
+declare const unboundChest: GameChest;
 
 if (isVisibleComponent(component)) {
   component.Values.Suit;
@@ -37,3 +38,5 @@ chest.Decks?.cards[0]?.Values.Suit;
 chest.Decks?.cards[0]?.ID;
 // @ts-expect-error Dynamic component snapshots are deeply readonly.
 stateWithDynamicComponents.Components?.cards.push(null);
+// @ts-expect-error Unbound framework chest types do not advertise creator deck names.
+unboundChest.Decks?.cards;

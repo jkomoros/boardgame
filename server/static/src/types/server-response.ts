@@ -20,6 +20,7 @@ const MAX_FORMS = 10_000;
 const MAX_BUNDLES = 10_000;
 
 type RecordValue = Readonly<Record<string, unknown>>;
+type JsonObject = { [key: string]: JsonValue };
 
 function record(value: unknown, path: string): RecordValue {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -79,6 +80,81 @@ function jsonValue(value: unknown, path: string, depth = 0): JsonValue {
   ]));
 }
 
+function jsonObject(value: unknown, path: string): JsonObject {
+  record(value, path);
+  return jsonValue(value, path) as JsonObject;
+}
+
+function decodeStringMap(value: unknown, path: string): Record<string, string> {
+  const item = record(value, path);
+  if (Object.keys(item).length > MAX_FORMS) {
+    throw new Error(`${path} exceeds the maximum of ${MAX_FORMS} properties`);
+  }
+  return Object.fromEntries(Object.entries(item).map(([key, entry]) => [
+    key,
+    string(entry, `${path}.${key}`, true),
+  ]));
+}
+
+function decodeDecks(value: unknown, path: string): Record<string, readonly unknown[]> {
+  const item = record(value, path);
+  if (Object.keys(item).length > MAX_FORMS) {
+    throw new Error(`${path} exceeds the maximum of ${MAX_FORMS} decks`);
+  }
+  return Object.fromEntries(Object.entries(item).map(([deckName, rawDeck]) => [
+    deckName,
+    array(rawDeck, `${path}.${deckName}`, MAX_FORMS).map((rawComponent, componentIndex) => {
+      const component = record(rawComponent, `${path}.${deckName}[${componentIndex}]`);
+      const Index = integer(component['Index'], `${path}.${deckName}[${componentIndex}].Index`, true);
+      if (Index !== componentIndex) {
+        throw new Error(
+          `${path}.${deckName}[${componentIndex}].Index must equal its canonical index ${componentIndex}`,
+        );
+      }
+      return {
+        Index,
+        Values: jsonObject(component['Values'], `${path}.${deckName}[${componentIndex}].Values`),
+      };
+    }),
+  ]));
+}
+
+function decodeEnums(value: unknown, path: string): Record<string, { Values?: Record<string, string> }> {
+  const item = record(value, path);
+  if (Object.keys(item).length > MAX_FORMS) {
+    throw new Error(`${path} exceeds the maximum of ${MAX_FORMS} enums`);
+  }
+  return Object.fromEntries(Object.entries(item).map(([enumName, rawEnum]) => {
+    const enumItem = record(rawEnum, `${path}.${enumName}`);
+    const Values = enumItem['Values'] === undefined
+      ? undefined
+      : decodeStringMap(enumItem['Values'], `${path}.${enumName}.Values`);
+    return [enumName, Values === undefined ? {} : { Values }];
+  }));
+}
+
+function decodeChest(value: unknown, path: string): GameChest {
+  const item = record(value, path);
+  const Decks = item['Decks'] === undefined
+    ? undefined
+    : item['Decks'] === null ? {} : decodeDecks(item['Decks'], `${path}.Decks`);
+  const Enums = item['Enums'] === undefined
+    ? undefined
+    : item['Enums'] === null ? {} : decodeEnums(item['Enums'], `${path}.Enums`);
+  const Constants = item['Constants'] === undefined
+    ? undefined
+    : item['Constants'] === null ? {} : jsonObject(item['Constants'], `${path}.Constants`);
+  const LegalTemplates = item['LegalTemplates'] === undefined
+    ? undefined
+    : decodeStringMap(item['LegalTemplates'], `${path}.LegalTemplates`);
+  return {
+    ...(Decks === undefined ? {} : { Decks }),
+    ...(Enums === undefined ? {} : { Enums }),
+    ...(Constants === undefined ? {} : { Constants }),
+    ...(LegalTemplates === undefined ? {} : { LegalTemplates }),
+  } as unknown as GameChest;
+}
+
 function decodePlayer(value: unknown, path: string): PlayerInfo {
   const item = record(value, path);
   const IsEmpty = boolean(item['IsEmpty'], `${path}.IsEmpty`);
@@ -118,7 +194,6 @@ function decodeCompanion(value: unknown, path: string): CompanionInfo | null {
       .map((playerIndex, index) => integer(playerIndex, `${path}.Absent[${index}]`, true));
   optionalBoolean(item['IsHost'], `${path}.IsHost`);
   return {
-    ...item,
     CompanionMode,
     RoomCode,
     RoomLocked,
@@ -223,13 +298,46 @@ function decodeForms(value: unknown, path: string): MoveForm[] | null {
 
 function decodeRawState(value: unknown, path: string): RawGameState {
   const item = record(value, path);
-  if (item['Version'] !== undefined) integer(item['Version'], `${path}.Version`, true);
-  record(item['Game'], `${path}.Game`);
-  array(item['Players'], `${path}.Players`, MAX_PLAYERS)
-    .forEach((player, index) => record(player, `${path}.Players[${index}]`));
-  if (item['Computed'] !== undefined) record(item['Computed'], `${path}.Computed`);
-  if (item['Components'] !== undefined) record(item['Components'], `${path}.Components`);
-  return item as unknown as RawGameState;
+  const Version = item['Version'] === undefined
+    ? undefined
+    : integer(item['Version'], `${path}.Version`, true);
+  const Game = jsonObject(item['Game'], `${path}.Game`);
+  const Players = array(item['Players'], `${path}.Players`, MAX_PLAYERS)
+    .map((player, index) => jsonObject(player, `${path}.Players[${index}]`));
+  let Computed: RawGameState['Computed'];
+  if (item['Computed'] !== undefined) {
+    const rawComputed = record(item['Computed'], `${path}.Computed`);
+    const Global = rawComputed['Global'] === undefined
+      ? undefined
+      : jsonObject(rawComputed['Global'], `${path}.Computed.Global`);
+    const computedPlayers = rawComputed['Players'] === undefined
+      ? undefined
+      : array(rawComputed['Players'], `${path}.Computed.Players`, MAX_PLAYERS)
+        .map((player, index) => jsonObject(player, `${path}.Computed.Players[${index}]`));
+    Computed = {
+      ...(Global === undefined ? {} : { Global }),
+      ...(computedPlayers === undefined ? {} : { Players: computedPlayers }),
+    };
+  }
+  let Components: RawGameState['Components'];
+  if (item['Components'] !== undefined) {
+    const rawComponents = record(item['Components'], `${path}.Components`);
+    if (Object.keys(rawComponents).length > MAX_FORMS) {
+      throw new Error(`${path}.Components exceeds the maximum of ${MAX_FORMS} properties`);
+    }
+    Components = Object.fromEntries(Object.entries(rawComponents).map(([deckName, entries]) => [
+      deckName,
+      array(entries, `${path}.Components.${deckName}`, MAX_FORMS)
+        .map((entry, index) => jsonValue(entry, `${path}.Components.${deckName}[${index}]`)),
+    ]));
+  }
+  return {
+    ...(Version === undefined ? {} : { Version }),
+    Game,
+    Players,
+    ...(Computed === undefined ? {} : { Computed }),
+    ...(Components === undefined ? {} : { Components }),
+  } as RawGameState;
 }
 
 function decodeTimer(value: unknown, path: string): TimerInfo {
@@ -242,7 +350,18 @@ function decodeTimer(value: unknown, path: string): TimerInfo {
     throw new Error(`${path}.originalTimeLeft must be finite when present`);
   }
   optionalString(item['ID'], `${path}.ID`);
-  return item as unknown as TimerInfo;
+  return {
+    TimeLeft: item['TimeLeft'],
+    ...(typeof item['originalTimeLeft'] === 'number'
+      ? { originalTimeLeft: item['originalTimeLeft'] }
+      : {}),
+    ...(typeof item['ID'] === 'string' ? { ID: item['ID'] } : {}),
+  } as TimerInfo;
+}
+
+function decodeStringArray(value: unknown, path: string, maximum: number): string[] {
+  return array(value, path, maximum)
+    .map((entry, index) => string(entry, `${path}[${index}]`, true));
 }
 
 function decodeGame(value: unknown, path: string): GameFromServer {
@@ -261,8 +380,20 @@ function decodeGame(value: unknown, path: string): GameFromServer {
     : array(item['Winners'], `${path}.Winners`, MAX_PLAYERS)
       .map((winner, index) => integer(winner, `${path}.Winners[${index}]`, true));
   optionalString(item['Diagram'], `${path}.Diagram`);
+  const Name = string(item['Name'], `${path}.Name`);
+  const ID = string(item['ID'], `${path}.ID`);
+  const NumPlayers = integer(item['NumPlayers'], `${path}.NumPlayers`, true);
+  if (NumPlayers > MAX_PLAYERS) throw new Error(`${path}.NumPlayers exceeds the maximum of ${MAX_PLAYERS}`);
+  const Agents = decodeStringArray(item['Agents'], `${path}.Agents`, MAX_PLAYERS);
+  const Variant = item['Variant'] === null || item['Variant'] === undefined
+    ? {}
+    : decodeStringMap(item['Variant'], `${path}.Variant`);
   return {
-    ...item,
+    Name,
+    ID,
+    NumPlayers,
+    Agents,
+    Variant,
     CurrentState,
     ActiveTimers,
     Version,
@@ -284,7 +415,7 @@ function decodeBundle(value: unknown, path: string): ServerStateBundle {
 export function decodeGameInfoResponse(value: unknown): GameInfoResponse {
   const item = record(value, 'Game info response');
   if (item['Status'] !== 'Success') throw new Error('Game info response.Status must be "Success"');
-  const Chest = record(item['Chest'], 'Game info response.Chest') as unknown as GameChest;
+  const Chest = decodeChest(item['Chest'], 'Game info response.Chest');
   const Players = array(item['Players'], 'Game info response.Players', MAX_PLAYERS)
     .map((player, index) => decodePlayer(player, `Game info response.Players[${index}]`));
   const HasEmptySlots = boolean(item['HasEmptySlots'], 'Game info response.HasEmptySlots');

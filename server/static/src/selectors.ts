@@ -338,8 +338,15 @@ export const selectPlayerActivity = stableArray(_selectPlayerActivity);
 const _selectPlayerOrder = createSelector(
     [selectExpandedGameStateWithoutTimers],
     (state): number[] | null => {
-        const order = state?.Game?.Computed?.PlayerOrder;
-        return (order && Array.isArray(order)) ? order : null;
+        const game = state?.Game as Readonly<Record<string, unknown>> | undefined;
+        const computed = game?.Computed;
+        if (!computed || typeof computed !== 'object' || Array.isArray(computed)) return null;
+        const order = (computed as Readonly<Record<string, unknown>>).PlayerOrder;
+        if (!Array.isArray(order)
+            || !order.every(playerIndex => Number.isSafeInteger(playerIndex) && playerIndex >= 0)) {
+            return null;
+        }
+        return order;
     }
 );
 export const selectPlayerOrder = stableNullableArray(_selectPlayerOrder);

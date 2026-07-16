@@ -1135,6 +1135,13 @@ First evidence-driven primitive tranche (2026-07-16):
   and client-installed timer baselines. Reuse the corrected move-form contract
   in the legacy admin form instead of maintaining a second local shape, and
   prove the decoder against both focused unit cases and a real Pig server flow.
+  Follow-up the boundary audit by explicitly copying the closed Game,
+  CompanionInfo, and timer envelopes instead of spreading their wire objects;
+  deep-copy Chest and raw state as opaque bounded JSON until the generated
+  game-specific contract takes ownership at the renderer boundary; unify the
+  duplicate chest types; and remove ambient string-to-`any` escape hatches so
+  core code cannot pretend it knows creator-defined keys and unknown envelope
+  fields cannot enter Redux unnoticed.
 - [x] Extend the same fail-closed transport to list and create-game flows:
   replace `any[]` manager/game state with shared exact manager, variant, agent,
   player, and game-list contracts; bound and copy the Go payloads; normalize nil
