@@ -54,6 +54,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	client := string(contents["checkers/client/boardgame-render-game-checkers.ts"])
+	playerInfo := string(contents["checkers/client/boardgame-render-player-info-checkers.ts"])
 	for _, required := range []string{
 		"cardView<GameState['DrawStack']>",
 		".componentView=${this.cards}",
@@ -65,6 +66,9 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		if !strings.Contains(client, required) {
 			t.Errorf("generated client is missing %q", required)
 		}
+	}
+	if !strings.Contains(playerInfo, ".value=${this.playerState?.Hand.Indexes.length ?? 0}") {
+		t.Error("generated player info does not use the typed status-text value API")
 	}
 	for _, legacy := range []string{"boardgame-deck-defaults", "{{item.", "component-rotated", "componentAttrs", "propose-move", "data-arg-", "this.proposeMove"} {
 		if strings.Contains(client, legacy) {

@@ -400,6 +400,63 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
   }
 });
 
+test('status text uses typed values, accessible live updates, and loud authoring errors', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-status-text.ts');
+      const status = document.createElement('boardgame-status-text');
+      status.value = 3;
+      document.body.append(status);
+      await status.updateComplete;
+      const first = status.shadowRoot?.querySelector('strong');
+      const initial = {
+        text: first?.textContent,
+        role: first?.getAttribute('role'),
+        live: first?.getAttribute('aria-live'),
+        atomic: first?.getAttribute('aria-atomic'),
+      };
+      status.value = 7;
+      await status.updateComplete;
+      const fading = status.shadowRoot?.querySelector('boardgame-fading-text') as
+        (HTMLElement & { trigger: unknown }) | null;
+      const updated = {
+        text: status.shadowRoot?.querySelector('strong')?.textContent,
+        fadingTrigger: fading?.trigger,
+        fadingHidden: fading?.getAttribute('aria-hidden'),
+      };
+
+      const renderError = (configure: (element: HTMLElement & { value?: unknown }) => void) => {
+        const element = document.createElement('boardgame-status-text') as HTMLElement & {
+          value?: unknown;
+          render(): unknown;
+        };
+        configure(element);
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      const invalidValue = renderError(element => { element.value = { score: 7 }; });
+      const legacyContent = renderError(element => { element.textContent = '7'; });
+      const legacyAttribute = renderError(element => { element.setAttribute('message', '7'); });
+      status.remove();
+      return { initial, updated, invalidValue, legacyContent, legacyAttribute };
+    });
+
+    expect(result.initial).toEqual({ text: '3', role: 'status', live: 'polite', atomic: 'true' });
+    expect(result.updated).toEqual({ text: '7', fadingTrigger: 7, fadingHidden: 'true' });
+    expect(result.invalidValue).toContain('.value must be a string, number, null, or undefined');
+    expect(result.legacyContent).toContain('slotted content is not supported');
+    expect(result.legacyAttribute).toContain('value/message attributes are not supported');
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

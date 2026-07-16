@@ -956,6 +956,18 @@ Use slots, CSS parts, theme tokens, container queries, and template methods so a
 game can retain a distinctive design. Refactor Solo/Table/Hand bases to compose
 these pieces internally while preserving existing helper/template overrides.
 
+First evidence-driven primitive tranche (2026-07-16):
+
+- [x] Modernize `boardgame-status-text`, a primitive repeated by seven framework
+  and external games, around a typed `.value` string/number contract instead of
+  hidden slotted content plus DOM mutation observation. Register it from the
+  client facade, provide polite atomic live-region semantics by default, retain
+  the existing configurable fading policies, and fail loudly at runtime for
+  legacy attributes/content, non-scalar values, or unknown policies. Migrate the
+  full corpus, tutorial, server guide, and scaffold source/golden output; prove
+  positive behavior, accessibility wiring, negative TypeScript contracts, and
+  runtime diagnostics in the renderer fixture.
+
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design
 system phase.

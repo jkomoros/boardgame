@@ -861,16 +861,13 @@ customElements.define('boardgame-render-game-{{.Name}}', BoardgameRenderGame{{up
 
 const templateContentsRenderPlayerInfoTs = `import { html } from '../../src/client.js';
 import { PlayerInfoRenderer } from './_game_renderer.js';
-{{- if .EnableExampleClient }}
-import '../../src/components/boardgame-status-text.js';
-{{- end}}
 
 class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PlayerInfoRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]
       Number of cards:
-      <boardgame-status-text>${this.playerState?.Hand.Indexes.length ?? 0}</boardgame-status-text>
+      <boardgame-status-text .value=${this.playerState?.Hand.Indexes.length ?? 0}></boardgame-status-text>
     [[BACKTICK]];
     {{- else }}
     return html[[BACKTICK]]<p>Render player summary information here.</p>[[BACKTICK]];

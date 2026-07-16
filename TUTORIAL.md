@@ -1555,14 +1555,16 @@ The boardgame-fading-text element will render text that animates when changed. T
 
 In many cases there are parts of your UI that show a value in them, and when that value changes you want to draw attention to it. For example, if you have some text that shows the number of cards in a given stack, you might want users to notice when that changes.
 
-You can use `boardgame-status-text` to render text that will automatically show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
+Use `boardgame-status-text` when a displayed string or number should call
+attention to changes. Bind its typed `.value` property; it displays the current
+value, announces changes politely to assistive technology, and uses the
+`diff-up` fading strategy by default. Set `.autoMessage=${'diff'}`, `'new'`, or
+`'fixed'` when that better describes the change.
 
-```html
-<!-- you can bind to message attribute -->
-<boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
-
-<!-- you can also just include content which automatically sets message -->
-<boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
+```typescript
+html`<boardgame-status-text
+  .value=${this.state?.Game.Cards.Components.length ?? 0}>
+</boardgame-status-text>`
 ```
 
 ##### boardgame-base-game-renderer
@@ -1860,7 +1862,9 @@ import { PlayerInfoRenderer } from './_game_renderer.js';
 class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
   override render() {
     return html`Won Cards
-      <boardgame-status-text>${this.playerState?.WonCards.Indexes.length ?? 0}</boardgame-status-text>`;
+      <boardgame-status-text
+        .value=${this.playerState?.WonCards.Indexes.length ?? 0}>
+      </boardgame-status-text>`;
   }
 }
 ```

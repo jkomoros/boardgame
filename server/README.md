@@ -83,11 +83,13 @@ For more complex processing, render ordinary Lit content from the view or use
 
 The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block.
 
-You can use boardgame-status-text to render text that will also show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
+Use `boardgame-status-text` to display a typed string or number, announce its
+changes politely, and show a fading change effect. It uses the `diff-up`
+strategy by default.
 
 ```typescript
 html`<boardgame-status-text
-  .message=${String(this.state?.Game.Cards.Components.length ?? 0)}>
+  .value=${this.state?.Game.Cards.Components.length ?? 0}>
 </boardgame-status-text>`
 ```
 

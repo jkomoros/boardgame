@@ -1,5 +1,4 @@
 import { html } from '../../src/client.js';
-import '../../src/components/boardgame-status-text.js';
 import { PlayerInfoRenderer } from './_game_renderer.js';
 import type { PlayerState } from './_types.js';
 
@@ -24,7 +23,7 @@ class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
   override render() {
     return html`
       <div>Score <strong>${this.playerState?.Computed?.HandValue}</strong></div>
-      <div><boardgame-status-text>${this._calculateStatus(this.playerState)}</boardgame-status-text></div>
+      <div><boardgame-status-text .value=${this._calculateStatus(this.playerState)}></boardgame-status-text></div>
     `;
   }
 }

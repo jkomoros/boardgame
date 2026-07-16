@@ -82,4 +82,5 @@ export type {
 import './components/boardgame-die.js';
 import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
+import './components/boardgame-status-text.js';
 import './components/boardgame-spatial-board.js';

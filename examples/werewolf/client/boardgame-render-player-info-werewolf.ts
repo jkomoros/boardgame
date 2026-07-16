@@ -1,5 +1,4 @@
 import { html, css } from '../../src/client.js';
-import '../../src/components/boardgame-status-text.js';
 import { PlayerInfoRenderer } from './_game_renderer.js';
 
 /**

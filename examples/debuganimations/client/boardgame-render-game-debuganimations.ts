@@ -9,7 +9,6 @@ import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-card.js';
 import '../../src/components/boardgame-component-stack.js';
 import '../../src/components/boardgame-fading-text.js';
-import '../../src/components/boardgame-status-text.js';
 import '../../src/components/boardgame-token.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
@@ -334,7 +333,7 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             <boardgame-action-button .action=${this.move(MoveNames.VisibleShuffle)}>Public Shuffle</boardgame-action-button>
             <boardgame-action-button .action=${this.move(MoveNames.Shuffle)}>Shuffle</boardgame-action-button>
             <boardgame-action-button .action=${this.move(MoveNames.ShuffleHidden)}>Shuffle Hidden</boardgame-action-button>
-            <boardgame-status-text>${this.state?.Game?.FanShuffleCount}</boardgame-status-text>
+            <boardgame-status-text .value=${this.state?.Game?.FanShuffleCount}></boardgame-status-text>
             <md-filled-select
               label="Layout"
               .value="${this.fromStackLayout}"
