@@ -133,6 +133,15 @@ test('a move proposed while isAnimating is true is swallowed, not enqueued', asy
     const h = (window as any).__bgAnimTestHooks;
     return h.gateCloses >= h.gateOpens;
   }, undefined, { timeout: 20000 });
+  // The diagnostic close counter increments at the start of the close
+  // notification. Wait for the reflected renderer state to consume it before
+  // testing a post-gate dispatch; otherwise this assertion races Lit's update.
+  await page.waitForFunction((fnSrc: string) => {
+    // eslint-disable-next-line no-eval
+    const deepQueryFirst = eval(`(${fnSrc})`);
+    const rg = deepQueryFirst(document, 'boardgame-render-game') as any;
+    return rg ? !rg.isAnimating : false;
+  }, `(${deepQueryFirstScript.toString()})()`, { timeout: 20000 });
   const settled = await gateSnapshot(page);
   expect(settled.watchdogFirings, 'animation watchdog must never fire').toBe(before.watchdogFirings);
 
@@ -144,12 +153,13 @@ test('a move proposed while isAnimating is true is swallowed, not enqueued', asy
     const rg = deepQueryFirst(document, 'boardgame-render-game') as any;
     const h = (window as any).__bgAnimTestHooks;
     const gateOpensBefore = h.gateOpens;
+    const isAnimatingBefore = rg ? rg.isAnimating : null;
     rg.dispatchEvent(new CustomEvent('propose-move', {
       bubbles: true,
       composed: true,
       detail: { name: 'Start Move All Components To Visible', arguments: {} }
     }));
-    return { isAnimating: rg ? rg.isAnimating : null, gateOpensAtDispatch: gateOpensBefore };
+    return { isAnimating: isAnimatingBefore, gateOpensAtDispatch: gateOpensBefore };
   }, `(${deepQueryFirstScript.toString()})()`);
   expect(afterCloseResult.isAnimating, 'precondition: gate must be closed for this second dispatch').toBe(false);
 

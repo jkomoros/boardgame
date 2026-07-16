@@ -14,17 +14,17 @@ Offline dev mode allows you to develop and test the boardgame app without requir
 
 ```bash
 # From the boardgame project root:
+go run ./boardgame-util serve --storage memory --offline-dev-mode
+```
 
-# Kill any existing servers
-ps aux | grep "api/api" | grep -v grep | awk '{print $2}' | xargs kill 2>/dev/null
-lsof -ti:8080 | xargs kill -9 2>/dev/null
-lsof -ti:8888 | xargs kill -9 2>/dev/null
+Keep the command in the foreground. It supervises both child servers and waits
+for readiness; press `Ctrl+C` once to stop them cleanly. If the default ports
+are occupied, pass another explicit `--port` and `--static-port` pair instead
+of killing an unknown process.
 
-# Start server with offline dev mode
-nohup ./boardgame-util/boardgame-util serve --offline-dev-mode > server.log 2>&1 &
-sleep 5
+In another terminal, verify offline mode:
 
-# Verify offline mode is working
+```bash
 curl -s http://localhost:8080/client_config.js | grep offline_dev_mode
 # Should output: "offline_dev_mode": true
 ```
@@ -33,11 +33,12 @@ The `--offline-dev-mode` flag is handled automatically: the serve command genera
 
 ## How `boardgame-util serve` Works
 
-1. Creates a temporary directory: `temp_serve_XXXXXXXXX/` (random number)
-2. Copies the API binary and creates symlinks to source files in the temp directory
-3. Writes a `client_config.js` with the correct settings (including `offline_dev_mode: true`) to the temp directory
-4. Starts both the API server and Vite dev server from the temp directory
-5. Symlinks to `server/static/src/` enable HMR (edits are picked up automatically)
+1. Creates an isolated temporary assembly directory.
+2. Generates fresh client contracts and assembles every configured game client.
+3. Writes `client_config.js` with `offline_dev_mode: true` and matching ports.
+4. Starts and supervises both the API server and Vite.
+5. Keeps framework and game sources connected for HMR.
+6. Terminates both children and removes temporary output when `serve` exits.
 
 ## Creating a Game in Offline Dev Mode
 
@@ -73,5 +74,5 @@ Use the game creation flow via `/list-games` instead of navigating directly.
 
 Check the API server is running:
 ```bash
-curl -s http://localhost:8888/api/version
+curl --fail http://localhost:8888/api/list/manager
 ```

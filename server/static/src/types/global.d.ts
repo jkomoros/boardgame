@@ -9,3 +9,7 @@ interface Config {
 
 declare const CONFIG: Config;
 declare const API_HOST: string;
+
+interface Window {
+  API_HOST?: string;
+}

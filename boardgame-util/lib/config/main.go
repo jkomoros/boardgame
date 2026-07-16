@@ -54,10 +54,10 @@ func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err
 // use given the search path. If dir is a config file itself, loads that (and
 // any private component in same directory). Next it interprets dir as a
 // directory to search within for any config files. If none are found, walks
-// upwards in the directory hierarchy (as long as that's still in $GOPATH)
-// until it finds a folder that appears to work. If dir is "", working
-// directory is assumed. If skipUpwardSearch is true, then if dir is non-blank
-// upward searching in the dir hiearchy will not be done.
+// upwards in the directory hierarchy until it finds a folder that appears to
+// work or reaches the filesystem root. If dir is "", working directory is
+// assumed. If skipUpwardSearch is true, then if dir is non-blank upward
+// searching in the directory hierarchy will not be done.
 func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig string, err error) {
 
 	if dir == "" {
@@ -70,18 +70,15 @@ func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig s
 		return public, private, nil
 	}
 
-	//Guess it wasn't a file, try interpreting as a directory.
-
+	// Guess it wasn't a file, try interpreting it as a directory. Convert once
+	// to an absolute path and then take actual parents. Prepending ".." to the
+	// original relative path makes the path grow forever when no config exists.
+	searchDir, err := filepath.Abs(dir)
+	if err != nil {
+		return "", "", errors.New("Couldn't resolve config search path: " + err.Error())
+	}
 	for {
-
-		if absDir, err := filepath.Abs(dir); err != nil {
-			//Must have fallen off the end at the top.
-			break
-		} else if absDir == string(filepath.Separator) {
-			break
-		}
-
-		public, private := fileNamesToUseInDir(dir)
+		public, private := fileNamesToUseInDir(searchDir)
 
 		if public != "" || private != "" {
 			return public, private, nil
@@ -91,7 +88,11 @@ func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig s
 			break
 		}
 
-		dir = filepath.Join("..", dir)
+		parent := filepath.Dir(searchDir)
+		if parent == searchDir {
+			break
+		}
+		searchDir = parent
 	}
 
 	return "", "", errors.New("Couldn't find a path")

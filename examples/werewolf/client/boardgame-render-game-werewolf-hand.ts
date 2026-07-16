@@ -1,21 +1,17 @@
 import { html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
-import { glyphForSlug } from '../../src/components/companion-avatar-catalog.js';
+import { glyphForSlug, targetList } from '../../src/client.js';
+import { HandRenderer, registerHandRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import type { MoveArgs } from './_move_args.js';
-import type { GameState, PlayerState } from './_types.js';
 
 /**
  * Werewolf Hand view (each player's phone). Connects as PlayerIndex(n)
  * so the player can see their own role (via sanitize:"other:hidden" on
  * behaviors.PlayerRole). Shows role, voting buttons, and game status.
  */
-@customElement('boardgame-render-game-werewolf-hand')
-export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName, MoveArgs> {
+@registerHandRenderer
+export class WerewolfHandView extends HandRenderer {
   static override styles = [
-    BoardgameHandViewBase.styles,
+    HandRenderer.styles,
     css`
       :host {
         display: block;
@@ -63,32 +59,8 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
         margin: 16px auto;
         max-width: 320px;
       }
-      .vote-section h2 {
-        text-align: center;
-        font-size: 16px;
-        margin: 0 0 12px 0;
-      }
-      .vote-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .vote-buttons button {
-        padding: 14px 24px;
-        font-size: 16px;
-        border-radius: 8px;
-        border: 2px solid #555;
-        background: #2a2a3e;
-        color: #e0e0e0;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .vote-buttons button:active {
-        background: #3a3a5e;
-      }
-      .vote-buttons button:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
+      .vote-section boardgame-target-list {
+        --boardgame-target-list-gap: 8px;
       }
       .voted-message {
         text-align: center;
@@ -119,7 +91,7 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
 
   override render() {
     const game = this.state?.Game;
-    const player = this.playerState as PlayerState | undefined;
+    const player = this.playerState;
     const allPlayers = this.state?.Players ?? [];
     const phase = game?.Phase ?? 'Gathering';
 
@@ -154,18 +126,25 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
       const seat = this.seatPresentations.find((s) => s.playerIndex === i);
       return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i}`;
     };
-    const voteTargets: { index: number; label: string }[] = [];
+    const voteIndexes: number[] = [];
     allPlayers.forEach((p, i) => {
       if (p.PlayerInactive || p.Eliminated) return;
       // The server rejects self-votes in EVERY phase (moves.go: "you
       // cannot vote for yourself") — offering yourself at night just
       // produces a silently-failing tap.
       if (i === myIndex) return;
-      voteTargets.push({ index: i, label: nameFor(i) });
+      voteIndexes.push(i);
     });
 
     // Determine the correct move name for this phase
     const moveName = phase === 'Night' ? MoveNames.CastNightVote : MoveNames.CastVote;
+    const votes = moveName === MoveNames.CastNightVote
+      ? this.move(MoveNames.CastNightVote).targets(
+        voteIndexes, VoteTarget => ({ VoteTarget }),
+      )
+      : this.move(MoveNames.CastVote).targets(
+        voteIndexes, VoteTarget => ({ VoteTarget }),
+      );
 
     return html`
       ${this.renderTopEdgeAnchor()}
@@ -197,17 +176,10 @@ export class WerewolfHandView extends BoardgameHandViewBase<GameState, PlayerSta
             <div class="voted-message">Vote cast. Waiting for others...</div>
           ` : html`
             <div class="vote-section">
-              <h2>${phase === 'Day' ? 'Vote to eliminate:' : 'Choose a target:'}</h2>
-              <div class="vote-buttons">
-                ${voteTargets.map(t => html`
-                  <button @click=${() => this.proposeMove(moveName, {
-                    TargetPlayerIndex: myIndex,
-                    VoteTarget: t.index,
-                  })}>
-                    ${t.label}
-                  </button>
-                `)}
-              </div>
+              <boardgame-target-list
+                .label=${phase === 'Day' ? 'Vote to eliminate' : 'Choose a target'}
+                .choices=${targetList(votes, nameFor)}>
+              </boardgame-target-list>
             </div>
           `}
         `}

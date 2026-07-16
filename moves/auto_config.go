@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/jkomoros/boardgame"
@@ -180,8 +181,11 @@ func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...C
 	}
 
 	actualExample := generatedExample.(AutoConfigurableMove)
-
 	name := actualExample.DeriveName(a.delegate.Manager())
+
+	if err := collectMoveInputFields(actualExample, config); err != nil {
+		return nil, fmt.Errorf("move %q: %w", name, err)
+	}
 
 	moveTypeConfig, err := newMoveConfig(name, exampleStruct, config), nil
 

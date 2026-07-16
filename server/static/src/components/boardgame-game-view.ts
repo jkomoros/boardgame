@@ -6,9 +6,23 @@ import './boardgame-chat-panel.js';
 import './boardgame-render-game.js';
 import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
+import type { BoardgamePlayerRoster } from './boardgame-player-roster.js';
+import type { BoardgameRenderGame, HostedGameRenderer } from './boardgame-render-game.js';
+import type { BoardgameAdminControls } from './boardgame-admin-controls.js';
+import type { BoardgameGameStateManager } from './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
+import {
+  playerPresentations,
+  type PlayerPresentation,
+} from '../status/player-presentation.js';
+import type {
+  ExpandedGameState,
+  GameChest,
+  PlayerInfo,
+  RootState,
+} from '../types/store';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -35,7 +49,8 @@ import {
   selectLastFetchedVersion,
   selectPlayerColors,
   selectPlayerActivity,
-  selectPlayerOrder
+  selectPlayerOrder,
+  selectGameTimerInfos,
 } from '../selectors.js';
 
 import {
@@ -49,10 +64,23 @@ import {
   updateViewState,
   setRequestedPlayer,
   setAutoCurrentPlayer,
-  fetchGameInfo
+  fetchGameInfo,
+  submitMove,
 } from '../actions/game.js';
+import {
+  MoveSubmissionGate,
+  type MovePreviewTransport,
+  type MoveTransport,
+} from '../moves/action.js';
+import type { TargetPreviewTransport } from '../moves/target-action.js';
+import { movePreview, movePreviewBatch } from '../api.js';
+import {
+  TIMER_SERVICE_REQUEST_EVENT,
+  TimerService,
+  type TimerServiceRequestDetail,
+} from '../timers/timer-service.js';
 
-import type { StateBundle } from '../types/game-state';
+import type { GameFromServer, StateBundle } from '../types/game-state';
 import type { MoveForm } from '../types/api';
 
 import game from '../reducers/game.js';
@@ -148,7 +176,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   requestedPlayer = 0;
 
   @property({ type: Object, attribute: false })
-  game: any = null;
+  game: GameFromServer | null = null;
 
   @property({ type: Number, attribute: false })
   viewingAsPlayer = 0;
@@ -168,7 +196,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   // The current renderer, passed up from the gameRenderer, so we can pass
   // it to stateGameManager and readyForNextState.
   @property({ type: Object })
-  activeRenderer: any = null;
+  activeRenderer: HostedGameRenderer | null = null;
 
   @property({ type: Boolean })
   socketActive = false;
@@ -177,29 +205,29 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _firstStateBundle = true;
 
   @query('#manager')
-  private _managerEle: any;
+  private _managerEle?: BoardgameGameStateManager;
 
   @query('#admin')
-  private _adminEle: any;
+  private _adminEle?: BoardgameAdminControls;
 
   @query('#render')
-  private _renderEle: any;
+  private _renderEle?: BoardgameRenderGame;
 
   @query('#player')
-  private _playerEle: any;
+  private _playerEle?: BoardgamePlayerRoster;
 
   // Reactive properties - synced from Redux in stateChanged()
   @property({ type: Object, attribute: false })
-  _currentState: any = null;
+  _currentState: ExpandedGameState | null = null;
 
   @property({ type: Object, attribute: false })
   _animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
 
   @property({ type: Object, attribute: false })
-  _chest: any = null;
+  _chest: GameChest | null = null;
 
   @property({ type: Array, attribute: false })
-  _playersInfo: any[] = [];
+  _playersInfo: PlayerInfo[] = [];
 
   @property({ type: Boolean, attribute: false })
   _hasEmptySlots = false;
@@ -215,6 +243,127 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   @property({ type: Object, attribute: false })
   _companionInfo: import('../types/store').CompanionInfo | null = null;
+
+	@property({ type: String, attribute: false })
+  _moveInputSchemaFingerprint: string | null = null;
+
+  @property({ type: Number, attribute: false })
+  _moveSnapshotEpoch = 0;
+
+  @property({ type: Number, attribute: false })
+  _proposingAsPlayer = 0;
+
+  private readonly _moveSubmissionGate = new MoveSubmissionGate();
+  private readonly _moveTransport: MoveTransport = {
+    submit: async request => {
+      const route = this._gameRoute;
+      if (!route) {
+        return { kind: 'network-failure', error: 'The game route is unavailable' };
+      }
+      return submitMove(route, {
+        ...request.arguments,
+        MoveType: request.name,
+        admin: request.proposingAsAdmin ? '1' : '0',
+        player: String(request.proposingAsPlayer),
+        ExpectedVersion: String(request.snapshotVersion),
+      })(store.dispatch);
+    },
+  };
+  private readonly _movePreviewTransport: MovePreviewTransport = {
+    preview: async request => {
+      const route = this._gameRoute;
+      if (!route) {
+        return { kind: 'failure', error: 'The game route is unavailable', retryable: false };
+      }
+      const response = await movePreview(
+        route.name,
+        route.id,
+        request.name,
+        { ...request.arguments, ExpectedVersion: String(request.snapshotVersion) },
+        { player: request.proposingAsPlayer, admin: request.proposingAsAdmin ? 1 : 0 },
+        request.signal,
+      );
+      if (response.error) {
+        if (response.code === 'STALE_SNAPSHOT') {
+          return {
+            kind: 'stale-snapshot',
+            expectedVersion: response.expectedVersion ?? request.snapshotVersion,
+            actualVersion: response.actualVersion ?? this._lastFetchedVersion,
+          };
+        }
+        return {
+          kind: 'failure',
+          error: response.error,
+          friendlyError: response.friendlyError,
+          retryable: response.status === 0,
+        };
+      }
+      const form = response.data?.Form;
+      if (!form) return { kind: 'failure', error: 'Move preview returned no form', retryable: true };
+      return {
+        kind: 'success',
+        legal: form.LegalForPlayer ?? false,
+        ...(form.LegalForPlayerError ? { error: form.LegalForPlayerError } : {}),
+        ...(form.Preconditions ? { preconditions: form.Preconditions } : {}),
+      };
+    },
+  };
+
+  private readonly _targetPreviewTransport: TargetPreviewTransport = {
+    previewTargets: async request => {
+      const route = this._gameRoute;
+      if (!route) return { kind: 'failure', error: 'The game route is unavailable', retryable: false };
+      const response = await movePreviewBatch(
+        route.name,
+        route.id,
+        request.name,
+        request.candidates.map(candidate => ({ ID: candidate.id, Args: { ...candidate.arguments } })),
+        { player: request.proposingAsPlayer, admin: request.proposingAsAdmin ? 1 : 0 },
+        request.snapshotVersion,
+        request.signal,
+      );
+      if (response.error) {
+        if (response.code === 'STALE_SNAPSHOT') {
+          return {
+            kind: 'stale-snapshot',
+            expectedVersion: response.expectedVersion ?? request.snapshotVersion,
+            actualVersion: response.actualVersion ?? this._lastFetchedVersion,
+          };
+        }
+        return {
+          kind: 'failure',
+          error: response.error,
+          friendlyError: response.friendlyError,
+          retryable: response.status === 0,
+        };
+      }
+      const results: unknown = response.data?.Results;
+      if (!Array.isArray(results)) {
+        return { kind: 'failure', error: 'Target preview results must be an array', retryable: false };
+      }
+      const validated = [];
+      for (const result of results) {
+        if (typeof result !== 'object' || result === null) {
+          return { kind: 'failure', error: 'Target preview returned a malformed result', retryable: false };
+        }
+        const item = result as Record<string, unknown>;
+        if (typeof item['ID'] !== 'string' || !item['ID']
+          || typeof item['Legal'] !== 'boolean'
+          || (item['Error'] !== undefined && typeof item['Error'] !== 'string')) {
+          return { kind: 'failure', error: 'Target preview returned a malformed result', retryable: false };
+        }
+        validated.push({
+          id: item['ID'],
+          legal: item['Legal'],
+          ...(item['Error'] ? { error: item['Error'] } : {}),
+        });
+      }
+      return {
+        kind: 'success',
+        results: validated,
+      };
+    },
+  };
 
   @property({ type: String, attribute: false })
   _pageExtra = '';
@@ -237,6 +386,12 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Array, attribute: false })
   _playerColors: string[] = [];
 
+  @property({ attribute: false })
+  _playerPresentations: readonly PlayerPresentation[] = Object.freeze([]);
+
+  private _presentationPlayersSource: readonly PlayerInfo[] | null = null;
+  private _presentationColorsSource: readonly string[] | null = null;
+
   @property({ type: Array, attribute: false })
   _playerActivity: boolean[] = [];
 
@@ -251,6 +406,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _companionSurface: 'table' | 'hand' | null = null;
 
   private _surfaceCachedGameId: string | null = null;
+  private readonly _timerService = new TimerService();
 
   // Hide-my-hand privacy shield (hand surface only): when true, an opaque
   // full-viewport overlay covers the private hand so the player can set
@@ -277,6 +433,14 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.addEventListener('all-animations-done', (e: Event) => this._handleAllAnimationsDone(e));
     this.addEventListener('set-animation-length', (e: Event) => this._handleSetAnimationLength(e as CustomEvent));
     this.addEventListener('animating-changed', (e: Event) => this._handleAnimatingChanged(e as CustomEvent));
+    this.addEventListener(TIMER_SERVICE_REQUEST_EVENT, (event: Event) => {
+      const request = event as CustomEvent<TimerServiceRequestDetail>;
+      if (typeof request.detail?.accept !== 'function') {
+        throw new Error('boardgame-game-view: malformed timer service request');
+      }
+      event.stopPropagation();
+      request.detail.accept(this._timerService);
+    });
   }
 
   override render() {
@@ -345,10 +509,19 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           @renderer-changed=${this._handleRendererChanged}
           .gameName=${this._gameRoute ? this._gameRoute.name : ''}
           .gameId=${this._gameRoute ? this._gameRoute.id : ''}
+          .gameVersion=${this.game ? this.game.Version : 0}
+          .snapshotEpoch=${this._moveSnapshotEpoch}
+          .proposingAsPlayer=${this._proposingAsPlayer}
+          .proposingAsAdmin=${this._admin}
+          .moveTransport=${this._moveTransport}
+          .movePreviewTransport=${this._movePreviewTransport}
+          .targetPreviewTransport=${this._targetPreviewTransport}
+          .moveSubmissionGate=${this._moveSubmissionGate}
           .companionInfo=${this._companionInfo}
           .isOwner=${this._isOwner}
           .gameFinished=${this.game ? this.game.Finished : false}
           .gameWinners=${this.game ? this.game.Winners || [] : []}
+          .playerPresentations=${this._playerPresentations}
           .viewingAsPlayer=${this.viewingAsPlayer}
           .currentPlayerIndex=${this.game ? this.game.CurrentPlayerIndex : 0}
           .previewAsPlayer=${this.requestedPlayer}
@@ -356,7 +529,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .socketActive=${this.socketActive}
           .active=${this.selected}
           .chest=${this._chest}
-          .moveForms=${this.moveForms}>
+					.moveForms=${this.moveForms}
+					.moveInputSchemaFingerprint=${this._moveInputSchemaFingerprint}>
         </boardgame-render-game>
       </div>
       <!-- Not chrome despite the name: admin-controls owns the move-form
@@ -374,7 +548,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         .currentState=${this._currentState}
         .animating=${this._animating}
         @requested-player-changed=${this._handleRequestedPlayerChanged}
-        @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}>
+        @auto-current-player-changed=${this._handleAutoCurrentPlayerChanged}
+        @move-as-player-changed=${this._handleMoveAsPlayerChanged}>
       </boardgame-admin-controls>
       ${companionSurface ? '' : html`
       <boardgame-chat-panel
@@ -406,10 +581,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   // there was a time when it wasn't active. Once game-state-manager is done as
   // action creators then it should be fine.
 
-  stateChanged(state: any) {
+  stateChanged(state: RootState) {
+    this._timerService.update(selectGameTimerInfos(state));
     // Sync view state from Redux
     this.game = selectGame(state);
     this.viewingAsPlayer = selectViewingAsPlayer(state);
+    this._admin = selectAdmin(state);
+    if (!this._admin || this._adminEle?.makeMovesAsViewingAsPlayer !== false) {
+      this._proposingAsPlayer = this.viewingAsPlayer;
+    }
     this.requestedPlayer = selectRequestedPlayer(state);
     this.autoCurrentPlayer = selectAutoCurrentPlayer(state);
     this.moveForms = selectMoveForms(state);
@@ -431,10 +611,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       this._companionSurface = surfaceGameId ? surfaceForGame(surfaceGameId) : null;
     }
     this._loggedIn = selectLoggedIn(state);
-    this._admin = selectAdmin(state);
     this._page = selectPage(state);
     this._lastFetchedVersion = selectLastFetchedVersion(state);
     this._playerColors = selectPlayerColors(state);
+    if (this._presentationPlayersSource !== this._playersInfo
+      || this._presentationColorsSource !== this._playerColors) {
+      this._presentationPlayersSource = this._playersInfo;
+      this._presentationColorsSource = this._playerColors;
+      this._playerPresentations = playerPresentations(this._playersInfo, this._playerColors);
+    }
     this._playerActivity = selectPlayerActivity(state);
     this._playerOrder = selectPlayerOrder(state);
   }
@@ -457,6 +642,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleAutoCurrentPlayerChanged(e: CustomEvent) {
     store.dispatch(setAutoCurrentPlayer(e.detail.value));
+  }
+
+  private _handleMoveAsPlayerChanged(e: CustomEvent) {
+    this._proposingAsPlayer = e.detail.value;
   }
 
   private _handleSocketActiveChanged(e: CustomEvent) {
@@ -535,6 +724,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleGameStaticInfo(e: CustomEvent) {
     const bundle = e.detail;
+		this._moveInputSchemaFingerprint = bundle.moveInputSchemaFingerprint ?? null;
     store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner, bundle.companionInfo));
   }
 
@@ -550,6 +740,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleSetAnimationLength(e: CustomEvent) {
+    if (!this._renderEle) {
+      throw new Error('boardgame-game-view: animation length arrived before the renderer host mounted');
+    }
     this._renderEle.defaultAnimationLength = e.detail;
   }
 
@@ -565,7 +758,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       // Take note that we already prompted them, and don't prompt again unless the game changes.
       this.promptedToJoin = true;
       // Prompt the user to join!
-      this._playerEle.showDialog();
+      this._playerEle.openJoinDialog();
     }
   }
 
@@ -579,7 +772,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.game = null;
     this.moveForms = null;
     this.viewingAsPlayer = 0;
+    this._moveInputSchemaFingerprint = null;
     this._animationContext = null;
+    this._moveSnapshotEpoch += 1;
     this._firstStateBundle = true;
   }
 
@@ -588,6 +783,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // render-game wrapper applies it to the shared animator before assigning
     // the new state to the game renderer.
     this._animationContext = bundle.animationContext ?? null;
+    this._moveSnapshotEpoch += 1;
     store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
 
     // Update view state in Redux (replaces direct property assignment)

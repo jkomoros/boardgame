@@ -208,15 +208,17 @@ func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 
 }
 
-// ComputedGlobalProperties returns nil.
-func (d *defaultGameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
+// FrameworkComputedGlobalProperties returns nil.
+func (d *defaultGameDelegate) FrameworkComputedGlobalProperties(state ImmutableState) PropertyCollection {
 	return nil
 }
 
-// ComputedPlayerProperties returns nil.
-func (d *defaultGameDelegate) ComputedPlayerProperties(player ImmutableSubState) PropertyCollection {
+// FrameworkComputedPlayerProperties returns nil.
+func (d *defaultGameDelegate) FrameworkComputedPlayerProperties(player ImmutableSubState) PropertyCollection {
 	return nil
 }
+
+func (d *defaultGameDelegate) ConfigureComputedProperties() []ComputedProperty { return nil }
 
 // CustomPlayerOrder returns nil (default sequential order).
 func (d *defaultGameDelegate) CustomPlayerOrder(state ImmutableState) []PlayerIndex {
@@ -430,6 +432,7 @@ type testGameDelegate struct {
 	moveInstaller           func(manager *GameManager) []MoveConfig
 	customPlayerOrder       []PlayerIndex
 	inactivePlayers         map[PlayerIndex]bool
+	computedProperties      []ComputedProperty
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -511,34 +514,27 @@ func (t *testGameDelegate) Name() string {
 	return testGameName
 }
 
-func (t *testGameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
-	_, playerStates := concreteStates(state)
-
-	allScores := 0
-
-	for _, player := range playerStates {
-
-		allScores += player.Score
+func (t *testGameDelegate) ConfigureComputedProperties() []ComputedProperty {
+	if t.computedProperties != nil {
+		return t.computedProperties
 	}
-
-	return PropertyCollection{
-		"SumAllScores": allScores,
-	}
-}
-
-func (t *testGameDelegate) ComputedPlayerProperties(player ImmutableSubState) PropertyCollection {
-
-	playerState := player.(*testPlayerState)
-
-	effectiveMovesLeftThisTurn := playerState.MovesLeftThisTurn
-
-	//Players with Isfoo get a bonus.
-	if playerState.IsFoo {
-		effectiveMovesLeftThisTurn += 5
-	}
-
-	return PropertyCollection{
-		"EffectiveMovesLeftThisTurn": effectiveMovesLeftThisTurn,
+	return []ComputedProperty{
+		GlobalComputedInt("SumAllScores", func(state ImmutableState) int {
+			_, playerStates := concreteStates(state)
+			allScores := 0
+			for _, player := range playerStates {
+				allScores += player.Score
+			}
+			return allScores
+		}),
+		PlayerComputedInt("EffectiveMovesLeftThisTurn", func(player ImmutableSubState) int {
+			playerState := player.(*testPlayerState)
+			result := playerState.MovesLeftThisTurn
+			if playerState.IsFoo {
+				result += 5
+			}
+			return result
+		}),
 	}
 }
 

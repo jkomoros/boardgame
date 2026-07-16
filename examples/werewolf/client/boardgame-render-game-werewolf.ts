@@ -1,20 +1,18 @@
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
 
 /**
  * Werewolf solo renderer (non-companion mode). Minimal fallback that shows
  * game state as text. Werewolf is designed for companion mode, so this is
  * deliberately simple.
  */
-class BoardgameRenderGameWerewolf extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+@registerGameRenderer
+export class BoardgameRenderGameWerewolf extends GameRenderer {
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
       :host {
         display: block;
-        padding: 24px;
         font-family: system-ui, sans-serif;
       }
       pre {
@@ -26,10 +24,9 @@ class BoardgameRenderGameWerewolf extends BoardgameBaseGameRenderer<GameState, P
 
   override render() {
     return html`
-      <h2>Werewolf</h2>
-      <pre>${this.diagram || 'Waiting for state...'}</pre>
+      <boardgame-game-surface heading="Werewolf">
+        <pre>${this.diagram || 'Waiting for state...'}</pre>
+      </boardgame-game-surface>
     `;
   }
 }
-
-customElements.define('boardgame-render-game-werewolf', BoardgameRenderGameWerewolf);

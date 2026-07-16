@@ -62,6 +62,11 @@ type GameManager struct {
 	// end of NewGameManager, right after assembleLegalPlans) — see
 	// legal_index.go. Read-only thereafter.
 	legalIndex *legalIndex
+	// moveInputSchema and its fingerprint are validated and frozen during
+	// manager construction, then shared by generation and server /info.
+	moveInputSchema            []MoveInputSchemaMove
+	moveInputSchemaFingerprint string
+	computedProperties         []ComputedProperty
 }
 
 // Internals returns a ManagerInternals for this manager. All of the methods on
@@ -270,6 +275,10 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 
 	delegate.SetManager(result)
 
+	if err := result.installComputedProperties(delegate.ConfigureComputedProperties()); err != nil {
+		return nil, errors.New("Failed to configure computed properties: " + err.Error())
+	}
+
 	// Build the constraint constructor map for struct tag parsing.
 	if ccs := delegate.ConfigureStackConstraintConstructors(); len(ccs) > 0 {
 		constraintConstructors := make(map[string]*StackConstraintConstructor)
@@ -340,6 +349,12 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		}
 
 	}
+	moveInputSchema, err := BuildMoveInputSchema(result)
+	if err != nil {
+		return nil, errors.New("Failed to build creator move-input schema: " + err.Error())
+	}
+	result.moveInputSchema = moveInputSchema
+	result.moveInputSchemaFingerprint = FingerprintMoveInputSchema(moveInputSchema)
 
 	// Assemble declarative-legality plans for any move type that opted in
 	// via WithLegalPreconditions, and probe that its declarations are reachable
@@ -1098,7 +1113,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*
 // wrapper around ModifiableGame, but in multi-server situations, in the future
 // it would conceivably do an RPC or something. Note that game.triggerFixUp()
 // also does this kind of dispatching.
-func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, proposer PlayerIndex) DelayedError {
+func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, proposer PlayerIndex, expectedVersion *int) DelayedError {
 
 	//The chan that the core logic will tell us the move is done in.
 	errChan := make(DelayedError, 1)
@@ -1125,9 +1140,10 @@ func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, prop
 			}
 
 			workItem := &proposedMoveItem{
-				move:     move,
-				ch:       errChan,
-				proposer: proposer,
+				move:            move,
+				ch:              errChan,
+				proposer:        proposer,
+				expectedVersion: expectedVersion,
 			}
 
 			select {

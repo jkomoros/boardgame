@@ -1,5 +1,3 @@
-import '@material/web/button/filled-button.js';
-import '@material/web/button/outlined-button.js';
 import '@material/web/select/filled-select.js';
 import '@material/web/select/select-option.js';
 import '@material/web/switch/switch.js';
@@ -7,24 +5,28 @@ import '@material/web/slider/slider.js';
 import type { MdSwitch } from '@material/web/switch/switch.js';
 import type { MdSlider } from '@material/web/slider/slider.js';
 import type { MdFilledSelect } from '@material/web/select/filled-select.js';
-import '../../src/components/boardgame-deck-defaults.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
-import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-fading-text.js';
-import '../../src/components/boardgame-status-text.js';
-import '../../src/components/boardgame-token.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
+import { cardView, isStackLayout, tokenView } from '../../src/client.js';
+import type { ClientMove, StackLayout } from '../../src/client.js';
+import type { GameState } from './_types.js';
 
-class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+@registerGameRenderer
+export class BoardgameRenderGameDebuganimations extends GameRenderer {
+  private readonly cards = cardView<GameState['DrawStack']>({
+    render: ({ kind, component }) => kind === 'visible'
+      ? html`<div tall>${component.Values.Type}</div>`
+      : null,
+  });
+
+  private readonly tokens = tokenView<GameState['TokensFrom']>({});
+
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
       .slow {
         --animation-length: 5s;
@@ -142,7 +144,13 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
   ];
 
   @property({ type: String })
-  fromStackLayout = 'fan';
+  fromStackLayout: StackLayout = 'fan';
+
+  private _setStackLayout(event: Event): void {
+    const value = (event.target as MdFilledSelect).value;
+    if (!isStackLayout(value)) throw new Error(`Unexpected stack layout option: ${value}`);
+    this.fromStackLayout = value;
+  }
 
   @property({ type: Boolean })
   fromStackRotated = false;
@@ -180,12 +188,12 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
   @property({ type: Array })
   legalTokenColors: string[] = [];
 
-  override animationLength(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  override animationLength(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     if (this.slowAnimations) return 5000;
     return 0;
   }
 
-  override animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  override animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     if (!this.slowAnimations) return 0;
     // When slow animations are enabled, overlap by 30% so multiple
     // animations visually cascade instead of playing fully sequentially.
@@ -210,19 +218,10 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
   }
 
   override render() {
+    const game = this.state?.Game;
+    const fromFirstShortStack = (game?.FirstShortStack.Components.length ?? 0) > 0;
+    const fromDrawStack = (game?.DiscardStack.Components.length ?? 0) < 3;
     return html`
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card>
-            <div tall>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-        <template deck="tokens">
-          <boardgame-token></boardgame-token>
-        </template>
-      </boardgame-deck-defaults>
       <div id="container" class="${this._classes()}">
         <div id="controls">
           <label><md-switch
@@ -264,16 +263,21 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
           <boardgame-component-stack
             layout="stack"
             .stack="${this.state?.Game?.FirstShortStack}"
+            .componentView=${this.cards}
             ?messy="${this.messy}"
-            .componentAttrs=${{ proposeMove: MoveNames.MoveCardBetweenShortStacks }}>
+            components-disabled>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.SecondShortStack}"
-            .componentAttrs=${{ proposeMove: MoveNames.MoveCardBetweenShortStacks }}>
+            .componentView=${this.cards}
+            components-disabled>
           </boardgame-component-stack>
-          <md-filled-button propose-move="${MoveNames.MoveCardBetweenShortStacks}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveCardBetweenShortStacks)}">Swap</md-filled-button>
+          <boardgame-action-button
+            .action=${this.move(MoveNames.MoveCardBetweenShortStacks).with({ FromFirst: fromFirstShortStack })}>
+            Swap
+          </boardgame-action-button>
         </div>
 
         <div id="draw">
@@ -281,14 +285,18 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.DrawStack}"
-            .componentAttrs=${{ rotated: this.messy, indexAttributes: 'my-index,other-index' }}>
+            .componentView=${this.cards.withProperties({ rotated: this.messy })}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
-            .stack="${this.state?.Game?.DiscardStack}">
+            .stack="${this.state?.Game?.DiscardStack}"
+            .componentView=${this.cards}>
           </boardgame-component-stack>
-          <md-filled-button propose-move="${MoveNames.MoveCardBetweenDrawAndDiscardStacks}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveCardBetweenDrawAndDiscardStacks)}">Draw</md-filled-button>
+          <boardgame-action-button
+            .action=${this.move(MoveNames.MoveCardBetweenDrawAndDiscardStacks).with({ FromDraw: fromDrawStack })}>
+            Draw
+          </boardgame-action-button>
           <boardgame-fading-text
             .trigger="${this.state?.Game?.DrawStack?.Components?.length}"
             auto-message="diff">
@@ -299,9 +307,10 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
-            .stack="${this.state?.Game?.Card}">
+            .stack="${this.state?.Game?.Card}"
+            .componentView=${this.cards}>
           </boardgame-component-stack>
-          <md-filled-button propose-move="${MoveNames.FlipCardBetweenHiddenAndRevealed}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.FlipCardBetweenHiddenAndRevealed)}">Flip</md-filled-button>
+          <boardgame-action-button .action=${this.move(MoveNames.FlipCardBetweenHiddenAndRevealed)}>Flip</boardgame-action-button>
         </div>
 
         <div id="fan">
@@ -309,27 +318,29 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
             layout="${this.fromStackLayout}"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.FanStack}"
+            .componentView=${this.cards.withProperties({ rotated: this.fromStackRotated })}
             style="${styleMap({ '--component-scale': this.fromCardScale.toString() })}"
-            .componentAttrs=${{ rotated: this.fromStackRotated }}>
+            >
           </boardgame-component-stack>
           <div class="flex"></div>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.FanDiscard}"
+            .componentView=${this.cards.withProperties({ rotated: this.toStackRotated })}
             style="${styleMap({ '--component-scale': this.toCardScale.toString() })}"
-            .componentAttrs=${{ rotated: this.toStackRotated }}>
+            >
           </boardgame-component-stack>
           <div class="controls">
-            <md-filled-button propose-move="${MoveNames.MoveFanCard}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveFanCard)}">Draw</md-filled-button>
-            <md-outlined-button propose-move="${MoveNames.VisibleShuffle}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.VisibleShuffle)}">Public Shuffle</md-outlined-button>
-            <md-outlined-button propose-move="${MoveNames.Shuffle}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.Shuffle)}">Shuffle</md-outlined-button>
-            <md-outlined-button propose-move="${MoveNames.ShuffleHidden}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.ShuffleHidden)}">Shuffle Hidden</md-outlined-button>
-            <boardgame-status-text>${this.state?.Game?.FanShuffleCount}</boardgame-status-text>
+            <boardgame-action-button .action=${this.move(MoveNames.MoveFanCard)}>Draw</boardgame-action-button>
+            <boardgame-action-button .action=${this.move(MoveNames.VisibleShuffle)}>Public Shuffle</boardgame-action-button>
+            <boardgame-action-button .action=${this.move(MoveNames.Shuffle)}>Shuffle</boardgame-action-button>
+            <boardgame-action-button .action=${this.move(MoveNames.ShuffleHidden)}>Shuffle Hidden</boardgame-action-button>
+            <boardgame-status-text .value=${this.state?.Game?.FanShuffleCount}></boardgame-status-text>
             <md-filled-select
               label="Layout"
               .value="${this.fromStackLayout}"
-              @change="${(e: Event) => { this.fromStackLayout = (e.target as MdFilledSelect).value; }}">
+              @change="${this._setStackLayout}">
               <md-select-option value="fan">
                 <div slot="headline">fan</div>
               </md-select-option>
@@ -354,33 +365,37 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
             layout="fan"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.VisibleStack}"
+            .componentView=${this.cards.withProperties({ rotated: this.fromStackRotated })}
             style="${styleMap({ '--component-scale': this.fromCardScale.toString() })}"
-            .componentAttrs=${{ rotated: this.fromStackRotated }}>
+            >
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.HiddenStack}"
+            .componentView=${this.cards.withProperties({ rotated: this.toStackRotated })}
             style="${styleMap({ '--component-scale': this.toCardScale.toString() })}"
             faux-components="5"
-            .componentAttrs=${{ rotated: this.toStackRotated }}>
+            >
           </boardgame-component-stack>
-          <md-filled-button propose-move="${MoveNames.MoveBetweenHidden}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveBetweenHidden)}">Draw</md-filled-button>
+          <boardgame-action-button .action=${this.move(MoveNames.MoveBetweenHidden)}>Draw</boardgame-action-button>
         </div>
 
         <div id="all">
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
-            .stack="${this.state?.Game?.AllVisibleStack}">
+            .stack="${this.state?.Game?.AllVisibleStack}"
+            .componentView=${this.cards}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
-            .stack="${this.state?.Game?.AllHiddenStack}">
+            .stack="${this.state?.Game?.AllHiddenStack}"
+            .componentView=${this.cards}>
           </boardgame-component-stack>
-          <md-outlined-button propose-move="${MoveNames.StartMoveAllComponentsToHidden}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.StartMoveAllComponentsToHidden)}">To Hidden</md-outlined-button>
-          <md-outlined-button propose-move="${MoveNames.StartMoveAllComponentsToVisible}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.StartMoveAllComponentsToVisible)}">To Visible</md-outlined-button>
+          <boardgame-action-button .action=${this.move(MoveNames.StartMoveAllComponentsToHidden)}>To Hidden</boardgame-action-button>
+          <boardgame-action-button .action=${this.move(MoveNames.StartMoveAllComponentsToVisible)}>To Visible</boardgame-action-button>
         </div>
 
         <div id="token">
@@ -426,15 +441,15 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
             layout="grid"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.TokensFrom}"
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="grid"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.TokensTo}"
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}>
           </boardgame-component-stack>
-          <md-filled-button propose-move="${MoveNames.MoveToken}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveToken)}">Swap</md-filled-button>
+          <boardgame-action-button .action=${this.move(MoveNames.MoveToken)}>Swap</boardgame-action-button>
         </div>
 
         <div id="tokens-sanitized">
@@ -442,20 +457,19 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer<GameS
             layout="pile"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.SanitizedTokensFrom}"
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="pile"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.SanitizedTokensTo}"
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}
             faux-components="5"
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            >
           </boardgame-component-stack>
-          <md-filled-button propose-move="${MoveNames.MoveTokenSanitized}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.MoveTokenSanitized)}">Swap</md-filled-button>
+          <boardgame-action-button .action=${this.move(MoveNames.MoveTokenSanitized)}>Swap</boardgame-action-button>
         </div>
       </div>
     `;
   }
 }
-
-customElements.define('boardgame-render-game-debuganimations', BoardgameRenderGameDebuganimations);

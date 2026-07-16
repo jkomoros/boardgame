@@ -34,16 +34,7 @@ import {
 } from '../actions/list.js';
 
 import type { MdFilledSelect } from '@material/web/select/filled-select.js';
-
-interface GameItem {
-  Name: string;
-  ID: string;
-}
-
-interface Manager {
-  Name: string;
-  DisplayName: string;
-}
+import type { GameListItem, ManagerInfo, RootState } from '../types/store';
 
 @customElement('boardgame-list-games-view')
 export class BoardgameListGamesView extends connect(store)(LitElement) {
@@ -90,22 +81,22 @@ export class BoardgameListGamesView extends connect(store)(LitElement) {
   `;
 
   @property({ type: Array })
-  private _participatingActiveGames: GameItem[] = [];
+  private _participatingActiveGames: GameListItem[] = [];
 
   @property({ type: Array })
-  private _participatingFinishedGames: GameItem[] = [];
+  private _participatingFinishedGames: GameListItem[] = [];
 
   @property({ type: Array })
-  private _visibleActiveGames: GameItem[] = [];
+  private _visibleActiveGames: GameListItem[] = [];
 
   @property({ type: Array })
-  private _visibleJoinableGames: GameItem[] = [];
+  private _visibleJoinableGames: GameListItem[] = [];
 
   @property({ type: Array })
-  private _allGames: GameItem[] = [];
+  private _allGames: GameListItem[] = [];
 
   @property({ type: Array })
-  private _managers: Manager[] = [];
+  private _managers: ManagerInfo[] = [];
 
   @property({ type: String })
   private _gameTypeFilter = '';
@@ -119,7 +110,7 @@ export class BoardgameListGamesView extends connect(store)(LitElement) {
   @property({ type: Boolean })
   selected = false;
 
-  stateChanged(state: any): void {
+  stateChanged(state: RootState): void {
     this._managers = selectManagers(state);
     this._gameTypeFilter = selectGameTypeFilter(state);
     this._participatingActiveGames = selectParticipatingActiveGames(state);

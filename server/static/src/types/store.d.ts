@@ -5,8 +5,13 @@
  * while game and list are loaded on-demand when navigating to those views.
  */
 
-import type { RawGameState, TimerInfo, StateBundle } from './game-state';
-import type { MoveForm } from './api';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
+import type { MoveForm, ServerStateBundle } from './api';
+import type {
+  CatalogComponent,
+  FullGameState,
+  GameChest as RendererGameChest,
+} from './boardgame-types';
 
 /**
  * Companion-mode bundle from the doGameInfo response. Matches the JSON
@@ -156,7 +161,7 @@ export interface SocketState {
  */
 export interface ViewState {
   /** Full game object from server */
-  game: any | null;
+  game: GameFromServer | null;
   /** Player index currently viewing as */
   viewingAsPlayer: number;
   /** Player index requested (before applying auto-current-player) */
@@ -165,6 +170,27 @@ export interface ViewState {
   autoCurrentPlayer: boolean;
   /** Move forms for the current state */
   moveForms: MoveForm[] | null;
+}
+
+/** Initial game payload retained only until the state manager consumes it. */
+export interface FetchedGameInfo {
+  Chest: GameChest;
+  Players: PlayerInfo[];
+  HasEmptySlots: boolean;
+  GameOpen: boolean;
+  GameVisible: boolean;
+  IsOwner: boolean;
+  CompanionInfo: CompanionInfo | null;
+  Game: GameFromServer;
+  Forms: MoveForm[] | null;
+  ViewingAsPlayer: number;
+  StateVersion: number;
+  MoveInputSchemaFingerprint: string;
+}
+
+/** Version payload retained only until the animation queue consumes it. */
+export interface FetchedGameVersion {
+  Bundles: ServerStateBundle[];
 }
 
 /**
@@ -206,9 +232,9 @@ export interface GameState {
   /** View state (game object, viewing player, move forms) */
   view: ViewState;
   /** Fetched info data from fetchGameInfo (null when not available or after processing) */
-  fetchedInfo: any | null;
+  fetchedInfo: FetchedGameInfo | null;
   /** Fetched version data from fetchGameVersion (null when not available or after processing) */
-  fetchedVersion: any | null;
+  fetchedVersion: FetchedGameVersion | null;
   /** Whether a move submission is in progress */
   moveSubmitting: boolean;
   /** Whether a game version fetch is in progress */
@@ -224,10 +250,9 @@ export interface GameState {
 /**
  * Game chest containing component configurations and deck defaults.
  */
-export interface GameChest {
-  [key: string]: any;
-  // TODO: Define specific chest structure based on game architecture
-}
+export type GameChest = RendererGameChest<
+  Readonly<Record<string, readonly CatalogComponent[]>>
+>;
 
 /**
  * Expanded game state with all component references resolved.
@@ -237,22 +262,26 @@ export interface GameChest {
  * in each game's client/ directory (via boardgame-util emit-types).
  * See also FullGameState in types/boardgame-types.ts.
  */
-export interface ExpandedGameState {
-  [key: string]: any;
-}
+export type ExpandedGameState = FullGameState<
+  object,
+  object,
+  object,
+  object,
+  Readonly<Record<string, readonly unknown[]>>
+>;
 
 /**
  * Information about a player in the game.
  */
 export interface PlayerInfo {
-  /** Player index in game */
-  index: number;
-  /** Player display name */
-  name: string;
-  /** Player photo URL */
-  photoURL?: string;
-  /** Whether this slot is empty */
-  isEmpty?: boolean;
+  /** Whether this player slot is currently unoccupied. */
+  IsEmpty: boolean;
+  /** Whether the occupied slot is controlled by an agent. */
+  IsAgent: boolean;
+  /** Player display name supplied by the server. */
+  DisplayName: string;
+  /** Optional player photo URL supplied by the server. */
+  PhotoURL?: string;
 }
 
 /**
@@ -274,7 +303,7 @@ export interface ListState {
   /** Whether new game should be open */
   open: boolean;
   /** Available game managers */
-  managers: any[]; // TODO: Define GameManager type
+  managers: ManagerInfo[];
   /** All games */
   allGames: GameListItem[];
   /** Games user is participating in (active) */
@@ -291,20 +320,40 @@ export interface ListState {
  * Summary of a game shown in the games list.
  */
 export interface GameListItem {
-  /** Game ID */
-  id: string;
-  /** Game type name */
-  name: string;
-  /** Number of players */
-  numPlayers: number;
-  /** Whether game is open */
-  open: boolean;
-  /** Whether game is visible */
-  visible: boolean;
-  /** Game owner */
-  owner: string;
-  /** Creation timestamp */
-  created: number;
-  /** Last modified timestamp */
-  modified: number;
+  ID: string;
+  Name: string;
+  Players: PlayerInfo[];
+  ReadableLastActivity: string;
+  Open: boolean;
+  Visible: boolean;
+}
+
+export interface ManagerAgentInfo {
+  Name: string;
+  DisplayName: string;
+}
+
+export interface ManagerVariantValue {
+  Value: string;
+  DisplayName: string;
+  Description: string;
+}
+
+export interface ManagerVariantInfo {
+  Name: string;
+  DisplayName: string;
+  Description: string;
+  Values: ManagerVariantValue[];
+}
+
+export interface ManagerInfo {
+  Name: string;
+  DisplayName: string;
+  Description: string;
+  DefaultNumPlayers: number;
+  MinNumPlayers: number;
+  MaxNumPlayers: number;
+  Variant: ManagerVariantInfo[];
+  Agents: ManagerAgentInfo[];
+  SupportsTableHandMode: boolean;
 }

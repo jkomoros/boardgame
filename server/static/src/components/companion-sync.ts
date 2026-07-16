@@ -1,3 +1,6 @@
+import type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
+export type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
+
 /**
  * Cross-screen clock estimation and version-bound animation scheduling.
  *
@@ -7,19 +10,6 @@
  * timestamp cannot safely drive them. CompanionAnimationTimeline is the one
  * client-side owner of that association.
  */
-
-export interface VersionTimingMessage {
-  version: number;
-  serverSentAt: number;
-  serverPlayAt: number;
-  slotDurationMs: number;
-  maxAnimationDurationMs: number;
-}
-
-export interface ClockSyncMessage {
-  clientSentAt: number;
-  serverAt: number;
-}
 
 export interface VersionAnimationContext {
   version: number;

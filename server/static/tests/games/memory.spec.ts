@@ -24,13 +24,6 @@ test.describe('Memory Game', () => {
   });
 
   test('renders game board with cards', async ({ page }) => {
-    // NOTE: This test requires a real game with actual state.
-    // Without a real game ID, the game state won't load and cards won't render.
-    // To run this test successfully:
-    // 1. Create a memory game through the web UI (requires auth)
-    // 2. Update getOrCreateGame() to return that game ID
-    // OR set up test authentication to allow game creation
-
     await navigateToGameByName(page, 'memory');
     await page.waitForSelector('boardgame-render-game', { timeout: 10000 });
 
@@ -40,36 +33,21 @@ test.describe('Memory Game', () => {
     // Wait for animations to complete
     await waitForAnimationQueue(page, 10000);
 
-    // Check if the game-src/memory renderer is loaded
-    const rendererLoaded = await page.evaluate(() => {
-      const renderer = document.querySelector('boardgame-render-game');
-      return renderer !== null;
-    });
-    expect(rendererLoaded).toBe(true);
+    // Playwright locators intentionally pierce open shadow roots; a plain
+    // document.querySelector does not, because boardgame-game-view owns the
+    // generic renderer inside its shadow tree.
+    const renderer = page.locator('boardgame-render-game');
+    await expect(renderer).toBeVisible();
 
     // Look for the actual game components
     // Memory game should have a deck or stack of cards
-    const gameContent = await page.evaluate(() => {
-      const renderer = document.querySelector('boardgame-render-game');
-      if (!renderer) return { error: 'No renderer found' };
-
-      // Check shadow DOM for game content
-      const shadowRoot = renderer.shadowRoot;
-      if (!shadowRoot) return { error: 'No shadow root', outerHTML: renderer.outerHTML };
-
-      // Look for game components
-      const stacks = shadowRoot.querySelectorAll('boardgame-component-stack');
-      const decks = shadowRoot.querySelectorAll('boardgame-deck');
-      const cards = shadowRoot.querySelectorAll('boardgame-card');
-
-      return {
-        hasContent: shadowRoot.innerHTML.length > 0,
-        innerHTML: shadowRoot.innerHTML.substring(0, 500),
-        stackCount: stacks.length,
-        deckCount: decks.length,
-        cardCount: cards.length,
-      };
-    });
+    const gameContent = {
+      hasContent: await renderer.evaluate((element) => (element.shadowRoot?.innerHTML.length || 0) > 0),
+      innerHTML: await renderer.evaluate((element) => element.shadowRoot?.innerHTML.substring(0, 500) || ''),
+      stackCount: await page.locator('boardgame-component-stack').count(),
+      deckCount: await page.locator('boardgame-deck').count(),
+      cardCount: await page.locator('boardgame-card').count(),
+    };
 
     console.log('Game content:', JSON.stringify(gameContent, null, 2));
 
@@ -189,7 +167,6 @@ test.describe('Memory Game', () => {
     expect(gameState.hasGame).toBe(true);
     expect(gameState.gameName).toBe('memory'); // Should now be populated
     expect(gameState.gameId).toBeTruthy(); // Should have a valid game ID
-    // Note: hasState will be false with placeholder ID, which is expected
-    // In a full test environment with real games, hasState would be true
+    expect(gameState.hasState).toBe(true);
   });
 });

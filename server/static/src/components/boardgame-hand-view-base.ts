@@ -1,6 +1,7 @@
 import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
+import type { FullGameState } from '../types/boardgame-types.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 
@@ -21,11 +22,13 @@ import { glyphForSlug } from './companion-avatar-catalog.js';
  * animations is also wired here; V1 ships the prop surface only.
  */
 export class BoardgameHandViewBase<
-  GS extends object = Record<string, unknown>,
-  PS extends object = Record<string, unknown>,
-  MN extends string = string,
-  MA extends Record<string, object> = Record<string, Record<string, unknown>>
-> extends BoardgameBaseGameRenderer<GS, PS, MN, MA> {
+  S extends FullGameState<object, object, object, object, object>,
+  C extends object,
+  MN extends string,
+  MA extends Record<string, object>,
+  K extends object = object,
+  E extends object = object,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E> {
 
   /**
    * The player index this Hand view is bound to. Equals viewingAsPlayer
@@ -37,20 +40,14 @@ export class BoardgameHandViewBase<
     return this.viewingAsPlayer;
   }
 
-  @property({ type: String })
-  gameName = '';
-
-  @property({ type: String })
-  gameId = '';
-
   /**
    * Per-seat avatar + name records for everyone in the game (same data
    * the Table view receives). The Hand view typically only needs this
    * for a small banner ("Playing as BrightFox") or to show who the
    * current player is.
    */
-  @property({ type: Array })
-  seatPresentations: SeatPresentation[] = [];
+  @property({ attribute: false })
+  seatPresentations: readonly SeatPresentation[] = Object.freeze([]);
 
   /**
    * Convenience shortcut to this player's own substate. Common rendering
@@ -58,7 +55,7 @@ export class BoardgameHandViewBase<
    * undefined if state is null OR viewingAsPlayer is out of bounds (e.g.
    * the player hasn't been seated yet).
    */
-  protected get playerState(): PS | undefined {
+  protected get playerState(): S['Players'][number] | undefined {
     if (!this.state || !this.state.Players) return undefined;
     const idx = this.viewingAs;
     if (idx < 0 || idx >= this.state.Players.length) return undefined;
@@ -104,7 +101,7 @@ export class BoardgameHandViewBase<
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a
       // console error) — only buzz once the user has interacted.
-      if ((navigator as any).userActivation?.hasBeenActive) {
+      if (navigator.userActivation?.hasBeenActive) {
         navigator.vibrate?.(200);
       }
     }

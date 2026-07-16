@@ -1,27 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { createOfflineGame, expectCleanGate, gateSnapshot } from './helpers';
 
 test.describe('Debug Animations - WebSocket Fix Verification', () => {
   test('should load game with cards visible and animate on button click', async ({ page }) => {
-    // Navigate to the debuganimations game
-    await page.goto('http://localhost:8080/game/debuganimations/71F2D25CE72ECBA1/');
-
-    // Wait for game to load
-    await page.waitForSelector('boardgame-render-game', { timeout: 10000 });
-
-    // Wait for cards to render
-    await page.waitForTimeout(2000);
-
-    // Take initial screenshot
-    await page.screenshot({ path: 'test-results/before-animation.png', fullPage: true });
-
-    // Check WebSocket connection in console
-    const wsMessages: string[] = [];
-    page.on('console', msg => {
-      const text = msg.text();
-      if (text.includes('Socket') || text.includes('WebSocket')) {
-        wsMessages.push(text);
-      }
-    });
+    await createOfflineGame(page, 'debuganimations');
+    await expect(page.locator('boardgame-card').first()).toBeVisible();
+    const before = await gateSnapshot(page);
 
     // Enable slow animation for easier observation
     await page.getByText('Slow Animation').click();
@@ -29,64 +13,46 @@ test.describe('Debug Animations - WebSocket Fix Verification', () => {
     // Click the "Draw" button (should move card from DrawStack to DiscardStack)
     await page.getByRole('button', { name: 'Draw' }).first().click();
 
-    // Wait for slow animation to complete (5 seconds + buffer)
-    await page.waitForTimeout(6000);
-
-    // Take post-animation screenshot
-    await page.screenshot({ path: 'test-results/after-animation.png', fullPage: true });
-
-    // Check for WebSocket closure warnings
-    const hasSocketClosedWarning = wsMessages.some(msg => msg.includes('Socket closed'));
-
-    console.log('WebSocket messages:', wsMessages);
-    console.log('Socket closed warning found:', hasSocketClosedWarning);
-
-    // The fix should prevent the socket from closing
-    // If ws: true is working, socket should stay open
-    if (hasSocketClosedWarning) {
-      console.warn('⚠️  WebSocket closed - the fix may not be working');
-    } else {
-      console.log('✅ WebSocket stayed open - fix is working!');
-    }
-
-    // Basic assertion: page should not have crashed
-    const title = await page.title();
-    expect(title).toBe('Board Game');
+    await expectCleanGate(page, before, 15000);
   });
 
   test('should receive state updates via WebSocket after move', async ({ page }) => {
-    // Navigate to game
-    await page.goto('http://localhost:8080/game/debuganimations/71F2D25CE72ECBA1/');
-    await page.waitForSelector('boardgame-render-game', { timeout: 10000 });
-    await page.waitForTimeout(2000);
-
     // Listen for network WebSocket connections
-    const wsConnections: any[] = [];
+    let gameSocketConnected = false;
+    let gameSocketClosed = false;
+    const versionFrames: number[] = [];
     page.on('websocket', ws => {
-      console.log('✅ WebSocket connected:', ws.url());
-      wsConnections.push(ws);
+      if (!ws.url().includes('/api/game/debuganimations/')) return;
+      gameSocketConnected = true;
 
       ws.on('framereceived', event => {
-        console.log('📨 WebSocket received:', event.payload);
-      });
-
-      ws.on('framesent', event => {
-        console.log('📤 WebSocket sent:', event.payload);
+        try {
+          const message = JSON.parse(String(event.payload));
+          if (message.type === 'version' && typeof message.data === 'number') {
+            versionFrames.push(message.data);
+          }
+        } catch {
+          // Non-JSON frames are irrelevant to the version assertion.
+        }
       });
 
       ws.on('close', () => {
-        console.log('❌ WebSocket closed');
+        gameSocketClosed = true;
       });
     });
 
+    await createOfflineGame(page, 'debuganimations');
+    await expect.poll(() => gameSocketConnected).toBe(true);
+    await expect.poll(() => versionFrames.length).toBeGreaterThan(0);
+    const versionBeforeMove = Math.max(...versionFrames);
+
     // Click a button to trigger a move
-    await page.getByRole('button', { name: 'Flip' }).click();
+    await page.getByRole('button', { name: 'To Hidden' }).click();
 
-    // Wait for response
-    await page.waitForTimeout(2000);
-
-    // Verify WebSocket was established
-    expect(wsConnections.length).toBeGreaterThan(0);
-    console.log(`WebSocket connections established: ${wsConnections.length}`);
+    // The socket sends an initial version during registration. Requiring a
+    // strictly newer frame proves this click produced a post-handshake state
+    // update rather than accidentally accepting that initial frame.
+    await expect.poll(() => Math.max(...versionFrames), { timeout: 10000 }).toBeGreaterThan(versionBeforeMove);
+    expect(gameSocketClosed).toBe(false);
   });
 });

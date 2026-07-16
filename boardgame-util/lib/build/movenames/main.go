@@ -173,8 +173,8 @@ func main() {
 		storage := memorystorage.NewStorageManager()
 		manager, err := boardgame.NewGameManager(entry.delegate, storage)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: couldn't create manager for %s: %v\n", entry.delegate.Name(), err)
-			continue
+			fmt.Fprintf(os.Stderr, "Error: couldn't create manager for %s: %v\n", entry.delegate.Name(), err)
+			os.Exit(1)
 		}
 
 		var names []string

@@ -1,6 +1,17 @@
 import { createSelector } from 'reselect';
-import type { RootState, GameChest, PlayerInfo, ExpandedGameState, UserInfo, CompanionInfo } from './types/store';
-import type { RawGameState, TimerInfo, StateBundle } from './types/game-state';
+import type {
+    CompanionInfo,
+    ExpandedGameState,
+    FetchedGameInfo,
+    FetchedGameVersion,
+    GameChest,
+    GameListItem,
+    ManagerInfo,
+    PlayerInfo,
+    RootState,
+    UserInfo,
+} from './types/store';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './types/game-state';
 import type { MoveForm, PreconditionEntry } from './types/api';
 
 // Stable default objects to prevent creating new objects on every selector call
@@ -38,19 +49,19 @@ export const selectPage = createSelector(
 export const selectPageExtra = (state: RootState): string => state.app ? state.app.pageExtra : "";
 
 // List selectors
-export const selectManagers = (state: RootState): any[] => state.list ? state.list.managers : [];
+export const selectManagers = (state: RootState): ManagerInfo[] => state.list ? state.list.managers : [];
 export const selectSelectedManagerIndex = (state: RootState): number => state.list ? state.list.selectedManagerIndex : 0;
 export const selectCreateGameNumPlayers = (state: RootState): number => state.list ? state.list.numPlayers : 0;
-export const selectCreateGameAgents = (state: RootState): any[] => state.list ? state.list.agents : [];
-export const selectCreateGameVariantOptions = (state: RootState): any[] => state.list ? state.list.variantOptions : [];
+export const selectCreateGameAgents = (state: RootState): string[] => state.list ? state.list.agents : [];
+export const selectCreateGameVariantOptions = (state: RootState): number[] => state.list ? state.list.variantOptions : [];
 export const selectCreateGameOpen = (state: RootState): boolean => state.list ? state.list.open : false;
 export const selectCreateGameVisible = (state: RootState): boolean => state.list ? state.list.visible : false;
 export const selectGameTypeFilter = (state: RootState): string => state.list ? state.list.gameTypeFilter : "";
-export const selectParticipatingActiveGames = (state: RootState): any[] => state.list ? state.list.participatingActiveGames : [];
-export const selectParticipatingFinishedGames = (state: RootState): any[] => state.list ? state.list.participatingFinishedGames : [];
-export const selectVisibleActiveGames = (state: RootState): any[] => state.list ? state.list.visibleActiveGames : [];
-export const selectVisibleJoinableGames = (state: RootState): any[] => state.list ? state.list.visibleJoinableGames : [];
-export const selectAllGames = (state: RootState): any[] => state.list ? state.list.allGames : [];
+export const selectParticipatingActiveGames = (state: RootState): GameListItem[] => state.list ? state.list.participatingActiveGames : [];
+export const selectParticipatingFinishedGames = (state: RootState): GameListItem[] => state.list ? state.list.participatingFinishedGames : [];
+export const selectVisibleActiveGames = (state: RootState): GameListItem[] => state.list ? state.list.visibleActiveGames : [];
+export const selectVisibleJoinableGames = (state: RootState): GameListItem[] => state.list ? state.list.visibleJoinableGames : [];
+export const selectAllGames = (state: RootState): GameListItem[] => state.list ? state.list.allGames : [];
 
 // Error selectors
 export const selectErrorMessage = (state: RootState): string => state.error ? state.error.message : "";
@@ -101,8 +112,8 @@ export const selectGameLoading = (state: RootState): boolean =>
 export const selectGameError = (state: RootState): string | null => state.game ? state.game.error : null;
 
 // Fetched data selectors (for async thunk responses)
-export const selectFetchedInfo = (state: RootState): any | null => state.game?.fetchedInfo || null;
-export const selectFetchedVersion = (state: RootState): any | null => state.game?.fetchedVersion || null;
+export const selectFetchedInfo = (state: RootState): FetchedGameInfo | null => state.game?.fetchedInfo || null;
+export const selectFetchedVersion = (state: RootState): FetchedGameVersion | null => state.game?.fetchedVersion || null;
 
 const selectGameID = (state: RootState): string => state.game ? state.game.id : '';
 export const selectGameName = (state: RootState): string => state.game ? state.game.name : '';
@@ -155,7 +166,7 @@ export const selectSocketError = (state: RootState): string | null => selectSock
 // View selectors
 export const selectViewState = (state: RootState) =>
     state.game?.view || DEFAULT_VIEW_STATE;
-export const selectGame = (state: RootState): any | null => selectViewState(state).game;
+export const selectGame = (state: RootState): GameFromServer | null => selectViewState(state).game;
 export const selectViewingAsPlayer = (state: RootState): number => selectViewState(state).viewingAsPlayer;
 export const selectRequestedPlayer = (state: RootState): number => selectViewState(state).requestedPlayer;
 export const selectAutoCurrentPlayer = (state: RootState): boolean => selectViewState(state).autoCurrentPlayer;
@@ -198,7 +209,7 @@ export const selectMoveLegality = createSelector(
 );
 
 // Internal selector for timer infos (will be added to state)
-const selectGameTimerInfos = (state: RootState): Record<string, TimerInfo> | null =>
+export const selectGameTimerInfos = (state: RootState): Record<string, TimerInfo> | null =>
     state.game?.timerInfos || null;
 
 /**
@@ -327,8 +338,15 @@ export const selectPlayerActivity = stableArray(_selectPlayerActivity);
 const _selectPlayerOrder = createSelector(
     [selectExpandedGameStateWithoutTimers],
     (state): number[] | null => {
-        const order = state?.Game?.Computed?.PlayerOrder;
-        return (order && Array.isArray(order)) ? order : null;
+        const game = state?.Game as Readonly<Record<string, unknown>> | undefined;
+        const computed = game?.Computed;
+        if (!computed || typeof computed !== 'object' || Array.isArray(computed)) return null;
+        const order = (computed as Readonly<Record<string, unknown>>).PlayerOrder;
+        if (!Array.isArray(order)
+            || !order.every(playerIndex => Number.isSafeInteger(playerIndex) && playerIndex >= 0)) {
+            return null;
+        }
+        return order;
     }
 );
 export const selectPlayerOrder = stableNullableArray(_selectPlayerOrder);

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -42,6 +41,16 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 		mode = c.Prod
 	}
 
+	staticPort := mode.DefaultStaticPort
+	if s.StaticPort != "" {
+		staticPort = s.StaticPort
+	}
+
+	port := mode.DefaultPort
+	if s.Port != "" {
+		port = s.Port
+	}
+
 	dir := s.Base().NewTempDir("temp_serve_")
 
 	storage := effectiveStorageType(s.Base(), mode, s.Storage)
@@ -56,7 +65,8 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 	}
 
 	apiOptions := &api.Options{
-		StorageLiteralArgs: storageLiteralArgs,
+		StorageLiteralArgs:     storageLiteralArgs,
+		OverrideAllowedOrigins: localServeAllowedOrigins(staticPort),
 	}
 
 	if s.OfflineDevMode {
@@ -65,17 +75,20 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 
 	fmt.Println("Generating move name constants")
 	if err := emitMoveNamesForPackages(s.Base(), pkgs); err != nil {
-		fmt.Println("Warning: couldn't generate move names: " + err.Error())
+		s.Base().errAndQuit("Couldn't generate move names: " + err.Error())
 	}
 
 	fmt.Println("Generating move argument types")
-	if err := emitMoveArgsForPackages(s.Base(), pkgs); err != nil {
-		fmt.Println("Warning: couldn't generate move args: " + err.Error())
+	if err := emitMoveArgsForPackages(s.Base(), pkgs, false); err != nil {
+		s.Base().errAndQuit("Couldn't generate move args: " + err.Error())
+	}
+	if err := emitBoardSpacesForPackages(pkgs, false); err != nil {
+		s.Base().errAndQuit("Couldn't emit authored board spaces: " + err.Error())
 	}
 
 	fmt.Println("Generating type definitions")
 	if err := emitTypesForPackages(s.Base(), pkgs); err != nil {
-		fmt.Println("Warning: couldn't generate type definitions: " + err.Error())
+		s.Base().errAndQuit("Couldn't generate type definitions: " + err.Error())
 	}
 
 	fmt.Println("Creating temporary binary")
@@ -88,47 +101,32 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 	fmt.Println("Creating temporary static assets folder")
 	//TODO: should we allow you to pass CopyFiles? I don't know why you'd want
 	//to given this is a temp dir.
-	_, err = static.Build(dir, pkgs, c.Client(s.Prod), s.Prod, false, mode.OfflineDevMode)
+	clientConfig := clientConfigForServe(c, s.Prod)
+	_, err = static.Build(dir, pkgs, clientConfig, s.Prod, false, mode.OfflineDevMode)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())
 	}
 
-	staticPort := mode.DefaultStaticPort
-
-	if s.StaticPort != "" {
-		staticPort = s.StaticPort
+	type childResult struct {
+		name string
+		err  error
 	}
+	results := make(chan childResult, 2)
 
-	// Start Vite dev server from the temp directory
-	// This ensures Vite serves the generated client_config.js with correct settings
+	// Start both children before waiting on either. Whichever child exits first
+	// ends the whole serve session; Cleanup also kills both on SIGINT/SIGTERM.
+	fmt.Println("Starting up Vite dev server on port " + staticPort)
+	viteCmd := static.ServerCommand(dir, staticPort, port)
+	viteDone, err := s.Base().startTrackedProcess(viteCmd)
+	if err != nil {
+		s.Base().errAndQuit("Couldn't start Vite dev server: " + err.Error())
+	}
 	go func() {
-		fmt.Println("Starting up Vite dev server on port " + staticPort)
-
-		// Use the temp directory's static folder
-		// The temp dir contains symlinks to original source files (for HMR)
-		// plus generated files like client_config.js
-		staticDir := filepath.Join(dir, "static")
-
-		// Run npm run dev from temp directory's static folder
-		cmd := exec.Command("npm", "run", "dev")
-		cmd.Dir = staticDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			//TODO: when this happens we should quit the whole program
-			fmt.Println("ERROR: couldn't start Vite dev server: " + err.Error())
-		}
+		err := viteCmd.Wait()
+		viteDone()
+		results <- childResult{"Vite", err}
 	}()
-
-	//TODO: simple serving of staticPath here. Do we need a new parameter for
-	//default static serving port?
-
-	port := mode.DefaultPort
-
-	if s.Port != "" {
-		port = s.Port
-	}
 
 	//cmd will be run as though it's in this directory, which is where
 	//config.json is.
@@ -136,45 +134,85 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Env = append(os.Environ(), "PORT="+port)
+	configureChildProcess(cmd)
 
-	err = cmd.Start()
-
-	if err == nil {
-		topLine := "************************************************************************"
-
-		//Cheat and wait to print the message until later
-		time.Sleep(time.Second * 2)
-
-		fmt.Println(" ")
-		fmt.Println(topLine)
-		for i := 0; i < 2; i++ {
-			fmt.Println("*")
-		}
-		fmt.Println("*     Server running. Open 'http://localhost:" + staticPort + "' in your browser")
-		for i := 0; i < 2; i++ {
-			fmt.Println("*")
-		}
-		fmt.Println(topLine)
-		fmt.Println(" ")
-
-		err = cmd.Wait()
-	}
-
+	apiDone, err := s.Base().startTrackedProcess(cmd)
 	if err != nil {
-		exitErr, ok := err.(*exec.ExitError)
-		if !ok {
-			s.Base().errAndQuit("Couldn't cast exiterror")
+		_ = terminateChildProcess(viteCmd.Process)
+		select {
+		case <-results:
+		case <-time.After(2 * time.Second):
+			_ = killChildProcess(viteCmd.Process)
+			<-results
 		}
-
-		//Programs that are signaled and who responded to it before us (the
-		//parent) did (which is a race) will have Exited() false, whereas a
-		//program that errored and quit on its own should have true. Only the
-		//latter is an err; calling errAndQuit not in an error could prevent
-		//our own clean shutdown from happening.
-		if exitErr.ProcessState.Exited() {
-			s.Base().errAndQuit("Error running command: " + err.Error())
-		}
+		s.Base().errAndQuit("Couldn't start API server: " + err.Error())
 	}
+
+	go func() {
+		err := cmd.Wait()
+		apiDone()
+		results <- childResult{"API", err}
+	}()
+
+	topLine := "************************************************************************"
+
+	// Preserve the short grace period before advertising the URL. Automated
+	// callers use an API-backed readiness probe instead of relying on this text.
+	time.Sleep(time.Second * 2)
+
+	fmt.Println(" ")
+	fmt.Println(topLine)
+	for i := 0; i < 2; i++ {
+		fmt.Println("*")
+	}
+	fmt.Println("*     Server running. Open 'http://127.0.0.1:" + staticPort + "' in your browser")
+	for i := 0; i < 2; i++ {
+		fmt.Println("*")
+	}
+	fmt.Println(topLine)
+	fmt.Println(" ")
+
+	first := <-results
+	var sibling *os.Process
+	if first.name == "Vite" {
+		sibling = cmd.Process
+	} else {
+		sibling = viteCmd.Process
+	}
+	_ = terminateChildProcess(sibling)
+	// Reap the sibling before deleting its temporary working directory. Escalate
+	// only if the process group ignores a graceful termination request.
+	select {
+	case <-results:
+	case <-time.After(2 * time.Second):
+		_ = killChildProcess(sibling)
+		<-results
+	}
+	if first.err != nil {
+		s.Base().errAndQuit(first.name + " server exited: " + first.err.Error())
+	}
+	s.Base().errAndQuit(first.name + " server exited unexpectedly")
+}
+
+func localServeAllowedOrigins(staticPort string) string {
+	return "http://localhost:" + staticPort + ",http://127.0.0.1:" + staticPort
+}
+
+// clientConfigForServe returns the generated browser configuration for a serve
+// invocation. A local serve session always talks to its API through Vite's
+// same-origin proxy. Both host variants must be empty:
+// the legacy bootstrap selects between them by hostname, and an isolated serve
+// may bind 127.0.0.1 rather than the literal hostname "localhost". This makes
+// arbitrary test/dev ports work without weakening the API's CORS allowlist.
+func clientConfigForServe(c *config.Config, prodMode bool) *config.ClientConfig {
+	result := c.Client(prodMode)
+	if result == nil {
+		return result
+	}
+	clone := *result
+	clone.Host = ""
+	clone.DevHost = ""
+	return &clone
 }
 
 func (s *serve) Run(p writ.Path, positional []string) {

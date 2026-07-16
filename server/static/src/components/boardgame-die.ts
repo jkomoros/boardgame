@@ -3,6 +3,7 @@ import { html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
+import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 
 class BoardgameDie extends BoardgameAnimatableItem {
   static override styles = [
@@ -41,12 +42,24 @@ class BoardgameDie extends BoardgameAnimatableItem {
                     inset 0 1px 0 rgba(255, 255, 255, 0.4);
         transform: scale(var(--effective-die-scale));
         transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 0;
+        padding: 0;
       }
 
       #main.interactive:hover {
         box-shadow: 0 8px 10px 1px rgba(60, 40, 20, 0.14),
                     0 3px 14px 2px rgba(60, 40, 20, 0.12),
                     0 5px 5px -3px rgba(60, 40, 20, 0.4);
+      }
+
+      #action-status {
+        position: absolute;
+        top: 100%;
+        width: max-content;
+        max-width: 16rem;
+        margin-top: 0.25rem;
+        color: var(--md-sys-color-error, #ba1a1a);
+        font-size: 0.75rem;
       }
 
       #inner {
@@ -149,23 +162,29 @@ class BoardgameDie extends BoardgameAnimatableItem {
   @property({ type: Boolean })
   disabled = false;
 
+  @property({ attribute: false })
+  action: BoundMoveAction<string, object> | null = null;
+
   @query('#inner')
   private _innerElement?: HTMLElement;
 
   private _boundHandleClick?: (e: Event) => void;
+  private _unsubscribeAction: (() => void) | null = null;
 
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-
-    this._boundHandleClick = (e: Event) => this._handleClick(e);
+  override connectedCallback() {
+    super.connectedCallback();
+    this._boundHandleClick ??= (e: Event) => this._handleClick(e);
     this.renderRoot.addEventListener('click', this._boundHandleClick);
+    this._subscribeAction();
   }
 
   override disconnectedCallback() {
-    super.disconnectedCallback();
     if (this._boundHandleClick) {
       this.renderRoot.removeEventListener('click', this._boundHandleClick);
     }
+    this._unsubscribeAction?.();
+    this._unsubscribeAction = null;
+    super.disconnectedCallback();
   }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
@@ -181,12 +200,30 @@ class BoardgameDie extends BoardgameAnimatableItem {
     if (changedProperties.has('item')) {
       this._itemChanged(this.item);
     }
+
+    if (changedProperties.has('action')) {
+      this._subscribeAction();
+    }
   }
 
   private _handleClick(e: Event) {
-    if (this.disabled) {
-      e.stopPropagation();
+    if (!isBoundMoveAction(this.action)) {
+      if (this.action !== null) e.stopPropagation();
+      return;
     }
+    if (this.disabled || !this.action.canActivate) {
+      e.stopPropagation();
+      return;
+    }
+    e.stopPropagation();
+    void this.action.activate();
+  }
+
+  private _subscribeAction(): void {
+    this._unsubscribeAction?.();
+    this._unsubscribeAction = isBoundMoveAction(this.action)
+      ? this.action.subscribe(() => this.requestUpdate())
+      : null;
   }
 
   // _innerTransformForFace mirrors the CSS resting transform on #inner for
@@ -253,9 +290,27 @@ class BoardgameDie extends BoardgameAnimatableItem {
   }
 
   override render() {
+    const action = this.action;
+    const bound = isBoundMoveAction(action);
+    const interactive = bound;
+    const effectiveDisabled = this.disabled || !interactive || (bound && !action.canActivate);
+    const baseReason = bound
+      ? action.reason?.message
+      : action ? 'Bind required move input with .with(...)' : null;
+    const reason = bound && action.preview.kind === 'failed' && action.preview.retryable
+      ? `${baseReason ?? 'Move legality check failed'}. Activate to retry.`
+      : baseReason;
     return html`
       <div id="scaler">
-        <div id="main" style="--selected-face:${this.selectedFace}" class="${this._classes(this.disabled)}">
+        <button
+          id="main"
+          type="button"
+          aria-label=${interactive ? 'Roll die' : 'Die'}
+          aria-describedby=${reason ? 'action-status' : ''}
+          aria-busy=${String(bound && action.submission.kind === 'pending')}
+          ?disabled=${effectiveDisabled}
+          style="--selected-face:${this.selectedFace}"
+          class="${this._classes(effectiveDisabled)}">
           <div id="inner">
             ${repeat(this.faces, (face) => face, (face) => html`
               <div class="${this._classForFace(face)}">
@@ -270,7 +325,8 @@ class BoardgameDie extends BoardgameAnimatableItem {
               </div>
             `)}
           </div>
-        </div>
+        </button>
+        ${reason ? html`<span id="action-status" role="status">${reason}</span>` : ''}
       </div>
     `;
   }

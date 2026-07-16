@@ -1,18 +1,15 @@
-import { html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
+import { html, css, type ReadinessParticipant } from '../../src/client.js';
+import { TableRenderer, registerTableRenderer } from './_game_renderer.js';
 
 /**
  * Werewolf Table view (the shared projector screen). Connects as
  * ObserverPlayerIndex so roles are hidden by sanitization. Shows player
  * status, voting progress, phase info, and win/loss announcements.
  */
-@customElement('boardgame-render-game-werewolf-table')
-export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerState, MoveName> {
+@registerTableRenderer
+export class WerewolfTableView extends TableRenderer {
   static override styles = [
-    BoardgameTableViewBase.styles,
+    TableRenderer.styles,
     css`
       :host {
         display: block;
@@ -92,6 +89,12 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
         color: #7986cb;
         margin: 16px 0;
       }
+      boardgame-readiness {
+        max-width: 30rem;
+        margin: 1rem auto;
+        --boardgame-readiness-background: #2a2a3e;
+        --boardgame-readiness-border: 1px solid #555;
+      }
       .winner-banner {
         text-align: center;
         font-size: 32px;
@@ -125,7 +128,9 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
     // the very first Day. Game-over comes from the server via the plumbed
     // gameFinished/gameWinners (renderGameOverBanner below) — though
     // werewolf's delegate doesn't implement CheckGameFinished yet.
-    const activePlayers = players.filter(p => !p.PlayerInactive);
+    const activePlayers = players.flatMap((player, playerIndex) => player.PlayerInactive
+      ? []
+      : [{ player, playerIndex }]);
     const nameFor = (i: number): string => {
       const seat = this.seatPresentations.find((s) => s.playerIndex === i);
       return seat ? seat.displayName : `Player ${i}`;
@@ -135,6 +140,11 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
     let phaseClass = 'phase-gathering';
     if (phase === 'Day') phaseClass = 'phase-day';
     if (phase === 'Night') phaseClass = 'phase-night';
+    const dayReadiness: readonly ReadinessParticipant<number>[] = activePlayers.map(({ player, playerIndex }) => ({
+      key: playerIndex,
+      label: nameFor(playerIndex),
+      state: player.Eliminated ? 'not-required' : player.Vote >= 0 ? 'ready' : 'waiting',
+    }));
 
     return html`
       <h1>Werewolf</h1>
@@ -151,13 +161,24 @@ export class WerewolfTableView extends BoardgameTableViewBase<GameState, PlayerS
         <div class="night-message">Night time -- werewolves are choosing...</div>
       ` : ''}
 
+      ${phase === 'Day' && !this.gameFinished ? html`
+        <boardgame-readiness
+          label="Day votes"
+          complete-label="All votes cast"
+          progress-label="votes cast"
+          ready-label="Voted"
+          waiting-label="Thinking"
+          not-required-label="Eliminated"
+          .participants=${dayReadiness}>
+        </boardgame-readiness>
+      ` : ''}
+
       <div class="players-circle">
-        ${activePlayers.map((player) => {
-          const realIndex = players.indexOf(player);
+        ${activePlayers.map(({ player, playerIndex }) => {
           const hasVoted = player.Vote >= 0;
           return html`
             <div class="player-tile ${player.Eliminated ? 'eliminated' : ''}">
-              <div class="name">${nameFor(realIndex)}</div>
+              <div class="name">${nameFor(playerIndex)}</div>
               ${player.Eliminated
                 ? html`<div class="status">ELIMINATED</div>`
                 : html`

@@ -1,0 +1,89 @@
+name: Client quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+      - name: Test generators, static assembly, scaffold, API, and move contracts
+        run: go test ./boardgame-util/... ./server/api . ./moves
+
+  strict-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: server/static/package-lock.json
+      - name: Install pinned client dependencies
+        working-directory: server/static
+        run: npm ci
+      - name: Check generated game contracts and isolated creator packages
+        run: go run ./boardgame-util --config config.json check-client
+      - name: Check framework TypeScript and client authoring contracts
+        working-directory: server/static
+        run: |
+          npm run type-check
+          npm run type-check:authoring
+          npm run test:check-client
+          npm run test:unit
+          npm run test:facade-production
+          npm run build
+
+  renderer-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: server/static/package-lock.json
+      - name: Install pinned client dependencies
+        working-directory: server/static
+        run: npm ci
+      - name: Install lockfile-selected Chromium
+        working-directory: server/static
+        run: npx playwright install --with-deps chromium
+      - name: Run zero-retry renderer fixtures
+        working-directory: server/static
+        run: npm run test:renderer
+      - name: Upload renderer failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: renderer-chromium-artifacts
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            server/static/test-results
+            server/static/playwright-report

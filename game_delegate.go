@@ -327,21 +327,15 @@ type GameDelegate interface {
 	//behaviors.PlayerOrderBehavior on the gameState. Override for custom logic.
 	CustomPlayerOrder(state ImmutableState) []PlayerIndex
 
-	//ComputedGlobalProperties returns extra properties to include in the
-	//JSON sent to the client under Computed.Global. base.GameDelegate
-	//provides a default that includes "PlayerOrder" when a
-	//PlayerOrderBehavior is embedded in GameState. To add game-specific
-	//properties, override this method, call the base implementation, and
-	//merge your properties into the returned PropertyCollection.
-	ComputedGlobalProperties(state ImmutableState) PropertyCollection
+	//ConfigureComputedProperties declares game-specific computed values and
+	//their evaluators together. Use the typed GlobalComputed*/PlayerComputed*
+	//constructors so generated clients receive exact keys and types.
+	ConfigureComputedProperties() []ComputedProperty
 
-	//ComputedPlayerProperties returns extra per-player properties included
-	//in the JSON sent to the client under Computed.Players[i].
-	//base.GameDelegate provides defaults: "Color" (CSS color string) and
-	//"MayBeActive" (bool). To add game-specific properties, override this
-	//method, call the base implementation, and merge your properties into
-	//the returned PropertyCollection.
-	ComputedPlayerProperties(player ImmutableSubState) PropertyCollection
+	//FrameworkComputed*Properties are framework-owned computed values. Game
+	//delegates should not override them; use ConfigureComputedProperties.
+	FrameworkComputedGlobalProperties(state ImmutableState) PropertyCollection
+	FrameworkComputedPlayerProperties(player ImmutableSubState) PropertyCollection
 
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging. State.Diagram() will reach out to this

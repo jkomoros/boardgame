@@ -1,11 +1,7 @@
 import { html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-deck-defaults.js';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
+import { cardView } from '../../src/client.js';
+import { TableRenderer, registerTableRenderer } from './_game_renderer.js';
+import type { GameState } from './_types.js';
 
 /**
  * Blackjack Table view (the shared projector). Connects as
@@ -20,10 +16,17 @@ import type { GameState, PlayerState } from './_types.js';
  * companion_capable_games list so the create-game form gates the
  * toggle on.
  */
-@customElement('boardgame-render-game-blackjack-table')
-export class BlackjackTableView extends BoardgameTableViewBase<GameState, PlayerState, MoveName> {
+@registerTableRenderer
+export class BlackjackTableView extends TableRenderer {
+  private readonly cards = cardView<GameState['DrawStack']>({
+    properties: ({ kind, component }) => ({
+      suit: kind === 'visible' ? component.Values.Suit : '',
+      rank: kind === 'visible' ? component.Values.Rank : '',
+    }),
+  });
+
   static override styles = [
-    BoardgameTableViewBase.styles,
+    TableRenderer.styles,
     css`
       :host {
         display: block;
@@ -94,30 +97,25 @@ export class BlackjackTableView extends BoardgameTableViewBase<GameState, Player
       ${this.renderGameOverBanner()}
       ${this.renderAvatarStrip()}
       ${this.renderHostControls()}
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-        </template>
-      </boardgame-deck-defaults>
       <div class="draw">
         ${this.state?.Game?.DrawStack
-          ? html`<boardgame-component-stack id="deal-source" .stack=${(this.state.Game as any).DrawStack} .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack id="deal-source" .stack=${this.state.Game.DrawStack} .componentView=${this.cards.withProperties({ rotated: true })}></boardgame-component-stack>`
           : html`<small>waiting for state…</small>`}
       </div>
       <div class="seats">
         ${players.map((p, i) => html`
           <div class="seat ${i === this.currentPlayerIndex ? 'current' : ''}">
-            <div class="seat-name">${nameFor(i)} · ${(p as any).Score ?? 0} pts</div>
+            <div class="seat-name">${nameFor(i)} · ${p.Score} pts</div>
             <div class="seat-cards">
-              ${(p as any).VisibleHand
-                ? html`<boardgame-component-stack .stack=${(p as any).VisibleHand} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+              ${p.VisibleHand
+                ? html`<boardgame-component-stack .stack=${p.VisibleHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan" messy></boardgame-component-stack>`
                 : ''}
-              ${(p as any).HiddenHand
-                ? html`<boardgame-component-stack .stack=${(p as any).HiddenHand} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+              ${p.HiddenHand
+                ? html`<boardgame-component-stack .stack=${p.HiddenHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan" messy></boardgame-component-stack>`
                 : ''}
             </div>
-            ${(p as any).Stood ? html`<small>Standing</small>` : ''}
-            ${(p as any).Eliminated && !this.animating ? html`<small>Busted!</small>` : ''}
+            ${p.Stood ? html`<small>Standing</small>` : ''}
+            ${p.Eliminated && !this.animating ? html`<small>Busted!</small>` : ''}
           </div>
         `)}
       </div>

@@ -1,5 +1,18 @@
 import { LitElement, html } from 'lit';
 import { property, query } from 'lit/decorators.js';
+import {
+  BoardgameBasePlayerInfoRenderer,
+  type PlayerChipPresentationChangedDetail,
+} from './boardgame-base-player-info-renderer.js';
+
+interface PlayerInfoState {
+  readonly Players?: readonly unknown[];
+}
+
+interface PlayerInfoRendererElement extends HTMLElement {
+  state: PlayerInfoState | null;
+  playerIndex: number;
+}
 
 /**
  * BoardgameRenderPlayerInfo dynamically loads and manages game-specific
@@ -8,7 +21,7 @@ import { property, query } from 'lit/decorators.js';
  */
 class BoardgameRenderPlayerInfo extends LitElement {
   @property({ type: Object })
-  state: any = null;
+  state: PlayerInfoState | null = null;
 
   @property({ type: Boolean })
   active = false;
@@ -17,7 +30,7 @@ class BoardgameRenderPlayerInfo extends LitElement {
   gameName = '';
 
   @property({ type: Object, attribute: false })
-  renderer: HTMLElement | null = null;
+  renderer: PlayerInfoRendererElement | null = null;
 
   @property({ type: String, attribute: false })
   rendererGameName = '';
@@ -25,24 +38,11 @@ class BoardgameRenderPlayerInfo extends LitElement {
   @property({ type: Boolean })
   rendererLoaded = false;
 
-  @property({ type: String, attribute: true })
-  chipText = '';
-
-  @property({ type: String, attribute: true })
-  chipColor = '';
-
   @property({ type: Number })
   playerIndex = 0;
 
   @query('#container')
   private _container?: HTMLElement;
-
-  private instantiateWhenReady = false;
-  private instantiateWhenGameNameSet = false;
-
-  get playerState(): any {
-    return this._computePlayerState(this.state, this.playerIndex);
-  }
 
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
@@ -59,48 +59,23 @@ class BoardgameRenderPlayerInfo extends LitElement {
       this._rendererLoadedChanged(this.rendererLoaded);
     }
 
-    if (changedProperties.has('state')) {
-      this._stateChanged(this.state, changedProperties.get('state') as any);
-    }
-
-    if (changedProperties.has('playerIndex') || changedProperties.has('state')) {
-      this._playerStateChanged(this.playerState);
-    }
-  }
-
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-
-    if (this.instantiateWhenReady) {
-      this.instantiateRenderer();
-    }
+    if (changedProperties.has('state')) this._stateChanged(this.state);
+    if (changedProperties.has('playerIndex')) this._playerIndexChanged(this.playerIndex);
   }
 
   private _activeChanged(newValue: boolean) {
-    if (!newValue) {
-      if (!this.renderer) return;
-      if (this.renderer.parentElement) {
-        this.renderer.parentElement.removeChild(this.renderer);
-      }
-      this.renderer = null;
+    if (newValue) {
+      this.instantiateRenderer();
+      return;
     }
-  }
-
-  private _chipTextChanged(e: CustomEvent) {
-    this.chipText = e.detail.value;
-  }
-
-  private _chipColorChanged(e: CustomEvent) {
-    this.chipColor = e.detail.value;
+    this.resetRenderer();
   }
 
   private _gameNameChanged(newValue: string) {
-    if (!newValue) return;
     if (newValue !== this.rendererGameName) {
       this.resetRenderer();
     }
-    if (!this.instantiateWhenGameNameSet) return;
-    this.instantiateRenderer();
+    if (newValue) this.instantiateRenderer();
   }
 
   private _rendererLoadedChanged(newValue: boolean) {
@@ -110,67 +85,56 @@ class BoardgameRenderPlayerInfo extends LitElement {
     }
   }
 
-  private _stateChanged(newState: any, oldState: any) {
+  private _stateChanged(newState: PlayerInfoState | null) {
     if (!this.renderer) return;
-
-    // If state changed from non-null to null, skip
-    if (!newState && oldState) {
-      return;
-    }
-
-    // For Lit renderers, just set the property directly
-    (this.renderer as any).state = newState;
-    this.requestUpdate();
+    this.renderer.state = newState;
   }
 
-  private _computePlayerState(state: any, playerIndex: number): any {
-    if (!state) return null;
-    return state.Players?.[playerIndex];
+  private _playerIndexChanged(playerIndex: number): void {
+    if (!this.renderer) return;
+    this.renderer.playerIndex = playerIndex;
   }
 
-  private _playerStateChanged(newValue: any) {
-    if (!this.renderer) return;
-    (this.renderer as any).playerState = newValue;
+  private _chipPresentationChanged(event: Event): void {
+    event.stopPropagation();
+    const detail = (event as CustomEvent<PlayerChipPresentationChangedDetail>).detail;
+    this._publishChipPresentation(detail);
+  }
+
+  private _publishChipPresentation(detail: PlayerChipPresentationChangedDetail): void {
+    this.dispatchEvent(new CustomEvent<PlayerChipPresentationChangedDetail>('player-chip-presentation-changed', {
+      bubbles: true,
+      composed: true,
+      detail,
+    }));
   }
 
   resetRenderer() {
-    if (!this._container) return;
-    if (this.renderer) {
-      this._container.removeChild(this.renderer);
-    }
+    this.renderer?.remove();
     this.renderer = null;
     this.rendererGameName = '';
+    this._publishChipPresentation({ text: '', color: '' });
   }
 
   instantiateRenderer() {
-    if (!this.rendererLoaded) return;
-    if (!this._container) {
-      this.instantiateWhenReady = true;
-      return;
-    }
+    if (!this.active || !this.rendererLoaded || !this._container || !this.gameName) return;
+    if (this.renderer && this.rendererGameName === this.gameName) return;
 
-    if (!this.gameName) {
-      this.instantiateWhenGameNameSet = true;
-      return;
+    const tagName = `boardgame-render-player-info-${this.gameName}`;
+    if (!customElements.get(tagName)) {
+      throw new Error(`boardgame-render-player-info: ${tagName} is not registered even though rendererLoaded is true`);
     }
-
-    const ele = document.createElement(`boardgame-render-player-info-${this.gameName}`) as any;
+    const ele = document.createElement(tagName) as PlayerInfoRendererElement;
+    if (!(ele instanceof BoardgameBasePlayerInfoRenderer)) {
+      throw new Error(`boardgame-render-player-info: ${tagName} must extend the generated PlayerInfoRenderer base`);
+    }
 
     ele.state = this.state;
     ele.playerIndex = this.playerIndex;
-    ele.playerState = this.playerState;
-
-    this.chipText = ele.chipText || '';
-    this.chipColor = ele.chipColor || '';
+    ele.addEventListener('player-chip-presentation-changed', event => this._chipPresentationChanged(event));
 
     this.renderer = ele;
     this.rendererGameName = this.gameName;
-
-    // Listen for chip property changes from the renderer
-    if (this.renderer) {
-      this.renderer.addEventListener('chip-text-changed', (e: Event) => this._chipTextChanged(e as CustomEvent));
-      this.renderer.addEventListener('chip-color-changed', (e: Event) => this._chipColorChanged(e as CustomEvent));
-    }
 
     this._container.appendChild(ele);
   }

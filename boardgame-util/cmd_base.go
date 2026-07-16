@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
@@ -13,18 +16,20 @@ import (
 
 type boardgameUtil struct {
 	baseSubCommand
-	Help          help
-	Db            db
-	Codegen       codegen
-	Build         build
-	Clean         clean
-	Serve         serve
-	Config        configCmd
-	Stub          stubCmd
-	Golden        goldenCmd
-	EmitMoveNames emitMoveNames
-	EmitMoveArgs  emitMoveArgs
-	EmitTypes     emitTypes
+	Help            help
+	Db              db
+	Codegen         codegen
+	Build           build
+	Clean           clean
+	Serve           serve
+	Config          configCmd
+	Stub            stubCmd
+	Golden          goldenCmd
+	EmitMoveNames   emitMoveNames
+	EmitMoveArgs    emitMoveArgs
+	EmitBoardSpaces emitBoardSpaces
+	EmitTypes       emitTypes
+	CheckClient     checkClient
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -33,6 +38,16 @@ type boardgameUtil struct {
 
 	//Dirs to delete on exit
 	tempDirs []string
+
+	cleanupMutex sync.Mutex
+	cleanupOnce  sync.Once
+	cleaning     bool
+	processes    []*trackedProcess
+}
+
+type trackedProcess struct {
+	process *os.Process
+	done    chan struct{}
 }
 
 func (b *boardgameUtil) Run(p writ.Path, positional []string) {
@@ -96,17 +111,63 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Golden,
 		&b.EmitMoveNames,
 		&b.EmitMoveArgs,
+		&b.EmitBoardSpaces,
 		&b.EmitTypes,
+		&b.CheckClient,
 	}
 }
 
 // Do any cleanup tasks as program exits.
 func (b *boardgameUtil) Cleanup() {
+	b.cleanupOnce.Do(func() {
+		b.cleanupMutex.Lock()
+		b.cleaning = true
+		processes := append([]*trackedProcess(nil), b.processes...)
+		dirs := append([]string(nil), b.tempDirs...)
+		b.cleanupMutex.Unlock()
 
-	for _, dir := range b.tempDirs {
-		os.RemoveAll(dir)
+		for _, child := range processes {
+			_ = terminateChildProcess(child.process)
+		}
+
+		allDone := make(chan struct{})
+		go func() {
+			for _, child := range processes {
+				<-child.done
+			}
+			close(allDone)
+		}()
+		select {
+		case <-allDone:
+		case <-time.After(2 * time.Second):
+			for _, child := range processes {
+				_ = killChildProcess(child.process)
+			}
+			select {
+			case <-allDone:
+			case <-time.After(time.Second):
+			}
+		}
+
+		for _, dir := range dirs {
+			_ = os.RemoveAll(dir)
+		}
+	})
+}
+
+func (b *boardgameUtil) startTrackedProcess(cmd *exec.Cmd) (func(), error) {
+	b.cleanupMutex.Lock()
+	defer b.cleanupMutex.Unlock()
+	if b.cleaning {
+		return nil, errors.New("cannot start child process during cleanup")
 	}
-
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	child := &trackedProcess{process: cmd.Process, done: make(chan struct{})}
+	b.processes = append(b.processes, child)
+	var once sync.Once
+	return func() { once.Do(func() { close(child.done) }) }, nil
 }
 
 func (b *boardgameUtil) errAndQuit(message string) {

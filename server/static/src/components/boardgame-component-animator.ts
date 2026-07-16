@@ -81,7 +81,7 @@ export class BoardgameComponentAnimator extends LitElement {
   private _beforeCollectionOffsets = new Map<string, OffsetRect>();
   private _generation = 0;
 
-  ancestorOffsetParent: any = null;
+  ancestorOffsetParent: HTMLElement | null = null;
 
   private _calculateOffsets(ele: HTMLElement): OffsetRect {
     let top = 0;
@@ -112,6 +112,13 @@ export class BoardgameComponentAnimator extends LitElement {
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     this._lastSeenNodesById = new Map();
+  }
+
+  /** Clear interrupted faux components without exposing the stack registry. */
+  clearAnimatingComponents(): void {
+    for (const stack of this.stackElement._sharedStackList) {
+      stack.clearAnimatingComponents();
+    }
   }
 
   prepare() {

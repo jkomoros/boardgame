@@ -1,22 +1,11 @@
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
-import '../../src/components/boardgame-status-text.js';
+import { html } from '../../src/client.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 
-class BoardgameRenderPlayerInfoMemory extends LitElement {
-  @property({ type: Object })
-  state: any = null;
-
-  @property({ type: Number })
-  playerIndex = 0;
-
-  @property({ type: Object })
-  playerState: any = null;
-
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
   override render() {
     return html`
-      Won Cards <boardgame-status-text>${this.playerState?.WonCards?.Indexes?.length}</boardgame-status-text>
+      Won Cards <boardgame-status-text .value=${this.playerState?.WonCards?.Indexes?.length}></boardgame-status-text>
     `;
   }
 }
-
-customElements.define('boardgame-render-player-info-memory', BoardgameRenderPlayerInfoMemory);

@@ -1,1 +1,0 @@
-../../../server/static/GAME_RENDERER_MIGRATION.md

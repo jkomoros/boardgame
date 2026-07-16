@@ -1,25 +1,20 @@
-import '@material/web/button/filled-button.js';
-import '@material/web/button/outlined-button.js';
-import '@material/web/progress/linear-progress.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
-import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-fading-text.js';
-import '../../src/components/boardgame-deck-defaults.js';
-import '../../src/components/boardgame-player-badge.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import type { CardsComponentValues, GameState, PlayerState } from './_types.js';
+import type { CardsComponentValues, GameState } from './_types.js';
+import { cardView, isVisibleComponent } from '../../src/client.js';
 
-class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+@registerGameRenderer
+export class BoardgameRenderGameMemory extends GameRenderer {
+  private readonly cards = cardView<GameState['Cards']>({
+    render: ({ kind, component }) => kind === 'visible'
+      ? html`<div>${component.Values.Type}</div>`
+      : null,
+  });
+
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
-      md-linear-progress {
-        width: 100%;
-      }
-
       .current {
         font-weight: bold;
       }
@@ -48,14 +43,6 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, Pla
     `
   ];
 
-  get maxTimeLeft(): number {
-    return this.computeMaxTimeLeft(this.state?.Game?.HideCardsTimer?.originalTimeLeft ?? 0);
-  }
-
-  private computeMaxTimeLeft(timeLeft: number): number {
-    return Math.max(timeLeft, 100);
-  }
-
   // _revealHoldMs replaces this renderer's old imperative delay-animation
   // hook, which delayed installing the next state by 1000ms whenever the move
   // about to be installed was the engine's "Capture Cards" FixUp move (i.e.
@@ -70,87 +57,84 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer<GameState, Pla
   // does not apply).
   //
   // VisibleCards.Components is a fixed-size (SizedStack) array padded with
-  // nulls at unrevealed slots, matching the template's own
-  // {{item.Values.Type}} access -- component field values live under
-  // `.Values`, not directly on the component (that nesting isn't reflected
-  // in the shared Component<T> TS type, so read defensively).
+  // nulls at unrevealed slots. Component field values live under `.Values`,
+  // not directly on the component. Opaque occupied slots are `{}`
+  // and must be narrowed with the shared guard before reading card values.
   private _revealHoldMs(): number {
     const components = this.state?.Game?.VisibleCards?.Components;
     if (!components) return 0;
-    const revealed = components.filter((c): c is NonNullable<typeof c> => !!c);
+    const revealed = components.filter(isVisibleComponent);
     if (revealed.length !== 2) return 0;
-    const [first, second] = revealed as unknown as { Values?: CardsComponentValues }[];
-    const firstType = first.Values?.Type;
-    const secondType = second.Values?.Type;
-    if (firstType === undefined || secondType === undefined) return 0;
+    const [first, second] = revealed;
+    const firstType: CardsComponentValues['Type'] = first!.Values.Type;
+    const secondType: CardsComponentValues['Type'] = second!.Values.Type;
     return firstType === secondType ? 1000 : 0;
   }
 
   override render() {
+    const cardStack = this.state?.Game?.Cards ?? null;
+    const cardSlots = cardStack?.Components.map((_component, index) => index) ?? [];
+    const reveals = this.move(MoveNames.RevealCard).targets(
+      cardSlots, cardIndex => ({ CardIndex: cardIndex }),
+    );
     return html`
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card>
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-deck-defaults>
-      <h2>Memory</h2>
-      <div>
-        <boardgame-component-stack
-          layout="grid"
-          messy
-          post-animation-delay="${this._revealHoldMs()}"
-          .stack="${this.state?.Game?.Cards}"
-          .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
-        </boardgame-component-stack>
-        <boardgame-fading-text
-          message="Match"
-          .trigger="${this.state?.Game?.Cards?.Components?.length}">
-        </boardgame-fading-text>
-      </div>
-      <div class="discards">
-        <div class="discard-pile">
-          <boardgame-player-badge player-index="0" compact></boardgame-player-badge>
+      <boardgame-game-surface heading="Memory">
+        <div>
           <boardgame-component-stack
-            layout="stack"
-            .stack="${this.state?.Players?.[0]?.WonCards}"
+            layout="grid"
             messy
-            .componentAttrs=${{ disabled: true }}>
+            post-animation-delay="${this._revealHoldMs()}"
+            .stack="${cardStack}"
+            .componentView=${this.cards}
+            .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
           </boardgame-component-stack>
+          <boardgame-fading-text
+            message="Match"
+            .trigger="${this.state?.Game?.Cards?.Components?.length}">
+          </boardgame-fading-text>
         </div>
-        <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
-        <boardgame-card spacer></boardgame-card>
-        <div class="discard-pile">
-          <boardgame-player-badge player-index="1" compact></boardgame-player-badge>
-          <boardgame-component-stack
-            layout="stack"
-            messy
-            .stack="${this.state?.Players?.[1]?.WonCards}"
-            .componentAttrs=${{ disabled: true }}>
-          </boardgame-component-stack>
+        <div class="discards">
+          <div class="discard-pile">
+            <boardgame-player-badge .player=${this.playerPresentation(0)} compact></boardgame-player-badge>
+            <boardgame-component-stack
+              layout="stack"
+              .stack="${this.state?.Players?.[0]?.WonCards}"
+              .componentView=${this.cards}
+              messy
+              components-disabled>
+            </boardgame-component-stack>
+          </div>
+          <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
+          <boardgame-card spacer></boardgame-card>
+          <div class="discard-pile">
+            <boardgame-player-badge .player=${this.playerPresentation(1)} compact></boardgame-player-badge>
+            <boardgame-component-stack
+              layout="stack"
+              messy
+              .stack="${this.state?.Players?.[1]?.WonCards}"
+              .componentView=${this.cards}
+              components-disabled>
+            </boardgame-component-stack>
+          </div>
         </div>
-      </div>
-      <md-outlined-button
-        id="hide"
-        propose-move="${MoveNames.HideCards}"
-        ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.HideCards)}">
-        Hide Cards
-      </md-outlined-button>
-      <md-linear-progress
-        id="timeleft"
-        .value="${(this.state?.Game?.HideCardsTimer?.TimeLeft || 0) / (this.maxTimeLeft || 1)}"
-        .max="${1}">
-      </md-linear-progress>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+        <boardgame-action-bar slot="actions" label="Memory actions">
+          <boardgame-action-button
+            id="hide"
+            .action=${this.move(MoveNames.HideCards)}>
+            Hide Cards
+          </boardgame-action-button>
+        </boardgame-action-bar>
+        <boardgame-timer
+          slot="status"
+          id="timeleft"
+          label="Cards hide in"
+          .timer=${this.state?.Game?.HideCardsTimer ?? null}>
+        </boardgame-timer>
+        <boardgame-turn-status
+          slot="status"
+          .turn=${this.turnStatus}>
+        </boardgame-turn-status>
+      </boardgame-game-surface>
     `;
   }
 }
-
-customElements.define('boardgame-render-game-memory', BoardgameRenderGameMemory);

@@ -88,6 +88,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
@@ -118,11 +119,12 @@ var filesToExclude = map[string]bool{
 	"vite.log":        true,
 	"vite-server.log": true,
 	// Test artifacts
-	"playwright-report":    true,
-	"playwright.config.ts": true,
-	"test-results":         true,
-	"screenshots":          true,
-	"tests":                true,
+	"playwright-report":             true,
+	"playwright.config.ts":          true,
+	"playwright.renderer.config.ts": true,
+	"test-results":                  true,
+	"screenshots":                   true,
+	"tests":                         true,
 	// Build artifacts
 	"dist": true,
 	// Legacy files
@@ -135,22 +137,49 @@ var filesToExclude = map[string]bool{
 // Server runs a static server. directory is the folder that the `static`
 // folder is contained within. If no error is returned, runs until the program
 // exits. Uses Vite's dev server to serve the modern TypeScript/Lit frontend.
-func Server(directory string, port string) error {
+func Server(directory string, staticPort string) error {
+	return ServerWithAPI(directory, staticPort, "8888")
+}
 
-	staticDir := filepath.Join(directory, staticSubFolder)
+// ServerWithAPI is Server with an explicit API proxy target.
+func ServerWithAPI(directory string, staticPort string, apiPort string) error {
+	cmd, err := StartServer(directory, staticPort, apiPort)
+	if err != nil {
+		return err
+	}
+	return cmd.Wait()
+}
 
-	// Check if vite is available via npx
-	cmd := exec.Command("npx", "vite", "--port", port, "--host", "localhost")
-	cmd.Dir = staticDir
+// StartServer starts Vite and returns the running command so callers that own
+// multiple services can supervise and terminate them as one session.
+func StartServer(directory string, staticPort string, apiPort string) (*exec.Cmd, error) {
+	cmd := ServerCommand(directory, staticPort, apiPort)
+
+	if err := cmd.Start(); err != nil {
+		return nil, errors.New("Couldn't start vite dev server: " + err.Error())
+	}
+	return cmd, nil
+}
+
+// ServerCommand returns a configured but unstarted Vite command. It lets a
+// higher-level supervisor make process startup and tracking atomic.
+func ServerCommand(directory string, staticPort string, apiPort string) *exec.Cmd {
+	cmd := viteServerCommand(directory, staticPort, apiPort)
+	configureServerProcess(cmd)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	return cmd
+}
 
-	if err := cmd.Run(); err != nil {
-		return errors.New("Couldn't start vite dev server: " + err.Error())
-	}
-
-	return nil
-
+func viteServerCommand(directory string, staticPort string, apiPort string) *exec.Cmd {
+	staticDir := filepath.Join(directory, staticSubFolder)
+	cmd := exec.Command("npx", "vite", "--port", staticPort, "--host", "127.0.0.1", "--strictPort")
+	cmd.Dir = staticDir
+	cmd.Env = append(os.Environ(),
+		"BOARDGAME_STATIC_PORT="+staticPort,
+		"BOARDGAME_API_PORT="+apiPort,
+	)
+	return cmd
 }
 
 // CleanCache clears the central cache the build system uses (currently just
@@ -187,7 +216,13 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 	}
 
 	fmt.Println("Copying base static resources")
-	if err := CopyStaticResources(directory, copyFiles); err != nil {
+	// Production inputs must be real files. Vite follows a symlinked index.html
+	// to the framework source tree and then rejects its resolved path as an
+	// emitted asset name outside the build root. A production bundle should be
+	// portable anyway, so copy top-level files even when the caller did not
+	// explicitly request --copy-files. Directories may remain linked while Vite
+	// consumes them; dist contains the final self-contained output.
+	if err := CopyStaticResources(directory, copyFiles || prodBuild); err != nil {
 		return "", errors.New("Couldn't copy static resources")
 	}
 
@@ -223,17 +258,14 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 
 	if prodBuild {
 		// Type-check the game renderers before bundling. Vite/esbuild strip
-		// types without checking, so this is the only gate that catches
-		// renderer type errors. Non-fatal (external games may not be
-		// type-clean); dev `serve` skips this to keep the loop fast.
+		// types without checking, so shipping after diagnostics would silently
+		// discard the creator's contract errors.
 		fmt.Println("Type-checking game renderers")
 		staticDir := filepath.Join(directory, staticSubFolder)
 		if diagnostics, err := TypeCheckGameSrc(staticDir); err != nil {
-			fmt.Println("WARNING: skipped game-renderer type-check: " + err.Error())
-		} else {
-			for _, d := range diagnostics {
-				fmt.Println(d)
-			}
+			return "", fmt.Errorf("couldn't type-check game renderers: %w", err)
+		} else if len(diagnostics) > 0 {
+			return "", fmt.Errorf("game-renderer type-check failed:\n%s", strings.Join(diagnostics, "\n"))
 		}
 
 		fmt.Println("Building bundled resources with Vite")

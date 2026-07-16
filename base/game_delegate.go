@@ -381,15 +381,11 @@ func (g *GameDelegate) CustomPlayerOrder(state boardgame.ImmutableState) []board
 	return nil
 }
 
-// ComputedGlobalProperties returns framework defaults. Currently returns
+// FrameworkComputedGlobalProperties returns framework-owned defaults. It
 // "PlayerOrder" ([]int) when a PlayerOrderBehavior is embedded in GameState.
-// Override and call super to add game-specific properties.
-//
-// MIGRATION NOTE: This method now returns non-nil defaults. If your game
-// overrides ComputedGlobalProperties, you must call
-// g.GameDelegate.ComputedGlobalProperties(state) and merge your properties
-// into the result, or the framework's "PlayerOrder" property will be lost.
-func (g *GameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+// Game authors add values through ConfigureComputedProperties instead of
+// overriding this method.
+func (g *GameDelegate) FrameworkComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
 	result := boardgame.PropertyCollection{}
 
 	if order := g.Manager().Delegate().CustomPlayerOrder(state); order != nil {
@@ -467,16 +463,11 @@ func colorEnumValuesForClient(e enum.Enum) []map[string]interface{} {
 	return result
 }
 
-// ComputedPlayerProperties returns framework defaults: "Color" (CSS color
+// FrameworkComputedPlayerProperties returns framework defaults: "Color" (CSS color
 // string from the player's Color enum or palette fallback) and "MayBeActive".
-// Override and call super to add game-specific properties.
-//
-// MIGRATION NOTE: This method now returns non-nil defaults. If your game
-// overrides ComputedPlayerProperties, you must call
-// g.GameDelegate.ComputedPlayerProperties(player) and merge your properties
-// into the result, or the framework's "Color" and "MayBeActive" properties
-// will be lost.
-func (g *GameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
+// Game authors add or type-safely replace values through
+// ConfigureComputedProperties instead of overriding this method.
+func (g *GameDelegate) FrameworkComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
 	result := boardgame.PropertyCollection{
 		"Color":       behaviors.CSSColorForPlayer(player),
 		"MayBeActive": g.Manager().Delegate().PlayerMayBeActive(player),
@@ -803,5 +794,11 @@ func (g *GameDelegate) ConfigureStackConstraintConstructors() []*boardgame.Stack
 // wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
 // to override this.
 func (g *GameDelegate) ConfigureConstants() boardgame.PropertyCollection {
+	return nil
+}
+
+// ConfigureComputedProperties returns no game-specific computed values. Games
+// add them with the typed GlobalComputed*/PlayerComputed* constructors.
+func (g *GameDelegate) ConfigureComputedProperties() []boardgame.ComputedProperty {
 	return nil
 }

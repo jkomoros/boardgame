@@ -1,19 +1,11 @@
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
-import '../../src/components/boardgame-status-text.js';
+import { html } from '../../src/client.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
+import type { PlayerState } from './_types.js';
 
-class BoardgameRenderPlayerInfoBlackjack extends LitElement {
-  @property({ type: Object })
-  state: any = null;
-
-  @property({ type: Number })
-  playerIndex = 0;
-
-  @property({ type: Object })
-  playerState: any = null;
-
-  private _calculateStatus(playerState: any): string {
-    if (playerState?.Busted) {
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
+  private _calculateStatus(playerState: PlayerState | null): string {
+    if (playerState?.Eliminated) {
       return 'Busted';
     }
     if (playerState?.Stood) {
@@ -26,9 +18,7 @@ class BoardgameRenderPlayerInfoBlackjack extends LitElement {
   override render() {
     return html`
       <div>Score <strong>${this.playerState?.Computed?.HandValue}</strong></div>
-      <div><boardgame-status-text>${this._calculateStatus(this.playerState)}</boardgame-status-text></div>
+      <div><boardgame-status-text .value=${this._calculateStatus(this.playerState)}></boardgame-status-text></div>
     `;
   }
 }
-
-customElements.define('boardgame-render-player-info-blackjack', BoardgameRenderPlayerInfoBlackjack);

@@ -1,6 +1,10 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 import './boardgame-fading-text.js';
+
+export type StatusTextValue = string | number | null | undefined;
+export type StatusTextAutoMessage = 'diff' | 'diff-up' | 'fixed' | 'new';
+const autoMessages = new Set<StatusTextAutoMessage>(['diff', 'diff-up', 'fixed', 'new']);
 
 @customElement('boardgame-status-text')
 export class BoardgameStatusText extends LitElement {
@@ -10,79 +14,57 @@ export class BoardgameStatusText extends LitElement {
       display: inline-block;
     }
 
-    .hidden {
-      display: none;
-    }
   `;
 
-  // The message to show. If autoMessage is set to something other than
-  // 'fixed' this will be set based on trigger.
-  @property({ type: String })
-  message = '';
+  /** Current display value. Use a computed string when custom formatting is needed. */
+  @property({ attribute: false })
+  value: StatusTextValue = null;
 
   @property({ type: String })
-  autoMessage = 'diff-up';
+  autoMessage: StatusTextAutoMessage = 'diff-up';
 
-  @query('#content')
-  private _contentSlot!: HTMLSlotElement;
-
-  private _observer: MutationObserver | null = null;
+  /** Announce value changes politely by default. */
+  @property({ type: Boolean })
+  announce = true;
 
   override render() {
+    this.#validateAuthoring();
+    const displayValue = this.value ?? '';
     return html`
-      <strong>${this.message}</strong>
-      <div class="hidden">
-        <slot id="content" @slotchange=${this._slotChanged}></slot>
-      </div>
-      <boardgame-fading-text 
-        .trigger=${this.message} 
+      <strong
+        role=${this.announce ? 'status' : nothing}
+        aria-live=${this.announce ? 'polite' : nothing}
+        aria-atomic=${this.announce ? 'true' : nothing}>${displayValue}</strong>
+      <boardgame-fading-text
+        aria-hidden="true"
+        .announce=${false}
+        .trigger=${displayValue}
         .autoMessage=${this.autoMessage} 
         suppress="falsey">
       </boardgame-fading-text>
+      <slot hidden @slotchange=${this.#validateAuthoring}></slot>
     `;
   }
 
-  override firstUpdated() {
-    this._slotChanged();
-  }
-
-  private _textContentChanged(records: MutationRecord[]) {
-    const ele = records[records.length - 1].target as HTMLElement;
-    let message = ele.textContent || ele.innerText || '';
-    message = message.trim();
-    this.message = message;
-  }
-
-  private _slotChanged() {
-    const nodes = this._contentSlot.assignedNodes();
-    if (!nodes.length) return;
-
-    for (let i = 0; i < nodes.length; i++) {
-      const ele = nodes[i] as HTMLElement;
-      let message = ele.textContent || ele.innerText || '';
-      // This could happen if it's an empty text node for example.
-      message = message.trim();
-      // We used to only register these if the message existed, but in many
-      // real cases like the BUSTED line in blackjack it starts off as a
-      // nil message.
-      if (this._observer) {
-        this._observer.disconnect();
-        this._observer = null;
-      }
-      this._observer = new MutationObserver(rec => this._textContentChanged(rec));
-      this._observer.observe(ele, { characterData: true });
-      this.message = message;
-      return;
+  readonly #validateAuthoring = (): void => {
+    if (this.hasAttribute('value') || this.hasAttribute('message')) {
+      throw new Error('boardgame-status-text: bind the typed property with .value=${...}; value/message attributes are not supported');
     }
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this._observer) {
-      this._observer.disconnect();
-      this._observer = null;
+    const legacyMessage = (this as unknown as { message?: unknown }).message;
+    if (legacyMessage !== undefined) {
+      throw new Error('boardgame-status-text: .message is not supported; bind .value=${...}');
     }
-  }
+    if ([...this.childNodes].some(node => node.nodeType === Node.ELEMENT_NODE || node.textContent?.trim())) {
+      throw new Error('boardgame-status-text: slotted content is not supported; bind .value=${...}');
+    }
+    if (this.value !== null && this.value !== undefined
+      && typeof this.value !== 'string' && typeof this.value !== 'number') {
+      throw new Error('boardgame-status-text: .value must be a string, number, null, or undefined');
+    }
+    if (!autoMessages.has(this.autoMessage)) {
+      throw new Error(`boardgame-status-text: unknown autoMessage "${this.autoMessage}"`);
+    }
+  };
 }
 
 declare global {

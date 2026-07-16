@@ -5,8 +5,9 @@
  * channel tabs (all/team), and a text input (or chip picker for pre-baked
  * messages).
  *
- * Auto-detects chat availability from the server's chat endpoint response.
- * If the server doesn't support chat, the panel doesn't render.
+ * Auto-detects chat policy from the server's chat endpoint response. A
+ * deliberately disabled policy hides the panel; transport and contract errors
+ * stay visible with a retry instead of masquerading as an empty conversation.
  */
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
@@ -14,20 +15,13 @@ import '@material/web/textfield/filled-text-field.js';
 import '@material/web/icon/icon.js';
 import '@material/web/iconbutton/icon-button.js';
 import '@material/web/chips/assist-chip.js';
-
-interface ChatMessage {
-  id: string;
-  channel: string;
-  sender: number;
-  body: string;
-  timestamp: number;
-}
-
-interface ChatConfig {
-  Enabled: boolean;
-  PrebakedOnly: boolean;
-  AllowedMessages: string[] | null;
-}
+import { apiGet, apiPost, buildGameUrl } from '../api.js';
+import {
+  decodeChatReadResponse,
+  decodeChatSendResponse,
+  type ChatConfig,
+  type ChatMessage,
+} from '../types/chat-response.js';
 
 interface PlayerInfo {
   IsEmpty: boolean;
@@ -264,6 +258,17 @@ export class BoardgameChatPanel extends LitElement {
       border-top: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
     }
 
+    .chat-error {
+      padding: 8px 14px;
+      color: var(--md-sys-color-error, #BA1A1A);
+      background: var(--md-sys-color-error-container, #FFDAD6);
+      font-size: 12px;
+    }
+
+    .chat-error button {
+      margin-left: 8px;
+    }
+
     .empty-state {
       padding: 20px;
       text-align: center;
@@ -292,6 +297,9 @@ export class BoardgameChatPanel extends LitElement {
   private _viewChannels: string[] = [];
 
   @state()
+  private _sendChannels: string[] = [];
+
+  @state()
   private _activeChannel = 'all';
 
   @state()
@@ -310,6 +318,12 @@ export class BoardgameChatPanel extends LitElement {
   private _sending = false;
 
   @state()
+  private _chatError = '';
+
+  @state()
+  private _sendError = '';
+
+  @state()
   private _soundEnabled = false;
 
   @query('.messages')
@@ -320,24 +334,46 @@ export class BoardgameChatPanel extends LitElement {
 
   private _pollInterval: number | null = null;
   private _hasWebSocket = false;
-  private _lastGameRouteId = '';
+  private _lastGameRouteKey = '';
+  private _fetchController: AbortController | null = null;
+  private _fetchPromise: Promise<void> | null = null;
 
   protected willUpdate(changedProperties: Map<string, unknown>): void {
     // Fetch messages on first gameRoute set, and reset state when switching games
-    if (changedProperties.has('gameRoute') && this.gameRoute) {
-      const newId = this.gameRoute.id;
-      if (this._lastGameRouteId !== newId) {
-        if (this._lastGameRouteId) {
+    if (changedProperties.has('gameRoute') && !this.gameRoute) {
+      this._fetchController?.abort();
+      this._lastGameRouteKey = '';
+      this._hasWebSocket = false;
+      this._messages = [];
+      this._lastMessageID = '';
+      this._unreadCount = 0;
+      this._chatConfig = null;
+      this._viewChannels = [];
+      this._sendChannels = [];
+      this._activeChannel = 'all';
+      this._userIDMap = {};
+      this._chatError = '';
+      this._sendError = '';
+    } else if (changedProperties.has('gameRoute') && this.gameRoute) {
+      const newKey = this._routeKey(this.gameRoute);
+      if (this._lastGameRouteKey !== newKey) {
+        this._fetchController?.abort();
+        if (this._lastGameRouteKey) {
           // Switching games — reset state
           this._messages = [];
           this._lastMessageID = '';
           this._unreadCount = 0;
           this._chatConfig = null;
           this._viewChannels = [];
+          this._sendChannels = [];
           this._activeChannel = 'all';
+          this._userIDMap = {};
+          this._chatError = '';
+          this._sendError = '';
         }
-        this._lastGameRouteId = newId;
-        this._fetchMessages();
+        this._lastGameRouteKey = newKey;
+        this._hasWebSocket = false;
+        void this._fetchMessages(true);
       }
     }
   }
@@ -349,14 +385,15 @@ export class BoardgameChatPanel extends LitElement {
       this._soundEnabled = localStorage.getItem('boardgame-chat-sound') === '1';
     } catch { /* ignore */ }
 
-    this._fetchMessages();
+    void this._fetchMessages();
     // Poll for messages — reduce frequency once WebSocket is working
     this._pollInterval = window.setInterval(() => {
-      if (!this._hasWebSocket) this._fetchMessages();
+      if (!this._hasWebSocket) void this._fetchMessages();
     }, 3000);
 
     window.addEventListener('chat-notification', this._handleChatNotification as EventListener);
     window.addEventListener('socket-active', this._handleSocketActive as EventListener);
+    window.addEventListener('socket-active-changed', this._handleSocketActiveChanged as EventListener);
   }
 
   disconnectedCallback() {
@@ -365,59 +402,92 @@ export class BoardgameChatPanel extends LitElement {
       clearInterval(this._pollInterval);
       this._pollInterval = null;
     }
+    this._fetchController?.abort();
     window.removeEventListener('chat-notification', this._handleChatNotification as EventListener);
     window.removeEventListener('socket-active', this._handleSocketActive as EventListener);
+    window.removeEventListener('socket-active-changed', this._handleSocketActiveChanged as EventListener);
   }
 
   private _handleSocketActive = () => {
     this._hasWebSocket = true; // Stop polling once WebSocket is confirmed working
   };
 
-  private _handleChatNotification = () => {
-    this._hasWebSocket = true;
-    this._fetchMessages();
+  private _handleSocketActiveChanged = (event: Event) => {
+    if (!(event instanceof CustomEvent)) return;
+    const detail: unknown = event.detail;
+    if (detail === null || typeof detail !== 'object' || Array.isArray(detail)) return;
+    const value = Reflect.get(detail, 'value');
+    if (typeof value === 'boolean') this._hasWebSocket = value;
   };
 
-  private async _fetchMessages() {
+  private _handleChatNotification = () => {
+    this._hasWebSocket = true;
+    void this._fetchMessages(true);
+  };
+
+  private _routeKey(route: GameRoute): string {
+    return `${route.name}\u0000${route.id}`;
+  }
+
+  private async _fetchMessages(force = false): Promise<void> {
     if (!this.gameRoute) return;
-
+    if (this._fetchPromise) {
+      if (!force) return this._fetchPromise;
+      this._fetchController?.abort();
+      await this._fetchPromise;
+    }
+    const route = this.gameRoute;
+    const routeKey = this._routeKey(route);
+    const controller = new AbortController();
+    this._fetchController = controller;
+    const request = this._runMessageFetch(route, routeKey, controller);
+    this._fetchPromise = request;
     try {
-      const url = `/api/game/${this.gameRoute.name}/${this.gameRoute.id}/chat?since=${this._lastMessageID}&limit=50`;
-      const resp = await fetch(url);
-      if (!resp.ok) return;
+      await request;
+    } finally {
+      if (this._fetchPromise === request) this._fetchPromise = null;
+      if (this._fetchController === controller) this._fetchController = null;
+    }
+  }
 
-      const data = await resp.json();
-      if (data.Status !== 'Success') return;
-
-      this._chatConfig = data.ChatConfig || null;
-      this._viewChannels = data.ViewChannels || [];
-      this._userIDMap = data.UserIDMap || {};
-
-      const newMessages: ChatMessage[] = data.Messages || [];
-      if (newMessages.length > 0) {
-        this._messages = [...this._messages, ...newMessages].slice(-100);
-        this._lastMessageID = newMessages[newMessages.length - 1].id;
-
-        if (this._collapsed) {
-          this._unreadCount += newMessages.length;
-        }
-
-        // Play sound for messages from others (not self, not system)
-        const hasOtherMessages = newMessages.some(
-          m => m.sender !== this.viewingAsPlayer && m.sender !== -2
-        );
-        if (hasOtherMessages) {
-          this._playNotificationSound();
-        }
-
-        this.updateComplete.then(() => {
-          if (this._messagesContainer) {
-            this._messagesContainer.scrollTop = this._messagesContainer.scrollHeight;
-          }
-        });
+  private async _runMessageFetch(route: GameRoute, routeKey: string, controller: AbortController): Promise<void> {
+    const response = await apiGet<unknown>(buildGameUrl(route.name, route.id, 'chat', {
+      since: this._lastMessageID,
+      limit: 50,
+    }), controller.signal);
+    if (controller.signal.aborted || !this.gameRoute || this._routeKey(this.gameRoute) !== routeKey) return;
+    if (!response.data) {
+      this._chatError = response.error || response.friendlyError || 'Chat could not be refreshed';
+      return;
+    }
+    try {
+      const data = decodeChatReadResponse(response.data);
+      this._chatConfig = data.ChatConfig;
+      this._viewChannels = data.ViewChannels;
+      this._sendChannels = data.SendChannels;
+      this._userIDMap = data.UserIDMap;
+      this._chatError = '';
+      if (!data.ViewChannels.includes(this._activeChannel)) {
+        this._activeChannel = data.ViewChannels.includes('all') ? 'all' : (data.ViewChannels[0] ?? 'all');
       }
-    } catch {
-      // Chat is optional — silent failure
+
+      if (data.Messages.length === 0) return;
+      this._lastMessageID = data.Messages[data.Messages.length - 1].id;
+      const known = new Set(this._messages.map(message => message.id));
+      const newMessages = data.Messages.filter(message => !known.has(message.id));
+      if (newMessages.length === 0) return;
+      this._messages = [...this._messages, ...newMessages].slice(-100);
+
+      if (this._collapsed) this._unreadCount += newMessages.length;
+      if (newMessages.some(message => message.sender !== this.viewingAsPlayer && message.sender !== -2)) {
+        this._playNotificationSound();
+      }
+      void this.updateComplete.then(() => {
+        if (this._messagesContainer) this._messagesContainer.scrollTop = this._messagesContainer.scrollHeight;
+      });
+    } catch (error) {
+      console.error('[chat] rejected server payload:', error);
+      this._chatError = error instanceof Error ? error.message : 'Chat returned an invalid response';
     }
   }
 
@@ -471,6 +541,7 @@ export class BoardgameChatPanel extends LitElement {
 
   private _selectChannel(channel: string) {
     this._activeChannel = channel;
+    this._sendError = '';
   }
 
   private _senderName(senderIndex: number): string {
@@ -491,26 +562,35 @@ export class BoardgameChatPanel extends LitElement {
     return `${h12}:${m} ${ampm}`;
   }
 
-  private async _sendMessage(body: string) {
-    if (!this.gameRoute || !body.trim() || this._sending) return;
+  private async _sendMessage(body: string): Promise<boolean> {
+    if (!this.gameRoute || !body.trim() || this._sending) return false;
+    if (!this._sendChannels.includes(this._activeChannel)) {
+      this._sendError = 'You cannot send messages to this channel';
+      return false;
+    }
+    const route = this.gameRoute;
+    const routeKey = this._routeKey(route);
     this._sending = true;
+    this._sendError = '';
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('channel', this._activeChannel);
-      formData.append('body', body.trim());
-
-      const resp = await fetch(`/api/game/${this.gameRoute.name}/${this.gameRoute.id}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString(),
-      });
-
-      if (resp.ok) {
-        await this._fetchMessages();
+      const response = await apiPost<unknown>(
+        buildGameUrl(route.name, route.id, 'chat'),
+        { channel: this._activeChannel, body: body.trim() },
+        'application/x-www-form-urlencoded',
+      );
+      if (!this.gameRoute || this._routeKey(this.gameRoute) !== routeKey) return false;
+      if (!response.data) {
+        this._sendError = response.friendlyError || response.error || 'Message could not be sent';
+        return false;
       }
-    } catch {
-      // Silent failure
+      decodeChatSendResponse(response.data);
+      await this._fetchMessages(true);
+      return true;
+    } catch (error) {
+      console.error('[chat] send failed:', error);
+      this._sendError = error instanceof Error ? error.message : 'Message could not be sent';
+      return false;
     } finally {
       this._sending = false;
     }
@@ -519,25 +599,24 @@ export class BoardgameChatPanel extends LitElement {
   private _handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      this._submitInput();
+      void this._submitInput();
     }
   }
 
-  private _submitInput() {
+  private async _submitInput(): Promise<void> {
     if (!this._inputField) return;
     const body = this._inputField.value;
     if (body.trim()) {
-      this._sendMessage(body);
-      this._inputField.value = '';
+      if (await this._sendMessage(body)) this._inputField.value = '';
     }
   }
 
   private _handleSendClick() {
-    this._submitInput();
+    void this._submitInput();
   }
 
   private _handleChipClick(msg: string) {
-    this._sendMessage(msg);
+    void this._sendMessage(msg);
   }
 
   private _toggleSound() {
@@ -590,9 +669,11 @@ export class BoardgameChatPanel extends LitElement {
   render() {
     if (this._chatConfig && !this._chatConfig.Enabled) return nothing;
     if (!this.gameRoute) return nothing;
+    if (!this._chatConfig && !this._chatError) return nothing;
 
     const isObserver = this.viewingAsPlayer === -1;
-    const isDisabled = isObserver; // if _chatConfig.Enabled were false, we returned nothing above
+    const canSendToActiveChannel = this._sendChannels.includes(this._activeChannel);
+    const isDisabled = isObserver || !canSendToActiveChannel;
     const isPrebaked = this._chatConfig?.PrebakedOnly ?? false;
     const allowedMessages = this._chatConfig?.AllowedMessages ?? [];
 
@@ -615,6 +696,12 @@ export class BoardgameChatPanel extends LitElement {
         </div>
 
         <div class="chat-body ${this._collapsed ? 'collapsed' : ''}">
+          ${this._chatError ? html`
+            <div class="chat-error" role="status">
+              Chat unavailable: ${this._chatError}
+              <button @click=${() => { void this._fetchMessages(true); }}>Retry</button>
+            </div>
+          ` : nothing}
           ${this._hasMultipleChannels ? html`
             <div class="channel-tabs" role="tablist" aria-label="Chat channels">
               ${this._viewChannels.map(ch => html`
@@ -649,13 +736,16 @@ export class BoardgameChatPanel extends LitElement {
 
           ${isDisabled ? html`
             <div class="disabled-message">
-              ${isObserver ? 'Observers cannot send messages' : 'Chat is not available right now'}
+              ${isObserver
+                ? 'Observers cannot send messages'
+                : 'This channel is read-only for you'}
             </div>
           ` : isPrebaked ? html`
             <div class="chip-area">
               ${allowedMessages.map(msg => html`
                 <md-assist-chip
                   label=${msg}
+                  ?disabled=${this._sending}
                   @click=${() => this._handleChipClick(msg)}>
                 </md-assist-chip>
               `)}
@@ -675,6 +765,7 @@ export class BoardgameChatPanel extends LitElement {
               </md-icon-button>
             </div>
           `}
+          ${this._sendError ? html`<div class="chat-error" role="alert">${this._sendError}</div>` : nothing}
         </div>
       </div>
     `;

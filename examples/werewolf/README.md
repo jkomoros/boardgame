@@ -14,8 +14,8 @@ This is the canonical example of how to add companion mode to a game. The key pi
 
 ### Client side
 
-- **`client/boardgame-render-game-werewolf-table.ts`** — extends `BoardgameTableViewBase`. Shows player tiles, vote tallies, and phase info. Roles are NOT shown because the Table connects as `ObserverPlayerIndex` and the sanitization hides them.
-- **`client/boardgame-render-game-werewolf-hand.ts`** — extends `BoardgameHandViewBase`. Shows the player's own role prominently, fellow werewolves (if applicable), and phase-appropriate voting buttons.
+- **`client/boardgame-render-game-werewolf-table.ts`** — extends the generated `TableRenderer`. Shows player tiles, vote tallies, and phase info. Roles are NOT shown because the Table connects as `ObserverPlayerIndex` and the sanitization hides them.
+- **`client/boardgame-render-game-werewolf-hand.ts`** — extends the generated `HandRenderer`. Shows the player's own role prominently, fellow werewolves (if applicable), and phase-appropriate voting buttons.
 - **`client/boardgame-render-game-werewolf.ts`** — fallback solo renderer.
 
 ### Opt-in convention

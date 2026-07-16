@@ -39,6 +39,59 @@ func TestBasicGenerate(t *testing.T) {
 	assert.For(t).ThatActual(len(contents)).DoesNotEqual(0)
 
 	assert.For(t).ThatActual(contents["checkers/main.go"]).IsNotNil()
+	assert.For(t).ThatActual(contents["checkers/client/boardgame-render-game-checkers.ts"]).IsNotNil()
+	assert.For(t).ThatActual(contents["checkers/client/boardgame-render-player-info-checkers.ts"]).IsNotNil()
+	if _, exists := contents["checkers/client/boardgame-render-game-checkers.js"]; exists {
+		t.Fatal("legacy JavaScript renderer should not be generated")
+	}
+}
+
+func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
+	opt := &Options{Name: "checkers"}
+	opt.EnableTutorials()
+	contents, err := Generate(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := string(contents["checkers/client/boardgame-render-game-checkers.ts"])
+	playerInfo := string(contents["checkers/client/boardgame-render-player-info-checkers.ts"])
+	for _, required := range []string{
+		"@registerGameRenderer",
+		"cardView<GameState['DrawStack']>",
+		"<boardgame-game-surface heading=\"Checkers\">",
+		"<boardgame-component-zone",
+		"<boardgame-game-outcome",
+		"<boardgame-player-grid>",
+		"<boardgame-player-panel",
+		".active=${index === this.currentPlayerIndex}",
+		"label=\"Draw pile\"",
+		".componentView=${this.cards}",
+		"component.Values.Value",
+		".componentView=${this.cards.withProperties({ rotated: true })}",
+		"<boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>",
+		"<boardgame-action-bar slot=\"actions\" label=\"Turn actions\">",
+		"<boardgame-turn-status",
+		".turn=${this.turnStatus}",
+		"player.Computed?.RoundScore ?? 0",
+	} {
+		if !strings.Contains(client, required) {
+			t.Errorf("generated client is missing %q", required)
+		}
+	}
+	if !strings.Contains(playerInfo, "@registerPlayerInfoRenderer") {
+		t.Error("generated player-info renderer must use exact generated registration")
+	}
+	if strings.Contains(client, "import '../../src/components/") {
+		t.Error("generated renderer should register supported primitives through the public client facade")
+	}
+	if !strings.Contains(playerInfo, ".value=${this.playerState?.Hand.Indexes.length ?? 0}") {
+		t.Error("generated player info does not use the typed status-text value API")
+	}
+	for _, legacy := range []string{"boardgame-deck-defaults", "{{item.", "component-rotated", "componentAttrs", "propose-move", "data-arg-", "this.proposeMove"} {
+		if strings.Contains(client, legacy) {
+			t.Errorf("generated client contains legacy authoring syntax %q", legacy)
+		}
+	}
 }
 
 func TestGolden(t *testing.T) {

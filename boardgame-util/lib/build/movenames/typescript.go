@@ -1,6 +1,7 @@
 package movenames
 
 import (
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -22,9 +23,9 @@ func GenerateTypeScript(moveNames []string) string {
 		key := toPascalCase(name)
 		b.WriteString("  ")
 		b.WriteString(key)
-		b.WriteString(": \"")
-		b.WriteString(name)
-		b.WriteString("\",\n")
+		b.WriteString(": ")
+		b.WriteString(strconv.Quote(name))
+		b.WriteString(",\n")
 	}
 
 	b.WriteString("} as const;\n")

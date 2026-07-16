@@ -1,11 +1,8 @@
 import { html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-card.js';
-import '../../src/components/boardgame-deck-defaults.js';
-import { MoveNames, type MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
+import { cardView } from '../../src/client.js';
+import { MoveNames } from './_move_names.js';
+import { HandRenderer, registerHandRenderer } from './_game_renderer.js';
+import type { GameState } from './_types.js';
 
 /**
  * Blackjack Hand view (the player's phone). Connects as PlayerIndex(n);
@@ -15,10 +12,16 @@ import type { GameState, PlayerState } from './_types.js';
  *
  * V1 MVP minimal styling.
  */
-@customElement('boardgame-render-game-blackjack-hand')
-export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName> {
+@registerHandRenderer
+export class BlackjackHandView extends HandRenderer {
+  private readonly cards = cardView<GameState['DrawStack']>({
+    properties: ({ kind, component }) => ({
+      suit: kind === 'visible' ? component.Values.Suit : '',
+      rank: kind === 'visible' ? component.Values.Rank : '',
+    }),
+  });
   static override styles = [
-    BoardgameHandViewBase.styles,
+    HandRenderer.styles,
     css`
       :host {
         display: block;
@@ -57,52 +60,30 @@ export class BlackjackHandView extends BoardgameHandViewBase<GameState, PlayerSt
            of each other. Size to content instead. */
         width: auto;
       }
-      .actions {
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-      }
-      .actions button {
-        padding: 16px 32px;
+      boardgame-action-bar boardgame-action-button {
         font-size: 18px;
-        border-radius: 8px;
-        border: 2px solid white;
-        background: transparent;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .actions button[disabled] {
-        opacity: 0.35;
-        cursor: default;
       }
     `,
   ];
 
   override render() {
-    const player = this.playerState as any;
-    const canAct = this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerHit);
+    const player = this.playerState;
     return html`
       ${this.renderTopEdgeAnchor()}
       ${this.renderHandHeader()}
       <h1>Your Hand</h1>
       <div class="hand">
-        <boardgame-deck-defaults>
-          <template deck="cards">
-            <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-          </template>
-        </boardgame-deck-defaults>
         ${player?.HiddenHand
-          ? html`<boardgame-component-stack .stack=${player.HiddenHand} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.HiddenHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan"></boardgame-component-stack>`
           : html`<small>waiting…</small>`}
         ${player?.VisibleHand
-          ? html`<boardgame-component-stack .stack=${player.VisibleHand} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.VisibleHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan"></boardgame-component-stack>`
           : ''}
       </div>
-      <div class="actions">
-        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerHit, { TargetPlayerIndex: this.viewingAs })}>Hit</button>
-        <button ?disabled=${!canAct} @click=${() => this.proposeMove(MoveNames.CurrentPlayerStand, { TargetPlayerIndex: this.viewingAs })}>Stand</button>
-      </div>
+      <boardgame-action-bar label="Blackjack actions">
+        <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
+        <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
+      </boardgame-action-bar>
     `;
   }
 }

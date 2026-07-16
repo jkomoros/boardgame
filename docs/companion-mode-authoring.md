@@ -29,13 +29,11 @@ detects the pair at startup and the create-game form grows a
 ## Minimal table view
 
 ```ts
-import { html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BoardgameTableViewBase } from '../../src/components/boardgame-table-view-base.js';
-import type { GameState, PlayerState } from './_types.js';
+import { html } from '../../src/client.js';
+import { TableRenderer, registerTableRenderer } from './_game_renderer.js';
 
-@customElement('boardgame-render-game-mygame-table')
-export class MyGameTableView extends BoardgameTableViewBase<GameState, PlayerState> {
+@registerTableRenderer
+export class MyGameTableView extends TableRenderer {
   override renderBoard() {
     return html`<!-- your public board here: this.state.Game.… -->`;
   }
@@ -54,15 +52,11 @@ blackjack and werewolf do.
 ## Minimal hand view
 
 ```ts
-import { html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
-import { MoveNames, type MoveName } from './_move_names.js';
-import type { MoveArgs } from './_move_args.js';
-import type { GameState, PlayerState } from './_types.js';
+import { html } from '../../src/client.js';
+import { HandRenderer, registerHandRenderer } from './_game_renderer.js';
 
-@customElement('boardgame-render-game-mygame-hand')
-export class MyGameHandView extends BoardgameHandViewBase<GameState, PlayerState, MoveName, MoveArgs> {
+@registerHandRenderer
+export class MyGameHandView extends HandRenderer {
   override renderHand() {
     const me = this.playerState;   // YOUR player's private state
     return html`<!-- cards, role, actions -->`;
@@ -78,10 +72,10 @@ it becomes this player's turn.
 
 ## The rules that keep you out of trouble
 
-1. **Import framework code as `../../src/…`** — never
-   `../../../server/static/src/…`. The second form resolves in your repo
-   but 500s through the dev server's symlinked layout. The build prints a
-   warning naming any file that gets this wrong.
+1. **Import public framework APIs only from `../../src/client.js`.** The
+   generated `_game_renderer.js` is the other framework-facing import. Deep
+   `src/components/...` paths are implementation details and fail the client
+   checker with `BGCLIENT0105`.
 
 2. **Never branch on another player's sanitized property.** Hidden values
    arrive as the property's ZERO VALUE, not as "hidden" — on the table,
@@ -92,17 +86,34 @@ it becomes this player's turn.
    `this.gameFinished`/`this.gameWinners` (indexes) — `renderGameOverBanner()`
    and the hand header consume them for you.
 
-3. **Gate action buttons on `isMoveCurrentlyLegal(MoveNames.X)`.** Moves
-   proposed out of turn are rejected client-side with no user feedback;
-   a disabled button is honest UI. See blackjack's hand view.
+3. **Give controls a typed move action.** Prefer
+   `.action=${this.move(MoveNames.X)}` (or
+   `.action=${this.move(MoveNames.X).with({ Field: value })}` for move input).
+   Framework controls then own disabled, pending, stale-snapshot, and accessible
+   error states. Use `isMovePossible()` only when presentation needs to hide an
+   action that is structurally irrelevant.
 
 4. **Label people, not seats.** `this.seatPresentations` (both bases)
    carries each seat's avatar slug + display name from the join flow.
-   `glyphForSlug()` renders the avatar. "🐺 WolfBot2", never "Player 1".
+   The facade's `glyphForSlug()` renders the avatar. "🐺 WolfBot2", never
+   "Player 1".
 
-5. **Use `proposeMove(MoveNames.X, {…})` with the generated constants** —
-   the typed API catches wrong move names at compile time. If you find
-   yourself writing `as MoveName`, the name is wrong.
+5. **Keep move creation typed end to end.** The generated move name and input
+   maps make unknown names, missing fields, and extra fields compile errors.
+   Required-input actions cannot be proposed before `.with(...)` binds their
+   exact input. If you find yourself writing `as MoveName`, the name is wrong.
+
+For example:
+
+```typescript
+html`<boardgame-action-button
+  .action=${this.move(MoveNames.ChooseRole).with({ Role: role })}>
+  Choose ${role}
+</boardgame-action-button>`
+```
+
+The old renderer `propose-move`/`data-arg-*` DOM protocol is removed. Companion
+controls use the same snapshot-bound typed actions as solo controls.
 
 ## Private state and the seat picker
 
@@ -160,9 +171,10 @@ longer begin in the slot is omitted rather than snapping late.
 ## Host actions and ForceFinishTurn
 
 If your game uses turn-based play, register `moves.ForceFinishTurn` in a
-phase-agnostic slot so the host's SkipTurn works for absent players. The
-server refuses to boot a companion-capable game without it — you'll get a
-clear error at startup rather than a broken button at game night.
+phase-agnostic slot so the host's SkipTurn works for absent players. The server
+prints a startup warning when a companion-capable game omits it; simultaneous
+games may intentionally omit it, while turn-based games should treat the
+warning as a broken host recovery path.
 
 ## Testing your surfaces on one machine
 
@@ -174,13 +186,18 @@ second browser profile, or claim seats via `curl` against
 
 ## Type-checking your renderers
 
-`boardgame-util serve` transpiles renderers WITHOUT type-checking (fast dev
-loop). A production `boardgame-util build static` type-checks all game
-renderers against the framework types and prints any errors as warnings —
-so run a prod build (or `tsc` over the assembled dir) before shipping. The
-base classes are generic (`BoardgameTableViewBase<GameState, PlayerState>`
-etc.); pass your generated `_types` and you'll get compile-time checking of
-`playerState` access and `proposeMove` args, with no casts needed.
+`boardgame-util serve` regenerates every client contract and stops immediately
+if generation fails. Production builds also fail on assembled renderer type
+errors. Run `boardgame-util check-client` locally and in CI for the complete
+strict gate: unsafe escapes, stale generation, Lit bindings, and package-isolated
+type checking. The
+generated `TableRenderer` and `HandRenderer` bases already bind the complete
+state, component catalog, move-name, and move-input contract. You get the same
+compile-time checking of `state`, `playerState`, and `move(...).with(...)` as
+the ordinary generated `GameRenderer`, without repeating generic arguments.
+The facade also exports the underlying `BoardgameTableViewBase`,
+`BoardgameHandViewBase`, and `SeatPresentation` for advanced framework
+adapters.
 
 ## Known limitations (V1)
 

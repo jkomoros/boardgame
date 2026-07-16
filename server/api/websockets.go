@@ -695,6 +695,7 @@ func (v *versionNotifier) seedHeartbeat(gameID string, playerIndex boardgame.Pla
 func (v *versionNotifier) doBroadcastModeChanged(gameID, newMode string) {
 	v.broadcastSocketMessage(gameID, "mode-changed", map[string]interface{}{
 		"newMode": newMode,
+		"gameID":  gameID,
 	})
 }
 

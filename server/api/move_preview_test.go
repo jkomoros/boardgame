@@ -4,15 +4,61 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
+	blackjack "github.com/jkomoros/boardgame/examples/blackjack"
 	tictactoe "github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/sirupsen/logrus"
 )
+
+func TestMoveFormBindingPreservesContextDefaultsButRejectsMissingRequiredInput(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &Server{}
+
+	blackjackManager, err := boardgame.NewGameManager(blackjack.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("building blackjack manager: %v", err)
+	}
+	blackjackGame, err := blackjackManager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("building blackjack game: %v", err)
+	}
+	request := func(moveType string) *gin.Context {
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		values := url.Values{"MoveType": {moveType}}
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/move", strings.NewReader(values.Encode()))
+		ctx.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return ctx
+	}
+	move, err := s.getMoveFromForm(request("Current Player Hit"), blackjackGame)
+	if err != nil {
+		t.Fatalf("zero-input Current Player Hit should preserve TargetPlayerIndex default: %v", err)
+	}
+	target, err := move.Reader().PlayerIndexProp("TargetPlayerIndex")
+	if err != nil {
+		t.Fatalf("reading TargetPlayerIndex: %v", err)
+	}
+	if target != blackjackGame.CurrentState().CurrentPlayerIndex() {
+		t.Errorf("TargetPlayerIndex = %d, want current player %d", target, blackjackGame.CurrentState().CurrentPlayerIndex())
+	}
+
+	tictactoeManager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatalf("building tictactoe manager: %v", err)
+	}
+	tictactoeGame, err := tictactoeManager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("building tictactoe game: %v", err)
+	}
+	if _, err := s.getMoveFromForm(request("Place Token"), tictactoeGame); err == nil || !strings.Contains(err.Error(), "Slot") {
+		t.Fatalf("missing required Slot should fail loudly, got %v", err)
+	}
+}
 
 // TestLegalMoveFormPreviewMatchesMoveLegalAndDoesNotApply pins the two core
 // promises of the movePreview endpoint's legality builder (legalMoveForm):
@@ -54,6 +100,136 @@ func TestLegalMoveFormPreviewMatchesMoveLegalAndDoesNotApply(t *testing.T) {
 	// (2) side-effect-free: previewing must not advance the game version.
 	if got := game.Version(); got != versionBefore {
 		t.Errorf("preview advanced the game version %d -> %d; the preview path must never apply a move", versionBefore, got)
+	}
+}
+
+func TestDoMakeMoveReturnsStructuredStaleSnapshot(t *testing.T) {
+	game, _ := newLegalLedgerGame(t)
+	move := game.MoveByName("Opted In")
+	if move == nil {
+		t.Fatal("could not find the Opted In move")
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/game/test/id/move", nil)
+	s := &Server{logger: logrus.New()}
+	r := s.newRenderer(c)
+	versionBefore := game.Version()
+	staleVersion := game.Version() - 1
+	s.doMakeMove(r, game, boardgame.AdminPlayerIndex, move, &staleVersion)
+	if game.Version() != versionBefore {
+		t.Fatalf("stale proposal mutated game version from %d to %d", versionBefore, game.Version())
+	}
+
+	var response map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if response["Code"] != "STALE_SNAPSHOT" {
+		t.Fatalf("Code = %v; want STALE_SNAPSHOT; response: %s", response["Code"], w.Body.String())
+	}
+	if int(response["ExpectedVersion"].(float64)) != staleVersion ||
+		int(response["ActualVersion"].(float64)) != game.Version() {
+		t.Fatalf("version metadata = %v; game version = %d", response, game.Version())
+	}
+}
+
+func TestMovePreviewExpectedVersionIsStructuredAndSideEffectFree(t *testing.T) {
+	game, _ := newLegalLedgerGame(t)
+	version := game.Version()
+	request := func(expected string) map[string]any {
+		t.Helper()
+		body := url.Values{
+			"MoveType": {"Opted In"}, "ExpectedVersion": {expected}, "TargetPlayerIndex": {"0"},
+		}.Encode()
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/game/test/id/movePreview", strings.NewReader(body))
+		c.Request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		s := &Server{logger: logrus.New()}
+		s.setGame(c, game)
+		s.setViewingAsPlayer(c, boardgame.AdminPlayerIndex)
+		s.movePreviewHandler(c)
+		var response map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Fatalf("decode response %q: %v", w.Body.String(), err)
+		}
+		return response
+	}
+
+	matching := request(strconv.Itoa(version))
+	if matching["Status"] != "Success" || matching["Form"] == nil {
+		t.Fatalf("matching preview = %v; want Success with Form", matching)
+	}
+	if game.Version() != version {
+		t.Fatalf("matching preview mutated version from %d to %d", version, game.Version())
+	}
+
+	staleVersion := version + 1
+	stale := request(strconv.Itoa(staleVersion))
+	if stale["Code"] != "STALE_SNAPSHOT" || stale["Form"] != nil {
+		t.Fatalf("stale preview = %v; want structured stale without Form", stale)
+	}
+	if int(stale["ExpectedVersion"].(float64)) != staleVersion ||
+		int(stale["ActualVersion"].(float64)) != version {
+		t.Fatalf("stale metadata = %v; want %d -> %d", stale, staleVersion, version)
+	}
+	for _, invalid := range []string{"-1", "not-a-version"} {
+		response := request(invalid)
+		if response["Status"] != "Failure" || response["Form"] != nil {
+			t.Fatalf("ExpectedVersion %q response = %v; want Failure without Form", invalid, response)
+		}
+	}
+}
+
+func TestMovePreviewBatchExpectedVersionIsStructuredAndSideEffectFree(t *testing.T) {
+	game, _ := newLegalLedgerGame(t)
+	version := game.Version()
+	request := func(expected int) map[string]any {
+		t.Helper()
+		body, err := json.Marshal(map[string]any{
+			"MoveType":        "Opted In",
+			"ExpectedVersion": expected,
+			"Candidates":      []map[string]any{{"ID": "candidate:[0]", "Args": map[string]string{"TargetPlayerIndex": "0"}}},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/game/test/id/movePreviewBatch", strings.NewReader(string(body)))
+		c.Request.Header.Set("Content-Type", "application/json")
+		s := &Server{logger: logrus.New()}
+		s.setGame(c, game)
+		s.setViewingAsPlayer(c, boardgame.AdminPlayerIndex)
+		s.movePreviewBatchHandler(c)
+		var response map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Fatalf("decode response %q: %v", w.Body.String(), err)
+		}
+		return response
+	}
+
+	matching := request(version)
+	if matching["Status"] != "Success" || matching["Results"] == nil {
+		t.Fatalf("matching batch preview = %v; want Success with Results", matching)
+	}
+	matchingResults := matching["Results"].([]any)
+	if got := matchingResults[0].(map[string]any)["ID"]; got != "candidate:[0]" {
+		t.Fatalf("batch preview correlation ID = %v; want candidate:[0]", got)
+	}
+	if game.Version() != version {
+		t.Fatalf("matching batch preview mutated version from %d to %d", version, game.Version())
+	}
+
+	staleVersion := version + 1
+	stale := request(staleVersion)
+	if stale["Code"] != "STALE_SNAPSHOT" || stale["Results"] != nil {
+		t.Fatalf("stale batch preview = %v; want structured stale without Results", stale)
+	}
+	if int(stale["ExpectedVersion"].(float64)) != staleVersion ||
+		int(stale["ActualVersion"].(float64)) != version {
+		t.Fatalf("stale metadata = %v; want %d -> %d", stale, staleVersion, version)
 	}
 }
 
@@ -231,6 +407,20 @@ func TestMovePreviewBatchHandler(t *testing.T) {
 		results, ok := resp["Results"].([]interface{})
 		if !ok || len(results) != 2 {
 			t.Fatalf("want 2 Results, got %#v", resp["Results"])
+		}
+	})
+
+	t.Run("correlation IDs are all-or-none, unique, and bounded", func(t *testing.T) {
+		bodies := []string{
+			`{"MoveType":"Opted In","Candidates":[{"ID":"same","Args":{"TargetPlayerIndex":"0"}},{"ID":"same","Args":{"TargetPlayerIndex":"1"}}]}`,
+			`{"MoveType":"Opted In","Candidates":[{"ID":"one","Args":{"TargetPlayerIndex":"0"}},{"Args":{"TargetPlayerIndex":"1"}}]}`,
+			`{"MoveType":"Opted In","Candidates":[{"ID":"` + strings.Repeat("x", maxLegalPreviewCandidateIDBytes+1) + `","Args":{"TargetPlayerIndex":"0"}}]}`,
+		}
+		for _, body := range bodies {
+			_, resp := call(http.MethodPost, body)
+			if resp["Status"] != "Failure" {
+				t.Fatalf("invalid correlation IDs should render Failure: %v", resp)
+			}
 		}
 	})
 

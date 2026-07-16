@@ -56,11 +56,10 @@ stack`. Again, any item that has attributes that talk about propose-move will,
 when they are tapped, emit an event that the base game renderer will catch and
 then re-throw as a propose-move.
 
-`boardgame-component` and sub-types are (almost?) always endered as children
+`boardgame-component` and sub-types are (almost?) always rendered as children
 of `boardgame-component-stack`. `boardgame-component-stack` has a few
-responsibilities. It generally creates new `boardgame-components` base on the
-data that is bound to it. It renders new components by stamping out copies of
-whatever was defined for this deck in `boardgame-deck-defaults`. It also can
+responsibilities. It creates new `boardgame-components` from the renderer's
+typed, renderer-scoped `componentView`. It also can
 do advanced beahvior where for large stacks it only data-binds a few
 components for real, and does faux components for others. Its primary job
 though is to layout the children components according to its own layout

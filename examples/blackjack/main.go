@@ -89,11 +89,12 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 	return nil
 }
 
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutableSubState) boardgame.PropertyCollection {
-	result := g.GameDelegate.ComputedPlayerProperties(player)
-	p := player.(*playerState)
-	result["HandValue"] = p.HandValue()
-	return result
+func (g *gameDelegate) ConfigureComputedProperties() []boardgame.ComputedProperty {
+	return []boardgame.ComputedProperty{
+		boardgame.PlayerComputedInt("HandValue", func(player boardgame.ImmutableSubState) int {
+			return player.(*playerState).HandValue()
+		}),
+	}
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {

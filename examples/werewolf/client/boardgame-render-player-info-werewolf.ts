@@ -1,7 +1,5 @@
-import { LitElement, html, css } from 'lit';
-import { property } from 'lit/decorators.js';
-import '../../src/components/boardgame-status-text.js';
-import type { PlayerState } from './_types.js';
+import { html, css } from '../../src/client.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 
 /**
  * Player-info renderer for werewolf's roster tiles. Shown for every game
@@ -11,8 +9,9 @@ import type { PlayerState } from './_types.js';
  * would leak nothing useful and mislead. It surfaces only public status —
  * eliminated / voted / thinking — which is safe for all viewers.
  */
-class BoardgameRenderPlayerInfoWerewolf extends LitElement {
-  static styles = css`
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoWerewolf extends PlayerInfoRenderer {
+  static override styles = css`
     .status {
       font-size: 12px;
       opacity: 0.8;
@@ -22,15 +21,6 @@ class BoardgameRenderPlayerInfoWerewolf extends LitElement {
       font-weight: 600;
     }
   `;
-
-  @property({ type: Object })
-  state: any = null;
-
-  @property({ type: Number })
-  playerIndex = 0;
-
-  @property({ type: Object })
-  playerState: PlayerState | null = null;
 
   override render() {
     const p = this.playerState;
@@ -45,5 +35,3 @@ class BoardgameRenderPlayerInfoWerewolf extends LitElement {
     return html`<div class="status">\xa0</div>`;
   }
 }
-
-customElements.define('boardgame-render-player-info-werewolf', BoardgameRenderPlayerInfoWerewolf);

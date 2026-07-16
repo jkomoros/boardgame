@@ -1,15 +1,11 @@
-import '@material/web/button/filled-button.js';
-import '../../src/components/boardgame-die.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
-import '../../src/components/boardgame-fading-text.js';
-import { html, css } from 'lit';
+import { html, css } from '../../src/client.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
 
-class BoardgameRenderGamePig extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+@registerGameRenderer
+export class BoardgameRenderGamePig extends GameRenderer {
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
       .die {
         height: 100px;
@@ -29,26 +25,22 @@ class BoardgameRenderGamePig extends BoardgameBaseGameRenderer<GameState, Player
 
   override render() {
     return html`
-      <div class="container">
-        <boardgame-die
-          propose-move="${MoveNames.RollDice}"
-          .item="${this.state?.Game?.Die?.Components?.[0]}"
-          ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.RollDice)}">
-        </boardgame-die>
-        <div class="flex"></div>
-        <md-filled-button
-          propose-move="${MoveNames.DoneTurn}"
-          ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.DoneTurn)}">
-          Done
-        </md-filled-button>
-      </div>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+      <boardgame-game-surface heading="Pig">
+        <div class="container">
+          <boardgame-die
+            .item="${this.state?.Game?.Die?.Components?.[0]}"
+            .action="${this.move(MoveNames.RollDice)}">
+          </boardgame-die>
+          <div class="flex"></div>
+          <boardgame-action-button .action="${this.move(MoveNames.DoneTurn)}">
+            Done
+          </boardgame-action-button>
+        </div>
+        <boardgame-turn-status
+          slot="status"
+          .turn=${this.turnStatus}>
+        </boardgame-turn-status>
+      </boardgame-game-surface>
     `;
   }
 }
-
-customElements.define('boardgame-render-game-pig', BoardgameRenderGamePig);

@@ -7,13 +7,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { MoveForm } from '../types/api';
-
-interface PlayerInfo {
-  IsEmpty: boolean;
-  IsAgent: boolean;
-  PhotoUrl: string;
-  DisplayName: string;
-}
+import type { PlayerInfo } from '../types/store';
 
 @customElement('boardgame-gathering-status')
 export class BoardgameGatheringStatus extends LitElement {

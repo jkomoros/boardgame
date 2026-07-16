@@ -9,6 +9,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 */
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import type { PlayerChipPresentationChangedDetail } from './boardgame-base-player-info-renderer.js';
 import './boardgame-player-chip.ts';
 import './boardgame-render-player-info.js';
 
@@ -145,11 +147,11 @@ export class BoardgamePlayerRosterItem extends LitElement {
   @property({ type: String })
   chipColor = '';
 
-  // Framework-computed color from ComputedPlayerProperties.
+  // Framework-computed color from FrameworkComputedPlayerProperties.
   @property({ type: String })
   computedColor = '';
 
-  // Whether this player may be active (from ComputedPlayerProperties).
+  // Whether this player may be active (from FrameworkComputedPlayerProperties).
   @property({ type: Boolean })
   mayBeActive = true;
 
@@ -167,13 +169,33 @@ export class BoardgamePlayerRosterItem extends LitElement {
     return "";
   }
 
-  private _styleForChip(chipColor: string, finished: boolean, winner: boolean): string {
+  private _styleForChip(chipColor: string, finished: boolean, winner: boolean): Readonly<Record<string, string>> {
     if (finished) {
-      return "box-shadow: none; background-color: " +
-        (winner ? "var(--md-sys-color-primary, #2E6B4F)" : "var(--md-sys-color-error, #BA1A1A)");
+      return {
+        boxShadow: 'none',
+        backgroundColor: winner
+          ? 'var(--md-sys-color-primary, #2E6B4F)'
+          : 'var(--md-sys-color-error, #BA1A1A)',
+      };
     }
-    if (!chipColor) return "box-shadow: none";
-    return "background-color: " + chipColor;
+    if (!chipColor) return { boxShadow: 'none' };
+    if (!CSS.supports('color', chipColor)) {
+      throw new Error(`boardgame-player-roster-item: chip color ${JSON.stringify(chipColor)} is not valid CSS`);
+    }
+    return { backgroundColor: chipColor };
+  }
+
+  private _chipPresentationChanged(event: CustomEvent<PlayerChipPresentationChangedDetail>): void {
+    const detail: unknown = event.detail;
+    if (!detail || typeof detail !== 'object') {
+      throw new Error('boardgame-player-roster-item: player chip presentation event requires text and color strings');
+    }
+    const record = detail as Readonly<Record<string, unknown>>;
+    if (typeof record['text'] !== 'string' || typeof record['color'] !== 'string') {
+      throw new Error('boardgame-player-roster-item: player chip presentation event requires text and color strings');
+    }
+    this.chipText = record['text'];
+    this.chipColor = record['color'];
   }
 
   private _textForChip(chipText: string, playerIndex: number, finished: boolean, winner: boolean): string {
@@ -226,7 +248,7 @@ export class BoardgamePlayerRosterItem extends LitElement {
           </boardgame-player-chip>
           <strong
             class="chip"
-            style="${this._styleForChip(this._effectiveColor, this.finished, this.winner)}">
+            style=${styleMap(this._styleForChip(this._effectiveColor, this.finished, this.winner))}>
             ${this._textForChip(this.chipText, this.playerIndex, this.finished, this.winner)}
           </strong>
         </div>
@@ -240,10 +262,9 @@ export class BoardgamePlayerRosterItem extends LitElement {
           <boardgame-render-player-info
             .state="${this.state}"
             .playerIndex="${this.playerIndex}"
-            ?renderer-loaded="${this.rendererLoaded}"
+            .rendererLoaded="${this.rendererLoaded}"
             .gameName="${this.gameName}"
-            .chipText="${this.chipText}"
-            .chipColor="${this.chipColor}"
+            @player-chip-presentation-changed=${this._chipPresentationChanged}
             ?active="${this.active}">
           </boardgame-render-player-info>
         </div>

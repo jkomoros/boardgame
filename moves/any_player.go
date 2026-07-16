@@ -31,6 +31,10 @@ type AnyPlayer struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+// moveInputAnyPlayerBehavior is an unshadowable package-private marker used by
+// auto.Config to recognize this embedded behavior.
+func (a *AnyPlayer) moveInputAnyPlayerBehavior() {}
+
 // Legal checks that the proposer is making a move for themselves and that their
 // seat is filled.
 func (a *AnyPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {

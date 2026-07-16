@@ -18,21 +18,7 @@ import { store } from '../store.js';
 import { submitMove } from '../actions/game.js';
 import { selectGameError } from '../selectors.js';
 import type { RootState } from '../types/store';
-
-interface MoveField {
-  Name: string;
-  Type: number;
-  DefaultValue: string | number | boolean;
-  Enum?: {
-    Values: Record<string, string>;
-  };
-}
-
-interface MoveConfig {
-  Name: string;
-  HelpText: string;
-  Fields?: MoveField[];
-}
+import type { JsonValue, MoveForm } from '../types/api';
 
 interface GameRoute {
   name: string;
@@ -105,7 +91,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
   `;
 
   @property({ type: Array })
-  config: MoveConfig[] = [];
+  config: MoveForm[] = [];
 
   @property({ type: Boolean })
   admin = false;
@@ -115,6 +101,9 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
 
   @property({ type: Number })
   moveAsPlayer = 0;
+
+  @property({ type: Number })
+  gameVersion = 0;
 
   // animating mirrors boardgame-render-game's isAnimating, threaded down
   // through boardgame-admin-controls. While true, submit buttons are
@@ -154,7 +143,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
     return bool ? "1" : "0";
   }
 
-  private _prepareValue(val: string | number | boolean): string {
+  private _prepareValue(val: JsonValue): string {
     if (val === true || val === false) {
       return this.boolToInt(val);
     }
@@ -181,7 +170,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
       return;
     }
 
-    let moveConfig: MoveConfig | undefined;
+    let moveConfig: MoveForm | undefined;
     for (let i = 0; i < this.config.length; i++) {
       const item = this.config[i];
       // TODO: fuzzy matching (remove whitespace and lowercase compare)
@@ -283,6 +272,7 @@ export class BoardgameMoveForm extends connect(store)(LitElement) {
               <input type="hidden" name="MoveType" value="${item.Name}">
               <input type="hidden" name="admin" value="${this.boolToInt(this.admin)}">
               <input type="hidden" name="player" value="${this.moveAsPlayer}">
+              <input type="hidden" name="ExpectedVersion" value="${this.gameVersion}">
               ${repeat(item.Fields || [], (field) => field.Name, (field) => html`
                 <strong>${field.Name}</strong>
                 ${when(

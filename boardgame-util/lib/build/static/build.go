@@ -33,19 +33,21 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 		return errors.New("Couldn't get full package path: " + err.Error())
 	}
 
-	workingDirectory, err := os.Getwd()
-
-	if err != nil {
-		return errors.New("Can't get working directory: " + err.Error())
-	}
-
 	infos, err := os.ReadDir(fullPkgPath)
 
 	if err != nil {
 		return errors.New("Couldn't list files in remote directory: " + err.Error())
 	}
 
-	absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
+	absLocalDirPath, err := filepath.Abs(staticDir)
+	if err != nil {
+		return errors.New("Couldn't resolve static build directory: " + err.Error())
+	}
+	absLocalDirPath, err = filepath.EvalSymlinks(absLocalDirPath)
+	if err != nil {
+		return errors.New("Couldn't canonicalize static build directory: " + err.Error())
+	}
+	absLocalDirPath += string(filepath.Separator)
 
 	for _, info := range infos {
 
@@ -57,7 +59,10 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 
 		localPath := filepath.Join(staticDir, name)
 
-		absRemotePath := filepath.Join(fullPkgPath, name)
+		absRemotePath, err := filepath.EvalSymlinks(filepath.Join(fullPkgPath, name))
+		if err != nil {
+			return errors.New("Couldn't canonicalize static resource " + name + ": " + err.Error())
+		}
 		relRemotePath, err := path.RelativizePaths(absLocalDirPath, absRemotePath)
 
 		if err != nil {
@@ -71,9 +76,20 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 			return errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
 		}
 
-		if _, err := os.Stat(localPath); err == nil {
-			//Must already exist, so can skip
-			continue
+		if existing, err := os.Lstat(localPath); err == nil {
+			if !copyFiles || info.IsDir() {
+				// It already has the requested link/directory shape.
+				continue
+			}
+			// A dev assembly may have left a file symlink here. Production
+			// copying must replace the link itself; writing through it would
+			// mutate the framework source and would still leave Vite resolving
+			// the input outside its build root.
+			if existing.Mode()&os.ModeSymlink != 0 {
+				if err := os.Remove(localPath); err != nil {
+					return errors.New("Couldn't replace linked " + name + ": " + err.Error())
+				}
+			}
 		}
 
 		if copyFiles && !info.IsDir() {
@@ -114,12 +130,6 @@ func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 		}
 	}
 
-	workingDirectory, err := os.Getwd()
-
-	if err != nil {
-		return errors.New("Can't get working directory: " + err.Error())
-	}
-
 	for _, pkg := range pkgs {
 
 		absClientPath := pkg.ClientFolder()
@@ -131,10 +141,20 @@ func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 
 		relLocalPath := filepath.Join(gameSrcDir, pkg.Name())
 
-		//This feels like it should be relLocalPath, but it needs to be
-		//gameSrcDir, otherwise there's an extra ".." in the path. Not really
-		//sure why. :-/
-		absLocalPath := filepath.Join(workingDirectory, gameSrcDir)
+		// Symlink targets are interpreted relative to the directory containing
+		// the link, not the link path itself.
+		absLocalPath, err := filepath.Abs(gameSrcDir)
+		if err != nil {
+			return errors.New("Couldn't resolve game-src directory: " + err.Error())
+		}
+		absLocalPath, err = filepath.EvalSymlinks(absLocalPath)
+		if err != nil {
+			return errors.New("Couldn't canonicalize game-src directory: " + err.Error())
+		}
+		absClientPath, err = filepath.EvalSymlinks(absClientPath)
+		if err != nil {
+			return errors.New("Couldn't canonicalize client directory for " + pkg.Name() + ": " + err.Error())
+		}
 
 		relPath, err := path.RelativizePaths(absLocalPath, absClientPath)
 

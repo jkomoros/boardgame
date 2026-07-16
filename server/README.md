@@ -9,15 +9,32 @@ Sitting in a folder that has a valid config file in it or one of its ancestors, 
 
 ## Writing your client-side views
 
-boardgame-render-game-GAMENAME is the web component that will be instantiated and passed state (where state.Game.Stack.Components is an expanded view of your components for convenience). Your view should render that to the screen in whatever way is reasonable.
-
-That view can fire events of the type "propose-move", with a detail containing "name" for the precise name of the Move to make, and "arguments", which is an object containing the non-default arguments for the move. When that move is emitted, it will effectively fill in the corresponding form fileds for that move (ignoring, and thus leaving at their default, any fields that were not explicitly listed in the arguments object), and then submit the move.
+`boardgame-render-game-GAMENAME` is the generated, typed web component that is
+instantiated with the current expanded game state. Extend its generated
+`GameRenderer` base and import Lit plus public elements from `src/client.js`.
+Bind controls to `this.move(MoveNames.SomeMove)`; use `.with({...})` for one
+typed input or `.targets(...)` for a collection. Do not construct
+`propose-move` events or side-effect import individual public components.
 
 ### Optional: player info
 
-If you define an element in your GAMENAME/ folder called boardgame-render-player-info-GAMENAME, then it will be insantiated and passed state, expandedState, and playerIndex. Whatever it renders will be shown in the player roster for that player. This is a natural place to put things like score per player and other important status.
+Define `boardgame-render-player-info-GAMENAME` by extending the generated
+`PlayerInfoRenderer`. Its typed `state` and `playerIndex` inputs are reactive;
+its typed `playerState` getter is always derived from them. Whatever it renders
+appears in that player's roster item, which is a natural place for score and
+public status.
 
-if your player-info renderer contains a property called chipText that is a string and has notify:true, that text will be used in the chip on the player picture (a single character is best). If "" is returned, that chip's text will default to just being the index of the player. Similarly, you can define chipColor in a similar way, which should return a valid CSS color. If provided, it will be used instead of the normal colors.
+Override `chip` to customize the small roster badge declaratively:
+
+```typescript
+override get chip() {
+  return { text: this.playerState?.TokenValue ?? '', color: 'rebeccapurple' };
+}
+```
+
+The framework propagates changes automatically. Do not dispatch chip-change
+events or maintain separate chip properties. Invalid fields, types, colors, or
+player indexes fail loudly.
 
 If you create a new renderer component, make sure it's properly imported so the build system can find it.
 
@@ -25,85 +42,228 @@ If you create a new renderer component, make sure it's properly imported so the 
 
 One useful element in src/ is boardgame-card, which implements a card that can have an overridable front and back, and can do animations and such.
 
-When you use boardgame-component-stack and boardgame-card in conjunction you'll get powerful animations that just do what you want. They use card.Id and stack.LastIdsSeen to calculate which card is which and animate. It will also do advanced things like cloning old content into the card for when the new state has flipped the card hidden. 
-
-It can be finicky to set all of the cards correctly for the animation to work as you want; the easiest way is to set boardgame-component-stack's stack property to the stack in the state, and then have a dom-repeat with boardgame-card that have item="{{item}}" index="{{index}}", and the card's children how to render if there is content. If you do that, everything will work as expected! This will also automatically set type (see below).
+When you use `boardgame-component-stack` and `boardgame-card` together, the
+framework tracks stable component IDs and automatically animates movement,
+flips, and content changes between state snapshots.
 
 boardgame-card's size can be affected by two css properties: --component-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate via boardgame-component-animator as expected.
 
-It can be finicky to set all of the cards correctly for the animation to work as
-you want; the easiest way is to set boardgame-card-stack's stack property to the
-stack in the state, and then ensure you have a template for that deck defined in a `<boardgame-deck-defaults>` element.
+Define each deck's appearance once with a renderer-scoped, typed component view.
+The generated `GameState` supplies the exact stack type:
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to use the `boardgame-deck-defaults` element in your renderer's template and include a template for your deck.
+```typescript
+private readonly cards = cardView<GameState['DrawStack']>({
+  render: ({ kind, component }) => kind === 'visible'
+    ? html`<div>${component.Values.Type}</div>`
+    : null,
+});
 
-```html
-<!-- define a simple front if no processing required -->
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-      <div>
-        {{item.Values.Type}}
-      </div>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
-<!-- boardgame-component-stacks that print from the deck `cards` will automatically stamp that item -->
+render() {
+  return html`<boardgame-component-zone
+    label="Won cards"
+    layout="stack"
+    .stack=${this.state?.Players[0]?.WonCards ?? null}
+    .componentView=${this.cards}>
+  </boardgame-component-zone>`;
+}
 ```
 
-Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
+The view context explicitly distinguishes visible, hidden, and empty slots. The
+zone adds a semantic heading, count, empty state, responsive surface, CSS parts,
+and theme tokens, and makes an actionless stack display-only automatically. Its
+internal stack retains stable component hosts across state snapshots so card
+identity, focus, pooling, and movement animation continue to work. Use the
+lower-level `boardgame-component-stack` directly for board/spatial geometry or
+unusual animation plumbing.
 
-Then stamping those components is as simple as using a `boardgame-component-stack` and databinding in the stack property:
+Stack layout is a closed TypeScript contract: `stack`, `grid`, `fan`, `pile`,
+`spread`, `board`, or `spatial`. Use `isStackLayout()` to narrow values from a
+dynamic control. Unknown layouts and invalid geometry fail loudly at runtime.
+Importing `src/client.js` registers the full curated element set; game renderers
+should not side-effect import individual public component modules. The strict
+client checker reports those deep imports as `BGCLIENT0105`.
 
-```html
-<boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
-</boardgame-component-stack>
+Prefer the component view's typed `properties` callback for card or token
+presentation. Use `.componentView=${this.cards.withProperties({ rotated: true })}`
+for stack-specific typed properties. `.unsafeComponentAttrs` is reserved for
+custom presentation properties with no typed representation; removed proposal
+keys (`proposeMove`, `indexAttributes`, and `data-arg-*`) fail loudly there.
+Bind interactions with typed actions:
+
+```typescript
+const reveals = this.move(MoveNames.RevealCard).targets(
+  cards.Components.map((_card, CardIndex) => CardIndex),
+  CardIndex => ({ CardIndex }),
+);
+
+return html`<boardgame-component-zone
+  label="Cards"
+  layout="grid"
+  .stack=${cards}
+  .componentView=${this.cards}
+  .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+</boardgame-component-zone>`;
 ```
 
-The `boardgame-component-stack` will automatically instantiate and bind components as defined in the defaults for that deck name.
+For more complex processing, render ordinary Lit content from the view or use
+`componentView()` with a fresh registered custom element extending
+`BoardgameComponent`. Invalid factories fail loudly.
 
-Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
+Wrap one game-owned panel per player in `boardgame-player-grid`. It supplies a
+named Players region, heading, empty state, and an auto-fitting responsive grid
+without imposing a player-state schema or panel appearance:
 
-```html
-<boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
-</boardgame-component-stack>
+```typescript
+html`<boardgame-player-grid>
+  ${this.state?.Players.map((player, playerIndex) => html`
+    <boardgame-component-zone
+      label=${`Player ${playerIndex + 1}'s cards`}
+      .stack=${player.Hand}
+      .componentView=${this.cards}>
+    </boardgame-component-zone>
+  `)}
+</boardgame-player-grid>`
 ```
 
-If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
+Use the renderer's `playerPresentation(playerIndex)` for the host-supplied,
+sanitized player name and color. It always returns a useful numbered fallback,
+so ordinary badges require one binding and no Redux/store knowledge:
 
-```html
-<link rel='import' href='my-complex-card.html'>
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-    	<my-complex-card item="{{item}}"></my-complex-card>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
+```typescript
+html`<boardgame-player-badge
+  .player=${this.playerPresentation(playerIndex)}>
+</boardgame-player-badge>`
 ```
+
+Add `compact` for an avatar-only badge with the accessible name retained. The
+badge rejects missing presentations, invalid indices, blank/oversized labels,
+and invalid CSS colors loudly. Renderer fixtures accept an optional contiguous
+`playerPresentations` array, making long names, colors, and fallback behavior
+deterministic in browser tests.
+
+Use `hide-heading` only when another visible heading already names the
+collection. Tune `--boardgame-player-grid-min-width` and
+`--boardgame-player-grid-gap`; children remain arbitrary Lit content.
+
+Use `boardgame-player-panel` inside that grid when one player area combines
+scores, zones, status, and controls:
+
+```typescript
+html`<boardgame-player-panel
+    label="Player 1"
+    .active=${this.currentPlayerIndex === 0}>
+  <boardgame-component-zone label="Hand" ...></boardgame-component-zone>
+  <boardgame-action-button slot="actions" .action=${pass}>Pass</boardgame-action-button>
+</boardgame-player-panel>`
+```
+
+It supplies the semantic heading, responsive panel surface, current-player
+badge and `aria-current`, plus optional header/status/actions/footer regions.
+Game-specific selection, elimination, and role states remain ordinary classes
+and content. Style its stable parts or `--boardgame-player-panel-*` tokens.
+
+### Game surface
+
+Use `boardgame-game-surface` as the semantic, responsive root of an ordinary
+solo renderer:
+
+```typescript
+html`<boardgame-game-surface heading="Memory">
+  <boardgame-game-outcome slot="status" ...></boardgame-game-outcome>
+  <!-- Primary board and zones use the default slot. -->
+  <boardgame-action-bar slot="actions" label="Memory actions">
+    <!-- Typed controls. -->
+  </boardgame-action-bar>
+  <boardgame-turn-status slot="status" .turn=${this.turnStatus}>
+  </boardgame-turn-status>
+</boardgame-game-surface>`
+```
+
+Its optional `status`, `actions`, and `footer` regions are omitted when their
+slots are unassigned; `header` content sits beside the required heading. The
+centered max width, responsive padding, CSS
+parts, and `--boardgame-game-surface-*` tokens make the zero-CSS result useful
+while keeping all game content and styling game-owned. Blank headings and
+invalid heading levels fail loudly.
+
+The renderer base's typed `turnStatus` getter gives the turn primitive everything
+it needs in one binding. It distinguishes the acting player, other players,
+observers, admins, and simultaneous turns, and suppresses stale output during
+animation or after completion. Optional `.playerLabels` replaces fallback
+“Player 1” names. The client facade exports the named `ObserverPlayerIndex`,
+`AdminPlayerIndex`, and `AnyPlayerIndex` constants and player-index guards; do
+not repeat their numeric values in renderer code.
 
 
 ### Optional: boardgame-fading-text
 
-The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block.
+`boardgame-fading-text` renders and politely announces a callout when its typed
+scalar `.trigger` changes. Fixed `message` text and the `new`, `diff`, and
+`diff-up` auto-message policies cover the common cases; falsey/truthy
+suppression is explicit. Invalid policies and non-finite numeric triggers throw
+actionable errors, and reduced-motion preferences collapse the visual effect.
 
-You can use boardgame-status-text to render text that will also show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
+Use `boardgame-status-text` to display a typed string or number, announce its
+changes politely, and show a fading change effect. It uses the `diff-up`
+strategy by default.
 
-```html
-<!-- you can bind to message attribute -->
-<boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
-
-<!-- you can also just include content which automatically sets message -->
-<boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
+```typescript
+html`<boardgame-status-text
+  .value=${this.state?.Game.Cards.Components.length ?? 0}>
+</boardgame-status-text>`
 ```
+
+Bind a generated timer reference to `boardgame-timer` for an accessible
+countdown and progress indicator without rerendering the whole game at 60Hz:
+
+```typescript
+html`<boardgame-timer
+  label="Cards hide in"
+  .timer=${this.state?.Game.HideCardsTimer ?? null}>
+</boardgame-timer>`
+```
+
+Use `format="clock"`, `hide-progress`, or `hide-value` for the common variants.
+For fully custom Lit markup, `TimerController` exposes an immutable selective
+reading and defaults to one update per displayed second; opt into frame cadence
+only for continuous visuals.
+
+Use `boardgame-game-outcome` with the renderer's `gameFinished`, `gameWinners`,
+and `animating` properties. It withholds and does not announce the verdict until
+the final animation settles, handles wins/losses/draws, and rejects contradictory
+winner data. `viewer=null` is the public form; a nonnegative player index uses
+personal wording.
 
 ### Optional: BoardgameBaseGameRenderer
 
-If your game renderer inherits from BoardgameBaseGameRenderer, you'll get a few convenience goodies.
+Generated game renderers inherit from `BoardgameBaseGameRenderer`. It exposes
+typed `move(...)` actions, state and proposal perspective, current-player
+helpers, and the animation lifecycle. Bind a zero-input action directly with
+`.action=${this.move(MoveNames.RollDice)}`; use `.with({...})` or `.targets(...)`
+for typed inputs. Controls fail closed while legality is unresolved, a proposal
+is pending, or animation gates interaction.
 
-Elements that have a propose-move attribute on them anywhere below will, when tapped, fire a propose-move event with that name. It will also include as arguments to that move any attributes named like `data-arg-my-foo`, where the argument would be represnted in the event as `MyFoo`. If you data-bind to that attribute, remember to bind them as attributes, not as properties.
+Register the concrete class with the exact decorator from the generated
+`_game_renderer.js` module:
 
-BoardgameBaseGameRenderer also defines a few extra properties, like isCurrentPlayer. 
+```typescript
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
+
+@registerGameRenderer
+export class MyRenderer extends GameRenderer { /* ... */ }
+```
+
+The generated `registerTableRenderer`, `registerHandRenderer`, and
+`registerPlayerInfoRenderer` variants enforce both the exact host tag and the
+matching base class. Do not hand-type `customElements.define(...)` for framework
+renderer surfaces; reserve it for genuinely game-local auxiliary elements.
+
+For an ordinary labeled target menu, wrap the target collection with
+`targetList(targets, key => label)` and bind it once to
+`<boardgame-target-list .choices=${...}>`. The list owns batched preview,
+disabled reasons, native controls, empty state, and responsive stack/grid
+layout while the callback remains exact-key typed. Render candidates directly
+only when a choice row needs richer game-specific content.
 
 ## Adding new views
 

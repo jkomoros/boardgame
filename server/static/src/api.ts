@@ -15,7 +15,143 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   friendlyError?: string;
+  code?: string;
+  expectedVersion?: number;
+  actualVersion?: number;
   status: number;
+}
+
+function responseRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>>
+    : null;
+}
+
+function optionalVersion(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : undefined;
+}
+
+async function unwrapApiResponse<T>(response: Response): Promise<ApiResponse<T>> {
+  const status = response.status;
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    return {
+      status,
+      error: `HTTP ${status}: ${response.statusText}`,
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+
+  const envelope = responseRecord(parsed);
+  if (!envelope) {
+    return {
+      status,
+      error: 'Invalid API response: expected an object envelope',
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+
+  if (envelope['Status'] === 'Success') {
+    return { status, data: parsed as T };
+  }
+  if (envelope['Status'] !== 'Failure') {
+    return {
+      status,
+      error: 'Invalid API response: Status must be "Success" or "Failure"',
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+
+  return {
+    status,
+    error: typeof envelope['Error'] === 'string' && envelope['Error']
+      ? envelope['Error']
+      : `Request failed with status ${status}`,
+    friendlyError: typeof envelope['FriendlyError'] === 'string' && envelope['FriendlyError']
+      ? envelope['FriendlyError']
+      : 'An error occurred',
+    code: typeof envelope['Code'] === 'string' ? envelope['Code'] : undefined,
+    expectedVersion: optionalVersion(envelope['ExpectedVersion']),
+    actualVersion: optionalVersion(envelope['ActualVersion']),
+  };
+}
+
+async function unwrapHttpJsonResponse(response: Response): Promise<ApiResponse<unknown>> {
+  const status = response.status;
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    return {
+      status,
+      error: `HTTP ${status}: ${response.statusText}`,
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+  if (status >= 200 && status < 300) return { status, data: parsed };
+  const body = responseRecord(parsed);
+  return {
+    status,
+    error: body && typeof body['error'] === 'string' && body['error'].trim()
+      ? body['error']
+      : `Request failed with status ${status}`,
+    friendlyError: 'The request could not be completed',
+  };
+}
+
+export interface HttpJsonOptions {
+  headers?: Readonly<Record<string, string>>;
+  signal?: AbortSignal;
+}
+
+async function apiHttpJson(
+  method: 'GET' | 'POST',
+  url: string,
+  body: Readonly<Record<string, unknown>> | undefined,
+  options: HttpJsonOptions,
+): Promise<ApiResponse<unknown>> {
+  try {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      ...options.headers,
+    };
+    if (body) headers['Content-Type'] = 'application/json';
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+    return await unwrapHttpJsonResponse(response);
+  } catch (error) {
+    return {
+      status: 0,
+      error: error instanceof Error ? error.message : 'Network error',
+      friendlyError: 'Unable to connect to the server',
+    };
+  }
+}
+
+// apiHttpGet/apiHttpPost are for conventional HTTP endpoints whose successful
+// payload is the JSON body and whose failures use status codes + {error}. Most
+// legacy boardgame API endpoints instead use the Status envelope and should
+// continue to use apiGet/apiPost; keeping the names distinct prevents a payload
+// from silently being interpreted under the wrong protocol.
+export function apiHttpGet(url: string, options: HttpJsonOptions = {}): Promise<ApiResponse<unknown>> {
+  return apiHttpJson('GET', url, undefined, options);
+}
+
+export function apiHttpPost(
+  url: string,
+  body: Readonly<Record<string, unknown>>,
+  options: HttpJsonOptions = {},
+): Promise<ApiResponse<unknown>> {
+  return apiHttpJson('POST', url, body, options);
 }
 
 /**
@@ -82,6 +218,7 @@ export function buildGameUrl(
 /**
  * Performs a GET request to the API
  * @param url - Full API URL (use buildApiUrl or buildGameUrl)
+ * @param signal - Optional cancellation signal for lifecycle-bound reads
  * @returns Typed API response
  *
  * @example
@@ -92,7 +229,7 @@ export function buildGameUrl(
  *   console.log(response.data.Game);
  * }
  */
-export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
+export async function apiGet<T>(url: string, signal?: AbortSignal): Promise<ApiResponse<T>> {
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -100,37 +237,10 @@ export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
       headers: {
         'Accept': 'application/json',
       },
+      signal,
     });
 
-    const status = response.status;
-
-    // Try to parse JSON response
-    let jsonData: any;
-    try {
-      jsonData = await response.json();
-    } catch {
-      // If JSON parsing fails, treat as error
-      return {
-        status,
-        error: `HTTP ${status}: ${response.statusText}`,
-        friendlyError: 'The server returned an invalid response',
-      };
-    }
-
-    // Check for application-level errors (boardgame server format)
-    if (jsonData.Status === 'Success') {
-      return {
-        status,
-        data: jsonData as T,
-      };
-    }
-
-    // Handle application errors
-    return {
-      status,
-      error: jsonData.Error || `Request failed with status ${status}`,
-      friendlyError: jsonData.FriendlyError || 'An error occurred',
-    };
+    return await unwrapApiResponse<T>(response);
   } catch (error) {
     // Network errors
     return {
@@ -157,8 +267,9 @@ export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
  */
 export async function apiPost<T>(
   url: string,
-  body: Record<string, any>,
-  contentType: 'application/json' | 'application/x-www-form-urlencoded' = 'application/json'
+  body: Readonly<Record<string, unknown>>,
+  contentType: 'application/json' | 'application/x-www-form-urlencoded' = 'application/json',
+  signal?: AbortSignal,
 ): Promise<ApiResponse<T>> {
   try {
     let requestBody: string;
@@ -185,37 +296,10 @@ export async function apiPost<T>(
       credentials: 'include', // Matches iron-ajax withCredentials: true
       headers,
       body: requestBody,
+      signal,
     });
 
-    const status = response.status;
-
-    // Try to parse JSON response
-    let jsonData: any;
-    try {
-      jsonData = await response.json();
-    } catch {
-      // If JSON parsing fails, treat as error
-      return {
-        status,
-        error: `HTTP ${status}: ${response.statusText}`,
-        friendlyError: 'The server returned an invalid response',
-      };
-    }
-
-    // Check for application-level errors (boardgame server format)
-    if (jsonData.Status === 'Success') {
-      return {
-        status,
-        data: jsonData as T,
-      };
-    }
-
-    // Handle application errors
-    return {
-      status,
-      error: jsonData.Error || `Request failed with status ${status}`,
-      friendlyError: jsonData.FriendlyError || 'An error occurred',
-    };
+    return await unwrapApiResponse<T>(response);
   } catch (error) {
     // Network errors
     return {
@@ -251,10 +335,9 @@ export interface MovePreviewResponse {
  * legal as you edit its fields" UI (the intended consumer; none ships yet, so
  * the board graying uses the batch). movePreviewBatch is the COMPACT one —
  * {Legal, Error} per candidate, nested Args JSON — for graying many board cells
- * in one round-trip, where the ledger would be dead weight ×N. Footgun: because
- * this flattens args alongside MoveType in the form body, a move whose field is
- * literally named "MoveType" would collide with the selector (the batch's nested
- * Args is immune); no real move does, but a new consumer should know.
+ * in one round-trip, where the ledger would be dead weight ×N. Generated
+ * contracts reject reserved proposal-protocol field names, and the selector is
+ * written after creator arguments as defense in depth.
  *
  * @param args - field name -> raw string value, exactly as the move form submits
  * @param params - optional query params (e.g. { player } to preview as a
@@ -265,12 +348,14 @@ export async function movePreview(
   gameId: string,
   moveType: string,
   args: Record<string, string> = {},
-  params?: Record<string, string | number | boolean>
+  params?: Record<string, string | number | boolean>,
+  signal?: AbortSignal,
 ): Promise<ApiResponse<MovePreviewResponse>> {
   return apiPost<MovePreviewResponse>(
     buildGameUrl(gameName, gameId, 'movePreview', params),
-    { MoveType: moveType, ...args },
-    'application/x-www-form-urlencoded'
+    { ...args, MoveType: moveType },
+    'application/x-www-form-urlencoded',
+    signal,
   );
 }
 
@@ -279,6 +364,8 @@ export async function movePreview(
  * string) to bind before checking legality.
  */
 export interface MovePreviewCandidate {
+  /** Opaque correlation token echoed by the server. */
+  ID?: string;
   Args: Record<string, string>;
 }
 
@@ -287,6 +374,8 @@ export interface MovePreviewCandidate {
  * candidates.
  */
 export interface MovePreviewBatchResult {
+  /** Opaque correlation token from the corresponding candidate. */
+  ID?: string;
   Legal: boolean;
   Error?: string;
 }
@@ -314,11 +403,18 @@ export async function movePreviewBatch(
   gameId: string,
   moveType: string,
   candidates: MovePreviewCandidate[],
-  params?: Record<string, string | number | boolean>
+  params?: Record<string, string | number | boolean>,
+  expectedVersion?: number,
+  signal?: AbortSignal,
 ): Promise<ApiResponse<MovePreviewBatchResponse>> {
   return apiPost<MovePreviewBatchResponse>(
     buildGameUrl(gameName, gameId, 'movePreviewBatch', params),
-    { MoveType: moveType, Candidates: candidates },
-    'application/json'
+    {
+      MoveType: moveType,
+      Candidates: candidates,
+      ...(expectedVersion === undefined ? {} : { ExpectedVersion: expectedVersion }),
+    },
+    'application/json',
+    signal,
   );
 }

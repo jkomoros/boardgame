@@ -1,10 +1,13 @@
 {
   "name": "boardgame-webapp",
   "version": "0.1.0",
+  "type": "module",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
     "@playwright/test": "^1.58.2",
     "@types/node": "^20.0.0",
+    "lit-analyzer": "2.0.3",
     "typescript": "^5.3.0",
     "vite": "^6.0.0"
   },
@@ -14,13 +17,17 @@
     "type-check": "tsc --noEmit",
     "type-check:strict": "tsc --noEmit -p tsconfig.strict.json",
     "type-check:strict-migration": "tsc --noEmit -p tsconfig.strict-migration.json",
+    "type-check:authoring": "node scripts/check-client.mjs --project tsconfig.authoring.json",
+    "test:check-client": "node --test scripts/check-client.test.mjs",
     "test:unit": "node --test 'src/**/*.test.ts'",
+    "test:facade-production": "node tests/renderer/facade-production.mjs",
     "test": "npm run test:e2e",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "HEADED=1 playwright test",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "test:renderer": "playwright test --config playwright.renderer.config.ts"
   },
   "dependencies": {
     "@material/web": "^2.2.0",

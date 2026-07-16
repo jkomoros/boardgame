@@ -240,3 +240,35 @@ func TestGameManagerSetUp(t *testing.T) {
 	}
 
 }
+
+func TestGameManagerBuildsMoveInputSchemaDuringBoot(t *testing.T) {
+	manager := newTestGameManger(t)
+	schema, err := BuildMoveInputSchema(manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(schema) == 0 {
+		t.Fatal("boot-time move-input schema was empty for a manager with player moves")
+	}
+	fingerprint, err := MoveInputSchemaFingerprint(manager)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fingerprint == "" || fingerprint != FingerprintMoveInputSchema(schema) {
+		t.Fatalf("fingerprint %q did not describe cached schema", fingerprint)
+	}
+}
+
+func TestReservedMoveInputWireNamesFailLoudly(t *testing.T) {
+	for _, name := range []string{"MoveType", "admin", "player", "ExpectedVersion"} {
+		if err := validateMoveInputWireName(name, MoveInputRequired); err == nil {
+			t.Errorf("creator-owned reserved field %q was accepted", name)
+		}
+		if err := validateMoveInputWireName(name, MoveInputContextOwned); err != nil {
+			t.Errorf("context-owned reserved field %q was rejected: %v", name, err)
+		}
+	}
+	if err := validateMoveInputWireName("CardIndex", MoveInputRequired); err != nil {
+		t.Errorf("ordinary creator field rejected: %v", err)
+	}
+}

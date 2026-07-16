@@ -3,11 +3,14 @@ package api
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"go/format"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	buildstatic "github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
@@ -21,6 +24,10 @@ type Options struct {
 	//If true, installs an overrider in the generated binary that enables
 	//offline dev mode.
 	OverrideOfflineDevMode bool
+
+	// When non-empty, overrides the generated server's configured CORS and
+	// WebSocket origin allowlist without persisting a config-file mutation.
+	OverrideAllowedOrigins string
 
 	//Will be passed to the storage's Constructor() method as the
 	//optionalLiteralArgs.
@@ -94,17 +101,22 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, e
 	buf := new(bytes.Buffer)
 
 	storageImport := storage.Import()
+	storageConstructor := storage.Constructor(options.StorageLiteralArgs)
 
 	if storageImport != "" {
-		storageImport = "\"" + storageImport + "\""
+		storageAlias := availableStorageAlias(pkgs)
+		storageImport = storageAlias + " \"" + storageImport + "\""
+		storageConstructor = strings.Replace(storageConstructor, storage.String()+".", storageAlias+".", 1)
 	}
 
 	err := apiTemplate.Execute(buf, map[string]interface{}{
-		"pkgs":                  pkgs,
-		"storageImport":         storageImport,
-		"storageConstructor":    storage.Constructor(options.StorageLiteralArgs),
-		"options":               options,
-		"companionCapableGames": buildstatic.CompanionCapableGames(pkgs),
+		"pkgs":                   pkgs,
+		"storageImport":          storageImport,
+		"storageConstructor":     storageConstructor,
+		"options":                options,
+		"hasOverrides":           options.OverrideOfflineDevMode || options.OverrideAllowedOrigins != "",
+		"overrideAllowedOrigins": strconv.Quote(options.OverrideAllowedOrigins),
+		"companionCapableGames":  buildstatic.CompanionCapableGames(pkgs),
 	})
 
 	if err != nil {
@@ -119,6 +131,26 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, e
 
 	return formatted, nil
 
+}
+
+func availableStorageAlias(pkgs []*gamepkg.Pkg) string {
+	used := map[string]bool{"api": true}
+	for _, pkg := range pkgs {
+		used[pkg.Name()] = true
+	}
+	return availableImportAlias(used)
+}
+
+func availableImportAlias(used map[string]bool) string {
+	for suffix := 0; ; suffix++ {
+		candidate := "boardgamestorage"
+		if suffix > 0 {
+			candidate += fmt.Sprint(suffix)
+		}
+		if !used[candidate] {
+			return candidate
+		}
+	}
 }
 
 // Clean removes the api/ directory (code and binary) that was generated
@@ -140,16 +172,21 @@ import (
 	{{- end}}
 	"github.com/jkomoros/boardgame/server/api"
 	{{.storageImport}}
-	{{- if .options.OverrideOfflineDevMode }}
+	{{- if .hasOverrides }}
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	{{- end}}
 )
 
-{{if .options.OverrideOfflineDevMode}}
+{{if .hasOverrides}}
 var overrides []config.OptionOverrider
 
 func init() {
+	{{- if .options.OverrideOfflineDevMode }}
 	overrides = append(overrides, config.EnableOfflineDevMode())
+	{{- end}}
+	{{- if .options.OverrideAllowedOrigins }}
+	overrides = append(overrides, config.OverrideAllowedOrigins({{.overrideAllowedOrigins}}))
+	{{- end}}
 }
 {{end}}
 
@@ -174,7 +211,7 @@ func main() {
 		{{- range .pkgs}}
 		{{.Name}}.NewDelegate(),
 		{{- end}}
-	{{- if .options.OverrideOfflineDevMode }}
+	{{- if .hasOverrides }}
 	).AddOverrides(overrides).WithCompanionCapableGames(companionCapableGames).Start()
 	{{- else}}
 	).WithCompanionCapableGames(companionCapableGames).Start()

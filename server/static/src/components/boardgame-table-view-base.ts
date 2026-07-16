@@ -1,8 +1,12 @@
 import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
+import type { FullGameState } from '../types/boardgame-types.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
+import { apiHttpPost, buildGameUrl, type ApiResponse } from '../api.js';
+import { decodeHostActionResponse } from '../types/host-action-response.js';
 import { apiPath } from '../util.js';
+import './boardgame-game-outcome.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -43,19 +47,21 @@ export interface SeatPresentation {
  * client. Phase 4 fills in renderFakeDeckRow for cross-screen animations.
  */
 export class BoardgameTableViewBase<
-  GS extends object = Record<string, unknown>,
-  PS extends object = Record<string, unknown>,
-  MN extends string = string,
-  MA extends Record<string, object> = Record<string, Record<string, unknown>>
-> extends BoardgameBaseGameRenderer<GS, PS, MN, MA> {
+  S extends FullGameState<object, object, object, object, object>,
+  C extends object,
+  MN extends string,
+  MA extends Record<string, object>,
+  K extends object = object,
+  E extends object = object,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E> {
 
   /**
    * Per-seat avatar + name records, indexed by player index. May contain
    * gaps (e.g. seat 2 unjoined → no entry for playerIndex=2). The Table
    * view's avatar strip renders one tile per non-empty seat.
    */
-  @property({ type: Array })
-  seatPresentations: SeatPresentation[] = [];
+  @property({ attribute: false })
+  seatPresentations: readonly SeatPresentation[] = Object.freeze([]);
 
   /**
    * Player indices currently flagged absent (heartbeat stale). The Table
@@ -63,8 +69,8 @@ export class BoardgameTableViewBase<
    * avatar tile and (if the absent player is also the current player)
    * exposes a SkipTurn button to the host.
    */
-  @property({ type: Array })
-  absentPlayers: number[] = [];
+  @property({ attribute: false })
+  absentPlayers: readonly number[] = Object.freeze([]);
 
   /**
    * True iff this Table view is being rendered for the host (game creator
@@ -155,14 +161,11 @@ export class BoardgameTableViewBase<
   // were previously trying to dig the gameName out of the sanitized
   // state object via state.Manager.Delegate.Name(), which doesn't exist
   // on the client-side state.
-  @property({ type: String })
-  gameName = '';
-
-  @property({ type: String })
-  gameId = '';
-
   @state()
   private _hostFeedback = '';
+
+  @state()
+  private _hostActionPending: 'lock' | 'solo' | 'skip' | null = null;
 
   private _hostFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -202,10 +205,11 @@ export class BoardgameTableViewBase<
   protected renderHostControls(): TemplateResult {
     if (!this.isHost) return html``;
     return html`
-      <div class="host-controls">
+      <div class="host-controls" aria-busy=${this._hostActionPending !== null ? 'true' : 'false'}>
         <label>
           <input type="checkbox"
             .checked=${this.roomLocked}
+            ?disabled=${this._hostActionPending !== null}
             @change=${(e: Event) => this._onLockRoomToggle((e.target as HTMLInputElement).checked)}>
           Lock room (no new joins)
         </label>
@@ -213,14 +217,16 @@ export class BoardgameTableViewBase<
           ? html`
             <div class="switch-to-solo-confirm">
               <span class="warning-text">This may reveal hidden info and cannot be undone.</span>
-              <button class="switch-to-solo danger" @click=${this._onSwitchToSolo}>
+              <button class="switch-to-solo danger" ?disabled=${this._hostActionPending !== null}
+                @click=${this._onSwitchToSolo}>
                 Yes, switch to solo
               </button>
-              <button @click=${this._cancelSwitchToSolo}>Cancel</button>
+              <button ?disabled=${this._hostActionPending !== null} @click=${this._cancelSwitchToSolo}>Cancel</button>
             </div>
           `
           : html`
-            <button class="switch-to-solo" @click=${this._onSwitchToSolo}>
+            <button class="switch-to-solo" ?disabled=${this._hostActionPending !== null}
+              @click=${this._onSwitchToSolo}>
               Switch to solo mode
             </button>
           `
@@ -249,10 +255,10 @@ export class BoardgameTableViewBase<
     // giant lobby banner never shrank. And a version-based check would be
     // wrong anyway: seat claims bump the version while the lobby is still
     // gathering.)
-    const players = (this.state?.Players ?? []) as Array<Record<string, unknown>>;
+    const players = this.state?.Players ?? [];
     const claimed = new Set(this.seatPresentations.map((s) => s.playerIndex));
     const roomSettled = players.length > 0 && players.every((p, i) =>
-      claimed.has(i) || p.SeatClosed === true || p.PlayerInactive === true);
+      claimed.has(i) || Reflect.get(p, 'SeatClosed') === true || Reflect.get(p, 'PlayerInactive') === true);
     if (roomSettled || this.gameFinished) {
       // Game has started — render a small persistent badge in the corner
       // rather than the giant pre-game banner.
@@ -284,20 +290,25 @@ export class BoardgameTableViewBase<
 
   private async _onLockRoomToggle(locked: boolean) {
     if (!this.gameName || !this.gameId) return;
+    if (this._hostActionPending !== null) {
+      this.requestUpdate();
+      return;
+    }
+    this._hostActionPending = 'lock';
     try {
-      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/setRoomLock`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locked }),
-        credentials: 'include',
-      });
-      if (res.ok) {
-        this._showHostFeedback(locked ? 'Room locked' : 'Room unlocked');
-      } else {
-        this._showHostFeedback('Failed to update lock');
+      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'setRoomLock'), { locked });
+      if (!response.data) {
+        this._showHostFeedback(this._hostActionError(response, 'Failed to update lock'));
+        return;
       }
-    } catch (e) {
-      this._showHostFeedback('Network error — lock toggle failed');
+      const result = decodeHostActionResponse(response.data);
+      if (result.locked !== locked) throw new Error('Server returned contradictory room lock state');
+      this.roomLocked = locked;
+      this._showHostFeedback(locked ? 'Room locked' : 'Room unlocked');
+    } catch (error) {
+      this._showHostFeedback(`Lock toggle failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this._hostActionPending = null;
     }
   }
 
@@ -326,19 +337,25 @@ export class BoardgameTableViewBase<
     this._switchToSoloConfirming = false;
     if (this._switchToSoloTimer) clearTimeout(this._switchToSoloTimer);
     if (!this.gameName || !this.gameId) return;
+    if (this._hostActionPending !== null) return;
+    this._hostActionPending = 'solo';
     try {
-      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/switchToSolo`), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        this._showHostFeedback('Switching to solo mode...');
-      } else {
-        this._showHostFeedback('Switch to solo failed');
+      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'switchToSolo'), {});
+      if (!response.data) {
+        this._showHostFeedback(this._hostActionError(response, 'Switch to solo failed'));
+        return;
       }
-    } catch (e) {
-      this._showHostFeedback('Network error — switch to solo failed');
+      decodeHostActionResponse(response.data);
+      this._showHostFeedback('Switching to solo mode...');
+    } catch (error) {
+      this._showHostFeedback(`Switch to solo failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this._hostActionPending = null;
     }
+  }
+
+  private _hostActionError(response: ApiResponse<unknown>, fallback: string): string {
+    return response.error || response.friendlyError || fallback;
   }
 
   /**
@@ -372,12 +389,6 @@ export class BoardgameTableViewBase<
    * moment, so it's intentionally loud.
    */
   protected renderGameOverBanner(): TemplateResult {
-    // Gate on !animating too: gameFinished can arrive while the final
-    // animation cycle is still playing (the winning move's card is still in
-    // flight), and the verdict must never appear before it lands (#798).
-    // The watchdog force-closes the gate within 4s, so this can never
-    // permanently hide the banner.
-    if (!this.gameFinished || this.animating) return html``;
     // Winners without a seat-presentation row (AI agents never have one;
     // a human's row write is deliberately non-fatal at join) still get
     // announced — by seat label — rather than being silently dropped,
@@ -387,17 +398,12 @@ export class BoardgameTableViewBase<
       return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i + 1}`;
     });
     return html`
-      <div class="game-over-banner">
-        <div class="game-over-title">Game over!</div>
-        ${winnerLabels.length > 0 ? html`
-          <div class="game-over-winners">
-            ${winnerLabels.map((label) => html`
-              <span class="game-over-winner">${label}</span>
-            `)}
-            <span>${winnerLabels.length === 1 ? 'wins!' : 'win!'}</span>
-          </div>
-        ` : html`<div class="game-over-winners">It's a draw.</div>`}
-      </div>
+      <boardgame-game-outcome
+        .finished=${this.gameFinished}
+        .animating=${this.animating}
+        .winners=${this.gameWinners}
+        .winnerLabels=${winnerLabels}>
+      </boardgame-game-outcome>
     `;
   }
 
@@ -455,7 +461,8 @@ export class BoardgameTableViewBase<
         <div class="seat-avatar">${glyphForSlug(seat.avatarSlug)}</div>
         <div class="seat-name">${seat.displayName}</div>
         ${absent ? html`<div class="seat-waiting">Waiting…</div>` : ''}
-        ${showSkip ? html`<button class="seat-skip" @click=${() => this._onSkipTurn(seat.playerIndex)}>Skip turn</button>` : ''}
+        ${showSkip ? html`<button class="seat-skip" ?disabled=${this._hostActionPending !== null}
+          @click=${() => this._onSkipTurn(seat.playerIndex)}>Skip turn</button>` : ''}
       </div>
     `;
   }
@@ -465,25 +472,26 @@ export class BoardgameTableViewBase<
       this._showHostFeedback('Cannot skip — game info not loaded yet');
       return;
     }
+    if (this._hostActionPending !== null) return;
+    this._hostActionPending = 'skip';
     try {
-      const res = await fetch(apiPath(`game/${this.gameName}/${this.gameId}/hostSkipTurn`), {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Skip failed' }));
-        if (res.status === 429) {
+      const response = await apiHttpPost(buildGameUrl(this.gameName, this.gameId, 'hostSkipTurn'), {});
+      if (!response.data) {
+        if (response.status === 429) {
           this._showHostFeedback('Please wait a moment before skipping again');
-        } else if (res.status === 409) {
+        } else if (response.status === 409) {
           this._showHostFeedback('Player is not absent yet — wait for them to disconnect');
         } else {
-          this._showHostFeedback(body.error || 'Skip failed');
+          this._showHostFeedback(this._hostActionError(response, 'Skip failed'));
         }
         return;
       }
+      decodeHostActionResponse(response.data);
       this._showHostFeedback('Turn skipped');
-    } catch (e) {
-      this._showHostFeedback('Network error — check your connection');
+    } catch (error) {
+      this._showHostFeedback(`Skip failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this._hostActionPending = null;
     }
   }
 
@@ -494,31 +502,6 @@ export class BoardgameTableViewBase<
       gap: 12px;
       padding: 12px;
       justify-content: center;
-    }
-    .game-over-banner {
-      text-align: center;
-      margin: 24px auto;
-      padding: 24px;
-      max-width: 640px;
-      border-radius: 16px;
-      background: rgba(255, 215, 0, 0.15);
-      border: 2px solid gold;
-    }
-    .game-over-title {
-      font-size: 40px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-    .game-over-winners {
-      font-size: 28px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      align-items: center;
-    }
-    .game-over-winner {
-      font-weight: 700;
     }
     .seat-tile {
       min-width: 80px;

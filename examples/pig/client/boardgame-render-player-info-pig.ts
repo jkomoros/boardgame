@@ -1,23 +1,12 @@
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
-import '../../src/components/boardgame-status-text.js';
+import { html } from '../../src/client.js';
+import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer.js';
 
-class BoardgameRenderPlayerInfoPig extends LitElement {
-  @property({ type: Object })
-  state: any = null;
-
-  @property({ type: Number })
-  playerIndex = 0;
-
-  @property({ type: Object })
-  playerState: any = null;
-
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoPig extends PlayerInfoRenderer {
   override render() {
     return html`
-      <div>Round Score <boardgame-status-text>${this.playerState?.RoundScore}</boardgame-status-text></div>
-      <div>Total Score <boardgame-status-text>${this.playerState?.Score}</boardgame-status-text></div>
+      <div>Round Score <boardgame-status-text .value=${this.playerState?.RoundScore}></boardgame-status-text></div>
+      <div>Total Score <boardgame-status-text .value=${this.playerState?.Score}></boardgame-status-text></div>
     `;
   }
 }
-
-customElements.define('boardgame-render-player-info-pig', BoardgameRenderPlayerInfoPig);

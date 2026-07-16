@@ -1,9 +1,11 @@
 import { LitElement, html, css, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import './boardgame-deck-defaults.js';
-import './boardgame-card.js';
-import { dashToCamelCase } from '../utils/case-map.js';
 import type { BoardgameComponentElement } from '../types/components';
+import type { ExpandedStack } from '../types/boardgame-types.js';
+import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
+import type { BoardgameComponent } from './boardgame-component.js';
+import type { ComponentView } from './component-view.js';
+import { createComponentForView, sameComponentViewRecipe, updateComponentFromView } from './component-view.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -30,10 +32,13 @@ const pseudoRandomValues = [
 
 const sharedStackList: BoardgameComponentStack[] = [];
 
-// WeakMaps to store original template text for re-evaluation on component reuse.
-// Keyed by DOM nodes, so they survive component pooling and auto-cleanup on GC.
-const originalTextTemplates = new WeakMap<Text, string>();
-const originalAttrTemplates = new WeakMap<Element, Map<string, string>>();
+export type StackLayout = 'board' | 'fan' | 'grid' | 'pile' | 'spatial' | 'spread' | 'stack';
+
+const stackLayouts = new Set<StackLayout>(['board', 'fan', 'grid', 'pile', 'spatial', 'spread', 'stack']);
+
+export function isStackLayout(value: string): value is StackLayout {
+  return stackLayouts.has(value as StackLayout);
+}
 
 export class BoardgameComponentStack extends LitElement {
   static override styles = css`
@@ -148,10 +153,6 @@ export class BoardgameComponentStack extends LitElement {
       width: 100%;
     }
 
-    #container.spread #slot-holder ::slotted(dom-repeat) {
-      display: none;
-    }
-
     .spread ::slotted([boardgame-component]:hover),
     .spread [boardgame-component]:hover,
     .fan ::slotted([boardgame-component]:hover),
@@ -191,14 +192,27 @@ export class BoardgameComponentStack extends LitElement {
 
     /* Board layout: CSS Grid positioning by slot index */
     #container.board {
+      position: absolute;
+      inset: 0;
       display: grid;
       grid-template-columns: repeat(var(--board-cols, 8), 1fr);
+      grid-template-rows: repeat(var(--board-rows, 8), 1fr);
       gap: 0;
       padding: 0;
     }
 
     #container.board #slot-holder {
-      display: contents;
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    #container.board #components {
+      display: grid;
+      grid-template-columns: repeat(var(--board-cols, 8), 1fr);
+      grid-template-rows: repeat(var(--board-rows, 8), 1fr);
+      width: 100%;
+      height: 100%;
     }
 
     /* Prevent faux/animating containers from becoming grid items */
@@ -245,29 +259,29 @@ export class BoardgameComponentStack extends LitElement {
   `;
 
   @property({ type: String })
-  layout = 'stack';
+  layout: StackLayout = 'stack';
 
-  private _stack: any = null;
-  private _idsLastSeen: any = null;
+  private _stack: ExpandedStack | null | undefined = null;
+  private _idsLastSeen: Readonly<Record<string, number>> | null = null;
 
-  set stack(value: any) {
+  set stack(value: ExpandedStack | null | undefined) {
     const oldValue = this._stack;
     this._stack = value;
     this._stackChanged(value);
     this.requestUpdate('stack', oldValue);
   }
 
-  get stack(): any {
+  get stack(): ExpandedStack | null | undefined {
     return this._stack;
   }
 
-  set idsLastSeen(value: any) {
+  set idsLastSeen(value: Readonly<Record<string, number>> | null) {
     this._idsLastSeen = value;
     // No requestUpdate() needed - this is only used for animator tracking
     // and doesn't affect visual rendering
   }
 
-  get idsLastSeen(): any {
+  get idsLastSeen(): Readonly<Record<string, number>> | null {
     return this._idsLastSeen;
   }
 
@@ -302,6 +316,9 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   boardCols = 8;
 
+  @property({ type: Number })
+  boardRows = 8;
+
   /** Pixel positions for spatial layout. Index i = position for component at slot i. */
   @property({ type: Array, attribute: false })
   spatialPositions: Array<{ top: number; left: number } | null> = [];
@@ -327,32 +344,40 @@ export class BoardgameComponentStack extends LitElement {
   @query('#animating-components')
   private animatingComponentsContainer!: HTMLElement;
 
-  // Attributes to forward to child components. Keys are camelCase property
-  // names (e.g., 'color', 'type', 'rotated', 'proposeMove'), values are
-  // set directly as properties on each child component element.
+  /** Disable every component in a display-only stack. Cannot be mixed with actions. */
+  @property({ type: Boolean, attribute: 'components-disabled' })
+  componentsDisabled = false;
+
+  // Explicit escape hatch for custom host properties that cannot be modeled by
+  // a typed component view. Prefer componentView.withProperties(...).
   @property({ type: Object, attribute: false })
-  componentAttrs: Record<string, any> = {};
+  unsafeComponentAttrs: Record<string, unknown> = {};
+
+  /** Typed per-slot interaction. Null slots are deliberately noninteractive. */
+  @property({ type: Array, attribute: false })
+  componentActions: readonly (BoundMoveAction<string, object> | null)[] = [];
+
+  /** Renderer-scoped, typed Lit content for this stack's component hosts. */
+  @property({ attribute: false })
+  componentView: ComponentView | null = null;
 
   private _componentPool: any[] = [];
+  private _componentActionUnsubscribes: (() => void)[] = [];
+  private _componentActionOriginals = new Map<HTMLElement, {
+    disabled: boolean | undefined;
+    role: string | null;
+    tabindex: string | null;
+    ariaDisabled: string | null;
+    title: string | null;
+  }>();
   private _pileScaleFactor = 1.0;
   private _randomRotationOffset = 0;
   private _id = '';
   private _style = '';
-  private _boundSlotChanged?: (firstRender: boolean) => void;
+  private _boundSlotChanged?: () => void;
 
   get _sharedStackList(): BoardgameComponentStack[] {
     return sharedStackList;
-  }
-
-  get deckDefaults(): any {
-    if (!this.shadowRoot) return null;
-
-    let ele = this.shadowRoot.querySelector('boardgame-deck-defaults');
-    if (ele) return ele;
-
-    ele = document.createElement('boardgame-deck-defaults');
-    this.shadowRoot.appendChild(ele);
-    return ele;
   }
 
   get offsetComponent(): any {
@@ -396,15 +421,13 @@ export class BoardgameComponentStack extends LitElement {
     return [...fauxComponents];
   }
 
-  get templateClass(): any {
-    const defaults = this.deckDefaults;
-    if (!defaults) return null;
-    return defaults.templateForDeck(this.gameName, this.deckName);
-  }
-
   override connectedCallback() {
     super.connectedCallback();
     sharedStackList.push(this);
+    this.addEventListener('component-tapped', this._componentTapped);
+    this.addEventListener('keydown', this._componentKeyDown);
+    this._subscribeComponentActions();
+    this._applyComponentActionState();
   }
 
   override disconnectedCallback() {
@@ -419,22 +442,27 @@ export class BoardgameComponentStack extends LitElement {
       }
     }
     if (this._boundSlotChanged && this.componentsSlot) {
-      this.componentsSlot.removeEventListener('slotchange', () => this._slotChanged(false));
+      this.componentsSlot.removeEventListener('slotchange', this._boundSlotChanged);
     }
+    this.removeEventListener('component-tapped', this._componentTapped);
+    this.removeEventListener('keydown', this._componentKeyDown);
+    this._clearComponentActionSubscriptions();
+    this._restoreAllComponentActionState();
   }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
     this._componentPool = [];
-    this._boundSlotChanged = (firstRender: boolean) => this._slotChanged(firstRender);
+    this._boundSlotChanged = () => this._slotChanged(false);
     if (this.componentsSlot) {
-      this.componentsSlot.addEventListener('slotchange', () => this._slotChanged(false));
+      this.componentsSlot.addEventListener('slotchange', this._boundSlotChanged);
     }
     this._slotChanged(true);
     this._randomRotationOffset = Math.floor(Math.random() * 21);
     this._id = this._randomId(8);
     if (this.container) {
       this.container.style.setProperty('--board-cols', String(this.boardCols));
+      this.container.style.setProperty('--board-rows', String(this.boardRows));
     }
 
   }
@@ -458,12 +486,17 @@ export class BoardgameComponentStack extends LitElement {
       this._applySpatialPositions();
     }
 
+    if (changedProperties.has('fauxComponents')) {
+      this._slotChanged(false);
+    }
+
     if (changedProperties.has('boardCols') && this.container) {
       this.container.style.setProperty('--board-cols', String(this.boardCols));
     }
 
-    // stack property change is now handled in the setter directly
-    // No need to handle it here anymore
+    if (changedProperties.has('boardRows') && this.container) {
+      this.container.style.setProperty('--board-rows', String(this.boardRows));
+    }
 
     if (changedProperties.has('gameName')) {
       this._gameNameChanged();
@@ -473,8 +506,20 @@ export class BoardgameComponentStack extends LitElement {
       this._style = this._computeStyle(this._pileScaleFactor);
     }
 
-    if (changedProperties.has('componentAttrs')) {
+    if (changedProperties.has('unsafeComponentAttrs') || changedProperties.has('componentsDisabled')) {
       this._applyComponentAttrsToChildren();
+    }
+    if (changedProperties.has('componentView')) {
+      this._componentViewChanged(changedProperties.get('componentView') as ComponentView | null | undefined);
+    } else if (changedProperties.has('stack')) {
+      // Reconcile only after Lit has committed every property in the template.
+      // In ordinary markup .stack commonly appears before .componentView.
+      this._generateChildren();
+    }
+    if (changedProperties.has('componentActions') || changedProperties.has('unsafeComponentAttrs')
+      || changedProperties.has('componentsDisabled') || changedProperties.has('stack')) {
+      this._subscribeComponentActions();
+      this._applyComponentActionState();
     }
   }
 
@@ -497,128 +542,10 @@ export class BoardgameComponentStack extends LitElement {
       return this._componentPool.pop();
     }
 
-    const templateFunction = this.templateClass;
-
-    if (templateFunction) {
-      // Call the function to get a cloned DocumentFragment
-      const fragment = templateFunction();
-
-      // Find the first element child in the fragment
-      for (const child of fragment.childNodes) {
-        if (child.nodeType === 1) { // Element node
-          const ele = child as HTMLElement;
-          // Lit's reflect: true for boardgame-component is async (microtask),
-          // but _insertNodes needs the attribute synchronously to find and
-          // configure components. Set it immediately.
-          if (!ele.hasAttribute('boardgame-component')) {
-            ele.setAttribute('boardgame-component', '');
-          }
-          return ele;
-        }
-      }
-      console.warn('None of the nodes in the template are an element node.');
-      return null;
+    if (!this.componentView) {
+      throw new Error('boardgame-component-stack: set .componentView to a cardView(), tokenView(), or componentView() recipe');
     }
-
-    // Only warn if we have both gameName and deckName set (i.e., we've received
-    // real stack data). During initial startup, templates aren't registered yet
-    // and _stackChanged fires before deck-defaults has connected — that's normal.
-    if (this.gameName && this.deckName) {
-      console.warn('No template class to auto stamp');
-    }
-    return null;
-  }
-
-  /**
-   * Update template bindings in an element with the given item data.
-   * Replaces {{...}} patterns in both text nodes and attributes with actual values.
-   * Stores original templates in WeakMaps so bindings survive component pooling.
-   */
-  private _updateTemplateBindings(element: HTMLElement, itemData: any) {
-    if (!itemData) return;
-
-    // --- Text node bindings ---
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
-    let node: Text | null;
-
-    while ((node = walker.nextNode() as Text | null)) {
-      // Retrieve stored original template, or capture it on first encounter
-      let templateText = originalTextTemplates.get(node);
-      if (templateText === undefined) {
-        const text = node.textContent || '';
-        if (text.includes('{{') && text.includes('}}')) {
-          templateText = text;
-          originalTextTemplates.set(node, text);
-        } else {
-          continue;
-        }
-      }
-
-      // Re-evaluate from the original template every time
-      let result = templateText;
-      const matches = templateText.match(/\{\{([^}]+)\}\}/g);
-      if (matches) {
-        for (const match of matches) {
-          const path = match.replace(/\{\{|\}\}/g, '').trim();
-          const value = this._evaluatePath(itemData, path);
-          result = result.replace(match, value !== undefined ? String(value) : '');
-        }
-      }
-      node.textContent = result;
-    }
-
-    // --- Attribute bindings ---
-    const elements = [element, ...element.querySelectorAll('*')];
-    for (const el of elements) {
-      // Retrieve stored original attribute templates, or capture on first encounter
-      let attrMap = originalAttrTemplates.get(el);
-      if (attrMap === undefined) {
-        attrMap = new Map();
-        for (const attr of el.attributes) {
-          if (attr.value.includes('{{') && attr.value.includes('}}')) {
-            attrMap.set(attr.name, attr.value);
-          }
-        }
-        originalAttrTemplates.set(el, attrMap);
-      }
-      if (attrMap.size === 0) continue;
-
-      for (const [attrName, templateValue] of attrMap) {
-        let result = templateValue;
-        const matches = templateValue.match(/\{\{([^}]+)\}\}/g);
-        if (matches) {
-          for (const match of matches) {
-            const path = match.replace(/\{\{|\}\}/g, '').trim();
-            const value = this._evaluatePath(itemData, path);
-            result = result.replace(match, value !== undefined ? String(value) : '');
-          }
-        }
-        el.setAttribute(attrName, result);
-        // Also set property for Lit reactive system
-        if (attrName in el) {
-          (el as any)[attrName] = result;
-        }
-      }
-    }
-  }
-
-  private _evaluatePath(obj: any, path: string): any {
-    // In Polymer's dom-repeat, `item` was the loop variable. Now data is
-    // passed directly, so strip the `item.` prefix if present.
-    if (path.startsWith('item.')) {
-      path = path.substring(5);
-    }
-    const parts = path.split('.');
-    let current = obj;
-
-    for (const part of parts) {
-      if (current === null || current === undefined) {
-        return undefined;
-      }
-      current = current[part];
-    }
-
-    return current;
+    return createComponentForView(this.componentView);
   }
 
   stackDefault(propName: string): any {
@@ -645,41 +572,13 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   newAnimatingComponent(): any {
-    // CRITICAL: Don't use the component pool for animating components.
-    // Pooled components are cloned from templates and are plain HTMLElements
-    // without custom element methods like prepareForBeingAnimatingComponent().
-    // Instead, create a fresh custom element that has the full prototype chain.
+    // Animating orphans must be fresh hosts; borrowing a live/pool host would
+    // corrupt stable identity and ownership in the source or destination stack.
 
-    let component = null;
-
-    // Extract the component tag name from the template
-    const templateFunction = this.templateClass;
-
-    if (templateFunction) {
-      // Call the function to get a cloned DocumentFragment
-      const fragment = templateFunction();
-
-      // Find the first element child to determine the tag name
-      for (const child of fragment.childNodes) {
-        if (child.nodeType === 1) { // Element node
-          const tagName = (child as HTMLElement).tagName.toLowerCase();
-
-          // Create a fresh custom element instead of using the cloned template
-          component = document.createElement(tagName);
-          // Ensure boardgame-component attribute is set synchronously
-          // (Lit's reflect: true is async)
-          if (!component.hasAttribute('boardgame-component')) {
-            component.setAttribute('boardgame-component', '');
-          }
-          break;
-        }
-      }
+    if (!this.componentView) {
+      throw new Error('boardgame-component-stack: cannot animate without .componentView');
     }
-
-    if (!component) {
-      console.warn('Could not create animating component');
-      return null;
-    }
+    const component = createComponentForView(this.componentView);
 
     const typedComponent = component as unknown as BoardgameComponentElement;
     typedComponent.noAnimate = true;
@@ -718,23 +617,24 @@ export class BoardgameComponentStack extends LitElement {
       this.idsLastSeen = null;
     }
 
-    const repeater = this.querySelector('dom-repeat');
-    if (repeater) {
-      (repeater as any).items = newValue ? newValue.Components : [];
-      return;
-    }
-
-    this._generateChildren();
   }
 
-  private _attributesForComponents(): Map<string, any> {
-    const attrs = new Map(Object.entries(this.componentAttrs));
+  private _attributesForComponents(): Map<string, unknown> {
+    const forbidden = Object.keys(this.unsafeComponentAttrs).find(key =>
+      key === 'proposeMove' || key === 'propose-move'
+      || key === 'indexAttributes' || key === 'index-attributes'
+      || key.startsWith('data-arg-'));
+    if (forbidden) {
+      throw new Error(`boardgame-component-stack: unsafeComponentAttrs.${forbidden} is removed; use componentActions for moves and view.withProperties() for per-slot presentation`);
+    }
+    const attrs = new Map<string, unknown>(Object.entries(this.unsafeComponentAttrs));
+    if (this.componentsDisabled) attrs.set('disabled', true);
 
     // Forward the stack's own post-animation-delay / wait-for-animation
-    // DOM attributes to stamped children, same as componentAttrs entries
+    // DOM attributes to stamped children, same as unsafeComponentAttrs entries
     // (spec: Renderer-facing API — post-animation-delay #715,
     // wait-for-animation #716). These are plain HTML attributes authored
-    // directly on <boardgame-component-stack> (unlike componentAttrs,
+    // directly on <boardgame-component-stack> (unlike unsafeComponentAttrs,
     // which is populated programmatically by parent components like
     // boardgame-game-board), so read them here rather than via a
     // reflected Lit @property.
@@ -758,7 +658,7 @@ export class BoardgameComponentStack extends LitElement {
 
   /**
    * Re-apply component attributes to all existing child components.
-   * Called when the reactive componentAttrs property changes, so that
+   * Called when reactive shared/unsafe component properties change, so that
    * existing children immediately reflect the new values without
    * waiting for a stack data change from the server.
    */
@@ -767,7 +667,6 @@ export class BoardgameComponentStack extends LitElement {
 
     const applyToElement = (ele: Element) => {
       for (const [key, val] of attrs) {
-        if (key === 'indexAttributes') continue;
         (ele as any)[key] = val;
       }
     };
@@ -784,7 +683,136 @@ export class BoardgameComponentStack extends LitElement {
     }
   }
 
-  private _insertNodes(componentsInfo: any[], hostEle: HTMLElement) {
+  private readonly _componentTapped = (event: Event): void => {
+    if (!this.componentActions.length) return;
+    const component = event.composedPath().find((target): target is HTMLElement =>
+      target instanceof HTMLElement
+        && target.parentElement === this
+        && target.hasAttribute('boardgame-component'));
+    if (!component) return;
+    event.stopImmediatePropagation();
+    const components = [...this.children].filter(child => child.hasAttribute('boardgame-component'));
+    const action = this.componentActions[components.indexOf(component)];
+    if (action?.canActivate) void action.activate();
+  };
+
+  private readonly _componentKeyDown = (event: KeyboardEvent): void => {
+    if (!this.componentActions.length || (event.key !== 'Enter' && event.key !== ' ')) return;
+    const component = event.composedPath().find((target): target is HTMLElement =>
+      target instanceof HTMLElement
+        && target.parentElement === this
+        && target.hasAttribute('boardgame-component'));
+    if (!component) return;
+    const components = [...this.children].filter(child => child.hasAttribute('boardgame-component'));
+    const action = this.componentActions[components.indexOf(component)];
+    if (!action?.canActivate) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    void action.activate();
+  };
+
+  private _validateComponentActions(): void {
+    if (!this.componentActions.length) return;
+    const components = this.stack?.Components;
+    if (!Array.isArray(components)) return;
+    if (this.componentActions.length !== components.length) {
+      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but stack has ${components.length} slots`);
+    }
+    if (this.componentsDisabled) {
+      throw new Error('boardgame-component-stack: componentActions cannot be combined with componentsDisabled');
+    }
+    this.componentActions.forEach((action, index) => {
+      if (action !== null && !isBoundMoveAction(action)) {
+        throw new Error(`boardgame-component-stack: componentActions[${index}] is not a bound move action or null`);
+      }
+    });
+  }
+
+  private _clearComponentActionSubscriptions(): void {
+    for (const unsubscribe of this._componentActionUnsubscribes) unsubscribe();
+    this._componentActionUnsubscribes = [];
+  }
+
+  private _subscribeComponentActions(): void {
+    this._clearComponentActionSubscriptions();
+    this._validateComponentActions();
+    if (!this.isConnected) return;
+    this._componentActionUnsubscribes = [...new Set(this.componentActions
+      .filter((action): action is BoundMoveAction<string, object> => action !== null))]
+      .map(action => action.subscribe(() => {
+        this._applyComponentActionState();
+        this.requestUpdate();
+      }));
+  }
+
+  private _applyComponentActionState(): void {
+    const components = [...this.children].filter((element): element is HTMLElement =>
+      element instanceof HTMLElement && element.hasAttribute('boardgame-component'));
+    const currentComponents = new Set(components);
+    for (const component of this._componentActionOriginals.keys()) {
+      if (!currentComponents.has(component)) this._restoreComponentActionState(component);
+    }
+    if (!this.componentActions.length) {
+      this._restoreAllComponentActionState();
+      this._applyComponentAttrsToChildren();
+      return;
+    }
+    this._validateComponentActions();
+    if (!this.stack && components.length !== this.componentActions.length) {
+      if (!this.hasUpdated && components.length === 0) return;
+      throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but the stack has ${components.length} rendered components`);
+    }
+    components.forEach((component, index) => {
+      this._captureComponentActionState(component);
+      const action = this.componentActions[index] ?? null;
+      const disabled = !action?.canActivate;
+      (component as HTMLElement & { disabled?: boolean }).disabled = disabled;
+      component.setAttribute('aria-disabled', String(disabled));
+      if (action) {
+        component.setAttribute('role', 'button');
+        component.tabIndex = disabled ? -1 : 0;
+      } else {
+        component.removeAttribute('role');
+        component.tabIndex = -1;
+      }
+      const reason = action?.reason?.message;
+      if (reason) component.setAttribute('title', reason); else component.removeAttribute('title');
+    });
+  }
+
+  private _captureComponentActionState(component: HTMLElement): void {
+    if (this._componentActionOriginals.has(component)) return;
+    this._componentActionOriginals.set(component, {
+      disabled: (component as HTMLElement & { disabled?: boolean }).disabled,
+      role: component.getAttribute('role'),
+      tabindex: component.getAttribute('tabindex'),
+      ariaDisabled: component.getAttribute('aria-disabled'),
+      title: component.getAttribute('title'),
+    });
+  }
+
+  private _restoreComponentActionState(component: HTMLElement): void {
+    const original = this._componentActionOriginals.get(component);
+    if (!original) return;
+    (component as HTMLElement & { disabled?: boolean }).disabled = original.disabled;
+    this._restoreAttribute(component, 'role', original.role);
+    this._restoreAttribute(component, 'tabindex', original.tabindex);
+    this._restoreAttribute(component, 'aria-disabled', original.ariaDisabled);
+    this._restoreAttribute(component, 'title', original.title);
+    this._componentActionOriginals.delete(component);
+  }
+
+  private _restoreAllComponentActionState(): void {
+    for (const component of [...this._componentActionOriginals.keys()]) {
+      this._restoreComponentActionState(component);
+    }
+  }
+
+  private _restoreAttribute(component: HTMLElement, name: string, value: string | null): void {
+    if (value === null) component.removeAttribute(name); else component.setAttribute(name, value);
+  }
+
+  private _insertNodes(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const componentCount = hostEle.querySelectorAll('[boardgame-component]').length;
     const childrenToAdd = componentsInfo.length - componentCount;
 
@@ -831,19 +859,17 @@ export class BoardgameComponentStack extends LitElement {
     // position and FLIP sees zero displacement.
     if (this.layout === 'board' || this.layout === 'spatial') {
       this._insertNodesBoardMode(componentsInfo, hostEle);
-      return;
+    } else {
+      this._insertNodesDefault(componentsInfo, hostEle);
     }
-
-    this._insertNodesDefault(componentsInfo, hostEle);
   }
 
   /**
    * Board-mode insertion: reorders DOM elements based on component IDs so
    * that FLIP animation can track physical element movement across grid cells.
    */
-  private _insertNodesBoardMode(componentsInfo: any[], hostEle: HTMLElement) {
+  private _insertNodesBoardMode(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const attrs = this._attributesForComponents();
-    const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
     const stackIds = this.stack?.IDs;
 
     // Build a map of component ID → existing DOM element
@@ -906,7 +932,7 @@ export class BoardgameComponentStack extends LitElement {
         anyEle.id = '';
       }
 
-      this._updateTemplateBindings(anyEle, item);
+      if (this.componentView) updateComponentFromView(this.componentView, anyEle, item, slotIndex);
 
       if (anyEle.instance) {
         anyEle.instance.item = item;
@@ -914,14 +940,7 @@ export class BoardgameComponentStack extends LitElement {
       }
 
       for (const [key, val] of attrs) {
-        if (key === 'indexAttributes') continue;
         anyEle[key] = val;
-      }
-
-      for (const name of attributesToIndex) {
-        const finalName = dashToCamelCase(name);
-        anyEle[finalName] = slotIndex;
-        anyEle.setAttribute(name, String(slotIndex));
       }
     }
   }
@@ -930,9 +949,8 @@ export class BoardgameComponentStack extends LitElement {
    * Default insertion: in-place property assignment (original behavior).
    * Elements stay in DOM order and receive new item data sequentially.
    */
-  private _insertNodesDefault(componentsInfo: any[], hostEle: HTMLElement) {
+  private _insertNodesDefault(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const attrs = this._attributesForComponents();
-    const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
 
     let componentIndex = 0;
 
@@ -957,7 +975,7 @@ export class BoardgameComponentStack extends LitElement {
         ele.id = '';
       }
 
-      this._updateTemplateBindings(ele, componentsInfo[componentIndex]);
+      if (this.componentView) updateComponentFromView(this.componentView, ele, item, componentIndex);
 
       if (ele.instance) {
         ele.instance.item = componentsInfo[componentIndex];
@@ -965,38 +983,66 @@ export class BoardgameComponentStack extends LitElement {
       }
 
       for (const [key, val] of attrs) {
-        if (key === 'indexAttributes') continue;
         ele[key] = val;
-      }
-
-      for (const name of attributesToIndex) {
-        const finalName = dashToCamelCase(name);
-        ele[finalName] = componentIndex;
-        ele.setAttribute(name, componentIndex);
       }
 
       componentIndex++;
     }
   }
 
-  private _pendingGenerateRetry: number | null = null;
-
   private _generateChildren() {
-    // If templates aren't registered yet (common during startup when
-    // deck-defaults hasn't connected), retry after a short delay.
-    if (!this.templateClass && this.stack?.Components?.length && this._componentPool.length === 0) {
-      if (!this._pendingGenerateRetry) {
-        this._pendingGenerateRetry = requestAnimationFrame(() => {
-          this._pendingGenerateRetry = null;
-          this._generateChildren();
-        });
-      }
-      return;
+    if (this.stack && !this.componentView) {
+      throw new Error('boardgame-component-stack: a configured stack requires .componentView from cardView(), tokenView(), or componentView()');
     }
     this._insertNodes(this.stack ? this.stack.Components : [], this);
   }
 
+  private _componentViewChanged(previous: ComponentView | null | undefined): void {
+    if (previous === undefined && this.componentView === null) return;
+    if (previous === this.componentView) return;
+    if (sameComponentViewRecipe(previous, this.componentView)) {
+      this._generateChildren();
+      this._refreshShadowViewComponents();
+      return;
+    }
+    this._componentPool = [];
+    for (const child of [...this.children]) {
+      if (!child.hasAttribute('boardgame-component')) continue;
+      const component = child as HTMLElement & { beforeOrphaned?: () => void };
+      component.beforeOrphaned?.();
+      child.remove();
+    }
+    this._removeShadowViewComponents();
+    this._generateChildren();
+    this._slotChanged(false);
+  }
+
+  /** Refresh faux/spacer hosts that are not reconciled by _generateChildren(). */
+  private _refreshShadowViewComponents(): void {
+    if (!this.componentView) return;
+    for (const [index, component] of this._fauxComponents.entries()) {
+      updateComponentFromView(this.componentView, component, undefined, index);
+    }
+    const spacer = this.shadowRoot?.querySelector(
+      '#container>[boardgame-component][spacer]',
+    ) as BoardgameComponent | null;
+    if (spacer) updateComponentFromView(this.componentView, spacer, undefined, 0);
+  }
+
+  /** A different recipe may create a different host element, so rebuild shadow hosts too. */
+  private _removeShadowViewComponents(): void {
+    const remove = (component: Element) => {
+      (component as HTMLElement & { beforeOrphaned?: () => void }).beforeOrphaned?.();
+      component.remove();
+    };
+    for (const component of this._fauxComponents) remove(component);
+    const spacer = this.shadowRoot?.querySelector('#container>[boardgame-component][spacer]');
+    if (spacer) remove(spacer);
+    this.clearAnimatingComponents();
+  }
+
   private _slotChanged(firstRender: boolean) {
+    if (!this.componentView) return;
     const realComponents = this._realComponents;
     const fauxComponentsContainer = this.fauxComponentsContainer;
 
@@ -1024,18 +1070,11 @@ export class BoardgameComponentStack extends LitElement {
 
     if (firstRender && realComponents.length < 1) return;
 
-    if (realComponents.length < this.fauxComponents) {
-      const targetNumFauxComponents = this.fauxComponents - realComponents.length;
-      const info: any[] = [];
-
-      for (let i = 0; i < targetNumFauxComponents; i++) {
-        info.push(undefined);
-      }
-
-      this._insertNodes(info, fauxComponentsContainer);
-    }
+    const targetNumFauxComponents = Math.max(0, this.fauxComponents - realComponents.length);
+    this._insertNodes(Array(targetNumFauxComponents).fill(undefined), fauxComponentsContainer);
 
     this._updateComponentClasses();
+    this._applyComponentActionState();
   }
 
   private _updateComponentClasses() {
@@ -1259,6 +1298,7 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   override render(): TemplateResult {
+    this._validateConfiguration();
     return html`
       <div id="container" class="${this._classes(this.layout, this.noAnimate)}" style="${this._style}">
         <div id="slot-holder">
@@ -1269,6 +1309,50 @@ export class BoardgameComponentStack extends LitElement {
       </div>
     `;
   }
+
+  private _validateConfiguration(): void {
+    if (!isStackLayout(this.layout)) {
+      throw new Error(`boardgame-component-stack: unknown layout "${this.layout}"`);
+    }
+    this._assertFiniteNonnegative('messiness', this.messiness);
+    this._assertPositiveInteger('boardCols', this.boardCols);
+    this._assertPositiveInteger('boardRows', this.boardRows);
+    this._assertNonnegativeInteger('fauxComponents', this.fauxComponents);
+    this._assertFiniteNonnegative('stagger', this.stagger);
+    if (!Array.isArray(this.spatialPositions)) {
+      throw new Error('boardgame-component-stack: spatialPositions must be an array');
+    }
+    for (const [index, position] of this.spatialPositions.entries()) {
+      if (position === null) continue;
+      if (!position || !Number.isFinite(position.top) || !Number.isFinite(position.left)) {
+        throw new Error(`boardgame-component-stack: spatialPositions[${index}] must be null or finite top/left coordinates`);
+      }
+    }
+  }
+
+  private _assertPositiveInteger(name: string, value: number): void {
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw new Error(`boardgame-component-stack: ${name} must be a positive safe integer`);
+    }
+  }
+
+  private _assertNonnegativeInteger(name: string, value: number): void {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new Error(`boardgame-component-stack: ${name} must be a nonnegative safe integer`);
+    }
+  }
+
+  private _assertFiniteNonnegative(name: string, value: number): void {
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(`boardgame-component-stack: ${name} must be a finite nonnegative number`);
+    }
+  }
 }
 
 customElements.define('boardgame-component-stack', BoardgameComponentStack);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-component-stack': BoardgameComponentStack;
+  }
+}

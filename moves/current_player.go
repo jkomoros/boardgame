@@ -31,6 +31,10 @@ type CurrentPlayer struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+// moveInputCurrentPlayerBehavior is an unshadowable package-private marker
+// used by auto.Config to recognize this embedded behavior.
+func (c *CurrentPlayer) moveInputCurrentPlayerBehavior() {}
+
 // Legal will return an error if the TargetPlayerIndex is not the
 // CurrentPlayerIndex, if the TargetPlayerIndex is not equivalent to the
 // proposer, or if the TargetPlayerIndex is not one of the players.

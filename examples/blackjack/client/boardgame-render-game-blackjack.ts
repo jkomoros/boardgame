@@ -1,24 +1,30 @@
-import '@material/web/button/filled-button.js';
-import '@material/web/button/outlined-button.js';
-import '../../src/components/boardgame-component-stack.js';
-import '../../src/components/boardgame-card.js';
-import { BoardgameBaseGameRenderer } from '../../src/components/boardgame-base-game-renderer.js';
-import '../../src/components/boardgame-fading-text.js';
-import '../../src/components/boardgame-deck-defaults.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { MoveNames } from './_move_names.js';
-import type { MoveName } from './_move_names.js';
-import type { GameState, PlayerState } from './_types.js';
+import { cardView } from '../../src/client.js';
+import type { GameState } from './_types.js';
 
-class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+@registerGameRenderer
+export class BoardgameRenderGameBlackjack extends GameRenderer {
+  private readonly cards = cardView<GameState['DrawStack']>({
+    properties: ({ kind, component }) => ({
+      suit: kind === 'visible' ? component.Values.Suit : '',
+      rank: kind === 'visible' ? component.Values.Rank : '',
+    }),
+  });
+
   static override styles = [
-    ...(BoardgameBaseGameRenderer.styles ? [BoardgameBaseGameRenderer.styles] : []),
+    ...(GameRenderer.styles ? [GameRenderer.styles] : []),
     css`
-      #draw, #players {
+      #draw {
         display: flex;
         flex-direction: row;
         align-items: center;
+      }
+
+      #players {
+        --boardgame-player-grid-min-width: 14rem;
       }
 
       .flex {
@@ -42,50 +48,57 @@ class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer<GameState, 
 
   override render() {
     return html`
-      <boardgame-deck-defaults>
-        <template deck="cards">
-          <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-        </template>
-      </boardgame-deck-defaults>
-      <div id="draw">
-        <boardgame-component-stack
-          .stack="${this.state?.Game?.DrawStack}"
-          layout="stack"
-          messy
-          .componentAttrs=${{ proposeMove: MoveNames.CurrentPlayerHit }}>
-        </boardgame-component-stack>
-        <div class="flex">
-          <md-filled-button propose-move="${MoveNames.CurrentPlayerHit}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerHit)}">Hit</md-filled-button>
-          <md-outlined-button propose-move="${MoveNames.CurrentPlayerStand}" ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.CurrentPlayerStand)}">Stand</md-outlined-button>
+      <boardgame-game-surface heading="Blackjack">
+        <boardgame-game-outcome
+          slot="status"
+          .finished=${this.gameFinished}
+          .animating=${this.animating}
+          .winners=${this.gameWinners}
+          .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
+        </boardgame-game-outcome>
+        <div id="draw">
+          <boardgame-component-zone
+            label="Draw pile"
+            .stack="${this.state?.Game?.DrawStack}"
+            .componentView=${this.cards}
+            layout="stack"
+            messy>
+          </boardgame-component-zone>
+          <boardgame-action-bar class="flex" label="Blackjack actions">
+            <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
+            <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerStand)}>Stand</boardgame-action-button>
+          </boardgame-action-bar>
+          <boardgame-component-zone
+            label="Discard pile"
+            .stack="${this.state?.Game?.DiscardStack}"
+            .componentView=${this.cards}
+            layout="stack"
+            messy>
+          </boardgame-component-zone>
         </div>
-        <boardgame-component-stack
-          .stack="${this.state?.Game?.DiscardStack}"
-          layout="stack"
-          messy>
-        </boardgame-component-stack>
-      </div>
-      <div id="players">
-        ${repeat(this.state?.Players || [], (player, index) => index, (player, index) => html`
-          <div class="player flex ${this._bustedClass(player.Eliminated)}">
-            <strong>Player ${index}</strong>
-            <boardgame-component-stack
-              .stack="${player.Hand}"
-              layout="fan"
-              messy
-              .componentAttrs=${{ rotated: true }}>
-              <boardgame-fading-text .trigger="${player.Eliminated}" message="Busted!"></boardgame-fading-text>
-              <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
-            </boardgame-component-stack>
-          </div>
-        `)}
-      </div>
-      <boardgame-fading-text
-        .trigger="${this.isCurrentPlayer}"
-        message="Your Turn"
-        suppress="falsey">
-      </boardgame-fading-text>
+        <boardgame-player-grid id="players">
+          ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
+            <boardgame-player-panel
+                class="player ${this._bustedClass(player.Eliminated)}"
+                label=${`Player ${index + 1}`}
+                .active=${index === this.currentPlayerIndex}>
+              <boardgame-component-zone
+                label="Hand"
+                .stack="${player.Hand}"
+                .componentView=${this.cards.withProperties({ rotated: true })}
+                layout="fan"
+                messy>
+                <boardgame-fading-text .trigger="${player.Eliminated}" message="Busted!"></boardgame-fading-text>
+                <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
+              </boardgame-component-zone>
+            </boardgame-player-panel>
+          `)}
+        </boardgame-player-grid>
+        <boardgame-turn-status
+          slot="status"
+          .turn=${this.turnStatus}>
+        </boardgame-turn-status>
+      </boardgame-game-surface>
     `;
   }
 }
-
-customElements.define('boardgame-render-game-blackjack', BoardgameRenderGameBlackjack);

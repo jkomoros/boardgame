@@ -1,12 +1,14 @@
 package api
 
 import (
+	stderrors "errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -65,6 +67,21 @@ type Server struct {
 	// resolution behavior. Lazy-allocated by getSeatJoinLock.
 	seatJoinLocks   map[string]*sync.Mutex
 	seatJoinLocksMu sync.Mutex
+}
+
+// corsOrigins adapts the documented comma-delimited configuration format to
+// the legacy CORS middleware's stricter comma-plus-space parser. Trimming here
+// also makes hand-authored config insensitive to whitespace around entries.
+func corsOrigins(origins string) string {
+	parts := strings.Split(origins, ",")
+	normalized := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			normalized = append(normalized, part)
+		}
+	}
+	return strings.Join(normalized, ", ")
 }
 
 type renderer struct {
@@ -318,6 +335,10 @@ func (s *Server) newRenderer(c *gin.Context) *renderer {
 }
 
 func (r *renderer) Error(f *errors.Friendly) {
+	r.errorWithFields(f, nil)
+}
+
+func (r *renderer) errorWithFields(f *errors.Friendly, extra gin.H) {
 	if r.rendered {
 		r.s.logger.Errorln("Error called on already-rendered renderer")
 	}
@@ -328,11 +349,15 @@ func (r *renderer) Error(f *errors.Friendly) {
 
 	r.writeCookie()
 
-	r.c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"Status":        "Failure",
 		"Error":         f.Error(),
 		"FriendlyError": f.FriendlyError(),
-	})
+	}
+	for key, value := range extra {
+		response[key] = value
+	}
+	r.c.JSON(http.StatusOK, response)
 
 	fields := logrus.Fields{}
 
@@ -1099,6 +1124,22 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 }
 
+// clientMoveRecord is intentionally smaller than MoveStorageRecord. Move.Blob
+// contains the proposed fields and may hold a private target or choice; proposer,
+// phase, and initiator metadata can also reveal state that sanitization hid.
+// Renderers only need a stable move type and version to customize animation.
+type clientMoveRecord struct {
+	Name    string
+	Version int
+}
+
+func animationMoveRecord(move *boardgame.MoveStorageRecord) *clientMoveRecord {
+	if move == nil {
+		return nil
+	}
+	return &clientMoveRecord{Name: move.Name, Version: move.Version}
+}
+
 func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) ([]gin.H, error) {
 	var bundles []gin.H
 
@@ -1151,7 +1192,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 
 		bundle := gin.H{
 			"Game":            gameJSON,
-			"Move":            move,
+			"Move":            animationMoveRecord(move),
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           forms,
 		}
@@ -1497,6 +1538,11 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		r.Error(errors.New("Couldn't serialize json: " + err.Error()))
 		return
 	}
+	moveInputFingerprint, err := boardgame.MoveInputSchemaFingerprint(game.Manager())
+	if err != nil {
+		r.Error(errors.New("Couldn't build move-input schema: " + err.Error()))
+		return
+	}
 
 	// Companion-mode bundle: everything the Table+Hand view bases need to
 	// render avatar strips, "Waiting…" badges, room code, host controls.
@@ -1535,16 +1581,20 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		// unknown predicate names as evaluable:false and defers to the
 		// server's own verdicts rather than mis-evaluating them itself.
 		"LegalCatalogVersion": boardgame.LegalCatalogVersion,
-		"Forms":               s.generateFormsWithLegality(game, state, playerIndex),
-		"Game":                gameJSON,
-		"Error":               s.lastErrorMessage,
-		"Players":             s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
-		"ViewingAsPlayer":     playerIndex,
-		"HasEmptySlots":       hasEmptySlots,
-		"GameOpen":            gameInfo.Open,
-		"GameVisible":         gameInfo.Visible,
-		"IsOwner":             isOwner,
-		"CompanionInfo":       companionInfo,
+		// MoveInputSchemaFingerprint is generated from the same canonical schema
+		// as _move_args.ts. Safe creator APIs fail closed before proposal when it
+		// differs from their bundled fingerprint.
+		"MoveInputSchemaFingerprint": moveInputFingerprint,
+		"Forms":                      s.generateFormsWithLegality(game, state, playerIndex),
+		"Game":                       gameJSON,
+		"Error":                      s.lastErrorMessage,
+		"Players":                    s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
+		"ViewingAsPlayer":            playerIndex,
+		"HasEmptySlots":              hasEmptySlots,
+		"GameOpen":                   gameInfo.Open,
+		"GameVisible":                gameInfo.Visible,
+		"IsOwner":                    isOwner,
+		"CompanionInfo":              companionInfo,
 		//The StateVersion is almost always the Game.Version, except in the
 		//special case described above where lots of fix up moves have been
 		//applied but no player moves yet. State blobs used to include their own
@@ -1575,6 +1625,15 @@ func (s *Server) moveHandler(c *gin.Context) {
 	}
 
 	proposer := s.effectivePlayerIndex(c)
+	var expectedVersion *int
+	if raw, provided := c.GetPostForm("ExpectedVersion"); provided {
+		parsed, parseErr := strconv.Atoi(raw)
+		if parseErr != nil || parsed < 0 {
+			r.Error(errors.New("ExpectedVersion must be a non-negative integer"))
+			return
+		}
+		expectedVersion = &parsed
+	}
 
 	move, err := s.getMoveFromForm(c, game)
 
@@ -1592,13 +1651,28 @@ func (s *Server) moveHandler(c *gin.Context) {
 		return
 	}
 
-	s.doMakeMove(r, game, proposer, move)
+	s.doMakeMove(r, game, proposer, move, expectedVersion)
 
 }
 
-func (s *Server) doMakeMove(r *renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) {
+func (s *Server) doMakeMove(r *renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move, expectedVersion *int) {
 
-	if err := <-game.ProposeMove(move, proposer); err != nil {
+	var proposal <-chan error
+	if expectedVersion == nil {
+		proposal = game.ProposeMove(move, proposer)
+	} else {
+		proposal = game.ProposeMoveAtVersion(move, proposer, *expectedVersion)
+	}
+	if err := <-proposal; err != nil {
+		var stale *boardgame.StaleVersionError
+		if stderrors.As(err, &stale) {
+			r.errorWithFields(errors.New(err.Error()).WithFriendly("The game changed; try the move again."), gin.H{
+				"Code":            "STALE_SNAPSHOT",
+				"ExpectedVersion": stale.Expected,
+				"ActualVersion":   stale.Actual,
+			})
+			return
+		}
 
 		if f, ok := err.(*errors.Friendly); ok {
 			r.Error(f)
@@ -1645,6 +1719,21 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLegalPreviewBodyBytes)
 
 	proposer := s.effectivePlayerIndex(c)
+	expectedVersion := game.Version()
+	if raw, provided := c.GetPostForm("ExpectedVersion"); provided {
+		parsed, parseErr := strconv.Atoi(raw)
+		if parseErr != nil || parsed < 0 {
+			r.Error(errors.New("ExpectedVersion must be a non-negative integer"))
+			return
+		}
+		expectedVersion = parsed
+	}
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale move preview").WithFriendly("The game changed; check the move again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
+		return
+	}
 
 	move, err := s.getMoveFromForm(c, game)
 
@@ -1657,7 +1746,18 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 		return
 	}
 
-	form := s.legalMoveForm(game, game.CurrentState(), move, proposer)
+	state := game.State(expectedVersion)
+	if state == nil {
+		r.Error(errors.New("Could not load the requested preview state"))
+		return
+	}
+	form := s.legalMoveForm(game, state, move, proposer)
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale move preview").WithFriendly("The game changed; check the move again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
+		return
+	}
 
 	r.Success(gin.H{
 		"Form": form,
@@ -1669,6 +1769,7 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 // uses) to bind before evaluating legality. All candidates in a request share
 // one move type and one state.
 type movePreviewBatchCandidate struct {
+	ID   string            `json:"ID,omitempty"`
 	Args map[string]string `json:"Args"`
 }
 
@@ -1677,6 +1778,7 @@ type movePreviewBatchCandidate struct {
 // LegalForPlayer verdict plus its reason — not the full moveForm ledger the
 // single-move preview returns.
 type movePreviewBatchResult struct {
+	ID    string `json:"ID,omitempty"`
 	Legal bool   `json:"Legal"`
 	Error string `json:"Error,omitempty"`
 }
@@ -1688,6 +1790,31 @@ type movePreviewBatchResult struct {
 // per-request work bound). The cap is far above any real board's candidate count
 // (checkers is 64, tictactoe 9) so it never constrains legitimate use.
 const maxLegalPreviewBatchCandidates = 1024
+const maxLegalPreviewCandidateIDBytes = 256
+
+func validateMovePreviewBatchCandidateIDs(candidates []movePreviewBatchCandidate) error {
+	withID := 0
+	seen := make(map[string]struct{}, len(candidates))
+	for _, candidate := range candidates {
+		if candidate.ID == "" {
+			continue
+		}
+		withID++
+		if len(candidate.ID) > maxLegalPreviewCandidateIDBytes {
+			return errors.New("preview candidate ID exceeds the 256-byte limit")
+		}
+		if _, exists := seen[candidate.ID]; exists {
+			return errors.New("preview candidate IDs must be unique")
+		}
+		seen[candidate.ID] = struct{}{}
+	}
+	// All-omitted is the legacy positional protocol. Once any candidate opts
+	// into correlation, require every candidate to participate.
+	if withID != 0 && withID != len(candidates) {
+		return errors.New("preview candidate IDs must be supplied for every candidate or none")
+	}
+	return nil
+}
 
 // maxLegalPreviewBodyBytes bounds a preview request body (both the single and
 // batch endpoints) so a client can't force the server to buffer an arbitrarily
@@ -1731,10 +1858,12 @@ func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.Immut
 			v, ok := args[name]
 			return v, ok
 		}); err != nil {
-			results = append(results, movePreviewBatchResult{Legal: false, Error: err.Error()})
+			results = append(results, movePreviewBatchResult{ID: cand.ID, Legal: false, Error: err.Error()})
 			continue
 		}
-		results = append(results, previewLegalityResult(move, state, playerIndex))
+		result := previewLegalityResult(move, state, playerIndex)
+		result.ID = cand.ID
+		results = append(results, result)
 	}
 	return results, nil
 }
@@ -1785,17 +1914,47 @@ func (s *Server) movePreviewBatchHandler(c *gin.Context) {
 	proposer := s.effectivePlayerIndex(c)
 
 	var req struct {
-		MoveType   string                      `json:"MoveType"`
-		Candidates []movePreviewBatchCandidate `json:"Candidates"`
+		MoveType        string                      `json:"MoveType"`
+		Candidates      []movePreviewBatchCandidate `json:"Candidates"`
+		ExpectedVersion *int                        `json:"ExpectedVersion"`
 	}
 	if err := c.BindJSON(&req); err != nil {
 		r.Error(errors.New("Couldn't parse batch preview request: " + err.Error()))
 		return
 	}
+	if err := validateMovePreviewBatchCandidateIDs(req.Candidates); err != nil {
+		r.Error(errors.New(err.Error()))
+		return
+	}
 
-	results, err := s.legalMoveFormsBatch(game, game.CurrentState(), req.MoveType, req.Candidates, proposer)
+	expectedVersion := game.Version()
+	if req.ExpectedVersion != nil {
+		if *req.ExpectedVersion < 0 {
+			r.Error(errors.New("ExpectedVersion must be a non-negative integer"))
+			return
+		}
+		expectedVersion = *req.ExpectedVersion
+	}
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale batch move preview").WithFriendly("The game changed; check the targets again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
+		return
+	}
+	state := game.State(expectedVersion)
+	if state == nil {
+		r.Error(errors.New("Could not load the requested preview state"))
+		return
+	}
+	results, err := s.legalMoveFormsBatch(game, state, req.MoveType, req.Candidates, proposer)
 	if err != nil {
 		r.Error(errors.New(err.Error()))
+		return
+	}
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale batch move preview").WithFriendly("The game changed; check the targets again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
 		return
 	}
 
@@ -2336,6 +2495,7 @@ func (s *Server) chatReadHandler(c *gin.Context) {
 	r.Success(gin.H{
 		"Messages":     response,
 		"ViewChannels": policy.ViewChannels,
+		"SendChannels": policy.SendChannels,
 		"UserIDMap":    userIDMap,
 		"ChatConfig": gin.H{
 			"Enabled":         policy.Enabled,
@@ -2400,7 +2560,7 @@ func (s *Server) Start() {
 
 	router.NoRoute(s.genericHandler)
 	router.Use(cors.Middleware(cors.Config{
-		Origins: s.config.AllowedOrigins,
+		Origins: corsOrigins(s.config.AllowedOrigins),
 		// Authorization is allowed so the companion-mode join flow can
 		// send a Firebase bearer token from the phone (cross-origin
 		// during dev because the API runs on a different port than the

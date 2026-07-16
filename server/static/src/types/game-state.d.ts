@@ -3,7 +3,7 @@
  * These types represent the core game state data structures used throughout the application.
  */
 
-import type { MoveForm } from './api';
+import type { ClientMove, JsonValue, MoveForm } from './api';
 import type { VersionAnimationContext } from '../components/companion-sync';
 
 /**
@@ -12,19 +12,19 @@ import type { VersionAnimationContext } from '../components/companion-sync';
  * Component indices are expanded to full component objects by the selector.
  */
 export interface RawGameState {
-  /** State version number */
-  Version: number;
+  /** Optional legacy state version; authoritative version lives on GameFromServer. */
+  Version?: number;
   /** Global game state */
   Game: RawPlayerState;
   /** Per-player states */
   Players: RawPlayerState[];
   /** Computed values (optional, may include computed global and player states) */
   Computed?: {
-    Global?: Record<string, any>;
-    Players?: any[];
+    Global?: RawPlayerState;
+    Players?: RawPlayerState[];
   };
   /** Component values indexed by deck name and index */
-  Components?: Record<string, Record<number, any>>;
+  Components?: Record<string, JsonValue[]>;
 }
 
 /**
@@ -32,9 +32,7 @@ export interface RawGameState {
  * Properties can contain stacks (with Deck/Indexes) or timers (with IsTimer).
  * The exact properties depend on the game type.
  */
-export interface RawPlayerState {
-  [key: string]: any;
-}
+export type RawPlayerState = object;
 
 /**
  * Timer metadata for expansion.
@@ -44,7 +42,7 @@ export interface TimerInfo {
   /** Current time left in milliseconds */
   TimeLeft: number;
   /** Original time left when timer was started (preserved for reference) */
-  originalTimeLeft: number;
+  originalTimeLeft?: number;
   /** Timer ID (optional, used for tracking) */
   ID?: string;
 }
@@ -54,6 +52,16 @@ export interface TimerInfo {
  * This is the structure that comes from the server API.
  */
 export interface GameFromServer {
+  /** Registered game package name. */
+  Name: string;
+  /** Stable game instance identifier. */
+  ID: string;
+  /** Number of player slots configured for this game. */
+  NumPlayers: number;
+  /** Agent name for each configured automated seat. */
+  Agents: string[];
+  /** Selected variant value keyed by variant property name. */
+  Variant: Record<string, string>;
   /** Current raw game state */
   CurrentState: RawGameState;
   /** Active timer information */
@@ -68,8 +76,6 @@ export interface GameFromServer {
   Winners: number[];
   /** Diagram for rendering (optional) */
   Diagram?: string;
-  /** Other game-specific properties */
-  [key: string]: any;
 }
 
 /**
@@ -82,7 +88,7 @@ export interface StateBundle {
   /** Game object from server (contains CurrentState and ActiveTimers) */
   game: GameFromServer;
   /** Move that triggered this state (null for initial state) */
-  move: any | null;
+  move: ClientMove | null;
   /** Expanded move forms for this state */
   moveForms: MoveForm[] | null;
   /** Player index viewing this state */

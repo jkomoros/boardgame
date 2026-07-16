@@ -367,9 +367,12 @@ type GameDelegate interface {
     ConfigureConstants() PropertyCollection
     ConfigureAgents() []Agent
 
-    // Computed properties (optional)
-    ComputedGlobalProperties(state ImmutableState) PropertyCollection
-    ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection
+    // Game-specific computed properties (optional through base.GameDelegate)
+    ConfigureComputedProperties() []ComputedProperty
+
+    // Framework-owned computed properties (provided by base.GameDelegate)
+    FrameworkComputedGlobalProperties(state ImmutableState) PropertyCollection
+    FrameworkComputedPlayerProperties(player ImmutableSubState) PropertyCollection
 
     // Lifecycle hooks (optional)
     BeginSetUp(state State, variant Variant) error
@@ -2114,11 +2117,9 @@ boardgame-app (app shell, lit-element)
 13. **boardgame-render-player-info** - Player info renderer
 14. **boardgame-status-text** - Game status messages
 15. **boardgame-fading-text** - Animated text effects
-16. **boardgame-deck-defaults** - Default component templates
-
 *Utilities:*
-17. **boardgame-ajax** - HTTP request wrapper (extends iron-ajax)
-18. **game-path-mixin** - URL routing helper
+16. **boardgame-ajax** - HTTP request wrapper (extends iron-ajax)
+17. **game-path-mixin** - URL routing helper
 
 ### Redux State Structure
 
@@ -3096,37 +3097,12 @@ This section outlines strategies for modernizing the framework to use current be
 
 **1. PropertyCollection**
 
-**Current:**
-```go
-type PropertyCollection map[string]interface{}
-
-func (g *gameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
-    return PropertyCollection{
-        "CurrentPlayerName": state.PlayerStates()[game.CurrentPlayer].Name,
-    }
-}
-
-// Client code needs type assertion
-name := props["CurrentPlayerName"].(string)
-```
-
-**With Generics:**
-```go
-type PropertyCollection[T any] map[string]T
-
-// Or type-safe getter:
-func GetProp[T any](props PropertyCollection, name string) (T, error) {
-    // Type-safe retrieval
-}
-
-// Client code is type-safe:
-name, err := GetProp[string](props, "CurrentPlayerName")
-```
-
-**Files to modify:**
-- game_delegate.go
-- property_reader.go
-- All code generation templates
+`PropertyCollection` remains an intentionally heterogeneous internal wire
+container. Creator-authored computed properties no longer expose it directly:
+games use typed `GlobalComputed*` and `PlayerComputed*` declarations, and
+`boardgame-util emit-types` generates each game's exact client keys and value
+types. Remaining generic work here concerns internal readers and setters, not
+the computed-property authoring API.
 
 **2. Reader/Setter Prop() Methods**
 
@@ -4667,4 +4643,3 @@ The animation system, in particular, is a standout feature that provides smooth,
 **Document Version:** 1.0
 **Last Updated:** 2026-02-03
 **Framework Versions:** Go 1.13+ (compiles with 1.25.6), Polymer 3.3.0, lit-element 0.7.1
-

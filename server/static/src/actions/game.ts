@@ -2,8 +2,11 @@ import { Dispatch, type UnknownAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { store } from '../store.js';
 import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/store';
-import type { ApiResponse } from '../api';
-import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '../types/game-state';
+import type { GameInfoResponse, GameVersionResponse, MoveForm, ServerStateBundle } from '../types/api';
+import { decodeGameInfoResponse, decodeGameVersionResponse } from '../types/server-response.js';
+import type { MoveTransportResult } from '../moves/action.js';
+import { remainingTimerMs } from '../timers/timer-clock.js';
 import type {
   UpdateGameRouteAction,
   UpdateGameStaticInfoAction,
@@ -152,7 +155,9 @@ export const installGameState = (
   currentState: RawGameState,
   timerInfos: Record<string, TimerInfo>,
   originalWallClockTime: number
-) => (dispatch: Dispatch, getState: () => RootState) => {
+) => (dispatch: Dispatch, _getState: () => RootState) => {
+
+  const generation = ++timerTickGeneration;
 
   // Extract paths to tick WITHOUT mutating state
   const pathsToTick = extractTimerPaths(currentState, timerInfos);
@@ -171,7 +176,7 @@ export const installGameState = (
   // Store RAW state directly - expansion happens in selectors!
   dispatch(updateGameState(currentState, augmentedTimerInfos, pathsToTick, originalWallClockTime));
 
-  if (pathsToTick.length) window.requestAnimationFrame(doTick);
+  if (pathsToTick.length) window.requestAnimationFrame(() => doTick(generation));
 }
 
 const updateGameState = (
@@ -216,7 +221,7 @@ const extractTimerPaths = (currentState: RawGameState, timerInfos: Record<string
  * Helper to extract timer paths from a leaf state object.
  */
 const extractTimerPathsFromLeaf = (
-  leafState: any,
+  leafState: RawGameState['Game'],
   pathToLeaf: (string | number)[],
   pathsToTick: (string | number)[][],
   timerInfos: Record<string, TimerInfo> | null
@@ -224,9 +229,11 @@ const extractTimerPathsFromLeaf = (
   if (!leafState) return;
 
   Object.entries(leafState).forEach(([key, val]) => {
-    if (val && typeof val === 'object' && (val as any).IsTimer) {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      const candidate = val as Readonly<Record<string, unknown>>;
+      if (candidate['IsTimer'] !== true || typeof candidate['ID'] !== 'string') return;
       // Found a timer - check if it has time remaining
-      const timerID = (val as any).ID;
+      const timerID = candidate['ID'];
       const timerInfo = timerInfos?.[timerID];
       if (timerInfo && timerInfo.TimeLeft > 0) {
         pathsToTick.push([...pathToLeaf, key]);
@@ -235,12 +242,15 @@ const extractTimerPathsFromLeaf = (
   });
 }
 
-const doTick = (): void => {
+let timerTickGeneration = 0;
+
+const doTick = (generation: number): void => {
+  if (generation !== timerTickGeneration) return;
   tick();
   const state = store.getState();
   const pathsToTick = state.game ? state.game.pathsToTick : [];
   if (pathsToTick.length > 0) {
-    window.requestAnimationFrame(doTick);
+    window.requestAnimationFrame(() => doTick(generation));
   }
 }
 
@@ -258,7 +268,6 @@ const tick = (): void => {
   if (pathsToTick.length == 0) return;
 
   const now = Date.now();
-  const elapsed = now - originalWallClockStartTime;
 
   // Update timer infos (not the state itself!)
   const newTimerInfos = { ...timerInfos };
@@ -275,9 +284,13 @@ const tick = (): void => {
     const originalInfo = timerInfos[timerID];
     if (!originalInfo) continue;
 
-    // Calculate new TimeLeft based on elapsed time since original wall clock time
-    // originalInfo.TimeLeft is the time left when the state was first received
-    const newTimeLeft = Math.max(0, originalInfo.TimeLeft - elapsed);
+    // Always subtract from the immutable installed baseline. Subtracting from
+    // the prior frame's TimeLeft would apply cumulative elapsed time repeatedly.
+    const newTimeLeft = remainingTimerMs(
+      originalInfo.originalTimeLeft ?? originalInfo.TimeLeft,
+      originalWallClockStartTime,
+      now,
+    );
 
     // Update timer info (preserve originalTimeLeft, update TimeLeft)
     newTimerInfos[timerID] = {
@@ -351,33 +364,80 @@ export const joinGame = (gameRoute: GameRoute) => async (dispatch: Dispatch): Pr
 /**
  * Submit a move to the game
  */
+const moveSubmissionFlights = new Map<string, Promise<MoveTransportResult>>();
+const consumedMoveVersions = new Map<string, string>();
+
 export const submitMove = (
   gameRoute: GameRoute,
   moveData: Record<string, string>
-) => async (dispatch: Dispatch): Promise<void> => {
-  dispatch({ type: SUBMIT_MOVE_REQUEST });
-
-  const url = buildGameUrl(gameRoute.name, gameRoute.id, 'move');
-  const response = await apiPost(url, moveData, 'application/x-www-form-urlencoded');
-
-  if (response.error) {
+) => async (dispatch: Dispatch): Promise<MoveTransportResult> => {
+  const routeKey = `${gameRoute.name}/${gameRoute.id}`;
+  const expectedVersion = moveData['ExpectedVersion'];
+  if (moveSubmissionFlights.has(routeKey)) {
+    const result = {
+      kind: 'server-rejection' as const,
+      code: 'CLIENT_SUBMISSION_BUSY',
+      error: 'Another move submission is already in flight',
+      friendlyError: 'Wait for the current move to finish.',
+    };
     dispatch({
       type: SUBMIT_MOVE_FAILURE,
-      error: response.error,
-      friendlyError: response.friendlyError
+      error: result.error,
+      friendlyError: result.friendlyError,
     });
-  } else {
+    return result;
+  }
+  if (expectedVersion !== undefined && consumedMoveVersions.get(routeKey) === expectedVersion) {
+    const result = {
+      kind: 'server-rejection' as const,
+      code: 'CLIENT_SNAPSHOT_CONSUMED',
+      error: `Game version ${expectedVersion} already submitted a move`,
+      friendlyError: 'Waiting for the accepted move to update the game.',
+    };
+    dispatch({ type: SUBMIT_MOVE_FAILURE, error: result.error, friendlyError: result.friendlyError });
+    return result;
+  }
+
+  const operation = (async (): Promise<MoveTransportResult> => {
+    dispatch({ type: SUBMIT_MOVE_REQUEST });
+    const url = buildGameUrl(gameRoute.name, gameRoute.id, 'move');
+    const response = await apiPost(url, moveData, 'application/x-www-form-urlencoded');
+    if (response.error) {
+      dispatch({
+        type: SUBMIT_MOVE_FAILURE,
+        error: response.error,
+        friendlyError: response.friendlyError,
+      });
+      return response.status === 0
+        ? { kind: 'network-failure', error: response.error, friendlyError: response.friendlyError }
+        : {
+          kind: 'server-rejection',
+          error: response.error,
+          friendlyError: response.friendlyError,
+          code: response.code,
+          expectedVersion: response.expectedVersion,
+          actualVersion: response.actualVersion,
+        };
+    }
+    if (expectedVersion !== undefined) consumedMoveVersions.set(routeKey, expectedVersion);
     dispatch({ type: SUBMIT_MOVE_SUCCESS });
+    return { kind: 'success' };
+  })();
+  moveSubmissionFlights.set(routeKey, operation);
+  try {
+    return await operation;
+  } finally {
+    if (moveSubmissionFlights.get(routeKey) === operation) moveSubmissionFlights.delete(routeKey);
   }
 };
 
 /**
  * Expand move form fields with enum values from chest
  */
-const expandMoveForms = (moveForms: any[] | null, chest: GameChest | null): any[] | null => {
+const expandMoveForms = (moveForms: MoveForm[] | null, chest: GameChest | null): MoveForm[] | null => {
   if (!moveForms || !chest) return moveForms;
 
-  const expanded = JSON.parse(JSON.stringify(moveForms)); // Deep copy
+  const expanded = structuredClone(moveForms);
 
   for (let i = 0; i < expanded.length; i++) {
     const form = expanded[i];
@@ -385,8 +445,8 @@ const expandMoveForms = (moveForms: any[] | null, chest: GameChest | null): any[
     if (!form.Fields) continue;
     for (let j = 0; j < form.Fields.length; j++) {
       const field = form.Fields[j];
-      if (field.EnumName && (chest as any).Enums) {
-        field.Enum = (chest as any).Enums[field.EnumName];
+      if (field.EnumName && chest.Enums) {
+        field.Enum = chest.Enums[field.EnumName];
       }
     }
   }
@@ -401,7 +461,7 @@ export const fetchGameInfo = (
   requestedPlayer: number,
   admin: boolean,
   lastFetchedVersion: number
-) => async (dispatch: ThunkDispatch<RootState, unknown, UnknownAction>): Promise<void> => {
+) => async (dispatch: ThunkDispatch<RootState, unknown, UnknownAction>, getState: () => RootState): Promise<void> => {
   dispatch({ type: FETCH_GAME_INFO_REQUEST });
 
   const url = buildGameUrl(
@@ -415,7 +475,11 @@ export const fetchGameInfo = (
     }
   );
 
-  const response = await apiGet(url);
+  const response = await apiGet<unknown>(url);
+
+  // Navigation can replace the active game while this request is in flight.
+  // Never let the previous route's response populate the new route's store.
+  if (!isCurrentGameRoute(getState(), gameRoute)) return;
 
   if (response.error) {
     dispatch({
@@ -426,7 +490,27 @@ export const fetchGameInfo = (
     return;
   }
 
-  const data = response.data as any;
+  const payload = response.data;
+  if (!payload) {
+    dispatch({
+      type: FETCH_GAME_INFO_FAILURE,
+      error: 'Game info response was missing its success payload',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
+  let data: GameInfoResponse;
+  try {
+    data = decodeGameInfoResponse(payload);
+  } catch (error) {
+    console.error('[game-info] rejected server payload:', error);
+    dispatch({
+      type: FETCH_GAME_INFO_FAILURE,
+      error: error instanceof Error ? error.message : 'Game info response was invalid',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
 
   // Expand move forms with enum values
   const expandedForms = expandMoveForms(data.Forms, data.Chest);
@@ -447,7 +531,8 @@ export const fetchGameInfo = (
     game: data.Game,
     forms: expandedForms,
     viewingAsPlayer: data.ViewingAsPlayer,
-    stateVersion: data.StateVersion
+		stateVersion: data.StateVersion,
+		moveInputSchemaFingerprint: data.MoveInputSchemaFingerprint,
   });
 
   // Install the initial game state so animations can work
@@ -491,7 +576,9 @@ export const fetchGameVersion = (
     }
   );
 
-  const response = await apiGet(url);
+  const response = await apiGet<unknown>(url);
+
+  if (!isCurrentGameRoute(getState(), gameRoute)) return;
 
   if (response.error) {
     dispatch({
@@ -502,7 +589,27 @@ export const fetchGameVersion = (
     return;
   }
 
-  const data = response.data as any;
+  const payload = response.data;
+  if (!payload) {
+    dispatch({
+      type: FETCH_GAME_VERSION_FAILURE,
+      error: 'Game version response was missing its success payload',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
+  let data: GameVersionResponse;
+  try {
+    data = decodeGameVersionResponse(payload);
+  } catch (error) {
+    console.error('[game-version] rejected server payload:', error);
+    dispatch({
+      type: FETCH_GAME_VERSION_FAILURE,
+      error: error instanceof Error ? error.message : 'Game version response was invalid',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
 
   if (data.Error) {
     console.log('Version getter returned error: ' + data.Error);
@@ -518,7 +625,7 @@ export const fetchGameVersion = (
   const state = getState();
   const chest = selectGameChest(state);
 
-  const expandedBundles = data.Bundles.map((serverBundle: any) => ({
+  const expandedBundles: ServerStateBundle[] = data.Bundles.map((serverBundle) => ({
     ...serverBundle,
     Forms: expandMoveForms(serverBundle.Forms, chest)
   }));
@@ -534,6 +641,10 @@ export const fetchGameVersion = (
   // wasting a bundle queue slot and potentially confusing animation tracking.
 };
 
+function isCurrentGameRoute(state: RootState, route: GameRoute): boolean {
+  return state.game?.name === route.name && state.game?.id === route.id;
+}
+
 /**
  * Animation Actions
  */
@@ -541,7 +652,7 @@ export const fetchGameVersion = (
 /**
  * Enqueue a state bundle for animation playback
  */
-export const enqueueStateBundle = (bundle: any): EnqueueStateBundleAction => {
+export const enqueueStateBundle = (bundle: StateBundle): EnqueueStateBundleAction => {
   return {
     type: ENQUEUE_STATE_BUNDLE,
     bundle
@@ -661,9 +772,9 @@ export const socketError = (error: string): SocketErrorAction => {
  * Used when installing a state bundle
  */
 export const updateViewState = (
-  game: any,
+  game: GameFromServer,
   viewingAsPlayer: number,
-  moveForms: any[] | null
+  moveForms: MoveForm[] | null
 ): UpdateViewStateAction => {
   return {
     type: UPDATE_VIEW_STATE,
@@ -706,7 +817,7 @@ export const setAutoCurrentPlayer = (autoFollow: boolean): SetAutoCurrentPlayerA
 /**
  * Update move forms for the current state
  */
-export const updateMoveForms = (moveForms: any[] | null): UpdateMoveFormsAction => {
+export const updateMoveForms = (moveForms: MoveForm[] | null): UpdateMoveFormsAction => {
   return {
     type: UPDATE_MOVE_FORMS,
     moveForms

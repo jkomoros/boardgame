@@ -71,49 +71,9 @@ func RelativizePaths(from, to string) (string, error) {
 		return "", errors.New("To is not absolute")
 	}
 
-	from = filepath.Clean(from)
-	to = filepath.Clean(to)
-
-	prefix := pathPrefix(from, to)
-
-	if prefix == "" {
-		return "", errors.New("No prefix in common")
-	}
-
-	fromRest := strings.TrimPrefix(from, prefix)
-	toRest := strings.TrimPrefix(to, prefix)
-
-	fromPieces := strings.Split(fromRest, string(filepath.Separator))
-
-	dots := make([]string, len(fromPieces))
-
-	for i := range fromPieces {
-		dots[i] = ".."
-	}
-
-	return filepath.Join(filepath.Join(dots...), toRest), nil
-
-}
-
-func pathPrefix(from, to string) string {
-
-	var overlappingParts []string
-
-	fromParts := strings.Split(from, string(filepath.Separator))
-	toParts := strings.Split(to, string(filepath.Separator))
-
-	for i, fromPart := range fromParts {
-		if i >= len(toParts) {
-			break
-		}
-		toPart := toParts[i]
-
-		if fromPart != toPart {
-			break
-		}
-		overlappingParts = append(overlappingParts, fromPart)
-	}
-
-	return strings.Join(overlappingParts, string(filepath.Separator)) + string(filepath.Separator)
+	// filepath.Rel handles roots, volumes, separator normalization, and parent
+	// traversal without maintaining a second, subtly different path algorithm.
+	// Assembly callers canonicalize symlinked roots before reaching this seam.
+	return filepath.Rel(filepath.Clean(from), filepath.Clean(to))
 
 }

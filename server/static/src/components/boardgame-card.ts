@@ -404,3 +404,9 @@ export class BoardgameCard extends BoardgameComponent {
 }
 
 customElements.define('boardgame-card', BoardgameCard);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-card': BoardgameCard;
+  }
+}

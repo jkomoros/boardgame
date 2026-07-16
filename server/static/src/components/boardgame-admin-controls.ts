@@ -17,6 +17,7 @@ interface GameRoute {
 interface Game {
   NumPlayers: number;
   CurrentPlayerIndex: number;
+  Version: number;
   Finished: boolean;
 }
 
@@ -266,6 +267,16 @@ export class BoardgameAdminControls extends LitElement {
         composed: true
       }));
     }
+
+    if (changedProperties.has('makeMovesAsViewingAsPlayer')
+      || changedProperties.has('viewingAsPlayer')
+      || changedProperties.has('active')) {
+      this.dispatchEvent(new CustomEvent('move-as-player-changed', {
+        detail: { value: this.moveAsPlayer },
+        bubbles: true,
+        composed: true,
+      }));
+    }
   }
 
   render() {
@@ -316,6 +327,7 @@ export class BoardgameAdminControls extends LitElement {
               id="moves"
               .config="${this.moveForms}"
               .gameRoute="${this.gameRoute}"
+              .gameVersion="${this.game?.Version ?? 0}"
               .animating="${this.animating}">
             </boardgame-move-form>
           </div>

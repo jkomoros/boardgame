@@ -8,7 +8,15 @@ import {
   glyphForSlug,
 } from './companion-avatar-catalog.js';
 import { fauxSignInAsGuest } from '../actions/user.js';
-import { apiPath, gamePath } from '../util.js';
+import { apiHttpGet, apiHttpPost, buildApiUrl } from '../api.js';
+import { gamePath } from '../util.js';
+import {
+  decodeJoinResponse,
+  decodeJoinSeatResponse,
+  decodeSeatOptionsResponse,
+  type JoinResponse,
+  type SeatOptionsResponse,
+} from '../types/join-response.js';
 
 /**
  * boardgame-join-view is the phone-side flow for joining a Table+Hand
@@ -33,31 +41,6 @@ import { apiPath, gamePath } from '../util.js';
  * inline. Reduxification can come later if the flow grows.
  */
 type Step = 'code' | 'identity' | 'avatar' | 'avatarCustomize' | 'seat' | 'submitting' | 'error';
-
-interface JoinResponse {
-  gameID: string;
-  gameName: string;
-  gameDisplayName: string;
-  minPlayers: number;
-  maxPlayers: number;
-  currentPlayers: number;
-  requiresSeatPicker: boolean;
-}
-
-interface SeatOptionsSlot {
-  playerIndex: number;
-  label: string;
-  filled: boolean;
-  avatarSlug?: string;
-  displayName?: string;
-}
-
-interface SeatOptionsResponse {
-  gameID: string;
-  gameName: string;
-  slots: SeatOptionsSlot[];
-  requiresSeatPicker: boolean;
-}
 
 // Avatar primaries + name vocabulary live in companion-avatar-catalog.ts —
 // imported above. Swap that module to upgrade the catalog without changing
@@ -238,7 +221,7 @@ export class BoardgameJoinView extends LitElement {
     // future re-auth-protected request) sees the freshest token.
     // Without this, a join older than an hour can't make authenticated
     // calls like /api/join/seat-options or seat-claim retries.
-    const OFFLINE_DEV_MODE = (window as any).CONFIG && (window as any).CONFIG.offline_dev_mode;
+    const OFFLINE_DEV_MODE = Boolean(CONFIG && CONFIG.offline_dev_mode);
     if (!OFFLINE_DEV_MODE) {
       this._unsubscribeIdTokenChanged = firebase.auth().onIdTokenChanged(async (user) => {
         if (!user) {
@@ -279,36 +262,30 @@ export class BoardgameJoinView extends LitElement {
       return;
     }
     try {
-      const res = await fetch(apiPath('join'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-        credentials: 'include',
-      });
-      if (res.status === 429) {
+      const response = await apiHttpPost(buildApiUrl('join'), { code });
+      if (response.status === 429) {
         this._error = 'Too many requests — slow down and try again in a moment';
         return;
       }
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Room not found' }));
-        this._error = body.error || 'Room not found';
+      if (!response.data) {
+        this._error = response.error || response.friendlyError || 'Room not found';
         return;
       }
-      this._joinResponse = await res.json();
+      this._joinResponse = decodeJoinResponse(response.data);
       // Remember the validated code for this tab so a mid-flow reload
       // (which loses _joinResponse and falls back to the code step)
       // doesn't make the player squint at the projector again.
       try { sessionStorage.setItem('join-last-code', code); } catch { /* private mode */ }
       this._setStep('identity');
     } catch (e) {
-      this._error = 'Network error: ' + (e instanceof Error ? e.message : String(e));
+      this._error = 'Unable to join: ' + (e instanceof Error ? e.message : String(e));
     }
   }
 
   private async _continueAsGuest() {
     this._error = '';
     try {
-      const OFFLINE_DEV_MODE = (window as any).CONFIG && (window as any).CONFIG.offline_dev_mode;
+      const OFFLINE_DEV_MODE = Boolean(CONFIG && CONFIG.offline_dev_mode);
       if (OFFLINE_DEV_MODE) {
         // In offline dev mode we don't have Firebase — synthesize a UID and
         // replace the faux persisted identity, mirroring how
@@ -361,19 +338,27 @@ export class BoardgameJoinView extends LitElement {
   private async _fetchSeatOptions() {
     if (!this._joinResponse) return;
     try {
-      const res = await fetch(apiPath('join/seat-options') + '?gameID=' + encodeURIComponent(this._joinResponse.gameID), {
-        credentials: 'include',
+      const response = await apiHttpGet(buildApiUrl('join/seat-options', { gameID: this._joinResponse.gameID }), {
         headers: {
           'Authorization': 'Bearer ' + this._firebaseToken,
         },
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Failed to load seats' }));
-        this._error = body.error || 'Failed to load seats';
+      if (!response.data) {
+        this._error = response.error || response.friendlyError || 'Failed to load seats';
         this._step = 'error';
         return;
       }
-      this._seatOptions = await res.json();
+      const seatOptions = decodeSeatOptionsResponse(response.data);
+      if (seatOptions.gameID !== this._joinResponse.gameID || seatOptions.gameName !== this._joinResponse.gameName) {
+        throw new Error('Seat options identified a different game');
+      }
+      if (seatOptions.requiresSeatPicker !== this._joinResponse.requiresSeatPicker) {
+        throw new Error('Seat options contradicted the room seat-picker policy');
+      }
+      if (seatOptions.slots.length !== this._joinResponse.maxPlayers) {
+        throw new Error('Seat options did not contain exactly one slot per player');
+      }
+      this._seatOptions = seatOptions;
     } catch (e) {
       this._error = 'Network error: ' + (e instanceof Error ? e.message : String(e));
       this._step = 'error';
@@ -392,28 +377,29 @@ export class BoardgameJoinView extends LitElement {
         avatarSlug: this._avatarSlug,
         seatPick: this._selectedSeat !== null ? this._selectedSeat : -1,
       };
-      const res = await fetch(apiPath('join/seat'), {
-        method: 'POST',
+      const response = await apiHttpPost(buildApiUrl('join/seat'), body, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + this._firebaseToken,
         },
-        body: JSON.stringify(body),
-        credentials: 'include',
       });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({ error: 'Failed to join' }));
-        this._error = errBody.error || 'Failed to join';
+      if (!response.data) {
+        this._error = response.error || response.friendlyError || 'Failed to join';
         this._step = this._joinResponse.requiresSeatPicker ? 'seat' : 'avatar';
         return;
       }
-      const seated = await res.json();
+      const seated = decodeJoinSeatResponse(response.data);
+      if (seated.gameID !== this._joinResponse.gameID || seated.gameName !== this._joinResponse.gameName) {
+        throw new Error('Seat result identified a different game');
+      }
+      if (seated.playerIndex >= this._joinResponse.maxPlayers) {
+        throw new Error('Seat result player index was outside this game');
+      }
       // Navigate to the game's Hand view. The surface=hand cookie was set
       // by the server in the response above; the loader at
       // boardgame-render-game.ts will pick the -hand.ts renderer on load.
       window.location.href = gamePath(seated.gameName, seated.gameID);
     } catch (e) {
-      this._error = 'Network error: ' + (e instanceof Error ? e.message : String(e));
+      this._error = 'Unable to claim seat: ' + (e instanceof Error ? e.message : String(e));
       this._step = this._joinResponse.requiresSeatPicker ? 'seat' : 'avatar';
     }
   }

@@ -1,5 +1,7 @@
 import type { ThunkAction } from 'redux-thunk';
 import type { RootState, UserInfo } from '../types/store';
+import { apiPost, buildApiUrl } from '../api.js';
+import { decodeAuthResponse, type AuthResponse } from '../types/auth-response.js';
 
 export const UPDATE_USER = 'UPDATE_USER';
 export const VERIFYING_AUTH = 'VERIFYING_AUTH';
@@ -22,11 +24,6 @@ import {
     selectSignInDialogPassword,
     selectSignInDialogIsCreate
 } from '../selectors.js';
-
-import {
-    apiPath,
-    postFetchParams
-} from '../util.js';
 
 import {
     OFFLINE_DEV_MODE
@@ -258,37 +255,40 @@ const validateCookieWithToken = (token: string): UserThunk<Promise<void>> => asy
         }
     }
 
-    const body = "uid=" + uid + "&token=" + token + "&email=" + email + "&photo=" + photoUrl + "&displayname=" + displayName;
+    const authResponse = await apiPost<unknown>(buildApiUrl('auth'), {
+        uid,
+        token,
+        email,
+        photo: photoUrl,
+        displayname: displayName,
+    }, 'application/x-www-form-urlencoded');
 
-    let authResponse = await fetch(apiPath('auth'), postFetchParams(body));
-
-    if (authResponse.status != 200) {
-        //TODO: show an error here to user
-        console.warn(authResponse);
+    if (!authResponse.data) {
+        const message = authResponse.friendlyError || authResponse.error || 'Authentication failed';
+        console.error('[auth] request failed:', authResponse.error || message);
         dispatch(updateUser(null, false));
+        dispatch(updateSignInError({ message }));
+        return;
+    }
+    let authJSONResponse: AuthResponse;
+    try {
+        authJSONResponse = decodeAuthResponse(authResponse.data);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Invalid authentication response';
+        console.error('[auth] rejected server payload:', error);
+        dispatch(updateUser(null, false));
+        dispatch(updateSignInError({ message }));
         return;
     }
 
-    let authJSONResponse = await authResponse.json() as {
-        Status: string;
-        User?: UserInfo;
-        AdminAllowed?: boolean;
-    };
+    dispatch(updateSignInError({ message: '' }));
+    dispatch(updateUser(authJSONResponse.User, authJSONResponse.AdminAllowed));
 
-    if (authJSONResponse.Status != "Success") {
-        //TODO: show an error here to user
-        console.warn(authJSONResponse);
-        dispatch(updateUser(null, false));
-        return;
-      }
-
-      dispatch(updateUser(authJSONResponse.User || null, authJSONResponse.AdminAllowed || false));
-
-      //Must have been a log out
-      if (!authJSONResponse.User) return;
-      if (!signedInAction) return;
-      signedInAction();
-      signedInAction = null;
+    //Must have been a log out
+    if (!authJSONResponse.User) return;
+    if (!signedInAction) return;
+    signedInAction();
+    signedInAction = null;
 
 };
 

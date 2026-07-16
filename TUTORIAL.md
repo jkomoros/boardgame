@@ -1271,7 +1271,7 @@ Each stack must be sanitized the same way--if the components are hidden, then **
 
 The way we do it is by **merging** two stacks together, so they can be used logically as one read-only stack, both server and client-side. There are two types of merged stacks, and they're both created in a similar way. ``NewOveralappedStack`` returns an overlapped stack, and `NewConcatenatedStack` returns a concatenated stack. An overlapped stack takes the first stack provided and returns those components--unless that slot is empty, in which case whatever is in that location of the second slot is returned. For overlapped stacks, both stacks must be fixed size, and they both must be the same size. Concatenated stacks simply have all of the slots of the first stack followed by all of the slots of the second stack.
 
-We can use tag-based auto-inflation for merged stacks, too. We use either `concatenate` or `overlap` and then pass the property names of the input stacks. Note that because Merged Stacks are fundamentally read only, they must be stored in an immutable stack property in your state object. (One of the rare cases where you want a `MergedStack` or `Stack` property but not a `MutableStack`.) Note that to use tag-based auto inflation the properties must be in the same object. If you want to combine two stacks in different SubStates, you can return them as a Computed Property instead (see the section below on computed properties).
+We can use tag-based auto-inflation for merged stacks, too. We use either `concatenate` or `overlap` and then pass the property names of the input stacks. Note that because Merged Stacks are fundamentally read only, they must be stored in an immutable stack property in your state object. (One of the rare cases where you want a `MergedStack` or `Stack` property but not a `MutableStack`.) Tag-based auto-inflation requires the source properties to live on the same object. If the source stacks live in different SubStates, expose the small derived value the renderer actually needs (for example, component IDs or a count) as a typed computed property; stack objects inside `Computed` are not expanded by the client.
 
 When you use merged stacks, the convention is to name the hidden stack `HiddenFoo`, the visible stack `VisibleFoo`, and the merged stack that combines them just `Foo`.
 
@@ -1373,54 +1373,54 @@ manage these kinds of concepts and security.
 
 ### Renderers
 
-The renderer is a web component with a known name and defined in a known
-location that will be instantiated and passed the state object. This is the
-primary client-side object that you should define. Your renderer will be passed
-four attributes:
+The renderer is a Lit custom element in a known location. It is the primary
+client-side object you define. Extend the generated `GameRenderer`; it receives
+strict reactive properties including:
 
-* **State**, which is the state for the current version, with many properties expanded for
-convenience. This state object will contain all computed properties, for each
-Stack will have the DynamicValues for the component added as a direct property
-of the component, and will have the computed TimeRemaining provided on the
-timer, continuously updated as time passes.
-* **Diagram**, which is the result of your GameDelegate's Diagram() method for this state. It's
-provided primarily as a useful fallback.
-* **viewingAsPlayer**, which is the index of the player who is viewing the game. This might be -1 if
-the viewer is a generic observer who isn't themselves playing the game, or -2 if
-the player is the all-powerful Admin.
-* **currentPlayerIndex**, the index of the player whose turn it is, according to your GameDelegate's
-CurrentPlayerIndex method.
+* **state**, the deeply readonly, expanded snapshot for the current version.
+  Stacks contain visible, hidden, or empty components. Visible component data
+  lives under typed `.Values` and optional `.DynamicValues` properties.
+* **chest**, the sanitized static component catalogue and enum metadata.
+* **diagram**, the result of your `GameDelegate.Diagram()` method, retained as a
+  useful fallback.
+* **viewingAsPlayer** and **currentPlayerIndex**, including the framework's
+  named observer/admin/simultaneous-player sentinels.
+* Typed move actions, legality, player presentations, outcome state, animation
+  state, and stable timer services through the generated base.
 
-The job of your renderer is to take those attributes, render a meaningful visual
-representation, and emit events of type `propose-move` when a player has
-proposed a specific move that should be passed to the server and proposed. In
-practice many renderers look quite similar and basically just define where to
-stamp out components.
+The job of your renderer is to map that snapshot into meaningful Lit markup and
+bind typed actions to framework controls. The framework actions own proposal
+transport, server-authoritative legality, pending/stale state, animation gates,
+and accessible disabled explanations. Renderers do not emit `propose-move`
+events or duplicate game rules.
 
 #### location of renderers
 
 The renderer must be in a specific, known location so it can be imported.
 
-Your renderer web component should be named `boardgame-render-game-GAMENAME`,
-where `GAMENAME` is the name of your game (what your GameDelegate returns from
-the Name() method).
-
-The import will be looked for in `../../game-src/GAMENAME/boardgame-render-game-
-GAMENAME.js`.
+Put the ordinary renderer in
+`client/boardgame-render-game-GAMENAME.ts`, where `GAMENAME` is what your
+`GameDelegate.Name()` returns. Import `GameRenderer` and
+`registerGameRenderer` from the generated `client/_game_renderer.js` module;
+the decorator owns the exact custom-element tag, so you never hand-type it.
 
 Your game type might be imported into many different servers, so it's best
 practice to keep the renderer definition near the package defining your server
 code.
 
-The idiotmatic way to do this is, within the package that defines your game
+The idiomatic way to do this is, within the package that defines your game
 type's go code, have a sub-folder structure, as you can see by looking at
 memory:
 
 ```
 memory/
 ├── client/
-│   ├── boardgame-render-game-memory.js
-│   └── boardgame-render-player-info-memory.js
+│   ├── _game_renderer.ts
+│   ├── _move_args.ts
+│   ├── _move_names.ts
+│   ├── _types.ts
+│   ├── boardgame-render-game-memory.ts
+│   └── boardgame-render-player-info-memory.ts
 ├── agent.go
 ├── agent_test.go
 ├── auto_reader.go
@@ -1431,10 +1431,12 @@ memory/
 └── state.go
 ```
 
-(We'll get to what `boardgame-render-player-info-memory.js` in just a bit).
+(We'll get to `boardgame-render-player-info-memory.ts` in a bit.)
 
-When a server is set up (using `boadgame-util build static`), a symlink is
-created from the server resources to the client folders for each game.
+`boardgame-util serve` assembles configured game clients into the development
+package. `boardgame-util build static` does the same for production, and
+`boardgame-util check-client` performs the strict isolated compile/freshness
+gate without starting a server.
 
 By following this convention, you cleanly keep your client views for a game next
 to the server logic, and also make it easy to import the game package into
@@ -1452,7 +1454,7 @@ chiefly concerned with databinding the state object into a specific collection o
 Many games make use of cards in different stacks. Implementing styling and
 animations (especially animating from one stack to another) is challenging to
 get right. Luckily, two key components, `boardgame-card` and `boardgame-component-
-stack`, when used in conjunction idiotmatically, almost always do exactly what
+stack`, when used together idiomatically, almost always do exactly what
 you want using idiomatic CSS layout with things like flexbox and grid to lay them out and then, with minimal configuration, have high-quality, performant animations created.
 Their implementation is non-trivial and handles many edge cases and conditions that are not immediately obvious. They use the `Id` machinery briefly described in the Sanitization section above to keep track of which cards--even cards that are hidden--are which in between states and then animate the cards moving from stack to stack appropriately. They even handle cases like cards flipping from visible to hidden--if done naively, the content of the card would disappear immediately before the flip animation plays! In general, it is strongly recommended to use these components.
 
@@ -1461,84 +1463,691 @@ but in practice it is best to bind their `item` attribute to each component item
 
 boardgame-card's size can be affected by two css properties: --component-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate smoothly.
 
-It can be finicky to set all of the cards correctly for the animation to work as
-you want; the easiest way is to set boardgame-card-stack's stack property to the
-stack in the state, and then ensure you have a template for that deck defined in a `<boardgame-deck-defaults>` element.
+It can be finicky to keep card DOM identity stable enough for animation. Define
+one renderer-scoped Lit view and give it to each stack that displays that deck.
+The generated stack type makes component values strict, and the discriminated
+`kind` forces unusual sanitized states to be handled deliberately:
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to use the `boardgame-deck-defaults` element in your renderer's template and include a template for your deck.
+```typescript
+import { cardView, html } from '../../src/client.js';
+import type { GameState } from './_types.js';
 
-```html
-<!-- define a simple front if no processing required -->
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-      <div>
-        {{item.Values.Type}}
-      </div>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
-<!-- boardgame-component-stacks that print from the deck `cards` will automatically stamp that item -->
+private readonly cards = cardView<GameState['Cards']>({
+  render: ({ kind, component }) => kind === 'visible'
+    ? html`<div>${component.Values.Type}</div>`
+    : null,
+  properties: ({ kind }) => ({
+    rotated: true,
+    faceUp: kind === 'visible',
+  }),
+});
 ```
 
-Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
+`kind` is `visible`, `hidden`, or `empty`. A visible component has the exact
+generated `.Values` and optional `.DynamicValues` types. A hidden component is
+intentionally opaque; render no front content and the standard card displays
+its back. An empty sized-stack slot becomes a spacer. `cardView` and `tokenView`
+type-check standard host properties. `componentView` is the escape hatch for a
+custom element extending `BoardgameComponent`.
 
-Then stamping those components is as simple as using a `boardgame-component-stack` and databinding in the stack property:
+Create views once as renderer fields, not inside `render()`. The stable recipe
+lets the stack retain component hosts across snapshots, which preserves focus,
+pooling, and FLIP animation identity. Each factory used with `componentView`
+must return a fresh registered component element of one consistent type; invalid
+factories fail loudly.
 
-```html
-<boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
-</boardgame-component-stack>
+Import the renderer facade (`../../src/client.js`) once; it registers the
+curated card, token, stack, board, action, status, layout, and workflow elements.
+Do not add side-effect imports from `src/components`. The strict client checker
+rejects deep imports for facade-owned elements so a renderer cannot accidentally
+depend on an undocumented transitive registration order.
+
+Start an ordinary solo renderer with `boardgame-game-surface`. It supplies the
+game's semantic heading, centered responsive bounds, safe narrow-screen
+spacing, and named regions without imposing a visual theme or knowing anything
+about your state:
+
+```typescript
+return html`<boardgame-game-surface heading="Memory">
+  <boardgame-game-outcome
+    slot="status"
+    .finished=${this.gameFinished}
+    .animating=${this.animating}
+    .winners=${this.gameWinners}>
+  </boardgame-game-outcome>
+
+  <!-- The board, zones, and other primary content use the default slot. -->
+
+  <boardgame-action-bar slot="actions" label="Memory actions">
+    <!-- Typed action controls. -->
+  </boardgame-action-bar>
+
+  <boardgame-turn-status
+    slot="status"
+    .turn=${this.turnStatus}>
+  </boardgame-turn-status>
+</boardgame-game-surface>`;
 ```
 
-The `boardgame-component-stack` will automatically instantiate and bind components as defined in the defaults for that deck name.
+The optional `status`, `actions`, and `footer` regions disappear when their
+slots are unassigned; `header` content sits beside the required heading. The
+heading is visible by default; use `heading-level` only
+to fit the surrounding document outline, and `hide-heading` only when another
+visible heading already names the game. Style the stable `surface`, `header`,
+`heading`, `status`, `content`, `actions`, and `footer` parts, or tune
+`--boardgame-game-surface-max-width`, `--boardgame-game-surface-padding`, and
+`--boardgame-game-surface-gap`. Drop down to ordinary Lit markup when a game
+needs a deliberately unusual shell.
 
-Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
+`this.turnStatus` is the generated renderer base's complete turn-presentation
+context. The component shows “Your turn” to the acting player, names the current
+player for another player or an observer, describes simultaneous turns, and
+does not mislabel the admin perspective. It withholds stale announcements while
+state animations are running and after the game finishes. Use `.playerLabels`
+for display names, or `active-label` / `simultaneous-label` to adjust the two
+standard messages. Custom phase, readiness, and multi-step workflow text remains
+ordinary game-owned Lit content beside this primitive.
 
-```html
-<boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
-</boardgame-component-stack>
+For simultaneous phases where readiness itself is public, use the typed
+`boardgame-readiness` building block instead of hand-rolling counts, progress,
+and status announcements:
+
+```typescript
+const voters = this.state.Players.map((player, playerIndex) => ({
+  key: playerIndex,
+  label: this.seatPresentations[playerIndex]?.displayName ?? `Player ${playerIndex}`,
+  state: player.Eliminated ? 'not-required'
+    : player.Vote >= 0 ? 'ready' : 'waiting',
+} as const));
+
+html`<boardgame-readiness
+  label="Day votes"
+  complete-label="All votes cast"
+  progress-label="votes cast"
+  ready-label="Voted"
+  waiting-label="Thinking"
+  not-required-label="Eliminated"
+  .participants=${voters}>
+</boardgame-readiness>`;
 ```
 
-If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
+The `participants` property is a strict array of stable string/number keys,
+non-empty labels, and the closed states `ready`, `waiting`, or `not-required`.
+The component validates uniqueness and bounds, renders a visible heading,
+progress, participant states, and a polite atomic summary, and supports the
+closed `list` (default) and `summary` views. Empty required sets are explicitly
+“No participants are required,” never misleadingly complete. Theme its exported
+parts or `--boardgame-readiness-*` tokens. The optional progress and three state
+labels let game language say “votes cast,” “Voted,” or “Eliminated” without
+reimplementing the state model.
 
-```html
-<link rel='import' href='my-complex-card.html'>
-<boardgame-deck-defaults>
-  <template deck="cards">
-    <boardgame-card>
-    	<my-complex-card item="{{item}}"></my-complex-card>
-    </boardgame-card>
-  </template>
-</boardgame-deck-defaults>
+Only pass readiness already safe for the current viewer. This component does
+not infer private choices, make client state secret, or coordinate a reveal.
+Submit choices through ordinary typed snapshot-bound actions; model visibility
+and synchronized reveal in authoritative game state first.
+
+The facade also exports `ObserverPlayerIndex`, `AdminPlayerIndex`, and
+`AnyPlayerIndex` with the same values and names as Go. Prefer these constants and
+the `isConcretePlayerIndex()` / `isKnownPlayerIndex()` guards over client-side
+magic negative numbers.
+
+Then stamping those components is as simple as binding a sanitized stack to a
+`boardgame-component-zone` from your Lit renderer:
+
+```typescript
+html`<boardgame-component-zone
+  label="Won cards"
+  layout="stack"
+  messy
+  .stack=${this.state?.Players[0]?.WonCards ?? null}
+  .componentView=${this.cards}>
+</boardgame-component-zone>`
 ```
+
+The zone supplies a named semantic region, visible heading, occupied-item count,
+responsive surface, empty state, CSS parts, and theme tokens. With no actions it
+automatically makes every component display-only. Add `.componentActions` and
+the exact bound actions control interactivity, so there is no separate disabled
+flag to forget. Use `hide-count` or `hide-empty-state` only when those automatic
+elements are inappropriate. Use its `heading-actions` slot for small zone-local controls and
+its default slot for status or callout content. Drop down to
+`boardgame-component-stack` when you need board/spatial geometry or unusual
+animation plumbing.
+
+When a renderer has one arbitrary panel per player, let
+`boardgame-player-grid` own the collection layout instead of repeating flexbox
+breakpoints in the game:
+
+```typescript
+html`<boardgame-player-grid>
+  ${this.state?.Players.map((player, playerIndex) => html`
+    <boardgame-component-zone
+      label=${`Player ${playerIndex + 1}'s cards`}
+      .stack=${player.Hand}
+      .componentView=${this.cards}>
+    </boardgame-component-zone>
+  `)}
+</boardgame-player-grid>`
+```
+
+It provides a named Players region, visible heading, useful empty state, and an
+auto-fitting grid that collapses to one column in narrow containers. The
+children remain ordinary game-owned Lit content, so a panel can be a component
+zone, score card, controls, or any custom element. Use `label` for a different
+collection name, `hide-heading` when the visible heading would be redundant,
+and `--boardgame-player-grid-min-width` / `--boardgame-player-grid-gap` for
+layout tuning. Blank labels, invalid heading levels, and blank enabled empty
+states fail loudly.
+
+When each player needs more than one zone or value, use
+`boardgame-player-panel` as the grid child:
+
+```typescript
+html`<boardgame-player-grid>
+  ${this.state?.Players.map((player, playerIndex) => html`
+    <boardgame-player-panel
+        label=${`Player ${playerIndex + 1}`}
+        .active=${playerIndex === this.currentPlayerIndex}>
+      <div>Score <boardgame-status-text .value=${player.Score}></boardgame-status-text></div>
+      <boardgame-component-zone
+        label="Hand"
+        .stack=${player.Hand}
+        .componentView=${this.cards}>
+      </boardgame-component-zone>
+      <boardgame-action-button slot="actions" .action=${this.move(MoveNames.Pass)}>
+        Pass
+      </boardgame-action-button>
+    </boardgame-player-panel>
+  `)}
+</boardgame-player-grid>`;
+```
+
+The required label, heading, padding, border, content flow, and current-player
+badge are automatic. `header`, `status`, `actions`, and `footer` slots keep
+panel-local content structured; unassigned optional regions collapse. The
+`active` property adds both styling and `aria-current`, while elimination,
+selection, roles, and other game-specific states remain your own classes and
+content. Use `::part(panel)` and the `--boardgame-player-panel-*` tokens for a
+distinctive design, or keep arbitrary markup as a grid child when this semantic
+shape does not fit.
+
+The internal stack creates stable card hosts and rerenders their light-DOM content with
+Lit whenever their logical slot changes. The view is local to this renderer, so
+two games may use the same deck name without a global registration collision.
+
+`layout` is a strict choice of `stack`, `grid`, `fan`, `pile`, `spread`,
+`board`, or `spatial`; misspellings fail both TypeScript and at runtime. If a UI
+selects a layout dynamically, narrow its string with the exported
+`isStackLayout(value)` guard before assignment. Invalid board dimensions, faux
+component counts, stagger values, and spatial coordinates also fail loudly
+instead of producing partially positioned components.
+
+Prefer the view's typed `properties` callback for component-dependent card/token
+presentation. Use `this.cards.withProperties({ rotated: true })` for typed
+stack-specific properties; this preserves host identity even when values change.
+`components-disabled` is the explicit display-only common case.
+`.unsafeComponentAttrs` remains an intentionally named escape hatch for custom
+host properties the typed view cannot express. Do not put move names or move
+arguments in it. For one typed action per slot, create a target
+collection and pass its actions in stack order:
+
+```typescript
+const cards = this.state?.Game.Cards ?? null;
+const reveals = this.move(MoveNames.RevealCard).targets(
+  cards?.Components.map((_card, cardIndex) => cardIndex) ?? [],
+  CardIndex => ({ CardIndex }),
+);
+
+return html`<boardgame-component-zone
+  label="Cards"
+  layout="grid"
+  .stack=${cards}
+  .componentView=${this.cards}
+  .componentActions=${reveals.candidates.map(candidate => candidate.action)}>
+</boardgame-component-zone>`;
+```
+
+That is the complete common-case interaction wiring. The stack owns pointer and
+Enter/Space activation, live legality and pending state, `aria-disabled`, focus
+semantics, explanations, subscriptions, and cleanup while preserving component
+identity and movement animations. Use `null` at a slot that is deliberately not
+interactive. The array must contain exactly one entry per stack slot; a mismatch
+or an unbound action throws an actionable error instead of silently targeting
+the wrong card. Removed proposal keys such as `proposeMove`, `indexAttributes`,
+and `data-arg-*` are rejected even through `.unsafeComponentAttrs`; they cannot
+make a component look interactive or bypass the typed action path.
+
+For more complex processing, render ordinary Lit content in the view callback.
+If the host itself must be custom, use `componentView()` with a factory that
+returns a fresh registered element extending `BoardgameComponent`. The framework
+checks that the factory never reuses an element or changes host type.
+
+For card art, rule reminders, maps, or other content that deserves a larger
+view, compose the same game-owned presentation into the inspector. The common
+case needs no event handlers or modal state:
+
+```typescript
+html`<boardgame-inspector
+  label="Moon vision"
+  description="A moonlit path through a forest">
+  <img slot="thumbnail" src=${moonThumbnail} alt="">
+  <figure slot="detail">
+    <img src=${moonArtwork} alt="Moonlit forest path">
+    <figcaption>Follow the path beyond the old oak.</figcaption>
+  </figure>
+</boardgame-inspector>`
+```
+
+The framework turns `thumbnail` into a named 44-pixel-minimum trigger and owns
+the native modal focus trap, Escape and backdrop dismissal, focus restoration,
+scroll containment, phone bottom-sheet sizing, forced colors, and reduced
+motion. The dialog's visible `label` is required; `trigger-label` overrides the
+default “Inspect …” name. Omit the thumbnail for a useful text trigger. Empty
+labels, nested interactive thumbnail controls, or opening without meaningful
+`detail` content fail loudly; the thumbnail is presentation inside the
+framework-owned button.
+
+Set `.dismissible=${false}` only when accidental Escape/backdrop dismissal would
+be harmful; the visible Close control always remains. For route- or
+renderer-owned state, bind the boolean `open` property or call `show()` and
+`close()`. The typed `inspector-open-changed` event reports `trigger`, `escape`,
+`backdrop`, `close-button`, or `programmatic` without making those events game
+state. Theme the exported trigger, dialog, panel, header, title, description,
+close, and content parts or the `--boardgame-inspector-*` tokens. This primitive
+is for presentation/inspection; multi-step trading or configuration workflows
+should keep their domain state in a dedicated controller.
 
 ##### boardgame-fading-text
 
 In many cases you want to draw attention to values that change as the result of moves. For example, when it's the current player's turn you might want to make that fact obvious. A common way to do that is to have that text expand from that location and fade as it does so, drawing attention to the changed value. `boardgame-fading-text` will do this for you.
 
-The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block. When the animation is over the text will be invisible. This is great for animating messages like "Your Turn" that play centered in the middle of your view when it's the user's turn. There are different policies you can apply to control how this text triggers and what text it shows, see the component documenation for more.
+The `boardgame-fading-text` element renders a polite live-region callout when
+its typed scalar `.trigger` changes. `message="Your Turn"` keeps fixed text;
+`auto-message="new"`, `"diff"`, or `"diff-up"` derives text from the new
+value. `suppress="falsey"` and `"truthy"` cover conditional callouts. Invalid
+policies and non-finite numeric triggers fail loudly. The font size can be
+changed with `--message-font-size`; reduced-motion preferences collapse the
+effect to 1ms while retaining the announcement.
 
 In many cases there are parts of your UI that show a value in them, and when that value changes you want to draw attention to it. For example, if you have some text that shows the number of cards in a given stack, you might want users to notice when that changes.
 
-You can use `boardgame-status-text` to render text that will automatically show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
+Use `boardgame-status-text` when a displayed string or number should call
+attention to changes. Bind its typed `.value` property; it displays the current
+value, announces changes politely to assistive technology, and uses the
+`diff-up` fading strategy by default. Set `.autoMessage=${'diff'}`, `'new'`, or
+`'fixed'` when that better describes the change.
 
-```html
-<!-- you can bind to message attribute -->
-<boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
-
-<!-- you can also just include content which automatically sets message -->
-<boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
+```typescript
+html`<boardgame-status-text
+  .value=${this.state?.Game.Cards.Components.length ?? 0}>
+</boardgame-status-text>`
 ```
+
+Game timers are stable references in renderer state, not clocks that force the
+whole game snapshot to change every animation frame. Bind one to the timer
+primitive for an accessible label, countdown, smooth progress, idle hiding,
+and an expiry announcement:
+
+```typescript
+html`<boardgame-timer
+  label="Cards hide in"
+  .timer=${this.state?.Game.HideCardsTimer ?? null}>
+</boardgame-timer>`
+```
+
+Use `format="clock"` for `m:ss`, `hide-progress` or `hide-value` when only one
+representation is useful, and the `timer`, `header`, `label`, `value`, and
+`progress` CSS parts plus `--boardgame-timer-*` tokens for styling. The
+generated timer object intentionally exposes only stable `ID`/`IsTimer`
+identity; live values come from the route-scoped clock so unrelated renderer
+and roster content does not rerender at 60Hz.
+
+For custom UI, construct `new TimerController(this, () => timerReference)` in a
+Lit element and render `controller.reading`. The default second cadence updates
+only when the displayed second changes; request `{ cadence: 'frame' }` only for
+continuous visuals. Controllers unsubscribe on disconnect and fail loudly when
+mounted outside a game view or given a malformed reference.
 
 ##### boardgame-base-game-renderer
 
-`boardgame-base-game-renderer` is a superclass that it generally makes sense for your renderer to subclass. It provides two main capabilities: move proposal via markup, and server-authoritative move legality.
+Game renderers should extend the generated `GameRenderer` in
+`client/_game_renderer.ts`. It binds `boardgame-base-game-renderer` to the
+generated state, component, move-name, native move-input, schema-fingerprint,
+and renderer-tag contracts for your game.
 
-**Move Proposal:** If an interface element is tapped that has a `propose-move="MOVENAME"`, then it will automatically dispatch a move to the engine to propose that move. You can also define keys/values to be packaged up with the move as attributes in the format `data-arg-my-arg$="val"`, which will result in the ProposeMove event having an arguments bundle of `{MyArg:"val"}`.
+**Move Proposal:** Build controls from typed actions. A zero-input move is the
+one-liner `this.move(MoveNames.RollDice)`. A move with creator-supplied fields
+uses `this.move(MoveNames.PlaceToken).with({ Slot: 3 })`; required-input actions
+do not expose `propose()` until the exact generated fields are bound.
+
+Prefer a framework control's `.action` property because it owns activation,
+disabled/pending state, accessible explanations, and error presentation:
+
+```typescript
+html`<boardgame-action-button .action=${this.move(MoveNames.DoneTurn)}>
+  Done
+</boardgame-action-button>`
+
+html`<boardgame-die
+  .item=${this.state?.Game.Die.Components[0]}
+  .action=${this.move(MoveNames.RollDice)}>
+</boardgame-die>`
+```
+
+For a custom native control, prefer the element-part binding adapter. It owns
+disabled, pending, title, and ARIA state while connected and restores the
+element's original state when detached. It is proven with Material Web buttons:
+
+```typescript
+html`<md-filled-button ${bindMoveAction(this.move(MoveNames.RollDice))}>
+  Roll
+</md-filled-button>`
+```
+
+Pass `{ disabled: true }` as the adapter's second argument to combine a local
+application constraint with the action state. Since an arbitrary element-part
+cannot create a visible explanation next to itself, prefer
+`boardgame-action-button` whenever the framework control fits; it includes a
+live visible status. The adapter provides `title` and ARIA explanation only.
+Both controls keep transient preview failures activatable: activating again
+retries the legality check before proposing.
+
+`boardgame-action-button` requires visible text so controls cannot silently ship
+without an accessible name. For an icon-only control, set its typed
+`label="Draw a card"`. Invalid or unbound actions throw an actionable authoring
+error. Pending submissions automatically show a reduced-motion-safe spinner;
+the internal `button`, `label`, `spinner`, and `status` CSS parts plus
+`--boardgame-action-background` and `--boardgame-action-color` allow themed
+renderers without replacing its interaction behavior.
+
+Group related choices with the facade-registered action bar. It supplies group
+semantics, consistent spacing, and switches from a wrapping row to full-width
+controls when its own container is narrow:
+
+```typescript
+html`<boardgame-action-bar label="Turn actions">
+  <boardgame-action-button .action=${this.move(MoveNames.Hit)}>Hit</boardgame-action-button>
+  <boardgame-action-button .action=${this.move(MoveNames.Stand)}>Stand</boardgame-action-button>
+</boardgame-action-bar>`
+```
+
+Set `orientation="horizontal"` to opt out of responsive stacking or
+`orientation="vertical"` to stack at every size. The typed `alignment` values
+are `start`, `center`, `end`, and `space-between`; invalid values and blank
+accessible labels fail loudly. Theme with `--boardgame-action-gap` or the
+bar's `bar` CSS part.
+
+Render the server-authoritative verdict with the outcome primitive. It stays out
+of the DOM while the final animation is running, then appears and announces the
+result only after the board settles:
+
+```typescript
+html`<boardgame-game-outcome
+  .finished=${this.gameFinished}
+  .animating=${this.animating}
+  .winners=${this.gameWinners}
+  .viewer=${this.viewingAsPlayer >= 0 ? this.viewingAsPlayer : null}>
+</boardgame-game-outcome>`
+```
+
+A `null` viewer produces a shared/public “Player N wins” verdict; a player index
+produces “You won” or “You lost.” Empty winners on a finished game means a draw.
+Table renderers may pass `.winnerLabels` in winner order for display names.
+Duplicate/invalid winners, premature winners, label mismatches, and sentinel
+viewer indexes fail loudly. Theme the `outcome`, `title`, `message`, and `winner`
+parts or the `--boardgame-outcome-*` tokens; reduced motion is automatic.
+
+For a board or other set of independent targets, create one typed target action
+directly from the unbound move. The mapper receives each native key and must
+return the exact generated move input:
+
+```typescript
+const slots = this.state?.Game.Slots;
+const places = slots
+  ? this.move(MoveNames.PlaceToken).targets(
+      slots.Components.map((_, slot) => slot),
+      slot => ({ Slot: slot }),
+    )
+  : null;
+
+return html`<boardgame-game-board
+  rows="3"
+  cols="3"
+  .stack=${slots}
+  .action=${places}>
+</boardgame-game-board>`;
+```
+
+`targets()` returns a headless `TargetAction<Key>` whose candidates each carry
+the same canonical `BoundMoveAction` used by ordinary controls. It batches all
+candidate legality checks into one version-bound request, correlates results by
+opaque ID, rejects stale or malformed responses, and preserves the global
+single-submission gate. Recreating the same collection during Lit rendering is
+cached; it does not refetch or fan out into one request per square. Call
+`targets()` on `this.move(name)`, not on an already-bound `.with(...)` action.
+If two distinct UI regions intentionally submit the same input, pass
+`{ allowDuplicateInputs: true }` as the third argument; duplicate inputs are a
+loud error by default because they usually indicate a mapper bug.
+
+`boardgame-game-board` is the row-major presentation adapter for numeric keys.
+It validates that dimensions, stack cardinality, target keys, and accessible
+labels agree, then supplies native buttons, roving arrow/Home/End navigation,
+guarded `aria-disabled` targets, pending state, and visible failures. Illegal
+targets remain focusable so keyboard and screen-reader users can discover the
+reason. Use `.labelFor=${...}` when its default “B1, occupied” labels are not
+specific enough.
+
+For a menu of ordinary labeled choices—players to vote for, cards to name, or
+actions scoped by a string key—keep the exact target keys and labels together:
+
+```typescript
+const votes = this.move(MoveNames.CastVote).targets(
+  eligiblePlayerIndexes,
+  VoteTarget => ({ VoteTarget }),
+);
+
+return html`<boardgame-target-list
+  label="Vote to eliminate"
+  .choices=${targetList(votes, playerIndex => displayNameFor(playerIndex))}>
+</boardgame-target-list>`;
+```
+
+`targetList()` checks the label callback against the exact target-key union and
+rejects blank, excessive, or throwing labels. `boardgame-target-list` starts the
+single batched preview, renders every choice as a native action button, keeps
+illegal choices visible with their reasons, provides list/heading/empty-state
+semantics, and supports `layout="grid"` for wider choices. Forged bindings,
+blank labels, invalid heading levels, and unknown layouts fail loudly. For rich
+game-specific rows such as a card name plus rule text, render
+`target.candidates` directly and bind each candidate's `.action`; the headless
+`TargetAction` deliberately has no layout assumptions.
+
+For a source-then-destination board (checkers, chess, tactical movement), add a
+single Lit reactive controller. It resets selection automatically when the
+renderer snapshot changes; the ordinary target action still owns all legality
+and submission behavior:
+
+```typescript
+private readonly moveToken = new SourceDestinationController<number>(this);
+
+render() {
+  const spaces = this.state?.Game.Spaces ?? null;
+  const components = spaces?.Components ?? [];
+  const playerColor = this.state?.Players[this.proposingAsPlayer]?.Color;
+  const interaction = this.moveToken.bind({
+    sources: components.flatMap((piece, index) =>
+      isVisibleComponent(piece) && piece.Values.Color === playerColor
+        ? [index]
+        : []),
+    destinations: TokenIndexToMove => this.move(MoveNames.MoveToken).targets(
+      components.flatMap((piece, SpaceIndex) => piece ? [] : [SpaceIndex]),
+      SpaceIndex => ({ TokenIndexToMove, SpaceIndex }),
+    ),
+  });
+
+  return html`<boardgame-game-board
+    rows="8" cols="8"
+    .stack=${spaces}
+    .sourceDestination=${interaction}>
+  </boardgame-game-board>`;
+}
+```
+
+The board owns re-selection, Escape-to-cancel, accessible selected/source
+labels, legal-destination highlighting, and clearing after success. Illegal
+destinations keep the source selected and expose the server reason. Source and
+destination keys must be disjoint, in range, finite, and unique; ambiguous
+configuration fails loudly. Creators do not maintain a parallel selected index,
+preview request, disabled-space array, string serialization, or click handler.
+
+For a turn assembled locally before one exact move—word tiles, formation
+orders, route planning, or several resource assignments—use a placement draft.
+It owns the local item-to-target state and ordinary undo/clear controls while
+the final commit remains a generated, server-previewed move action:
+
+```typescript
+import { PlacementDraftController } from '../../src/client.js';
+
+private readonly wordDraft = new PlacementDraftController<string, number>(this);
+
+render() {
+  const rack = this.state?.Players[this.proposingAsPlayer]?.Rack;
+  const tileIDs = rack?.Components.flatMap(tile => tile ? [tile.ID] : []) ?? [];
+  const squares = Array.from({ length: 225 }, (_, index) => index);
+  const draft = this.wordDraft.bind({
+    items: tileIDs,
+    targets: squares,
+    minPlacements: 1,
+    maxPlacements: 7,
+    action: placements => this.move(MoveNames.PlayTiles).with({
+      // The game chooses its generated wire model; the draft never submits itself.
+      Placements: placements.map(({ item, target }) => `${item}:${target}`).join(','),
+    }),
+  });
+
+  return html`
+    <div aria-label="Rack">
+      ${tileIDs.map(id => html`<boardgame-placement-item
+        .item=${draft.item(id)}
+        label=${`Select tile ${id}`}>
+        <word-tile .tileID=${id}></word-tile>
+      </boardgame-placement-item>`)}
+    </div>
+    <boardgame-spatial-board
+      board-label="Word board"
+      .artwork=${wordBoardArtwork}
+      .placementDraft=${draft}>
+    </boardgame-spatial-board>
+    <boardgame-draft-controls
+      label="Word placement"
+      commit-label="Play word"
+      .draft=${draft}>
+    </boardgame-draft-controls>`;
+}
+```
+
+`selectItem()` followed by `place()` is the required keyboard/click path.
+`draft.item(id)` gives `boardgame-placement-item` a compile-time-correlated,
+44px native selector with pressed, placed, capacity, focus, fallback, and
+content-safety behavior. On authored SVG or raster artwork,
+`.placementDraft=${draft}` makes the board's exact geometry keys the destination
+controls, including the accessible space list and disabled reasons; combining
+it with `.action` or legacy `disabledSpaces` fails loudly. For custom target
+markup, `draft.target(key)` provides the same `canPlace`, `reason`, occupancy,
+and checked `place()` binding. A plain rectangular board uses the identical
+composition—`<boardgame-game-board rows="15" cols="15"
+.placementDraft=${draft}>`—and verifies that numeric targets cover every cell.
+Optional drag handling calls `assign(item, target)` and therefore cannot bypass
+the same unknown-item, unknown-target, occupancy, or maximum checks. Placements
+are immutable and carry stable IDs; `targetFor()` and `itemAt()` project the
+local overlay without mutating the server snapshot. The stock controls provide
+responsive Commit, Undo, Clear, count, disabled reasons, polite status, and
+rebase notices. Server preview supplies the final legality reason.
+
+The safe rebase default is `clear`: any new version, viewer perspective, game,
+or replaced state clears the draft and visibly explains why. Use
+`rebase: 'keep-valid'` only when stable item and target IDs make preservation
+intentional; unavailable placements are pruned and announced. Undo history is
+bounded and never crosses a snapshot boundary. The commit action is created
+from the current immutable placement list, so normal schema validation,
+animation/submission gates, preview, `ExpectedVersion`, and stale-snapshot
+failure all remain in force. Network failures retain the draft for retry;
+success consumes the snapshot until the authoritative next state arrives.
+
+When choices do not have destinations—cards to discard, resources to trade,
+payment cards, or simultaneous picks—use the sibling `SelectionDraftController`.
+It deliberately shares the same stock controls:
+
+```typescript
+private readonly payment = new SelectionDraftController<string>(this);
+
+const draft = this.payment.bind({
+  candidates: resourceCardIDs,
+  minSelected: 2,
+  maxSelected: 4,
+  action: selected => this.move(MoveNames.Pay).with({
+    Cards: selected.join(','),
+  }),
+});
+
+return html`
+  <div aria-label="Payment cards">
+    ${resourceCardIDs.map(id => html`<boardgame-selection-option
+      .option=${draft.option(id)}
+      label=${`Select resource card ${id}`}>
+      <resource-card .cardID=${id}></resource-card>
+    </boardgame-selection-option>`)}
+  </div>
+  <boardgame-draft-controls
+    label="Payment"
+    commit-label="Pay"
+    .draft=${draft}>
+  </boardgame-draft-controls>`;
+```
+
+`toggle`, `select`, and `deselect` all enforce the same typed candidate set and
+maximum. Selection order is stable, the arrays are frozen, undo is bounded,
+and `clear` remains the snapshot-change default. Explicit `keep-valid` rebasing
+retains only keys still offered by the new authoritative snapshot and announces
+what was pruned. Both draft controllers expose the one small
+`DraftControlsBinding` surface, so Commit/Undo/Clear behavior stays consistent
+while the game keeps ownership of card, resource, or board presentation.
+
+`boardgame-selection-option` supplies the accessible shell around each
+game-owned visual. It provides a named 44px native toggle, keyboard focus,
+`aria-pressed`, and capacity handling; once full, unselected choices are
+disabled while selected choices remain available to deselect. It fails loudly
+for blank labels, unknown or inconsistent choices, malformed bindings, and
+nested interactive content. A visible text fallback appears when nothing is
+slotted, and CSS parts and tokens support game-specific styling. Its `disabled`
+property is only an extra presentation gate—the draft remains the authority for
+selection validity. The single `draft.option(id)` binding deliberately couples
+the key to that draft's candidate union, so TypeScript rejects a choice from the
+wrong set before the renderer can run.
+
+For a wholly custom interaction, call `activate()` from the user's gesture and
+mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`
+retries a transient exact-preview failure before proposing. For headless
+one-shot code, `propose()` and `canPropose` deliberately mean “submit only if
+everything is ready now”; `propose` is permanently bound and returns a
+discriminated promise result (`success`, `server-rejection`,
+`network-failure`, `blocked`, or `stale-snapshot`) instead of throwing for an
+ordinary move failure. The adapter or framework control is normally safer.
+Actions fail closed during animation, schema skew, stale state,
+unchecked/failed exact preview, or another pending submission. A
+successful submission consumes that snapshot until a newer state arrives; the
+server also checks the expected version inside its serialized move loop.
+
+The old `propose-move="MOVENAME"`, `data-arg-*`, and direct `proposeMove()`
+renderer APIs have been removed. They bypassed the action's snapshot,
+animation, pending, exact-preview, and result contracts. A legacy-looking
+attribute inside a game renderer is inert; use `move()`, bind required input
+with `with()`, then hand the action to a framework control or call
+`activate()` from a custom gesture.
 
 **Move Legality:** The server computes `Legal()` for each non-FixUp move against the current state and ships the result to the client. Your renderer receives this via the `moveLegality` property (set automatically by the framework), and can use two convenience methods:
 
-- `isMoveCurrentlyLegal(moveName)` — returns `true` if the move is legal for the viewing player right now. Use this to **disable** buttons (e.g. when it's not your turn).
+- `isMoveCurrentlyLegal(moveName)` — returns `true` if the move is legal for the viewing player right now. Typed actions consume this automatically; use the helper only for custom presentation.
 - `isMovePossible(moveName)` — returns `true` if the move is structurally legal (legal for any player / admin). Use this to **hide** buttons entirely (e.g. when the move doesn't apply in the current game phase).
 
 The legality info includes three fields per move: `LegalForPlayer` (is it legal for this player?), `LegalForPlayerError` (the error message if not), and `LegalForAnyone` (is it legal for anyone?). These are server-authoritative — no game logic duplication needed in the client.
@@ -1566,13 +2175,19 @@ import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 ```
 
-Pass `MoveName` as the third generic parameter to `BoardgameBaseGameRenderer` so that `isMoveCurrentlyLegal()` and `isMovePossible()` only accept valid move names at compile time (see the class declaration example below).
+The generated `GameRenderer` passes `MoveName` and `MoveInputs` to the framework
+for you, so `move()`, `isMoveCurrentlyLegal()`, and `isMovePossible()` accept
+only generated names without author-written generic parameters.
 
 These files follow the same convention as `auto_reader.go` and `auto_enum.go`: they are regenerated on each serve but should be committed to source control. Only non-FixUp moves (i.e., player-proposable moves) are included.
 
 #### Generated Type Definitions
 
-When you run `boardgame-util serve` (or `boardgame-util emit-types`), the tool also generates a `client/_types.ts` file for each game package. This file exports typed interfaces for `GameState`, `PlayerState`, component values, and enums:
+When you run `boardgame-util serve` (or `boardgame-util emit-types`), the tool
+also generates `client/_types.ts` and `client/_game_renderer.ts` for each game
+package. The first exports typed state, player, component, computed-value,
+constant, and enum contracts. The second binds those types plus move names and
+native author inputs into the renderer bases and exact registration decorators:
 
 ```typescript
 // Auto-generated — DO NOT EDIT.
@@ -1585,34 +2200,67 @@ export interface CardsComponentValues {
   Suit: string;
 }
 
+export interface GameConstants {
+  readonly "numCards": 52;
+  readonly "friendly": true;
+}
+
+export interface GameComputed {
+  readonly CurrentPlayerName: string;
+}
+
+export interface PlayerComputed {
+  readonly Color: string;
+  readonly MayBeActive: boolean;
+}
+
+export type DynamicComponentValues = Readonly<Record<string, never>>;
+
 export interface GameState {
-  CurrentPlayer: number;
-  Phase: PhaseValue;
-  DrawStack: ExpandedStack<CardsComponentValues>;
-  Computed?: Record<string, unknown>;
+  readonly CurrentPlayer: number;
+  readonly Phase: PhaseValue;
+  readonly DrawStack: ExpandedStack<CardsComponentValues>;
+  readonly Computed?: GameComputed;
 }
 
 export interface PlayerState {
-  Hand: ExpandedStack<CardsComponentValues>;
-  Score: number;
-  Computed?: Record<string, unknown>;
+  readonly Hand: ExpandedStack<CardsComponentValues>;
+  readonly Score: number;
+  readonly Computed?: PlayerComputed;
 }
 
-export type State = FullGameState<GameState, PlayerState>;
+export type State = FullGameState<
+  GameState,
+  PlayerState,
+  GameComputed,
+  PlayerComputed,
+  DynamicComponentValues
+>;
 ```
 
 Import these types in your renderer to get full type safety and autocomplete on `this.state`:
 
 ```typescript
-import type { GameState, PlayerState } from './_types.js';
-import type { MoveName } from './_move_names.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 
-class BoardgameRenderGameMyGame extends BoardgameBaseGameRenderer<GameState, PlayerState, MoveName> {
+@registerGameRenderer
+export class BoardgameRenderGameMyGame extends GameRenderer {
   // this.state?.Game?.DrawStack is now typed as ExpandedStack<CardsComponentValues>
   // this.state?.Players?.[0]?.Score is now typed as number
+  // this.chest?.Constants?.numCards is the literal type 52
+  // this.chest?.Constants?.numCard is a compile error — no dynamic keys
   // this.isMoveCurrentlyLegal("Bad Name") is a compile error — only valid move names allowed
 }
 ```
+
+The generated registration decorators are also runtime contract boundaries.
+They reject a renderer that extends the wrong generated surface base and report
+duplicate exact tags immediately, with the game name, renderer class, tag, and
+expected base in the error. Use the matching generated decorator for each
+surface (`registerGameRenderer`, `registerTableRenderer`,
+`registerHandRenderer`, or `registerPlayerInfoRenderer`) instead of calling
+`customElements.define()` yourself; this keeps both TypeScript and runtime
+diagnostics precise.
 
 **Enum types** are generated as string literal unions. If your game or any imported package (like `playingcards`) defines enums, the corresponding fields will use the union type instead of `string`. For example, if your enum has values "Red" and "Blue", the generated type will be `"Red" | "Blue"`.
 
@@ -1640,67 +2288,83 @@ Like `_move_names.ts`, these files are regenerated on each serve but should be c
 
 #### Worked Example
 
-In general your renderer is mostly concerned with stamping out stacks and buttons. With the move legality API, you no longer need to duplicate game logic on the client to decide when buttons should be active — the server tells you.
+In general your renderer stamps state into visual primitives and attaches typed
+actions. Pig's complete interaction code is deliberately boring:
 
-Here's the renderer for Memory:
+```typescript
+import { html } from '../../src/client.js';
+import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
+import { MoveNames } from './_move_names.js';
 
-```html
-    <boardgame-deck-defaults>
-      <template deck="cards">
-        <boardgame-card>
-          <div>
-            {{item.Values.Type}}
-          </div>
-        </boardgame-card>
-      </template>
-    </boardgame-deck-defaults>
-    <h2>Memory</h2>
-    <div>
-      <boardgame-component-stack layout="grid" messy
-        .stack="${this.state?.Game?.Cards}"
-        .componentAttrs=${{ proposeMove: MoveNames.RevealCard, indexAttributes: 'data-arg-card-index' }}>
-      </boardgame-component-stack>
-      <boardgame-fading-text message="Match"
-        .trigger="${this.state?.Game?.Cards?.NumComponents}">
-      </boardgame-fading-text>
-    </div>
-    <div class="discards">
-      <boardgame-component-stack layout="stack" messy
-        .stack="${this.state?.Players?.[0]?.WonCards}"
-        .componentAttrs=${{ disabled: true }}>
-      </boardgame-component-stack>
-      <boardgame-card spacer></boardgame-card>
-      <boardgame-component-stack layout="stack" messy
-        .stack="${this.state?.Players?.[1]?.WonCards}"
-        .componentAttrs=${{ disabled: true }}>
-      </boardgame-component-stack>
-    </div>
-    <md-outlined-button propose-move="${MoveNames.HideCards}"
-      ?disabled="${!this.isMoveCurrentlyLegal(MoveNames.HideCards)}">
-      Hide Cards
-    </md-outlined-button>
+@registerGameRenderer
+export class BoardgameRenderGamePig extends GameRenderer {
+  override render() {
+    return html`
+      <boardgame-die
+        .item=${this.state?.Game.Die.Components[0]}
+        .action=${this.move(MoveNames.RollDice)}>
+      </boardgame-die>
+      <boardgame-action-button .action=${this.move(MoveNames.DoneTurn)}>
+        Done
+      </boardgame-action-button>
+    `;
+  }
+}
 ```
 
-Notice that the Hide Cards button uses `isMoveCurrentlyLegal(MoveNames.HideCards)` instead of a hardcoded string. The `MoveNames` constants are generated from the server's actual move definitions, so they're guaranteed to be correct. The server's `Legal()` check already knows whether the current player has cards to reveal, so the client doesn't need to duplicate that logic.
-
-The flow is: server computes `Legal()` for each non-FixUp move against the final state → ships legality in the state bundle → client receives it via the `moveLegality` property → renderers use `isMoveCurrentlyLegal()` / `isMovePossible()` convenience methods.
-
-It looks like a lot, but it's mostly just about stamping out stacks.
+The generated names prevent typos, generated native inputs prevent missing,
+extra, context-owned, or wrong-primitive arguments, and the action carries the
+server's legality and explanation. The renderer neither duplicates game rules
+nor manually coordinates animation, double-clicks, pending state, stale
+versions, transport errors, or accessibility attributes.
 
 #### Player-info
 
 The web app also has a bar along the top of the game that lists each player, their picture, their name, and their player index. It also by default shows whether it's their turn (according to your delegate's `CurrentPlayerIndex`).
 
-You can override this behavior, and also add more information to be rendered for each player (like their current score), by implementing a `boardgame-render-player-info-GAMETYPE` element. If that component exists, it will be passed the full state, as well as the playerState for the specific player. Any text you render out will be shown in the info section beneath each player.
+You can add information for each player (like their score) by implementing a
+`boardgame-render-player-info-GAMETYPE` element. Extend the generated
+`PlayerInfoRenderer` from `_game_renderer.ts`; its `state` and `playerIndex`
+properties are reactive and strictly typed for your game. Its typed
+`playerState` getter is derived from those two inputs, so it cannot become stale
+or refer to a different player.
 
-Your player-info renderer can also expose a chipColor and chipText property to override the text of the badge on each player (by default their player index) and what color it is.
+Override the typed `chip` getter to customize the small roster badge. Return a
+`text` string, a CSS `color` string, or both; an empty value retains the
+framework fallback. The framework observes state changes and publishes the
+presentation automatically—do not create reactive chip properties or dispatch
+change events:
 
-memory's player-info just prints out the current score:
+```typescript
+override get chip() {
+  return {
+    text: this.playerState?.TokenValue ?? '',
+    color: 'rebeccapurple',
+  };
+}
+```
 
-```html
-  <template>
-    Won Cards <boardgame-status-text>{{playerState.WonCards.Indexes.length}}</boardgame-status-text>
-  </template>
+Wrong value types, unknown fields, invalid CSS colors, negative indexes, and
+indexes outside the current state fail loudly.
+
+Memory's player-info is therefore small:
+
+```typescript
+import { html } from '../../src/client.js';
+import {
+  PlayerInfoRenderer,
+  registerPlayerInfoRenderer,
+} from './_game_renderer.js';
+
+@registerPlayerInfoRenderer
+export class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
+  override render() {
+    return html`Won Cards
+      <boardgame-status-text
+        .value=${this.playerState?.WonCards.Indexes.length ?? 0}>
+      </boardgame-status-text>`;
+  }
+}
 ```
 
 The tictactoe example shows how to override the badge/chip color and text.
@@ -1755,7 +2419,7 @@ boardgame-util stub examplegame
 
 This will start an interactive prompt of a few questions. Feel free to hit [ENTER] to accept the default for each, with the exception of the question that asks if you want tutorial content--accept that. It generates a lot more example code.
 
-(In general if you aren't a beginner you want all of those deafults, but without tutorial content. You can pass `-f` to skip the interactive prompts and accept all of the defaults)
+(In general if you aren't a beginner you want all of those defaults, but without tutorial content. You can pass `-f` to skip the interactive prompts and accept all of the defaults.)
 
 This made a new directory called examplegame and filled it with lots of starter content to demonstrate how to wire up a complete simple game. 
 
@@ -1765,7 +2429,16 @@ You still need to add it to your games list, so run:
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
 ```
 
-Now you can see it by running `boardgame-util serve`.
+First run the same fatal gate you should use in CI:
+
+```sh
+boardgame-util check-client
+```
+
+It regenerates contracts in memory, rejects stale committed output, checks each
+configured client in isolation with the framework's pinned strict TypeScript
+and Lit rules, and reports unsafe escape hatches or deep imports. Then run
+`boardgame-util serve` to play the game.
 
 Remember that as you modify and recompile, you need to run `go generate` every time you modify the defined fields of a struct.
 
@@ -1802,18 +2475,37 @@ When sanitizing dynamic component values, each deck has its own policy. Importan
 
 It's common to define methods on your `gameState` and `playerState` objects to modify the states and also to provide getters for values that can be computed entirely based on the values of specific properties. This works great on the server, but sometimes you want to have those same computed values available on the client in order to do view data-binding more easily.
 
-When a JSON representation of your gameState is being prepared for a player, your delegate's `ComputedGlobalProperties(state State)` and `ComputedPlayerProperties(player SubState)` are called, allowing you to return a map of strings to `interface{}` to include in the JSON. 
+Declare client-visible computed values in `ConfigureComputedProperties()`. Each
+entry couples its name, exact value type, scope, and evaluator, so the runtime
+value and generated TypeScript contract cannot drift. Framework values such as
+player color remain automatic; unlike the old map-mutation API, there is no base
+method to call and no framework map to merge.
 
 Typically this is a simple enumeration of the names of the values and the method calls, like you can see in memory:
 
 ```go
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
-	game, _ := concreteStates(state)
-	return boardgame.PropertyCollection{
-		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
+func (g *gameDelegate) ConfigureComputedProperties() []boardgame.ComputedProperty {
+	return []boardgame.ComputedProperty{
+		boardgame.GlobalComputedBool("CurrentPlayerHasCardsToReveal", func(state boardgame.ImmutableState) bool {
+			game, _ := concreteStates(state)
+			return game.CurrentPlayerHasCardsToReveal()
+		}),
 	}
 }
 ```
+
+Use the matching `GlobalComputed*` or `PlayerComputed*` constructor for bool,
+int, string, player-index, slice, or enum values. Enum constructors also take
+the enum itself, which preserves its generated string-literal union. Manager
+construction rejects empty or duplicate names, nil callbacks, incompatible
+framework overrides, and enums that are not in the game's chest. Configured
+keys are always present; use a stable zero/default value instead of conditionally
+changing the shape of the client contract.
+
+`boardgame-util emit-types` writes these declarations into that game's exact
+`GameComputed` and `PlayerComputed` interfaces. Misspelled or undeclared
+computed keys therefore fail TypeScript compilation without declaration
+merging or hand-written index signatures.
 
 Note that when this method is called, your state will likely aready have been sanitized, which means that **your computed property methods should return reasonable values for sanitized states**. In most cases you don't have to think much about this, because all sanitization transformations keep the objects of the same "shape". But it is something to keep an eye out for.
 
@@ -2033,15 +2725,251 @@ Optionally implement `AdvanceCondition` (to gate when the token should advance) 
 
 #### Client: boardgame-spatial-board
 
-For the client side, `boardgame-spatial-board` is a shared web component that loads an SVG map and provides spatial queries and interaction. It handles:
+`boardgame-spatial-board` turns authored SVG artwork into the same typed target
+interaction used by `boardgame-game-board`. The SVG describes geometry and
+labels; `TargetAction` describes legality and activation. Game renderers do not
+need a second click-handler/disabled-array proposal system.
 
-- Loading SVG from a configurable URL (`svgUrl`)
-- Identifying space elements by a configurable ID prefix (`spacePrefix`, default `"Space-"`)
-- Firing `space-tapped` events when a space is clicked
-- Disabling spaces visually via a `disabledSpaces` array
-- Computing token positions with deterministic jitter via `tokenPosition(spaceIndex, tokenIndex, tokenSize)`
+Mark the real hit region for every space. Keys are ordinary strings and may
+contain punctuation; they are never interpolated into CSS selectors.
 
-Your game's board component can either use `boardgame-spatial-board` directly or wrap it in a thin component that maps game-specific properties (like wing closures) to `disabledSpaces`.
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 616">
+  <path data-board-space="library"
+        data-board-label="Library"
+        data-board-order="0"
+        data-board-group="rooms"
+        d="..." />
+
+  <!-- Optional: interaction, keyboard focus, and pieces may use distinct geometry. -->
+  <circle data-board-focus-anchor="library" cx="105" cy="88" r="8" />
+  <circle data-board-piece-anchor="library" cx="130" cy="110" r="8" />
+</svg>
+```
+
+String keys are the default even when they look like `"2"`. If the move field
+is a numeric enum, opt in explicitly on the root with
+`data-board-key-type="number"`; generation then rejects non-canonical or
+JavaScript-unsafe integers instead of guessing from their spelling. Every
+region needs an accessible label. `data-board-label` is clearest, while an
+`aria-label` or direct child `<title>` is also accepted.
+
+Then bind typed targets and an explicit piece projection:
+
+```ts
+import { html, piecesFromSizedStacks } from '../../src/client.js';
+import { MoveNames } from './_move_names.js';
+import { BoardSpaceKeys } from './_board_spaces.js';
+
+const moveToRoom = this.move(MoveNames.MoveToRoom).targets(
+  BoardSpaceKeys,
+  room => ({ TargetLocation: room }),
+);
+const pieces = piecesFromSizedStacks(this.positionStacks, BoardSpaceKeys);
+
+return html`<boardgame-spatial-board
+  svgUrl="game-src/mygame/board.svg"
+  .action=${moveToRoom}
+  .pieces=${pieces}>
+</boardgame-spatial-board>`;
+```
+
+`boardgame-util emit-types` (and dev-server startup) extracts `_board_spaces.ts`
+from `board.svg`; `boardgame-util emit-board-spaces` does just this step, and
+`--check` verifies freshness. The generated tuple preserves literal keys, so an
+SVG rename makes move/projection code fail strict checking. If a sized stack has
+an enum sentinel with no physical region, make it explicit in the projection:
+`[null, ...BoardSpaceKeys]`.
+
+The component validates duplicate/missing labels, keys, ordering, measurable
+regions and anchors, unknown action/piece keys, and stack cardinality. It uses
+each anchor's complete SVG transform, so nested transformed groups, a nonzero
+`viewBox`, responsive scaling, and letterboxing do not require manual pixel
+math. Pointer interaction follows the actual authored region; a compact native
+button list provides keyboard and screen-reader access with the same legality
+reasons. Loading is abortable and stale-safe, failures are visible and retryable,
+and fetched SVG is sanitized before insertion (scripts, event handlers,
+`foreignObject`, animation mutation, and external resources are removed).
+
+While authoring, add the boolean `geometry-inspector` attribute to show the
+resolved key/order/label, region element, focus and piece coordinates, and
+possible bounding-box overlaps. Remove it for the shipped renderer; it is a
+diagnostic view, not game state.
+
+For unusual artwork, pass `.geometry=${svg => ...}`. The callback receives the
+same sanitized, mounted SVG that is displayed and returns `BoardGeometry`, so
+custom regions and distinct anchors can use real measurable elements without
+re-fetching or reaching into the component's shadow root. Pointer activation
+uses those returned regions, not a hidden dependency on data attributes.
+
+Set `board-label` (default: `Game board`) and optional `board-description` for
+overall context. The artwork itself is presentation-only; the generated focus
+buttons and compact list are the single accessible interaction model, avoiding
+duplicate announcements from SVG-editor metadata.
+
+If the board is a PNG, JPEG, WebP, AVIF, or GIF, keep it as raster artwork and
+describe its spaces in normalized coordinates. You do not need to trace the
+image into SVG or write resize math:
+
+```ts
+import { html, rasterBoardArtwork } from '../../src/client.js';
+
+const artwork = rasterBoardArtwork({
+  src: 'game-src/mygame/board.webp',
+  // Keep the rendered board square even though the source image is wider.
+  viewportAspectRatio: 1,
+  fit: 'contain',
+  spaces: [
+    {
+      key: 'harbor',
+      label: 'Harbor',
+      region: {
+        shape: 'circle',
+        center: { x: 0.18, y: 0.72 },
+        radius: 0.08,
+      },
+      // Optional: put pieces somewhere other than the hit-region center.
+      pieceAnchor: { x: 0.2, y: 0.68 },
+    },
+    {
+      key: 'market',
+      label: 'Market',
+      region: { shape: 'rect', x: 0.55, y: 0.2, width: 0.3, height: 0.25 },
+    },
+  ],
+});
+
+return html`<boardgame-spatial-board
+  .artwork=${artwork}
+  pan-zoom
+  .action=${this.move(MoveNames.MoveToRoom).targets(
+    artwork.spaces.map(space => space.key),
+    room => ({ TargetLocation: room }),
+  )}>
+</boardgame-spatial-board>`;
+```
+
+Coordinates run from `0` at the image's left/top to `1` at its right/bottom.
+Regions may be circles, rectangles, or polygons. Optional `focusAnchor` and
+`pieceAnchor` use the same normalized coordinates. The constructor freezes and
+validates the complete descriptor up front: empty or duplicate keys, missing
+labels, duplicate keyboard order, out-of-range coordinates, degenerate shapes,
+unsupported fit modes, and unsafe image sources fail loudly near the authoring
+code.
+
+`fit` is `contain` by default; use `cover` when cropping is intentional or
+`fill` when distortion is intentional. The framework puts the raster image and
+all regions/anchors in one nested SVG transform, so letterboxing, cropping,
+responsive widths, focus placement, piece placement, and animation measurement
+cannot silently use different coordinate systems. Omit `viewportAspectRatio`
+to use the decoded image's own aspect ratio.
+
+Choose exactly one board source: `svgUrl` for authored SVG or `.artwork` for a
+raster descriptor. The custom `.geometry` callback is SVG-only because raster
+spaces already live in the descriptor. Everything after source loading is
+shared: typed `TargetAction`, piece projections, keyboard/list access, legality
+reasons, responsive positioning, geometry inspection, loading errors, and retry.
+
+For a large map, add the boolean `pan-zoom` attribute as above. The board gets
+bounded zoom/reset controls, keyboard `+`/`-`/arrow/`0` navigation,
+Ctrl/Command-wheel zoom, mouse/touch panning, and pinch zoom. Ordinary taps and
+clicks still reach spaces; a gesture that crosses the drag threshold cannot
+accidentally propose a move. The compact space list and loading/status content
+stay outside the transformed scene. Set `max-zoom` only when the default `4`
+is inappropriate. Call `revealSpace(key)` to bring a moved piece or selected
+location into view, and `resetViewport()` to return to the complete board.
+
+`boardgame-board-viewport` is also available as a standalone building block for
+a custom SVG, canvas, or other large visual. Its default controls work without
+configuration; `view` plus `setView(...)` support route-scoped persistence, and
+`reveal(element)` brings nested light- or shadow-DOM markers into view. It emits
+`board-viewport-change` with the same immutable `{ scale, x, y }` value. Panning
+is clamped after zoom, content resize, host resize, or a lower `max-scale`, so
+blank space cannot become the main view.
+
+A multi-purpose map may contain different target classes at once: for example,
+hex tiles, road edges, and settlement vertices. Give each raster descriptor
+space a `group` (or add `data-board-group` to SVG regions), then scope the
+current typed action explicitly:
+
+```ts
+const VertexGroup = 'vertices';
+const artwork = rasterBoardArtwork({
+  src: 'game-src/mygame/island.webp',
+  spaces: [
+    {
+      key: 'vertex:0:1',
+      label: 'North harbor intersection',
+      group: VertexGroup,
+      region: { shape: 'circle', center: { x: 0.31, y: 0.18 }, radius: 0.025 },
+    },
+    // Tile and edge regions may use their own groups in the same descriptor.
+  ],
+});
+
+return html`<boardgame-spatial-board
+  .artwork=${artwork}
+  action-group=${VertexGroup}
+  .action=${placeSettlementTargets}>
+</boardgame-spatial-board>`;
+```
+
+The action's candidate keys must still match every key in the selected group
+exactly—grouping does not weaken typo or omission detection. A missing group,
+candidate from another group, or incomplete candidate set fails loudly. Other
+regions remain available as piece/animation anchors but do not activate, appear
+in the current compact action list, or receive the visual treatment for an
+illegal candidate. Omit `action-group` for ordinary one-purpose boards; the
+existing exact match against all geometry remains the zero-configuration path.
+
+Routes, supply lines, patrol paths, and other connections between existing
+spaces are data too. Give the board typed path descriptors; it connects each
+space's piece anchor (or its region center when no piece anchor is declared),
+keeps the line aligned through resize and pan/zoom, and supplies an accessible
+route description without making the decorative line interactive:
+
+```ts
+import { html, type BoardPathOverlay } from '../../src/client.js';
+import { BoardSpaceKeys } from './_board_spaces.js';
+
+type BoardSpace = (typeof BoardSpaceKeys)[number];
+
+const routes = [
+  {
+    id: 'coastal-supply',
+    label: 'Coastal supply line from Harbor through Road to Market',
+    spaces: ['harbor', 'road', 'market'],
+    tone: 'secondary',
+    width: 6,
+  },
+] as const satisfies readonly BoardPathOverlay<BoardSpace>[];
+
+return html`<boardgame-spatial-board
+  svgUrl="game-src/mygame/board.svg"
+  .pathOverlays=${routes}>
+</boardgame-spatial-board>`;
+```
+
+The required stable `id` lets Lit update a path without rebuilding unrelated
+routes, and the required `label` makes the route meaningful to assistive
+technology. `tone` is the closed set `primary`, `secondary`, `danger`, or
+`muted`; theme them with `--board-path-primary`, `--board-path-secondary`,
+`--board-path-danger`, and `--board-path-muted`, or target the exported `path`
+part. Width is in screen pixels and does not swell when the board zooms.
+
+Unknown spaces, adjacent duplicate points, duplicate IDs, invalid tones or
+widths, and excessive path data fail loudly. Paths deliberately do not create
+new target semantics: author road edges or route choices as ordinary geometry
+spaces/groups and bind a typed `TargetAction`; use `pathOverlays` to show the
+resulting connection. Omit it for the common case—the spatial board needs no
+route configuration.
+
+`spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
+`boxForSpace()`, and `tokenPosition()` remain migration adapters for older
+numeric-ID boards. New renderers should use `data-board-*`, `.action`, and
+`.pieces`; that keeps custom artwork ordinary game-owned SVG without giving up
+typed moves, server-authoritative legality, accessibility, or stable animation
+anchors.
 
 ### Phases
 
@@ -2508,6 +3436,12 @@ Your `GameDelegate` can define constants by returning a map of constants to valu
 Of course, you don't need to actually return anything from that method to define normal constants in your package. There are two primary reasons to define them: 1) if you need them client-side, and 2) if you want to use them in a tag-based struct auto-inflater.
 
 Constants that are exported via `ConfigureConstants()` will automatically be transmitted client-side.
+`boardgame-util emit-types` also generates an exact `GameConstants` contract
+for them and binds it to your generated renderer bases. In a renderer,
+`this.chest?.Constants?.TOTAL_DIM` is typed and autocompleted; misspelled or
+undeclared keys fail compilation. The framework transport remains generic, but
+game creators should use the generated renderer base rather than casting the
+constants object or declaring a hand-written index signature.
 
 Constants can also be used as the int argument in a tag-based struct auto-inflation. For example, see the tictactoe example:
 
@@ -2592,6 +3526,14 @@ similar effect but renders each individual card movement separately.
 You can modify a number of properties of animations. The most simple is the
 `--animation-length` CSS var, which the built-in components respect for how
 long all of their animations will take. Sometimes you want all animations for a certain move to take a certain amount of time, and it's confusing/error prone to set the values in CSS. If your game renderer defines `animationLength(fromMove, toMove)` then it will be consulted before each state bundle is installed. If the value is 0, then no override is set and the default CSS values for animation length take precedence. If it is greater than zero, than a temporary `--animation-length` value will be set above your renderer (interpreting that number as millisecondes), overriding the default value until another one is set. And if the value is negative, the animation will be skipped entirely. `BoardgameBaseGameRenderer` provides a default `animationLength` that just returns 0.
+
+Both arguments are `ClientMove | null`. `ClientMove` intentionally contains
+only readonly `Name` and `Version`: enough to select an animation policy, but
+never the storage record's serialized arguments, proposer, initiator, phase, or
+timestamp. Those fields can contain private choices that state sanitization
+correctly hid. Move type names are public catalog metadata, so do not encode a
+secret choice into dynamically generated move names; put the choice in typed
+move fields and authoritative sanitized state as usual.
 
 Sometimes you want the completed state to remain visible for a beat before the
 next state is installed. For example, Memory leaves a matching pair face-up so

@@ -8,20 +8,55 @@ export type PhaseValue = "Gathering" | "Day" | "Night";
 
 export type RoleValue = "Villager" | "Werewolf";
 
+export interface GameEnums {
+  readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
+  readonly "role": { readonly Values?: Readonly<Record<string, RoleValue>> };
+}
+
+export type ComponentCatalog = Readonly<Record<string, never>>;
+
+export type DynamicComponentValues = Readonly<Record<string, never>>;
+
+export type GameConstants = Readonly<Record<string, never>>;
+
+export interface ComputedEnumOption {
+  readonly Key: number;
+  readonly Name: string;
+  readonly CSSColor?: string;
+}
+
+export interface GameComputed {
+  readonly PlayerOrder?: readonly number[];
+  readonly AvailableTeams?: readonly ComputedEnumOption[];
+  readonly AvailableRoles?: readonly ComputedEnumOption[];
+  readonly AvailableColors?: readonly ComputedEnumOption[];
+  readonly ReadyToStartError?: string;
+}
+
+export interface PlayerComputed {
+  readonly Color: string;
+  readonly MayBeActive: boolean;
+  readonly GameScore?: number;
+  readonly TeamValue?: string;
+  readonly RoleValue?: string;
+  readonly ColorValue?: string;
+  readonly IsGameAdmin?: boolean;
+}
+
 export interface GameState {
-  Phase: PhaseValue;
-  RoundNumber: number;
-  Computed?: Record<string, unknown>;
+  readonly Phase: PhaseValue;
+  readonly RoundNumber: number;
+  readonly Computed?: GameComputed;
 }
 
 export interface PlayerState {
-  Eliminated: boolean;
-  PlayerInactive: boolean;
-  Role: RoleValue;
-  SeatClosed: boolean;
-  SeatFilled: boolean;
-  Vote: number;
-  Computed?: Record<string, unknown>;
+  readonly Eliminated: boolean;
+  readonly PlayerInactive: boolean;
+  readonly Role: RoleValue;
+  readonly SeatClosed: boolean;
+  readonly SeatFilled: boolean;
+  readonly Vote: number;
+  readonly Computed?: PlayerComputed;
 }
 
-export type State = FullGameState<GameState, PlayerState>;
+export type State = FullGameState<GameState, PlayerState, GameComputed, PlayerComputed, DynamicComponentValues>;

@@ -72,7 +72,7 @@ const gameSrcTypeCheckTSConfig = `{
   "extends": "./tsconfig.json",
   "compilerOptions": { "rootDir": ".", "noEmit": true, "declaration": false, "composite": false },
   "include": ["src/**/*", "game-src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }`
 
 // TypeCheckGameSrc runs `tsc --noEmit` over the assembled static dir,
@@ -80,12 +80,10 @@ const gameSrcTypeCheckTSConfig = `{
 // lines. staticDir must be the assembled dir (game-src symlinks + a
 // node_modules symlink already in place — i.e. call AFTER LinkGameClientFolders).
 //
-// NON-FATAL by design, mirroring LintGameClientImports: the assembled dir
-// can include external games (the user's own repo) whose renderers this
-// framework doesn't control, so a hard failure would block a prod build
-// over a game the builder may not own. Callers print the returned lines as
-// warnings. Returns (nil, err) only for infrastructure failures (tsc not
-// runnable); type errors come back as diagnostic strings with err == nil.
+// Production callers treat returned diagnostics as fatal: Vite transpiles
+// TypeScript without checking it, so continuing would ship a renderer whose
+// generated contract is already known to be violated. Returns (nil, err) only
+// for infrastructure failures; type errors are returned as diagnostic lines.
 func TypeCheckGameSrc(staticDir string) ([]string, error) {
 	// A game-src type-check only makes sense once renderers are symlinked in.
 	if _, err := os.Stat(filepath.Join(staticDir, "game-src")); err != nil {

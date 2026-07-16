@@ -147,11 +147,25 @@ const gameIDLength = 16
 type DelayedError chan error
 
 type proposedMoveItem struct {
-	move     Move
-	proposer PlayerIndex
+	move            Move
+	proposer        PlayerIndex
+	expectedVersion *int
 	//Ch is the channel we should either return an error on and then close, or
 	//send nil and close.
 	ch DelayedError
+}
+
+// StaleVersionError means a proposal was created from a state version that is
+// no longer current. The check happens inside the game's serialized main loop,
+// immediately before legality and application, so concurrent HTTP requests
+// cannot both pass a racy handler-level version check.
+type StaleVersionError struct {
+	Expected int
+	Actual   int
+}
+
+func (e *StaleVersionError) Error() string {
+	return "move proposal used stale game version " + strconv.Itoa(e.Expected) + "; current version is " + strconv.Itoa(e.Actual)
 }
 
 var defaultStringRand *rand.Rand
@@ -673,7 +687,7 @@ func (g *Game) mainLoop() {
 				return
 			}
 			resetTimer()
-			item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
+			item.ch <- g.applyProposedMove(item)
 			close(item.ch)
 		case delayed := <-g.fixUpTriggered:
 			resetTimer()
@@ -696,7 +710,7 @@ func (g *Game) mainLoop() {
 					return
 				}
 				idleTimer.Reset(gameIdleTimeout)
-				item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
+				item.ch <- g.applyProposedMove(item)
 				close(item.ch)
 			default:
 				g.manager.freezeGame(g)
@@ -816,17 +830,28 @@ func (g *Game) Refresh() {
 // in place with the new values after the change (by automatically calling
 // Refresh()).
 func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
+	return g.proposeMove(move, proposer, nil)
+}
+
+// ProposeMoveAtVersion proposes a move only if expectedVersion is still the
+// current version when the serialized game loop is ready to apply it.
+func (g *Game) ProposeMoveAtVersion(move Move, proposer PlayerIndex, expectedVersion int) DelayedError {
+	return g.proposeMove(move, proposer, &expectedVersion)
+}
+
+func (g *Game) proposeMove(move Move, proposer PlayerIndex, expectedVersion *int) DelayedError {
 
 	if !g.Modifiable() {
-		return g.manager.proposeMoveOnGame(g, move, proposer)
+		return g.manager.proposeMoveOnGame(g, move, proposer, expectedVersion)
 	}
 
 	errChan := make(DelayedError, 1)
 
 	workItem := &proposedMoveItem{
-		move:     move,
-		proposer: proposer,
-		ch:       errChan,
+		move:            move,
+		proposer:        proposer,
+		expectedVersion: expectedVersion,
+		ch:              errChan,
 	}
 
 	if !g.initalized {
@@ -851,6 +876,13 @@ func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	return errChan
 
+}
+
+func (g *Game) applyProposedMove(item *proposedMoveItem) error {
+	if item.expectedVersion != nil && g.Version() != *item.expectedVersion {
+		return &StaleVersionError{Expected: *item.expectedVersion, Actual: g.Version()}
+	}
+	return g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
 }
 
 // triggerAgents is called after a PlayerMove (and its chain of fixUp moves) is called.

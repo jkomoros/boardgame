@@ -2,21 +2,135 @@ import { LitElement, html } from 'lit';
 import { property } from 'lit/decorators.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import type { MovePreviewSpec } from '../legal/previewLegality.js';
-import type { FullGameState } from '../types/boardgame-types.js';
+import type { FullGameState, GameChest } from '../types/boardgame-types.js';
+import type { ClientMove } from '../types/api.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
+import {
+  serializeCreatorMoveInputForServer,
+  validateCreatorMoveInput,
+  type MoveInputSchema,
+} from '../moves/input.js';
+import {
+  MoveSubmissionGate,
+  cancelMoveActionPreview,
+  createMoveAction,
+  moveSnapshotKey,
+  notifyMoveActionLiveStateChanged,
+  type MoveActionFor,
+  type MoveActionService,
+  type MovePreviewTransport,
+  type MoveTransport,
+} from '../moves/action.js';
+import {
+  cancelTargetActionPreview,
+  notifyTargetActionLiveStateChanged,
+  type TargetAction,
+  type TargetKey,
+  type TargetPreviewTransport,
+} from '../moves/target-action.js';
+import {
+  AdminPlayerIndex,
+  AnyPlayerIndex,
+  type TurnStatusContext,
+} from '../status/turn-status.js';
+import {
+  fallbackPlayerPresentation,
+  type PlayerPresentation,
+} from '../status/player-presentation.js';
+
+type MoveInputFor<
+  K extends string,
+  Inputs extends Record<string, object>,
+> = K extends keyof Inputs ? Inputs[K] : Record<string, unknown>;
 
 export class BoardgameBaseGameRenderer<
-  GS extends object = Record<string, unknown>,
-  PS extends object = Record<string, unknown>,
-  MN extends string = string,
-  MA extends Record<string, object> = Record<string, Record<string, unknown>>
+  S extends FullGameState<object, object, object, object, object>,
+  C extends object,
+  MN extends string,
+  MA extends Record<string, object>,
+  K extends object = object,
+  E extends object = object,
 > extends LitElement {
+  /** Generated safe-input contract installed by a bound/game renderer. */
+  protected readonly moveInputSchema: MoveInputSchema | null = null;
+  protected readonly moveInputSchemaFingerprint: string | null = null;
+
+  /** Canonical fingerprint supplied by the current server /info response. */
+  @property({ type: String, attribute: false })
+  serverMoveInputSchemaFingerprint: string | null = null;
   @property({ type: Object })
-  state: FullGameState<GS, PS> | null = null;
+  state: S | null = null;
+
+  @property({ type: String, attribute: false })
+  gameName = '';
+
+  @property({ type: String, attribute: false })
+  gameId = '';
+
+  @property({ type: Number, attribute: false })
+  gameVersion = 0;
+
+  @property({ type: Number, attribute: false })
+  snapshotEpoch = 0;
+
+  @property({ type: Number, attribute: false })
+  proposingAsPlayer = 0;
+
+  @property({ type: Boolean, attribute: false })
+  proposingAsAdmin = false;
+
+  @property({ attribute: false })
+  moveTransport: MoveTransport | null = null;
+
+  @property({ attribute: false })
+  movePreviewTransport: MovePreviewTransport | null = null;
+
+  @property({ attribute: false })
+  targetPreviewTransport: TargetPreviewTransport | null = null;
+
+  @property({ attribute: false })
+  moveSubmissionGate: MoveSubmissionGate = new MoveSubmissionGate();
+
+  readonly #moveActionCache = new Map<string, import('../moves/action.js').BoundMoveAction<string, object>>();
+  readonly #targetActionCache = new Map<string, TargetAction<TargetKey, string, object>>();
+  readonly #moveActionService: MoveActionService = {
+    currentClientSchemaFingerprint: () => this.moveInputSchemaFingerprint ?? '',
+    currentServerSchemaFingerprint: () => this.serverMoveInputSchemaFingerprint,
+    currentTransport: () => this.moveTransport,
+    currentPreviewTransport: () => this.movePreviewTransport,
+    currentTargetPreviewTransport: () => this.targetPreviewTransport,
+    currentGate: () => this.moveSubmissionGate,
+    nextRequestID: () => `${this.gameId || 'game'}-v${this.gameVersion}-move-${++this.#moveRequestSequence}`,
+    validate: (moveName, input) => this.moveInputSchema
+      ? validateCreatorMoveInput(this.moveInputSchema, moveName, input).errors
+      : [],
+    serialize: (moveName, input) => {
+      if (!this.moveInputSchema || !this.moveInputSchemaFingerprint) {
+        throw new Error('Renderer has no generated move-input contract; extend the generated GameRenderer base');
+      }
+      return serializeCreatorMoveInputForServer(
+        this.moveInputSchema,
+        this.moveInputSchemaFingerprint,
+        this.serverMoveInputSchemaFingerprint,
+        moveName,
+        input,
+      );
+    },
+    changed: () => this.requestUpdate(),
+    telemetry: event => this.dispatchEvent(new CustomEvent('move-action-result', {
+      bubbles: true,
+      composed: true,
+      detail: event,
+    })),
+    actionCache: this.#moveActionCache,
+    targetActionCache: this.#targetActionCache,
+  };
+  #lastMoveSnapshotKey = '';
+  #moveRequestSequence = 0;
 
   @property({ type: Object })
-  chest: Record<string, unknown> | null = null;
+  chest: GameChest<C, K, E> | null = null;
 
   @property({ type: String })
   diagram = '';
@@ -26,6 +140,19 @@ export class BoardgameBaseGameRenderer<
 
   @property({ type: Number })
   currentPlayerIndex = 0;
+
+  /** Public, sanitized player labels/colors supplied by the renderer host. */
+  @property({ attribute: false })
+  playerPresentations: readonly PlayerPresentation[] = Object.freeze([]);
+
+  /** Stable creator-facing presentation with a useful fallback for fixtures. */
+  playerPresentation(playerIndex: number): PlayerPresentation {
+    if (!Number.isSafeInteger(playerIndex) || playerIndex < 0) {
+      return fallbackPlayerPresentation(playerIndex);
+    }
+    return this.playerPresentations.find(player => player.playerIndex === playerIndex)
+      ?? fallbackPlayerPresentation(playerIndex);
+  }
 
   /**
    * Map of move name → legality info, set by boardgame-render-game from the
@@ -61,10 +188,20 @@ export class BoardgameBaseGameRenderer<
 
   get isCurrentPlayer(): boolean {
     // AdminPlayerIndex (-2): admin can always act
-    if (this.viewingAsPlayer === -2) return true;
+    if (this.viewingAsPlayer === AdminPlayerIndex) return true;
     // AnyPlayerIndex (-3): any player can act (simultaneous phase)
-    if (this.currentPlayerIndex === -3) return true;
+    if (this.currentPlayerIndex === AnyPlayerIndex) return true;
     return this.currentPlayerIndex === this.viewingAsPlayer;
+  }
+
+  /** Complete, sentinel-aware input for the standard turn-status primitive. */
+  get turnStatus(): TurnStatusContext {
+    return {
+      currentPlayerIndex: this.currentPlayerIndex,
+      viewerPlayerIndex: this.viewingAsPlayer,
+      finished: this.gameFinished,
+      animating: this.animating,
+    };
   }
 
   /**
@@ -136,43 +273,25 @@ export class BoardgameBaseGameRenderer<
   }
 
   /**
-   * Type-safe move proposal. When your game renderer extends
-   * `BoardgameBaseGameRenderer<GameState, PlayerState, MoveName, MoveArgs>`,
-   * this method provides compile-time checking that the move name is valid
-   * and the arguments match the expected fields.
-   *
-   * Usage in a game renderer:
-   * ```
-   * import { MoveNames, type MoveName } from './_move_names.js';
-   * import type { MoveArgs } from './_move_args.js';
-   *
-   * class MyRenderer extends BoardgameBaseGameRenderer<GS, PS, MoveName, MoveArgs> {
-   *   handleClick() {
-   *     this.proposeMove(MoveNames.RevealCard, { CardIndex: 3 });
-   *   }
-   * }
-   * ```
+   * Creates the canonical typed action for creator-authored controls. Zero-input
+   * moves can propose immediately; required-input moves expose only with(args)
+   * until their exact generated native input is bound.
    */
-  proposeMove<K extends MN & string>(
-    moveName: K,
-    args: K extends keyof MA ? MA[K] : Record<string, unknown>
-  ): void {
-    // Convert all values to strings for the server (form-encoded submission).
-    // Booleans must be "1"/"0" (not "true"/"false") because the server uses
-    // strconv.Atoi for boolean fields.
-    const stringArgs: Record<string, string> = {};
-    for (const [key, value] of Object.entries(args)) {
-      if (typeof value === 'boolean') {
-        stringArgs[key] = value ? '1' : '0';
-      } else {
-        stringArgs[key] = String(value);
-      }
-    }
-    this.dispatchEvent(new CustomEvent('propose-move', {
-      composed: true,
-      bubbles: true,
-      detail: { name: moveName, arguments: stringArgs }
-    }));
+  move<K extends MN & string>(name: K): MoveActionFor<K, MoveInputFor<K, MA>> {
+    const snapshotKey = this._moveSnapshotKey();
+    return createMoveAction<K, MN, MA>(name, this.#moveActionService, {
+      snapshotKey,
+      currentSnapshotKey: () => this._moveSnapshotKey(),
+      snapshotVersion: this.gameVersion,
+      currentSnapshotVersion: () => this.gameVersion,
+      viewingAsPlayer: this.viewingAsPlayer,
+      proposingAsPlayer: this.proposingAsPlayer,
+      proposingAsAdmin: this.proposingAsAdmin,
+      currentLegality: () => this.moveLegality[name],
+      currentAnimating: () => this.animating,
+      baselineLegalityApplies: this.proposingAsPlayer === this.viewingAsPlayer,
+      actionCacheKey: snapshotKey,
+    });
   }
 
   /**
@@ -195,23 +314,49 @@ export class BoardgameBaseGameRenderer<
     return false;
   }
 
-  private _boundHandleButtonTapped?: (e: Event) => void;
-
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-    this._boundHandleButtonTapped = (e: Event) => this._handleButtonTapped(e);
-
-    // CHANGED: tap → click (Polymer event → standard event)
-    this.addEventListener('click', this._boundHandleButtonTapped);
-    this.addEventListener('component-tapped', this._boundHandleButtonTapped);
-  }
-
   override disconnectedCallback() {
     super.disconnectedCallback();
-    if (this._boundHandleButtonTapped) {
-      this.removeEventListener('click', this._boundHandleButtonTapped);
-      this.removeEventListener('component-tapped', this._boundHandleButtonTapped);
+    for (const action of this.#moveActionCache.values()) cancelMoveActionPreview(action);
+    for (const action of this.#targetActionCache.values()) cancelTargetActionPreview(action);
+    this.#moveActionCache.clear();
+    this.#targetActionCache.clear();
+    this.#lastMoveSnapshotKey = '';
+  }
+
+  protected override willUpdate(changedProperties: Map<PropertyKey, unknown>): void {
+    super.willUpdate(changedProperties);
+    const snapshotKey = this._moveSnapshotKey();
+    if (snapshotKey !== this.#lastMoveSnapshotKey) {
+      for (const action of this.#moveActionCache.values()) cancelMoveActionPreview(action);
+      for (const action of this.#targetActionCache.values()) cancelTargetActionPreview(action);
+      this.#moveActionCache.clear();
+      this.#targetActionCache.clear();
+      this.#lastMoveSnapshotKey = snapshotKey;
+    } else if (changedProperties.has('animating')) {
+      // Animation state is deliberately not part of snapshot identity: a
+      // button should keep the same action (and preview) while the visual gate
+      // opens and closes. Notify subscribed controls because passing that same
+      // cached object through Lit does not trigger their property update.
+      for (const action of this.#moveActionCache.values()) {
+        notifyMoveActionLiveStateChanged(action);
+      }
+      for (const action of this.#targetActionCache.values()) {
+        notifyTargetActionLiveStateChanged(action);
+      }
     }
+  }
+
+  private _moveSnapshotKey(): string {
+    return moveSnapshotKey({
+      gameName: this.gameName,
+      gameID: this.gameId,
+      epoch: this.snapshotEpoch,
+      version: this.gameVersion,
+      viewingAsPlayer: this.viewingAsPlayer,
+      proposingAsPlayer: this.proposingAsPlayer,
+      proposingAsAdmin: this.proposingAsAdmin,
+      serverSchemaFingerprint: this.serverMoveInputSchemaFingerprint,
+    });
   }
 
   // animationLength is consulted when applying an animation to configure the
@@ -219,7 +364,7 @@ export class BoardgameBaseGameRenderer<
   // renderer. Zero will specify default animation length (that is, unset an
   // override style). A negative return value will skip the animation entirely.
   // The default one returns 0 for all combinations. See also animationOverlap.
-  animationLength(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  animationLength(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }
 
@@ -228,63 +373,8 @@ export class BoardgameBaseGameRenderer<
   // still running. 0 (default) = wait for animation to complete (no overlap).
   // 0.5 = start next animation when this one is halfway done. Values outside
   // 0-1 are clamped. See also animationLength.
-  animationOverlap(fromMove: Record<string, unknown> | null, toMove: Record<string, unknown> | null): number {
+  animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
-  }
-
-  private _handleButtonTapped(e: Event): void {
-    const composedPath = e.composedPath();
-    let ele: HTMLElement | null = null;
-
-    for (const tempEle of composedPath) {
-      // Runtime type check (no unsafe casts)
-      if (!(tempEle instanceof Element)) continue;
-      if (!tempEle.hasAttribute) continue;
-
-      // Only accept string-valued proposeMove properties: the renderer
-      // element itself (and anything extending BoardgameBaseGameRenderer)
-      // has a proposeMove METHOD, which must not be mistaken for the
-      // legacy string-property/attribute convention.
-      const rawProposeMove = (tempEle as Element & { proposeMove?: unknown }).proposeMove;
-      const proposeMove = (typeof rawProposeMove === 'string' ? rawProposeMove : null) || tempEle.getAttribute('propose-move');
-      if (proposeMove) {
-        // found it!
-        ele = tempEle as HTMLElement;
-        break;
-      }
-    }
-
-    if (!ele) {
-      return;
-    }
-
-    if (ele.hasAttribute('boardgame-component') && e.type === 'click') {
-      // Cards we'll fire on the component-tapped, not the click.
-      return;
-    }
-
-    const rawMoveName = (ele as HTMLElement & { proposeMove?: unknown }).proposeMove;
-    const moveName = (typeof rawMoveName === 'string' ? rawMoveName : null) || ele.getAttribute('propose-move');
-    if (!moveName) return;
-
-    const data = ele.dataset;
-    const args: Record<string, string | undefined> = {};
-
-    for (const key in data) {
-      if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
-      if (!key.startsWith('arg')) continue;
-      let effectiveKey = key.replace('arg', '');
-      // Handle the case where the attribute was literally just data-arg
-      if (!effectiveKey) continue;
-      // The first character is now upperCase, which is desired as per Move field convention
-      args[effectiveKey] = data[key];
-    }
-
-    this.dispatchEvent(new CustomEvent('propose-move', {
-      composed: true,
-      bubbles: true,
-      detail: { name: moveName, arguments: args }
-    }));
   }
 
   override render() {

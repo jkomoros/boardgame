@@ -95,6 +95,7 @@ func (c *Mode) OriginAllowed(origin string) bool {
 	}
 	allowedOrigins := strings.Split(c.AllowedOrigins, ",")
 	for _, allowedOrigin := range allowedOrigins {
+		allowedOrigin = strings.TrimSpace(allowedOrigin)
 		u, err := url.Parse(allowedOrigin)
 
 		if err != nil {

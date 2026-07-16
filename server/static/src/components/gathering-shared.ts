@@ -5,10 +5,11 @@
  * gathering moves and the client-side gathering panel. The contract is:
  * - A selection move has fields named TargetPlayerIndex + Selected{Team,Role,Color}
  * - The Selected* field has EnumName matching "team", "role", or "color"
- * - Available values come from Computed.Global.Available{Teams,Roles,Colors}
- * - Current selections come from Computed.Players[i].{Team,Role,Color}Value
+ * - Raw Computed.Global is expanded onto state.Game.Computed
+ * - Raw Computed.Players[i] is expanded onto state.Players[i].Computed
  */
 import type { MoveForm, MoveFormField } from '../types/api';
+export type { PlayerInfo } from '../types/store';
 
 // ---- Player index constants ----
 
@@ -23,13 +24,6 @@ export interface EnumValue {
   Name: string;
   /** CSS color string, present only for color enum values. */
   CSSColor?: string;
-}
-
-export interface PlayerInfo {
-  IsEmpty: boolean;
-  IsAgent: boolean;
-  PhotoUrl?: string;
-  DisplayName: string;
 }
 
 // ---- Start move detection ----
@@ -102,19 +96,75 @@ export function hasPickerMoves(moveForms: MoveForm[] | null): boolean {
 
 // ---- State accessors ----
 
-/** Get ReadyToStartError from computed global properties. */
-export function getReadyToStartError(state: any): string {
-  return state?.Game?.Computed?.Global?.ReadyToStartError || '';
+function optionalRecord(value: unknown, path: string): Readonly<Record<string, unknown>> | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Gathering state ${path} must be an object when present`);
+  }
+  return value as Readonly<Record<string, unknown>>;
 }
 
-/** Get available enum values from computed global properties. */
-export function getAvailableValues(state: any, key: 'AvailableTeams' | 'AvailableRoles' | 'AvailableColors'): EnumValue[] {
-  return state?.Game?.Computed?.Global?.[key] || [];
+function gameComputed(state: unknown): Readonly<Record<string, unknown>> | null {
+  const root = optionalRecord(state, 'root');
+  const game = optionalRecord(root?.['Game'], 'Game');
+  return optionalRecord(game?.['Computed'], 'Game.Computed');
 }
 
-/** Get a player's computed selection value. */
-export function getPlayerComputedValue(state: any, playerIndex: number, key: 'TeamValue' | 'RoleValue' | 'ColorValue'): string {
-  const players = state?.Players;
-  if (!players || !players[playerIndex]) return '';
-  return players[playerIndex]?.Computed?.[key] || '';
+/** Get ReadyToStartError from expanded global computed properties. */
+export function getReadyToStartError(state: unknown): string {
+  const value = gameComputed(state)?.['ReadyToStartError'];
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') {
+    throw new Error('Gathering state Game.Computed.ReadyToStartError must be a string');
+  }
+  return value;
+}
+
+/** Get available enum values from expanded global computed properties. */
+export function getAvailableValues(
+  state: unknown,
+  key: 'AvailableTeams' | 'AvailableRoles' | 'AvailableColors',
+): EnumValue[] {
+  const value = gameComputed(state)?.[key];
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    throw new Error(`Gathering state Game.Computed.${key} must be an array`);
+  }
+  return value.map((entry, index) => {
+    const item = optionalRecord(entry, `Game.Computed.${key}[${index}]`);
+    if (!item || !Number.isSafeInteger(item['Key']) || typeof item['Name'] !== 'string'
+      || !item['Name'].trim()
+      || (item['CSSColor'] !== undefined && typeof item['CSSColor'] !== 'string')) {
+      throw new Error(`Gathering state Game.Computed.${key}[${index}] is not a valid enum value`);
+    }
+    return {
+      Key: item['Key'] as number,
+      Name: item['Name'],
+      ...(item['CSSColor'] === undefined ? {} : { CSSColor: item['CSSColor'] }),
+    };
+  });
+}
+
+/** Get a player's expanded computed selection value. */
+export function getPlayerComputedValue(
+  state: unknown,
+  playerIndex: number,
+  key: 'TeamValue' | 'RoleValue' | 'ColorValue',
+): string {
+  if (!Number.isSafeInteger(playerIndex) || playerIndex < 0) {
+    throw new Error(`Gathering player index must be a non-negative safe integer, got ${playerIndex}`);
+  }
+  const root = optionalRecord(state, 'root');
+  const players = root?.['Players'];
+  if (players === undefined || players === null) return '';
+  if (!Array.isArray(players)) throw new Error('Gathering state Players must be an array');
+  const player = optionalRecord(players[playerIndex], `Players[${playerIndex}]`);
+  if (!player) return '';
+  const computed = optionalRecord(player['Computed'], `Players[${playerIndex}].Computed`);
+  const value = computed?.[key];
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') {
+    throw new Error(`Gathering state Players[${playerIndex}].Computed.${key} must be a string`);
+  }
+  return value;
 }

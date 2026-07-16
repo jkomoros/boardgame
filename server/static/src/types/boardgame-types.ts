@@ -3,15 +3,63 @@
  * Imported by auto-generated _types.ts files in each game's client/ directory.
  */
 
-/**
- * A single component instance within an expanded stack.
- * All fields are optional because hidden components (index -2) are bare {}
- * objects at runtime, while normal components have Deck, GameName, etc.
- */
+export type DeepReadonly<T> =
+  T extends (...args: never[]) => unknown ? T :
+  T extends readonly (infer Item)[] ? readonly DeepReadonly<Item>[] :
+  T extends object ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> } :
+  T;
+
+/** A visible component resolved from the static deck catalogue. */
+export interface VisibleComponent<
+  V extends object = Readonly<Record<string, unknown>>,
+  D extends object = Readonly<Record<string, unknown>>,
+> {
+  readonly Index: number;
+  readonly Values: DeepReadonly<V>;
+  readonly Deck: string;
+  readonly GameName: string;
+  readonly ID: string;
+  /** Absent when this deck has no dynamic values or they were sanitized away. */
+  readonly DynamicValues?: DeepReadonly<D>;
+}
+
+/** Sanitization's deliberately opaque occupied-slot representation. */
+export type OpaqueComponent = Readonly<Record<string, never>>;
+
 export type Component<
-  T extends object = Record<string, unknown>,
-  D extends object = Record<string, unknown>
-> = Partial<T & { Deck: string; GameName: string; ID: string; DynamicValues: D }>;
+  V extends object = Readonly<Record<string, unknown>>,
+  D extends object = Readonly<Record<string, unknown>>,
+> = VisibleComponent<V, D> | OpaqueComponent;
+
+/** Static chest entry before stack expansion adds instance metadata. */
+export interface CatalogComponent<
+  V extends object = Readonly<Record<string, unknown>>,
+> {
+  readonly Index: number;
+  readonly Values: DeepReadonly<V>;
+}
+
+export function isVisibleComponent<V extends object, D extends object>(
+  component: Component<V, D> | null | undefined,
+): component is VisibleComponent<V, D>;
+export function isVisibleComponent(component: unknown): component is VisibleComponent;
+export function isVisibleComponent(component: unknown): component is VisibleComponent {
+  if (!isPlainRecord(component)) return false;
+  const candidate = component as Partial<VisibleComponent>;
+  return Number.isSafeInteger(candidate.Index)
+    && (candidate.Index as number) >= 0
+    && typeof candidate.Deck === 'string'
+    && typeof candidate.GameName === 'string'
+    && typeof candidate.ID === 'string'
+    && isPlainRecord(candidate.Values)
+    && (candidate.DynamicValues === undefined || isPlainRecord(candidate.DynamicValues));
+}
+
+function isPlainRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
 
 /**
  * An expanded stack as seen by the client after selector expansion.
@@ -19,18 +67,18 @@ export type Component<
  * those indices into full component objects.
  */
 export interface ExpandedStack<
-  T extends object = Record<string, unknown>,
-  D extends object = Record<string, unknown>
+  V extends object = Readonly<Record<string, unknown>>,
+  D extends object = Readonly<Record<string, unknown>>,
 > {
-  Deck: string;
-  Indexes: number[];
-  IDs: string[];
-  IDsLastSeen: Record<string, number>;
-  ShuffleCount: number;
-  Size?: number;
-  MaxSize?: number;
-  GameName: string;
-  Components: (Component<T, D> | null)[];
+  readonly Deck: string;
+  readonly Indexes: readonly number[];
+  readonly IDs: readonly string[];
+  readonly IDsLastSeen: Readonly<Record<string, number>>;
+  readonly ShuffleCount: number;
+  readonly Size?: number;
+  readonly MaxSize?: number;
+  readonly GameName: string;
+  readonly Components: readonly (Component<V, D> | null)[];
 }
 
 /**
@@ -38,21 +86,21 @@ export interface ExpandedStack<
  * Used for stacks nested inside boards (which are not expanded).
  */
 export interface RawStack {
-  Deck: string;
-  Indexes: number[];
-  IDs: string[];
-  IDsLastSeen: Record<string, number>;
-  ShuffleCount: number;
-  Size?: number;
-  MaxSize?: number;
+  readonly Deck: string;
+  readonly Indexes: readonly number[];
+  readonly IDs: readonly string[];
+  readonly IDsLastSeen: Readonly<Record<string, number>>;
+  readonly ShuffleCount: number;
+  readonly Size?: number;
+  readonly MaxSize?: number;
 }
 
 /**
- * A board as seen by the client before expansion. Boards serialize as an
- * array of spaces, each of which is a raw (non-expanded) stack.
+ * A raw board nested in dynamic component values. Top-level game/player
+ * boards are expanded by the renderer selector and use ExpandedBoard.
  */
 export interface Board {
-  Spaces: RawStack[];
+  readonly Spaces: readonly RawStack[];
 }
 
 /**
@@ -60,20 +108,32 @@ export interface Board {
  * expanded stack with resolved component objects, ready for rendering.
  */
 export interface ExpandedBoard<
-  T extends object = Record<string, unknown>,
-  D extends object = Record<string, unknown>
+  T extends object = Readonly<Record<string, unknown>>,
+  D extends object = Readonly<Record<string, unknown>>,
 > {
-  Spaces: ExpandedStack<T, D>[];
+  readonly Spaces: readonly ExpandedStack<T, D>[];
 }
 
-/**
- * An expanded timer as seen by the client after selector expansion.
- */
+/** Stable timer identity in a renderer snapshot; live clock values are selective signals. */
 export interface ExpandedTimer {
-  ID: string;
-  IsTimer: true;
-  TimeLeft: number;
-  originalTimeLeft: number;
+  readonly ID: string;
+  readonly IsTimer: true;
+}
+
+/** Static game metadata delivered beside state snapshots. */
+export interface GameChest<
+  C extends object = object,
+  K extends object = object,
+  E extends object = Readonly<Record<string, {
+    readonly Values?: Readonly<Record<string, string>>;
+  }>>,
+> {
+  readonly Decks?: DeepReadonly<C>;
+  /** Exact enum names and value unions are supplied by generated contracts. */
+  readonly Enums?: DeepReadonly<E>;
+  /** Exact names and values are supplied by each game's generated contract. */
+  readonly Constants?: DeepReadonly<K>;
+  readonly LegalTemplates?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -81,11 +141,17 @@ export interface ExpandedTimer {
  * GS is the game-level state interface, PS is the per-player state interface.
  */
 export interface FullGameState<
-  GS extends object = Record<string, unknown>,
-  PS extends object = Record<string, unknown>
+  GS extends object,
+  PS extends object,
+  GC extends object = Readonly<Record<string, unknown>>,
+  PC extends object = Readonly<Record<string, unknown>>,
+  DC extends object = Readonly<Record<string, readonly unknown[]>>,
 > {
-  Game: GS;
-  Players: PS[];
-  Computed?: { Global?: Record<string, unknown>; Players?: Record<string, unknown>[] };
-  Components?: Record<string, unknown[]>;
+  readonly Game: DeepReadonly<GS>;
+  readonly Players: readonly DeepReadonly<PS>[];
+  readonly Computed?: {
+    readonly Global?: DeepReadonly<GC>;
+    readonly Players?: readonly DeepReadonly<PC>[];
+  };
+  readonly Components?: DeepReadonly<DC>;
 }

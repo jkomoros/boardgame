@@ -1,8 +1,14 @@
 import type { ThunkAction } from 'redux-thunk';
-import type { RootState, GameListItem } from '../types/store';
+import type { RootState, GameListItem, ManagerInfo } from '../types/store';
 import type { UserAction } from './user.js';
 import type { AppAction } from './app.js';
 import type { ErrorAction } from './error.js';
+import { apiGet, apiPost, buildApiUrl } from '../api.js';
+import {
+    decodeCreateGameResponse,
+    decodeGamesListResponse,
+    decodeManagersResponse,
+} from '../types/list-response.js';
 
 export const UPDATE_MANAGERS = 'UPDATE_MANAGERS';
 export const UPDATE_GAMES_LIST = 'UPDATE_GAMES_LIST';
@@ -13,11 +19,6 @@ export const UPDATE_AGENT_NAME = "UPDATE_AGENT_NAME";
 export const UPDATE_VARIANT_OPTION = "UPDATE_VARIANT_OPTION";
 export const UPDATE_CREATE_GAME_OPEN = "UPDATE_CREATE_GAME_OPEN";
 export const UPDATE_CREATE_GAME_VISIBLE = "UPDATE_CREATE_GAME_VISIBLE";
-
-import {
-    apiPath,
-    postFetchParams
-} from '../util.js';
 
 import {
     selectGameTypeFilter,
@@ -43,7 +44,7 @@ import {
 // Action type definitions
 interface UpdateManagersAction {
     type: typeof UPDATE_MANAGERS;
-    managers: any[];
+    managers: ManagerInfo[];
 }
 
 interface UpdateGamesListAction {
@@ -107,12 +108,19 @@ export type ListAction =
 type ListThunk<ReturnType = void> = ThunkAction<ReturnType, RootState, unknown, ListAction | UserAction | AppAction | ErrorAction>;
 
 export const fetchManagers = (): ListThunk<Promise<void>> => async (dispatch) => {
-
-    let response = await fetch(apiPath('list/manager'));
-
-    let data = await response.json() as { Managers: any[] };
-
-    let managers = data.Managers;
+    const response = await apiGet<unknown>(buildApiUrl('list/manager'));
+    if (!response.data) {
+        dispatch(updateAndShowError('', response.error || 'Manager list response was missing', response.friendlyError || 'Could not load game types'));
+        return;
+    }
+    let managers: ManagerInfo[];
+    try {
+        managers = decodeManagersResponse(response.data);
+    } catch (error) {
+        console.error('[manager-list] rejected server payload:', error);
+        dispatch(updateAndShowError('', error instanceof Error ? error.message : 'Invalid manager list response', 'The server returned an invalid game-type list'));
+        return;
+    }
 
     dispatch({
         type: UPDATE_MANAGERS,
@@ -135,20 +143,22 @@ export const fetchGamesList = (): ListThunk<Promise<void>> => async (dispatch, g
     const gameType = selectGameTypeFilter(state);
     const isAdmin = selectAdmin(state);
 
-    let response = await fetch(apiPath('list/game', {
+    const response = await apiGet<unknown>(buildApiUrl('list/game', {
         name: gameType,
         admin: isAdmin ? 1 : 0
-    }),{
-        credentials: 'include',
-    });
-
-    let data = await response.json() as {
-        ParticipatingActiveGames: GameListItem[];
-        ParticipatingFinishedGames: GameListItem[];
-        VisibleActiveGames: GameListItem[];
-        VisibleJoinableActiveGames: GameListItem[];
-        AllGames: GameListItem[];
-    };
+    }));
+    if (!response.data) {
+        dispatch(updateAndShowError('', response.error || 'Games list response was missing', response.friendlyError || 'Could not load games'));
+        return;
+    }
+    let data;
+    try {
+        data = decodeGamesListResponse(response.data);
+    } catch (error) {
+        console.error('[games-list] rejected server payload:', error);
+        dispatch(updateAndShowError('', error instanceof Error ? error.message : 'Invalid games list response', 'The server returned an invalid games list'));
+        return;
+    }
 
     dispatch({
         type: UPDATE_GAMES_LIST,
@@ -177,22 +187,17 @@ export const createGame = (propertyDict: Record<string, string | number | boolea
         return;
     }
 
-    const body = Object.entries(propertyDict).map((entry) => '' + entry[0] + '=' + entry[1]).join('&');
-
-    let response = await fetch(apiPath('new/game'), postFetchParams(body));
-
-    let responseJSON = await response.json() as {
-        Status: string;
-        GameName?: string;
-        GameID?: string;
-        Error?: string;
-        FriendlyError?: string;
-    };
-
-    if (responseJSON.Status == "Success") {
-        dispatch(navigateToGame(responseJSON.GameName!, responseJSON.GameID!));
-    } else {
-        dispatch(updateAndShowError("", responseJSON.Error || "", responseJSON.FriendlyError || ""));
+    const response = await apiPost<unknown>(buildApiUrl('new/game'), propertyDict, 'application/x-www-form-urlencoded');
+    if (!response.data) {
+        dispatch(updateAndShowError('', response.error || 'Create game response was missing', response.friendlyError || 'Could not create the game'));
+        return;
+    }
+    try {
+        const created = decodeCreateGameResponse(response.data);
+        dispatch(navigateToGame(created.GameName, created.GameID));
+    } catch (error) {
+        console.error('[create-game] rejected server payload:', error);
+        dispatch(updateAndShowError('', error instanceof Error ? error.message : 'Invalid create game response', 'The server returned an invalid create-game response'));
     }
 };
 
@@ -245,4 +250,3 @@ export const updateVisible = (visible: boolean): UpdateCreateGameVisibleAction =
         visible
     }
 }
-
