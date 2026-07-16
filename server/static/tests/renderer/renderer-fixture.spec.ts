@@ -578,6 +578,168 @@ test('game board rejects contradictory geometry and accessibility configuration 
   ]);
 });
 
+test('spatial board sanitizes authored geometry and shares typed target activation', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    const source = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 20 200 100">
+      <script>globalThis.__unsafeBoardScript = true</script>
+      <g transform="translate(20 10)">
+        <g data-board-space="room:one/?" data-board-label="Library" data-board-order="3"
+          onclick="globalThis.__unsafeBoardClick = true" fill="url(#safe) url(https://attacker.invalid/paint)">
+          <path d="M 0 0 h 80 v 60 h -80 z" />
+          <circle data-inner="" cx="20" cy="20" r="10" />
+          <animate attributeName="href" values="javascript:alert(1)" />
+        </g>
+        <rect data-board-focus-anchor="room:one/?" x="10" y="10" width="4" height="4" />
+        <rect data-board-piece-anchor="room:one/?" x="50" y="30" width="6" height="6" />
+        <image href="https://attacker.invalid/tracker.png" x="0" y="0" width="2" height="2" />
+      </g>
+    </svg>`;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(source, {
+      status: 200,
+      headers: { 'content-type': 'image/svg+xml' },
+    });
+    try {
+      await import('/src/components/boardgame-spatial-board.ts');
+      let activations = 0;
+      const actionState = {
+        canActivate: true,
+        reason: null,
+        activate: async () => {
+          activations++;
+          return { kind: 'success', requestID: 'spatial-test' };
+        },
+      };
+      const candidate = { key: 'room:one/?', action: actionState };
+      const action = {
+        candidates: [candidate],
+        preview: { kind: 'ready' },
+        get: (key: string | number) => key === candidate.key ? candidate : undefined,
+        ensurePreview: async () => ({ kind: 'ready' }),
+        refreshPreview: async () => ({ kind: 'ready' }),
+        subscribe: () => () => undefined,
+      };
+      const board = document.createElement('boardgame-spatial-board') as HTMLElement & {
+        svgUrl: string;
+        action: unknown;
+        pieces: readonly unknown[];
+        tokenSize: number;
+        svgLoaded: boolean;
+        updateComplete: Promise<unknown>;
+      };
+      board.svgUrl = '/authored-board.svg';
+      board.action = action;
+      board.tokenSize = 20;
+      const token = { Index: 0, Values: {}, Deck: 'tokens', GameName: 'fixture', ID: 'token-0' };
+      const stack = {
+        Deck: 'tokens', Indexes: [0], IDs: [token.ID], IDsLastSeen: {}, ShuffleCount: 0,
+        GameName: 'fixture', Components: [token],
+      };
+      board.pieces = [{ id: token.ID, space: candidate.key, stack, slot: 0, component: token }];
+      document.body.append(board);
+      for (let attempt = 0; attempt < 20 && !board.svgLoaded; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      await board.updateComplete;
+      const root = board.shadowRoot;
+      const region = root?.querySelector('[data-board-space]');
+      const inner = root?.querySelector('[data-inner]');
+      const button = root?.querySelector('#space-list button');
+      const pieceAnchor = root?.querySelector('[data-board-piece-anchor]');
+      const componentStack = root?.querySelector('boardgame-component-stack') as (
+        HTMLElement & { spatialPositions: readonly ({ top: number; left: number } | null)[]; updateComplete: Promise<unknown> }
+      ) | null;
+      if (!(region instanceof SVGElement) || !(inner instanceof SVGElement)
+        || !(pieceAnchor instanceof SVGGraphicsElement) || !(button instanceof HTMLButtonElement)
+        || !componentStack) throw new Error('Spatial fixture did not render');
+      await componentStack.updateComplete;
+      const position = componentStack.spatialPositions[0];
+      if (!position) throw new Error('Spatial fixture did not position its piece');
+      const anchorBounds = pieceAnchor.getBoundingClientRect();
+      const containerBounds = root?.querySelector('#container')?.getBoundingClientRect();
+      if (!containerBounds) throw new Error('Spatial fixture had no container geometry');
+      const jitter = (axis: number) => {
+        let hash = axis * 41;
+        hash = ((hash >>> 16) ^ hash) * 0x45d9f3b;
+        hash = ((hash >>> 16) ^ hash) * 0x45d9f3b;
+        hash = (hash >>> 16) ^ hash;
+        return ((hash & 0xFFFF) / 0x7FFF) - 1;
+      };
+      const expectedLeft = anchorBounds.left + anchorBounds.width / 2 - containerBounds.left - 10 + jitter(0) * 20;
+      const expectedTop = anchorBounds.top + anchorBounds.height / 2 - containerBounds.top - 10 + jitter(1) * 20;
+      inner.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+      await Promise.resolve();
+      button.focus();
+      const successful = {
+        activations,
+        label: button.textContent?.trim(),
+        focused: region.classList.contains('focused'),
+        scriptCount: root?.querySelectorAll('script').length,
+        onclick: region.getAttribute('onclick'),
+        unsafeFill: region.getAttribute('fill'),
+        animationCount: root?.querySelectorAll('animate').length,
+        imageHref: root?.querySelector('image')?.getAttribute('href'),
+        unsafeScriptRan: Boolean((globalThis as unknown as { __unsafeBoardScript?: boolean }).__unsafeBoardScript),
+        anchorError: Math.max(Math.abs(position.left - expectedLeft), Math.abs(position.top - expectedTop)),
+      };
+
+      let resolveSlow: ((response: Response) => void) | undefined;
+      globalThis.fetch = async input => {
+        const url = String(input);
+        if (url.includes('slow.svg')) return new Promise<Response>(resolve => { resolveSlow = resolve; });
+        if (url.includes('missing.svg')) return new Response('missing', { status: 404 });
+        return new Response(source.replace('Library', 'Fast Library'), {
+          status: 200,
+          headers: { 'content-type': 'image/svg+xml' },
+        });
+      };
+      board.svgUrl = '/slow.svg';
+      await board.updateComplete;
+      board.svgUrl = '/fast.svg';
+      await board.updateComplete;
+      for (let attempt = 0; attempt < 20 && !board.svgLoaded; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      resolveSlow?.(new Response(source.replace('Library', 'Stale Library'), {
+        status: 200,
+        headers: { 'content-type': 'image/svg+xml' },
+      }));
+      await new Promise(resolve => setTimeout(resolve, 0));
+      const postRaceLabel = root?.querySelector('#space-list button')?.textContent?.trim();
+
+      board.svgUrl = '/missing.svg';
+      await board.updateComplete;
+      for (let attempt = 0; attempt < 20 && !root?.querySelector('#status')?.textContent?.includes('HTTP 404'); attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      return {
+        ...successful,
+        postRaceLabel,
+        failedSvgCount: root?.querySelectorAll('#container > svg').length,
+        failureStatus: root?.querySelector('#status')?.textContent?.replace(/\s+/g, ' ').trim(),
+      };
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+  expect(result).toMatchObject({
+    activations: 1,
+    label: 'Library',
+    focused: true,
+    scriptCount: 0,
+    onclick: null,
+    unsafeFill: null,
+    animationCount: 0,
+    imageHref: null,
+    unsafeScriptRan: false,
+    postRaceLabel: 'Fast Library',
+    failedSvgCount: 0,
+    failureStatus: expect.stringContaining('HTTP 404'),
+  });
+  expect(result.anchorError).toBeLessThanOrEqual(1);
+});
+
 test('game board reconnects, exposes reasons, avoids double retry, and labels wide coordinates', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {

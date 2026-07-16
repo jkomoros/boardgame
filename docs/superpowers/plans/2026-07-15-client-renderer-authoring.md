@@ -695,9 +695,9 @@ do not make `TargetAction` a workflow DSL.
 - `../games/murdermrmonroe/client/boardgame-render-game-murdermrmonroe.ts`
 - its authored `board.svg` and types only as needed
 
-- [ ] Land the framework primitive and a minimal copied/framework-owned SVG
+- [x] Land the framework primitive and a minimal copied/framework-owned SVG
   fixture first. The framework commit must not depend on uncommitted `../games`.
-- [ ] Define an explicit `BoardGeometry<Key>` contract containing hit region,
+- [x] Define an explicit `BoardGeometry<Key>` contract containing hit region,
   keyboard order, accessible label, focus anchor, and piece/animation anchor.
   Keep those three geometry concepts separate. `TargetAction<Key>` supplies
   legality/activation; `BoardPiece<Key>` supplies stable identity, space, visual
@@ -706,13 +706,13 @@ do not make `TargetAction` a workflow DSL.
   anchors (or a typed sidecar) the intended SVG model. Retain `spacePrefix` only
   as a migration adapter. Add build/check extraction or validation so literal
   keys can form a `SpaceKey` union and misspellings fail before an empty box.
-- [ ] Provide `piecesFromSizedStacks(...)` as a convenience adapter rather than
+- [x] Provide `piecesFromSizedStacks(...)` as a convenience adapter rather than
   making implicit stack-slot-to-SVG-index coupling the principal API.
-- [ ] Harden SVG loading: require `response.ok` and sane content, abort or
+- [x] Harden SVG loading: require `response.ok` and sane content, abort or
   generation-token stale requests when the URL changes, ignore completion after
   disconnect, reject parser errors/non-SVG roots/missing or invalid `viewBox`,
   and show an accessible visible failure state with retry where appropriate.
-- [ ] Define and enforce the trusted-artwork boundary. If arbitrary SVG remains
+- [x] Define and enforce the trusted-artwork boundary. If arbitrary SVG remains
   accepted, sanitize scripts, event-handler attributes, `foreignObject`, unsafe
   links/schemes, and external resource loads before insertion. Never interpolate
   unescaped creator keys/prefixes into selectors or reflect diagnostic markup as
@@ -720,15 +720,15 @@ do not make `TargetAction` a workflow DSL.
 - [ ] Diagnose zero/duplicate/malformed keys, duplicate order, missing labels,
   invisible/zero-sized regions, `getBBox` failures, nonfinite transforms, unknown
   piece/target keys, and stack/space cardinality mismatch.
-- [ ] Resolve nested SVG interaction with explicit closest/data semantics rather
+- [x] Resolve nested SVG interaction with explicit closest/data semantics rather
   than `event.target.id`, including keys containing punctuation.
-- [ ] Prototype real-region pointer hit testing, a coordinated native keyboard
+- [x] Prototype real-region pointer hit testing, a coordinated native keyboard
   focus control at the focus anchor, a visible focus/highlight layer derived from
   source geometry, and an always-available compact list representation. Use
   rectangular overlay buttons only for nonoverlapping geometry that proves them
   correct; bounding boxes are not the universal model for concave/transformed/
   overlapping regions.
-- [ ] Keep pieces/markers in a separate pointer-events-safe layer and expose
+- [x] Keep pieces/markers in a separate pointer-events-safe layer and expose
   stable animation anchors without obscuring component interaction or animation
   measurement.
 - [ ] Transform each element through its own/ancestor CTM, not only the root SVG.
@@ -738,10 +738,10 @@ do not make `TargetAction` a workflow DSL.
   without loops.
 - [ ] Add a development geometry inspector displaying keys, order, hit regions,
   anchors, labels, unknown pieces, and overlaps.
-- [ ] Resolve labels from an explicit label map, SVG `aria-label`/`title`, or a
+- [x] Resolve labels from an explicit label map, SVG `aria-label`/`title`, or a
   loud development diagnostic. Supply keyboard order and a compact list
   fallback for screen-reader and small-screen use.
-- [ ] Connect the same typed target action/preview contract used by the grid.
+- [x] Connect the same typed target action/preview contract used by the grid.
 - [ ] After the framework proof is committed, create a dedicated `games` branch
   and migrate only Monroe's board geometry, position projection, and Move-to-Room
   interaction. Record remaining `any`, deck/card template, and legacy action debt;

@@ -2113,15 +2113,63 @@ Optionally implement `AdvanceCondition` (to gate when the token should advance) 
 
 #### Client: boardgame-spatial-board
 
-For the client side, `boardgame-spatial-board` is a shared web component that loads an SVG map and provides spatial queries and interaction. It handles:
+`boardgame-spatial-board` turns authored SVG artwork into the same typed target
+interaction used by `boardgame-game-board`. The SVG describes geometry and
+labels; `TargetAction` describes legality and activation. Game renderers do not
+need a second click-handler/disabled-array proposal system.
 
-- Loading SVG from a configurable URL (`svgUrl`)
-- Identifying space elements by a configurable ID prefix (`spacePrefix`, default `"Space-"`)
-- Firing `space-tapped` events when a space is clicked
-- Disabling spaces visually via a `disabledSpaces` array
-- Computing token positions with deterministic jitter via `tokenPosition(spaceIndex, tokenIndex, tokenSize)`
+Mark the real hit region for every space. Keys are ordinary strings and may
+contain punctuation; they are never interpolated into CSS selectors.
 
-Your game's board component can either use `boardgame-spatial-board` directly or wrap it in a thin component that maps game-specific properties (like wing closures) to `disabledSpaces`.
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 616">
+  <path data-board-space="library"
+        data-board-label="Library"
+        data-board-order="0"
+        d="..." />
+
+  <!-- Optional: interaction, keyboard focus, and pieces may use distinct geometry. -->
+  <circle data-board-focus-anchor="library" cx="105" cy="88" r="8" />
+  <circle data-board-piece-anchor="library" cx="130" cy="110" r="8" />
+</svg>
+```
+
+Then bind typed targets and an explicit piece projection:
+
+```ts
+import { html, piecesFromSizedStacks } from '/src/client.js';
+import { MoveNames } from './_move_names.js';
+
+const roomKeys = ['library', 'study', 'kitchen'] as const;
+const moveToRoom = this.move(MoveNames.MoveToRoom).targets(
+  roomKeys,
+  room => ({ TargetLocation: room }),
+);
+const pieces = piecesFromSizedStacks(this.positionStacks, roomKeys);
+
+return html`<boardgame-spatial-board
+  svgUrl="game-src/mygame/board.svg"
+  .action=${moveToRoom}
+  .pieces=${pieces}>
+</boardgame-spatial-board>`;
+```
+
+The component validates duplicate/missing labels, keys, ordering, measurable
+regions and anchors, unknown action/piece keys, and stack cardinality. It uses
+each anchor's complete SVG transform, so nested transformed groups, a nonzero
+`viewBox`, responsive scaling, and letterboxing do not require manual pixel
+math. Pointer interaction follows the actual authored region; a compact native
+button list provides keyboard and screen-reader access with the same legality
+reasons. Loading is abortable and stale-safe, failures are visible and retryable,
+and fetched SVG is sanitized before insertion (scripts, event handlers,
+`foreignObject`, animation mutation, and external resources are removed).
+
+`spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
+`boxForSpace()`, and `tokenPosition()` remain migration adapters for older
+numeric-ID boards. New renderers should use `data-board-*`, `.action`, and
+`.pieces`; that keeps custom artwork ordinary game-owned SVG without giving up
+typed moves, server-authoritative legality, accessibility, or stable animation
+anchors.
 
 ### Phases
 

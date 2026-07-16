@@ -50,6 +50,15 @@ export type {
   TargetKey,
 } from './moves/target-action.js';
 export type {
+  BoardPiece,
+  BoardGeometry,
+  BoardGeometrySpace,
+  ResolvedBoardGeometry,
+  ResolvedBoardGeometrySpace,
+  SpatialBoardKey,
+} from './components/spatial-board-geometry.js';
+export { piecesFromSizedStacks } from './components/spatial-board-geometry.js';
+export type {
   MoveInputErrorCode,
   MoveInputIssue,
   MoveInputSchema,
@@ -65,3 +74,4 @@ export type {
 import './components/boardgame-die.js';
 import './components/boardgame-fading-text.js';
 import './components/boardgame-action-button.js';
+import './components/boardgame-spatial-board.js';
