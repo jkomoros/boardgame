@@ -26,6 +26,14 @@ export interface SelectionDraftOptions<
   readonly rebase?: SelectionDraftRebasePolicy;
 }
 
+/** One candidate's snapshot-safe presentation and interaction binding. */
+export interface SelectionOptionBinding<Key extends TargetKey> {
+  readonly choice: Key;
+  readonly selected: boolean;
+  readonly capacityBlocked: boolean;
+  toggle(): void;
+}
+
 export interface SelectionDraftBinding<
   Key extends TargetKey,
   MoveName extends string,
@@ -43,6 +51,7 @@ export interface SelectionDraftBinding<
   readonly status: string;
   readonly canUndo: boolean;
   readonly canClear: boolean;
+  option(key: Key): SelectionOptionBinding<Key>;
   toggle(key: Key): void;
   select(key: Key): void;
   deselect(key: Key): void;
@@ -121,6 +130,18 @@ export class SelectionDraftController<Key extends TargetKey> implements Reactive
       status: `${this.#selected.length} selection${this.#selected.length === 1 ? '' : 's'} drafted.`,
       canUndo: this.#history.length > 0,
       canClear: this.#selected.length > 0,
+      option: (key: Key): SelectionOptionBinding<Key> => {
+        if (!nextCandidates.has(key)) {
+          throw new Error(`SelectionDraftController cannot bind unknown candidate ${JSON.stringify(key)}`);
+        }
+        const selected = this.#selected.includes(key);
+        return Object.freeze({
+          choice: key,
+          selected,
+          capacityBlocked: !selected && this.#selected.length >= maximumSelected,
+          toggle: () => this.toggle(key),
+        });
+      },
       toggle: this.toggle,
       select: this.select,
       deselect: this.deselect,

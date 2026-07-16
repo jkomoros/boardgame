@@ -98,7 +98,6 @@ export type {
   InspectorOpenChangedDetail,
 } from './components/boardgame-inspector.js';
 export type { ReadinessView } from './components/boardgame-readiness.js';
-export type { SelectionOptionBinding } from './components/boardgame-selection-option.js';
 export type { ClientMove } from './types/api.js';
 export type {
   ReadinessKey,
@@ -112,6 +111,7 @@ export {
   SelectionDraftController,
   type SelectionDraftBinding,
   type SelectionDraftNotice,
+  type SelectionOptionBinding,
   type SelectionDraftOptions,
   type SelectionDraftRebasePolicy,
 } from './moves/selection-draft.js';

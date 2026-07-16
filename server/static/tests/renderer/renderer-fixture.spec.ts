@@ -805,25 +805,25 @@ test('selection options own pressed state, capacity, hit targets, and content sa
     region.setAttribute('aria-label', 'Resource cards');
     let selected: readonly string[] = [];
     const clay = document.createElement('boardgame-selection-option');
-    clay.choice = 'clay'; clay.label = 'Clay card';
+    clay.label = 'Clay card';
     const art = document.createElement('span');
     art.textContent = '🧱 Clay';
     clay.append(art);
     const ore = document.createElement('boardgame-selection-option');
-    ore.choice = 'ore'; ore.label = 'Ore card';
+    ore.label = 'Ore card';
     const options = [clay, ore];
     const refresh = () => {
-      const draft = {
-        candidates: ['clay', 'ore'] as const,
-        selected,
-        maximumSelected: 1,
-        toggle: (choice: string) => {
+      const bind = (choice: string) => ({
+        choice,
+        selected: selected.includes(choice),
+        capacityBlocked: !selected.includes(choice) && selected.length >= 1,
+        toggle: () => {
           selected = selected.includes(choice) ? [] : [choice];
           refresh();
         },
-        isSelected: (choice: string) => selected.includes(choice),
-      };
-      options.forEach(option => { option.draft = draft; });
+      });
+      clay.option = bind('clay');
+      ore.option = bind('ore');
     };
     refresh();
     region.append(...options);
@@ -849,17 +849,19 @@ test('selection options own pressed state, capacity, hit targets, and content sa
     await Promise.all(options.map(option => option.updateComplete));
     const deselected = { oreDisabled: oreButton.disabled, selected };
 
-    const unknown = document.createElement('boardgame-selection-option');
-    unknown.label = 'Unknown'; unknown.choice = 'wood'; unknown.draft = clay.draft;
-    document.body.append(unknown);
-    let unknownError = '';
-    try { await unknown.updateComplete; } catch (error) {
-      unknownError = error instanceof Error ? error.message : String(error);
+    const malformed = document.createElement('boardgame-selection-option');
+    malformed.label = 'Malformed'; malformed.option = {
+      choice: 'clay', selected: true, capacityBlocked: true, toggle: () => {},
+    };
+    document.body.append(malformed);
+    let malformedError = '';
+    try { await malformed.updateComplete; } catch (error) {
+      malformedError = error instanceof Error ? error.message : String(error);
     }
-    unknown.remove();
+    malformed.remove();
 
     const nested = document.createElement('boardgame-selection-option');
-    nested.label = 'Nested'; nested.choice = 'clay'; nested.draft = clay.draft;
+    nested.label = 'Nested'; nested.option = clay.option;
     nested.append(document.createElement('button'));
     document.body.append(nested);
     let nestedError = '';
@@ -867,13 +869,13 @@ test('selection options own pressed state, capacity, hit targets, and content sa
       nestedError = error instanceof Error ? error.message : String(error);
     }
     nested.remove();
-    return { initial, atCapacity, deselected, unknownError, nestedError };
+    return { initial, atCapacity, deselected, malformedError, nestedError };
   });
   expect(result).toMatchObject({
     initial: { pressed: 'false', label: 'Clay card', fallback: 'Ore card' },
     atCapacity: { clayPressed: 'true', clayDisabled: false, oreDisabled: true },
     deselected: { oreDisabled: false, selected: [] },
-    unknownError: expect.stringContaining('is not a draft candidate'),
+    malformedError: expect.stringContaining('.option is malformed'),
     nestedError: expect.stringContaining('cannot contain interactive content'),
   });
   expect(result.initial.width).toBeGreaterThanOrEqual(44);

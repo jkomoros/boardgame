@@ -57,8 +57,15 @@ test('selection draft toggles immutable choices, undoes, and builds one exact ac
   draft = controller.bind(options);
   assert.deepEqual(draft.selected, ['clay']);
   assert.equal(Object.isFrozen(draft.selected), true);
+  assert.deepEqual(
+    { choice: draft.option('clay').choice, selected: draft.option('clay').selected,
+      capacityBlocked: draft.option('ore').capacityBlocked },
+    { choice: 'clay', selected: true, capacityBlocked: false },
+  );
   draft.select('ore');
   draft = controller.bind(options);
+  assert.equal(draft.option('wool').capacityBlocked, true);
+  assert.equal(draft.option('clay').capacityBlocked, false);
   assert.deepEqual(draft.action?.input, { Cards: 'clay,ore' });
   assert.equal(draft.isSelected('ore'), true);
   assert.throws(() => draft.select('wool'), /cannot exceed 2 selections/);
@@ -108,6 +115,7 @@ test('selection draft validates bounds, candidates, mutations, and adapters loud
   assert.throws(() => controller.bind({ candidates: ['a'], rebase: 'merge' as never, action }), /unknown rebase/);
   const draft = controller.bind({ candidates: ['a'], action });
   assert.throws(() => draft.select('missing'), /unknown candidate/);
+  assert.throws(() => draft.option('missing'), /bind unknown candidate/);
 
   const invalid = new SelectionDraftController<string>(host);
   invalid.bind({ candidates: ['a'], action: () => ({} as BoundMoveAction<'Trade', Inputs['Trade']>) }).select('a');

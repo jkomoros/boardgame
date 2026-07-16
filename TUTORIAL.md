@@ -2049,8 +2049,7 @@ const draft = this.payment.bind({
 return html`
   <div aria-label="Payment cards">
     ${resourceCardIDs.map(id => html`<boardgame-selection-option
-      .draft=${draft}
-      .choice=${id}
+      .option=${draft.option(id)}
       label=${`Select resource card ${id}`}>
       <resource-card .cardID=${id}></resource-card>
     </boardgame-selection-option>`)}
@@ -2078,7 +2077,9 @@ for blank labels, unknown or inconsistent choices, malformed bindings, and
 nested interactive content. A visible text fallback appears when nothing is
 slotted, and CSS parts and tokens support game-specific styling. Its `disabled`
 property is only an extra presentation gate—the draft remains the authority for
-selection validity.
+selection validity. The single `draft.option(id)` binding deliberately couples
+the key to that draft's candidate union, so TypeScript rejects a choice from the
+wrong set before the renderer can run.
 
 For a wholly custom interaction, call `activate()` from the user's gesture and
 mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`

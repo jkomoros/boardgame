@@ -1110,7 +1110,9 @@ system phase.
   placement-only component introduced on this branch is removed before release.
   `boardgame-selection-option` supplies the repeated accessible option shell:
   arbitrary game-owned visuals get a named 44px toggle, pressed/capacity state,
-  keyboard focus, parts/tokens, and loud unknown/nested-interactive failures.
+  keyboard focus, parts/tokens, and loud malformed/nested-interactive failures.
+  Its single `draft.option(key)` binding preserves the controller's exact key
+  union, eliminating the weaker independently assigned draft/key property pair.
 - [x] Public simultaneous readiness: strict, bounded `ReadinessParticipant`
   state and `boardgame-readiness` make counts, progress, participant status,
   completion, live announcements, responsive presentation, and loud malformed

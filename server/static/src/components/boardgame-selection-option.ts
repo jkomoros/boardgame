@@ -1,14 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { property, query, state } from 'lit/decorators.js';
+import type { SelectionOptionBinding } from '../moves/selection-draft.js';
 import type { TargetKey } from '../moves/target-action.js';
-
-export interface SelectionOptionBinding {
-  readonly candidates: readonly TargetKey[];
-  readonly selected: readonly TargetKey[];
-  readonly maximumSelected: number;
-  toggle(key: TargetKey): void;
-  isSelected(key: TargetKey): boolean;
-}
 
 /** Accessible toggle around arbitrary game-owned selection presentation. */
 export class BoardgameSelectionOption extends LitElement {
@@ -40,10 +33,7 @@ export class BoardgameSelectionOption extends LitElement {
   `;
 
   @property({ attribute: false })
-  draft: SelectionOptionBinding | null = null;
-
-  @property({ attribute: false })
-  choice: TargetKey | null = null;
+  option: SelectionOptionBinding<TargetKey> | null = null;
 
   /** Accessible name; also visible fallback when no presentation is slotted. */
   @property({ type: String })
@@ -63,8 +53,7 @@ export class BoardgameSelectionOption extends LitElement {
   }
 
   override render() {
-    const { draft, choice, selected } = this._validated();
-    const capacityBlocked = !selected && draft.selected.length >= draft.maximumSelected;
+    const { selected, capacityBlocked } = this._validated();
     return html`
       <button
         part="button"
@@ -79,33 +68,26 @@ export class BoardgameSelectionOption extends LitElement {
     `;
   }
 
-  private _validated(): { draft: SelectionOptionBinding; choice: TargetKey; selected: boolean } {
+  private _validated(): SelectionOptionBinding<TargetKey> {
     if (!this.label.trim()) throw new Error('boardgame-selection-option: label must be non-empty');
-    const draft = this.draft;
-    if (!draft || !Array.isArray(draft.candidates) || !Array.isArray(draft.selected)
-      || !Number.isSafeInteger(draft.maximumSelected) || draft.maximumSelected < 1
-      || draft.selected.length > draft.maximumSelected
-      || typeof draft.toggle !== 'function' || typeof draft.isSelected !== 'function') {
-      throw new Error('boardgame-selection-option: .draft must be a SelectionDraftController binding');
+    const option = this.option;
+    if (!option) {
+      throw new Error('boardgame-selection-option: .option must come from draft.option(choice)');
     }
-    const choice = this.choice;
+    const choice = option?.choice;
     if ((typeof choice !== 'string' && typeof choice !== 'number')
       || (typeof choice === 'number' && !Number.isFinite(choice))) {
-      throw new Error('boardgame-selection-option: .choice must be a finite string or number');
+      throw new Error('boardgame-selection-option: .option must come from draft.option(choice)');
     }
-    if (!draft.candidates.includes(choice)) {
-      throw new Error(`boardgame-selection-option: choice ${JSON.stringify(choice)} is not a draft candidate`);
+    if (typeof option.selected !== 'boolean' || typeof option.capacityBlocked !== 'boolean'
+      || typeof option.toggle !== 'function' || (option.selected && option.capacityBlocked)) {
+      throw new Error('boardgame-selection-option: .option is malformed');
     }
-    const selected = draft.isSelected(choice);
-    if (selected !== draft.selected.includes(choice)) {
-      throw new Error('boardgame-selection-option: draft selected state is inconsistent');
-    }
-    return { draft, choice, selected };
+    return option;
   }
 
   private readonly _toggle = (): void => {
-    const { draft, choice } = this._validated();
-    draft.toggle(choice);
+    this._validated().toggle();
   };
 
   private readonly _contentChanged = (event: Event): void => {
