@@ -1119,7 +1119,9 @@ system phase.
 - [x] Transition-envelope privacy: animation bundles expose only readonly move
   `Name` and `Version`; raw serialized arguments, proposer, initiator, phase,
   and timestamp never bypass state sanitization through `MoveStorageRecord`.
-  Type animation hooks as `ClientMove` and regression-test the exact JSON keys.
+  Type animation hooks as `ClientMove`, regression-test the exact JSON keys,
+  and validate/copy the narrow envelope again at the untrusted client boundary
+  so broad older-server objects cannot reach creator renderers.
 - Hidden movement remainder: visibility-safe generated surfaces, an explicitly
   public game-owned log, reveal markers, and viewer-matrix privacy assertions.
 

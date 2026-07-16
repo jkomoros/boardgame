@@ -40,6 +40,7 @@ import { connect } from 'pwa-helpers/connect-mixin.js';
 import type { RootState, GameChest } from '../types/store';
 import type { RawGameState, StateBundle, TimerInfo } from '../types/game-state';
 import type { MoveForm } from '../types/api';
+import { clientMoveFromWire } from '../types/client-move.js';
 
 // Matches --animation-length: 0.5s default in boardgame-game-view.ts
 const DEFAULT_ANIMATION_LENGTH_MS = 500;
@@ -612,7 +613,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     );
   }
 
-  private _prepareStateBundle(game: any, moveForms: MoveForm[] | null, viewingAsPlayer: number, move: any): StateBundle {
+  private _prepareStateBundle(game: any, moveForms: MoveForm[] | null, viewingAsPlayer: number, move: unknown): StateBundle {
     const bundle: StateBundle = {
       originalWallClockStartTime: 0,
       game: game,
@@ -623,7 +624,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     bundle.originalWallClockStartTime = Date.now();
     bundle.game = game;
-    bundle.move = move;
+    bundle.move = clientMoveFromWire(move);
     bundle.moveForms = this._expandMoveForms(moveForms);
     bundle.viewingAsPlayer = viewingAsPlayer;
 
