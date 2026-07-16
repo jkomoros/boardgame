@@ -101,3 +101,34 @@ test('optional params (e.g. previewing as a specific player) pass through as a q
 
   assert.equal(get().url, '/api/game/memory/g3/movePreviewBatch?player=2');
 });
+
+test('malformed API envelopes fail closed with actionable diagnostics', async () => {
+  stubFetch(['Success']);
+  const nonObject = await movePreview('memory', 'g4', 'Reveal Card', {});
+  assert.equal(nonObject.data, undefined);
+  assert.equal(nonObject.error, 'Invalid API response: expected an object envelope');
+  assert.equal(nonObject.friendlyError, 'The server returned an invalid response');
+
+  stubFetch({ Status: 'Maybe', Form: {} });
+  const unknownStatus = await movePreview('memory', 'g4', 'Reveal Card', {});
+  assert.equal(unknownStatus.data, undefined);
+  assert.equal(unknownStatus.error, 'Invalid API response: Status must be "Success" or "Failure"');
+});
+
+test('malformed failure metadata cannot masquerade as structured stale data', async () => {
+  stubFetch({
+    Status: 'Failure',
+    Error: 7,
+    FriendlyError: false,
+    Code: 9,
+    ExpectedVersion: '3',
+    ActualVersion: Number.NaN,
+  }, 409);
+
+  const result = await movePreview('memory', 'g5', 'Reveal Card', {});
+  assert.equal(result.error, 'Request failed with status 409');
+  assert.equal(result.friendlyError, 'An error occurred');
+  assert.equal(result.code, undefined);
+  assert.equal(result.expectedVersion, undefined);
+  assert.equal(result.actualVersion, undefined);
+});

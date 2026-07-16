@@ -1118,6 +1118,12 @@ First evidence-driven primitive tranche (2026-07-16):
   remove the state manager's duplicate mutable enum expansion. Keep runtime
   custom-element registration separate from type-only imports so compiler
   erasure cannot silently leave the application shell unupgraded.
+- [x] Make the shared fetch envelope fail closed before endpoint-specific data
+  reaches the store: parse JSON as `unknown`, require an object with an exact
+  Success/Failure status, accept only bounded version metadata, and narrow
+  request bodies to unknown-valued records. Share the GET/POST unwrapping path
+  so diagnostics cannot drift, with unit coverage for malformed envelopes and
+  failure metadata.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

@@ -21,6 +21,65 @@ export interface ApiResponse<T> {
   status: number;
 }
 
+function responseRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>>
+    : null;
+}
+
+function optionalVersion(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : undefined;
+}
+
+async function unwrapApiResponse<T>(response: Response): Promise<ApiResponse<T>> {
+  const status = response.status;
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    return {
+      status,
+      error: `HTTP ${status}: ${response.statusText}`,
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+
+  const envelope = responseRecord(parsed);
+  if (!envelope) {
+    return {
+      status,
+      error: 'Invalid API response: expected an object envelope',
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+
+  if (envelope['Status'] === 'Success') {
+    return { status, data: parsed as T };
+  }
+  if (envelope['Status'] !== 'Failure') {
+    return {
+      status,
+      error: 'Invalid API response: Status must be "Success" or "Failure"',
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+
+  return {
+    status,
+    error: typeof envelope['Error'] === 'string' && envelope['Error']
+      ? envelope['Error']
+      : `Request failed with status ${status}`,
+    friendlyError: typeof envelope['FriendlyError'] === 'string' && envelope['FriendlyError']
+      ? envelope['FriendlyError']
+      : 'An error occurred',
+    code: typeof envelope['Code'] === 'string' ? envelope['Code'] : undefined,
+    expectedVersion: optionalVersion(envelope['ExpectedVersion']),
+    actualVersion: optionalVersion(envelope['ActualVersion']),
+  };
+}
+
 /**
  * Gets the base API URL, respecting API_HOST configuration
  */
@@ -105,38 +164,7 @@ export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
       },
     });
 
-    const status = response.status;
-
-    // Try to parse JSON response
-    let jsonData: any;
-    try {
-      jsonData = await response.json();
-    } catch {
-      // If JSON parsing fails, treat as error
-      return {
-        status,
-        error: `HTTP ${status}: ${response.statusText}`,
-        friendlyError: 'The server returned an invalid response',
-      };
-    }
-
-    // Check for application-level errors (boardgame server format)
-    if (jsonData.Status === 'Success') {
-      return {
-        status,
-        data: jsonData as T,
-      };
-    }
-
-    // Handle application errors
-    return {
-      status,
-      error: jsonData.Error || `Request failed with status ${status}`,
-      friendlyError: jsonData.FriendlyError || 'An error occurred',
-      code: typeof jsonData.Code === 'string' ? jsonData.Code : undefined,
-      expectedVersion: typeof jsonData.ExpectedVersion === 'number' ? jsonData.ExpectedVersion : undefined,
-      actualVersion: typeof jsonData.ActualVersion === 'number' ? jsonData.ActualVersion : undefined,
-    };
+    return await unwrapApiResponse<T>(response);
   } catch (error) {
     // Network errors
     return {
@@ -163,7 +191,7 @@ export async function apiGet<T>(url: string): Promise<ApiResponse<T>> {
  */
 export async function apiPost<T>(
   url: string,
-  body: Record<string, any>,
+  body: Readonly<Record<string, unknown>>,
   contentType: 'application/json' | 'application/x-www-form-urlencoded' = 'application/json',
   signal?: AbortSignal,
 ): Promise<ApiResponse<T>> {
@@ -195,38 +223,7 @@ export async function apiPost<T>(
       signal,
     });
 
-    const status = response.status;
-
-    // Try to parse JSON response
-    let jsonData: any;
-    try {
-      jsonData = await response.json();
-    } catch {
-      // If JSON parsing fails, treat as error
-      return {
-        status,
-        error: `HTTP ${status}: ${response.statusText}`,
-        friendlyError: 'The server returned an invalid response',
-      };
-    }
-
-    // Check for application-level errors (boardgame server format)
-    if (jsonData.Status === 'Success') {
-      return {
-        status,
-        data: jsonData as T,
-      };
-    }
-
-    // Handle application errors
-    return {
-      status,
-      error: jsonData.Error || `Request failed with status ${status}`,
-      friendlyError: jsonData.FriendlyError || 'An error occurred',
-      code: typeof jsonData.Code === 'string' ? jsonData.Code : undefined,
-      expectedVersion: typeof jsonData.ExpectedVersion === 'number' ? jsonData.ExpectedVersion : undefined,
-      actualVersion: typeof jsonData.ActualVersion === 'number' ? jsonData.ActualVersion : undefined,
-    };
+    return await unwrapApiResponse<T>(response);
   } catch (error) {
     // Network errors
     return {
