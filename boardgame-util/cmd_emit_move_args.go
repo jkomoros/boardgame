@@ -83,10 +83,18 @@ they are regenerated each time but should be committed to source control.`
 // from the given game packages and writes _move_args.ts files into each game's
 // client/ directory.
 func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check bool) error {
+	generated, err := generateMoveArgsForPackages(base, pkgs, check)
+	if err != nil {
+		return err
+	}
+	return installGeneratedMoveArgs(generated, check)
+}
+
+func generateMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly bool) ([]generatedMoveArgsFile, error) {
 
 	dir, err := ioutil.TempDir(".", "temp_moveargs_")
 	if err != nil {
-		return fmt.Errorf("couldn't create temp directory: %w", err)
+		return nil, fmt.Errorf("couldn't create temp directory: %w", err)
 	}
 	defer func() {
 		if removeErr := os.RemoveAll(dir); removeErr != nil {
@@ -98,14 +106,14 @@ func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check boo
 	results, err := moveargs.Build(dir, pkgs)
 
 	if err != nil {
-		return fmt.Errorf("couldn't build move args: %w", err)
+		return nil, fmt.Errorf("couldn't build move args: %w", err)
 	}
 	resultImports := make([]string, 0, len(results))
 	for _, result := range results {
 		resultImports = append(resultImports, result.ImportPath)
 	}
 	if err := validateClientExtractionResults(pkgs, resultImports, "move-input"); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Build a map from import path to pkg for quick lookup
@@ -126,11 +134,11 @@ func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check boo
 			continue
 		}
 
-		if pkg.ReadOnly() && !check {
+		if pkg.ReadOnly() && !includeReadOnly {
 			continue
 		}
 		if err := moveargs.ValidateTypeScriptSchema(result.Moves); err != nil {
-			return fmt.Errorf("invalid generated TypeScript contract for %s: %w", result.PackageName, err)
+			return nil, fmt.Errorf("invalid generated TypeScript contract for %s: %w", result.PackageName, err)
 		}
 
 		generated = append(generated, generatedMoveArgsFile{
@@ -141,9 +149,9 @@ func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check boo
 		})
 	}
 	if err := validateGeneratedMoveArgsTypeScript(generated); err != nil {
-		return err
+		return nil, err
 	}
-	return installGeneratedMoveArgs(generated, check)
+	return generated, nil
 }
 
 func validateGeneratedMoveArgsTypeScript(generated []generatedMoveArgsFile) error {

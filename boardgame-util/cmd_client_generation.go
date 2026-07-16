@@ -9,15 +9,34 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
-type staleGeneratedClientContractsError struct{ message string }
+type staleGeneratedClientContractsError struct {
+	message string
+	paths   []string
+}
 
 func (e *staleGeneratedClientContractsError) Error() string { return e.message }
 func staleGeneratedClientContracts(message string) error {
 	return &staleGeneratedClientContractsError{message: message}
 }
+func staleGeneratedClientContractPaths(paths []string) error {
+	copyOfPaths := append([]string(nil), paths...)
+	sort.Strings(copyOfPaths)
+	return &staleGeneratedClientContractsError{
+		message: "generated client contracts are stale: " + strings.Join(copyOfPaths, ", "),
+		paths:   copyOfPaths,
+	}
+}
 func isStaleGeneratedClientContracts(err error) bool {
 	var stale *staleGeneratedClientContractsError
 	return errors.As(err, &stale)
+}
+
+func generatedClientContractStalePaths(err error) []string {
+	var stale *staleGeneratedClientContractsError
+	if !errors.As(err, &stale) {
+		return nil
+	}
+	return append([]string(nil), stale.paths...)
 }
 
 func validateClientExtractionResults(pkgs []*gamepkg.Pkg, resultImports []string, kind string) error {

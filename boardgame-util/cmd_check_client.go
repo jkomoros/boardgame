@@ -16,6 +16,7 @@ import (
 type checkClient struct {
 	baseSubCommand
 	JSON bool
+	Fix  bool
 }
 
 func (c *checkClient) Name() string { return "check-client" }
@@ -31,16 +32,25 @@ is fatal when any diagnostic is reported and is suitable for local and CI use.
 It also verifies that move names, move inputs, expanded state types, and the
 bound renderer base are current without rewriting creator files. Creator code
 is also checked for unsafe TypeScript escape hatches and for invalid Lit
-property, attribute, and event bindings.`
+property, attribute, and event bindings. Pass --fix to transactionally refresh
+the complete generated surface before checking creator code.`
 }
 
 func (c *checkClient) WritOptions() []*writ.Option {
-	return []*writ.Option{{
-		Names:       []string{"json"},
-		Description: "Emit one deterministic machine-readable diagnostic document.",
-		Decoder:     writ.NewFlagDecoder(&c.JSON),
-		Flag:        true,
-	}}
+	return []*writ.Option{
+		{
+			Names:       []string{"json"},
+			Description: "Emit one deterministic machine-readable diagnostic document.",
+			Decoder:     writ.NewFlagDecoder(&c.JSON),
+			Flag:        true,
+		},
+		{
+			Names:       []string{"fix"},
+			Description: "Transactionally refresh all generated client contracts before checking.",
+			Decoder:     writ.NewFlagDecoder(&c.Fix),
+			Flag:        true,
+		},
+	}
 }
 
 func (c *checkClient) Run(p writ.Path, positional []string) {
@@ -54,18 +64,41 @@ func (c *checkClient) Run(p writ.Path, positional []string) {
 		c.finish(staticbuild.ClientCheckReport{Version: staticbuild.ClientCheckVersion, Diagnostics: []staticbuild.ClientDiagnostic{}}, fmt.Errorf("BGCLIENT0001: couldn't load configured game packages: %w", err))
 		return
 	}
+	contractsRefreshed := false
+	if c.Fix {
+		generated, generationErr := generateCompleteClientContracts(c.Base(), packages, false)
+		if generationErr == nil {
+			generationErr = generated.install()
+		}
+		if generationErr != nil {
+			c.finish(staticbuild.ClientCheckReport{Version: staticbuild.ClientCheckVersion, Diagnostics: []staticbuild.ClientDiagnostic{}}, fmt.Errorf("BGCLIENT0001: couldn't refresh generated client contracts: %w", generationErr))
+			return
+		}
+		contractsRefreshed = true
+	}
 	inputs := make([]staticbuild.ClientCheckPackage, 0, len(packages))
 	for _, pkg := range packages {
 		inputs = append(inputs, staticbuild.ClientCheckPackage{ImportPath: pkg.Import(), Name: pkg.Name(), ClientFolder: pkg.ClientFolder()})
 	}
 	report, err := staticbuild.CheckClient(frameworkDir, inputs)
-	if err == nil {
+	if err == nil && !contractsRefreshed {
 		if freshnessErr := checkGeneratedClientContracts(c.Base(), packages); freshnessErr != nil {
 			if isStaleGeneratedClientContracts(freshnessErr) {
-				report = staticbuild.NewClientCheckResult(append(report.Diagnostics, staticbuild.ClientDiagnostic{
-					Source: "boardgame", Code: "BGCLIENT0002", Severity: "error",
-					Message: freshnessErr.Error(), Remediation: "Run boardgame-util emit-types and commit every generated client contract.",
-				}))
+				paths := generatedClientContractStalePaths(freshnessErr)
+				if len(paths) == 0 {
+					report = staticbuild.NewClientCheckResult(append(report.Diagnostics, staticbuild.ClientDiagnostic{
+						Source: "boardgame", Code: "BGCLIENT0002", Severity: "error",
+						Message: freshnessErr.Error(), Remediation: "Run boardgame-util check-client --fix and commit every generated client contract.",
+					}))
+				} else {
+					for _, path := range paths {
+						report.Diagnostics = append(report.Diagnostics, staticbuild.ClientDiagnostic{
+							Source: "boardgame", Code: "BGCLIENT0002", Severity: "error", File: path,
+							Message: "generated client contract is stale or orphaned", Remediation: "Run boardgame-util check-client --fix and commit every generated client contract.",
+						})
+					}
+					report = staticbuild.NewClientCheckResult(report.Diagnostics)
+				}
 			} else {
 				err = fmt.Errorf("BGCLIENT0001: generated-contract extraction or validation failed: %w", freshnessErr)
 			}
@@ -75,26 +108,11 @@ func (c *checkClient) Run(p writ.Path, positional []string) {
 }
 
 func checkGeneratedClientContracts(base *boardgameUtil, packages []*gamepkg.Pkg) error {
-	generated, err := generateGameTypesForPackages(base, packages, true)
+	generated, err := generateCompleteClientContracts(base, packages, true)
 	if err != nil {
-		return fmt.Errorf("couldn't extract generated state contracts: %w", err)
+		return fmt.Errorf("couldn't extract or validate complete generated contracts: %w", err)
 	}
-	if err := emitMoveNamesForPackages(base, packages, true); err != nil {
-		return err
-	}
-	if err := emitMoveArgsForPackages(base, packages, true); err != nil {
-		return err
-	}
-	if err := emitBoardSpacesForPackages(packages, true); err != nil {
-		return err
-	}
-	if err := validateGeneratedGameTypesTypeScript(generated); err != nil {
-		return err
-	}
-	if err := checkGeneratedGameTypes(generated); err != nil {
-		return fmt.Errorf("generated state/renderer contracts are stale: %w", err)
-	}
-	return nil
+	return generated.check()
 }
 
 func (c *checkClient) finish(report staticbuild.ClientCheckReport, infrastructureErr error) {
@@ -124,6 +142,9 @@ func (c *checkClient) finish(report staticbuild.ClientCheckReport, infrastructur
 				location += ": "
 			}
 			fmt.Printf("%s: %s%s %s\n", diagnostic.Package, location, diagnostic.Code, diagnostic.Message)
+			if diagnostic.Remediation != "" {
+				fmt.Printf("  Fix: %s\n", diagnostic.Remediation)
+			}
 		}
 		fmt.Printf("Client checks failed with %d diagnostic(s)\n", len(report.Diagnostics))
 	}
