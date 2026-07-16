@@ -1104,6 +1104,13 @@ First evidence-driven primitive tranche (2026-07-16):
   specialization eligible for the existing solo fallback; if the final surface
   cannot load or does not extend the generated base, retain the diagram area as
   an assertive error panel that names the failure and points to `check-client`.
+- [x] Carry exact host and store types through `boardgame-game-view` instead of
+  erasing the generated renderer at the application shell. Expose the roster's
+  join-dialog operation as an intentional public method and fail loudly if an
+  animation event arrives before its renderer host exists. Correct gathering
+  accessors to consume the actual expanded `Game.Computed` and
+  `Players[i].Computed` shape, share the readiness lookup between panel and
+  roster, and validate malformed server values at that untrusted boundary.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

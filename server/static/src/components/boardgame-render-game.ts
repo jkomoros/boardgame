@@ -20,7 +20,7 @@ import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
 import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 
 type HostedState = FullGameState<object, object, object, object, object>;
-type HostedRenderer = BoardgameBaseGameRenderer<
+export type HostedGameRenderer = BoardgameBaseGameRenderer<
   HostedState,
   object,
   string,
@@ -174,7 +174,7 @@ class BoardgameRenderGame extends LitElement {
 
 
   @property({ type: Object, attribute: false })
-  renderer: HostedRenderer | null = null;
+  renderer: HostedGameRenderer | null = null;
 
   @property({ type: Boolean })
   rendererLoaded = false;
@@ -421,7 +421,7 @@ class BoardgameRenderGame extends LitElement {
     this._recomputeIsHost();
   }
 
-  private _applyCompanionPropsToRenderer(renderer: HostedRenderer) {
+  private _applyCompanionPropsToRenderer(renderer: HostedGameRenderer) {
     const info = this.companionInfo;
     if (renderer instanceof BoardgameTableViewBase) {
       renderer.seatPresentations = info?.SeatPresentations ?? [];

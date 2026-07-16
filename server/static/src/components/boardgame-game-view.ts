@@ -6,6 +6,10 @@ import './boardgame-chat-panel.js';
 import './boardgame-render-game.js';
 import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
+import type { BoardgamePlayerRoster } from './boardgame-player-roster.js';
+import type { BoardgameRenderGame, HostedGameRenderer } from './boardgame-render-game.js';
+import type { BoardgameAdminControls } from './boardgame-admin-controls.js';
+import type { BoardgameGameStateManager } from './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
 import { surfaceForGame } from '../utils/companion-surface.js';
@@ -13,7 +17,12 @@ import {
   playerPresentations,
   type PlayerPresentation,
 } from '../status/player-presentation.js';
-import type { PlayerInfo } from '../types/store';
+import type {
+  ExpandedGameState,
+  GameChest,
+  PlayerInfo,
+  RootState,
+} from '../types/store';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
@@ -71,7 +80,7 @@ import {
   type TimerServiceRequestDetail,
 } from '../timers/timer-service.js';
 
-import type { StateBundle } from '../types/game-state';
+import type { GameFromServer, StateBundle } from '../types/game-state';
 import type { MoveForm } from '../types/api';
 
 import game from '../reducers/game.js';
@@ -167,7 +176,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   requestedPlayer = 0;
 
   @property({ type: Object, attribute: false })
-  game: any = null;
+  game: GameFromServer | null = null;
 
   @property({ type: Number, attribute: false })
   viewingAsPlayer = 0;
@@ -187,7 +196,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   // The current renderer, passed up from the gameRenderer, so we can pass
   // it to stateGameManager and readyForNextState.
   @property({ type: Object })
-  activeRenderer: any = null;
+  activeRenderer: HostedGameRenderer | null = null;
 
   @property({ type: Boolean })
   socketActive = false;
@@ -196,26 +205,26 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _firstStateBundle = true;
 
   @query('#manager')
-  private _managerEle: any;
+  private _managerEle?: BoardgameGameStateManager;
 
   @query('#admin')
-  private _adminEle: any;
+  private _adminEle?: BoardgameAdminControls;
 
   @query('#render')
-  private _renderEle: any;
+  private _renderEle?: BoardgameRenderGame;
 
   @query('#player')
-  private _playerEle: any;
+  private _playerEle?: BoardgamePlayerRoster;
 
   // Reactive properties - synced from Redux in stateChanged()
   @property({ type: Object, attribute: false })
-  _currentState: any = null;
+  _currentState: ExpandedGameState | null = null;
 
   @property({ type: Object, attribute: false })
   _animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
 
   @property({ type: Object, attribute: false })
-  _chest: any = null;
+  _chest: GameChest | null = null;
 
   @property({ type: Array, attribute: false })
   _playersInfo: PlayerInfo[] = [];
@@ -572,7 +581,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   // there was a time when it wasn't active. Once game-state-manager is done as
   // action creators then it should be fine.
 
-  stateChanged(state: any) {
+  stateChanged(state: RootState) {
     this._timerService.update(selectGameTimerInfos(state));
     // Sync view state from Redux
     this.game = selectGame(state);
@@ -731,6 +740,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   }
 
   private _handleSetAnimationLength(e: CustomEvent) {
+    if (!this._renderEle) {
+      throw new Error('boardgame-game-view: animation length arrived before the renderer host mounted');
+    }
     this._renderEle.defaultAnimationLength = e.detail;
   }
 
@@ -746,7 +758,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       // Take note that we already prompted them, and don't prompt again unless the game changes.
       this.promptedToJoin = true;
       // Prompt the user to join!
-      this._playerEle.showDialog();
+      this._playerEle.openJoinDialog();
     }
   }
 

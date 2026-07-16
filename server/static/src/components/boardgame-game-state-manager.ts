@@ -41,6 +41,7 @@ import type { RootState, GameChest } from '../types/store';
 import type { RawGameState, StateBundle, TimerInfo } from '../types/game-state';
 import type { MoveForm } from '../types/api';
 import { clientMoveFromWire } from '../types/client-move.js';
+import type { HostedGameRenderer } from './boardgame-render-game.js';
 
 // Matches --animation-length: 0.5s default in boardgame-game-view.ts
 const DEFAULT_ANIMATION_LENGTH_MS = 500;
@@ -99,7 +100,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   requestedPlayer = 0;
 
   @property({ type: Object })
-  activeRenderer: any = null;
+  activeRenderer: HostedGameRenderer | null = null;
 
   @property({ type: String, attribute: false })
   private _socketUrl = '';

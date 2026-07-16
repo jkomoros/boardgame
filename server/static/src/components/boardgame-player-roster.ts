@@ -24,6 +24,7 @@ import { selectGameError } from '../selectors.js';
 import type { RootState } from '../types/store';
 
 import type { MdDialog } from '@material/web/dialog/dialog.js';
+import { getReadyToStartError } from './gathering-shared.js';
 
 interface PlayerInfo {
   IsEmpty: boolean;
@@ -235,8 +236,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
   }
 
   private get _readyToStartError(): string {
-    const s = this.state as any;
-    return s?.Game?.Computed?.Global?.ReadyToStartError || '';
+    return getReadyToStartError(this.state);
   }
 
   private _bannerText(finished: boolean, winners: number[]): string {
@@ -259,7 +259,8 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
     return "player " + viewingAsPlayer;
   }
 
-  private showDialog(): void {
+  /** Open the join flow when this observer is currently eligible to join. */
+  openJoinDialog(): void {
     if (this.joinDialog.open) return;
     if (this.viewingAsPlayer !== this.OBSERVER_PLAYER_INDEX) return;
     this.joinDialog.show();
@@ -351,7 +352,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
             <h3 class="flex">Observing</h3>
             ${when(this.showJoin, () => html`
               <div>
-                <md-filled-button @click="${this.showDialog}" raised>
+                <md-filled-button @click="${this.openJoinDialog}" raised>
                   Join game
                 </md-filled-button>
               </div>
