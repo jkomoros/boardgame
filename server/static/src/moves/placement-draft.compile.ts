@@ -23,6 +23,8 @@ const draft = controller.bind({
 draft.selectItem('a');
 draft.place(0);
 draft.assign('b', 1);
+draft.item('a').select();
+draft.target(2).place();
 draft.targetFor('a');
 draft.itemAt(1);
 draft.action?.activate();
@@ -33,6 +35,10 @@ controls.draft = draft;
 draft.selectItem('c');
 // @ts-expect-error target keys retain their literal union
 draft.place(4);
+// @ts-expect-error item bindings retain their literal union
+draft.item('c');
+// @ts-expect-error target bindings retain their literal union
+draft.target(4);
 new PlacementDraftController<Tile, Square>(host).bind({
   items: ['a'], targets: [0], action: commit,
   // @ts-expect-error rebase is a closed policy

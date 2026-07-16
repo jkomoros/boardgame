@@ -63,10 +63,12 @@ export type {
 export { PlacementDraftController } from './moves/placement-draft.js';
 export type {
   DraftPlacement,
+  PlacementItemBinding,
   PlacementDraftBinding,
   PlacementDraftNotice,
   PlacementDraftOptions,
   PlacementDraftRebasePolicy,
+  PlacementTargetBinding,
 } from './moves/placement-draft.js';
 export type {
   BoardPiece,
@@ -92,6 +94,7 @@ export type { ActionBarAlignment, ActionBarOrientation } from './components/boar
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
 export type { BoardViewportChange } from './components/boardgame-board-viewport.js';
+export type { SpatialPlacementDraft } from './components/boardgame-spatial-board.js';
 export type { DraftControlsBinding } from './components/boardgame-draft-controls.js';
 export type {
   InspectorChangeReason,
@@ -159,6 +162,7 @@ import './components/boardgame-action-button.js';
 import './components/boardgame-action-bar.js';
 import './components/boardgame-draft-controls.js';
 import './components/boardgame-inspector.js';
+import './components/boardgame-placement-item.js';
 import './components/boardgame-readiness.js';
 import './components/boardgame-selection-option.js';
 import './components/boardgame-component-zone.js';

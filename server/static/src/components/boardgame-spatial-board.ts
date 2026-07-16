@@ -5,6 +5,8 @@ import './boardgame-component-stack.js';
 import './boardgame-board-viewport.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
 import type { TargetAction } from '../moves/target-action.js';
+import type { PlacementTargetBinding } from '../moves/placement-draft.js';
+import type { TargetKey } from '../moves/target-action.js';
 import type { ComponentView } from './component-view.js';
 import type { BoardgameBoardViewport } from './boardgame-board-viewport.js';
 import {
@@ -20,6 +22,13 @@ import {
   type ResolvedBoardGeometry,
   type SpatialBoardKey,
 } from './spatial-board-geometry.js';
+
+/** Placement-draft surface consumed by graphic-board destinations. */
+export interface SpatialPlacementDraft {
+  readonly targets: readonly SpatialBoardKey[];
+  readonly selectedItem: TargetKey | null;
+  target(target: SpatialBoardKey): PlacementTargetBinding<TargetKey, SpatialBoardKey>;
+}
 
 /**
  * A reusable spatial board component that loads an SVG map and renders
@@ -228,7 +237,11 @@ class BoardgameSpatialBoard extends LitElement {
   @property({ type: Object, attribute: false })
   action: TargetAction<SpatialBoardKey> | null = null;
 
-  /** Exact geometry group targeted by action. Empty means every geometry key. */
+  /** Local draft destinations; mutually exclusive with action. */
+  @property({ attribute: false })
+  placementDraft: SpatialPlacementDraft | null = null;
+
+  /** Exact geometry group targeted by action or placementDraft. Empty means every geometry key. */
   @property({ type: String, attribute: 'action-group' })
   actionGroup = '';
 
@@ -332,6 +345,7 @@ class BoardgameSpatialBoard extends LitElement {
   private _loadGeneration = 0;
   private _unsubscribeAction: (() => void) | null = null;
   private _candidatesByKey = new Map<string, TargetAction<SpatialBoardKey>['candidates'][number]>();
+  private _placementTargetsByKey = new Map<string, SpatialBoardKey>();
 
   override connectedCallback() {
     super.connectedCallback();
@@ -363,6 +377,10 @@ class BoardgameSpatialBoard extends LitElement {
     }
   }
 
+  protected override willUpdate(changedProperties: Map<PropertyKey, unknown>): void {
+    if (changedProperties.has('placementDraft')) this._refreshPlacementTargets();
+  }
+
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
 
@@ -377,14 +395,21 @@ class BoardgameSpatialBoard extends LitElement {
       void this._loadBoardSource();
     }
 
-    if (changedProperties.has('action')) this._subscribeAction();
+    if (changedProperties.has('action')) {
+      this._subscribeAction();
+      if (this.placementDraft && this._resolvedGeometry) this._revalidateActionConfiguration();
+    }
+    if (changedProperties.has('placementDraft')) {
+      if (this._resolvedGeometry) this._revalidateActionConfiguration();
+    }
 
     if (changedProperties.has('actionGroup') && this._resolvedGeometry) {
       this._revalidateActionConfiguration();
     }
 
     if (changedProperties.has('disabledSpaces') && this.svgLoaded) {
-      this._applyDisabledSpaces();
+      if (this.placementDraft) this._revalidateActionConfiguration();
+      else this._applyDisabledSpaces();
     }
 
     if ((changedProperties.has('stack') || changedProperties.has('stacks')
@@ -445,6 +470,7 @@ class BoardgameSpatialBoard extends LitElement {
     this._container.insertBefore(svgElement, this._container.firstChild);
     const resolvedGeometry = resolveBoardGeometry(geometryForSvg(svgElement));
     this._resolvedGeometry = resolvedGeometry;
+    this._refreshPlacementTargets();
     this._validateActionGroup();
     this._validateActionKeys();
     this._validateRenderInputs();
@@ -602,10 +628,28 @@ class BoardgameSpatialBoard extends LitElement {
     this._candidatesByKey = new Map((this.action?.candidates ?? []).map(candidate => [String(candidate.key), candidate]));
   }
 
+  private _refreshPlacementTargets(): void {
+    this._placementTargetsByKey = new Map(
+      (this.placementDraft?.targets ?? []).map(target => [String(target), target]),
+    );
+  }
+
   private _validateActionKeys(): void {
-    if (!this.action || !this._resolvedGeometry) return;
+    if (this.action && this.placementDraft) {
+      throw new Error('boardgame-spatial-board: action and placementDraft are mutually exclusive');
+    }
+    if (this.placementDraft && this.disabledSpaces.length > 0) {
+      throw new Error('boardgame-spatial-board: placementDraft and disabledSpaces are mutually exclusive');
+    }
+    if ((!this.action && !this.placementDraft) || !this._resolvedGeometry) return;
+    if (this.placementDraft
+      && (!Array.isArray(this.placementDraft.targets) || typeof this.placementDraft.target !== 'function')) {
+      throw new Error('boardgame-spatial-board: placementDraft must be a PlacementDraftController binding');
+    }
     const geometryKeyList = this._actionGeometrySpaces.map(space => String(space.key));
-    const targetKeyList = this.action.candidates.map(candidate => String(candidate.key));
+    const targetKeyList = this.action
+      ? this.action.candidates.map(candidate => String(candidate.key))
+      : this.placementDraft!.targets.map(target => String(target));
     const geometryKeys = new Set(geometryKeyList);
     const targetKeys = new Set(targetKeyList);
     if (geometryKeys.size !== geometryKeyList.length || targetKeys.size !== targetKeyList.length) {
@@ -659,7 +703,19 @@ class BoardgameSpatialBoard extends LitElement {
     return this._candidatesByKey.get(String(key));
   }
 
+  private _placementTargetForSpace(key: SpatialBoardKey) {
+    if (!this.placementDraft) return null;
+    const target = this._placementTargetsByKey.get(String(key));
+    return target === undefined ? null : this.placementDraft.target(target);
+  }
+
   private _activateSpace(space: ResolvedBoardGeometry<SpatialBoardKey>['spaces'][number]): void {
+    const placement = this._placementTargetForSpace(space.key);
+    if (placement) {
+      if (placement.canPlace) placement.place();
+      return;
+    }
+    if (this.placementDraft) return;
     const candidate = this._candidateForSpace(space.key);
     if (candidate) {
       if (candidate.action.canActivate) void candidate.action.activate();
@@ -684,9 +740,12 @@ class BoardgameSpatialBoard extends LitElement {
         ? this.disabledSpaces.includes(space.key)
         : this.disabledSpaces.includes(Number(space.key));
       const actionDisabled = this.action ? !(this._candidateForSpace(space.key)?.action.canActivate ?? false) : false;
-      const inactive = Boolean(this.action && !this._candidateForSpace(space.key));
+      const placement = this._placementTargetForSpace(space.key);
+      const placementDisabled = Boolean(placement && !placement.canPlace);
+      const inactive = Boolean((this.action && !this._candidateForSpace(space.key))
+        || (this.placementDraft && !placement));
       space.region.classList.toggle('inactive', inactive);
-      space.region.classList.toggle('disabled', legacyDisabled || (actionDisabled && !inactive));
+      space.region.classList.toggle('disabled', legacyDisabled || ((actionDisabled || placementDisabled) && !inactive));
     }
   }
 
@@ -1034,17 +1093,18 @@ class BoardgameSpatialBoard extends LitElement {
             ${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
               const position = this._focusPositions.get(String(space.key));
               const candidate = this._candidateForSpace(space.key);
-              if (this.action && !candidate) return '';
-              const disabled = candidate
+              const placement = this._placementTargetForSpace(space.key);
+              if ((this.action && !candidate) || (this.placementDraft && !placement)) return '';
+              const disabled = placement ? !placement.canPlace : candidate
                 ? !candidate.action.canActivate
-                : this.action ? true : this.disabledSpaces.includes(Number(space.key));
-              const reason = candidate?.action.reason?.message;
+                : this.action || this.placementDraft ? true : this.disabledSpaces.includes(Number(space.key));
+              const reason = placement?.reason ?? candidate?.action.reason?.message;
               return position ? html`<button
                 class="space-focus"
                 type="button"
                 style=${`left:${position.left}px;top:${position.top}px`}
                 aria-label=${reason
-                  ? `${space.label}. ${candidate?.action.canActivate ? 'Retry available' : 'Unavailable'}: ${reason}`
+                  ? `${space.label}. ${candidate?.action.canActivate || placement?.canPlace ? 'Available' : 'Unavailable'}: ${reason}`
                   : space.label}
                 aria-disabled=${String(disabled)}
                 @focus=${() => this._focusSpace(space)}
@@ -1101,11 +1161,13 @@ class BoardgameSpatialBoard extends LitElement {
         ${this._resolvedGeometry ? html`
           <details id="space-list">
             <summary>Board spaces</summary>
-            <div>${repeat(this.action ? this._actionGeometrySpaces : this._resolvedGeometry.spaces, space => space.key, space => {
+            <div>${repeat(this.action || this.placementDraft ? this._actionGeometrySpaces : this._resolvedGeometry.spaces, space => space.key, space => {
               const candidate = this._candidateForSpace(space.key);
+              const placement = this._placementTargetForSpace(space.key);
               const legacyDisabled = this.disabledSpaces.includes(Number(space.key));
-              const disabled = candidate ? !candidate.action.canActivate : legacyDisabled;
-              const reason = candidate?.action.reason?.message;
+              const disabled = placement ? !placement.canPlace
+                : candidate ? !candidate.action.canActivate : legacyDisabled;
+              const reason = placement?.reason ?? candidate?.action.reason?.message;
               return html`<button
                 type="button"
                 aria-disabled=${String(disabled)}
@@ -1133,3 +1195,9 @@ class BoardgameSpatialBoard extends LitElement {
 customElements.define('boardgame-spatial-board', BoardgameSpatialBoard);
 
 export { BoardgameSpatialBoard };
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-spatial-board': BoardgameSpatialBoard;
+  }
+}

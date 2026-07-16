@@ -78,12 +78,19 @@ test('placement draft supports select/place and direct assignment through one im
 
   let draft = controller.bind(options);
   assert.equal(draft.action, null);
+  assert.equal(draft.item('a').selected, false);
+  assert.equal(draft.target(0).canPlace, false);
+  assert.equal(draft.target(0).reason, 'Select an item first');
   draft.selectItem('a');
   draft = controller.bind(options);
   assert.equal(draft.selectedItem, 'a');
+  assert.equal(draft.item('a').selected, true);
+  assert.equal(draft.target(0).canPlace, true);
   draft.place(0);
   draft = controller.bind(options);
   assert.deepEqual(draft.placements, [{ item: 'a', target: 0 }]);
+  assert.equal(draft.item('a').placedAt, 0);
+  assert.equal(draft.target(0).occupiedBy, 'a');
   assert.equal(draft.selectedItem, null);
   assert.equal(draft.action, null);
   assert.throws(() => { (draft.placements as DraftPlacement<string, number>[]).push({ item: 'x', target: 9 }); });
@@ -116,8 +123,18 @@ test('placement draft rejects ambiguous mutations and stale actions fail closed'
   assert.throws(() => draft.place(0), /before selecting/);
   assert.throws(() => draft.selectItem('missing'), /unknown item/);
   assert.throws(() => draft.assign('a', 8), /unknown target/);
+  assert.throws(() => draft.item('missing'), /bind unknown item/);
+  assert.throws(() => draft.target(8), /bind unknown target/);
   draft.assign('a', 0);
   draft = controller.bind(options);
+  assert.equal(draft.item('b').capacityBlocked, true);
+  assert.equal(draft.item('a').capacityBlocked, false);
+  draft.selectItem('b');
+  draft = controller.bind(options);
+  assert.equal(draft.target(0).reason, 'Destination is occupied');
+  assert.equal(draft.target(1).reason, 'Maximum placements reached');
+  assert.equal(draft.target(1).canPlace, false);
+  draft.selectItem('b');
   assert.throws(() => draft.assign('b', 0), /already occupied/);
   assert.throws(() => draft.assign('b', 1), /cannot exceed 1 placements/);
 

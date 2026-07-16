@@ -1102,6 +1102,10 @@ system phase.
   snapshot-bound commit action. Shared `boardgame-draft-controls` makes the
   count, status, reasons, responsive Commit/Undo/Clear, and announcement path
   automatic while leaving game-specific tile and board presentation ordinary.
+  Exact `draft.item(key)` and `draft.target(key)` bindings now preserve both key
+  unions. `boardgame-placement-item` owns accessible rack selection, while SVG
+  and raster spatial boards consume `.placementDraft` directly for keyboard and
+  pointer destinations, reasons, occupancy, and exact geometry validation.
 - [x] Multi-select/payment draft: `SelectionDraftController` adds bounded,
   immutable toggle/select/deselect, undo/clear, safe snapshot rebasing, visible
   prune notices, and one exact typed commit for cards/resources without

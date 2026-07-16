@@ -680,6 +680,7 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
     const { PlacementDraftController } = await import('/src/moves/placement-draft.ts');
     const { MoveSubmissionGate, createMoveAction } = await import('/src/moves/action.ts');
     await import('/src/components/boardgame-draft-controls.ts');
+    await import('/src/components/boardgame-placement-item.ts');
     const controls = document.createElement('boardgame-draft-controls');
     controls.style.display = 'block';
     controls.style.width = '300px';
@@ -687,6 +688,7 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
     controls.commitLabel = 'Play word';
     let submissions = 0;
     let request = 0;
+    let placementItems: HTMLElementTagNameMap['boardgame-placement-item'][] = [];
     const gate = new MoveSubmissionGate();
     const host = {
       state: {}, gameName: 'words', gameId: 'one', gameVersion: 1, snapshotEpoch: 1,
@@ -695,6 +697,9 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
       removeController: () => undefined,
       requestUpdate: () => {
         controls.draft = controller.bind(options);
+        placementItems.forEach((element, index) => {
+          element.item = controls.draft.item(index === 0 ? 'a' : 'c');
+        });
       },
       updateComplete: Promise.resolve(true),
     };
@@ -718,7 +723,7 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
     };
     const controller = new PlacementDraftController<string, number>(host);
     const options = {
-      items: ['a', 'b'], targets: [0, 1], minPlacements: 2, maxPlacements: 2,
+      items: ['a', 'b', 'c'], targets: [0, 1], minPlacements: 2, maxPlacements: 2,
       action: (placements: readonly { item: string; target: number }[]) => {
         const key = snapshotKey();
         return createMoveAction('Play', service, {
@@ -734,18 +739,36 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
       },
     };
     controls.draft = controller.bind(options);
-    document.body.append(controls);
+    const rack = document.createElement('div');
+    rack.setAttribute('aria-label', 'Letter rack');
+    const itemA = document.createElement('boardgame-placement-item');
+    itemA.label = 'Letter A'; itemA.item = controls.draft.item('a');
+    const itemC = document.createElement('boardgame-placement-item');
+    itemC.label = 'Letter C'; itemC.item = controls.draft.item('c');
+    placementItems = [itemA, itemC];
+    rack.append(itemA, itemC);
+    document.body.append(rack, controls);
     await controls.updateComplete;
+    await Promise.all(placementItems.map(item => item.updateComplete));
     const root = controls.shadowRoot!;
     const initialStatus = root.querySelector('#status')?.textContent?.trim();
     const initialCommit = root.querySelector('boardgame-action-button')!;
     await (initialCommit as typeof initialCommit & { updateComplete: Promise<unknown> }).updateComplete;
     const initialReason = initialCommit.shadowRoot?.querySelector('#status')?.textContent?.trim();
 
-    controls.draft.selectItem('a');
+    const itemAButton = itemA.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+    const itemCButton = itemC.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+    const itemHitTarget = itemAButton.getBoundingClientRect();
+    itemAButton.click();
+    await itemA.updateComplete;
+    const itemSelected = itemAButton.getAttribute('aria-pressed');
     controls.draft.place(0);
+    await itemA.updateComplete;
+    const itemPlaced = itemA.shadowRoot!.querySelector('#status')?.textContent;
     controls.draft.assign('b', 1);
     await controls.updateComplete;
+    await itemC.updateComplete;
+    const itemCapacityDisabled = itemCButton.disabled;
     const completeCount = root.querySelector('#count')?.textContent?.replace(/\s+/g, ' ').trim();
     const undo = root.querySelector<HTMLButtonElement>('button[part="undo"]')!;
     undo.click();
@@ -777,7 +800,8 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
     invalid.remove();
     return {
       initialStatus, initialReason, completeCount, undoneCount, submissions,
-      notice, clearedCount, direction, invalidError,
+      notice, clearedCount, direction, invalidError, itemSelected, itemPlaced,
+      itemCapacityDisabled, itemWidth: itemHitTarget.width, itemHeight: itemHitTarget.height,
     };
   });
   expect(result).toEqual({
@@ -790,8 +814,16 @@ test('placement draft controls make keyboard drafting, undo, rebase, and exact c
     clearedCount: 0,
     direction: 'column',
     invalidError: expect.stringContaining('.draft must be a placement or selection draft binding'),
+    itemSelected: 'true',
+    itemPlaced: 'Placed',
+    itemCapacityDisabled: true,
+    itemWidth: expect.any(Number),
+    itemHeight: expect.any(Number),
   });
+  expect(result.itemWidth).toBeGreaterThanOrEqual(44);
+  expect(result.itemHeight).toBeGreaterThanOrEqual(44);
   const axeResult = await new AxeBuilder({ page })
+    .include('[aria-label="Letter rack"]')
     .include('boardgame-draft-controls')
     .analyze();
   expect(axeResult.violations).toEqual([]);
@@ -3028,6 +3060,8 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       geometry: unknown;
       action: unknown;
       actionGroup: string;
+      placementDraft: unknown;
+      disabledSpaces: number[];
       pathOverlays: readonly unknown[];
       pieces: readonly unknown[];
       tokenSize: number;
@@ -3227,6 +3261,53 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     board.pathOverlays = [];
     await board.updateComplete;
 
+    let selectedDraftItem: string | null = null;
+    let placedDraftTarget: string | null = null;
+    const placementBinding = () => ({
+      targets: ['harbor', 'market', 'road'] as const,
+      selectedItem: selectedDraftItem,
+      target: (target: string | number) => ({
+        target,
+        occupiedBy: placedDraftTarget === target ? 'tile-a' : null,
+        canPlace: selectedDraftItem !== null && placedDraftTarget !== target,
+        reason: selectedDraftItem === null ? 'Select an item first'
+          : placedDraftTarget === target ? 'Destination is occupied' : null,
+        place: () => {
+          if (selectedDraftItem === null) throw new Error('No selected draft item');
+          placedDraftTarget = String(target);
+          selectedDraftItem = null;
+          board.placementDraft = placementBinding();
+        },
+      }),
+    });
+    board.placementDraft = placementBinding();
+    await board.updateComplete;
+    const placementInitialReason = root?.querySelector('#space-list button')?.getAttribute('title');
+    selectedDraftItem = 'tile-a';
+    board.placementDraft = placementBinding();
+    await board.updateComplete;
+    const placementButtons = root?.querySelectorAll<HTMLButtonElement>('#space-list button');
+    placementButtons?.[1]?.click();
+    await board.updateComplete;
+    const placementAfterReason = root?.querySelectorAll<HTMLButtonElement>('#space-list button')[1]?.getAttribute('title');
+    board.action = {
+      candidates: [], preview: { kind: 'ready' }, get: () => undefined,
+      ensurePreview: async () => ({ kind: 'ready' }), refreshPreview: async () => ({ kind: 'ready' }),
+      subscribe: () => () => undefined,
+    };
+    await board.updateComplete;
+    await board.updateComplete;
+    const ambiguousPlacementError = root?.querySelector('#status')?.textContent?.replace(/\s+/g, ' ').trim();
+    board.action = null;
+    await board.updateComplete;
+    board.disabledSpaces = [0];
+    await board.updateComplete;
+    await board.updateComplete;
+    const ambiguousDisabledError = root?.querySelector('#status')?.textContent?.replace(/\s+/g, ' ').trim();
+    board.disabledSpaces = [];
+    board.placementDraft = null;
+    await board.updateComplete;
+
     // Rapid replacement must leave only the final descriptor installed.
     board.artwork = rasterBoardArtwork({ src, spaces: [{ ...spaces[0]!, label: 'Stale Harbor' }] });
     board.artwork = rasterBoardArtwork({ src, spaces: [{ ...spaces[0]!, label: 'Final Harbor' }] });
@@ -3293,6 +3374,11 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
       pathDescription,
       pathTone,
       pathWidth,
+      placementInitialReason,
+      placedDraftTarget,
+      placementAfterReason,
+      ambiguousPlacementError,
+      ambiguousDisabledError,
       errors,
       lateGeometryError,
       lateGeometrySvgCount,
@@ -3314,6 +3400,11 @@ test('spatial board keeps raster artwork, hotspots, focus, and pieces in one res
     pathDescription: 'Trade route from Harbor through Road to Market',
     pathTone: 'secondary',
     pathWidth: '6',
+    placementInitialReason: 'Select an item first',
+    placedDraftTarget: 'market',
+    placementAfterReason: 'Select an item first',
+    ambiguousPlacementError: expect.stringContaining('action and placementDraft are mutually exclusive'),
+    ambiguousDisabledError: expect.stringContaining('placementDraft and disabledSpaces are mutually exclusive'),
     errors: [
       expect.stringContaining('choose svgUrl or artwork, not both'),
       expect.stringContaining('geometry is only valid with svgUrl'),

@@ -1993,17 +1993,17 @@ render() {
 
   return html`
     <div aria-label="Rack">
-      ${tileIDs.map(id => html`<button
-        type="button"
-        aria-pressed=${String(draft.selectedItem === id)}
-        @click=${() => draft.selectItem(id)}>${id}</button>`)}
+      ${tileIDs.map(id => html`<boardgame-placement-item
+        .item=${draft.item(id)}
+        label=${`Select tile ${id}`}>
+        <word-tile .tileID=${id}></word-tile>
+      </boardgame-placement-item>`)}
     </div>
-    <div aria-label="Word board">
-      ${squares.map(square => html`<button
-        type="button"
-        ?disabled=${draft.selectedItem === null || draft.itemAt(square) !== undefined}
-        @click=${() => draft.place(square)}>${square}</button>`)}
-    </div>
+    <boardgame-spatial-board
+      board-label="Word board"
+      .artwork=${wordBoardArtwork}
+      .placementDraft=${draft}>
+    </boardgame-spatial-board>
     <boardgame-draft-controls
       label="Word placement"
       commit-label="Play word"
@@ -2013,6 +2013,14 @@ render() {
 ```
 
 `selectItem()` followed by `place()` is the required keyboard/click path.
+`draft.item(id)` gives `boardgame-placement-item` a compile-time-correlated,
+44px native selector with pressed, placed, capacity, focus, fallback, and
+content-safety behavior. On authored SVG or raster artwork,
+`.placementDraft=${draft}` makes the board's exact geometry keys the destination
+controls, including the accessible space list and disabled reasons; combining
+it with `.action` or legacy `disabledSpaces` fails loudly. For custom target
+markup, `draft.target(key)` provides the same `canPlace`, `reason`, occupancy,
+and checked `place()` binding.
 Optional drag handling calls `assign(item, target)` and therefore cannot bypass
 the same unknown-item, unknown-target, occupancy, or maximum checks. Placements
 are immutable and carry stable IDs; `targetFor()` and `itemAt()` project the

@@ -46,12 +46,33 @@ export interface PlacementDraftOptions<
   readonly rebase?: PlacementDraftRebasePolicy;
 }
 
+/** One placeable item's immutable presentation and interaction binding. */
+export interface PlacementItemBinding<Item extends TargetKey, Target extends TargetKey> {
+  readonly item: Item;
+  readonly selected: boolean;
+  readonly placedAt: Target | null;
+  readonly capacityBlocked: boolean;
+  select(): void;
+  remove(): void;
+}
+
+/** One destination's immutable presentation and interaction binding. */
+export interface PlacementTargetBinding<Item extends TargetKey, Target extends TargetKey> {
+  readonly target: Target;
+  readonly occupiedBy: Item | null;
+  readonly canPlace: boolean;
+  readonly reason: string | null;
+  place(): void;
+}
+
 export interface PlacementDraftBinding<
   Item extends TargetKey,
   Target extends TargetKey,
   MoveName extends string,
   Input extends object,
 > {
+  readonly items: readonly Item[];
+  readonly targets: readonly Target[];
   readonly placements: readonly DraftPlacement<Item, Target>[];
   readonly selectedItem: Item | null;
   readonly action: BoundMoveAction<MoveName, Input> | null;
@@ -65,6 +86,8 @@ export interface PlacementDraftBinding<
   readonly status: string;
   readonly canUndo: boolean;
   readonly canClear: boolean;
+  item(item: Item): PlacementItemBinding<Item, Target>;
+  target(target: Target): PlacementTargetBinding<Item, Target>;
   selectItem(item: Item): void;
   /** Keyboard/click workflow: place the selected item on this target. */
   place(target: Target): void;
@@ -156,6 +179,8 @@ implements ReactiveController {
     const byItem = new Map(this.#placements.map(placement => [placement.item, placement.target] as const));
     const byTarget = new Map(this.#placements.map(placement => [placement.target, placement.item] as const));
     return Object.freeze({
+      items,
+      targets,
       placements: this.#placements,
       selectedItem: this.#selectedItem,
       action,
@@ -170,6 +195,43 @@ implements ReactiveController {
         : `${this.#placements.length} placement${this.#placements.length === 1 ? '' : 's'} drafted.`,
       canUndo: this.#history.length > 0,
       canClear: this.#placements.length > 0 || this.#selectedItem !== null,
+      item: (item: Item): PlacementItemBinding<Item, Target> => {
+        if (!nextItems.has(item)) {
+          throw new Error(`PlacementDraftController cannot bind unknown item ${JSON.stringify(item)}`);
+        }
+        const placedAt = byItem.get(item) ?? null;
+        const selected = this.#selectedItem === item;
+        return Object.freeze({
+          item,
+          selected,
+          placedAt,
+          capacityBlocked: !selected && placedAt === null && this.#placements.length >= maxPlacements,
+          select: () => this.selectItem(item),
+          remove: () => this.removeItem(item),
+        });
+      },
+      target: (target: Target): PlacementTargetBinding<Item, Target> => {
+        if (!nextTargets.has(target)) {
+          throw new Error(`PlacementDraftController cannot bind unknown target ${JSON.stringify(target)}`);
+        }
+        const occupiedBy = byTarget.get(target) ?? null;
+        const selected = this.#selectedItem;
+        const selectedIsPlaced = selected !== null && byItem.has(selected);
+        const atCapacity = !selectedIsPlaced && this.#placements.length >= maxPlacements;
+        const canPlace = selected !== null && !atCapacity
+          && (occupiedBy === null || occupiedBy === selected);
+        return Object.freeze({
+          target,
+          occupiedBy,
+          canPlace,
+          reason: selected === null
+            ? 'Select an item first'
+            : occupiedBy !== null && occupiedBy !== selected
+              ? 'Destination is occupied'
+              : atCapacity ? 'Maximum placements reached' : null,
+          place: () => this.place(target),
+        });
+      },
       selectItem: this.selectItem,
       place: this.place,
       assign: this.assign,
