@@ -1154,6 +1154,13 @@ First evidence-driven primitive tranche (2026-07-16):
   API/Vite session. Bound config discovery to an actual absolute-parent walk so
   a config-less nested `check-client -c ...` invocation terminates instead of
   growing a relative path forever and consuming a CPU core.
+- [x] Harden the companion phone join boundary: distinguish conventional HTTP
+  JSON endpoints from legacy `Status` envelopes in the shared transport, carry
+  auth headers and errors without raw component fetches, and validate/copy
+  bounded room, seat-option, and seat-result payloads before rendering or
+  navigation. Reject cross-game identity, seat-policy, cardinality, and index
+  contradictions, remove the join view's ambient `any`, and prove a real guest
+  can create/enter a Blackjack room and land on its Hand renderer.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

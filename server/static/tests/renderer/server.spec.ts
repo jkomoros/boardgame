@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+// These tests intentionally mutate one shared in-memory Go server. Keep this
+// file serial so one game's asynchronous fix-up traffic cannot perturb another
+// game's transport assertions; isolated renderer fixtures remain fully parallel.
+test.describe.configure({ mode: 'serial' });
+
 test('self-started renderer server uses offline mode and same-origin API proxy', async ({ page, request }) => {
   const configResponse = await request.get('/client_config.js');
   expect(configResponse.ok()).toBe(true);
@@ -48,6 +53,32 @@ test('offline authentication preserves encoded identity fields through the real 
   expect(body.get('email')).toBe(email);
   expect(body.get('displayname')).toBe(displayName);
   await expect(page.locator('boardgame-user')).toContainText(displayName);
+});
+
+test('companion guest join validates room, seat options, and seat result through the real server', async ({ page }) => {
+  const email = 'typed-join-host@example.com';
+  const auth = await page.request.post('/api/auth', {
+    form: { uid: email, token: 'offline-test-token', email, displayname: 'Join Host' },
+  });
+  expect(auth.ok()).toBe(true);
+  const createdResponse = await page.request.post('/api/new/game', {
+    form: { manager: 'blackjack', numplayers: '2', companionMode: '1' },
+  });
+  expect(createdResponse.ok()).toBe(true);
+  const created: unknown = await createdResponse.json();
+  if (created === null || typeof created !== 'object' || Array.isArray(created)) {
+    throw new Error('Create companion game response was not an object');
+  }
+  const fields = created as Readonly<Record<string, unknown>>;
+  expect(fields['Status']).toBe('Success');
+  expect(fields['GameName']).toBe('blackjack');
+  expect(fields['CompanionRoomCode']).toMatch(/^[A-Z]{4,5}$/);
+
+  await page.goto(`/join?code=${encodeURIComponent(String(fields['CompanionRoomCode']))}`);
+  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await page.getByRole('button', { name: 'Looks good — join!' }).click();
+  await page.waitForURL(/\/game\/blackjack\//, { timeout: 20_000 });
+  await expect(page.locator('boardgame-render-game-blackjack-hand')).toBeAttached({ timeout: 15_000 });
 });
 
 test('assembled Pig renderer reports a real server rejection without advancing state', async ({ page }) => {

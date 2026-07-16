@@ -80,6 +80,80 @@ async function unwrapApiResponse<T>(response: Response): Promise<ApiResponse<T>>
   };
 }
 
+async function unwrapHttpJsonResponse(response: Response): Promise<ApiResponse<unknown>> {
+  const status = response.status;
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    return {
+      status,
+      error: `HTTP ${status}: ${response.statusText}`,
+      friendlyError: 'The server returned an invalid response',
+    };
+  }
+  if (status >= 200 && status < 300) return { status, data: parsed };
+  const body = responseRecord(parsed);
+  return {
+    status,
+    error: body && typeof body['error'] === 'string' && body['error'].trim()
+      ? body['error']
+      : `Request failed with status ${status}`,
+    friendlyError: 'The request could not be completed',
+  };
+}
+
+export interface HttpJsonOptions {
+  headers?: Readonly<Record<string, string>>;
+  signal?: AbortSignal;
+}
+
+async function apiHttpJson(
+  method: 'GET' | 'POST',
+  url: string,
+  body: Readonly<Record<string, unknown>> | undefined,
+  options: HttpJsonOptions,
+): Promise<ApiResponse<unknown>> {
+  try {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      ...options.headers,
+    };
+    if (body) headers['Content-Type'] = 'application/json';
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+    return await unwrapHttpJsonResponse(response);
+  } catch (error) {
+    return {
+      status: 0,
+      error: error instanceof Error ? error.message : 'Network error',
+      friendlyError: 'Unable to connect to the server',
+    };
+  }
+}
+
+// apiHttpGet/apiHttpPost are for conventional HTTP endpoints whose successful
+// payload is the JSON body and whose failures use status codes + {error}. Most
+// legacy boardgame API endpoints instead use the Status envelope and should
+// continue to use apiGet/apiPost; keeping the names distinct prevents a payload
+// from silently being interpreted under the wrong protocol.
+export function apiHttpGet(url: string, options: HttpJsonOptions = {}): Promise<ApiResponse<unknown>> {
+  return apiHttpJson('GET', url, undefined, options);
+}
+
+export function apiHttpPost(
+  url: string,
+  body: Readonly<Record<string, unknown>>,
+  options: HttpJsonOptions = {},
+): Promise<ApiResponse<unknown>> {
+  return apiHttpJson('POST', url, body, options);
+}
+
 /**
  * Gets the base API URL, respecting API_HOST configuration
  */

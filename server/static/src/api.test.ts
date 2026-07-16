@@ -6,7 +6,7 @@
 // envelope is unwrapped for free. fetch is stubbed — no network, no DOM.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { movePreview, movePreviewBatch } from './api.ts';
+import { apiHttpGet, apiHttpPost, movePreview, movePreviewBatch } from './api.ts';
 
 interface Captured {
   url: string;
@@ -131,4 +131,20 @@ test('malformed failure metadata cannot masquerade as structured stale data', as
   assert.equal(result.code, undefined);
   assert.equal(result.expectedVersion, undefined);
   assert.equal(result.actualVersion, undefined);
+});
+
+test('conventional HTTP JSON transport preserves status errors and custom headers', async () => {
+  const capturedPost = stubFetch({ error: 'Seat already taken', filled: [true, false] }, 409);
+  const failed = await apiHttpPost('/api/join/seat', { gameID: 'GAME', seatPick: 0 }, {
+    headers: { Authorization: 'Bearer token' },
+  });
+  assert.equal(failed.status, 409);
+  assert.equal(failed.data, undefined);
+  assert.equal(failed.error, 'Seat already taken');
+  assert.equal(capturedPost().opts.headers.Authorization, 'Bearer token');
+  assert.deepEqual(JSON.parse(capturedPost().opts.body), { gameID: 'GAME', seatPick: 0 });
+
+  stubFetch({ gameID: 'GAME', slots: [] });
+  const succeeded = await apiHttpGet('/api/join/seat-options');
+  assert.deepEqual(succeeded.data, { gameID: 'GAME', slots: [] });
 });
