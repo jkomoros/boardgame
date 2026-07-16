@@ -46,6 +46,32 @@ func TestBasicGenerate(t *testing.T) {
 	}
 }
 
+func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
+	opt := &Options{Name: "checkers"}
+	opt.EnableTutorials()
+	contents, err := Generate(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := string(contents["checkers/client/boardgame-render-game-checkers.ts"])
+	for _, required := range []string{
+		"<boardgame-deck-defaults>",
+		"<boardgame-card>",
+		".componentAttrs=${{ rotated: true }}",
+		"<boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>",
+		"player.Computed?.GameScore ?? 0",
+	} {
+		if !strings.Contains(client, required) {
+			t.Errorf("generated client is missing %q", required)
+		}
+	}
+	for _, legacy := range []string{"component-rotated", "propose-move", "data-arg-", "this.proposeMove"} {
+		if strings.Contains(client, legacy) {
+			t.Errorf("generated client contains legacy authoring syntax %q", legacy)
+		}
+	}
+}
+
 func TestGolden(t *testing.T) {
 
 	minimalOptions := &Options{

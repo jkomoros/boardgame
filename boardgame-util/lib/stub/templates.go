@@ -793,6 +793,8 @@ const templateContentsRenderGameTs = `import { css, html } from '../../src/clien
 import { GameRenderer } from './_game_renderer.js';
 {{- if .EnableExampleClient }}
 import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-card.js';
+import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-fading-text.js';
 {{- end}}
 {{- if .EnableExampleMoves }}
@@ -809,8 +811,15 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]
+      <boardgame-deck-defaults>
+        <template deck="cards">
+          <boardgame-card>
+            <strong>{{"{{item.Values.Value}}"}}</strong>
+          </boardgame-card>
+        </template>
+      </boardgame-deck-defaults>
       <boardgame-component-stack
-        .stack=${this.state?.Game.DrawStack}
+        .stack=${this.state?.Game.DrawStack ?? null}
         layout="stack" messy>
       </boardgame-component-stack>
       {{- if .EnableExampleMoves }}
@@ -824,10 +833,11 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
             <strong>Player ${index + 1}</strong>
             <boardgame-component-stack
               .stack=${player.Hand}
-              layout="fan" messy component-rotated>
+              layout="fan" messy
+              .componentAttrs=${[[ rotated: true ]]}>
             </boardgame-component-stack>
             <boardgame-fading-text
-              .trigger=${player.Computed.GameScore}
+              .trigger=${player.Computed?.GameScore ?? 0}
               auto-message="diff-up">
             </boardgame-fading-text>
           </section>

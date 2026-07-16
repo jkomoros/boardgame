@@ -1,6 +1,8 @@
 import { css, html } from '../../src/client.js';
 import { GameRenderer } from './_game_renderer.js';
 import '../../src/components/boardgame-component-stack.js';
+import '../../src/components/boardgame-card.js';
+import '../../src/components/boardgame-deck-defaults.js';
 import '../../src/components/boardgame-fading-text.js';
 import { MoveNames } from './_move_names.js';
 
@@ -13,8 +15,15 @@ class BoardgameRenderGameCheckers extends GameRenderer {
 
   override render() {
     return html`
+      <boardgame-deck-defaults>
+        <template deck="cards">
+          <boardgame-card>
+            <strong>{{item.Values.Value}}</strong>
+          </boardgame-card>
+        </template>
+      </boardgame-deck-defaults>
       <boardgame-component-stack
-        .stack=${this.state?.Game.DrawStack}
+        .stack=${this.state?.Game.DrawStack ?? null}
         layout="stack" messy>
       </boardgame-component-stack>
       <boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>
@@ -26,10 +35,11 @@ class BoardgameRenderGameCheckers extends GameRenderer {
             <strong>Player ${index + 1}</strong>
             <boardgame-component-stack
               .stack=${player.Hand}
-              layout="fan" messy component-rotated>
+              layout="fan" messy
+              .componentAttrs=${{ rotated: true }}>
             </boardgame-component-stack>
             <boardgame-fading-text
-              .trigger=${player.Computed.GameScore}
+              .trigger=${player.Computed?.GameScore ?? 0}
               auto-message="diff-up">
             </boardgame-fading-text>
           </section>
