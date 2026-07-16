@@ -1083,7 +1083,10 @@ First evidence-driven primitive tranche (2026-07-16):
 - [x] Declare the web toolchain package as ESM so Node runs native TypeScript
   tests without reparsing every file and burying diagnostics in warnings. Move
   the one legacy CommonJS precache config to `.cjs` and make the self-starting
-  Playwright config use `import.meta.url` instead of CommonJS globals.
+  Playwright config use `import.meta.url` instead of CommonJS globals. Mark the
+  deliberately runtime-generated classic `client_config.js` as Vite-ignored so
+  production builds preserve it externally without emitting a false bundling
+  warning that obscures real diagnostics.
 - [x] Re-audit the primary `TUTORIAL.md` rather than relying on newer appended
   sections: remove its stale Polymer-era `.js` location, mutable timer/component
   model, and `propose-move` instructions; teach generated bases, exact
