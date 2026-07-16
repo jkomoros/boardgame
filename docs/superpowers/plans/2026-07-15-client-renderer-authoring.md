@@ -1099,6 +1099,10 @@ First evidence-driven primitive tranche (2026-07-16):
   client gate, supervised foreground `serve`, memory/offline options, safe port
   overrides, clean shutdown, and the current game inventory. Give
   `boardgame-util` itself a concise renderer-authoring command loop.
+- [x] Remove the eight accidentally committed `temp_serve_*` build trees,
+  including their generated API binary, copied client tree, and Vite caches.
+  Keep the existing ignore rule as the forward guard and verify the generated
+  API no longer appears as a fake package in `go list ./boardgame-util/...`.
 - [x] Make renderer load/registration failures visible, bounded, and
   actionable instead of console-only blank screens. Keep a failed companion
   specialization eligible for the existing solo fallback; if the final surface
