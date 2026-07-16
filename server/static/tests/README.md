@@ -40,6 +40,34 @@ npm run test:e2e:report       # View test results
   fixture proves accessibility violations fail detection instead of silently
   passing because the analyzer was misconfigured.
 
+`src/testing/renderer-fixture.ts` mounts a registered game renderer without a
+live game. Define fixtures against the generated `GameClientContract`; that one
+type parameter binds the snapshot to the exact generated `State`, complete move
+name set, and matching registered renderer tag. The snapshot also carries the
+generated move-schema fingerprint, player perspective, legality, outcome, and
+surface:
+
+```ts
+export const pigRendererFixture = defineRendererFixture<GameClientContract>({
+  tagName: 'boardgame-render-game-pig',
+  snapshot: { /* state, every move's legality, version, outcome, ... */ },
+});
+```
+
+Misspelled or omitted move names, another game's renderer tag, and state drift
+fail the package-isolated `check-client` gate. At runtime the host rejects stale
+fixture schemas, contradictory legality, surface/tag mismatches, malformed
+proposals, and unregistered elements immediately. It records valid proposals
+with snapshot-version request IDs and supports deterministic snapshot
+replacement and cleanup. Pig and Tic-tac-toe keep their `satisfies State`
+builders beside their renderers so failures point to creator-owned fixture code
+before Chromium runs.
+
+`tests/renderer/renderer-fixture-helpers.ts` supplies canonical 320px, 768px,
+and 1280px viewports, keyboard reachability, and console/page-error capture.
+Renderer tests run with reduced motion by default; animation-specific behavior
+belongs in the separate real-time shard.
+
 `playwright.config.ts` drives the existing real-time suite:
 
 - **baseURL**: `http://localhost:8080` - Connects to Vite server from boardgame-util serve

@@ -30,6 +30,10 @@ export interface GameClientContract {
   readonly DynamicComponents: DynamicComponentValues;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
+  readonly RendererTag:
+    | 'boardgame-render-game-blackjack'
+    | 'boardgame-render-game-blackjack-table'
+    | 'boardgame-render-game-blackjack-hand';
 }
 
 /** Extend this class, then register only your concrete renderer element. */

@@ -44,6 +44,7 @@ export default defineConfig({
     baseURL,
     ...devices['Desktop Chrome'],
     headless: !process.env.HEADED,
+    reducedMotion: 'reduce',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

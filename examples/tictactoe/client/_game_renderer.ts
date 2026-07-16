@@ -30,6 +30,10 @@ export interface GameClientContract {
   readonly DynamicComponents: DynamicComponentValues;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
+  readonly RendererTag:
+    | 'boardgame-render-game-tictactoe'
+    | 'boardgame-render-game-tictactoe-table'
+    | 'boardgame-render-game-tictactoe-hand';
 }
 
 /** Extend this class, then register only your concrete renderer element. */

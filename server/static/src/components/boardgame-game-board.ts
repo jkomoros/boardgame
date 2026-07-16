@@ -43,12 +43,17 @@ export class BoardgameGameBoard extends LitElement {
       padding: 6px;
       position: relative;
       overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .board-area {
+      position: relative;
     }
 
     .cell-layer {
       display: grid;
       position: absolute;
-      inset: 6px;
+      inset: 0;
       z-index: 0;
     }
 
@@ -113,7 +118,9 @@ export class BoardgameGameBoard extends LitElement {
     /* Component stack layer — above the cell backgrounds.
        pointer-events: none so all clicks reach the cell layer beneath. */
     boardgame-component-stack {
-      position: relative;
+      position: absolute;
+      inset: 0;
+      width: auto;
       z-index: 1;
       pointer-events: none;
     }
@@ -255,37 +262,40 @@ export class BoardgameGameBoard extends LitElement {
 
     return html`
       <div class="board-surface">
-        <!-- Cell background layer -->
-        <div class="cell-layer" style="grid-template-columns: repeat(${this.cols}, 1fr)">
-          ${repeat(cells, (i) => i, (i) => html`
-            <div class="cell ${this._cellClass(i)}"
-                 @click="${() => this._onCellClick(i)}">
+        <div class="board-area" style="aspect-ratio: ${this.cols} / ${this.rows}">
+          <!-- Cell background layer -->
+          <div class="cell-layer" style="grid-template-columns: repeat(${this.cols}, 1fr)">
+            ${repeat(cells, (i) => i, (i) => html`
+              <div class="cell ${this._cellClass(i)}"
+                   @click="${() => this._onCellClick(i)}">
+              </div>
+            `)}
+          </div>
+
+          <!-- Component layer -->
+          <boardgame-component-stack
+            layout="board"
+            .boardCols="${this.cols}"
+            .boardRows="${this.rows}"
+            .stack="${this.stack}"
+            .componentAttrs="${this.componentAttrs}"
+            no-default-spacer>
+          </boardgame-component-stack>
+
+          <!-- Optional coordinate labels -->
+          ${this.labels ? html`
+            <div class="labels-row" style="grid-template-columns: repeat(${this.cols}, 1fr)">
+              ${repeat(colLabels, (i) => i, (i) => html`
+                <div class="label">${this._colLabel(i)}</div>
+              `)}
             </div>
-          `)}
+            <div class="labels-col" style="grid-template-rows: repeat(${this.rows}, 1fr)">
+              ${repeat(rowLabels, (i) => i, (i) => html`
+                <div class="label">${this.rows - i}</div>
+              `)}
+            </div>
+          ` : nothing}
         </div>
-
-        <!-- Component layer -->
-        <boardgame-component-stack
-          layout="board"
-          .boardCols="${this.cols}"
-          .stack="${this.stack}"
-          .componentAttrs="${this.componentAttrs}"
-          no-default-spacer>
-        </boardgame-component-stack>
-
-        <!-- Optional coordinate labels -->
-        ${this.labels ? html`
-          <div class="labels-row" style="grid-template-columns: repeat(${this.cols}, 1fr)">
-            ${repeat(colLabels, (i) => i, (i) => html`
-              <div class="label">${this._colLabel(i)}</div>
-            `)}
-          </div>
-          <div class="labels-col" style="grid-template-rows: repeat(${this.rows}, 1fr)">
-            ${repeat(rowLabels, (i) => i, (i) => html`
-              <div class="label">${this.rows - i}</div>
-            `)}
-          </div>
-        ` : nothing}
       </div>
     `;
   }

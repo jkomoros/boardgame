@@ -30,6 +30,10 @@ export interface GameClientContract {
   readonly DynamicComponents: DynamicComponentValues;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
+  readonly RendererTag:
+    | 'boardgame-render-game-werewolf'
+    | 'boardgame-render-game-werewolf-table'
+    | 'boardgame-render-game-werewolf-hand';
 }
 
 /** Extend this class, then register only your concrete renderer element. */

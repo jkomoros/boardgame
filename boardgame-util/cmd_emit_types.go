@@ -158,7 +158,7 @@ func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, incl
 		}
 		generated = append(generated,
 			generatedGameTypeFile{path: filepath.Join(pkg.ClientFolder(), "_types.ts"), contents: []byte(gametypes.GenerateTypeScript(result)), gameName: result.PackageName, gameFields: len(result.GameFields), playerFields: len(result.PlayerFields)},
-			generatedGameTypeFile{path: filepath.Join(pkg.ClientFolder(), "_game_renderer.ts"), contents: []byte(gametypes.GenerateRendererTypeScript()), gameName: result.PackageName},
+			generatedGameTypeFile{path: filepath.Join(pkg.ClientFolder(), "_game_renderer.ts"), contents: []byte(gametypes.GenerateRendererTypeScript(result.PackageName)), gameName: result.PackageName},
 		)
 	}
 	return generated, nil

@@ -30,6 +30,10 @@ export interface GameClientContract {
   readonly DynamicComponents: DynamicComponentValues;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
+  readonly RendererTag:
+    | 'boardgame-render-game-debuganimations'
+    | 'boardgame-render-game-debuganimations-table'
+    | 'boardgame-render-game-debuganimations-hand';
 }
 
 /** Extend this class, then register only your concrete renderer element. */

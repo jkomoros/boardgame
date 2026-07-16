@@ -237,12 +237,15 @@ func TestGenerateTypeScriptEmitsHonestComponentCatalog(t *testing.T) {
 }
 
 func TestGenerateRendererTypeScriptBindsCompleteContractWithoutRegistration(t *testing.T) {
-	ts := GenerateRendererTypeScript()
+	ts := GenerateRendererTypeScript("sample")
 	for _, want := range []string{
 		"export interface GameClientContract",
 		"export abstract class GameRenderer extends BoardgameBaseGameRenderer<",
 		"protected override readonly moveInputSchema = moveInputSchema;",
 		"readonly Components: ComponentCatalog;",
+		"readonly RendererTag:",
+		"'boardgame-render-game-sample-table'",
+		"'boardgame-render-game-sample-hand'",
 		"GameClientContract['State']",
 	} {
 		if !strings.Contains(ts, want) {

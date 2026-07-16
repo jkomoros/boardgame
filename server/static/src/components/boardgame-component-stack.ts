@@ -191,14 +191,27 @@ export class BoardgameComponentStack extends LitElement {
 
     /* Board layout: CSS Grid positioning by slot index */
     #container.board {
+      position: absolute;
+      inset: 0;
       display: grid;
       grid-template-columns: repeat(var(--board-cols, 8), 1fr);
+      grid-template-rows: repeat(var(--board-rows, 8), 1fr);
       gap: 0;
       padding: 0;
     }
 
     #container.board #slot-holder {
-      display: contents;
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    #container.board #components {
+      display: grid;
+      grid-template-columns: repeat(var(--board-cols, 8), 1fr);
+      grid-template-rows: repeat(var(--board-rows, 8), 1fr);
+      width: 100%;
+      height: 100%;
     }
 
     /* Prevent faux/animating containers from becoming grid items */
@@ -301,6 +314,9 @@ export class BoardgameComponentStack extends LitElement {
 
   @property({ type: Number })
   boardCols = 8;
+
+  @property({ type: Number })
+  boardRows = 8;
 
   /** Pixel positions for spatial layout. Index i = position for component at slot i. */
   @property({ type: Array, attribute: false })
@@ -435,6 +451,7 @@ export class BoardgameComponentStack extends LitElement {
     this._id = this._randomId(8);
     if (this.container) {
       this.container.style.setProperty('--board-cols', String(this.boardCols));
+      this.container.style.setProperty('--board-rows', String(this.boardRows));
     }
 
   }
@@ -460,6 +477,10 @@ export class BoardgameComponentStack extends LitElement {
 
     if (changedProperties.has('boardCols') && this.container) {
       this.container.style.setProperty('--board-cols', String(this.boardCols));
+    }
+
+    if (changedProperties.has('boardRows') && this.container) {
+      this.container.style.setProperty('--board-rows', String(this.boardRows));
     }
 
     // stack property change is now handled in the setter directly

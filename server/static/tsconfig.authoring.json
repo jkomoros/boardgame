@@ -15,7 +15,8 @@
   },
   "include": [
     "src/types/boardgame-types.ts",
-    "src/types/boardgame-types.compile.ts"
+    "src/types/boardgame-types.compile.ts",
+    "src/testing/**/*.ts"
   ],
   "exclude": [
     "src/**/*.test.ts"

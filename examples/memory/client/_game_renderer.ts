@@ -30,6 +30,10 @@ export interface GameClientContract {
   readonly DynamicComponents: DynamicComponentValues;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
+  readonly RendererTag:
+    | 'boardgame-render-game-memory'
+    | 'boardgame-render-game-memory-table'
+    | 'boardgame-render-game-memory-hand';
 }
 
 /** Extend this class, then register only your concrete renderer element. */
