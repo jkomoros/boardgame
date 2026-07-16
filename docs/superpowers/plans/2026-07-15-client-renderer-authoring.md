@@ -1039,6 +1039,14 @@ First evidence-driven primitive tranche (2026-07-16):
   vertical orientations plus four alignments as closed typed policies. Expose a
   stable bar part/token, reject blank labels and unknown policies, prove wide,
   narrow, and vertical computed layouts in-browser, and migrate both games.
+- [x] Add `targetList(...)` plus `boardgame-target-list` for the labeled target
+  menu repeated by Werewolf voting and Valentine's card guessing. Preserve the
+  exact target-key union through one unforgeable binding; own batched preview,
+  action buttons, reasons, heading/list/empty semantics, and responsive stack or
+  grid presentation. Migrate Werewolf's ordinary choice list; keep Valentine's
+  richer name/description rows on direct candidate actions as the intentional
+  edge-case path. Prove strict negative contracts, loud runtime failures,
+  end-to-end proposal, and axe.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

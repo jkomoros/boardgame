@@ -1927,8 +1927,32 @@ labels agree, then supplies native buttons, roving arrow/Home/End navigation,
 guarded `aria-disabled` targets, pending state, and visible failures. Illegal
 targets remain focusable so keyboard and screen-reader users can discover the
 reason. Use `.labelFor=${...}` when its default “B1, occupied” labels are not
-specific enough. Non-grid UIs can render `target.candidates` directly and use
-each candidate's `.action`; `TargetAction` itself has no layout assumptions.
+specific enough.
+
+For a menu of ordinary labeled choices—players to vote for, cards to name, or
+actions scoped by a string key—keep the exact target keys and labels together:
+
+```typescript
+const votes = this.move(MoveNames.CastVote).targets(
+  eligiblePlayerIndexes,
+  VoteTarget => ({ VoteTarget }),
+);
+
+return html`<boardgame-target-list
+  label="Vote to eliminate"
+  .choices=${targetList(votes, playerIndex => displayNameFor(playerIndex))}>
+</boardgame-target-list>`;
+```
+
+`targetList()` checks the label callback against the exact target-key union and
+rejects blank, excessive, or throwing labels. `boardgame-target-list` starts the
+single batched preview, renders every choice as a native action button, keeps
+illegal choices visible with their reasons, provides list/heading/empty-state
+semantics, and supports `layout="grid"` for wider choices. Forged bindings,
+blank labels, invalid heading levels, and unknown layouts fail loudly. For rich
+game-specific rows such as a card name plus rule text, render
+`target.candidates` directly and bind each candidate's `.action`; the headless
+`TargetAction` deliberately has no layout assumptions.
 
 For a source-then-destination board (checkers, chess, tactical movement), add a
 single Lit reactive controller. It resets selection automatically when the

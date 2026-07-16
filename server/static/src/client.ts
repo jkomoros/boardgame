@@ -46,6 +46,8 @@ export type {
   TargetCandidate,
   TargetKey,
 } from './moves/target-action.js';
+export { targetList } from './moves/target-list.js';
+export type { TargetListBinding, TargetListChoice } from './moves/target-list.js';
 export { SourceDestinationController } from './moves/source-destination.js';
 export type {
   SourceDestinationBinding,
@@ -83,6 +85,7 @@ export type { ComponentView, ComponentViewContext, ComponentViewOptions } from '
 export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';
 export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
+export type { TargetListLayout } from './components/boardgame-target-list.js';
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
 export type { BoardViewportChange } from './components/boardgame-board-viewport.js';
@@ -158,6 +161,7 @@ import './components/boardgame-inspector.js';
 import './components/boardgame-placement-item.js';
 import './components/boardgame-readiness.js';
 import './components/boardgame-selection-option.js';
+import './components/boardgame-target-list.js';
 import './components/boardgame-component-zone.js';
 import './components/boardgame-game-outcome.js';
 import './components/boardgame-game-surface.js';

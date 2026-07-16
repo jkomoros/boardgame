@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import type { TargetAction } from '../../src/moves/target-action.js';
 import {
   RENDERER_VIEWPORTS,
   focusWithKeyboard,
@@ -296,6 +297,127 @@ test('removed component proposal configuration is inert or fails loudly', async 
       expect.stringContaining('componentActions for moves'),
     ],
   });
+});
+
+test('target lists turn exact target collections into accessible previewed choices', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/game-src/tictactoe/boardgame-render-game-tictactoe.ts');
+      const { tictactoeRendererFixture } = await import('/game-src/tictactoe/boardgame-render-fixtures-tictactoe.ts');
+      const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
+      const { html, targetList } = await import('/src/client.ts');
+      const TicTacToeRenderer = customElements.get('boardgame-render-game-tictactoe');
+      if (!TicTacToeRenderer) throw new Error('Tic-tac-toe renderer was not registered');
+
+      class TargetListRenderer extends TicTacToeRenderer {
+        override render() {
+          const renderer = this as unknown as {
+            move(name: 'Place Token'): {
+              targets(keys: readonly number[], inputFor: (key: number) => { Slot: number }):
+                TargetAction<number, 'Place Token', { Slot: number }>;
+            };
+          };
+          const targets = renderer.move('Place Token').targets([1, 2], Slot => ({ Slot }));
+          return html`<boardgame-target-list
+            label="Choose a square"
+            .choices=${targetList(targets, Slot => `Square ${Slot}`)}>
+          </boardgame-target-list>`;
+        }
+      }
+      customElements.define('boardgame-render-game-tictactoe-target-list', TargetListRenderer);
+      const handle = await mountRendererFixture({
+        ...tictactoeRendererFixture,
+        tagName: 'boardgame-render-game-tictactoe-target-list',
+      } as never);
+      const list = handle.renderer.shadowRoot?.querySelector('boardgame-target-list') as (
+        HTMLElement & {
+          choices: ReturnType<typeof targetList>;
+          updateComplete: Promise<unknown>;
+        }
+      ) | null;
+      if (!list) throw new Error('Target list did not render');
+      await list.updateComplete;
+      await list.choices.target.ensurePreview();
+      await list.updateComplete;
+      const heading = list.shadowRoot?.querySelector('#heading');
+      const controls = [...(list.shadowRoot?.querySelectorAll('boardgame-action-button') ?? [])];
+      await Promise.all(controls.map(control => (control as HTMLElement & { updateComplete: Promise<unknown> }).updateComplete));
+      const labels = controls.map(control => control.textContent?.trim());
+      const activeButton = controls[1]?.shadowRoot?.querySelector<HTMLButtonElement>('button');
+      activeButton?.focus();
+      activeButton?.click();
+      for (let attempt = 0; attempt < 20 && handle.proposals.length === 0; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      const malformed = document.createElement('boardgame-target-list') as HTMLElement & {
+        choices: unknown;
+        updateComplete: Promise<unknown>;
+      };
+      malformed.choices = { target: list.choices.target, choices: [] };
+      document.body.append(malformed);
+      let malformedError = '<resolved>';
+      try { await malformed.updateComplete; }
+      catch (error) { malformedError = error instanceof Error ? error.message : String(error); }
+      malformed.remove();
+
+      const configurationError = async (properties: Record<string, unknown>): Promise<string> => {
+        const candidate = document.createElement('boardgame-target-list') as HTMLElement & {
+          choices: ReturnType<typeof targetList>;
+          updateComplete: Promise<unknown>;
+        };
+        candidate.choices = list.choices;
+        Object.assign(candidate, properties);
+        document.body.append(candidate);
+        try { await candidate.updateComplete; return '<resolved>'; }
+        catch (error) { return error instanceof Error ? error.message : String(error); }
+        finally { candidate.remove(); }
+      };
+
+      let labelError = '<resolved>';
+      try { targetList(list.choices.target, () => '   '); }
+      catch (error) { labelError = error instanceof Error ? error.message : String(error); }
+      const output = {
+        heading: heading?.textContent?.trim(),
+        ariaLevel: heading?.getAttribute('aria-level'),
+        labels,
+        proposals: handle.proposals,
+        malformedError,
+        labelError,
+        configurationErrors: await Promise.all([
+          configurationError({ label: ' ' }),
+          configurationError({ headingLevel: 0 }),
+          configurationError({ emptyLabel: '' }),
+          configurationError({ layout: 'columns' }),
+        ]),
+      };
+      (globalThis as unknown as { __targetListHandle: typeof handle }).__targetListHandle = handle;
+      return output;
+    });
+    expect(result).toMatchObject({
+      heading: 'Choose a square',
+      ariaLevel: '2',
+      labels: ['Square 1', 'Square 2'],
+      proposals: [{ name: 'Place Token', arguments: { Slot: '2' } }],
+      malformedError: expect.stringContaining('must come from targetList'),
+      labelError: expect.stringContaining('must return a non-empty string'),
+      configurationErrors: [
+        expect.stringContaining('label must be a non-empty'),
+        expect.stringContaining('headingLevel must be a safe integer'),
+        expect.stringContaining('emptyLabel must be non-empty'),
+        expect.stringContaining('layout must be "stack" or "grid"'),
+      ],
+    });
+    const axeResult = await new AxeBuilder({ page }).include('[data-renderer-fixture]').analyze();
+    expect(axeResult.violations).toEqual([]);
+    await page.evaluate(() => {
+      (globalThis as unknown as { __targetListHandle: { dispose(): void } }).__targetListHandle.dispose();
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
 });
 
 test('renderer-scoped component views preserve hosts and distinguish visible, hidden, and empty slots', async ({ page }) => {

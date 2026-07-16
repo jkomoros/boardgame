@@ -221,6 +221,13 @@ helpers, and the animation lifecycle. Bind a zero-input action directly with
 for typed inputs. Controls fail closed while legality is unresolved, a proposal
 is pending, or animation gates interaction.
 
+For an ordinary labeled target menu, wrap the target collection with
+`targetList(targets, key => label)` and bind it once to
+`<boardgame-target-list .choices=${...}>`. The list owns batched preview,
+disabled reasons, native controls, empty state, and responsive stack/grid
+layout while the callback remains exact-key typed. Render candidates directly
+only when a choice row needs richer game-specific content.
+
 ## Adding new views
 
 You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the web component that is the root of your game rendering.

@@ -2,7 +2,7 @@ import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BoardgameHandViewBase } from '../../src/components/boardgame-hand-view-base.js';
 import { glyphForSlug } from '../../src/components/companion-avatar-catalog.js';
-import '../../src/components/boardgame-action-button.js';
+import { targetList } from '../../src/client.js';
 import { MoveNames } from './_move_names.js';
 import type { MoveName } from './_move_names.js';
 import { moveInputSchema as generatedMoveInputSchema, moveInputSchemaFingerprint as generatedMoveInputSchemaFingerprint, type MoveInputs } from './_move_args.js';
@@ -66,18 +66,8 @@ export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCata
         margin: 16px auto;
         max-width: 320px;
       }
-      .vote-section h2 {
-        text-align: center;
-        font-size: 16px;
-        margin: 0 0 12px 0;
-      }
-      .vote-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .vote-buttons boardgame-action-button {
-        align-self: stretch;
+      .vote-section boardgame-target-list {
+        --boardgame-target-list-gap: 8px;
       }
       .voted-message {
         text-align: center;
@@ -143,19 +133,18 @@ export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCata
       const seat = this.seatPresentations.find((s) => s.playerIndex === i);
       return seat ? `${glyphForSlug(seat.avatarSlug)} ${seat.displayName}` : `Player ${i}`;
     };
-    const voteTargets: { index: number; label: string }[] = [];
+    const voteIndexes: number[] = [];
     allPlayers.forEach((p, i) => {
       if (p.PlayerInactive || p.Eliminated) return;
       // The server rejects self-votes in EVERY phase (moves.go: "you
       // cannot vote for yourself") — offering yourself at night just
       // produces a silently-failing tap.
       if (i === myIndex) return;
-      voteTargets.push({ index: i, label: nameFor(i) });
+      voteIndexes.push(i);
     });
 
     // Determine the correct move name for this phase
     const moveName = phase === 'Night' ? MoveNames.CastNightVote : MoveNames.CastVote;
-    const voteIndexes = voteTargets.map(target => target.index);
     const votes = moveName === MoveNames.CastNightVote
       ? this.move(MoveNames.CastNightVote).targets(
         voteIndexes, VoteTarget => ({ VoteTarget }),
@@ -194,14 +183,10 @@ export class WerewolfHandView extends BoardgameHandViewBase<State, ComponentCata
             <div class="voted-message">Vote cast. Waiting for others...</div>
           ` : html`
             <div class="vote-section">
-              <h2>${phase === 'Day' ? 'Vote to eliminate:' : 'Choose a target:'}</h2>
-              <div class="vote-buttons">
-                ${voteTargets.map(t => html`
-                  <boardgame-action-button .action=${votes.get(t.index)?.action ?? null}>
-                    ${t.label}
-                  </boardgame-action-button>
-                `)}
-              </div>
+              <boardgame-target-list
+                .label=${phase === 'Day' ? 'Vote to eliminate' : 'Choose a target'}
+                .choices=${targetList(votes, nameFor)}>
+              </boardgame-target-list>
             </div>
           `}
         `}
