@@ -1,7 +1,7 @@
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
+import { html } from '../../src/client.js';
 import '../../src/components/boardgame-status-text.js';
-import type { PlayerState, State } from './_types.js';
+import { PlayerInfoRenderer } from './_game_renderer.js';
+import type { PlayerState } from './_types.js';
 
 declare module './_types.js' {
   interface PlayerComputed {
@@ -9,16 +9,7 @@ declare module './_types.js' {
   }
 }
 
-class BoardgameRenderPlayerInfoBlackjack extends LitElement {
-  @property({ type: Object })
-  state: State | null = null;
-
-  @property({ type: Number })
-  playerIndex = 0;
-
-  @property({ type: Object })
-  playerState: PlayerState | null = null;
-
+class BoardgameRenderPlayerInfoBlackjack extends PlayerInfoRenderer {
   private _calculateStatus(playerState: PlayerState | null): string {
     if (playerState?.Eliminated) {
       return 'Busted';

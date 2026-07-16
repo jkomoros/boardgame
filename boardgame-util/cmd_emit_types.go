@@ -227,6 +227,11 @@ export type RawStack = unknown;
   readonly state!: S;
   readonly chest!: { readonly Decks?: C };
 }
+export abstract class BoardgameBasePlayerInfoRenderer<S, PS> {
+  state!: S | null;
+  playerIndex!: number;
+  playerState!: PS | null;
+}
 `
 	if err := os.WriteFile(filepath.Join(frameworkDir, "types", "boardgame-types.ts"), []byte(frameworkTypes), 0600); err != nil {
 		return fmt.Errorf("couldn't stage TypeScript type declarations: %w", err)

@@ -849,18 +849,13 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
 customElements.define('boardgame-render-game-{{.Name}}', BoardgameRenderGame{{uppercaseFirst .Name}});
 `
 
-const templateContentsRenderPlayerInfoTs = `import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
-import type { PlayerState, State } from './_types.js';
+const templateContentsRenderPlayerInfoTs = `import { html } from '../../src/client.js';
+import { PlayerInfoRenderer } from './_game_renderer.js';
 {{- if .EnableExampleClient }}
 import '../../src/components/boardgame-status-text.js';
 {{- end}}
 
-class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends LitElement {
-  @property({ type: Object }) state: State | null = null;
-  @property({ type: Number }) playerIndex = 0;
-  @property({ type: Object }) playerState: PlayerState | null = null;
-
+class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PlayerInfoRenderer {
   override render() {
     {{- if .EnableExampleClient }}
     return html[[BACKTICK]]

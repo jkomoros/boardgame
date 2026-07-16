@@ -1,14 +1,8 @@
-import { LitElement, html } from 'lit';
-import { property } from 'lit/decorators.js';
+import { html } from '../../src/client.js';
+import { PlayerInfoRenderer } from './_game_renderer.js';
 import type { State } from './_types.js';
 
-class BoardgameRenderPlayerInfoTictactoe extends LitElement {
-  @property({ type: Object })
-  state: State | null = null;
-
-  @property({ type: Number })
-  playerIndex = 0;
-
+class BoardgameRenderPlayerInfoTictactoe extends PlayerInfoRenderer {
   get chipText(): string {
     return this._computeChipText(this.state, this.playerIndex);
   }

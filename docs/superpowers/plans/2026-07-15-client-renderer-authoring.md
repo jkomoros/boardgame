@@ -811,9 +811,12 @@ Validation matrix so far:
 - Monroe: `go test ./murdermrmonroe` passes; the full games checker reports no
   Monroe diagnostic and accepts the numeric authored-board contract.
 
-Known debt discovered by the full games checker is outside Monroe: Pass and
-Valentine remain legacy/unstrict and have stale move-input contracts. The
-transform matrix covers authored `preserveAspectRatio`, nested CTMs, page zoom,
+The follow-on typed player-info tranche adds a generated `PlayerInfoRenderer`,
+migrates every framework example plus Monroe, Pass, and Valentine, removes the
+dynamic host's `any` assignments, and refreshes previously missing Pass and
+Valentine contracts. The combined framework+games strict checker now reports
+zero diagnostics across all nine configured clients. The transform matrix
+covers authored `preserveAspectRatio`, nested CTMs, page zoom,
 320/768/1280 widths, 200% text, and coalesced rapid resize while checking focus
 alignment and contained pieces. The later player-info base and typed
 component/deck renderer are still deliberately deferred roadmap seams.

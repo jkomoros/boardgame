@@ -1420,7 +1420,7 @@ memory:
 memory/
 ├── client/
 │   ├── boardgame-render-game-memory.js
-│   └── boardgame-render-player-info-memory.js
+│   └── boardgame-render-player-info-memory.ts
 ├── agent.go
 ├── agent_test.go
 ├── auto_reader.go
@@ -1431,7 +1431,7 @@ memory/
 └── state.go
 ```
 
-(We'll get to what `boardgame-render-player-info-memory.js` in just a bit).
+(We'll get to `boardgame-render-player-info-memory.ts` in a bit.)
 
 When a server is set up (using `boadgame-util build static`), a symlink is
 created from the server resources to the client folders for each game.
@@ -1771,16 +1771,25 @@ versions, transport errors, or accessibility attributes.
 
 The web app also has a bar along the top of the game that lists each player, their picture, their name, and their player index. It also by default shows whether it's their turn (according to your delegate's `CurrentPlayerIndex`).
 
-You can override this behavior, and also add more information to be rendered for each player (like their current score), by implementing a `boardgame-render-player-info-GAMETYPE` element. If that component exists, it will be passed the full state, as well as the playerState for the specific player. Any text you render out will be shown in the info section beneath each player.
+You can add information for each player (like their score) by implementing a
+`boardgame-render-player-info-GAMETYPE` element. Extend the generated
+`PlayerInfoRenderer` from `_game_renderer.ts`; its `state`, `playerIndex`, and
+`playerState` properties are already reactive and strictly typed for your game.
 
 Your player-info renderer can also expose a chipColor and chipText property to override the text of the badge on each player (by default their player index) and what color it is.
 
-memory's player-info just prints out the current score:
+Memory's player-info is therefore small:
 
-```html
-  <template>
-    Won Cards <boardgame-status-text>{{playerState.WonCards.Indexes.length}}</boardgame-status-text>
-  </template>
+```typescript
+import { html } from '../../src/client.js';
+import { PlayerInfoRenderer } from './_game_renderer.js';
+
+class BoardgameRenderPlayerInfoMemory extends PlayerInfoRenderer {
+  override render() {
+    return html`Won Cards
+      <boardgame-status-text>${this.playerState?.WonCards.Indexes.length ?? 0}</boardgame-status-text>`;
+  }
+}
 ```
 
 The tictactoe example shows how to override the badge/chip color and text.
