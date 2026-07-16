@@ -1737,6 +1737,7 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 // uses) to bind before evaluating legality. All candidates in a request share
 // one move type and one state.
 type movePreviewBatchCandidate struct {
+	ID   string            `json:"ID,omitempty"`
 	Args map[string]string `json:"Args"`
 }
 
@@ -1745,6 +1746,7 @@ type movePreviewBatchCandidate struct {
 // LegalForPlayer verdict plus its reason — not the full moveForm ledger the
 // single-move preview returns.
 type movePreviewBatchResult struct {
+	ID    string `json:"ID,omitempty"`
 	Legal bool   `json:"Legal"`
 	Error string `json:"Error,omitempty"`
 }
@@ -1756,6 +1758,31 @@ type movePreviewBatchResult struct {
 // per-request work bound). The cap is far above any real board's candidate count
 // (checkers is 64, tictactoe 9) so it never constrains legitimate use.
 const maxLegalPreviewBatchCandidates = 1024
+const maxLegalPreviewCandidateIDBytes = 256
+
+func validateMovePreviewBatchCandidateIDs(candidates []movePreviewBatchCandidate) error {
+	withID := 0
+	seen := make(map[string]struct{}, len(candidates))
+	for _, candidate := range candidates {
+		if candidate.ID == "" {
+			continue
+		}
+		withID++
+		if len(candidate.ID) > maxLegalPreviewCandidateIDBytes {
+			return errors.New("preview candidate ID exceeds the 256-byte limit")
+		}
+		if _, exists := seen[candidate.ID]; exists {
+			return errors.New("preview candidate IDs must be unique")
+		}
+		seen[candidate.ID] = struct{}{}
+	}
+	// All-omitted is the legacy positional protocol. Once any candidate opts
+	// into correlation, require every candidate to participate.
+	if withID != 0 && withID != len(candidates) {
+		return errors.New("preview candidate IDs must be supplied for every candidate or none")
+	}
+	return nil
+}
 
 // maxLegalPreviewBodyBytes bounds a preview request body (both the single and
 // batch endpoints) so a client can't force the server to buffer an arbitrarily
@@ -1799,10 +1826,12 @@ func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.Immut
 			v, ok := args[name]
 			return v, ok
 		}); err != nil {
-			results = append(results, movePreviewBatchResult{Legal: false, Error: err.Error()})
+			results = append(results, movePreviewBatchResult{ID: cand.ID, Legal: false, Error: err.Error()})
 			continue
 		}
-		results = append(results, previewLegalityResult(move, state, playerIndex))
+		result := previewLegalityResult(move, state, playerIndex)
+		result.ID = cand.ID
+		results = append(results, result)
 	}
 	return results, nil
 }
@@ -1853,17 +1882,47 @@ func (s *Server) movePreviewBatchHandler(c *gin.Context) {
 	proposer := s.effectivePlayerIndex(c)
 
 	var req struct {
-		MoveType   string                      `json:"MoveType"`
-		Candidates []movePreviewBatchCandidate `json:"Candidates"`
+		MoveType        string                      `json:"MoveType"`
+		Candidates      []movePreviewBatchCandidate `json:"Candidates"`
+		ExpectedVersion *int                        `json:"ExpectedVersion"`
 	}
 	if err := c.BindJSON(&req); err != nil {
 		r.Error(errors.New("Couldn't parse batch preview request: " + err.Error()))
 		return
 	}
+	if err := validateMovePreviewBatchCandidateIDs(req.Candidates); err != nil {
+		r.Error(errors.New(err.Error()))
+		return
+	}
 
-	results, err := s.legalMoveFormsBatch(game, game.CurrentState(), req.MoveType, req.Candidates, proposer)
+	expectedVersion := game.Version()
+	if req.ExpectedVersion != nil {
+		if *req.ExpectedVersion < 0 {
+			r.Error(errors.New("ExpectedVersion must be a non-negative integer"))
+			return
+		}
+		expectedVersion = *req.ExpectedVersion
+	}
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale batch move preview").WithFriendly("The game changed; check the targets again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
+		return
+	}
+	state := game.State(expectedVersion)
+	if state == nil {
+		r.Error(errors.New("Could not load the requested preview state"))
+		return
+	}
+	results, err := s.legalMoveFormsBatch(game, state, req.MoveType, req.Candidates, proposer)
 	if err != nil {
 		r.Error(errors.New(err.Error()))
+		return
+	}
+	if actual := game.Version(); actual != expectedVersion {
+		r.errorWithFields(errors.New("stale batch move preview").WithFriendly("The game changed; check the targets again."), gin.H{
+			"Code": "STALE_SNAPSHOT", "ExpectedVersion": expectedVersion, "ActualVersion": actual,
+		})
 		return
 	}
 

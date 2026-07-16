@@ -14,6 +14,7 @@ import {
 import { surfaceForGame } from '../utils/companion-surface.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
 import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
+import type { TargetPreviewTransport } from '../moves/target-action.js';
 
 /**
  * BoardgameRenderGame dynamically loads and manages game-specific renderers.
@@ -111,6 +112,9 @@ class BoardgameRenderGame extends LitElement {
 
   @property({ attribute: false })
   movePreviewTransport: MovePreviewTransport | null = null;
+
+  @property({ attribute: false })
+  targetPreviewTransport: TargetPreviewTransport | null = null;
 
   @property({ attribute: false })
   moveSubmissionGate: MoveSubmissionGate | null = null;
@@ -340,6 +344,7 @@ class BoardgameRenderGame extends LitElement {
       || changedProperties.has('proposingAsAdmin')
       || changedProperties.has('moveTransport')
       || changedProperties.has('movePreviewTransport')
+      || changedProperties.has('targetPreviewTransport')
       || changedProperties.has('moveSubmissionGate')) {
       this._applyMoveActionPropsToRenderer();
     }
@@ -403,6 +408,7 @@ class BoardgameRenderGame extends LitElement {
     renderer.proposingAsAdmin = this.proposingAsAdmin;
     renderer.moveTransport = this.moveTransport;
     renderer.movePreviewTransport = this.movePreviewTransport;
+    renderer.targetPreviewTransport = this.targetPreviewTransport;
     if (this.moveSubmissionGate) renderer.moveSubmissionGate = this.moveSubmissionGate;
   }
 
@@ -798,6 +804,7 @@ class BoardgameRenderGame extends LitElement {
     ele.proposingAsAdmin = this.proposingAsAdmin;
     ele.moveTransport = this.moveTransport;
     ele.movePreviewTransport = this.movePreviewTransport;
+    ele.targetPreviewTransport = this.targetPreviewTransport;
     if (this.moveSubmissionGate) ele.moveSubmissionGate = this.moveSubmissionGate;
     ele.isOwner = this.isOwner;
     ele.animating = this.isAnimating;

@@ -23,6 +23,10 @@ void bindMoveAction(roll);
 
 const place = createMoveAction<'Place', MoveName, MoveInputs>('Place', service, snapshot);
 void place.with({ Slot: 3 }).propose();
+const targets = place.targets([0, 1, 2] as const, Slot => ({ Slot }));
+void targets.get(1)?.action.activate();
+// @ts-expect-error A target key outside the inferred literal set is rejected.
+void targets.get(4);
 void bindMoveAction(place.with({ Slot: 3 }));
 const choose = createMoveAction<'Choose', MoveName, MoveInputs>('Choose', service, snapshot);
 void choose.with({ Choice: 'red' }).propose();
@@ -38,6 +42,12 @@ void place.with({});
 void place.with({ Slot: 3, Other: 1 });
 // @ts-expect-error Native integer inputs cannot be supplied as wire strings.
 void place.with({ Slot: '3' });
+// @ts-expect-error Target mappers use native generated inputs.
+void place.targets([0, 1], Slot => ({ Slot: String(Slot) }));
+// @ts-expect-error Target mappers reject extra input fields.
+void place.targets([0, 1], Slot => ({ Slot, Other: true }));
+// @ts-expect-error Bound actions cannot be rebound as a target collection.
+void place.with({ Slot: 1 }).targets([0, 1], Slot => ({ Slot }));
 // @ts-expect-error Enum inputs accept only generated values.
 void choose.with({ Choice: 'green' });
 // @ts-expect-error Arbitrary strings are not generated move names.

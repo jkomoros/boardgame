@@ -1,7 +1,16 @@
 import type { MoveInputIssue } from './input.js';
+import {
+  createTargetAction,
+  type TargetAction,
+  type TargetActionOptions,
+  type TargetKey,
+  type TargetPreviewTransport,
+} from './target-action.ts';
 
 const MOVE_ACTION_BRAND = Symbol('boardgame.move-action');
 const CANCEL_PREVIEW = Symbol('boardgame.cancel-move-preview');
+const MANAGED_PREVIEW = Symbol('boardgame.managed-move-preview');
+const HYDRATE_PREVIEW = Symbol('boardgame.hydrate-move-preview');
 
 export type MoveActionReasonCode =
   | 'move-not-possible'
@@ -141,6 +150,7 @@ export interface MoveActionService {
   readonly currentServerSchemaFingerprint: () => string | null;
   readonly currentTransport: () => MoveTransport | null;
   readonly currentPreviewTransport: () => MovePreviewTransport | null;
+  readonly currentTargetPreviewTransport: () => TargetPreviewTransport | null;
   readonly currentGate: () => MoveSubmissionGate;
   readonly nextRequestID: () => string;
   readonly validate: (moveName: string, input: unknown) => readonly MoveInputIssue[];
@@ -148,6 +158,7 @@ export interface MoveActionService {
   readonly changed?: () => void;
   readonly telemetry?: (event: MoveActionTelemetryEvent) => void;
   readonly actionCache?: Map<string, BoundMoveAction<string, object>>;
+  readonly targetActionCache?: Map<string, TargetAction<TargetKey, string, object>>;
 }
 
 /** Immutable identity plus live gates for one renderer snapshot. */
@@ -239,18 +250,27 @@ type InputFor<K extends string, Inputs extends Record<string, object>> =
 type ExactInput<Expected extends object, Actual extends Expected> = Actual &
   Record<Exclude<keyof Actual, keyof Expected>, never>;
 
-export interface MoveActionBuilder<MoveName extends string, Input extends object> {
+export interface MoveActionState<MoveName extends string> {
   readonly name: MoveName;
   readonly availability: MoveActionAvailability;
   readonly preview: MoveActionPreview;
   readonly submission: MoveActionSubmission;
   readonly canPropose: boolean;
   readonly reason: MoveActionReason | null;
+}
+
+export interface MoveActionBuilder<MoveName extends string, Input extends object>
+  extends MoveActionState<MoveName> {
   with<Actual extends Input>(input: ExactInput<Input, Actual>): BoundMoveAction<MoveName, Input>;
+  targets<Key extends TargetKey, Actual extends Input>(
+    keys: readonly Key[],
+    inputFor: (key: Key, index: number) => ExactInput<Input, Actual>,
+    options?: TargetActionOptions,
+  ): TargetAction<Key, MoveName, Input>;
 }
 
 export interface BoundMoveAction<MoveName extends string, Input extends object>
-  extends MoveActionBuilder<MoveName, Input> {
+  extends MoveActionState<MoveName> {
   readonly input: Readonly<Input>;
   /** True when activation can propose now or retry a transient preview failure. */
   readonly canActivate: boolean;
@@ -310,6 +330,7 @@ implements BoundMoveAction<MoveName, Input> {
   readonly [MOVE_ACTION_BRAND]: boolean;
   readonly #service: MoveActionService;
   readonly #snapshot: MoveActionSnapshot;
+  readonly #inputWasBound: boolean;
   readonly #inputReason: MoveActionReason | null;
   #submission: MoveActionSubmission = { kind: 'idle' };
   #preview: MoveActionPreview;
@@ -317,6 +338,8 @@ implements BoundMoveAction<MoveName, Input> {
   #previewAbort: AbortController | null = null;
   readonly #listeners = new Set<() => void>();
   #gateUnsubscribe: (() => void) | null = null;
+  #managedPreview: ((force: boolean) => Promise<void>) | null = null;
+  #managedChanged: (() => void) | null = null;
 
   constructor(
     name: MoveName,
@@ -328,6 +351,7 @@ implements BoundMoveAction<MoveName, Input> {
     this.name = name;
     this.#service = service;
     this.#snapshot = snapshot;
+    this.#inputWasBound = inputWasBound;
     this.input = Object.freeze({ ...input });
     const issues = service.validate(name, this.input);
     this[MOVE_ACTION_BRAND] = inputWasBound || issues.length === 0;
@@ -341,6 +365,7 @@ implements BoundMoveAction<MoveName, Input> {
     this.activate = this.activate.bind(this);
     this.ensurePreview = this.ensurePreview.bind(this);
     this.refreshPreview = this.refreshPreview.bind(this);
+    this.targets = this.targets.bind(this);
   }
 
   get availability(): MoveActionAvailability {
@@ -421,6 +446,31 @@ implements BoundMoveAction<MoveName, Input> {
     return cachedAction<MoveName, Input>(this.name, this.#service, this.#snapshot, input, true);
   }
 
+  targets<Key extends TargetKey, Actual extends Input>(
+    keys: readonly Key[],
+    inputFor: (key: Key, index: number) => ExactInput<Input, Actual>,
+    options?: TargetActionOptions,
+  ): TargetAction<Key, MoveName, Input> {
+    if (this.#inputWasBound) {
+      throw new Error('Call .targets() directly on this.move(name), before .with(input)');
+    }
+    return createTargetAction(this.name, keys, inputFor, options, {
+      service: this.#service,
+      snapshot: this.#snapshot,
+      makeAction: input => new MoveActionImplementation(
+        this.name, this.#service, this.#snapshot, input, true,
+      ),
+      manage: (action, refresh, changed) => {
+        const internal = action as MoveActionImplementation<MoveName, Input>;
+        internal[MANAGED_PREVIEW](refresh, changed);
+      },
+      hydrate: (action, preview) => {
+        const internal = action as MoveActionImplementation<MoveName, Input>;
+        internal[HYDRATE_PREVIEW](preview);
+      },
+    });
+  }
+
   subscribe(listener: () => void): () => void {
     this.#listeners.add(listener);
     this.#gateUnsubscribe ??= this.#service.currentGate().subscribe(() => this.notifyListeners());
@@ -442,11 +492,17 @@ implements BoundMoveAction<MoveName, Input> {
       return Promise.resolve(this.#preview);
     }
     if (this.#previewPromise) return this.#previewPromise;
+    if (this.#managedPreview) {
+      return this.#managedPreview(false).then(() => this.#preview);
+    }
     return this.startPreview();
   }
 
   refreshPreview(): Promise<MoveActionPreview> {
     if (this.#preview.kind === 'not-needed') return Promise.resolve(this.#preview);
+    if (this.#managedPreview) {
+      return this.#managedPreview(true).then(() => this.#preview);
+    }
     this.#previewAbort?.abort();
     this.#previewPromise = null;
     this.#preview = { kind: 'unchecked' };
@@ -457,6 +513,19 @@ implements BoundMoveAction<MoveName, Input> {
     this.#previewAbort?.abort();
     this.#previewAbort = null;
     this.#previewPromise = null;
+  }
+
+  [MANAGED_PREVIEW](preview: (force: boolean) => Promise<void>, changed: () => void): void {
+    this.#managedPreview = preview;
+    this.#managedChanged = changed;
+    this.#previewAbort?.abort();
+    this.#previewAbort = null;
+    this.#previewPromise = null;
+  }
+
+  [HYDRATE_PREVIEW](preview: MoveActionPreview): void {
+    this.#preview = preview;
+    this.notifyListeners();
   }
 
   async activate(): Promise<MoveProposalResult> {
@@ -680,8 +749,9 @@ implements BoundMoveAction<MoveName, Input> {
   }
 
   private changed(): void {
+    this.#managedChanged?.();
     this.notifyListeners();
-    this.#service.changed?.();
+    if (!this.#managedChanged) this.#service.changed?.();
   }
 
   private notifyListeners(): void {
@@ -695,8 +765,9 @@ function cachedAction<MoveName extends string, Input extends object>(
   snapshot: MoveActionSnapshot,
   input: Input,
   inputWasBound = false,
+  cacheNamespace = '',
 ): BoundMoveAction<MoveName, Input> {
-  const key = `${snapshot.actionCacheKey ?? snapshot.snapshotKey}\u0000${name}\u0000${canonicalInput(input)}`;
+  const key = `${snapshot.actionCacheKey ?? snapshot.snapshotKey}\u0000${cacheNamespace}\u0000${name}\u0000${canonicalInput(input)}`;
   const existing = service.actionCache?.get(key);
   if (existing) return existing as BoundMoveAction<MoveName, Input>;
   const action = new MoveActionImplementation<MoveName, Input>(

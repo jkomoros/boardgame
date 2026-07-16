@@ -50,6 +50,7 @@ function context(overrides: ContextOverrides = {}): {
     currentPreviewTransport: () => overrides.previewTransport === undefined
       ? { preview: async () => ({ kind: 'success', legal: true }) }
       : overrides.previewTransport,
+    currentTargetPreviewTransport: () => null,
     currentGate: () => gate,
     nextRequestID: sequence(),
     validate: (name, input) => validateCreatorMoveInput(schema, name, input).errors,

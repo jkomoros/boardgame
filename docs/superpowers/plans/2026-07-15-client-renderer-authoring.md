@@ -634,40 +634,49 @@ one shell before generating Table, Hand, or PlayerInfo bound runtime classes.
 - `server/static/src/components/boardgame-render-game.ts`
 - Tic-tac-toe renderer and fixture tests
 
-- [ ] Create a small generic target interaction for independent candidates. A
+- [x] Create a small generic target interaction for independent candidates. A
   target key is not restricted to numeric grids, though this first adapter uses
   numeric cells.
-- [ ] Keep `TargetAction<Key>` fully headless. Expose a generic target collection,
+- [x] Keep `TargetAction<Key>` fully headless. Expose a generic target collection,
   a separate square-grid presentation adapter, and ordinary custom Lit markup as
   consumers; unusual boards never have to pretend to be row-major grids.
-- [ ] Bind exact native move arguments and own preview debouncing, stale response
+- [x] Bind exact native move arguments and own preview debouncing, stale response
   rejection, loading/error/unknown/legal states, and version reset.
   Task 7 deliberately deduplicates exact previews only per immutable action;
   collections must use this Task 8 coordinator so a large board cannot create
   an unbounded fan-out of individual preview requests.
-- [ ] Let the board consume one interaction object rather than separately
+- [x] Let the board consume one interaction object rather than separately
   receiving handlers, preview specs, disabled arrays, and refresh requests.
-- [ ] Choose and document one DOM focus model: roving-focus gridcells or native
+- [x] Choose and document one DOM focus model: roving-focus gridcells or native
   buttons inside gridcells. Illegal targets remain discoverable where grid
   navigation requires it via `aria-disabled` plus guarded activation rather than
   being removed from the focus model.
-- [ ] Specify initial focus when no target is legal; arrows/Home/End and row
+- [x] Specify initial focus when no target is legal; arrows/Home/End and row
   boundaries; Enter/Space; focus after success, rejection, version refresh, and
   selected-piece removal; selected-source versus destination semantics; and
   `aria-busy` during preview without announcing every intermediate refresh.
-- [ ] Synthesize occupant-aware labels such as “B3, your token, selected,” with
+- [x] Synthesize occupant-aware labels such as “B3, your token, selected,” with
   author overrides and discoverable illegality reasons. Validate forced colors,
   high contrast, reduced motion, coarse pointers, 200% text zoom, and indicators
   that do not rely on color alone.
-- [ ] Preserve focus across preview and state refreshes.
-- [ ] Loudly diagnose rows x columns versus stack-size mismatch, out-of-bounds
+- [x] Preserve focus across preview and state refreshes.
+- [x] Loudly diagnose rows x columns versus stack-size mismatch, out-of-bounds
   targets, duplicate candidates, mapper exceptions, and preview cardinality
   mismatch.
-- [ ] Also diagnose nonpositive/nonintegral or excessive dimensions, duplicate
+- [x] Also diagnose nonpositive/nonintegral or excessive dimensions, duplicate
   mapped keys, and nonunique accessible labels. Include a regression for the
   current coordinate-label layout being clipped by an overflow-hidden board.
-- [ ] Migrate Tic-tac-toe to the intended minimum path and measure the reduction
+- [x] Migrate Tic-tac-toe to the intended minimum path and measure the reduction
   in renderer wiring.
+
+Task 8 result: Tic-tac-toe fell from 62 to 48 lines. Its renderer now has zero
+imperative proposal handlers, preview specs, disabled-space arrays, refresh
+coordination, casts, or direct API imports: one inferred `.targets(...)` value
+feeds the board. The target coordinator is covered for batching, opaque result
+correlation, cache reuse, abort/stale behavior, retry, invalid mappings, and
+bounded work; the grid contract covers native-button keyboard navigation, loud
+geometry/label validation, coordinate-label containment, responsive rectangular
+geometry, reduced-motion/forced-color CSS, and axe.
 
 **Explicitly deferred:** source/destination, branching choice flows, optimistic
 draft/rebase, drag/drop, and modal ownership. Extract them from later real games;

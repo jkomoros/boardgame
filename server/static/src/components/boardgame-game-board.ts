@@ -26,6 +26,15 @@ import { LitElement, html, css, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import './boardgame-component-stack.js';
+import { MAX_TARGET_ACTION_CANDIDATES, type TargetAction } from '../moves/target-action.js';
+import type { ExpandedStack } from '../types/boardgame-types.js';
+
+export interface GameBoardLabelContext {
+  readonly index: number;
+  readonly row: number;
+  readonly col: number;
+  readonly occupant: unknown;
+}
 
 @customElement('boardgame-game-board')
 export class BoardgameGameBoard extends LitElement {
@@ -46,6 +55,11 @@ export class BoardgameGameBoard extends LitElement {
       box-sizing: border-box;
     }
 
+    :host([labels]) .board-surface {
+      padding-right: 26px;
+      padding-bottom: 24px;
+    }
+
     .board-area {
       position: relative;
     }
@@ -57,7 +71,29 @@ export class BoardgameGameBoard extends LitElement {
       z-index: 0;
     }
 
+    .grid-row {
+      display: grid;
+      min-height: 0;
+    }
+
+    .grid-row > [role='gridcell'] {
+      display: flex;
+      min-width: 0;
+      min-height: 0;
+    }
+
     .cell {
+      appearance: none;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
       aspect-ratio: 1;
       cursor: pointer;
       transition: filter 0.15s ease, box-shadow 0.15s ease;
@@ -103,6 +139,23 @@ export class BoardgameGameBoard extends LitElement {
     /* Hover — subtle brightness on interactive cells */
     .cell:hover:not(.disabled) {
       filter: brightness(1.15);
+    }
+
+    .cell:focus-visible {
+      outline: 3px solid var(--md-sys-color-primary, #675f00);
+      outline-offset: -3px;
+      z-index: 2;
+    }
+
+    .interaction-status {
+      margin-top: 0.4rem;
+      min-height: 1.25em;
+      color: var(--md-sys-color-on-surface-variant, #4A4539);
+      font-size: 0.875rem;
+    }
+
+    .interaction-status:empty {
+      display: none;
     }
 
     .cell.highlighted:hover:not(.disabled) {
@@ -155,6 +208,16 @@ export class BoardgameGameBoard extends LitElement {
       align-items: center;
       justify-content: center;
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cell { transition: none; }
+    }
+
+    @media (forced-colors: active) {
+      .cell { border: 1px solid CanvasText; }
+      .cell.highlighted, .cell.selected { outline: 3px solid Highlight; outline-offset: -3px; }
+      .cell.disabled { opacity: 1; }
+    }
   `;
 
   /** Number of rows on the board. */
@@ -167,7 +230,19 @@ export class BoardgameGameBoard extends LitElement {
 
   /** The SizedStack from game state, passed through to the inner component-stack. */
   @property({ type: Object })
-  stack: any = null;
+  stack: ExpandedStack<object, object> | null = null;
+
+  /** Typed per-cell move actions. Candidate keys must exactly match cell indexes. */
+  @property({ attribute: false })
+  action: TargetAction<number> | null = null;
+
+  /** Accessible name for the grid as a whole. */
+  @property({ type: String, attribute: 'board-label' })
+  boardLabel = 'Game board';
+
+  /** Override the accessible name for a cell. Names must be non-empty and unique. */
+  @property({ attribute: false })
+  labelFor: ((context: GameBoardLabelContext) => string) | null = null;
 
   /** Whether to render alternating dark/light cells. */
   @property({ type: Boolean, reflect: true })
@@ -187,15 +262,32 @@ export class BoardgameGameBoard extends LitElement {
 
   /** Attributes to forward to child components in the stack. */
   @property({ type: Object, attribute: false })
-  componentAttrs: Record<string, any> = {};
+  componentAttrs: Record<string, unknown> = {};
 
   /** Whether to show coordinate labels (1-8, A-H). */
-  @property({ type: Boolean })
+  @property({ type: Boolean, reflect: true })
   labels = false;
 
   // Precomputed Sets for O(1) lookup in _cellClass
   private _highlightedSet = new Set<number>();
   private _disabledSet = new Set<number>();
+  private _actionUnsubscribe: (() => void) | null = null;
+  private _subscribedAction: TargetAction<number> | null = null;
+  private _focusedIndex: number | null = null;
+  private _hasFocusedCell = false;
+  private _cellLabels: readonly string[] = [];
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._actionUnsubscribe?.();
+    this._actionUnsubscribe = null;
+    this._subscribedAction = null;
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this._subscribeToAction();
+  }
 
   protected willUpdate(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has('highlightedSpaces')) {
@@ -203,6 +295,26 @@ export class BoardgameGameBoard extends LitElement {
     }
     if (changedProperties.has('disabledSpaces')) {
       this._disabledSet = new Set(this.disabledSpaces);
+    }
+    this._validateConfiguration();
+    if (!this._hasFocusedCell || this._focusedIndex === null || this._focusedIndex >= this._numSpaces) {
+      this._focusedIndex = this._initialFocusIndex();
+    }
+  }
+
+  protected override updated(changedProperties: Map<string, unknown>): void {
+    if (!changedProperties.has('action')) return;
+    this._subscribeToAction();
+  }
+
+  private _subscribeToAction(): void {
+    if (this._actionUnsubscribe && this._subscribedAction === this.action) return;
+    this._actionUnsubscribe?.();
+    this._actionUnsubscribe = null;
+    this._subscribedAction = null;
+    if (this.isConnected && this.action) {
+      this._actionUnsubscribe = this.action.subscribe(() => this.requestUpdate());
+      this._subscribedAction = this.action;
     }
   }
 
@@ -226,7 +338,7 @@ export class BoardgameGameBoard extends LitElement {
       classes.push('highlighted');
     }
 
-    if (this._disabledSet.has(index)) {
+    if (this._isDisabled(index)) {
       classes.push('disabled');
     }
 
@@ -237,9 +349,31 @@ export class BoardgameGameBoard extends LitElement {
     return classes.join(' ');
   }
 
-  private _onCellClick(index: number) {
-    if (this._disabledSet.has(index)) return;
+  private _isDisabled(index: number): boolean {
+    if (this._disabledSet.has(index)) return true;
+    const candidate = this.action?.get(index);
+    return candidate ? !candidate.action.canActivate : false;
+  }
 
+  private _initialFocusIndex(): number {
+    if (this.action?.preview.kind === 'ready') {
+      const legal = this.action.candidates.find(candidate => candidate.action.canPropose);
+      if (legal) return legal.key;
+    }
+    return 0;
+  }
+
+  private async _onCellClick(index: number): Promise<void> {
+    if (this._disabledSet.has(index)) return;
+    const candidate = this.action?.get(index);
+    if (candidate) {
+      if (candidate.action.canActivate
+        || candidate.action.preview.kind === 'unchecked'
+        || candidate.action.preview.kind === 'checking') {
+        await candidate.action.activate();
+      }
+      return;
+    }
     this.dispatchEvent(new CustomEvent('space-tapped', {
       composed: true,
       bubbles: true,
@@ -251,12 +385,105 @@ export class BoardgameGameBoard extends LitElement {
     }));
   }
 
+  private _onCellKeyDown(event: KeyboardEvent, index: number): void {
+    let next = index;
+    const rowStart = Math.floor(index / this.cols) * this.cols;
+    const rowEnd = rowStart + this.cols - 1;
+    switch (event.key) {
+      case 'ArrowLeft': next = Math.max(rowStart, index - 1); break;
+      case 'ArrowRight': next = Math.min(rowEnd, index + 1); break;
+      case 'ArrowUp': next = Math.max(0, index - this.cols); break;
+      case 'ArrowDown': next = Math.min(this._numSpaces - 1, index + this.cols); break;
+      case 'Home': next = event.ctrlKey ? 0 : rowStart; break;
+      case 'End': next = event.ctrlKey ? this._numSpaces - 1 : rowEnd; break;
+      default: return;
+    }
+    event.preventDefault();
+    this._focusedIndex = next;
+    this.requestUpdate();
+    void this.updateComplete.then(() => {
+      this.renderRoot.querySelector<HTMLButtonElement>(`.cell[data-index="${next}"]`)?.focus();
+    });
+  }
+
+  private _cellLabel(index: number): string {
+    return this._cellLabels[index] ?? this._computeCellLabel(index);
+  }
+
+  private _computeCellLabel(index: number): string {
+    const row = Math.floor(index / this.cols);
+    const col = index % this.cols;
+    const occupant = this.stack?.Components[index] ?? null;
+    if (this.labelFor) {
+      let label: unknown;
+      try {
+        label = this.labelFor({ index, row, col, occupant });
+      } catch (error) {
+        const detail = error instanceof Error ? `: ${error.message}` : '';
+        throw new Error(`boardgame-game-board labelFor failed for cell ${index}${detail}`);
+      }
+      if (typeof label !== 'string') {
+        throw new Error(`boardgame-game-board labelFor must return a string for cell ${index}`);
+      }
+      return label.trim();
+    }
+    return `${this._colLabel(col)}${row + 1}, ${occupant ? 'occupied' : 'empty'}`;
+  }
+
+  private _cellReason(index: number): string | null {
+    return this.action?.get(index)?.action.reason?.message ?? null;
+  }
+
+  private _accessibleCellLabel(index: number): string {
+    const label = this._cellLabel(index);
+    const reason = this._cellReason(index);
+    if (!reason) return label;
+    const retryable = !this._disabledSet.has(index)
+      && (this.action?.get(index)?.action.canActivate ?? false);
+    return `${label}. ${retryable ? 'Retry available' : 'Unavailable'}: ${reason}`;
+  }
+
+  private _validateConfiguration(): void {
+    if (!Number.isInteger(this.rows) || this.rows <= 0 || !Number.isInteger(this.cols) || this.cols <= 0) {
+      throw new Error(`boardgame-game-board rows and cols must be positive integers; received ${this.rows}x${this.cols}`);
+    }
+    if (!this.boardLabel.trim()) throw new Error('boardgame-game-board board-label must be non-empty');
+    if (this._numSpaces > 4096) throw new Error(`boardgame-game-board has ${this._numSpaces} cells; maximum is 4096`);
+    if (this.action && this._numSpaces > MAX_TARGET_ACTION_CANDIDATES) {
+      throw new Error(`boardgame-game-board target actions support at most ${MAX_TARGET_ACTION_CANDIDATES} cells`);
+    }
+    if (this.stack && !Array.isArray(this.stack.Components)) {
+      throw new Error('boardgame-game-board stack.Components must be an array');
+    }
+    if (this.stack && this.stack.Components.length !== this._numSpaces) {
+      throw new Error(`boardgame-game-board expected ${this._numSpaces} stack components but received ${this.stack.Components.length}`);
+    }
+    if (this.action) {
+      const keys = this.action.candidates.map(candidate => candidate.key);
+      const sorted = [...keys].sort((left, right) => left - right);
+      if (sorted.length !== this._numSpaces || sorted.some((key, index) => key !== index)) {
+        throw new Error(`boardgame-game-board action keys must cover exactly 0 through ${this._numSpaces - 1}`);
+      }
+    }
+    const labels = Array.from({ length: this._numSpaces }, (_, index) => this._computeCellLabel(index));
+    const empty = labels.findIndex(label => !label);
+    if (empty !== -1) throw new Error(`boardgame-game-board labelFor returned an empty label for cell ${empty}`);
+    if (new Set(labels).size !== labels.length) throw new Error('boardgame-game-board accessible cell labels must be unique');
+    this._cellLabels = Object.freeze(labels);
+  }
+
   private _colLabel(col: number): string {
-    return String.fromCharCode(65 + col); // A, B, C, ...
+    let value = col + 1;
+    let result = '';
+    while (value > 0) {
+      value--;
+      result = String.fromCharCode(65 + (value % 26)) + result;
+      value = Math.floor(value / 26);
+    }
+    return result;
   }
 
   render() {
-    const cells = Array.from({ length: this._numSpaces }, (_, i) => i);
     const colLabels = Array.from({ length: this.cols }, (_, i) => i);
     const rowLabels = Array.from({ length: this.rows }, (_, i) => i);
 
@@ -264,16 +491,38 @@ export class BoardgameGameBoard extends LitElement {
       <div class="board-surface">
         <div class="board-area" style="aspect-ratio: ${this.cols} / ${this.rows}">
           <!-- Cell background layer -->
-          <div class="cell-layer" style="grid-template-columns: repeat(${this.cols}, 1fr)">
-            ${repeat(cells, (i) => i, (i) => html`
-              <div class="cell ${this._cellClass(i)}"
-                   @click="${() => this._onCellClick(i)}">
+          <div class="cell-layer" role="grid"
+               aria-label=${this.boardLabel}
+               aria-rowcount=${this.rows} aria-colcount=${this.cols}
+               aria-busy=${this.action?.preview.kind === 'checking' ? 'true' : 'false'}
+               style="grid-template-rows: repeat(${this.rows}, 1fr)">
+            ${repeat(rowLabels, row => row, row => html`
+              <div class="grid-row" role="row" aria-rowindex=${row + 1}
+                   style="grid-template-columns: repeat(${this.cols}, 1fr)">
+                ${repeat(colLabels, col => col, col => {
+                  const i = row * this.cols + col;
+                  return html`
+                    <div role="gridcell" aria-colindex=${col + 1}
+                         aria-selected=${this.selectedSpace === i ? 'true' : 'false'}>
+                      <button type="button" class="cell ${this._cellClass(i)}" data-index=${i}
+                         tabindex=${this._focusedIndex === i ? 0 : -1}
+                         aria-label=${this._accessibleCellLabel(i)}
+                         aria-disabled=${this._isDisabled(i) ? 'true' : 'false'}
+                         title=${this._cellReason(i) ?? ''}
+                         @focus=${() => { this._focusedIndex = i; this._hasFocusedCell = true; }}
+                         @keydown=${(event: KeyboardEvent) => this._onCellKeyDown(event, i)}
+                         @click=${() => this._onCellClick(i)}>
+                      </button>
+                    </div>
+                  `;
+                })}
               </div>
             `)}
           </div>
 
           <!-- Component layer -->
           <boardgame-component-stack
+            aria-hidden="true"
             layout="board"
             .boardCols="${this.cols}"
             .boardRows="${this.rows}"
@@ -284,19 +533,24 @@ export class BoardgameGameBoard extends LitElement {
 
           <!-- Optional coordinate labels -->
           ${this.labels ? html`
-            <div class="labels-row" style="grid-template-columns: repeat(${this.cols}, 1fr)">
+            <div class="labels-row" aria-hidden="true" style="grid-template-columns: repeat(${this.cols}, 1fr)">
               ${repeat(colLabels, (i) => i, (i) => html`
                 <div class="label">${this._colLabel(i)}</div>
               `)}
             </div>
-            <div class="labels-col" style="grid-template-rows: repeat(${this.rows}, 1fr)">
+            <div class="labels-col" aria-hidden="true" style="grid-template-rows: repeat(${this.rows}, 1fr)">
               ${repeat(rowLabels, (i) => i, (i) => html`
-                <div class="label">${this.rows - i}</div>
+                <div class="label">${i + 1}</div>
               `)}
             </div>
           ` : nothing}
         </div>
       </div>
+      ${this.action?.preview.kind === 'failed' ? html`
+        <div class="interaction-status" role="status" aria-live="polite">
+          ${this.action.preview.reason.message}
+        </div>
+      ` : nothing}
     `;
   }
 }

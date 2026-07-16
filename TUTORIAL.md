@@ -1574,6 +1574,47 @@ live visible status. The adapter provides `title` and ARIA explanation only.
 Both controls keep transient preview failures activatable: activating again
 retries the legality check before proposing.
 
+For a board or other set of independent targets, create one typed target action
+directly from the unbound move. The mapper receives each native key and must
+return the exact generated move input:
+
+```typescript
+const slots = this.state?.Game.Slots;
+const places = slots
+  ? this.move(MoveNames.PlaceToken).targets(
+      slots.Components.map((_, slot) => slot),
+      slot => ({ Slot: slot }),
+    )
+  : null;
+
+return html`<boardgame-game-board
+  rows="3"
+  cols="3"
+  .stack=${slots}
+  .action=${places}>
+</boardgame-game-board>`;
+```
+
+`targets()` returns a headless `TargetAction<Key>` whose candidates each carry
+the same canonical `BoundMoveAction` used by ordinary controls. It batches all
+candidate legality checks into one version-bound request, correlates results by
+opaque ID, rejects stale or malformed responses, and preserves the global
+single-submission gate. Recreating the same collection during Lit rendering is
+cached; it does not refetch or fan out into one request per square. Call
+`targets()` on `this.move(name)`, not on an already-bound `.with(...)` action.
+If two distinct UI regions intentionally submit the same input, pass
+`{ allowDuplicateInputs: true }` as the third argument; duplicate inputs are a
+loud error by default because they usually indicate a mapper bug.
+
+`boardgame-game-board` is the row-major presentation adapter for numeric keys.
+It validates that dimensions, stack cardinality, target keys, and accessible
+labels agree, then supplies native buttons, roving arrow/Home/End navigation,
+guarded `aria-disabled` targets, pending state, and visible failures. Illegal
+targets remain focusable so keyboard and screen-reader users can discover the
+reason. Use `.labelFor=${...}` when its default “B1, occupied” labels are not
+specific enough. Non-grid UIs can render `target.candidates` directly and use
+each candidate's `.action`; `TargetAction` itself has no layout assumptions.
+
 For a wholly custom interaction, call `activate()` from the user's gesture and
 mirror `canActivate`, `reason`, `submission`, and `subscribe()`. `activate()`
 retries a transient exact-preview failure before proposing. For headless

@@ -43,6 +43,13 @@ export type {
 export { bindMoveAction } from './moves/action-binding.js';
 export type { MoveActionBindingOptions } from './moves/action-binding.js';
 export type {
+  TargetAction,
+  TargetActionOptions,
+  TargetActionPreview,
+  TargetCandidate,
+  TargetKey,
+} from './moves/target-action.js';
+export type {
   MoveInputErrorCode,
   MoveInputIssue,
   MoveInputSchema,

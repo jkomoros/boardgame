@@ -3,6 +3,7 @@ import {
   type MovePreviewTransport,
   type MoveSubmissionRequest,
 } from '../moves/action.js';
+import type { TargetPreviewTransport } from '../moves/target-action.js';
 
 export const RENDERER_FIXTURE_SCHEMA_VERSION = 1 as const;
 
@@ -71,6 +72,7 @@ interface RendererFixtureTarget<State extends object> extends HTMLElement {
   proposingAsAdmin: boolean;
   moveTransport: { submit(request: MoveSubmissionRequest): Promise<{ readonly kind: 'success' }> };
   movePreviewTransport: MovePreviewTransport;
+  targetPreviewTransport: TargetPreviewTransport;
   moveSubmissionGate: MoveSubmissionGate;
   readonly updateComplete: Promise<unknown>;
 }
@@ -128,6 +130,22 @@ export class RendererFixtureHandle<Contract extends RendererFixtureGameContract>
           kind: 'success',
           legal: legality?.legalForPlayer ?? false,
           ...(legality?.error ? { error: legality.error } : {}),
+        };
+      },
+    };
+    renderer.targetPreviewTransport = {
+      previewTargets: async request => {
+        const legality = this.#snapshot.moveLegality[request.name as Contract['MoveName']];
+        const disabled = new Set(this.#snapshot.previewDisabledSpaces ?? []);
+        return {
+          kind: 'success',
+          results: request.candidates.map((candidate, index) => ({
+            id: candidate.id,
+            legal: (legality?.legalForPlayer ?? false) && !disabled.has(index),
+            ...((legality?.error || disabled.has(index))
+              ? { error: legality?.error ?? 'This target is occupied' }
+              : {}),
+          })),
         };
       },
     };

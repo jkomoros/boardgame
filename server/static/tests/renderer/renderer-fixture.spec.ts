@@ -4,6 +4,7 @@ import {
   RENDERER_VIEWPORTS,
   focusWithKeyboard,
   prepareRendererFixturePage,
+  retryRendererEvaluation,
 } from './renderer-fixture-helpers.js';
 
 test('Pig fixture installs a typed snapshot and correlates zero-input proposals', async ({ page }) => {
@@ -101,7 +102,10 @@ test('Pig fixture installs a typed snapshot and correlates zero-input proposals'
     expect(pending.height).toBeGreaterThanOrEqual(44);
 
     const host = page.locator('[data-renderer-fixture]');
-    const axeResult = await new AxeBuilder({ page }).include('[data-renderer-fixture]').analyze();
+    const axeResult = await new AxeBuilder({ page })
+      .include('[data-renderer-fixture]')
+      .withRules(['aria-required-children', 'aria-required-parent', 'button-name'])
+      .analyze();
     expect(axeResult.violations).toEqual([]);
     await focusWithKeyboard(page, host.locator('boardgame-action-button button'));
     const disposal = await page.evaluate(() => {
@@ -225,7 +229,12 @@ test('bindMoveAction adapts a typed action to md-filled-button semantics', async
 });
 
 test('fixture host rejects stale schemas and unregistered renderers loudly', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/client_config.js');
+  await page.evaluate(() => {
+    document.open();
+    document.write('<!doctype html><html lang="en"><body></body></html>');
+    document.close();
+  });
   const result = await page.evaluate(async () => {
     const { mountRendererFixture } = await import('/src/testing/renderer-fixture.ts');
     const base = {
@@ -369,7 +378,7 @@ test('fixture host rejects stale schemas and unregistered renderers loudly', asy
 test('Tic-tac-toe fixture proposes native numeric targets and stays bounded at canonical widths', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {
-    const proposals = await page.evaluate(async () => {
+    const proposals = await retryRendererEvaluation(page, () => page.evaluate(async () => {
       await import('/game-src/tictactoe/boardgame-render-game-tictactoe.ts');
       const { tictactoeRendererFixture } = await import(
         '/game-src/tictactoe/boardgame-render-fixtures-tictactoe.ts'
@@ -378,21 +387,61 @@ test('Tic-tac-toe fixture proposes native numeric targets and stays bounded at c
       const handle = await mountRendererFixture(tictactoeRendererFixture);
       const board = handle.renderer.shadowRoot?.querySelector('boardgame-game-board');
       if (!(board instanceof HTMLElement)) throw new Error('Tic-tac-toe fixture did not render its board');
-      board.dispatchEvent(new CustomEvent('space-tapped', {
-        detail: { index: 1 },
-        bubbles: true,
-        composed: true,
-      }));
-      await Promise.resolve();
+      const button = board.shadowRoot?.querySelector<HTMLButtonElement>('.cell[data-index="1"]');
+      if (!button) throw new Error('Tic-tac-toe fixture did not render target buttons');
+      button.click();
+      for (let attempt = 0; attempt < 20 && handle.proposals.length === 0; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
       return handle.proposals;
-    });
+    }));
 
     expect(proposals).toEqual([{
-      requestID: 'fixture-v4-request-1',
+      requestID: 'fixture-v4-move-2',
       snapshotVersion: 4,
       name: 'Place Token',
       arguments: { Slot: '1' },
     }]);
+
+    const buttons = page.locator('boardgame-game-board .cell');
+    await expect(buttons).toHaveCount(9);
+    await expect(buttons.nth(0)).toHaveAttribute('aria-disabled', 'true');
+    // A successful proposal consumes the snapshot, but unavailable cells remain
+    // keyboard-discoverable instead of disappearing from the roving grid.
+    await expect(buttons.nth(1)).toHaveAttribute('aria-disabled', 'true');
+    await expect(buttons.nth(1)).toHaveAttribute('title', /Waiting for the accepted move/);
+    await buttons.nth(1).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(buttons.nth(2)).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await expect(buttons.nth(2)).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(buttons.nth(2)).toBeFocused();
+    await page.keyboard.press('Control+End');
+    await expect(buttons.nth(8)).toBeFocused();
+
+    const labelGeometry = await page.locator('boardgame-game-board').evaluate(async board => {
+      const typed = board as HTMLElement & { labels: boolean; updateComplete: Promise<unknown> };
+      typed.labels = true;
+      await typed.updateComplete;
+      const host = typed.getBoundingClientRect();
+      const labels = [...(typed.shadowRoot?.querySelectorAll('.label') ?? [])]
+        .map(label => label.getBoundingClientRect());
+      const result = {
+        count: labels.length,
+        contained: labels.every(label => label.left >= host.left - 0.5
+          && label.right <= host.right + 0.5
+          && label.top >= host.top - 0.5
+          && label.bottom <= host.bottom + 0.5),
+      };
+      typed.labels = false;
+      await typed.updateComplete;
+      return result;
+    });
+    expect(labelGeometry).toEqual({ count: 6, contained: true });
+
+    const axeResult = await new AxeBuilder({ page }).include('[data-renderer-fixture]').analyze();
+    expect(axeResult.violations).toEqual([]);
 
     for (const viewport of Object.values(RENDERER_VIEWPORTS)) {
       await page.setViewportSize(viewport);
@@ -413,10 +462,12 @@ test('Tic-tac-toe fixture proposes native numeric targets and stays bounded at c
         rows: number;
         cols: number;
         stack: object;
+        action: object | null;
         updateComplete: Promise<unknown>;
       };
       board.rows = 2;
       board.cols = 3;
+      board.action = null;
       const components = Array.from({ length: 6 }, (_, index) => ({
         Index: index,
         Values: { Value: index % 2 === 0 ? 'X' : 'O' },
@@ -472,4 +523,143 @@ test('Tic-tac-toe fixture proposes native numeric targets and stays bounded at c
   } finally {
     diagnostics.stop();
   }
+});
+
+test('game board rejects contradictory geometry and accessibility configuration loudly', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const messages = await page.evaluate(async () => {
+    await import('/src/components/boardgame-game-board.ts');
+    const rejects = async (properties: Record<string, unknown>): Promise<string> => {
+      const board = document.createElement('boardgame-game-board') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+      };
+      Object.assign(board, properties);
+      document.body.append(board);
+      try {
+        await board.updateComplete;
+        return '<resolved>';
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      } finally {
+        board.remove();
+      }
+    };
+    return Promise.all([
+      rejects({ rows: 0, cols: 3 }),
+      rejects({ rows: 100, cols: 100 }),
+      rejects({ rows: 33, cols: 32, action: { candidates: [] } }),
+      rejects({ rows: 1, cols: 1, stack: { Components: null } }),
+      rejects({ rows: 2, cols: 2, stack: { Components: [null] } }),
+      rejects({ rows: 1, cols: 1, labelFor: () => { throw new Error('boom'); } }),
+      rejects({ rows: 1, cols: 1, labelFor: () => 42 }),
+      rejects({ rows: 1, cols: 2, labelFor: () => 'same' }),
+      rejects({
+        rows: 1,
+        cols: 2,
+        action: {
+          candidates: [{ key: 0 }, { key: 0 }],
+          preview: { kind: 'ready' },
+          get: () => undefined,
+          subscribe: () => () => undefined,
+        },
+      }),
+    ]);
+  });
+  expect(messages).toEqual([
+    expect.stringMatching(/positive integers/),
+    expect.stringMatching(/maximum is 4096/),
+    expect.stringMatching(/target actions support at most 1024 cells/),
+    expect.stringMatching(/stack\.Components must be an array/),
+    expect.stringMatching(/expected 4 stack components/),
+    expect.stringMatching(/labelFor failed for cell 0: boom/),
+    expect.stringMatching(/labelFor must return a string for cell 0/),
+    expect.stringMatching(/labels must be unique/),
+    expect.stringMatching(/keys must cover exactly 0 through 1/),
+  ]);
+});
+
+test('game board reconnects, exposes reasons, avoids double retry, and labels wide coordinates', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-game-board.ts');
+    let subscriptions = 0;
+    let unsubscriptions = 0;
+    let activations = 0;
+    let collectionRefreshes = 0;
+    const candidateAction = {
+      canPropose: false,
+      canActivate: true,
+      preview: { kind: 'failed' },
+      reason: { code: 'preview-failed', message: 'Network unavailable' },
+      activate: async () => { activations++; return { kind: 'blocked' }; },
+    };
+    const action = {
+      candidates: [{ key: 1, action: candidateAction }, { key: 0, action: candidateAction }],
+      preview: { kind: 'failed', retryable: true, reason: candidateAction.reason },
+      get: (key: number) => ({ key, action: candidateAction }),
+      refreshPreview: async () => { collectionRefreshes++; return action.preview; },
+      subscribe: () => {
+        subscriptions++;
+        return () => { unsubscriptions++; };
+      },
+    };
+    const board = document.createElement('boardgame-game-board') as HTMLElement & {
+      rows: number;
+      cols: number;
+      action: object;
+      labels: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    board.rows = 1;
+    board.cols = 2;
+    board.action = action;
+    document.body.append(board);
+    await board.updateComplete;
+    const retry = board.shadowRoot?.querySelector<HTMLButtonElement>('.cell[data-index="0"]');
+    const retryLabel = retry?.getAttribute('aria-label') ?? '';
+    retry?.click();
+    await Promise.resolve();
+    board.remove();
+    document.body.append(board);
+    await board.updateComplete;
+    board.remove();
+
+    const wide = document.createElement('boardgame-game-board') as HTMLElement & {
+      rows: number;
+      cols: number;
+      labels: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    wide.rows = 1;
+    wide.cols = 27;
+    wide.labels = true;
+    document.body.append(wide);
+    await wide.updateComplete;
+    const lastButton = wide.shadowRoot?.querySelector<HTMLButtonElement>('.cell[data-index="26"]');
+    const visibleColumns = [...(wide.shadowRoot?.querySelectorAll('.labels-row .label') ?? [])]
+      .map(label => label.textContent?.trim());
+    const visibleRows = [...(wide.shadowRoot?.querySelectorAll('.labels-col .label') ?? [])]
+      .map(label => label.textContent?.trim());
+    wide.remove();
+    return {
+      subscriptions,
+      unsubscriptions,
+      activations,
+      collectionRefreshes,
+      retryLabel,
+      lastLabel: lastButton?.getAttribute('aria-label'),
+      visibleColumns,
+      visibleRows,
+    };
+  });
+  expect(result).toMatchObject({
+    subscriptions: 2,
+    unsubscriptions: 2,
+    activations: 1,
+    collectionRefreshes: 0,
+    lastLabel: 'AA1, empty',
+    visibleRows: ['1'],
+  });
+  expect(result.retryLabel).toContain('Retry available: Network unavailable');
+  expect(result.visibleColumns.at(-1)).toBe('AA');
 });

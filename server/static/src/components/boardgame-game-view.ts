@@ -57,7 +57,8 @@ import {
   type MovePreviewTransport,
   type MoveTransport,
 } from '../moves/action.js';
-import { movePreview } from '../api.js';
+import type { TargetPreviewTransport } from '../moves/target-action.js';
+import { movePreview, movePreviewBatch } from '../api.js';
 
 import type { StateBundle } from '../types/game-state';
 import type { MoveForm } from '../types/api';
@@ -288,6 +289,62 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     },
   };
 
+  private readonly _targetPreviewTransport: TargetPreviewTransport = {
+    previewTargets: async request => {
+      const route = this._gameRoute;
+      if (!route) return { kind: 'failure', error: 'The game route is unavailable', retryable: false };
+      const response = await movePreviewBatch(
+        route.name,
+        route.id,
+        request.name,
+        request.candidates.map(candidate => ({ ID: candidate.id, Args: { ...candidate.arguments } })),
+        { player: request.proposingAsPlayer, admin: request.proposingAsAdmin ? 1 : 0 },
+        request.snapshotVersion,
+        request.signal,
+      );
+      if (response.error) {
+        if (response.code === 'STALE_SNAPSHOT') {
+          return {
+            kind: 'stale-snapshot',
+            expectedVersion: response.expectedVersion ?? request.snapshotVersion,
+            actualVersion: response.actualVersion ?? this._lastFetchedVersion,
+          };
+        }
+        return {
+          kind: 'failure',
+          error: response.error,
+          friendlyError: response.friendlyError,
+          retryable: response.status === 0,
+        };
+      }
+      const results: unknown = response.data?.Results;
+      if (!Array.isArray(results)) {
+        return { kind: 'failure', error: 'Target preview results must be an array', retryable: false };
+      }
+      const validated = [];
+      for (const result of results) {
+        if (typeof result !== 'object' || result === null) {
+          return { kind: 'failure', error: 'Target preview returned a malformed result', retryable: false };
+        }
+        const item = result as Record<string, unknown>;
+        if (typeof item['ID'] !== 'string' || !item['ID']
+          || typeof item['Legal'] !== 'boolean'
+          || (item['Error'] !== undefined && typeof item['Error'] !== 'string')) {
+          return { kind: 'failure', error: 'Target preview returned a malformed result', retryable: false };
+        }
+        validated.push({
+          id: item['ID'],
+          legal: item['Legal'],
+          ...(item['Error'] ? { error: item['Error'] } : {}),
+        });
+      }
+      return {
+        kind: 'success',
+        results: validated,
+      };
+    },
+  };
+
   @property({ type: String, attribute: false })
   _pageExtra = '';
 
@@ -423,6 +480,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .proposingAsAdmin=${this._admin}
           .moveTransport=${this._moveTransport}
           .movePreviewTransport=${this._movePreviewTransport}
+          .targetPreviewTransport=${this._targetPreviewTransport}
           .moveSubmissionGate=${this._moveSubmissionGate}
           .companionInfo=${this._companionInfo}
           .isOwner=${this._isOwner}

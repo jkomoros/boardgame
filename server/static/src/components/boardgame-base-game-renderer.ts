@@ -20,6 +20,12 @@ import {
   type MovePreviewTransport,
   type MoveTransport,
 } from '../moves/action.js';
+import {
+  cancelTargetActionPreview,
+  type TargetAction,
+  type TargetKey,
+  type TargetPreviewTransport,
+} from '../moves/target-action.js';
 import { LegacyProposalAdapter } from '../moves/legacy-proposal-adapter.js';
 
 type MoveInputFor<
@@ -71,9 +77,13 @@ export class BoardgameBaseGameRenderer<
   movePreviewTransport: MovePreviewTransport | null = null;
 
   @property({ attribute: false })
+  targetPreviewTransport: TargetPreviewTransport | null = null;
+
+  @property({ attribute: false })
   moveSubmissionGate: MoveSubmissionGate = new MoveSubmissionGate();
 
   readonly #moveActionCache = new Map<string, import('../moves/action.js').BoundMoveAction<string, object>>();
+  readonly #targetActionCache = new Map<string, TargetAction<TargetKey, string, object>>();
   readonly #legacyProposalAdapter = new LegacyProposalAdapter(
     this,
     () => this.moveInputSchema,
@@ -84,6 +94,7 @@ export class BoardgameBaseGameRenderer<
     currentServerSchemaFingerprint: () => this.serverMoveInputSchemaFingerprint,
     currentTransport: () => this.moveTransport,
     currentPreviewTransport: () => this.movePreviewTransport,
+    currentTargetPreviewTransport: () => this.targetPreviewTransport,
     currentGate: () => this.moveSubmissionGate,
     nextRequestID: () => `${this.gameId || 'game'}-v${this.gameVersion}-move-${++this.#moveRequestSequence}`,
     validate: (moveName, input) => this.moveInputSchema
@@ -108,6 +119,7 @@ export class BoardgameBaseGameRenderer<
       detail: event,
     })),
     actionCache: this.#moveActionCache,
+    targetActionCache: this.#targetActionCache,
   };
   #lastMoveSnapshotKey = '';
   #moveRequestSequence = 0;
@@ -335,7 +347,9 @@ export class BoardgameBaseGameRenderer<
   override disconnectedCallback() {
     super.disconnectedCallback();
     for (const action of this.#moveActionCache.values()) cancelMoveActionPreview(action);
+    for (const action of this.#targetActionCache.values()) cancelTargetActionPreview(action);
     this.#moveActionCache.clear();
+    this.#targetActionCache.clear();
     this.#lastMoveSnapshotKey = '';
     this.#legacyProposalAdapter.disconnect();
   }
@@ -345,7 +359,9 @@ export class BoardgameBaseGameRenderer<
     const snapshotKey = this._moveSnapshotKey();
     if (snapshotKey !== this.#lastMoveSnapshotKey) {
       for (const action of this.#moveActionCache.values()) cancelMoveActionPreview(action);
+      for (const action of this.#targetActionCache.values()) cancelTargetActionPreview(action);
       this.#moveActionCache.clear();
+      this.#targetActionCache.clear();
       this.#lastMoveSnapshotKey = snapshotKey;
     }
   }

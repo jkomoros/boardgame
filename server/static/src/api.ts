@@ -291,6 +291,8 @@ export async function movePreview(
  * string) to bind before checking legality.
  */
 export interface MovePreviewCandidate {
+  /** Opaque correlation token echoed by the server. */
+  ID?: string;
   Args: Record<string, string>;
 }
 
@@ -299,6 +301,8 @@ export interface MovePreviewCandidate {
  * candidates.
  */
 export interface MovePreviewBatchResult {
+  /** Opaque correlation token from the corresponding candidate. */
+  ID?: string;
   Legal: boolean;
   Error?: string;
 }
@@ -326,11 +330,18 @@ export async function movePreviewBatch(
   gameId: string,
   moveType: string,
   candidates: MovePreviewCandidate[],
-  params?: Record<string, string | number | boolean>
+  params?: Record<string, string | number | boolean>,
+  expectedVersion?: number,
+  signal?: AbortSignal,
 ): Promise<ApiResponse<MovePreviewBatchResponse>> {
   return apiPost<MovePreviewBatchResponse>(
     buildGameUrl(gameName, gameId, 'movePreviewBatch', params),
-    { MoveType: moveType, Candidates: candidates },
-    'application/json'
+    {
+      MoveType: moveType,
+      Candidates: candidates,
+      ...(expectedVersion === undefined ? {} : { ExpectedVersion: expectedVersion }),
+    },
+    'application/json',
+    signal,
   );
 }

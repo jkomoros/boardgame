@@ -47,13 +47,17 @@ test('movePreview posts form-encoded MoveType+args to the movePreview path and u
   assert.equal(res.error, undefined);
 });
 
-test('movePreviewBatch posts JSON {MoveType,Candidates} to the batch path; results come back in order', async () => {
-  const get = stubFetch({ Status: 'Success', Results: [{ Legal: true }, { Legal: false, Error: 'blocked' }] });
+test('movePreviewBatch posts versioned, correlated candidates to the batch path', async () => {
+  const get = stubFetch({ Status: 'Success', Results: [
+    { ID: 'cell:0', Legal: true },
+    { ID: 'cell:1', Legal: false, Error: 'blocked' },
+  ] });
 
+  const controller = new AbortController();
   const res = await movePreviewBatch('tictactoe', 'g2', 'Place Token', [
-    { Args: { Slot: '0' } },
-    { Args: { Slot: '1' } },
-  ]);
+    { ID: 'cell:0', Args: { Slot: '0' } },
+    { ID: 'cell:1', Args: { Slot: '1' } },
+  ], undefined, 7, controller.signal);
 
   const cap = get();
   assert.equal(cap.url, '/api/game/tictactoe/g2/movePreviewBatch');
@@ -61,9 +65,15 @@ test('movePreviewBatch posts JSON {MoveType,Candidates} to the batch path; resul
   assert.equal(cap.opts.headers['Content-Type'], 'application/json');
   const body = JSON.parse(cap.opts.body);
   assert.equal(body.MoveType, 'Place Token');
-  assert.deepEqual(body.Candidates, [{ Args: { Slot: '0' } }, { Args: { Slot: '1' } }]);
+  assert.equal(body.ExpectedVersion, 7);
+  assert.deepEqual(body.Candidates, [
+    { ID: 'cell:0', Args: { Slot: '0' } },
+    { ID: 'cell:1', Args: { Slot: '1' } },
+  ]);
+  assert.equal(cap.opts.signal, controller.signal);
   assert.equal(res.data?.Results.length, 2);
   assert.equal(res.data?.Results[0].Legal, true);
+  assert.equal(res.data?.Results[0].ID, 'cell:0');
   assert.equal(res.data?.Results[1].Legal, false);
   assert.equal(res.data?.Results[1].Error, 'blocked');
 });
