@@ -3,7 +3,8 @@
  * These match the JSON structures returned by the Go backend.
  */
 
-import type { GameChest, PlayerInfo, ExpandedGameState } from './store';
+import type { CompanionInfo, GameChest, PlayerInfo, ExpandedGameState } from './store';
+import type { GameFromServer } from './game-state';
 
 /**
  * Base response structure from the server.
@@ -33,9 +34,9 @@ export interface GameInfoResponse extends BaseApiResponse {
   /** Whether the current user owns the game */
   IsOwner: boolean;
   /** Current game state */
-  Game: any; // Raw game state from server (not yet expanded)
+  Game: GameFromServer;
   /** Available move forms for current state */
-  Forms: MoveForm[];
+  Forms: MoveForm[] | null;
   /** Which player index is viewing */
   ViewingAsPlayer: number;
   /** Version of the state being returned (may differ from Game.Version) */
@@ -49,6 +50,8 @@ export interface GameInfoResponse extends BaseApiResponse {
   LegalCatalogVersion: number;
   /** Canonical server move-input contract; generated clients must match it. */
   MoveInputSchemaFingerprint: string;
+  /** Companion-mode metadata, or null for an ordinary solo game. */
+  CompanionInfo: CompanionInfo | null;
 }
 
 /**
@@ -57,7 +60,7 @@ export interface GameInfoResponse extends BaseApiResponse {
  */
 export interface GameVersionResponse extends BaseApiResponse {
   /** Array of state bundles to animate through */
-  Bundles: StateBundle[];
+  Bundles: ServerStateBundle[];
   Error?: string;
 }
 
@@ -65,15 +68,15 @@ export interface GameVersionResponse extends BaseApiResponse {
  * A state bundle containing game state, forms, and move information.
  * Used for animating state transitions.
  */
-export interface StateBundle {
+export interface ServerStateBundle {
   /** Game state snapshot */
-  Game: any; // Raw game state from server
+  Game: GameFromServer;
   /** Available move forms for this state */
-  Forms: MoveForm[];
+  Forms: MoveForm[] | null;
   /** Which player is viewing */
   ViewingAsPlayer: number;
   /** The move that led to this state (null for initial state) */
-  Move: ClientMove | null;
+  Move: unknown;
 }
 
 /**
@@ -158,13 +161,19 @@ export interface MoveFormField {
   /** Help text for the field */
   HelpText?: string;
   /** For enum fields, the available options */
-  EnumOptions?: any[];
+  EnumOptions?: unknown[];
   /** Default value */
-  Default?: any;
+  Default?: unknown;
   /** Name of the enum (used for expansion) */
   EnumName?: string;
   /** Expanded enum values (populated during expansion) */
-  Enum?: any;
+  Enum?: EnumDefinition;
+}
+
+/** Serialized enum metadata supplied in the game chest. */
+export interface EnumDefinition {
+  Values?: Record<string, string>;
+  [key: string]: unknown;
 }
 
 /**

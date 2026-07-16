@@ -37,9 +37,13 @@ import {
 } from '../selectors.js';
 
 import { connect } from 'pwa-helpers/connect-mixin.js';
-import type { RootState, GameChest } from '../types/store';
-import type { RawGameState, StateBundle, TimerInfo } from '../types/game-state';
-import type { MoveForm } from '../types/api';
+import type {
+  FetchedGameInfo,
+  FetchedGameVersion,
+  RootState,
+} from '../types/store';
+import type { GameFromServer, RawGameState, StateBundle, TimerInfo } from '../types/game-state';
+import type { MoveForm, ServerStateBundle } from '../types/api';
 import { clientMoveFromWire } from '../types/client-move.js';
 import type { HostedGameRenderer } from './boardgame-render-game.js';
 
@@ -65,9 +69,6 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   @property({ type: Boolean })
   gameFinished = false;
-
-  @property({ type: Object })
-  chest: GameChest | null = null;
 
   @property({ type: Boolean })
   admin = false;
@@ -120,10 +121,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   // Fetched data - synced from Redux
   @property({ type: Object, attribute: false })
-  private _fetchedInfo: any = null;
+  private _fetchedInfo: FetchedGameInfo | null = null;
 
   @property({ type: Object, attribute: false })
-  private _fetchedVersion: any = null;
+  private _fetchedVersion: FetchedGameVersion | null = null;
 
   // Loading state - synced from Redux (per-operation)
   @property({ type: Boolean, attribute: false })
@@ -324,7 +325,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     if (!this.gameRoute) return '';
 
     // Construct the socket URL from gameRoute
-    const host = typeof (window as any).API_HOST !== 'undefined' ? (window as any).API_HOST : '';
+    const host = window.API_HOST ?? '';
     let result = `${host}/api/game/${this.gameRoute.name}/${this.gameRoute.id}/socket`;
     result = result.split('http:').join('ws:');
     result = result.split('https:').join('wss:');
@@ -614,38 +615,19 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     );
   }
 
-  private _prepareStateBundle(game: any, moveForms: MoveForm[] | null, viewingAsPlayer: number, move: unknown): StateBundle {
-    const bundle: StateBundle = {
-      originalWallClockStartTime: 0,
-      game: game,
-      move: null,
-      moveForms: null,
-      viewingAsPlayer: 0
+  private _prepareStateBundle(
+    game: GameFromServer,
+    moveForms: MoveForm[] | null,
+    viewingAsPlayer: number,
+    move: unknown,
+  ): StateBundle {
+    return {
+      originalWallClockStartTime: Date.now(),
+      game,
+      move: clientMoveFromWire(move),
+      moveForms,
+      viewingAsPlayer,
     };
-
-    bundle.originalWallClockStartTime = Date.now();
-    bundle.game = game;
-    bundle.move = clientMoveFromWire(move);
-    bundle.moveForms = this._expandMoveForms(moveForms);
-    bundle.viewingAsPlayer = viewingAsPlayer;
-
-    return bundle;
-  }
-
-  private _expandMoveForms(moveForms: MoveForm[] | null): MoveForm[] | null {
-    if (!moveForms || !this.chest) return null;
-    for (let i = 0; i < moveForms.length; i++) {
-      const form = moveForms[i];
-      // Some forms don't have fields and that's OK.
-      if (!form.Fields) continue;
-      for (let j = 0; j < form.Fields.length; j++) {
-        const field = form.Fields[j];
-        if (field.EnumName) {
-          field.Enum = this.chest.Enums[field.EnumName];
-        }
-      }
-    }
-    return moveForms;
   }
 
   // Called when gameView tells us to pass up the next state if we have one
@@ -838,13 +820,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     if (wasEmpty) this._scheduleNextStateBundle();
   }
 
-  private _handleInfoData(data: any) {
-    if (!data) {
-      return;
-    }
-
-    this.chest = data.Chest;
-
+  private _handleInfoData(data: FetchedGameInfo) {
     const gameInfo = {
       chest: data.Chest,
       playersInfo: data.Players,
@@ -875,14 +851,8 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     store.dispatch(setCurrentVersion(data.Game.Version));
   }
 
-  private _handleVersionData(data: any) {
-    if (!data) return;
-    if (data.Error) {
-      console.log('Version getter returned error: ' + data.Error);
-      return;
-    }
-
-    let lastServerBundle: any = {};
+  private _handleVersionData(data: FetchedGameVersion) {
+    let lastServerBundle: ServerStateBundle | null = null;
 
     for (let i = 0; i < data.Bundles.length; i++) {
       const serverBundle = data.Bundles[i];
@@ -891,7 +861,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       lastServerBundle = serverBundle;
     }
 
-    if (lastServerBundle.Game) {
+    if (lastServerBundle) {
       store.dispatch(setLastFetchedVersion(lastServerBundle.Game.Version));
       store.dispatch(setCurrentVersion(lastServerBundle.Game.Version));
     }

@@ -2,8 +2,8 @@ import { Dispatch, type UnknownAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { store } from '../store.js';
 import type { RootState, GameChest, PlayerInfo, CompanionInfo } from '../types/store';
-import type { ApiResponse } from '../api';
-import type { RawGameState, TimerInfo, StateBundle } from '../types/game-state';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from '../types/game-state';
+import type { GameInfoResponse, GameVersionResponse, MoveForm, ServerStateBundle } from '../types/api';
 import type { MoveTransportResult } from '../moves/action.js';
 import { remainingTimerMs } from '../timers/timer-clock.js';
 import type {
@@ -220,7 +220,7 @@ const extractTimerPaths = (currentState: RawGameState, timerInfos: Record<string
  * Helper to extract timer paths from a leaf state object.
  */
 const extractTimerPathsFromLeaf = (
-  leafState: any,
+  leafState: RawGameState['Game'],
   pathToLeaf: (string | number)[],
   pathsToTick: (string | number)[][],
   timerInfos: Record<string, TimerInfo> | null
@@ -228,9 +228,11 @@ const extractTimerPathsFromLeaf = (
   if (!leafState) return;
 
   Object.entries(leafState).forEach(([key, val]) => {
-    if (val && typeof val === 'object' && (val as any).IsTimer) {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      const candidate = val as Readonly<Record<string, unknown>>;
+      if (candidate['IsTimer'] !== true || typeof candidate['ID'] !== 'string') return;
       // Found a timer - check if it has time remaining
-      const timerID = (val as any).ID;
+      const timerID = candidate['ID'];
       const timerInfo = timerInfos?.[timerID];
       if (timerInfo && timerInfo.TimeLeft > 0) {
         pathsToTick.push([...pathToLeaf, key]);
@@ -431,10 +433,10 @@ export const submitMove = (
 /**
  * Expand move form fields with enum values from chest
  */
-const expandMoveForms = (moveForms: any[] | null, chest: GameChest | null): any[] | null => {
+const expandMoveForms = (moveForms: MoveForm[] | null, chest: GameChest | null): MoveForm[] | null => {
   if (!moveForms || !chest) return moveForms;
 
-  const expanded = JSON.parse(JSON.stringify(moveForms)); // Deep copy
+  const expanded = structuredClone(moveForms);
 
   for (let i = 0; i < expanded.length; i++) {
     const form = expanded[i];
@@ -442,8 +444,8 @@ const expandMoveForms = (moveForms: any[] | null, chest: GameChest | null): any[
     if (!form.Fields) continue;
     for (let j = 0; j < form.Fields.length; j++) {
       const field = form.Fields[j];
-      if (field.EnumName && (chest as any).Enums) {
-        field.Enum = (chest as any).Enums[field.EnumName];
+      if (field.EnumName && chest.Enums) {
+        field.Enum = chest.Enums[field.EnumName];
       }
     }
   }
@@ -472,7 +474,7 @@ export const fetchGameInfo = (
     }
   );
 
-  const response = await apiGet(url);
+  const response = await apiGet<GameInfoResponse>(url);
 
   if (response.error) {
     dispatch({
@@ -483,7 +485,15 @@ export const fetchGameInfo = (
     return;
   }
 
-  const data = response.data as any;
+  const data = response.data;
+  if (!data) {
+    dispatch({
+      type: FETCH_GAME_INFO_FAILURE,
+      error: 'Game info response was missing its success payload',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
 
   // Expand move forms with enum values
   const expandedForms = expandMoveForms(data.Forms, data.Chest);
@@ -549,7 +559,7 @@ export const fetchGameVersion = (
     }
   );
 
-  const response = await apiGet(url);
+  const response = await apiGet<GameVersionResponse>(url);
 
   if (response.error) {
     dispatch({
@@ -560,7 +570,15 @@ export const fetchGameVersion = (
     return;
   }
 
-  const data = response.data as any;
+  const data = response.data;
+  if (!data) {
+    dispatch({
+      type: FETCH_GAME_VERSION_FAILURE,
+      error: 'Game version response was missing its success payload',
+      friendlyError: 'The server returned an invalid game response',
+    });
+    return;
+  }
 
   if (data.Error) {
     console.log('Version getter returned error: ' + data.Error);
@@ -576,7 +594,7 @@ export const fetchGameVersion = (
   const state = getState();
   const chest = selectGameChest(state);
 
-  const expandedBundles = data.Bundles.map((serverBundle: any) => ({
+  const expandedBundles: ServerStateBundle[] = data.Bundles.map((serverBundle) => ({
     ...serverBundle,
     Forms: expandMoveForms(serverBundle.Forms, chest)
   }));
@@ -599,7 +617,7 @@ export const fetchGameVersion = (
 /**
  * Enqueue a state bundle for animation playback
  */
-export const enqueueStateBundle = (bundle: any): EnqueueStateBundleAction => {
+export const enqueueStateBundle = (bundle: StateBundle): EnqueueStateBundleAction => {
   return {
     type: ENQUEUE_STATE_BUNDLE,
     bundle
@@ -719,9 +737,9 @@ export const socketError = (error: string): SocketErrorAction => {
  * Used when installing a state bundle
  */
 export const updateViewState = (
-  game: any,
+  game: GameFromServer,
   viewingAsPlayer: number,
-  moveForms: any[] | null
+  moveForms: MoveForm[] | null
 ): UpdateViewStateAction => {
   return {
     type: UPDATE_VIEW_STATE,
@@ -764,7 +782,7 @@ export const setAutoCurrentPlayer = (autoFollow: boolean): SetAutoCurrentPlayerA
 /**
  * Update move forms for the current state
  */
-export const updateMoveForms = (moveForms: any[] | null): UpdateMoveFormsAction => {
+export const updateMoveForms = (moveForms: MoveForm[] | null): UpdateMoveFormsAction => {
   return {
     type: UPDATE_MOVE_FORMS,
     moveForms

@@ -5,8 +5,8 @@
  * while game and list are loaded on-demand when navigating to those views.
  */
 
-import type { RawGameState, TimerInfo, StateBundle } from './game-state';
-import type { MoveForm } from './api';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
+import type { EnumDefinition, MoveForm, ServerStateBundle } from './api';
 
 /**
  * Companion-mode bundle from the doGameInfo response. Matches the JSON
@@ -156,7 +156,7 @@ export interface SocketState {
  */
 export interface ViewState {
   /** Full game object from server */
-  game: any | null;
+  game: GameFromServer | null;
   /** Player index currently viewing as */
   viewingAsPlayer: number;
   /** Player index requested (before applying auto-current-player) */
@@ -165,6 +165,27 @@ export interface ViewState {
   autoCurrentPlayer: boolean;
   /** Move forms for the current state */
   moveForms: MoveForm[] | null;
+}
+
+/** Initial game payload retained only until the state manager consumes it. */
+export interface FetchedGameInfo {
+  Chest: GameChest;
+  Players: PlayerInfo[];
+  HasEmptySlots: boolean;
+  GameOpen: boolean;
+  GameVisible: boolean;
+  IsOwner: boolean;
+  CompanionInfo: CompanionInfo | null;
+  Game: GameFromServer;
+  Forms: MoveForm[] | null;
+  ViewingAsPlayer: number;
+  StateVersion: number;
+  MoveInputSchemaFingerprint: string;
+}
+
+/** Version payload retained only until the animation queue consumes it. */
+export interface FetchedGameVersion {
+  Bundles: ServerStateBundle[];
 }
 
 /**
@@ -206,9 +227,9 @@ export interface GameState {
   /** View state (game object, viewing player, move forms) */
   view: ViewState;
   /** Fetched info data from fetchGameInfo (null when not available or after processing) */
-  fetchedInfo: any | null;
+  fetchedInfo: FetchedGameInfo | null;
   /** Fetched version data from fetchGameVersion (null when not available or after processing) */
-  fetchedVersion: any | null;
+  fetchedVersion: FetchedGameVersion | null;
   /** Whether a move submission is in progress */
   moveSubmitting: boolean;
   /** Whether a game version fetch is in progress */
@@ -225,6 +246,7 @@ export interface GameState {
  * Game chest containing component configurations and deck defaults.
  */
 export interface GameChest {
+  Enums?: Record<string, EnumDefinition>;
   [key: string]: any;
   // TODO: Define specific chest structure based on game architecture
 }

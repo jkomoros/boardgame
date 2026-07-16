@@ -1,6 +1,15 @@
 import { createSelector } from 'reselect';
-import type { RootState, GameChest, PlayerInfo, ExpandedGameState, UserInfo, CompanionInfo } from './types/store';
-import type { RawGameState, TimerInfo, StateBundle } from './types/game-state';
+import type {
+    CompanionInfo,
+    ExpandedGameState,
+    FetchedGameInfo,
+    FetchedGameVersion,
+    GameChest,
+    PlayerInfo,
+    RootState,
+    UserInfo,
+} from './types/store';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './types/game-state';
 import type { MoveForm, PreconditionEntry } from './types/api';
 
 // Stable default objects to prevent creating new objects on every selector call
@@ -101,8 +110,8 @@ export const selectGameLoading = (state: RootState): boolean =>
 export const selectGameError = (state: RootState): string | null => state.game ? state.game.error : null;
 
 // Fetched data selectors (for async thunk responses)
-export const selectFetchedInfo = (state: RootState): any | null => state.game?.fetchedInfo || null;
-export const selectFetchedVersion = (state: RootState): any | null => state.game?.fetchedVersion || null;
+export const selectFetchedInfo = (state: RootState): FetchedGameInfo | null => state.game?.fetchedInfo || null;
+export const selectFetchedVersion = (state: RootState): FetchedGameVersion | null => state.game?.fetchedVersion || null;
 
 const selectGameID = (state: RootState): string => state.game ? state.game.id : '';
 export const selectGameName = (state: RootState): string => state.game ? state.game.name : '';
@@ -155,7 +164,7 @@ export const selectSocketError = (state: RootState): string | null => selectSock
 // View selectors
 export const selectViewState = (state: RootState) =>
     state.game?.view || DEFAULT_VIEW_STATE;
-export const selectGame = (state: RootState): any | null => selectViewState(state).game;
+export const selectGame = (state: RootState): GameFromServer | null => selectViewState(state).game;
 export const selectViewingAsPlayer = (state: RootState): number => selectViewState(state).viewingAsPlayer;
 export const selectRequestedPlayer = (state: RootState): number => selectViewState(state).requestedPlayer;
 export const selectAutoCurrentPlayer = (state: RootState): boolean => selectViewState(state).autoCurrentPlayer;

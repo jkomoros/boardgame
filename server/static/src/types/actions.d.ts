@@ -4,8 +4,8 @@
  */
 
 import type { GameChest, PlayerInfo, CompanionInfo } from './store';
-import type { MoveForm } from './api';
-import type { RawGameState, TimerInfo, StateBundle } from './game-state';
+import type { MoveForm, ServerStateBundle } from './api';
+import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
 
 // Import action type constants for typeof usage
 import {
@@ -136,14 +136,14 @@ export interface FetchGameInfoRequestAction {
 
 export interface FetchGameInfoSuccessAction {
   type: typeof FETCH_GAME_INFO_SUCCESS;
-  chest: GameChest | null;
+  chest: GameChest;
   playersInfo: PlayerInfo[];
   hasEmptySlots: boolean;
   open: boolean;
   visible: boolean;
   isOwner: boolean;
   companionInfo: CompanionInfo | null;
-  game: RawGameState;
+  game: GameFromServer;
   forms: MoveForm[] | null;
   viewingAsPlayer: number;
   stateVersion: number;
@@ -163,7 +163,7 @@ export interface FetchGameVersionRequestAction {
 
 export interface FetchGameVersionSuccessAction {
   type: typeof FETCH_GAME_VERSION_SUCCESS;
-  bundles: StateBundle[];
+  bundles: ServerStateBundle[];
 }
 
 export interface FetchGameVersionFailureAction {
@@ -241,7 +241,7 @@ export interface SocketErrorAction {
 
 export interface UpdateViewStateAction {
   type: typeof UPDATE_VIEW_STATE;
-  game: any; // Keep as any - full game object structure varies by game type
+  game: GameFromServer;
   viewingAsPlayer: number;
   moveForms: MoveForm[] | null;
 }
