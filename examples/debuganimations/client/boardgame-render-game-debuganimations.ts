@@ -288,8 +288,7 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.DrawStack}"
-            .componentView=${this.cards.withProperties({ rotated: this.messy })}
-            .unsafeComponentAttrs=${{ indexAttributes: 'my-index,other-index' }}>
+            .componentView=${this.cards.withProperties({ rotated: this.messy })}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
