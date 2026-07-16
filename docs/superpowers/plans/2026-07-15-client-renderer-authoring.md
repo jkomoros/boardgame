@@ -988,6 +988,14 @@ First evidence-driven primitive tranche (2026-07-16):
   phase/readiness text game-owned. Prove the pure matrix, exact runtime shape,
   strict negative contracts, live-region semantics, axe, five real examples,
   and generated scaffold output.
+- [x] Complete the player collection layer with `boardgame-player-panel` for the
+  arbitrary score/zone/status/action group repeated by Blackjack, Pass, and
+  Valentine. Require a semantic label; provide responsive zero-CSS panel
+  styling, header/status/actions/footer slots, current-player badge and
+  `aria-current`, parts, and tokens. Keep elimination, selection, roles, and
+  game-specific status outside the primitive. Prove strict properties,
+  wide/narrow layout, optional-region cleanup, runtime diagnostics, axe, nested
+  zone composition, external selected styling, and generated scaffold output.
 - [x] Modernize `boardgame-status-text`, a primitive repeated by seven framework
   and external games, around a typed `.value` string/number contract instead of
   hidden slotted content plus DOM mutation observation. Register it from the

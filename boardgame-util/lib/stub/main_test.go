@@ -61,6 +61,8 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		"<boardgame-component-zone",
 		"<boardgame-game-outcome",
 		"<boardgame-player-grid>",
+		"<boardgame-player-panel",
+		".active=${index === this.currentPlayerIndex}",
 		"label=\"Draw pile\"",
 		".componentView=${this.cards}",
 		"component.Values.Value",

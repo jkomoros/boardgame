@@ -1593,6 +1593,38 @@ and `--boardgame-player-grid-min-width` / `--boardgame-player-grid-gap` for
 layout tuning. Blank labels, invalid heading levels, and blank enabled empty
 states fail loudly.
 
+When each player needs more than one zone or value, use
+`boardgame-player-panel` as the grid child:
+
+```typescript
+html`<boardgame-player-grid>
+  ${this.state?.Players.map((player, playerIndex) => html`
+    <boardgame-player-panel
+        label=${`Player ${playerIndex + 1}`}
+        .active=${playerIndex === this.currentPlayerIndex}>
+      <div>Score <boardgame-status-text .value=${player.Score}></boardgame-status-text></div>
+      <boardgame-component-zone
+        label="Hand"
+        .stack=${player.Hand}
+        .componentView=${this.cards}>
+      </boardgame-component-zone>
+      <boardgame-action-button slot="actions" .action=${this.move(MoveNames.Pass)}>
+        Pass
+      </boardgame-action-button>
+    </boardgame-player-panel>
+  `)}
+</boardgame-player-grid>`;
+```
+
+The required label, heading, padding, border, content flow, and current-player
+badge are automatic. `header`, `status`, `actions`, and `footer` slots keep
+panel-local content structured; unassigned optional regions collapse. The
+`active` property adds both styling and `aria-current`, while elimination,
+selection, roles, and other game-specific states remain your own classes and
+content. Use `::part(panel)` and the `--boardgame-player-panel-*` tokens for a
+distinctive design, or keep arbitrary markup as a grid child when this semantic
+shape does not fit.
+
 The internal stack creates stable card hosts and rerenders their light-DOM content with
 Lit whenever their logical slot changes. The view is local to this renderer, so
 two games may use the same deck name without a global registration collision.

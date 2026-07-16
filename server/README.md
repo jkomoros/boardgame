@@ -121,6 +121,23 @@ Use `hide-heading` only when another visible heading already names the
 collection. Tune `--boardgame-player-grid-min-width` and
 `--boardgame-player-grid-gap`; children remain arbitrary Lit content.
 
+Use `boardgame-player-panel` inside that grid when one player area combines
+scores, zones, status, and controls:
+
+```typescript
+html`<boardgame-player-panel
+    label="Player 1"
+    .active=${this.currentPlayerIndex === 0}>
+  <boardgame-component-zone label="Hand" ...></boardgame-component-zone>
+  <boardgame-action-button slot="actions" .action=${pass}>Pass</boardgame-action-button>
+</boardgame-player-panel>`
+```
+
+It supplies the semantic heading, responsive panel surface, current-player
+badge and `aria-current`, plus optional header/status/actions/footer regions.
+Game-specific selection, elimination, and role states remain ordinary classes
+and content. Style its stable parts or `--boardgame-player-panel-*` tokens.
+
 ### Game surface
 
 Use `boardgame-game-surface` as the semantic, responsive root of an ordinary

@@ -80,16 +80,20 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
         </div>
         <boardgame-player-grid id="players">
           ${repeat(this.state?.Players || [], (_player, index) => index, (player, index) => html`
-            <boardgame-component-zone
+            <boardgame-player-panel
                 class="player ${this._bustedClass(player.Eliminated)}"
-                label="Player ${index} hand"
+                label=${`Player ${index + 1}`}
+                .active=${index === this.currentPlayerIndex}>
+              <boardgame-component-zone
+                label="Hand"
                 .stack="${player.Hand}"
                 .componentView=${this.cards.withProperties({ rotated: true })}
                 layout="fan"
                 messy>
                 <boardgame-fading-text .trigger="${player.Eliminated}" message="Busted!"></boardgame-fading-text>
                 <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
-            </boardgame-component-zone>
+              </boardgame-component-zone>
+            </boardgame-player-panel>
           `)}
         </boardgame-player-grid>
         <boardgame-turn-status

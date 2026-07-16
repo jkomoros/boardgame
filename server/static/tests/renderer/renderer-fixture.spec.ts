@@ -1250,6 +1250,128 @@ test('player grid supplies named responsive layout and a useful empty state', as
   }
 });
 
+test('player panel supplies a named responsive area and honest current-player state', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/client.ts');
+      const panel = document.createElement('boardgame-player-panel');
+      panel.label = 'Ada';
+      panel.active = true;
+      panel.style.width = '24rem';
+      const score = document.createElement('p');
+      score.textContent = 'Score 4';
+      const status = document.createElement('p');
+      status.slot = 'status';
+      status.textContent = 'Protected';
+      const actions = document.createElement('button');
+      actions.slot = 'actions';
+      actions.textContent = 'Pass';
+      const footer = document.createElement('small');
+      footer.slot = 'footer';
+      footer.textContent = '2 cards';
+      panel.append(score, status, actions, footer);
+      document.body.append(panel);
+      await panel.updateComplete;
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await panel.updateComplete;
+
+      const root = panel.shadowRoot;
+      const region = root?.querySelector('#panel');
+      const header = root?.querySelector('#header') as HTMLElement | null;
+      const heading = root?.querySelector('#heading');
+      const wideDirection = header ? getComputedStyle(header).flexDirection : '';
+      const active = {
+        labelReference: region?.getAttribute('aria-labelledby'),
+        current: region?.getAttribute('aria-current'),
+        part: region?.getAttribute('part'),
+        heading: heading?.textContent?.trim(),
+        headingRole: heading?.getAttribute('role'),
+        headingLevel: heading?.getAttribute('aria-level'),
+        activeLabel: root?.querySelector('#active')?.textContent?.trim(),
+        statusHidden: (root?.querySelector('#status') as HTMLElement | null)?.hidden,
+        actionsHidden: (root?.querySelector('#actions') as HTMLElement | null)?.hidden,
+        footerHidden: (root?.querySelector('#footer') as HTMLElement | null)?.hidden,
+      };
+
+      panel.active = false;
+      panel.style.width = '15rem';
+      await panel.updateComplete;
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const inactive = {
+        current: region?.getAttribute('aria-current'),
+        part: region?.getAttribute('part'),
+        activeLabel: root?.querySelector('#active')?.textContent?.trim() ?? null,
+        narrowDirection: header ? getComputedStyle(header).flexDirection : '',
+      };
+      actions.remove();
+      footer.remove();
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await panel.updateComplete;
+      const emptied = {
+        actionsHidden: (root?.querySelector('#actions') as HTMLElement | null)?.hidden,
+        footerHidden: (root?.querySelector('#footer') as HTMLElement | null)?.hidden,
+      };
+      panel.hideHeading = true;
+      await panel.updateComplete;
+      const hiddenHeadingClass = heading?.getAttribute('class');
+
+      const renderError = (name: string, value: unknown) => {
+        const element = document.createElement('boardgame-player-panel') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        element.label = 'Valid';
+        element[name] = value;
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+      return {
+        active,
+        inactive,
+        wideDirection,
+        emptied,
+        hiddenHeadingClass,
+        blankLabel: renderError('label', ' '),
+        invalidHeading: renderError('headingLevel', 8),
+        blankActiveLabel: renderError('activeLabel', ''),
+      };
+    });
+
+    expect(result.active).toEqual({
+      labelReference: 'heading',
+      current: 'true',
+      part: 'panel active',
+      heading: 'Ada',
+      headingRole: 'heading',
+      headingLevel: '3',
+      activeLabel: 'Current player',
+      statusHidden: false,
+      actionsHidden: false,
+      footerHidden: false,
+    });
+    expect(result.wideDirection).toBe('row');
+    expect(result.inactive).toEqual({
+      current: 'false',
+      part: 'panel',
+      activeLabel: null,
+      narrowDirection: 'column',
+    });
+    expect(result.emptied).toEqual({ actionsHidden: true, footerHidden: true });
+    expect(result.hiddenHeadingClass).toBe('visually-hidden');
+    expect(result.blankLabel).toContain('label must be a non-empty player name');
+    expect(result.invalidHeading).toContain('headingLevel must be a safe integer from 1 through 6');
+    expect(result.blankActiveLabel).toContain('activeLabel must be a non-empty string');
+    const axeResult = await new AxeBuilder({ page }).include('boardgame-player-panel').analyze();
+    expect(axeResult.violations).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('player info derives typed state and publishes chip presentation without creator events', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

@@ -836,17 +836,21 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
       {{- end}}
         <boardgame-player-grid>
           ${this.state?.Players.map((player, index) => html[[BACKTICK]]
-            <boardgame-component-zone
+            <boardgame-player-panel
                 class="player"
-                label="Player ${index + 1} hand"
-                .stack=${player.Hand}
-                .componentView=${this.cards.withProperties({ rotated: true })}
-                layout="fan" messy>
-              <boardgame-fading-text
-                .trigger=${player.Computed?.GameScore ?? 0}
-                auto-message="diff-up">
-              </boardgame-fading-text>
-            </boardgame-component-zone>
+                label=${[[BACKTICK]]Player ${index + 1}[[BACKTICK]]}
+                .active=${index === this.currentPlayerIndex}>
+              <boardgame-component-zone
+                  label="Hand"
+                  .stack=${player.Hand}
+                  .componentView=${this.cards.withProperties({ rotated: true })}
+                  layout="fan" messy>
+                <boardgame-fading-text
+                  .trigger=${player.Computed?.GameScore ?? 0}
+                  auto-message="diff-up">
+                </boardgame-fading-text>
+              </boardgame-component-zone>
+            </boardgame-player-panel>
           [[BACKTICK]])}
         </boardgame-player-grid>
         <boardgame-turn-status
