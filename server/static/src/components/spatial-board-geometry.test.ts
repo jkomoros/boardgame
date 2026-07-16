@@ -30,6 +30,16 @@ test('piecesFromSizedStacks creates explicit stable piece-to-space projections',
   assert.ok(Object.isFrozen(pieces[0]));
 });
 
+test('piecesFromSizedStacks makes sentinel slots explicit without fake geometry', () => {
+  const hidden = { Index: 0, Values: {}, Deck: 'tokens', GameName: 'fixture', ID: 'hidden' };
+  const visible = { Index: 1, Values: {}, Deck: 'tokens', GameName: 'fixture', ID: 'visible' };
+  const source = stack(['hidden', 'visible'], [hidden, visible]);
+  assert.deepEqual(
+    piecesFromSizedStacks([source], [null, 'library']),
+    [{ id: 'visible', space: 'library', stack: source, slot: 1, component: visible }],
+  );
+});
+
 test('piecesFromSizedStacks rejects cardinality and stable-ID mismatches loudly', () => {
   assert.throws(
     () => piecesFromSizedStacks([stack([''], [null])], ['hall', 'study']),

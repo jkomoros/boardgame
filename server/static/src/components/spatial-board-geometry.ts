@@ -13,7 +13,7 @@ export interface BoardPiece<Key extends SpatialBoardKey> {
 /** Explicit adapter for the common sized-stack representation used by Go state. */
 export function piecesFromSizedStacks<Key extends SpatialBoardKey>(
   stacks: readonly ExpandedStack<object, object>[],
-  spaceForSlot: readonly Key[],
+  spaceForSlot: readonly (Key | null)[],
 ): readonly BoardPiece<Key>[] {
   if (!spaceForSlot.length) fail('piecesFromSizedStacks requires at least one space key');
   const pieces: BoardPiece<Key>[] = [];
@@ -27,11 +27,13 @@ export function piecesFromSizedStacks<Key extends SpatialBoardKey>(
     }
     stack.Components.forEach((component, slot) => {
       if (!component) return;
+      const space = spaceForSlot[slot];
+      if (space === null) return;
       const id = stack.IDs[slot];
       if (!id) fail(`stack ${stackIndex} occupied slot ${slot} has no stable ID`);
       pieces.push(Object.freeze({
         id,
-        space: spaceForSlot[slot]!,
+        space: space!,
         stack,
         slot,
         component,
