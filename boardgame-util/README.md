@@ -5,13 +5,15 @@
 ```sh
 boardgame-util stub examplegame
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
-boardgame-util check-client
+boardgame-util check-client --fix
 boardgame-util serve --offline-dev-mode
 ```
 
 `stub` creates strict Lit/TypeScript renderers and their Go game package.
-`emit-types` refreshes the atomic generated state, move, board-space, and bound
-renderer contracts. `check-client` is the non-interactive local/CI gate: it
+`emit-types` refreshes the generated state, move, board-space, and bound
+renderer contracts as one failure-atomic transaction. `check-client --fix`
+performs that safe refresh and immediately runs the strict checks;
+plain `check-client` is the read-only local/CI gate. It
 checks generated-file freshness and compiles each configured game client in
 isolation with pinned strict TypeScript, Lit binding analysis, and creator-code
 policy diagnostics. `serve` performs the same generation/assembly work, then
@@ -19,7 +21,9 @@ supervises the API and Vite children until one clean `Ctrl+C` shutdown.
 
 Use `build api` and `build static` for explicit production artifacts. Generation
 and checks fail nonzero with actionable diagnostics; they do not silently accept
-partial output or weaken a game's TypeScript configuration.
+partial output or weaken a game's TypeScript configuration. Commit every
+generated file changed by `--fix`; CI should use plain `check-client` so stale
+generation fails instead of rewriting the checkout.
 
 ## Providing configuration to boardgame-util
 

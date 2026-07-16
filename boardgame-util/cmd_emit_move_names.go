@@ -78,10 +78,18 @@ they are regenerated each time but should be committed to source control.`
 // serve command.
 func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ...bool) error {
 	checkOnly := len(check) > 0 && check[0]
+	generated, err := generateMoveNamesForPackages(base, pkgs, checkOnly)
+	if err != nil {
+		return err
+	}
+	return installGeneratedMoveNames(generated, checkOnly)
+}
+
+func generateMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly bool) ([]generatedMoveNamesFile, error) {
 
 	dir, err := ioutil.TempDir(".", "temp_movenames_")
 	if err != nil {
-		return fmt.Errorf("couldn't create temp directory: %w", err)
+		return nil, fmt.Errorf("couldn't create temp directory: %w", err)
 	}
 	defer func() {
 		if removeErr := os.RemoveAll(dir); removeErr != nil {
@@ -93,14 +101,14 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 	results, err := movenames.Build(dir, pkgs)
 
 	if err != nil {
-		return fmt.Errorf("couldn't build move names: %w", err)
+		return nil, fmt.Errorf("couldn't build move names: %w", err)
 	}
 	resultImports := make([]string, 0, len(results))
 	for _, result := range results {
 		resultImports = append(resultImports, result.ImportPath)
 	}
 	if err := validateClientExtractionResults(pkgs, resultImports, "move-name"); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Build a map from import path to pkg for quick lookup
@@ -121,7 +129,7 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 			continue
 		}
 
-		if pkg.ReadOnly() && !checkOnly {
+		if pkg.ReadOnly() && !includeReadOnly {
 			continue
 		}
 
@@ -130,7 +138,7 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 			gameName: result.PackageName, moves: len(result.MoveNames),
 		})
 	}
-	return installGeneratedMoveNames(generated, checkOnly)
+	return generated, nil
 }
 
 func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) error {

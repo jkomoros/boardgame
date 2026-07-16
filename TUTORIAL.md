@@ -1436,7 +1436,10 @@ memory/
 `boardgame-util serve` assembles configured game clients into the development
 package. `boardgame-util build static` does the same for production, and
 `boardgame-util check-client` performs the strict isolated compile/freshness
-gate without starting a server.
+gate without starting a server. During development, `boardgame-util
+check-client --fix` first refreshes every generated client file as one
+failure-atomic transaction, then runs that same strict gate. Use the read-only
+form in CI.
 
 By following this convention, you cleanly keep your client views for a game next
 to the server logic, and also make it easy to import the game package into
@@ -2183,9 +2186,12 @@ These files follow the same convention as `auto_reader.go` and `auto_enum.go`: t
 
 #### Generated Type Definitions
 
-When you run `boardgame-util serve` (or `boardgame-util emit-types`), the tool
-also generates `client/_types.ts` and `client/_game_renderer.ts` for each game
-package. The first exports typed state, player, component, computed-value,
+When you run `boardgame-util serve`, `boardgame-util emit-types`, or
+`boardgame-util check-client --fix`, the tool generates the complete client
+contract surface as one transaction. A failure in move, board-space, state, or
+strict-TypeScript validation leaves the previous complete generation intact.
+That surface includes `client/_types.ts` and `client/_game_renderer.ts` for each
+game package. The first exports typed state, player, component, computed-value,
 constant, and enum contracts. The second binds those types plus move names and
 native author inputs into the renderer bases and exact registration decorators:
 
@@ -2429,16 +2435,18 @@ You still need to add it to your games list, so run:
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
 ```
 
-First run the same fatal gate you should use in CI:
+First refresh the generated contracts and run the fatal gate:
 
 ```sh
-boardgame-util check-client
+boardgame-util check-client --fix
 ```
 
-It regenerates contracts in memory, rejects stale committed output, checks each
-configured client in isolation with the framework's pinned strict TypeScript
-and Lit rules, and reports unsafe escape hatches or deep imports. Then run
-`boardgame-util serve` to play the game.
+It transactionally installs a complete generation, checks each configured
+client in isolation with the framework's pinned strict TypeScript and Lit
+rules, and reports unsafe escape hatches or deep imports. Commit the generated
+changes. CI should run plain `boardgame-util check-client`, which is read-only
+and reports each stale or orphaned contract as its own clickable diagnostic.
+Then run `boardgame-util serve` to play the game.
 
 Remember that as you modify and recompile, you need to run `go generate` every time you modify the defined fields of a struct.
 

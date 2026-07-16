@@ -73,22 +73,9 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 		apiOptions.OverrideOfflineDevMode = true
 	}
 
-	fmt.Println("Generating move name constants")
-	if err := emitMoveNamesForPackages(s.Base(), pkgs); err != nil {
-		s.Base().errAndQuit("Couldn't generate move names: " + err.Error())
-	}
-
-	fmt.Println("Generating move argument types")
-	if err := emitMoveArgsForPackages(s.Base(), pkgs, false); err != nil {
-		s.Base().errAndQuit("Couldn't generate move args: " + err.Error())
-	}
-	if err := emitBoardSpacesForPackages(pkgs, false); err != nil {
-		s.Base().errAndQuit("Couldn't emit authored board spaces: " + err.Error())
-	}
-
-	fmt.Println("Generating type definitions")
+	fmt.Println("Generating complete client contracts")
 	if err := emitTypesForPackages(s.Base(), pkgs); err != nil {
-		s.Base().errAndQuit("Couldn't generate type definitions: " + err.Error())
+		s.Base().errAndQuit("Couldn't generate client contracts: " + err.Error())
 	}
 
 	fmt.Println("Creating temporary binary")

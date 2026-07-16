@@ -30,30 +30,18 @@ func (e *emitTypes) Run(p writ.Path, positional []string) {
 	if err != nil {
 		e.Base().errAndQuit("Not all game packages were valid: " + err.Error())
 	}
-	// Extract and schema-validate state types before refreshing dependencies. A
-	// bad deck/enum name must not mutate an otherwise-valid generated client.
-	generated, err := generateGameTypesForPackages(e.Base(), pkgs)
+	// Extract and validate the complete generated surface before touching any
+	// destination. Installation then succeeds or rolls the whole set back.
+	generated, err := generateCompleteClientContracts(e.Base(), pkgs, e.Check)
 	if err != nil {
 		e.Base().errAndQuit("Couldn't emit types: " + err.Error())
 	}
-	if err := emitMoveNamesForPackages(e.Base(), pkgs, e.Check); err != nil {
-		e.Base().errAndQuit("Couldn't emit move names required by client contracts: " + err.Error())
-	}
-	if err := emitMoveArgsForPackages(e.Base(), pkgs, e.Check); err != nil {
-		e.Base().errAndQuit("Couldn't emit move inputs required by client contracts: " + err.Error())
-	}
-	if err := emitBoardSpacesForPackages(pkgs, e.Check); err != nil {
-		e.Base().errAndQuit("Couldn't emit authored board spaces: " + err.Error())
-	}
-	if err := validateGeneratedGameTypesTypeScript(generated); err != nil {
-		e.Base().errAndQuit("Couldn't validate generated client contracts: " + err.Error())
-	}
 	if e.Check {
-		if err := checkGeneratedGameTypes(generated); err != nil {
+		if err := generated.check(); err != nil {
 			e.Base().errAndQuit("Generated client contracts are stale: " + err.Error())
 		}
 	} else {
-		if err := installGeneratedGameTypes(generated); err != nil {
+		if err := generated.install(); err != nil {
 			e.Base().errAndQuit("Couldn't install generated client contracts: " + err.Error())
 		}
 	}
@@ -98,14 +86,11 @@ they are regenerated each time but should be committed to source control.`
 // client/ directory. It is used by both the emit-types command and the
 // serve command.
 func emitTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) error {
-	generated, err := generateGameTypesForPackages(base, pkgs)
+	generated, err := generateCompleteClientContracts(base, pkgs, false)
 	if err != nil {
 		return err
 	}
-	if err := validateGeneratedGameTypesTypeScript(generated); err != nil {
-		return err
-	}
-	return installGeneratedGameTypes(generated)
+	return generated.install()
 }
 
 func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly ...bool) ([]generatedGameTypeFile, error) {
@@ -189,7 +174,7 @@ func checkGeneratedGameTypes(generated []generatedGameTypeFile) error {
 	return nil
 }
 
-func validateGeneratedGameTypesTypeScript(generated []generatedGameTypeFile) error {
+func validateGeneratedGameTypesTypeScript(generated []generatedGameTypeFile, stagedDependencies ...map[string][]byte) error {
 	if len(generated) == 0 {
 		return nil
 	}
@@ -244,6 +229,10 @@ export abstract class BoardgameHandViewBase<S, C extends object, M extends strin
 
 	args := []string{"--noEmit", "--strict", "--skipLibCheck", "--target", "ES2020", "--module", "ES2020", "--moduleResolution", "bundler"}
 	gameDirs := make(map[string]string)
+	var staged map[string][]byte
+	if len(stagedDependencies) > 0 {
+		staged = stagedDependencies[0]
+	}
 	for _, file := range generated {
 		gameDir, ok := gameDirs[file.gameName]
 		if !ok {
@@ -253,7 +242,12 @@ export abstract class BoardgameHandViewBase<S, C extends object, M extends strin
 				return fmt.Errorf("couldn't stage generated contract for %s: %w", file.gameName, err)
 			}
 			for _, dependency := range []string{"_move_args.ts", "_move_names.ts"} {
-				contents, err := os.ReadFile(filepath.Join(filepath.Dir(file.path), dependency))
+				dependencyPath := filepath.Join(filepath.Dir(file.path), dependency)
+				contents, found := staged[dependencyPath]
+				var err error
+				if !found {
+					contents, err = os.ReadFile(dependencyPath)
+				}
 				if err != nil {
 					command := strings.ReplaceAll(strings.TrimSuffix(strings.TrimPrefix(dependency, "_"), ".ts"), "_", "-")
 					return fmt.Errorf("couldn't validate %s for %s; generate it first with boardgame-util emit-%s: %w", dependency, file.gameName, command, err)

@@ -70,27 +70,39 @@ func (e *emitBoardSpaces) Run(_ writ.Path, _ []string) {
 }
 
 func emitBoardSpacesForPackages(packages []*gamepkg.Pkg, check bool) error {
+	generated, orphans, err := generateBoardSpacesForPackages(packages, check)
+	if err != nil {
+		return err
+	}
+	return installGeneratedBoardSpaces(generated, orphans, check)
+}
+
+func generateBoardSpacesForPackages(packages []*gamepkg.Pkg, includeReadOnly bool) ([]generatedBoardSpacesFile, []string, error) {
 	var generated []generatedBoardSpacesFile
 	var orphans []string
 	destinations := map[string]string{}
 	for _, pkg := range packages {
 		client := pkg.ClientFolder()
-		if client == "" || (pkg.ReadOnly() && !check) {
+		if client == "" || (pkg.ReadOnly() && !includeReadOnly) {
 			continue
 		}
 		files, desired, err := collectGeneratedBoardSpaces(client, destinations)
 		if err != nil {
-			return fmt.Errorf("%s: %w", pkg.Import(), err)
+			return nil, nil, fmt.Errorf("%s: %w", pkg.Import(), err)
 		}
 		generated = append(generated, files...)
 		found, err := orphanBoardSpaceContracts(client, desired)
 		if err != nil {
-			return fmt.Errorf("%s: %w", pkg.Import(), err)
+			return nil, nil, fmt.Errorf("%s: %w", pkg.Import(), err)
 		}
 		orphans = append(orphans, found...)
 	}
 	sort.Slice(generated, func(i, j int) bool { return generated[i].path < generated[j].path })
 	sort.Strings(orphans)
+	return generated, orphans, nil
+}
+
+func installGeneratedBoardSpaces(generated []generatedBoardSpacesFile, orphans []string, check bool) error {
 	if check && len(orphans) > 0 {
 		return staleGeneratedClientContracts("orphan generated board-space contracts: " + strings.Join(orphans, ", "))
 	}

@@ -186,11 +186,13 @@ second browser profile, or claim seats via `curl` against
 
 ## Type-checking your renderers
 
-`boardgame-util serve` regenerates every client contract and stops immediately
-if generation fails. Production builds also fail on assembled renderer type
-errors. Run `boardgame-util check-client` locally and in CI for the complete
-strict gate: unsafe escapes, stale generation, Lit bindings, and package-isolated
-type checking. The
+`boardgame-util serve` regenerates every client contract in one failure-atomic
+transaction and stops immediately if extraction, validation, or installation
+fails. Production builds also fail on assembled renderer type errors. Run
+`boardgame-util check-client --fix` locally to refresh and check; commit its
+generated changes. Run plain `boardgame-util check-client` in CI for the
+read-only strict gate: unsafe escapes, stale generation, Lit bindings, and
+package-isolated type checking. The
 generated `TableRenderer` and `HandRenderer` bases already bind the complete
 state, component catalog, move-name, and move-input contract. You get the same
 compile-time checking of `state`, `playerState`, and `move(...).with(...)` as

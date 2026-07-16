@@ -78,14 +78,16 @@ From a games repository with a boardgame config:
 ```sh
 boardgame-util stub examplegame
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
-boardgame-util check-client
+boardgame-util check-client --fix
 boardgame-util serve --offline-dev-mode
 ```
 
 `stub` emits Lit TypeScript, generated game/state/move contracts, typed renderer
 bases, exact registration decorators, and accessible responsive starter
-compositions. `check-client` is the fatal local/CI gate for stale generation,
-strict TypeScript, Lit bindings, unsafe escape hatches, and deep imports.
+compositions. `check-client --fix` transactionally refreshes the complete
+generated surface and then runs the fatal checks. Use plain `check-client` in
+CI so stale generation, strict TypeScript, Lit bindings, unsafe escape hatches,
+and deep imports fail without rewriting the checkout.
 
 See [TUTORIAL.md](TUTORIAL.md) for game authoring and
 [OFFLINE_DEV_MODE.md](OFFLINE_DEV_MODE.md) for the offline security model.
