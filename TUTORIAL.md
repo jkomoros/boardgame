@@ -2501,6 +2501,68 @@ overall context. The artwork itself is presentation-only; the generated focus
 buttons and compact list are the single accessible interaction model, avoiding
 duplicate announcements from SVG-editor metadata.
 
+If the board is a PNG, JPEG, WebP, AVIF, or GIF, keep it as raster artwork and
+describe its spaces in normalized coordinates. You do not need to trace the
+image into SVG or write resize math:
+
+```ts
+import { html, rasterBoardArtwork } from '/src/client.js';
+
+const artwork = rasterBoardArtwork({
+  src: 'game-src/mygame/board.webp',
+  // Keep the rendered board square even though the source image is wider.
+  viewportAspectRatio: 1,
+  fit: 'contain',
+  spaces: [
+    {
+      key: 'harbor',
+      label: 'Harbor',
+      region: {
+        shape: 'circle',
+        center: { x: 0.18, y: 0.72 },
+        radius: 0.08,
+      },
+      // Optional: put pieces somewhere other than the hit-region center.
+      pieceAnchor: { x: 0.2, y: 0.68 },
+    },
+    {
+      key: 'market',
+      label: 'Market',
+      region: { shape: 'rect', x: 0.55, y: 0.2, width: 0.3, height: 0.25 },
+    },
+  ],
+});
+
+return html`<boardgame-spatial-board
+  .artwork=${artwork}
+  .action=${this.move(MoveNames.MoveToRoom).targets(
+    artwork.spaces.map(space => space.key),
+    room => ({ TargetLocation: room }),
+  )}>
+</boardgame-spatial-board>`;
+```
+
+Coordinates run from `0` at the image's left/top to `1` at its right/bottom.
+Regions may be circles, rectangles, or polygons. Optional `focusAnchor` and
+`pieceAnchor` use the same normalized coordinates. The constructor freezes and
+validates the complete descriptor up front: empty or duplicate keys, missing
+labels, duplicate keyboard order, out-of-range coordinates, degenerate shapes,
+unsupported fit modes, and unsafe image sources fail loudly near the authoring
+code.
+
+`fit` is `contain` by default; use `cover` when cropping is intentional or
+`fill` when distortion is intentional. The framework puts the raster image and
+all regions/anchors in one nested SVG transform, so letterboxing, cropping,
+responsive widths, focus placement, piece placement, and animation measurement
+cannot silently use different coordinate systems. Omit `viewportAspectRatio`
+to use the decoded image's own aspect ratio.
+
+Choose exactly one board source: `svgUrl` for authored SVG or `.artwork` for a
+raster descriptor. The custom `.geometry` callback is SVG-only because raster
+spaces already live in the descriptor. Everything after source loading is
+shared: typed `TargetAction`, piece projections, keyboard/list access, legality
+reasons, responsive positioning, geometry inspection, loading errors, and retry.
+
 `spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
 `boxForSpace()`, and `tokenPosition()` remain migration adapters for older
 numeric-ID boards. New renderers should use `data-board-*`, `.action`, and

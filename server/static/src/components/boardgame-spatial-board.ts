@@ -8,9 +8,12 @@ import type { ComponentView } from './component-view.js';
 import {
   geometryFromSvg,
   parseTrustedBoardSvg,
+  rasterArtworkScene,
   type BoardPiece,
+  type BoardGeometry,
   resolveBoardGeometry,
   type BoardGeometryFactory,
+  type RasterBoardArtwork,
   type ResolvedBoardGeometry,
   type SpatialBoardKey,
 } from './spatial-board-geometry.js';
@@ -167,6 +170,10 @@ class BoardgameSpatialBoard extends LitElement {
   @property({ type: String })
   svgUrl = '';
 
+  /** Raster board plus normalized interactive hotspots. Mutually exclusive with svgUrl. */
+  @property({ type: Object, attribute: false })
+  artwork: RasterBoardArtwork<SpatialBoardKey> | null = null;
+
   /** ID prefix for space elements in the SVG (e.g., "Space-" matches "Space-0"). */
   @property({ type: String })
   spacePrefix = 'Space-';
@@ -263,7 +270,7 @@ class BoardgameSpatialBoard extends LitElement {
     });
     if (this.hasUpdated && this._container) this._resizeObserver.observe(this._container);
     this._subscribeAction();
-    if (this.hasUpdated && this.svgUrl && !this.svgLoaded) void this._loadSvg();
+    if (this.hasUpdated && (this.svgUrl || this.artwork) && !this.svgLoaded) void this._loadBoardSource();
   }
 
   override disconnectedCallback() {
@@ -278,8 +285,8 @@ class BoardgameSpatialBoard extends LitElement {
 
   override async firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
-    if (this.svgUrl) {
-      await this._loadSvg();
+    if (this.svgUrl || this.artwork) {
+      await this._loadBoardSource();
     }
     if (this._container) {
       this._resizeObserver?.observe(this._container);
@@ -289,13 +296,15 @@ class BoardgameSpatialBoard extends LitElement {
   override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated(changedProperties);
 
-    if (changedProperties.has('svgUrl') && changedProperties.get('svgUrl') !== undefined) {
-      if (this.svgUrl) void this._loadSvg();
+    if ((changedProperties.has('svgUrl') && changedProperties.get('svgUrl') !== undefined)
+      || (changedProperties.has('artwork') && changedProperties.get('artwork') !== undefined)) {
+      if (this.svgUrl || this.artwork) void this._loadBoardSource();
       else this._clearSvg();
     }
 
-    if (changedProperties.has('geometry') && changedProperties.get('geometry') !== undefined && this.svgUrl) {
-      void this._loadSvg();
+    if (changedProperties.has('geometry') && changedProperties.get('geometry') !== undefined
+      && (this.svgUrl || this.artwork)) {
+      void this._loadBoardSource();
     }
 
     if (changedProperties.has('action')) this._subscribeAction();
@@ -313,7 +322,26 @@ class BoardgameSpatialBoard extends LitElement {
 
   // ---- SVG loading ----
 
-  private async _loadSvg() {
+  private async _loadBoardSource(): Promise<void> {
+    try {
+      this._validateSourceConfiguration();
+    } catch (error) {
+      this._clearSvg();
+      this._reportLoadError(error);
+      return;
+    }
+    if (this.artwork) {
+      await this._loadRasterArtwork();
+      return;
+    }
+    if (this.svgUrl) {
+      await this._loadSvg();
+      return;
+    }
+    this._clearSvg();
+  }
+
+  private _beginLoad(): { readonly generation: number; readonly controller: AbortController } {
     const generation = ++this._loadGeneration;
     this._loadController?.abort();
     const controller = new AbortController();
@@ -325,6 +353,96 @@ class BoardgameSpatialBoard extends LitElement {
     this._focusPositions = new Map();
     this._inspection = '';
     this._container.querySelector('svg')?.remove();
+    return { generation, controller };
+  }
+
+  private _isStaleLoad(generation: number, controller: AbortController): boolean {
+    return controller.signal.aborted || generation !== this._loadGeneration || !this.isConnected;
+  }
+
+  private _installScene(
+    svgElement: SVGSVGElement,
+    geometryForSvg: (svg: SVGSVGElement) => BoardGeometry<SpatialBoardKey>,
+  ): void {
+    const existing = this._container.querySelector('svg');
+    if (existing) this._container.removeChild(existing);
+    this._container.insertBefore(svgElement, this._container.firstChild);
+    const resolvedGeometry = resolveBoardGeometry(geometryForSvg(svgElement));
+    this._resolvedGeometry = resolvedGeometry;
+    this._validateActionKeys();
+    this._validateRenderInputs();
+    void this.action?.ensurePreview();
+    this._applyDisabledSpaces();
+    this.svgLoaded = true;
+    this._recalculatePositions();
+    this.dispatchEvent(new CustomEvent('svg-loaded-changed', {
+      composed: true,
+      detail: { value: true },
+    }));
+  }
+
+  private _reportLoadError(error: unknown): void {
+    this._container?.querySelector('svg')?.remove();
+    this.svgLoaded = false;
+    this._resolvedGeometry = null;
+    this._loadError = error instanceof Error ? error.message : String(error);
+    this.dispatchEvent(new CustomEvent('svg-load-error', {
+      composed: true,
+      detail: { message: this._loadError },
+    }));
+  }
+
+  private async _loadRasterArtwork(): Promise<void> {
+    const artwork = this.artwork;
+    if (!artwork) return;
+    const { generation, controller } = this._beginLoad();
+    try {
+      const source = new URL(artwork.src, document.baseURI);
+      if (!['http:', 'https:', 'blob:', 'data:'].includes(source.protocol)) {
+        throw new Error(`raster artwork uses unsupported URL protocol ${JSON.stringify(source.protocol)}`);
+      }
+      const dimensions = await this._decodeRasterDimensions(source.href, controller.signal);
+      if (this._isStaleLoad(generation, controller)) return;
+      const scene = rasterArtworkScene(artwork, dimensions.width, dimensions.height);
+      this._installScene(scene.svg, () => scene.geometry);
+    } catch (error) {
+      if (this._isStaleLoad(generation, controller)) return;
+      this._reportLoadError(error);
+    }
+  }
+
+  private _decodeRasterDimensions(
+    src: string,
+    signal: AbortSignal,
+  ): Promise<{ readonly width: number; readonly height: number }> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      const cleanup = () => {
+        signal.removeEventListener('abort', abort);
+        image.onload = null;
+        image.onerror = null;
+      };
+      const abort = () => {
+        cleanup();
+        image.src = '';
+        reject(new DOMException('Raster image load aborted', 'AbortError'));
+      };
+      signal.addEventListener('abort', abort, { once: true });
+      image.onload = () => {
+        const dimensions = { width: image.naturalWidth, height: image.naturalHeight };
+        cleanup();
+        resolve(dimensions);
+      };
+      image.onerror = () => {
+        cleanup();
+        reject(new Error(`raster image ${JSON.stringify(src)} could not be decoded`));
+      };
+      image.src = src;
+    });
+  }
+
+  private async _loadSvg() {
+    const { generation, controller } = this._beginLoad();
     try {
       const response = await fetch(this.svgUrl, { signal: controller.signal });
       if (!response.ok) throw new Error(`request failed with HTTP ${response.status}`);
@@ -338,7 +456,7 @@ class BoardgameSpatialBoard extends LitElement {
       }
       const text = await response.text();
       const svgElement = parseTrustedBoardSvg(text);
-      if (controller.signal.aborted || generation !== this._loadGeneration || !this.isConnected) return;
+      if (this._isStaleLoad(generation, controller)) return;
 
       // Legacy migration adapter. New artwork authors data-board-* directly.
       if (!svgElement.querySelector('[data-board-space]') && this.spacePrefix) {
@@ -356,36 +474,10 @@ class BoardgameSpatialBoard extends LitElement {
       svgElement.setAttribute('focusable', 'false');
       for (const element of svgElement.querySelectorAll('[tabindex]')) element.removeAttribute('tabindex');
 
-      // Mount temporarily so browser geometry APIs can measure it. The catch
-      // path removes it if any creator contract fails validation.
-      const existing = this._container.querySelector('svg');
-      if (existing) this._container.removeChild(existing);
-      this._container.insertBefore(svgElement, this._container.firstChild);
-
-      const geometry = this.geometry ? this.geometry(svgElement) : geometryFromSvg(svgElement);
-      const resolvedGeometry = resolveBoardGeometry(geometry);
-      this._resolvedGeometry = resolvedGeometry;
-      this._validateActionKeys();
-      this._validateRenderInputs();
-
-      void this.action?.ensurePreview();
-
-      this._applyDisabledSpaces();
-      this.svgLoaded = true;
-      this._recalculatePositions();
-      this.dispatchEvent(new CustomEvent('svg-loaded-changed', {
-        composed: true,
-        detail: { value: true }
-      }));
+      this._installScene(svgElement, svg => this.geometry ? this.geometry(svg) : geometryFromSvg(svg));
     } catch (err) {
-      if (controller.signal.aborted || generation !== this._loadGeneration || !this.isConnected) return;
-      this._container.querySelector('svg')?.remove();
-      this._resolvedGeometry = null;
-      this._loadError = err instanceof Error ? err.message : String(err);
-      this.dispatchEvent(new CustomEvent('svg-load-error', {
-        composed: true,
-        detail: { message: this._loadError },
-      }));
+      if (this._isStaleLoad(generation, controller)) return;
+      this._reportLoadError(err);
     }
   }
 
@@ -671,6 +763,15 @@ class BoardgameSpatialBoard extends LitElement {
     }
   }
 
+  private _validateSourceConfiguration(): void {
+    if (this.svgUrl && this.artwork) {
+      throw new Error('boardgame-spatial-board: choose svgUrl or artwork, not both');
+    }
+    if (this.artwork && this.geometry) {
+      throw new Error('boardgame-spatial-board: geometry is only valid with svgUrl; artwork declares its own spaces');
+    }
+  }
+
   private _geometryInspection(): string {
     const spaces = this._resolvedGeometry?.spaces ?? [];
     const boxes = spaces.map(space => ({ space, box: space.region.getBoundingClientRect() }));
@@ -709,10 +810,10 @@ class BoardgameSpatialBoard extends LitElement {
         ${this.boardDescription ? html`<span id="board-description" hidden>${this.boardDescription}</span>` : ''}
         <p id="status" role="status" aria-live="polite" ?hidden=${!this._loadError}>
           ${this._loadError ? html`Board artwork could not be loaded: ${this._loadError}
-            <button type="button" @click=${this._loadSvg}>Retry</button>` : ''}
+            <button type="button" @click=${this._loadBoardSource}>Retry</button>` : ''}
         </p>
         <div id="container" @click="${this._spaceTapped}">
-          <!-- SVG is loaded via fetch and inserted here -->
+          <!-- Board scene is loaded/generated and inserted here -->
           ${this._resolvedGeometry ? html`
             <div id="focus-overlay">
               ${repeat(this._resolvedGeometry.spaces, space => space.key, space => {

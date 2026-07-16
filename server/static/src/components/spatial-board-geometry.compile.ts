@@ -1,8 +1,10 @@
 import {
   piecesFromSizedStacks,
+  rasterBoardArtwork,
   type BoardGeometry,
   type BoardGeometryFactory,
   type ExpandedStack,
+  type RasterBoardArtwork,
 } from '../client.js';
 
 const keys = ['library', 'study'] as const;
@@ -27,6 +29,29 @@ void pieces;
 void geometry;
 void geometryFactory;
 
+const rasterArtwork = rasterBoardArtwork({
+  src: 'game-src/example/board.webp',
+  viewportAspectRatio: 4 / 3,
+  fit: 'contain',
+  spaces: [
+    {
+      key: keys[0],
+      label: 'Library',
+      region: { shape: 'circle', center: { x: 0.25, y: 0.4 }, radius: 0.1 },
+      pieceAnchor: { x: 0.3, y: 0.5 },
+    },
+    {
+      key: keys[1],
+      label: 'Study',
+      region: { shape: 'polygon', points: [
+        { x: 0.5, y: 0.1 }, { x: 0.9, y: 0.1 }, { x: 0.7, y: 0.8 },
+      ] },
+    },
+  ],
+});
+const exactRasterArtwork: RasterBoardArtwork<(typeof keys)[number]> = rasterArtwork;
+void exactRasterArtwork;
+
 // @ts-expect-error authored geometry must provide the actual pointer-hit region
 const missingRegion: BoardGeometry<'library'> = { spaces: [{ key: 'library', label: 'Library' }] };
 void missingRegion;
@@ -36,3 +61,24 @@ const misspelledKey: BoardGeometry<(typeof keys)[number]> = {
   spaces: [{ key: 'libary', label: 'Library', region: libraryRegion }],
 };
 void misspelledKey;
+
+rasterBoardArtwork({
+  src: '/board.png',
+  spaces: [{
+    key: 'library',
+    label: 'Library',
+    // @ts-expect-error hotspot shapes are a closed, discriminated union
+    region: { shape: 'ellipse', center: { x: 0.5, y: 0.5 }, radius: 0.2 },
+  }],
+});
+
+// @ts-expect-error descriptor keys preserve the game's literal space union
+const wrongRasterKey: RasterBoardArtwork<(typeof keys)[number]> = rasterBoardArtwork({
+  src: '/board.png',
+  spaces: [{
+    key: 'libary',
+    label: 'Library',
+    region: { shape: 'circle', center: { x: 0.5, y: 0.5 }, radius: 0.2 },
+  }],
+});
+void wrongRasterKey;

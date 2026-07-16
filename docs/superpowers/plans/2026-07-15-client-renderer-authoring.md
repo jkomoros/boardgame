@@ -766,9 +766,15 @@ The component-view tranche subsequently removed Monroe's remaining global card/
 token templates: the game-owned card front is ordinary typed Lit content, and
 heterogeneous token layers use explicit spatial-board views.
 
-**Next adapter, not part of the first proof:** raster artwork plus normalized
-hotspot manifest and explicit `object-fit` coordinate mapping. Pan/zoom, routes,
-edges, and vertices follow without changing the action contract.
+**Raster adapter completed (2026-07-16):** `rasterBoardArtwork(...)` adds a
+strict immutable descriptor for raster sources and normalized circle, rectangle,
+and polygon regions with optional focus/piece anchors. `boardgame-spatial-board`
+turns it into one nested SVG scene, so image and interaction geometry share exact
+`contain`, `cover`, or `fill` transforms while reusing the existing action,
+focus, list, piece, resize, error, and inspector pipeline. Unit, strict facade,
+responsive browser, source-race, negative-runtime, and axe proofs cover it.
+Pan/zoom, routes, edges, and vertices can follow without changing the action
+contract.
 
 ### Task 10: First-tranche review and stop gate
 

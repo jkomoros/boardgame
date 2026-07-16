@@ -72,8 +72,271 @@ export interface ResolvedBoardGeometry<Key extends SpatialBoardKey> {
   readonly byKey: ReadonlyMap<Key, ResolvedBoardGeometrySpace<Key>>;
 }
 
+export type RasterArtworkFit = 'contain' | 'cover' | 'fill';
+
+export interface NormalizedBoardPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+export type NormalizedBoardRegion =
+  | { readonly shape: 'circle'; readonly center: NormalizedBoardPoint; readonly radius: number }
+  | { readonly shape: 'rect'; readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+  | { readonly shape: 'polygon'; readonly points: readonly NormalizedBoardPoint[] };
+
+export interface NormalizedBoardSpace<Key extends SpatialBoardKey> {
+  readonly key: Key;
+  readonly label: string;
+  readonly order?: number;
+  readonly region: NormalizedBoardRegion;
+  readonly focusAnchor?: NormalizedBoardPoint;
+  readonly pieceAnchor?: NormalizedBoardPoint;
+}
+
+export interface RasterBoardArtwork<Key extends SpatialBoardKey> {
+  readonly kind: 'raster';
+  readonly src: string;
+  readonly spaces: readonly NormalizedBoardSpace<Key>[];
+  readonly fit: RasterArtworkFit;
+  readonly viewportAspectRatio: number | null;
+}
+
+export interface RasterBoardArtworkOptions<Key extends SpatialBoardKey> {
+  readonly src: string;
+  readonly spaces: readonly NormalizedBoardSpace<Key>[];
+  readonly fit?: RasterArtworkFit;
+  readonly viewportAspectRatio?: number;
+}
+
+const rasterFits = new Set<RasterArtworkFit>(['contain', 'cover', 'fill']);
+
+/** Create an immutable normalized-hotspot contract for PNG/JPEG/WebP/etc. artwork. */
+export function rasterBoardArtwork<Key extends SpatialBoardKey>(
+  options: RasterBoardArtworkOptions<Key>,
+): RasterBoardArtwork<Key> {
+  if (!options || typeof options !== 'object') fail('raster artwork options must be an object');
+  const src = validateRasterSource(options.src);
+  const fit = options.fit ?? 'contain';
+  if (!rasterFits.has(fit)) fail(`raster artwork has unknown fit ${JSON.stringify(fit)}`);
+  const viewportAspectRatio = options.viewportAspectRatio ?? null;
+  if (viewportAspectRatio !== null && (!Number.isFinite(viewportAspectRatio) || viewportAspectRatio <= 0)) {
+    fail('raster artwork viewportAspectRatio must be a finite positive number');
+  }
+  if (!Array.isArray(options.spaces) || options.spaces.length === 0) {
+    fail('raster artwork requires at least one normalized space');
+  }
+  if (options.spaces.length > MAX_BOARD_SPACES) fail(`geometry exceeds the ${MAX_BOARD_SPACES}-space limit`);
+  const keys = new Set<string>();
+  const orders = new Set<number>();
+  const spaces = options.spaces.map((space, index) => {
+    validateSpaceKey(space.key, index);
+    const canonicalKey = String(space.key);
+    if (keys.has(canonicalKey)) fail(`duplicate canonical space key ${JSON.stringify(canonicalKey)}`);
+    keys.add(canonicalKey);
+    if (typeof space.label !== 'string' || !space.label.trim()) {
+      fail(`space ${JSON.stringify(space.key)} has no accessible label`);
+    }
+    const order = space.order ?? index;
+    if (!Number.isSafeInteger(order) || order < 0) fail(`space ${JSON.stringify(space.key)} has invalid order ${order}`);
+    if (orders.has(order)) fail(`duplicate keyboard order ${order}`);
+    orders.add(order);
+    const region = freezeRegion(space.region, space.key);
+    const focusAnchor = space.focusAnchor ? freezePoint(space.focusAnchor, `space ${JSON.stringify(space.key)} focusAnchor`) : undefined;
+    const pieceAnchor = space.pieceAnchor ? freezePoint(space.pieceAnchor, `space ${JSON.stringify(space.key)} pieceAnchor`) : undefined;
+    return Object.freeze({ key: space.key, label: space.label.trim(), order, region, focusAnchor, pieceAnchor });
+  });
+  return Object.freeze({
+    kind: 'raster' as const,
+    src,
+    spaces: Object.freeze(spaces),
+    fit,
+    viewportAspectRatio,
+  });
+}
+
+/** Build the in-memory SVG scene consumed by the existing spatial-board pipeline. */
+export function rasterArtworkScene<Key extends SpatialBoardKey>(
+  artwork: RasterBoardArtwork<Key>,
+  intrinsicWidth: number,
+  intrinsicHeight: number,
+): { readonly svg: SVGSVGElement; readonly geometry: BoardGeometry<Key> } {
+  if (!Number.isSafeInteger(intrinsicWidth) || intrinsicWidth <= 0
+    || !Number.isSafeInteger(intrinsicHeight) || intrinsicHeight <= 0) {
+    fail('raster image must decode to positive safe-integer intrinsic dimensions');
+  }
+  if (intrinsicWidth > MAX_RASTER_DIMENSION || intrinsicHeight > MAX_RASTER_DIMENSION
+    || intrinsicWidth * intrinsicHeight > MAX_RASTER_PIXELS) {
+    fail(`raster image exceeds the ${MAX_RASTER_DIMENSION}-pixel dimension or ${MAX_RASTER_PIXELS}-pixel area limit`);
+  }
+  // Revalidate callers that bypassed rasterBoardArtwork with an unsafe cast.
+  const validated = rasterBoardArtwork({
+    src: artwork.src,
+    spaces: artwork.spaces,
+    fit: artwork.fit,
+    ...(artwork.viewportAspectRatio === null ? {} : { viewportAspectRatio: artwork.viewportAspectRatio }),
+  });
+  const namespace = 'http://www.w3.org/2000/svg';
+  const outerHeight = intrinsicHeight;
+  const outerWidth = (validated.viewportAspectRatio ?? (intrinsicWidth / intrinsicHeight)) * outerHeight;
+  if (!Number.isFinite(outerWidth) || outerWidth <= 0) {
+    fail('raster artwork viewportAspectRatio overflows the decoded image dimensions');
+  }
+  const svg = document.createElementNS(namespace, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${outerWidth} ${outerHeight}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+
+  const scene = document.createElementNS(namespace, 'svg');
+  scene.setAttribute('x', '0');
+  scene.setAttribute('y', '0');
+  scene.setAttribute('width', String(outerWidth));
+  scene.setAttribute('height', String(outerHeight));
+  scene.setAttribute('viewBox', `0 0 ${intrinsicWidth} ${intrinsicHeight}`);
+  scene.setAttribute('preserveAspectRatio', validated.fit === 'contain'
+    ? 'xMidYMid meet'
+    : validated.fit === 'cover' ? 'xMidYMid slice' : 'none');
+  svg.append(scene);
+
+  const image = document.createElementNS(namespace, 'image');
+  image.setAttribute('href', validated.src);
+  image.setAttribute('x', '0');
+  image.setAttribute('y', '0');
+  image.setAttribute('width', String(intrinsicWidth));
+  image.setAttribute('height', String(intrinsicHeight));
+  image.setAttribute('preserveAspectRatio', 'none');
+  image.setAttribute('pointer-events', 'none');
+  scene.append(image);
+
+  const geometrySpaces = validated.spaces.map(space => {
+    const region = createRegionElement(space.region, intrinsicWidth, intrinsicHeight);
+    region.setAttribute('data-space', '');
+    region.setAttribute('fill', 'transparent');
+    region.setAttribute('stroke', 'transparent');
+    region.setAttribute('pointer-events', 'all');
+    scene.append(region);
+    const focusAnchor = space.focusAnchor
+      ? createAnchorElement(space.focusAnchor, intrinsicWidth, intrinsicHeight)
+      : undefined;
+    const pieceAnchor = space.pieceAnchor
+      ? createAnchorElement(space.pieceAnchor, intrinsicWidth, intrinsicHeight)
+      : undefined;
+    if (focusAnchor) scene.append(focusAnchor);
+    if (pieceAnchor) scene.append(pieceAnchor);
+    return { key: space.key, label: space.label, order: space.order, region, focusAnchor, pieceAnchor };
+  });
+  return Object.freeze({ svg, geometry: Object.freeze({ spaces: Object.freeze(geometrySpaces) }) });
+}
+
+function validateRasterSource(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) fail('raster artwork src must be a non-empty URL');
+  const src = value.trim();
+  if (/^\s*javascript:/i.test(src)) fail('raster artwork src uses a forbidden URL protocol');
+  if (/^\s*data:/i.test(src) && !/^data:image\/(?:png|jpeg|gif|webp|avif);/i.test(src)) {
+    fail('raster artwork data URLs must contain a supported raster image');
+  }
+  return src;
+}
+
+function validateSpaceKey(key: unknown, index: number): void {
+  if ((typeof key !== 'string' && typeof key !== 'number')
+    || (typeof key === 'string' && !key.length)
+    || (typeof key === 'number' && !Number.isFinite(key))) {
+    fail(`space ${index} has an invalid key`);
+  }
+}
+
+function freezePoint(point: NormalizedBoardPoint, description: string): Readonly<NormalizedBoardPoint> {
+  if (!point || typeof point !== 'object' || !normalized(point.x) || !normalized(point.y)) {
+    fail(`${description} must have finite x/y coordinates from 0 through 1`);
+  }
+  return Object.freeze({ x: point.x, y: point.y });
+}
+
+function normalized(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function positiveNormalized(value: unknown): value is number {
+  return normalized(value) && value > 0;
+}
+
+function freezeRegion(region: NormalizedBoardRegion, key: SpatialBoardKey): NormalizedBoardRegion {
+  const description = `space ${JSON.stringify(key)} region`;
+  if (!region || typeof region !== 'object') fail(`${description} must be a normalized shape`);
+  if (region.shape === 'circle') {
+    const center = freezePoint(region.center, `${description} center`);
+    if (!positiveNormalized(region.radius)) fail(`${description} radius must be greater than 0 and at most 1`);
+    return Object.freeze({ shape: 'circle' as const, center, radius: region.radius });
+  }
+  if (region.shape === 'rect') {
+    if (!normalized(region.x) || !normalized(region.y)
+      || !positiveNormalized(region.width) || !positiveNormalized(region.height)
+      || region.x + region.width > 1 || region.y + region.height > 1) {
+      fail(`${description} rectangle must fit within normalized coordinates`);
+    }
+    return Object.freeze({ shape: 'rect' as const, x: region.x, y: region.y, width: region.width, height: region.height });
+  }
+  if (region.shape === 'polygon') {
+    if (!Array.isArray(region.points) || region.points.length < 3) fail(`${description} polygon requires at least three points`);
+    if (region.points.length > MAX_POLYGON_POINTS) {
+      fail(`${description} polygon exceeds the ${MAX_POLYGON_POINTS}-point limit`);
+    }
+    const points = Object.freeze(region.points.map((point, index) => freezePoint(point, `${description} point ${index}`)));
+    const width = Math.max(...points.map(point => point.x)) - Math.min(...points.map(point => point.x));
+    const height = Math.max(...points.map(point => point.y)) - Math.min(...points.map(point => point.y));
+    if (width <= 0 || height <= 0) fail(`${description} polygon must have positive width and height`);
+    const twiceArea = Math.abs(points.reduce((sum, point, index) => {
+      const next = points[(index + 1) % points.length]!;
+      return sum + point.x * next.y - next.x * point.y;
+    }, 0));
+    if (twiceArea <= Number.EPSILON) fail(`${description} polygon must enclose a positive area`);
+    return Object.freeze({ shape: 'polygon' as const, points });
+  }
+  fail(`${description} has unknown shape ${JSON.stringify((region as { shape?: unknown }).shape)}`);
+}
+
+function createRegionElement(
+  region: NormalizedBoardRegion,
+  width: number,
+  height: number,
+): SVGGraphicsElement {
+  const namespace = 'http://www.w3.org/2000/svg';
+  if (region.shape === 'circle') {
+    const element = document.createElementNS(namespace, 'circle');
+    element.setAttribute('cx', String(region.center.x * width));
+    element.setAttribute('cy', String(region.center.y * height));
+    element.setAttribute('r', String(region.radius * Math.min(width, height)));
+    return element;
+  }
+  if (region.shape === 'rect') {
+    const element = document.createElementNS(namespace, 'rect');
+    element.setAttribute('x', String(region.x * width));
+    element.setAttribute('y', String(region.y * height));
+    element.setAttribute('width', String(region.width * width));
+    element.setAttribute('height', String(region.height * height));
+    return element;
+  }
+  const element = document.createElementNS(namespace, 'polygon');
+  element.setAttribute('points', region.points.map(point => `${point.x * width},${point.y * height}`).join(' '));
+  return element;
+}
+
+function createAnchorElement(point: NormalizedBoardPoint, width: number, height: number): SVGCircleElement {
+  const element = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  element.setAttribute('cx', String(point.x * width));
+  element.setAttribute('cy', String(point.y * height));
+  element.setAttribute('r', String(Math.max(0.001, Math.min(width, height) / 10000)));
+  element.setAttribute('fill', 'transparent');
+  element.setAttribute('pointer-events', 'none');
+  return element;
+}
+
 const MAX_SVG_BYTES = 2 * 1024 * 1024;
 const MAX_BOARD_SPACES = 512;
+const MAX_POLYGON_POINTS = 256;
+const MAX_RASTER_DIMENSION = 16384;
+const MAX_RASTER_PIXELS = 100_000_000;
 const blockedElements = new Set([
   'script', 'foreignobject', 'iframe', 'object', 'embed', 'audio', 'video', 'style',
   'animate', 'animatemotion', 'animatetransform', 'set', 'mpath', 'link',

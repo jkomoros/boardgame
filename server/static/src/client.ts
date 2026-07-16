@@ -65,9 +65,15 @@ export type {
   BoardGeometry,
   BoardGeometryFactory,
   BoardGeometrySpace,
+  NormalizedBoardPoint,
+  NormalizedBoardRegion,
+  NormalizedBoardSpace,
+  RasterBoardArtwork,
+  RasterBoardArtworkOptions,
+  RasterArtworkFit,
   SpatialBoardKey,
 } from './components/spatial-board-geometry.js';
-export { piecesFromSizedStacks } from './components/spatial-board-geometry.js';
+export { piecesFromSizedStacks, rasterBoardArtwork } from './components/spatial-board-geometry.js';
 export { cardView, componentView, tokenView } from './components/component-view.js';
 export type { ComponentView, ComponentViewContext, ComponentViewOptions } from './components/component-view.js';
 export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';

@@ -2385,6 +2385,212 @@ test('spatial board sanitizes authored geometry and shares typed target activati
   expect(axeResult.violations).toEqual([]);
 });
 
+test('spatial board keeps raster artwork, hotspots, focus, and pieces in one responsive coordinate system', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-spatial-board.ts');
+    const { rasterBoardArtwork } = await import('/src/components/spatial-board-geometry.ts');
+    const canvas = document.createElement('canvas');
+    canvas.width = 200;
+    canvas.height = 100;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas unavailable');
+    context.fillStyle = '#315c3b';
+    context.fillRect(0, 0, 100, 100);
+    context.fillStyle = '#d7a84a';
+    context.fillRect(100, 0, 100, 100);
+    const src = canvas.toDataURL('image/png');
+    const spaces = [
+      {
+        key: 'harbor', label: 'Harbor', order: 0,
+        region: { shape: 'circle' as const, center: { x: 0.25, y: 0.5 }, radius: 0.24 },
+        focusAnchor: { x: 0.2, y: 0.45 }, pieceAnchor: { x: 0.3, y: 0.55 },
+      },
+      {
+        key: 'market', label: 'Market', order: 1,
+        region: { shape: 'rect' as const, x: 0.55, y: 0.2, width: 0.35, height: 0.6 },
+      },
+      {
+        key: 'road', label: 'Road', order: 2,
+        region: { shape: 'polygon' as const, points: [
+          { x: 0.42, y: 0.1 }, { x: 0.58, y: 0.5 }, { x: 0.42, y: 0.9 },
+        ] },
+      },
+    ];
+    const board = document.createElement('boardgame-spatial-board') as HTMLElement & {
+      artwork: unknown;
+      svgUrl: string;
+      geometry: unknown;
+      pieces: readonly unknown[];
+      tokenSize: number;
+      svgLoaded: boolean;
+      updateComplete: Promise<unknown>;
+    };
+    board.style.width = '320px';
+    board.artwork = rasterBoardArtwork({ src, spaces, fit: 'contain', viewportAspectRatio: 1 });
+    const token = { Index: 0, Values: {}, Deck: 'tokens', GameName: 'fixture', ID: 'raster-token' };
+    const stack = {
+      Deck: 'tokens', Indexes: [0], IDs: [token.ID], IDsLastSeen: {}, ShuffleCount: 0,
+      GameName: 'fixture', Components: [token],
+    };
+    board.tokenSize = 20;
+    board.pieces = [{ id: token.ID, space: 'harbor', stack, slot: 0, component: token }];
+    document.body.append(board);
+    const waitForLoad = async () => {
+      for (let attempt = 0; attempt < 40 && !board.svgLoaded; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      await board.updateComplete;
+      if (!board.svgLoaded) throw new Error('Raster board did not load');
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    };
+    await waitForLoad();
+    const root = board.shadowRoot;
+    const sceneInfo = () => {
+      const outer = root?.querySelector('#container > svg');
+      const scene = outer?.querySelector(':scope > svg');
+      const image = scene?.querySelector('image');
+      const regions = [...(scene?.querySelectorAll('[data-space]') ?? [])];
+      const focus = root?.querySelector('.space-focus');
+      const stackElement = root?.querySelector('boardgame-component-stack') as HTMLElement & {
+        spatialPositions: readonly ({ top: number; left: number } | null)[];
+        updateComplete: Promise<unknown>;
+      } | null;
+      if (!(outer instanceof SVGSVGElement) || !(scene instanceof SVGSVGElement)
+        || !(image instanceof SVGImageElement) || regions.length !== 3
+        || !(focus instanceof HTMLButtonElement) || !stackElement) {
+        throw new Error('Raster scene was incomplete');
+      }
+      const harbor = regions[0] as SVGGraphicsElement;
+      const focusAnchor = scene.querySelectorAll('circle')[1];
+      const pieceAnchor = scene.querySelectorAll('circle')[2];
+      if (!(focusAnchor instanceof SVGGraphicsElement) || !(pieceAnchor instanceof SVGGraphicsElement)) {
+        throw new Error('Raster anchors were not generated');
+      }
+      const center = (element: Element) => {
+        const bounds = element.getBoundingClientRect();
+        return { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+      };
+      return {
+        outer, scene, image, harbor, focus, focusAnchor, pieceAnchor, stackElement,
+        focusError: Math.max(
+          Math.abs(center(focus).x - center(focusAnchor).x),
+          Math.abs(center(focus).y - center(focusAnchor).y),
+        ),
+      };
+    };
+    const contain = sceneInfo();
+    await contain.stackElement.updateComplete;
+    const containPosition = contain.stackElement.spatialPositions[0];
+    const containerBounds = root?.querySelector('#container')?.getBoundingClientRect();
+    if (!containPosition || !containerBounds) throw new Error('Raster piece was not positioned');
+    const pieceBounds = contain.pieceAnchor.getBoundingClientRect();
+    const jitter = (axis: number) => {
+      let hash = axis * 41;
+      hash = ((hash >>> 16) ^ hash) * 0x45d9f3b;
+      hash = ((hash >>> 16) ^ hash) * 0x45d9f3b;
+      hash = (hash >>> 16) ^ hash;
+      return ((hash & 0xFFFF) / 0x7FFF) - 1;
+    };
+    const containPieceError = Math.max(
+      Math.abs(containerBounds.left + containPosition.left + 10
+        - (pieceBounds.left + pieceBounds.width / 2 + jitter(0) * 20)),
+      Math.abs(containerBounds.top + containPosition.top + 10
+        - (pieceBounds.top + pieceBounds.height / 2 + jitter(1) * 20)),
+    );
+
+    const fits: Record<string, { preserve: string | null; focusError: number }> = {};
+    for (const fit of ['contain', 'cover', 'fill'] as const) {
+      board.artwork = rasterBoardArtwork({ src, spaces, fit, viewportAspectRatio: 1 });
+      await board.updateComplete;
+      await waitForLoad();
+      const info = sceneInfo();
+      fits[fit] = { preserve: info.scene.getAttribute('preserveAspectRatio'), focusError: info.focusError };
+      for (const width of [260, 640]) {
+        board.style.width = `${width}px`;
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        await board.updateComplete;
+        fits[fit]!.focusError = Math.max(fits[fit]!.focusError, sceneInfo().focusError);
+      }
+    }
+
+    // Rapid replacement must leave only the final descriptor installed.
+    board.artwork = rasterBoardArtwork({ src, spaces: [{ ...spaces[0]!, label: 'Stale Harbor' }] });
+    board.artwork = rasterBoardArtwork({ src, spaces: [{ ...spaces[0]!, label: 'Final Harbor' }] });
+    await board.updateComplete;
+    await waitForLoad();
+    const finalLabel = root?.querySelector('#space-list button')?.textContent?.trim();
+
+    const errorFor = async (properties: { artwork: unknown; svgUrl?: string; geometry?: unknown }) => {
+      const invalid = document.createElement('boardgame-spatial-board') as typeof board;
+      Object.assign(invalid, properties);
+      document.body.append(invalid);
+      await invalid.updateComplete;
+      for (let attempt = 0; attempt < 40; attempt++) {
+        const status = invalid.shadowRoot?.querySelector('#status')?.textContent?.replace(/\s+/g, ' ').trim();
+        if (status?.includes('could not be loaded')) {
+          invalid.remove();
+          return status;
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      invalid.remove();
+      return '<missing error>';
+    };
+    const errors = await Promise.all([
+      errorFor({ artwork: rasterBoardArtwork({ src, spaces }), svgUrl: '/also.svg' }),
+      errorFor({ artwork: rasterBoardArtwork({ src, spaces }), geometry: () => ({ spaces: [] }) }),
+      errorFor({ artwork: rasterBoardArtwork({ src: 'data:image/png;base64,not-an-image', spaces }) }),
+    ]);
+    const lateInvalid = document.createElement('boardgame-spatial-board') as typeof board;
+    lateInvalid.artwork = rasterBoardArtwork({ src, spaces });
+    document.body.append(lateInvalid);
+    for (let attempt = 0; attempt < 40 && !lateInvalid.svgLoaded; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    lateInvalid.geometry = () => ({ spaces: [] });
+    await lateInvalid.updateComplete;
+    for (let attempt = 0; attempt < 40
+      && !lateInvalid.shadowRoot?.querySelector('#status')?.textContent?.includes('geometry is only valid'); attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    const lateGeometryError = lateInvalid.shadowRoot?.querySelector('#status')?.textContent?.replace(/\s+/g, ' ').trim();
+    const lateGeometrySvgCount = lateInvalid.shadowRoot?.querySelectorAll('#container > svg').length;
+    lateInvalid.remove();
+    return {
+      fitPreserves: Object.fromEntries(Object.entries(fits).map(([key, value]) => [key, value.preserve])),
+      maxFocusError: Math.max(...Object.values(fits).map(value => value.focusError)),
+      containPieceError,
+      finalLabel,
+      errors,
+      lateGeometryError,
+      lateGeometrySvgCount,
+      rasterImageCount: root?.querySelectorAll('#container > svg image').length,
+      fallbackLabels: [...(root?.querySelectorAll('#space-list button') ?? [])].map(button => button.textContent?.trim()),
+    };
+  });
+  expect(result).toMatchObject({
+    fitPreserves: { contain: 'xMidYMid meet', cover: 'xMidYMid slice', fill: 'none' },
+    finalLabel: 'Final Harbor',
+    rasterImageCount: 1,
+    fallbackLabels: ['Final Harbor'],
+    errors: [
+      expect.stringContaining('choose svgUrl or artwork, not both'),
+      expect.stringContaining('geometry is only valid with svgUrl'),
+      expect.stringContaining('could not be decoded'),
+    ],
+    lateGeometryError: expect.stringContaining('geometry is only valid with svgUrl'),
+    lateGeometrySvgCount: 0,
+  });
+  expect(result.maxFocusError).toBeLessThanOrEqual(1);
+  expect(result.containPieceError).toBeLessThanOrEqual(1);
+  const axeResult = await new AxeBuilder({ page })
+    .include('boardgame-spatial-board')
+    .withRules(['button-name', 'aria-allowed-attr', 'aria-valid-attr-value', 'nested-interactive'])
+    .analyze();
+  expect(axeResult.violations).toEqual([]);
+});
+
 test('spatial board rejects ambiguous or misaligned component views loudly', async ({ page }) => {
   await page.goto('/client_config.js');
   const messages = await page.evaluate(async () => {
