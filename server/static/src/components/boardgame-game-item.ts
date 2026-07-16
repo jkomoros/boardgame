@@ -4,27 +4,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import './boardgame-configure-game-properties.ts';
 import './boardgame-player-chip.ts';
 import { GamePathMixin } from './boardgame-game-path.js';
-
-interface PlayerInfo {
-  PhotoUrl: string;
-  DisplayName: string;
-  IsAgent: boolean;
-  IsEmpty: boolean;
-}
-
-interface GameItem {
-  Name: string;
-  ID: string;
-  Players: PlayerInfo[];
-  ReadableLastActivity: string;
-  Open: boolean;
-  Visible: boolean;
-}
-
-interface Manager {
-  Name: string;
-  DisplayName: string;
-}
+import type { GameListItem, ManagerInfo, PlayerInfo } from '../types/store';
 
 @customElement('boardgame-game-item')
 export class BoardgameGameItem extends GamePathMixin(LitElement) {
@@ -98,10 +78,10 @@ export class BoardgameGameItem extends GamePathMixin(LitElement) {
   `;
 
   @property({ type: Object })
-  item: GameItem | null = null;
+  item: GameListItem | null = null;
 
   @property({ type: Array })
-  managers: Manager[] = [];
+  managers: ManagerInfo[] = [];
 
   get gameDisplayName(): string {
     if (!this.item) return "";
@@ -136,7 +116,7 @@ export class BoardgameGameItem extends GamePathMixin(LitElement) {
           (player) => player.DisplayName || 'empty',
           (player) => html`
             <boardgame-player-chip
-              .photoUrl="${player.PhotoUrl}"
+              .photoUrl="${player.PhotoURL || ''}"
               .displayName="${player.DisplayName}"
               ?is-agent="${player.IsAgent}">
             </boardgame-player-chip>

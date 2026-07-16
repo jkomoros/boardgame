@@ -38,39 +38,7 @@ import type { MdFilledSelect } from '@material/web/select/filled-select.js';
 import type { MdSlider } from '@material/web/slider/slider.js';
 import type { MdSwitch } from '@material/web/switch/switch.js';
 import type { MdRadio } from '@material/web/radio/radio.js';
-
-interface AgentInfo {
-  Name: string;
-  DisplayName: string;
-}
-
-interface VariantValue {
-  Value: string;
-  DisplayName: string;
-  Description: string;
-}
-
-interface VariantInfo {
-  Name: string;
-  DisplayName: string;
-  Description: string;
-  Values: VariantValue[];
-}
-
-interface ManagerInfo {
-  Name: string;
-  DisplayName: string;
-  Description: string;
-  DefaultNumPlayers: number;
-  MinNumPlayers: number;
-  MaxNumPlayers: number;
-  Variant: VariantInfo[] | null;
-  Agents: AgentInfo[];
-  // SupportsTableHandMode: server-side flag (P1.9) telling us whether this
-  // game ships -table.ts + -hand.ts renderers, i.e. whether the Table+Hand
-  // toggle should be available on the create form.
-  SupportsTableHandMode?: boolean;
-}
+import type { ManagerInfo, ManagerVariantInfo, RootState } from '../types/store';
 
 // Empty manager for templates
 const EMPTY_MANAGER: ManagerInfo = {
@@ -255,7 +223,7 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
     this._numPlayers = 0;
   }
 
-  stateChanged(state: any): void {
+  stateChanged(state: RootState): void {
     this._managers = selectManagers(state);
     this._selectedManagerIndex = selectSelectedManagerIndex(state);
     this._numPlayers = selectCreateGameNumPlayers(state);
@@ -288,8 +256,8 @@ export class BoardgameCreateGame extends connect(store)(LitElement) {
     return this._managers[this._selectedManagerIndex];
   }
 
-  private get _variants(): VariantInfo[] {
-    return this._selectedManager.Variant || [];
+  private get _variants(): ManagerVariantInfo[] {
+    return this._selectedManager.Variant;
   }
 
   private _handleAgentSelectedChanged(e: Event): void {

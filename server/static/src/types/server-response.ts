@@ -84,12 +84,12 @@ function decodePlayer(value: unknown, path: string): PlayerInfo {
   const IsEmpty = boolean(item['IsEmpty'], `${path}.IsEmpty`);
   const IsAgent = boolean(item['IsAgent'], `${path}.IsAgent`);
   const DisplayName = string(item['DisplayName'], `${path}.DisplayName`, true);
-  optionalString(item['PhotoUrl'], `${path}.PhotoUrl`);
+  optionalString(item['PhotoURL'], `${path}.PhotoURL`);
   return {
     IsEmpty,
     IsAgent,
     DisplayName,
-    ...(typeof item['PhotoUrl'] === 'string' ? { PhotoUrl: item['PhotoUrl'] } : {}),
+    ...(typeof item['PhotoURL'] === 'string' ? { PhotoURL: item['PhotoURL'] } : {}),
   };
 }
 

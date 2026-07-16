@@ -32,12 +32,13 @@ const INITIAL_STATE: ListState = {
 const list: Reducer<ListState, ListAction> = (state = INITIAL_STATE, action): ListState => {
 	switch (action.type) {
 	case UPDATE_MANAGERS:
-        const newNumPlayers = action.managers[0].DefaultNumPlayers || 0
-        const newNumVariantOptions = (action.managers[0].Variant || []).length;
+        const firstManager = action.managers[0];
+        const newNumPlayers = firstManager?.DefaultNumPlayers ?? 0;
+        const newNumVariantOptions = firstManager?.Variant.length ?? 0;
 		return {
 			...state,
             managers: action.managers,
-            selectedManagerIndex: 0,
+            selectedManagerIndex: firstManager ? 0 : -1,
             numPlayers: newNumPlayers,
             agents: Array(newNumPlayers).fill(""),
             variantOptions: Array(newNumVariantOptions).fill(0)
@@ -58,8 +59,8 @@ const list: Reducer<ListState, ListAction> = (state = INITIAL_STATE, action): Li
         };
     case UPDATE_SELECTED_MANAGER_INDEX:
         const newManager = state.managers[action.index]
-        const updatedNumPlayers =  newManager ? newManager.DefaultNumPlayers || 0 : 0;
-        const updatedNumVariantOptions = newManager ? (newManager.Variant || []).length : 0;
+        const updatedNumPlayers = newManager?.DefaultNumPlayers ?? 0;
+        const updatedNumVariantOptions = newManager?.Variant.length ?? 0;
         return {
             ...state,
             selectedManagerIndex: action.index,

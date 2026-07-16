@@ -1131,6 +1131,14 @@ First evidence-driven primitive tranche (2026-07-16):
   and client-installed timer baselines. Reuse the corrected move-form contract
   in the legacy admin form instead of maintaining a second local shape, and
   prove the decoder against both focused unit cases and a real Pig server flow.
+- [x] Extend the same fail-closed transport to list and create-game flows:
+  replace `any[]` manager/game state with shared exact manager, variant, agent,
+  player, and game-list contracts; bound and copy the Go payloads; normalize nil
+  slices and the intentionally omitted non-admin list; and surface invalid data
+  through the existing error UI. Correct the previously hidden PascalCase game
+  model and `PhotoURL` wire spelling, make an empty manager catalog safe, and use
+  the shared form encoder so variant values cannot corrupt create-game requests.
+  Prove the manager decoder against the live Go list page.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

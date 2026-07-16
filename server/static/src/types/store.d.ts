@@ -274,7 +274,7 @@ export interface PlayerInfo {
   /** Player display name supplied by the server. */
   DisplayName: string;
   /** Optional player photo URL supplied by the server. */
-  PhotoUrl?: string;
+  PhotoURL?: string;
 }
 
 /**
@@ -296,7 +296,7 @@ export interface ListState {
   /** Whether new game should be open */
   open: boolean;
   /** Available game managers */
-  managers: any[]; // TODO: Define GameManager type
+  managers: ManagerInfo[];
   /** All games */
   allGames: GameListItem[];
   /** Games user is participating in (active) */
@@ -313,20 +313,40 @@ export interface ListState {
  * Summary of a game shown in the games list.
  */
 export interface GameListItem {
-  /** Game ID */
-  id: string;
-  /** Game type name */
-  name: string;
-  /** Number of players */
-  numPlayers: number;
-  /** Whether game is open */
-  open: boolean;
-  /** Whether game is visible */
-  visible: boolean;
-  /** Game owner */
-  owner: string;
-  /** Creation timestamp */
-  created: number;
-  /** Last modified timestamp */
-  modified: number;
+  ID: string;
+  Name: string;
+  Players: PlayerInfo[];
+  ReadableLastActivity: string;
+  Open: boolean;
+  Visible: boolean;
+}
+
+export interface ManagerAgentInfo {
+  Name: string;
+  DisplayName: string;
+}
+
+export interface ManagerVariantValue {
+  Value: string;
+  DisplayName: string;
+  Description: string;
+}
+
+export interface ManagerVariantInfo {
+  Name: string;
+  DisplayName: string;
+  Description: string;
+  Values: ManagerVariantValue[];
+}
+
+export interface ManagerInfo {
+  Name: string;
+  DisplayName: string;
+  Description: string;
+  DefaultNumPlayers: number;
+  MinNumPlayers: number;
+  MaxNumPlayers: number;
+  Variant: ManagerVariantInfo[];
+  Agents: ManagerAgentInfo[];
+  SupportsTableHandMode: boolean;
 }

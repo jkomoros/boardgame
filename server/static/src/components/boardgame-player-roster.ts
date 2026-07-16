@@ -21,17 +21,10 @@ import { connect } from 'pwa-helpers/connect-mixin.js';
 import { store } from '../store.js';
 import { joinGame } from '../actions/game.js';
 import { selectGameError } from '../selectors.js';
-import type { RootState } from '../types/store';
+import type { PlayerInfo, RootState } from '../types/store';
 
 import type { MdDialog } from '@material/web/dialog/dialog.js';
 import { getReadyToStartError } from './gathering-shared.js';
-
-interface PlayerInfo {
-  IsEmpty: boolean;
-  IsAgent: boolean;
-  PhotoUrl: string;
-  DisplayName: string;
-}
 
 interface GameRoute {
   name: string;
@@ -334,7 +327,7 @@ export class BoardgamePlayerRoster extends connect(store)(LitElement) {
             ?finished="${this.finished}"
             ?winner="${this._isWinner(idx, this.winners)}"
             ?is-agent="${item.IsAgent}"
-            .photoUrl="${item.PhotoUrl}"
+            .photoUrl="${item.PhotoURL || ''}"
             .displayName="${item.DisplayName}"
             .playerIndex="${idx}"
             .viewingAsPlayer="${this.viewingAsPlayer}"

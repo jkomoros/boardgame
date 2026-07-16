@@ -5,6 +5,8 @@ import type {
     FetchedGameInfo,
     FetchedGameVersion,
     GameChest,
+    GameListItem,
+    ManagerInfo,
     PlayerInfo,
     RootState,
     UserInfo,
@@ -47,19 +49,19 @@ export const selectPage = createSelector(
 export const selectPageExtra = (state: RootState): string => state.app ? state.app.pageExtra : "";
 
 // List selectors
-export const selectManagers = (state: RootState): any[] => state.list ? state.list.managers : [];
+export const selectManagers = (state: RootState): ManagerInfo[] => state.list ? state.list.managers : [];
 export const selectSelectedManagerIndex = (state: RootState): number => state.list ? state.list.selectedManagerIndex : 0;
 export const selectCreateGameNumPlayers = (state: RootState): number => state.list ? state.list.numPlayers : 0;
-export const selectCreateGameAgents = (state: RootState): any[] => state.list ? state.list.agents : [];
-export const selectCreateGameVariantOptions = (state: RootState): any[] => state.list ? state.list.variantOptions : [];
+export const selectCreateGameAgents = (state: RootState): string[] => state.list ? state.list.agents : [];
+export const selectCreateGameVariantOptions = (state: RootState): number[] => state.list ? state.list.variantOptions : [];
 export const selectCreateGameOpen = (state: RootState): boolean => state.list ? state.list.open : false;
 export const selectCreateGameVisible = (state: RootState): boolean => state.list ? state.list.visible : false;
 export const selectGameTypeFilter = (state: RootState): string => state.list ? state.list.gameTypeFilter : "";
-export const selectParticipatingActiveGames = (state: RootState): any[] => state.list ? state.list.participatingActiveGames : [];
-export const selectParticipatingFinishedGames = (state: RootState): any[] => state.list ? state.list.participatingFinishedGames : [];
-export const selectVisibleActiveGames = (state: RootState): any[] => state.list ? state.list.visibleActiveGames : [];
-export const selectVisibleJoinableGames = (state: RootState): any[] => state.list ? state.list.visibleJoinableGames : [];
-export const selectAllGames = (state: RootState): any[] => state.list ? state.list.allGames : [];
+export const selectParticipatingActiveGames = (state: RootState): GameListItem[] => state.list ? state.list.participatingActiveGames : [];
+export const selectParticipatingFinishedGames = (state: RootState): GameListItem[] => state.list ? state.list.participatingFinishedGames : [];
+export const selectVisibleActiveGames = (state: RootState): GameListItem[] => state.list ? state.list.visibleActiveGames : [];
+export const selectVisibleJoinableGames = (state: RootState): GameListItem[] => state.list ? state.list.visibleJoinableGames : [];
+export const selectAllGames = (state: RootState): GameListItem[] => state.list ? state.list.allGames : [];
 
 // Error selectors
 export const selectErrorMessage = (state: RootState): string => state.error ? state.error.message : "";

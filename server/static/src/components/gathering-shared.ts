@@ -9,6 +9,7 @@
  * - Raw Computed.Players[i] is expanded onto state.Players[i].Computed
  */
 import type { MoveForm, MoveFormField } from '../types/api';
+export type { PlayerInfo } from '../types/store';
 
 // ---- Player index constants ----
 
@@ -23,13 +24,6 @@ export interface EnumValue {
   Name: string;
   /** CSS color string, present only for color enum values. */
   CSSColor?: string;
-}
-
-export interface PlayerInfo {
-  IsEmpty: boolean;
-  IsAgent: boolean;
-  PhotoUrl?: string;
-  DisplayName: string;
 }
 
 // ---- Start move detection ----

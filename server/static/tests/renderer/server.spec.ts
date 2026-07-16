@@ -14,6 +14,11 @@ test('self-started renderer server uses offline mode and same-origin API proxy',
 
   await page.goto('/');
   await expect(page.locator('boardgame-app')).toBeAttached();
+  const gameList = page.locator('boardgame-list-games-view');
+  await expect(gameList).toBeAttached();
+  await expect.poll(() => gameList.evaluate(element => (
+    element as unknown as { _managers: unknown[] }
+  )._managers.length)).toBeGreaterThan(0);
   expect(await page.evaluate(() => (window as unknown as { API_HOST: string }).API_HOST)).toBe('');
 });
 
