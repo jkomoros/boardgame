@@ -29,7 +29,16 @@ import './boardgame-component-stack.js';
 import type { ComponentView } from './component-view.js';
 import { MAX_TARGET_ACTION_CANDIDATES, type TargetAction } from '../moves/target-action.js';
 import type { SourceDestinationBinding } from '../moves/source-destination.js';
+import type { PlacementTargetBinding } from '../moves/placement-draft.js';
+import type { TargetKey } from '../moves/target-action.js';
 import type { ExpandedStack } from '../types/boardgame-types.js';
+
+/** Placement-draft surface consumed by rectangular board destinations. */
+export interface GridPlacementDraft {
+  readonly targets: readonly number[];
+  readonly selectedItem: TargetKey | null;
+  target(target: number): PlacementTargetBinding<TargetKey, number>;
+}
 
 export interface GameBoardLabelContext {
   readonly index: number;
@@ -242,6 +251,10 @@ export class BoardgameGameBoard extends LitElement {
   @property({ attribute: false })
   sourceDestination: SourceDestinationBinding<number> | null = null;
 
+  /** Local draft destinations; mutually exclusive with action/sourceDestination. */
+  @property({ attribute: false })
+  placementDraft: GridPlacementDraft | null = null;
+
   /** Accessible name for the grid as a whole. */
   @property({ type: String, attribute: 'board-label' })
   boardLabel = 'Game board';
@@ -374,8 +387,15 @@ export class BoardgameGameBoard extends LitElement {
 
   private _isDisabled(index: number): boolean {
     if (this._disabledSet.has(index)) return true;
+    const placement = this._placementTarget(index);
+    if (placement) return !placement.canPlace;
     const candidate = this._targetAction?.get(index);
     return candidate ? !candidate.action.canActivate : false;
+  }
+
+  private _placementTarget(index: number) {
+    if (!this.placementDraft || !this.placementDraft.targets.includes(index)) return null;
+    return this.placementDraft.target(index);
   }
 
   private _initialFocusIndex(): number {
@@ -388,6 +408,12 @@ export class BoardgameGameBoard extends LitElement {
 
   private async _onCellClick(index: number): Promise<void> {
     if (this._disabledSet.has(index)) return;
+    const placement = this._placementTarget(index);
+    if (placement) {
+      if (placement.canPlace) placement.place();
+      return;
+    }
+    if (this.placementDraft) return;
     const candidate = this._targetAction?.get(index);
     if (candidate) {
       if (candidate.action.canActivate
@@ -466,7 +492,8 @@ export class BoardgameGameBoard extends LitElement {
   }
 
   private _cellReason(index: number): string | null {
-    return this._targetAction?.get(index)?.action.reason?.message ?? null;
+    return this._placementTarget(index)?.reason
+      ?? this._targetAction?.get(index)?.action.reason?.message ?? null;
   }
 
   private _accessibleCellLabel(index: number): string {
@@ -489,8 +516,13 @@ export class BoardgameGameBoard extends LitElement {
     }
     if (!this.boardLabel.trim()) throw new Error('boardgame-game-board board-label must be non-empty');
     if (this._numSpaces > 4096) throw new Error(`boardgame-game-board has ${this._numSpaces} cells; maximum is 4096`);
-    if (this.action && this.sourceDestination) {
-      throw new Error('boardgame-game-board action and sourceDestination are mutually exclusive');
+    const interactions = [this.action, this.sourceDestination, this.placementDraft]
+      .filter(interaction => interaction !== null).length;
+    if (interactions > 1) {
+      throw new Error('boardgame-game-board action, sourceDestination, and placementDraft are mutually exclusive');
+    }
+    if (this.placementDraft && this.disabledSpaces.length > 0) {
+      throw new Error('boardgame-game-board placementDraft and disabledSpaces are mutually exclusive');
     }
     const targetAction = this._targetAction;
     if (targetAction && this._numSpaces > MAX_TARGET_ACTION_CANDIDATES) {
@@ -519,6 +551,15 @@ export class BoardgameGameBoard extends LitElement {
       );
       if (invalidSource !== undefined) {
         throw new Error(`boardgame-game-board source key ${invalidSource} is outside 0 through ${this._numSpaces - 1}`);
+      }
+    }
+    if (this.placementDraft) {
+      if (!Array.isArray(this.placementDraft.targets) || typeof this.placementDraft.target !== 'function') {
+        throw new Error('boardgame-game-board placementDraft must be a PlacementDraftController binding');
+      }
+      const sorted = [...this.placementDraft.targets].sort((left, right) => left - right);
+      if (sorted.length !== this._numSpaces || sorted.some((key, index) => key !== index)) {
+        throw new Error(`boardgame-game-board placementDraft targets must cover exactly 0 through ${this._numSpaces - 1}`);
       }
     }
     const labels = Array.from({ length: this._numSpaces }, (_, index) => this._computeCellLabel(index));

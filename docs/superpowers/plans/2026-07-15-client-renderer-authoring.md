@@ -1105,7 +1105,9 @@ system phase.
   Exact `draft.item(key)` and `draft.target(key)` bindings now preserve both key
   unions. `boardgame-placement-item` owns accessible rack selection, while SVG
   and raster spatial boards consume `.placementDraft` directly for keyboard and
-  pointer destinations, reasons, occupancy, and exact geometry validation.
+  pointer destinations, reasons, occupancy, and exact geometry validation. The
+  rectangular game board consumes the same binding with exact numeric coverage,
+  so grid and graphic-board creators share one drafting model.
 - [x] Multi-select/payment draft: `SelectionDraftController` adds bounded,
   immutable toggle/select/deselect, undo/clear, safe snapshot rebasing, visible
   prune notices, and one exact typed commit for cards/resources without

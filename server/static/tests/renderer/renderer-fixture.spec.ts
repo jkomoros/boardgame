@@ -2546,6 +2546,87 @@ test('game board rejects contradictory geometry and accessibility configuration 
   ]);
 });
 
+test('game board composes typed placement destinations without parallel click state', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-game-board.ts');
+    const board = document.createElement('boardgame-game-board');
+    board.rows = 2; board.cols = 2; board.boardLabel = 'Word board';
+    let selected: string | null = null;
+    let placedAt: number | null = null;
+    const binding = () => ({
+      targets: [0, 1, 2, 3] as const,
+      selectedItem: selected,
+      target: (target: number) => ({
+        target,
+        occupiedBy: placedAt === target ? 'tile-a' : null,
+        canPlace: selected !== null && placedAt !== target,
+        reason: selected === null ? 'Select an item first'
+          : placedAt === target ? 'Destination is occupied' : null,
+        place: () => {
+          placedAt = target;
+          selected = null;
+          board.placementDraft = binding();
+        },
+      }),
+    });
+    board.placementDraft = binding();
+    document.body.append(board);
+    await board.updateComplete;
+    const cells = board.shadowRoot!.querySelectorAll<HTMLButtonElement>('.cell');
+    const initial = {
+      disabled: cells[0]?.getAttribute('aria-disabled'),
+      reason: cells[0]?.getAttribute('title'),
+    };
+    selected = 'tile-a';
+    board.placementDraft = binding();
+    await board.updateComplete;
+    const available = cells[2]?.getAttribute('aria-disabled');
+    cells[2]?.click();
+    await board.updateComplete;
+    const after = { placedAt, reason: cells[2]?.getAttribute('title') };
+
+    const failure = async (configure: (candidate: HTMLElementTagNameMap['boardgame-game-board']) => void) => {
+      const candidate = document.createElement('boardgame-game-board');
+      candidate.rows = 1; candidate.cols = 2;
+      configure(candidate);
+      document.body.append(candidate);
+      try { await candidate.updateComplete; return '<missing error>'; }
+      catch (error) { return error instanceof Error ? error.message : String(error); }
+      finally { candidate.remove(); }
+    };
+    const malformed = { ...binding(), targets: [0] };
+    const errors = await Promise.all([
+      failure(candidate => { candidate.placementDraft = malformed; }),
+      failure(candidate => {
+        candidate.placementDraft = { ...binding(), targets: [0, 1] };
+        candidate.action = {
+          candidates: [], preview: { kind: 'ready' }, get: () => undefined,
+          ensurePreview: async () => ({ kind: 'ready' }), refreshPreview: async () => ({ kind: 'ready' }),
+          subscribe: () => () => undefined,
+        };
+      }),
+      failure(candidate => {
+        candidate.placementDraft = { ...binding(), targets: [0, 1] };
+        candidate.disabledSpaces = [0];
+      }),
+    ]);
+    return { initial, available, after, errors };
+  });
+  expect(result).toEqual({
+    initial: { disabled: 'true', reason: 'Select an item first' },
+    available: 'false',
+    after: { placedAt: 2, reason: 'Select an item first' },
+    errors: [
+      expect.stringContaining('targets must cover exactly 0 through 1'),
+      expect.stringContaining('mutually exclusive'),
+      expect.stringContaining('placementDraft and disabledSpaces are mutually exclusive'),
+    ],
+  });
+  const axeResult = await new AxeBuilder({ page }).include('boardgame-game-board').analyze();
+  expect(axeResult.violations).toEqual([]);
+});
+
 test('spatial board sanitizes authored geometry and shares typed target activation', async ({ page }) => {
   await page.goto('/client_config.js');
   const result = await page.evaluate(async () => {

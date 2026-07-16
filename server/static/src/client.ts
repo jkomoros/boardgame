@@ -94,6 +94,7 @@ export type { ActionBarAlignment, ActionBarOrientation } from './components/boar
 export type { ComponentZoneLayout } from './components/boardgame-component-zone.js';
 export type { GameOutcomeViewer } from './components/boardgame-game-outcome.js';
 export type { BoardViewportChange } from './components/boardgame-board-viewport.js';
+export type { GridPlacementDraft } from './components/boardgame-game-board.js';
 export type { SpatialPlacementDraft } from './components/boardgame-spatial-board.js';
 export type { DraftControlsBinding } from './components/boardgame-draft-controls.js';
 export type {

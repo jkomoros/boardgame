@@ -2020,7 +2020,9 @@ content-safety behavior. On authored SVG or raster artwork,
 controls, including the accessible space list and disabled reasons; combining
 it with `.action` or legacy `disabledSpaces` fails loudly. For custom target
 markup, `draft.target(key)` provides the same `canPlace`, `reason`, occupancy,
-and checked `place()` binding.
+and checked `place()` binding. A plain rectangular board uses the identical
+composition—`<boardgame-game-board rows="15" cols="15"
+.placementDraft=${draft}>`—and verifies that numeric targets cover every cell.
 Optional drag handling calls `assign(item, target)` and therefore cannot bypass
 the same unknown-item, unknown-target, occupancy, or maximum checks. Placements
 are immutable and carry stable IDs; `targetFor()` and `itemAt()` project the
