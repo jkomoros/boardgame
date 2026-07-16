@@ -1149,6 +1149,10 @@ First evidence-driven primitive tranche (2026-07-16):
   and keep an unbound framework chest opaque so nonexistent and misspelled
   creator keys fail compilation. Regenerate and compile the bundled and external
   game corpora, and teach constants through the generated base in the tutorial.
+- [x] Close the generated dynamic-value type for every known deck without
+  dynamic component fields. Reserve the framework's open fallback for truly
+  unresolved decks; an exact game contract must represent a known absence as
+  `Readonly<Record<string, never>>`, so invented dynamic keys fail compilation.
 - [x] Extend the same fail-closed transport to list and create-game flows:
   replace `any[]` manager/game state with shared exact manager, variant, agent,
   player, and game-list contracts; bound and copy the Go payloads; normalize nil

@@ -29,8 +29,8 @@ export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
 
 export interface GameState {
   readonly CurrentPlayer: number;
-  readonly DiscardStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly DrawStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly DiscardStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly DrawStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly MaxRounds: number;
   readonly Phase: PhaseValue;
   readonly RRHasStarted: boolean;
@@ -38,20 +38,20 @@ export interface GameState {
   readonly RRRoundCount: number;
   readonly RRStarterPlayer: number;
   readonly RoundsCompleted: number;
-  readonly UnusedCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly UnusedCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly Computed?: GameComputed;
 }
 
 export interface PlayerState {
   readonly Eliminated: boolean;
-  readonly Hand: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly HiddenHand: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly Hand: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly HiddenHand: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly PlayerInactive: boolean;
   readonly Score: number;
   readonly SeatClosed: boolean;
   readonly SeatFilled: boolean;
   readonly Stood: boolean;
-  readonly VisibleHand: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly VisibleHand: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly Computed?: PlayerComputed;
 }
 

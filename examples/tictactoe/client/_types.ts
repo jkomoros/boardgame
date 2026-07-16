@@ -27,7 +27,7 @@ export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
 export interface GameState {
   readonly CurrentPlayer: number;
   readonly Phase: PhaseValue;
-  readonly Slots: ExpandedStack<TokensComponentValues, Readonly<Record<string, unknown>>>;
+  readonly Slots: ExpandedStack<TokensComponentValues, Readonly<Record<string, never>>>;
   readonly Computed?: GameComputed;
 }
 
@@ -37,7 +37,7 @@ export interface PlayerState {
   readonly SeatFilled: boolean;
   readonly TokenValue: string;
   readonly TokensToPlaceThisTurn: number;
-  readonly UnusedTokens: ExpandedStack<TokensComponentValues, Readonly<Record<string, unknown>>>;
+  readonly UnusedTokens: ExpandedStack<TokensComponentValues, Readonly<Record<string, never>>>;
   readonly Computed?: PlayerComputed;
 }
 

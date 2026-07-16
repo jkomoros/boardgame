@@ -129,8 +129,8 @@ func TestStateFieldTypeToTS(t *testing.T) {
 		expected string
 	}{
 		{FieldInfo{Type: "TypeTimer"}, "ExpandedTimer"},
-		{FieldInfo{Type: "TypeStack", DeckName: "cards"}, "ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>"},
-		{FieldInfo{Type: "TypeStack", DeckName: "tokens"}, "ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, unknown>>>"},
+		{FieldInfo{Type: "TypeStack", DeckName: "cards"}, "ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>"},
+		{FieldInfo{Type: "TypeStack", DeckName: "tokens"}, "ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, never>>>"},
 		{FieldInfo{Type: "TypeStack"}, "ExpandedStack"},
 		{FieldInfo{Type: "TypeBoard"}, "ExpandedBoard"},
 		{FieldInfo{Type: "TypeEnum", EnumName: "phase"}, "PhaseValue"},
@@ -211,12 +211,12 @@ func TestGenerateTypeScript(t *testing.T) {
 	}
 
 	// Check GameState
-	if !strings.Contains(ts, "readonly DrawStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;") {
+	if !strings.Contains(ts, "readonly DrawStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;") {
 		t.Error("missing typed DrawStack in GameState")
 	}
 
 	// Check PlayerState
-	if !strings.Contains(ts, "readonly Hand: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;") {
+	if !strings.Contains(ts, "readonly Hand: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;") {
 		t.Error("missing typed Hand in PlayerState")
 	}
 	if !strings.Contains(ts, "readonly Score: number;") {
@@ -303,7 +303,7 @@ func TestGenerateTypeScriptWithBoard(t *testing.T) {
 	if !strings.Contains(ts, "CatalogComponent, ExpandedBoard, FullGameState") {
 		t.Errorf("missing Board import, got:\n%s", ts)
 	}
-	if !strings.Contains(ts, "Spaces: ExpandedBoard<TokensComponentValues, Readonly<Record<string, unknown>>>;") {
+	if !strings.Contains(ts, "Spaces: ExpandedBoard<TokensComponentValues, Readonly<Record<string, never>>>;") {
 		t.Errorf("Board field not typed correctly, got:\n%s", ts)
 	}
 }

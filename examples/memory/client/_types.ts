@@ -23,13 +23,13 @@ export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
 
 export interface GameState {
   readonly CardSet: string;
-  readonly Cards: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly Cards: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly CurrentPlayer: number;
-  readonly HiddenCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly HiddenCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly HideCardsTimer: ExpandedTimer;
   readonly NumCards: number;
-  readonly UnusedCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly VisibleCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly UnusedCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly VisibleCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly Computed?: GameComputed;
 }
 
@@ -38,7 +38,7 @@ export interface PlayerState {
   readonly PlayerInactive: boolean;
   readonly SeatClosed: boolean;
   readonly SeatFilled: boolean;
-  readonly WonCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly WonCards: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly Computed?: PlayerComputed;
 }
 

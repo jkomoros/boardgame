@@ -406,7 +406,7 @@ func catalogComponentTypeForDeck(deck DeckInfo) string {
 
 func deckValueTypes(deck DeckInfo) (string, string) {
 	staticType := "Readonly<Record<string, never>>"
-	dynamicType := "Readonly<Record<string, unknown>>"
+	dynamicType := "Readonly<Record<string, never>>"
 	name := toPascalCase(deck.Name)
 	if len(deck.Fields) > 0 && name != "" {
 		staticType = name + "ComponentValues"

@@ -24,31 +24,31 @@ export interface GameComputed extends Readonly<Record<string, unknown>> {}
 export interface PlayerComputed extends Readonly<Record<string, unknown>> {}
 
 export interface GameState {
-  readonly AllHiddenStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly AllVisibleStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly Card: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly AllHiddenStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly AllVisibleStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly Card: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly CurrentPlayer: number;
-  readonly DiscardStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly DrawStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly FanDiscard: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly DiscardStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly DrawStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly FanDiscard: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly FanShuffleCount: number;
-  readonly FanStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly FirstShortStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly HiddenCard: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly HiddenStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly FanStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly FirstShortStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly HiddenCard: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly HiddenStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly Phase: PhaseValue;
-  readonly SanitizedTokensFrom: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, unknown>>>;
-  readonly SanitizedTokensTo: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, unknown>>>;
-  readonly SecondShortStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly TokensFrom: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, unknown>>>;
-  readonly TokensTo: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, unknown>>>;
-  readonly VisibleCard: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
-  readonly VisibleStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly SanitizedTokensFrom: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, never>>>;
+  readonly SanitizedTokensTo: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, never>>>;
+  readonly SecondShortStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly TokensFrom: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, never>>>;
+  readonly TokensTo: ExpandedStack<Readonly<Record<string, never>>, Readonly<Record<string, never>>>;
+  readonly VisibleCard: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
+  readonly VisibleStack: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly Computed?: GameComputed;
 }
 
 export interface PlayerState {
-  readonly Hand: ExpandedStack<CardsComponentValues, Readonly<Record<string, unknown>>>;
+  readonly Hand: ExpandedStack<CardsComponentValues, Readonly<Record<string, never>>>;
   readonly PlayerInactive: boolean;
   readonly SeatClosed: boolean;
   readonly SeatFilled: boolean;
