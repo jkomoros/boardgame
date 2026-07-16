@@ -2164,6 +2164,11 @@ reasons. Loading is abortable and stale-safe, failures are visible and retryable
 and fetched SVG is sanitized before insertion (scripts, event handlers,
 `foreignObject`, animation mutation, and external resources are removed).
 
+While authoring, add the boolean `geometry-inspector` attribute to show the
+resolved key/order/label, region element, focus and piece coordinates, and
+possible bounding-box overlaps. Remove it for the shipped renderer; it is a
+diagnostic view, not game state.
+
 `spacePrefix`, `disabledSpaces`, `space-tapped`, `stack`/`stacks`,
 `boxForSpace()`, and `tokenPosition()` remain migration adapters for older
 numeric-ID boards. New renderers should use `data-board-*`, `.action`, and

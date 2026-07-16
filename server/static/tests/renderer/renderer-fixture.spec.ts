@@ -625,12 +625,14 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         action: unknown;
         pieces: readonly unknown[];
         tokenSize: number;
+        geometryInspector: boolean;
         svgLoaded: boolean;
         updateComplete: Promise<unknown>;
       };
       board.svgUrl = '/authored-board.svg';
       board.action = action;
       board.tokenSize = 20;
+      board.geometryInspector = true;
       const token = { Index: 0, Values: {}, Deck: 'tokens', GameName: 'fixture', ID: 'token-0' };
       const stack = {
         Deck: 'tokens', Indexes: [0], IDs: [token.ID], IDsLastSeen: {}, ShuffleCount: 0,
@@ -646,17 +648,23 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       const region = root?.querySelector('[data-board-space]');
       const inner = root?.querySelector('[data-inner]');
       const button = root?.querySelector('#space-list button');
+      const focusButton = root?.querySelector('.space-focus');
       const pieceAnchor = root?.querySelector('[data-board-piece-anchor]');
+      const focusAnchor = root?.querySelector('[data-board-focus-anchor]');
       const componentStack = root?.querySelector('boardgame-component-stack') as (
         HTMLElement & { spatialPositions: readonly ({ top: number; left: number } | null)[]; updateComplete: Promise<unknown> }
       ) | null;
       if (!(region instanceof SVGElement) || !(inner instanceof SVGElement)
-        || !(pieceAnchor instanceof SVGGraphicsElement) || !(button instanceof HTMLButtonElement)
+        || !(pieceAnchor instanceof SVGGraphicsElement) || !(focusAnchor instanceof SVGGraphicsElement)
+        || !(button instanceof HTMLButtonElement)
+        || !(focusButton instanceof HTMLButtonElement)
         || !componentStack) throw new Error('Spatial fixture did not render');
       await componentStack.updateComplete;
       const position = componentStack.spatialPositions[0];
       if (!position) throw new Error('Spatial fixture did not position its piece');
       const anchorBounds = pieceAnchor.getBoundingClientRect();
+      const focusAnchorBounds = focusAnchor.getBoundingClientRect();
+      const focusButtonBounds = focusButton.getBoundingClientRect();
       const containerBounds = root?.querySelector('#container')?.getBoundingClientRect();
       if (!containerBounds) throw new Error('Spatial fixture had no container geometry');
       const jitter = (axis: number) => {
@@ -670,7 +678,7 @@ test('spatial board sanitizes authored geometry and shares typed target activati
       const expectedTop = anchorBounds.top + anchorBounds.height / 2 - containerBounds.top - 10 + jitter(1) * 20;
       inner.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
       await Promise.resolve();
-      button.focus();
+      focusButton.focus();
       const successful = {
         activations,
         label: button.textContent?.trim(),
@@ -682,6 +690,13 @@ test('spatial board sanitizes authored geometry and shares typed target activati
         imageHref: root?.querySelector('image')?.getAttribute('href'),
         unsafeScriptRan: Boolean((globalThis as unknown as { __unsafeBoardScript?: boolean }).__unsafeBoardScript),
         anchorError: Math.max(Math.abs(position.left - expectedLeft), Math.abs(position.top - expectedTop)),
+        focusAnchorError: Math.max(
+          Math.abs((focusButtonBounds.left + focusButtonBounds.width / 2)
+            - (focusAnchorBounds.left + focusAnchorBounds.width / 2)),
+          Math.abs((focusButtonBounds.top + focusButtonBounds.height / 2)
+            - (focusAnchorBounds.top + focusAnchorBounds.height / 2)),
+        ),
+        inspector: root?.querySelector('#geometry-inspector')?.textContent?.replace(/\s+/g, ' ').trim(),
       };
 
       let resolveSlow: ((response: Response) => void) | undefined;
@@ -733,11 +748,18 @@ test('spatial board sanitizes authored geometry and shares typed target activati
     animationCount: 0,
     imageHref: null,
     unsafeScriptRan: false,
+    inspector: expect.stringContaining('room:one/? — Library'),
     postRaceLabel: 'Fast Library',
     failedSvgCount: 0,
     failureStatus: expect.stringContaining('HTTP 404'),
   });
   expect(result.anchorError).toBeLessThanOrEqual(1);
+  expect(result.focusAnchorError).toBeLessThanOrEqual(1);
+  const axeResult = await new AxeBuilder({ page })
+    .include('boardgame-spatial-board')
+    .withRules(['button-name', 'aria-allowed-attr', 'aria-valid-attr-value', 'nested-interactive'])
+    .analyze();
+  expect(axeResult.violations).toEqual([]);
 });
 
 test('game board reconnects, exposes reasons, avoids double retry, and labels wide coordinates', async ({ page }) => {

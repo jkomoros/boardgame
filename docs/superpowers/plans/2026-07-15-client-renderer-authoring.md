@@ -717,7 +717,7 @@ do not make `TargetAction` a workflow DSL.
   links/schemes, and external resource loads before insertion. Never interpolate
   unescaped creator keys/prefixes into selectors or reflect diagnostic markup as
   HTML.
-- [ ] Diagnose zero/duplicate/malformed keys, duplicate order, missing labels,
+- [x] Diagnose zero/duplicate/malformed keys, duplicate order, missing labels,
   invisible/zero-sized regions, `getBBox` failures, nonfinite transforms, unknown
   piece/target keys, and stack/space cardinality mismatch.
 - [x] Resolve nested SVG interaction with explicit closest/data semantics rather
@@ -736,7 +736,7 @@ do not make `TargetAction` a workflow DSL.
   letterboxing modes, CSS/container resize, page zoom, polygon/path regions,
   distinct region/focus/piece anchors, and rapid ResizeObserver notifications
   without loops.
-- [ ] Add a development geometry inspector displaying keys, order, hit regions,
+- [x] Add a development geometry inspector displaying keys, order, hit regions,
   anchors, labels, unknown pieces, and overlaps.
 - [x] Resolve labels from an explicit label map, SVG `aria-label`/`title`, or a
   loud development diagnostic. Supply keyboard order and a compact list

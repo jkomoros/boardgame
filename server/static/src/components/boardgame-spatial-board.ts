@@ -93,15 +93,41 @@ class BoardgameSpatialBoard extends LitElement {
       overflow: hidden;
     }
 
+    #focus-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .space-focus {
+      appearance: none;
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 2px solid transparent;
+      border-radius: 50%;
+      background: transparent;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .space-focus:focus-visible {
+      border-color: var(--md-sys-color-primary, #315c3b);
+      outline: 3px solid var(--md-sys-color-surface, white);
+      outline-offset: 1px;
+    }
+
     #status {
       margin: 0.5rem;
+      color: var(--board-on-surface, white);
     }
 
     #status[hidden] {
       display: none;
     }
 
-    #space-list {
+    #space-list > div {
       display: flex;
       flex-wrap: wrap;
       gap: 0.35rem;
@@ -110,6 +136,15 @@ class BoardgameSpatialBoard extends LitElement {
 
     #space-list button[aria-disabled='true'] {
       opacity: 0.65;
+    }
+
+    #geometry-inspector {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: Canvas;
+      color: CanvasText;
+      font: 12px/1.4 ui-monospace, monospace;
+      white-space: pre-wrap;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -167,6 +202,10 @@ class BoardgameSpatialBoard extends LitElement {
   @property({ type: Object, attribute: false })
   componentAttrs: Record<string, unknown> = {};
 
+  /** Development-only geometry report; never required for gameplay. */
+  @property({ type: Boolean, attribute: 'geometry-inspector' })
+  geometryInspector = false;
+
   /** True after the SVG has been loaded and inserted into the DOM. */
   @property({ type: Boolean })
   svgLoaded = false;
@@ -174,6 +213,12 @@ class BoardgameSpatialBoard extends LitElement {
   /** Computed pixel positions per layer. Updated on state/resize changes. */
   @state()
   private _layerPositions: Array<Array<{ top: number; left: number } | null>> = [];
+
+  @state()
+  private _focusPositions: ReadonlyMap<string, { top: number; left: number }> = new Map();
+
+  @state()
+  private _inspection = '';
 
   @state()
   private _loadError: string | null = null;
@@ -254,6 +299,8 @@ class BoardgameSpatialBoard extends LitElement {
     this._loadError = null;
     this._resolvedGeometry = null;
     this._layerPositions = [];
+    this._focusPositions = new Map();
+    this._inspection = '';
     this._container.querySelector('svg')?.remove();
     try {
       const response = await fetch(this.svgUrl, { signal: controller.signal });
@@ -320,6 +367,8 @@ class BoardgameSpatialBoard extends LitElement {
     this.svgLoaded = false;
     this._resolvedGeometry = null;
     this._layerPositions = [];
+    this._focusPositions = new Map();
+    this._inspection = '';
     this._loadError = null;
   }
 
@@ -357,6 +406,21 @@ class BoardgameSpatialBoard extends LitElement {
     return this.action?.candidates.find(candidate => String(candidate.key) === String(key));
   }
 
+  private _activateSpace(space: ResolvedBoardGeometry<SpatialBoardKey>['spaces'][number]): void {
+    const candidate = this._candidateForSpace(space.key);
+    if (candidate) {
+      if (candidate.action.canActivate) void candidate.action.activate();
+      return;
+    }
+    const index = Number(space.key);
+    if (!Number.isInteger(index) || this.disabledSpaces.includes(index)) return;
+    this.dispatchEvent(new CustomEvent('space-tapped', {
+      composed: true,
+      bubbles: true,
+      detail: { index },
+    }));
+  }
+
   // ---- Disabled spaces ----
 
   private _applyDisabledSpaces() {
@@ -379,20 +443,7 @@ class BoardgameSpatialBoard extends LitElement {
     if (rawKey === null || rawKey === undefined) return;
     const space = this._resolvedGeometry?.spaces.find(candidate => String(candidate.key) === rawKey);
     if (!space) return;
-    const candidate = this._candidateForSpace(space.key);
-    if (candidate) {
-      if (!candidate.action.canActivate) return;
-      void candidate.action.activate();
-      return;
-    }
-    const index = Number(rawKey);
-    if (!Number.isInteger(index) || this.disabledSpaces.includes(index)) return;
-
-    this.dispatchEvent(new CustomEvent('space-tapped', {
-      composed: true,
-      bubbles: true,
-      detail: { index }
-    }));
+    this._activateSpace(space);
   }
 
   // ---- Coordinate conversion ----
@@ -471,6 +522,13 @@ class BoardgameSpatialBoard extends LitElement {
    * Called when SVG loads, state changes, or container resizes.
    */
   private _recalculatePositions() {
+    const focusPositions = new Map<string, { top: number; left: number }>();
+    for (const space of this._resolvedGeometry?.spaces ?? []) {
+      const center = this._elementCenterPixel(space.focusAnchor);
+      focusPositions.set(String(space.key), { top: center.y, left: center.x });
+    }
+    this._focusPositions = focusPositions;
+    this._inspection = this._geometryInspection();
     const stacks = this._effectiveStacks;
     if (stacks.length === 0) {
       this._layerPositions = [];
@@ -529,6 +587,31 @@ class BoardgameSpatialBoard extends LitElement {
     this._layerPositions = result;
   }
 
+  private _geometryInspection(): string {
+    const spaces = this._resolvedGeometry?.spaces ?? [];
+    const boxes = spaces.map(space => ({ space, box: space.region.getBoundingClientRect() }));
+    const overlaps: string[] = [];
+    for (let left = 0; left < boxes.length; left++) {
+      for (let right = left + 1; right < boxes.length; right++) {
+        const a = boxes[left]!;
+        const b = boxes[right]!;
+        if (a.box.left < b.box.right && a.box.right > b.box.left
+          && a.box.top < b.box.bottom && a.box.bottom > b.box.top) {
+          overlaps.push(`${String(a.space.key)}↔${String(b.space.key)}`);
+        }
+      }
+    }
+    const lines = spaces.map(space => {
+      const focus = this._focusPositions.get(String(space.key));
+      const piece = this._elementCenterPixel(space.pieceAnchor);
+      return `${space.order}: ${String(space.key)} — ${space.label}; region=<${space.region.localName}>; `
+        + `focus=${focus ? `${focus.left.toFixed(1)},${focus.top.toFixed(1)}` : 'missing'}; `
+        + `piece=${piece.x.toFixed(1)},${piece.y.toFixed(1)}`;
+    });
+    lines.push(`possible bounding-box overlaps: ${overlaps.length ? overlaps.join(', ') : 'none'}`);
+    return lines.join('\n');
+  }
+
   // ---- Render ----
 
   override render() {
@@ -543,6 +626,30 @@ class BoardgameSpatialBoard extends LitElement {
         </p>
         <div id="container" @click="${this._spaceTapped}">
           <!-- SVG is loaded via fetch and inserted here -->
+          ${this._resolvedGeometry ? html`
+            <div id="focus-overlay">
+              ${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
+                const position = this._focusPositions.get(String(space.key));
+                const candidate = this._candidateForSpace(space.key);
+                const disabled = candidate
+                  ? !candidate.action.canActivate
+                  : this.disabledSpaces.includes(Number(space.key));
+                const reason = candidate?.action.reason?.message;
+                return position ? html`<button
+                  class="space-focus"
+                  type="button"
+                  style=${`left:${position.left}px;top:${position.top}px`}
+                  aria-label=${reason
+                    ? `${space.label}. ${candidate?.action.canActivate ? 'Retry available' : 'Unavailable'}: ${reason}`
+                    : space.label}
+                  aria-disabled=${String(disabled)}
+                  @focus=${() => space.region.classList.add('focused')}
+                  @blur=${() => space.region.classList.remove('focused')}
+                  @click=${(event: Event) => { event.stopPropagation(); this._activateSpace(space); }}
+                ></button>` : '';
+              })}
+            </div>
+          ` : ''}
           ${hasStacks ? html`
             <div id="token-overlay">
               ${repeat(stacks, (_, i) => i, (s, i) => html`
@@ -558,8 +665,9 @@ class BoardgameSpatialBoard extends LitElement {
           ` : ''}
         </div>
         ${this._resolvedGeometry ? html`
-          <div id="space-list" aria-label="Board spaces">
-            ${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
+          <details id="space-list">
+            <summary>Board spaces</summary>
+            <div>${repeat(this._resolvedGeometry.spaces, space => space.key, space => {
               const candidate = this._candidateForSpace(space.key);
               const legacyDisabled = this.disabledSpaces.includes(Number(space.key));
               const disabled = candidate ? !candidate.action.canActivate : legacyDisabled;
@@ -572,15 +680,16 @@ class BoardgameSpatialBoard extends LitElement {
                 @blur=${() => space.region.classList.remove('focused')}
                 @click=${(event: Event) => {
                   event.stopPropagation();
-                  if (candidate?.action.canActivate) void candidate.action.activate();
-                  else if (!candidate && !legacyDisabled) {
-                    this.dispatchEvent(new CustomEvent('space-tapped', {
-                      composed: true, bubbles: true, detail: { index: Number(space.key) },
-                    }));
-                  }
+                  this._activateSpace(space);
                 }}>${space.label}${reason ? ` — ${reason}` : ''}</button>`;
-            })}
-          </div>
+            })}</div>
+          </details>
+        ` : ''}
+        ${this.geometryInspector && this._inspection ? html`
+          <details id="geometry-inspector" open>
+            <summary>Board geometry inspector</summary>
+            ${this._inspection}
+          </details>
         ` : ''}
       </div>
     `;
