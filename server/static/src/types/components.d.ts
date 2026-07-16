@@ -146,8 +146,11 @@ export interface BoardgameComponentStackElement extends BoardgameAnimatableItemE
   /** Per-component animation delay, expressed as a fraction of animation length. */
   stagger: number;
 
-  /** Properties copied onto each generated component element. */
-  componentAttrs: Record<string, unknown>;
+  /** Whether every component is disabled for a display-only stack. */
+  componentsDisabled: boolean;
+
+  /** Explicit untyped escape hatch; prefer componentView.withProperties(...). */
+  unsafeComponentAttrs: Record<string, unknown>;
 
   /** Renderer-scoped typed Lit recipe for component hosts and content. */
   componentView: ComponentView | null;

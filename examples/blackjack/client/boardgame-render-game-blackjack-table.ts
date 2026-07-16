@@ -104,7 +104,7 @@ export class BlackjackTableView extends BoardgameTableViewBase<State, ComponentC
       ${this.renderHostControls()}
       <div class="draw">
         ${this.state?.Game?.DrawStack
-          ? html`<boardgame-component-stack id="deal-source" .stack=${this.state.Game.DrawStack} .componentView=${this.cards} .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack id="deal-source" .stack=${this.state.Game.DrawStack} .componentView=${this.cards.withProperties({ rotated: true })}></boardgame-component-stack>`
           : html`<small>waiting for state…</small>`}
       </div>
       <div class="seats">
@@ -113,10 +113,10 @@ export class BlackjackTableView extends BoardgameTableViewBase<State, ComponentC
             <div class="seat-name">${nameFor(i)} · ${p.Score} pts</div>
             <div class="seat-cards">
               ${p.VisibleHand
-                ? html`<boardgame-component-stack .stack=${p.VisibleHand} .componentView=${this.cards} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+                ? html`<boardgame-component-stack .stack=${p.VisibleHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan" messy></boardgame-component-stack>`
                 : ''}
               ${p.HiddenHand
-                ? html`<boardgame-component-stack .stack=${p.HiddenHand} .componentView=${this.cards} layout="fan" messy .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+                ? html`<boardgame-component-stack .stack=${p.HiddenHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan" messy></boardgame-component-stack>`
                 : ''}
             </div>
             ${p.Stood ? html`<small>Standing</small>` : ''}

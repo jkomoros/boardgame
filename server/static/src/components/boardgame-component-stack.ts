@@ -3,8 +3,9 @@ import { property, query } from 'lit/decorators.js';
 import { dashToCamelCase } from '../utils/case-map.js';
 import type { BoardgameComponentElement } from '../types/components';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
+import type { BoardgameComponent } from './boardgame-component.js';
 import type { ComponentView } from './component-view.js';
-import { createComponentForView, updateComponentFromView } from './component-view.js';
+import { createComponentForView, sameComponentViewRecipe, updateComponentFromView } from './component-view.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -335,11 +336,14 @@ export class BoardgameComponentStack extends LitElement {
   @query('#animating-components')
   private animatingComponentsContainer!: HTMLElement;
 
-  // Attributes to forward to child components. Keys are camelCase property
-  // names (e.g., 'color', 'type', 'rotated', 'proposeMove'), values are
-  // set directly as properties on each child component element.
+  /** Disable every component in a display-only stack. Cannot be mixed with actions. */
+  @property({ type: Boolean, attribute: 'components-disabled' })
+  componentsDisabled = false;
+
+  // Explicit escape hatch for custom host properties that cannot be modeled by
+  // a typed component view. Prefer componentView.withProperties(...).
   @property({ type: Object, attribute: false })
-  componentAttrs: Record<string, any> = {};
+  unsafeComponentAttrs: Record<string, unknown> = {};
 
   /** Typed per-slot interaction. Null slots are deliberately noninteractive. */
   @property({ type: Array, attribute: false })
@@ -474,6 +478,10 @@ export class BoardgameComponentStack extends LitElement {
       this._applySpatialPositions();
     }
 
+    if (changedProperties.has('fauxComponents')) {
+      this._slotChanged(false);
+    }
+
     if (changedProperties.has('boardCols') && this.container) {
       this.container.style.setProperty('--board-cols', String(this.boardCols));
     }
@@ -490,7 +498,7 @@ export class BoardgameComponentStack extends LitElement {
       this._style = this._computeStyle(this._pileScaleFactor);
     }
 
-    if (changedProperties.has('componentAttrs')) {
+    if (changedProperties.has('unsafeComponentAttrs') || changedProperties.has('componentsDisabled')) {
       this._applyComponentAttrsToChildren();
     }
     if (changedProperties.has('componentView')) {
@@ -500,7 +508,8 @@ export class BoardgameComponentStack extends LitElement {
       // In ordinary markup .stack commonly appears before .componentView.
       this._generateChildren();
     }
-    if (changedProperties.has('componentActions') || changedProperties.has('componentAttrs') || changedProperties.has('stack')) {
+    if (changedProperties.has('componentActions') || changedProperties.has('unsafeComponentAttrs')
+      || changedProperties.has('componentsDisabled') || changedProperties.has('stack')) {
       this._subscribeComponentActions();
       this._applyComponentActionState();
     }
@@ -603,13 +612,14 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   private _attributesForComponents(): Map<string, any> {
-    const attrs = new Map(Object.entries(this.componentAttrs));
+    const attrs = new Map(Object.entries(this.unsafeComponentAttrs));
+    if (this.componentsDisabled) attrs.set('disabled', true);
 
     // Forward the stack's own post-animation-delay / wait-for-animation
-    // DOM attributes to stamped children, same as componentAttrs entries
+    // DOM attributes to stamped children, same as unsafeComponentAttrs entries
     // (spec: Renderer-facing API — post-animation-delay #715,
     // wait-for-animation #716). These are plain HTML attributes authored
-    // directly on <boardgame-component-stack> (unlike componentAttrs,
+    // directly on <boardgame-component-stack> (unlike unsafeComponentAttrs,
     // which is populated programmatically by parent components like
     // boardgame-game-board), so read them here rather than via a
     // reflected Lit @property.
@@ -633,7 +643,7 @@ export class BoardgameComponentStack extends LitElement {
 
   /**
    * Re-apply component attributes to all existing child components.
-   * Called when the reactive componentAttrs property changes, so that
+   * Called when reactive shared/unsafe component properties change, so that
    * existing children immediately reflect the new values without
    * waiting for a stack data change from the server.
    */
@@ -694,7 +704,10 @@ export class BoardgameComponentStack extends LitElement {
     if (this.componentActions.length !== components.length) {
       throw new Error(`boardgame-component-stack: componentActions has ${this.componentActions.length} entries but stack has ${components.length} slots`);
     }
-    if ('proposeMove' in this.componentAttrs || 'indexAttributes' in this.componentAttrs) {
+    if (this.componentsDisabled) {
+      throw new Error('boardgame-component-stack: componentActions cannot be combined with componentsDisabled');
+    }
+    if ('proposeMove' in this.unsafeComponentAttrs || 'indexAttributes' in this.unsafeComponentAttrs) {
       throw new Error('boardgame-component-stack: componentActions cannot be combined with legacy proposal attributes');
     }
     this.componentActions.forEach((action, index) => {
@@ -992,6 +1005,11 @@ export class BoardgameComponentStack extends LitElement {
   private _componentViewChanged(previous: ComponentView | null | undefined): void {
     if (previous === undefined && this.componentView === null) return;
     if (previous === this.componentView) return;
+    if (sameComponentViewRecipe(previous, this.componentView)) {
+      this._generateChildren();
+      this._refreshShadowViewComponents();
+      return;
+    }
     this._componentPool = [];
     for (const child of [...this.children]) {
       if (!child.hasAttribute('boardgame-component')) continue;
@@ -999,7 +1017,33 @@ export class BoardgameComponentStack extends LitElement {
       component.beforeOrphaned?.();
       child.remove();
     }
+    this._removeShadowViewComponents();
     this._generateChildren();
+    this._slotChanged(false);
+  }
+
+  /** Refresh faux/spacer hosts that are not reconciled by _generateChildren(). */
+  private _refreshShadowViewComponents(): void {
+    if (!this.componentView) return;
+    for (const [index, component] of this._fauxComponents.entries()) {
+      updateComponentFromView(this.componentView, component, undefined, index);
+    }
+    const spacer = this.shadowRoot?.querySelector(
+      '#container>[boardgame-component][spacer]',
+    ) as BoardgameComponent | null;
+    if (spacer) updateComponentFromView(this.componentView, spacer, undefined, 0);
+  }
+
+  /** A different recipe may create a different host element, so rebuild shadow hosts too. */
+  private _removeShadowViewComponents(): void {
+    const remove = (component: Element) => {
+      (component as HTMLElement & { beforeOrphaned?: () => void }).beforeOrphaned?.();
+      component.remove();
+    };
+    for (const component of this._fauxComponents) remove(component);
+    const spacer = this.shadowRoot?.querySelector('#container>[boardgame-component][spacer]');
+    if (spacer) remove(spacer);
+    this.clearAnimatingComponents();
   }
 
   private _slotChanged(firstRender: boolean) {
@@ -1031,16 +1075,8 @@ export class BoardgameComponentStack extends LitElement {
 
     if (firstRender && realComponents.length < 1) return;
 
-    if (realComponents.length < this.fauxComponents) {
-      const targetNumFauxComponents = this.fauxComponents - realComponents.length;
-      const info: any[] = [];
-
-      for (let i = 0; i < targetNumFauxComponents; i++) {
-        info.push(undefined);
-      }
-
-      this._insertNodes(info, fauxComponentsContainer);
-    }
+    const targetNumFauxComponents = Math.max(0, this.fauxComponents - realComponents.length);
+    this._insertNodes(Array(targetNumFauxComponents).fill(undefined), fauxComponentsContainer);
 
     this._updateComponentClasses();
     this._applyComponentActionState();

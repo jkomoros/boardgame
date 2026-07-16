@@ -46,7 +46,7 @@ render() {
     layout="stack"
     .stack=${this.state?.Players[0]?.WonCards ?? null}
     .componentView=${this.cards}
-    .componentAttrs=${{ disabled: true }}>
+    components-disabled>
   </boardgame-component-stack>`;
 }
 ```
@@ -56,8 +56,9 @@ stack retains stable component hosts across state snapshots so card identity,
 focus, pooling, and movement animation continue to work.
 
 Prefer the component view's typed `properties` callback for card or token
-presentation. `.componentAttrs` is available for lower-level shared properties,
-such as rotating every card in one stack. Bind interactions with typed actions:
+presentation. Use `.componentView=${this.cards.withProperties({ rotated: true })}`
+for stack-specific typed properties. `.unsafeComponentAttrs` is reserved for
+custom host properties with no typed representation. Bind interactions with typed actions:
 
 ```typescript
 const reveals = this.move(MoveNames.RevealCard).targets(

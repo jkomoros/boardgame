@@ -117,7 +117,7 @@ class BoardgameRenderGameMemory extends GameRenderer {
             .stack="${this.state?.Players?.[0]?.WonCards}"
             .componentView=${this.cards}
             messy
-            .componentAttrs=${{ disabled: true }}>
+            components-disabled>
           </boardgame-component-stack>
         </div>
         <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
@@ -129,7 +129,7 @@ class BoardgameRenderGameMemory extends GameRenderer {
             messy
             .stack="${this.state?.Players?.[1]?.WonCards}"
             .componentView=${this.cards}
-            .componentAttrs=${{ disabled: true }}>
+            components-disabled>
           </boardgame-component-stack>
         </div>
       </div>

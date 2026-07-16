@@ -26,7 +26,7 @@ export type ComponentViewContext<S extends ExpandedStack<object, object>> =
 
 type FrameworkOwnedComponentProperty = 'boardgameComponent' | 'disabled' | 'id' | 'index' | 'item' | 'spacer';
 
-type SettableProperties<ElementType extends BoardgameComponent> = {
+export type SettableComponentProperties<ElementType extends BoardgameComponent> = {
   readonly [Key in keyof ElementType as Key extends FrameworkOwnedComponentProperty
     ? never
     : ElementType[Key] extends (...args: never[]) => unknown
@@ -41,7 +41,7 @@ export interface ComponentViewOptions<
   /** Render light-DOM content into a stable component host. */
   readonly render?: (context: ComponentViewContext<S>) => unknown;
   /** Set typed host properties such as card faceUp/rotated or token color. */
-  readonly properties?: (context: ComponentViewContext<S>) => SettableProperties<ElementType>;
+  readonly properties?: (context: ComponentViewContext<S>) => SettableComponentProperties<ElementType>;
 }
 
 /**
@@ -49,16 +49,23 @@ export interface ComponentViewOptions<
  * Create these once on a renderer class; stack updates reuse the same hosts so
  * FLIP animation identity is preserved.
  */
-export interface ComponentView<S extends ExpandedStack<object, object> = ExpandedStack<object, object>> {
+export interface ComponentView<
+  S extends ExpandedStack<object, object> = ExpandedStack<object, object>,
+  ElementType extends BoardgameComponent = BoardgameComponent,
+> {
   readonly __componentViewStack?: S;
+  /** Add stack-specific, type-checked host properties without changing the recipe identity. */
+  withProperties(properties: SettableComponentProperties<ElementType>): ComponentView<S, ElementType>;
 }
 
 interface InternalComponentView<
   S extends ExpandedStack<object, object>,
   ElementType extends BoardgameComponent,
-> extends ComponentView<S> {
+> extends ComponentView<S, ElementType> {
   readonly create: () => ElementType;
   readonly options: ComponentViewOptions<S, ElementType>;
+  readonly base?: InternalComponentView<S, ElementType>;
+  readonly overrides?: SettableComponentProperties<ElementType>;
 }
 
 const initialProperties = new WeakMap<BoardgameComponent, Map<PropertyKey, unknown>>();
@@ -72,14 +79,20 @@ export function componentView<
 >(
   create: () => ElementType,
   options: ComponentViewOptions<S, ElementType>,
-): ComponentView<S> {
-  return Object.freeze({ create, options }) as InternalComponentView<S, ElementType>;
+): ComponentView<S, ElementType> {
+  let view!: InternalComponentView<S, ElementType>;
+  view = Object.freeze({
+    create,
+    options,
+    withProperties: (properties: SettableComponentProperties<ElementType>) => bindProperties(view, properties),
+  }) as InternalComponentView<S, ElementType>;
+  return view;
 }
 
 /** The common card case, with card properties checked by TypeScript. */
 export function cardView<S extends ExpandedStack<object, object>>(
   options: ComponentViewOptions<S, BoardgameCard>,
-): ComponentView<S> {
+): ComponentView<S, BoardgameCard> {
   return componentView(
     () => document.createElement('boardgame-card'),
     options,
@@ -89,7 +102,7 @@ export function cardView<S extends ExpandedStack<object, object>>(
 /** The common token case, with token properties checked by TypeScript. */
 export function tokenView<S extends ExpandedStack<object, object>>(
   options: ComponentViewOptions<S, BoardgameToken>,
-): ComponentView<S> {
+): ComponentView<S, BoardgameToken> {
   return componentView(
     () => document.createElement('boardgame-token'),
     options,
@@ -98,17 +111,18 @@ export function tokenView<S extends ExpandedStack<object, object>>(
 
 export function createComponentForView(view: ComponentView): BoardgameComponent {
   const internal = asInternalView(view);
+  const base = internal.base ?? internal;
   const component = internal.create();
   assertComponentHost(component);
   if (createdComponents.has(component)) {
     throw new Error('componentView(): create() returned a component host it returned before; return a fresh element each time');
   }
   createdComponents.add(component);
-  const expectedTag = componentTags.get(view);
+  const expectedTag = componentTags.get(base);
   if (expectedTag && expectedTag !== component.localName) {
     throw new Error(`componentView(): create() changed host type from <${expectedTag}> to <${component.localName}>`);
   }
-  componentTags.set(view, component.localName);
+  componentTags.set(base, component.localName);
   component.setAttribute('boardgame-component', '');
   return component;
 }
@@ -123,7 +137,7 @@ export function updateComponentFromView(
   const context = contextFor(component, index);
   render(internal.options.render?.(context) ?? nothing, element);
 
-  const next = internal.options.properties?.(context) ?? {};
+  const next = Object.assign({}, internal.options.properties?.(context) ?? {}, internal.overrides ?? {});
   const initial = initialProperties.get(element) ?? new Map<PropertyKey, unknown>();
   const previous = appliedProperties.get(element) ?? new Set<PropertyKey>();
   const nextKeys = new Set<PropertyKey>(Reflect.ownKeys(next));
@@ -139,9 +153,35 @@ export function updateComponentFromView(
   appliedProperties.set(element, nextKeys);
 }
 
+/** True when two values use the same host/content recipe, even if overrides differ. */
+export function sameComponentViewRecipe(first: ComponentView | null | undefined, second: ComponentView | null | undefined): boolean {
+  if (!first || !second) return first === second;
+  const firstInternal = asInternalView(first);
+  const secondInternal = asInternalView(second);
+  return (firstInternal.base ?? firstInternal) === (secondInternal.base ?? secondInternal);
+}
+
+function bindProperties<
+  S extends ExpandedStack<object, object>,
+  ElementType extends BoardgameComponent,
+>(
+  source: InternalComponentView<S, ElementType>,
+  properties: SettableComponentProperties<ElementType>,
+): ComponentView<S, ElementType> {
+  const base = source.base ?? source;
+  const overrides = Object.freeze({ ...properties });
+  return Object.freeze({
+    create: base.create,
+    options: base.options,
+    base,
+    overrides,
+    withProperties: (next: SettableComponentProperties<ElementType>) => bindProperties(base, next),
+  }) as InternalComponentView<S, ElementType>;
+}
+
 function asInternalView(view: ComponentView): InternalComponentView<ExpandedStack<object, object>, BoardgameComponent> {
   const candidate = view as Partial<InternalComponentView<ExpandedStack<object, object>, BoardgameComponent>>;
-  if (typeof candidate.create !== 'function' || !candidate.options) {
+  if (typeof candidate.create !== 'function' || !candidate.options || typeof candidate.withProperties !== 'function') {
     throw new Error('boardgame-component-stack: componentView must come from cardView(), tokenView(), or componentView()');
   }
   return candidate as InternalComponentView<ExpandedStack<object, object>, BoardgameComponent>;

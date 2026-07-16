@@ -833,9 +833,8 @@ class BoardgameRenderGame{{uppercaseFirst .Name}} extends GameRenderer {
             <strong>Player ${index + 1}</strong>
             <boardgame-component-stack
               .stack=${player.Hand}
-              .componentView=${this.cards}
-              layout="fan" messy
-              .componentAttrs=${[[ rotated: true ]]}>
+              .componentView=${this.cards.withProperties({ rotated: true })}
+              layout="fan" messy>
             </boardgame-component-stack>
             <boardgame-fading-text
               .trigger=${player.Computed?.GameScore ?? 0}

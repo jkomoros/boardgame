@@ -1503,7 +1503,7 @@ html`<boardgame-component-stack
   messy
   .stack=${this.state?.Players[0]?.WonCards ?? null}
   .componentView=${this.cards}
-  .componentAttrs=${{ disabled: true }}>
+  components-disabled>
 </boardgame-component-stack>`
 ```
 
@@ -1511,9 +1511,13 @@ The stack creates stable card hosts and rerenders their light-DOM content with
 Lit whenever their logical slot changes. The view is local to this renderer, so
 two games may use the same deck name without a global registration collision.
 
-Prefer the view's typed `properties` callback for standard card/token
-presentation. `.componentAttrs` remains a lower-level escape hatch for shared
-game-owned properties. Do not put move names or move arguments in it. For one typed action per slot, create a target
+Prefer the view's typed `properties` callback for component-dependent card/token
+presentation. Use `this.cards.withProperties({ rotated: true })` for typed
+stack-specific properties; this preserves host identity even when values change.
+`components-disabled` is the explicit display-only common case.
+`.unsafeComponentAttrs` remains an intentionally named escape hatch for custom
+host properties the typed view cannot express. Do not put move names or move
+arguments in it. For one typed action per slot, create a target
 collection and pass its actions in stack order:
 
 ```typescript

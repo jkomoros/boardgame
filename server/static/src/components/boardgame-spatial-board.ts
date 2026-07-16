@@ -207,9 +207,9 @@ class BoardgameSpatialBoard extends LitElement {
   @property({ type: Number })
   tokenSize = 24;
 
-  /** Attributes to forward to child components. */
+  /** Explicit escape hatch for untyped child properties. Prefer bound views. */
   @property({ type: Object, attribute: false })
-  componentAttrs: Record<string, unknown> = {};
+  unsafeComponentAttrs: Record<string, unknown> = {};
 
   /** One renderer-scoped view shared by every spatial stack layer. */
   @property({ type: Object, attribute: false })
@@ -744,7 +744,7 @@ class BoardgameSpatialBoard extends LitElement {
                   layout="spatial"
                   .stack="${s}"
                   .spatialPositions="${this._layerPositions[i] || []}"
-                  .componentAttrs="${this.componentAttrs}"
+                  .unsafeComponentAttrs="${this.unsafeComponentAttrs}"
                   .componentView=${this.componentViews.length ? this.componentViews[i] : this.componentView}
                   no-default-spacer>
                 </boardgame-component-stack>

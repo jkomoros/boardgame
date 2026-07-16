@@ -62,13 +62,13 @@ test('stack forwards post-animation-delay to stamped components', async ({ page 
 
     stack.setAttribute('post-animation-delay', '150');
     // Plain HTML attributes on the stack aren't a reactive Lit @property
-    // (unlike componentAttrs), so nothing re-stamps children automatically
-    // when it's set after the fact. Re-assign componentAttrs to a fresh
+    // (unlike unsafeComponentAttrs), so nothing re-stamps children automatically
+    // when it's set after the fact. Re-assign unsafeComponentAttrs to a fresh
     // object (same content) to trigger Lit's changed-property machinery,
     // which re-applies _attributesForComponents() -- including the new
     // post-animation-delay attribute -- to every already-stamped child
     // (see _applyComponentAttrsToChildren in boardgame-component-stack.ts).
-    stack.componentAttrs = { ...stack.componentAttrs };
+    stack.unsafeComponentAttrs = { ...stack.unsafeComponentAttrs };
     await stack.updateComplete;
 
     const comp = stack.querySelector('[boardgame-component]') as any;

@@ -52,7 +52,7 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
           .componentView=${this.cards}
           layout="stack"
           messy
-          .componentAttrs=${{ disabled: true }}>
+          components-disabled>
         </boardgame-component-stack>
         <div class="flex">
           <boardgame-action-button .action=${this.move(MoveNames.CurrentPlayerHit)}>Hit</boardgame-action-button>
@@ -71,10 +71,9 @@ class BoardgameRenderGameBlackjack extends GameRenderer {
             <strong>Player ${index}</strong>
             <boardgame-component-stack
               .stack="${player.Hand}"
-              .componentView=${this.cards}
+              .componentView=${this.cards.withProperties({ rotated: true })}
               layout="fan"
-              messy
-              .componentAttrs=${{ rotated: true }}>
+              messy>
               <boardgame-fading-text .trigger="${player.Eliminated}" message="Busted!"></boardgame-fading-text>
               <boardgame-fading-text .trigger="${player.Stood}" message="Stand!"></boardgame-fading-text>
             </boardgame-component-stack>

@@ -266,9 +266,9 @@ export class BoardgameGameBoard extends LitElement {
   @property({ type: Number })
   selectedSpace = -1;
 
-  /** Attributes to forward to child components in the stack. */
+  /** Explicit escape hatch for untyped child properties. Prefer a bound component view. */
   @property({ type: Object, attribute: false })
-  componentAttrs: Record<string, unknown> = {};
+  unsafeComponentAttrs: Record<string, unknown> = {};
 
   /** Renderer-scoped component recipe passed to the board's inner stack. */
   @property({ attribute: false })
@@ -584,7 +584,7 @@ export class BoardgameGameBoard extends LitElement {
             .boardRows="${this.rows}"
             .stack="${this.stack}"
             .componentView=${this.componentView}
-            .componentAttrs="${this.componentAttrs}"
+            .unsafeComponentAttrs="${this.unsafeComponentAttrs}"
             no-default-spacer>
           </boardgame-component-stack>
 

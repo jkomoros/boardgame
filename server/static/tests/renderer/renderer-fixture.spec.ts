@@ -173,7 +173,6 @@ test('component stacks bind typed actions by slot and reject ambiguous wiring', 
       const stack = handle.renderer.shadowRoot?.querySelector('boardgame-component-stack') as (
         HTMLElement & {
           componentActions: readonly unknown[];
-          componentAttrs: Record<string, unknown>;
           updateComplete: Promise<unknown>;
         }
       ) | null;
@@ -279,6 +278,8 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
       const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
         stack: unknown;
         componentView: unknown;
+        componentsDisabled: boolean;
+        fauxComponents: number;
         newComponent(): unknown;
         updateComplete: Promise<unknown>;
       };
@@ -310,6 +311,31 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
         spacer: card.spacer,
       }));
       const stableHosts = firstCards.every((card, index) => card === secondCards[index]);
+
+      stack.fauxComponents = 4;
+      await stack.updateComplete;
+      const fauxBefore = stack.shadowRoot?.querySelector('#faux-components boardgame-card') as
+        (HTMLElement & { rotated: boolean; disabled: boolean; updateComplete: Promise<unknown> }) | null;
+      await fauxBefore?.updateComplete;
+
+      stack.componentView = view.withProperties({ rotated: false });
+      await stack.updateComplete;
+      const reboundCards = [...stack.querySelectorAll('boardgame-card')] as typeof firstCards;
+      await Promise.all(reboundCards.map(card => card.updateComplete));
+      const reboundKeepsHosts = secondCards.every((card, index) => card === reboundCards[index]);
+      const reboundRotated = reboundCards.map(card => card.rotated);
+      const fauxAfter = stack.shadowRoot?.querySelector('#faux-components boardgame-card') as
+        (HTMLElement & { rotated: boolean; disabled: boolean; updateComplete: Promise<unknown> }) | null;
+      await fauxAfter?.updateComplete;
+      const fauxBinding = {
+        created: Boolean(fauxBefore),
+        stableHost: fauxBefore === fauxAfter,
+        rotated: fauxAfter?.rotated,
+      };
+      stack.componentsDisabled = true;
+      await stack.updateComplete;
+      const displayOnlyDisabled = reboundCards.map(card => card.disabled);
+      const fauxDisplayOnlyDisabled = fauxAfter?.disabled;
 
       class FixturePiece extends BoardgameComponent {
         label = '';
@@ -344,7 +370,10 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
 
       stack.remove();
       customStack.remove();
-      return { before, after, stableHosts, customText, missingViewError };
+      return {
+        before, after, stableHosts, reboundKeepsHosts, reboundRotated,
+        fauxBinding, displayOnlyDisabled, fauxDisplayOnlyDisabled, customText, missingViewError,
+      };
     });
 
     expect(result.before).toEqual([
@@ -358,6 +387,11 @@ test('renderer-scoped component views preserve hosts and distinguish visible, hi
       { text: '', rotated: false, spacer: true },
     ]);
     expect(result.stableHosts).toBe(true);
+    expect(result.reboundKeepsHosts).toBe(true);
+    expect(result.reboundRotated).toEqual([false, false, false]);
+    expect(result.fauxBinding).toEqual({ created: true, stableHost: true, rotated: false });
+    expect(result.displayOnlyDisabled).toEqual([true, true, true]);
+    expect(result.fauxDisplayOnlyDisabled).toBe(true);
     expect(result.customText).toBe('Marked custom piece');
     expect(result.missingViewError).toContain('set .componentView');
     diagnostics.assertEmpty();

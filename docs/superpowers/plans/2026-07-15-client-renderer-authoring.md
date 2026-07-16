@@ -924,6 +924,13 @@ First component-view tranche (2026-07-16):
   token recipes in the external corpus; DebugAnimations proves typed card/token
   views across hidden, sanitized, faux, pooled, grid, pile, fan, and stack
   transitions. Its real slow-animation To Hidden/To Visible gate test passes.
+- [x] Replace ordinary untyped `componentAttrs` usage with
+  `view.withProperties(...)`, whose host properties are checked against the
+  concrete card/token/custom element type while bound views retain the base
+  recipe's stable identity. Add `components-disabled` for display-only stacks;
+  reject mixing it with per-slot actions. Rename the remaining unusual-property
+  escape hatch to `.unsafeComponentAttrs` and migrate the full framework and
+  external corpus so ordinary creator code contains no `componentAttrs`.
 
 With no known game-owned `<boardgame-deck-defaults>` registrations remaining,
 the legacy registry and moustache-binding fallback are removed rather than

@@ -28,6 +28,9 @@ const tokens = tokenView<Cards>({
   }),
 });
 
+const rotatedCards = cards.withProperties({ rotated: true, faceUp: false });
+const blueTokens = tokens.withProperties({ color: 'blue', type: 'meeple' });
+
 class CustomPiece extends BoardgameComponent {
   label = '';
 }
@@ -44,6 +47,18 @@ const custom = componentView<Cards, CustomPiece>(
 void cards;
 void tokens;
 void custom;
+void rotatedCards;
+void blueTokens;
+
+cards.withProperties({
+  // @ts-expect-error stack-specific properties remain checked against the card host
+  faceUpp: true,
+});
+
+cards.withProperties({
+  // @ts-expect-error stable identity is framework-owned for bound views too
+  id: 'creator-owned-id',
+});
 
 cardView<Cards>({
   // @ts-expect-error misspelled component properties must fail at author time

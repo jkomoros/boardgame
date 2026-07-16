@@ -86,10 +86,10 @@ export class BlackjackHandView extends BoardgameHandViewBase<State, ComponentCat
       <h1>Your Hand</h1>
       <div class="hand">
         ${player?.HiddenHand
-          ? html`<boardgame-component-stack .stack=${player.HiddenHand} .componentView=${this.cards} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.HiddenHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan"></boardgame-component-stack>`
           : html`<small>waiting…</small>`}
         ${player?.VisibleHand
-          ? html`<boardgame-component-stack .stack=${player.VisibleHand} .componentView=${this.cards} layout="fan" .componentAttrs=${{ rotated: true }}></boardgame-component-stack>`
+          ? html`<boardgame-component-stack .stack=${player.VisibleHand} .componentView=${this.cards.withProperties({ rotated: true })} layout="fan"></boardgame-component-stack>`
           : ''}
       </div>
       <div class="actions">

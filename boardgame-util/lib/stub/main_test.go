@@ -58,7 +58,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 		"cardView<GameState['DrawStack']>",
 		".componentView=${this.cards}",
 		"component.Values.Value",
-		".componentAttrs=${{ rotated: true }}",
+		".componentView=${this.cards.withProperties({ rotated: true })}",
 		"<boardgame-action-button .action=${this.move(MoveNames.DrawCard)}>",
 		"player.Computed?.GameScore ?? 0",
 	} {
@@ -66,7 +66,7 @@ func TestExampleClientUsesWorkingTypedDefaults(t *testing.T) {
 			t.Errorf("generated client is missing %q", required)
 		}
 	}
-	for _, legacy := range []string{"boardgame-deck-defaults", "{{item.", "component-rotated", "propose-move", "data-arg-", "this.proposeMove"} {
+	for _, legacy := range []string{"boardgame-deck-defaults", "{{item.", "component-rotated", "componentAttrs", "propose-move", "data-arg-", "this.proposeMove"} {
 		if strings.Contains(client, legacy) {
 			t.Errorf("generated client contains legacy authoring syntax %q", legacy)
 		}

@@ -262,14 +262,14 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             .stack="${this.state?.Game?.FirstShortStack}"
             .componentView=${this.cards}
             ?messy="${this.messy}"
-            .componentAttrs=${{ disabled: true }}>
+            components-disabled>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.SecondShortStack}"
             .componentView=${this.cards}
-            .componentAttrs=${{ disabled: true }}>
+            components-disabled>
           </boardgame-component-stack>
           <boardgame-action-button
             .action=${this.move(MoveNames.MoveCardBetweenShortStacks).with({ FromFirst: fromFirstShortStack })}>
@@ -282,8 +282,8 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.DrawStack}"
-            .componentView=${this.cards}
-            .componentAttrs=${{ rotated: this.messy, indexAttributes: 'my-index,other-index' }}>
+            .componentView=${this.cards.withProperties({ rotated: this.messy })}
+            .unsafeComponentAttrs=${{ indexAttributes: 'my-index,other-index' }}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
@@ -316,18 +316,18 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             layout="${this.fromStackLayout}"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.FanStack}"
-            .componentView=${this.cards}
+            .componentView=${this.cards.withProperties({ rotated: this.fromStackRotated })}
             style="${styleMap({ '--component-scale': this.fromCardScale.toString() })}"
-            .componentAttrs=${{ rotated: this.fromStackRotated }}>
+            >
           </boardgame-component-stack>
           <div class="flex"></div>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.FanDiscard}"
-            .componentView=${this.cards}
+            .componentView=${this.cards.withProperties({ rotated: this.toStackRotated })}
             style="${styleMap({ '--component-scale': this.toCardScale.toString() })}"
-            .componentAttrs=${{ rotated: this.toStackRotated }}>
+            >
           </boardgame-component-stack>
           <div class="controls">
             <boardgame-action-button .action=${this.move(MoveNames.MoveFanCard)}>Draw</boardgame-action-button>
@@ -363,18 +363,18 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             layout="fan"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.VisibleStack}"
-            .componentView=${this.cards}
+            .componentView=${this.cards.withProperties({ rotated: this.fromStackRotated })}
             style="${styleMap({ '--component-scale': this.fromCardScale.toString() })}"
-            .componentAttrs=${{ rotated: this.fromStackRotated }}>
+            >
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="stack"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.HiddenStack}"
-            .componentView=${this.cards}
+            .componentView=${this.cards.withProperties({ rotated: this.toStackRotated })}
             style="${styleMap({ '--component-scale': this.toCardScale.toString() })}"
             faux-components="5"
-            .componentAttrs=${{ rotated: this.toStackRotated }}>
+            >
           </boardgame-component-stack>
           <boardgame-action-button .action=${this.move(MoveNames.MoveBetweenHidden)}>Draw</boardgame-action-button>
         </div>
@@ -439,15 +439,13 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             layout="grid"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.TokensFrom}"
-            .componentView=${this.tokens}
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="grid"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.TokensTo}"
-            .componentView=${this.tokens}
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}>
           </boardgame-component-stack>
           <boardgame-action-button .action=${this.move(MoveNames.MoveToken)}>Swap</boardgame-action-button>
         </div>
@@ -457,16 +455,15 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             layout="pile"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.SanitizedTokensFrom}"
-            .componentView=${this.tokens}
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}>
           </boardgame-component-stack>
           <boardgame-component-stack
             layout="pile"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.SanitizedTokensTo}"
-            .componentView=${this.tokens}
+            .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}
             faux-components="5"
-            .componentAttrs=${{ color: this.tokenColor, type: this.tokenType }}>
+            >
           </boardgame-component-stack>
           <boardgame-action-button .action=${this.move(MoveNames.MoveTokenSanitized)}>Swap</boardgame-action-button>
         </div>
