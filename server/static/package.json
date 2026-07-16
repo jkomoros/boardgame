@@ -1,6 +1,7 @@
 {
   "name": "boardgame-webapp",
   "version": "0.1.0",
+  "type": "module",
   "license": "BSD-3-Clause",
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

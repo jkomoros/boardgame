@@ -1080,6 +1080,10 @@ First evidence-driven primitive tranche (2026-07-16):
   element bypasses the generated base, and narrow Table/Hand companion fields
   through their real classes. Keep interrupted-animation cleanup behind the
   animator API rather than reaching through its private stack registry.
+- [x] Declare the web toolchain package as ESM so Node runs native TypeScript
+  tests without reparsing every file and burying diagnostics in warnings. Move
+  the one legacy CommonJS precache config to `.cjs` and make the self-starting
+  Playwright config use `import.meta.url` instead of CommonJS globals.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

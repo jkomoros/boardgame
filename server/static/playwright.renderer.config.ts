@@ -2,8 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const repoRoot = resolve(__dirname, '../..');
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 
 function allocatePorts(): [number, number] {
   // Playwright loads TypeScript config synchronously, so allocate both ports in
