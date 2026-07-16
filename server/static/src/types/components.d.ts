@@ -115,7 +115,7 @@ export interface BoardgameTokenElement extends BoardgameComponentElement {
  */
 export interface BoardgameComponentStackElement extends BoardgameAnimatableItemElement {
   /** Expanded stack snapshot to render, or null while no stack is selected. */
-  stack: ExpandedStack | null;
+  stack: ExpandedStack | null | undefined;
 
   /** Layout algorithm used to position the stack's components. */
   layout: StackLayout;
@@ -136,6 +136,9 @@ export interface BoardgameComponentStackElement extends BoardgameAnimatableItemE
 
   /** Number of columns used by the board layout. */
   boardCols: number;
+
+  /** Number of rows used by the board layout. */
+  boardRows: number;
 
   /** Pixel positions used by the spatial layout, indexed by stack slot. */
   spatialPositions: Array<{ top: number; left: number } | null>;
@@ -165,7 +168,7 @@ export interface BoardgameComponentStackElement extends BoardgameAnimatableItemE
 /**
  * Stack layout algorithms.
  */
-export type StackLayout = 'stack' | 'grid' | 'fan' | 'pile' | 'spread' | 'board' | 'spatial';
+export type { StackLayout } from '../components/boardgame-component-stack';
 
 /**
  * Component animator interface.

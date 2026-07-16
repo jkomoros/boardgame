@@ -2,6 +2,7 @@ import { LitElement, html, css, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { dashToCamelCase } from '../utils/case-map.js';
 import type { BoardgameComponentElement } from '../types/components';
+import type { ExpandedStack } from '../types/boardgame-types.js';
 import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 import type { BoardgameComponent } from './boardgame-component.js';
 import type { ComponentView } from './component-view.js';
@@ -31,6 +32,14 @@ const pseudoRandomValues = [
 ];
 
 const sharedStackList: BoardgameComponentStack[] = [];
+
+export type StackLayout = 'board' | 'fan' | 'grid' | 'pile' | 'spatial' | 'spread' | 'stack';
+
+const stackLayouts = new Set<StackLayout>(['board', 'fan', 'grid', 'pile', 'spatial', 'spread', 'stack']);
+
+export function isStackLayout(value: string): value is StackLayout {
+  return stackLayouts.has(value as StackLayout);
+}
 
 export class BoardgameComponentStack extends LitElement {
   static override styles = css`
@@ -251,29 +260,29 @@ export class BoardgameComponentStack extends LitElement {
   `;
 
   @property({ type: String })
-  layout = 'stack';
+  layout: StackLayout = 'stack';
 
-  private _stack: any = null;
-  private _idsLastSeen: any = null;
+  private _stack: ExpandedStack | null | undefined = null;
+  private _idsLastSeen: Readonly<Record<string, number>> | null = null;
 
-  set stack(value: any) {
+  set stack(value: ExpandedStack | null | undefined) {
     const oldValue = this._stack;
     this._stack = value;
     this._stackChanged(value);
     this.requestUpdate('stack', oldValue);
   }
 
-  get stack(): any {
+  get stack(): ExpandedStack | null | undefined {
     return this._stack;
   }
 
-  set idsLastSeen(value: any) {
+  set idsLastSeen(value: Readonly<Record<string, number>> | null) {
     this._idsLastSeen = value;
     // No requestUpdate() needed - this is only used for animator tracking
     // and doesn't affect visual rendering
   }
 
-  get idsLastSeen(): any {
+  get idsLastSeen(): Readonly<Record<string, number>> | null {
     return this._idsLastSeen;
   }
 
@@ -801,7 +810,7 @@ export class BoardgameComponentStack extends LitElement {
     if (value === null) component.removeAttribute(name); else component.setAttribute(name, value);
   }
 
-  private _insertNodes(componentsInfo: any[], hostEle: HTMLElement) {
+  private _insertNodes(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const componentCount = hostEle.querySelectorAll('[boardgame-component]').length;
     const childrenToAdd = componentsInfo.length - componentCount;
 
@@ -857,7 +866,7 @@ export class BoardgameComponentStack extends LitElement {
    * Board-mode insertion: reorders DOM elements based on component IDs so
    * that FLIP animation can track physical element movement across grid cells.
    */
-  private _insertNodesBoardMode(componentsInfo: any[], hostEle: HTMLElement) {
+  private _insertNodesBoardMode(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const attrs = this._attributesForComponents();
     const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
     const stackIds = this.stack?.IDs;
@@ -946,7 +955,7 @@ export class BoardgameComponentStack extends LitElement {
    * Default insertion: in-place property assignment (original behavior).
    * Elements stay in DOM order and receive new item data sequentially.
    */
-  private _insertNodesDefault(componentsInfo: any[], hostEle: HTMLElement) {
+  private _insertNodesDefault(componentsInfo: readonly any[], hostEle: HTMLElement) {
     const attrs = this._attributesForComponents();
     const attributesToIndex = attrs.get('indexAttributes') ? attrs.get('indexAttributes').split(',') : [];
 
@@ -1303,6 +1312,7 @@ export class BoardgameComponentStack extends LitElement {
   }
 
   override render(): TemplateResult {
+    this._validateConfiguration();
     return html`
       <div id="container" class="${this._classes(this.layout, this.noAnimate)}" style="${this._style}">
         <div id="slot-holder">
@@ -1313,6 +1323,50 @@ export class BoardgameComponentStack extends LitElement {
       </div>
     `;
   }
+
+  private _validateConfiguration(): void {
+    if (!isStackLayout(this.layout)) {
+      throw new Error(`boardgame-component-stack: unknown layout "${this.layout}"`);
+    }
+    this._assertFiniteNonnegative('messiness', this.messiness);
+    this._assertPositiveInteger('boardCols', this.boardCols);
+    this._assertPositiveInteger('boardRows', this.boardRows);
+    this._assertNonnegativeInteger('fauxComponents', this.fauxComponents);
+    this._assertFiniteNonnegative('stagger', this.stagger);
+    if (!Array.isArray(this.spatialPositions)) {
+      throw new Error('boardgame-component-stack: spatialPositions must be an array');
+    }
+    for (const [index, position] of this.spatialPositions.entries()) {
+      if (position === null) continue;
+      if (!position || !Number.isFinite(position.top) || !Number.isFinite(position.left)) {
+        throw new Error(`boardgame-component-stack: spatialPositions[${index}] must be null or finite top/left coordinates`);
+      }
+    }
+  }
+
+  private _assertPositiveInteger(name: string, value: number): void {
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw new Error(`boardgame-component-stack: ${name} must be a positive safe integer`);
+    }
+  }
+
+  private _assertNonnegativeInteger(name: string, value: number): void {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new Error(`boardgame-component-stack: ${name} must be a nonnegative safe integer`);
+    }
+  }
+
+  private _assertFiniteNonnegative(name: string, value: number): void {
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(`boardgame-component-stack: ${name} must be a finite nonnegative number`);
+    }
+  }
 }
 
 customElements.define('boardgame-component-stack', BoardgameComponentStack);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'boardgame-component-stack': BoardgameComponentStack;
+  }
+}

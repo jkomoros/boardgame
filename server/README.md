@@ -55,6 +55,10 @@ The view context explicitly distinguishes visible, hidden, and empty slots. The
 stack retains stable component hosts across state snapshots so card identity,
 focus, pooling, and movement animation continue to work.
 
+Stack layout is a closed TypeScript contract: `stack`, `grid`, `fan`, `pile`,
+`spread`, `board`, or `spatial`. Use `isStackLayout()` to narrow values from a
+dynamic control. Unknown layouts and invalid geometry fail loudly at runtime.
+
 Prefer the component view's typed `properties` callback for card or token
 presentation. Use `.componentView=${this.cards.withProperties({ rotated: true })}`
 for stack-specific typed properties. `.unsafeComponentAttrs` is reserved for

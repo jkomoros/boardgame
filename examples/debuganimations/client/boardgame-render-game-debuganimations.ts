@@ -15,7 +15,8 @@ import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
-import { cardView, tokenView } from '../../src/client.js';
+import { cardView, isStackLayout, tokenView } from '../../src/client.js';
+import type { StackLayout } from '../../src/client.js';
 import type { GameState } from './_types.js';
 
 class BoardgameRenderGameDebuganimations extends GameRenderer {
@@ -146,7 +147,13 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
   ];
 
   @property({ type: String })
-  fromStackLayout = 'fan';
+  fromStackLayout: StackLayout = 'fan';
+
+  private _setStackLayout(event: Event): void {
+    const value = (event.target as MdFilledSelect).value;
+    if (!isStackLayout(value)) throw new Error(`Unexpected stack layout option: ${value}`);
+    this.fromStackLayout = value;
+  }
 
   @property({ type: Boolean })
   fromStackRotated = false;
@@ -337,7 +344,7 @@ class BoardgameRenderGameDebuganimations extends GameRenderer {
             <md-filled-select
               label="Layout"
               .value="${this.fromStackLayout}"
-              @change="${(e: Event) => { this.fromStackLayout = (e.target as MdFilledSelect).value; }}">
+              @change="${this._setStackLayout}">
               <md-select-option value="fan">
                 <div slot="headline">fan</div>
               </md-select-option>

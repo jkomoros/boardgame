@@ -69,6 +69,8 @@ export type { ComponentView, ComponentViewContext, ComponentViewOptions } from '
 export type { FadingTextAutoMessage, FadingTextSuppress, FadingTextTrigger } from './components/boardgame-fading-text.js';
 export type { StatusTextAutoMessage, StatusTextValue } from './components/boardgame-status-text.js';
 export type { ActionBarAlignment, ActionBarOrientation } from './components/boardgame-action-bar.js';
+export { isStackLayout } from './components/boardgame-component-stack.js';
+export type { StackLayout } from './components/boardgame-component-stack.js';
 export type {
   MoveInputErrorCode,
   MoveInputIssue,

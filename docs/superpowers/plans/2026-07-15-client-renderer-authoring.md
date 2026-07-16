@@ -988,6 +988,12 @@ First evidence-driven primitive tranche (2026-07-16):
   vertical orientations plus four alignments as closed typed policies. Expose a
   stable bar part/token, reject blank labels and unknown policies, prove wide,
   narrow, and vertical computed layouts in-browser, and migrate both games.
+- [x] Make the component-stack contract that future zone compositions build on
+  honest: move `StackLayout` onto the real custom-element class, export a
+  dynamic-value guard, type stack snapshots and last-seen records, and reject
+  unknown layouts or invalid numeric/spatial geometry loudly. Prove the contract
+  with negative TypeScript fixtures, a browser diagnostic matrix, and the full
+  external-game checker before wrapping it in a higher-level zone.
 
 Timer/readiness, dialog, history/timeline, drag/drop, and advanced map controls
 are separate projects driven by the corresponding stories, not a single design

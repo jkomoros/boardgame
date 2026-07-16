@@ -674,6 +674,61 @@ test('action bar supplies named responsive grouping, styling hooks, and closed l
   }
 });
 
+test('component stack exposes its real closed layout contract and rejects invalid geometry', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { isStackLayout } = await import('/src/client.ts');
+      const valid = document.createElement('boardgame-component-stack');
+      valid.layout = 'fan';
+      document.body.append(valid);
+      await valid.updateComplete;
+      const container = valid.shadowRoot?.querySelector('#container');
+
+      const renderError = (name: string, value: unknown) => {
+        const element = document.createElement('boardgame-component-stack') as HTMLElement &
+          Record<string, unknown> & { render(): unknown };
+        element[name] = value;
+        try {
+          element.render();
+          return '<resolved>';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        }
+      };
+
+      const output = {
+        className: container?.getAttribute('class'),
+        guard: ['stack', 'grid', 'fan', 'pile', 'spread', 'board', 'spatial', 'carousel']
+          .map(value => [value, isStackLayout(value)]),
+        invalidLayout: renderError('layout', 'carousel'),
+        invalidColumns: renderError('boardCols', 0),
+        invalidRows: renderError('boardRows', 1.5),
+        invalidFaux: renderError('fauxComponents', -1),
+        invalidStagger: renderError('stagger', Number.NaN),
+        invalidPosition: renderError('spatialPositions', [{ top: 10, left: Number.POSITIVE_INFINITY }]),
+      };
+      valid.remove();
+      return output;
+    });
+
+    expect(result.className).toBe('fan');
+    expect(result.guard).toEqual([
+      ['stack', true], ['grid', true], ['fan', true], ['pile', true],
+      ['spread', true], ['board', true], ['spatial', true], ['carousel', false],
+    ]);
+    expect(result.invalidLayout).toContain('unknown layout');
+    expect(result.invalidColumns).toContain('boardCols must be a positive safe integer');
+    expect(result.invalidRows).toContain('boardRows must be a positive safe integer');
+    expect(result.invalidFaux).toContain('fauxComponents must be a nonnegative safe integer');
+    expect(result.invalidStagger).toContain('stagger must be a finite nonnegative number');
+    expect(result.invalidPosition).toContain('spatialPositions[0] must be null or finite');
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('bindMoveAction adapts a typed action to md-filled-button semantics', async ({ page }) => {
   const diagnostics = await prepareRendererFixturePage(page);
   try {

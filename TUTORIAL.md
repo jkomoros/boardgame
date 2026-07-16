@@ -1452,7 +1452,7 @@ chiefly concerned with databinding the state object into a specific collection o
 Many games make use of cards in different stacks. Implementing styling and
 animations (especially animating from one stack to another) is challenging to
 get right. Luckily, two key components, `boardgame-card` and `boardgame-component-
-stack`, when used in conjunction idiotmatically, almost always do exactly what
+stack`, when used together idiomatically, almost always do exactly what
 you want using idiomatic CSS layout with things like flexbox and grid to lay them out and then, with minimal configuration, have high-quality, performant animations created.
 Their implementation is non-trivial and handles many edge cases and conditions that are not immediately obvious. They use the `Id` machinery briefly described in the Sanitization section above to keep track of which cards--even cards that are hidden--are which in between states and then animate the cards moving from stack to stack appropriately. They even handle cases like cards flipping from visible to hidden--if done naively, the content of the card would disappear immediately before the flip animation plays! In general, it is strongly recommended to use these components.
 
@@ -1510,6 +1510,13 @@ html`<boardgame-component-stack
 The stack creates stable card hosts and rerenders their light-DOM content with
 Lit whenever their logical slot changes. The view is local to this renderer, so
 two games may use the same deck name without a global registration collision.
+
+`layout` is a strict choice of `stack`, `grid`, `fan`, `pile`, `spread`,
+`board`, or `spatial`; misspellings fail both TypeScript and at runtime. If a UI
+selects a layout dynamically, narrow its string with the exported
+`isStackLayout(value)` guard before assignment. Invalid board dimensions, faux
+component counts, stagger values, and spatial coordinates also fail loudly
+instead of producing partially positioned components.
 
 Prefer the view's typed `properties` callback for component-dependent card/token
 presentation. Use `this.cards.withProperties({ rotated: true })` for typed
