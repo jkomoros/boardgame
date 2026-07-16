@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -66,6 +67,21 @@ type Server struct {
 	// resolution behavior. Lazy-allocated by getSeatJoinLock.
 	seatJoinLocks   map[string]*sync.Mutex
 	seatJoinLocksMu sync.Mutex
+}
+
+// corsOrigins adapts the documented comma-delimited configuration format to
+// the legacy CORS middleware's stricter comma-plus-space parser. Trimming here
+// also makes hand-authored config insensitive to whitespace around entries.
+func corsOrigins(origins string) string {
+	parts := strings.Split(origins, ",")
+	normalized := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			normalized = append(normalized, part)
+		}
+	}
+	return strings.Join(normalized, ", ")
 }
 
 type renderer struct {
@@ -2543,7 +2559,7 @@ func (s *Server) Start() {
 
 	router.NoRoute(s.genericHandler)
 	router.Use(cors.Middleware(cors.Config{
-		Origins: s.config.AllowedOrigins,
+		Origins: corsOrigins(s.config.AllowedOrigins),
 		// Authorization is allowed so the companion-mode join flow can
 		// send a Firebase bearer token from the phone (cross-origin
 		// during dev because the API runs on a different port than the

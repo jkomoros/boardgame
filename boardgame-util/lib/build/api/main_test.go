@@ -84,6 +84,48 @@ func TestAvailableStorageAliasAvoidsPackageNames(t *testing.T) {
 	}
 }
 
+func TestCodeIncludesAllowedOriginsOverrideWithoutOfflineMode(t *testing.T) {
+	const origins = "http://localhost:49152,http://127.0.0.1:49152"
+	code, err := Code(nil, StorageMemory, &Options{
+		OverrideAllowedOrigins: origins,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	generated := string(code)
+	for _, want := range []string{
+		`"github.com/jkomoros/boardgame/boardgame-util/lib/config"`,
+		`config.OverrideAllowedOrigins("` + origins + `")`,
+		`.AddOverrides(overrides)`,
+	} {
+		if !strings.Contains(generated, want) {
+			t.Errorf("generated code did not contain %q:\n%s", want, generated)
+		}
+	}
+	if strings.Contains(generated, "EnableOfflineDevMode") {
+		t.Errorf("allowed-origins-only override unexpectedly enabled offline mode:\n%s", generated)
+	}
+}
+
+func TestCodeOmitsConfigOverrideMachineryByDefault(t *testing.T) {
+	code, err := Code(nil, StorageMemory, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	generated := string(code)
+	for _, unwanted := range []string{
+		`boardgame-util/lib/config`,
+		`var overrides`,
+		`.AddOverrides(`,
+	} {
+		if strings.Contains(generated, unwanted) {
+			t.Errorf("default generated code unexpectedly contained %q:\n%s", unwanted, generated)
+		}
+	}
+}
+
 var apiExpected = `/*
 A server binary generated automatically by 'boardgame-util/lib/build/api/Build()'
 */

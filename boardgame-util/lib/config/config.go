@@ -61,6 +61,15 @@ func EnableOfflineDevMode() OptionOverrider {
 	}
 }
 
+// OverrideAllowedOrigins returns a temporary replacement for the HTTP/WebSocket
+// origin allowlist. It is primarily used by supervised local serve sessions
+// whose static port may differ from the persisted configuration.
+func OverrideAllowedOrigins(origins string) OptionOverrider {
+	return func(_ bool, c *Mode) {
+		c.AllowedOrigins = origins
+	}
+}
+
 // AddOverride takes an OptionOverrider. Overrides are applied to the final Dev
 // and Prod configModes after they are derived, passing prodMode of true for
 // the prod mode. If you want an override to only apply to dev or prod, the

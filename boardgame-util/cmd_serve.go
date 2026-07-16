@@ -65,7 +65,8 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 	}
 
 	apiOptions := &api.Options{
-		StorageLiteralArgs: storageLiteralArgs,
+		StorageLiteralArgs:     storageLiteralArgs,
+		OverrideAllowedOrigins: localServeAllowedOrigins(staticPort),
 	}
 
 	if s.OfflineDevMode {
@@ -191,6 +192,10 @@ func (s *serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, s
 		s.Base().errAndQuit(first.name + " server exited: " + first.err.Error())
 	}
 	s.Base().errAndQuit(first.name + " server exited unexpectedly")
+}
+
+func localServeAllowedOrigins(staticPort string) string {
+	return "http://localhost:" + staticPort + ",http://127.0.0.1:" + staticPort
 }
 
 // clientConfigForServe returns the generated browser configuration for a serve

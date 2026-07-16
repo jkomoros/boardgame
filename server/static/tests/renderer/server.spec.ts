@@ -16,10 +16,38 @@ test('self-started renderer server uses offline mode and same-origin API proxy',
   await expect(page.locator('boardgame-app')).toBeAttached();
   const gameList = page.locator('boardgame-list-games-view');
   await expect(gameList).toBeAttached();
-  await expect.poll(() => gameList.evaluate(element => (
-    element as unknown as { _managers: unknown[] }
-  )._managers.length)).toBeGreaterThan(0);
+  await expect.poll(() => gameList.evaluate(element => {
+    const managers = (element as unknown as { _managers?: unknown[] })._managers;
+    return Array.isArray(managers) ? managers.length : 0;
+  })).toBeGreaterThan(0);
   expect(await page.evaluate(() => (window as unknown as { API_HOST: string }).API_HOST)).toBe('');
+});
+
+test('offline authentication preserves encoded identity fields through the real server', async ({ page }) => {
+  await page.goto('/');
+  const email = 'typed+auth&test@example.com';
+  const displayName = 'Ada & Grace = Players';
+  await page.evaluate(({ email, displayName }) => {
+    localStorage.setItem('faux-firebase-email', email);
+    localStorage.setItem('faux-firebase-display-name', displayName);
+  }, { email, displayName });
+
+  const authRequestPromise = page.waitForRequest(request => (
+    request.method() === 'POST' && request.url().endsWith('/api/auth')
+  ));
+  await page.evaluate(async () => {
+    const [{ store }, { firebaseSignIn }] = await Promise.all([
+      import('/src/store.ts'),
+      import('/src/actions/user.ts'),
+    ]);
+    store.dispatch(firebaseSignIn());
+  });
+  const authRequest = await authRequestPromise;
+  const body = new URLSearchParams(authRequest.postData() ?? '');
+  expect(body.get('uid')).toBe(email);
+  expect(body.get('email')).toBe(email);
+  expect(body.get('displayname')).toBe(displayName);
+  await expect(page.locator('boardgame-user')).toContainText(displayName);
 });
 
 test('assembled Pig renderer reports a real server rejection without advancing state', async ({ page }) => {

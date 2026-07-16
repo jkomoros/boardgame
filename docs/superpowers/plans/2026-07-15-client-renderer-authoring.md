@@ -1139,6 +1139,17 @@ First evidence-driven primitive tranche (2026-07-16):
   model and `PhotoURL` wire spelling, make an empty manager catalog safe, and use
   the shared form encoder so variant values cannot corrupt create-game requests.
   Prove the manager decoder against the live Go list page.
+- [x] Harden the authentication boundary without making local authoring brittle:
+  encode every faux/Firebase identity field through the shared form transport,
+  validate and copy the exact public user response before Redux accepts it, and
+  distinguish a valid logout from malformed or empty server data with a loud
+  sign-in error. Make supervised `boardgame-util serve` temporarily authorize
+  both exact loopback origins for its allocated static port, normalize the
+  documented comma-delimited allowlist consistently for legacy HTTP CORS and
+  WebSockets, and prove special-character identities through the real generated
+  API/Vite session. Bound config discovery to an actual absolute-parent walk so
+  a config-less nested `check-client -c ...` invocation terminates instead of
+  growing a relative path forever and consuming a CPU core.
 - [x] Make the component-stack contract that future zone compositions build on
   honest: move `StackLayout` onto the real custom-element class, export a
   dynamic-value guard, type stack snapshots and last-seen records, and reject

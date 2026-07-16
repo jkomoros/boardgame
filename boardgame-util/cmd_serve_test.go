@@ -36,3 +36,11 @@ func TestClientConfigForServeUsesProxyInProduction(t *testing.T) {
 		t.Fatal("production config should use the same-origin proxy with overrides")
 	}
 }
+
+func TestLocalServeAllowedOriginsUsesBothLoopbackHosts(t *testing.T) {
+	got := localServeAllowedOrigins("49152")
+	want := "http://localhost:49152,http://127.0.0.1:49152"
+	if got != want {
+		t.Fatalf("localServeAllowedOrigins() = %q, want %q", got, want)
+	}
+}
