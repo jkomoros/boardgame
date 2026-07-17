@@ -66,6 +66,13 @@ func TestDefaultTemplatePlaceholdersCoveredByEmittedBindings(t *testing.T) {
 		if err != nil {
 			t.Fatalf("constructing canonical %q predicate: %v", ctor.Name, err)
 		}
+		for _, read := range pred.Reads {
+			_, fixed := pred.RequiredReadTypes[read.Path]
+			allowed, polymorphic := pred.AllowedReadTypes[read.Path]
+			if !fixed && (!polymorphic || len(allowed) == 0) {
+				t.Errorf("catalog predicate %q read %q has no type contract", ctor.Name, read.Path)
+			}
+		}
 		if pred.EmittedBindings == nil {
 			t.Errorf("catalog predicate %q declares no EmittedBindings metadata — every catalog predicate must (footgun-batch F4)", ctor.Name)
 			continue

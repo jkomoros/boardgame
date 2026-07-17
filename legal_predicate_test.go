@@ -554,3 +554,42 @@ func TestAdminBypassRejectsNonProposerReads(t *testing.T) {
 		t.Fatalf("error = %v, want proposer-or-move diagnostic", err)
 	}
 }
+
+func TestReadTypeContractsMustNameDeclaredReads(t *testing.T) {
+	pred := &LegalPredicate{
+		Name:              "badMetadata",
+		RequiredReadTypes: map[LegalPropPath]PropertyType{"game.Score": TypeInt},
+	}
+	err := validateLegalPredicateForBoot(pred, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "undeclared read") {
+		t.Fatalf("error = %v, want undeclared-read diagnostic", err)
+	}
+}
+
+func TestUnionLegalReadTypesNarrowsPolymorphicContract(t *testing.T) {
+	path := LegalPropPath("game.Score")
+	required, allowed, err := unionLegalReadTypes([]*LegalPredicate{
+		{AllowedReadTypes: map[LegalPropPath][]PropertyType{path: {TypeInt, TypeBool}}},
+		{RequiredReadTypes: map[LegalPropPath]PropertyType{path: TypeInt}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if required[path] != TypeInt || len(allowed) != 0 {
+		t.Fatalf("required=%v allowed=%v, want exact TypeInt", required, allowed)
+	}
+}
+
+func TestAllowedReadTypesRejectsInvalidMetadata(t *testing.T) {
+	path := LegalPropPath("game.Score")
+	for _, allowed := range [][]PropertyType{{}, {TypeIllegal}, {TypeInt, TypeInt}} {
+		pred := &LegalPredicate{
+			Name:             "badMetadata",
+			Reads:            []LegalRead{{Path: path, Facet: LegalFacetValues}},
+			AllowedReadTypes: map[LegalPropPath][]PropertyType{path: allowed},
+		}
+		if err := validateLegalPredicateForBoot(pred, nil, nil); err == nil {
+			t.Errorf("AllowedReadTypes %v unexpectedly passed", allowed)
+		}
+	}
+}

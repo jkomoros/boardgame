@@ -54,6 +54,12 @@ type LegalPredicate struct {
 	// declared path. Boot validation rejects a present-but-wrongly-typed
 	// property instead of allowing every runtime evaluation to become Unknown.
 	RequiredReadTypes map[LegalPropPath]PropertyType
+	// AllowedReadTypes is the honest polymorphic counterpart to
+	// RequiredReadTypes: the property at each declared path must have one of
+	// the listed types. A path may appear in exactly one of these maps. This is
+	// intentionally uncommon; catalog predicates should prefer the stronger
+	// single-type contract whenever their evaluator does.
+	AllowedReadTypes map[LegalPropPath][]PropertyType
 	// AdminPolicy is copied from the originating spec. AdminBypass is legal
 	// only for proposer-dependent predicates and prevents them from trying to
 	// resolve AdminPlayerIndex as an ordinary player.
@@ -293,15 +299,56 @@ func validateLegalPredicateForBoot(pred *LegalPredicate, exampleState ImmutableS
 	if err := validateLegalReadsForBoot(pred.Reads, exampleState, moveReader); err != nil {
 		return err
 	}
+	declaredReads := make(map[LegalPropPath]bool, len(pred.Reads))
+	for _, read := range pred.Reads {
+		declaredReads[read.Path] = true
+	}
 	paths := make([]string, 0, len(pred.RequiredReadTypes))
 	for path := range pred.RequiredReadTypes {
+		if !declaredReads[path] {
+			return fmt.Errorf("predicate %q requires type metadata for undeclared read %q", pred.Name, path)
+		}
+		if _, duplicated := pred.AllowedReadTypes[path]; duplicated {
+			return fmt.Errorf("predicate %q declares both RequiredReadTypes and AllowedReadTypes for %q", pred.Name, path)
+		}
 		paths = append(paths, string(path))
 	}
 	sort.Strings(paths)
 	for _, rawPath := range paths {
 		path := LegalPropPath(rawPath)
 		expected := pred.RequiredReadTypes[path]
+		if expected == TypeIllegal {
+			return fmt.Errorf("predicate %q has an illegal RequiredReadTypes contract for %q", pred.Name, path)
+		}
 		if err := validateLegalPathType(path, expected, exampleState, moveReader); err != nil {
+			return err
+		}
+	}
+	paths = paths[:0]
+	for path := range pred.AllowedReadTypes {
+		if !declaredReads[path] {
+			return fmt.Errorf("predicate %q allows type metadata for undeclared read %q", pred.Name, path)
+		}
+		paths = append(paths, string(path))
+	}
+	sort.Strings(paths)
+	for _, rawPath := range paths {
+		path := LegalPropPath(rawPath)
+		allowed := pred.AllowedReadTypes[path]
+		if len(allowed) == 0 {
+			return fmt.Errorf("predicate %q has an empty AllowedReadTypes contract for %q", pred.Name, path)
+		}
+		seenTypes := make(map[PropertyType]bool, len(allowed))
+		for _, candidate := range allowed {
+			if candidate == TypeIllegal {
+				return fmt.Errorf("predicate %q allows TypeIllegal for %q", pred.Name, path)
+			}
+			if seenTypes[candidate] {
+				return fmt.Errorf("predicate %q repeats PropertyType %v in AllowedReadTypes for %q", pred.Name, candidate, path)
+			}
+			seenTypes[candidate] = true
+		}
+		if err := validateLegalPathTypes(path, allowed, exampleState, moveReader); err != nil {
 			return err
 		}
 	}
@@ -374,12 +421,19 @@ func resolveLegalAnySpec(spec LegalSpec, resolve func(LegalSpec) (*LegalPredicat
 		template = legalAnyFailedTemplate
 	}
 
+	requiredTypes, allowedTypes, err := unionLegalReadTypes(subs)
+	if err != nil {
+		return nil, fmt.Errorf("boardgame: legal spec %q: %w", spec.Name, err)
+	}
+
 	return &LegalPredicate{
-		Name:             legalAnyCompositorName,
-		Reads:            unionLegalReads(subs),
-		Cost:             maxLegalCost(subs),
-		Sub:              subs,
-		EmittedTemplates: []string{template},
+		Name:              legalAnyCompositorName,
+		Reads:             unionLegalReads(subs),
+		RequiredReadTypes: requiredTypes,
+		AllowedReadTypes:  allowedTypes,
+		Cost:              maxLegalCost(subs),
+		Sub:               subs,
+		EmittedTemplates:  []string{template},
 		// The compositor's own Fail/Unknown Message never carries bindings
 		// (evalLegalAnyKleene), so its template body — default or
 		// WithMessage retarget — may not reference any placeholder.
@@ -449,6 +503,68 @@ func unionLegalReads(subs []*LegalPredicate) []LegalRead {
 		}
 	}
 	return out
+}
+
+// unionLegalReadTypes preserves the strongest honest type contract for each
+// read of a compositor. Conflicting child contracts are rejected: the same
+// state path cannot simultaneously be an int for one alternative and a bool
+// for another when both alternatives may be evaluated.
+func unionLegalReadTypes(subs []*LegalPredicate) (map[LegalPropPath]PropertyType, map[LegalPropPath][]PropertyType, error) {
+	required := make(map[LegalPropPath]PropertyType)
+	allowed := make(map[LegalPropPath][]PropertyType)
+	for _, sub := range subs {
+		for path, expected := range sub.RequiredReadTypes {
+			if prior, ok := required[path]; ok && prior != expected {
+				return nil, nil, fmt.Errorf("composed predicates require conflicting types for %q (%v and %v)", path, prior, expected)
+			}
+			if choices, ok := allowed[path]; ok && !propertyTypeAllowed(expected, choices) {
+				return nil, nil, fmt.Errorf("composed predicates require conflicting types for %q (%v and one of %v)", path, expected, choices)
+			}
+			delete(allowed, path)
+			required[path] = expected
+		}
+		for path, choices := range sub.AllowedReadTypes {
+			if expected, ok := required[path]; ok {
+				if !propertyTypeAllowed(expected, choices) {
+					return nil, nil, fmt.Errorf("composed predicates require conflicting types for %q (%v and one of %v)", path, expected, choices)
+				}
+				continue
+			}
+			if prior, ok := allowed[path]; ok {
+				choices = intersectPropertyTypes(prior, choices)
+				if len(choices) == 0 {
+					return nil, nil, fmt.Errorf("composed predicates have disjoint allowed types for %q", path)
+				}
+			}
+			allowed[path] = append([]PropertyType(nil), choices...)
+		}
+	}
+	if len(required) == 0 {
+		required = nil
+	}
+	if len(allowed) == 0 {
+		allowed = nil
+	}
+	return required, allowed, nil
+}
+
+func propertyTypeAllowed(expected PropertyType, allowed []PropertyType) bool {
+	for _, candidate := range allowed {
+		if candidate == expected {
+			return true
+		}
+	}
+	return false
+}
+
+func intersectPropertyTypes(left, right []PropertyType) []PropertyType {
+	var result []PropertyType
+	for _, candidate := range left {
+		if propertyTypeAllowed(candidate, right) && !propertyTypeAllowed(candidate, result) {
+			result = append(result, candidate)
+		}
+	}
+	return result
 }
 
 // maxLegalCost returns the highest LegalCost among subs. subs must be

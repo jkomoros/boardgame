@@ -18,7 +18,10 @@ schemas, constraints, move configuration, phases, legal preconditions, and
 progression errors fail before a server starts. It accepts imports, directories,
 and Go patterns such as `./...`; `lint --fix` safely refreshes only files
 marked as boardgame-generated. Plain `lint` is suitable for CI and never
-rewrites files.
+rewrites files. For built-in declarative legal constructors, a bad literal
+property path or property type is reported at the exact literal when there is
+one unambiguous source occurrence; computed and repeated paths still receive
+the manager's authoritative boot diagnostic without a guessed location.
 `emit-types` refreshes the generated state, move, board-space, and bound
 renderer contracts as one failure-atomic transaction. `check-client --fix`
 performs that safe refresh and immediately runs the strict checks;

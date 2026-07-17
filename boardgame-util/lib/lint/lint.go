@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,6 +24,11 @@ const (
 	CodePackage   = "BGLINT0001"
 	CodeGenerated = "BGLINT0002"
 	CodeRuntime   = "BGLINT0003"
+)
+
+var (
+	legalPathFailure = regexp.MustCompile(`legal path "([^"]+)"`)
+	legalSpecFailure = regexp.MustCompile(`legal spec "([^"]+)"`)
 )
 
 // Diagnostic is one actionable game-author preflight failure.
@@ -87,12 +93,15 @@ func Check(inputs []string, options Options) Report {
 			}
 		}
 
+		calls, _ := sourceLegalCalls(pkg.AbsolutePath())
 		if err := validateRuntime(pkg); err != nil {
-			diagnostics = append(diagnostics, Diagnostic{
+			diagnostic := Diagnostic{
 				Package: pkg.Import(), Code: CodeRuntime,
 				Message:     "game manager preflight failed: " + err.Error(),
 				Remediation: "Fix the game configuration or compile error reported above, then rerun boardgame-util lint.",
-			})
+			}
+			attachLegalCallPosition(&diagnostic, err.Error(), calls)
+			diagnostics = append(diagnostics, diagnostic)
 		}
 	}
 
@@ -120,6 +129,35 @@ func Check(inputs []string, options Options) Report {
 		diagnostics = []Diagnostic{}
 	}
 	return Report{Version: ReportVersion, OK: len(diagnostics) == 0, Packages: checkedPackages, Diagnostics: diagnostics}
+}
+
+func attachLegalCallPosition(diagnostic *Diagnostic, runtimeError string, calls []legalCallPath) {
+	pathMatch := legalPathFailure.FindStringSubmatch(runtimeError)
+	if len(pathMatch) != 2 {
+		return
+	}
+	predicates := make(map[string]bool)
+	for _, specMatch := range legalSpecFailure.FindAllStringSubmatch(runtimeError, -1) {
+		if len(specMatch) == 2 {
+			predicates[specMatch[1]] = true
+		}
+	}
+	var matches []legalCallPath
+	for _, call := range calls {
+		if call.path != pathMatch[1] || (len(predicates) != 0 && !predicates[call.predicate]) {
+			continue
+		}
+		matches = append(matches, call)
+	}
+	// A generic runtime location is better than confidently pointing at the
+	// wrong move when the same predicate/path literal occurs more than once.
+	if len(matches) != 1 {
+		return
+	}
+	diagnostic.File = matches[0].file
+	diagnostic.Line = matches[0].line
+	diagnostic.Column = matches[0].column
+	diagnostic.Remediation = "Fix this literal legal path or its state-property type, then rerun boardgame-util lint."
 }
 
 func resolvePackages(inputs []string, basePath string) ([]*gamepkg.Pkg, []Diagnostic) {

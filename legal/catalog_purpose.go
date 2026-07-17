@@ -94,6 +94,11 @@ func revealableCardAtConstructor() *PredicateConstructor {
 					{Path: PropPath(visiblePath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
 				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(hiddenPath):  boardgame.TypeStack,
+					PropPath(visiblePath): boardgame.TypeStack,
+					PropPath(idxField):    boardgame.TypeInt,
+				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{noCardTemplate, alreadyRevealedTemplate},
 				// Neither branch emits any bindings, so this stays correct
@@ -169,6 +174,11 @@ func componentPropEqualsCurrentPlayerConstructor() *PredicateConstructor {
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath(keyField), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath(playerPath), Facet: boardgame.LegalFacetValues},
+				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(stackPath):  boardgame.TypeStack,
+					PropPath(keyField):   boardgame.TypeEnum,
+					PropPath(playerPath): boardgame.TypeEnum,
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},

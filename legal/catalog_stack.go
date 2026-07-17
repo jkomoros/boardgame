@@ -188,6 +188,10 @@ func componentPresentAtConstructor() *PredicateConstructor {
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
 				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(stackPath): boardgame.TypeStack,
+					PropPath(idxField):  boardgame.TypeInt,
+				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
 				EmittedBindings:  map[string][]string{template: {"index"}},
@@ -242,6 +246,10 @@ func componentAbsentAtConstructor() *PredicateConstructor {
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
 				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(stackPath): boardgame.TypeStack,
+					PropPath(idxField):  boardgame.TypeInt,
+				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
 				EmittedBindings:  map[string][]string{template: {"index"}},
@@ -293,6 +301,10 @@ func componentPresentAtKeyConstructor() *PredicateConstructor {
 				Reads: []Read{
 					{Path: PropPath(stackPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(keyField), Facet: boardgame.LegalFacetValues},
+				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(stackPath): boardgame.TypeStack,
+					PropPath(keyField):  boardgame.TypeEnum,
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{template},
@@ -405,6 +417,11 @@ func mayMoveConstructor(name string, useSlot bool) *PredicateConstructor {
 					{Path: PropPath(srcPath), Facet: boardgame.LegalFacetOccupancy},
 					{Path: PropPath(dstPath), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath(idxField), Facet: boardgame.LegalFacetValues},
+				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath(srcPath):  boardgame.TypeStack,
+					PropPath(dstPath):  boardgame.TypeStack,
+					PropPath(idxField): boardgame.TypeInt,
 				},
 				Cost:             boardgame.LegalCostModerate,
 				EmittedTemplates: []string{noComponentTemplate, mayNotMoveTemplate},

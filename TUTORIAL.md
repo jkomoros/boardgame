@@ -2446,7 +2446,10 @@ with source-located diagnostics, verifies that generated Go
 readers and enums are current, and the real `GameManager` can be constructed.
 That last step catches invalid stack tags and constraints, move options that do
 not apply to the selected move type, bad phases or legal preconditions, and
-broken move progression at authoring time. Run `boardgame-util lint --fix
+broken move progression at authoring time. A mistyped literal path in a
+built-in `legal.*` precondition points back to that literal when the occurrence
+is unambiguous; computed or repeated paths keep the authoritative manager error
+without a guessed source location. Run `boardgame-util lint --fix
 ./examplegame` to safely refresh boardgame-owned generated Go files, then
 review and commit them. CI should use plain `boardgame-util lint ./...`, which
 reports all discovered game-package failures and never rewrites the checkout.
