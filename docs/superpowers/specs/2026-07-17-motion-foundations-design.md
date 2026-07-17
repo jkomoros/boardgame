@@ -34,11 +34,22 @@ It does not replace the card animator or introduce a universal motion graph.
 
 ## Primitive layers
 
-### 1. Execution and scheduling
+### 1. Timing compilation
 
-`BoardgameAnimatableItem.play()` remains the execution kernel. A later tranche
-may extract a scheduler service, but only after both current callers can use it
-without weakening component-owned settlement or queue participation.
+A pure compiler turns an animation's requested timing, policy, current clock,
+and optional version window into one of two values:
+
+- a finite WAAPI timing plus the active version context and declared settlement
+  budget; or
+- an explicit timing skip when no visible version-slot budget remains.
+
+It owns version-window validation, late joining, duration/end-delay clipping,
+explicit local starts, and backwards fill while waiting. It neither starts an
+animation nor decides whether that animation gates state settlement.
+
+`BoardgameAnimatableItem.play()` remains the execution and ownership kernel.
+The component animator and effect layer keep their different gating policies,
+but consume the same compiled timing rules.
 
 ### 2. Geometry
 
@@ -75,8 +86,8 @@ It consumes shared viewport geometry but does not control structural motion.
 
 ## Structural-motion manifest
 
-The next useful bridge is a read-only manifest emitted after the component
-animator solves a cycle:
+After timing and coordinate-space primitives are proven, the next useful bridge
+is a read-only manifest emitted after the component animator solves a cycle:
 
 ```ts
 interface StructuralMotion {
@@ -88,6 +99,12 @@ interface StructuralMotion {
   readonly durationMs: number;
 }
 ```
+
+The rectangle type above is illustrative. The real API must distinguish
+viewport-space snapshots from offset-space snapshots and define exactly when
+the record is published, consumed, and expired. Until those two contracts
+exist, exposing this manifest would let effects combine incompatible geometry
+or observe a half-installed render cycle.
 
 It is observational. Effects may decorate a matching movement with overlay
 trails or arrival cues, but cannot cancel, replace, delay, or gate it. A missing
@@ -120,12 +137,16 @@ ownership:
 
 1. Extract and test geometry capture and pure solvers.
 2. Migrate structural FLIP, `animateBetween()`, and effect anchors to them.
-3. Keep all browser behavior and timing unchanged.
-4. Expose a private solved-motion record from the component animator.
-5. Add regression tests for movement classification and manifest lifetime.
-6. Add effect-only observation/decorating without subject materialization.
-7. Design a privacy-safe component subject snapshot protocol.
-8. Reassess whether a larger internal motion representation is justified by
+3. Extract the duplicated version/local timing calculation into a pure compiler.
+4. Route component playback, explicit flights, and effects through that compiler
+   while preserving their existing ownership and gating policies.
+5. Brand geometry snapshots by coordinate space and reject mixed-space solving.
+6. Specify the component animator's solved-motion publication barrier and
+   manifest lifetime.
+7. Expose a private solved-motion record and test classification/lifetime.
+8. Add effect-only observation/decorating without subject materialization.
+9. Design a privacy-safe component subject snapshot protocol.
+10. Reassess whether a larger internal motion representation is justified by
    concrete duplication; do not introduce one speculatively.
 
 ## Non-goals

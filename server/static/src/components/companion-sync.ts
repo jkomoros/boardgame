@@ -1,5 +1,9 @@
 import type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
+import type { VersionAnimationContext } from '../motion/timing.ts';
+import { usableAnimationContext } from '../motion/timing.ts';
 export type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-frame.js';
+export type { VersionAnimationContext } from '../motion/timing.ts';
+export { usableAnimationContext } from '../motion/timing.ts';
 
 /**
  * Cross-screen clock estimation and version-bound animation scheduling.
@@ -10,13 +14,6 @@ export type { ClockSyncMessage, VersionTimingMessage } from '../types/socket-fra
  * timestamp cannot safely drive them. CompanionAnimationTimeline is the one
  * client-side owner of that association.
  */
-
-export interface VersionAnimationContext {
-  version: number;
-  startAtMs: number;
-  slotDurationMs: number;
-  maxAnimationDurationMs: number;
-}
 
 export type CompanionSchedule =
   | { kind: 'scheduled'; context: VersionAnimationContext }
@@ -29,23 +26,6 @@ const TIMING_GRACE_MS = 200;
 // navigation leftovers, so a throttled but legitimate queue is not evicted
 // merely because another surface drains at a different pace.
 const MAX_RECORDED_VERSIONS = 4096;
-
-export function usableAnimationContext(
-  context: VersionAnimationContext,
-  localNow = Date.now(),
-  maxFutureWaitMs = 10_000,
-): VersionAnimationContext | null {
-  const untilStart = context.startAtMs - localNow;
-  if (untilStart > maxFutureWaitMs) return null;
-  const lateness = Math.max(0, -untilStart);
-  const remainingDuration = context.maxAnimationDurationMs - lateness;
-  // A late client may still join the shared cycle, but it must only consume
-  // the part of the visible-animation budget that remains. Starting a fresh
-  // full-duration effect here would spill into the next version's slot.
-  if (remainingDuration <= 0) return null;
-  if (remainingDuration === context.maxAnimationDurationMs) return context;
-  return { ...context, maxAnimationDurationMs: remainingDuration };
-}
 
 export class CompanionSyncEstimator {
   private oneWaySamples: number[] = [];

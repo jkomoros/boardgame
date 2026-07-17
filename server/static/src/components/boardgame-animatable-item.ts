@@ -1,13 +1,16 @@
 import { LitElement } from 'lit';
 import { property } from 'lit/decorators.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
-import { usableAnimationContext } from './companion-sync.js';
-import type { VersionAnimationContext } from './companion-sync.js';
+import {
+  finiteTimingMs,
+  resolveMotionTiming,
+} from '../motion/timing.js';
+import type {
+  AnimationTimingPolicy,
+  VersionAnimationContext,
+} from '../motion/timing.js';
 
-export type AnimationTimingPolicy =
-  | 'version'
-  | 'immediate'
-  | { localStartAtMs: number };
+export type { AnimationTimingPolicy } from '../motion/timing.js';
 
 export interface PlayOptions {
   gated?: boolean;
@@ -103,51 +106,22 @@ export class BoardgameAnimatableItem extends LitElement {
     if (this.noAnimate) return null;
     const gated = (opts?.gated ?? true) && this.waitForAnimation;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const resolvedTiming: OptionalEffectTiming = {
-      duration: reduced ? 0 : this.animationLengthMs(),
-      easing: 'ease-in-out',
-      fill: 'none',
-      ...timing,
-    };
-    // endDelay is part of the synchronized occupancy budget, not an
-    // after-the-fact addition that may push the queue into later slots.
-    if (this.postAnimationDelay > 0 && resolvedTiming.endDelay === undefined) {
-      resolvedTiming.endDelay = this.postAnimationDelay;
-    }
-
-    const numeric = (value: unknown): number =>
-      typeof value === 'number' && isFinite(value) ? value : 0;
     const timingPolicy = opts?.timing ?? 'version';
-    const now = Date.now();
-    let activeContext: VersionAnimationContext | null = null;
-    if (timingPolicy === 'version') {
-      const candidate = this._ambientAnimationContext();
-      const context = candidate ? usableAnimationContext(candidate, now) : null;
-      if (context) {
-        activeContext = context;
-        const localDelay = Math.max(0, numeric(resolvedTiming.delay));
-        // If staggering alone reaches the end of the remaining slot, the
-        // resting styles are already final; omit a late snap entirely.
-        if (localDelay >= context.maxAnimationDurationMs) return null;
-        const untilStart = Math.max(0, context.startAtMs - now);
-        const requestedDuration = Math.max(0, numeric(resolvedTiming.duration));
-        const requestedEndDelay = Math.max(0, numeric(resolvedTiming.endDelay));
-        const afterStagger = context.maxAnimationDurationMs - localDelay;
-        const boundedEndDelay = Math.min(requestedEndDelay, afterStagger);
-        const availableDuration = Math.max(0, afterStagger - boundedEndDelay);
-        resolvedTiming.delay = untilStart + localDelay;
-        resolvedTiming.duration = Math.min(requestedDuration, availableDuration);
-        resolvedTiming.endDelay = boundedEndDelay;
-        // Hold the opening (inverted/property-before) frame while waiting for
-        // the shared target, including any per-stack stagger after it.
-        if (numeric(resolvedTiming.delay) > 0) resolvedTiming.fill = 'backwards';
-      }
-    } else if (timingPolicy !== 'immediate') {
-      const localDelay = Math.max(0, numeric(resolvedTiming.delay));
-      resolvedTiming.delay = Math.max(0, timingPolicy.localStartAtMs - now) + localDelay;
-      if (numeric(resolvedTiming.delay) > 0) resolvedTiming.fill = 'backwards';
-    }
-    const anim = element.animate(keyframes, resolvedTiming);
+    const resolution = resolveMotionTiming(timing ?? {}, {
+      policy: timingPolicy,
+      context: timingPolicy === 'version' ? this._ambientAnimationContext() : null,
+      defaults: {
+        duration: this.animationLengthMs(),
+        easing: 'ease-in-out',
+        fill: 'none',
+      },
+      reducedMotion: reduced,
+      // End delay is part of synchronized occupancy, not an after-the-fact
+      // addition that may push the queue into a later version slot.
+      postAnimationDelayMs: this.postAnimationDelay,
+    });
+    if (resolution.kind === 'skip') return null;
+    const anim = element.animate(keyframes, resolution.timing);
     this._liveAnimations.add(anim);
     if (gated) {
       this._liveGatedCount++;
@@ -156,28 +130,26 @@ export class BoardgameAnimatableItem extends LitElement {
         // declared to run so it can extend its deadline past a legitimately
         // long cycle (stagger delay + duration + post-animation-delay)
         // instead of force-closing mid-animation. Numbers only — coerce the
-        // resolved timing fields (they may be CSSNumericValue-ish or absent).
-        const num = (v: unknown): number =>
-          typeof v === 'number' && isFinite(v) ? v : 0;
-        const expectedSettleMs = num(resolvedTiming.delay)
-          + num(resolvedTiming.duration)
-          + num(resolvedTiming.endDelay);
         this.dispatchEvent(new CustomEvent('will-animate',
-          { bubbles: true, composed: true, detail: { ele: this, expectedSettleMs } }));
+          {
+            bubbles: true,
+            composed: true,
+            detail: { ele: this, expectedSettleMs: resolution.expectedSettleMs },
+          }));
       }
     }
     animHooks.record('play', this.tagName.toLowerCase() + (this.id ? `#${this.id}` : ''));
     if (instrumentation?.recordActive !== false) {
       const detail = this.tagName.toLowerCase() + (this.id ? `#${this.id}` : '');
-      const delay = typeof resolvedTiming.delay === 'number' ? resolvedTiming.delay : 0;
+      const delay = finiteTimingMs(resolution.timing.delay);
       const observeActive = () => {
         if (!this._liveAnimations.has(anim)) return;
         const currentTime = anim.currentTime;
         if (typeof currentTime === 'number' && currentTime + 0.5 >= delay) {
           this._activeHookFrames.delete(anim);
-          animHooks.record('active', detail, activeContext ? {
-            version: activeContext.version,
-            targetAtMs: activeContext.startAtMs,
+          animHooks.record('active', detail, resolution.activeContext ? {
+            version: resolution.activeContext.version,
+            targetAtMs: resolution.activeContext.startAtMs,
           } : undefined);
           return;
         }

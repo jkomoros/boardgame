@@ -14,7 +14,9 @@ describe('motion geometry', () => {
     const element = { getBoundingClientRect: () => source };
     const captured = captureViewportGeometry(element);
     source.left = 999;
-    assert.deepEqual(captured, { top: 10, left: 20, width: 30, height: 40 });
+    assert.deepEqual(captured, {
+      space: 'viewport', top: 10, left: 20, width: 30, height: 40,
+    });
   });
 
   it('preserves the animator offset-parent coordinate space', () => {
@@ -40,6 +42,7 @@ describe('motion geometry', () => {
       offsetParent: parent,
     } as unknown as HTMLElement;
     assert.deepEqual(captureOffsetGeometry(element, ancestor), {
+      space: 'offset',
       top: 25,
       left: 31,
       width: 30,
@@ -48,15 +51,17 @@ describe('motion geometry', () => {
   });
 
   it('computes centers and the inversion from a resting target to a source', () => {
-    const resting = { top: 40, left: 80, width: 20, height: 10 };
-    const source = { top: 10, left: 20, width: 40, height: 30 };
-    assert.deepEqual(geometryCenter(resting), { x: 90, y: 45 });
-    assert.deepEqual(centeredInversionDelta(resting, source), { x: -50, y: -20 });
+    const resting = { space: 'viewport' as const, top: 40, left: 80, width: 20, height: 10 };
+    const source = { space: 'viewport' as const, top: 10, left: 20, width: 40, height: 30 };
+    assert.deepEqual(geometryCenter(resting), { space: 'viewport', x: 90, y: 45 });
+    assert.deepEqual(centeredInversionDelta(resting, source), {
+      space: 'viewport', x: -50, y: -20,
+    });
   });
 
   it('solves translation, scaling, rotation-aware scaling, and visible change', () => {
-    const before = { top: 10, left: 20, width: 40, height: 80 };
-    const after = { top: 30, left: 50, width: 20, height: 40 };
+    const before = { space: 'offset' as const, top: 10, left: 20, width: 40, height: 80 };
+    const after = { space: 'offset' as const, top: 30, left: 50, width: 20, height: 40 };
     assert.deepEqual(solveFlipGeometry(before, after, { beforeTransform: 'rotate(3deg)' }), {
       translateX: -20,
       translateY: 0,
@@ -69,11 +74,33 @@ describe('motion geometry', () => {
   });
 
   it('falls back to a finite identity scale for zero-sized geometry', () => {
-    const before = { top: 0, left: 0, width: 0, height: 0 };
-    const after = { top: 0, left: 0, width: 0, height: 0 };
+    const before = { space: 'offset' as const, top: 0, left: 0, width: 0, height: 0 };
+    const after = { space: 'offset' as const, top: 0, left: 0, width: 0, height: 0 };
     const solution = solveFlipGeometry(before, after);
     assert.equal(solution.scale, 1);
     assert.equal(solution.changed, false);
+    assert.equal(solution.invertedTransform.includes('NaN'), false);
+    assert.equal(solution.invertedTransform.includes('Infinity'), false);
+  });
+
+  it('never emits non-finite translations from malformed snapshots', () => {
+    const before = {
+      space: 'offset' as const,
+      top: Number.NaN,
+      left: Number.POSITIVE_INFINITY,
+      width: 10,
+      height: 10,
+    };
+    const after = {
+      space: 'offset' as const,
+      top: 0,
+      left: 0,
+      width: 10,
+      height: 10,
+    };
+    const solution = solveFlipGeometry(before, after);
+    assert.equal(solution.translateX, 0);
+    assert.equal(solution.translateY, 0);
     assert.equal(solution.invertedTransform.includes('NaN'), false);
     assert.equal(solution.invertedTransform.includes('Infinity'), false);
   });

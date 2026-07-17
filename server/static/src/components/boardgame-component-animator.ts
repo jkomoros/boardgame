@@ -3,18 +3,23 @@ import { query } from 'lit/decorators.js';
 import './boardgame-component-stack.js';
 import type { BoardgameComponentStack } from './boardgame-component-stack.js';
 import { animHooks } from '../utils/anim-test-hooks.js';
-import { usableAnimationContext } from './companion-sync.js';
-import type { VersionAnimationContext } from './companion-sync.js';
-import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
+import {
+  finiteTimingMs,
+  resolveMotionTiming,
+} from '../motion/timing.js';
+import type {
+  AnimationTimingPolicy,
+  VersionAnimationContext,
+} from '../motion/timing.js';
 import {
   captureOffsetGeometry,
   captureViewportGeometry,
   centeredInversionDelta,
   solveFlipGeometry,
 } from '../motion/geometry.js';
-import type { GeometryRect } from '../motion/geometry.js';
+import type { OffsetGeometry } from '../motion/geometry.js';
 
-export type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
+export type { AnimationTimingPolicy } from '../motion/timing.js';
 
 export interface AnimateBetweenOptions {
   /** Defaults to the installed version's companion slot. */
@@ -31,8 +36,8 @@ export interface ComponentAnimatorAPI {
 }
 
 interface ComponentRecord {
-  offsets?: GeometryRect;
-  newOffsets?: GeometryRect;
+  offsets?: OffsetGeometry;
+  newOffsets?: OffsetGeometry;
   before?: Record<string, any>;
   after?: Record<string, any>;
   beforeTransform?: string;
@@ -78,7 +83,7 @@ export class BoardgameComponentAnimator extends LitElement {
   private _lastSeenNodesById = new Map<string, Node[]>();
   private _beforeSeenIds = new Set<string>();
   private _animatingComponents: AnimatingComponentRecord[] = [];
-  private _beforeCollectionOffsets = new Map<string, GeometryRect>();
+  private _beforeCollectionOffsets = new Map<string, OffsetGeometry>();
   private _generation = 0;
 
   ancestorOffsetParent: HTMLElement | null = null;
@@ -291,39 +296,25 @@ export class BoardgameComponentAnimator extends LitElement {
     if (dx === 0 && dy === 0) {
       return;
     }
-    // Companion-sync scheduling (spec §8.4): defer the flight so Table and
-    // Hand launch the same card within estimator error. Version contexts are
-    // validated by the state manager; explicit local starts are honored as
-    // written rather than silently shifted to an arbitrary clamp.
     const timing = opts?.timing ?? 'version';
-    const now = Date.now();
-    const candidateContext = timing === 'version' ? this.animationContext : null;
-    // A late launch may consume only the visible budget still remaining.
-    // Once that budget is gone the context is discarded completely.
-    const context = candidateContext
-      ? usableAnimationContext(candidateContext, now)
-      : null;
-    const startAtMs = timing === 'immediate'
-      ? null
-      : timing === 'version'
-        ? context?.startAtMs ?? null
-        : timing.localStartAtMs;
-    let effectiveDurationMs = durationMs;
-    if (context && durationMs > context.maxAnimationDurationMs) {
+    const resolution = resolveMotionTiming(
+      { duration: durationMs, easing: 'ease-out', fill: 'none' },
+      {
+        policy: timing,
+        context: timing === 'version' ? this.animationContext : null,
+      },
+    );
+    if (resolution.kind === 'skip') return;
+    if (resolution.activeContext
+      && finiteTimingMs(resolution.timing.duration) < durationMs) {
       console.warn(
         `[animator] synchronized animation requested ${durationMs}ms; ` +
-        `capping to the version slot's ${context.maxAnimationDurationMs}ms contract. ` +
+        `capping to the version slot's ` +
+        `${resolution.activeContext.maxAnimationDurationMs}ms contract. ` +
         `Use { timing: 'immediate' } for a longer local-only effect.`,
       );
-      effectiveDurationMs = context.maxAnimationDurationMs;
     }
-    const delay = startAtMs !== null && startAtMs !== undefined
-      ? Math.max(0, startAtMs - now)
-      : 0;
-    // Backwards fill holds the inverted/from keyframe during the delay, so
-    // installing state early does not flash the element at its final position.
-    // It stops applying as soon as the animation finishes; no persistent style.
-    const fill: FillMode = delay > 0 ? 'backwards' : 'none';
+    const delay = finiteTimingMs(resolution.timing.delay);
     const keyframes: Keyframe[] = [
       { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
       { transform: real.style.transform || 'none' },
@@ -345,11 +336,16 @@ export class BoardgameComponentAnimator extends LitElement {
     // test uses) have no play() and keep the raw-element fallback below.
     if (typeof (real as any).play === 'function') {
       const anim = (real as any).play(real, keyframes,
-        { duration: effectiveDurationMs, delay, easing: 'ease-out', fill },
+        resolution.timing,
         { timing: 'immediate' }, { recordActive: false });
       // play() returns null under noAnimate; nothing is in flight then.
       if (anim) {
-        this._recordAnimationActive(anim, delay, 'fly:' + realTag, context);
+        this._recordAnimationActive(
+          anim,
+          delay,
+          'fly:' + realTag,
+          resolution.activeContext,
+        );
         await anim.finished.catch(() => {});
         // The Animation promise and play()'s settlement bookkeeping are
         // separate promise reactions. Do not resolve animateBetween until
@@ -361,9 +357,13 @@ export class BoardgameComponentAnimator extends LitElement {
       return;
     }
 
-    const anim = real.animate(keyframes,
-      { duration: effectiveDurationMs, delay, easing: 'ease-out', fill });
-    this._recordAnimationActive(anim, delay, 'fly:' + realTag, context);
+    const anim = real.animate(keyframes, resolution.timing);
+    this._recordAnimationActive(
+      anim,
+      delay,
+      'fly:' + realTag,
+      resolution.activeContext,
+    );
     // Settlement is ground truth: finished resolves on completion, rejects
     // on cancel (element removed mid-flight) — both mean "done" here.
     await anim.finished.catch(() => {});
@@ -414,7 +414,7 @@ export class BoardgameComponentAnimator extends LitElement {
     // The last seen location of a given card ID
     const idToPossibleCollection = new Map<string, CollectionRecord>();
 
-    const collectionOffsets = new Map<string, GeometryRect>();
+    const collectionOffsets = new Map<string, OffsetGeometry>();
 
     // CRITICAL: noAnimate barrier during measurement phase
     // Turning off animations and setting card flip all require recalcing

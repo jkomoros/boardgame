@@ -1,15 +1,24 @@
-/** A minimal rectangle independent of DOMRect identity and coordinate space. */
-export interface GeometryRect {
+export type GeometrySpace = 'viewport' | 'offset';
+
+/** A DOMRect-independent snapshot whose coordinate space cannot be erased. */
+export interface GeometryRect<Space extends GeometrySpace> {
+  readonly space: Space;
   readonly top: number;
   readonly left: number;
   readonly width: number;
   readonly height: number;
 }
 
-export interface GeometryPoint {
+export type ViewportGeometry = GeometryRect<'viewport'>;
+export type OffsetGeometry = GeometryRect<'offset'>;
+
+export interface GeometryPoint<Space extends GeometrySpace> {
+  readonly space: Space;
   readonly x: number;
   readonly y: number;
 }
+
+export type ViewportPoint = GeometryPoint<'viewport'>;
 
 export interface FlipGeometry {
   readonly translateX: number;
@@ -22,14 +31,15 @@ export interface FlipGeometry {
 /** Capture an element in viewport coordinates for overlays and cross-root travel. */
 export function captureViewportGeometry(
   element: Pick<HTMLElement, 'getBoundingClientRect'>,
-): GeometryRect {
+): ViewportGeometry {
   const rect = element.getBoundingClientRect();
-  return {
+  return Object.freeze({
+    space: 'viewport',
     top: rect.top,
     left: rect.left,
     width: rect.width,
     height: rect.height,
-  };
+  });
 }
 
 /**
@@ -39,7 +49,7 @@ export function captureViewportGeometry(
 export function captureOffsetGeometry(
   element: HTMLElement,
   ancestorOffsetParent: HTMLElement | null,
-): GeometryRect {
+): OffsetGeometry {
   let top = 0;
   let left = 0;
   const width = element.offsetWidth;
@@ -52,14 +62,15 @@ export function captureOffsetGeometry(
       ? null
       : current.offsetParent as HTMLElement | null;
   }
-  return { top, left, width, height };
+  return Object.freeze({ space: 'offset', top, left, width, height });
 }
 
-export function geometryCenter(rect: GeometryRect): GeometryPoint {
-  return {
+export function geometryCenter(rect: ViewportGeometry): ViewportPoint {
+  return Object.freeze({
+    space: 'viewport',
     x: rect.left + rect.width / 2,
     y: rect.top + rect.height / 2,
-  };
+  });
 }
 
 /**
@@ -67,15 +78,16 @@ export function geometryCenter(rect: GeometryRect): GeometryPoint {
  * over `source`, aligned center-to-center—the inversion used by a flight.
  */
 export function centeredInversionDelta(
-  resting: GeometryRect,
-  source: GeometryRect,
-): GeometryPoint {
+  resting: ViewportGeometry,
+  source: ViewportGeometry,
+): ViewportPoint {
   const restingCenter = geometryCenter(resting);
   const sourceCenter = geometryCenter(source);
-  return {
+  return Object.freeze({
+    space: 'viewport',
     x: sourceCenter.x - restingCenter.x,
     y: sourceCenter.y - restingCenter.y,
-  };
+  });
 }
 
 function finiteScale(numerator: number, denominator: number): number {
@@ -83,18 +95,26 @@ function finiteScale(numerator: number, denominator: number): number {
   return Number.isFinite(scale) && scale !== 0 ? scale : 1;
 }
 
+function finiteDelta(value: number): number {
+  return Number.isFinite(value) ? value : 0;
+}
+
 /** Compile before/after geometry into the structural animator's FLIP inversion. */
 export function solveFlipGeometry(
-  before: GeometryRect,
-  after: GeometryRect,
+  before: OffsetGeometry,
+  after: OffsetGeometry,
   options: Readonly<{
     rotates?: boolean;
     beforeTransform?: string;
   }> = {},
 ): FlipGeometry {
   const scale = finiteScale(options.rotates ? before.height : before.width, after.width);
-  const translateY = before.top - after.top - (after.height - before.height) / 2;
-  const translateX = before.left - after.left - (after.width - before.width) / 2;
+  const translateY = finiteDelta(
+    before.top - after.top - (after.height - before.height) / 2,
+  );
+  const translateX = finiteDelta(
+    before.left - after.left - (after.width - before.width) / 2,
+  );
   const changed = Math.abs(translateY) > 0.5
     || Math.abs(translateX) > 0.5
     || Math.abs(scale - 1) > 0.01;

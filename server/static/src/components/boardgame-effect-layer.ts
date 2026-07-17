@@ -182,7 +182,8 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     for (const element of root.querySelectorAll<HTMLElement>('[data-effect-anchor]')) {
       const name = element.dataset.effectAnchor?.trim();
       if (!name || result.has(name) || !element.isConnected) continue;
-      result.set(name, Object.freeze(geometryCenter(captureViewportGeometry(element))));
+      const { x, y } = geometryCenter(captureViewportGeometry(element));
+      result.set(name, Object.freeze({ x, y }));
     }
     return result;
   }
@@ -513,7 +514,8 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   private _anchorPoint(anchor: EffectAnchor): { x: number; y: number } | null {
     if (anchor instanceof HTMLElement) {
       if (!anchor.isConnected) return null;
-      return geometryCenter(captureViewportGeometry(anchor));
+      const { x, y } = geometryCenter(captureViewportGeometry(anchor));
+      return { x, y };
     }
     if (anchor.kind === 'point') return { x: anchor.x, y: anchor.y };
     const root = this._configuration.anchorRoot;
@@ -523,7 +525,8 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       `[data-effect-anchor="${escaped}"], #${escaped}`,
     );
     if (element?.isConnected) {
-      return geometryCenter(captureViewportGeometry(element));
+      const { x, y } = geometryCenter(captureViewportGeometry(element));
+      return { x, y };
     }
     return this._beforeAnchors.get(anchor.name) ?? null;
   }

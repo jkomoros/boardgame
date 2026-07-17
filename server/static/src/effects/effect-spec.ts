@@ -1,4 +1,4 @@
-import type { AnimationTimingPolicy } from '../components/boardgame-animatable-item.js';
+import type { AnimationTimingPolicy } from '../motion/timing.js';
 import type { ClientMove } from '../types/api.js';
 
 export type EffectTone =
