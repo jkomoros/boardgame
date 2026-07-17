@@ -3,11 +3,28 @@
 `boardgame-util imagegen` generates and revises original game art through the
 Gemini image API. It is designed for checked-in production assets: every image
 gets a sidecar provenance manifest, reference inputs are content-hashed, and
-credentials stay in the environment.
+credentials never enter provenance.
 
-Set `GEMINI_API_KEY`, then establish the game's visual language with a style
-funnel. Every exploration round returns four intentionally different options
-and a two-by-two `gallery.html`:
+For local development, keep a repo-root `config.SECRET.json` symlink managed by
+`dev-secrets` with this shape:
+
+```json
+{
+  "dev": {
+    "gemini_api_key": "..."
+  }
+}
+```
+
+The command reads `dev.gemini_api_key` by default. `GEMINI_API_KEY` takes
+precedence when set. Paired worktrees can pass the Boardgame checkout's config
+with `--secret-file ../boardgame/config.SECRET.json`; custom layouts can use
+`--secret-field` or the `BOARDGAME_IMAGEGEN_SECRET_FILE` and
+`BOARDGAME_IMAGEGEN_SECRET_FIELD` environment variables.
+
+Establish the game's visual language with a style funnel. Every exploration
+round returns four intentionally different options and a two-by-two
+`gallery.html`:
 
 ```sh
 boardgame-util imagegen lfs-init 'mygame/art/generated/**'

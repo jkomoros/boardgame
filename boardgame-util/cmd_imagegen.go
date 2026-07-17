@@ -30,6 +30,8 @@ type imagegenCmd struct {
 	AspectRatio      string
 	ImageSize        string
 	Endpoint         string
+	SecretFile       string
+	SecretField      string
 	SourceAssets     bool
 	Force            bool
 	KeyColor         string
@@ -54,8 +56,8 @@ edit, style-sheet, matte-generate, alpha, or lfs-init. Generation writes OUTPUT
 and OUTPUT.imagegen.json, containing the exact prompt, model, reference hashes,
 settings, output hash, and clean-room declaration. edit requires one or more
 --reference images. style-sheet adds a standard production-reference layout to
-the supplied original art direction. Credentials are read only from
-GEMINI_API_KEY and are never written to provenance.
+the supplied original art direction. Credentials come from GEMINI_API_KEY or
+dev.gemini_api_key in config.SECRET.json and are never written to provenance.
 
 style-explore creates four meaningfully different style candidates and a
 gallery. style-iterate uses a selected --reference and creates four narrower
@@ -98,6 +100,8 @@ func (i *imagegenCmd) WritOptions() []*writ.Option {
 		{Names: []string{"aspect-ratio"}, Description: "Output aspect ratio, such as 1:1, 3:2, or 16:9.", Decoder: writ.NewOptionDecoder(&i.AspectRatio)},
 		{Names: []string{"image-size"}, Description: "Output size: 512, 1K, 2K, or 4K.", Decoder: writ.NewOptionDecoder(&i.ImageSize)},
 		{Names: []string{"endpoint"}, Description: "Gemini API base URL, primarily for testing.", Decoder: writ.NewOptionDecoder(&i.Endpoint)},
+		{Names: []string{"secret-file"}, Description: "JSON secret file. Defaults to config.SECRET.json when present.", Decoder: writ.NewOptionDecoder(&i.SecretFile)},
+		{Names: []string{"secret-field"}, Description: "Dot-separated JSON key path. Defaults to dev.gemini_api_key.", Decoder: writ.NewOptionDecoder(&i.SecretField)},
 		{Names: []string{"source-assets"}, Description: "Record that source-game assets were used. Omit for clean-room generation.", Decoder: writ.NewFlagDecoder(&i.SourceAssets), Flag: true},
 		{Names: []string{"force", "f"}, Description: "Replace an existing locked style output.", Decoder: writ.NewFlagDecoder(&i.Force), Flag: true},
 		{Names: []string{"key-color"}, Description: "Six-digit chroma key; defaults to #00FF00.", Decoder: writ.NewOptionDecoder(&i.KeyColor)},
@@ -180,6 +184,14 @@ func (i *imagegenCmd) Run(p writ.Path, positional []string) {
 		}
 		i.References = append([]string{lock.Image}, i.References...)
 	}
+	apiKey, err := imagegen.ResolveAPIKey(
+		os.Getenv("GEMINI_API_KEY"),
+		imagegenSecretFile(i.SecretFile),
+		imagegenSecretField(i.SecretField),
+	)
+	if err != nil {
+		i.Base().errAndQuit("Couldn't load Gemini credential: " + err.Error())
+	}
 	if action == "style-explore" || action == "style-iterate" {
 		if i.OutputDir == "" {
 			i.Base().errAndQuit("style exploration requires --output-dir")
@@ -199,7 +211,7 @@ func (i *imagegenCmd) Run(p writ.Path, positional []string) {
 				Mode: "style-sheet", Prompt: candidate.Prompt, PromptFile: i.PromptFile,
 				Output: output, References: i.References, Model: i.Model,
 				AspectRatio: i.AspectRatio, ImageSize: i.ImageSize, Endpoint: i.Endpoint,
-				APIKey: os.Getenv("GEMINI_API_KEY"), CleanRoom: !i.SourceAssets,
+				APIKey: apiKey, CleanRoom: !i.SourceAssets,
 				SourceAssets: i.SourceAssets,
 			})
 			if err != nil {
@@ -220,13 +232,37 @@ func (i *imagegenCmd) Run(p writ.Path, positional []string) {
 	manifest, err := (imagegen.Client{}).Generate(context.Background(), imagegen.Request{
 		Mode: mode, Prompt: prompt, PromptFile: i.PromptFile, Output: i.Output,
 		References: i.References, Model: i.Model, AspectRatio: i.AspectRatio,
-		ImageSize: i.ImageSize, Endpoint: i.Endpoint, APIKey: os.Getenv("GEMINI_API_KEY"),
+		ImageSize: i.ImageSize, Endpoint: i.Endpoint, APIKey: apiKey,
 		CleanRoom: !i.SourceAssets, SourceAssets: i.SourceAssets,
 	})
 	if err != nil {
 		i.Base().errAndQuit("Image generation failed: " + err.Error())
 	}
 	fmt.Printf("Wrote %s and %s.imagegen.json with model %s\n", manifest.Output, manifest.Output, manifest.Model)
+}
+
+func imagegenSecretFile(explicit string) string {
+	if explicit != "" {
+		return explicit
+	}
+	if value := os.Getenv("BOARDGAME_IMAGEGEN_SECRET_FILE"); value != "" {
+		return value
+	}
+	const local = "config.SECRET.json"
+	if _, err := os.Stat(local); err == nil {
+		return local
+	}
+	return ""
+}
+
+func imagegenSecretField(explicit string) string {
+	if explicit != "" {
+		return explicit
+	}
+	if value := os.Getenv("BOARDGAME_IMAGEGEN_SECRET_FIELD"); value != "" {
+		return value
+	}
+	return "dev.gemini_api_key"
 }
 
 func initLFS(patterns []string) error {
