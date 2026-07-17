@@ -116,7 +116,8 @@ opaque and transparent pixels or leaves alpha on the frame edge. It writes
 alpha QA counts. Keep both matte and derived alpha files under LFS so the
 derivation remains auditable and repeatable. Override `--key-color`,
 `--core-tolerance`, `--feather-tolerance`, or `--chroma-gate` only when a
-palette needs calibrated separation.
+palette needs calibrated separation. If a one-pixel key halo remains after
+despill, retry with `--edge-contract 1`; larger contraction should be rare.
 
 The output sidecar is named `<image>.imagegen.json`; a locked style also has
 `<image>.style-lock.json`. Commit the prompt or brief, galleries, images,

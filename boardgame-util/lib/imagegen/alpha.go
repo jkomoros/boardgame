@@ -23,6 +23,7 @@ type AlphaOptions struct {
 	CoreTolerance    int
 	FeatherTolerance int
 	ChromaGate       int
+	EdgeContract     int
 }
 
 type AlphaManifest struct {
@@ -37,6 +38,7 @@ type AlphaManifest struct {
 	CoreTolerance     int    `json:"core_tolerance"`
 	FeatherTolerance  int    `json:"feather_tolerance"`
 	ChromaGate        int    `json:"chroma_gate"`
+	EdgeContract      int    `json:"edge_contract"`
 	TransparentPixels int    `json:"transparent_pixels"`
 	PartialPixels     int    `json:"partial_pixels"`
 	OpaquePixels      int    `json:"opaque_pixels"`
@@ -65,8 +67,8 @@ func ProduceAlpha(options AlphaOptions, now func() time.Time) (*AlphaManifest, e
 	if options.ChromaGate == 0 {
 		options.ChromaGate = 80
 	}
-	if options.CoreTolerance < 0 || options.FeatherTolerance <= options.CoreTolerance || options.ChromaGate < 0 {
-		return nil, errors.New("alpha tolerances must satisfy 0 <= core < feather and chroma gate >= 0")
+	if options.CoreTolerance < 0 || options.FeatherTolerance <= options.CoreTolerance || options.ChromaGate < 0 || options.EdgeContract < 0 || options.EdgeContract > 16 {
+		return nil, errors.New("alpha options require 0 <= core < feather, chroma gate >= 0, and edge contract from 0 to 16")
 	}
 	inputBytes, err := os.ReadFile(options.Input)
 	if err != nil {
@@ -110,6 +112,9 @@ func ProduceAlpha(options AlphaOptions, now func() time.Time) (*AlphaManifest, e
 		}
 	}
 	smoothed := blurAlpha(rawAlpha, width, height)
+	if options.EdgeContract > 0 {
+		smoothed = contractAlpha(smoothed, width, height, options.EdgeContract)
+	}
 	transparent, partial, opaque := 0, 0, 0
 	var maxEdge uint8
 	for y := 0; y < height; y++ {
@@ -164,7 +169,7 @@ func ProduceAlpha(options AlphaOptions, now func() time.Time) (*AlphaManifest, e
 	if now == nil {
 		now = time.Now
 	}
-	manifest := &AlphaManifest{SchemaVersion: 1, CreatedAt: now().UTC().Format(time.RFC3339), Input: options.Input, InputSHA256: digest(inputBytes), Output: options.Output, OutputSHA256: digest(outputBytes), KeyRequested: strings.ToUpper(options.KeyColor), KeyEstimated: fmt.Sprintf("#%02X%02X%02X", int(estimated[0]), int(estimated[1]), int(estimated[2])), CoreTolerance: options.CoreTolerance, FeatherTolerance: options.FeatherTolerance, ChromaGate: options.ChromaGate, TransparentPixels: transparent, PartialPixels: partial, OpaquePixels: opaque, MaxEdgeAlpha: maxEdge}
+	manifest := &AlphaManifest{SchemaVersion: 1, CreatedAt: now().UTC().Format(time.RFC3339), Input: options.Input, InputSHA256: digest(inputBytes), Output: options.Output, OutputSHA256: digest(outputBytes), KeyRequested: strings.ToUpper(options.KeyColor), KeyEstimated: fmt.Sprintf("#%02X%02X%02X", int(estimated[0]), int(estimated[1]), int(estimated[2])), CoreTolerance: options.CoreTolerance, FeatherTolerance: options.FeatherTolerance, ChromaGate: options.ChromaGate, EdgeContract: options.EdgeContract, TransparentPixels: transparent, PartialPixels: partial, OpaquePixels: opaque, MaxEdgeAlpha: maxEdge}
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return nil, err
@@ -256,6 +261,38 @@ func blurAlpha(source []uint8, width, height int) []uint8 {
 		}
 	}
 	return result
+}
+
+func contractAlpha(source []uint8, width, height, radius int) []uint8 {
+	result := make([]uint8, len(source))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			minimum := uint8(255)
+			for yy := maxInt(0, y-radius); yy <= minInt(height-1, y+radius); yy++ {
+				for xx := maxInt(0, x-radius); xx <= minInt(width-1, x+radius); xx++ {
+					if source[yy*width+xx] < minimum {
+						minimum = source[yy*width+xx]
+					}
+				}
+			}
+			result[y*width+x] = minimum
+		}
+	}
+	return result
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func clampFloat(value float64) float64 {

@@ -58,3 +58,23 @@ func TestMattePromptRequiresUniformKey(t *testing.T) {
 		}
 	}
 }
+
+func TestContractAlphaErodesMaskByRadius(t *testing.T) {
+	mask := []uint8{
+		0, 0, 0, 0, 0,
+		0, 255, 255, 255, 0,
+		0, 255, 255, 255, 0,
+		0, 255, 255, 255, 0,
+		0, 0, 0, 0, 0,
+	}
+	contracted := contractAlpha(mask, 5, 5, 1)
+	for index, alpha := range contracted {
+		want := uint8(0)
+		if index == 12 {
+			want = 255
+		}
+		if alpha != want {
+			t.Fatalf("alpha[%d]=%d, want %d", index, alpha, want)
+		}
+	}
+}

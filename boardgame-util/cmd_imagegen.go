@@ -38,6 +38,7 @@ type imagegenCmd struct {
 	CoreTolerance    int
 	FeatherTolerance int
 	ChromaGate       int
+	EdgeContract     int
 }
 
 func (i *imagegenCmd) Name() string { return "imagegen" }
@@ -108,6 +109,7 @@ func (i *imagegenCmd) WritOptions() []*writ.Option {
 		{Names: []string{"core-tolerance"}, Description: "Distance from the estimated key that becomes fully transparent.", Decoder: writ.NewOptionDecoder(&i.CoreTolerance)},
 		{Names: []string{"feather-tolerance"}, Description: "Outer key distance for the partial-alpha ramp.", Decoder: writ.NewOptionDecoder(&i.FeatherTolerance)},
 		{Names: []string{"chroma-gate"}, Description: "Minimum key-direction chroma needed before a pixel is eligible for removal.", Decoder: writ.NewOptionDecoder(&i.ChromaGate)},
+		{Names: []string{"edge-contract"}, Description: "Erode the alpha mask by this many pixels to remove a residual key halo.", Decoder: writ.NewOptionDecoder(&i.EdgeContract)},
 	}
 }
 
@@ -149,7 +151,7 @@ func (i *imagegenCmd) Run(p writ.Path, positional []string) {
 		if len(i.References) != 1 {
 			i.Base().errAndQuit("alpha requires exactly one --reference matte")
 		}
-		manifest, err := imagegen.ProduceAlpha(imagegen.AlphaOptions{Input: i.References[0], Output: i.Output, KeyColor: i.KeyColor, CoreTolerance: i.CoreTolerance, FeatherTolerance: i.FeatherTolerance, ChromaGate: i.ChromaGate}, nil)
+		manifest, err := imagegen.ProduceAlpha(imagegen.AlphaOptions{Input: i.References[0], Output: i.Output, KeyColor: i.KeyColor, CoreTolerance: i.CoreTolerance, FeatherTolerance: i.FeatherTolerance, ChromaGate: i.ChromaGate, EdgeContract: i.EdgeContract}, nil)
 		if err != nil {
 			i.Base().errAndQuit("Alpha production failed: " + err.Error())
 		}
