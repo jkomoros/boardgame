@@ -87,7 +87,7 @@ It consumes shared viewport geometry but does not control structural motion.
 ## Structural-motion manifest
 
 After timing and coordinate-space primitives are proven, the next useful bridge
-is a read-only manifest emitted after the component animator solves a cycle:
+is a private, read-only solved plan emitted by the component animator:
 
 ```ts
 interface StructuralMotion {
@@ -100,11 +100,28 @@ interface StructuralMotion {
 }
 ```
 
-The rectangle type above is illustrative. The real API must distinguish
-viewport-space snapshots from offset-space snapshots and define exactly when
-the record is published, consumed, and expired. Until those two contracts
-exist, exposing this manifest would let effects combine incompatible geometry
-or observe a half-installed render cycle.
+The first internal representation is deliberately more precise than that API
+sketch. Spatial, property, transform, and opacity changes are orthogonal rather
+than collapsed into one exclusive `kind`. Geometry is explicitly offset-space;
+an effect overlay will eventually require an explicit viewport projection.
+
+### Publication lifecycle
+
+- `prepare()` begins a generation and immediately invalidates the previous
+  solved plan.
+- Measurement builds private mutable drafts. Drafts are not observable.
+- After the second microtask, layout measurement, component `updateComplete`,
+  and a final generation check, the animator creates one immutable plan.
+- The plan is published immediately before any `playAnimation()` call for that
+  generation, so every segment has its actual stagger and requested duration.
+- A new `prepare()` invalidates the plan even if the previous generation was
+  interrupted. Stale async work may neither publish nor play.
+- The plan remains diagnostic/internal after settlement until the next
+  generation. It does not imply that an effect may consume it yet.
+
+Provenance is explicit. Retained subjects have exact identity continuity;
+appearing and departing endpoints inferred from `IDsLastSeen` carry their stack
+history evidence rather than pretending to be exact.
 
 It is observational. Effects may decorate a matching movement with overlay
 trails or arrival cues, but cannot cancel, replace, delay, or gate it. A missing

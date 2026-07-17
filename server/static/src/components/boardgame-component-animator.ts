@@ -18,6 +18,15 @@ import {
   solveFlipGeometry,
 } from '../motion/geometry.js';
 import type { OffsetGeometry } from '../motion/geometry.js';
+import {
+  createStructuralMotionDraft,
+  publishStructuralMotionPlan,
+} from '../motion/structural-plan.js';
+import type {
+  StructuralMotionDraft,
+  StructuralMotionPlan,
+  StructuralProvenance,
+} from '../motion/structural-plan.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -48,6 +57,7 @@ interface ComponentRecord {
   beforeOpacity?: string;
   needsHostTransition?: boolean;
   needsAnimation?: boolean;
+  motionDraft?: StructuralMotionDraft;
 }
 
 interface CollectionRecord {
@@ -58,6 +68,7 @@ interface CollectionRecord {
 }
 
 interface AnimatingComponentRecord {
+  subjectId: string;
   stack: any;
   component: any;
   before: Record<string, any>;
@@ -67,6 +78,7 @@ interface AnimatingComponentRecord {
   invertedTransform: string;
   beforeOpacity: string;
   needsHostTransition: boolean;
+  motionDraft?: StructuralMotionDraft;
 }
 
 export class BoardgameComponentAnimator extends LitElement {
@@ -85,6 +97,9 @@ export class BoardgameComponentAnimator extends LitElement {
   private _animatingComponents: AnimatingComponentRecord[] = [];
   private _beforeCollectionOffsets = new Map<string, OffsetGeometry>();
   private _generation = 0;
+  // Published only after the generation's final updateComplete check and
+  // immediately before playback. A new prepare() invalidates it synchronously.
+  private _solvedMotionPlan: StructuralMotionPlan | null = null;
 
   ancestorOffsetParent: HTMLElement | null = null;
 
@@ -102,6 +117,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
   prepare() {
     this._generation++;
+    this._solvedMotionPlan = null;
     const collections = this.stackElement._sharedStackList;
 
     this._beforeCollectionOffsets = new Map();
@@ -160,6 +176,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
         record.before = component.animatingPropValues();
         record.beforeInlineTransform = component.style.transform;
+        record.beforeOpacity = component.style.opacity || '1';
 
         if (component.cloneContent) {
           const newNodes: Node[] = [];
@@ -471,6 +488,9 @@ export class BoardgameComponentAnimator extends LitElement {
         if (component.id === '') continue;
 
         const record = this._infoById[component.id];
+        const hadExactBefore = record.offsets !== undefined;
+        let presence: 'retained' | 'appearing' = 'retained';
+        let provenance: StructuralProvenance = { kind: 'identity' };
 
         if (!record.offsets) {
           // Hmm, a record who didn't have its offsets set in prepare(),
@@ -492,6 +512,14 @@ export class BoardgameComponentAnimator extends LitElement {
             theStack = collectionRecord.runnerUpStack;
           }
 
+          presence = 'appearing';
+          provenance = {
+            kind: 'stack-history',
+            endpoint: 'source',
+            stackId: theStack.id,
+            evidence: collectionRecord.runnerUpStack ? 'runner-up' : 'only-candidate',
+          };
+
           record.offsets = this._beforeCollectionOffsets.get(theStack.id);
 
           record.before = component.animatingPropDefaults(theStack);
@@ -502,6 +530,7 @@ export class BoardgameComponentAnimator extends LitElement {
           theStack.setUnknownAnimationState(component);
 
           record.beforeTransform = component.style.transform;
+          record.beforeOpacity = component.style.opacity || '1';
         } else {
           record.afterOpacity = component.style.opacity;
           record.afterTransform = component.style.transform;
@@ -541,7 +570,7 @@ export class BoardgameComponentAnimator extends LitElement {
         }
 
         // Check opacity change
-        const beforeOpacity = parseFloat(component.style.opacity || '1');
+        const beforeOpacity = parseFloat(record.beforeOpacity || '1');
         const afterOpacity = parseFloat(record.afterOpacity || '1');
         const opacityChanged = Math.abs(beforeOpacity - afterOpacity) > 0.01;
 
@@ -561,7 +590,23 @@ export class BoardgameComponentAnimator extends LitElement {
         // PLAY phase in _startAnimations turns them into keyframes.
         if (record.needsAnimation) {
           record.invertedTransform = geometry.invertedTransform;
-          record.beforeOpacity = component.style.opacity;
+          record.motionDraft = createStructuralMotionDraft({
+            subjectId: component.id,
+            presence: hadExactBefore ? 'retained' : presence,
+            provenance,
+            from: record.offsets!,
+            to: record.newOffsets!,
+            inversion: geometry,
+            beforeTransform: hadExactBefore
+              ? record.beforeInlineTransform
+              : record.beforeTransform,
+            afterTransform: record.afterTransform,
+            beforeProperties: record.before,
+            afterProperties: record.after,
+            animatingProperties: component.animatingProperties,
+            beforeOpacity: record.beforeOpacity,
+            afterOpacity: record.afterOpacity,
+          });
 
           const clonedNodes = this._lastSeenNodesById.get(component.id);
 
@@ -604,6 +649,7 @@ export class BoardgameComponentAnimator extends LitElement {
       record.after = component.animatingPropDefaults(anonRecord.stack);
 
       const animatingRecord: AnimatingComponentRecord = {
+        subjectId: id,
         stack: anonRecord.stack,
         component: component,
         before: record.before || {},
@@ -611,7 +657,7 @@ export class BoardgameComponentAnimator extends LitElement {
         afterTransform: component.style.transform,
         afterOpacity: component.style.opacity,
         invertedTransform: '',
-        beforeOpacity: '1.0',
+        beforeOpacity: record.beforeOpacity || '1.0',
         needsHostTransition: true
       };
       this._animatingComponents.push(animatingRecord);
@@ -638,7 +684,26 @@ export class BoardgameComponentAnimator extends LitElement {
       // here: the resting inline transform stays put, and playAnimation()
       // supplies the inverted state as the animation's opening keyframe.
       animatingRecord.invertedTransform = geometry.invertedTransform;
-      animatingRecord.beforeOpacity = '1.0';
+      animatingRecord.motionDraft = createStructuralMotionDraft({
+        subjectId: id,
+        presence: 'departing',
+        provenance: {
+          kind: 'stack-history',
+          endpoint: 'destination',
+          stackId: anonRecord.stack.id,
+          evidence: 'latest-seen',
+        },
+        from: oldLocation,
+        to: stackLocation,
+        inversion: geometry,
+        beforeTransform: record.beforeInlineTransform ?? record.beforeTransform,
+        afterTransform: animatingRecord.afterTransform,
+        beforeProperties: animatingRecord.before,
+        afterProperties: animatingRecord.after,
+        animatingProperties: component.animatingProperties,
+        beforeOpacity: animatingRecord.beforeOpacity,
+        afterOpacity: animatingRecord.afterOpacity,
+      });
 
       const clonedNodes = this._lastSeenNodesById.get(id);
       if (clonedNodes) {
@@ -686,7 +751,22 @@ export class BoardgameComponentAnimator extends LitElement {
     await Promise.all(allComponents.map(c => c.updateComplete));
     if (this._generation !== generation) { resolve(Promise.resolve()); return; }
 
-    const settledPromises: Promise<void>[] = [];
+    const playback: Array<{
+      component: any;
+      config: {
+        before: Record<string, any>;
+        after: Record<string, any>;
+        invertedTransform: string;
+        finalTransform: string;
+        beforeOpacity: string;
+        finalOpacity: string;
+        needsHostTransition: boolean;
+        delayMs?: number;
+      };
+      motionDraft?: StructuralMotionDraft;
+      durationMs: number;
+      delayMs: number;
+    }> = [];
 
     for (let i = 0; i < collections.length; i++) {
       const collection = collections[i];
@@ -702,31 +782,63 @@ export class BoardgameComponentAnimator extends LitElement {
           ? animIndex * staggerFraction * component.animationLengthMs()
           : 0;
         animIndex++;
-        component.playAnimation({
-          before: record.before || {},
-          after: record.after || {},
-          invertedTransform: record.invertedTransform || '',
-          finalTransform: record.afterTransform || '',
-          beforeOpacity: record.beforeOpacity || '1',
-          finalOpacity: record.afterOpacity || '',
-          needsHostTransition: record.needsHostTransition ?? true,
+        playback.push({
+          component,
+          config: {
+            before: record.before || {},
+            after: record.after || {},
+            invertedTransform: record.invertedTransform || '',
+            finalTransform: record.afterTransform || '',
+            beforeOpacity: record.beforeOpacity || '1',
+            finalOpacity: record.afterOpacity || '',
+            needsHostTransition: record.needsHostTransition ?? true,
+            delayMs,
+          },
+          motionDraft: record.motionDraft,
+          durationMs: component.animationLengthMs(),
           delayMs,
         });
-        settledPromises.push(component.settled());
       }
     }
 
     for (const ac of this._animatingComponents) {
-      ac.component.playAnimation({
-        before: ac.before || {},
-        after: ac.after,
-        invertedTransform: ac.invertedTransform || '',
-        finalTransform: ac.afterTransform,
-        beforeOpacity: ac.beforeOpacity || '1',
-        finalOpacity: ac.afterOpacity,
-        needsHostTransition: true,
+      playback.push({
+        component: ac.component,
+        config: {
+          before: ac.before || {},
+          after: ac.after,
+          invertedTransform: ac.invertedTransform || '',
+          finalTransform: ac.afterTransform,
+          beforeOpacity: ac.beforeOpacity || '1',
+          finalOpacity: ac.afterOpacity,
+          needsHostTransition: true,
+        },
+        motionDraft: ac.motionDraft,
+        durationMs: ac.component.animationLengthMs(),
+        delayMs: 0,
       });
-      settledPromises.push(ac.component.settled());
+    }
+
+    // Publication barrier: everything above is measurement and planning.
+    // Only a still-current generation may publish, and publication happens
+    // before the first component begins playback.
+    if (this._generation !== generation) { resolve(Promise.resolve()); return; }
+    this._solvedMotionPlan = publishStructuralMotionPlan(
+      generation,
+      playback.flatMap(item => item.motionDraft ? [{
+        draft: item.motionDraft,
+        timingRequest: {
+          policy: 'version' as const,
+          delayMs: item.delayMs,
+          durationMs: item.durationMs,
+        },
+      }] : []),
+    );
+
+    const settledPromises: Promise<void>[] = [];
+    for (const item of playback) {
+      item.component.playAnimation(item.config);
+      settledPromises.push(item.component.settled());
     }
 
     // The promise animateFlip() hands out now means "everything SETTLED",
