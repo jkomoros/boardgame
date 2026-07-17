@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jkomoros/boardgame/enum"
@@ -199,6 +200,109 @@ func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {
 
 func (t *testGeneralReadSetter) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
+}
+
+type testSizedStackWithGrowableTag struct {
+	Cards SizedStack `stack:"test"`
+}
+
+func (t *testSizedStackWithGrowableTag) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testSizedStackWithGrowableTag) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testSizedStackWithGrowableTag) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+type testStackWithConflictingConcreteTags struct {
+	Cards Stack `stack:"test" sizedstack:"test,2"`
+}
+
+func (t *testStackWithConflictingConcreteTags) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testStackWithConflictingConcreteTags) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testStackWithConflictingConcreteTags) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+type testMergedStackWithConflictingTags struct {
+	First  Stack
+	Second Stack
+	Cards  MergedStack `concatenate:"First,Second" overlap:"First,Second"`
+}
+
+func (t *testMergedStackWithConflictingTags) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testMergedStackWithConflictingTags) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testMergedStackWithConflictingTags) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+type testStackWithConcreteAndMergedTags struct {
+	First Stack
+	Cards Stack `stack:"test" concatenate:"First"`
+}
+
+func (t *testStackWithConcreteAndMergedTags) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testStackWithConcreteAndMergedTags) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testStackWithConcreteAndMergedTags) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+type testNonStackWithStackTag struct {
+	Count int `stack:"test"`
+}
+
+func (t *testNonStackWithStackTag) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testNonStackWithStackTag) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testNonStackWithStackTag) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+type testBoardWithoutBoardTag struct {
+	Spaces Board `stack:"test"`
+}
+
+func (t *testBoardWithoutBoardTag) Reader() PropertyReader { return getDefaultReader(t) }
+func (t *testBoardWithoutBoardTag) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+func (t *testBoardWithoutBoardTag) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+func TestStructInflaterRejectsContradictoryStackTags(t *testing.T) {
+	game := testDefaultGame(t, false)
+	tests := []struct {
+		name    string
+		example Reader
+		want    string
+	}{
+		{"sized field with growable tag", new(testSizedStackWithGrowableTag), "declared as SizedStack"},
+		{"both concrete tags", new(testStackWithConflictingConcreteTags), "both stack and sizedstack"},
+		{"both merged tags", new(testMergedStackWithConflictingTags), "both concatenate and overlap"},
+		{"concrete and merged tags", new(testStackWithConcreteAndMergedTags), "mixed concrete stack tag"},
+		{"stack tag on scalar", new(testNonStackWithStackTag), "not a Stack or Board property"},
+		{"board missing board tag", new(testBoardWithoutBoardTag), "no board struct tag"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := NewStructInflater(test.example, nil, game.manager.Chest())
+			if err == nil {
+				t.Fatal("NewStructInflater accepted contradictory stack tags")
+			}
+			if !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("NewStructInflater error = %q, want substring %q", err, test.want)
+			}
+		})
+	}
 }
 
 func TestStructInflater(t *testing.T) {
