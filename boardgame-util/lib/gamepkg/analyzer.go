@@ -30,12 +30,22 @@ type Position struct {
 
 // Diagnostic is one package loading or game-contract problem.
 type Diagnostic struct {
-	Position Position `json:"position,omitempty"`
-	Message  string   `json:"message"`
+	Kind     DiagnosticKind `json:"kind"`
+	Position Position       `json:"position,omitempty"`
+	Message  string         `json:"message"`
 }
 
+// DiagnosticKind is a stable machine-readable category for package analysis.
+type DiagnosticKind string
+
+const (
+	DiagnosticLoad       DiagnosticKind = "load"
+	DiagnosticContract   DiagnosticKind = "contract"
+	DiagnosticRandomness DiagnosticKind = "randomness"
+)
+
 // Analysis is the typed result of inspecting one Go package. Candidate is true
-// when the package declares any function or method named NewDelegate. A
+// when the package declares a package-level function named NewDelegate. A
 // candidate is a valid game package only when Diagnostics is empty.
 type Analysis struct {
 	ImportPath  string       `json:"importPath"`
@@ -43,6 +53,7 @@ type Analysis struct {
 	Dir         string       `json:"dir"`
 	Candidate   bool         `json:"candidate"`
 	Diagnostics []Diagnostic `json:"diagnostics"`
+	loaded      bool
 }
 
 // InvalidGamePackageError preserves the complete typed analysis when a legacy
@@ -68,6 +79,12 @@ func (a Analysis) ValidGame() bool {
 // GamePackage converts a successful analysis into the package handle used by
 // boardgame-util commands. It does not reload or re-type-check the package.
 func (a Analysis) GamePackage() (*Pkg, error) {
+	if !a.loaded || !a.ValidGame() || a.ImportPath == "" || a.Name == "" || !filepath.IsAbs(a.Dir) {
+		return nil, fmt.Errorf("analysis is not a validated package result")
+	}
+	if info, err := os.Stat(a.Dir); err != nil || !info.IsDir() {
+		return nil, fmt.Errorf("analysis package directory is invalid: %q", a.Dir)
+	}
 	pkg, _, err := newPkgFromAnalysis(a, "")
 	return pkg, err
 }
@@ -93,8 +110,7 @@ func Analyze(patterns []string, basePath string, options Options) ([]Analysis, e
 		packages.NeedCompiledGoFiles |
 		packages.NeedImports |
 		packages.NeedSyntax |
-		packages.NeedTypes |
-		packages.NeedTypesInfo
+		packages.NeedTypes
 	config := &packages.Config{Mode: mode, Dir: basePath, Tests: false}
 	if options.ReadOnly {
 		config.BuildFlags = append(config.BuildFlags, "-mod=readonly")
@@ -108,8 +124,21 @@ func Analyze(patterns []string, basePath string, options Options) ([]Analysis, e
 	}
 
 	analyses := make([]Analysis, 0, len(loaded))
+	seenPackages := make(map[string]bool)
 	for _, loadedPackage := range loaded {
-		analyses = append(analyses, analyzePackage(loadedPackage))
+		key := loadedPackage.PkgPath + "\x00" + packageDir(loadedPackage)
+		if seenPackages[key] {
+			continue
+		}
+		seenPackages[key] = true
+		delegateInterface := gameDelegateInterface(loadedPackage)
+		if delegateInterface == nil && hasTopLevelNewDelegate(loadedPackage) {
+			if reloadedPackage, reloadedInterface, reloadErr := reloadWithBoardgame(config, loadedPackage.PkgPath); reloadErr == nil {
+				loadedPackage = reloadedPackage
+				delegateInterface = reloadedInterface
+			}
+		}
+		analyses = append(analyses, analyzePackage(loadedPackage, delegateInterface))
 	}
 	sort.Slice(analyses, func(i, j int) bool {
 		if analyses[i].ImportPath != analyses[j].ImportPath {
@@ -120,11 +149,12 @@ func Analyze(patterns []string, basePath string, options Options) ([]Analysis, e
 	return analyses, nil
 }
 
-func analyzePackage(pkg *packages.Package) Analysis {
+func analyzePackage(pkg *packages.Package, delegateInterface *types.Interface) Analysis {
 	result := Analysis{
 		ImportPath: pkg.PkgPath,
 		Name:       pkg.Name,
 		Dir:        packageDir(pkg),
+		loaded:     true,
 	}
 	if result.ImportPath == "" {
 		result.ImportPath = pkg.ID
@@ -134,7 +164,7 @@ func analyzePackage(pkg *packages.Package) Analysis {
 	for _, file := range pkg.Syntax {
 		for _, declaration := range file.Decls {
 			function, ok := declaration.(*ast.FuncDecl)
-			if ok && function.Name.Name == "NewDelegate" {
+			if ok && function.Recv == nil && function.Name.Name == "NewDelegate" {
 				declarations = append(declarations, function)
 			}
 		}
@@ -154,10 +184,51 @@ func analyzePackage(pkg *packages.Package) Analysis {
 		result.Diagnostics = normalizeDiagnostics(result.Diagnostics)
 		return result
 	}
-	result.Diagnostics = append(result.Diagnostics, validateNewDelegate(pkg, declarations)...)
+	result.Diagnostics = append(result.Diagnostics, validateNewDelegate(pkg, declarations, delegateInterface)...)
 	result.Diagnostics = append(result.Diagnostics, validateRandImports(pkg)...)
 	result.Diagnostics = normalizeDiagnostics(result.Diagnostics)
 	return result
+}
+
+func hasTopLevelNewDelegate(pkg *packages.Package) bool {
+	for _, file := range pkg.Syntax {
+		for _, declaration := range file.Decls {
+			function, ok := declaration.(*ast.FuncDecl)
+			if ok && function.Recv == nil && function.Name.Name == "NewDelegate" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func reloadWithBoardgame(config *packages.Config, importPath string) (*packages.Package, *types.Interface, error) {
+	loaded, err := packages.Load(config, importPath, boardgameImportPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	var target *packages.Package
+	var boardgamePackage *packages.Package
+	for _, pkg := range loaded {
+		switch pkg.PkgPath {
+		case importPath:
+			target = pkg
+		case boardgameImportPath:
+			boardgamePackage = pkg
+		}
+	}
+	if target == nil || boardgamePackage == nil || boardgamePackage.Types == nil {
+		return nil, nil, fmt.Errorf("could not load game and boardgame packages together")
+	}
+	object := boardgamePackage.Types.Scope().Lookup("GameDelegate")
+	if object == nil {
+		return nil, nil, fmt.Errorf("boardgame.GameDelegate was not found")
+	}
+	delegateInterface, ok := object.Type().Underlying().(*types.Interface)
+	if !ok {
+		return nil, nil, fmt.Errorf("boardgame.GameDelegate is not an interface")
+	}
+	return target, delegateInterface, nil
 }
 
 func erroredPackageDeclaresNewDelegate(pkg *packages.Package) bool {
@@ -166,7 +237,7 @@ func erroredPackageDeclaresNewDelegate(pkg *packages.Package) bool {
 		if file != nil {
 			for _, declaration := range file.Decls {
 				function, ok := declaration.(*ast.FuncDecl)
-				if ok && function.Name.Name == "NewDelegate" {
+				if ok && function.Recv == nil && function.Name.Name == "NewDelegate" {
 					return true
 				}
 			}
@@ -180,28 +251,38 @@ func erroredPackageDeclaresNewDelegate(pkg *packages.Package) bool {
 		}
 		var lexer scanner.Scanner
 		lexer.Init(token.NewFileSet().AddFile(filename, -1, len(contents)), contents, nil, 0)
-		insideFunctionDeclaration := false
+		awaitingFunctionName := false
 		for {
 			_, scanned, literal := lexer.Scan()
 			if scanned == token.EOF {
 				break
 			}
 			if scanned == token.FUNC {
-				insideFunctionDeclaration = true
+				awaitingFunctionName = true
 				continue
 			}
-			if insideFunctionDeclaration && scanned == token.IDENT && literal == "NewDelegate" {
-				return true
+			if !awaitingFunctionName {
+				continue
 			}
-			if scanned == token.LBRACE || scanned == token.SEMICOLON {
-				insideFunctionDeclaration = false
+			if scanned == token.IDENT {
+				if literal == "NewDelegate" {
+					return true
+				}
+				awaitingFunctionName = false
+				continue
 			}
+			// A receiver begins with '(', so this is a method. Any other token
+			// also means the declaration is too malformed to identify safely.
+			awaitingFunctionName = false
 		}
 	}
 	return false
 }
 
 func packageDir(pkg *packages.Package) string {
+	if pkg.Dir != "" {
+		return pkg.Dir
+	}
 	files := pkg.CompiledGoFiles
 	if len(files) == 0 {
 		files = pkg.GoFiles
@@ -237,6 +318,7 @@ func packageDiagnostics(pkg *packages.Package) []Diagnostic {
 			}
 		}
 		result = append(result, Diagnostic{
+			Kind:     DiagnosticLoad,
 			Position: position,
 			Message:  message,
 		})
@@ -244,45 +326,42 @@ func packageDiagnostics(pkg *packages.Package) []Diagnostic {
 	return result
 }
 
-func validateNewDelegate(pkg *packages.Package, declarations []*ast.FuncDecl) []Diagnostic {
+func validateNewDelegate(pkg *packages.Package, declarations []*ast.FuncDecl, delegateInterface *types.Interface) []Diagnostic {
 	if len(declarations) > 1 {
 		return []Diagnostic{{
+			Kind:     DiagnosticContract,
 			Position: positionFor(pkg.Fset, declarations[1].Name.Pos()),
 			Message:  "NewDelegate is declared more than once",
 		}}
 	}
 	declaration := declarations[0]
 	position := positionFor(pkg.Fset, declaration.Name.Pos())
-	if declaration.Recv != nil {
-		return []Diagnostic{{Position: position, Message: "NewDelegate must be a package-level function, not a method"}}
-	}
-
 	object := pkg.Types.Scope().Lookup("NewDelegate")
 	function, ok := object.(*types.Func)
 	if !ok {
-		return []Diagnostic{{Position: position, Message: "NewDelegate could not be type checked as a package-level function"}}
+		return []Diagnostic{{Kind: DiagnosticContract, Position: position, Message: "NewDelegate could not be type checked as a package-level function"}}
 	}
 	signature, ok := function.Type().(*types.Signature)
 	if !ok {
-		return []Diagnostic{{Position: position, Message: "NewDelegate has an invalid function type"}}
+		return []Diagnostic{{Kind: DiagnosticContract, Position: position, Message: "NewDelegate has an invalid function type"}}
 	}
 	if signature.Params().Len() != 0 {
-		return []Diagnostic{{Position: position, Message: "NewDelegate must not accept parameters"}}
+		return []Diagnostic{{Kind: DiagnosticContract, Position: position, Message: "NewDelegate must not accept parameters"}}
 	}
 	if signature.Results().Len() != 1 {
-		return []Diagnostic{{Position: position, Message: "NewDelegate must return exactly one value"}}
+		return []Diagnostic{{Kind: DiagnosticContract, Position: position, Message: "NewDelegate must return exactly one value"}}
 	}
 	if signature.TypeParams() != nil && signature.TypeParams().Len() != 0 {
-		return []Diagnostic{{Position: position, Message: "NewDelegate must not declare type parameters"}}
+		return []Diagnostic{{Kind: DiagnosticContract, Position: position, Message: "NewDelegate must not declare type parameters"}}
 	}
 
-	delegateInterface := gameDelegateInterface(pkg)
 	if delegateInterface == nil {
-		return []Diagnostic{{Position: position, Message: "could not load boardgame.GameDelegate for contract validation"}}
+		return []Diagnostic{{Kind: DiagnosticContract, Position: position, Message: "could not load boardgame.GameDelegate for contract validation"}}
 	}
 	returned := signature.Results().At(0).Type()
 	if !types.AssignableTo(returned, delegateInterface) {
 		return []Diagnostic{{
+			Kind:     DiagnosticContract,
 			Position: position,
 			Message:  fmt.Sprintf("NewDelegate returns %s, which does not implement boardgame.GameDelegate", types.TypeString(returned, qualifier)),
 		}}
@@ -291,7 +370,7 @@ func validateNewDelegate(pkg *packages.Package, declarations []*ast.FuncDecl) []
 }
 
 func gameDelegateInterface(pkg *packages.Package) *types.Interface {
-	boardgamePackage := findImportedPackage(pkg, boardgameImportPath, make(map[string]bool))
+	boardgamePackage := pkg.Imports[boardgameImportPath]
 	if boardgamePackage == nil || boardgamePackage.Types == nil {
 		return nil
 	}
@@ -301,22 +380,6 @@ func gameDelegateInterface(pkg *packages.Package) *types.Interface {
 	}
 	interfaceType, _ := object.Type().Underlying().(*types.Interface)
 	return interfaceType
-}
-
-func findImportedPackage(pkg *packages.Package, importPath string, visited map[string]bool) *packages.Package {
-	if pkg == nil || visited[pkg.ID] {
-		return nil
-	}
-	visited[pkg.ID] = true
-	if pkg.PkgPath == importPath {
-		return pkg
-	}
-	for _, imported := range pkg.Imports {
-		if found := findImportedPackage(imported, importPath, visited); found != nil {
-			return found
-		}
-	}
-	return nil
 }
 
 func qualifier(pkg *types.Package) string {
@@ -335,6 +398,7 @@ func validateRandImports(pkg *packages.Package) []Diagnostic {
 				continue
 			}
 			result = append(result, Diagnostic{
+				Kind:     DiagnosticRandomness,
 				Position: positionFor(pkg.Fset, imported.Pos()),
 				Message: "math/rand is unsafe in game logic; use state.Rand() for deterministic games, or add " +
 					RandMagicComment + " to this import when the use is intentionally unrelated to game logic",
@@ -394,7 +458,7 @@ func normalizeDiagnostics(diagnostics []Diagnostic) []Diagnostic {
 	seen := make(map[string]bool)
 	result := make([]Diagnostic, 0, len(diagnostics))
 	for _, diagnostic := range diagnostics {
-		key := fmt.Sprintf("%s:%d:%d:%s", diagnostic.Position.File, diagnostic.Position.Line, diagnostic.Position.Column, diagnostic.Message)
+		key := fmt.Sprintf("%s:%s:%d:%d:%s", diagnostic.Kind, diagnostic.Position.File, diagnostic.Position.Line, diagnostic.Position.Column, diagnostic.Message)
 		if seen[key] {
 			continue
 		}
@@ -411,6 +475,9 @@ func normalizeDiagnostics(diagnostics []Diagnostic) []Diagnostic {
 		}
 		if left.Position.Column != right.Position.Column {
 			return left.Position.Column < right.Position.Column
+		}
+		if left.Kind != right.Kind {
+			return left.Kind < right.Kind
 		}
 		return left.Message < right.Message
 	})

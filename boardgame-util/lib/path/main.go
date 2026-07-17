@@ -68,10 +68,10 @@ func AbsoluteGoPkgPathWithOptions(pkgImport string, options Options) (string, er
 		}
 		return "", errors.New(strings.Join(messages, "; "))
 	}
-	files := loaded[0].CompiledGoFiles
-	if len(files) == 0 {
-		files = loaded[0].GoFiles
+	if loaded[0].Dir != "" {
+		return loaded[0].Dir, nil
 	}
+	files := loaded[0].GoFiles
 	if len(files) == 0 {
 		return "", errors.New("package contained no active Go files")
 	}

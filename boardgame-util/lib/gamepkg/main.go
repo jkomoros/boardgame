@@ -152,7 +152,7 @@ func NewFromImport(importPath string) (*Pkg, error) {
 func newFromImport(importPath string, options Options) (pack *Pkg, tryPath bool, err error) {
 	analyses, err := Analyze([]string{importPath}, "", options)
 	if err != nil {
-		return nil, true, errors.New("absolute path couldn't be found: " + err.Error())
+		return nil, true, errors.New("could not load import: " + err.Error())
 	}
 	if len(analyses) != 1 {
 		return nil, true, errors.New("import resolved to an unexpected number of packages")
