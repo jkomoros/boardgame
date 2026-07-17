@@ -24,18 +24,26 @@ export interface CompanionSeatPresentation {
   avatarSlug: string;
 }
 
+export interface CompanionTableSession {
+  Status: 'active' | 'available';
+  IsThisTable: boolean;
+  CanTakeOver: boolean;
+  /** Server-authoritative delay before checking whether an active Table died. */
+  RetryAfterMs: number;
+  /** This exact former Table was intentionally moved to another screen. */
+  DisplacedByTransfer: boolean;
+}
+
 export interface CompanionInfo {
   CompanionMode: boolean;
   RoomCode: string;
   RoomLocked: boolean;
   SeatPresentations: CompanionSeatPresentation[];
   Absent: number[];
-  /**
-   * Server-computed: whether THIS session may use host actions
-   * (Owner-or-claimHost-override + table-surface cookie). Clients display
-   * host controls from this rather than re-deriving the rule.
-   */
-  IsHost?: boolean;
+  /** Ownership and recovery state for the single shared Table display. */
+  TableSession: CompanionTableSession;
+  /** Server-computed authority verdict for host actions on this request. */
+  IsHost: boolean;
 }
 
 /**
@@ -241,6 +249,10 @@ export interface GameState {
   versionFetching: boolean;
   /** Whether a game info fetch is in progress */
   infoFetching: boolean;
+  /** Identity of the only info request allowed to settle this route. */
+  infoRequestID: string | null;
+  /** Identity of the only version request allowed to settle this route. */
+  versionRequestID: string | null;
   /** Whether a configure/join operation is in progress */
   configuring: boolean;
   /** Last error message from fetch operations (null if no error) */

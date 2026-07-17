@@ -1,27 +1,16 @@
 package api
 
 import (
+	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
 )
 
 // seatOptionsSlot is one row in the seat-options payload returned to the
 // phone when it's deciding which slot to claim in an asymmetric game.
-type seatOptionsSlot struct {
-	PlayerIndex int    `json:"playerIndex"`
-	Label       string `json:"label"`
-	Filled      bool   `json:"filled"`
-	// AvatarSlug is populated for filled slots so the phone can render
-	// who's already in each seat. Empty for unfilled slots.
-	AvatarSlug string `json:"avatarSlug,omitempty"`
-	// DisplayName is populated for filled slots, same reason. Empty for
-	// unfilled slots.
-	DisplayName string `json:"displayName,omitempty"`
-}
+type seatOptionsSlot = companionSeatStatus
 
 type seatOptionsResponse struct {
 	GameID             string            `json:"gameID"`
@@ -54,6 +43,9 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "gameID query param is required"})
 		return
 	}
+	if !s.requireJoinTicket(c, gameID) {
+		return
+	}
 
 	// Auth: Firebase token in Authorization header (not query string —
 	// JWTs in URLs leak via logs, browser history, and Referer headers).
@@ -63,23 +55,38 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 			token = token[7:]
 		}
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth required (pass token in Authorization: Bearer header)"})
+			writeJoinProblem(c, http.StatusUnauthorized, "AUTH_REQUIRED", "Sign in again to continue", nil)
 			return
 		}
 		_, err := verifyFirebaseTokenWithTimeout(token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth failed"})
+			if errors.Is(err, errFirebaseVerifyTimeout) {
+				writeJoinProblem(c, http.StatusServiceUnavailable, "AUTH_UNAVAILABLE", "Sign-in verification is temporarily unavailable; retry", nil)
+			} else {
+				writeJoinProblem(c, http.StatusUnauthorized, "AUTH_INVALID", "Your sign-in expired; sign in again", nil)
+			}
 			return
 		}
 	}
+	joinLock := s.getSeatJoinLock(gameID)
+	joinLock.Lock()
+	defer joinLock.Unlock()
 
 	combined, err := s.storage.CombinedGame(gameID)
 	if err != nil || combined == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
 		return
 	}
-	if combined.Finished || combined.CompanionLocked || combined.CompanionRoomCode == "" {
+	if combined.CompanionRoomCode == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+		return
+	}
+	if combined.Finished {
+		writeJoinProblem(c, http.StatusConflict, joinCodeRoomFinished, "This game has finished", nil)
+		return
+	}
+	if combined.CompanionLocked {
+		writeJoinProblem(c, http.StatusConflict, joinCodeRoomLocked, "The host locked this room", nil)
 		return
 	}
 
@@ -90,31 +97,12 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 	}
 
 	requiresPicker := s.requiresSeatPicker(mgrInfo)
-
-	userIDs := s.storage.UserIDsForGame(gameID)
-	numPlayers := combined.NumPlayers
-	slots := make([]seatOptionsSlot, 0, numPlayers)
-	for i := 0; i < numPlayers; i++ {
-		slot := seatOptionsSlot{
-			PlayerIndex: i,
-			Label:       "Seat " + strconv.Itoa(i+1),
-		}
-		if i < len(userIDs) && userIDs[i] != "" {
-			slot.Filled = true
-			if pres, err := s.storage.SeatPresentation(gameID, boardgame.PlayerIndex(i)); err == nil && pres != nil {
-				slot.AvatarSlug = pres.AvatarSlug
-				slot.DisplayName = pres.DisplayName
-			}
-		}
-		// Public-role / public-team label resolution is wired by sanitizing
-		// the live game state for ObserverPlayerIndex and reading the
-		// Role/Team property if visible. For V1 we leave that as a future
-		// enhancement once a public-role game ships — most games are
-		// hidden-role, so "Seat N" is the right default. The asymmetry
-		// detection (above) is still useful because it lets the phone know
-		// whether to show the picker at all.
-		slots = append(slots, slot)
+	game := mgrInfo.manager.Game(gameID)
+	if game == nil {
+		writeJoinProblem(c, http.StatusNotFound, "ROOM_NOT_FOUND", "Room not found", nil)
+		return
 	}
+	slots := s.companionSeatStatuses(game)
 
 	c.JSON(http.StatusOK, seatOptionsResponse{
 		GameID:             gameID,

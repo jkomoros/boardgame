@@ -18,6 +18,7 @@ import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
 import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
 import type { FullGameState, GameChest } from '../types/boardgame-types.js';
+import { retryDelayMs } from '../utils/retry-policy.js';
 
 type HostedState = FullGameState<object, object, object, object, object>;
 export type HostedGameRenderer = BoardgameBaseGameRenderer<
@@ -37,41 +38,54 @@ class BoardgameRenderGame extends LitElement {
       position: relative;
     }
 
-    #loading[active] {
-      visibility: visible;
-      opacity: 1;
-      transition: visibility var(--animation-length) step-start, opacity var(--animation-length, 0.25s) linear;
-    }
-
-    #loading {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 100%;
-      background-color: rgba(250, 246, 240, 0.7);
+    #connection-status {
+      box-sizing: border-box;
+      width: min(100% - 2rem, 48rem);
+      margin: 0.75rem auto;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--md-sys-color-outline-variant, #CCC4B8);
+      border-radius: 0.75rem;
+      color: var(--md-sys-color-on-surface, #1d1b20);
+      background: var(--md-sys-color-surface-container-high, #ece6f0);
       z-index: 10;
-      visibility: hidden;
-      opacity: 0;
-      transition: visibility var(--animation-length) step-end, opacity var(--animation-length, 0.25s) linear;
     }
 
-    #loading > div {
-      height: 100%;
-      width: 100%;
+    #connection-status > div {
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 0.75rem;
     }
 
     .spinner {
-      width: 100px;
-      height: 100px;
-      border: 10px solid var(--md-sys-color-outline-variant, #CCC4B8);
-      border-top: 10px solid var(--md-sys-color-primary, #2E6B4F);
+      flex: 0 0 auto;
+      width: 1rem;
+      height: 1rem;
+      border: 3px solid var(--md-sys-color-outline-variant, #CCC4B8);
+      border-top-color: var(--md-sys-color-primary, #2E6B4F);
       border-radius: 50%;
       animation: spin 1s linear infinite;
+    }
+
+    button {
+      min-height: 2.75rem;
+      padding-inline: 1rem;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      color: var(--md-sys-color-primary, #2E6B4F);
+      background: transparent;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation: none; }
     }
 
     #renderer-error {
@@ -211,6 +225,19 @@ class BoardgameRenderGame extends LitElement {
   @property({ type: Boolean })
   socketActive = false;
 
+  @property({ type: Number, attribute: false })
+  connectionAttempts = 0;
+
+  @property({ type: String, attribute: false })
+  connectionError: string | null = null;
+
+  @property({ type: Boolean, attribute: false })
+  private _online = true;
+
+  private readonly _networkStateChanged = () => {
+    this._online = navigator.onLine;
+  };
+
   @property({ type: Array, attribute: false })
   moveForms: MoveForm[] | null = null;
 
@@ -284,6 +311,8 @@ class BoardgameRenderGame extends LitElement {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener('online', this._networkStateChanged);
+    window.removeEventListener('offline', this._networkStateChanged);
     if (this._boundComponentWillAnimate) {
       this.removeEventListener('will-animate', this._boundComponentWillAnimate);
     }
@@ -305,12 +334,16 @@ class BoardgameRenderGame extends LitElement {
       clearTimeout(this._previewTimer);
       this._previewTimer = null;
     }
+    this._clearPreviewRetry();
     this._previewSeq++;
     this._rendererLoadGeneration++;
   }
 
   override connectedCallback(): void {
     super.connectedCallback();
+    this._online = navigator.onLine;
+    window.addEventListener('online', this._networkStateChanged);
+    window.addEventListener('offline', this._networkStateChanged);
     // A module request invalidated by temporary detachment must be restarted
     // even though Lit sees no renderer-identity property change on reinsertion.
     if (this.hasUpdated && this.gameName && !this.rendererLoaded) {
@@ -373,7 +406,8 @@ class BoardgameRenderGame extends LitElement {
       changedProperties.has('moveForms') ||
       changedProperties.has('viewingAsPlayer') ||
       changedProperties.has('previewAsPlayer') ||
-      changedProperties.has('previewAsAdmin')
+      changedProperties.has('previewAsAdmin') ||
+      changedProperties.has('socketActive')
     ) {
       this._scheduleRefreshPreview();
     }
@@ -401,7 +435,8 @@ class BoardgameRenderGame extends LitElement {
       || changedProperties.has('moveTransport')
       || changedProperties.has('movePreviewTransport')
       || changedProperties.has('targetPreviewTransport')
-      || changedProperties.has('moveSubmissionGate')) {
+      || changedProperties.has('moveSubmissionGate')
+      || changedProperties.has('socketActive')) {
       this._applyMoveActionPropsToRenderer();
     }
 
@@ -462,7 +497,9 @@ class BoardgameRenderGame extends LitElement {
     renderer.snapshotEpoch = this.snapshotEpoch;
     renderer.proposingAsPlayer = this.proposingAsPlayer;
     renderer.proposingAsAdmin = this.proposingAsAdmin;
-    renderer.moveTransport = this.moveTransport;
+    // A disconnected renderer may be showing a stale snapshot. Fail closed
+    // until live state resumes; ExpectedVersion remains the server backstop.
+    renderer.moveTransport = this.socketActive ? this.moveTransport : null;
     renderer.movePreviewTransport = this.movePreviewTransport;
     renderer.targetPreviewTransport = this.targetPreviewTransport;
     if (this.moveSubmissionGate) renderer.moveSubmissionGate = this.moveSubmissionGate;
@@ -483,18 +520,10 @@ class BoardgameRenderGame extends LitElement {
 
   private _recomputeIsHost() {
     if (!(this.renderer instanceof BoardgameTableViewBase)) return;
-    // Prefer the server's own verdict (CompanionInfo.IsHost, computed with
-    // the same Owner-or-override + surface-cookie rule the host-action
-    // endpoints enforce) so a host promoted via /claimHost sees controls
-    // even though they aren't the Owner. Fall back to the local derivation
-    // for older payloads that lack the field.
-    const info = this.companionInfo;
-    if (info && typeof info.IsHost === 'boolean') {
-      this.renderer.isHost = info.IsHost;
-      return;
-    }
-    const surface = surfaceForGame(this.gameId);
-    this.renderer.isHost = this.isOwner && surface === 'table';
+    // Host authority is a server verdict backed by the active Table lease.
+    // Never reconstruct it from presentation state: a stale local `table`
+    // surface is not a capability and must not expose controls optimistically.
+    this.renderer.isHost = this.companionInfo?.IsHost === true;
   }
 
   private _activeChanged(newValue: boolean) {
@@ -698,9 +727,15 @@ class BoardgameRenderGame extends LitElement {
   // consumer. _previewTimer debounces bursts of state/turn changes into one
   // request; _previewSeq drops a response the game has already moved past.
   private _previewTimer: ReturnType<typeof setTimeout> | null = null;
+  private _previewRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private _previewRetryAttempt = 0;
   private _previewSeq = 0;
 
-  private _scheduleRefreshPreview() {
+  private _scheduleRefreshPreview(resetRetry = true) {
+    if (resetRetry) {
+      this._clearPreviewRetry();
+      this._previewRetryAttempt = 0;
+    }
     if (this._previewTimer !== null) clearTimeout(this._previewTimer);
     this._previewTimer = setTimeout(() => {
       this._previewTimer = null;
@@ -732,24 +767,43 @@ class BoardgameRenderGame extends LitElement {
       return;
     }
 
+    if (!this.socketActive) {
+      this._previewSeq++;
+      this._failPreviewClosed(renderer, spec.candidates);
+      return;
+    }
+
     const seq = ++this._previewSeq;
     // Preview from the same (player, admin) perspective /info uses, so graying
     // agrees with the displayed legality. For a non-admin the server ignores the
     // player param (admin=0), so this resolves to the seat exactly as before.
-    const response = await movePreviewBatch(
-      this.gameName,
-      this.gameId,
-      spec.moveName,
-      spec.candidates.map((c) => ({ Args: c.args })),
-      { player: this.previewAsPlayer, admin: this.previewAsAdmin ? 1 : 0 },
-    );
+    let response;
+    try {
+      response = await movePreviewBatch(
+        this.gameName,
+        this.gameId,
+        spec.moveName,
+        spec.candidates.map((c) => ({ Args: c.args })),
+        { player: this.previewAsPlayer, admin: this.previewAsAdmin ? 1 : 0 },
+      );
+    } catch (error) {
+      console.warn('Target legality preview failed:', error);
+      response = { data: undefined };
+    }
     const outcome = previewOutcome({
       startedSeq: seq,
       currentSeq: this._previewSeq,
       rendererStillMounted: this.renderer === renderer,
       hasData: !!response.data,
     });
+    if (outcome === 'keep-on-error') {
+      this._failPreviewClosed(renderer, spec.candidates);
+      this._schedulePreviewRetry(renderer);
+      return;
+    }
     if (outcome !== 'apply' || !response.data) return;
+    this._clearPreviewRetry();
+    this._previewRetryAttempt = 0;
 
     // Only reassign (and thus re-render the board) when the grayed set actually
     // changed.
@@ -757,6 +811,32 @@ class BoardgameRenderGame extends LitElement {
     if (!samePreviewSpaces(next, renderer.previewDisabledSpaces)) {
       renderer.previewDisabledSpaces = next;
     }
+  }
+
+  private _failPreviewClosed(
+    renderer: HostedGameRenderer,
+    candidates: readonly { readonly space: number }[],
+  ): void {
+    const disabled = candidates.map(candidate => candidate.space);
+    if (!samePreviewSpaces(disabled, renderer.previewDisabledSpaces)) {
+      renderer.previewDisabledSpaces = disabled;
+    }
+  }
+
+  private _schedulePreviewRetry(renderer: HostedGameRenderer): void {
+    if (this._previewRetryTimer !== null || !this.socketActive) return;
+    const delay = retryDelayMs(this._previewRetryAttempt++);
+    this._previewRetryTimer = setTimeout(() => {
+      this._previewRetryTimer = null;
+      if (this.renderer !== renderer || !this.socketActive) return;
+      this._scheduleRefreshPreview(false);
+    }, delay);
+  }
+
+  private _clearPreviewRetry(): void {
+    if (this._previewRetryTimer === null) return;
+    clearTimeout(this._previewRetryTimer);
+    this._previewRetryTimer = null;
   }
 
   private static _deriveLegality(moveForms: MoveForm[] | null): Record<string, MoveLegalityInfo> {
@@ -773,11 +853,10 @@ class BoardgameRenderGame extends LitElement {
     return result;
   }
 
-  private async _rendererIdentityChanged(gameName: string, gameId: string) {
+  private async _rendererIdentityChanged(gameName: string, gameId: string, retry = false) {
     const generation = ++this._rendererLoadGeneration;
-    // If there was a state, it might be for a different game type which would
-    // cause a render error
-    this.state = null;
+    // Route-owned state is reset atomically by Redux. Do not mutate the host's
+    // input here: retaining it is what makes a renderer retry useful.
     this.rendererLoaded = false;
     this.rendererError = '';
     this._removeRenderer();
@@ -790,7 +869,8 @@ class BoardgameRenderGame extends LitElement {
     }
 
     const suffix = this._surfaceSuffix(gameId);
-    const modulePath = `../../game-src/${gameName}/boardgame-render-game-${gameName}${suffix}.ts`;
+    const baseModulePath = `../../game-src/${gameName}/boardgame-render-game-${gameName}${suffix}.ts`;
+    const modulePath = retry ? `${baseModulePath}?retry=${generation}` : baseModulePath;
 
     try {
       // Use /* @vite-ignore */ to allow fully dynamic imports in dev mode.
@@ -807,6 +887,27 @@ class BoardgameRenderGame extends LitElement {
       }
       console.error(`Failed to load game renderer for ${gameName}:`, error);
     }
+  }
+
+  private retryRenderer(): void {
+    const suffix = this._surfaceSuffix(this.gameId);
+    const tagName = `boardgame-render-game-${this.gameName}${suffix}`;
+    if (customElements.get(tagName)) {
+      try {
+        this._instantiateRenderer(suffix);
+        return;
+      } catch (error) {
+        this.rendererError = this._errorMessage(error);
+      }
+    }
+    void this._rendererIdentityChanged(this.gameName, this.gameId, true);
+  }
+
+  private retryConnection(): void {
+    this.dispatchEvent(new CustomEvent('retry-connection', {
+      bubbles: true,
+      composed: true,
+    }));
   }
 
   private _rendererLoadIsCurrent(generation: number, gameName: string, gameId: string): boolean {
@@ -882,7 +983,7 @@ class BoardgameRenderGame extends LitElement {
     ele.snapshotEpoch = this.snapshotEpoch;
     ele.proposingAsPlayer = this.proposingAsPlayer;
     ele.proposingAsAdmin = this.proposingAsAdmin;
-    ele.moveTransport = this.moveTransport;
+    ele.moveTransport = this.socketActive ? this.moveTransport : null;
     ele.movePreviewTransport = this.movePreviewTransport;
     ele.targetPreviewTransport = this.targetPreviewTransport;
     if (this.moveSubmissionGate) ele.moveSubmissionGate = this.moveSubmissionGate;
@@ -936,6 +1037,7 @@ class BoardgameRenderGame extends LitElement {
           <h2>Game renderer unavailable</h2>
           <p>${this.rendererError}</p>
           <p>Run <code>boardgame-util check-client</code> and fix every reported diagnostic.</p>
+          <button type="button" @click=${this.retryRenderer}>Retry renderer</button>
         </section>
       ` : html`
         <div>
@@ -951,11 +1053,19 @@ class BoardgameRenderGame extends LitElement {
       <!-- Suppress the connection-lost dim once the game is finished: the
            socket closing after game end is expected, not an outage, and
            dimming the final scoreboard reads as a broken page. -->
-      <div id="loading" ?active="${!this.socketActive && !this.gameFinished}">
+      ${!this.socketActive && !this.gameFinished ? html`
+      <section id="connection-status" role="status" aria-live="polite" aria-atomic="true">
         <div>
-          <div class="spinner"></div>
+          <div class="spinner" aria-hidden="true"></div>
+          <span>${!this._online
+            ? 'You are offline. The game will reconnect automatically when the network returns.'
+            : this.connectionAttempts > 0
+            ? `Connection lost. Reconnecting (attempt ${this.connectionAttempts})…`
+            : 'Connecting to the live game…'}</span>
+          <button type="button" ?disabled=${!this._online} @click=${this.retryConnection}>Retry now</button>
         </div>
-      </div>
+      </section>
+      ` : null}
     `;
   }
 }

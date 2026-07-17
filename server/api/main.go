@@ -23,6 +23,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/sirupsen/logrus"
 )
@@ -60,6 +61,9 @@ type Server struct {
 	// then claiming a seat) and tight enough to discourage brute-force
 	// enumeration of the 234k 4-letter code namespace (spec §6.1).
 	joinRateLimiter *rateLimiter
+	// tableTransferRateLimiter protects the public inspect/redeem endpoints,
+	// especially the room-code + manual-code fallback, from online guessing.
+	tableTransferRateLimiter *rateLimiter
 
 	// seatJoinLocks serializes seat-claim operations on a per-game basis so
 	// concurrent /api/join/seat requests for the same room can't race
@@ -67,6 +71,18 @@ type Server struct {
 	// resolution behavior. Lazy-allocated by getSeatJoinLock.
 	seatJoinLocks   map[string]*sync.Mutex
 	seatJoinLocksMu sync.Mutex
+
+	// joinTicketKey signs short-lived, game-bound proof that a phone supplied
+	// the room code. NewServer initializes a development fallback; Start
+	// replaces it with the deployment-shared production secret.
+	joinTicketKey []byte
+	// joinTicketPreviousKey permits zero-downtime secret rotation for tickets
+	// issued during the prior ten-minute TTL window.
+	joinTicketPreviousKey []byte
+	// tableLeaseKey deterministically derives retry-stable device credentials.
+	// Unlike the short-lived ticket key, this key is not rotated while live
+	// companion sessions exist.
+	tableLeaseKey []byte
 }
 
 // corsOrigins adapts the documented comma-delimited configuration format to
@@ -225,8 +241,11 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		// brute-forcing the 234k-code space impractical (~7 months for
 		// half the space from one IP) while never throttling a real
 		// game night. Idle buckets evict after 10 minutes.
-		joinRateLimiter: newRateLimiter(40, 0.5, 10*time.Minute),
-		seatJoinLocks:   make(map[string]*sync.Mutex),
+		joinRateLimiter:          newRateLimiter(40, 0.5, 10*time.Minute),
+		tableTransferRateLimiter: newRateLimiter(20, 0.2, 10*time.Minute),
+		seatJoinLocks:            make(map[string]*sync.Mutex),
+		joinTicketKey:            newJoinTicketKey(),
+		tableLeaseKey:            newJoinTicketKey(),
 	}
 
 	storage.server = result
@@ -738,6 +757,12 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 }
 
 func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, user *users.StorageRecord) error {
+	// Persist the association before publishing pending SeatPlayer work. The
+	// storage backend is the cross-process linearization point; if another API
+	// instance won this seat, we must not leave a ghost pending fix-up behind.
+	if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
+		return err
+	}
 	if len(s.managers[game.Name()].seatPlayerMoves) > 0 {
 		//This is a game that uses SeatPlayer move, so instead of adding the
 		//player right now we should go into pending mode to inject the player.
@@ -779,7 +804,7 @@ func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, 
 		//is pending but before theyr'e actually seated. See #221.
 	}
 
-	return s.storage.SetPlayerForGame(game.ID(), slot, user.ID)
+	return nil
 }
 
 func (s *Server) doJoinGame(r *renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
@@ -908,6 +933,7 @@ func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageReco
 	// renderer on the redirect. Solo-mode games leave CompanionRoomCode
 	// empty + don't get a surface cookie (renderer falls back to solo).
 	var roomCode string
+	var initialTableDeviceID, initialTableSecret, initialTableDigest string
 	if companionMode {
 		code, codeErr := GenerateRoomCode(func(candidate string) (bool, error) {
 			id, gerr := s.storage.GameByRoomCode(candidate)
@@ -923,6 +949,11 @@ func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageReco
 		}
 		eGame.CompanionRoomCode = code
 		roomCode = code
+		initialTableDeviceID, initialTableSecret, initialTableDigest, err = s.newTableLeaseCredential(game.ID())
+		if err != nil {
+			r.Error(errors.New("Couldn't create shared-screen credentials: " + err.Error()))
+			return
+		}
 		// Surface cookie scoped to the gameID — see surfaceCookieName().
 		// Path "/" so the loader sees it on the game page.
 		s.setSurfaceCookie(c, game.ID(), "table")
@@ -931,6 +962,27 @@ func (s *Server) doNewGame(r *renderer, c *gin.Context, owner *users.StorageReco
 	if err := s.storage.UpdateExtendedGame(game.ID(), eGame); err != nil {
 		r.Error(errors.New("Couldn't save extended game metadata: " + err.Error()))
 		return
+	}
+	if companionMode {
+		lease, swapped, leaseErr := s.storage.CompareAndSwapCompanionTableLease(game.ID(), 0, &tablelease.StorageRecord{
+			DeviceID: initialTableDeviceID, SecretDigest: initialTableDigest,
+			HolderUserID: owner.ID, Expires: time.Now().Add(tableLeaseTTL).UnixMilli(),
+		})
+		if leaseErr != nil || !swapped {
+			// The core game is already durable at this point. Remove the room
+			// admission path so a failed lease bootstrap cannot leave a
+			// joinable companion room with no controlling Table.
+			eGame.CompanionRoomCode = ""
+			eGame.CompanionLocked = false
+			if rollbackErr := s.storage.UpdateExtendedGame(game.ID(), eGame); rollbackErr != nil {
+				s.logger.Errorln("Failed to roll back companion metadata after Table lease bootstrap failure:", rollbackErr)
+			}
+			c.SetCookie(surfaceCookieName(game.ID()), "", -1, "/", "", !s.config.OfflineDevMode, false)
+			r.Error(errors.New("Couldn't reserve the shared screen"))
+			return
+		}
+		_ = lease
+		s.setTableLeaseCookie(c, game.ID(), initialTableDeviceID, initialTableSecret)
 	}
 
 	resp := gin.H{
@@ -1385,21 +1437,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	r := s.newRenderer(c)
 
-	// Server-computed host verdict for the companion bundle. Uses the same
-	// rule as the host-action endpoints (Owner-or-override + table-surface
-	// cookie), so the client can display host controls for exactly the
-	// requests the server would authorize — including a host promoted via
-	// /claimHost, who is not the Owner and would otherwise never see them.
-	isHostViewer := false
-	if gameInfo != nil && gameInfo.CompanionRoomCode != "" {
-		hostUserID := gameInfo.Owner
-		if gameInfo.CompanionHostOverride != "" {
-			hostUserID = gameInfo.CompanionHostOverride
-		}
-		isHostViewer = s.isHost(c, gameID, hostUserID)
-	}
-
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion, isHostViewer)
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion)
 
 }
 
@@ -1491,7 +1529,7 @@ func (s *Server) collectSeatPresentations(gameID string, numPlayers int) []gin.H
 	return out
 }
 
-func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int, isHostViewer bool) {
+func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
 		return
@@ -1557,6 +1595,39 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 	if companionMode {
 		seatPresentations = s.collectSeatPresentations(game.ID(), game.NumPlayers())
 	}
+	tableStatus := "available"
+	tableRetryAfterMS := int64(0)
+	var tableLease *tablelease.StorageRecord
+	if companionMode {
+		var tableLeaseErr error
+		tableLease, tableLeaseErr = s.storage.CompanionTableLease(game.ID())
+		if tableLeaseErr != nil {
+			r.Error(errors.New("Couldn't load shared-screen status: " + tableLeaseErr.Error()))
+			return
+		}
+	}
+	now := time.Now()
+	tableActive := companionMode && tableLeaseActive(tableLease, now)
+	isHostViewer := false
+	displacedByTransfer := false
+	if tableActive {
+		tableStatus = "active"
+		tableRetryAfterMS = tableLease.Expires - now.UnixMilli()
+		if tableRetryAfterMS < 0 {
+			tableRetryAfterMS = 0
+		}
+		if surface, surfaceErr := r.c.Cookie(surfaceCookieName(game.ID())); surfaceErr == nil && surface == "table" {
+			if credential, credentialErr := r.c.Cookie(tableLeaseCookieName(game.ID())); credentialErr == nil {
+				isHostViewer = tableLeaseCredentialMatches(tableLease, credential)
+				if !isHostViewer && tableLease.TransitionKind == tablelease.TransitionTransfer && tableLease.TransferRedeemed(now.UnixMilli()) {
+					deviceID, _, parsed := parseTableLeaseCredential(credential)
+					displacedByTransfer = parsed && constantStringEqual(deviceID, tableLease.PreviousDeviceID)
+				}
+			}
+		}
+	}
+	canTakeOver := companionMode && tableStatus == "available" && user != nil &&
+		s.tableLeaseEligible(game.ID(), user.ID) && !game.Finished()
 	companionInfo := gin.H{
 		"CompanionMode":     companionMode,
 		"RoomCode":          gameInfo.CompanionRoomCode,
@@ -1567,6 +1638,11 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		// cookie) — the client displays host controls from this rather
 		// than re-deriving the rule and drifting.
 		"IsHost": isHostViewer,
+		"TableSession": gin.H{
+			"Status": tableStatus, "IsThisTable": isHostViewer,
+			"CanTakeOver": canTakeOver, "RetryAfterMs": tableRetryAfterMS,
+			"DisplacedByTransfer": displacedByTransfer,
+		},
 		// Absent is the list of player indices currently flagged absent by
 		// the heartbeat scan (spec §9.1). The Table view uses this to draw
 		// "Waiting for Alice (m:ss)" badges and to decide whether to show
@@ -2518,13 +2594,50 @@ func (s *Server) Start() {
 		return
 	}
 
-	if v := os.Getenv("GIN_MODE"); v == "release" {
+	releaseMode := os.Getenv("GIN_MODE") == "release"
+	if releaseMode {
 		s.logger.Infoln("Using release mode config")
 		s.config = config.Prod
 	} else {
 		s.logger.Infoln("Using dev mode config")
 		s.config = config.Dev
 		s.logger.SetLevel(logrus.DebugLevel)
+	}
+
+	// Every API instance in a deployment must use the same signing key.
+	// Development may use the process-local key initialized by NewServer;
+	// production fails closed instead of creating tickets that randomly fail
+	// when the next request reaches another instance.
+	if secret := os.Getenv("BOARDGAME_JOIN_TICKET_SECRET"); secret != "" {
+		if len(secret) < 32 {
+			s.logger.Errorln("BOARDGAME_JOIN_TICKET_SECRET must be at least 32 characters")
+			return
+		}
+		s.joinTicketKey = joinTicketKeyFromSecret(secret)
+		if previous := os.Getenv("BOARDGAME_JOIN_TICKET_PREVIOUS_SECRET"); previous != "" {
+			if len(previous) < 32 {
+				s.logger.Errorln("BOARDGAME_JOIN_TICKET_PREVIOUS_SECRET must be at least 32 characters")
+				return
+			}
+			s.joinTicketPreviousKey = joinTicketKeyFromSecret(previous)
+		}
+	} else if releaseMode {
+		s.logger.Errorln("BOARDGAME_JOIN_TICKET_SECRET is required in release mode")
+		return
+	} else {
+		s.logger.Warnln("BOARDGAME_JOIN_TICKET_SECRET is unset; join tickets will be invalidated by a dev-server restart")
+	}
+	if secret := os.Getenv("BOARDGAME_TABLE_LEASE_SECRET"); secret != "" {
+		if len(secret) < 32 {
+			s.logger.Errorln("BOARDGAME_TABLE_LEASE_SECRET must be at least 32 characters")
+			return
+		}
+		s.tableLeaseKey = joinTicketKeyFromSecret(secret)
+	} else if releaseMode {
+		s.logger.Errorln("BOARDGAME_TABLE_LEASE_SECRET is required in release mode")
+		return
+	} else {
+		s.logger.Warnln("BOARDGAME_TABLE_LEASE_SECRET is unset; Table recovery credentials will be invalidated by a dev-server restart")
 	}
 
 	if s.config.Firebase == nil {
@@ -2555,6 +2668,11 @@ func (s *Server) Start() {
 	}
 
 	router := gin.New()
+	// Fail closed for ClientIP()-keyed admission and transfer limits. A
+	// deployment that needs proxy-derived client addresses must explicitly add
+	// its known proxy CIDRs here/configure them; arbitrary forwarded headers are
+	// never trusted by default.
+	router.ForwardedByClientIP = false
 
 	router.Use(gin.Recovery(), gin.LoggerWithWriter(os.Stdout, "/_ah/health"))
 
@@ -2565,7 +2683,7 @@ func (s *Server) Start() {
 		// send a Firebase bearer token from the phone (cross-origin
 		// during dev because the API runs on a different port than the
 		// static server).
-		RequestHeaders: "content-type, Origin, Authorization",
+		RequestHeaders: "content-type, Origin, Authorization, X-Boardgame-Join-Ticket",
 		ExposedHeaders: "content-type",
 		Methods:        "GET, POST",
 		Credentials:    true,
@@ -2590,6 +2708,11 @@ func (s *Server) Start() {
 		joinGroup.POST("", s.joinHandler)
 		joinGroup.POST("seat", s.joinSeatHandler)
 		joinGroup.GET("seat-options", s.joinSeatOptionsHandler)
+
+		tableTransferGroup := mainGroup.Group("table-transfer")
+		tableTransferGroup.Use(rateLimitMiddleware(s.tableTransferRateLimiter))
+		tableTransferGroup.POST("inspect", s.inspectTableTransferHandler)
+		tableTransferGroup.POST("redeem", s.redeemTableTransferHandler)
 
 		protectedMainGroup := mainGroup.Group("")
 		protectedMainGroup.Use(s.requireLoggedIn)
@@ -2618,12 +2741,18 @@ func (s *Server) Start() {
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
 			protectedGameAPIGroup.POST("chat", s.chatSendHandler)
-			// Companion-mode host actions (spec §9). All require a logged-in
-			// user; further gated by isHost() / seated checks in the handlers.
-			protectedGameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
-			protectedGameAPIGroup.POST("claimHost", s.claimHostHandler)
-			protectedGameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
-			protectedGameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
+			// Companion-mode host actions (spec §9). Mutations require the
+			// active fenced Table credential; acquisition requires the owner or
+			// a seated player after the old lease expires.
+			protectedGameAPIGroup.POST("tableLease/acquire", s.acquireTableLeaseHandler)
+
+			// Table capabilities—not login identity—authorize shared-screen
+			// controls, including on an accountless paired projector.
+			gameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
+			gameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
+			gameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
+			gameAPIGroup.POST("tableTransfer/create", s.createTableTransferHandler)
+			gameAPIGroup.POST("tableTransfer/cancel", s.cancelTableTransferHandler)
 		}
 
 		// Chat read endpoint — available to any user with game access

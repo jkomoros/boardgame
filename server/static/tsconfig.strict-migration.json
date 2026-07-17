@@ -12,6 +12,8 @@
   },
   "include": [
     "src/api.ts",
+    "src/components/boardgame-table-transfer-view.ts",
+    "src/table-transfer/**/*.ts",
     "src/types/**/*.d.ts",
     "src/selectors.ts",
     "src/actions/game.ts"

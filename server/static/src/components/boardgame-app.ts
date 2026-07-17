@@ -15,6 +15,7 @@ import { store } from '../store.js';
 
 import {
   selectPage,
+  selectPageExtra,
   selectErrorShowing,
   selectErrorMessage,
   selectErrorFriendlyMessage,
@@ -288,6 +289,8 @@ export class BoardgameApp extends connect(store)(LitElement) {
 
   @property({ type: String })
   private _page = '';
+  @property({ type: String })
+  private _pageExtra = '';
 
   @property({ type: Boolean })
   private _errorShowing = false;
@@ -319,6 +322,7 @@ export class BoardgameApp extends connect(store)(LitElement) {
 
   stateChanged(state: any): void {
     this._page = selectPage(state);
+    this._pageExtra = selectPageExtra(state);
     this._errorShowing = selectErrorShowing(state);
     this._errorTitle = selectErrorTitle(state);
     this._errorMessage = selectErrorMessage(state);
@@ -454,11 +458,17 @@ export class BoardgameApp extends connect(store)(LitElement) {
 
             <boardgame-join-view
               class="page ${this._page === 'join' ? 'selected' : ''}"
-              ?selected="${this._page === 'join'}">
+              .selected="${this._page === 'join'}"
+              .route="${this._pageExtra}">
             </boardgame-join-view>
 
+            <boardgame-table-transfer-view
+              class="page ${this._page === 'table' ? 'selected' : ''}"
+              .selected=${this._page === 'table'}>
+            </boardgame-table-transfer-view>
+
             <boardgame-404-view
-              class="page ${this._page === 'view404' || (!this._page && this._page !== 'game' && this._page !== 'list-games' && this._page !== 'join') ? 'selected' : ''}"
+              class="page ${this._page === 'view404' || (!this._page && this._page !== 'game' && this._page !== 'list-games' && this._page !== 'join' && this._page !== 'table') ? 'selected' : ''}"
               ?selected="${this._page === 'view404'}">
             </boardgame-404-view>
           </main>

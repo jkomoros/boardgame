@@ -35,7 +35,23 @@ To set up a database, configure the DSN as described above. Then, sitting in the
 
 Before doing a push to prod it's a good idea to make sure the database is set up correctly with the most recent changes since the last push. Run `boardgame-util db up` to make sure all migrations are applied.
 
+## Rolling deployment of migration 0023
+
+Migration 0023 adds the durable shared-Table transfer columns. Deploy it in
+this order when more than one server instance may be live:
+
+1. Deploy binaries containing the 0023 compatibility code to every instance
+   while the database is still at 0022. Ordinary Table leases continue using
+   the explicit legacy column set; transfer creation remains unavailable.
+2. After every older binary has drained, run `boardgame-util db up`.
+3. Verify transfer creation, then proceed with later releases.
+
+Do not apply 0023 while pre-compatibility binaries are still running: those
+binaries used `SELECT *` and cannot decode the additional columns. For rollback,
+first return every instance to a compatibility-capable binary, then run the
+0023 down migration. Never remove the columns while a transfer-capable binary
+is actively creating transfers.
+
 # Updating the database structure
 
 When making a change to the database structure, create two files in mysql/migrations, named `NNNN_<name-of-change>.down.sql` and `NNNN_<name-of-change>.up.sql` where `NNNN` is the next sequence number. (Don't forget to add them with `git add`)
-

@@ -34,76 +34,24 @@ import {
 	SET_AUTO_CURRENT_PLAYER,
 	UPDATE_MOVE_FORMS,
 	CLEAR_FETCHED_INFO,
-	CLEAR_FETCHED_VERSION
+	CLEAR_FETCHED_VERSION,
+	CANCEL_GAME_READS
 } from '../actions/game.js';
 
 import type { GameAction } from '../types/actions';
 import type { GameState } from '../types/store';
+import { gameRouteState } from './game-route-state.ts';
 
-const INITIAL_STATE: GameState = {
-    id: '',
-	name: '',
-	chest: null,
-	playersInfo: [],
-	hasEmptySlots: false,
-	open: false,
-	visible: false,
-	isOwner: false,
-	companionInfo: null,
-	// currentState is now RAW state from server (unexpanded)
-	// Use selectExpandedGameState selector to get expanded version
-	currentState: null,
-	// Timer metadata for selector expansion
-	timerInfos: null,
-	//note that pathsToTick and originalWallClockTime are accessed directly
-	//(without selectors) in actions/game.js
-	pathsToTick: [],
-	originalWallClockTime: 0,
-	// Animation system state
-	animation: {
-		pendingBundles: [],
-		lastFiredBundle: null,
-		activeAnimations: []
-	},
-	// Version tracking state
-	versions: {
-		current: 0,
-		target: -1,
-		lastFetched: 0
-	},
-	// WebSocket connection state
-	socket: {
-		connected: false,
-		connectionAttempts: 0,
-		lastError: null
-	},
-	// View state
-	view: {
-		game: null,
-		viewingAsPlayer: 0,
-		requestedPlayer: 0,
-		autoCurrentPlayer: false,
-		moveForms: null
-	},
-	// Fetched data from async operations
-	fetchedInfo: null,
-	fetchedVersion: null,
-	// Loading/error state for async operations (per-operation flags)
-	moveSubmitting: false,
-	versionFetching: false,
-	infoFetching: false,
-	configuring: false,
-	error: null
-};
+const INITIAL_STATE: GameState = gameRouteState();
 
 const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 	switch (action.type) {
 	case UPDATE_GAME_ROUTE:
-		return {
-			...state,
-            id: action.id,
-            name: action.name
-		};
+		if (state.name === action.name && state.id === action.id) return state;
+		return gameRouteState(action.name, action.id, {
+			requestedPlayer: state.view.requestedPlayer,
+			autoCurrentPlayer: state.view.autoCurrentPlayer,
+		});
 	case UPDATE_GAME_STATIC_INFO:
 		return {
 			...state,
@@ -268,6 +216,14 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 			...state,
 			fetchedVersion: null
 		};
+	case CANCEL_GAME_READS:
+		return {
+			...state,
+			infoFetching: false,
+			versionFetching: false,
+			infoRequestID: null,
+			versionRequestID: null,
+		};
 	// Loading/error state handlers for async operations (per-operation flags)
 	case SUBMIT_MOVE_REQUEST:
 		return {
@@ -279,12 +235,14 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 		return {
 			...state,
 			versionFetching: true,
+			versionRequestID: action.requestID,
 			error: null
 		};
 	case FETCH_GAME_INFO_REQUEST:
 		return {
 			...state,
 			infoFetching: true,
+			infoRequestID: action.requestID,
 			error: null
 		};
 	case CONFIGURE_GAME_REQUEST:
@@ -306,9 +264,11 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 			configuring: false
 		};
 	case FETCH_GAME_INFO_SUCCESS:
+		if (state.infoRequestID !== action.requestID) return state;
 		return {
 			...state,
 			infoFetching: false,
+			infoRequestID: null,
 			// Store in server format for component handlers
 			fetchedInfo: {
 				Chest: action.chest,
@@ -330,9 +290,11 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 			}
 		};
 	case FETCH_GAME_VERSION_SUCCESS:
+		if (state.versionRequestID !== action.requestID) return state;
 		return {
 			...state,
 			versionFetching: false,
+			versionRequestID: null,
 			// Store in server format for component handlers
 			fetchedVersion: {
 				Bundles: action.bundles
@@ -345,15 +307,19 @@ const gameReducer = (state = INITIAL_STATE, action: GameAction): GameState => {
 			error: action.friendlyError || action.error || 'An error occurred'
 		};
 	case FETCH_GAME_VERSION_FAILURE:
+		if (state.versionRequestID !== action.requestID) return state;
 		return {
 			...state,
 			versionFetching: false,
+			versionRequestID: null,
 			error: action.friendlyError || action.error || 'An error occurred'
 		};
 	case FETCH_GAME_INFO_FAILURE:
+		if (state.infoRequestID !== action.requestID) return state;
 		return {
 			...state,
 			infoFetching: false,
+			infoRequestID: null,
 			error: action.friendlyError || action.error || 'An error occurred'
 		};
 	case CONFIGURE_GAME_FAILURE:

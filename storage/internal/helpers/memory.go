@@ -7,6 +7,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
@@ -28,12 +29,14 @@ type ExtendedMemoryStorageManager struct {
 	usersByCookie     map[string]*users.StorageRecord
 	usersForGames     map[string][]string
 	seatPresentations map[string]*seatpresentation.StorageRecord // key: gameID + ":" + playerIndex
+	tableLeases       map[string]*tablelease.StorageRecord
 
 	agentStatesLock       sync.RWMutex
 	extendedGamesLock     sync.RWMutex
 	usersLock             sync.RWMutex
 	usersForGamesLock     sync.RWMutex
 	seatPresentationsLock sync.RWMutex
+	tableLeasesLock       sync.RWMutex
 
 	gameChecker GameChecker
 }
@@ -53,8 +56,51 @@ func NewExtendedMemoryStorageManager(checker GameChecker) *ExtendedMemoryStorage
 		usersForGames:     make(map[string][]string),
 		agentStates:       make(map[string][]byte),
 		seatPresentations: make(map[string]*seatpresentation.StorageRecord),
+		tableLeases:       make(map[string]*tablelease.StorageRecord),
 		gameChecker:       checker,
 	}
+}
+
+// CompanionTableLease implements the server storage interface.
+func (s *ExtendedMemoryStorageManager) CompanionTableLease(gameID string) (*tablelease.StorageRecord, error) {
+	s.tableLeasesLock.RLock()
+	defer s.tableLeasesLock.RUnlock()
+	return s.tableLeases[gameID].Clone(), nil
+}
+
+// CompareAndSwapCompanionTableLease implements the server storage interface.
+func (s *ExtendedMemoryStorageManager) CompareAndSwapCompanionTableLease(gameID string, expectedGeneration uint64, replacement *tablelease.StorageRecord) (*tablelease.StorageRecord, bool, error) {
+	if gameID == "" {
+		return nil, false, errors.New("empty game ID")
+	}
+	if replacement == nil {
+		return nil, false, errors.New("nil companion Table lease replacement")
+	}
+	if replacement.GameID != "" && replacement.GameID != gameID {
+		return nil, false, errors.New("companion Table lease game ID mismatch")
+	}
+	if err := replacement.ValidateTransfer(); err != nil {
+		return nil, false, err
+	}
+	if expectedGeneration == ^uint64(0) {
+		return nil, false, errors.New("companion Table lease generation exhausted")
+	}
+
+	s.tableLeasesLock.Lock()
+	defer s.tableLeasesLock.Unlock()
+	current := s.tableLeases[gameID]
+	var generation uint64
+	if current != nil {
+		generation = current.Generation
+	}
+	if generation != expectedGeneration {
+		return current.Clone(), false, nil
+	}
+	next := replacement.Clone()
+	next.GameID = gameID
+	next.Generation = expectedGeneration + 1
+	s.tableLeases[gameID] = next
+	return next.Clone(), true, nil
 }
 
 func keyForSeat(gameID string, playerIndex boardgame.PlayerIndex) string {
@@ -187,6 +233,9 @@ func (s *ExtendedMemoryStorageManager) GameByRoomCode(code string) (string, erro
 func (s *ExtendedMemoryStorageManager) UserIDsForGame(gameID string) []string {
 	s.usersForGamesLock.RLock()
 	ids := s.usersForGames[gameID]
+	if ids != nil {
+		ids = append([]string(nil), ids...)
+	}
 	s.usersForGamesLock.RUnlock()
 
 	if ids == nil {
@@ -202,28 +251,36 @@ func (s *ExtendedMemoryStorageManager) UserIDsForGame(gameID string) []string {
 
 // SetPlayerForGame implemnts that part of the server storage interface.
 func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
-	ids := s.UserIDsForGame(gameID)
-
-	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game.")
-	}
-
-	if ids[playerIndex] != "" {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken.")
-	}
-
 	user := s.GetUserByID(userID)
-
 	if user == nil {
 		return errors.New("That uid does not describe an existing user")
 	}
-
-	ids[playerIndex] = userID
-
+	game, _ := s.gameChecker.Game(gameID)
+	if game == nil {
+		return errors.New("That game does not exist")
+	}
 	s.usersForGamesLock.Lock()
+	defer s.usersForGamesLock.Unlock()
+	ids := s.usersForGames[gameID]
+	if ids == nil {
+		ids = make([]string, game.NumPlayers)
+	}
+	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
+		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game.")
+	}
+	for i, existing := range ids {
+		if existing == userID {
+			if boardgame.PlayerIndex(i) == playerIndex {
+				return nil
+			}
+			return errors.New("That uid is already assigned to another seat in this game")
+		}
+	}
+	if ids[playerIndex] != "" {
+		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken.")
+	}
+	ids[playerIndex] = userID
 	s.usersForGames[gameID] = ids
-	s.usersForGamesLock.Unlock()
-
 	return nil
 }
 

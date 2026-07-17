@@ -3,8 +3,10 @@ package api
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/alternaDev/go-firebase-verify"
 	"github.com/gin-gonic/gin"
@@ -35,11 +37,13 @@ func verifyFirebaseTokenWithTimeout(token, projectID string, timeout time.Durati
 	case r := <-ch:
 		return r.uid, r.err
 	case <-time.After(timeout):
-		return "", errors.New("Firebase token verification timed out")
+		return "", errFirebaseVerifyTimeout
 	}
 }
 
 const firebaseVerifyTimeout = 2 * time.Second
+
+var errFirebaseVerifyTimeout = errors.New("Firebase token verification timed out")
 
 // joinSeatRequest is the body of POST /api/join/seat. Phone client posts
 // after running through identity + avatar picker + (for asymmetric games)
@@ -56,6 +60,10 @@ type joinSeatRequest struct {
 	// default). The handler pre-fills -1 before decoding so an absent
 	// field auto-assigns rather than claiming seat 0.
 	SeatPick int `json:"seatPick"`
+	// AttemptID is stable across client retries. UID idempotency is the
+	// authoritative guard; this identifier makes retries observable and leaves
+	// room for stronger audit correlation without trusting client timing.
+	AttemptID string `json:"attemptID"`
 }
 
 // joinSeatResponse echoes back what the phone needs to navigate to the
@@ -64,6 +72,7 @@ type joinSeatResponse struct {
 	GameID      string `json:"gameID"`
 	GameName    string `json:"gameName"`
 	PlayerIndex int    `json:"playerIndex"`
+	Resumed     bool   `json:"resumed"`
 }
 
 // getSeatJoinLock returns the per-game mutex used to serialize seat-claim
@@ -102,6 +111,7 @@ func (s *Server) getSeatJoinLock(gameID string) *sync.Mutex {
 // On race (last seat just got taken), returns 409 with the latest seat
 // snapshot; phone retries against fresh state.
 func (s *Server) joinSeatHandler(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<10)
 	req := joinSeatRequest{SeatPick: -1}
 	if err := c.BindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
@@ -116,28 +126,21 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "uid is required"})
 		return
 	}
+	if !s.requireJoinTicket(c, req.GameID) {
+		return
+	}
+	if strings.TrimSpace(req.AvatarSlug) == "" || !utf8.ValidString(req.AvatarSlug) || utf8.RuneCountInString(req.AvatarSlug) > 64 || !validCompanionAvatarSlug(req.AvatarSlug) {
+		writeJoinProblem(c, http.StatusBadRequest, "INVALID_AVATAR", "Choose one of the supported avatars", nil)
+		return
+	}
+	if len(req.AttemptID) > 128 {
+		writeJoinProblem(c, http.StatusBadRequest, "INVALID_ATTEMPT", "attemptID is too long", nil)
+		return
+	}
 
 	normalizedName, err := NormalizeDisplayName(req.DisplayName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Load + validate the game.
-	combined, err := s.storage.CombinedGame(req.GameID)
-	if err != nil || combined == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
-		return
-	}
-	if combined.Finished || combined.CompanionLocked || combined.CompanionRoomCode == "" {
-		// CompanionRoomCode == "" means it's not a companion-mode game at all.
-		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
-		return
-	}
-
-	mgrInfo := s.managers[combined.Name]
-	if mgrInfo == nil || mgrInfo.manager == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+		writeJoinProblem(c, http.StatusBadRequest, "INVALID_NAME", err.Error(), nil)
 		return
 	}
 
@@ -150,16 +153,20 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 			token = authHeader[7:]
 		}
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "auth required (pass token in Authorization: Bearer header)"})
+			writeJoinProblem(c, http.StatusUnauthorized, "AUTH_REQUIRED", "Sign in again to continue", nil)
 			return
 		}
 		verifiedUID, verifyErr := verifyFirebaseTokenWithTimeout(token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
 		if verifyErr != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token verification failed: " + verifyErr.Error()})
+			if errors.Is(verifyErr, errFirebaseVerifyTimeout) {
+				writeJoinProblem(c, http.StatusServiceUnavailable, "AUTH_UNAVAILABLE", "Sign-in verification is temporarily unavailable; retry", nil)
+			} else {
+				writeJoinProblem(c, http.StatusUnauthorized, "AUTH_INVALID", "Your sign-in expired; sign in again", nil)
+			}
 			return
 		}
 		if verifiedUID != req.UID {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token uid does not match request uid"})
+			writeJoinProblem(c, http.StatusUnauthorized, "AUTH_INVALID", "Sign-in identity did not match this join", nil)
 			return
 		}
 	}
@@ -171,42 +178,65 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	lock.Lock()
 	defer lock.Unlock()
 
+	// Room eligibility is intentionally loaded only after acquiring the
+	// per-game mutation lock. This is the linearization point shared with
+	// every phone claim, so two phones cannot both act on the same snapshot.
+	combined, err := s.storage.CombinedGame(req.GameID)
+	if err != nil || combined == nil || combined.CompanionRoomCode == "" {
+		writeJoinProblem(c, http.StatusNotFound, "ROOM_NOT_FOUND", "Room not found", nil)
+		return
+	}
+	mgrInfo := s.managers[combined.Name]
+	if mgrInfo == nil || mgrInfo.manager == nil {
+		writeJoinProblem(c, http.StatusNotFound, "ROOM_NOT_FOUND", "Room not found", nil)
+		return
+	}
+	game := mgrInfo.manager.Game(req.GameID)
+	if game == nil {
+		writeJoinProblem(c, http.StatusNotFound, "ROOM_NOT_FOUND", "Room not found", nil)
+		return
+	}
+	if combined.Finished {
+		writeJoinProblem(c, http.StatusConflict, joinCodeRoomFinished, "This game has finished", nil)
+		return
+	}
+
 	// Find a slot. SeatPick >= 0 means the phone chose a specific seat via
 	// the seat picker (asymmetric games); honor it if it's still open, 409
 	// with the latest availability so the phone can re-pick if not.
 	// SeatPick < 0 means auto-assign the next open seat (symmetric games).
 	userIDs := s.storage.UserIDsForGame(req.GameID)
 	var slot boardgame.PlayerIndex = -1
-	if req.SeatPick >= 0 {
+	resumed := false
+	if existing, ok := existingSeatForUID(userIDs, req.UID); ok {
+		// Retrying after a committed-but-lost response is ordinary success.
+		// The original seat wins even if this retry carries a different pick.
+		slot = existing
+		resumed = true
+	} else if combined.CompanionLocked {
+		writeJoinProblem(c, http.StatusConflict, joinCodeRoomLocked, "The host locked this room", nil)
+		return
+	} else if req.SeatPick >= 0 {
 		if req.SeatPick >= len(userIDs) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "seatPick out of range"})
+			writeJoinProblem(c, http.StatusBadRequest, "INVALID_SEAT", "seatPick out of range", nil)
 			return
 		}
-		if userIDs[req.SeatPick] != "" {
-			filled := make([]bool, len(userIDs))
-			for i, uid := range userIDs {
-				filled[i] = uid != ""
-			}
-			c.JSON(http.StatusConflict, gin.H{
-				"error":  "Seat already taken",
-				"filled": filled,
-			})
+		statuses := s.companionSeatStatuses(game)
+		if req.SeatPick >= len(statuses) || !statuses[req.SeatPick].Available {
+			writeJoinProblem(c, http.StatusConflict, joinCodeSeatTaken, "That seat is no longer available", gin.H{"slots": statuses})
 			return
 		}
 		slot = boardgame.PlayerIndex(req.SeatPick)
 	} else {
-		for i, uid := range userIDs {
-			if uid == "" {
+		statuses := s.companionSeatStatuses(game)
+		for i, status := range statuses {
+			if status.Available {
 				slot = boardgame.PlayerIndex(i)
 				break
 			}
 		}
 		if slot < 0 {
-			c.JSON(http.StatusConflict, gin.H{
-				"error":          "Room is full",
-				"currentPlayers": len(userIDs),
-				"maxPlayers":     len(userIDs),
-			})
+			writeJoinProblem(c, http.StatusConflict, joinCodeRoomFull, "Room is full", gin.H{"slots": statuses})
 			return
 		}
 	}
@@ -244,18 +274,49 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 		s.setAuthCookieOnGin(c, authCookie)
 	}
 
-	// Look up the manager to retrieve the live game (doSeatPlayer needs a
-	// boardgame.Game, not a CombinedStorageRecord).
-	game := mgrInfo.manager.Game(req.GameID)
-	if game == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Game manager missing live game"})
-		return
-	}
-
 	// Run the existing seat-player flow.
-	if err := s.doSeatPlayer(game, slot, user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to seat player: " + err.Error()})
-		return
+	if !resumed {
+		if err := s.doSeatPlayer(game, slot, user); err != nil {
+			// A different API instance may have won between our snapshot and
+			// the storage uniqueness constraint. Re-read authoritative state:
+			// our own UID means a successful replay; another UID means a typed
+			// conflict, never an opaque 500 or a second pending SeatPlayer.
+			freshIDs := s.storage.UserIDsForGame(req.GameID)
+			if existing, ok := existingSeatForUID(freshIDs, req.UID); ok {
+				slot = existing
+				resumed = true
+			} else if req.SeatPick < 0 {
+				// Another instance may have won only the first open slot while
+				// others remain. Continue against fresh canonical availability;
+				// storage uniqueness arbitrates every attempt.
+				claimed := false
+				for _, status := range s.companionSeatStatuses(game) {
+					if !status.Available {
+						continue
+					}
+					candidate := boardgame.PlayerIndex(status.PlayerIndex)
+					if err := s.doSeatPlayer(game, candidate, user); err == nil {
+						slot = candidate
+						claimed = true
+						break
+					}
+					if existing, ok := existingSeatForUID(s.storage.UserIDsForGame(req.GameID), req.UID); ok {
+						slot = existing
+						resumed = true
+						claimed = true
+						break
+					}
+				}
+				if !claimed {
+					writeJoinProblem(c, http.StatusConflict, joinCodeRoomFull, "Room is full", gin.H{"slots": s.companionSeatStatuses(game)})
+					return
+				}
+			} else {
+				statuses := s.companionSeatStatuses(game)
+				writeJoinProblem(c, http.StatusConflict, joinCodeSeatTaken, "That seat is no longer available", gin.H{"slots": statuses})
+				return
+			}
+		}
 	}
 
 	// Record presentation (after SetPlayerForGame so the seat is bound).
@@ -285,11 +346,15 @@ func (s *Server) joinSeatHandler(c *gin.Context) {
 	// heartbeat scanner flags the seat absent 30s from now instead of
 	// treating the no-show as permanently present.
 	s.notifier.seedHeartbeat(req.GameID, slot)
+	if !resumed {
+		s.autoCloseGameIfFull(game)
+	}
 
 	c.JSON(http.StatusOK, joinSeatResponse{
 		GameID:      req.GameID,
 		GameName:    combined.Name,
 		PlayerIndex: int(slot),
+		Resumed:     resumed,
 	})
 }
 

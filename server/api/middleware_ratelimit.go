@@ -15,11 +15,12 @@ import (
 // hitting both /api/join and /api/join/seat in quick succession after the
 // user enters a code).
 type rateLimiter struct {
-	mu       sync.Mutex
-	buckets  map[string]*ipBucket
-	capacity int     // max tokens (and starting tokens for a fresh IP)
-	refill   float64 // tokens per second
-	idleTTL  time.Duration
+	mu          sync.Mutex
+	buckets     map[string]*ipBucket
+	capacity    int     // max tokens (and starting tokens for a fresh IP)
+	refill      float64 // tokens per second
+	idleTTL     time.Duration
+	lastCleanup time.Time
 }
 
 type ipBucket struct {
@@ -29,13 +30,12 @@ type ipBucket struct {
 
 func newRateLimiter(capacity int, refillPerSecond float64, idleTTL time.Duration) *rateLimiter {
 	r := &rateLimiter{
-		buckets:  make(map[string]*ipBucket),
-		capacity: capacity,
-		refill:   refillPerSecond,
-		idleTTL:  idleTTL,
+		buckets:     make(map[string]*ipBucket),
+		capacity:    capacity,
+		refill:      refillPerSecond,
+		idleTTL:     idleTTL,
+		lastCleanup: time.Now(),
 	}
-	// Periodic cleanup so the map doesn't grow forever.
-	go r.cleanupLoop()
 	return r
 }
 
@@ -47,6 +47,10 @@ func (r *rateLimiter) Allow(ip string) bool {
 	defer r.mu.Unlock()
 
 	now := time.Now()
+	if now.Sub(r.lastCleanup) >= r.idleTTL/2 {
+		r.evictIdleLocked(now)
+		r.lastCleanup = now
+	}
 	b, ok := r.buckets[ip]
 	if !ok {
 		b = &ipBucket{tokens: float64(r.capacity), lastRefill: now}
@@ -68,18 +72,14 @@ func (r *rateLimiter) Allow(ip string) bool {
 	return false
 }
 
-func (r *rateLimiter) cleanupLoop() {
-	t := time.NewTicker(r.idleTTL / 2)
-	defer t.Stop()
-	for range t.C {
-		r.evictIdle()
-	}
-}
-
 func (r *rateLimiter) evictIdle() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	cutoff := time.Now().Add(-r.idleTTL)
+	r.evictIdleLocked(time.Now())
+}
+
+func (r *rateLimiter) evictIdleLocked(now time.Time) {
+	cutoff := now.Add(-r.idleTTL)
 	for ip, b := range r.buckets {
 		if b.lastRefill.Before(cutoff) {
 			delete(r.buckets, ip)

@@ -8,6 +8,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 )
 
@@ -84,6 +85,17 @@ type StorageManager interface {
 	//error if no row exists. Called when a host frees a seat (V2) so the
 	//next joiner doesn't inherit the prior phone's name + avatar.
 	ClearSeatPresentation(gameID string, playerIndex boardgame.PlayerIndex) error
+
+	// CompanionTableLease returns the durable lease for the game's shared
+	// Table display, or nil when it has never had one.
+	CompanionTableLease(gameID string) (*tablelease.StorageRecord, error)
+
+	// CompareAndSwapCompanionTableLease atomically replaces the lease only
+	// when its current generation equals expectedGeneration. A missing lease
+	// has generation zero. Storage assigns expectedGeneration+1 to replacement
+	// and returns a defensive copy of the resulting current record. This is the
+	// cross-process arbitration boundary for claims, renewals, and releases.
+	CompareAndSwapCompanionTableLease(gameID string, expectedGeneration uint64, replacement *tablelease.StorageRecord) (current *tablelease.StorageRecord, swapped bool, err error)
 
 	//Store or update all fields
 	UpdateUser(user *users.StorageRecord) error

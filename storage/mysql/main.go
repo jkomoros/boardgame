@@ -17,6 +17,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 )
@@ -32,10 +33,11 @@ const (
 	tableAgentStates       = "agentstates"
 	tableSeatPresentations = "seatpresentations"
 	tableChatMessages      = "chatmessages"
+	tableTableLeases       = "companiontableleases"
 )
 
 const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
-	"g.Created, g.Modified, e.Open, e.Visible, e.Owner, e.CompanionRoomCode, e.CompanionLocked, e.CompanionHostOverride"
+	"g.Created, g.Modified, e.Open, e.Visible, e.Owner, e.CompanionRoomCode, e.CompanionLocked"
 
 const baseCombinedFromQuery = "from " + tableGames + " g, " + tableExtendedGames + " e"
 
@@ -47,6 +49,9 @@ const combinedPlayerFilterQuery = baseCombinedSelectQuery + " " + baseCombinedFr
 const combinedGameStorageRecordQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + " " + baseCombinedWhereQuery
 
 const userNotInQuery = "not exists (select * from players where GameID = g.ID and UserID = ?)"
+
+const tableLeaseBaseColumns = "GameID, Generation, DeviceID, SecretDigest, HolderUserID, Expires"
+const tableLeaseAllColumns = tableLeaseBaseColumns + ", TransferID, TransferTokenDigest, TransferCodeDigest, TransferExpires, TransferTargetDeviceID, PreviousDeviceID, TransitionKind"
 
 const emptySlotsQuery = "(g.NumPlayers > coalesce(c.NumActivePlayers, 0) + g.NumAgents)"
 
@@ -118,6 +123,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(moveStorageRecord{}, tableMoves).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(chatStorageRecord{}, tableChatMessages).SetKeys(true, "ID")
 	s.dbMap.AddTableWithName(seatPresentationStorageRecord{}, tableSeatPresentations).SetKeys(true, "ID")
+	s.dbMap.AddTableWithName(tableLeaseStorageRecord{}, tableTableLeases).SetKeys(false, "GameID")
 
 	// Create chat table if it doesn't exist (auto-migration for chat)
 	s.dbMap.CreateTablesIfNotExists()
@@ -340,6 +346,119 @@ func (s *StorageManager) ClearSeatPresentation(gameID string, playerIndex boardg
 	}
 	_, err := s.dbMap.Exec("delete from "+tableSeatPresentations+" where GameID = ? and PlayerIndex = ?", gameID, int64(playerIndex))
 	return err
+}
+
+// CompanionTableLease implements the server storage interface.
+func (s *StorageManager) CompanionTableLease(gameID string) (*tablelease.StorageRecord, error) {
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+	transferColumns, err := s.companionTableTransferColumnsAvailable()
+	if err != nil {
+		return nil, err
+	}
+	var record tableLeaseStorageRecord
+	columns := tableLeaseBaseColumns
+	if transferColumns {
+		columns = tableLeaseAllColumns
+	}
+	if err := s.dbMap.SelectOne(&record, "select "+columns+" from "+tableTableLeases+" where GameID = ?", gameID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return record.ToStorageRecord(), nil
+}
+
+func (s *StorageManager) companionTableTransferColumnsAvailable() (bool, error) {
+	var count int
+	err := s.db.QueryRow("select count(*) from information_schema.columns where table_schema = database() and table_name = ? and column_name = 'TransferID'", tableTableLeases).Scan(&count)
+	return count == 1, err
+}
+
+func tableLeaseUsesTransferColumns(record *tablelease.StorageRecord) bool {
+	return record != nil && (record.TransferID != "" || record.TransferTokenDigest != "" || record.TransferCodeDigest != "" ||
+		record.TransferExpires != 0 || record.TransferTargetDeviceID != "" || record.PreviousDeviceID != "" || record.TransitionKind != "")
+}
+
+// CompareAndSwapCompanionTableLease implements the server storage interface.
+func (s *StorageManager) CompareAndSwapCompanionTableLease(gameID string, expectedGeneration uint64, replacement *tablelease.StorageRecord) (*tablelease.StorageRecord, bool, error) {
+	if !s.connected {
+		return nil, false, errors.New("Database not connected yet")
+	}
+	if gameID == "" {
+		return nil, false, errors.New("empty game ID")
+	}
+	if replacement == nil {
+		return nil, false, errors.New("nil companion Table lease replacement")
+	}
+	if replacement.GameID != "" && replacement.GameID != gameID {
+		return nil, false, errors.New("companion Table lease game ID mismatch")
+	}
+	if err := replacement.ValidateTransfer(); err != nil {
+		return nil, false, err
+	}
+	if expectedGeneration == ^uint64(0) {
+		return nil, false, errors.New("companion Table lease generation exhausted")
+	}
+
+	next := replacement.Clone()
+	next.GameID = gameID
+	next.Generation = expectedGeneration + 1
+	stored := newTableLeaseStorageRecord(next)
+	transferColumns, err := s.companionTableTransferColumnsAvailable()
+	if err != nil {
+		return nil, false, err
+	}
+	if !transferColumns && tableLeaseUsesTransferColumns(next) {
+		return nil, false, errors.New("companion Table transfer migration 0023 is not applied")
+	}
+
+	if expectedGeneration == 0 {
+		var insertErr error
+		if transferColumns {
+			insertErr = s.dbMap.Insert(stored)
+		} else {
+			_, insertErr = s.db.Exec("insert into "+tableTableLeases+" ("+tableLeaseBaseColumns+") values (?, ?, ?, ?, ?, ?)",
+				next.GameID, next.Generation, next.DeviceID, next.SecretDigest, next.HolderUserID, next.Expires)
+		}
+		if insertErr == nil {
+			return next.Clone(), true, nil
+		} else {
+			// A concurrent insert is the expected losing path. Distinguish it
+			// from infrastructure errors by requiring the winning row to exist.
+			current, readErr := s.CompanionTableLease(gameID)
+			if readErr != nil || current == nil {
+				return nil, false, insertErr
+			}
+			return current, false, nil
+		}
+	}
+
+	var result sql.Result
+	if transferColumns {
+		result, err = s.dbMap.Exec("update "+tableTableLeases+" set Generation = ?, DeviceID = ?, SecretDigest = ?, HolderUserID = ?, Expires = ?, TransferID = ?, TransferTokenDigest = ?, TransferCodeDigest = ?, TransferExpires = ?, TransferTargetDeviceID = ?, PreviousDeviceID = ?, TransitionKind = ? where GameID = ? and Generation = ?",
+			next.Generation, next.DeviceID, next.SecretDigest, next.HolderUserID, next.Expires,
+			next.TransferID, next.TransferTokenDigest, next.TransferCodeDigest, next.TransferExpires,
+			next.TransferTargetDeviceID, next.PreviousDeviceID, next.TransitionKind,
+			gameID, expectedGeneration)
+	} else {
+		result, err = s.dbMap.Exec("update "+tableTableLeases+" set Generation = ?, DeviceID = ?, SecretDigest = ?, HolderUserID = ?, Expires = ? where GameID = ? and Generation = ?",
+			next.Generation, next.DeviceID, next.SecretDigest, next.HolderUserID, next.Expires, gameID, expectedGeneration)
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return nil, false, err
+	}
+	if rows == 1 {
+		return next.Clone(), true, nil
+	}
+	current, err := s.CompanionTableLease(gameID)
+	return current, false, err
 }
 
 // GameByRoomCode looks up a gameID by CompanionRoomCode. Returns "" with
@@ -578,6 +697,16 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 	//TODO: should we validate that this is a real userId?
 
 	var player playerStorageRecord
+	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameID=? and UserID=?", game.ID, userID)
+	if err == nil {
+		if player.PlayerIndex == int64(playerIndex) {
+			return nil
+		}
+		return errors.New("That user is already assigned to another seat in this game")
+	}
+	if err != sql.ErrNoRows {
+		return errors.New("Failed to check existing user assignment: " + err.Error())
+	}
 
 	err = s.dbMap.SelectOne(&player, "select * from "+tablePlayers+" where GameID=? and PlayerIndex=?", game.ID, int(playerIndex))
 
@@ -599,21 +728,13 @@ func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.P
 		return nil
 	}
 
-	//Update the row, if it wasn't an error.
-
 	if err != nil {
 		return errors.New("Failed to retrieve existing Player line: " + err.Error())
 	}
-
-	player.UserID = userID
-
-	_, err = s.dbMap.Update(player)
-
-	if err != nil {
-		return errors.New("Couldn't update player line: " + err.Error())
+	if player.UserID == userID {
+		return nil
 	}
-
-	return nil
+	return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
 
 }
 

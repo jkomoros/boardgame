@@ -41,13 +41,17 @@ export interface JoinResponse {
   minPlayers: number;
   maxPlayers: number;
   currentPlayers: number;
+  availableSeats: number;
   requiresSeatPicker: boolean;
+  joinTicket: string;
 }
 
 export interface SeatOptionsSlot {
   playerIndex: number;
   label: string;
   filled: boolean;
+  status: 'open' | 'human' | 'agent' | 'closed';
+  available: boolean;
   avatarSlug?: string;
   displayName?: string;
 }
@@ -63,6 +67,7 @@ export interface JoinSeatResponse {
   gameID: string;
   gameName: string;
   playerIndex: number;
+  resumed: boolean;
 }
 
 export function decodeJoinResponse(value: unknown): JoinResponse {
@@ -70,8 +75,10 @@ export function decodeJoinResponse(value: unknown): JoinResponse {
   const minPlayers = count(item['minPlayers'], 'Join response.minPlayers');
   const maxPlayers = count(item['maxPlayers'], 'Join response.maxPlayers');
   const currentPlayers = count(item['currentPlayers'], 'Join response.currentPlayers');
+  const availableSeats = count(item['availableSeats'], 'Join response.availableSeats');
   if (minPlayers > maxPlayers) throw new Error('Join response.minPlayers must not exceed maxPlayers');
   if (currentPlayers > maxPlayers) throw new Error('Join response.currentPlayers must not exceed maxPlayers');
+  if (availableSeats > maxPlayers) throw new Error('Join response.availableSeats must not exceed maxPlayers');
   return {
     gameID: string(item['gameID'], 'Join response.gameID'),
     gameName: string(item['gameName'], 'Join response.gameName'),
@@ -79,7 +86,9 @@ export function decodeJoinResponse(value: unknown): JoinResponse {
     minPlayers,
     maxPlayers,
     currentPlayers,
+    availableSeats,
     requiresSeatPicker: boolean(item['requiresSeatPicker'], 'Join response.requiresSeatPicker'),
+    joinTicket: string(item['joinTicket'], 'Join response.joinTicket'),
   };
 }
 
@@ -100,10 +109,27 @@ export function decodeSeatOptionsResponse(value: unknown): SeatOptionsResponse {
     const displayName = slot['displayName'] === undefined
       ? undefined
       : string(slot['displayName'], `Seat options response.slots[${position}].displayName`, true);
+    const filled = boolean(slot['filled'], `Seat options response.slots[${position}].filled`);
+    const available = boolean(slot['available'], `Seat options response.slots[${position}].available`);
+    const statusValue = string(slot['status'], `Seat options response.slots[${position}].status`);
+    if (statusValue !== 'open' && statusValue !== 'human' && statusValue !== 'agent' && statusValue !== 'closed') {
+      throw new Error(`Seat options response.slots[${position}].status was not recognized`);
+    }
+    const status: SeatOptionsSlot['status'] = statusValue;
+    const canonical = status === 'open'
+      ? !filled && available
+      : status === 'closed'
+        ? !filled && !available
+        : filled && !available;
+    if (!canonical) {
+      throw new Error(`Seat options response.slots[${position}] contradicted status ${status}`);
+    }
     return {
       playerIndex,
       label: string(slot['label'], `Seat options response.slots[${position}].label`),
-      filled: boolean(slot['filled'], `Seat options response.slots[${position}].filled`),
+      filled,
+      status,
+      available,
       ...(avatarSlug !== undefined ? { avatarSlug } : {}),
       ...(displayName !== undefined ? { displayName } : {}),
     };
@@ -122,5 +148,31 @@ export function decodeJoinSeatResponse(value: unknown): JoinSeatResponse {
     gameID: string(item['gameID'], 'Join seat response.gameID'),
     gameName: string(item['gameName'], 'Join seat response.gameName'),
     playerIndex: index(item['playerIndex'], 'Join seat response.playerIndex'),
+    resumed: boolean(item['resumed'], 'Join seat response.resumed'),
   };
+}
+
+export interface JoinProblem {
+  code: string;
+  error: string;
+  slots?: SeatOptionsSlot[];
+}
+
+export function decodeJoinProblem(value: unknown): JoinProblem {
+  const item = record(value, 'Join problem');
+  const result: JoinProblem = {
+    code: string(item['code'], 'Join problem.code'),
+    error: string(item['error'], 'Join problem.error'),
+  };
+  if (item['slots'] !== undefined) {
+    // Reuse the strict slot decoder by wrapping the conflict snapshot in the
+    // successful seat-options shape. Identity fields are irrelevant here.
+    result.slots = decodeSeatOptionsResponse({
+      gameID: 'conflict',
+      gameName: 'conflict',
+      requiresSeatPicker: true,
+      slots: item['slots'],
+    }).slots;
+  }
+  return result;
 }

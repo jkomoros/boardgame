@@ -20,6 +20,8 @@ the rest are the ranked backlog.*
    nosy observers (security-adjacent UX).
 6. **J6 — Solo player unaffected:** the existing single-device flow keeps
    working (regression journey).
+7. **J7 — Move the projector:** transfer an active shared Table to a fresh,
+   accountless screen without pausing play or exposing a seated player's hand.
 
 ## What's genuinely good
 
@@ -36,7 +38,13 @@ the rest are the ranked backlog.*
   seat with your hand — cookies do the work, no re-join ceremony.
 - **Room security matches the vibe.** Codes are rate-limited (10/min/IP),
   locked/finished rooms 404 identically to bad codes (no existence leak),
-  host controls 403 for non-hosts, host-takeover has a 30s staleness gate.
+  host controls reject non-lease devices; Table recovery uses an expiring
+  socket-renewed lease and a storage-backed first-winner takeover.
+- **Projector changes are transactional.** The old Table keeps working while a
+  five-minute QR/manual offer is pending; explicit confirmation atomically
+  fences it only after the replacement is ready. Lost responses are safe to
+  retry on the same device, other devices cannot replay the offer, and the old
+  screen says where the game went instead of failing mysteriously.
 
 ## Fixed during this audit
 

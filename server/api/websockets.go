@@ -112,9 +112,10 @@ type versionNotifier struct {
 	// presenceChanged carries gameIDs whose presence should be broadcast.
 	// Same discipline as modeChanged: HTTP handler goroutines enqueue here;
 	// only workLoop (which owns v.sockets) performs the actual broadcast.
-	presenceChanged chan string
-	doneChan        chan bool
-	server          *Server
+	presenceChanged     chan string
+	tableSessionChanged chan string
+	doneChan            chan bool
+	server              *Server
 
 	// lastHeartbeat tracks, per (gameID, playerIndex), the wall-clock
 	// time of the most recent application heartbeat. Read + written ONLY
@@ -166,7 +167,8 @@ type socket struct {
 	playerIndex boardgame.PlayerIndex
 	// initialVersion is sent by registerSocket inside the notifier workLoop,
 	// where an existing canonical timing for this version can be reused.
-	initialVersion int
+	initialVersion  int
+	tableCredential string
 }
 
 // socketFrameBatch is one atomic queue item. The version and its timing frame
@@ -214,8 +216,12 @@ func (s *Server) socketHandler(c *gin.Context) {
 	}
 
 	playerIndex := s.effectivePlayerIndex(c)
+	tableCredential, _ := c.Cookie(tableLeaseCookieName(game.ID()))
 
 	socket := newSocket(game, conn, s.notifier, playerIndex)
+	if _, ok := s.activeTableLeaseForRequest(c, game.ID()); ok {
+		socket.tableCredential = tableCredential
+	}
 	s.notifier.register <- socket
 	socket.startPumps()
 
@@ -276,6 +282,16 @@ func (s *socket) readPump() {
 				gameID:      s.gameID,
 				playerIndex: s.playerIndex,
 				ts:          time.Now(),
+			}
+			if s.tableCredential != "" {
+				switch s.notifier.server.renewTableLeaseCredential(s.gameID, s.tableCredential) {
+				case tableLeaseRenewLost:
+					s.SendSocketMessage("table-lease-lost", map[string]interface{}{"gameID": s.gameID})
+					s.tableCredential = ""
+					s.notifier.broadcastTableSessionChanged(s.gameID)
+				case tableLeaseRenewRetryable:
+					s.notifier.server.logger.Warnln("Table lease renewal temporarily unavailable", logrus.Fields{"ID": s.gameID})
+				}
 			}
 			continue
 		}
@@ -428,19 +444,20 @@ func (s *socket) SendSocketMessage(msgType string, payload interface{}) {
 
 func newVersionNotifier(s *Server) *versionNotifier {
 	result := &versionNotifier{
-		sockets:           make(map[string]map[*socket]bool),
-		register:          make(chan *socket),
-		unregister:        make(chan *socket),
-		notifyVersion:     make(chan gameVersionChanged),
-		notifyChat:        make(chan chatBroadcast),
-		heartbeat:         make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
-		modeChanged:       make(chan modeChangedRecord, 4),
-		presenceChanged:   make(chan string, 16),
-		doneChan:          make(chan bool),
-		server:            s,
-		lastHeartbeat:     make(map[string]map[boardgame.PlayerIndex]time.Time),
-		absent:            make(map[string]map[boardgame.PlayerIndex]bool),
-		animationLaneTail: make(map[string]animationLaneEntry),
+		sockets:             make(map[string]map[*socket]bool),
+		register:            make(chan *socket),
+		unregister:          make(chan *socket),
+		notifyVersion:       make(chan gameVersionChanged),
+		notifyChat:          make(chan chatBroadcast),
+		heartbeat:           make(chan heartbeatRecord, 64), // small buffer absorbs bursty heartbeats
+		modeChanged:         make(chan modeChangedRecord, 4),
+		presenceChanged:     make(chan string, 16),
+		tableSessionChanged: make(chan string, 16),
+		doneChan:            make(chan bool),
+		server:              s,
+		lastHeartbeat:       make(map[string]map[boardgame.PlayerIndex]time.Time),
+		absent:              make(map[string]map[boardgame.PlayerIndex]bool),
+		animationLaneTail:   make(map[string]animationLaneEntry),
 	}
 	go result.workLoop()
 	return result
@@ -532,6 +549,8 @@ func (v *versionNotifier) workLoop() {
 			v.doBroadcastModeChanged(mc.gameID, mc.newMode)
 		case gameID := <-v.presenceChanged:
 			v.broadcastPresenceChange(gameID)
+		case gameID := <-v.tableSessionChanged:
+			v.broadcastSocketMessage(gameID, "table-session-changed", map[string]interface{}{"gameID": gameID})
 		case <-scanTicker.C:
 			v.scanStaleHeartbeats()
 		case <-v.doneChan:
@@ -676,6 +695,15 @@ func (v *versionNotifier) broadcastPresenceChange(gameID string) {
 // broadcast happens inside workLoop which owns v.sockets.
 func (v *versionNotifier) broadcastModeChanged(gameID, newMode string) {
 	v.modeChanged <- modeChangedRecord{gameID: gameID, newMode: newMode}
+}
+
+func (v *versionNotifier) broadcastTableSessionChanged(gameID string) {
+	select {
+	case v.tableSessionChanged <- gameID:
+	default:
+		// State is authoritative in storage and clients refetch on their next
+		// ordinary version/presence event, so a saturated hint queue is safe.
+	}
 }
 
 // seedHeartbeat starts the absence clock for a player who has just claimed

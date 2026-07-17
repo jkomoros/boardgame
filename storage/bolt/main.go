@@ -17,6 +17,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/seatpresentation"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 )
@@ -42,6 +43,7 @@ var (
 	chatBucket              = []byte("Chat")
 	chatCounterBucket       = []byte("ChatCounters")
 	seatPresentationsBucket = []byte("SeatPresentations")
+	tableLeasesBucket       = []byte("CompanionTableLeases")
 )
 
 // NewStorageManager returns a new StorageManager ready for use, backed by the
@@ -88,6 +90,9 @@ func NewStorageManager(fileName string) *StorageManager {
 		if _, err := tx.CreateBucketIfNotExists(seatPresentationsBucket); err != nil {
 			return errors.New("Cannot create seat presentations bucket" + err.Error())
 		}
+		if _, err := tx.CreateBucketIfNotExists(tableLeasesBucket); err != nil {
+			return errors.New("Cannot create companion Table leases bucket" + err.Error())
+		}
 		return nil
 	})
 
@@ -101,6 +106,84 @@ func NewStorageManager(fileName string) *StorageManager {
 		filename: fileName,
 	}
 
+}
+
+// CompanionTableLease implements the server storage interface.
+func (s *StorageManager) CompanionTableLease(gameID string) (*tablelease.StorageRecord, error) {
+	var raw []byte
+	err := s.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(tableLeasesBucket)
+		if bucket == nil {
+			return errors.New("couldn't open companion Table leases bucket")
+		}
+		raw = cloneBucketValue(bucket.Get(keyForGame(gameID)))
+		return nil
+	})
+	if err != nil || raw == nil {
+		return nil, err
+	}
+	var result tablelease.StorageRecord
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, errors.New("couldn't unmarshal companion Table lease: " + err.Error())
+	}
+	return result.Clone(), nil
+}
+
+// CompareAndSwapCompanionTableLease implements the server storage interface.
+func (s *StorageManager) CompareAndSwapCompanionTableLease(gameID string, expectedGeneration uint64, replacement *tablelease.StorageRecord) (*tablelease.StorageRecord, bool, error) {
+	if gameID == "" {
+		return nil, false, errors.New("empty game ID")
+	}
+	if replacement == nil {
+		return nil, false, errors.New("nil companion Table lease replacement")
+	}
+	if replacement.GameID != "" && replacement.GameID != gameID {
+		return nil, false, errors.New("companion Table lease game ID mismatch")
+	}
+	if err := replacement.ValidateTransfer(); err != nil {
+		return nil, false, err
+	}
+	if expectedGeneration == ^uint64(0) {
+		return nil, false, errors.New("companion Table lease generation exhausted")
+	}
+
+	var current *tablelease.StorageRecord
+	var swapped bool
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(tableLeasesBucket)
+		if bucket == nil {
+			return errors.New("couldn't open companion Table leases bucket")
+		}
+		raw := bucket.Get(keyForGame(gameID))
+		if raw != nil {
+			var stored tablelease.StorageRecord
+			if err := json.Unmarshal(raw, &stored); err != nil {
+				return errors.New("couldn't unmarshal companion Table lease: " + err.Error())
+			}
+			current = stored.Clone()
+		}
+		var generation uint64
+		if current != nil {
+			generation = current.Generation
+		}
+		if generation != expectedGeneration {
+			return nil
+		}
+		next := replacement.Clone()
+		next.GameID = gameID
+		next.Generation = expectedGeneration + 1
+		serialized, err := json.Marshal(next)
+		if err != nil {
+			return errors.New("couldn't serialize companion Table lease: " + err.Error())
+		}
+		if err := bucket.Put(keyForGame(gameID), serialized); err != nil {
+			return err
+		}
+		current = next
+		swapped = true
+		return nil
+	})
+	return current.Clone(), swapped, err
 }
 
 func keyForState(gameID string, version int) []byte {
@@ -629,36 +712,44 @@ func (s *StorageManager) GameByRoomCode(code string) (string, error) {
 
 // SetPlayerForGame implements that method from the server api storagemanager interface
 func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
-
-	ids := s.UserIDsForGame(gameID)
-
-	if ids == nil {
-		return errors.New("Couldn't fetch original player indexes for that game")
-	}
-
-	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game")
-	}
-
-	if ids[playerIndex] != "" {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
-	}
-
 	user := s.GetUserByID(userID)
-
 	if user == nil {
 		return errors.New("That userId does not describe an existing user")
 	}
-
-	ids[playerIndex] = userID
-
-	err := s.db.Update(func(tx *bolt.Tx) error {
+	game, err := s.Game(gameID)
+	if err != nil || game == nil {
+		return errors.New("Couldn't fetch game for player association")
+	}
+	err = s.db.Update(func(tx *bolt.Tx) error {
 		gUBucket := tx.Bucket(gameUsersBucket)
 
 		if gUBucket == nil {
 			return errors.New("Couldn't open game useres bucket")
 		}
 
+		var ids []string
+		if stored := gUBucket.Get(keyForGame(gameID)); stored != nil {
+			if err := json.Unmarshal(stored, &ids); err != nil {
+				return errors.New("Unable to decode player associations: " + err.Error())
+			}
+		} else {
+			ids = make([]string, game.NumPlayers)
+		}
+		if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
+			return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game")
+		}
+		for i, existing := range ids {
+			if existing == userID {
+				if boardgame.PlayerIndex(i) == playerIndex {
+					return nil
+				}
+				return errors.New("That userId is already assigned to another seat in this game")
+			}
+		}
+		if ids[playerIndex] != "" {
+			return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
+		}
+		ids[playerIndex] = userID
 		blob, err := json.Marshal(ids)
 
 		if err != nil {

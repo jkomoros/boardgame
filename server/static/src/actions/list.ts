@@ -40,6 +40,7 @@ import {
 import {
     updateAndShowError
 } from './error.js';
+import { rememberSurfaceForGame } from '../utils/companion-surface.js';
 
 // Action type definitions
 interface UpdateManagersAction {
@@ -194,6 +195,9 @@ export const createGame = (propertyDict: Record<string, string | number | boolea
     }
     try {
         const created = decodeCreateGameResponse(response.data);
+        if (propertyDict['companionMode'] === '1' || propertyDict['companionMode'] === true) {
+            rememberSurfaceForGame(created.GameID, 'table');
+        }
         dispatch(navigateToGame(created.GameName, created.GameID));
     } catch (error) {
         console.error('[create-game] rejected server payload:', error);

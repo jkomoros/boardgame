@@ -18,6 +18,10 @@ export interface ApiResponse<T> {
   code?: string;
   expectedVersion?: number;
   actualVersion?: number;
+  /** Parsed body for conventional HTTP failures. Endpoint-specific decoders
+   * may inspect this without scraping the human-readable error string. */
+  failureBody?: Readonly<Record<string, unknown>>;
+  aborted?: boolean;
   status: number;
 }
 
@@ -100,6 +104,8 @@ async function unwrapHttpJsonResponse(response: Response): Promise<ApiResponse<u
       ? body['error']
       : `Request failed with status ${status}`,
     friendlyError: 'The request could not be completed',
+    code: body && typeof body['code'] === 'string' ? body['code'] : undefined,
+    ...(body ? { failureBody: body } : {}),
   };
 }
 
@@ -129,6 +135,9 @@ async function apiHttpJson(
     });
     return await unwrapHttpJsonResponse(response);
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { status: 0, aborted: true };
+    }
     return {
       status: 0,
       error: error instanceof Error ? error.message : 'Network error',

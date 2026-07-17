@@ -2858,7 +2858,7 @@ test('dynamic host ignores a module load superseded by a newer game route', asyn
 });
 
 test('player renderer load failures are visible and reject the wrong base', async ({ page }) => {
-  await page.route('**/game-src/contractplayer/boardgame-render-player-info-contractplayer.ts', route => (
+  await page.route('**/game-src/contractplayer/boardgame-render-player-info-contractplayer.ts*', route => (
     route.fulfill({
       contentType: 'text/javascript',
       body: `customElements.define('boardgame-render-player-info-contractplayer', class extends HTMLElement {});`,
@@ -2974,7 +2974,48 @@ test('dynamic host rejects missing registrations and renderers that bypass the g
     message,
     rendererLoaded: false,
     rendererError: message,
-    alert: `Game renderer unavailable ${message} Run boardgame-util check-client and fix every reported diagnostic.`,
+    alert: `Game renderer unavailable ${message} Run boardgame-util check-client and fix every reported diagnostic. Retry renderer`,
+  });
+});
+
+test('live-session recovery remains visible, accessible, and explicitly retryable', async ({ page }) => {
+  await page.goto('/client_config.js');
+  const result = await page.evaluate(async () => {
+    await import('/src/components/boardgame-render-game.ts');
+    const host = document.createElement('boardgame-render-game') as HTMLElement & {
+      socketActive: boolean;
+      connectionAttempts: number;
+      updateComplete: Promise<boolean>;
+    };
+    host.connectionAttempts = 3;
+    let retries = 0;
+    host.addEventListener('retry-connection', () => retries++);
+    document.body.append(host);
+    await host.updateComplete;
+    const status = host.shadowRoot?.querySelector<HTMLElement>('#connection-status');
+    const button = status?.querySelector<HTMLButtonElement>('button');
+    button?.click();
+    const disconnected = {
+      role: status?.getAttribute('role'),
+      live: status?.getAttribute('aria-live'),
+      text: status?.innerText.replace(/\s+/g, ' ').trim(),
+      retries,
+    };
+    host.socketActive = true;
+    await host.updateComplete;
+    const statusAfterConnect = host.shadowRoot?.querySelector('#connection-status') !== null;
+    host.remove();
+    return { disconnected, statusAfterConnect };
+  });
+
+  expect(result).toEqual({
+    disconnected: {
+      role: 'status',
+      live: 'polite',
+      text: 'Connection lost. Reconnecting (attempt 3)… Retry now',
+      retries: 1,
+    },
+    statusAfterConnect: false,
   });
 });
 

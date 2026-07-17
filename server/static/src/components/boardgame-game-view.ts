@@ -12,7 +12,19 @@ import type { BoardgameAdminControls } from './boardgame-admin-controls.js';
 import type { BoardgameGameStateManager } from './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
-import { surfaceForGame } from '../utils/companion-surface.js';
+import { rememberSurfaceForGame, surfaceForGame, tableRecoveryDeviceID } from '../utils/companion-surface.js';
+import { apiHttpPost, buildGameUrl } from '../api.js';
+import {
+  decodeTableLeaseAcquireResponse,
+  isTableLeaseFailureCode,
+  tableLeaseFailureMessage,
+} from '../types/table-lease-response.js';
+import {
+  decodeTableTransferCancel,
+  decodeTableTransferOffer,
+  transferFailureMessage,
+  type TableTransferOffer,
+} from '../table-transfer/table-transfer.js';
 import {
   playerPresentations,
   type PlayerPresentation,
@@ -51,6 +63,8 @@ import {
   selectPlayerActivity,
   selectPlayerOrder,
   selectGameTimerInfos,
+  selectSocketConnectionAttempts,
+  selectSocketError,
 } from '../selectors.js';
 
 import {
@@ -168,6 +182,95 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       .card {
         position: relative;
       }
+
+      .table-session-notice {
+        box-sizing: border-box;
+        margin: 12px;
+        padding: 12px 16px;
+        border: 2px solid #526475;
+        border-radius: 10px;
+        background: #f4f7fa;
+        color: #17212b;
+      }
+      .table-session-notice p {
+        margin: 0 0 10px;
+      }
+      .table-session-notice p:last-child {
+        margin-bottom: 0;
+      }
+      .table-session-notice button {
+        min-height: 44px;
+        padding: 8px 16px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .table-session-notice .table-session-error {
+        color: #a11616;
+        font-weight: 600;
+      }
+      .table-session-terminal {
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+        box-sizing: border-box;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #17212b;
+        color: white;
+        text-align: center;
+      }
+      .table-session-terminal > section {
+        max-width: 520px;
+      }
+      .table-session-terminal h1 {
+        margin: 0 0 12px;
+        font-size: clamp(28px, 5vw, 48px);
+      }
+      .table-session-terminal p {
+        margin: 0 0 18px;
+        font-size: 18px;
+        line-height: 1.45;
+      }
+      .table-session-terminal button {
+        min-height: 48px;
+        padding: 10px 20px;
+        border: 2px solid white;
+        border-radius: 8px;
+        background: white;
+        color: #17212b;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .table-session-terminal button:disabled,
+      .table-session-notice button:disabled {
+        cursor: wait;
+        opacity: 0.65;
+      }
+      .table-transfer-launch {
+        position: fixed; right: var(--boardgame-table-transfer-right, max(16px, env(safe-area-inset-right)));
+        bottom: var(--boardgame-table-transfer-bottom, max(16px, env(safe-area-inset-bottom)));
+        z-index: var(--boardgame-table-transfer-z-index, 900);
+        min-height: 44px; padding: 9px 14px; border: 1px solid #718090;
+        border-radius: 999px; background: rgb(255 255 255 / 94%); color: #17212b;
+        font: inherit; font-weight: 700; box-shadow: 0 3px 14px rgb(0 0 0 / 18%); cursor: pointer;
+      }
+      .table-transfer-dialog { width: min(680px, calc(100vw - 32px)); border: 0; border-radius: 16px; padding: 0; color: #17212b; }
+      .table-transfer-dialog::backdrop { background: rgb(0 0 0 / 62%); }
+      .table-transfer-content { padding: clamp(20px, 5vw, 36px); }
+      .table-transfer-content h1 { margin-top: 0; }
+      .table-transfer-offer { display: grid; grid-template-columns: minmax(160px, 230px) 1fr; gap: 24px; align-items: center; }
+      .table-transfer-offer img { width: 100%; height: auto; }
+      .table-transfer-code { font: 800 clamp(24px, 5vw, 38px) ui-monospace, monospace; letter-spacing: .08em; }
+      .table-transfer-url { overflow-wrap: anywhere; font-size: .9em; }
+      .table-transfer-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+      .table-transfer-actions button { min-height: 44px; padding: 8px 16px; border: 0; border-radius: 8px; background: #245f94; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+      .table-transfer-actions button.secondary { background: #e4ebf1; color: #17212b; }
+      .table-transfer-actions button:disabled { cursor: wait; opacity: .65; }
+      .table-transfer-error { color: #a11616; font-weight: 650; }
+      @media (max-width: 540px) { .table-transfer-offer { grid-template-columns: 1fr; } .table-transfer-offer img { max-width: 220px; margin: auto; } }
     `
   ];
 
@@ -201,6 +304,12 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean })
   socketActive = false;
 
+  @property({ type: Number, attribute: false })
+  _socketConnectionAttempts = 0;
+
+  @property({ type: String, attribute: false })
+  _socketError: string | null = null;
+
   @property({ type: Boolean })
   _firstStateBundle = true;
 
@@ -215,6 +324,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   @query('#player')
   private _playerEle?: BoardgamePlayerRoster;
+
+  @query('#table-session-heading')
+  private _tableSessionHeading?: HTMLElement;
+
+  @query('#table-transfer-dialog')
+  private _tableTransferDialog?: HTMLDialogElement;
+
+  @query('#table-transfer-heading')
+  private _tableTransferHeading?: HTMLElement;
 
   // Reactive properties - synced from Redux in stateChanged()
   @property({ type: Object, attribute: false })
@@ -416,6 +534,28 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean, attribute: false })
   _handHidden = false;
 
+  @property({ type: Boolean, attribute: false })
+  _tableLeasePending = false;
+
+  @property({ type: String, attribute: false })
+  _tableLeaseError = '';
+
+  private _tableLeaseRequest: AbortController | null = null;
+  private _tableLeaseRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private _tableLeaseRefreshSignature = '';
+  private _tableSessionStateSignature = '';
+  private _focusedTableTerminalSignature = '';
+
+  @property({ type: Object, attribute: false }) private _tableTransferOffer: TableTransferOffer | null = null;
+  @property({ type: Boolean, attribute: false }) private _tableTransferOpen = false;
+  @property({ type: Boolean, attribute: false }) private _tableTransferPending = false;
+  @property({ type: String, attribute: false }) private _tableTransferError = '';
+  @property({ type: String, attribute: false }) private _tableTransferCopyStatus = '';
+  @property({ type: Number, attribute: false }) private _tableTransferSeconds = 0;
+  private _tableTransferRequest: AbortController | null = null;
+  private _tableTransferTimer: ReturnType<typeof setInterval> | null = null;
+  private _tableTransferDeadline = 0;
+
   // Mirrors boardgame-render-game's isAnimating (via the animating-changed
   // event, since #render is a plain @query reference, not a reactive
   // property source) so it can be threaded down to the admin move-form for
@@ -453,6 +593,8 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // both surfaces.
     const companionSurface = this._companionSurface;
     return html`
+      ${this._renderTableSessionRecovery()}
+      ${this._renderTableTransfer()}
       ${companionSurface === 'hand' ? html`
         ${this._handHidden ? html`
           <div class="privacy-shield">
@@ -527,6 +669,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .previewAsPlayer=${this.requestedPlayer}
           .previewAsAdmin=${this._admin}
           .socketActive=${this.socketActive}
+          .connectionAttempts=${this._socketConnectionAttempts}
+          .connectionError=${this._socketError}
+          @retry-connection=${this._handleRetryConnection}
           .active=${this.selected}
           .chest=${this._chest}
 					.moveForms=${this.moveForms}
@@ -576,6 +721,328 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     `;
   }
 
+  override disconnectedCallback(): void {
+    this._tableLeaseRequest?.abort();
+    this._tableLeaseRequest = null;
+    if (this._tableLeaseRefreshTimer !== null) clearTimeout(this._tableLeaseRefreshTimer);
+    this._tableLeaseRefreshTimer = null;
+    this._tableLeaseRefreshSignature = '';
+    this._tableTransferRequest?.abort();
+    this._tableTransferRequest = null;
+    if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
+    this._tableTransferTimer = null;
+    super.disconnectedCallback();
+  }
+
+  private _renderTableTransfer() {
+    const activeTable = this._companionSurface === 'table'
+      && this._companionInfo?.TableSession.Status === 'active'
+      && this._companionInfo.TableSession.IsThisTable;
+    if (!activeTable && !this._tableTransferOpen) return '';
+    const offer = this._tableTransferOffer;
+    return html`
+      ${activeTable && !this._tableTransferOpen ? html`
+        <button type="button" class="table-transfer-launch" part="table-transfer-launch" @click=${this._openTableTransfer}>Move shared Table</button>
+      ` : ''}
+      <dialog id="table-transfer-dialog" class="table-transfer-dialog" aria-labelledby="table-transfer-heading" @cancel=${this._handleTableTransferCancelEvent}>
+        <section class="table-transfer-content" aria-busy=${this._tableTransferPending ? 'true' : 'false'}>
+          <h1 id="table-transfer-heading" tabindex="-1">Move the shared Table</h1>
+          ${offer ? html`
+            <p>The game stays active here until the other screen connects.</p>
+            <div class="table-transfer-offer">
+              <img src=${offer.qrDataURL} alt="QR code that opens this Table transfer on another screen">
+              <div>
+                <p>On the other screen, scan the QR code or open:</p>
+                <p class="table-transfer-url">${offer.claimURL}</p>
+                <p>Or go to <strong>${window.location.host}/table</strong> and enter room <strong>${this._companionInfo?.RoomCode}</strong> with transfer code:</p>
+                <p class="table-transfer-code">${offer.manualCode}</p>
+                <p aria-live="polite">${this._tableTransferSeconds > 0 ? `Expires in ${this._formatTransferTime(this._tableTransferSeconds)}.` : 'This transfer has expired.'}</p>
+              </div>
+            </div>
+          ` : html`<p>Creating a short-lived, one-use connection for the other screen…</p>`}
+          ${this._tableTransferError ? html`<p class="table-transfer-error" role="alert">${this._tableTransferError}</p>` : ''}
+          <p aria-live="polite">${this._tableTransferCopyStatus}</p>
+          <div class="table-transfer-actions">
+            ${offer ? html`<button type="button" ?disabled=${this._tableTransferPending || this._tableTransferSeconds <= 0} @click=${this._copyTransferLink}>Copy link</button>` : ''}
+            ${offer ? html`<button type="button" class="secondary" ?disabled=${this._tableTransferPending} @click=${this._cancelTableTransfer}>Cancel transfer</button>` : ''}
+            <button type="button" class="secondary" @click=${this._dismissTableTransfer}>Close</button>
+          </div>
+        </section>
+      </dialog>
+    `;
+  }
+
+  private readonly _openTableTransfer = async (): Promise<void> => {
+    const route = this._gameRoute;
+    if (!route || this._tableTransferPending) return;
+    this._tableTransferOpen = true;
+    this._tableTransferPending = true;
+    this._tableTransferError = '';
+    this._tableTransferCopyStatus = '';
+    this._tableTransferOffer = null;
+    await this.updateComplete;
+    const session = this._companionInfo?.TableSession;
+    if (!this.selected || !this._tableTransferOpen || this._gameRoute?.id !== route.id
+      || session?.Status !== 'active' || !session.IsThisTable) {
+      this._tableTransferPending = false;
+      return;
+    }
+    this._syncTableTransferDialog();
+    const request = new AbortController();
+    this._tableTransferRequest?.abort();
+    this._tableTransferRequest = request;
+    try {
+      const response = await apiHttpPost(buildGameUrl(route.name, route.id, 'tableTransfer/create'), {}, { signal: request.signal });
+      if (request.signal.aborted || this._gameRoute?.id !== route.id) return;
+      if (!response.data) {
+        this._tableTransferError = transferFailureMessage(response.code, response.error || response.friendlyError);
+        return;
+      }
+      const offer = decodeTableTransferOffer(response.data);
+      this._tableTransferOffer = offer;
+      this._tableTransferDeadline = Date.now() + Math.max(0, offer.expiresAtMs - offer.serverNowMs);
+      this._updateTableTransferCountdown();
+      if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
+      this._tableTransferTimer = setInterval(() => this._updateTableTransferCountdown(), 1000);
+    } catch (error) {
+      if (!request.signal.aborted) {
+        console.error('[game-view] malformed Table transfer offer', error);
+        this._tableTransferError = 'The server returned an invalid Table transfer response. Please try again.';
+      }
+    } finally {
+      if (this._tableTransferRequest === request) {
+        this._tableTransferRequest = null;
+        this._tableTransferPending = false;
+      }
+    }
+  };
+
+  private _updateTableTransferCountdown(): void {
+    this._tableTransferSeconds = Math.max(0, Math.ceil((this._tableTransferDeadline - Date.now()) / 1000));
+    if (this._tableTransferSeconds === 0 && this._tableTransferTimer !== null) {
+      clearInterval(this._tableTransferTimer);
+      this._tableTransferTimer = null;
+    }
+  }
+
+  private _formatTransferTime(seconds: number): string {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  }
+
+  private readonly _copyTransferLink = async (): Promise<void> => {
+    if (!this._tableTransferOffer) return;
+    try {
+      await navigator.clipboard.writeText(this._tableTransferOffer.claimURL);
+      this._tableTransferCopyStatus = 'Transfer link copied.';
+    } catch {
+      this._tableTransferError = 'The link could not be copied. Select the displayed link instead.';
+    }
+  };
+
+  private readonly _handleTableTransferCancelEvent = (event: Event): void => {
+    event.preventDefault();
+    this._dismissTableTransfer();
+  };
+
+  private readonly _dismissTableTransfer = (): void => {
+    this._tableTransferRequest?.abort();
+    this._tableTransferRequest = null;
+    this._tableTransferPending = false;
+    this._closeTableTransfer();
+  };
+
+  private readonly _cancelTableTransfer = async (): Promise<void> => {
+    const offer = this._tableTransferOffer;
+    const route = this._gameRoute;
+    if (this._tableTransferPending) return;
+    if (!offer || !route) {
+      this._closeTableTransfer();
+      return;
+    }
+    this._tableTransferPending = true;
+    this._tableTransferError = '';
+    this._tableTransferCopyStatus = '';
+    const request = new AbortController();
+    this._tableTransferRequest?.abort();
+    this._tableTransferRequest = request;
+    try {
+      const response = await apiHttpPost(
+        buildGameUrl(route.name, route.id, 'tableTransfer/cancel'),
+        { pairingID: offer.pairingID },
+        { signal: request.signal },
+      );
+      if (request.signal.aborted || this._gameRoute?.id !== route.id || !this._tableTransferOpen) return;
+      if (!response.data) {
+        this._tableTransferError = transferFailureMessage(response.code, response.error || response.friendlyError);
+        return;
+      }
+      decodeTableTransferCancel(response.data);
+      this._closeTableTransfer();
+    } catch (error) {
+      if (!request.signal.aborted) {
+        console.error('[game-view] malformed Table transfer cancellation', error);
+        this._tableTransferError = 'The server returned an invalid cancellation response. Please try again.';
+      }
+    } finally {
+      if (this._tableTransferRequest === request) {
+        this._tableTransferRequest = null;
+        this._tableTransferPending = false;
+      }
+    }
+  };
+
+  private _closeTableTransfer(): void {
+    this._tableTransferOpen = false;
+    this._tableTransferOffer = null;
+    this._tableTransferError = '';
+    if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
+    this._tableTransferTimer = null;
+    this._tableTransferDialog?.close();
+    void this.updateComplete.then(() => {
+      this.renderRoot.querySelector<HTMLButtonElement>('.table-transfer-launch')?.focus();
+    });
+  }
+
+  private _syncTableTransferDialog(): void {
+    const dialog = this._tableTransferDialog;
+    if (!dialog) return;
+    if (this._tableTransferOpen && !dialog.open) dialog.showModal();
+    if (!this._tableTransferOpen && dialog.open) dialog.close();
+    if (this._tableTransferOpen) this._tableTransferHeading?.focus();
+  }
+
+  private _renderTableSessionRecovery() {
+    const session = this._companionInfo?.TableSession;
+    const surface = this._companionSurface;
+    if (!this._companionInfo?.CompanionMode || !session || !surface) return '';
+
+    if (surface === 'table') {
+      if (session.Status === 'active' && session.IsThisTable) return '';
+      const available = session.Status === 'available';
+      return html`
+        <div class="table-session-terminal">
+          <section aria-live="polite" aria-busy=${this._tableLeasePending ? 'true' : 'false'}>
+            <h1 id="table-session-heading" tabindex="-1">
+              ${available ? 'Restore the shared Table' : (session.DisplacedByTransfer ? 'The shared Table moved successfully' : 'This is no longer the shared Table')}
+            </h1>
+            <p>${available
+              ? (session.CanTakeOver
+                ? 'The previous Table is no longer connected. This screen can safely take its place.'
+                : 'The previous Table is gone. A seated player can restore it from their Hand screen.')
+              : (session.DisplacedByTransfer
+                ? 'The game is now running on the new screen. This screen is safely paused.'
+                : 'Another Table is active or reconnecting. This screen will remain paused to prevent two shared displays from controlling the game.')}</p>
+            ${available && session.CanTakeOver ? html`
+              <button type="button" ?disabled=${this._tableLeasePending} @click=${this._acquireTableLease}>
+                ${this._tableLeasePending ? 'Restoring Table…' : 'Restore Table on this screen'}
+              </button>
+            ` : ''}
+            ${this._tableLeaseError ? html`
+              <p class="table-session-error" role="alert">${this._tableLeaseError}</p>
+            ` : ''}
+          </section>
+        </div>
+      `;
+    }
+
+    if (session.Status === 'active') return '';
+
+    return html`
+      <aside class="table-session-notice" aria-live="polite"
+        aria-busy=${this._tableLeasePending ? 'true' : 'false'}>
+        ${session.CanTakeOver ? html`
+          <p>The shared Table disconnected. You can safely move it to this screen.</p>
+          <button type="button" ?disabled=${this._tableLeasePending} @click=${this._acquireTableLease}>
+            ${this._tableLeasePending ? 'Taking over…' : 'Take over shared Table'}
+          </button>
+        ` : html`
+          <p>The shared Table is disconnected. A seated player can take it over.</p>
+        `}
+        ${this._tableLeaseError ? html`
+          <p class="table-session-error" role="alert">${this._tableLeaseError}</p>
+        ` : ''}
+      </aside>
+    `;
+  }
+
+  private readonly _acquireTableLease = async (): Promise<void> => {
+    if (this._tableLeasePending) return;
+    const route = this._gameRoute;
+    const session = this._companionInfo?.TableSession;
+    if (!this.selected || !route || session?.Status !== 'available' || !session.CanTakeOver) return;
+
+    const request = new AbortController();
+    this._tableLeaseRequest?.abort();
+    this._tableLeaseRequest = request;
+    this._tableLeasePending = true;
+    this._tableLeaseError = '';
+    try {
+      const response = await apiHttpPost(
+        buildGameUrl(route.name, route.id, 'tableLease/acquire'),
+        { deviceID: tableRecoveryDeviceID(route.id) },
+        { signal: request.signal },
+      );
+      if (request.signal.aborted || !this.selected
+        || this._gameRoute?.id !== route.id
+        || this._gameRoute?.name !== route.name) return;
+      if (!response.data) {
+        this._tableLeaseError = isTableLeaseFailureCode(response.code)
+          ? tableLeaseFailureMessage(response.code)
+          : response.error || response.friendlyError || 'The shared Table could not be restored.';
+        this._refreshTableSessionNow();
+        return;
+      }
+      decodeTableLeaseAcquireResponse(response.data);
+      rememberSurfaceForGame(route.id, 'table');
+      window.location.reload();
+    } catch (error) {
+      if (!request.signal.aborted) {
+        console.error('[game-view] malformed Table lease response', error);
+        this._tableLeaseError = 'The server returned an invalid Table recovery response. Please try again.';
+      }
+    } finally {
+      if (this._tableLeaseRequest === request) {
+        this._tableLeaseRequest = null;
+        this._tableLeasePending = false;
+      }
+    }
+  };
+
+  private _refreshTableSessionNow(): void {
+    const route = this._gameRoute;
+    if (!route) return;
+    store.dispatch(fetchGameInfo(route, this.requestedPlayer, this._admin, this._lastFetchedVersion));
+  }
+
+  private _scheduleTableSessionRefresh(): void {
+    const route = this._gameRoute;
+    const session = this._companionInfo?.TableSession;
+    const needsRefresh = this.selected
+      && this._companionInfo?.CompanionMode
+      && !!this._companionSurface
+	  && !!session;
+    const signature = needsRefresh && route && session
+      ? `${route.id}:${this._companionSurface}:${session.Status}:${session.RetryAfterMs}`
+      : '';
+    if (signature === this._tableLeaseRefreshSignature) return;
+    if (this._tableLeaseRefreshTimer !== null) clearTimeout(this._tableLeaseRefreshTimer);
+    this._tableLeaseRefreshTimer = null;
+    this._tableLeaseRefreshSignature = signature;
+    if (!signature || !session) return;
+    // Add a small margin so the server clock has crossed the lease deadline.
+	// Active leases refresh at the authoritative deadline; available state
+	// polls gently so a takeover completed through another server instance
+	// converges even without shared websocket fanout.
+	const delay = session.Status === 'active'
+	  ? Math.min(Math.max(session.RetryAfterMs + 100, 250), 60_000)
+	  : 5_000;
+    this._tableLeaseRefreshTimer = setTimeout(() => {
+      this._tableLeaseRefreshTimer = null;
+      this._tableLeaseRefreshSignature = '';
+      this._refreshTableSessionNow();
+    }, delay);
+  }
+
   // TODO: shouldUpdate should return false if selected is false. But if we do
   // that, then game-state-manager is never updated, so it never learns that
   // there was a time when it wasn't active. Once game-state-manager is done as
@@ -604,7 +1071,33 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._isOwner = selectGameIsOwner(state);
     this._companionInfo = selectGameCompanionInfo(state);
     this._pageExtra = selectPageExtra(state);
+    const previousRouteKey = this._gameRoute
+      ? `${this._gameRoute.name}\u0000${this._gameRoute.id}`
+      : '';
     this._gameRoute = selectGameRoute(state);
+    const routeKey = this._gameRoute ? `${this._gameRoute.name}\u0000${this._gameRoute.id}` : '';
+    if (previousRouteKey !== routeKey) {
+      this._tableLeaseRequest?.abort();
+      this._tableLeaseRequest = null;
+      this._tableLeasePending = false;
+      this._tableLeaseError = '';
+      this._tableTransferRequest?.abort();
+      this._tableTransferRequest = null;
+      this._tableTransferPending = false;
+      this._tableTransferOpen = false;
+      this._tableTransferOffer = null;
+      if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
+      this._tableTransferTimer = null;
+    }
+    const tableSession = this._companionInfo?.TableSession;
+    const tableSessionStateSignature = tableSession
+      ? `${routeKey}:${tableSession.Status}:${tableSession.IsThisTable}:${tableSession.CanTakeOver}`
+      : '';
+    if (this._tableSessionStateSignature
+      && this._tableSessionStateSignature !== tableSessionStateSignature) {
+      this._tableLeaseError = '';
+    }
+    this._tableSessionStateSignature = tableSessionStateSignature;
     const surfaceGameId = this._gameRoute ? this._gameRoute.id : null;
     if (surfaceGameId !== this._surfaceCachedGameId) {
       this._surfaceCachedGameId = surfaceGameId;
@@ -622,6 +1115,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     }
     this._playerActivity = selectPlayerActivity(state);
     this._playerOrder = selectPlayerOrder(state);
+    this._socketConnectionAttempts = selectSocketConnectionAttempts(state);
+    this._socketError = selectSocketError(state);
+    this._scheduleTableSessionRefresh();
   }
 
   private _handleRefreshData(e: Event) {
@@ -650,6 +1146,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private _handleSocketActiveChanged(e: CustomEvent) {
     this.socketActive = e.detail.value;
+  }
+
+  private _handleRetryConnection(e: Event) {
+    e.stopPropagation();
+    this._managerEle?.retryConnection();
   }
 
   private _handleRendererChanged(e: CustomEvent) {
@@ -688,6 +1189,48 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   override updated(changedProps: Map<PropertyKey, unknown>) {
     super.updated(changedProps);
+
+    if (changedProps.has('_tableTransferOpen')) this._syncTableTransferDialog();
+    if (this._tableTransferOpen && changedProps.has('_companionInfo')) {
+      const session = this._companionInfo?.TableSession;
+      if (!session || session.Status !== 'active' || !session.IsThisTable) {
+        this._tableTransferRequest?.abort();
+        this._tableTransferRequest = null;
+        this._tableTransferPending = false;
+        this._closeTableTransfer();
+      }
+    }
+
+    if (changedProps.has('selected')) {
+      if (!this.selected) {
+        this._tableLeaseRequest?.abort();
+        this._tableLeaseRequest = null;
+        this._tableLeasePending = false;
+        this._tableLeaseError = '';
+        this._tableTransferRequest?.abort();
+        this._tableTransferRequest = null;
+        this._tableTransferPending = false;
+        this._tableTransferOpen = false;
+        this._tableTransferOffer = null;
+        this._tableTransferError = '';
+        if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
+        this._tableTransferTimer = null;
+        this._tableTransferDialog?.close();
+      }
+      this._scheduleTableSessionRefresh();
+    }
+    const tableSession = this._companionInfo?.TableSession;
+    const terminalSignature = this._companionSurface === 'table'
+      && tableSession
+      && !(tableSession.Status === 'active' && tableSession.IsThisTable)
+      ? `${this._gameRoute?.name ?? ''}:${this._gameRoute?.id ?? ''}:${tableSession.Status}`
+      : '';
+    if (terminalSignature && terminalSignature !== this._focusedTableTerminalSignature) {
+      this._focusedTableTerminalSignature = terminalSignature;
+      this._tableSessionHeading?.focus();
+    } else if (!terminalSignature) {
+      this._focusedTableTerminalSignature = '';
+    }
 
     // Set CSS custom properties for player colors so game renderers can use them
     if (changedProps.has('_playerColors')) {

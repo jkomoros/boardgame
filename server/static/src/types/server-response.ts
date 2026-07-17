@@ -192,14 +192,33 @@ function decodeCompanion(value: unknown, path: string): CompanionInfo | null {
     ? []
     : array(item['Absent'], `${path}.Absent`, MAX_PLAYERS)
       .map((playerIndex, index) => integer(playerIndex, `${path}.Absent[${index}]`, true));
-  optionalBoolean(item['IsHost'], `${path}.IsHost`);
+  const tableSessionItem = record(item['TableSession'], `${path}.TableSession`);
+  const tableStatus = string(tableSessionItem['Status'], `${path}.TableSession.Status`);
+  if (tableStatus !== 'active' && tableStatus !== 'available') {
+    throw new Error(`${path}.TableSession.Status must be "active" or "available"`);
+  }
+  const IsThisTable = boolean(tableSessionItem['IsThisTable'], `${path}.TableSession.IsThisTable`);
+  const CanTakeOver = boolean(tableSessionItem['CanTakeOver'], `${path}.TableSession.CanTakeOver`);
+  const RetryAfterMs = integer(tableSessionItem['RetryAfterMs'], `${path}.TableSession.RetryAfterMs`, true);
+  const DisplacedByTransfer = boolean(tableSessionItem['DisplacedByTransfer'], `${path}.TableSession.DisplacedByTransfer`);
+  if (tableStatus === 'available' && IsThisTable) {
+    throw new Error(`${path}.TableSession.IsThisTable cannot be true when the Table is available`);
+  }
+  if (tableStatus === 'active' && CanTakeOver) {
+    throw new Error(`${path}.TableSession.CanTakeOver cannot be true while the Table is active`);
+  }
+  if (DisplacedByTransfer && (tableStatus !== 'active' || IsThisTable)) {
+    throw new Error(`${path}.TableSession.DisplacedByTransfer requires another active Table`);
+  }
+  const IsHost = boolean(item['IsHost'], `${path}.IsHost`);
   return {
     CompanionMode,
     RoomCode,
     RoomLocked,
     SeatPresentations,
     Absent,
-    ...(typeof item['IsHost'] === 'boolean' ? { IsHost: item['IsHost'] } : {}),
+    TableSession: { Status: tableStatus, IsThisTable, CanTakeOver, RetryAfterMs, DisplacedByTransfer },
+    IsHost,
   } as CompanionInfo;
 }
 
