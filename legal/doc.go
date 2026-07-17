@@ -275,6 +275,20 @@ state the example state doesn't exhibit, or one made through a concrete type
 assertion on ctx.Move rather than ctx.ResolvePath/ctx.Move.Reader(), so an
 honest Reads declaration remains YOUR responsibility.
 
+For every declared read whose evaluator expects a particular property shape,
+also declare RequiredReadTypes. NewGameManager then rejects a property that
+exists under the right name but has the wrong PropertyType, instead of letting
+the predicate degrade to Unknown whenever it runs. If (and only if) the
+predicate genuinely accepts several property types, use AllowedReadTypes with
+that explicit set; PropEquals is the catalog example. Type metadata may only
+name paths present in Reads, and a path cannot appear in both maps. The built-in
+catalog declares a type contract for every read, so literal path typos and type
+mismatches are caught during manager construction. `boardgame-util lint`
+preserves that authoritative check and, when a built-in constructor's path is
+a string literal with one unambiguous source occurrence, reports the failure at
+the literal's file and line. Computed or ambiguous paths retain the full boot
+error without a potentially misleading source guess.
+
 Evaluate must be a pure function of its LegalContext: no time, no
 randomness, no I/O, no mutation, nothing outside ctx. Verdicts are memoized
 and replayed (the same field-independent memo above) and are assumed

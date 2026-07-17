@@ -122,9 +122,10 @@ func inProgressionConstructor() *legal.PredicateConstructor {
 				Reads: []legal.Read{
 					{Path: legal.PropPath("game.Phase"), Facet: boardgame.LegalFacetValues},
 				},
-				Cost:             boardgame.LegalCostModerate,
-				EmittedTemplates: []string{template},
-				EmittedBindings:  map[string][]string{template: {"detail"}},
+				RequiredReadTypes: map[legal.PropPath]boardgame.PropertyType{legal.PropPath("game.Phase"): boardgame.TypeEnum},
+				Cost:              boardgame.LegalCostModerate,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: {"detail"}},
 				Evaluate: func(ctx legal.Context) legal.Verdict {
 					if ctx.State == nil {
 						return legal.UnknownVerdict("moves: inProgression: state was nil")

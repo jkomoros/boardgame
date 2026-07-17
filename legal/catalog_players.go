@@ -116,8 +116,9 @@ func playerPathProp(path string) (string, error) {
 // on allActivePlayersConstructor for why), plus the "players[*].X" Reads it
 // implies.
 type allActivePlayersLeaf struct {
-	eval  func(reader boardgame.PropertyReader) Outcome
-	reads []Read
+	eval          func(reader boardgame.PropertyReader) Outcome
+	reads         []Read
+	requiredTypes map[PropPath]boardgame.PropertyType
 }
 
 // buildAllActivePlayersLeaf compiles one of AllActivePlayers' three
@@ -153,7 +154,8 @@ func buildAllActivePlayersLeaf(s Spec) (allActivePlayersLeaf, error) {
 		}
 		read := Read{Path: PropPath("players[*]." + prop), Facet: boardgame.LegalFacetValues}
 		return allActivePlayersLeaf{
-			reads: []Read{read},
+			reads:         []Read{read},
+			requiredTypes: map[PropPath]boardgame.PropertyType{read.Path: boardgame.TypeBool},
 			eval: func(reader boardgame.PropertyReader) Outcome {
 				if reader == nil {
 					return Unknown
@@ -182,7 +184,8 @@ func buildAllActivePlayersLeaf(s Spec) (allActivePlayersLeaf, error) {
 		}
 		read := Read{Path: PropPath("players[*]." + prop), Facet: boardgame.LegalFacetValues}
 		return allActivePlayersLeaf{
-			reads: []Read{read},
+			reads:         []Read{read},
+			requiredTypes: map[PropPath]boardgame.PropertyType{read.Path: boardgame.TypeInt},
 			eval: func(reader boardgame.PropertyReader) Outcome {
 				if reader == nil {
 					return Unknown
@@ -216,7 +219,8 @@ func buildAllActivePlayersLeaf(s Spec) (allActivePlayersLeaf, error) {
 		}
 		read := Read{Path: PropPath("players[*]." + prop), Facet: boardgame.LegalFacetValues}
 		return allActivePlayersLeaf{
-			reads: []Read{read},
+			reads:         []Read{read},
+			requiredTypes: map[PropPath]boardgame.PropertyType{read.Path: boardgame.TypeInt},
 			eval: func(reader boardgame.PropertyReader) Outcome {
 				if reader == nil {
 					return Unknown
@@ -240,26 +244,27 @@ func buildAllActivePlayersLeaf(s Spec) (allActivePlayersLeaf, error) {
 // single leaf, or an "any" composing two or more leaves) into a per-player
 // evaluator and its declared Reads. See buildAllActivePlayersLeaf for the
 // leaf kinds and the depth-1 enforcement.
-func buildAllActivePlayersInner(inner Spec) (func(reader boardgame.PropertyReader) Outcome, []Read, error) {
+func buildAllActivePlayersInner(inner Spec) (func(reader boardgame.PropertyReader) Outcome, []Read, map[PropPath]boardgame.PropertyType, error) {
 	if inner.Name != legalAnyName {
 		leaf, err := buildAllActivePlayersLeaf(inner)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return leaf.eval, leaf.reads, nil
+		return leaf.eval, leaf.reads, leaf.requiredTypes, nil
 	}
 
 	if len(inner.Sub) < 2 {
-		return nil, nil, fmt.Errorf("legal: allActivePlayers: inner %q compositor requires at least 2 sub-specs, got %d", legalAnyName, len(inner.Sub))
+		return nil, nil, nil, fmt.Errorf("legal: allActivePlayers: inner %q compositor requires at least 2 sub-specs, got %d", legalAnyName, len(inner.Sub))
 	}
 
 	leaves := make([]allActivePlayersLeaf, 0, len(inner.Sub))
 	seen := make(map[Read]bool)
 	var reads []Read
+	requiredTypes := make(map[PropPath]boardgame.PropertyType)
 	for _, sub := range inner.Sub {
 		leaf, err := buildAllActivePlayersLeaf(sub)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		leaves = append(leaves, leaf)
 		for _, r := range leaf.reads {
@@ -267,6 +272,12 @@ func buildAllActivePlayersInner(inner Spec) (func(reader boardgame.PropertyReade
 				seen[r] = true
 				reads = append(reads, r)
 			}
+		}
+		for path, expected := range leaf.requiredTypes {
+			if prior, exists := requiredTypes[path]; exists && prior != expected {
+				return nil, nil, nil, fmt.Errorf("legal: allActivePlayers: inner predicates require conflicting types for %q (%v and %v)", path, prior, expected)
+			}
+			requiredTypes[path] = expected
 		}
 	}
 
@@ -285,7 +296,7 @@ func buildAllActivePlayersInner(inner Spec) (func(reader boardgame.PropertyReade
 		}
 		return Fail
 	}
-	return eval, reads, nil
+	return eval, reads, requiredTypes, nil
 }
 
 // legalAnyName is this package's copy of core's reserved "any" compositor
@@ -325,7 +336,7 @@ func allActivePlayersConstructor() *PredicateConstructor {
 				return nil, fmt.Errorf("legal: allActivePlayers requires exactly 1 inner spec (in Sub), got %d", len(spec.Sub))
 			}
 
-			innerEval, reads, err := buildAllActivePlayersInner(spec.Sub[0])
+			innerEval, reads, requiredTypes, err := buildAllActivePlayersInner(spec.Sub[0])
 			if err != nil {
 				return nil, err
 			}
@@ -338,11 +349,12 @@ func allActivePlayersConstructor() *PredicateConstructor {
 			return &Predicate{
 				Name: "allActivePlayers",
 				// The wire entry does not yet carry the quantified inner spec.
-				ClientEvaluable:  false,
-				Reads:            reads,
-				Cost:             boardgame.LegalCostModerate,
-				EmittedTemplates: []string{template},
-				EmittedBindings:  map[string][]string{template: nil},
+				ClientEvaluable:   false,
+				Reads:             reads,
+				RequiredReadTypes: requiredTypes,
+				Cost:              boardgame.LegalCostModerate,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: nil},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: allActivePlayers: state was nil")
@@ -441,6 +453,10 @@ func proposerIsCurrentPlayerConstructor() *PredicateConstructor {
 					// Read — a known v1 limitation of this convention-based
 					// declaration, not exercised by any in-repo game today.
 					{Path: PropPath("game.CurrentPlayer"), Facet: boardgame.LegalFacetValues},
+				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath("move.TargetPlayerIndex"): boardgame.TypePlayerIndex,
+					PropPath("game.CurrentPlayer"):     boardgame.TypePlayerIndex,
 				},
 				Cost:             boardgame.LegalCostCheap,
 				EmittedTemplates: []string{targetInvalidTemplate, notYourTurnTemplate},

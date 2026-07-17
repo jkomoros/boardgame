@@ -96,3 +96,47 @@ func TestCheckMalformedPatternReportsLoaderError(t *testing.T) {
 		t.Fatalf("loader failure was replaced by a generic empty-pattern diagnostic: %+v", report.Diagnostics[0])
 	}
 }
+
+func TestSourceLegalCallsUsesTypedImportIdentityAndAliases(t *testing.T) {
+	calls, err := sourceLegalCalls("testdata/aliaslegal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{
+		"stackEmpty\x00game.DrawStack":                      true,
+		"playerBoolAt\x00players[move.Target].Ready":        true,
+		"playerBoolAt\x00proposer.SeatFilled":               true,
+		"inPhase\x00game.Phase":                             true,
+		"proposerIsCurrentPlayer\x00move.TargetPlayerIndex": true,
+		"proposerIsCurrentPlayer\x00game.CurrentPlayer":     true,
+		"allActivePlayers\x00players[*].Ready":              true,
+		"allActivePlayers\x00players[*].Score":              true,
+	}
+	for _, call := range calls {
+		delete(want, call.predicate+"\x00"+call.path)
+	}
+	if len(calls) != 10 || len(want) != 0 {
+		t.Fatalf("calls = %+v; missing = %v", calls, want)
+	}
+}
+
+func TestAttachLegalCallPosition(t *testing.T) {
+	diagnostic := Diagnostic{}
+	calls := []legalCallPath{{predicate: "stackEmpty", path: "game.DrawStack", file: "/game/main.go", line: 42, column: 7}}
+	attachLegalCallPosition(&diagnostic, `move "Draw": boardgame: legal spec "any": boardgame: legal spec "stackEmpty": boardgame: legal path "game.DrawStack": property "DrawStack" has PropertyType 1, expected 10`, calls)
+	if diagnostic.File != "/game/main.go" || diagnostic.Line != 42 || diagnostic.Column != 7 {
+		t.Fatalf("diagnostic = %+v", diagnostic)
+	}
+}
+
+func TestAttachLegalCallPositionRefusesAmbiguousMatch(t *testing.T) {
+	diagnostic := Diagnostic{}
+	calls := []legalCallPath{
+		{predicate: "stackEmpty", path: "game.DrawStack", file: "/game/a.go", line: 1},
+		{predicate: "stackEmpty", path: "game.DrawStack", file: "/game/b.go", line: 2},
+	}
+	attachLegalCallPosition(&diagnostic, `legal spec "stackEmpty": legal path "game.DrawStack"`, calls)
+	if diagnostic.File != "" {
+		t.Fatalf("ambiguous diagnostic was attached to %+v", diagnostic)
+	}
+}

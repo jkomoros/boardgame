@@ -212,6 +212,10 @@ func validateLegalPath(p LegalPropPath, exampleState ImmutableState, moveReader 
 }
 
 func validateLegalPathType(p LegalPropPath, expected PropertyType, exampleState ImmutableState, moveReader PropertyReader) error {
+	return validateLegalPathTypes(p, []PropertyType{expected}, exampleState, moveReader)
+}
+
+func validateLegalPathTypes(p LegalPropPath, allowed []PropertyType, exampleState ImmutableState, moveReader PropertyReader) error {
 	parsed, err := parseLegalPath(p)
 	if err != nil {
 		return err
@@ -238,10 +242,15 @@ func validateLegalPathType(p LegalPropPath, expected PropertyType, exampleState 
 		reader = moveReader
 	}
 	actual := reader.Props()[parsed.prop]
-	if actual != expected {
-		return fmt.Errorf("boardgame: legal path %q: property %q has PropertyType %v, expected %v", p, parsed.prop, actual, expected)
+	for _, expected := range allowed {
+		if actual == expected {
+			return nil
+		}
 	}
-	return nil
+	if len(allowed) == 1 {
+		return fmt.Errorf("boardgame: legal path %q: property %q has PropertyType %v, expected %v", p, parsed.prop, actual, allowed[0])
+	}
+	return fmt.Errorf("boardgame: legal path %q: property %q has PropertyType %v, expected one of %v", p, parsed.prop, actual, allowed)
 }
 
 // validatePropOnReader checks that propName exists in reader.Props(),

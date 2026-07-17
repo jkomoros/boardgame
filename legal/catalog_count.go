@@ -70,13 +70,14 @@ func stackCountConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:             "stackCount",
-				ClientEvaluable:  true,
-				Args:             spec.Args,
-				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetCount}},
-				Cost:             boardgame.LegalCostCheap,
-				EmittedTemplates: []string{template},
-				EmittedBindings:  map[string][]string{template: {"count", "op", "n"}},
+				Name:              "stackCount",
+				ClientEvaluable:   true,
+				Args:              spec.Args,
+				Reads:             []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetCount}},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{PropPath(path): boardgame.TypeStack},
+				Cost:              boardgame.LegalCostCheap,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: {"count", "op", "n"}},
 				Evaluate: func(ctx Context) Verdict {
 					stack, err := resolveStackPath(path, ctx)
 					if err != nil {
@@ -118,13 +119,14 @@ func stackEmptinessConstructor(name string, template string, wantEmpty bool) *Pr
 			}
 
 			return &Predicate{
-				Name:             name,
-				ClientEvaluable:  true,
-				Args:             spec.Args,
-				Reads:            []Read{{Path: PropPath(path), Facet: FacetNonEmpty}},
-				Cost:             boardgame.LegalCostCheap,
-				EmittedTemplates: []string{msgTemplate},
-				EmittedBindings:  map[string][]string{msgTemplate: nil},
+				Name:              name,
+				ClientEvaluable:   true,
+				Args:              spec.Args,
+				Reads:             []Read{{Path: PropPath(path), Facet: FacetNonEmpty}},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{PropPath(path): boardgame.TypeStack},
+				Cost:              boardgame.LegalCostCheap,
+				EmittedTemplates:  []string{msgTemplate},
+				EmittedBindings:   map[string][]string{msgTemplate: nil},
 				Evaluate: func(ctx Context) Verdict {
 					stack, err := resolveStackPath(path, ctx)
 					if err != nil {

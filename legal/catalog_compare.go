@@ -286,6 +286,7 @@ func propEqualsFamilyConstructor(name, defaultTemplate string, negate bool) *Pre
 				ClientEvaluable:  true,
 				Args:             spec.Args,
 				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				AllowedReadTypes: map[PropPath][]boardgame.PropertyType{PropPath(path): {boardgame.TypeInt, boardgame.TypeBool, boardgame.TypeEnum, boardgame.TypePlayerIndex}},
 				Cost:             boardgame.LegalCostTrivial,
 				EmittedTemplates: []string{template},
 				EmittedBindings:  map[string][]string{template: {"value", "want"}},
@@ -381,13 +382,14 @@ func propAtLeastConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:             "propAtLeast",
-				ClientEvaluable:  true,
-				Args:             spec.Args,
-				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
-				Cost:             boardgame.LegalCostCheap,
-				EmittedTemplates: []string{template},
-				EmittedBindings:  map[string][]string{template: {"value", "min"}},
+				Name:              "propAtLeast",
+				ClientEvaluable:   true,
+				Args:              spec.Args,
+				Reads:             []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{PropPath(path): boardgame.TypeInt},
+				Cost:              boardgame.LegalCostCheap,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: {"value", "min"}},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveIntPath(path, ctx)
 					if err != nil {
@@ -431,13 +433,14 @@ func propCompareConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:             "propCompare",
-				ClientEvaluable:  true,
-				Args:             spec.Args,
-				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
-				Cost:             boardgame.LegalCostCheap,
-				EmittedTemplates: []string{template},
-				EmittedBindings:  map[string][]string{template: {"value", "op", "n"}},
+				Name:              "propCompare",
+				ClientEvaluable:   true,
+				Args:              spec.Args,
+				Reads:             []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{PropPath(path): boardgame.TypeInt},
+				Cost:              boardgame.LegalCostCheap,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: {"value", "op", "n"}},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveIntPath(path, ctx)
 					if err != nil {
@@ -501,13 +504,14 @@ func playerBoolConstructor() *PredicateConstructor {
 			}
 
 			return &Predicate{
-				Name:             "playerBool",
-				ClientEvaluable:  true,
-				Args:             spec.Args,
-				Reads:            []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
-				Cost:             boardgame.LegalCostTrivial,
-				EmittedTemplates: []string{template},
-				EmittedBindings:  map[string][]string{template: {"prop", "want"}},
+				Name:              "playerBool",
+				ClientEvaluable:   true,
+				Args:              spec.Args,
+				Reads:             []Read{{Path: PropPath(path), Facet: boardgame.LegalFacetValues}},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{PropPath(path): boardgame.TypeBool},
+				Cost:              boardgame.LegalCostTrivial,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: {"prop", "want"}},
 				Evaluate: func(ctx Context) Verdict {
 					value, err := resolveBoolPath(path, ctx)
 					if err != nil {

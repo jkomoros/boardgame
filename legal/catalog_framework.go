@@ -117,9 +117,10 @@ func inPhaseConstructor() *PredicateConstructor {
 					// risk note, §10).
 					{Path: PropPath("game.Phase"), Facet: boardgame.LegalFacetValues},
 				},
-				Cost:             boardgame.LegalCostCheap,
-				EmittedTemplates: []string{template},
-				EmittedBindings:  map[string][]string{template: {"detail"}},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{PropPath("game.Phase"): boardgame.TypeEnum},
+				Cost:              boardgame.LegalCostCheap,
+				EmittedTemplates:  []string{template},
+				EmittedBindings:   map[string][]string{template: {"detail"}},
 				Evaluate: func(ctx Context) Verdict {
 					if ctx.State == nil {
 						return UnknownVerdict("legal: inPhase: state was nil")
@@ -160,6 +161,10 @@ func stackConstraintsConstructor() *PredicateConstructor {
 				Reads: []Read{
 					{Path: PropPath("game." + srcName), Facet: boardgame.LegalFacetValues},
 					{Path: PropPath("game." + dstName), Facet: boardgame.LegalFacetValues},
+				},
+				RequiredReadTypes: map[PropPath]boardgame.PropertyType{
+					PropPath("game." + srcName): boardgame.TypeStack,
+					PropPath("game." + dstName): boardgame.TypeStack,
 				},
 				Cost:             boardgame.LegalCostModerate,
 				EmittedTemplates: []string{template},
