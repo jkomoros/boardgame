@@ -785,6 +785,14 @@ func (g *Game) Moves() []Move {
 // the game at its current state. Moves() is similar to this, but returns all
 // moves.
 func (g *Game) MoveByName(name string) Move {
+	return g.MoveByNameForState(name, g.CurrentState())
+}
+
+// MoveByNameForState returns a fresh move of the given name with defaults set
+// against the supplied immutable state. Unlike MoveByName, it never consults
+// CurrentState, which makes it suitable for version-pinned projections and
+// other snapshot-pure reads. The state is expected to belong to this game.
+func (g *Game) MoveByNameForState(name string, state ImmutableState) Move {
 	if !g.initalized {
 		return nil
 	}
@@ -795,7 +803,7 @@ func (g *Game) MoveByName(name string) Move {
 		return nil
 	}
 
-	return moveType.NewMove(g.CurrentState())
+	return moveType.NewMove(state)
 }
 
 // Refresh goes and sets this game object to reflect the current state of the

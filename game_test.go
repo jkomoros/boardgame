@@ -33,6 +33,35 @@ func TestProposeMoveAtVersionRejectsInsideSerializedLoop(t *testing.T) {
 	}
 }
 
+func TestMoveByNameForStateUsesPinnedDefaultsInsteadOfCurrentState(t *testing.T) {
+	game := testDefaultGame(t, true)
+	pinned := game.CurrentState()
+	pinnedCurrent := pinned.CurrentPlayerIndex()
+
+	if err := <-game.ProposeMove(game.MoveByName("Test"), pinnedCurrent); err != nil {
+		t.Fatalf("make turn-consuming test move: %v", err)
+	}
+	current := game.CurrentState().CurrentPlayerIndex()
+	if current == pinnedCurrent {
+		t.Fatalf("test requires current player to advance; remained %d", current)
+	}
+
+	pinnedMove, ok := game.MoveByNameForState("Test", pinned).(*testMove)
+	if !ok {
+		t.Fatal("MoveByNameForState did not return Test move")
+	}
+	liveMove, ok := game.MoveByName("Test").(*testMove)
+	if !ok {
+		t.Fatal("MoveByName did not return Test move")
+	}
+	if pinnedMove.TargetPlayerIndex != pinnedCurrent {
+		t.Fatalf("pinned default = %d, want %d", pinnedMove.TargetPlayerIndex, pinnedCurrent)
+	}
+	if liveMove.TargetPlayerIndex != current {
+		t.Fatalf("live default = %d, want %d", liveMove.TargetPlayerIndex, current)
+	}
+}
+
 type testInfiniteLoopGameDelegate struct {
 	testGameDelegate
 }

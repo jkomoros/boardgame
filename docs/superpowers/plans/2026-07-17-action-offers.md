@@ -21,6 +21,8 @@ Exact-bound action legality provenance
     ↓
 Canonical creator-input presentation metadata
     ↓
+Snapshot-pure move construction
+    ↓
 Internal disclosure-aware candidate projection
     ↓
 Proven proposal-accepting frontier and bundle delivery
@@ -121,6 +123,15 @@ Metadata includes:
 - Opted-in fingerprint changes deterministically.
 
 ## Commit 3: internal candidate projector
+
+### Prerequisite: snapshot-pure move construction
+
+Add `Game.MoveByNameForState(name, state)` and make legacy `MoveByName`
+delegate to it with `CurrentState()`. The projector must construct defaults
+from its pinned immutable state; it may not accidentally read live state.
+
+This is an engine primitive, not an offer helper, and is independently useful
+for any version-pinned read or preview.
 
 ### Primitive
 
@@ -264,6 +275,7 @@ Stop rather than widening scope when:
 
 - [x] Commit 1: exact-bound action legality provenance
 - [ ] Commit 2: canonical input-presentation metadata
+- [x] Commit 2a: snapshot-pure move construction
 - [ ] Commit 3: internal candidate projector
 - [ ] Commit 4: proposal-accepting frontier and bundle delivery
 - [ ] Commit 5: existing-action hydration and generic UI
