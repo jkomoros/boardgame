@@ -1,8 +1,12 @@
 package imagegen
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"io"
 	"net/http"
 	"os"
@@ -19,7 +23,12 @@ func (r roundTripper) RoundTrip(req *http.Request) (*http.Response, error) { ret
 func TestGenerateWritesImageAndManifest(t *testing.T) {
 	dir := t.TempDir()
 	output := filepath.Join(dir, "asset.png")
-	image := []byte("fake png")
+	generated := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	generated.Set(0, 0, color.RGBA{R: 220, G: 30, B: 20, A: 255})
+	var jpegBytes bytes.Buffer
+	if err := jpeg.Encode(&jpegBytes, generated, &jpeg.Options{Quality: 90}); err != nil {
+		t.Fatal(err)
+	}
 	client := Client{
 		Now: func() time.Time { return time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC) },
 		HTTPClient: &http.Client{Transport: roundTripper(func(req *http.Request) (*http.Response, error) {
@@ -30,7 +39,7 @@ func TestGenerateWritesImageAndManifest(t *testing.T) {
 			if strings.Contains(string(body), "secret") {
 				t.Fatal("API key leaked into request body")
 			}
-			response := `{"candidates":[{"content":{"parts":[{"inlineData":{"mimeType":"image/png","data":"` + base64.StdEncoding.EncodeToString(image) + `"}}]}}]}`
+			response := `{"candidates":[{"content":{"parts":[{"inlineData":{"mimeType":"image/jpeg","data":"` + base64.StdEncoding.EncodeToString(jpegBytes.Bytes()) + `"}}]}}]}`
 			return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(response)), Header: make(http.Header)}, nil
 		})},
 	}
@@ -41,10 +50,13 @@ func TestGenerateWritesImageAndManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(output)
-	if err != nil || string(got) != string(image) {
-		t.Fatalf("output = %q, %v", got, err)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !manifest.CleanRoom || manifest.OutputSHA256 == "" || manifest.PromptSHA256 == "" {
+	if gotMIME := http.DetectContentType(got); gotMIME != "image/png" {
+		t.Fatalf("output MIME = %q, want image/png", gotMIME)
+	}
+	if !manifest.CleanRoom || manifest.OutputMIME != "image/png" || manifest.OutputSHA256 == "" || manifest.PromptSHA256 == "" {
 		t.Fatalf("incomplete manifest: %#v", manifest)
 	}
 	if _, err := os.Stat(output + ".imagegen.json"); err != nil {

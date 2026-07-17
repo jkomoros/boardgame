@@ -13,6 +13,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"mime"
 	"net/http"
@@ -69,6 +72,7 @@ type Manifest struct {
 	AspectRatio   string      `json:"aspect_ratio"`
 	ImageSize     string      `json:"image_size"`
 	Output        string      `json:"output"`
+	OutputMIME    string      `json:"output_mime_type"`
 	OutputSHA256  string      `json:"output_sha256"`
 	CleanRoom     bool        `json:"clean_room"`
 	SourceAssets  bool        `json:"source_assets_used"`
@@ -226,7 +230,11 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 		}
 		return nil, fmt.Errorf("Gemini returned HTTP %d: %s", resp.StatusCode, message)
 	}
-	imageBytes, err := firstImage(decoded)
+	imageBytes, responseMIME, err := firstImage(decoded)
+	if err != nil {
+		return nil, err
+	}
+	imageBytes, outputMIME, err := normalizeImage(imageBytes, responseMIME, r.Output)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +254,7 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 		Model: r.Model, Mode: r.Mode, Prompt: r.Prompt, PromptFile: r.PromptFile,
 		PromptSHA256: digest([]byte(r.Prompt)), References: references,
 		AspectRatio: r.AspectRatio, ImageSize: r.ImageSize, Output: r.Output,
-		OutputSHA256: digest(imageBytes), CleanRoom: r.CleanRoom, SourceAssets: r.SourceAssets,
+		OutputMIME: outputMIME, OutputSHA256: digest(imageBytes), CleanRoom: r.CleanRoom, SourceAssets: r.SourceAssets,
 	}
 	manifestBytes, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
@@ -267,9 +275,9 @@ func loadReferences(paths []string) ([]Reference, []part, error) {
 		if err != nil {
 			return nil, nil, fmt.Errorf("read reference %s: %w", path, err)
 		}
-		mimeType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
-		if mimeType == "" {
-			mimeType = http.DetectContentType(data)
+		mimeType := http.DetectContentType(data)
+		if !strings.HasPrefix(mimeType, "image/") {
+			mimeType = mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
 		}
 		if !strings.HasPrefix(mimeType, "image/") {
 			return nil, nil, fmt.Errorf("reference %s is not an image", path)
@@ -280,19 +288,55 @@ func loadReferences(paths []string) ([]Reference, []part, error) {
 	return refs, parts, nil
 }
 
-func firstImage(response apiResponse) ([]byte, error) {
+func firstImage(response apiResponse) ([]byte, string, error) {
 	for _, candidate := range response.Candidates {
 		for _, p := range candidate.Content.Parts {
 			if p.InlineData != nil && strings.HasPrefix(p.InlineData.MIMEType, "image/") {
 				result, err := base64.StdEncoding.DecodeString(p.InlineData.Data)
 				if err != nil {
-					return nil, fmt.Errorf("decode generated image: %w", err)
+					return nil, "", fmt.Errorf("decode generated image: %w", err)
 				}
-				return result, nil
+				return result, p.InlineData.MIMEType, nil
 			}
 		}
 	}
-	return nil, errors.New("Gemini returned no image")
+	return nil, "", errors.New("Gemini returned no image")
+}
+
+// normalizeImage makes the bytes agree with the requested output extension.
+// Gemini may return JPEG data even when callers request a .png path.
+func normalizeImage(data []byte, reportedMIME, output string) ([]byte, string, error) {
+	targetMIME := mime.TypeByExtension(strings.ToLower(filepath.Ext(output)))
+	if separator := strings.IndexByte(targetMIME, ';'); separator >= 0 {
+		targetMIME = targetMIME[:separator]
+	}
+	detectedMIME := http.DetectContentType(data)
+	if targetMIME == "" {
+		if strings.HasPrefix(detectedMIME, "image/") {
+			return data, detectedMIME, nil
+		}
+		return data, reportedMIME, nil
+	}
+	if detectedMIME == targetMIME {
+		return data, targetMIME, nil
+	}
+	decoded, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, "", fmt.Errorf("decode Gemini image for %s output: %w", targetMIME, err)
+	}
+	var encoded bytes.Buffer
+	switch targetMIME {
+	case "image/png":
+		err = png.Encode(&encoded, decoded)
+	case "image/jpeg":
+		err = jpeg.Encode(&encoded, decoded, &jpeg.Options{Quality: 95})
+	default:
+		return nil, "", fmt.Errorf("Gemini returned %s data; cannot convert it to requested %s output", detectedMIME, targetMIME)
+	}
+	if err != nil {
+		return nil, "", fmt.Errorf("encode generated %s: %w", targetMIME, err)
+	}
+	return encoded.Bytes(), targetMIME, nil
 }
 
 func digest(data []byte) string {
