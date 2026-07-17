@@ -107,7 +107,8 @@ It must visit:
 
 - mutable concrete stack properties on game state, every player state, and every dynamic component value;
 - every concrete board space in those same groups;
-- concrete stacks and boards exposed through immutable property interfaces when their dynamic values are physical containers;
+- mutable `Stack` and `Board` properties as physical owners;
+- immutable stack properties as views only, with `MergedStack` the supported persisted view, never as hidden physical owners;
 - merged views separately, without counting the view as another component location.
 
 It must emit stable canonical paths such as:
@@ -125,7 +126,7 @@ Property names, deck names, and map-backed groups will be sorted before diagnost
 
 Nested merged views are flattened recursively. Every concrete leaf must be a declared owner in the same state and deck; repeated leaves within one view are rejected; cycles are detected defensively; existing overlap and sized-stack shape validation remains.
 
-Reuse this traversal for attachment, integrity validation, component-index construction, and copied-stack lookup. Extend `findCorrespondingStack` to pair stacks by canonical owner path, including board spaces and immutable-interface physical owners.
+Reject a concrete physical stack or board stored only behind an immutable property interface: `copyReader` intentionally does not import immutable container contents, so accepting one would lose components on copy. Reuse traversal for attachment, integrity validation, component-index construction, and copied-stack lookup. Extend `findCorrespondingStack` to pair stacks by canonical owner path, including board spaces.
 
 ## Phase 2: State-owned attachment identity
 
@@ -206,7 +207,7 @@ Keep operation-time attachment checks even with this backstop: invalid actions s
 
 Full conservation does not run while constructing the intentionally empty manager boot example. Owner-registry initialization does run inside `emptyState`, after all substates are connected and before embedded behavior and move `ValidConfiguration` checks. Existing `copyFrom`/`importFrom` code imports payload into those registered destination containers and cannot replace the destination registry.
 
-Lifecycle audits guarantee component uniqueness before lazy component-index construction. Rebuild the component index from the validated owner registry, including immutable-interface physical owners, rather than the current `PropMutable`-only scan. The lazy builder may then remain non-error-returning; duplicate diagnosis belongs to the explicit setup/save/load audits and must never again be silently accepted at a persistence boundary.
+Lifecycle audits guarantee component uniqueness before lazy component-index construction. Rebuild the component index from the validated owner registry rather than an independent property scan. The lazy builder may then remain non-error-returning; duplicate diagnosis belongs to the explicit setup/save/load audits and must never again be silently accepted at a persistence boundary.
 
 Add a focused benchmark with a large sparse sized stack/board, where slot count dominates component count. Record the result in the implementation commit and compare audit cost with full apply+marshal/save cost. Prefer clarity until measurement demonstrates the O(components + slots) audit is material.
 
@@ -246,7 +247,7 @@ Boot validation order is pinned by integration test: `emptyState` completes owne
 - Treat zero as unspecified/infer and reject negative explicit sizes.
 - Keep existing API names to avoid gratuitous source churn.
 - Use `MoveToNextSlot` so a sized market fills its first empty slot and a growable market appends.
-- In `Legal`, obtain the source's first component, compute `display.NextSlot()`, and call `MayMoveToSlot(display, slot)`. `Apply` executes that exact operation with `MoveToNextSlot`; occupied-gap and constraint tests pin parity.
+- In `Legal`, obtain the source's first component and compute the same slot used by `MoveToNextSlot`: `display.Len()` for a growable stack, or `display.SizedStack().NextSlot()` for a sized stack. Call `MayMoveToSlot(display, slot)`. `Apply` executes `MoveToNextSlot`; occupied-gap and constraint tests pin parity without adding `NextSlot` to the common `Stack` interface.
 - Test explicit partial targets, omitted targets across bounded capacity changes, over-target displays, sized gaps, and source exhaustion.
 
 ### DrawDiscardPair companion
