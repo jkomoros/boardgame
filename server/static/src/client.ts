@@ -11,6 +11,13 @@ export { BoardgameBasePlayerInfoRenderer } from './components/boardgame-base-pla
 export { BoardgameTableViewBase } from './components/boardgame-table-view-base.js';
 export { BoardgameHandViewBase } from './components/boardgame-hand-view-base.js';
 export type { SeatPresentation } from './components/boardgame-table-view-base.js';
+export type {
+  BurstEffectOptions,
+  EffectAnchor,
+  EffectHandle,
+  EffectHostAPI,
+  EffectPreset,
+} from './components/boardgame-effect-layer.js';
 export { glyphForSlug } from './components/companion-avatar-catalog.js';
 export type {
   PlayerChipPresentation,

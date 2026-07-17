@@ -6,6 +6,7 @@ import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 import type { ClientMove } from '../types/api.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
+import type { EffectHostAPI } from './boardgame-effect-layer.js';
 import {
   serializeCreatorMoveInputForServer,
   validateCreatorMoveInput,
@@ -215,6 +216,17 @@ export class BoardgameBaseGameRenderer<
     const root = this.getRootNode();
     if (!(root instanceof ShadowRoot)) return null;
     return root.querySelector('#animator') as any;
+  }
+
+  /**
+   * Semantic, renderer-wide delight effects. Effects are visual-only and do
+   * not hold the state queue unless `gated: true` is explicitly requested.
+   * Pass an element for the most robust anchor, or an id/data-effect-anchor.
+   */
+  protected get effects(): EffectHostAPI | null {
+    const root = this.getRootNode();
+    if (!(root instanceof ShadowRoot)) return null;
+    return root.querySelector('#effects') as EffectHostAPI | null;
   }
 
   /**

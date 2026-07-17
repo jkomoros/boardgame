@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { BoardgameComponentAnimator } from './boardgame-component-animator.js';
+import { BoardgameEffectLayer } from './boardgame-effect-layer.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import { movePreviewBatch } from '../api.js';
@@ -264,6 +265,9 @@ class BoardgameRenderGame extends LitElement {
 
   @query('#animator')
   private _animator?: BoardgameComponentAnimator;
+
+  @query('#effects')
+  private _effects?: BoardgameEffectLayer;
 
   @query('#container')
   private _container?: HTMLElement;
@@ -955,6 +959,7 @@ class BoardgameRenderGame extends LitElement {
   }
 
   private _removeRenderer() {
+    this._effects?.cancelAll();
     if (this.renderer && this._container) {
       this._container.removeChild(this.renderer);
     }
@@ -1047,6 +1052,7 @@ class BoardgameRenderGame extends LitElement {
         id="animator"
         .ancestorOffsetParent="${this._container ?? null}">
       </boardgame-component-animator>
+      <boardgame-effect-layer id="effects"></boardgame-effect-layer>
 
       ${this.rendererLoaded ? null : this.rendererError ? html`
         <section id="renderer-error" role="alert" aria-live="assertive">

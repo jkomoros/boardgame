@@ -258,6 +258,15 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
             labeled
             step="0.05">
           </md-slider>
+          <button
+            id="effect-demo"
+            type="button"
+            @click=${(event: Event) => this.effects?.burst(event.currentTarget as HTMLElement, {
+              preset: 'celebrate',
+              seed: `debug-${this.gameVersion}`,
+            })}>
+            Celebrate
+          </button>
         </div>
         <div id="shortstacks">
           <boardgame-component-stack
