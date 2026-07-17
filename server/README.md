@@ -294,6 +294,15 @@ config.json.
 
 Install the [https://cloud.google.com/sdk/docs/](Google Cloud SDK).
 
+Authenticated server modes verify Firebase ID tokens with the official
+Firebase Admin SDK and therefore require Application Default Credentials.
+Provide a service-account credential through `GOOGLE_APPLICATION_CREDENTIALS`
+for a self-hosted server, or use the runtime service identity on Google Cloud.
+The server fails closed during startup when token verification cannot be
+initialized. `--offline-dev-mode` deliberately skips both credentials and
+token verification for local development only. See Firebase's
+[Admin SDK setup](https://firebase.google.com/docs/admin/setup).
+
 Install firebase tool:
 
 ```sh

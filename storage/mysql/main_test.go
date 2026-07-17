@@ -1,11 +1,11 @@
 package mysql
 
 import (
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/storage/internal/test"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
-	"github.com/mattes/migrate"
 	"github.com/workfit/tester/assert"
 	"log"
 	"net"

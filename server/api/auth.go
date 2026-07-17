@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alternaDev/go-firebase-verify"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/jkomoros/boardgame/server/api/users"
@@ -161,7 +160,9 @@ func (s *Server) doAuthCookie(r *renderer, uid, token, cookie, email, photoURL, 
 
 		} else {
 
-			verifiedUID, err := firebase.VerifyIDToken(token, s.config.Firebase.ProjectID)
+			verifiedUID, err := verifyFirebaseTokenWithTimeout(
+				r.c.Request.Context(), s.firebaseAuth, token, firebaseVerifyTimeout,
+			)
 
 			if err != nil {
 				r.Error(errors.New("Failed to verify jwt token: " + err.Error()))

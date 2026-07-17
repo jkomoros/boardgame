@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	stderrors "errors"
 	"fmt"
 	"net/http"
@@ -54,6 +55,9 @@ type Server struct {
 
 	notifier *versionNotifier
 	logger   *logrus.Logger
+	// firebaseAuth is initialized once at startup in authenticated modes. The
+	// interface keeps request timeout and failure behavior independently testable.
+	firebaseAuth firebaseTokenVerifier
 
 	// joinRateLimiter throttles /api/join and /api/join/seat per client IP.
 	// 10 requests / minute is plenty for legitimate use (entering the code,
@@ -2656,6 +2660,16 @@ func (s *Server) Start() {
 	if s.config.Firebase == nil {
 		s.logger.Errorln("No firebase config provided in active mode. Required for auth.")
 		return
+	}
+	if !s.config.OfflineDevMode {
+		ctx, cancel := context.WithTimeout(context.Background(), firebaseInitializationTimeout)
+		firebaseAuth, err := newFirebaseTokenVerifier(ctx, s.config.Firebase.ProjectID)
+		cancel()
+		if err != nil {
+			s.logger.Errorln("Couldn't initialize Firebase token verification: " + err.Error())
+			return
+		}
+		s.firebaseAuth = firebaseAuth
 	}
 
 	s.logger.Infoln("Derived config: " + s.config.String())
