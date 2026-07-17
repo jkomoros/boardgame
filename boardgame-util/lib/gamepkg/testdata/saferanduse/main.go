@@ -7,7 +7,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	//boardgame:assert(rand_use_deterministic)
-	"math/rand"
+	_ "math/rand"
 )
 
 type gameDelegate struct {
@@ -22,9 +22,11 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return nil
 }
 
-func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 	return nil
 }
+
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig { return nil }
 
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}

@@ -1,9 +1,22 @@
 package path
 
 import (
-	"github.com/workfit/tester/assert"
+	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
+
+func TestAbsoluteGoPkgPath(t *testing.T) {
+	got, err := AbsoluteGoPkgPathWithOptions("github.com/jkomoros/boardgame/examples/pig", Options{ReadOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(got) != "pig" || !strings.Contains(filepath.ToSlash(got), "/examples/pig") {
+		t.Fatalf("resolved path = %q, want examples/pig", got)
+	}
+}
 
 func TestPrefix(t *testing.T) {
 

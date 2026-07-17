@@ -6,16 +6,11 @@ package gamepkg
 
 import (
 	"errors"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
-
-	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 )
 
 const clientSubFolder = "client"
@@ -31,14 +26,9 @@ const RandMagicComment = "boardgame:assert(rand_use_deterministic)"
 type Pkg struct {
 	//Every contstructo sets absolutePath to something that at least exists on
 	//disk.
-	absolutePath          string
-	importPath            string
-	name                  string
-	calculatedIsGamePkg   bool
-	memoizedIsGamePkg     bool
-	memoizedIsGamePkgErr  error
-	calculatedHasMathRand bool
-	memoizedHasMathRand   error
+	absolutePath string
+	importPath   string
+	name         string
 }
 
 // Packages is a convenience func that takes a list of arguments to pass to
@@ -99,6 +89,13 @@ type Options struct {
 
 // NewWithOptions is New with explicit package resolution behavior.
 func NewWithOptions(importOrPath string, optionalBasePath string, options Options) (*Pkg, error) {
+	pathCandidate := importOrPath
+	if !filepath.IsAbs(pathCandidate) {
+		pathCandidate = filepath.Join(optionalBasePath, pathCandidate)
+	}
+	if info, err := os.Stat(pathCandidate); err == nil && info.IsDir() {
+		return NewFromPathWithOptions(importOrPath, optionalBasePath, options)
+	}
 	pkg, tryPath, err := newFromImport(importOrPath, options)
 	if err == nil {
 		return pkg, nil
@@ -153,23 +150,18 @@ func NewFromImport(importPath string) (*Pkg, error) {
 }
 
 func newFromImport(importPath string, options Options) (pack *Pkg, tryPath bool, err error) {
-	absPath, err := path.AbsoluteGoPkgPathWithOptions(importPath, path.Options{ReadOnly: options.ReadOnly})
-
+	analyses, err := Analyze([]string{importPath}, "", options)
 	if err != nil {
-		return nil, true, errors.New("Absolute path couldn't be found: " + err.Error())
+		return nil, true, errors.New("could not load import: " + err.Error())
 	}
-
-	//If no error, then absPath must point to a valid thing
-	return newPkg(absPath, importPath, options)
+	if len(analyses) != 1 {
+		return nil, true, errors.New("import resolved to an unexpected number of packages")
+	}
+	return newPkgFromAnalysis(analyses[0], importPath)
 }
 
 // tryPath means, if we fail, should we try using the input as a path?
 func newPkg(absPath, importPath string, options Options) (p *Pkg, tryPath bool, err error) {
-
-	result := &Pkg{
-		absolutePath: absPath,
-		importPath:   importPath,
-	}
 
 	if info, err := os.Stat(absPath); err != nil {
 		return nil, true, errors.New("Path doesn't point to valid location on disk: " + err.Error())
@@ -177,59 +169,49 @@ func newPkg(absPath, importPath string, options Options) (p *Pkg, tryPath bool, 
 		return nil, true, errors.New("path points to an object but it's not a directory")
 	}
 
-	if !result.goPkg() {
-		return nil, true, errors.New(absPath + " denotes a folder with no go source files")
-	}
-
-	isGamePkg, err := result.isGamePkg()
-
-	if !isGamePkg {
-		return nil, true, errors.New(absPath + " was not a valid game package: " + err.Error())
-	}
-
-	//We also ensure we have a good value for importPath now, so that Import()
-	//later can just return a string, not (string, error)
-
-	listedImport, listedName, err := goListPackage(absPath, options)
+	analyses, err := Analyze([]string{"."}, absPath, options)
 	if err != nil {
-		return nil, false, err
+		return nil, true, errors.New(absPath + " could not be analyzed: " + err.Error())
 	}
-
-	if err := result.randUseSafe(); err != nil {
-		return nil, false, err
+	if len(analyses) != 1 {
+		return nil, true, errors.New(absPath + " resolved to an unexpected number of packages")
 	}
-
-	if importPath != "" {
-		if importPath != listedImport {
-			return nil, true, errors.New("the provided import path does not agree with go list: " + importPath + " : " + listedImport)
-		}
-	}
-	result.importPath = listedImport
-	result.name = listedName
-
-	return result, true, nil
+	return newPkgFromAnalysis(analyses[0], importPath)
 }
 
-// goListPackage returns module-aware package metadata for absPath. go/build's
-// ImportDir derives import paths only from GOPATH and reports synthetic paths
-// when a module checkout lives elsewhere.
-func goListPackage(absPath string, options Options) (importPath, name string, err error) {
-	args := []string{"list"}
-	if options.ReadOnly {
-		args = append(args, "-mod=readonly")
+func newPkgFromAnalysis(analysis Analysis, providedImport string) (p *Pkg, tryPath bool, err error) {
+	if !analysis.Candidate {
+		return nil, true, &InvalidGamePackageError{Analysis: analysis}
 	}
-	args = append(args, "-f", "{{.ImportPath}}\n{{.Name}}", ".")
-	cmd := exec.Command("go", args...)
-	cmd.Dir = absPath
-	output, cmdErr := cmd.CombinedOutput()
-	if cmdErr != nil {
-		return "", "", errors.New("couldn't read package with go list: " + cmdErr.Error() + ": " + strings.TrimSpace(string(output)))
+	if len(analysis.Diagnostics) > 0 {
+		return nil, false, &InvalidGamePackageError{Analysis: analysis}
 	}
-	parts := strings.Split(strings.TrimSpace(string(output)), "\n")
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return "", "", errors.New("go list returned incomplete package metadata for " + absPath)
+
+	if providedImport != "" {
+		if providedImport != analysis.ImportPath {
+			return nil, true, errors.New("the provided import path does not agree with typed package loading: " + providedImport + " : " + analysis.ImportPath)
+		}
 	}
-	return parts[0], parts[1], nil
+	return &Pkg{absolutePath: analysis.Dir, importPath: analysis.ImportPath, name: analysis.Name}, true, nil
+}
+
+func formatDiagnostics(diagnostics []Diagnostic) string {
+	parts := make([]string, 0, len(diagnostics))
+	for _, diagnostic := range diagnostics {
+		location := diagnostic.Position.File
+		if diagnostic.Position.Line > 0 {
+			location += ":" + strconv.Itoa(diagnostic.Position.Line)
+			if diagnostic.Position.Column > 0 {
+				location += ":" + strconv.Itoa(diagnostic.Position.Column)
+			}
+		}
+		if location != "" {
+			parts = append(parts, location+": "+diagnostic.Message)
+		} else {
+			parts = append(parts, diagnostic.Message)
+		}
+	}
+	return strings.Join(parts, "; ")
 }
 
 // AbsolutePath returns the absolute path where the package in question resides
@@ -353,22 +335,6 @@ func (p *Pkg) Has(relPath string) bool {
 	return true
 }
 
-// goPkg validates that the absolutePath denotes a package with at least one go
-// file. If there's an error will default to false.
-func (p *Pkg) goPkg() bool {
-
-	infos, _ := ioutil.ReadDir(p.AbsolutePath())
-
-	for _, info := range infos {
-		if filepath.Ext(info.Name()) == ".go" {
-			return true
-		}
-	}
-
-	return false
-
-}
-
 // Import returns the string that could be used in your source to import this
 // package, for exampjle "github.com/jkomoros/boardgame/examples/memory"
 func (p *Pkg) Import() string {
@@ -384,147 +350,4 @@ func (p *Pkg) Import() string {
 // be used as though it equals the delegate's Name().
 func (p *Pkg) Name() string {
 	return p.name
-}
-
-// RandUseSafe returns nil if the package either doesn't use math/rand or if it
-// asserts that its use is safe via an override.  Naive use of math/rand is
-// likely to be an error because game logic is supposed to use state.Rand() for
-// all randomness so games can be deterministic. If the math/rand import
-// includes RAND_MAGIC_COMMENT in the documentation line then the usage will be
-// considered safe.
-func (p *Pkg) randUseSafe() error {
-	if !p.calculatedHasMathRand {
-		p.memoizedHasMathRand = p.calculateUnsafeRandUse()
-		p.calculatedHasMathRand = true
-	}
-	return p.memoizedHasMathRand
-}
-
-func (p *Pkg) calculateUnsafeRandUse() error {
-	pkgs, err := parser.ParseDir(token.NewFileSet(), p.AbsolutePath(), nil, parser.ParseComments)
-
-	if err != nil {
-		return errors.New("Couldn't parse package: " + err.Error())
-	}
-
-	if len(pkgs) < 1 {
-		return errors.New("No packages in that directory")
-	}
-
-	if len(pkgs) > 1 {
-		return errors.New("more than one package in that directory")
-	}
-
-	var pkg *ast.Package
-
-	for _, p := range pkgs {
-		pkg = p
-	}
-
-	for name, file := range pkg.Files {
-		for _, impt := range file.Imports {
-			if !strings.Contains(impt.Path.Value, "math/rand") {
-				continue
-			}
-			hasMagicComment := false
-			if impt.Doc != nil {
-				for _, comment := range impt.Doc.List {
-					if strings.Contains(comment.Text, RandMagicComment) {
-						hasMagicComment = true
-					}
-				}
-			}
-			if impt.Comment != nil {
-				for _, comment := range impt.Comment.List {
-					if strings.Contains(comment.Text, RandMagicComment) {
-						hasMagicComment = true
-					}
-				}
-			}
-
-			if !hasMagicComment {
-				return errors.New("math/rand imported in " + name + ". Your game logic is supposed to use state.Rand() so logic can be deterministic. If this import of math/rand is not used for game logic, you may suppress this error by including a comment above the import with the magic string " + RandMagicComment)
-			}
-		}
-	}
-
-	return nil
-
-}
-
-// isPkg verifies that the package appears to be a valid game package.
-// Specifically it checks for
-func (p *Pkg) isGamePkg() (bool, error) {
-	if !p.calculatedIsGamePkg {
-		p.memoizedIsGamePkg, p.memoizedIsGamePkgErr = p.calculateIsGamePkg()
-	}
-	return p.memoizedIsGamePkg, p.memoizedIsGamePkgErr
-}
-
-func (p *Pkg) calculateIsGamePkg() (bool, error) {
-	pkgs, err := parser.ParseDir(token.NewFileSet(), p.AbsolutePath(), nil, 0)
-
-	if err != nil {
-		return false, errors.New("Couldn't parse folder: " + err.Error())
-	}
-
-	if len(pkgs) < 1 {
-		return false, errors.New("No packages in that directory")
-	}
-
-	if len(pkgs) > 1 {
-		return false, errors.New("More than one package in that directory")
-	}
-
-	var pkg *ast.Package
-
-	for _, p := range pkgs {
-		pkg = p
-	}
-
-	foundNewDelegate := false
-
-	for _, file := range pkg.Files {
-		for _, decl := range file.Decls {
-			fun, ok := decl.(*ast.FuncDecl)
-			if !ok {
-				continue
-			}
-
-			if fun.Name.String() != "NewDelegate" {
-				continue
-			}
-
-			//OK, it might be the function. Does it have the right signature?
-
-			if fun.Recv != nil {
-				return false, errors.New("NewDelegate had a receiver")
-			}
-
-			if fun.Type.Params.NumFields() > 0 {
-				return false, errors.New("NewDelegate took more than 0 items")
-			}
-
-			if fun.Type.Results.NumFields() != 1 {
-				return false, errors.New("NewDelegate didn't return exactly one item")
-			}
-
-			//TODO: check that the returned item implements
-			//boardgame.GameDelegate.
-
-			foundNewDelegate = true
-			break
-
-		}
-
-		if foundNewDelegate {
-			break
-		}
-	}
-
-	if !foundNewDelegate {
-		return false, errors.New("Couldn't find NewDelegate")
-	}
-
-	return true, nil
 }

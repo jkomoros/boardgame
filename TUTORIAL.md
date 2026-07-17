@@ -2441,7 +2441,8 @@ Before starting the server, run the game-authoring preflight:
 boardgame-util lint ./examplegame
 ```
 
-This read-only command verifies that the package is a valid game, generated Go
+This read-only command type-checks the package and its `NewDelegate` contract
+with source-located diagnostics, verifies that generated Go
 readers and enums are current, and the real `GameManager` can be constructed.
 That last step catches invalid stack tags and constraints, move options that do
 not apply to the selected move type, bad phases or legal preconditions, and

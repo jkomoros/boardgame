@@ -64,7 +64,17 @@ func (l *lintCmd) Run(_ writ.Path, positional []string) {
 		for _, diagnostic := range report.Diagnostics {
 			location := diagnostic.Package
 			if diagnostic.File != "" {
-				location += ": " + diagnostic.File
+				fileLocation := diagnostic.File
+				if diagnostic.Line > 0 {
+					fileLocation += fmt.Sprintf(":%d", diagnostic.Line)
+					if diagnostic.Column > 0 {
+						fileLocation += fmt.Sprintf(":%d", diagnostic.Column)
+					}
+				}
+				if location != "" {
+					location += ": "
+				}
+				location += fileLocation
 			}
 			if location != "" {
 				location += ": "

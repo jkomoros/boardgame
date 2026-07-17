@@ -4,10 +4,8 @@ package lint
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,6 +30,8 @@ type Diagnostic struct {
 	Package     string `json:"package,omitempty"`
 	Code        string `json:"code"`
 	File        string `json:"file,omitempty"`
+	Line        int    `json:"line,omitempty"`
+	Column      int    `json:"column,omitempty"`
 	Message     string `json:"message"`
 	Remediation string `json:"remediation,omitempty"`
 }
@@ -105,6 +105,12 @@ func Check(inputs []string, options Options) Report {
 		if left.File != right.File {
 			return left.File < right.File
 		}
+		if left.Line != right.Line {
+			return left.Line < right.Line
+		}
+		if left.Column != right.Column {
+			return left.Column < right.Column
+		}
 		if left.Code != right.Code {
 			return left.Code < right.Code
 		}
@@ -124,38 +130,47 @@ func resolvePackages(inputs []string, basePath string) ([]*gamepkg.Pkg, []Diagno
 	var diagnostics []Diagnostic
 	for _, input := range inputs {
 		if strings.Contains(input, "...") {
-			dirs, err := expandPattern(input, basePath)
+			analyses, err := gamepkg.Analyze([]string{input}, basePath, gamepkg.Options{ReadOnly: true})
 			if err != nil {
-				diagnostics = append(diagnostics, Diagnostic{Code: CodePackage, Package: input, Message: err.Error(), Remediation: "Fix the package pattern or its Go module errors."})
+				diagnostics = append(diagnostics, Diagnostic{Code: CodePackage, Package: input, Message: "could not analyze package pattern: " + err.Error(), Remediation: "Fix the package pattern or its Go module errors."})
 				continue
 			}
 			found := false
-			for _, dir := range dirs {
-				candidate, err := declaresNewDelegate(dir)
-				if err != nil {
-					diagnostics = append(diagnostics, Diagnostic{Code: CodePackage, Package: dir, Message: "could not inspect package: " + err.Error()})
-					continue
-				}
-				if !candidate {
+			for _, analysis := range analyses {
+				if !analysis.Candidate {
 					continue
 				}
 				found = true
-				pkg, err := gamepkg.NewFromPathWithOptions(dir, "", gamepkg.Options{ReadOnly: true})
+				if !analysis.ValidGame() {
+					diagnostics = append(diagnostics, analysisDiagnostics(analysis)...)
+					continue
+				}
+				pkg, err := analysis.GamePackage()
 				if err != nil {
-					diagnostics = append(diagnostics, packageDiagnostic(dir, err))
+					diagnostics = append(diagnostics, packageDiagnostic(analysis.ImportPath, err))
 					continue
 				}
 				packagesByImport[pkg.Import()] = pkg
 			}
 			if !found {
-				diagnostics = append(diagnostics, Diagnostic{Code: CodePackage, Package: input, Message: "pattern did not contain any package declaring NewDelegate", Remediation: "Run lint against a game package or a pattern containing game packages."})
+				loadFailure := false
+				for _, analysis := range analyses {
+					if analysis.Dir != "" || len(analysis.Diagnostics) == 0 {
+						continue
+					}
+					loadFailure = true
+					diagnostics = append(diagnostics, analysisDiagnostics(analysis)...)
+				}
+				if !loadFailure {
+					diagnostics = append(diagnostics, Diagnostic{Code: CodePackage, Package: input, Message: "pattern did not contain any package declaring NewDelegate", Remediation: "Run lint against a game package or a pattern containing game packages."})
+				}
 			}
 			continue
 		}
 
 		pkg, err := gamepkg.NewWithOptions(input, basePath, gamepkg.Options{ReadOnly: true})
 		if err != nil {
-			diagnostics = append(diagnostics, packageDiagnostic(input, err))
+			diagnostics = append(diagnostics, packageErrorDiagnostics(input, err)...)
 			continue
 		}
 		packagesByImport[pkg.Import()] = pkg
@@ -172,6 +187,22 @@ func resolvePackages(inputs []string, basePath string) ([]*gamepkg.Pkg, []Diagno
 	return packages, diagnostics
 }
 
+func analysisDiagnostics(analysis gamepkg.Analysis) []Diagnostic {
+	result := make([]Diagnostic, 0, len(analysis.Diagnostics))
+	for _, problem := range analysis.Diagnostics {
+		result = append(result, Diagnostic{
+			Package:     analysis.ImportPath,
+			Code:        CodePackage,
+			File:        problem.Position.File,
+			Line:        problem.Position.Line,
+			Column:      problem.Position.Column,
+			Message:     problem.Message,
+			Remediation: "Fix the typed package or NewDelegate contract error, then rerun boardgame-util lint.",
+		})
+	}
+	return result
+}
+
 func packageDiagnostic(input string, err error) Diagnostic {
 	return Diagnostic{
 		Package: input, Code: CodePackage,
@@ -180,45 +211,24 @@ func packageDiagnostic(input string, err error) Diagnostic {
 	}
 }
 
-func expandPattern(pattern, basePath string) ([]string, error) {
-	cmd := exec.Command("go", "list", "-mod=readonly", "-f", "{{.Dir}}", pattern)
-	cmd.Dir = basePath
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("go list %s failed: %w: %s", pattern, err, strings.TrimSpace(string(output)))
+func packageErrorDiagnostics(input string, err error) []Diagnostic {
+	var invalid *gamepkg.InvalidGamePackageError
+	if !errors.As(err, &invalid) || len(invalid.Analysis.Diagnostics) == 0 {
+		return []Diagnostic{packageDiagnostic(input, err)}
 	}
-	seen := make(map[string]bool)
-	var result []string
-	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
-		dir := strings.TrimSpace(line)
-		if dir == "" || seen[dir] {
-			continue
-		}
-		seen[dir] = true
-		result = append(result, dir)
+	result := make([]Diagnostic, 0, len(invalid.Analysis.Diagnostics))
+	for _, problem := range invalid.Analysis.Diagnostics {
+		result = append(result, Diagnostic{
+			Package:     invalid.Analysis.ImportPath,
+			Code:        CodePackage,
+			File:        problem.Position.File,
+			Line:        problem.Position.Line,
+			Column:      problem.Position.Column,
+			Message:     problem.Message,
+			Remediation: "Fix the typed package or NewDelegate contract error, then rerun boardgame-util lint.",
+		})
 	}
-	sort.Strings(result)
-	return result, nil
-}
-
-func declaresNewDelegate(dir string) (bool, error) {
-	packages, err := parser.ParseDir(token.NewFileSet(), dir, func(info os.FileInfo) bool {
-		return !strings.HasSuffix(info.Name(), "_test.go")
-	}, 0)
-	if err != nil {
-		return false, err
-	}
-	for _, pkg := range packages {
-		for _, file := range pkg.Files {
-			for _, declaration := range file.Decls {
-				function, ok := declaration.(*ast.FuncDecl)
-				if ok && function.Recv == nil && function.Name.Name == "NewDelegate" {
-					return true, nil
-				}
-			}
-		}
-	}
-	return false, nil
+	return result
 }
 
 func expectedGeneratedFiles(dir string) ([]generatedFile, error) {
