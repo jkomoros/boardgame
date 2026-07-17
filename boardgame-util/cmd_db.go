@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/bobziuchkovski/writ"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
-	"github.com/mattes/migrate"
 )
 
 type db struct {

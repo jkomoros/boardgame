@@ -58,7 +58,9 @@ func (s *Server) joinSeatOptionsHandler(c *gin.Context) {
 			writeJoinProblem(c, http.StatusUnauthorized, "AUTH_REQUIRED", "Sign in again to continue", nil)
 			return
 		}
-		_, err := verifyFirebaseTokenWithTimeout(token, s.config.Firebase.ProjectID, firebaseVerifyTimeout)
+		_, err := verifyFirebaseTokenWithTimeout(
+			c.Request.Context(), s.firebaseAuth, token, firebaseVerifyTimeout,
+		)
 		if err != nil {
 			if errors.Is(err, errFirebaseVerifyTimeout) {
 				writeJoinProblem(c, http.StatusServiceUnavailable, "AUTH_UNAVAILABLE", "Sign-in verification is temporarily unavailable; retry", nil)

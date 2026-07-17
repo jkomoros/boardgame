@@ -6,11 +6,11 @@ import (
 	"os"
 
 	dsnparser "github.com/go-sql-driver/mysql"
-	"github.com/mattes/migrate"
-	"github.com/mattes/migrate/database/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
 
 	//This is the way to include the necessary driver
-	_ "github.com/mattes/migrate/source/file"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 const (
@@ -87,7 +87,10 @@ func Migrations(db *sql.DB) (*migrate.Migrate, error) {
 		return nil, errors.New("The migrations folder does not appear to exist: " + err.Error())
 	}
 
-	driver, _ := mysql.WithInstance(db, &mysql.Config{})
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		return nil, errors.New("Couldn't initialize MySQL migration driver: " + err.Error())
+	}
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+path,
 		"mysql",

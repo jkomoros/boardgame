@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/bobziuchkovski/writ"
-	"github.com/mattes/migrate"
+	"github.com/golang-migrate/migrate/v4"
 )
 
 type dbSetup struct {
