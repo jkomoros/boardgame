@@ -50,12 +50,14 @@ export interface GameState {
 }
 
 export interface PlayerState {
+  readonly DayVote: number;
   readonly Eliminated: boolean;
+  readonly FellowWolves: readonly number[];
+  readonly NightVote: number;
   readonly PlayerInactive: boolean;
   readonly Role: RoleValue;
   readonly SeatClosed: boolean;
   readonly SeatFilled: boolean;
-  readonly Vote: number;
   readonly Computed?: PlayerComputed;
 }
 

@@ -7,7 +7,7 @@ import { PlayerInfoRenderer, registerPlayerInfoRenderer } from './_game_renderer
  * about roles: it only receives the viewer-sanitized playerState, where
  * other players' Role reads as the enum zero value, so showing Role here
  * would leak nothing useful and mislead. It surfaces only public status —
- * eliminated / voted / thinking — which is safe for all viewers.
+ * eliminated status, which is safe for all viewers.
  */
 @registerPlayerInfoRenderer
 export class BoardgameRenderPlayerInfoWerewolf extends PlayerInfoRenderer {
@@ -27,10 +27,9 @@ export class BoardgameRenderPlayerInfoWerewolf extends PlayerInfoRenderer {
     if (p?.Eliminated) {
       return html`<div class="status eliminated">Eliminated</div>`;
     }
-    // Intentionally NOT showing vote status: playerState.Vote is currently
-    // unsanitized, so during Night it would reveal exactly which players
-    // are werewolves (see the filed vote-sanitization fix). Eliminated is
-    // the only unambiguously-public status; the roster shows just that.
+    // Vote status is phase-sensitive: DayVote is public while NightVote is
+    // private. The game renderers provide that phase-aware presentation;
+    // this shared roster intentionally sticks to eliminated status.
     // \xa0 keeps the tile height stable so the roster doesn't jump.
     return html`<div class="status">\xa0</div>`;
   }

@@ -66,7 +66,7 @@ the rest are the ranked backlog.*
 | J2 | Waiting banner offered solo-flow "Copy invite link" on companion surfaces | ✅ replaced with "Join code: XXXX" |
 | J3 | No way to step away safely | ✅ hide-my-hand shield |
 | J4 | Werewolf vote buttons said "Player 1/2/3" instead of who people are | ✅ labeled "🐺 WolfBot2" etc. via seatPresentations |
-| J4 | Table declared "Villagers Win!" from Day 1 (computed from sanitized roles) | ✅ removed impossible client-side banner; server-side game-end filed |
+| J4 | Table declared "Villagers Win!" from Day 1 (computed from sanitized roles) | ✅ server-owned team win conditions and winner lists |
 | J2 | Moves silently dropped on companion surfaces (admin-controls hidden but load-bearing) | ✅ always mounted |
 
 ## Backlog (ranked)
@@ -107,13 +107,16 @@ the rest are the ranked backlog.*
 
 ### Remaining backlog
 
-1. **Werewolf can't end** — no `CheckGameFinished` (task filed); the
-   game-over machinery is ready for it.
-2. **Identity unification in solo-view chrome.** On companion surfaces the
+The Werewolf follow-up is complete: its delegate now owns team win conditions;
+day and night votes are separate public/private fields; and each wolf receives
+an owner-only, server-computed teammate list. API-level tests pin all three
+privacy views (self, other player, and observer).
+
+1. **Identity unification in solo-view chrome.** On companion surfaces the
    account name is now hidden with the drawer, but the solo view of a
    companion game still shows account names / "Player N" in roster and
    chat tabs.
-3. **Phone top bar** could become game-branded (name + room code) and
+2. **Phone top bar** could become game-branded (name + room code) and
    reclaim 56px; hamburger + "Boardgame App" survive today.
 4. **Hide-my-hand is per-tab** and doesn't survive reload — decided:
    acceptable (a reload means you're holding the phone).

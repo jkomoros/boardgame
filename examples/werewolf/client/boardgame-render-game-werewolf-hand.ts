@@ -105,18 +105,12 @@ export class WerewolfHandView extends HandRenderer {
 
     const isWerewolf = player.Role === 'Werewolf';
     const isEliminated = player.Eliminated;
-    const hasVoted = player.Vote >= 0;
+    const hasVoted = (phase === 'Night' ? player.NightVote : player.DayVote) >= 0;
     const myIndex = this.viewingAs;
 
-    // Find fellow werewolves (if this player is a werewolf)
-    const fellowWolves: number[] = [];
-    if (isWerewolf) {
-      allPlayers.forEach((p, i) => {
-        if (i !== myIndex && p.Role === 'Werewolf' && !p.PlayerInactive) {
-          fellowWolves.push(i);
-        }
-      });
-    }
+    // FellowWolves is computed server-side and visible only to this player.
+    // Reading other players' sanitized Role values cannot reveal teammates.
+    const fellowWolves = isWerewolf ? player.FellowWolves : [];
 
     // Build list of alive, non-inactive players for voting. Label with the
     // avatar + display name people picked in the join flow (falling back

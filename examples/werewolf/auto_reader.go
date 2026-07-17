@@ -2098,12 +2098,14 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for playerState
 
 var ȧutoGeneratedPlayerStateReaderProps = map[string]boardgame.PropertyType{
+	"DayVote":        boardgame.TypePlayerIndex,
 	"Eliminated":     boardgame.TypeBool,
+	"FellowWolves":   boardgame.TypePlayerIndexSlice,
+	"NightVote":      boardgame.TypePlayerIndex,
 	"PlayerInactive": boardgame.TypeBool,
 	"Role":           boardgame.TypeEnum,
 	"SeatClosed":     boardgame.TypeBool,
 	"SeatFilled":     boardgame.TypeBool,
-	"Vote":           boardgame.TypePlayerIndex,
 }
 
 type ȧutoGeneratedPlayerStateReader struct {
@@ -2157,7 +2159,13 @@ func (p *ȧutoGeneratedPlayerStateReader) Prop(name string) (interface{}, error)
 
 func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 	switch name {
+	case "DayVote":
+		return true
 	case "Eliminated":
+		return true
+	case "FellowWolves":
+		return true
+	case "NightVote":
 		return true
 	case "PlayerInactive":
 		return true
@@ -2166,8 +2174,6 @@ func (p *ȧutoGeneratedPlayerStateReader) PropMutable(name string) bool {
 	case "SeatClosed":
 		return true
 	case "SeatFilled":
-		return true
-	case "Vote":
 		return true
 	}
 
@@ -2452,8 +2458,10 @@ func (p *ȧutoGeneratedPlayerStateReader) SetStringProp(name string, value strin
 func (p *ȧutoGeneratedPlayerStateReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
 
 	switch name {
-	case "Vote":
-		return p.data.Vote, nil
+	case "DayVote":
+		return p.data.DayVote, nil
+	case "NightVote":
+		return p.data.NightVote, nil
 
 	}
 
@@ -2464,8 +2472,11 @@ func (p *ȧutoGeneratedPlayerStateReader) PlayerIndexProp(name string) (boardgam
 func (p *ȧutoGeneratedPlayerStateReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
 
 	switch name {
-	case "Vote":
-		p.data.Vote = value
+	case "DayVote":
+		p.data.DayVote = value
+		return nil
+	case "NightVote":
+		p.data.NightVote = value
 		return nil
 
 	}
@@ -2561,11 +2572,24 @@ func (p *ȧutoGeneratedPlayerStateReader) SetStringSliceProp(name string, value 
 
 func (p *ȧutoGeneratedPlayerStateReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
 
+	switch name {
+	case "FellowWolves":
+		return p.data.FellowWolves, nil
+
+	}
+
 	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
 
 }
 
 func (p *ȧutoGeneratedPlayerStateReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+
+	switch name {
+	case "FellowWolves":
+		p.data.FellowWolves = value
+		return nil
+
+	}
 
 	return errors.New("No such PlayerIndexSlice prop: " + name)
 

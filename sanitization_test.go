@@ -49,6 +49,17 @@ func TestPolicyFromString(t *testing.T) {
 	}
 }
 
+func TestApplyPolicyHiddenPlayerIndexRetainsStrongType(t *testing.T) {
+	got := applyPolicy(PolicyHidden, PlayerIndex(4), TypePlayerIndex)
+	value, ok := got.(PlayerIndex)
+	if !ok {
+		t.Fatalf("hidden PlayerIndex sanitized to %T; want boardgame.PlayerIndex", got)
+	}
+	if value != 0 {
+		t.Fatalf("hidden PlayerIndex sanitized to %d; want zero value", value)
+	}
+}
+
 // Basically has the information that WOULD have been provided by sruct tags
 type sanitizationTestConfig struct {
 	Game                   map[string]string
