@@ -123,6 +123,15 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _infoRetryTimer: number | null = null;
   private _infoRequestFrame: number | null = null;
   private readonly _onlineHandler = () => this.retryConnection();
+  private readonly _offlineHandler = () => this._wentOffline();
+  private readonly _resumeHandler = () => this._resumeVisibleSession();
+  // True from dispatch until a valid response is installed. Unlike
+  // _infoInstalled, this also covers authoritative metadata refreshes after
+  // reconnect (roster, presence, room lock, and Table ownership).
+  private _infoRetryRequired = false;
+  // A refresh notification arriving during an in-flight read must not be
+  // dropped: that response may have been generated before the notification.
+  private _infoRefreshQueued = false;
 
   // _heartbeatTimer fires every 10 seconds while the socket is open and
   // sends a {"type":"heartbeat"} application-level keepalive. The server's
@@ -217,10 +226,14 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     // Process fetched info when it becomes available
     const receivedInfo = Boolean(this._fetchedInfo && this._fetchedInfo !== prevFetchedInfo);
     if (receivedInfo) {
+      const refreshAgain = this._infoRefreshQueued;
+      this._infoRefreshQueued = false;
+      this._infoRetryRequired = false;
       this._handleInfoData(this._fetchedInfo!);
       this._clearInfoRetry(true);
       // Clear after processing to prevent re-processing
       store.dispatch(clearFetchedInfo());
+      if (refreshAgain) this.fetchInfo();
     }
 
     const receivedVersion = Boolean(
@@ -260,7 +273,8 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       // A nominal success that made no progress must not become a hot loop.
       this._scheduleVersionRetry();
     }
-    if (prevInfoFetching && !this._infoFetching && !receivedInfo && !this._infoInstalled) {
+    if (prevInfoFetching && !this._infoFetching && !receivedInfo
+      && (this._infoRetryRequired || !this._infoInstalled)) {
       this._scheduleInfoRetry();
     }
 
@@ -387,6 +401,8 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
   private _gameRouteChanged(previousRoute: typeof this.gameRoute): void {
     cancelGameReadFlights();
+    this._infoRetryRequired = false;
+    this._infoRefreshQueued = false;
     this._clearVersionRetry(true);
     this._cancelVersionRequestFrame();
     this._clearInfoRetry(true);
@@ -491,8 +507,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     const delay = retryDelayMs(this._infoRetryAttempt++);
     this._infoRetryTimer = window.setTimeout(() => {
       this._infoRetryTimer = null;
-      if (!sameGameRoute(route, this.gameRoute) || this._infoInstalled) return;
-      this.fetchInfo();
+      if (!sameGameRoute(route, this.gameRoute)
+        || (!this._infoRetryRequired && this._infoInstalled)) return;
+      this._startInfoFetch();
     }, delay);
   }
 
@@ -636,6 +653,11 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   private _socketOpened(e: Event) {
     store.dispatch(socketConnected());
     this._startHeartbeat();
+    // Socket registration only carries a game version. Re-read authoritative
+    // non-version metadata on every open so changes missed while disconnected
+    // (presence, roster, lock, Table ownership) converge immediately. This
+    // also closes the initial info-GET/socket-registration race.
+    this.fetchInfo();
     // Warm the midpoint clock estimator before the first real move. Three
     // quick request/reply samples let it select the lowest-RTT offset instead
     // of treating gameplay versions as clock-sync warmup.
@@ -669,6 +691,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   override connectedCallback(): void {
     super.connectedCallback();
     window.addEventListener('online', this._onlineHandler);
+    window.addEventListener('offline', this._offlineHandler);
+    window.addEventListener('pageshow', this._resumeHandler);
+    document.addEventListener('visibilitychange', this._resumeHandler);
     // A Lit element may be temporarily detached and reinserted without any
     // reactive property changing. Restore the connection that teardown owns.
     if (this._socketUrl && this._socket === null) this._connectSocket();
@@ -677,6 +702,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     window.removeEventListener('online', this._onlineHandler);
+    window.removeEventListener('offline', this._offlineHandler);
+    window.removeEventListener('pageshow', this._resumeHandler);
+    document.removeEventListener('visibilitychange', this._resumeHandler);
     cancelGameReadFlights();
     this._clearVersionRetry(true);
     this._cancelVersionRequestFrame();
@@ -706,31 +734,65 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     this._cancelVersionRequestFrame();
     this._clearInfoRetry(true);
     this._cancelInfoRequestFrame();
+    // A fetch may be stuck behind the network transition. Abort both
+    // route-scoped reads and synchronously reset their Redux loading flags so
+    // the replacements below cannot be suppressed as "already fetching".
+    cancelGameReadFlights();
     if (this._socket === null && this._socketUrl) this._connectSocket();
     if (this.targetVersion > this.gameVersion) this._handleTargetVersionChanged();
-    if (!this._infoInstalled) this.fetchInfo();
+    this.fetchInfo();
+  }
+
+  private _wentOffline(): void {
+    if (this._reconnectTimer !== null) {
+      window.clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    this._stopHeartbeat();
+    this._infoRetryRequired = true;
+    cancelGameReadFlights();
+    if (this._socket) {
+      const socket = this._socket;
+      this._socket = null;
+      socket.close();
+    }
+    if (this.socketActive) store.dispatch(socketDisconnected());
+  }
+
+  private _resumeVisibleSession(): void {
+    if (document.visibilityState === 'hidden' || navigator.onLine === false) return;
+    if (this._socket === null) {
+      this.retryConnection();
+      return;
+    }
+    // Timers are aggressively throttled in background tabs. Renew immediately
+    // and refresh metadata when the page resumes rather than waiting up to one
+    // heartbeat/lease interval to discover displacement or expiry.
+    this._sendHeartbeat();
+    this.fetchInfo();
   }
 
   private _startHeartbeat() {
     this._stopHeartbeat();
-	// Renew a Table lease immediately. Waiting for the first interval would
-	// burn a quarter of the grace window during every connection/reload.
-	if (this._socket && this._socket.readyState === WebSocket.OPEN) {
-		this._socket.send(JSON.stringify({ type: 'heartbeat' }));
-	}
+    // Renew a Table lease immediately. Waiting for the first interval would
+    // burn a quarter of the grace window during every connection/reload.
+    this._sendHeartbeat();
     // 10s cadence: server's absentThreshold is 30s, so one missed
     // heartbeat (e.g. brief network burp) doesn't flap the absent flag.
     this._heartbeatTimer = window.setInterval(() => {
-      if (this._socket && this._socket.readyState === WebSocket.OPEN) {
-        try {
-          this._socket.send(JSON.stringify({ type: 'heartbeat' }));
-        } catch (err) {
-          // Send failures are non-fatal — the socket will close on its
-          // own and _socketClosed re-arms via _connectSocket.
-          console.warn('heartbeat send failed:', err);
-        }
-      }
+      this._sendHeartbeat();
     }, 10000);
+  }
+
+  private _sendHeartbeat(): void {
+    if (!this._socket || this._socket.readyState !== WebSocket.OPEN) return;
+    try {
+      this._socket.send(JSON.stringify({ type: 'heartbeat' }));
+    } catch (err) {
+      // Send failures are non-fatal — the socket will close on its own and
+      // _socketClosed re-arms via _connectSocket.
+      console.warn('heartbeat send failed:', err);
+    }
   }
 
   private _stopHeartbeat() {
@@ -791,6 +853,15 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   fetchInfo() {
+    this._infoRetryRequired = true;
+    if (this._infoFetching) {
+      this._infoRefreshQueued = true;
+      return;
+    }
+    this._startInfoFetch();
+  }
+
+  private _startInfoFetch(): void {
     // Only block on info fetch, not on other operations
     if (this._infoFetching) {
       return;
@@ -804,6 +875,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       // The URL will be junk
       return;
     }
+
+    this._infoRetryRequired = true;
+    this._clearInfoRetry(false);
 
     // Dispatch the thunk - data will be processed via stateChanged when it arrives
     store.dispatch(
@@ -1022,6 +1096,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
   }
 
   private _handleInfoData(data: FetchedGameInfo) {
+    const installingInitialState = !this._infoInstalled;
     const gameInfo = {
       chest: data.Chest,
       playersInfo: data.Players,
@@ -1038,18 +1113,27 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     this.dispatchEvent(new CustomEvent('install-game-static-info', { composed: true, bubbles: true, detail: gameInfo }));
 
-    const bundle = this._prepareStateBundle(data.Game, data.Forms, data.ViewingAsPlayer, null);
-    this._enqueueStateBundle(bundle);
-
     this._infoInstalled = true;
+    if (installingInitialState) {
+      const bundle = this._prepareStateBundle(data.Game, data.Forms, data.ViewingAsPlayer, null);
+      this._enqueueStateBundle(bundle);
 
-    // We don't use data.Game.Version, because in some cases the current
-    // state we're returning is not actually current state, but an old one to
-    // force us to play animations for moves that are made before a player move
-    // is. The server ships down this information in a special field.
-    store.dispatch(setLastFetchedVersion(data.StateVersion));
-    store.dispatch(setTargetVersion(data.Game.Version));
-    store.dispatch(setCurrentVersion(data.Game.Version));
+      // We don't use data.Game.Version for lastFetched because first load may
+      // intentionally return an older state to animate setup moves. The server
+      // ships the authoritative downloaded-through version separately.
+      store.dispatch(setLastFetchedVersion(data.StateVersion));
+      store.dispatch(setTargetVersion(data.Game.Version));
+      store.dispatch(setCurrentVersion(data.Game.Version));
+      return;
+    }
+
+    // Reconnect/presence/Table refreshes install static metadata only. Replaying
+    // the current state would duplicate animations. If this GET also discovers
+    // a missed game version, feed that target into the ordinary version-bundle
+    // path, which preserves every animation and stale-response guard.
+    if (data.StateVersion > this.targetVersion) {
+      store.dispatch(setTargetVersion(data.StateVersion));
+    }
   }
 
   private _handleVersionData(data: FetchedGameVersion) {

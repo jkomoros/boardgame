@@ -185,6 +185,21 @@ paused. Game renderers do not add a recovery button, heartbeat, host identity,
 or lease handling—the framework chrome remains present even when an author
 completely replaces the Table or Hand renderer layout.
 
+Reconnect is an authoritative resynchronization, not merely a WebSocket
+retry. On socket open, browser-online, BFCache restore, and return from a
+background tab, the framework refreshes roster, presence, room lock, and Table
+ownership as well as catching up ordinary version bundles. Failed refreshes
+remain retryable even after the game was already rendered, and a metadata-only
+refresh never replays the current move animation. Game authors do not add
+online/offline listeners or recovery polling.
+
+Surface intent is scoped to a browser tab. Opening a Hand in one tab cannot
+silently turn another tab into a Hand on reload, and the same is true for the
+shared Table. Cookies and local presentation state still confer no authority;
+the persisted Table lease remains the only host capability. If a sleeping tab
+misses the switch-to-solo notification, the next authoritative game-info read
+suppresses its stale companion renderer automatically.
+
 An active Table can also be moved deliberately, without waiting for failure.
 The framework's **Move shared Table** control creates a five-minute, one-use QR
 link plus a room-code/manual-code fallback. The receiving screen previews the

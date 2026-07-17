@@ -523,10 +523,10 @@ export class BoardgameJoinView extends LitElement {
       }
       rememberSurfaceForGame(seated.gameID, 'hand');
       try { sessionStorage.removeItem('join-last-code'); } catch { /* private mode */ }
-      // Navigate to the game's Hand view. The surface=hand cookie was set
-      // by the server in the response above; the loader at
-      // boardgame-render-game.ts will pick the -hand.ts renderer on load.
-      window.location.href = gamePath(seated.gameName, seated.gameID);
+      // Navigate explicitly to this tab's Hand view. The query survives tab
+      // restore; the server-issued cookie remains only a storage-disabled
+      // fallback and never grants access to private state.
+      window.location.href = gamePath(seated.gameName, seated.gameID) + '?display=hand';
     } catch (e) {
       if (!this._isCurrent(operation)) return;
       this._error = 'Unable to claim seat: ' + (e instanceof Error ? e.message : String(e));

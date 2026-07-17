@@ -55,7 +55,7 @@ test('offline authentication preserves encoded identity fields through the real 
   await expect(page.locator('boardgame-user')).toContainText(displayName);
 });
 
-test('companion guest join validates room, seat options, and seat result through the real server', async ({ page }) => {
+test('companion guest join validates room, seat options, and seat result through the real server', async ({ page, context }) => {
   test.setTimeout(120_000);
   const email = 'typed-join-host@example.com';
   await page.goto('/');
@@ -86,6 +86,13 @@ test('companion guest join validates room, seat options, and seat result through
   expect(fields['CompanionRoomCode']).toMatch(/^[A-Z]{4,5}$/);
   const roomCode = String(fields['CompanionRoomCode']);
   const gameID = String(fields['GameID']);
+  // Production creation goes through actions/list.ts, which records Table
+  // intent in this tab before navigation. This test creates through the raw
+  // endpoint, so mirror that client transition explicitly; origin-wide cookies
+  // are deliberately not enough to turn an unrelated tab into the Table.
+  await page.evaluate(({ gameID }) => {
+    sessionStorage.setItem(`boardgame-surface:${gameID}`, 'table');
+  }, { gameID });
 
   const lookupResponse = await page.request.post('/api/join', { data: { code: roomCode } });
   expect(lookupResponse.ok()).toBe(true);
@@ -135,6 +142,40 @@ test('companion guest join validates room, seat options, and seat result through
   expect((await unlockResponse).ok()).toBe(true);
   await expect(roomLock).not.toBeChecked();
   await expect(table.locator('.host-feedback')).toContainText('Room unlocked');
+
+  // Room lock is non-version metadata. Change it while this page is offline
+  // and prove socket reconnect performs an authoritative info refresh rather
+  // than waiting forever for a version notification that will never exist.
+  await page.waitForTimeout(1_050);
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Network.enable');
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: true,
+    latency: 0,
+    downloadThroughput: 0,
+    uploadThroughput: 0,
+  });
+  await expect(page.getByText('You are offline. The game will reconnect automatically when the network returns.')).toBeVisible();
+  const backgroundLock = await page.request.post(
+    `/api/game/blackjack/${encodeURIComponent(gameID)}/setRoomLock`,
+    { data: { locked: true } },
+  );
+  expect(backgroundLock.ok()).toBe(true);
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: false,
+    latency: 0,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+  });
+  await expect.poll(async () => page.evaluate(async ({ gameID }) => {
+    const response = await fetch(`/api/game/blackjack/${encodeURIComponent(gameID)}/info`);
+    const payload = await response.json() as { CompanionInfo?: { RoomLocked?: boolean } };
+    return payload.CompanionInfo?.RoomLocked;
+  }, { gameID })).toBe(true);
+  await expect(roomLock).toBeChecked({ timeout: 15_000 });
+  await page.waitForTimeout(1_050);
+  await roomLock.uncheck();
+  await expect(roomLock).not.toBeChecked();
 
   await page.goto(`/join?code=${encodeURIComponent(String(fields['CompanionRoomCode']))}`);
   await page.getByRole('button', { name: 'Use a new guest identity' }).click();
@@ -209,7 +250,9 @@ test('an active shared Table transfers atomically to a fresh accountless screen'
     await seatContext.close();
   }
 
-  await page.goto(`/game/blackjack/${encodeURIComponent(result.GameID)}`);
+  // The API call above bypasses the production create-game navigation, which
+  // carries the new Table tab's explicit presentation intent in the URL.
+  await page.goto(`/game/blackjack/${encodeURIComponent(result.GameID)}?display=table`);
   await expect(page.locator('boardgame-render-game-blackjack-table')).toBeAttached({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Move shared Table' }).click();
   const dialog = page.getByRole('dialog', { name: 'Move the shared Table' });
@@ -297,7 +340,7 @@ test('an active shared Table transfers atomically to a fresh accountless screen'
   }
 });
 
-test('assembled Pig renderer reports a real server rejection through typed transport', async ({ page }) => {
+test('assembled Pig renderer reports a real authoritative rejection through typed transport', async ({ page }) => {
   const email = 'typed-action@example.com';
   const auth = await page.request.post('/api/auth', {
     form: {
@@ -350,7 +393,10 @@ test('assembled Pig renderer reports a real server rejection through typed trans
     };
     typed.viewingAsPlayer = (typed.currentPlayerIndex + 1) % 2;
     typed.proposingAsPlayer = typed.viewingAsPlayer;
-    typed.proposingAsAdmin = false;
+    // Admin perspective makes the requested non-current player authoritative.
+    // Without it the server correctly ignores `player` and uses this user's
+    // seated identity, which can make the supposedly illegal move succeed.
+    typed.proposingAsAdmin = true;
     // Pig's debug player continuously advances the game and can keep the
     // renderer animation gate closed. This test targets HTTP submission, so
     // consume the current presentation atomically with that local gate open.
@@ -365,15 +411,16 @@ test('assembled Pig renderer reports a real server rejection through typed trans
   const body = new URLSearchParams(moveRequest.postData() ?? '');
   expect(body.get('MoveType')).toBe('Roll Dice');
   expect(body.get('player')).toMatch(/^[01]$/);
-  expect(body.get('admin')).toBe('0');
+  expect(body.get('admin')).toBe('1');
   expect(body.get('ExpectedVersion')).toMatch(/^\d+$/);
 
   expect((await moveRequest.response())?.ok()).toBe(true);
-  await expect(proposalPromise).resolves.toMatchObject({
-    kind: 'server-rejection',
-    requestID: expect.any(String),
-    error: expect.any(String),
-  });
+  const proposal = await proposalPromise as { kind: string; requestID: string };
+  // Normally this is an illegal-proposer rejection. If the debug player moves
+  // concurrently, ExpectedVersion instead produces a stale-snapshot rejection.
+  // Both prove the real server remained authoritative; success never does.
+  expect(['server-rejection', 'stale-snapshot']).toContain(proposal.kind);
+  expect(proposal.requestID).toEqual(expect.any(String));
   expect(failedRendererRequests).toEqual([]);
 });
 

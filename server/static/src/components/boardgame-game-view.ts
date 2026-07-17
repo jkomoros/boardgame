@@ -12,7 +12,12 @@ import type { BoardgameAdminControls } from './boardgame-admin-controls.js';
 import type { BoardgameGameStateManager } from './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
-import { rememberSurfaceForGame, surfaceForGame, tableRecoveryDeviceID } from '../utils/companion-surface.js';
+import {
+  forgetSurfaceForGame,
+  rememberSurfaceForGame,
+  surfaceForGame,
+  tableRecoveryDeviceID,
+} from '../utils/companion-surface.js';
 import { apiHttpPost, buildGameUrl } from '../api.js';
 import {
   decodeTableLeaseAcquireResponse,
@@ -524,6 +529,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _companionSurface: 'table' | 'hand' | null = null;
 
   private _surfaceCachedGameId: string | null = null;
+  private _surfaceCachedCompanionMode: boolean | null = null;
   private readonly _timerService = new TimerService();
 
   // Hide-my-hand privacy shield (hand surface only): when true, an opaque
@@ -994,7 +1000,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       }
       decodeTableLeaseAcquireResponse(response.data);
       rememberSurfaceForGame(route.id, 'table');
-      window.location.reload();
+      const target = new URL(window.location.href);
+      target.searchParams.set('display', 'table');
+      window.location.replace(target.pathname + target.search);
     } catch (error) {
       if (!request.signal.aborted) {
         console.error('[game-view] malformed Table lease response', error);
@@ -1099,9 +1107,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     }
     this._tableSessionStateSignature = tableSessionStateSignature;
     const surfaceGameId = this._gameRoute ? this._gameRoute.id : null;
-    if (surfaceGameId !== this._surfaceCachedGameId) {
+    const companionMode = this._companionInfo?.CompanionMode ?? null;
+    if (surfaceGameId !== this._surfaceCachedGameId
+      || companionMode !== this._surfaceCachedCompanionMode) {
       this._surfaceCachedGameId = surfaceGameId;
-      this._companionSurface = surfaceGameId ? surfaceForGame(surfaceGameId) : null;
+      this._surfaceCachedCompanionMode = companionMode;
+      this._companionSurface = surfaceGameId
+        ? surfaceForGame(surfaceGameId, companionMode ?? undefined)
+        : null;
+      if (surfaceGameId && companionMode === false) forgetSurfaceForGame(surfaceGameId);
     }
     this._loggedIn = selectLoggedIn(state);
     this._page = selectPage(state);
@@ -1268,6 +1282,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   private _handleGameStaticInfo(e: CustomEvent) {
     const bundle = e.detail;
 		this._moveInputSchemaFingerprint = bundle.moveInputSchemaFingerprint ?? null;
+    this._renderEle?.installCompanionInfo(bundle.companionInfo ?? null);
     store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner, bundle.companionInfo));
   }
 

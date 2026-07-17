@@ -35,7 +35,9 @@ the rest are the ranked backlog.*
   (verified at the API level: opponents' hidden cards are placeholder ids,
   not data); 🙈 Hide-my-hand covers the whole screen for bathroom breaks.
 - **Recovery is invisible.** Reload/reopen mid-game and you're back in your
-  seat with your hand — cookies do the work, no re-join ceremony.
+  seat with your hand — no re-join ceremony. Reconnect and tab-resume refresh
+  non-version room state too, so roster, lock, presence, and Table ownership
+  cannot remain stale merely because no move happened during the outage.
 - **Room security matches the vibe.** Codes are rate-limited (10/min/IP),
   locked/finished rooms 404 identically to bad codes (no existence leak),
   host controls reject non-lease devices; Table recovery uses an expiring
@@ -45,6 +47,9 @@ the rest are the ranked backlog.*
   fences it only after the replacement is ready. Lost responses are safe to
   retry on the same device, other devices cannot replay the offer, and the old
   screen says where the game went instead of failing mysteriously.
+- **Tabs stay independent.** Hand/Table renderer intent is per-tab rather than
+  origin-wide; opening or restoring one surface cannot silently change another
+  tab. Server-declared solo mode always overrides stale browser intent.
 
 ## Fixed during this audit
 
