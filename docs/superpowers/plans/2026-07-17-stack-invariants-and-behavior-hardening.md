@@ -60,7 +60,6 @@ These are intentional correctness breaks:
 - Returning an undeclared stack from `DistributeComponentToStarterStack` fails game creation.
 - A physical stack cannot own one persisted collection from two property/board locations.
 - A merged view is not an owner. Every concrete backing stack must be independently declared as an owning property or board space.
-- Stack and board `Configure*` calls become construction-only and reject replacement of a non-nil value. Direct Go field replacement is still possible, but is caught by attachment checks and the save audit.
 - Corrupt stored states with missing or duplicate components fail loudly on load.
 
 These APIs remain source-compatible:
@@ -69,6 +68,7 @@ These APIs remain source-compatible:
 - Existing single anonymous `DrawDiscardPair` and `FaceUpMarket` discovery remains zero-config.
 - Existing mutable stack getters remain for now. Fixing const-correctness for every `Connectable` behavior is a framework-wide source-breaking project and is out of scope.
 - Team, Score, Elimination, and MoveBudget retain their current interfaces. In particular, this tranche will not silently change `ConsumeMove` or `ResetMovesTo` signatures.
+- `ConfigureStackProp` and `ConfigureBoardProp` retain their current contract. Reader implementations cannot reliably distinguish construction from runtime. Replacements become unusable immediately because attachment locators re-read the live property, and lifecycle audits reject the resulting topology.
 
 ## Phase 0: Baselines and exploit tests
 
@@ -79,12 +79,16 @@ Before production code, add failing tests that prove the real holes rather than 
 - Setup delegate returns a detached growable or sized stack; game creation fails before storage is written.
 - Two real games under one manager attempt a cross-state transfer; both source and destination remain unchanged.
 - A captured live stack is replaced in its property and then used as a destination; mutation fails.
+- Two attached stack fields are swapped; both stacks become stale because neither matches its canonical location.
+- A constructor accidentally returns the same captured stack for two independently created states; the second state fails ownership initialization.
 - A merged view over declared owner stacks is accepted; a merged view over hidden backing stacks is rejected.
 - One physical stack aliased at two properties, and at a property plus board space, is rejected.
+- One board object aliased into two board properties is rejected.
 - Missing, duplicate, wrong-deck-at-setup, invalid-index, and unsanitized generic components fail conservation.
 - Board spaces, player stacks, and dynamic-component-value stacks participate in ownership and conservation.
 - Failed initial or move-time validation does not write storage or advance the version.
 - Valid loaded states and state copies still work; corrupt stored records fail during inflation; sanitized copies remain readable and are not subjected to unsanitized conservation rules.
+- Historical valid storage fixtures still load; forged deck names, nested/repeated merged leaves, and corrupt indexes fail deterministically.
 
 ### #793 red tests
 
@@ -103,7 +107,7 @@ It must visit:
 
 - mutable concrete stack properties on game state, every player state, and every dynamic component value;
 - every concrete board space in those same groups;
-- concrete stacks exposed through an immutable property interface when they persist contents;
+- concrete stacks and boards exposed through immutable property interfaces when their dynamic values are physical containers;
 - merged views separately, without counting the view as another component location.
 
 It must emit stable canonical paths such as:
@@ -113,32 +117,39 @@ It must emit stable canonical paths such as:
 - `Game.Board[3]`
 - `DynamicComponentValues[cards][12].Tokens`
 
-Property names, deck names, and map-backed groups will be sorted before diagnostics. The walker will diagnose nil properties, duplicate physical owners, invalid merged topology, and hidden merged backing stacks.
+Property names, deck names, and map-backed groups will be sorted before diagnostics. Discovery is explicitly multi-pass so map/reflection ordering cannot affect validity:
 
-Reuse this traversal for attachment, integrity validation, component-index construction, and copied-stack lookup. Extend `findCorrespondingStack` to support board spaces.
+1. collect every declared physical owner and diagnose nil, alias, and state conflicts;
+2. build the state-owned canonical owner registry;
+3. recursively validate merged views against the completed owner set.
 
-## Phase 2: One-time attachment identity
+Nested merged views are flattened recursively. Every concrete leaf must be a declared owner in the same state and deck; repeated leaves within one view are rejected; cycles are detected defensively; existing overlap and sized-stack shape validation remains.
 
-Add private attachment metadata to concrete growable and sized stacks:
+Reuse this traversal for attachment, integrity validation, component-index construction, and copied-stack lookup. Extend `findCorrespondingStack` to pair stacks by canonical owner path, including board spaces and immutable-interface physical owners.
 
-- exact `*state` identity;
-- canonical owning location;
-- an attached/owner marker that cannot be set through the public API.
+## Phase 2: State-owned attachment identity
 
-After state construction has connected all substates, attach every physical owner discovered by the walker exactly once.
+Add a private owner registry to `state`:
+
+- physical concrete stack identity -> canonical locator;
+- canonical path -> locator that re-reads the current property or board space.
+
+After state construction has connected all substates, initialize this registry exactly once from the newly constructed shape. Initialization and later validation are separate operations: validation never attaches or legitimizes a replacement stack.
 
 Rules:
 
-- A stack may attach to one state and one location only.
-- Reattaching a stack to a different state or location is an error.
-- Merged stacks are views and never receive owner identity.
+- A stack may be registered to one state and one location only.
+- Reusing a stack in a different state or location is an error, even if its state pointer was overwritten.
+- Merged stacks are views and never enter the owner registry.
 - Merged backing stacks must already be attached through declared physical locations.
-- Each copied or inflated state receives fresh attachments to its own stacks. Attachment metadata is never copied from the source state.
+- Each copied or inflated state builds a fresh registry over its own preconfigured destination stacks before copy/import or JSON payloads are applied. Registry entries are never imported from a source state.
 - Sanitized stacks remain attached to their sanitized state but immutable.
 
-Attachment validation will re-check that the current property at the canonical location still points to the same stack. This makes a captured replaced stack stale immediately; a non-nil state pointer or stale cached membership is not sufficient.
+Attachment validation re-reads the property/board location and requires it still point to the registered owner. This makes a captured replaced or swapped stack stale immediately; a non-nil state pointer or stale cached membership is not sufficient.
 
-`ConfigureStackProp` and `ConfigureBoardProp` in generated, default, and generic readers will reject replacing a non-nil property. The error will say that configuration is construction-only and that callers should mutate the existing stack's contents instead.
+`mergedStack.setState` must not confer mutation authority on backing leaves. State pointers remain context only; only the state registry grants ownership.
+
+Concrete `setState` wiring must reject overwriting a non-nil pointer with a different state before registry initialization. This catches a constructor-captured stack reused across states rather than erasing the evidence by assigning the new pointer.
 
 ## Phase 3: Mutation-boundary enforcement
 
@@ -146,7 +157,7 @@ Centralize a private mutation precondition used by every stack mutator:
 
 - stack is non-nil;
 - stack has a state;
-- state is modifiable and unsanitized;
+- state is unsanitized;
 - stack has a unique current attachment matching its canonical property/board location.
 
 Movement additionally requires source and destination to belong to the exact same `*state`, before capacity, constraints, or mutation. `MayMoveTo`, slot variants, `MayMoveAllTo`, and actual moves must agree on these ownership rules.
@@ -154,6 +165,8 @@ Movement additionally requires source and destination to belong to the exact sam
 Errors will distinguish detached, stale/replaced, hidden merged backing, aliased, and foreign-state stacks. Where available, include canonical path, deck, game ID, and state version.
 
 Add an explicit nil-destination check before dereferencing the destination.
+
+Before setup calls private `insertComponentAt`, validate that the returned container is mutable, is a registered owner at its current canonical location, belongs to `stateCopy`, has `stack.Deck() == component.Deck()`, and has capacity. The later conservation audit is a backstop, not the primary setup error.
 
 Rewrite slide-to-first/last in place rather than creating a privately state-enabled scratch stack:
 
@@ -175,42 +188,41 @@ For every unsanitized state, audit all physical owners and require:
 - every non-generic component in every chest deck appears somewhere;
 - merged views add no duplicate locations and every backing stack is a declared owner of the same state and deck.
 
+The audit reads framework concrete stacks' raw index slices rather than `ImmutableComponents`, which normalizes corrupt values. For growable stacks every index must be in `[0, deck.Len())`; for sized stacks only the empty sentinel `-1` is additionally legal. Generic/hidden sentinel `-2` is forbidden in unsanitized state. Persisted `deckName` must resolve to the exact manager-chest deck pointer.
+
 Diagnostics for a duplicate name both locations. Diagnostics for a missing component name its deck and index.
 
 Run the audit:
 
 1. after `FinishSetUp`, before the initial state is persisted;
 2. from `validateBeforeSave` for every committed move;
-3. after `stateFromRecord` inflates an unsanitized stored state.
+3. at the end of `stateFromRecord`, after every game/player/dynamic JSON payload is applied. This path must not assume `state.game` or a game ID is available.
 
 Do not apply exact-conservation checks to sanitized states, whose hidden/generic representations intentionally omit identity.
 
 Keep operation-time attachment checks even with this backstop: invalid actions should fail where attempted, while lifecycle validation protects against direct field assignment, malformed readers, corrupt storage, and internal framework bugs.
 
-Add a focused benchmark with a large deck and sized board. Record the result in the implementation commit. Prefer clarity until measurement demonstrates the save-time O(components + slots) audit is material compared with serialization/storage.
+Full conservation does not run while constructing the intentionally empty manager boot example. Owner-registry initialization does run inside `emptyState`, after all substates are connected and before embedded behavior and move `ValidConfiguration` checks. Existing `copyFrom`/`importFrom` code imports payload into those registered destination containers and cannot replace the destination registry.
 
-## Phase 5: Bulk-operation atomicity and adjacent stack robustness
+Lifecycle audits guarantee component uniqueness before lazy component-index construction. Rebuild the component index from the validated owner registry, including immutable-interface physical owners, rather than the current `PropMutable`-only scan. The lazy builder may then remain non-error-returning; duplicate diagnosis belongs to the explicit setup/save/load audits and must never again be silently accepted at a persistence boundary.
 
-`MoveAllTo` currently mutates incrementally. A later constraint failure can leave an in-memory caller with a partial transfer even though the game pipeline normally discards a failed move copy.
+Add a focused benchmark with a large sparse sized stack/board, where slot count dominates component count. Record the result in the implementation commit and compare audit cost with full apply+marshal/save cost. Prefer clarity until measurement demonstrates the O(components + slots) audit is material.
 
-Make the direct stack method atomic:
+## Deferred adjacent stack robustness
 
-- snapshot both concrete stack payloads and mutation metadata needed to restore their exact observable state;
-- evaluate each constraint only once while performing the transfer;
-- on any error, restore source, destination, component-index locations, IDs/last-seen data, and shuffle-related metadata;
-- return the original cause with context.
+`MoveAllTo` can partially mutate its in-memory state before a later constraint rejects. The game pipeline discards a failed Apply copy, so conservation is preserved at persistence, but the direct method is not transaction-safe for a caller that retains the failed state.
 
-Test rejection on the first, middle, and final component, including sized gaps and board locations. `MayMoveAllTo` stays copy-based and must locate board-space stacks correctly.
+Do not claim stack-level rollback in this tranche. Creator constraint closures can capture or mutate external state, randomness, callbacks, or other state that a two-stack snapshot cannot restore. Honest atomicity requires a whole-state transaction design and a side-effect contract for constraints. Record that as a separate follow-up issue.
 
-Also fix the adjacent board bounds bug: `SpaceAt(Len())` and `ImmutableSpaceAt(Len())` return nil rather than panic.
+For #793, `Legal` preflights the operation on a copy and leaves the authoritative state untouched; if an unforeseen Apply failure occurs, the normal game pipeline discards the Apply copy. Real `MoveAllTo` does not call `MayMoveAllTo` internally or promise rollback.
 
-This phase is a separate commit from the core ownership/conservation work so it can be reviewed and bisected independently.
+The `Board.SpaceAt(Len())` bounds bug is real but unrelated to #751/#793 and is deferred to its own focused fix.
 
-## Phase 6: Harden the stack-backed behaviors
+## Phase 5: Harden the stack-backed behaviors
 
 ### Shared structural validation
 
-Add an internal behavior helper that validates a source/destination pair:
+Expose one narrow read-only root-package seam, `boardgame.ValidateStackAttachment(state, stack) error` (final name subject to local naming conventions), so subpackages can ask the core owner registry whether a stack is a current owner without expanding the `Stack` interface or exposing state pointers. Build an internal behavior helper on it that validates a source/destination pair:
 
 - both connected and non-nil;
 - distinct physical stacks;
@@ -221,15 +233,19 @@ Add an internal behavior helper that validates a source/destination pair:
 
 `DrawDiscardPair.ValidConfiguration` and `FaceUpMarket.ValidConfiguration` will use it. Errors identify the behavior and semantic role (`draw`, `discard`, `source`, `display`).
 
+Boot validation order is pinned by integration test: `emptyState` completes owner-registry initialization before `verifySubStatesConnectedAndValid` and move `ValidConfiguration` run. Static boot checks cover topology, distinctness, deck identity, and target/capacity policy. Content-dependent capacity and constraint compatibility belong in move `Legal`, not behavior boot validation.
+
 ### FaceUpMarket target semantics
 
 - When explicit `size`/`SetDisplaySize` is positive, use it.
-- Otherwise, if the display is bounded, infer `DisplaySize()` from `display.MaxSize()`.
+- Otherwise, if the display is bounded, infer `DisplaySize()` dynamically from the current `display.MaxSize()` on every query. Omitted size means “fill to current capacity,” including later capacity expansion or contraction.
 - If the display is unbounded and has no explicit size, fail configuration with exact guidance.
 - Reject explicit targets larger than bounded capacity.
+- Treat zero as unspecified/infer and reject negative explicit sizes.
 - Keep existing API names to avoid gratuitous source churn.
 - Use `MoveToNextSlot` so a sized market fills its first empty slot and a growable market appends.
-- In `Legal`, preflight the exact next source component against the display, including its target slot and constraints.
+- In `Legal`, obtain the source's first component, compute `display.NextSlot()`, and call `MayMoveToSlot(display, slot)`. `Apply` executes that exact operation with `MoveToNextSlot`; occupied-gap and constraint tests pin parity.
+- Test explicit partial targets, omitted targets across bounded capacity changes, over-target displays, sized gaps, and source exhaustion.
 
 ### DrawDiscardPair companion
 
@@ -244,14 +260,18 @@ Add `WithDrawDiscardPairField("TrainCards")`, symmetric with `WithMarketField`, 
 Factor named behavior lookup into one safe helper that:
 
 - validates the option is a non-empty string;
-- checks pointer/element/addressability/interfaceability before reflection operations;
-- verifies the exact behavior type;
+- accepts only a direct value field of the exact behavior struct type, matching what `autoConnectBehaviors` actually connects;
+- checks addressability/interfaceability before reflection operations;
 - returns contextual errors and never panics;
 - is exercised during `ValidConfiguration`, so `auto.MustConfig` fails at boot.
 
 Anonymous single-behavior discovery remains the trivial zero-option path.
 
-## Phase 7: Real-game adoption and author documentation
+An explicit field option always wins and never falls back to an anonymous behavior. Empty, missing, inaccessible, or wrong-type fields fail boot. Register both `WithMarketField` and `WithDrawDiscardPairField` with custom-configuration consumer validation so using either option on an unrelated move fails during `auto.Config` instead of being silently ignored.
+
+Named options also derive stable unique move names without requiring `WithMoveName`: for example `Replenish Merchant Market` and `Shuffle Train Cards Discard Into Draw`. Explicit `WithMoveName` retains normal precedence. Test two named instances boot together and remain distinguishable in history/debug output.
+
+## Phase 6: Real-game adoption and author documentation
 
 In the paired `games` worktree, migrate `metaltrader`:
 
@@ -268,7 +288,7 @@ Do not force the abstraction into games whose lifecycle differs:
 - Pass performs between-round setup/scoring, not ordinary draw/discard reshuffling.
 - Murder Mr. Monroe embeds a pair but does not currently consume the companion move; audit the embedding and either document its accessor value or remove cargo-cult use without changing rules.
 
-Update package docs and the tutorial with three progressive examples:
+Update package docs and the tutorial with three progressive examples, consistently calling these “stack-backed” or “tag-configured” behaviors rather than conflating them with declarative legality:
 
 1. one bounded anonymous market and one draw/discard pair—no move methods, no repeated target size;
 2. two named markets/pairs selected with config options;
@@ -279,6 +299,7 @@ Correct references to nonexistent `interfaces.DrawDiscardProvider` and `interfac
 ## Scope explicitly deferred
 
 - A framework-wide immutable/mutable redesign for behavior getters.
+- Transactional direct `MoveAllTo` and the adjacent board bounds fix.
 - Generic behavior callbacks, closures, or arbitrary extra recycle stacks.
 - Automatic elimination-to-inactive coupling.
 - Round-score or score-threshold abstractions.
@@ -293,12 +314,11 @@ Record MoveBudget's unchecked negative-value API and PlayerTeam's unset-enum sem
 2. Sub-agent review of this exact committed plan; amend the plan for accepted findings before implementation.
 3. `test: reproduce detached and cross-state stack invariant holes`
 4. `fix: enforce physical stack ownership and component conservation` (#751)
-5. `fix: make bulk stack operations atomic`
-6. `test: cover behavior companions in real states`
-7. `fix: harden declarative stack behaviors` (#793)
-8. `refactor(metaltrader): adopt named face-up markets`
-9. `docs: teach declarative stack behaviors`
-10. Final adversarial review, targeted corrections, full validation, careful rebase, and only then landing.
+5. `test: cover behavior companions in real states`
+6. `fix: harden stack-backed behaviors` (#793)
+7. `refactor(metaltrader): adopt named face-up markets`
+8. `docs: teach stack-backed behaviors`
+9. Final adversarial review, targeted corrections, full validation, careful rebase, and only then landing.
 
 ## Validation matrix
 
@@ -342,7 +362,7 @@ go vet ./boardgame/... ./games/...
 - Detached, stale, hidden, aliased, and foreign-state stacks fail before mutation or persistence.
 - Initial setup and corrupt storage cannot bypass the invariant.
 - Valid boards, merged views, dynamic values, copies, loads, and sanitized projections retain existing semantics.
-- The declarative behavior common case remains one embedded behavior plus `auto.MustConfig`.
+- The stack-backed behavior common case remains one embedded behavior plus `auto.MustConfig`.
 - Multiple markets and draw/discard pairs are possible without custom move types.
 - Companion moves fail predictably in `Legal`, never panic during configuration, and preserve deterministic slot/shuffle behavior.
 - Metaltrader proves the named multi-market API in a real game.
