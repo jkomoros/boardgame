@@ -6,6 +6,13 @@ import { animHooks } from '../utils/anim-test-hooks.js';
 import { usableAnimationContext } from './companion-sync.js';
 import type { VersionAnimationContext } from './companion-sync.js';
 import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
+import {
+  captureOffsetGeometry,
+  captureViewportGeometry,
+  centeredInversionDelta,
+  solveFlipGeometry,
+} from '../motion/geometry.js';
+import type { GeometryRect } from '../motion/geometry.js';
 
 export type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
 
@@ -24,8 +31,8 @@ export interface ComponentAnimatorAPI {
 }
 
 interface ComponentRecord {
-  offsets?: OffsetRect;
-  newOffsets?: OffsetRect;
+  offsets?: GeometryRect;
+  newOffsets?: GeometryRect;
   before?: Record<string, any>;
   after?: Record<string, any>;
   beforeTransform?: string;
@@ -36,13 +43,6 @@ interface ComponentRecord {
   beforeOpacity?: string;
   needsHostTransition?: boolean;
   needsAnimation?: boolean;
-}
-
-interface OffsetRect {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
 }
 
 interface CollectionRecord {
@@ -78,36 +78,10 @@ export class BoardgameComponentAnimator extends LitElement {
   private _lastSeenNodesById = new Map<string, Node[]>();
   private _beforeSeenIds = new Set<string>();
   private _animatingComponents: AnimatingComponentRecord[] = [];
-  private _beforeCollectionOffsets = new Map<string, OffsetRect>();
+  private _beforeCollectionOffsets = new Map<string, GeometryRect>();
   private _generation = 0;
 
   ancestorOffsetParent: HTMLElement | null = null;
-
-  private _calculateOffsets(ele: HTMLElement): OffsetRect {
-    let top = 0;
-    let left = 0;
-    const width = ele.offsetWidth;
-    const height = ele.offsetHeight;
-
-    let offsetEle: HTMLElement | null = ele;
-    while (offsetEle) {
-      top += offsetEle.offsetTop;
-      left += offsetEle.offsetLeft;
-
-      if (offsetEle === this.ancestorOffsetParent) {
-        offsetEle = null;
-      } else {
-        offsetEle = offsetEle.offsetParent as HTMLElement | null;
-      }
-    }
-
-    return {
-      top: top,
-      left: left,
-      width: width,
-      height: height
-    };
-  }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -148,7 +122,10 @@ export class BoardgameComponentAnimator extends LitElement {
       const collection = collections[i];
 
       const offsetComponent = collection.offsetComponent;
-      this._beforeCollectionOffsets.set(collection.id, this._calculateOffsets(offsetComponent));
+      this._beforeCollectionOffsets.set(
+        collection.id,
+        captureOffsetGeometry(offsetComponent, this.ancestorOffsetParent),
+      );
 
       const components = collection.Components;
       for (let j = 0; j < components.length; j++) {
@@ -161,7 +138,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
         this._beforeSeenIds.add(component.id);
 
-        record.offsets = this._calculateOffsets(component);
+        record.offsets = captureOffsetGeometry(component, this.ancestorOffsetParent);
 
         // We use getComputedStyle instead of just card.style.transform,
         // because if the card is in the middle of transforming, we want
@@ -308,10 +285,9 @@ export class BoardgameComponentAnimator extends LitElement {
     // coordinate spaces when the two elements had different fixed/absolute
     // ancestors, and corner-alignment launched flights from the top-left
     // of full-width containers instead of from the visual source.
-    const realRect = real.getBoundingClientRect();
-    const stubRect = stub.getBoundingClientRect();
-    const dx = (stubRect.left + stubRect.width / 2) - (realRect.left + realRect.width / 2);
-    const dy = (stubRect.top + stubRect.height / 2) - (realRect.top + realRect.height / 2);
+    const realRect = captureViewportGeometry(real);
+    const stubRect = captureViewportGeometry(stub);
+    const { x: dx, y: dy } = centeredInversionDelta(realRect, stubRect);
     if (dx === 0 && dy === 0) {
       return;
     }
@@ -438,7 +414,7 @@ export class BoardgameComponentAnimator extends LitElement {
     // The last seen location of a given card ID
     const idToPossibleCollection = new Map<string, CollectionRecord>();
 
-    const collectionOffsets = new Map<string, OffsetRect>();
+    const collectionOffsets = new Map<string, GeometryRect>();
 
     // CRITICAL: noAnimate barrier during measurement phase
     // Turning off animations and setting card flip all require recalcing
@@ -462,7 +438,10 @@ export class BoardgameComponentAnimator extends LitElement {
       const collection = collections[i];
 
       const offsetComponent = collection.offsetComponent;
-      collectionOffsets.set(collection.id, this._calculateOffsets(offsetComponent));
+      collectionOffsets.set(
+        collection.id,
+        captureOffsetGeometry(offsetComponent, this.ancestorOffsetParent),
+      );
 
       // Note which Ids were last seen here
       this._ingestStack(idToPossibleCollection, collection);
@@ -476,7 +455,7 @@ export class BoardgameComponentAnimator extends LitElement {
           record = {};
           this._infoById[component.id] = record;
         }
-        record.newOffsets = this._calculateOffsets(component);
+        record.newOffsets = captureOffsetGeometry(component, this.ancestorOffsetParent);
       }
     }
 
@@ -533,32 +512,11 @@ export class BoardgameComponentAnimator extends LitElement {
 
         record.after = component.animatingPropValues();
 
-        // CRITICAL: Transform composition order - invert + external + scale
-        const invertTop = record.offsets!.top - record.newOffsets!.top;
-        const invertLeft = record.offsets!.left - record.newOffsets!.left;
-        let scaleFactor = record.offsets!.width / record.newOffsets!.width;
-
-        // Defensive check: prevent crashes from zero-width/height calculations
-        if (!isFinite(scaleFactor) || scaleFactor === 0) {
-          scaleFactor = 1.0;
-        }
-
-        // If the before and after are rotated differently then the scale
-        // factor will need to compare height vs width to get the right
-        // scale factor.
-        if (component.animationRotates(record.before, record.after)) {
-          scaleFactor = record.offsets!.height / record.newOffsets!.width;
-          // Defensive check: prevent crashes from zero-width/height calculations
-          if (!isFinite(scaleFactor) || scaleFactor === 0) {
-            scaleFactor = 1.0;
-          }
-        }
-
-        // The containing box has physically shrunk (or grown), and the
-        // transform will make its apparent edge be that much smaller or
-        // bigger, so correct for that.
-        let adjustedInvertTop = invertTop - (record.newOffsets!.height - record.offsets!.height) / 2;
-        let adjustedInvertLeft = invertLeft - (record.newOffsets!.width - record.offsets!.width) / 2;
+        // CRITICAL: Transform composition order - invert + external + scale.
+        const geometry = solveFlipGeometry(record.offsets!, record.newOffsets!, {
+          rotates: component.animationRotates(record.before, record.after),
+          beforeTransform: record.beforeTransform,
+        });
 
         // Determine whether the host element's CSS transform will actually
         // change during the FLIP animation. The browser only fires
@@ -567,11 +525,9 @@ export class BoardgameComponentAnimator extends LitElement {
         // inline transform (e.g. messy stack rotation) is unchanged, the
         // inversion is effectively identity and the target matches — so no
         // transition fires and we must not expect one.
-        const hasPositionChange = Math.abs(adjustedInvertTop) > 0.5 ||
-          Math.abs(adjustedInvertLeft) > 0.5 || Math.abs(scaleFactor - 1) > 0.01;
         const hasInlineTransformChange =
           (record.beforeInlineTransform || '') !== (record.afterTransform || '');
-        record.needsHostTransition = hasPositionChange || hasInlineTransformChange;
+        record.needsHostTransition = geometry.changed || hasInlineTransformChange;
 
         // Check if any animating properties changed (e.g. faceUp, rotated)
         const beforeProps = record.before || {};
@@ -591,24 +547,20 @@ export class BoardgameComponentAnimator extends LitElement {
 
         record.needsAnimation = record.needsHostTransition || propsChanged || opacityChanged;
 
-            // We used to only bother setting transforms for items that had
+        // We used to only bother setting transforms for items that had
         // physically moved. However, the browser is smart enough to ignore
         // transforms that are basically no ops. And if we don't set it
         // then cards that don't physically move but do have transform
         // changes won't animate because the transform was set during
         // noAnimate and is never set to anything different. In testing
         // this didn't appear to have any appreciable performance difference.
-        const transform = `translateY(${adjustedInvertTop}px) translateX(${adjustedInvertLeft}px)`;
-        const scaleTransform = `scale(${scaleFactor})`;
-        const beforeInvertedTransform = `${transform} ${record.beforeTransform} ${scaleTransform}`;
-
         // Only prepare animation (clone content) for components that
         // actually need animation. Non-animating components skip the entire
         // FLIP pipeline, avoiding spurious will-animate events. The inverted
         // transform and before-opacity are stashed on the record; the WAAPI
         // PLAY phase in _startAnimations turns them into keyframes.
         if (record.needsAnimation) {
-          record.invertedTransform = beforeInvertedTransform;
+          record.invertedTransform = geometry.invertedTransform;
           record.beforeOpacity = component.style.opacity;
 
           const clonedNodes = this._lastSeenNodesById.get(component.id);
@@ -669,28 +621,10 @@ export class BoardgameComponentAnimator extends LitElement {
 
       if (!stackLocation || !oldLocation) continue;
 
-      let invertTop = oldLocation.top - stackLocation.top;
-      let invertLeft = oldLocation.left - stackLocation.left;
-
-      invertTop -= (stackLocation.height - oldLocation.height) / 2;
-      invertLeft -= (stackLocation.width - oldLocation.width) / 2;
-
-      let scaleFactor = oldLocation.width / stackLocation.width;
-
-      // Defensive check: prevent crashes from zero-width/height calculations
-      if (!isFinite(scaleFactor) || scaleFactor === 0) {
-        scaleFactor = 1.0;
-      }
-
-      if (component.animationRotates(record.before, record.after)) {
-        // The before and after are different rotations which means the
-        // invert top and left have to be tweaked.
-        scaleFactor = oldLocation.height / stackLocation.width;
-        // Defensive check: prevent crashes from zero-width/height calculations
-        if (!isFinite(scaleFactor) || scaleFactor === 0) {
-          scaleFactor = 1.0;
-        }
-      }
+      const geometry = solveFlipGeometry(oldLocation, stackLocation, {
+        rotates: component.animationRotates(record.before, record.after),
+        beforeTransform: record.beforeTransform,
+      });
 
       // We used to only bother setting transforms for items that had
       // physically moved. However, the browser is smart enough to ignore
@@ -699,16 +633,11 @@ export class BoardgameComponentAnimator extends LitElement {
       // changes won't animate because the transform was set during
       // noAnimate and is never set to anything different. In testing
       // this didn't appear to have any appreciable performance difference.
-      const transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`;
-      const scaleTransform = `scale(${scaleFactor})`;
-
-      const beforeInvertedTransform = `${transform} ${record.beforeTransform} ${scaleTransform}`;
-
       // Stash the inverted transform / before-opacity for the WAAPI PLAY
       // phase. We deliberately do NOT write component.style.transform/opacity
       // here: the resting inline transform stays put, and playAnimation()
       // supplies the inverted state as the animation's opening keyframe.
-      animatingRecord.invertedTransform = beforeInvertedTransform;
+      animatingRecord.invertedTransform = geometry.invertedTransform;
       animatingRecord.beforeOpacity = '1.0';
 
       const clonedNodes = this._lastSeenNodesById.get(id);

@@ -15,6 +15,7 @@ import type {
   PulseEffectSpec,
 } from '../effects/effect-spec.js';
 import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
+import { captureViewportGeometry, geometryCenter } from '../motion/geometry.js';
 
 export interface EffectLayerConfiguration {
   anchorRoot: ParentNode | null;
@@ -181,11 +182,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     for (const element of root.querySelectorAll<HTMLElement>('[data-effect-anchor]')) {
       const name = element.dataset.effectAnchor?.trim();
       if (!name || result.has(name) || !element.isConnected) continue;
-      const rect = element.getBoundingClientRect();
-      result.set(name, Object.freeze({
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      }));
+      result.set(name, Object.freeze(geometryCenter(captureViewportGeometry(element))));
     }
     return result;
   }
@@ -516,8 +513,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   private _anchorPoint(anchor: EffectAnchor): { x: number; y: number } | null {
     if (anchor instanceof HTMLElement) {
       if (!anchor.isConnected) return null;
-      const rect = anchor.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      return geometryCenter(captureViewportGeometry(anchor));
     }
     if (anchor.kind === 'point') return { x: anchor.x, y: anchor.y };
     const root = this._configuration.anchorRoot;
@@ -527,8 +523,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       `[data-effect-anchor="${escaped}"], #${escaped}`,
     );
     if (element?.isConnected) {
-      const rect = element.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      return geometryCenter(captureViewportGeometry(element));
     }
     return this._beforeAnchors.get(anchor.name) ?? null;
   }
