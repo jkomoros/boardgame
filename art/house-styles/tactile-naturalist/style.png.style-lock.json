@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "locked_at": "2026-07-17T20:22:19Z",
+  "image": "style.png",
+  "image_sha256": "4bf2cfbf1d32bb640107f9ff4dbdf559abdaf60747b7eabf2dcf6d7cf5e5a3dd",
+  "selected_from": "../games/darwin/art/generated/style-lock/style.png",
+  "source_manifest": "../games/darwin/art/generated/style-lock/style.png.imagegen.json"
+}

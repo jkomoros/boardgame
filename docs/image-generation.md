@@ -1,0 +1,143 @@
+# Reproducible game art
+
+`boardgame-util imagegen` generates and revises original game art through the
+Gemini image API. It is designed for checked-in production assets: every image
+gets a sidecar provenance manifest, reference inputs are content-hashed, and
+credentials never enter provenance.
+
+For local development, keep a repo-root `config.SECRET.json` symlink managed by
+`dev-secrets` with this shape:
+
+```json
+{
+  "dev": {
+    "gemini_api_key": "..."
+  }
+}
+```
+
+The command reads `dev.gemini_api_key` by default. `GEMINI_API_KEY` takes
+precedence when set. Paired worktrees can pass the Boardgame checkout's config
+with `--secret-file ../boardgame/config.SECRET.json`; custom layouts can use
+`--secret-field` or the `BOARDGAME_IMAGEGEN_SECRET_FILE` and
+`BOARDGAME_IMAGEGEN_SECRET_FIELD` environment variables.
+
+Establish the game's visual language with a style funnel. Every exploration
+round returns four intentionally different options and a two-by-two
+`gallery.html`:
+
+```sh
+boardgame-util imagegen lfs-init 'mygame/art/generated/**'
+boardgame-util imagegen style-explore \
+  --prompt-file mygame/art/style-brief.md \
+  --output-dir mygame/art/generated/style-round-1 \
+  --aspect-ratio 16:9 --image-size 2K
+```
+
+Choose a candidate, describe what to preserve and refine, and review four
+narrower variations. Repeat as needed, then lock the final style:
+
+```sh
+boardgame-util imagegen style-iterate \
+  --prompt 'Keep the tactile linework; simplify the palette and backgrounds.' \
+  --reference mygame/art/generated/style-round-1/04-tactile.png \
+  --output-dir mygame/art/generated/style-round-2
+
+boardgame-util imagegen style-lock \
+  --reference mygame/art/generated/style-round-2/01-faithful.png \
+  --output mygame/art/generated/style-sheet.png
+```
+
+The lock manifest contains the selected image hash and is verified whenever it
+is reused. Production assets consume the lock directly. Revisions keep the
+previous image as another explicit, hashed input:
+
+```sh
+boardgame-util imagegen generate \
+  --prompt-file mygame/art/prompts/card-back.md \
+  --style-lock mygame/art/generated/style-sheet.png.style-lock.json \
+  --output mygame/art/generated/card-back.png
+
+boardgame-util imagegen edit \
+  --prompt 'Preserve the composition; reduce texture behind the title area.' \
+  --reference mygame/art/generated/card-back.png \
+  --reference mygame/art/generated/style-sheet.png \
+  --output mygame/art/generated/card-back-v2.png
+```
+
+## Shared house styles
+
+When a locked style proves broadly useful, promote both its prose direction
+and visual reference into BOARDGAME's accumulated house-style catalog:
+
+```sh
+boardgame-util imagegen house-style-add \
+  --name 'Field Archive' --slug field-archive \
+  --prompt-file mygame/art/style-brief.md \
+  --style-lock mygame/art/generated/style-sheet.png.style-lock.json
+```
+
+Run that command from the BOARDGAME repository (or pass
+`--house-styles-dir`). It writes `art/house-styles/<slug>/style.md`, the LFS
+reference image, its generation provenance and style lock, per-style metadata,
+and a sorted `catalog.json`. Another game can then generate against the locked
+reference without copying paths or weakening verification:
+
+```sh
+boardgame-util imagegen generate \
+  --house-style field-archive \
+  --prompt-file mygame/art/prompts/card-back.md \
+  --output mygame/art/generated/card-back.png
+```
+
+## Transparent production assets
+
+Gemini image output is opaque. Preserve transparency as a two-artifact
+production step: generate and keep a chroma matte, then derive a true-alpha PNG
+deterministically.
+
+```sh
+boardgame-util imagegen matte-generate \
+  --prompt-file mygame/art/prompts/food-token.md \
+  --house-style field-archive \
+  --output mygame/art/generated/food-token-matte.png
+
+boardgame-util imagegen alpha \
+  --reference mygame/art/generated/food-token-matte.png \
+  --output mygame/art/generated/food-token.png
+```
+
+The matte prompt mandates a uniform `#00FF00` field. The alpha stage estimates
+actual key drift from border pixels, gates removal by the key's chroma
+direction so pale interior details survive, feathers and smooths the contour,
+unmixes key spill from partial-alpha pixels, and fails if the result lacks both
+opaque and transparent pixels or leaves alpha on the frame edge. It writes
+`<output>.alpha.json` with source/output hashes, estimated key, tolerances, and
+alpha QA counts. Keep both matte and derived alpha files under LFS so the
+derivation remains auditable and repeatable. Override `--key-color`,
+`--core-tolerance`, `--feather-tolerance`, or `--chroma-gate` only when a
+palette needs calibrated separation. If a one-pixel key halo remains after
+despill, retry with `--edge-contract 1`; larger contraction should be rare.
+
+The output sidecar is named `<image>.imagegen.json`; a locked style also has
+`<image>.style-lock.json`. Commit the prompt or brief, galleries, images,
+sidecars, and lock. `lfs-init` updates `.gitattributes`; confirm with
+`git lfs ls-files` after staging.
+
+Generated bytes are normalized to the requested `.png`, `.jpg`, or `.jpeg`
+extension before hashing and writing provenance. Reference MIME types are
+detected from their content rather than trusted filename extensions.
+
+## Clean-room use
+
+The default manifest says `clean_room: true` and
+`source_assets_used: false`. Describe visual qualities in original language and
+use references you own or generated in this pipeline. Do not attach another
+game's card faces, illustrations, logos, iconography, rulebook pages, or flavor
+text. `--source-assets` exists to make an exceptional non-clean-room input
+visible in review, not to imply permission to use it.
+
+The default model is `gemini-3-pro-image-preview` (Nano Banana Pro). Override it
+with `--model` as model availability changes. Supported output controls follow
+the Gemini API: aspect ratios from `1:1` through `21:9`, and sizes `512`, `1K`,
+`2K`, or `4K`.

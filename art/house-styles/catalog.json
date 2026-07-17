@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "styles": [
+    {
+      "schema_version": 1,
+      "name": "Tactile Naturalist",
+      "slug": "tactile-naturalist",
+      "brief": "tactile-naturalist/style.md",
+      "style_lock": "tactile-naturalist/style.png.style-lock.json",
+      "image_sha256": "4bf2cfbf1d32bb640107f9ff4dbdf559abdaf60747b7eabf2dcf6d7cf5e5a3dd"
+    }
+  ]
+}
