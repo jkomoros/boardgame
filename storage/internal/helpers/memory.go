@@ -79,6 +79,9 @@ func (s *ExtendedMemoryStorageManager) CompareAndSwapCompanionTableLease(gameID 
 	if replacement.GameID != "" && replacement.GameID != gameID {
 		return nil, false, errors.New("companion Table lease game ID mismatch")
 	}
+	if err := replacement.ValidateTransfer(); err != nil {
+		return nil, false, err
+	}
 	if expectedGeneration == ^uint64(0) {
 		return nil, false, errors.New("companion Table lease generation exhausted")
 	}

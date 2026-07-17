@@ -96,6 +96,19 @@ func tableLeaseActive(record *tablelease.StorageRecord, now time.Time) bool {
 	return record != nil && record.DeviceID != "" && record.SecretDigest != "" && record.Expires > now.UnixMilli()
 }
 
+func tableSoloTransitionActive(record *tablelease.StorageRecord, now time.Time) bool {
+	return record != nil && record.TransitionKind == tablelease.TransitionSolo && tableLeaseActive(record, now)
+}
+
+// tableSurfaceForRequest identifies a browser that has explicitly been put on
+// the shared/public surface. Unlike host authority, this deliberately does not
+// depend on a live credential: expired, displaced, and tampered Tables must
+// still fail closed to observer-only state while recovery UI is shown.
+func tableSurfaceForRequest(c *gin.Context, gameID string) bool {
+	surface, err := c.Cookie(surfaceCookieName(gameID))
+	return err == nil && surface == "table"
+}
+
 // activeTableLeaseForRequest is the sole authority check for companion host
 // actions. Renderer-selection state is deliberately irrelevant here.
 func (s *Server) activeTableLeaseForRequest(c *gin.Context, gameID string) (*tablelease.StorageRecord, bool) {
@@ -105,8 +118,7 @@ func (s *Server) activeTableLeaseForRequest(c *gin.Context, gameID string) (*tab
 	// A lease is a capability for the shared screen, not a sticky privilege
 	// for this browser. Joining as a Hand overwrites the surface cookie and
 	// immediately prevents that socket from keeping a zombie Table alive.
-	surface, err := c.Cookie(surfaceCookieName(gameID))
-	if err != nil || surface != "table" {
+	if !tableSurfaceForRequest(c, gameID) {
 		return nil, false
 	}
 	eGame, err := s.storage.ExtendedGame(gameID)
@@ -201,6 +213,10 @@ func (s *Server) acquireTableLeaseHandler(c *gin.Context) {
 			tableLeaseProblem(c, http.StatusInternalServerError, "TABLE_LEASE_STORAGE", "could not inspect the shared screen", nil)
 			return
 		}
+		if tableSoloTransitionActive(current, now) {
+			tableLeaseProblem(c, http.StatusConflict, "GAME_NOT_COMPANION", "this game is switching to solo mode", nil)
+			return
+		}
 		credentialHeld := tableLeaseActive(current, now) && tableLeaseCredentialMatches(current, credential)
 		idempotentRetry := tableLeaseActive(current, now) && current.DeviceID == body.DeviceID && current.HolderUserID == user.ID
 		alreadyHeld := credentialHeld || idempotentRetry
@@ -229,6 +245,10 @@ func (s *Server) acquireTableLeaseHandler(c *gin.Context) {
 		replacement := &tablelease.StorageRecord{
 			DeviceID: deviceID, SecretDigest: digest, HolderUserID: user.ID,
 			Expires: now.Add(tableLeaseTTL).UnixMilli(),
+		}
+		if current != nil && current.DeviceID != deviceID && validLowerHex(current.DeviceID, 32) {
+			replacement.PreviousDeviceID = current.DeviceID
+			replacement.TransitionKind = tablelease.TransitionRecovery
 		}
 		expected := uint64(0)
 		if current != nil {
@@ -278,6 +298,9 @@ func (s *Server) renewTableLeaseCredential(gameID, credential string) tableLease
 			return tableLeaseRenewRetryable
 		}
 		if !tableLeaseActive(current, now) || !tableLeaseCredentialMatches(current, credential) {
+			return tableLeaseRenewLost
+		}
+		if current.TransitionKind == tablelease.TransitionSolo {
 			return tableLeaseRenewLost
 		}
 		replacement := current.Clone()

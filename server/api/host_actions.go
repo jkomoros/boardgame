@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 	"github.com/sirupsen/logrus"
 )
 
@@ -125,11 +126,7 @@ func (s *Server) hostSkipTurnHandler(c *gin.Context) {
 		return
 	}
 
-	user := s.getUser(c)
-	userID := ""
-	if user != nil {
-		userID = user.ID
-	}
+	userID := hostUserID
 	if !hostActionAllowed(gameID, userID) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
 		return
@@ -216,11 +213,7 @@ func (s *Server) switchToSoloHandler(c *gin.Context) {
 		return
 	}
 
-	user := s.getUser(c)
-	userID := ""
-	if user != nil {
-		userID = user.ID
-	}
+	userID := hostUserID
 	if !hostActionAllowed(gameID, userID) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
 		return
@@ -234,25 +227,63 @@ func (s *Server) switchToSoloHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
 		return
 	}
+	updatedGame := *eGame
+	updatedGame.CompanionRoomCode = ""
+	updatedGame.CompanionLocked = false
 
-	eGame.CompanionRoomCode = ""
-	eGame.CompanionLocked = false
-	if renewal := s.refreshTableLeaseForAction(c, gameID); renewal != tableLeaseRenewed {
-		status := http.StatusConflict
-		if renewal == tableLeaseRenewRetryable {
-			status = http.StatusServiceUnavailable
-		}
-		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
+	// Fence and invalidate every pending transfer before changing the separate
+	// game metadata. Redemption and this CAS race on one durable row: exactly
+	// one can win, so a successful receiver can never subsequently be switched
+	// out from underneath by the stale source Table.
+	credential, cookieErr := c.Cookie(tableLeaseCookieName(gameID))
+	if cookieErr != nil {
+		tableLeaseProblem(c, http.StatusConflict, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
 		return
 	}
-	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {
+	transitioned := false
+	for attempts := 0; attempts < 5; attempts++ {
+		current, leaseErr := s.storage.CompanionTableLease(gameID)
+		if leaseErr != nil {
+			tableLeaseProblem(c, http.StatusServiceUnavailable, "TABLE_LEASE_STORAGE", "this screen could not safely confirm Table control", nil)
+			return
+		}
+		if !tableLeaseActive(current, time.Now()) || !tableLeaseCredentialMatches(current, credential) || current.TransitionKind == tablelease.TransitionSolo {
+			tableLeaseProblem(c, http.StatusConflict, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
+			return
+		}
+		replacement := current.Clone()
+		replacement.ClearTransfer()
+		replacement.PreviousDeviceID = current.DeviceID
+		replacement.TransitionKind = tablelease.TransitionSolo
+		replacement.Expires = time.Now().Add(tableLeaseTTL).UnixMilli()
+		_, swapped, leaseErr := s.storage.CompareAndSwapCompanionTableLease(gameID, current.Generation, replacement)
+		if leaseErr != nil {
+			tableLeaseProblem(c, http.StatusServiceUnavailable, "TABLE_LEASE_STORAGE", "this screen could not safely confirm Table control", nil)
+			return
+		}
+		if swapped {
+			transitioned = true
+			break
+		}
+	}
+	if !transitioned {
+		tableLeaseProblem(c, http.StatusConflict, "TABLE_LEASE_LOST", "another screen changed Table control", nil)
+		return
+	}
+	if err := s.storage.UpdateExtendedGame(gameID, &updatedGame); err != nil {
+		// Best-effort rollback keeps the old capability usable if the metadata
+		// write itself failed. CAS protects a newer transition from rollback.
+		if current, leaseErr := s.storage.CompanionTableLease(gameID); leaseErr == nil && current != nil && current.TransitionKind == tablelease.TransitionSolo && tableLeaseCredentialMatches(current, credential) {
+			replacement := current.Clone()
+			replacement.PreviousDeviceID = ""
+			replacement.TransitionKind = ""
+			_, _, _ = s.storage.CompareAndSwapCompanionTableLease(gameID, current.Generation, replacement)
+		}
 		s.auditHostAction("switchToSolo", gameID, userID, err.Error(), false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update game: " + err.Error()})
 		return
 	}
-	if credential, cookieErr := c.Cookie(tableLeaseCookieName(gameID)); cookieErr == nil {
-		s.releaseTableLease(gameID, credential)
-	}
+	s.releaseTableLease(gameID, credential)
 	clearTableLeaseCookie(c, gameID)
 
 	// Clear the surface cookie for this game on the host's browser.
@@ -274,14 +305,6 @@ func (s *Server) switchToSoloHandler(c *gin.Context) {
 // Body: { "locked": true|false }. Flips eGame.CompanionLocked. Host-only;
 // rate-limited; audited.
 func (s *Server) setRoomLockHandler(c *gin.Context) {
-	var body struct {
-		Locked bool `json:"locked"`
-	}
-	if err := c.BindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body: " + err.Error()})
-		return
-	}
-
 	game := s.getGame(c)
 	if game == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "no such game"})
@@ -298,12 +321,15 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "host privileges required"})
 		return
 	}
-
-	user := s.getUser(c)
-	userID := ""
-	if user != nil {
-		userID = user.ID
+	var body struct {
+		Locked *bool `json:"locked"`
 	}
+	if err := decodeStrictJSON(c, &body); err != nil || body.Locked == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "body must contain exactly one boolean locked field"})
+		return
+	}
+
+	userID := hostUserID
 	if !hostActionAllowed(gameID, userID) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
 		return
@@ -318,7 +344,8 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 		return
 	}
 
-	eGame.CompanionLocked = body.Locked
+	updatedGame := *eGame
+	updatedGame.CompanionLocked = *body.Locked
 	if renewal := s.refreshTableLeaseForAction(c, gameID); renewal != tableLeaseRenewed {
 		status := http.StatusConflict
 		if renewal == tableLeaseRenewRetryable {
@@ -327,12 +354,12 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
 		return
 	}
-	if err := s.storage.UpdateExtendedGame(gameID, eGame); err != nil {
+	if err := s.storage.UpdateExtendedGame(gameID, &updatedGame); err != nil {
 		s.auditHostAction("setRoomLock", gameID, userID, err.Error(), false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update game: " + err.Error()})
 		return
 	}
 
-	s.auditHostAction("setRoomLock", gameID, userID, "locked="+strconv.FormatBool(body.Locked), true)
-	c.JSON(http.StatusOK, gin.H{"ok": true, "locked": body.Locked})
+	s.auditHostAction("setRoomLock", gameID, userID, "locked="+strconv.FormatBool(*body.Locked), true)
+	c.JSON(http.StatusOK, gin.H{"ok": true, "locked": *body.Locked})
 }

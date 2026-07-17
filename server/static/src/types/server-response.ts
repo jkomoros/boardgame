@@ -200,11 +200,15 @@ function decodeCompanion(value: unknown, path: string): CompanionInfo | null {
   const IsThisTable = boolean(tableSessionItem['IsThisTable'], `${path}.TableSession.IsThisTable`);
   const CanTakeOver = boolean(tableSessionItem['CanTakeOver'], `${path}.TableSession.CanTakeOver`);
   const RetryAfterMs = integer(tableSessionItem['RetryAfterMs'], `${path}.TableSession.RetryAfterMs`, true);
+  const DisplacedByTransfer = boolean(tableSessionItem['DisplacedByTransfer'], `${path}.TableSession.DisplacedByTransfer`);
   if (tableStatus === 'available' && IsThisTable) {
     throw new Error(`${path}.TableSession.IsThisTable cannot be true when the Table is available`);
   }
   if (tableStatus === 'active' && CanTakeOver) {
     throw new Error(`${path}.TableSession.CanTakeOver cannot be true while the Table is active`);
+  }
+  if (DisplacedByTransfer && (tableStatus !== 'active' || IsThisTable)) {
+    throw new Error(`${path}.TableSession.DisplacedByTransfer requires another active Table`);
   }
   const IsHost = boolean(item['IsHost'], `${path}.IsHost`);
   return {
@@ -213,7 +217,7 @@ function decodeCompanion(value: unknown, path: string): CompanionInfo | null {
     RoomLocked,
     SeatPresentations,
     Absent,
-    TableSession: { Status: tableStatus, IsThisTable, CanTakeOver, RetryAfterMs },
+    TableSession: { Status: tableStatus, IsThisTable, CanTakeOver, RetryAfterMs, DisplacedByTransfer },
     IsHost,
   } as CompanionInfo;
 }

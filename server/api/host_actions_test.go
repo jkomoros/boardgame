@@ -1,8 +1,11 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +15,32 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/workfit/tester/assert"
 )
+
+type readTrackingBody struct{ read bool }
+
+func (b *readTrackingBody) Read([]byte) (int, error) { b.read = true; return 0, io.EOF }
+func (b *readTrackingBody) Close() error             { return nil }
+
+type fencingHostStorage struct {
+	StorageManager
+	extended *extendedgame.StorageRecord
+	lease    *tablelease.StorageRecord
+	reads    int
+}
+
+func (s *fencingHostStorage) ExtendedGame(string) (*extendedgame.StorageRecord, error) {
+	return s.extended, nil
+}
+
+func (s *fencingHostStorage) CompanionTableLease(string) (*tablelease.StorageRecord, error) {
+	s.reads++
+	record := s.lease.Clone()
+	if s.reads >= 3 {
+		record.DeviceID = "fedcba9876543210fedcba9876543210"
+		record.SecretDigest = strings.Repeat("0", 64)
+	}
+	return record, nil
+}
 
 type hostLeaseStorage struct {
 	StorageManager
@@ -126,6 +155,74 @@ func TestHostActionAllowedRefillsAfterDelay(t *testing.T) {
 	hostActionLocksMu.Unlock()
 
 	assert.For(t).ThatActual(hostActionAllowed("g1", "u1")).IsTrue()
+}
+
+func TestUnauthorisedRoomLockDoesNotReadRequestBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	game, _ := newLegalLedgerGame(t)
+	s, _ := hostLeaseTestServer(t)
+	s.logger = logrus.New()
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	body := &readTrackingBody{}
+	req := httptest.NewRequest(http.MethodPost, "/api/game/test/id/setRoomLock", nil)
+	req.Body = body
+	c.Request = req
+	s.setGame(c, game)
+	s.setRoomLockHandler(c)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("status = %d; want 403", w.Code)
+	}
+	if body.read {
+		t.Fatal("unauthorised public request body was read before capability validation")
+	}
+}
+
+func TestFencedHostCannotMutateRoomMetadata(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	game, _ := newLegalLedgerGame(t)
+	key := []byte("0123456789abcdef0123456789abcdef")
+	credentialServer := &Server{tableLeaseKey: key}
+	deviceID, secret, digest, err := credentialServer.newTableLeaseCredential(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	newStorage := func() *fencingHostStorage {
+		return &fencingHostStorage{
+			extended: &extendedgame.StorageRecord{CompanionRoomCode: "ABCD"},
+			lease:    &tablelease.StorageRecord{DeviceID: deviceID, SecretDigest: digest, HolderUserID: "host", Expires: time.Now().Add(time.Minute).UnixMilli()},
+		}
+	}
+	request := func(path, body string, handler func(*Server, *gin.Context)) (*fencingHostStorage, int) {
+		t.Helper()
+		storage := newStorage()
+		s := &Server{
+			tableLeaseKey: key, storage: NewServerStorageManager(storage), logger: logrus.New(),
+			seatJoinLocks: map[string]*sync.Mutex{},
+		}
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(&http.Cookie{Name: surfaceCookieName(game.ID()), Value: "table"})
+		req.AddCookie(&http.Cookie{Name: tableLeaseCookieName(game.ID()), Value: deviceID + "." + secret})
+		c.Request = req
+		s.setGame(c, game)
+		hostActionLocksMu.Lock()
+		hostActionLocks = map[string]time.Time{}
+		hostActionLocksMu.Unlock()
+		handler(s, c)
+		return storage, w.Code
+	}
+
+	roomStorage, status := request("/api/game/test/id/setRoomLock", `{"locked":true}`, func(s *Server, c *gin.Context) { s.setRoomLockHandler(c) })
+	if status != http.StatusConflict || roomStorage.extended.CompanionLocked {
+		t.Fatalf("fenced room-lock status/record = %d/%+v", status, roomStorage.extended)
+	}
+	soloStorage, status := request("/api/game/test/id/switchToSolo", `{}`, func(s *Server, c *gin.Context) { s.switchToSoloHandler(c) })
+	if status != http.StatusConflict || soloStorage.extended.CompanionRoomCode != "ABCD" {
+		t.Fatalf("fenced solo-switch status/record = %d/%+v", status, soloStorage.extended)
+	}
 }
 
 // TestHostActionLocksEvictionTriggersAtThreshold confirms Polish 7's

@@ -122,12 +122,19 @@ type seatPresentationStorageRecord struct {
 }
 
 type tableLeaseStorageRecord struct {
-	GameID       string `db:",size:16"`
-	Generation   uint64
-	DeviceID     string `db:",size:128"`
-	SecretDigest string `db:",size:64"`
-	HolderUserID string `db:",size:128"`
-	Expires      int64
+	GameID                 string `db:",size:16"`
+	Generation             uint64
+	DeviceID               string `db:",size:128"`
+	SecretDigest           string `db:",size:64"`
+	HolderUserID           string `db:",size:128"`
+	Expires                int64
+	TransferID             string `db:",size:32"`
+	TransferTokenDigest    string `db:",size:64"`
+	TransferCodeDigest     string `db:",size:64"`
+	TransferExpires        int64
+	TransferTargetDeviceID string `db:",size:32"`
+	PreviousDeviceID       string `db:",size:32"`
+	TransitionKind         string `db:",size:16"`
 }
 
 func newTableLeaseStorageRecord(record *tablelease.StorageRecord) *tableLeaseStorageRecord {
@@ -135,12 +142,19 @@ func newTableLeaseStorageRecord(record *tablelease.StorageRecord) *tableLeaseSto
 		return nil
 	}
 	return &tableLeaseStorageRecord{
-		GameID:       record.GameID,
-		Generation:   record.Generation,
-		DeviceID:     record.DeviceID,
-		SecretDigest: record.SecretDigest,
-		HolderUserID: record.HolderUserID,
-		Expires:      record.Expires,
+		GameID:                 record.GameID,
+		Generation:             record.Generation,
+		DeviceID:               record.DeviceID,
+		SecretDigest:           record.SecretDigest,
+		HolderUserID:           record.HolderUserID,
+		Expires:                record.Expires,
+		TransferID:             record.TransferID,
+		TransferTokenDigest:    record.TransferTokenDigest,
+		TransferCodeDigest:     record.TransferCodeDigest,
+		TransferExpires:        record.TransferExpires,
+		TransferTargetDeviceID: record.TransferTargetDeviceID,
+		PreviousDeviceID:       record.PreviousDeviceID,
+		TransitionKind:         record.TransitionKind,
 	}
 }
 
@@ -149,12 +163,19 @@ func (r *tableLeaseStorageRecord) ToStorageRecord() *tablelease.StorageRecord {
 		return nil
 	}
 	return &tablelease.StorageRecord{
-		GameID:       r.GameID,
-		Generation:   r.Generation,
-		DeviceID:     r.DeviceID,
-		SecretDigest: r.SecretDigest,
-		HolderUserID: r.HolderUserID,
-		Expires:      r.Expires,
+		GameID:                 r.GameID,
+		Generation:             r.Generation,
+		DeviceID:               r.DeviceID,
+		SecretDigest:           r.SecretDigest,
+		HolderUserID:           r.HolderUserID,
+		Expires:                r.Expires,
+		TransferID:             r.TransferID,
+		TransferTokenDigest:    r.TransferTokenDigest,
+		TransferCodeDigest:     r.TransferCodeDigest,
+		TransferExpires:        r.TransferExpires,
+		TransferTargetDeviceID: r.TransferTargetDeviceID,
+		PreviousDeviceID:       r.PreviousDeviceID,
+		TransitionKind:         r.TransitionKind,
 	}
 }
 

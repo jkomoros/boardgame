@@ -374,6 +374,9 @@ func (s *StorageManager) CompareAndSwapCompanionTableLease(gameID string, expect
 	if replacement.GameID != "" && replacement.GameID != gameID {
 		return nil, false, errors.New("companion Table lease game ID mismatch")
 	}
+	if err := replacement.ValidateTransfer(); err != nil {
+		return nil, false, err
+	}
 	if expectedGeneration == ^uint64(0) {
 		return nil, false, errors.New("companion Table lease generation exhausted")
 	}
@@ -397,8 +400,11 @@ func (s *StorageManager) CompareAndSwapCompanionTableLease(gameID string, expect
 		}
 	}
 
-	result, err := s.dbMap.Exec("update "+tableTableLeases+" set Generation = ?, DeviceID = ?, SecretDigest = ?, HolderUserID = ?, Expires = ? where GameID = ? and Generation = ?",
-		next.Generation, next.DeviceID, next.SecretDigest, next.HolderUserID, next.Expires, gameID, expectedGeneration)
+	result, err := s.dbMap.Exec("update "+tableTableLeases+" set Generation = ?, DeviceID = ?, SecretDigest = ?, HolderUserID = ?, Expires = ?, TransferID = ?, TransferTokenDigest = ?, TransferCodeDigest = ?, TransferExpires = ?, TransferTargetDeviceID = ?, PreviousDeviceID = ?, TransitionKind = ? where GameID = ? and Generation = ?",
+		next.Generation, next.DeviceID, next.SecretDigest, next.HolderUserID, next.Expires,
+		next.TransferID, next.TransferTokenDigest, next.TransferCodeDigest, next.TransferExpires,
+		next.TransferTargetDeviceID, next.PreviousDeviceID, next.TransitionKind,
+		gameID, expectedGeneration)
 	if err != nil {
 		return nil, false, err
 	}

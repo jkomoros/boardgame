@@ -323,6 +323,13 @@ func (s *Server) getRequestPlayerIndex(c *gin.Context) boardgame.PlayerIndex {
 }
 
 func (s *Server) effectivePlayerIndex(c *gin.Context) boardgame.PlayerIndex {
+	// A declared shared Table is always an observer, even after its authority
+	// expires or moves and even when the browser carries seated/admin state.
+	// Otherwise the recovery/terminal overlay could conceal a private hand that
+	// remains present in the DOM or network response underneath it.
+	if game := s.getGame(c); game != nil && tableSurfaceForRequest(c, game.ID()) {
+		return boardgame.ObserverPlayerIndex
+	}
 
 	adminAllowed := s.getAdminAllowed(c)
 	requestAdmin := s.getRequestAdmin(c)
@@ -336,6 +343,9 @@ func (s *Server) effectivePlayerIndex(c *gin.Context) boardgame.PlayerIndex {
 }
 
 func (s *Server) effectiveAutoCurrentPlayer(c *gin.Context) bool {
+	if game := s.getGame(c); game != nil && tableSurfaceForRequest(c, game.ID()) {
+		return false
+	}
 	adminAllowed := s.getAdminAllowed(c)
 	requestAdmin := s.getRequestAdmin(c)
 

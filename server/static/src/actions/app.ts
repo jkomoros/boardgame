@@ -11,6 +11,7 @@ export const CLOSE_HEADER_PANEL = 'CLOSE_HEADER_PANEL';
 export const PAGE_DEFAULT = 'list-games';
 export const PAGE_GAME = 'game';
 export const PAGE_JOIN = 'join';
+export const PAGE_TABLE_TRANSFER = 'table';
 export const PAGE_404 = 'view404';
 
 import {
@@ -110,6 +111,9 @@ const loadPage = (pathname: string, query: string): AppThunk => (dispatch) => {
 		// solo-mode users never load the join-view bundle.
 		import('../components/boardgame-join-view.js');
 		break;
+	case PAGE_TABLE_TRANSFER:
+		import('../components/boardgame-table-transfer-view.js');
+		break;
     default:
 		page = PAGE_404;
 		import('../components/boardgame-404-view.js');
@@ -160,4 +164,3 @@ export const closeHeaderPanel = (): CloseHeaderPanelAction => {
 		type: CLOSE_HEADER_PANEL
 	};
 };
-

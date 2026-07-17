@@ -30,6 +30,8 @@ export interface CompanionTableSession {
   CanTakeOver: boolean;
   /** Server-authoritative delay before checking whether an active Table died. */
   RetryAfterMs: number;
+  /** This exact former Table was intentionally moved to another screen. */
+  DisplacedByTransfer: boolean;
 }
 
 export interface CompanionInfo {

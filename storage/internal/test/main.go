@@ -83,6 +83,9 @@ func TableLeaseTest(factory StorageManagerFactory, connectConfig string, t *test
 	if _, _, err := storage.CompareAndSwapCompanionTableLease(gameID, 0, &tablelease.StorageRecord{GameID: "other"}); err == nil {
 		t.Fatal("mismatched lease game ID should be rejected")
 	}
+	if _, _, err := storage.CompareAndSwapCompanionTableLease(gameID, 0, &tablelease.StorageRecord{TransferID: "partial"}); err == nil {
+		t.Fatal("partial Table transfer should be rejected")
+	}
 
 	const contenders = 24
 	type result struct {
@@ -135,19 +138,44 @@ func TableLeaseTest(factory StorageManagerFactory, connectConfig string, t *test
 		t.Fatalf("lease read was not a defensive copy: %+v err=%v", storedAgain, err)
 	}
 
+	const transferID = "0123456789abcdef0123456789abcdef"
+	const transferTokenDigest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	const transferCodeDigest = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
 	renewed, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 1, &tablelease.StorageRecord{
 		DeviceID: winnerDevice, SecretDigest: "renewed", HolderUserID: "holder", Expires: 5000,
+		TransferID: transferID, TransferTokenDigest: transferTokenDigest,
+		TransferCodeDigest: transferCodeDigest, TransferExpires: 4000,
 	})
 	if err != nil || !swapped || renewed.Generation != 2 || renewed.SecretDigest != "renewed" {
 		t.Fatalf("valid renewal failed: %+v swapped=%v err=%v", renewed, swapped, err)
 	}
+	storedTransfer, err := storage.CompanionTableLease(gameID)
+	if err != nil || storedTransfer.TransferID != transferID ||
+		storedTransfer.TransferTokenDigest != transferTokenDigest ||
+		storedTransfer.TransferCodeDigest != transferCodeDigest || storedTransfer.TransferExpires != 4000 {
+		t.Fatalf("pending transfer fields were not preserved: %+v err=%v", storedTransfer, err)
+	}
+
+	const targetDeviceID = "fedcba9876543210fedcba9876543210"
+	redeemed, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 2, &tablelease.StorageRecord{
+		DeviceID: targetDeviceID, SecretDigest: "target", HolderUserID: "holder", Expires: 6000,
+		TransferID: transferID, TransferTokenDigest: transferTokenDigest,
+		TransferCodeDigest: transferCodeDigest, TransferExpires: 4000,
+		TransferTargetDeviceID: targetDeviceID, PreviousDeviceID: "0123456789abcdef0123456789abcdef",
+		TransitionKind: tablelease.TransitionTransfer,
+	})
+	if err != nil || !swapped || redeemed.Generation != 3 || redeemed.TransferTargetDeviceID != targetDeviceID ||
+		redeemed.TransitionKind != tablelease.TransitionTransfer {
+		t.Fatalf("redeemed transfer receipt failed: %+v swapped=%v err=%v", redeemed, swapped, err)
+	}
 	stale, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 1, &tablelease.StorageRecord{DeviceID: "stale"})
-	if err != nil || swapped || stale == nil || stale.Generation != 2 || stale.DeviceID != winnerDevice {
+	if err != nil || swapped || stale == nil || stale.Generation != 3 || stale.DeviceID != targetDeviceID {
 		t.Fatalf("stale CAS did not return current record: %+v swapped=%v err=%v", stale, swapped, err)
 	}
 
-	released, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 2, &tablelease.StorageRecord{})
-	if err != nil || !swapped || released.Generation != 3 || released.DeviceID != "" || released.SecretDigest != "" {
+	released, swapped, err := storage.CompareAndSwapCompanionTableLease(gameID, 3, &tablelease.StorageRecord{})
+	if err != nil || !swapped || released.Generation != 4 || released.DeviceID != "" || released.SecretDigest != "" ||
+		released.TransferID != "" || released.TransferTargetDeviceID != "" || released.TransitionKind != "" {
 		t.Fatalf("release tombstone failed: %+v swapped=%v err=%v", released, swapped, err)
 	}
 }

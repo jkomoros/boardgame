@@ -1,10 +1,15 @@
 package api
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/tablelease"
 )
 
@@ -85,5 +90,84 @@ func TestTableLeaseActiveRequiresCredentialAndFutureExpiry(t *testing.T) {
 	record.SecretDigest = ""
 	if tableLeaseActive(record, now) {
 		t.Fatal("lease without a secret digest must be inactive")
+	}
+}
+
+func TestSoloTransitionBlocksOnlyUntilItsCrashRecoveryDeadline(t *testing.T) {
+	now := time.UnixMilli(10_000)
+	record := &tablelease.StorageRecord{
+		DeviceID: "0123456789abcdef0123456789abcdef", SecretDigest: strings.Repeat("0", 64),
+		Expires: 10_001, PreviousDeviceID: "0123456789abcdef0123456789abcdef",
+		TransitionKind: tablelease.TransitionSolo,
+	}
+	if !tableSoloTransitionActive(record, now) {
+		t.Fatal("live solo transition did not fence recovery")
+	}
+	record.Expires = now.UnixMilli()
+	if tableSoloTransitionActive(record, now) {
+		t.Fatal("expired solo transition permanently wedged companion recovery")
+	}
+}
+
+func TestActiveTableAlwaysReceivesObserverState(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	game, _ := newLegalLedgerGame(t)
+	key := []byte("0123456789abcdef0123456789abcdef")
+	credentialServer := &Server{tableLeaseKey: key}
+	deviceID, secret, digest, err := credentialServer.newTableLeaseCredential(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	storage := &hostLeaseStorage{
+		extended: &extendedgame.StorageRecord{CompanionRoomCode: "ABCD"},
+		lease: &tablelease.StorageRecord{
+			DeviceID: deviceID, SecretDigest: digest, Expires: time.Now().Add(time.Minute).UnixMilli(),
+		},
+	}
+	s := &Server{tableLeaseKey: key, storage: NewServerStorageManager(storage)}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest(http.MethodGet, "/api/game/test/id/info?admin=1&player=0&autoCurrentPlayer=1", nil)
+	req.AddCookie(&http.Cookie{Name: surfaceCookieName(game.ID()), Value: "table"})
+	req.AddCookie(&http.Cookie{Name: tableLeaseCookieName(game.ID()), Value: deviceID + "." + secret})
+	c.Request = req
+	s.setGame(c, game)
+	s.setAdminAllowed(c, true)
+	s.setViewingAsPlayer(c, 0)
+
+	if got := s.effectivePlayerIndex(c); got != boardgame.ObserverPlayerIndex {
+		t.Fatalf("effective player = %d; want observer despite seated/admin overrides", got)
+	}
+	if s.effectiveAutoCurrentPlayer(c) {
+		t.Fatal("active Table honored auto-current-player and could expose private state")
+	}
+}
+
+func TestDisplacedOrExpiredTableStillReceivesObserverState(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	game, _ := newLegalLedgerGame(t)
+	storage := &hostLeaseStorage{
+		extended: &extendedgame.StorageRecord{CompanionRoomCode: "ABCD"},
+		lease: &tablelease.StorageRecord{
+			DeviceID:     "fedcba9876543210fedcba9876543210",
+			SecretDigest: strings.Repeat("0", 64), Expires: time.Now().Add(-time.Minute).UnixMilli(),
+		},
+	}
+	s := &Server{tableLeaseKey: []byte("0123456789abcdef0123456789abcdef"), storage: NewServerStorageManager(storage)}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest(http.MethodGet, "/api/game/test/id/info?admin=1&player=0&autoCurrentPlayer=1", nil)
+	req.AddCookie(&http.Cookie{Name: surfaceCookieName(game.ID()), Value: "table"})
+	req.AddCookie(&http.Cookie{Name: tableLeaseCookieName(game.ID()), Value: "tampered"})
+	c.Request = req
+	s.setGame(c, game)
+	s.setAdminAllowed(c, true)
+	s.setViewingAsPlayer(c, 0)
+
+	if got := s.effectivePlayerIndex(c); got != boardgame.ObserverPlayerIndex {
+		t.Fatalf("fenced Table effective player = %d; want observer", got)
+	}
+	if s.effectiveAutoCurrentPlayer(c) {
+		t.Fatal("fenced Table honored auto-current-player and could expose private state")
 	}
 }

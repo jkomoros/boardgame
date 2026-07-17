@@ -61,6 +61,9 @@ type Server struct {
 	// then claiming a seat) and tight enough to discourage brute-force
 	// enumeration of the 234k 4-letter code namespace (spec §6.1).
 	joinRateLimiter *rateLimiter
+	// tableTransferRateLimiter protects the public inspect/redeem endpoints,
+	// especially the room-code + manual-code fallback, from online guessing.
+	tableTransferRateLimiter *rateLimiter
 
 	// seatJoinLocks serializes seat-claim operations on a per-game basis so
 	// concurrent /api/join/seat requests for the same room can't race
@@ -238,10 +241,11 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		// brute-forcing the 234k-code space impractical (~7 months for
 		// half the space from one IP) while never throttling a real
 		// game night. Idle buckets evict after 10 minutes.
-		joinRateLimiter: newRateLimiter(40, 0.5, 10*time.Minute),
-		seatJoinLocks:   make(map[string]*sync.Mutex),
-		joinTicketKey:   newJoinTicketKey(),
-		tableLeaseKey:   newJoinTicketKey(),
+		joinRateLimiter:          newRateLimiter(40, 0.5, 10*time.Minute),
+		tableTransferRateLimiter: newRateLimiter(20, 0.2, 10*time.Minute),
+		seatJoinLocks:            make(map[string]*sync.Mutex),
+		joinTicketKey:            newJoinTicketKey(),
+		tableLeaseKey:            newJoinTicketKey(),
 	}
 
 	storage.server = result
@@ -1605,6 +1609,7 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 	now := time.Now()
 	tableActive := companionMode && tableLeaseActive(tableLease, now)
 	isHostViewer := false
+	displacedByTransfer := false
 	if tableActive {
 		tableStatus = "active"
 		tableRetryAfterMS = tableLease.Expires - now.UnixMilli()
@@ -1614,6 +1619,10 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		if surface, surfaceErr := r.c.Cookie(surfaceCookieName(game.ID())); surfaceErr == nil && surface == "table" {
 			if credential, credentialErr := r.c.Cookie(tableLeaseCookieName(game.ID())); credentialErr == nil {
 				isHostViewer = tableLeaseCredentialMatches(tableLease, credential)
+				if !isHostViewer && tableLease.TransitionKind == tablelease.TransitionTransfer && tableLease.TransferRedeemed(now.UnixMilli()) {
+					deviceID, _, parsed := parseTableLeaseCredential(credential)
+					displacedByTransfer = parsed && constantStringEqual(deviceID, tableLease.PreviousDeviceID)
+				}
 			}
 		}
 	}
@@ -1632,6 +1641,7 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		"TableSession": gin.H{
 			"Status": tableStatus, "IsThisTable": isHostViewer,
 			"CanTakeOver": canTakeOver, "RetryAfterMs": tableRetryAfterMS,
+			"DisplacedByTransfer": displacedByTransfer,
 		},
 		// Absent is the list of player indices currently flagged absent by
 		// the heartbeat scan (spec §9.1). The Table view uses this to draw
@@ -2694,6 +2704,11 @@ func (s *Server) Start() {
 		joinGroup.POST("seat", s.joinSeatHandler)
 		joinGroup.GET("seat-options", s.joinSeatOptionsHandler)
 
+		tableTransferGroup := mainGroup.Group("table-transfer")
+		tableTransferGroup.Use(rateLimitMiddleware(s.tableTransferRateLimiter))
+		tableTransferGroup.POST("inspect", s.inspectTableTransferHandler)
+		tableTransferGroup.POST("redeem", s.redeemTableTransferHandler)
+
 		protectedMainGroup := mainGroup.Group("")
 		protectedMainGroup.Use(s.requireLoggedIn)
 		protectedMainGroup.POST("new/game", s.newGameHandler)
@@ -2724,10 +2739,15 @@ func (s *Server) Start() {
 			// Companion-mode host actions (spec §9). Mutations require the
 			// active fenced Table credential; acquisition requires the owner or
 			// a seated player after the old lease expires.
-			protectedGameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
 			protectedGameAPIGroup.POST("tableLease/acquire", s.acquireTableLeaseHandler)
-			protectedGameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
-			protectedGameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
+
+			// Table capabilities—not login identity—authorize shared-screen
+			// controls, including on an accountless paired projector.
+			gameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
+			gameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
+			gameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
+			gameAPIGroup.POST("tableTransfer/create", s.createTableTransferHandler)
+			gameAPIGroup.POST("tableTransfer/cancel", s.cancelTableTransferHandler)
 		}
 
 		// Chat read endpoint — available to any user with game access

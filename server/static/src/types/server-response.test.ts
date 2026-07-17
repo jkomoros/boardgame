@@ -44,6 +44,7 @@ function info() {
         IsThisTable: false,
         CanTakeOver: false,
         RetryAfterMs: 0,
+        DisplacedByTransfer: false,
       },
     },
   };
@@ -148,10 +149,10 @@ test('game-info decoder names malformed nested server fields', () => {
 test('game-info decoder validates Table session state combinations', () => {
   const active = info();
   active.CompanionInfo.TableSession = {
-    Status: 'active', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 12_000,
+    Status: 'active', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 12_000, DisplacedByTransfer: false,
   };
   assert.deepEqual(decodeGameInfoResponse(active).CompanionInfo?.TableSession, {
-    Status: 'active', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 12_000,
+    Status: 'active', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 12_000, DisplacedByTransfer: false,
   });
 
   const malformedStatus = info();
@@ -160,13 +161,13 @@ test('game-info decoder validates Table session state combinations', () => {
 
   const contradictoryActive = info();
   contradictoryActive.CompanionInfo.TableSession = {
-    Status: 'active', IsThisTable: false, CanTakeOver: true, RetryAfterMs: 1,
+    Status: 'active', IsThisTable: false, CanTakeOver: true, RetryAfterMs: 1, DisplacedByTransfer: false,
   };
   assert.throws(() => decodeGameInfoResponse(contradictoryActive), /cannot be true while the Table is active/);
 
   const contradictoryAvailable = info();
   contradictoryAvailable.CompanionInfo.TableSession = {
-    Status: 'available', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 0,
+    Status: 'available', IsThisTable: true, CanTakeOver: false, RetryAfterMs: 0, DisplacedByTransfer: false,
   };
   assert.throws(() => decodeGameInfoResponse(contradictoryAvailable), /cannot be true when the Table is available/);
 });
