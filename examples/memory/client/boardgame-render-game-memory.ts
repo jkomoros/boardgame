@@ -1,8 +1,10 @@
 import { GameRenderer, registerGameRenderer } from './_game_renderer.js';
 import { html, css } from 'lit';
 import { MoveNames } from './_move_names.js';
-import type { CardsComponentValues, GameState } from './_types.js';
-import { cardView, isVisibleComponent } from '../../src/client.js';
+import type { CardsComponentValues, GameState, State } from './_types.js';
+import type { MoveName } from './_move_names.js';
+import { cardView, fx, isVisibleComponent } from '../../src/client.js';
+import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
 
 @registerGameRenderer
 export class BoardgameRenderGameMemory extends GameRenderer {
@@ -71,6 +73,31 @@ export class BoardgameRenderGameMemory extends GameRenderer {
     return firstType === secondType ? 1000 : 0;
   }
 
+  override effectsForTransition(
+    context: EffectTransitionContext<State, MoveName>,
+  ): readonly EffectSpec[] {
+    if (context.kind === 'initial' || context.move?.Name !== MoveNames.RevealCard) return [];
+    const revealed = context.after.Game.VisibleCards.Components.filter(isVisibleComponent);
+    const isMatch = revealed.length === 2
+      && revealed[0]!.Values.Type === revealed[1]!.Values.Type;
+    const feedback: EffectSpec[] = [fx.pulse({
+      at: fx.anchor('memory-cards'),
+      tone: isMatch ? 'reward' : 'attention',
+      intensity: isMatch ? 'medium' : 'small',
+    })];
+    if (isMatch) {
+      feedback.push(fx.burst({
+        at: fx.anchor('memory-cards'),
+        tone: 'reward',
+        intensity: 'medium',
+      }));
+    }
+    return [fx.parallel(feedback, {
+      key: 'reveal-card',
+      timing: 'version',
+    })];
+  }
+
   override render() {
     const cardStack = this.state?.Game?.Cards ?? null;
     const cardSlots = cardStack?.Components.map((_component, index) => index) ?? [];
@@ -81,6 +108,7 @@ export class BoardgameRenderGameMemory extends GameRenderer {
       <boardgame-game-surface heading="Memory">
         <div>
           <boardgame-component-stack
+            data-effect-anchor="memory-cards"
             layout="grid"
             messy
             post-animation-delay="${this._revealHoldMs()}"

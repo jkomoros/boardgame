@@ -109,9 +109,7 @@ export interface EffectHostAPI {
   play(effect: EffectSpec): EffectHandle;
 }
 
-export interface EffectTransitionContext<S, MN extends string = string> {
-  readonly kind: 'initial' | 'transition';
-  readonly before: S | null;
+interface EffectTransitionContextBase<S, MN extends string> {
   readonly after: S;
   /** Animation-safe metadata only: move name and produced version. */
   readonly move: (Omit<ClientMove, 'Name'> & Readonly<{ Name: MN }>) | null;
@@ -119,6 +117,17 @@ export interface EffectTransitionContext<S, MN extends string = string> {
   readonly snapshotEpoch: number;
   changed<T>(select: (state: S) => T): boolean;
 }
+
+/** Initial installation is distinct so checking `kind` also narrows `before`. */
+export type EffectTransitionContext<S, MN extends string = string> =
+  | (EffectTransitionContextBase<S, MN> & Readonly<{
+    kind: 'initial';
+    before: null;
+  }>)
+  | (EffectTransitionContextBase<S, MN> & Readonly<{
+    kind: 'transition';
+    before: S;
+  }>);
 
 type CommonOptions = Omit<EffectBase, 'kind'>;
 type BurstOptions = CommonOptions & Pick<BurstEffectSpec, 'at'>;
@@ -212,9 +221,7 @@ export function createEffectTransitionContext<S, MN extends string>(options: {
   snapshotEpoch: number;
 }): EffectTransitionContext<S, MN> {
   const { before, after } = options;
-  return Object.freeze({
-    kind: before === null ? 'initial' : 'transition',
-    before,
+  const common = {
     after,
     move: options.move as EffectTransitionContext<S, MN>['move'],
     version: options.version,
@@ -223,5 +230,8 @@ export function createEffectTransitionContext<S, MN extends string>(options: {
       if (before === null) return true;
       return !Object.is(select(before), select(after));
     },
-  });
+  };
+  return before === null
+    ? Object.freeze({ ...common, kind: 'initial', before: null })
+    : Object.freeze({ ...common, kind: 'transition', before });
 }

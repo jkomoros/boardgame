@@ -3568,6 +3568,72 @@ animations hold the completion gate for that many milliseconds after visible
 motion. Prefer deriving the value from current rendered state, as Memory's
 `_revealHoldMs()` does. There is no renderer `delayAnimation` hook.
 
+#### Semantic delight effects
+
+Automatic component movement explains *what changed*. For moments that should
+also communicate meaning—a match, reward, warning, transfer, or magical
+action—return immutable effect recipes from `effectsForTransition()`. Keep the
+three authoring choices independent:
+
+- the recipe (`pulse`, `burst`, `travel`, `sequence`, or `parallel`),
+- its semantic tone (`reward`, `warning`, `attention`, and so on), and
+- its intensity (`subtle` through `large`).
+
+Memory, for example, gives every reveal a small emphasis and adds a reward
+burst when the second revealed card matches:
+
+```ts
+override effectsForTransition(
+  context: EffectTransitionContext<State, MoveName>,
+): readonly EffectSpec[] {
+  if (context.kind === 'initial' || context.move?.Name !== MoveNames.RevealCard) {
+    return [];
+  }
+  const revealed = context.after.Game.VisibleCards.Components
+    .filter(isVisibleComponent);
+  const isMatch = revealed.length === 2
+    && revealed[0]!.Values.Type === revealed[1]!.Values.Type;
+
+  return [fx.parallel([
+    fx.pulse({
+      at: fx.anchor('memory-cards'),
+      tone: isMatch ? 'reward' : 'attention',
+      intensity: isMatch ? 'medium' : 'small',
+    }),
+    ...(isMatch ? [fx.burst({
+      at: fx.anchor('memory-cards'),
+      tone: 'reward',
+      intensity: 'medium',
+    })] : []),
+  ], {
+    key: 'reveal-card',
+    timing: 'version',
+  })];
+}
+```
+
+The renderer marks the corresponding element with a scoped, stable anchor:
+
+```ts
+html`<boardgame-component-stack
+  data-effect-anchor="memory-cards"
+  .stack=${this.state.Game.Cards}>
+</boardgame-component-stack>`
+```
+
+The framework invokes the hook exactly once per installed authoritative
+snapshot and owns measurement, deterministic particles, companion timing,
+cancellation, reduced-motion behavior, cleanup, and document-wide budgets.
+Initial snapshots are explicit, so refreshing a finished game does not replay
+an old celebration. Effects remain decorative: they never mutate game truth,
+hold the state queue, or replace accessible outcome UI.
+
+For feedback that is genuinely local—such as acknowledging a selection before
+it proposes a move—use `this.effects?.play(fx.pulse({ at: element, ... }))`.
+Do not use that imperative path for authoritative outcomes. See
+[`docs/animation-effects.md`](docs/animation-effects.md) for composition,
+themes, disappearing anchors, lifecycle results, and advanced customization.
+
 The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
 
 Sometimes you want animations to overlap rather than playing fully sequentially. For example, when dealing cards to players, you might want the next card to start moving before the previous one has finished. If your game renderer defines `animationOverlap(fromMove, toMove)`, it will be consulted before each state bundle is installed. The return value is a fraction between 0 and 1 representing how much of the current animation should play before the next state is installed. A return value of 0 (the default) means the current animation must complete entirely before the next state is applied. A value of 0.5 means the next state will be installed when the current animation is 50% complete. Values outside the 0-1 range are clamped. This is useful for cascade effects where multiple animations should overlap smoothly instead of playing one after another.
@@ -3612,9 +3678,6 @@ That framework also owns the end of the companion journey: after a finished
 game, its Table and Hands can play again with the same seats and identities and
 will automatically follow the single prepared successor. Game renderers do not
 implement rematch controls or state copying.
-
-In the future there will be a number of other attributes and method override
-points, and they'll be described here.
 
 For a more thorough overview of how the animation system actually works, check
 out `server/static/src/ARCHITECTURE.md`.
