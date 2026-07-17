@@ -33,6 +33,13 @@ binds candidates using the canonical creator-input codec and evaluates the
 existing complete `move.Legal()` chain. There is no domain validator,
 availability rule language, workflow cursor, or second client action runtime.
 
+The landed move-sanitization system remains authoritative for committed-move
+disclosure: `WithMoveNameSanitization` controls canonical-name visibility,
+move-field `sanitize` tags control viewer-visible properties, and
+`MoveJSONForPlayer` emits an `AnimationKey` plus explicitly disclosed
+properties. Offers use that same viewer/group machinery for name visibility but
+add a separate authorization for exposing current candidate legality.
+
 The semantic layers are:
 
 ```text
@@ -70,6 +77,7 @@ For version one:
 - `move.Legal()` is the sole semantic authority;
 - every selectable candidate is exact-evaluated by the server;
 - candidate disclosure is explicitly `PublicExact`;
+- canonical move-name visibility reuses landed move sanitization;
 - offers hydrate existing `BoundMoveAction` and `TargetAction` objects;
 - offers are emitted only for the current settled game version;
 - legacy games and non-offer moves keep their current behavior.
@@ -407,22 +415,46 @@ candidate reason only when all facts behind that reason are public under
 `PublicExact`. Server diagnostics remain detailed; unsafe client responses use
 stable generic codes.
 
-### Private moves and issue #693
+### Integration with landed move sanitization
 
-The private simultaneous-choice journey is aspirational. Full support is
-blocked on the relevant move-disclosure work in issue #693.
+Move sanitization has landed and supplies the committed-move boundary this
+design relies on:
 
-The design distinguishes:
+- `moves.WithMoveNameSanitization` controls canonical-name visibility with the
+  existing player-group policy syntax;
+- untagged move properties are hidden from clients by default;
+- move-field `sanitize` tags explicitly disclose properties per viewer group;
+- `Game.MoveJSONForPlayer` evaluates policy against the pre-move state;
+- unauthorized viewers receive an opaque `AnimationKey` or no move metadata;
+- storage and trusted replay retain the complete move record.
 
-- move payload secrecy;
-- proposer secrecy;
-- move-name secrecy;
-- version, timing, and occurrence secrecy.
+Offer projection must first require that the canonical move name is visible to
+the viewer acting as the hypothetical proposer. That permits the typed client
+to construct the proposal. Name visibility does not authorize exact candidate
+status: `PublicExact` remains the separate trusted declassification for that
+fact, and detailed reasons remain separately controlled.
 
-Viewer-specific offers can help with the first three once move disclosure is
-implemented. The current transport still broadcasts global version activity
-and cannot conceal that some event occurred. This design makes no
-traffic-analysis-secrecy promise.
+The landed server currently uses `privateMoveAvailable`, including complete
+`move.Legal()` on a default move instance, to decide whether a private move form
+is visible. That is correct for complete zero-input moves but unsound for an
+incomplete required-input move: an illegal default sentinel can hide a move
+having another legal binding. Offer-configured private moves must instead use
+the candidate-aware rule in this design—canonical name visible and at least one
+fully bound candidate legal. The legacy helper must not gate the resulting
+offer or its hydrated actions.
+
+The privacy layers are now:
+
+- move payload secrecy: landed;
+- proposer secrecy: proposer is absent from the client move record;
+- canonical move-name secrecy: landed, with opaque/silent animation fallback;
+- offer/candidate-status secrecy: governed by this design;
+- version, timing, and occurrence secrecy: not provided.
+
+The current transport still broadcasts global version activity and cannot
+conceal that some event occurred. A simultaneous secret-choice game can now
+hide committed names and fields, but private offer discovery and
+traffic-analysis resistance remain separate concerns.
 
 ## Runtime offer projection
 
@@ -523,15 +555,17 @@ type or defer until multiple-instance offers are designed.
 For one authenticated seated player at the current settled version:
 
 1. Enumerate only move types explicitly configured for offers.
-2. Use the move's existing hypothetical-next-move `inProgression` legality
+2. Require the canonical move name to be visible under the landed move-name
+   sanitization policy for the viewer as hypothetical proposer.
+3. Use the move's existing hypothetical-next-move `inProgression` legality
    behavior. Do not traverse or interpret the progression tree.
-3. Resolve the candidate source against an immutable, version-pinned offer
+4. Resolve the candidate source against an immutable, version-pinned offer
    context.
-4. Bind each candidate through the canonical creator-input schema and codec.
-5. Call the complete existing `move.Legal(state, proposer)` chain.
-6. Apply the pre-authorized disclosure policy to candidate identity, status,
+5. Bind each candidate through the canonical creator-input schema and codec.
+6. Call the complete existing `move.Legal(state, proposer)` chain.
+7. Apply the pre-authorized disclosure policy to candidate identity, status,
    and safe reason.
-7. If at least one candidate is legal, emit one typed offer associated with
+8. If at least one candidate is legal, emit one typed offer associated with
    existing move-form/action data and optionally include safely disabled peers.
    Otherwise suppress the offer and retain separate deadlock diagnostics.
 
@@ -611,6 +645,12 @@ equivalent explicit mode) for both `LegalForAnyone` and `LegalForPlayer` gates.
 The existing schema, snapshot, animation, submission, and transport gates still
 apply. A hydrated legal preview enables the candidate; a hydrated illegal
 preview disables it. This is a required semantic change, not an optimization.
+
+Committed animation metadata is deliberately separate. The landed `ClientMove`
+contains viewer-specific `AnimationKey`, `Version`, and optional sanitized
+`Properties`; it does not expose the canonical proposal name. Offer and action
+lookup use the generated canonical `MoveNames`, while animation selection uses
+only `AnimationKey`. Neither value may be substituted for the other.
 
 Offers should eliminate this existing renderer responsibility:
 
@@ -710,16 +750,16 @@ without making the offer layer authoritative.
 | Journey | Authoritative semantics | Offer treatment |
 | --- | --- | --- |
 | Valentine Guard | Several committed moves | Player then enum offers |
-| Valentine Priest/Baron | Committed choice plus private information | Public parts in v1; private projection waits for disclosure design |
+| Valentine Priest/Baron | Committed choice plus private information | Sanitized committed metadata exists; private offer status needs later policy |
 | Checkers source/destination | One atomic move | Existing local draft; future offer-supplied candidates |
 | Darwin card/species | One atomic move | Existing local draft; future offer-supplied candidates |
 | Memory repeated reveals | Repeated committed move | New offer after each settled reveal; no occurrence cursor |
-| Werewolf voting | Durable per-player obligation | Domain state plus later private offers |
+| Werewolf voting | Durable per-player obligation | Landed move sanitization protects records; private offers remain later work |
 | Scrabble placement | One combinatorial atomic move | Specialized draft; not a v1 offer domain |
 | Ticket to Ride two draws | State changes after first committed draw | Newly derived offer after first draw |
 | Catan robber | Durable discards, then serial decisions | Per-player protocol state plus later offers |
 | Coup reaction window | Durable timed/priority protocol | Domain state owns window; privacy-reviewed offers project responses |
-| Secret choose/reveal | Durable private submissions | Aspirational; blocked on move disclosure and transport limits |
+| Secret choose/reveal | Durable private submissions | Names/fields can be sanitized; offer and traffic secrecy remain incomplete |
 
 No one workflow abstraction owns these journeys. Offers are the replaceable UI
 boundary; each game retains the correct authoritative representation.
@@ -786,7 +826,9 @@ viewer-specific projection.
 12. Committed decisions remain moves; local partial drafts are not moves.
 13. Durable protocols remain explicit game state or phases.
 14. Admin and observers receive no player offers by default.
-15. Provider failure is distinguishable from an empty legal choice set.
+15. Canonical offer names obey landed move-name sanitization; `AnimationKey` is
+    never used as proposal identity.
+16. Projection failure is distinguishable from an empty legal choice set.
 
 ## Testing strategy
 
@@ -816,9 +858,13 @@ viewer-specific projection.
 - candidate identities, counts, ordering, statuses, and reasons are each tested;
 - trusted `PublicExact` covers identity/membership/status for the named audience
   but does not implicitly expose reasons;
+- canonical offer-name visibility agrees with `WithMoveNameSanitization` group
+  policy for the hypothetical proposer;
+- committed `MoveJSONForPlayer` output and offer output are tested together for
+  the same viewer matrix;
 - raw detailed projection and legality errors remain server-only when unsafe;
-- private-choice journeys remain disabled until their disclosure prerequisites
-  land.
+- private-choice journeys remain disabled until offer-disclosure prerequisites
+  land, even though committed move names and fields can now be sanitized.
 
 ### Determinism and resource tests
 
@@ -854,6 +900,10 @@ viewer-specific projection.
 - Fix `BoundMoveAction` so default-instance `LegalForAnyone` cannot block a
   legal complete binding with creator input. Offer-hydrated actions explicitly
   defer both baseline legality gates to hydrated exact preview.
+- Replace `privateMoveAvailable` as the discovery gate for offer-configured
+  required-input moves: use move-name visibility plus at least one legal bound
+  candidate. Preserve its generic-error behavior for unauthorized private
+  proposals and previews.
 - Specify how offer projection associates with existing move forms and typed
   actions; do not create a second controller.
 - Audit exact batch preview as a hidden-state oracle. Add disclosure-safe error
@@ -870,6 +920,8 @@ viewer-specific projection.
 - Validate configuration through `BuildMoveInputSchema`.
 - Add structured prompt/title keys, framework candidate-label conventions, and
   trusted `PublicExact` disclosure assertion with separate reason disclosure.
+- Reuse `MoveNameVisibleToPlayer`/the landed group-policy machinery for
+  canonical offer-name visibility; do not duplicate audience configuration.
 - Derive typed viewer-specific offers through complete legality evaluation.
 - Generate the exact TypeScript offer union and outer snapshot envelope.
 
@@ -912,8 +964,9 @@ invariants.
    existing version-delivery pipeline?
 7. Is an offer schema fingerprint distinct from the creator-input fingerprint,
    or is a small offer schema version sufficient?
-8. Which public Valentine choices can migrate in v1 without depending on issue
-   #693?
+8. Should `PublicExact` default to the same actor audience admitted by canonical
+   move-name visibility, or require an additional explicit group policy even
+   though v1 emits offers only to the hypothetical proposer?
 9. What is the narrowest future contract for `PublicSuperset` that does not turn
    proposal failures into another hidden-state oracle?
 
