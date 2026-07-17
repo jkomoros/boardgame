@@ -102,7 +102,7 @@ import {
 } from '../timers/timer-service.js';
 
 import type { GameFromServer, StateBundle } from '../types/game-state';
-import type { MoveForm } from '../types/api';
+import type { ClientMove, MoveForm } from '../types/api';
 
 import game from '../reducers/game.js';
 store.addReducers({
@@ -334,6 +334,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   @property({ type: Boolean })
   _firstStateBundle = true;
+
+  @property({ type: Object, attribute: false })
+  private _installedMove: ClientMove | null = null;
 
   @query('#manager')
   private _managerEle?: BoardgameGameStateManager;
@@ -674,6 +677,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           id="render"
           .state=${this._currentState}
           .animationContext=${this._animationContext}
+          .transitionMove=${this._installedMove}
           .diagram=${this.game ? this.game.Diagram : ''}
           .renderer=${this.activeRenderer}
           @renderer-changed=${this._handleRendererChanged}
@@ -1461,6 +1465,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this.viewingAsPlayer = 0;
     this._moveInputSchemaFingerprint = null;
     this._animationContext = null;
+    this._installedMove = null;
     this._moveSnapshotEpoch += 1;
     this._firstStateBundle = true;
   }
@@ -1470,6 +1475,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // render-game wrapper applies it to the shared animator before assigning
     // the new state to the game renderer.
     this._animationContext = bundle.animationContext ?? null;
+    this._installedMove = bundle.move;
     this._moveSnapshotEpoch += 1;
     store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
 

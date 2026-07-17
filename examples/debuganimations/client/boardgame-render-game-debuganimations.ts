@@ -11,9 +11,11 @@ import { property } from 'lit/decorators.js';
 import { MoveNames } from './_move_names.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { styleMap } from 'lit/directives/style-map.js';
-import { cardView, isStackLayout, tokenView } from '../../src/client.js';
+import { cardView, fx, isStackLayout, tokenView } from '../../src/client.js';
 import type { ClientMove, StackLayout } from '../../src/client.js';
-import type { GameState } from './_types.js';
+import type { EffectSpec, EffectTransitionContext } from '../../src/client.js';
+import type { GameState, State } from './_types.js';
+import type { MoveName } from './_move_names.js';
 
 @registerGameRenderer
 export class BoardgameRenderGameDebuganimations extends GameRenderer {
@@ -200,6 +202,29 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
     return 0.3;
   }
 
+  override effectsForTransition(
+    context: EffectTransitionContext<State, MoveName>,
+  ): readonly EffectSpec[] {
+    if (context.kind === 'initial' || context.move?.Name !== MoveNames.MoveToken) return [];
+    return [fx.sequence([
+      fx.travel({
+        from: fx.anchor('token-source'),
+        to: fx.anchor('token-destination'),
+        tone: 'magic',
+        intensity: 'small',
+      }),
+      fx.burst({
+        at: fx.anchor('token-destination'),
+        tone: 'reward',
+        intensity: 'small',
+      }),
+    ], {
+      key: 'token-transfer',
+      timing: 'version',
+      gapMs: 20,
+    })];
+  }
+
   private _classes(): string {
     if (this.slowAnimations) {
       return 'slow';
@@ -261,10 +286,19 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           <button
             id="effect-demo"
             type="button"
-            @click=${(event: Event) => this.effects?.burst(event.currentTarget as HTMLElement, {
-              preset: 'celebrate',
-              seed: `debug-${this.gameVersion}`,
-            })}>
+            @click=${(event: Event) => this.effects?.play(fx.parallel([
+              fx.burst({
+                at: event.currentTarget as HTMLElement,
+                tone: 'magic',
+                intensity: 'large',
+                key: 'debug-celebration',
+              }),
+              fx.pulse({
+                at: event.currentTarget as HTMLElement,
+                tone: 'reward',
+                intensity: 'medium',
+              }),
+            ]))}>
             Celebrate
           </button>
         </div>
@@ -447,12 +481,14 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
 
         <div id="tokens">
           <boardgame-component-stack
+            data-effect-anchor="token-source"
             layout="grid"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.TokensFrom}"
             .componentView=${this.tokens.withProperties({ color: this.tokenColor, type: this.tokenType })}>
           </boardgame-component-stack>
           <boardgame-component-stack
+            data-effect-anchor="token-destination"
             layout="grid"
             ?messy="${this.messy}"
             .stack="${this.state?.Game?.TokensTo}"

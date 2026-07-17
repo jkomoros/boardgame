@@ -1,8 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import { BoardgameComponentAnimator } from './boardgame-component-animator.js';
-import { BoardgameEffectLayer } from './boardgame-effect-layer.js';
-import type { MoveForm } from '../types/api.js';
+import './boardgame-component-animator.js';
+import type { BoardgameComponentAnimator } from './boardgame-component-animator.js';
+import './boardgame-effect-layer.js';
+import type { BoardgameEffectLayer } from './boardgame-effect-layer.js';
+import type { ClientMove, MoveForm } from '../types/api.js';
+import { createEffectTransitionContext } from '../effects/effect-spec.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import { movePreviewBatch } from '../api.js';
 import {
@@ -123,6 +126,9 @@ class BoardgameRenderGame extends LitElement {
   // The shared animator consumes it as animateBetween's default.
   @property({ type: Object })
   animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
+
+  @property({ type: Object, attribute: false })
+  transitionMove: ClientMove | null = null;
 
   @property({ type: Object })
   chest: GameChest<object> | null = null;
@@ -274,6 +280,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _boundComponentWillAnimate?: (e: Event) => void;
   private _boundComponentAnimationDone?: (e: Event) => void;
+  private _lastEffectTransitionKey = '';
   // Fired (composed) by the inner renderer via requestPreviewRefresh() when its
   // LOCAL interaction state changes (e.g. a multi-step move selected a source
   // piece) so previewSpec() must be re-evaluated without a state/turn change.
@@ -361,6 +368,7 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('animationContext') && this._animator) {
       this._animator.animationContext = this.animationContext;
+      this._configureEffectLayer();
     }
 
     if (changedProperties.has('diagram')) {
@@ -522,6 +530,7 @@ class BoardgameRenderGame extends LitElement {
     renderer.movePreviewTransport = this.movePreviewTransport;
     renderer.targetPreviewTransport = this.targetPreviewTransport;
     if (this.moveSubmissionGate) renderer.moveSubmissionGate = this.moveSubmissionGate;
+    this._configureEffectLayer();
   }
 
   // _applyAnimatingToRenderer mirrors isAnimating onto the renderer so the
@@ -693,8 +702,14 @@ class BoardgameRenderGame extends LitElement {
     if (this._animator) {
       this._animator.animationContext = this.animationContext;
     }
-    const stateWasNull = this.renderer.state == null;
+    // Refresh snapshot-derived seed/timing configuration even when the
+    // animation context itself remains null across consecutive versions.
+    this._configureEffectLayer();
+    const previousState = this.renderer.state;
+    const stateWasNull = previousState == null;
+    const beforeAnchors = this._effects?.captureNamedAnchors() ?? new Map();
     if (newState && !stateWasNull) {
+      this._effects?.cancelTransitionEffects();
       this._resetAnimating();
       // Clear stale faux animating components from any interrupted animation
       // cycle before prepare() captures positions. This prevents old faux
@@ -706,11 +721,46 @@ class BoardgameRenderGame extends LitElement {
     // For Lit renderers, set property directly
     this.renderer.state = newState;
 
+    if (newState) {
+      void this._planTransitionEffects(this.renderer, previousState, newState, beforeAnchors);
+    }
+
     if (newState && !stateWasNull) {
       // Call animateFlip. When all of the things that will be animating have
       // started, check to see if no animations have been registered; if they
       // haven't, then we can advance to the next state immediately.
       this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations());
+    }
+  }
+
+  private async _planTransitionEffects(
+    renderer: HostedGameRenderer,
+    before: HostedState | null,
+    after: HostedState,
+    beforeAnchors: import('./boardgame-effect-layer.js').EffectAnchorSnapshot,
+  ): Promise<void> {
+    const key = `${this.gameId}:${this.snapshotEpoch}:${this.gameVersion}`;
+    if (this._lastEffectTransitionKey === key) return;
+    await renderer.updateComplete;
+    if (this.renderer !== renderer || renderer.state !== after || !this._effects) return;
+    if (this._lastEffectTransitionKey === key) return;
+    this._lastEffectTransitionKey = key;
+    this._effects.installBeforeAnchors(beforeAnchors);
+    const context = createEffectTransitionContext<HostedState, string>({
+      before,
+      after,
+      move: this.transitionMove,
+      version: this.gameVersion,
+      snapshotEpoch: this.snapshotEpoch,
+    });
+    try {
+      const effects = renderer.effectsForTransition(context);
+      if (!Array.isArray(effects)) {
+        throw new Error('effectsForTransition() must return a readonly array');
+      }
+      for (const effect of effects) this._effects.playTransition(effect);
+    } catch (error) {
+      console.error('[effects] transition planning failed:', error);
     }
   }
 
@@ -960,10 +1010,21 @@ class BoardgameRenderGame extends LitElement {
 
   private _removeRenderer() {
     this._effects?.cancelAll();
+    this._lastEffectTransitionKey = '';
     if (this.renderer && this._container) {
       this._container.removeChild(this.renderer);
     }
     this.renderer = null;
+  }
+
+  private _configureEffectLayer(): void {
+    if (!this._effects) return;
+    this._effects.configure({
+      anchorRoot: this.renderer?.renderRoot ?? null,
+      seedScope: `${this.gameId}:${this.snapshotEpoch}:${this.gameVersion}`,
+      theme: this.renderer?.effectTheme() ?? {},
+      animationContext: this.animationContext,
+    });
   }
 
   private _instantiateRenderer(surfaceSuffix: string = '') {
@@ -1024,6 +1085,10 @@ class BoardgameRenderGame extends LitElement {
 
     if (this._container) {
       this._container.appendChild(ele);
+    }
+    this._configureEffectLayer();
+    if (this.state) {
+      void this._planTransitionEffects(ele, null, this.state, new Map());
     }
 
     // Only try to fire if there's a state. If it's the first time this

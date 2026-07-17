@@ -6,7 +6,13 @@ import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 import type { ClientMove } from '../types/api.js';
 import { START_MOVE_NAMES, getReadyToStartError } from './gathering-shared.js';
 import type { ComponentAnimatorAPI } from './boardgame-component-animator.js';
-import type { EffectHostAPI } from './boardgame-effect-layer.js';
+import { DEFAULT_EFFECT_THEME } from '../effects/effect-spec.js';
+import type {
+  EffectHostAPI,
+  EffectSpec,
+  EffectTheme,
+  EffectTransitionContext,
+} from '../effects/effect-spec.js';
 import {
   serializeCreatorMoveInputForServer,
   validateCreatorMoveInput,
@@ -219,14 +225,28 @@ export class BoardgameBaseGameRenderer<
   }
 
   /**
-   * Semantic, renderer-wide delight effects. Effects are visual-only and do
-   * not hold the state queue unless `gated: true` is explicitly requested.
-   * Pass an element for the most robust anchor, or an id/data-effect-anchor.
+   * Plays immutable visual-effect descriptors. Effects are decorative and
+   * never own game truth or hold the state queue.
    */
   protected get effects(): EffectHostAPI | null {
     const root = this.getRootNode();
     if (!(root instanceof ShadowRoot)) return null;
     return root.querySelector('#effects') as EffectHostAPI | null;
+  }
+
+  /** Semantic palette overrides for this game renderer's effects. */
+  effectTheme(): EffectTheme {
+    return DEFAULT_EFFECT_THEME;
+  }
+
+  /**
+   * Pure, exactly-once planning hook for an installed authoritative snapshot.
+   * Return immutable descriptors; never start effects from Lit lifecycle hooks.
+   * Initial loads are explicit (`context.kind === 'initial'`) so reconnecting
+   * to an already-finished game does not accidentally replay a celebration.
+   */
+  effectsForTransition(_context: EffectTransitionContext<S, MN>): readonly EffectSpec[] {
+    return [];
   }
 
   /**
