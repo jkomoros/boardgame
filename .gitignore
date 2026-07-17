@@ -48,7 +48,8 @@ server/static/screenshots/
 /*.log
 /*.txt
 *.pid
-temp_serve_*/
+# Ephemeral boardgame-util serve trees; never commit generated servers/assets.
+/temp_serve_*
 boardgame-util/temp_gametypes_*/
 server/static/game-src/*
 research/
