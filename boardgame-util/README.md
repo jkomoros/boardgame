@@ -11,7 +11,8 @@ boardgame-util serve --offline-dev-mode
 ```
 
 `stub` creates strict Lit/TypeScript renderers and their Go game package.
-`lint` is the read-only Go game-authoring preflight: it checks package safety,
+`lint` is the read-only Go game-authoring preflight: it type-checks package
+shape and the `NewDelegate` contract with source-located diagnostics, checks package safety,
 generated reader/enum freshness, and constructs the real game manager so stack
 schemas, constraints, move configuration, phases, legal preconditions, and
 progression errors fail before a server starts. It accepts imports, directories,

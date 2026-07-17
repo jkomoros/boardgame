@@ -63,24 +63,6 @@ func TestCheckGeneratedFileRemovesOwnedOrphan(t *testing.T) {
 	}
 }
 
-func TestDeclaresNewDelegate(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("package sample\nfunc NewDelegate() int { return 0 }\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	found, err := declaresNewDelegate(dir)
-	if err != nil || !found {
-		t.Fatalf("declaresNewDelegate = (%v, %v), want (true, nil)", found, err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("package sample\nfunc SomethingElse() {}\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	found, err = declaresNewDelegate(dir)
-	if err != nil || found {
-		t.Fatalf("declaresNewDelegate = (%v, %v), want (false, nil)", found, err)
-	}
-}
-
 func TestCheckBundledGame(t *testing.T) {
 	report := Check([]string{"../../../examples/pig"}, Options{})
 	if !report.OK {
@@ -88,5 +70,29 @@ func TestCheckBundledGame(t *testing.T) {
 	}
 	if len(report.Packages) != 1 || report.Packages[0] != "github.com/jkomoros/boardgame/examples/pig" {
 		t.Fatalf("checked packages = %v, want Pig", report.Packages)
+	}
+}
+
+func TestCheckMalformedPackageReportsSourcePosition(t *testing.T) {
+	report := Check([]string{"../gamepkg/testdata/wrongreturn"}, Options{})
+	if report.OK || len(report.Diagnostics) == 0 {
+		t.Fatalf("malformed package unexpectedly passed: %+v", report)
+	}
+	diagnostic := report.Diagnostics[0]
+	if diagnostic.Code != CodePackage || diagnostic.File == "" || diagnostic.Line == 0 {
+		t.Fatalf("diagnostic did not include a package code and source position: %+v", diagnostic)
+	}
+	if !strings.Contains(diagnostic.Message, "does not implement boardgame.GameDelegate") {
+		t.Fatalf("unexpected diagnostic: %+v", diagnostic)
+	}
+}
+
+func TestCheckMalformedPatternReportsLoaderError(t *testing.T) {
+	report := Check([]string{"./definitely-not-a-package/..."}, Options{})
+	if report.OK || len(report.Diagnostics) != 1 {
+		t.Fatalf("malformed pattern report = %+v", report)
+	}
+	if strings.Contains(report.Diagnostics[0].Message, "did not contain any package") {
+		t.Fatalf("loader failure was replaced by a generic empty-pattern diagnostic: %+v", report.Diagnostics[0])
 	}
 }

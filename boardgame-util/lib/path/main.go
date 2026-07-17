@@ -5,17 +5,19 @@ package path
 
 import (
 	"errors"
+	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
 // AbsoluteGoPkgPath takes a pkg import and returns the full path to the pkg on
 // this system. The pkgImport must denote an actual package of go files or it
 // will error. It first looks for the right package in $GOPATH, and returns
-// that if it finds it. If that doesn't work it falls back on `go list`, which
-// will try to download it if it cannot already be satisfied locally. Because
+// that if it finds it. If that doesn't work it falls back on the Go package
+// loader, which may download it if it cannot already be satisfied locally. Because
 // this uses the $GOPATH copy first, that allows for example relying on games
 // locally without going through a VCS, which is nice if you're not connected
 // to the internet. If you're trying to load up Game Packages, you should
@@ -26,7 +28,7 @@ func AbsoluteGoPkgPath(pkgImport string) (string, error) {
 
 // Options controls how package paths are resolved.
 type Options struct {
-	// ReadOnly prevents go list from modifying go.mod or go.sum.
+	// ReadOnly prevents package loading from modifying go.mod or go.sum.
 	ReadOnly bool
 }
 
@@ -48,29 +50,32 @@ func AbsoluteGoPkgPathWithOptions(pkgImport string, options Options) (string, er
 		}
 	}
 
-	_, err := exec.LookPath("go")
-
-	if err != nil {
-		return "", errors.New("go tool not installed")
-	}
-
-	args := []string{"list"}
+	config := &packages.Config{Mode: packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles}
 	if options.ReadOnly {
-		args = append(args, "-mod=readonly")
+		config.BuildFlags = append(config.BuildFlags, "-mod=readonly")
 	}
-	args = append(args, "-f", "{{.Dir}}", pkgImport)
-	cmd := exec.Command("go", args...)
-	output, err := cmd.CombinedOutput()
+	loaded, err := packages.Load(config, pkgImport)
 	if err != nil {
-		return "", errors.New("go list failed: " + err.Error() + ": " + string(output))
+		return "", fmt.Errorf("load package: %w", err)
 	}
-
-	result := strings.TrimSpace(string(output))
-	if result == "" {
-		return "", errors.New("No content returned from go list unexpectedly")
+	if len(loaded) != 1 {
+		return "", fmt.Errorf("package query returned %d packages, want 1", len(loaded))
 	}
-
-	return result, nil
+	if len(loaded[0].Errors) > 0 {
+		messages := make([]string, 0, len(loaded[0].Errors))
+		for _, problem := range loaded[0].Errors {
+			messages = append(messages, problem.Error())
+		}
+		return "", errors.New(strings.Join(messages, "; "))
+	}
+	files := loaded[0].CompiledGoFiles
+	if len(files) == 0 {
+		files = loaded[0].GoFiles
+	}
+	if len(files) == 0 {
+		return "", errors.New("package contained no active Go files")
+	}
+	return filepath.Dir(files[0]), nil
 
 }
 
