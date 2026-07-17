@@ -53,6 +53,14 @@ jobs:
         with:
           go-version: '1.25.x'
           cache-dependency-path: go.sum
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: server/static/package-lock.json
+      - name: Install pinned client dependencies used by static-build tests
+        working-directory: server/static
+        run: npm ci
       - name: Test generators, static assembly, scaffold, API, and move contracts
         run: go test ./boardgame-util/... ./server/api . ./moves
 

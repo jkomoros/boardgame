@@ -65,6 +65,22 @@ func updateNodeModules(absPackageJSONPath string, skipUpdate bool) (string, erro
 		return "", errors.New("npm didn't appear to be installed. You need to install npm")
 	}
 
+	// An offline build may already have an exact, lockfile-installed dependency
+	// tree beside the framework package.json (for example, after `npm ci` in
+	// CI). Reuse it directly instead of requiring a second central-cache install.
+	// Downstream builds without adjacent modules still fall through to the
+	// existing cache, and fail loudly if neither source is available offline.
+	if skipUpdate {
+		adjacentPath, exists, err := adjacentNodeModulesPath(absPackageJSONPath)
+		if err != nil {
+			return "", err
+		}
+		if exists {
+			fmt.Println("Using adjacent " + nodeModulesFolder + " without updating in offline mode")
+			return adjacentPath, nil
+		}
+	}
+
 	cacheDir, err := buildCachePath()
 	if err != nil {
 		return "", errors.New("Couldn't get build cache path: " + err.Error())
@@ -141,4 +157,19 @@ func updateNodeModules(absPackageJSONPath string, skipUpdate bool) (string, erro
 
 	return nodeCacheDir, nil
 
+}
+
+func adjacentNodeModulesPath(absPackageJSONPath string) (string, bool, error) {
+	path := filepath.Join(filepath.Dir(absPackageJSONPath), nodeModulesFolder)
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return path, false, nil
+	}
+	if err != nil {
+		return path, false, errors.New("Couldn't inspect adjacent " + nodeModulesFolder + ": " + err.Error())
+	}
+	if !info.IsDir() {
+		return path, false, errors.New("Adjacent " + nodeModulesFolder + " path was not a directory")
+	}
+	return path, true, nil
 }
