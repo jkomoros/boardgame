@@ -44,6 +44,10 @@ export interface CompanionInfo {
   TableSession: CompanionTableSession;
   /** Server-computed authority verdict for host actions on this request. */
   IsHost: boolean;
+  /** This request may create the finished game's one durable successor. */
+  CanRematch: boolean;
+  /** Published only after the successor is fully configured and safe to enter. */
+  RematchGameID: string;
 }
 
 /**

@@ -23,6 +23,15 @@ type StorageRecord struct {
 	// CompanionLocked, when true, prevents new phones from joining the room
 	// even if the code is known. Host-controlled. Always false for solo-mode.
 	CompanionLocked bool
+	// RematchGameID durably links a finished companion game to its one
+	// successor. It is allocated before successor creation so retries and
+	// different API instances converge on the same game rather than creating
+	// duplicate rooms after a lost response or process crash.
+	RematchGameID string
+	// RematchReady is published only after the successor's metadata, Table
+	// lease, seats, and presentations are installed. Clients must never follow
+	// the allocated ID while setup is only partially committed.
+	RematchReady bool
 }
 
 // CombinedStorageRecord combines the base GameStorageRecord and StorageRecord
@@ -39,7 +48,7 @@ func DefaultStorageRecord() *StorageRecord {
 		Open:    true,
 		Visible: true,
 		Owner:   "",
-		// CompanionRoomCode and CompanionLocked default to "" / false — solo-mode.
+		// Companion and rematch fields default to their zero values.
 	}
 }
 

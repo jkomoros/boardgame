@@ -39,6 +39,8 @@ function info() {
       SeatPresentations: null,
       Absent: null,
       IsHost: false,
+      CanRematch: false,
+      RematchGameID: '',
       TableSession: {
         Status: 'available',
         IsThisTable: false,

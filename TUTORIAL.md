@@ -3592,6 +3592,10 @@ this.play(this, keyframes, { duration: 300 }, { timing: 'immediate' });
 Advanced test or orchestration code can instead pass
 `{ timing: { localStartAtMs: timestamp } }`. See
 `docs/companion-mode-authoring.md` for the complete Table/Hand conventions.
+That framework also owns the end of the companion journey: after a finished
+game, its Table and Hands can play again with the same seats and identities and
+will automatically follow the single prepared successor. Game renderers do not
+implement rematch controls or state copying.
 
 In the future there will be a number of other attributes and method override
 points, and they'll be described here.

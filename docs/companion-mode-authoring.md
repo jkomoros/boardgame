@@ -213,6 +213,19 @@ a seated player—so moving a phone to a projector cannot expose that player's
 private state. This entire journey is framework-owned; game authors add no
 routes, transfer methods, dialogs, or state fields.
 
+Finished rooms also have a framework-owned **Play again with the same
+players** flow. The Table or game owner may start it; every currently open
+Table and Hand then follows the same newly created game automatically. The new
+game keeps the manager, variants, agents, seat-to-user bindings, display names,
+avatars, visibility, and open/full state, while receiving a fresh room code.
+Creation is durable and idempotent: simultaneous clicks, retries after a lost
+response, and multiple API processes converge on one successor, and clients
+are not sent there until its metadata, Table capability, seats, and
+presentations are ready. A finished Table remains authorized to start the
+rematch even after its live lease expires, but only with its exact HttpOnly
+device capability. Renderers add no button, endpoint call, navigation, or
+rematch state; the framework chrome supplies the complete loop.
+
 ## Testing your surfaces on one machine
 
 `?display=table` / `?display=hand` on a game URL override renderer selection

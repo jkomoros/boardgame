@@ -105,7 +105,7 @@ func (s *Server) getSeatJoinLock(gameID string) *sync.Mutex {
 //     auto-only).
 //  6. Create the auth cookie + user record if not already present.
 //  7. Write the seatPresentation row.
-//  8. Run doSeatPlayer to queue the SeatPlayer proposal.
+//  8. Run doSeatPlayer and wait for the SeatPlayer proposal to commit.
 //  9. Issue the surface=hand cookie scoped to the gameID.
 //
 // On race (last seat just got taken), returns 409 with the latest seat
