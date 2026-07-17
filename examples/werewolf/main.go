@@ -64,9 +64,10 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardg
 func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
 	_, players := concreteStates(state)
 
-	// Initialize all player votes to -1 (no vote)
+	// Initialize all player votes to -1 (no vote).
 	for _, p := range players {
-		p.Vote = -1
+		p.DayVote = -1
+		p.NightVote = -1
 	}
 
 	return nil
@@ -161,8 +162,9 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 			roleName = "Werewolf"
 		}
 		line += fmt.Sprintf(" (%s)", roleName)
-		if p.Vote >= 0 {
-			line += fmt.Sprintf(" -> voted for Player %d", p.Vote)
+		vote := voteForPhase(p, phase)
+		if vote >= 0 {
+			line += fmt.Sprintf(" -> voted for Player %d", vote)
 		}
 		result = append(result, line)
 	}
@@ -191,7 +193,8 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurableSubState {
 	return &playerState{
-		Vote: -1,
+		DayVote:   -1,
+		NightVote: -1,
 	}
 }
 

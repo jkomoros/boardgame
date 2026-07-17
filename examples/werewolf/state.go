@@ -45,6 +45,14 @@ type playerState struct {
 	behaviors.InactivePlayer
 	behaviors.PlayerElimination
 	behaviors.PlayerRole
-	// Vote is the player index this player is voting for. -1 means no vote.
-	Vote boardgame.PlayerIndex
+	// DayVote is public: daytime voting is deliberately visible to everyone.
+	// -1 means no vote.
+	DayVote boardgame.PlayerIndex
+	// NightVote must never identify a werewolf or their target to another
+	// player or an observer. The owner can still see it on their Hand view.
+	NightVote boardgame.PlayerIndex `sanitize:"other:hidden"`
+	// FellowWolves is populated when roles are assigned. Keeping this on each
+	// player makes the wolf-team mechanic available to the owner's Hand view
+	// without exposing any other player's Role.
+	FellowWolves []boardgame.PlayerIndex `sanitize:"other:hidden"`
 }

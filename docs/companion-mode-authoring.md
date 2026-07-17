@@ -126,6 +126,16 @@ controls use the same snapshot-bound typed actions as solo controls.
   claiming a seat, and `Role`/`Team` default to `other:hidden`. To make
   roles public (e.g. Codenames spymasters), override the tag at your
   embedding site with `sanitize:"all:visible"`.
+- Sanitization policy is static per property. If the same concept changes
+  visibility by phase, split the state: Werewolf uses public `DayVote` and
+  `NightVote sanitize:"other:hidden"`, then selects the active field from the
+  current phase. Do not put both phases in one public `Vote` and rely on the
+  renderer to conceal it—the value is already in the network payload.
+- When one private fact must reveal a derived private fact, compute a
+  viewer-owned projection on the server. Werewolf stores an owner-only
+  `FellowWolves []boardgame.PlayerIndex` rather than asking the Hand renderer
+  to infer teammates from other players' sanitized `Role` values. Add a
+  viewer-matrix test for self, another player, and `ObserverPlayerIndex`.
 
 ## Cross-screen deal animation
 

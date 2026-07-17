@@ -367,7 +367,9 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 			return errors.New("Effective policy computed to PolicyInvalid")
 		}
 
-		readSetConfigurer.ConfigureProp(propName, applyPolicy(policy, prop, propType))
+		if err := readSetConfigurer.ConfigureProp(propName, applyPolicy(policy, prop, propType)); err != nil {
+			return errors.Extend(err, "Couldn't apply sanitization policy to "+propName)
+		}
 
 		if visibleDynamic != nil {
 
@@ -517,7 +519,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 	case TypeString:
 		return ""
 	case TypePlayerIndex:
-		return 0
+		return PlayerIndex(0)
 	case TypeTimer:
 		return NewTimer()
 	case TypeEnum:

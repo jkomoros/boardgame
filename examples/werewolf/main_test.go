@@ -210,6 +210,168 @@ func TestRoleVisibleToSelf(t *testing.T) {
 	}
 }
 
+// TestNightVoteSanitization pins the more subtle hidden-role privacy
+// contract: whether a player has voted at night identifies them as a wolf,
+// and their target is secret too. Day votes remain public by design.
+func TestNightVoteSanitization(t *testing.T) {
+	manager, game := newSeatedGame(t, 4)
+	inflater := manager.Internals().StructInflater(boardgame.StatePropertyRef{Group: boardgame.StateGroupPlayer})
+	if inflater == nil {
+		t.Fatal("player-state inflater not found")
+	}
+	if got := inflater.PropertySanitizationPolicy("NightVote")[boardgame.SanitizationDefaultPlayerGroup]; got != boardgame.PolicyHidden {
+		t.Fatalf("NightVote schema policy for other players = %v; want hidden", got)
+	}
+	policy := manager.Delegate().SanitizationPolicy(
+		boardgame.StatePropertyRef{Group: boardgame.StateGroupPlayer, PropName: "NightVote"},
+		map[string]bool{boardgame.SanitizationDefaultGroup: true, boardgame.SanitizationDefaultPlayerGroup: true},
+	)
+	if policy != boardgame.PolicyHidden {
+		t.Fatalf("NightVote effective policy for another player = %v; want hidden", policy)
+	}
+
+	state := game.CurrentState()
+	_, players := concreteStates(state)
+	wolfIndex := -1
+	for i, p := range players {
+		if !behaviors.PlayerIsInactive(p) && p.Role.Value() == roleWerewolf {
+			wolfIndex = i
+			break
+		}
+	}
+	if wolfIndex < 0 {
+		t.Fatal("no werewolf assigned in seated game")
+	}
+
+	// Cast one public day vote and prove observers receive it.
+	dayMove := game.MoveByName("Cast Vote").(*moveCastVote)
+	dayMove.VoteTarget = 1
+	if err := <-game.ProposeMove(dayMove, 0); err != nil {
+		t.Fatalf("cast first day vote: %v", err)
+	}
+	state = game.CurrentState()
+	dayState, err := state.SanitizedForPlayer(boardgame.ObserverPlayerIndex)
+	if err != nil {
+		t.Fatalf("sanitize day state for observer: %v", err)
+	}
+	dayVote, err := dayState.ImmutablePlayerStates()[0].Reader().PlayerIndexProp("DayVote")
+	if err != nil || dayVote != 1 {
+		t.Fatalf("observer DayVote = %d, %v; want public target 1", dayVote, err)
+	}
+
+	// Finish day voting through the real proposal/fix-up flow so the committed
+	// state reaches Night before the wolf votes.
+	for i := 1; i < 4; i++ {
+		move := game.MoveByName("Cast Vote").(*moveCastVote)
+		move.VoteTarget = boardgame.PlayerIndex((i + 1) % 4)
+		if err := <-game.ProposeMove(move, boardgame.PlayerIndex(i)); err != nil {
+			t.Fatalf("cast day vote for player %d: %v", i, err)
+		}
+	}
+	state = game.CurrentState()
+	gameState, _ := concreteStates(state)
+	if gameState.Phase.Value() != phaseNight {
+		t.Fatalf("phase after all day votes = %d; want Night", gameState.Phase.Value())
+	}
+	// The four-player fixture normally has one wolf, so its first night vote
+	// would immediately resolve and disappear. Promote one active villager in
+	// this test fixture to keep a real, committed mid-night state available.
+	_, players = concreteStates(state)
+	secondWolf := -1
+	for i, p := range players {
+		if i != wolfIndex && !behaviors.PlayerIsInactive(p) {
+			p.Role.SetValue(roleWerewolf)
+			secondWolf = i
+			break
+		}
+	}
+	if secondWolf < 0 {
+		t.Fatal("could not create second wolf for mid-night privacy fixture")
+	}
+	populateFellowWolves(players)
+
+	target := boardgame.PlayerIndex((wolfIndex + 1) % 4)
+	if target == 0 || int(target) == secondWolf {
+		target = 1 // Hidden PlayerIndex values sanitize to 0; use a distinct target.
+	}
+	if int(target) == wolfIndex || int(target) == secondWolf {
+		target = 2
+	}
+	nightMove := game.MoveByName("Cast Night Vote").(*moveCastVote)
+	nightMove.VoteTarget = target
+	if err := <-game.ProposeMove(nightMove, boardgame.PlayerIndex(wolfIndex)); err != nil {
+		t.Fatalf("cast night vote: %v", err)
+	}
+	state = game.CurrentState()
+
+	assertVotes := func(viewer boardgame.PlayerIndex, wantNight boardgame.PlayerIndex) {
+		t.Helper()
+		sanitized, err := state.SanitizedForPlayer(viewer)
+		if err != nil {
+			t.Fatalf("SanitizedForPlayer(%d): %v", viewer, err)
+		}
+		reader := sanitized.ImmutablePlayerStates()[wolfIndex].Reader()
+		nightVote, err := reader.PlayerIndexProp("NightVote")
+		if err != nil {
+			t.Fatalf("reading NightVote: %v", err)
+		}
+		if nightVote != wantNight {
+			t.Errorf("viewer %d sees NightVote=%d; want %d", viewer, nightVote, wantNight)
+		}
+	}
+
+	assertVotes(boardgame.ObserverPlayerIndex, 0)
+	assertVotes(boardgame.PlayerIndex((wolfIndex+2)%4), 0)
+	assertVotes(boardgame.PlayerIndex(wolfIndex), target)
+}
+
+// TestFellowWolvesPrivateToOwner verifies both halves of the teammate
+// contract: a wolf receives the exact other-wolf roster, while villagers,
+// observers, and other player-state records receive an empty slice.
+func TestFellowWolvesPrivateToOwner(t *testing.T) {
+	_, game := newSeatedGame(t, 4)
+
+	state := game.CurrentState()
+	_, players := concreteStates(state)
+	for i, p := range players {
+		if behaviors.PlayerIsInactive(p) {
+			continue
+		}
+		if i == 0 || i == 1 {
+			p.Role.SetValue(roleWerewolf)
+		} else {
+			p.Role.SetValue(roleVillager)
+		}
+	}
+	populateFellowWolves(players)
+
+	assertFellows := func(viewer, owner boardgame.PlayerIndex, want []boardgame.PlayerIndex) {
+		t.Helper()
+		sanitized, err := state.SanitizedForPlayer(viewer)
+		if err != nil {
+			t.Fatalf("SanitizedForPlayer(%d): %v", viewer, err)
+		}
+		got, err := sanitized.ImmutablePlayerStates()[owner].Reader().PlayerIndexSliceProp("FellowWolves")
+		if err != nil {
+			t.Fatalf("reading FellowWolves: %v", err)
+		}
+		if len(got) != len(want) {
+			t.Fatalf("viewer %d sees player %d fellows %v; want %v", viewer, owner, got, want)
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("viewer %d sees player %d fellows %v; want %v", viewer, owner, got, want)
+			}
+		}
+	}
+
+	assertFellows(0, 0, []boardgame.PlayerIndex{1})
+	assertFellows(1, 1, []boardgame.PlayerIndex{0})
+	assertFellows(2, 0, nil)
+	assertFellows(boardgame.ObserverPlayerIndex, 0, nil)
+	assertFellows(0, 1, nil)
+}
+
 // TestCheckGameFinishedTeamWinners pins the team-based winner computation:
 // the winning ROLE's members (eliminated teammates included) are the
 // winners — never "everyone", which is what base.GameDelegate's default

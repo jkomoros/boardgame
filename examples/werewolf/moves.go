@@ -5,6 +5,7 @@ import (
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -72,7 +73,34 @@ func (m *moveBeginGame) Apply(state boardgame.State) error {
 		}
 	}
 
+	populateFellowWolves(players)
+
 	return nil
+}
+
+func populateFellowWolves(players []*playerState) {
+	var werewolves []boardgame.PlayerIndex
+	for i, p := range players {
+		p.FellowWolves = nil
+		if behaviors.PlayerIsInactive(p) || p.Role.Value() != roleWerewolf {
+			continue
+		}
+		werewolves = append(werewolves, boardgame.PlayerIndex(i))
+	}
+	for _, wolf := range werewolves {
+		for _, fellow := range werewolves {
+			if fellow != wolf {
+				players[wolf].FellowWolves = append(players[wolf].FellowWolves, fellow)
+			}
+		}
+	}
+}
+
+func voteForPhase(player *playerState, phase enum.EnumKey) boardgame.PlayerIndex {
+	if phase == phaseNight {
+		return player.NightVote
+	}
+	return player.DayVote
 }
 
 // moveCastVote is a non-fixup move where a player votes for who to eliminate.
@@ -137,11 +165,11 @@ func (m *moveCastVote) Legal(state boardgame.ImmutableState, proposer boardgame.
 		return errors.New("eliminated players cannot vote")
 	}
 
-	if voter.Vote >= 0 {
+	phase := game.Phase.Value()
+
+	if voteForPhase(voter, phase) >= 0 {
 		return errors.New("you have already voted this phase")
 	}
-
-	phase := game.Phase.Value()
 
 	if phase == phaseNight {
 		if voter.Role.Value() != roleWerewolf {
@@ -174,9 +202,13 @@ func (m *moveCastVote) Legal(state boardgame.ImmutableState, proposer boardgame.
 }
 
 func (m *moveCastVote) Apply(state boardgame.State) error {
-	_, players := concreteStates(state)
+	game, players := concreteStates(state)
 	voter := players[m.TargetPlayerIndex]
-	voter.Vote = m.VoteTarget
+	if game.Phase.Value() == phaseNight {
+		voter.NightVote = m.VoteTarget
+	} else {
+		voter.DayVote = m.VoteTarget
+	}
 	return nil
 }
 
@@ -246,7 +278,7 @@ func (m *moveResolveVotes) Legal(state boardgame.ImmutableState, proposer boardg
 			// Villagers don't vote at night
 			continue
 		}
-		if p.Vote < 0 {
+		if voteForPhase(p, phase) < 0 {
 			return errors.New("not all eligible players have voted")
 		}
 	}
@@ -271,8 +303,9 @@ func (m *moveResolveVotes) Apply(state boardgame.State) error {
 		if phase == phaseNight && p.Role.Value() != roleWerewolf {
 			continue
 		}
-		if p.Vote >= 0 {
-			voteCounts[p.Vote]++
+		vote := voteForPhase(p, phase)
+		if vote >= 0 {
+			voteCounts[vote]++
 		}
 	}
 
@@ -310,7 +343,8 @@ func (m *moveResolveVotes) Apply(state boardgame.State) error {
 
 	// Reset all votes
 	for _, p := range players {
-		p.Vote = -1
+		p.DayVote = -1
+		p.NightVote = -1
 	}
 
 	// Transition phase

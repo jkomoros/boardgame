@@ -8,9 +8,9 @@ This is the canonical example of how to add companion mode to a game. The key pi
 
 ### Go side
 
-- **`state.go:47`** — `playerState` embeds `behaviors.PlayerRole`, which carries `sanitize:"other:hidden"` by default. This single line is what makes roles invisible on the projector (Table view) while visible on each player's own phone (Hand view).
+- **`state.go`** — `playerState` embeds `behaviors.PlayerRole`, whose role is private by default. It also separates public `DayVote` from private `NightVote`, and exposes the server-computed `FellowWolves` list only to its owning player. The network payload—not renderer convention—protects hidden information.
 - **`main.go`** — `ConfigureMoves()` does NOT register `moves.ForceFinishTurn` because werewolf uses simultaneous voting (`AnyPlayerIndex`). Turn-based games (like blackjack) should register it — see `examples/blackjack/main.go`.
-- **`main_test.go`** — `TestRoleHiddenFromObserver` and `TestRoleVisibleToSelf` pin the privacy contract.
+- **`main_test.go`** — sanitization tests pin roles, night votes, and fellow-wolf membership at the server boundary.
 
 ### Client side
 

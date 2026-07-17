@@ -126,8 +126,8 @@ export class WerewolfTableView extends TableRenderer {
     // enum's zero value ("Villager") — so "count the alive werewolves"
     // always returns 0 and the old banner declared "Villagers Win!" from
     // the very first Day. Game-over comes from the server via the plumbed
-    // gameFinished/gameWinners (renderGameOverBanner below) — though
-    // werewolf's delegate doesn't implement CheckGameFinished yet.
+    // gameFinished/gameWinners from the delegate's CheckGameFinished hook
+    // (renderGameOverBanner below).
     const activePlayers = players.flatMap((player, playerIndex) => player.PlayerInactive
       ? []
       : [{ player, playerIndex }]);
@@ -143,7 +143,7 @@ export class WerewolfTableView extends TableRenderer {
     const dayReadiness: readonly ReadinessParticipant<number>[] = activePlayers.map(({ player, playerIndex }) => ({
       key: playerIndex,
       label: nameFor(playerIndex),
-      state: player.Eliminated ? 'not-required' : player.Vote >= 0 ? 'ready' : 'waiting',
+      state: player.Eliminated ? 'not-required' : player.DayVote >= 0 ? 'ready' : 'waiting',
     }));
 
     return html`
@@ -175,7 +175,7 @@ export class WerewolfTableView extends TableRenderer {
 
       <div class="players-circle">
         ${activePlayers.map(({ player, playerIndex }) => {
-          const hasVoted = player.Vote >= 0;
+          const hasVoted = player.DayVote >= 0;
           return html`
             <div class="player-tile ${player.Eliminated ? 'eliminated' : ''}">
               <div class="name">${nameFor(playerIndex)}</div>
@@ -183,7 +183,7 @@ export class WerewolfTableView extends TableRenderer {
                 ? html`<div class="status">ELIMINATED</div>`
                 : html`
                   ${phase === 'Day' && hasVoted
-                    ? html`<div class="vote-info">Voted for ${nameFor(player.Vote)}</div>`
+                    ? html`<div class="vote-info">Voted for ${nameFor(player.DayVote)}</div>`
                     : ''}
                   ${phase === 'Day' && !hasVoted && !player.Eliminated
                     ? html`<div class="vote-info">Thinking...</div>`

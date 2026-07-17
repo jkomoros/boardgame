@@ -51,8 +51,8 @@ authoring guide and its cautionary tale is fixed in werewolf.*
 3. **The zero-value masquerade.** Sanitized enum properties read as the
    enum's *zero value*, not as "hidden" — on the table, every werewolf is a
    "Villager". Werewolf's own table renderer fell for it and declared
-   "Villagers Win!" from Day 1 (✅ FIXED by removing the impossible
-   computation; server-side game-end filed). The rule for the authoring
+   "Villagers Win!" from Day 1 (✅ FIXED with server-owned team win
+   conditions and winner lists). The rule for the authoring
    guide: **never branch on another player's sanitized property; verdicts
    must be server-computed public fields.**
 4. **The types fight honest authors.** Generated `GameState`/`PlayerState`
