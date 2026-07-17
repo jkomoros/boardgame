@@ -31,6 +31,7 @@ type boardgameUtil struct {
 	EmitTypes       emitTypes
 	CheckClient     checkClient
 	Lint            lintCmd
+	Imagegen        imagegenCmd
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -116,6 +117,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.EmitTypes,
 		&b.CheckClient,
 		&b.Lint,
+		&b.Imagegen,
 	}
 }
 

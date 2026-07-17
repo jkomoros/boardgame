@@ -1,0 +1,143 @@
+package imagegen
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"html/template"
+	"io"
+	"os"
+	"path/filepath"
+	"time"
+)
+
+type StyleCandidate struct {
+	Slug   string
+	Label  string
+	Prompt string
+}
+
+type StyleLock struct {
+	SchemaVersion  int    `json:"schema_version"`
+	LockedAt       string `json:"locked_at"`
+	Image          string `json:"image"`
+	ImageSHA256    string `json:"image_sha256"`
+	SelectedFrom   string `json:"selected_from"`
+	SourceManifest string `json:"source_manifest,omitempty"`
+}
+
+func ExploreStyles(brief string) []StyleCandidate {
+	return []StyleCandidate{
+		{Slug: "01-observational", Label: "Observational", Prompt: brief + "\n\nSTYLE AXIS: observational and naturalistic; precise forms, restrained palette, scientific credibility, quiet editorial composition."},
+		{Slug: "02-graphic", Label: "Graphic", Prompt: brief + "\n\nSTYLE AXIS: bold and graphic; simplified silhouettes, strong value structure, limited palette, clear readability at game-component scale."},
+		{Slug: "03-atmospheric", Label: "Atmospheric", Prompt: brief + "\n\nSTYLE AXIS: painterly and atmospheric; expressive light, weather, depth, and color while retaining functional negative space."},
+		{Slug: "04-tactile", Label: "Tactile", Prompt: brief + "\n\nSTYLE AXIS: tactile printmaking and handmade materials; visible process, texture, registration, and an ownable physical identity."},
+	}
+}
+
+func IterateStyles(refinement string) []StyleCandidate {
+	return []StyleCandidate{
+		{Slug: "01-faithful", Label: "Faithful", Prompt: refinement + "\n\nITERATION AXIS: preserve the selected style very closely; make only the requested refinements."},
+		{Slug: "02-bolder", Label: "Bolder", Prompt: refinement + "\n\nITERATION AXIS: preserve the selected identity while increasing contrast, silhouette clarity, and distinctiveness."},
+		{Slug: "03-quieter", Label: "Quieter", Prompt: refinement + "\n\nITERATION AXIS: preserve the selected identity while simplifying texture and creating more calm functional negative space."},
+		{Slug: "04-production", Label: "Production", Prompt: refinement + "\n\nITERATION AXIS: preserve the selected identity while optimizing consistency, repeatability, and legibility across many game assets."},
+	}
+}
+
+func WriteGallery(dir, title string, candidates []StyleCandidate) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	const page = `<!doctype html>
+<html><head><meta charset="utf-8"><title>{{.Title}}</title>
+<style>body{font:16px system-ui;margin:2rem;background:#eee;color:#222}main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem}figure{margin:0;background:white;padding:1rem;border-radius:.5rem;box-shadow:0 2px 12px #0002}img{display:block;width:100%;height:auto}figcaption{font-weight:650;margin-top:.75rem}code{font-weight:400}</style></head>
+<body><h1>{{.Title}}</h1><p>Choose one candidate to iterate or lock. Every image has a provenance sidecar.</p><main>
+{{range .Candidates}}<figure><img src="{{.Slug}}.png" alt="{{.Label}}"><figcaption>{{.Label}} — <code>{{.Slug}}.png</code></figcaption></figure>{{end}}
+</main></body></html>`
+	tmpl, err := template.New("gallery").Parse(page)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(filepath.Join(dir, "gallery.html"))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return tmpl.Execute(file, struct {
+		Title      string
+		Candidates []StyleCandidate
+	}{title, candidates})
+}
+
+func CreateStyleLock(selected, output string, force bool, now func() time.Time) (*StyleLock, error) {
+	if selected == "" || output == "" {
+		return nil, errors.New("selected reference and output are required")
+	}
+	if !force {
+		if _, err := os.Stat(output); err == nil {
+			return nil, fmt.Errorf("%s already exists; use --force to replace the lock", output)
+		}
+	}
+	data, err := os.ReadFile(selected)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+		return nil, err
+	}
+	if err := os.WriteFile(output, data, 0o644); err != nil {
+		return nil, err
+	}
+	sourceManifest := selected + ".imagegen.json"
+	if manifestData, err := os.ReadFile(sourceManifest); err == nil {
+		if err := os.WriteFile(output+".imagegen.json", manifestData, 0o644); err != nil {
+			return nil, err
+		}
+	} else {
+		sourceManifest = ""
+	}
+	if now == nil {
+		now = time.Now
+	}
+	// The locked image always lives beside this manifest. Store a portable
+	// relative reference so a style can move between GAMES and BOARDGAME.
+	lock := &StyleLock{SchemaVersion: 1, LockedAt: now().UTC().Format(time.RFC3339), Image: filepath.Base(output), ImageSHA256: digest(data), SelectedFrom: selected, SourceManifest: sourceManifest}
+	encoded, err := json.MarshalIndent(lock, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	encoded = append(encoded, '\n')
+	if err := os.WriteFile(output+".style-lock.json", encoded, 0o644); err != nil {
+		return nil, err
+	}
+	return lock, nil
+}
+
+func ReadStyleLock(path string) (*StyleLock, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+	var lock StyleLock
+	if err := json.Unmarshal(data, &lock); err != nil {
+		return nil, err
+	}
+	imagePath := lock.Image
+	if !filepath.IsAbs(imagePath) {
+		imagePath = filepath.Join(filepath.Dir(path), imagePath)
+	}
+	image, err := os.ReadFile(imagePath)
+	if err != nil {
+		return nil, fmt.Errorf("read locked style image: %w", err)
+	}
+	if digest(image) != lock.ImageSHA256 {
+		return nil, errors.New("locked style image hash does not match the lock manifest")
+	}
+	lock.Image = imagePath
+	return &lock, nil
+}
