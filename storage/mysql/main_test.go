@@ -11,12 +11,66 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/jkomoros/boardgame/server/api/tablelease"
 )
 
 const (
 	testDSN          = "root:root@tcp(localhost:3306)/TEMPORARY_DATABASE_boardgame_test"
 	pathToMigrations = "$GOPATH/src/github.com/jkomoros/boardgame/storage/mysql/migrations/"
 )
+
+func TestTableLeaseTransferSchemaCompatibilityBoundary(t *testing.T) {
+	if tableLeaseUsesTransferColumns(&tablelease.StorageRecord{}) {
+		t.Fatal("ordinary lease unexpectedly requires migration 0023")
+	}
+	for _, record := range []*tablelease.StorageRecord{
+		{TransferID: "x"}, {PreviousDeviceID: "x"}, {TransitionKind: tablelease.TransitionHostAction},
+	} {
+		if !tableLeaseUsesTransferColumns(record) {
+			t.Fatalf("transfer-capable record did not require migration 0023: %+v", record)
+		}
+	}
+}
+
+func TestTableLeaseTransferMigrationRoundTrip(t *testing.T) {
+	if _, err := net.DialTimeout("tcp", "localhost:3306", 200*time.Millisecond); err != nil {
+		t.Skip("MySQL not available at localhost:3306")
+	}
+	db, err := connect.Db(testDSN, true, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	migrations, err := connect.Migrations(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer migrations.Close()
+	if err := migrations.Up(); err != nil && err != migrate.ErrNoChange {
+		t.Fatal(err)
+	}
+	manager := &StorageManager{db: db}
+	defer func() {
+		if err := migrations.Up(); err != nil && err != migrate.ErrNoChange {
+			t.Errorf("restore latest migration: %v", err)
+		}
+	}()
+	if err := migrations.Steps(-1); err != nil {
+		t.Fatal(err)
+	}
+	available, err := manager.companionTableTransferColumnsAvailable()
+	if err != nil || available {
+		t.Fatalf("0023 down availability/error = %t/%v", available, err)
+	}
+	if err := migrations.Steps(1); err != nil {
+		t.Fatal(err)
+	}
+	available, err = manager.companionTableTransferColumnsAvailable()
+	if err != nil || !available {
+		t.Fatalf("0023 up availability/error = %t/%v", available, err)
+	}
+}
 
 // If outputTables is true, then will print create_tables.sql
 const outputTables = false

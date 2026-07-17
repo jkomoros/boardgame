@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame/server/api/tablelease"
+	"github.com/sirupsen/logrus"
 	"github.com/skip2/go-qrcode"
 )
 
@@ -134,9 +135,34 @@ func constantStringEqual(left, right string) bool {
 	return len(left) == len(right) && subtle.ConstantTimeCompare([]byte(left), []byte(right)) == 1
 }
 
+func tableTransferBlockedByHostAction(record *tablelease.StorageRecord) bool {
+	return record != nil && record.TransitionKind == tablelease.TransitionHostAction && tableLeaseActive(record, time.Now())
+}
+
 func tableTransferProblem(c *gin.Context, status int, code, message string) {
 	c.Header("Cache-Control", "no-store")
 	c.JSON(status, gin.H{"code": code, "error": message})
+}
+
+func (s *Server) auditTableTransfer(action, gameID, pairingID, sourceDeviceID, targetDeviceID, code string, success bool) {
+	if s == nil || s.logger == nil {
+		return
+	}
+	level := logrus.InfoLevel
+	if !success {
+		level = logrus.WarnLevel
+	}
+	auditDevice := func(deviceID string) string {
+		if deviceID == "" {
+			return ""
+		}
+		return s.transferDigest("boardgame-table-transfer-audit-device", deviceID)[:16]
+	}
+	s.logger.WithFields(logrus.Fields{
+		"audit": "table-transfer", "action": action, "gameID": gameID,
+		"pairingID": pairingID, "sourceDevice": auditDevice(sourceDeviceID),
+		"targetDevice": auditDevice(targetDeviceID), "code": code, "success": success,
+	}).Log(level)
 }
 
 func (s *Server) tableTransferClaimOrigin(c *gin.Context) (string, bool) {
@@ -219,6 +245,11 @@ func (s *Server) createTableTransferHandler(c *gin.Context) {
 			tableTransferProblem(c, http.StatusConflict, "GAME_NOT_COMPANION", "this game is switching to solo mode")
 			return
 		}
+		if tableTransferBlockedByHostAction(current) {
+			s.auditTableTransfer("create", gameID, current.TransferID, current.DeviceID, "", "TABLE_TRANSFER_BUSY", false)
+			tableTransferProblem(c, http.StatusConflict, "TABLE_TRANSFER_BUSY", "the shared Table is finishing an action; try again")
+			return
+		}
 		if current.TransferPending(now.UnixMilli()) {
 			s.tableTransferOffer(c, origin, gameID, current.TransferID, current.TransferExpires)
 			return
@@ -243,6 +274,7 @@ func (s *Server) createTableTransferHandler(c *gin.Context) {
 			return
 		}
 		if swapped {
+			s.auditTableTransfer("create", gameID, pairingID, current.DeviceID, "", "", true)
 			s.tableTransferOffer(c, origin, gameID, pairingID, replacement.TransferExpires)
 			return
 		}
@@ -277,6 +309,11 @@ func (s *Server) cancelTableTransferHandler(c *gin.Context) {
 			tableTransferProblem(c, http.StatusForbidden, "TABLE_LEASE_LOST", "this screen no longer controls the shared Table")
 			return
 		}
+		if tableTransferBlockedByHostAction(current) {
+			s.auditTableTransfer("cancel", gameID, body.PairingID, current.DeviceID, "", "TABLE_TRANSFER_BUSY", false)
+			tableTransferProblem(c, http.StatusConflict, "TABLE_TRANSFER_BUSY", "the shared Table is finishing an action; try again")
+			return
+		}
 		if current.TransferID == "" {
 			c.Header("Cache-Control", "no-store")
 			c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -294,6 +331,7 @@ func (s *Server) cancelTableTransferHandler(c *gin.Context) {
 			return
 		}
 		if swapped {
+			s.auditTableTransfer("cancel", gameID, body.PairingID, current.DeviceID, "", "", true)
 			c.Header("Cache-Control", "no-store")
 			c.JSON(http.StatusOK, gin.H{"ok": true})
 			return
@@ -419,8 +457,14 @@ func (s *Server) redeemTableTransferHandler(c *gin.Context) {
 			tableTransferProblem(c, status, code, message)
 			return
 		}
+		if tableTransferBlockedByHostAction(current) {
+			s.auditTableTransfer("redeem", input.gameID, input.pairingID, current.DeviceID, req.DeviceID, "TABLE_TRANSFER_BUSY", false)
+			tableTransferProblem(c, http.StatusConflict, "TABLE_TRANSFER_BUSY", "the shared Table is finishing an action; try again")
+			return
+		}
 		if current.TransferTargetDeviceID != "" {
 			if current.TransferTargetDeviceID != req.DeviceID {
+				s.auditTableTransfer("redeem", input.gameID, input.pairingID, current.PreviousDeviceID, req.DeviceID, "TABLE_TRANSFER_ALREADY_REDEEMED", false)
 				tableTransferProblem(c, http.StatusConflict, "TABLE_TRANSFER_ALREADY_REDEEMED", "that transfer was already used by another screen")
 				return
 			}
@@ -428,7 +472,11 @@ func (s *Server) redeemTableTransferHandler(c *gin.Context) {
 			// navigate and open a renewing socket. Re-fence the exact same device
 			// through CAS and restore a full lease window before reissuing cookies.
 			replacement := current.Clone()
+			replacement.SecretDigest = digest
 			replacement.Expires = time.Now().Add(tableLeaseTTL).UnixMilli()
+			if current.TransitionKind == tablelease.TransitionHostAction {
+				replacement.TransitionKind = tablelease.TransitionTransfer
+			}
 			_, swapped, err := s.storage.CompareAndSwapCompanionTableLease(input.gameID, current.Generation, replacement)
 			if err != nil {
 				tableTransferProblem(c, http.StatusInternalServerError, "TABLE_TRANSFER_STORAGE", "could not reconnect this screen")
@@ -439,6 +487,7 @@ func (s *Server) redeemTableTransferHandler(c *gin.Context) {
 			}
 			s.setTableLeaseCookie(c, input.gameID, req.DeviceID, secret)
 			s.setSurfaceCookie(c, input.gameID, "table")
+			s.auditTableTransfer("redeem-retry", input.gameID, input.pairingID, current.PreviousDeviceID, req.DeviceID, "", true)
 			s.notifier.broadcastTableSessionChanged(input.gameID)
 			c.Header("Cache-Control", "no-store")
 			c.JSON(http.StatusOK, gin.H{"ok": true, "gameID": input.gameID, "gameName": combined.Name, "gameURL": fmt.Sprintf("/game/%s/%s", url.PathEscape(combined.Name), url.PathEscape(input.gameID))})
@@ -463,6 +512,7 @@ func (s *Server) redeemTableTransferHandler(c *gin.Context) {
 		}
 		s.setTableLeaseCookie(c, input.gameID, req.DeviceID, secret)
 		s.setSurfaceCookie(c, input.gameID, "table")
+		s.auditTableTransfer("redeem", input.gameID, input.pairingID, current.DeviceID, req.DeviceID, "", true)
 		s.notifier.broadcastTableSessionChanged(input.gameID)
 		c.Header("Cache-Control", "no-store")
 		c.JSON(http.StatusOK, gin.H{"ok": true, "gameID": input.gameID, "gameName": combined.Name, "gameURL": fmt.Sprintf("/game/%s/%s", url.PathEscape(combined.Name), url.PathEscape(input.gameID))})

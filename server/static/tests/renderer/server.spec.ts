@@ -242,24 +242,26 @@ test('an active shared Table transfers atomically to a fresh accountless screen'
     await expect(receiver.getByRole('heading', { name: 'Move Blackjack here?' })).toBeVisible();
     expect((await receiverContext.cookies()).some(cookie => cookie.name === 'c')).toBe(false);
 
+    // Let the server commit the handoff, then deliberately lose the first
+    // response. Reloading /table must restore the scrubbed bearer from
+    // sessionStorage, reuse the same device ID, and redeem idempotently.
+    let droppedCommittedResponse = false;
+    await receiver.route('**/api/table-transfer/redeem', async route => {
+      if (droppedCommittedResponse) {
+        await route.continue();
+        return;
+      }
+      droppedCommittedResponse = true;
+      await route.fetch();
+      await route.abort('failed');
+    });
     await receiver.getByRole('button', { name: 'Make this the shared Table' }).click();
-    await receiver.waitForURL(new RegExp(`/game/blackjack/${result.GameID}$`), { timeout: 20_000 });
+    await expect.poll(() => droppedCommittedResponse).toBe(true);
+    await receiver.reload();
+    await receiver.waitForURL(new RegExp(`/game/blackjack/${result.GameID}\\?display=table$`), { timeout: 20_000 });
     await expect(receiver.locator('boardgame-render-game-blackjack-table')).toBeAttached({ timeout: 15_000 });
     await expect(receiver.getByRole('checkbox', { name: 'Lock room (no new joins)' })).toBeVisible();
-
-    // Replaying from the exact target device models a committed response that
-    // was lost in transit: it must renew and return ordinary success.
-    const decodedToken = new URLSearchParams(new URL(claimURL!).hash.slice(1)).get('transfer')!;
-    const pairingID = decodedToken.split('.')[2]!;
-    const retry = await receiver.evaluate(async ({ token, pairingID, gameID }) => {
-      const { tableRecoveryDeviceID } = await import('/src/utils/companion-surface.ts');
-      const response = await fetch('/api/table-transfer/redeem', {
-        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, pairingID, deviceID: tableRecoveryDeviceID(gameID) }),
-      });
-      return { status: response.status, body: await response.json() as unknown };
-    }, { token: decodedToken, pairingID, gameID: result.GameID });
-    expect(retry).toMatchObject({ status: 200, body: { ok: true, gameID: result.GameID } });
+    await receiver.unroute('**/api/table-transfer/redeem');
 
     // The capability, rather than a login, grants framework host controls.
     const lockResponse = receiver.waitForResponse(response => (

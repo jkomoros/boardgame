@@ -3,7 +3,9 @@ import { customElement, property, query } from 'lit/decorators.js';
 import { apiHttpPost, buildApiUrl } from '../api.js';
 import { rememberSurfaceForGame, tableRecoveryDeviceID } from '../utils/companion-surface.js';
 import {
+  clearPendingTableTransfer,
   decodeTableTransferInspection, decodeTableTransferRedemption,
+  rememberPendingTableTransfer, restorePendingTableTransfer,
   TableTransferScope, transferFailureMessage, transferTokenFromFragment,
   type TableTransferInput, type TableTransferInspection,
 } from '../table-transfer/table-transfer.js';
@@ -32,11 +34,15 @@ export class BoardgameTableTransferView extends LitElement {
   @property({ type: String, attribute: false }) private _error = '';
   @property({ type: String, attribute: false }) private _roomCode = '';
   @property({ type: String, attribute: false }) private _manualCode = '';
+  @property({ type: Number, attribute: false }) private _secondsRemaining = 0;
   @query('h1') private _heading?: HTMLElement;
 
   private readonly _scope = new TableTransferScope();
   private _input: TableTransferInput | null = null;
   private _fragmentConsumed = false;
+  private _restoredConfirmed = false;
+  private _expiryDeadline = 0;
+  private _expiryTimer: ReturnType<typeof setInterval> | null = null;
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -51,6 +57,8 @@ export class BoardgameTableTransferView extends LitElement {
     this._inspection = null;
     this._input = null;
     this._error = '';
+    this._restoredConfirmed = false;
+    this._stopExpiryTimer();
     this._fragmentConsumed = false;
     this._consumeFragment();
   };
@@ -64,7 +72,16 @@ export class BoardgameTableTransferView extends LitElement {
       }
       if (token) {
         this._input = { kind: 'token', token };
+        this._restoredConfirmed = false;
+        rememberPendingTableTransfer(this._input, false);
         void this._inspect(this._input);
+      } else {
+        const restored = restorePendingTableTransfer();
+        if (restored) {
+          this._input = restored.input;
+          this._restoredConfirmed = restored.confirmed;
+          void this._inspect(restored.input);
+        }
       }
     }
   }
@@ -72,6 +89,7 @@ export class BoardgameTableTransferView extends LitElement {
   override disconnectedCallback(): void {
     window.removeEventListener('hashchange', this._handleHashChange);
     this._scope.invalidate();
+    this._stopExpiryTimer();
     super.disconnectedCallback();
   }
 
@@ -85,6 +103,8 @@ export class BoardgameTableTransferView extends LitElement {
         this._inspection = null;
         this._input = null;
         this._error = '';
+        this._restoredConfirmed = false;
+        this._stopExpiryTimer();
         this._fragmentConsumed = false;
       }
     }
@@ -101,27 +121,36 @@ export class BoardgameTableTransferView extends LitElement {
     const operation = this._scope.begin();
     this._pending = true;
     this._error = '';
+    rememberPendingTableTransfer(input, this._restoredConfirmed);
+    let resumeConfirmedRedemption = false;
     try {
       const response = await apiHttpPost(buildApiUrl('table-transfer/inspect'), this._requestBody(input), { signal: operation.signal });
       if (!operation.isCurrent()) return;
       if (!response.data) {
         this._error = transferFailureMessage(response.code, response.error || response.friendlyError);
+        if (this._terminalFailure(response.code)) clearPendingTableTransfer();
         return;
       }
       const inspection = decodeTableTransferInspection(response.data);
       if (inspection.expiresAtMs <= inspection.serverNowMs) {
         this._error = transferFailureMessage('TABLE_TRANSFER_EXPIRED');
+        clearPendingTableTransfer();
         return;
       }
       this._input = input;
       this._inspection = inspection;
+      this._installExpiryTimer(inspection);
+      resumeConfirmedRedemption = this._restoredConfirmed;
     } catch (error) {
       if (operation.isCurrent()) {
         console.error('[table-transfer] malformed inspect response', error);
         this._error = 'The server returned an invalid transfer response. Please try again.';
       }
     } finally {
-      if (operation.isCurrent()) this._pending = false;
+      if (operation.isCurrent()) {
+        this._pending = false;
+        if (resumeConfirmedRedemption) void this._redeem();
+      }
     }
   }
 
@@ -133,6 +162,7 @@ export class BoardgameTableTransferView extends LitElement {
       this._error = 'Enter both codes shown on the current shared Table.';
       return;
     }
+    this._restoredConfirmed = false;
     void this._inspect({ kind: 'manual', roomCode, manualCode });
   }
 
@@ -141,6 +171,8 @@ export class BoardgameTableTransferView extends LitElement {
     const inspection = this._inspection;
     if (!input || !inspection || this._pending) return;
     const operation = this._scope.begin();
+    this._restoredConfirmed = true;
+    rememberPendingTableTransfer(input, true);
     this._pending = true;
     this._error = '';
     try {
@@ -151,6 +183,7 @@ export class BoardgameTableTransferView extends LitElement {
       if (!operation.isCurrent()) return;
       if (!response.data) {
         this._error = transferFailureMessage(response.code, response.error || response.friendlyError);
+        if (this._terminalFailure(response.code)) clearPendingTableTransfer();
         return;
       }
       const result = decodeTableTransferRedemption(response.data);
@@ -158,7 +191,9 @@ export class BoardgameTableTransferView extends LitElement {
         throw new Error('Redeemed game does not match the inspected transfer');
       }
       rememberSurfaceForGame(result.gameID, 'table');
-      window.location.replace(result.gameURL);
+      const target = new URL(result.gameURL, window.location.origin);
+      target.searchParams.set('display', 'table');
+      window.location.replace(target.pathname + target.search);
     } catch (error) {
       if (operation.isCurrent()) {
         console.error('[table-transfer] malformed redeem response', error);
@@ -174,6 +209,41 @@ export class BoardgameTableTransferView extends LitElement {
     this._input = null;
     this._inspection = null;
     this._error = '';
+    this._restoredConfirmed = false;
+    this._stopExpiryTimer();
+    clearPendingTableTransfer();
+  }
+
+  private _terminalFailure(code: string | undefined): boolean {
+    return code === 'TABLE_TRANSFER_EXPIRED' || code === 'TABLE_TRANSFER_CANCELLED'
+      || code === 'TABLE_TRANSFER_INVALID' || code === 'GAME_FINISHED';
+  }
+
+  private _installExpiryTimer(inspection: TableTransferInspection): void {
+    this._stopExpiryTimer();
+    this._expiryDeadline = Date.now() + Math.max(0, inspection.expiresAtMs - inspection.serverNowMs);
+    this._updateExpiry();
+    if (this._secondsRemaining > 0) this._expiryTimer = setInterval(() => this._updateExpiry(), 1000);
+  }
+
+  private _updateExpiry(): void {
+    this._secondsRemaining = Math.max(0, Math.ceil((this._expiryDeadline - Date.now()) / 1000));
+    if (this._secondsRemaining === 0 && this._inspection) {
+      this._error = transferFailureMessage('TABLE_TRANSFER_EXPIRED');
+      this._inspection = null;
+      this._restoredConfirmed = false;
+      clearPendingTableTransfer();
+      this._stopExpiryTimer();
+    }
+  }
+
+  private _stopExpiryTimer(): void {
+    if (this._expiryTimer !== null) clearInterval(this._expiryTimer);
+    this._expiryTimer = null;
+  }
+
+  private _formatTime(seconds: number): string {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   }
 
   override render() {
@@ -183,6 +253,7 @@ export class BoardgameTableTransferView extends LitElement {
         <p>${this._inspection.alreadyRedeemed
           ? 'This link already connected a screen. Continue only to restore that exact same screen after a lost response or reload.'
           : 'This screen will become the shared Table. The old screen will stop controlling the game.'}</p>
+        <p aria-live="polite">Transfer expires in ${this._formatTime(this._secondsRemaining)}.</p>
         <div class="actions">
           <button type="button" ?disabled=${this._pending} @click=${this._redeem}>${this._pending ? 'Connecting…' : (this._inspection.alreadyRedeemed ? 'Reconnect this shared Table' : 'Make this the shared Table')}</button>
           <button type="button" class="secondary" ?disabled=${this._pending} @click=${this._startOver}>Use a different code</button>
@@ -198,8 +269,8 @@ export class BoardgameTableTransferView extends LitElement {
         <h1 tabindex="-1">Connect a shared Table</h1>
         <p>Enter the two codes shown after choosing “Move shared Table” on the current screen.</p>
         <form @submit=${this._submitManual}>
-          <label>Room code<input autocomplete="off" autocapitalize="characters" maxlength="8" .value=${this._roomCode} @input=${(e: Event) => { this._roomCode = (e.target as HTMLInputElement).value; }}></label>
-          <label>Transfer code<input autocomplete="one-time-code" autocapitalize="characters" maxlength="16" .value=${this._manualCode} @input=${(e: Event) => { this._manualCode = (e.target as HTMLInputElement).value; }}></label>
+          <label>Room code<input autocomplete="off" autocapitalize="characters" inputmode="text" spellcheck="false" maxlength="8" .value=${this._roomCode} @input=${(e: Event) => { this._roomCode = (e.target as HTMLInputElement).value; }}></label>
+          <label>Transfer code<input autocomplete="one-time-code" autocapitalize="characters" inputmode="text" spellcheck="false" maxlength="16" .value=${this._manualCode} @input=${(e: Event) => { this._manualCode = (e.target as HTMLInputElement).value; }}></label>
           <button type="submit" ?disabled=${this._pending}>${this._pending ? 'Checking…' : 'Continue'}</button>
         </form>
       `}

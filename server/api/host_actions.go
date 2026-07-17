@@ -131,6 +131,16 @@ func (s *Server) hostSkipTurnHandler(c *gin.Context) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "host actions are rate-limited to 1/sec"})
 		return
 	}
+	fence, renewal := s.beginTableLeaseAction(c, gameID)
+	if renewal != tableLeaseRenewed {
+		status := http.StatusConflict
+		if renewal == tableLeaseRenewRetryable {
+			status = http.StatusServiceUnavailable
+		}
+		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely reserve Table control", nil)
+		return
+	}
+	defer s.endTableLeaseAction(gameID, fence)
 
 	// The current player must be in the absent set — Skip applies only to
 	// the player whose turn is actively blocking the game (spec §9.3).
@@ -164,15 +174,6 @@ func (s *Server) hostSkipTurnHandler(c *gin.Context) {
 		c.JSON(http.StatusNotImplemented, gin.H{"error": "this game does not support host SkipTurn (ForceFinishTurn move not registered)"})
 		return
 	}
-	if renewal := s.refreshTableLeaseForAction(c, gameID); renewal != tableLeaseRenewed {
-		status := http.StatusConflict
-		if renewal == tableLeaseRenewRetryable {
-			status = http.StatusServiceUnavailable
-		}
-		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
-		return
-	}
-
 	if err := <-game.ProposeMove(mover, boardgame.AdminPlayerIndex); err != nil {
 		s.auditHostAction("hostSkipTurn", gameID, userID, err.Error(), false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ForceFinishTurn rejected: " + err.Error()})
@@ -247,7 +248,8 @@ func (s *Server) switchToSoloHandler(c *gin.Context) {
 			tableLeaseProblem(c, http.StatusServiceUnavailable, "TABLE_LEASE_STORAGE", "this screen could not safely confirm Table control", nil)
 			return
 		}
-		if !tableLeaseActive(current, time.Now()) || !tableLeaseCredentialMatches(current, credential) || current.TransitionKind == tablelease.TransitionSolo {
+		if !tableLeaseActive(current, time.Now()) || !tableLeaseCredentialMatches(current, credential) ||
+			current.TransitionKind == tablelease.TransitionSolo || current.TransitionKind == tablelease.TransitionHostAction {
 			tableLeaseProblem(c, http.StatusConflict, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
 			return
 		}
@@ -337,6 +339,16 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 	joinLock := s.getSeatJoinLock(gameID)
 	joinLock.Lock()
 	defer joinLock.Unlock()
+	fence, renewal := s.beginTableLeaseAction(c, gameID)
+	if renewal != tableLeaseRenewed {
+		status := http.StatusConflict
+		if renewal == tableLeaseRenewRetryable {
+			status = http.StatusServiceUnavailable
+		}
+		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely reserve Table control", nil)
+		return
+	}
+	defer s.endTableLeaseAction(gameID, fence)
 
 	eGame, err := s.storage.ExtendedGame(gameID)
 	if err != nil || eGame == nil {
@@ -346,14 +358,6 @@ func (s *Server) setRoomLockHandler(c *gin.Context) {
 
 	updatedGame := *eGame
 	updatedGame.CompanionLocked = *body.Locked
-	if renewal := s.refreshTableLeaseForAction(c, gameID); renewal != tableLeaseRenewed {
-		status := http.StatusConflict
-		if renewal == tableLeaseRenewRetryable {
-			status = http.StatusServiceUnavailable
-		}
-		tableLeaseProblem(c, status, "TABLE_LEASE_LOST", "this screen could not safely confirm Table control", nil)
-		return
-	}
 	if err := s.storage.UpdateExtendedGame(gameID, &updatedGame); err != nil {
 		s.auditHostAction("setRoomLock", gameID, userID, err.Error(), false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update game: " + err.Error()})

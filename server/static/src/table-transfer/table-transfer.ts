@@ -25,20 +25,37 @@ function boolean(value: unknown, label: string): boolean {
   return value;
 }
 
+function currentOrigin(): string {
+  return typeof globalThis.location?.origin === 'string'
+    ? globalThis.location.origin
+    : 'https://boardgame.invalid';
+}
+
+function sameOriginURL(value: unknown, label: string, maxLength: number): URL {
+  const raw = nonempty(value, label, maxLength);
+  let parsed: URL;
+  try {
+    parsed = new URL(raw, currentOrigin());
+  } catch {
+    throw new Error(`${label} must be a valid URL`);
+  }
+  if (parsed.origin !== currentOrigin() || parsed.username || parsed.password) {
+    throw new Error(`${label} must be on the application origin`);
+  }
+  return parsed;
+}
+
 function webURL(value: unknown, label: string): string {
   const result = nonempty(value, label, 4096);
-  if (!(result.startsWith('/') || /^https:\/\//i.test(result) || /^http:\/\//i.test(result))) {
-    throw new Error(`${label} must be a relative or HTTP(S) URL`);
-  }
-  return result;
+  return sameOriginURL(result, label, 4096).href;
 }
 
 function appURL(value: unknown, label: string): string {
-  const result = nonempty(value, label, 512);
-  if (!result.startsWith('/') || result.startsWith('//')) {
-    throw new Error(`${label} must be a same-origin absolute path`);
+  const parsed = sameOriginURL(value, label, 512);
+  if (!parsed.pathname.startsWith('/game/') || parsed.hash) {
+    throw new Error(`${label} must be a same-origin game path`);
   }
-  return result;
+  return parsed.pathname + parsed.search;
 }
 
 function lowerHex(value: unknown, label: string, length: number): string {
@@ -105,15 +122,26 @@ export function decodeTableTransferOffer(value: unknown): TableTransferOffer {
   if (item['ok'] !== true) throw new Error('Table transfer offer.ok must be true');
   const qrDataURL = nonempty(item['qrDataURL'], 'Table transfer offer.qrDataURL', 2_000_000);
   if (!qrDataURL.startsWith('data:image/png;base64,')) throw new Error('Table transfer offer.qrDataURL must be a PNG data URL');
+  const pairingID = lowerHex(item['pairingID'], 'Table transfer offer.pairingID', 32);
+  const token = transferToken(item['token'], 'Table transfer offer.token');
+  const claimURL = webURL(item['claimURL'], 'Table transfer offer.claimURL');
+  const expiresAtMs = timestamp(item['expiresAtMs'], 'Table transfer offer.expiresAtMs');
+  const serverNowMs = timestamp(item['serverNowMs'], 'Table transfer offer.serverNowMs');
+  if (expiresAtMs <= serverNowMs) throw new Error('Table transfer offer must expire in the future');
+  if (token.split('.')[2] !== pairingID) throw new Error('Table transfer offer token does not match pairingID');
+  const claim = new URL(claimURL);
+  if (claim.pathname !== '/table' || claim.search || claim.hash !== `#transfer=${encodeURIComponent(token)}`) {
+    throw new Error('Table transfer offer claimURL does not contain its exact token');
+  }
   return {
     ok: true,
-    pairingID: lowerHex(item['pairingID'], 'Table transfer offer.pairingID', 32),
-    token: transferToken(item['token'], 'Table transfer offer.token'),
+    pairingID,
+    token,
     manualCode: transferCode(item['manualCode'], 'Table transfer offer.manualCode'),
-    claimURL: webURL(item['claimURL'], 'Table transfer offer.claimURL'),
+    claimURL,
     qrDataURL,
-    expiresAtMs: timestamp(item['expiresAtMs'], 'Table transfer offer.expiresAtMs'),
-    serverNowMs: timestamp(item['serverNowMs'], 'Table transfer offer.serverNowMs'),
+    expiresAtMs,
+    serverNowMs,
   };
 }
 
@@ -146,6 +174,54 @@ export function decodeTableTransferRedemption(value: unknown): TableTransferRede
 export type TableTransferInput =
   | Readonly<{ kind: 'token'; token: string }>
   | Readonly<{ kind: 'manual'; roomCode: string; manualCode: string }>;
+
+const pendingClaimKey = 'boardgame-table-transfer-pending-v1';
+const pendingClaimMaxAgeMs = 10 * 60 * 1000;
+
+export interface PendingTableTransferClaim {
+  readonly input: TableTransferInput;
+  readonly confirmed: boolean;
+}
+
+export function rememberPendingTableTransfer(input: TableTransferInput, confirmed: boolean): void {
+  try {
+    globalThis.sessionStorage?.setItem(pendingClaimKey, JSON.stringify({ version: 1, savedAtMs: Date.now(), input, confirmed }));
+  } catch { /* An in-memory attempt still works when storage is unavailable. */ }
+}
+
+export function restorePendingTableTransfer(): PendingTableTransferClaim | null {
+  try {
+    const raw = globalThis.sessionStorage?.getItem(pendingClaimKey);
+    if (!raw) return null;
+    const item = record(JSON.parse(raw), 'Pending Table transfer');
+    if (item['version'] !== 1 || typeof item['savedAtMs'] !== 'number' ||
+      !Number.isSafeInteger(item['savedAtMs']) || Date.now() - item['savedAtMs'] > pendingClaimMaxAgeMs ||
+      Date.now() < item['savedAtMs'] - 60_000 || typeof item['confirmed'] !== 'boolean') {
+      clearPendingTableTransfer();
+      return null;
+    }
+    const input = record(item['input'], 'Pending Table transfer.input');
+    if (input['kind'] === 'token') {
+      return { input: { kind: 'token', token: transferToken(input['token'], 'Pending Table transfer token') }, confirmed: item['confirmed'] };
+    }
+    if (input['kind'] === 'manual') {
+      return {
+        input: {
+          kind: 'manual',
+          roomCode: nonempty(input['roomCode'], 'Pending Table transfer room code', 16),
+          manualCode: transferCode(input['manualCode'], 'Pending Table transfer manual code'),
+        },
+        confirmed: item['confirmed'],
+      };
+    }
+  } catch { /* Corrupt or unavailable storage fails closed below. */ }
+  clearPendingTableTransfer();
+  return null;
+}
+
+export function clearPendingTableTransfer(): void {
+  try { globalThis.sessionStorage?.removeItem(pendingClaimKey); } catch { /* ignored */ }
+}
 
 /** Owns async work for one visible transfer route. Superseded work cannot
  * commit into a newly-entered token or manual-code attempt. */
@@ -185,6 +261,7 @@ export function transferFailureMessage(code: string | undefined, fallback?: stri
     case 'TABLE_TRANSFER_EXPIRED': return 'This transfer code has expired. Create a new one on the current shared Table.';
     case 'TABLE_TRANSFER_CANCELLED': return 'This transfer was cancelled on the current shared Table.';
     case 'TABLE_TRANSFER_ALREADY_REDEEMED': return 'This transfer was already used by another screen.';
+    case 'TABLE_TRANSFER_BUSY': return 'The shared Table is finishing an action. Try again in a moment.';
     case 'TABLE_TRANSFER_INVALID': return 'That transfer link or code is not valid.';
     case 'GAME_FINISHED': return 'This game has finished and cannot move to another screen.';
     default: return fallback || 'The shared Table could not be transferred. Please try again.';

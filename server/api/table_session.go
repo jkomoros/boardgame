@@ -303,6 +303,12 @@ func (s *Server) renewTableLeaseCredential(gameID, credential string) tableLease
 		if current.TransitionKind == tablelease.TransitionSolo {
 			return tableLeaseRenewLost
 		}
+		if current.TransitionKind == tablelease.TransitionHostAction {
+			// Do not let an unrelated socket heartbeat perpetually extend a
+			// crashed or wedged mutation fence. The action itself owns release;
+			// ordinary recovery wins after the fixed lease deadline.
+			return tableLeaseRenewRetryable
+		}
 		replacement := current.Clone()
 		replacement.Expires = now.Add(tableLeaseTTL).UnixMilli()
 		_, swapped, err := s.storage.CompareAndSwapCompanionTableLease(gameID, current.Generation, replacement)
@@ -342,16 +348,84 @@ func (s *Server) releaseTableLease(gameID string, credential string) bool {
 	return false
 }
 
-// refreshTableLeaseForAction closes the practical check-then-mutate window by
-// conditionally renewing the exact credential immediately before a host
-// mutation. A takeover cannot begin until the renewed TTL expires.
-func (s *Server) refreshTableLeaseForAction(c *gin.Context, gameID string) tableLeaseRenewal {
+type tableLeaseActionFence struct {
+	credential             string
+	previousDeviceID       string
+	previousTransitionKind string
+}
+
+// beginTableLeaseAction durably marks the lease before a host action mutates
+// game state outside the lease row. Transfer redemption and other host actions
+// must observe this marker and wait, so authority cannot rotate between the
+// capability check and the mutation. The ordinary lease expiry is the crash
+// recovery deadline if the process dies before endTableLeaseAction.
+func (s *Server) beginTableLeaseAction(c *gin.Context, gameID string) (*tableLeaseActionFence, tableLeaseRenewal) {
 	if _, ok := s.activeTableLeaseForRequest(c, gameID); !ok {
-		return tableLeaseRenewLost
+		return nil, tableLeaseRenewLost
 	}
 	credential, err := c.Cookie(tableLeaseCookieName(gameID))
 	if err != nil {
-		return tableLeaseRenewLost
+		return nil, tableLeaseRenewLost
 	}
-	return s.renewTableLeaseCredential(gameID, credential)
+	for attempts := 0; attempts < 5; attempts++ {
+		now := time.Now()
+		current, err := s.storage.CompanionTableLease(gameID)
+		if err != nil {
+			return nil, tableLeaseRenewRetryable
+		}
+		if !tableLeaseActive(current, now) || !tableLeaseCredentialMatches(current, credential) {
+			return nil, tableLeaseRenewLost
+		}
+		if current.TransitionKind == tablelease.TransitionSolo {
+			return nil, tableLeaseRenewLost
+		}
+		if current.TransitionKind == tablelease.TransitionHostAction {
+			return nil, tableLeaseRenewRetryable
+		}
+		fence := &tableLeaseActionFence{
+			credential: credential, previousDeviceID: current.PreviousDeviceID,
+			previousTransitionKind: current.TransitionKind,
+		}
+		replacement := current.Clone()
+		if replacement.PreviousDeviceID == "" {
+			replacement.PreviousDeviceID = current.DeviceID
+		}
+		replacement.TransitionKind = tablelease.TransitionHostAction
+		replacement.Expires = now.Add(tableLeaseTTL).UnixMilli()
+		_, swapped, err := s.storage.CompareAndSwapCompanionTableLease(gameID, current.Generation, replacement)
+		if err != nil {
+			return nil, tableLeaseRenewRetryable
+		}
+		if swapped {
+			return fence, tableLeaseRenewed
+		}
+	}
+	return nil, tableLeaseRenewRetryable
+}
+
+// endTableLeaseAction releases only this device's live action marker. CAS
+// retries tolerate heartbeats that renewed the same marked lease. A storage
+// failure safely leaves an expiring fence rather than reopening stale writes.
+func (s *Server) endTableLeaseAction(gameID string, fence *tableLeaseActionFence) bool {
+	if fence == nil {
+		return false
+	}
+	for attempts := 0; attempts < 5; attempts++ {
+		current, err := s.storage.CompanionTableLease(gameID)
+		if err != nil || current == nil || current.TransitionKind != tablelease.TransitionHostAction ||
+			!tableLeaseCredentialMatches(current, fence.credential) {
+			return false
+		}
+		replacement := current.Clone()
+		replacement.PreviousDeviceID = fence.previousDeviceID
+		replacement.TransitionKind = fence.previousTransitionKind
+		_, swapped, err := s.storage.CompareAndSwapCompanionTableLease(gameID, current.Generation, replacement)
+		if err != nil {
+			return false
+		}
+		if swapped {
+			return true
+		}
+	}
+	return false
 }

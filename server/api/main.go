@@ -2668,6 +2668,11 @@ func (s *Server) Start() {
 	}
 
 	router := gin.New()
+	// Fail closed for ClientIP()-keyed admission and transfer limits. A
+	// deployment that needs proxy-derived client addresses must explicitly add
+	// its known proxy CIDRs here/configure them; arbitrary forwarded headers are
+	// never trusted by default.
+	router.ForwardedByClientIP = false
 
 	router.Use(gin.Recovery(), gin.LoggerWithWriter(os.Stdout, "/_ah/health"))
 

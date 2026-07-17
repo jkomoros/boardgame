@@ -48,6 +48,48 @@ type hostLeaseStorage struct {
 	lease    *tablelease.StorageRecord
 }
 
+type actionFenceStorage struct {
+	StorageManager
+	mu               sync.Mutex
+	extended         *extendedgame.StorageRecord
+	lease            *tablelease.StorageRecord
+	mutationSawFence bool
+}
+
+func (s *actionFenceStorage) ExtendedGame(string) (*extendedgame.StorageRecord, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	copy := *s.extended
+	return &copy, nil
+}
+
+func (s *actionFenceStorage) UpdateExtendedGame(_ string, record *extendedgame.StorageRecord) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.mutationSawFence = s.lease.TransitionKind == tablelease.TransitionHostAction
+	copy := *record
+	s.extended = &copy
+	return nil
+}
+
+func (s *actionFenceStorage) CompanionTableLease(string) (*tablelease.StorageRecord, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lease.Clone(), nil
+}
+
+func (s *actionFenceStorage) CompareAndSwapCompanionTableLease(_ string, expected uint64, replacement *tablelease.StorageRecord) (*tablelease.StorageRecord, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.lease.Generation != expected {
+		return s.lease.Clone(), false, nil
+	}
+	next := replacement.Clone()
+	next.Generation = expected + 1
+	s.lease = next
+	return next.Clone(), true, nil
+}
+
 func (s *hostLeaseStorage) ExtendedGame(string) (*extendedgame.StorageRecord, error) {
 	return s.extended, nil
 }
@@ -155,6 +197,77 @@ func TestHostActionAllowedRefillsAfterDelay(t *testing.T) {
 	hostActionLocksMu.Unlock()
 
 	assert.For(t).ThatActual(hostActionAllowed("g1", "u1")).IsTrue()
+}
+
+func TestHostActionFenceBlocksTransferAndCoversMetadataMutation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	game, _ := newLegalLedgerGame(t)
+	key := []byte("0123456789abcdef0123456789abcdef")
+	credentialServer := &Server{tableLeaseKey: key}
+	deviceID, secret, digest, err := credentialServer.newTableLeaseCredential(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	storage := &actionFenceStorage{
+		extended: &extendedgame.StorageRecord{CompanionRoomCode: "ABCD"},
+		lease: &tablelease.StorageRecord{
+			Generation: 1, DeviceID: deviceID, SecretDigest: digest, HolderUserID: "host",
+			Expires:             time.Now().Add(time.Minute).UnixMilli(),
+			TransferID:          "0123456789abcdef0123456789abcdef",
+			TransferTokenDigest: strings.Repeat("a", 64), TransferCodeDigest: strings.Repeat("b", 64),
+			TransferExpires: time.Now().Add(time.Minute).UnixMilli(),
+		},
+	}
+	s := &Server{
+		tableLeaseKey: key, storage: NewServerStorageManager(storage), logger: logrus.New(),
+		seatJoinLocks: map[string]*sync.Mutex{},
+	}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest(http.MethodPost, "/api/game/test/id/setRoomLock", strings.NewReader(`{"locked":true}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: surfaceCookieName(game.ID()), Value: "table"})
+	req.AddCookie(&http.Cookie{Name: tableLeaseCookieName(game.ID()), Value: deviceID + "." + secret})
+	c.Request = req
+	s.setGame(c, game)
+	hostActionLocksMu.Lock()
+	hostActionLocks = map[string]time.Time{}
+	hostActionLocksMu.Unlock()
+
+	s.setRoomLockHandler(c)
+	if w.Code != http.StatusOK || !storage.mutationSawFence {
+		t.Fatalf("room lock status/fence = %d/%t", w.Code, storage.mutationSawFence)
+	}
+	lease, _ := storage.CompanionTableLease(game.ID())
+	if tableTransferBlockedByHostAction(lease) || !lease.TransferPending(time.Now().UnixMilli()) {
+		t.Fatalf("action fence did not release while preserving transfer: %+v", lease)
+	}
+
+	// Both lock and skip use the same primitive. While it is held, a second
+	// host action and transfer redemption must fail closed; after release the
+	// original pending offer is usable again.
+	fence, result := s.beginTableLeaseAction(c, game.ID())
+	if result != tableLeaseRenewed {
+		t.Fatalf("begin fence = %v", result)
+	}
+	lease, _ = storage.CompanionTableLease(game.ID())
+	if !tableTransferBlockedByHostAction(lease) {
+		t.Fatal("live host action did not block transfer redemption")
+	}
+	fenceDeadline := lease.Expires
+	if renewal := s.renewTableLeaseCredential(game.ID(), deviceID+"."+secret); renewal != tableLeaseRenewRetryable {
+		t.Fatalf("heartbeat during host action = %v; want retryable without renewal", renewal)
+	}
+	lease, _ = storage.CompanionTableLease(game.ID())
+	if lease.Expires != fenceDeadline {
+		t.Fatal("heartbeat extended a host-action crash-recovery deadline")
+	}
+	if _, second := s.beginTableLeaseAction(c, game.ID()); second != tableLeaseRenewRetryable {
+		t.Fatalf("concurrent host action = %v; want retryable", second)
+	}
+	if !s.endTableLeaseAction(game.ID(), fence) {
+		t.Fatal("could not release action fence")
+	}
 }
 
 func TestUnauthorisedRoomLockDoesNotReadRequestBody(t *testing.T) {

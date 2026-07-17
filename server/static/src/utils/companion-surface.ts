@@ -74,14 +74,26 @@ export function tableRecoveryDeviceID(gameId: string): string {
 	try {
 		const existing = window.localStorage.getItem(key);
 		if (existing && /^[a-f0-9]{32}$/.test(existing)) return existing;
+		const sessionExisting = window.sessionStorage.getItem(key);
+		if (sessionExisting && /^[a-f0-9]{32}$/.test(sessionExisting)) return sessionExisting;
 		const bytes = new Uint8Array(16);
 		window.crypto.getRandomValues(bytes);
 		const created = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 		window.localStorage.setItem(key, created);
+		window.sessionStorage.setItem(key, created);
 		return created;
 	} catch {
-		// Storage can be unavailable in privacy modes. A per-page ID still
-		// makes ordinary retries idempotent for the life of this document.
+		// localStorage can be disabled independently of sessionStorage. Preserve
+		// reload idempotency there before falling back to this document only.
+		try {
+			const existing = window.sessionStorage.getItem(key);
+			if (existing && /^[a-f0-9]{32}$/.test(existing)) return existing;
+			const bytes = new Uint8Array(16);
+			window.crypto.getRandomValues(bytes);
+			const created = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+			window.sessionStorage.setItem(key, created);
+			return created;
+		} catch { /* both browser storage mechanisms are unavailable */ }
 		const bytes = new Uint8Array(16);
 		window.crypto.getRandomValues(bytes);
 		const existing = ephemeralTableDeviceIDs.get(gameId);

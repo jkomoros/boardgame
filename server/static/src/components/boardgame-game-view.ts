@@ -250,7 +250,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         opacity: 0.65;
       }
       .table-transfer-launch {
-        position: fixed; right: 16px; bottom: 16px; z-index: 900;
+        position: fixed; right: var(--boardgame-table-transfer-right, max(16px, env(safe-area-inset-right)));
+        bottom: var(--boardgame-table-transfer-bottom, max(16px, env(safe-area-inset-bottom)));
+        z-index: var(--boardgame-table-transfer-z-index, 900);
         min-height: 44px; padding: 9px 14px; border: 1px solid #718090;
         border-radius: 999px; background: rgb(255 255 255 / 94%); color: #17212b;
         font: inherit; font-weight: 700; box-shadow: 0 3px 14px rgb(0 0 0 / 18%); cursor: pointer;
@@ -548,6 +550,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: Boolean, attribute: false }) private _tableTransferOpen = false;
   @property({ type: Boolean, attribute: false }) private _tableTransferPending = false;
   @property({ type: String, attribute: false }) private _tableTransferError = '';
+  @property({ type: String, attribute: false }) private _tableTransferCopyStatus = '';
   @property({ type: Number, attribute: false }) private _tableTransferSeconds = 0;
   private _tableTransferRequest: AbortController | null = null;
   private _tableTransferTimer: ReturnType<typeof setInterval> | null = null;
@@ -739,7 +742,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     const offer = this._tableTransferOffer;
     return html`
       ${activeTable && !this._tableTransferOpen ? html`
-        <button type="button" class="table-transfer-launch" @click=${this._openTableTransfer}>Move shared Table</button>
+        <button type="button" class="table-transfer-launch" part="table-transfer-launch" @click=${this._openTableTransfer}>Move shared Table</button>
       ` : ''}
       <dialog id="table-transfer-dialog" class="table-transfer-dialog" aria-labelledby="table-transfer-heading" @cancel=${this._handleTableTransferCancelEvent}>
         <section class="table-transfer-content" aria-busy=${this._tableTransferPending ? 'true' : 'false'}>
@@ -753,14 +756,16 @@ export class BoardgameGameView extends connect(store)(LitElement) {
                 <p class="table-transfer-url">${offer.claimURL}</p>
                 <p>Or go to <strong>${window.location.host}/table</strong> and enter room <strong>${this._companionInfo?.RoomCode}</strong> with transfer code:</p>
                 <p class="table-transfer-code">${offer.manualCode}</p>
-                <p>${this._tableTransferSeconds > 0 ? `Expires in ${this._formatTransferTime(this._tableTransferSeconds)}.` : 'This transfer has expired.'}</p>
+                <p aria-live="polite">${this._tableTransferSeconds > 0 ? `Expires in ${this._formatTransferTime(this._tableTransferSeconds)}.` : 'This transfer has expired.'}</p>
               </div>
             </div>
           ` : html`<p>Creating a short-lived, one-use connection for the other screen…</p>`}
           ${this._tableTransferError ? html`<p class="table-transfer-error" role="alert">${this._tableTransferError}</p>` : ''}
+          <p aria-live="polite">${this._tableTransferCopyStatus}</p>
           <div class="table-transfer-actions">
             ${offer ? html`<button type="button" ?disabled=${this._tableTransferPending || this._tableTransferSeconds <= 0} @click=${this._copyTransferLink}>Copy link</button>` : ''}
-            <button type="button" class="secondary" ?disabled=${this._tableTransferPending} @click=${this._cancelTableTransfer}>${offer ? 'Cancel transfer' : 'Close'}</button>
+            ${offer ? html`<button type="button" class="secondary" ?disabled=${this._tableTransferPending} @click=${this._cancelTableTransfer}>Cancel transfer</button>` : ''}
+            <button type="button" class="secondary" @click=${this._dismissTableTransfer}>Close</button>
           </div>
         </section>
       </dialog>
@@ -773,6 +778,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._tableTransferOpen = true;
     this._tableTransferPending = true;
     this._tableTransferError = '';
+    this._tableTransferCopyStatus = '';
     this._tableTransferOffer = null;
     await this.updateComplete;
     const session = this._companionInfo?.TableSession;
@@ -827,6 +833,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     if (!this._tableTransferOffer) return;
     try {
       await navigator.clipboard.writeText(this._tableTransferOffer.claimURL);
+      this._tableTransferCopyStatus = 'Transfer link copied.';
     } catch {
       this._tableTransferError = 'The link could not be copied. Select the displayed link instead.';
     }
@@ -834,7 +841,14 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   private readonly _handleTableTransferCancelEvent = (event: Event): void => {
     event.preventDefault();
-    if (!this._tableTransferPending) void this._cancelTableTransfer();
+    this._dismissTableTransfer();
+  };
+
+  private readonly _dismissTableTransfer = (): void => {
+    this._tableTransferRequest?.abort();
+    this._tableTransferRequest = null;
+    this._tableTransferPending = false;
+    this._closeTableTransfer();
   };
 
   private readonly _cancelTableTransfer = async (): Promise<void> => {
@@ -847,6 +861,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     }
     this._tableTransferPending = true;
     this._tableTransferError = '';
+    this._tableTransferCopyStatus = '';
     const request = new AbortController();
     this._tableTransferRequest?.abort();
     this._tableTransferRequest = request;

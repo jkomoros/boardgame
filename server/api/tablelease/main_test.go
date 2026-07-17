@@ -18,7 +18,12 @@ func TestValidateTransferAcceptsEmptyPendingAndRedeemedStates(t *testing.T) {
 			TransferCodeDigest:  testTransferDigest,
 			TransferExpires:     1,
 		},
-		{PreviousDeviceID: testDeviceID, TransitionKind: TransitionSolo},
+		{DeviceID: testDeviceID, PreviousDeviceID: testDeviceID, TransitionKind: TransitionSolo},
+		{
+			DeviceID: testDeviceID, PreviousDeviceID: testDeviceID, TransitionKind: TransitionHostAction,
+			TransferID: testTransferID, TransferTokenDigest: testTransferDigest,
+			TransferCodeDigest: testTransferDigest, TransferExpires: 1,
+		},
 		{
 			DeviceID:               testDeviceID,
 			TransferID:             testTransferID,
@@ -28,6 +33,12 @@ func TestValidateTransferAcceptsEmptyPendingAndRedeemedStates(t *testing.T) {
 			TransferTargetDeviceID: testDeviceID,
 			PreviousDeviceID:       testTransferID,
 			TransitionKind:         TransitionTransfer,
+		},
+		{
+			DeviceID: testDeviceID, TransferID: testTransferID,
+			TransferTokenDigest: testTransferDigest, TransferCodeDigest: testTransferDigest, TransferExpires: 1,
+			TransferTargetDeviceID: testDeviceID, PreviousDeviceID: testTransferID,
+			TransitionKind: TransitionHostAction,
 		},
 	}
 	for index, record := range valid {
@@ -45,6 +56,8 @@ func TestValidateTransferRejectsPartialOrMalformedStates(t *testing.T) {
 		{TransferID: testTransferID, TransferTokenDigest: testTransferDigest, TransferCodeDigest: testTransferDigest, TransferExpires: 1, TransferTargetDeviceID: "short"},
 		{PreviousDeviceID: testDeviceID, TransitionKind: "unknown"},
 		{TransitionKind: TransitionRecovery},
+		{DeviceID: testDeviceID, PreviousDeviceID: testTransferID, TransitionKind: TransitionHostAction},
+		{DeviceID: testDeviceID, PreviousDeviceID: testDeviceID, TransitionKind: TransitionRecovery},
 		{DeviceID: testDeviceID, TransferID: testTransferID, TransferTokenDigest: testTransferDigest, TransferCodeDigest: testTransferDigest, TransferExpires: 1, TransferTargetDeviceID: testTransferID, PreviousDeviceID: testTransferID, TransitionKind: TransitionTransfer},
 		{DeviceID: testDeviceID, TransferID: testTransferID, TransferTokenDigest: testTransferDigest, TransferCodeDigest: testTransferDigest, TransferExpires: 1, TransferTargetDeviceID: testDeviceID},
 	}
