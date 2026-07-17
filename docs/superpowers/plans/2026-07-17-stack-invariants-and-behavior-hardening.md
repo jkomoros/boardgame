@@ -151,6 +151,8 @@ Attachment validation re-reads the property/board location and requires it still
 
 Concrete `setState` wiring must reject overwriting a non-nil pointer with a different state before registry initialization. This catches a constructor-captured stack reused across states rather than erasing the evidence by assigning the new pointer.
 
+Stack import/copy must preserve destination topology rather than whole-struct-copying source identity. In particular, preserve destination `statePtr`, `board`, and `boardIndex` while importing only serializable payload/configuration. Test that `copiedBoard.SpaceAt(i).Board() == copiedBoard` and that copied board spaces pass attachment and movement checks.
+
 ## Phase 3: Mutation-boundary enforcement
 
 Centralize a private mutation precondition used by every stack mutator:
