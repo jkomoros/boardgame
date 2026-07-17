@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-07-17T20:19:11Z",
+  "provider": "Google Gemini API",
+  "model": "gemini-3-pro-image-preview",
+  "mode": "style-sheet",
+  "prompt": "Create a reusable visual style reference sheet for an original tabletop game. Arrange clearly separated examples of palette, line treatment, texture, lighting, materials, environments, characters or creatures, and UI ornament. Include no logos, brand names, copyrighted characters, card layouts, or readable prose. This sheet is a production reference, not a game component. Follow this original art direction:\\n\\nPreserve the tactile cyanotype washes, hand-cut linocut silhouettes, graphite field sketches, restrained oxidized-copper and coral accents, and visible handmade process marks. Keep the invented creatures scientifically observed and plausible. Refine toward production-ready game art: use specimen pins, deckled aging, measurement grids, and paper distress only sparingly at the outer edges; reduce ornamental clutter and literal museum-board staging; preserve generous clean negative space and strong focal hierarchy for renderer-owned text and icons. No readable labels, logos, card frames, or existing-game imagery.\n\nITERATION AXIS: preserve the selected identity while simplifying texture and creating more calm functional negative space.",
+  "prompt_sha256": "dcef8457236c66901645002ffa571de4b445ce598d1a69c3f819025b2d0bd07f",
+  "references": [
+    {
+      "path": "darwin/art/generated/style-round-1/04-tactile.png",
+      "sha256": "db29b1f42b4545f7294301d5f83de85c1a1f3dd16662aaf9acaeac6bae1a5c94",
+      "mime_type": "image/png"
+    }
+  ],
+  "aspect_ratio": "16:9",
+  "image_size": "2K",
+  "output": "darwin/art/generated/style-round-2/03-quieter.png",
+  "output_sha256": "4bf2cfbf1d32bb640107f9ff4dbdf559abdaf60747b7eabf2dcf6d7cf5e5a3dd",
+  "clean_room": true,
+  "source_assets_used": false
+}
