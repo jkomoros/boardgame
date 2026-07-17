@@ -262,7 +262,7 @@ Stop rather than widening scope when:
 
 ## Progress
 
-- [ ] Commit 1: exact-bound action legality provenance
+- [x] Commit 1: exact-bound action legality provenance
 - [ ] Commit 2: canonical input-presentation metadata
 - [ ] Commit 3: internal candidate projector
 - [ ] Commit 4: proposal-accepting frontier and bundle delivery

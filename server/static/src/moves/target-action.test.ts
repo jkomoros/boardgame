@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   MoveSubmissionGate,
   createMoveAction,
+  type MoveActionLegality,
   type MoveActionService,
   type MoveActionSnapshot,
 } from './action.ts';
@@ -20,7 +21,10 @@ const schema = [{
   fields: [{ name: 'Slot', wireType: 'int', disposition: 'required', codec: 'integer' }],
 }] as const;
 
-function fixture(preview: (request: TargetPreviewRequest) => Promise<TargetPreviewTransportResult>) {
+function fixture(
+  preview: (request: TargetPreviewRequest) => Promise<TargetPreviewTransportResult>,
+  legality: MoveActionLegality = { legalForAnyone: true, legalForPlayer: true },
+) {
   const requests: TargetPreviewRequest[] = [];
   const submissions: Readonly<Record<string, string>>[] = [];
   let sequence = 0;
@@ -55,7 +59,7 @@ function fixture(preview: (request: TargetPreviewRequest) => Promise<TargetPrevi
     viewingAsPlayer: 0,
     proposingAsPlayer: 0,
     proposingAsAdmin: false,
-    currentLegality: () => ({ legalForAnyone: true, legalForPlayer: true }),
+    currentLegality: () => legality,
     currentAnimating: () => false,
     baselineLegalityApplies: true,
   };
@@ -86,6 +90,25 @@ test('candidate subscriptions coalesce into one correlated batch and activation 
   assert.equal((await targets.get(2)?.action.activate())?.kind, 'success');
   assert.deepEqual(value.submissions, [{ Slot: '2' }]);
   for (const unsubscribe of unsubscribes) unsubscribe();
+});
+
+test('batch-hydrated candidates supersede an illegal default-form baseline', async () => {
+  const value = fixture(async request => ({
+    kind: 'success',
+    results: request.candidates.map(candidate => ({
+      id: candidate.id,
+      legal: candidate.arguments['Slot'] === '2',
+      ...(candidate.arguments['Slot'] === '2' ? {} : { error: 'occupied' }),
+    })),
+  }), { legalForAnyone: false, legalForPlayer: false });
+  const targets = value.builder.targets([1, 2] as const, Slot => ({ Slot }));
+  assert.equal((await targets.ensurePreview()).kind, 'ready');
+  assert.equal(targets.get(1)?.action.reason?.code, 'preview-illegal');
+  assert.equal(targets.get(1)?.action.canActivate, false);
+  assert.equal(targets.get(2)?.action.reason, null);
+  assert.equal(targets.get(2)?.action.canActivate, true);
+  assert.equal((await targets.get(2)?.action.activate())?.kind, 'success');
+  assert.deepEqual(value.submissions, [{ Slot: '2' }]);
 });
 
 test('host live-state invalidation reaches cached target candidates', async () => {

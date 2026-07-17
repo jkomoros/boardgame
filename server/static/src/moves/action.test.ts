@@ -160,6 +160,31 @@ test('exact bound previews are idempotent, self-contained, and gate proposal', a
   assert.equal(move.canPropose, true);
 });
 
+test('exact bound legality supersedes an illegal default-form baseline', async () => {
+  const submissions: MoveSubmissionRequest[] = [];
+  const legal = action('Place', context({
+    legality: { legalForPlayer: false, legalForAnyone: false },
+    previewTransport: { preview: async () => ({ kind: 'success', legal: true }) },
+    transport: { submit: async request => { submissions.push(request); return { kind: 'success' }; } },
+  })).with({ Slot: 3 });
+  assert.equal(legal.reason?.code, 'preview-unchecked');
+  assert.equal((await legal.ensurePreview()).kind, 'legal');
+  assert.equal(legal.canActivate, true);
+  assert.equal((await legal.activate()).kind, 'success');
+  assert.deepEqual(submissions.map(request => request.arguments), [{ Slot: '3' }]);
+
+  const illegal = action('Place', context({
+    legality: { legalForPlayer: false, legalForAnyone: false },
+    previewTransport: {
+      preview: async () => ({ kind: 'success', legal: false, error: 'That slot is occupied' }),
+    },
+  })).with({ Slot: 4 });
+  assert.equal((await illegal.ensurePreview()).kind, 'illegal');
+  assert.equal(illegal.reason?.code, 'preview-illegal');
+  assert.equal(illegal.canActivate, false);
+  assert.equal((await illegal.propose()).kind, 'blocked');
+});
+
 test('host cancellation aborts an exact preview without submitting', async () => {
   let signal: AbortSignal | undefined;
   const value = context({

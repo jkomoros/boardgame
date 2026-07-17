@@ -380,6 +380,11 @@ implements BoundMoveAction<MoveName, Input> {
   }
 
   get availability(): MoveActionAvailability {
+    // A bound action represents a different concrete move from the server's
+    // default form. Its exact preview is the legality authority; applying the
+    // default form's booleans here can permanently block a legal non-default
+    // binding. Unbound builders and zero-input actions still use the baseline.
+    if (this.#inputWasBound) return { kind: 'available' };
     const legality = this.#snapshot.currentLegality();
     if (!legality?.legalForAnyone) {
       return unavailable(
