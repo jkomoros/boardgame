@@ -183,6 +183,10 @@ func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...C
 	actualExample := generatedExample.(AutoConfigurableMove)
 	name := actualExample.DeriveName(a.delegate.Manager())
 
+	if err := validateCustomConfiguration(actualExample, config); err != nil {
+		return nil, fmt.Errorf("move %q: %w", name, err)
+	}
+
 	if err := collectMoveInputFields(actualExample, config); err != nil {
 		return nil, fmt.Errorf("move %q: %w", name, err)
 	}

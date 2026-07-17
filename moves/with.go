@@ -39,6 +39,9 @@ const configPropLegalPlanEnabled = fullyQualifiedPackageName + "LegalPlanEnabled
 // funcs that satisfy this interface and can be used in auto.Config to pass in
 // configuration to the base moves without requiring verbose embedding and
 // method overriding. All of those functions in this package start with "With".
+// Config rejects specialized built-in options when the selected move type does
+// not embed a base that consumes them, so irrelevant options fail during game
+// manager construction instead of being silently ignored.
 type CustomConfigurationOption func(boardgame.PropertyCollection)
 
 // WithLegalType returns a function configuration option suitable for being
