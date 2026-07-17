@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { property, query } from 'lit/decorators.js';
-import { BoardgameComponentAnimator } from './boardgame-component-animator.js';
+import './boardgame-component-animator.js';
+import type { BoardgameComponentAnimator } from './boardgame-component-animator.js';
 import type { MoveForm } from '../types/api.js';
 import type { MoveLegalityInfo } from '../selectors.js';
 import { movePreviewBatch } from '../api.js';
