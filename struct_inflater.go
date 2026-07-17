@@ -17,6 +17,14 @@ const fixedStackStructTag = "sizedstack"
 const sanitizationStructTag = "sanitize"
 const boardStructTag = "board"
 
+var stackStructTags = []string{
+	stackStructTag,
+	fixedStackStructTag,
+	concatenateStructTag,
+	overlapStructTag,
+	boardStructTag,
+}
+
 type autoStackConfig struct {
 	deck      *Deck
 	size      int
@@ -70,7 +78,10 @@ type StructInflater struct {
 // conditions, including checking Valid() on the return value, as well as
 // verifying that if the exampleObj also has a ReadSetter that things like
 // MergedStacksa are not accesible from mutable reader accessors, retuning an
-// error and a nil StructInflater if anything is invalid.
+// error and a nil StructInflater if anything is invalid. Stack-family tags
+// must describe one unambiguous runtime shape: concrete and merged tags cannot
+// be mixed, mutually exclusive tags cannot be combined, and a field declared
+// as SizedStack cannot use the growable `stack` tag.
 //
 // You typically do not use this directly; the base library will automatically
 // create ones for you for its own use to infalte your gameStates,
@@ -124,6 +135,11 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
 
+		structTags := structTagsForField(exampleObj, propName, stackStructTags)
+		if err := validateStackStructTags(exampleObj, propName, propType, structTags); err != nil {
+			return nil, err
+		}
+
 		switch propType {
 		case TypeStack, TypeBoard:
 
@@ -150,14 +166,6 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 			}
 
 			var tag string
-
-			structTags := structTagsForField(exampleObj, propName, []string{
-				stackStructTag,
-				fixedStackStructTag,
-				concatenateStructTag,
-				overlapStructTag,
-				boardStructTag,
-			})
 
 			if exampleReadSetter != nil && exampleReadSetter.PropMutable(propName) {
 
@@ -187,7 +195,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 				}
 
 				if isFixed && boardSize > 0 {
-					return nil, errors.New("[rovided a board tag with a sizedstack, which is invalid")
+					return nil, errors.New("provided a board tag with a sizedstack, which is invalid")
 				}
 
 				if tag != "" {
@@ -213,7 +221,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 					}
 				} else {
 					if boardSize > 0 {
-						return nil, errors.New("board stuct tag provided, without a corresponding stack struct tag")
+						return nil, errors.New("board struct tag provided without a corresponding stack struct tag")
 					}
 				}
 			}
@@ -1012,6 +1020,94 @@ func structTagsForField(obj interface{}, fieldName string, structTags []string) 
 	}
 
 	return result
+}
+
+func validateStackStructTags(obj interface{}, fieldName string, propType PropertyType, tags map[string]string) error {
+	has := func(name string) bool {
+		return tags[name] != ""
+	}
+
+	concreteTag := ""
+	if has(stackStructTag) {
+		concreteTag = stackStructTag
+	}
+	if has(fixedStackStructTag) {
+		if concreteTag != "" {
+			return errors.New(fieldName + " included both stack and sizedstack struct tags; choose exactly one")
+		}
+		concreteTag = fixedStackStructTag
+	}
+
+	mergedTag := ""
+	if has(concatenateStructTag) {
+		mergedTag = concatenateStructTag
+	}
+	if has(overlapStructTag) {
+		if mergedTag != "" {
+			return errors.New(fieldName + " included both concatenate and overlap struct tags; choose exactly one")
+		}
+		mergedTag = overlapStructTag
+	}
+
+	if concreteTag != "" && mergedTag != "" {
+		return errors.New(fieldName + " mixed concrete stack tag " + concreteTag + " with merged stack tag " + mergedTag)
+	}
+
+	hasAny := concreteTag != "" || mergedTag != "" || has(boardStructTag)
+	if propType != TypeStack && propType != TypeBoard {
+		if hasAny {
+			return errors.New(fieldName + " included a stack-family struct tag, but is not a Stack or Board property")
+		}
+		return nil
+	}
+
+	if propType == TypeBoard {
+		if mergedTag != "" {
+			return errors.New(fieldName + " is a Board property and cannot use the " + mergedTag + " struct tag")
+		}
+		if has(fixedStackStructTag) {
+			return errors.New(fieldName + " is a Board property and cannot use the sizedstack struct tag")
+		}
+		if has(stackStructTag) && !has(boardStructTag) {
+			return errors.New(fieldName + " is a Board property with a stack struct tag but no board struct tag")
+		}
+		return nil
+	}
+
+	if has(boardStructTag) {
+		return errors.New(fieldName + " included a board struct tag, but is not a Board property")
+	}
+
+	fieldType, ok := structFieldType(obj, fieldName)
+	if !ok {
+		return nil
+	}
+	sizedStackType := reflect.TypeOf((*SizedStack)(nil)).Elem()
+	if fieldType.Implements(sizedStackType) && has(stackStructTag) {
+		return errors.New(fieldName + " is declared as SizedStack but uses a growable stack struct tag; use sizedstack instead")
+	}
+
+	return nil
+}
+
+func structFieldType(obj interface{}, fieldName string) (reflect.Type, bool) {
+	t := reflect.TypeOf(obj)
+	if t == nil {
+		return nil, false
+	}
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return nil, false
+	}
+	field, ok := t.FieldByNameFunc(func(name string) bool {
+		return name == fieldName
+	})
+	if !ok {
+		return nil, false
+	}
+	return field.Type, true
 }
 
 // outerEmbeddingTags walks the top-level (non-promoted) fields of t and, for
