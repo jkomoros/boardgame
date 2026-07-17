@@ -55,13 +55,13 @@ known at WithLegalPreconditions-authoring time. Byte-for-byte unchanged.
 //boardgame:codegen
 type moveMoveCardBetweenShortStacks struct {
 	moves.Default
-	FromFirst bool
+	FromFirst bool `sanitize:"all:visible"`
 }
 
 //boardgame:codegen
 type moveMoveCardBetweenDrawAndDiscardStacks struct {
 	moves.Default
-	FromDraw bool
+	FromDraw bool `sanitize:"all:visible"`
 }
 
 //boardgame:codegen

@@ -251,6 +251,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(moveCastVote),
 				moves.WithMoveName("Cast Night Vote"),
+				moves.WithMoveNameSanitization("self:visible,same-role:visible", "Hidden Action"),
 				moves.WithHelpText("Werewolves choose a target to eliminate."),
 			),
 			auto.MustConfig(

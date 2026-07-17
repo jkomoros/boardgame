@@ -72,6 +72,17 @@ func WithMoveName(moveName string) CustomConfigurationOption {
 	}
 }
 
+// WithMoveNameSanitization configures viewer-specific disclosure of the
+// canonical name with the same group:policy syntax as sanitize struct tags.
+// Only visible and hidden are valid. If hiddenAnimationKey is absent or empty,
+// unauthorized viewers receive no move metadata; otherwise they receive that
+// opaque animation key.
+func WithMoveNameSanitization(policy string, hiddenAnimationKey ...string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		boardgame.SetMoveNameSanitization(config, policy, hiddenAnimationKey...)
+	}
+}
+
 // WithMoveNameSuffix returns a function configuration option suitable for being
 // passed to auto.Config. The suffix, if provided, will be appended to whatever
 // the Move's name would have been (see the behavior for DeriveName on

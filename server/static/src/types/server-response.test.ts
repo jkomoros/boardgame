@@ -177,7 +177,7 @@ test('game-info decoder validates Table session state combinations', () => {
 test('game-version decoder validates bundles and bounds untrusted collections', () => {
   const decoded = decodeGameVersionResponse({
     Status: 'Success',
-    Bundles: [{ Game: game(3), Forms: null, ViewingAsPlayer: -1, Move: { Name: 'Roll', Version: 3 } }],
+    Bundles: [{ Game: game(3), Forms: null, ViewingAsPlayer: -1, Move: { AnimationKey: 'Roll', Version: 3 } }],
   });
   assert.equal(decoded.Bundles[0].Game.Version, 3);
   assert.equal(decoded.Bundles[0].Forms, null);

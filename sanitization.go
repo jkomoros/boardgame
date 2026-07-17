@@ -3,6 +3,7 @@ package boardgame
 import (
 	"hash/fnv"
 	"math/rand"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,10 +42,12 @@ const sanitizationGroupOther = SanitizationDefaultPlayerGroup
 /*
 Policy is the type that reprsents a sanitization policy.
 
-A sanitization policy reflects how to tranform a given State property when
-presenting to someone outside of the target group. They are returned from your
-GameDelegate's SanitizationPolicy method, and the results are used to configure
-how properties are modified or elided in state.SanitizedForPlayer.
+A sanitization policy reflects how to transform a State or Move property when
+presenting it to a particular viewer. State policies are returned from your
+GameDelegate's SanitizationPolicy method and used by state.SanitizedForPlayer.
+Move properties use the same sanitize tags, groups, and policies when
+Game.MoveJSONForPlayer constructs outbound animation metadata; untagged move
+properties default hidden.
 
 For most types of properties, there are two effective policies: PolicyVisible,
 in which the property is left untouched, and PolicyHidden, in which case the
@@ -147,6 +150,27 @@ const (
 
 	//TODO: implement the other policies.
 )
+
+// ResolveSanitizationPolicy returns the least restrictive policy configured
+// for a group the viewer belongs to. fallback is returned when none apply.
+// State sanitization uses PolicyVisible for compatibility; move sanitization
+// uses PolicyHidden so persisted arguments are explicitly opted into clients.
+func ResolveSanitizationPolicy(policyMap map[string]Policy, groupMembership map[string]bool, fallback Policy) Policy {
+	var applicable []int
+	for groupName, isMember := range groupMembership {
+		if !isMember {
+			continue
+		}
+		if policy, ok := policyMap[groupName]; ok {
+			applicable = append(applicable, int(policy))
+		}
+	}
+	if len(applicable) == 0 {
+		return fallback
+	}
+	slices.Sort(applicable)
+	return Policy(applicable[0])
+}
 
 func policyFromString(policyName string) Policy {
 	policyName = strings.ToLower(policyName)

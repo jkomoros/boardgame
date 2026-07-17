@@ -144,6 +144,10 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(
 			new(movePlaceToken),
 			moves.WithHelpText("Place a player's token in a specific space."),
+			// Demonstrate viewer-specific move projection: the actor receives
+			// the real animation key and Slot argument; everyone else receives
+			// an opaque transition and learns the placement from sanitized state.
+			moves.WithMoveNameSanitization("self:visible", "Hidden Action"),
 			// Declarative migration (Task 7 survey re-check, design spec §6
 			// §3): Legal() is deleted (see moves.go); the token-availability
 			// gate is now declarative via the players[move.Field].Prop path

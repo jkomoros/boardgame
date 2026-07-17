@@ -149,7 +149,7 @@ func voteForPhase(player *playerState, phase enum.EnumKey) boardgame.PlayerIndex
 type moveCastVote struct {
 	moves.AnyPlayer
 	// VoteTarget is the player index this player wants to eliminate.
-	VoteTarget boardgame.PlayerIndex
+	VoteTarget boardgame.PlayerIndex `sanitize:"self:visible,same-role:visible"`
 }
 
 func (m *moveCastVote) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {

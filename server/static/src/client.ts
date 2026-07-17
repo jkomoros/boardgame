@@ -120,7 +120,7 @@ export type {
   InspectorOpenChangedDetail,
 } from './components/boardgame-inspector.js';
 export type { ReadinessView } from './components/boardgame-readiness.js';
-export type { ClientMove } from './types/api.js';
+export type { ClientMove, JsonValue } from './types/api.js';
 export type {
   ReadinessKey,
   ReadinessLabels,

@@ -11,7 +11,7 @@ import (
 type movePlaceToken struct {
 	moves.CurrentPlayer
 	//Which token to place the token
-	Slot int
+	Slot int `sanitize:"self:visible"`
 }
 
 func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {

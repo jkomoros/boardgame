@@ -1177,22 +1177,6 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 }
 
-// clientMoveRecord is intentionally smaller than MoveStorageRecord. Move.Blob
-// contains the proposed fields and may hold a private target or choice; proposer,
-// phase, and initiator metadata can also reveal state that sanitization hid.
-// Renderers only need a stable move type and version to customize animation.
-type clientMoveRecord struct {
-	Name    string
-	Version int
-}
-
-func animationMoveRecord(move *boardgame.MoveStorageRecord) *clientMoveRecord {
-	if move == nil {
-		return nil
-	}
-	return &clientMoveRecord{Name: move.Name, Version: move.Version}
-}
-
 func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) ([]gin.H, error) {
 	var bundles []gin.H
 
@@ -1230,6 +1214,11 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 			return nil, errors.New("Couldn't seralize json for " + strconv.Itoa(i) + ": " + err.Error())
 		}
 
+		moveJSON, err := game.MoveJSONForPlayer(playerIndex, move)
+		if err != nil {
+			return nil, errors.New("Couldn't sanitize move for " + strconv.Itoa(i) + ": " + err.Error())
+		}
+
 		//If state is nil, JSONForPlayer will basically treat it as just "give the
 		//current version" which is a reasonable fallback.
 
@@ -1245,7 +1234,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 
 		bundle := gin.H{
 			"Game":            gameJSON,
-			"Move":            animationMoveRecord(move),
+			"Move":            moveJSON,
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           forms,
 		}
@@ -1718,6 +1707,8 @@ func (s *Server) moveHandler(c *gin.Context) {
 	}
 
 	proposer := s.effectivePlayerIndex(c)
+	requestedMove := game.MoveByName(c.PostForm("MoveType"))
+	privateRequestedMove := requestedMove != nil && !requestedMove.Info().MoveNamePublic()
 	var expectedVersion *int
 	if raw, provided := c.GetPostForm("ExpectedVersion"); provided {
 		parsed, parseErr := strconv.Atoi(raw)
@@ -1740,7 +1731,14 @@ func (s *Server) moveHandler(c *gin.Context) {
 			errString = err.Error()
 		}
 
+		if privateRequestedMove {
+			errString = "move unavailable"
+		}
 		r.Error(errors.New("Couldn't get move: " + errString))
+		return
+	}
+	if privateRequestedMove && !s.privateMoveAvailable(game, game.CurrentState(), move, proposer) {
+		r.Error(errors.New("Couldn't get move: move unavailable"))
 		return
 	}
 
@@ -1812,6 +1810,8 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLegalPreviewBodyBytes)
 
 	proposer := s.effectivePlayerIndex(c)
+	requestedMove := game.MoveByName(c.PostForm("MoveType"))
+	privateRequestedMove := requestedMove != nil && !requestedMove.Info().MoveNamePublic()
 	expectedVersion := game.Version()
 	if raw, provided := c.GetPostForm("ExpectedVersion"); provided {
 		parsed, parseErr := strconv.Atoi(raw)
@@ -1835,6 +1835,9 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 		if err != nil {
 			errString = err.Error()
 		}
+		if privateRequestedMove {
+			errString = "move unavailable"
+		}
 		r.Error(errors.New("Couldn't get move: " + errString))
 		return
 	}
@@ -1842,6 +1845,10 @@ func (s *Server) movePreviewHandler(c *gin.Context) {
 	state := game.State(expectedVersion)
 	if state == nil {
 		r.Error(errors.New("Could not load the requested preview state"))
+		return
+	}
+	if privateRequestedMove && !s.privateMoveAvailable(game, state, move, proposer) {
+		r.Error(errors.New("Couldn't get move: move unavailable"))
 		return
 	}
 	form := s.legalMoveForm(game, state, move, proposer)
@@ -1937,11 +1944,13 @@ func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.Immut
 	}
 
 	// Validate the shared move type once (it's the same for every candidate).
-	if probe := game.MoveByName(moveType); probe == nil {
+	probe := game.MoveByName(moveType)
+	if probe == nil {
 		return nil, errors.New("Invalid MoveType")
 	} else if base.IsFixUp(probe) {
 		return nil, errors.New("players cannot make fixup moves")
 	}
+	privateMove := !probe.Info().MoveNamePublic()
 
 	results := make([]movePreviewBatchResult, 0, len(candidates))
 	for _, cand := range candidates {
@@ -1951,7 +1960,15 @@ func (s *Server) legalMoveFormsBatch(game *boardgame.Game, state boardgame.Immut
 			v, ok := args[name]
 			return v, ok
 		}); err != nil {
-			results = append(results, movePreviewBatchResult{ID: cand.ID, Legal: false, Error: err.Error()})
+			message := err.Error()
+			if privateMove {
+				message = "move unavailable"
+			}
+			results = append(results, movePreviewBatchResult{ID: cand.ID, Legal: false, Error: message})
+			continue
+		}
+		if privateMove && !s.privateMoveAvailable(game, state, move, playerIndex) {
+			results = append(results, movePreviewBatchResult{ID: cand.ID, Legal: false, Error: "move unavailable"})
 			continue
 		}
 		result := previewLegalityResult(move, state, playerIndex)
@@ -2065,6 +2082,9 @@ func (s *Server) generateForms(game *boardgame.Game) []*moveForm {
 		if base.IsFixUp(move) {
 			continue
 		}
+		if !move.Info().MoveNamePublic() {
+			continue
+		}
 
 		moveItem := &moveForm{
 			Name:     move.Info().Name(),
@@ -2104,10 +2124,31 @@ func (s *Server) generateFormsWithLegality(game *boardgame.Game, state boardgame
 		if base.IsFixUp(move) {
 			continue
 		}
+		if !move.Info().MoveNamePublic() && !s.privateMoveAvailable(game, state, move, playerIndex) {
+			continue
+		}
 		result = append(result, s.legalMoveForm(game, state, move, playerIndex))
 	}
 
 	return result
+}
+
+// privateMoveAvailable fails closed for forms and proposal/preview metadata.
+// A private canonical name is exposed only to a concrete viewer for whom the
+// configured name policy is visible and the fully bound move is currently
+// legal. Public moves retain the legacy forms and error behavior.
+func (s *Server) privateMoveAvailable(game *boardgame.Game, state boardgame.ImmutableState, move boardgame.Move, playerIndex boardgame.PlayerIndex) bool {
+	if playerIndex == boardgame.AdminPlayerIndex {
+		return true
+	}
+	if playerIndex < 0 || move == nil || state == nil {
+		return false
+	}
+	visible, err := game.MoveNameVisibleToPlayer(move, playerIndex, playerIndex, state)
+	if err != nil || !visible {
+		return false
+	}
+	return move.Legal(state, playerIndex) == nil
 }
 
 // legalMoveForm builds a moveForm with its legality fields filled for one

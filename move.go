@@ -18,6 +18,8 @@ type moveType struct {
 	constructor         func() Move
 	validator           *StructInflater
 	customConfiguration PropertyCollection
+	nameSanitization    map[string]Policy
+	hiddenAnimationKey  string
 	manager             *GameManager
 }
 
@@ -131,7 +133,7 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 	//useful object in that case... but also an error so anyone else who
 	//checks the error will ignore the half-useful move type.
 	if manager != nil {
-		validator, err = NewStructInflater(exampleMove, moveTypeIllegalPropTypes, manager.Chest())
+		validator, err = newStructInflater(exampleMove, moveTypeIllegalPropTypes, manager.Chest(), PolicyHidden)
 
 		if err != nil {
 			return nil, errors.New("Couldn't create validator: " + err.Error())
@@ -141,11 +143,46 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 		err = errors.New(newMoveTypeErrNoManagerPassed)
 	}
 
+	nameSanitization, hiddenAnimationKey, configErr := configuredMoveNameSanitization(config.CustomConfiguration())
+	if configErr != nil {
+		return nil, configErr
+	}
+	if manager != nil {
+		for propName, policies := range validator.sanitizationPolicy {
+			for groupName, policy := range policies {
+				if policy == PolicyInvalid {
+					return nil, errors.New("Move " + config.Name() + " property " + propName + " had invalid sanitization policy for group " + groupName)
+				}
+			}
+		}
+		groupEnum := manager.Delegate().GroupEnum()
+		groupNames := validator.sanitizationPolicyGroupNames(groupEnum)
+		for groupName := range nameSanitization {
+			if groupName == SanitizationDefaultGroup {
+				continue
+			}
+			if groupEnum != nil && groupEnum.ValueFromString(groupName) != enum.IllegalValue {
+				continue
+			}
+			groupNames[groupName] = true
+		}
+		for groupName := range groupNames {
+			if groupName == sanitizationGroupSelf || groupName == sanitizationGroupOther {
+				continue
+			}
+			if _, err := manager.Delegate().ComputedPlayerGroupMembership(groupName, nil, nil); err != nil {
+				return nil, errors.New("Move " + config.Name() + " had illegal sanitization group " + groupName + ": " + err.Error())
+			}
+		}
+	}
+
 	return &moveType{
 		name:                config.Name(),
 		constructor:         config.Constructor(),
 		customConfiguration: config.CustomConfiguration(),
 		validator:           validator,
+		nameSanitization:    nameSanitization,
+		hiddenAnimationKey:  hiddenAnimationKey,
 		manager:             manager,
 	}, err
 
@@ -343,6 +380,15 @@ func (m *MoveInfo) CustomConfiguration() PropertyCollection {
 		return nil
 	}
 	return m.moveType.customConfiguration
+}
+
+// SanitizationPolicy resolves the move property's sanitize tag for the given
+// memberships. Move properties are hidden unless explicitly configured.
+func (m *MoveInfo) SanitizationPolicy(propName string, groupMembership map[string]bool) Policy {
+	if m == nil || m.moveType == nil || m.moveType.validator == nil {
+		return PolicyInvalid
+	}
+	return ResolveSanitizationPolicy(m.moveType.validator.PropertySanitizationPolicy(propName), groupMembership, PolicyHidden)
 }
 
 // Initiator returns the move version that initiated this causal chain: the

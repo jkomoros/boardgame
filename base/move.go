@@ -94,6 +94,15 @@ func (m *Move) CustomConfiguration() boardgame.PropertyCollection {
 
 }
 
+// SanitizationPolicy uses the move's sanitize struct tags to select a policy
+// for an outbound property. Embedder moves may override it for dynamic policy.
+func (m *Move) SanitizationPolicy(propName string, groupMembership map[string]bool) boardgame.Policy {
+	if m.info == nil {
+		return boardgame.PolicyInvalid
+	}
+	return m.info.SanitizationPolicy(propName, groupMembership)
+}
+
 // HelpText returns ""
 func (m *Move) HelpText() string {
 	return ""

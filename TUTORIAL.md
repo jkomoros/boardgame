@@ -3247,6 +3247,34 @@ Then, in your playerStates you could use sanitization policies like: `guesser:hi
 
 You can also do more advanced things. For example, `different-color:len` would make it so if a player who is a different color than the player in question is looking at a stack, they'll just see the len. This would allow players on the same "team" to see that stack property for each other, while other players not being able to see them. `same-color` also works similarly, but opposite.
 
+Move arguments use the same sanitization tags and group membership machinery.
+For moves, the stored proposer takes the place of the owning player state and
+membership is evaluated against the state immediately before the move. Unlike
+state properties, untagged move properties are omitted from clients by default;
+exposure is always explicit:
+
+```go
+type moveChooseCard struct {
+    moves.CurrentPlayer
+    DeckName string `sanitize:"all:visible"`
+    Card     int    `sanitize:"self:visible,same-team:visible"`
+}
+```
+
+The canonical move name can be sanitized with the same group syntax. A static
+fallback produces an opaque animation key; omitting the fallback makes the move
+silent to unauthorized viewers:
+
+```go
+moves.WithMoveNameSanitization("self:visible,same-team:visible", "Hidden Action")
+moves.WithMoveNameSanitization("self:visible") // silent to everyone else
+```
+
+This changes only the outbound projection. Storage, golden replay, and trusted
+audit paths retain the complete move record. A silent move still advances the
+shared game version, so it provides semantic secrecy rather than traffic
+secrecy. Sanitized state and turn structure may still make facts inferable.
+
 ### Seats and Inactive players
 
 The core game logic has no idea which actual user is playing as any given
@@ -3551,13 +3579,12 @@ You can modify a number of properties of animations. The most simple is the
 `--animation-length` CSS var, which the built-in components respect for how
 long all of their animations will take. Sometimes you want all animations for a certain move to take a certain amount of time, and it's confusing/error prone to set the values in CSS. If your game renderer defines `animationLength(fromMove, toMove)` then it will be consulted before each state bundle is installed. If the value is 0, then no override is set and the default CSS values for animation length take precedence. If it is greater than zero, than a temporary `--animation-length` value will be set above your renderer (interpreting that number as millisecondes), overriding the default value until another one is set. And if the value is negative, the animation will be skipped entirely. `BoardgameBaseGameRenderer` provides a default `animationLength` that just returns 0.
 
-Both arguments are `ClientMove | null`. `ClientMove` intentionally contains
-only readonly `Name` and `Version`: enough to select an animation policy, but
-never the storage record's serialized arguments, proposer, initiator, phase, or
-timestamp. Those fields can contain private choices that state sanitization
-correctly hid. Move type names are public catalog metadata, so do not encode a
-secret choice into dynamically generated move names; put the choice in typed
-move fields and authoritative sanitized state as usual.
+Both arguments are `ClientMove | null`. `ClientMove` contains a viewer-specific
+readonly `AnimationKey`, `Version`, and optional sanitized `Properties`.
+`AnimationKey` defaults to the canonical move name, but private moves may replace
+it with an opaque key or omit the move metadata entirely. It is for animation
+selection only and must never be used as a proposal type. The storage record's
+blob, proposer, initiator, phase, and timestamp never cross this boundary.
 
 Sometimes you want the completed state to remain visible for a beat before the
 next state is installed. For example, Memory leaves a matching pair face-up so

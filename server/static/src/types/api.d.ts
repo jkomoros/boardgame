@@ -179,10 +179,12 @@ export interface EnumDefinition {
  * A move that was made in the game.
  */
 export type ClientMove = Readonly<{
-  /** Public move type used only to select animation policy. */
-  Name: string;
+  /** Viewer-specific public key used only to select animation policy. */
+  AnimationKey: string;
   /** State version produced by the move. */
   Version: number;
+  /** Explicitly disclosed, viewer-sanitized move properties. */
+  Properties?: Readonly<Record<string, JsonValue>>;
 }>;
 
 /**

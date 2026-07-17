@@ -2,7 +2,6 @@ package base
 
 import (
 	"math"
-	"slices"
 	"strings"
 
 	"github.com/jkomoros/boardgame/behaviors"
@@ -344,29 +343,7 @@ func (g *GameDelegate) SanitizationPolicy(prop boardgame.StatePropertyRef, group
 
 	policyMap := inflater.PropertySanitizationPolicy(prop.PropName)
 
-	var applicablePolicies []int
-
-	for groupName, isMember := range groupMembership {
-
-		//The only ones that are in the map should be `true` but sanity check
-		//just in case.
-		if !isMember {
-			continue
-		}
-
-		//Only if the policy is actually in the map should we use it
-		if policy, ok := policyMap[groupName]; ok {
-			applicablePolicies = append(applicablePolicies, int(policy))
-		}
-	}
-
-	if len(applicablePolicies) == 0 {
-		return boardgame.PolicyVisible
-	}
-
-	slices.Sort(applicablePolicies)
-
-	return boardgame.Policy(applicablePolicies[0])
+	return boardgame.ResolveSanitizationPolicy(policyMap, groupMembership, boardgame.PolicyVisible)
 
 }
 

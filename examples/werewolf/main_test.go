@@ -1,6 +1,8 @@
 package werewolf
 
 import (
+	"encoding/json"
+	"strconv"
 	"testing"
 
 	"github.com/jkomoros/boardgame"
@@ -53,6 +55,10 @@ func (s *testStorageManager) FetchInjectedDataForGame(gameID string, dataType st
 // InactivateEmptySeat marks unfilled seats inactive, and moveBeginGame
 // assigns roles among the active players.
 func newSeatedGame(t *testing.T, numToSeat int) (*boardgame.GameManager, *boardgame.Game) {
+	return newSeatedGameWithSlots(t, 5, numToSeat)
+}
+
+func newSeatedGameWithSlots(t *testing.T, numSlots, numToSeat int) (*boardgame.GameManager, *boardgame.Game) {
 	t.Helper()
 
 	storage := &testStorageManager{memory.NewStorageManager(), nil}
@@ -62,7 +68,7 @@ func newSeatedGame(t *testing.T, numToSeat int) (*boardgame.GameManager, *boardg
 		t.Fatalf("NewGameManager: %v", err)
 	}
 
-	game, err := manager.NewDefaultGame()
+	game, err := manager.NewGame(numSlots, nil, nil)
 	if err != nil {
 		t.Fatalf("NewDefaultGame: %v", err)
 	}
@@ -323,6 +329,43 @@ func TestNightVoteSanitization(t *testing.T) {
 	assertVotes(boardgame.ObserverPlayerIndex, 0)
 	assertVotes(boardgame.PlayerIndex((wolfIndex+2)%4), 0)
 	assertVotes(boardgame.PlayerIndex(wolfIndex), target)
+
+	// The committed state now contains both wolves. Project a synthetic next
+	// night vote against that persisted pre-move state to prove the same-role
+	// policy reveals both the name and target to the wolf team only.
+	projectedMove := game.MoveByName("Cast Night Vote").(*moveCastVote)
+	projectedMove.VoteTarget = target
+	projectedRecord := boardgame.StorageRecordForMove(projectedMove, phaseNight, boardgame.PlayerIndex(wolfIndex))
+	assertMoveWire := func(viewer boardgame.PlayerIndex, want string) {
+		t.Helper()
+		projected, err := game.MoveJSONForPlayer(viewer, projectedRecord)
+		if err != nil {
+			t.Fatal(err)
+		}
+		encoded, err := json.Marshal(projected)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(encoded) != want {
+			t.Fatalf("viewer %d move = %s, want %s", viewer, encoded, want)
+		}
+	}
+	wantTeam := `{"AnimationKey":"Cast Night Vote","Properties":{"VoteTarget":` + strconv.Itoa(int(target)) + `},"Version":` + strconv.Itoa(projectedRecord.Version) + `}`
+	assertMoveWire(boardgame.PlayerIndex(wolfIndex), wantTeam)
+	assertMoveWire(boardgame.PlayerIndex(secondWolf), wantTeam)
+	wantHidden := `{"AnimationKey":"Hidden Action","Version":` + strconv.Itoa(projectedRecord.Version) + `}`
+	opponent := -1
+	for i, player := range players {
+		if !behaviors.PlayerIsInactive(player) && player.Role.Value() == roleVillager {
+			opponent = i
+			break
+		}
+	}
+	if opponent < 0 {
+		t.Fatal("could not find villager opponent")
+	}
+	assertMoveWire(boardgame.PlayerIndex(opponent), wantHidden)
+	assertMoveWire(boardgame.ObserverPlayerIndex, wantHidden)
 }
 
 // TestFellowWolvesPrivateToOwner verifies both halves of the teammate

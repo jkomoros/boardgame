@@ -88,6 +88,13 @@ type StructInflater struct {
 // playerStates, dynamicComponentValueStates, and Moves, and which you can get
 // access to via manager.Internals().StructInflater().
 func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest, constraintConstructors ...map[string]*StackConstraintConstructor) (*StructInflater, error) {
+	return newStructInflater(exampleObj, illegalTypes, chest, PolicyVisible, constraintConstructors...)
+}
+
+// newStructInflater is the shared constructor. State properties have
+// historically defaulted to visible, while move properties default hidden
+// because persisted move arguments are not part of the public client contract.
+func newStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest, defaultSanitizationPolicy Policy, constraintConstructors ...map[string]*StackConstraintConstructor) (*StructInflater, error) {
 
 	if chest == nil {
 		return nil, errors.New("Passed nil chest")
@@ -133,7 +140,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 
 	for propName, propType := range exampleReader.Props() {
 
-		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
+		sanitizationPolicy[propName] = policyFromStructTagWithDefault(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup, defaultSanitizationPolicy)
 
 		structTags := structTagsForField(exampleObj, propName, stackStructTags)
 		if err := validateStackStructTags(exampleObj, propName, propType, structTags); err != nil {
@@ -343,8 +350,12 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 }
 
 func policyFromStructTag(tag string, defaultGroup string) map[string]Policy {
+	return policyFromStructTagWithDefault(tag, defaultGroup, PolicyVisible)
+}
+
+func policyFromStructTagWithDefault(tag string, defaultGroup string, missingPolicy Policy) map[string]Policy {
 	if tag == "" {
-		tag = "visible"
+		return map[string]Policy{defaultGroup: missingPolicy}
 	}
 
 	errorMap := make(map[string]Policy)
@@ -440,8 +451,9 @@ This means all of the following are valid:
 	    OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
 	}
 
-Missing policy configuration is interpreted for that property as though it said
-`sanitize:"all:visible"`
+For state properties, missing policy configuration is interpreted as though it
+said `sanitize:"all:visible"`. Move inflaters use the same parser with a hidden
+default, so move arguments must opt into the client projection explicitly.
 */
 func (s *StructInflater) PropertySanitizationPolicy(propName string) map[string]Policy {
 	return s.sanitizationPolicy[propName]

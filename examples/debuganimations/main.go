@@ -195,6 +195,9 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 		auto.MustConfig(new(moveShuffleHidden),
 			moves.WithMoveName("Shuffle Hidden"),
+			// A hidden shuffle intentionally produces a silent transition for
+			// everyone except its proposer. The global version still advances.
+			moves.WithMoveNameSanitization("self:visible"),
 			// Declarative migration (design spec §6, Task 7): Legal() is
 			// deleted (see moves.go); the pre-migration body was a single
 			// FanDiscard.NumComponents() < 1 threshold check (negated here
