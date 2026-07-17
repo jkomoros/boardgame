@@ -88,14 +88,25 @@ func AllPackages(inputs []string, optionalBasePath string) ([]*Pkg, error) {
 // path (rel or absolute), and if that fails, bails. optionalBasePath is what
 // to pass to NewFromPath if that is used.
 func New(importOrPath string, optionalBasePath string) (*Pkg, error) {
-	pkg, tryPath, err := newFromImport(importOrPath)
+	return NewWithOptions(importOrPath, optionalBasePath, Options{})
+}
+
+// Options controls package resolution behavior.
+type Options struct {
+	// ReadOnly prevents package discovery from modifying go.mod or go.sum.
+	ReadOnly bool
+}
+
+// NewWithOptions is New with explicit package resolution behavior.
+func NewWithOptions(importOrPath string, optionalBasePath string, options Options) (*Pkg, error) {
+	pkg, tryPath, err := newFromImport(importOrPath, options)
 	if err == nil {
 		return pkg, nil
 	}
 	if !tryPath {
 		return nil, err
 	}
-	return NewFromPath(importOrPath, optionalBasePath)
+	return NewFromPathWithOptions(importOrPath, optionalBasePath, options)
 }
 
 // NewFromPath takes path (either relative or absolute path) and returns a new
@@ -104,6 +115,12 @@ func New(importOrPath string, optionalBasePath string) (*Pkg, error) {
 // optionalBasePath (can be either a rel or absolute path). If optionalBasePath
 // is "" it will be set to current working directory automatically.
 func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
+	return NewFromPathWithOptions(path, optionalBasePath, Options{})
+}
+
+// NewFromPathWithOptions is NewFromPath with explicit package resolution
+// behavior.
+func NewFromPathWithOptions(path string, optionalBasePath string, options Options) (*Pkg, error) {
 
 	if !filepath.IsAbs(path) {
 
@@ -122,7 +139,7 @@ func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 		}
 	}
 
-	p, _, e := newPkg(path, "")
+	p, _, e := newPkg(path, "", options)
 	return p, e
 
 }
@@ -131,23 +148,23 @@ func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 // if the given path does not appear to denote a valid game package for any
 // reason.
 func NewFromImport(importPath string) (*Pkg, error) {
-	p, _, e := newFromImport(importPath)
+	p, _, e := newFromImport(importPath, Options{})
 	return p, e
 }
 
-func newFromImport(importPath string) (pack *Pkg, tryPath bool, err error) {
-	absPath, err := path.AbsoluteGoPkgPath(importPath)
+func newFromImport(importPath string, options Options) (pack *Pkg, tryPath bool, err error) {
+	absPath, err := path.AbsoluteGoPkgPathWithOptions(importPath, path.Options{ReadOnly: options.ReadOnly})
 
 	if err != nil {
 		return nil, true, errors.New("Absolute path couldn't be found: " + err.Error())
 	}
 
 	//If no error, then absPath must point to a valid thing
-	return newPkg(absPath, importPath)
+	return newPkg(absPath, importPath, options)
 }
 
 // tryPath means, if we fail, should we try using the input as a path?
-func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
+func newPkg(absPath, importPath string, options Options) (p *Pkg, tryPath bool, err error) {
 
 	result := &Pkg{
 		absolutePath: absPath,
@@ -173,7 +190,7 @@ func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 	//We also ensure we have a good value for importPath now, so that Import()
 	//later can just return a string, not (string, error)
 
-	listedImport, listedName, err := goListPackage(absPath)
+	listedImport, listedName, err := goListPackage(absPath, options)
 	if err != nil {
 		return nil, false, err
 	}
@@ -196,8 +213,13 @@ func newPkg(absPath, importPath string) (p *Pkg, tryPath bool, err error) {
 // goListPackage returns module-aware package metadata for absPath. go/build's
 // ImportDir derives import paths only from GOPATH and reports synthetic paths
 // when a module checkout lives elsewhere.
-func goListPackage(absPath string) (importPath, name string, err error) {
-	cmd := exec.Command("go", "list", "-f", "{{.ImportPath}}\n{{.Name}}", ".")
+func goListPackage(absPath string, options Options) (importPath, name string, err error) {
+	args := []string{"list"}
+	if options.ReadOnly {
+		args = append(args, "-mod=readonly")
+	}
+	args = append(args, "-f", "{{.ImportPath}}\n{{.Name}}", ".")
+	cmd := exec.Command("go", args...)
 	cmd.Dir = absPath
 	output, cmdErr := cmd.CombinedOutput()
 	if cmdErr != nil {

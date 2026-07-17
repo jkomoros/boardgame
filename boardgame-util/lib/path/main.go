@@ -21,6 +21,18 @@ import (
 // to the internet. If you're trying to load up Game Packages, you should
 // likely use the lib/gamepkg package directly.
 func AbsoluteGoPkgPath(pkgImport string) (string, error) {
+	return AbsoluteGoPkgPathWithOptions(pkgImport, Options{})
+}
+
+// Options controls how package paths are resolved.
+type Options struct {
+	// ReadOnly prevents go list from modifying go.mod or go.sum.
+	ReadOnly bool
+}
+
+// AbsoluteGoPkgPathWithOptions is AbsoluteGoPkgPath with explicit resolution
+// behavior. ReadOnly is appropriate for validation and CI commands.
+func AbsoluteGoPkgPathWithOptions(pkgImport string, options Options) (string, error) {
 
 	//TODO: look into supporting the "no VCS" use case with replace
 	//directives, as described here: https://github.com/golang/go/wiki/Modules
@@ -42,7 +54,12 @@ func AbsoluteGoPkgPath(pkgImport string) (string, error) {
 		return "", errors.New("go tool not installed")
 	}
 
-	cmd := exec.Command("go", "list", "-f", "{{.Dir}}", pkgImport)
+	args := []string{"list"}
+	if options.ReadOnly {
+		args = append(args, "-mod=readonly")
+	}
+	args = append(args, "-f", "{{.Dir}}", pkgImport)
+	cmd := exec.Command("go", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", errors.New("go list failed: " + err.Error() + ": " + string(output))

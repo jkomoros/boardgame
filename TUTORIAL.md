@@ -2435,6 +2435,21 @@ You still need to add it to your games list, so run:
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
 ```
 
+Before starting the server, run the game-authoring preflight:
+
+```sh
+boardgame-util lint ./examplegame
+```
+
+This read-only command verifies that the package is a valid game, generated Go
+readers and enums are current, and the real `GameManager` can be constructed.
+That last step catches invalid stack tags and constraints, move options that do
+not apply to the selected move type, bad phases or legal preconditions, and
+broken move progression at authoring time. Run `boardgame-util lint --fix
+./examplegame` to safely refresh boardgame-owned generated Go files, then
+review and commit them. CI should use plain `boardgame-util lint ./...`, which
+reports all discovered game-package failures and never rewrites the checkout.
+
 First refresh the generated contracts and run the fatal gate:
 
 ```sh

@@ -5,11 +5,19 @@
 ```sh
 boardgame-util stub examplegame
 boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
+boardgame-util lint ./examplegame
 boardgame-util check-client --fix
 boardgame-util serve --offline-dev-mode
 ```
 
 `stub` creates strict Lit/TypeScript renderers and their Go game package.
+`lint` is the read-only Go game-authoring preflight: it checks package safety,
+generated reader/enum freshness, and constructs the real game manager so stack
+schemas, constraints, move configuration, phases, legal preconditions, and
+progression errors fail before a server starts. It accepts imports, directories,
+and Go patterns such as `./...`; `lint --fix` safely refreshes only files
+marked as boardgame-generated. Plain `lint` is suitable for CI and never
+rewrites files.
 `emit-types` refreshes the generated state, move, board-space, and bound
 renderer contracts as one failure-atomic transaction. `check-client --fix`
 performs that safe refresh and immediately runs the strict checks;
@@ -22,8 +30,9 @@ supervises the API and Vite children until one clean `Ctrl+C` shutdown.
 Use `build api` and `build static` for explicit production artifacts. Generation
 and checks fail nonzero with actionable diagnostics; they do not silently accept
 partial output or weaken a game's TypeScript configuration. Commit every
-generated file changed by `--fix`; CI should use plain `check-client` so stale
-generation fails instead of rewriting the checkout.
+generated file changed by `--fix`; CI should use plain `lint ./...` and
+`check-client` so stale generation or invalid game configuration fails instead
+of rewriting the checkout.
 
 ## Providing configuration to boardgame-util
 

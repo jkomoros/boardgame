@@ -30,6 +30,7 @@ type boardgameUtil struct {
 	EmitBoardSpaces emitBoardSpaces
 	EmitTypes       emitTypes
 	CheckClient     checkClient
+	Lint            lintCmd
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -114,6 +115,7 @@ func (b *boardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.EmitBoardSpaces,
 		&b.EmitTypes,
 		&b.CheckClient,
+		&b.Lint,
 	}
 }
 
