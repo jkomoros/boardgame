@@ -211,6 +211,11 @@ function decodeCompanion(value: unknown, path: string): CompanionInfo | null {
     throw new Error(`${path}.TableSession.DisplacedByTransfer requires another active Table`);
   }
   const IsHost = boolean(item['IsHost'], `${path}.IsHost`);
+  const CanRematch = boolean(item['CanRematch'], `${path}.CanRematch`);
+  const RematchGameID = string(item['RematchGameID'], `${path}.RematchGameID`, true);
+  if (RematchGameID && !CompanionMode) {
+    throw new Error(`${path}.RematchGameID requires companion mode`);
+  }
   return {
     CompanionMode,
     RoomCode,
@@ -219,6 +224,8 @@ function decodeCompanion(value: unknown, path: string): CompanionInfo | null {
     Absent,
     TableSession: { Status: tableStatus, IsThisTable, CanTakeOver, RetryAfterMs, DisplacedByTransfer },
     IsHost,
+    CanRematch,
+    RematchGameID,
   } as CompanionInfo;
 }
 

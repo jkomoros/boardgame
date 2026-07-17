@@ -67,12 +67,18 @@ export const navigatePathTo = (path: string, silent: boolean): AppThunk => (disp
 		return;
 	}
 	window.history.pushState({}, '', path);
-	dispatch(navigated(decodeURIComponent(path), decodeURIComponent(location.search)));
+	const destination = new URL(path, window.location.origin);
+	dispatch(navigated(decodeURIComponent(destination.pathname), decodeURIComponent(destination.search)));
 };
 
-export const navigateToGame = (gameName: string, gameID: string): AppThunk => (dispatch) => {
+export const navigateToGame = (
+	gameName: string,
+	gameID: string,
+	display?: 'table' | 'hand',
+): AppThunk => (dispatch) => {
 	//Do I need dispatch here, or could I just return?
-	dispatch(navigatePathTo(gamePath(gameName, gameID), false));
+	const path = gamePath(gameName, gameID);
+	dispatch(navigatePathTo(display ? `${path}?display=${display}` : path, false));
 }
 
 export const navigated = (path: string, query: string): AppThunk => (dispatch) => {

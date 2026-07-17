@@ -198,7 +198,13 @@ export const createGame = (propertyDict: Record<string, string | number | boolea
         if (propertyDict['companionMode'] === '1' || propertyDict['companionMode'] === true) {
             rememberSurfaceForGame(created.GameID, 'table');
         }
-        dispatch(navigateToGame(created.GameName, created.GameID));
+        dispatch(navigateToGame(
+            created.GameName,
+            created.GameID,
+            propertyDict['companionMode'] === '1' || propertyDict['companionMode'] === true
+                ? 'table'
+                : undefined,
+        ));
     } catch (error) {
         console.error('[create-game] rejected server payload:', error);
         dispatch(updateAndShowError('', error instanceof Error ? error.message : 'Invalid create game response', 'The server returned an invalid create-game response'));

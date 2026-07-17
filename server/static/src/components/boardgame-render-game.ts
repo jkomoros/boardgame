@@ -199,6 +199,7 @@ class BoardgameRenderGame extends LitElement {
   // Imports cannot be aborted, so invalidate their completion whenever
   // navigation selects a different renderer identity or removes this host.
   private _rendererLoadGeneration = 0;
+  private _rendererSurfaceSuffix: '' | '-table' | '-hand' = '';
 
   @property({ type: Number })
   viewingAsPlayer = 0;
@@ -461,8 +462,22 @@ class BoardgameRenderGame extends LitElement {
   // the renderer can react to e.g. an absent player coming back without
   // a full re-mount.
   private _companionInfoChanged(_newValue: import('../types/store').CompanionInfo | null) {
+    const desiredSurface = this._surfaceSuffix(this.gameId);
+    if (this.gameName && desiredSurface !== this._rendererSurfaceSuffix) {
+      void this._rendererIdentityChanged(this.gameName, this.gameId);
+      return;
+    }
     if (!this.renderer) return;
     this._applyCompanionPropsToRenderer(this.renderer);
+  }
+
+  /** Installs one authoritative game-info snapshot at the dynamic-renderer
+   * boundary. The property assignment preserves ordinary Lit composition;
+   * the synchronous propagation prevents a mounted renderer from retaining
+   * stale room/Table authority metadata until some unrelated render. */
+  installCompanionInfo(info: import('../types/store').CompanionInfo | null): void {
+    this.companionInfo = info;
+    this._companionInfoChanged(info);
   }
 
   private _isOwnerChanged(_newValue: boolean) {
@@ -869,6 +884,7 @@ class BoardgameRenderGame extends LitElement {
     }
 
     const suffix = this._surfaceSuffix(gameId);
+    this._rendererSurfaceSuffix = suffix;
     const baseModulePath = `../../game-src/${gameName}/boardgame-render-game-${gameName}${suffix}.ts`;
     const modulePath = retry ? `${baseModulePath}?retry=${generation}` : baseModulePath;
 
@@ -931,8 +947,8 @@ class BoardgameRenderGame extends LitElement {
   // module / custom-element name for the current surface, or empty for
   // solo. Pure function of the cookie + query string (see
   // utils/companion-surface.ts, shared with boardgame-game-view).
-  private _surfaceSuffix(gameId: string): string {
-    const s = surfaceForGame(gameId);
+  private _surfaceSuffix(gameId: string): '' | '-table' | '-hand' {
+    const s = surfaceForGame(gameId, this.companionInfo?.CompanionMode);
     if (s === 'table') return '-table';
     if (s === 'hand') return '-hand';
     return '';

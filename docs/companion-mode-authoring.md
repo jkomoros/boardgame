@@ -185,6 +185,21 @@ paused. Game renderers do not add a recovery button, heartbeat, host identity,
 or lease handling—the framework chrome remains present even when an author
 completely replaces the Table or Hand renderer layout.
 
+Reconnect is an authoritative resynchronization, not merely a WebSocket
+retry. On socket open, browser-online, BFCache restore, and return from a
+background tab, the framework refreshes roster, presence, room lock, and Table
+ownership as well as catching up ordinary version bundles. Failed refreshes
+remain retryable even after the game was already rendered, and a metadata-only
+refresh never replays the current move animation. Game authors do not add
+online/offline listeners or recovery polling.
+
+Surface intent is scoped to a browser tab. Opening a Hand in one tab cannot
+silently turn another tab into a Hand on reload, and the same is true for the
+shared Table. Cookies and local presentation state still confer no authority;
+the persisted Table lease remains the only host capability. If a sleeping tab
+misses the switch-to-solo notification, the next authoritative game-info read
+suppresses its stale companion renderer automatically.
+
 An active Table can also be moved deliberately, without waiting for failure.
 The framework's **Move shared Table** control creates a five-minute, one-use QR
 link plus a room-code/manual-code fallback. The receiving screen previews the
@@ -197,6 +212,19 @@ always serialized as observers—even if the receiving browser also belongs to
 a seated player—so moving a phone to a projector cannot expose that player's
 private state. This entire journey is framework-owned; game authors add no
 routes, transfer methods, dialogs, or state fields.
+
+Finished rooms also have a framework-owned **Play again with the same
+players** flow. The Table or game owner may start it; every currently open
+Table and Hand then follows the same newly created game automatically. The new
+game keeps the manager, variants, agents, seat-to-user bindings, display names,
+avatars, visibility, and open/full state, while receiving a fresh room code.
+Creation is durable and idempotent: simultaneous clicks, retries after a lost
+response, and multiple API processes converge on one successor, and clients
+are not sent there until its metadata, Table capability, seats, and
+presentations are ready. A finished Table remains authorized to start the
+rematch even after its live lease expires, but only with its exact HttpOnly
+device capability. Renderers add no button, endpoint call, navigation, or
+rematch state; the framework chrome supplies the complete loop.
 
 ## Testing your surfaces on one machine
 

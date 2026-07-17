@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/storage/internal/test"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"github.com/mattes/migrate"
@@ -14,6 +15,23 @@ import (
 
 	"github.com/jkomoros/boardgame/server/api/tablelease"
 )
+
+func TestRematchMetadataConversionRoundTrip(t *testing.T) {
+	want := &extendedgame.StorageRecord{
+		Open: true, Visible: true, Owner: "owner", CompanionRoomCode: "PLAY",
+		CompanionLocked: true, RematchGameID: "0123456789abcdef", RematchReady: true,
+	}
+	got := newExtendedGameStorageRecord(want).ToStorageRecord()
+	if *got != *want {
+		t.Fatalf("extended rematch round trip = %+v; want %+v", got, want)
+	}
+
+	combined := &extendedgame.CombinedStorageRecord{StorageRecord: *want}
+	combinedGot := newCombinedGameStorageRecord(combined).ToStorageRecord()
+	if combinedGot.RematchGameID != want.RematchGameID || !combinedGot.RematchReady {
+		t.Fatalf("combined rematch round trip = %+v", combinedGot.StorageRecord)
+	}
+}
 
 const (
 	testDSN          = "root:root@tcp(localhost:3306)/TEMPORARY_DATABASE_boardgame_test"

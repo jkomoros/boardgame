@@ -59,6 +59,8 @@ type extendedGameStorageRecord struct {
 	Owner             string `db:",size:128"`
 	CompanionRoomCode string `db:",size:8"` // 4-letter code, possible 5-letter fallback
 	CompanionLocked   bool
+	RematchGameID     string `db:",size:16"`
+	RematchReady      bool
 }
 
 // Used for pulling out of a db with a join
@@ -78,6 +80,8 @@ type combinedGameStorageRecord struct {
 	Owner             string
 	CompanionRoomCode string
 	CompanionLocked   bool
+	RematchGameID     string
+	RematchReady      bool
 }
 
 type stateStorageRecord struct {
@@ -367,6 +371,8 @@ func (c *combinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 			Owner:             c.Owner,
 			CompanionRoomCode: c.CompanionRoomCode,
 			CompanionLocked:   c.CompanionLocked,
+			RematchGameID:     c.RematchGameID,
+			RematchReady:      c.RematchReady,
 		},
 	}
 
@@ -394,6 +400,8 @@ func newCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 		Owner:             combined.Owner,
 		CompanionRoomCode: combined.CompanionRoomCode,
 		CompanionLocked:   combined.CompanionLocked,
+		RematchGameID:     combined.RematchGameID,
+		RematchReady:      combined.RematchReady,
 	}
 
 }
@@ -409,6 +417,8 @@ func (e *extendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecor
 		Owner:             e.Owner,
 		CompanionRoomCode: e.CompanionRoomCode,
 		CompanionLocked:   e.CompanionLocked,
+		RematchGameID:     e.RematchGameID,
+		RematchReady:      e.RematchReady,
 	}
 }
 
@@ -423,6 +433,8 @@ func newExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *extendedGa
 		Owner:             eGame.Owner,
 		CompanionRoomCode: eGame.CompanionRoomCode,
 		CompanionLocked:   eGame.CompanionLocked,
+		RematchGameID:     eGame.RematchGameID,
+		RematchReady:      eGame.RematchReady,
 	}
 }
 

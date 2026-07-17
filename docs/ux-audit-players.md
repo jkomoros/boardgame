@@ -22,6 +22,8 @@ the rest are the ranked backlog.*
    working (regression journey).
 7. **J7 — Move the projector:** transfer an active shared Table to a fresh,
    accountless screen without pausing play or exposing a seated player's hand.
+8. **J8 — Play again:** finish a game, create one successor, and carry the
+   Table plus every Hand and identity into it without rejoining.
 
 ## What's genuinely good
 
@@ -35,7 +37,9 @@ the rest are the ranked backlog.*
   (verified at the API level: opponents' hidden cards are placeholder ids,
   not data); 🙈 Hide-my-hand covers the whole screen for bathroom breaks.
 - **Recovery is invisible.** Reload/reopen mid-game and you're back in your
-  seat with your hand — cookies do the work, no re-join ceremony.
+  seat with your hand — no re-join ceremony. Reconnect and tab-resume refresh
+  non-version room state too, so roster, lock, presence, and Table ownership
+  cannot remain stale merely because no move happened during the outage.
 - **Room security matches the vibe.** Codes are rate-limited (10/min/IP),
   locked/finished rooms 404 identically to bad codes (no existence leak),
   host controls reject non-lease devices; Table recovery uses an expiring
@@ -45,6 +49,9 @@ the rest are the ranked backlog.*
   fences it only after the replacement is ready. Lost responses are safe to
   retry on the same device, other devices cannot replay the offer, and the old
   screen says where the game went instead of failing mysteriously.
+- **Tabs stay independent.** Hand/Table renderer intent is per-tab rather than
+  origin-wide; opening or restoring one surface cannot silently change another
+  tab. Server-declared solo mode always overrides stale browser intent.
 
 ## Fixed during this audit
 
@@ -93,25 +100,26 @@ the rest are the ranked backlog.*
   gold highlight on the current player.
 - ✅ **Your-turn haptic**: the hand base buzzes the phone
   (`navigator.vibrate`, progressive enhancement) when it becomes your turn.
+- ✅ **Play-again loop**: a finished room offers one idempotent successor;
+  owner/Table races converge, the Table capability and exact human seat/name/
+  avatar bindings carry forward, every open companion surface follows once
+  setup is published, and the new room receives a fresh join code.
 
 ### Remaining backlog
 
-1. **Play-again loop.** A finished game is still a dead end — same-room
-   rematch (new game, same seats/identities) doesn't exist. New game =
-   new code, everyone re-joins.
-2. **Werewolf can't end** — no `CheckGameFinished` (task filed); the
+1. **Werewolf can't end** — no `CheckGameFinished` (task filed); the
    game-over machinery is ready for it.
-3. **Identity unification in solo-view chrome.** On companion surfaces the
+2. **Identity unification in solo-view chrome.** On companion surfaces the
    account name is now hidden with the drawer, but the solo view of a
    companion game still shows account names / "Player N" in roster and
    chat tabs.
-4. **Phone top bar** could become game-branded (name + room code) and
+3. **Phone top bar** could become game-branded (name + room code) and
    reclaim 56px; hamburger + "Boardgame App" survive today.
-5. **Hide-my-hand is per-tab** and doesn't survive reload — decided:
+4. **Hide-my-hand is per-tab** and doesn't survive reload — decided:
    acceptable (a reload means you're holding the phone).
-6. Chat on table-mode games: observers can still chat from the solo view;
+5. Chat on table-mode games: observers can still chat from the solo view;
    decide whether that's wanted.
-7. Absent thresholds (30s) worked well in testing; revisit against real
+6. Absent thresholds (30s) worked well in testing; revisit against real
    phone-lock behavior at a live game night.
 
 ### Frame-by-frame animation review (2026-07-02, adversarial agent)

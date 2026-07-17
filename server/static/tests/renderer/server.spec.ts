@@ -55,7 +55,7 @@ test('offline authentication preserves encoded identity fields through the real 
   await expect(page.locator('boardgame-user')).toContainText(displayName);
 });
 
-test('companion guest join validates room, seat options, and seat result through the real server', async ({ page }) => {
+test('companion guest join validates room, seat options, and seat result through the real server', async ({ page, context }) => {
   test.setTimeout(120_000);
   const email = 'typed-join-host@example.com';
   await page.goto('/');
@@ -86,6 +86,13 @@ test('companion guest join validates room, seat options, and seat result through
   expect(fields['CompanionRoomCode']).toMatch(/^[A-Z]{4,5}$/);
   const roomCode = String(fields['CompanionRoomCode']);
   const gameID = String(fields['GameID']);
+  // Production creation goes through actions/list.ts, which records Table
+  // intent in this tab before navigation. This test creates through the raw
+  // endpoint, so mirror that client transition explicitly; origin-wide cookies
+  // are deliberately not enough to turn an unrelated tab into the Table.
+  await page.evaluate(({ gameID }) => {
+    sessionStorage.setItem(`boardgame-surface:${gameID}`, 'table');
+  }, { gameID });
 
   const lookupResponse = await page.request.post('/api/join', { data: { code: roomCode } });
   expect(lookupResponse.ok()).toBe(true);
@@ -135,6 +142,40 @@ test('companion guest join validates room, seat options, and seat result through
   expect((await unlockResponse).ok()).toBe(true);
   await expect(roomLock).not.toBeChecked();
   await expect(table.locator('.host-feedback')).toContainText('Room unlocked');
+
+  // Room lock is non-version metadata. Change it while this page is offline
+  // and prove socket reconnect performs an authoritative info refresh rather
+  // than waiting forever for a version notification that will never exist.
+  await page.waitForTimeout(1_050);
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Network.enable');
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: true,
+    latency: 0,
+    downloadThroughput: 0,
+    uploadThroughput: 0,
+  });
+  await expect(page.getByText('You are offline. The game will reconnect automatically when the network returns.')).toBeVisible();
+  const backgroundLock = await page.request.post(
+    `/api/game/blackjack/${encodeURIComponent(gameID)}/setRoomLock`,
+    { data: { locked: true } },
+  );
+  expect(backgroundLock.ok()).toBe(true);
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: false,
+    latency: 0,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+  });
+  await expect.poll(async () => page.evaluate(async ({ gameID }) => {
+    const response = await fetch(`/api/game/blackjack/${encodeURIComponent(gameID)}/info`);
+    const payload = await response.json() as { CompanionInfo?: { RoomLocked?: boolean } };
+    return payload.CompanionInfo?.RoomLocked;
+  }, { gameID })).toBe(true);
+  await expect(roomLock).toBeChecked({ timeout: 15_000 });
+  await page.waitForTimeout(1_050);
+  await roomLock.uncheck();
+  await expect(roomLock).not.toBeChecked();
 
   await page.goto(`/join?code=${encodeURIComponent(String(fields['CompanionRoomCode']))}`);
   await page.getByRole('button', { name: 'Use a new guest identity' }).click();
@@ -209,7 +250,9 @@ test('an active shared Table transfers atomically to a fresh accountless screen'
     await seatContext.close();
   }
 
-  await page.goto(`/game/blackjack/${encodeURIComponent(result.GameID)}`);
+  // The API call above bypasses the production create-game navigation, which
+  // carries the new Table tab's explicit presentation intent in the URL.
+  await page.goto(`/game/blackjack/${encodeURIComponent(result.GameID)}?display=table`);
   await expect(page.locator('boardgame-render-game-blackjack-table')).toBeAttached({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Move shared Table' }).click();
   const dialog = page.getByRole('dialog', { name: 'Move the shared Table' });
@@ -297,7 +340,123 @@ test('an active shared Table transfers atomically to a fresh accountless screen'
   }
 });
 
-test('assembled Pig renderer reports a real server rejection through typed transport', async ({ page }) => {
+test('a finished companion room rematches once and carries every surface and seat forward', async ({ page, browser }) => {
+  test.setTimeout(150_000);
+  const ownerEmail = 'rematch-owner@example.com';
+  expect((await page.request.post('/api/auth', {
+    form: { uid: ownerEmail, token: 'offline-test-token', email: ownerEmail, displayname: 'Rematch Owner' },
+  })).ok()).toBe(true);
+  const created = await page.request.post('/api/new/game', {
+    form: {
+      manager: 'blackjack', numplayers: '2', companionMode: '1', variant_maxrounds: '1',
+    },
+  });
+  expect(created.ok()).toBe(true);
+  const initial = await created.json() as {
+    GameID: string; GameName: string; Status: string; CompanionRoomCode: string;
+  };
+  expect(initial.Status).toBe('Success');
+
+  const joinPlayer = async (email: string, displayName: string, avatarSlug: string) => {
+    const context = await browser.newContext();
+    const hand = await context.newPage();
+    expect((await hand.request.post('/api/auth', {
+      form: { uid: email, token: 'offline-test-token', email, displayname: displayName },
+    })).ok()).toBe(true);
+    const lookup = await hand.request.post('/api/join', { data: { code: initial.CompanionRoomCode } });
+    expect(lookup.ok()).toBe(true);
+    const { joinTicket } = await lookup.json() as { joinTicket: string };
+    const claim = await hand.request.post('/api/join/seat', {
+      headers: { 'X-Boardgame-Join-Ticket': joinTicket },
+      data: {
+        gameID: initial.GameID, uid: email, displayName, avatarSlug,
+        seatPick: -1, attemptID: `rematch-${email}`,
+      },
+    });
+    expect(claim.ok()).toBe(true);
+    await hand.goto(`/game/blackjack/${encodeURIComponent(initial.GameID)}?display=hand`);
+    await expect(hand.locator('boardgame-render-game-blackjack-hand')).toBeAttached({ timeout: 15_000 });
+    return { context, hand };
+  };
+
+  const first = await joinPlayer('rematch-one@example.com', 'Bright Fox', '🦊');
+  const second = await joinPlayer('rematch-two@example.com', 'Calm Owl', '🦉');
+  const adminContext = await browser.newContext();
+  const admin = await adminContext.newPage();
+  try {
+    expect((await admin.request.post('/api/auth', {
+      form: { uid: ownerEmail, token: 'offline-test-token', email: ownerEmail, displayname: 'Rematch Owner' },
+    })).ok()).toBe(true);
+    await page.goto(`/game/blackjack/${encodeURIComponent(initial.GameID)}?display=table`);
+    await expect(page.locator('boardgame-render-game-blackjack-table')).toBeAttached({ timeout: 15_000 });
+
+    const infoURL = `/api/game/blackjack/${encodeURIComponent(initial.GameID)}/info?admin=1&player=-2`;
+    await expect.poll(async () => {
+      const response = await admin.request.get(infoURL);
+      const body = await response.json() as { Forms?: Array<{ Name?: string; LegalForPlayer?: boolean }> };
+      // Presence alone is not enough: the move is registered for the whole
+      // game, but it only becomes legal for the admin once normal play begins.
+      return body.Forms?.some(form => form.Name === 'Force Finish Turn' && form.LegalForPlayer === true) ?? false;
+    }, { timeout: 20_000 }).toBe(true);
+
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const current = await (await admin.request.get(infoURL)).json() as {
+        Game?: { Finished?: boolean; CurrentPlayerIndex?: number };
+      };
+      if (current.Game?.Finished) break;
+      const currentPlayer = current.Game?.CurrentPlayerIndex;
+      expect(currentPlayer).toEqual(expect.any(Number));
+      const stood = await admin.request.post(`/api/game/blackjack/${encodeURIComponent(initial.GameID)}/move`, {
+        form: { MoveType: 'Current Player Stand', admin: '1', player: String(currentPlayer) },
+      });
+      const stoodBody = await stood.json() as { Status?: string; Error?: string };
+      expect(stoodBody.Status, stoodBody.Error).toBe('Success');
+      await page.waitForTimeout(250);
+    }
+    const finalInitial = await (await admin.request.get(infoURL)).json() as {
+      Game?: { Finished?: boolean; Version?: number; CurrentState?: { Game?: Readonly<Record<string, unknown>> } };
+    };
+    expect(finalInitial.Game?.Finished, JSON.stringify(finalInitial.Game)).toBe(true);
+
+    const playAgain = page.getByRole('button', { name: 'Play again with the same players' });
+    await expect(playAgain).toBeVisible({ timeout: 15_000 });
+    await playAgain.click();
+    await page.waitForURL(url => url.pathname.includes('/game/blackjack/') && !url.pathname.includes(initial.GameID), { timeout: 25_000 });
+    const rematchID = new URL(page.url()).pathname.split('/').filter(Boolean).at(-1)!;
+    expect(rematchID).not.toBe(initial.GameID);
+    await expect(page.locator('boardgame-render-game-blackjack-table')).toBeAttached({ timeout: 15_000 });
+
+    await expect.poll(() => new URL(first.hand.url()).pathname, { timeout: 20_000 })
+      .toContain(`/game/blackjack/${rematchID}`);
+    await expect.poll(() => new URL(second.hand.url()).pathname, { timeout: 20_000 })
+      .toContain(`/game/blackjack/${rematchID}`);
+    await expect(first.hand.locator('boardgame-render-game-blackjack-hand')).toBeAttached();
+    await expect(second.hand.locator('boardgame-render-game-blackjack-hand')).toBeAttached();
+
+    const rematchInfo = await (await first.hand.request.get(
+      `/api/game/blackjack/${encodeURIComponent(rematchID)}/info`,
+    )).json() as {
+      ViewingAsPlayer?: number;
+      CompanionInfo?: { RoomCode?: string; SeatPresentations?: Array<{ displayName: string }> };
+    };
+    expect(rematchInfo.ViewingAsPlayer).toBe(0);
+    expect(rematchInfo.CompanionInfo?.RoomCode).not.toBe(initial.CompanionRoomCode);
+    expect(rematchInfo.CompanionInfo?.SeatPresentations?.map(seat => seat.displayName)).toEqual([
+      'Bright Fox', 'Calm Owl',
+    ]);
+
+    // Lost responses/retries converge on the already-published successor.
+    const retry = await page.request.post(`/api/game/blackjack/${encodeURIComponent(initial.GameID)}/rematch`, { data: {} });
+    expect(retry.ok()).toBe(true);
+    expect(await retry.json()).toMatchObject({ ok: true, gameID: rematchID });
+  } finally {
+    await adminContext.close();
+    await first.context.close();
+    await second.context.close();
+  }
+});
+
+test('assembled Pig renderer reports a real authoritative rejection through typed transport', async ({ page }) => {
   const email = 'typed-action@example.com';
   const auth = await page.request.post('/api/auth', {
     form: {
@@ -350,7 +509,10 @@ test('assembled Pig renderer reports a real server rejection through typed trans
     };
     typed.viewingAsPlayer = (typed.currentPlayerIndex + 1) % 2;
     typed.proposingAsPlayer = typed.viewingAsPlayer;
-    typed.proposingAsAdmin = false;
+    // Admin perspective makes the requested non-current player authoritative.
+    // Without it the server correctly ignores `player` and uses this user's
+    // seated identity, which can make the supposedly illegal move succeed.
+    typed.proposingAsAdmin = true;
     // Pig's debug player continuously advances the game and can keep the
     // renderer animation gate closed. This test targets HTTP submission, so
     // consume the current presentation atomically with that local gate open.
@@ -365,15 +527,16 @@ test('assembled Pig renderer reports a real server rejection through typed trans
   const body = new URLSearchParams(moveRequest.postData() ?? '');
   expect(body.get('MoveType')).toBe('Roll Dice');
   expect(body.get('player')).toMatch(/^[01]$/);
-  expect(body.get('admin')).toBe('0');
+  expect(body.get('admin')).toBe('1');
   expect(body.get('ExpectedVersion')).toMatch(/^\d+$/);
 
   expect((await moveRequest.response())?.ok()).toBe(true);
-  await expect(proposalPromise).resolves.toMatchObject({
-    kind: 'server-rejection',
-    requestID: expect.any(String),
-    error: expect.any(String),
-  });
+  const proposal = await proposalPromise as { kind: string; requestID: string };
+  // Normally this is an illegal-proposer rejection. If the debug player moves
+  // concurrently, ExpectedVersion instead produces a stale-snapshot rejection.
+  // Both prove the real server remained authoritative; success never does.
+  expect(['server-rejection', 'stale-snapshot']).toContain(proposal.kind);
+  expect(proposal.requestID).toEqual(expect.any(String));
   expect(failedRendererRequests).toEqual([]);
 });
 

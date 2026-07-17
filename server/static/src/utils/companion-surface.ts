@@ -3,26 +3,37 @@
  * present for the given game: 'table' (the shared projector), 'hand' (a
  * player's phone), or null for the regular solo view.
  *
- * A ?display=table|hand query param takes precedence over the per-game
- * surface cookie (surface_<gameId>, set by the server at game-create for
- * the host and at /api/join/seat for phones). The param override exists
- * for developer testing — it lets one machine show both surfaces — and is
- * harmless in prod because no production client sets it.
+ * A ?display=table|hand query param takes precedence over tab-scoped intent
+ * and the per-game surface cookie (surface_<gameId>, set by the server at
+ * game-create for the host and at /api/join/seat for phones). Successful
+ * framework transitions put the surface in the URL so tab restore remains
+ * deterministic; authors can use the same override for local visual testing.
  *
- * Shared by boardgame-render-game (renderer module selection) and
+ * The value is presentation intent only and never grants authority. Shared by boardgame-render-game (renderer module selection) and
  * boardgame-game-view (hiding solo chrome on companion surfaces) so the
  * two can never disagree about what surface is active.
  */
 const ephemeralTableDeviceIDs = new Map<string, string>();
 
-export function surfaceForGame(gameId: string): 'table' | 'hand' | null {
+export function surfaceForGame(
+  gameId: string,
+  companionMode: boolean | undefined = undefined,
+): 'table' | 'hand' | null {
+  // Persisted presentation intent is never authoritative. In particular, a
+  // tab that slept through switchToSolo must not resurrect a Hand/Table
+  // renderer merely because its old browser state survived the socket event.
+  if (companionMode === false) return null;
   const params = new URLSearchParams(window.location.search);
   const display = params.get('display');
   if (display === 'table' || display === 'hand') return display;
   if (gameId) {
     try {
-      const local = window.localStorage.getItem(`boardgame-surface:${gameId}`);
-      if (local === 'table' || local === 'hand') return local;
+      const tab = window.sessionStorage.getItem(`boardgame-surface:${gameId}`);
+      if (tab === 'table' || tab === 'hand') return tab;
+      // Working tab storage with no value means this tab never opted into a
+      // companion surface. Do not inherit the origin-wide cookie written for
+      // another tab in the same browser.
+      return null;
     } catch { /* storage may be disabled; the cookie remains the fallback */ }
     const cookieName = `surface_${gameId}=`;
     const cookies = document.cookie.split('; ');
@@ -37,31 +48,32 @@ export function surfaceForGame(gameId: string): 'table' | 'hand' | null {
 }
 
 /**
- * Records presentation intent on the frontend origin. The API also writes a
- * cookie, but that cookie is invisible when API_HOST and the web application
- * use different origins. This value only chooses a renderer; server-side auth
- * and state sanitization remain authoritative for private information.
+ * Records presentation intent for this tab. The API also writes a cookie, but
+ * that cookie is both origin-wide and invisible when API_HOST and the web
+ * application use different origins. sessionStorage survives reload without
+ * allowing one Hand/Table tab to silently change every other tab. This value
+ * only chooses a renderer; server-side auth and sanitization remain authoritative.
  */
 export function rememberSurfaceForGame(gameId: string, surface: 'table' | 'hand'): void {
   if (!gameId) throw new Error('gameId is required to remember a companion surface');
   try {
-    window.localStorage.setItem(`boardgame-surface:${gameId}`, surface);
+    window.sessionStorage.setItem(`boardgame-surface:${gameId}`, surface);
   } catch { /* cookie/query fallback still works when storage is unavailable */ }
 }
 
 export function forgetSurfaceForGame(gameId: string): void {
   if (!gameId) return;
-  try { window.localStorage.removeItem(`boardgame-surface:${gameId}`); } catch { /* ignored */ }
+  try { window.sessionStorage.removeItem(`boardgame-surface:${gameId}`); } catch { /* ignored */ }
 }
 
 export function forgetAllCompanionSurfaces(): void {
   try {
     const keys: string[] = [];
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i);
+    for (let i = 0; i < window.sessionStorage.length; i++) {
+      const key = window.sessionStorage.key(i);
       if (key?.startsWith('boardgame-surface:')) keys.push(key);
     }
-    for (const key of keys) window.localStorage.removeItem(key);
+    for (const key of keys) window.sessionStorage.removeItem(key);
   } catch { /* ignored */ }
 }
 

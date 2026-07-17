@@ -3,7 +3,6 @@ package api
 import (
 	stderrors "errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -763,6 +762,13 @@ func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, 
 	if err := s.storage.SetPlayerForGame(game.ID(), slot, user.ID); err != nil {
 		return err
 	}
+	return s.forceSeatPlayer(game, slot)
+}
+
+// forceSeatPlayer reconciles an already-persisted seat binding into game
+// state. Keeping this separate lets crash recovery finish a SetPlayerForGame
+// whose process died before its SeatPlayer fix-up committed.
+func (s *Server) forceSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex) error {
 	if len(s.managers[game.Name()].seatPlayerMoves) > 0 {
 		//This is a game that uses SeatPlayer move, so instead of adding the
 		//player right now we should go into pending mode to inject the player.
@@ -786,22 +792,13 @@ func (s *Server) doSeatPlayer(game *boardgame.Game, slot boardgame.PlayerIndex, 
 		//mainLoop will make sure this isn't triggered while another move is
 		//being processed.
 		delayed := game.Manager().Internals().ForceFixUp(game)
-
-		go func() {
-			if err := <-delayed; err != nil {
-				log.Println("Forced Fix Up failed: " + err.Error())
-			}
-		}()
-
-		//We deliberately fall through here and set that the player is
-		//affirmatively in that game, even though they aren't seated. This is
-		//because this 'pending' seating player currently has no way to retreat;
-		//they'll be seated into that seat the next time a SeatPlayer move is
-		//legal, and if another player comes right now, as far as they're
-		//concerned, that seat is taken.
-
-		//This could get out of sync if the server is shut down while the player
-		//is pending but before theyr'e actually seated. See #221.
+		// Do not return (and therefore do not release a caller's seat lock or
+		// begin the next sequential copy) until the injected player commits.
+		// Merely queueing lets another claim inspect stale state, queue another
+		// SeatPlayer proposal, and lose it when the first advances the version.
+		if err := <-delayed; err != nil {
+			return fmt.Errorf("forced SeatPlayer fix-up failed: %w", err)
+		}
 	}
 
 	return nil
@@ -1628,6 +1625,18 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 	}
 	canTakeOver := companionMode && tableStatus == "available" && user != nil &&
 		s.tableLeaseEligible(game.ID(), user.ID) && !game.Finished()
+	rematchTable := false
+	if companionMode && game.Finished() && tableSurfaceForRequest(r.c, game.ID()) {
+		if credential, credentialErr := r.c.Cookie(tableLeaseCookieName(game.ID())); credentialErr == nil {
+			rematchTable = tableLeaseCredentialMatches(tableLease, credential)
+		}
+	}
+	canRematch := companionMode && game.Finished() &&
+		(rematchTable || (user != nil && gameInfo.Owner != "" && user.ID == gameInfo.Owner))
+	rematchGameID := ""
+	if gameInfo.RematchReady {
+		rematchGameID = gameInfo.RematchGameID
+	}
 	companionInfo := gin.H{
 		"CompanionMode":     companionMode,
 		"RoomCode":          gameInfo.CompanionRoomCode,
@@ -1638,6 +1647,10 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		// cookie) — the client displays host controls from this rather
 		// than re-deriving the rule and drifting.
 		"IsHost": isHostViewer,
+		// Finished games stop renewing the live lease, but the exact last Table
+		// capability (or owner identity) may create/follow one durable rematch.
+		"CanRematch":    canRematch,
+		"RematchGameID": rematchGameID,
 		"TableSession": gin.H{
 			"Status": tableStatus, "IsThisTable": isHostViewer,
 			"CanTakeOver": canTakeOver, "RetryAfterMs": tableRetryAfterMS,
@@ -2751,6 +2764,7 @@ func (s *Server) Start() {
 			gameAPIGroup.POST("hostSkipTurn", s.hostSkipTurnHandler)
 			gameAPIGroup.POST("switchToSolo", s.switchToSoloHandler)
 			gameAPIGroup.POST("setRoomLock", s.setRoomLockHandler)
+			gameAPIGroup.POST("rematch", s.rematchHandler)
 			gameAPIGroup.POST("tableTransfer/create", s.createTableTransferHandler)
 			gameAPIGroup.POST("tableTransfer/cancel", s.cancelTableTransferHandler)
 		}

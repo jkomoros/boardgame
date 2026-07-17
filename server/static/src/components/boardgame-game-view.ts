@@ -12,7 +12,12 @@ import type { BoardgameAdminControls } from './boardgame-admin-controls.js';
 import type { BoardgameGameStateManager } from './boardgame-game-state-manager.js';
 import { sharedStyles } from './shared-styles-lit.js';
 import { warnOnInvalidMoveArgs } from '../utils/move-validation.js';
-import { rememberSurfaceForGame, surfaceForGame, tableRecoveryDeviceID } from '../utils/companion-surface.js';
+import {
+  forgetSurfaceForGame,
+  rememberSurfaceForGame,
+  surfaceForGame,
+  tableRecoveryDeviceID,
+} from '../utils/companion-surface.js';
 import { apiHttpPost, buildGameUrl } from '../api.js';
 import {
   decodeTableLeaseAcquireResponse,
@@ -25,6 +30,8 @@ import {
   transferFailureMessage,
   type TableTransferOffer,
 } from '../table-transfer/table-transfer.js';
+import { decodeRematchResponse, type RematchResponse } from '../types/rematch-response.js';
+import { gamePath } from '../util.js';
 import {
   playerPresentations,
   type PlayerPresentation,
@@ -270,6 +277,21 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       .table-transfer-actions button.secondary { background: #e4ebf1; color: #17212b; }
       .table-transfer-actions button:disabled { cursor: wait; opacity: .65; }
       .table-transfer-error { color: #a11616; font-weight: 650; }
+      .rematch-panel {
+        position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom));
+        z-index: 1050; box-sizing: border-box; width: min(560px, calc(100vw - 28px));
+        transform: translateX(-50%); padding: 16px 20px; border-radius: 14px;
+        background: rgb(23 33 43 / 96%); color: white; text-align: center;
+        box-shadow: 0 10px 36px rgb(0 0 0 / 35%);
+      }
+      .rematch-panel p { margin: 0 0 12px; line-height: 1.4; }
+      .rematch-panel button {
+        min-height: 46px; padding: 9px 18px; border: 2px solid white;
+        border-radius: 9px; background: white; color: #17212b;
+        font: inherit; font-weight: 750; cursor: pointer;
+      }
+      .rematch-panel button:disabled { cursor: wait; opacity: .7; }
+      .rematch-error { color: #ffd0d0; font-weight: 650; }
       @media (max-width: 540px) { .table-transfer-offer { grid-template-columns: 1fr; } .table-transfer-offer img { max-width: 220px; margin: auto; } }
     `
   ];
@@ -524,6 +546,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   _companionSurface: 'table' | 'hand' | null = null;
 
   private _surfaceCachedGameId: string | null = null;
+  private _surfaceCachedCompanionMode: boolean | null = null;
   private readonly _timerService = new TimerService();
 
   // Hide-my-hand privacy shield (hand surface only): when true, an opaque
@@ -552,6 +575,10 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   @property({ type: String, attribute: false }) private _tableTransferError = '';
   @property({ type: String, attribute: false }) private _tableTransferCopyStatus = '';
   @property({ type: Number, attribute: false }) private _tableTransferSeconds = 0;
+  @property({ type: Boolean, attribute: false }) private _rematchPending = false;
+  @property({ type: String, attribute: false }) private _rematchError = '';
+  private _rematchRequest: AbortController | null = null;
+  private _rematchFollowTarget = '';
   private _tableTransferRequest: AbortController | null = null;
   private _tableTransferTimer: ReturnType<typeof setInterval> | null = null;
   private _tableTransferDeadline = 0;
@@ -593,6 +620,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // both surfaces.
     const companionSurface = this._companionSurface;
     return html`
+      ${this._renderRematch()}
       ${this._renderTableSessionRecovery()}
       ${this._renderTableTransfer()}
       ${companionSurface === 'hand' ? html`
@@ -731,11 +759,105 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._tableTransferRequest = null;
     if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
     this._tableTransferTimer = null;
+    this._rematchRequest?.abort();
+    this._rematchRequest = null;
     super.disconnectedCallback();
   }
 
+  private _renderRematch() {
+    if (!this.game?.Finished || !this._companionSurface || !this._companionInfo?.CompanionMode) return '';
+    const target = this._companionInfo.RematchGameID;
+    if (!target && !this._companionInfo.CanRematch && !this._rematchError) return '';
+    return html`
+      <aside class="rematch-panel" aria-live="polite" aria-busy=${this._rematchPending ? 'true' : 'false'}>
+        <p>${target
+          ? 'Your next game is ready. Keeping this seat and moving you there…'
+          : 'Keep everyone in the same seats and start a fresh game.'}</p>
+        ${!target && this._companionInfo.CanRematch ? html`
+          <button type="button" ?disabled=${this._rematchPending} @click=${this._startRematch}>
+            ${this._rematchPending ? 'Preparing rematch…' : 'Play again with the same players'}
+          </button>
+        ` : ''}
+        ${this._rematchError ? html`<p class="rematch-error" role="alert">${this._rematchError}</p>` : ''}
+      </aside>
+    `;
+  }
+
+  private _navigateToRematch(rematch: Pick<RematchResponse, 'gameID' | 'gameName'>): void {
+    const surface = this._companionSurface;
+    const oldGameID = this._gameRoute?.id;
+    if (!surface || !oldGameID) return;
+    rememberSurfaceForGame(rematch.gameID, surface);
+    forgetSurfaceForGame(oldGameID);
+    window.location.replace(`${gamePath(rematch.gameName, rematch.gameID)}?display=${surface}`);
+  }
+
+  private readonly _startRematch = (): void => {
+    void this._requestRematch();
+  };
+
+  private async _requestRematch(expectedGameID = ''): Promise<void> {
+    const route = this._gameRoute;
+    if (!route || !this._companionSurface || this._rematchPending) return;
+    const request = new AbortController();
+    this._rematchRequest?.abort();
+    this._rematchRequest = request;
+    this._rematchPending = true;
+    this._rematchError = '';
+    try {
+      const response = await apiHttpPost(
+        buildGameUrl(route.name, route.id, 'rematch'),
+        {},
+        { signal: request.signal },
+      );
+      if (request.signal.aborted || this._gameRoute?.id !== route.id) return;
+      if (!response.data) {
+        this._rematchError = response.error || response.friendlyError || 'The rematch could not be prepared. Please try again.';
+        if (expectedGameID) this._rematchFollowTarget = '';
+        return;
+      }
+      const rematch = decodeRematchResponse(response.data);
+      if (expectedGameID && rematch.gameID !== expectedGameID) {
+        throw new Error('Rematch response did not match the published successor');
+      }
+      this._navigateToRematch(rematch);
+    } catch (error) {
+      if (!request.signal.aborted) {
+        console.error('[game-view] malformed rematch response', error);
+        this._rematchError = 'The server returned an invalid rematch response. Please try again.';
+        if (expectedGameID) this._rematchFollowTarget = '';
+      }
+    } finally {
+      if (this._rematchRequest === request) {
+        this._rematchRequest = null;
+        this._rematchPending = false;
+      }
+    }
+  }
+
+  private _followPublishedRematch(gameID: string): void {
+    const route = this._gameRoute;
+    const surface = this._companionSurface;
+    if (!route || !surface || !gameID || this._rematchFollowTarget === gameID) return;
+    this._rematchFollowTarget = gameID;
+    queueMicrotask(() => {
+      if (this._gameRoute?.id !== route.id || this._companionInfo?.RematchGameID !== gameID) {
+        this._rematchFollowTarget = '';
+        return;
+      }
+      if (surface === 'table') {
+        // The old Table capability is exchanged server-side for a credential
+        // scoped to the successor before navigation.
+        void this._requestRematch(gameID);
+        return;
+      }
+      this._navigateToRematch({ gameID, gameName: route.name });
+    });
+  }
+
   private _renderTableTransfer() {
-    const activeTable = this._companionSurface === 'table'
+    const activeTable = !this.game?.Finished
+      && this._companionSurface === 'table'
       && this._companionInfo?.TableSession.Status === 'active'
       && this._companionInfo.TableSession.IsThisTable;
     if (!activeTable && !this._tableTransferOpen) return '';
@@ -914,7 +1036,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   private _renderTableSessionRecovery() {
     const session = this._companionInfo?.TableSession;
     const surface = this._companionSurface;
-    if (!this._companionInfo?.CompanionMode || !session || !surface) return '';
+    if (!this._companionInfo?.CompanionMode || !session || !surface || this.game?.Finished) return '';
 
     if (surface === 'table') {
       if (session.Status === 'active' && session.IsThisTable) return '';
@@ -994,7 +1116,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       }
       decodeTableLeaseAcquireResponse(response.data);
       rememberSurfaceForGame(route.id, 'table');
-      window.location.reload();
+      const target = new URL(window.location.href);
+      target.searchParams.set('display', 'table');
+      window.location.replace(target.pathname + target.search);
     } catch (error) {
       if (!request.signal.aborted) {
         console.error('[game-view] malformed Table lease response', error);
@@ -1022,7 +1146,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       && !!this._companionSurface
 	  && !!session;
     const signature = needsRefresh && route && session
-      ? `${route.id}:${this._companionSurface}:${session.Status}:${session.RetryAfterMs}`
+      ? `${route.id}:${this._companionSurface}:${session.Status}:${session.RetryAfterMs}:${this.game?.Finished ? 1 : 0}:${this._companionInfo?.RematchGameID ?? ''}`
       : '';
     if (signature === this._tableLeaseRefreshSignature) return;
     if (this._tableLeaseRefreshTimer !== null) clearTimeout(this._tableLeaseRefreshTimer);
@@ -1033,7 +1157,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 	// Active leases refresh at the authoritative deadline; available state
 	// polls gently so a takeover completed through another server instance
 	// converges even without shared websocket fanout.
-	const delay = session.Status === 'active'
+	const delay = this.game?.Finished
+	  ? 2_000
+	  : session.Status === 'active'
 	  ? Math.min(Math.max(session.RetryAfterMs + 100, 250), 60_000)
 	  : 5_000;
     this._tableLeaseRefreshTimer = setTimeout(() => {
@@ -1088,6 +1214,11 @@ export class BoardgameGameView extends connect(store)(LitElement) {
       this._tableTransferOffer = null;
       if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
       this._tableTransferTimer = null;
+      this._rematchRequest?.abort();
+      this._rematchRequest = null;
+      this._rematchPending = false;
+      this._rematchError = '';
+      this._rematchFollowTarget = '';
     }
     const tableSession = this._companionInfo?.TableSession;
     const tableSessionStateSignature = tableSession
@@ -1099,9 +1230,15 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     }
     this._tableSessionStateSignature = tableSessionStateSignature;
     const surfaceGameId = this._gameRoute ? this._gameRoute.id : null;
-    if (surfaceGameId !== this._surfaceCachedGameId) {
+    const companionMode = this._companionInfo?.CompanionMode ?? null;
+    if (surfaceGameId !== this._surfaceCachedGameId
+      || companionMode !== this._surfaceCachedCompanionMode) {
       this._surfaceCachedGameId = surfaceGameId;
-      this._companionSurface = surfaceGameId ? surfaceForGame(surfaceGameId) : null;
+      this._surfaceCachedCompanionMode = companionMode;
+      this._companionSurface = surfaceGameId
+        ? surfaceForGame(surfaceGameId, companionMode ?? undefined)
+        : null;
+      if (surfaceGameId && companionMode === false) forgetSurfaceForGame(surfaceGameId);
     }
     this._loggedIn = selectLoggedIn(state);
     this._page = selectPage(state);
@@ -1118,6 +1255,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._socketConnectionAttempts = selectSocketConnectionAttempts(state);
     this._socketError = selectSocketError(state);
     this._scheduleTableSessionRefresh();
+    if (this._companionInfo?.RematchGameID) {
+      this._followPublishedRematch(this._companionInfo.RematchGameID);
+    }
   }
 
   private _handleRefreshData(e: Event) {
@@ -1216,6 +1356,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
         if (this._tableTransferTimer !== null) clearInterval(this._tableTransferTimer);
         this._tableTransferTimer = null;
         this._tableTransferDialog?.close();
+        this._rematchRequest?.abort();
+        this._rematchRequest = null;
+        this._rematchPending = false;
       }
       this._scheduleTableSessionRefresh();
     }
@@ -1268,6 +1411,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
   private _handleGameStaticInfo(e: CustomEvent) {
     const bundle = e.detail;
 		this._moveInputSchemaFingerprint = bundle.moveInputSchemaFingerprint ?? null;
+    this._renderEle?.installCompanionInfo(bundle.companionInfo ?? null);
     store.dispatch(updateGameStaticInfo(bundle.chest, bundle.playersInfo, bundle.hasEmptySlots, bundle.open, bundle.visible, bundle.isOwner, bundle.companionInfo));
   }
 
