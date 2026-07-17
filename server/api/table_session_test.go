@@ -24,9 +24,17 @@ func TestTableLeaseCredentialRoundTripAndTampering(t *testing.T) {
 	if !tableLeaseCredentialMatches(record, credential) {
 		t.Fatal("fresh credential did not match its digest")
 	}
+	tamperAt := func(input string, index int) string {
+		result := []byte(input)
+		result[index] = '0'
+		if input[index] == '0' {
+			result[index] = '1'
+		}
+		return string(result)
+	}
 	tests := []string{
 		"", credential + "x", "not.hex", strings.Repeat("x", 257),
-		"0" + credential[1:], credential[:len(credential)-1] + "0",
+		tamperAt(credential, 0), tamperAt(credential, len(credential)-1),
 	}
 	for _, invalid := range tests {
 		if tableLeaseCredentialMatches(record, invalid) {
