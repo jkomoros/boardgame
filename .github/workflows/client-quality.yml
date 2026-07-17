@@ -2,7 +2,7 @@ name: Client quality
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 permissions:
@@ -13,6 +13,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dependency-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+          cache: npm
+          cache-dependency-path: server/static/package-lock.json
+      - name: Install pinned client dependencies
+        working-directory: server/static
+        run: npm ci
+      - name: Reject high-severity dependency vulnerabilities
+        working-directory: server/static
+        run: |
+          npm run audit:ci
+          npm run audit:prod
+
+  go-vulnerability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: go.sum
+      - name: Reject reachable Go vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
+
   focused-go:
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -2838,7 +2838,7 @@ test('dynamic host ignores a module load superseded by a newer game route', asyn
     const host = (globalThis as unknown as {
       __dynamicRendererHost: HTMLElement & { gameId: string; updateComplete: Promise<unknown> };
     }).__dynamicRendererHost;
-    document.cookie = 'surface_THIRD=table; Path=/';
+    sessionStorage.setItem('boardgame-surface:THIRD', 'table');
     host.gameId = 'THIRD';
     await host.updateComplete;
   });

@@ -12,6 +12,8 @@
     "vite": "^6.0.0"
   },
   "scripts": {
+    "audit:ci": "npm audit --audit-level=high",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
     "dev": "vite",
     "build": "tsc && vite build",
     "type-check": "tsc --noEmit",
@@ -37,5 +39,12 @@
     "redux": "^5.0.1",
     "redux-thunk": "^3.1.0",
     "reselect-tools": "0.0.7"
+  },
+  "allowScripts": {
+    "@firebase/util@1.12.1": true,
+    "esbuild@0.25.12": true,
+    "fsevents@2.3.2": true,
+    "fsevents@2.3.3": true,
+    "protobufjs@7.6.5": true
   }
 }
