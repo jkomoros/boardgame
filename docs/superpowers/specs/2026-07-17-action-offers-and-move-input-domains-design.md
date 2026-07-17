@@ -1,37 +1,39 @@
-# Action Offers and Executable Move-Input Domains
+# Action Offers and Move-Input Presentation
 
-**Status:** Design draft for continued critique
+**Status:** Revised design draft after engine, client, and adversarial critique
 
 **Date:** 2026-07-17
 
-**Scope:** Boardgame engine move authoring, viewer-specific server projection, and
+**Scope:** Boardgame move authoring, viewer-specific server projection, and
 client interaction behavior. This document does not authorize implementation.
 
 ## Summary
 
 Boardgame already has authoritative representations for game state, committed
-moves, move ordering, and concrete move legality. It does not have a generic
-way for a client to discover how a player should supply the creator-owned inputs
-of a currently available move. Games therefore repeat rules in their renderers:
-they rediscover that a target must be selected, determine which targets look
-valid, and manually keep several committed decisions visually connected.
+moves, move ordering, and concrete move legality. It also has a typed client
+action stack: generated creator inputs, `MoveActionBuilder`, `BoundMoveAction`,
+`TargetAction`, exact legality preview, submission gates, draft controllers,
+and accessible target lists.
 
-This design adds a derived, viewer-specific `ActionOffer[]` read model. An action
-offer explains how one viewer can construct a move at one game version. It is
-derived from existing authoritative state plus two additions to move authoring:
+What is missing is generic discovery and presentation. A client cannot learn
+that a currently relevant move needs a player, which player values are safe to
+present, how to label the choice, or that the resulting actions should be shown
+as one coherent game experience. Games consequently rebuild that knowledge in
+their renderers and can drift from server legality.
 
-1. **Availability rules** describe when an unbound move should be offered to an
-   actor. Every availability rule is also an authoritative legal precondition.
-2. **Executable input domains** describe and validate the possible values of a
-   creator-owned move field. Bounded domains can also enumerate choices for a
-   generic client.
+This design adds a derived, viewer-specific `ActionOffer[]` read model. An offer
+decorates an existing typed move action with:
 
-The same executable rule objects generate the offer and validate the eventual
-proposal. `ActionOffer` is never game state, never a workflow cursor, and never
-an alternate legality engine. It can be discarded and regenerated from the
-authoritative version at any time.
+- a safe candidate source for one creator-owned input;
+- structured, localizable presentation metadata;
+- disclosure-aware available or disabled candidate actions.
 
-The intended semantic layers are:
+Candidate sources provide a presentable universe, not legal truth. The server
+binds candidates using the canonical creator-input codec and evaluates the
+existing complete `move.Legal()` chain. There is no domain validator,
+availability rule language, workflow cursor, or second client action runtime.
+
+The semantic layers are:
 
 ```text
 Durable rule-level protocol
@@ -41,508 +43,619 @@ Committed decisions
     Ordinary moves, progression, Legal(), history, and disclosure
 
 Uncommitted composition
-    A client-side draft of one move
+    Existing specialized client-side drafts of one move
 
 Presentation read model
-    Viewer-specific ActionOffer[] derived from all of the above
+    Viewer-specific offers decorating existing typed move actions
 ```
 
 For Valentine, playing a Guard, selecting a player, and guessing a card remain
-separate committed moves. `MoveSelectPlayer` advertises a player-index domain;
-`MoveGuessCard` advertises an enum domain. The client presents successive offers
-as one continuous card-resolution experience without persisting an
-`Interaction` object or creating card-specific sub-phases.
+separate committed moves. `MoveSelectPlayer` presents the safely disclosable
+player universe and the normal legal chain determines which players are valid.
+`MoveGuessCard` presents the card enum and the normal legal chain excludes
+Unknown and Guard. The renderer no longer implements `NeedToSelectPlayer`,
+`NeedToGuessCard`, or its own target-legality logic.
+
+## Decision
+
+Adopt typed, viewer-specific action offers as a presentation projection over
+existing move forms and actions.
+
+For version one:
+
+- moves explicitly opt into offers;
+- an offer has exactly one required creator-owned input;
+- player-index and enum candidate sources are supported;
+- presentation is limited to structured prompt and title keys;
+- `move.Legal()` is the sole semantic authority;
+- every selectable candidate is exact-evaluated by the server;
+- candidate disclosure is explicitly `PublicExact`;
+- offers hydrate existing `BoundMoveAction` and `TargetAction` objects;
+- offers are emitted only for the current settled game version;
+- legacy games and non-offer moves keep their current behavior.
+
+Do not introduce in version one:
+
+- a universal persisted `Interaction`;
+- a progression cursor or structural-frontier traversal;
+- `WithAvailability`;
+- executable input-domain validators;
+- a second client action/controller stack;
+- dependency DAGs or a universal local wizard;
+- arbitrary cross-field input-group rules;
+- pagination, urgency, or presentation continuity groups;
+- binding-only inaccessible inputs;
+- multi-field choice bindings;
+- unbounded input offers;
+- opaque tokens unless a privacy-reviewed use case makes them mandatory.
 
 ## Problem
 
-### The engine and renderer answer different questions today
+### The engine knows legality, but the UI must rediscover intent
 
-The engine can answer whether this fully populated move is legal:
+The engine can authoritatively answer whether this complete move is legal:
 
 ```go
 MoveSelectPlayer{OtherPlayerIndex: 3}
 ```
 
-The renderer additionally needs to know:
+The renderer also needs to know:
 
-- whether selecting a player is an action the viewer can begin now;
-- that `OtherPlayerIndex` denotes a player rather than an arbitrary integer;
-- which players are candidates in the current sanitized state;
+- whether selecting a player is relevant for this viewer and snapshot;
+- that `OtherPlayerIndex` should be presented as a player choice;
+- which player identities are safe to disclose as candidates;
+- which candidates are available or disabled;
 - how to label and contextualize the choice;
-- whether it should replace the contents of an existing action surface;
-- how to bind the selected value into a complete move proposal.
+- how to bind a selected value into the existing typed action.
 
-Without a framework contract, renderers answer those questions with game-specific
-computed values and event handlers. Valentine exposes `NeedToSelectPlayer` and
-`NeedToGuessCard`, while the corresponding moves independently check active
-card type, selected-player state, target validity, protection, elimination, and
-self-selection rules. The UI and server can drift.
+Without a framework contract, Valentine exposes computed values such as
+`NeedToSelectPlayer` and `NeedToGuessCard`, constructs candidate collections in
+the renderer, and independently decides which controls to show. The moves still
+repeat the authoritative checks. That is a UI-shaped second implementation of
+the flow.
 
 ### Default move instances conflate unavailable and incomplete
 
-A default `MoveSelectPlayer` commonly contains an unset sentinel such as
-`AdminPlayerIndex`. That is not a legal concrete move, but it does not imply
-that selecting a player is unavailable. It means that the move is available
-and still requires creator input.
+A default `MoveSelectPlayer` commonly has an unset sentinel such as
+`AdminPlayerIndex`. That concrete instance is illegal, but selecting a player
+may still be the correct action. The move is incomplete, not necessarily
+unavailable.
 
-The framework needs to distinguish:
+The existing client baseline gate can currently reject a bound action because
+the default instance has `LegalForAnyone == false` before exact preview can
+validate a legal non-default candidate. Correct offer behavior requires:
 
 ```text
-move type is unavailable
-move type is available but has unbound required inputs
-partially bound move has more inputs
-fully bound move is legal
+candidate source
+    → complete candidate binding
+    → exact legality
+    → existing BoundMoveAction
 ```
 
-Calling full `Legal()` on a default instance cannot make these distinctions.
+Default-instance legality must not permanently disable a move with required
+creator input.
 
-### Multi-step UI has three different underlying semantics
+### Similar-looking multi-step experiences have different semantics
 
-Experiences that look like multi-step dialogs are not one rules concept:
-
-1. **Local composition of one move.** Choosing a checker and then its
-   destination is normally one uncommitted `MovePiece{Source, Destination}`.
-   Backtracking and cancellation are local editing.
+1. **Local composition of one move.** Selecting a checker and its destination
+   is normally one uncommitted `MovePiece{Source, Destination}`. Existing draft
+   controllers own cancellation, undo, selection policy, and editing behavior.
 2. **A sequence of committed decisions.** Playing a Guard, selecting its
-   target, and guessing a card may need separate history, observation,
-   disclosure, reactions, or animation boundaries. Each decision is a move.
+   target, and guessing a card can require separate history, disclosure,
+   observation, and animation boundaries. Each decision is a move.
 3. **A durable game protocol.** An auction, reaction window, or simultaneous
-   secret vote has rule-level identity, participants, completion conditions,
-   and perhaps a timer. It belongs in domain state and sometimes a phase.
+   secret vote has rule-level identity, participants, completion rules, and
+   perhaps a timer. It belongs in domain state and sometimes a phase.
 
-The design must support all three without forcing them into one universal
-`Interaction` state machine.
+Offers are the common UI projection across these cases. They do not replace the
+appropriate authoritative representation underneath.
 
 ## Goals
 
-1. Make ordinary follow-up choices easy to author and render generically.
-2. Keep committed, observable decisions as ordinary moves.
-3. Use one executable definition for candidate generation and validation.
-4. Separate move availability from missing creator input.
-5. Reconstruct current actions after reconnect from authoritative state.
-6. Support multiple simultaneous or alternative offers; do not assume one
-   global active prompt.
-7. Make offers viewer-specific and subject to the same disclosure discipline
-   as moves and state.
-8. Let game-specific board UI and a generic accessible UI bind the same action.
-9. Preserve `Legal()` and proposal-time validation as the final authority.
-10. Build on the existing creator move-input schema and declarative legality
-    systems rather than adding a second workflow language.
+1. Make ordinary bounded move choices discoverable and generically renderable.
+2. Keep observable decisions as ordinary committed moves.
+3. Keep the existing legal chain as the only rules authority.
+4. Reuse the existing typed action, exact-preview, submission, and draft stack.
+5. Reconstruct current choices after reconnect from authoritative state.
+6. Expose plural offers rather than inventing one active workflow step.
+7. Make offer and candidate disclosure explicit and testable.
+8. Support both board-native controls and an accessible semantic fallback.
+9. Preserve exact generated creator-input types end to end.
+10. Make the Valentine authoring and renderer substantially smaller.
 
 ## Non-goals
 
-- Inferring an operational workflow cursor from `MoveProgressionGroup`.
-- Making presentation continuity authoritative or persistent.
-- Replacing domain state for auctions, reactions, simultaneous obligations, or
-  other real game protocols.
-- Making every possible domain generically enumerable.
-- Allowing an offer to guarantee that a later proposal will succeed after the
-  state version changes.
-- Adding rollback semantics for already committed moves.
-- Solving traffic-analysis secrecy. Viewer sanitization and concealment of game
-  version activity are separate concerns.
-- Requiring all games to use a generic modal or any particular layout.
+- Inferring a workflow cursor from `MoveProgressionGroup`.
+- Treating presentation grouping as game state.
+- Replacing domain state for auctions, reactions, or simultaneous obligations.
+- Generically enumerating combinatorial or unbounded move spaces.
+- Guaranteeing that an offer remains legal after its source version changes.
+- Adding rollback for committed moves.
+- Hiding websocket timing or global version advancement.
+- Replacing existing specialized client draft controllers.
+- Making every existing move automatically offerable.
 
-## Design principles
-
-### One authority per concern
+## One authority per concern
 
 | Concern | Authority |
 | --- | --- |
 | What happened | Committed moves |
 | Durable facts and obligations | Game and player state |
-| Permitted move ordering | Move progression |
-| Whether a concrete proposal is legal | `Legal()` |
-| What a viewer may know | Sanitization and move disclosure |
-| Who may begin an unbound move now | Availability rules |
-| What values an input may take | Executable input domains |
-| How the viewer can act now | Derived `ActionOffer[]` |
-| Where controls appear | Renderer |
+| Permitted move ordering | Existing move progression |
+| Concrete proposal legality | Existing `move.Legal()` chain |
+| Viewer knowledge | Sanitization and explicit disclosure policy |
+| Creator field ownership and encoding | `BuildMoveInputSchema` |
+| Presentable input universe | Candidate source |
+| Current UI opportunity | Derived action offer |
+| Binding, preview, and submission | Existing typed move-action stack |
+| Editing behavior for one atomic move | Existing specialized draft controller |
+| Layout and visual treatment | Renderer |
 
-### Derived, not persisted
+Deleting all offers must not change game correctness. An offer can improve
+discovery and presentation but cannot create a new legal move or obligation.
 
-An action offer is a cacheable read model for a viewer and state version. It has
-no independent lifecycle. The framework does not commit “open interaction,”
-“advance interaction,” or “close interaction” events merely to manage UI.
+## Authoring model
 
-### Plural offers, not a singular current step
+### Candidate sources, not executable domains
 
-At one version a player may be able to draw a card, pass, or react. Several
-players may each owe a secret choice. Optional and parallel progression also do
-not imply a unique current node. The wire and client APIs therefore expose
-`ActionOffer[]`.
-
-### Presentation continuity is weak
-
-An optional `continuityGroup` may tell the client that a new offer can reuse an
-existing action surface. It is a presentation category, not an instance ID. It
-must never determine legality, correlate responses, cancel work, or distinguish
-two concurrent resolutions. The first implementation may omit it until a
-concrete UI needs it.
-
-## Authoritative rule model
-
-### Four stages of move legality
-
-Move authoring is decomposed into four stages:
-
-1. **Availability:** field-independent rules for whether the actor may begin
-   constructing this move now.
-2. **Input domains:** rules for each creator-owned field, evaluated against the
-   current state and any declared prerequisite input bindings.
-3. **Cross-input constraints:** relationships among multiple populated inputs
-   that are not naturally owned by one field domain.
-4. **Final legality:** the complete existing legal chain, including
-   `LegalCustom`, evaluated again when the proposal is submitted.
-
-Every availability rule and input-domain validator contributes to final
-legality automatically. Authors must not restate them in `LegalCustom`.
-
-### Availability
-
-Availability answers:
-
-> Ignoring creator-owned fields that have not been supplied yet, may this actor
-> begin constructing this move in this state?
-
-Proposed authoring shape:
-
-```go
-auto.MustConfig(
-    new(MoveSelectPlayer),
-    moves.WithAvailability(
-        valentine.ActiveCardRequiresTarget(),
-        legal.PropEquals(
-            "player.SelectedPlayer",
-            "admin",
-        ).WithMessage("valentine.already_selected"),
-    ),
-)
-```
-
-`WithAvailability` is not presentation metadata. Its rules are authoritative
-legal preconditions and are included in the normal legal plan. The distinction
-is that they promise not to depend on creator-owned fields that are still
-unbound.
-
-Existing behavior contributions such as current-player authorization and
-in-progression checks should be classified as availability-capable where sound.
-The engine must reject an availability rule whose declared read set includes a
-creator-owned move field.
-
-An opaque game-specific availability predicate is allowed when declarative
-paths cannot express the rule, for example dynamic component values. It must be
-a named, reusable server predicate and must still contribute to final legality.
-
-### Executable input domains
-
-An input domain owns the accepted values of one creator-controlled input. It is
-both a validator and, when possible, a candidate or constraint provider.
+A candidate source owns the viewer-safe universe that may be presented for one
+creator input. It does not decide authoritative legality. Version-one sources
+are sealed framework descriptors, not arbitrary game callbacks:
 
 Conceptually:
 
 ```go
-type Domain interface {
-    Field() string
-    Dependencies() []string
-    Describe(ctx DomainContext) (InputDescription, error)
-    Validate(ctx DomainContext, value any) error
+type ChoiceSource interface {
+    isFrameworkChoiceSource()
 }
+
+input.Players()
+input.EnumValues()
 ```
 
-`Describe` returns one of three domain modes:
+The unexported marker prevents a game from implementing a source that reads the
+live `Game`, globals, time, randomness, I/O, or an unbounded allocation before
+the framework can enforce a budget. Custom and dynamically filtered sources are
+deferred. Game rules filter the finite framework universe through `move.Legal()`.
 
-- **choices:** a bounded set of candidates such as players or enum values;
-- **constraints:** a constructible range or schema such as an integer interval
-  or bounded string;
-- **binding:** the value is supplied by a specialized board surface and the
-  generic client can only explain that requirement.
+The framework owns:
 
-`Validate` is always required, including for non-enumerable and specialized
-domains. Proposal-time validation never trusts the offered candidate list.
+- field and codec compatibility checks;
+- canonical binding through `BuildMoveInputSchema`;
+- exact `move.Legal()` evaluation for every bounded candidate;
+- available/disabled/undisclosed projection;
+- payload, count, and work limits;
+- deterministic ordering checks where possible.
 
-Candidate generation and validation must be two views of the same domain
-object. It is invalid to configure one function for visible choices and an
-unrelated function for authoritative membership.
+The source does not implement `Validate`. It is impossible to guarantee that
+two arbitrary `Choices` and `Validate` methods express the same rule. Candidate
+membership and legal membership are intentionally different concepts: a public
+player may be safe to show but currently illegal to target.
 
-### Input dependencies and atomic local wizards
+### Existing legality remains the sole rule language
 
-A move may contain multiple creator inputs. A later input domain may depend on
-earlier bindings, for example destination depends on source. Dependencies are
-explicit and must form a directed acyclic graph validated at configuration
-time:
-
-```go
-moves.WithInputs(
-    input.Component("Source").From("player.Pieces"),
-    input.Space("Destination").
-        DependsOn("Source").
-        Domain(game.LegalDestinationsFrom("Source")),
-)
-```
-
-The client maintains a local partial binding and asks for or derives the next
-input descriptions. Nothing commits until the complete move is proposed. This
-is the framework seam for source/destination, card/rotation, and other atomic
-move drafts. It is not a committed interaction sequence.
-
-Version one should support only independent fields or a simple declared order
-unless a concrete game requires general DAG recomputation.
-
-### Cross-input constraints
-
-Rules involving several populated fields can be attached to an input group:
-
-```go
-moves.WithInputConstraint(
-    input.Fields("Space", "Orientation", "Resources"),
-    game.ValidPlacement(),
-)
-```
-
-These rules contribute to full legality and may participate in exact preview
-once all dependencies are populated. They do not make an unbound move
-unavailable.
-
-### `LegalCustom` remains the escape hatch
-
-`LegalCustom` remains authoritative and runs on the fully bound move. It is
-appropriate for irreducible domain rules but should not normally contain:
-
-- missing-value checks for declared required inputs;
-- enum membership or integer-range checks;
-- context-owned proposer checks;
-- candidate membership already owned by an input domain;
-- availability rules already declared through `WithAvailability`.
-
-An action offer cannot generally project an opaque `LegalCustom` rule. For
-bounded domains the server may exact-preview candidate bindings and filter any
-that fail final legality. For unbounded domains, authors must expose any rule
-needed to determine whether the move should be offered as an availability rule;
-the proposal endpoint still reports final rejection.
-
-## Proposed game-author API
-
-The exact Go spelling remains open, but the semantic ownership should resemble:
+All game rules remain ordinary legal predicates or `LegalCustom`:
 
 ```go
 auto.MustConfig(
     new(MoveSelectPlayer),
 
-    moves.WithAvailability(
+    moves.WithLegalPreconditions(
         valentine.ActiveCardRequiresTarget(),
         legal.PropEquals("player.SelectedPlayer", "admin").
             WithMessage("valentine.already_selected"),
+        valentine.ValidTarget("move.OtherPlayerIndex"),
     ),
 
-    moves.WithInputs(
+    moves.WithInputPresentation(
         input.PlayerIndex("OtherPlayerIndex").
-            Label("valentine.choose_player").
-            Domain(valentine.ValidTargets()),
+            Prompt("valentine.choose_player").
+            Choices(input.Players()).
+            Disclosure(input.PublicExact),
     ),
 
     moves.WithPresentation(
-        presentation.Title("valentine.resolve_card"),
-        presentation.Context(valentine.ActiveCardContext()),
-        presentation.ContinuityGroup("card-resolution"),
+        presentation.Title("valentine.resolve_guard"),
     ),
 )
 ```
 
-`ValidTargets` expresses one cohesive game rule:
+The server binds every safely disclosable player and evaluates the same legal
+chain that proposal submission uses. `LegalCustom` works automatically during
+migration because complete candidates reach the normal `move.Legal()` path.
 
-```go
-func ValidTargets() input.PlayerDomain {
-    return input.Players().
-        Where(player.NotEliminated()).
-        Where(player.NotProtected()).
-        PreferOthers().
-        AllowSelfOnlyWhenEmpty()
-}
-```
-
-The Guard guess becomes:
+Guard guessing follows the same pattern:
 
 ```go
 auto.MustConfig(
     new(MoveGuessCard),
 
-    moves.WithAvailability(
+    moves.WithLegalPreconditions(
         valentine.ActiveCardIs(cardGuard),
-        valentine.SelectedTargetIsNotSelf(),
+        legal.PropNotEquals("move.GuessedCard", "Unknown").
+            WithMessage("valentine.guess_not_legal_type"),
+        legal.PropNotEquals("move.GuessedCard", "Guard").
+            WithMessage("valentine.guess_cant_be_guard"),
     ),
 
-    moves.WithInputs(
+    moves.WithInputPresentation(
         input.Enum("GuessedCard", cardEnum).
-            Label("valentine.guess_card").
-            Except(cardUnknown, cardGuard),
+            Prompt("valentine.guess_card").
+            Choices(input.EnumValues()).
+            Disclosure(input.PublicExact),
     ),
 
     moves.WithPresentation(
         presentation.Title("valentine.resolve_guard"),
-        presentation.Context(valentine.SelectedPlayerContext()),
-        presentation.ContinuityGroup("card-resolution"),
     ),
 )
 ```
 
-All labels and context must use localizable templates with viewer-safe
-bindings. Literal strings above illustrate intent only.
+Unknown and Guard can be shown as safely disabled choices or omitted according
+to authored presentation policy. The `PropNotEquals` predicates—not the enum
+source—own their illegality.
 
-### Relationship to the creator move-input contract
+### No separate availability category in version one
 
-`boardgame.BuildMoveInputSchema` remains the authority for which persisted move
-fields are creator-owned, server-defaulted, context-owned, or unsupported and
-for how values are encoded. A domain may only attach to a creator-owned field
-in that canonical schema. Configuration fails for:
+For a bounded single-input offer, the framework can bind every candidate and
+run complete legality. It emits the offer only when at least one candidate is
+legal, then may include safely disclosed disabled sibling candidates.
 
-- an unknown or context-owned field;
-- a domain whose kind is incompatible with the field codec;
-- two domains claiming the same field;
-- a required creator field lacking an input description on an offerable move;
-- cyclic or unknown input dependencies;
-- an availability predicate that reads an unbound creator field.
+The existing declarative plan may later support partial evaluation by deferring
+predicates whose declared `move.*` reads intersect unbound required creator
+fields. Context-owned and server-defaulted fields must be classified using the
+canonical input schema rather than a coarse “field-dependent” flag. Opaque
+`LegalCustom` remains deferred until binding is complete.
 
-Domains describe legal values; codecs describe representation and transport.
-Neither replaces the other.
+That optimization does not require new author vocabulary. `WithAvailability`
+should be introduced only if an unbounded real game cannot be expressed through
+candidate enumeration or dependency-aware projection.
 
-## Runtime `ActionOffer` projection
+### Explicit offer opt-in
 
-### Conceptual wire model
+Offer configuration is independent from declarative-legality adoption. Only a
+move with `WithInputPresentation` participates. Existing required creator fields
+without input presentation remain valid legacy moves and retain their current
+forms and renderer behavior.
+
+Version one configuration fails only for an opted-in move when:
+
+- the field is unknown, context-owned, server-defaulted, or unsupported;
+- the candidate kind is incompatible with the creator codec;
+- the move has zero or more than one required creator input;
+- two presentation declarations claim the same field;
+- prompt or title keys are invalid;
+- the disclosure mode is absent or unsupported.
+
+### Structured localization
+
+The server sends message keys and viewer-safe primitive arguments, never
+already-localized prose:
 
 ```ts
-interface ActionOffer {
-  readonly moveName: string;
-  readonly basedOnStateVersion: number;
-  readonly moveInputSchemaFingerprint: string;
-  readonly presentation?: OfferPresentation;
-  readonly inputs: readonly InputOffer[];
-}
-
-interface OfferPresentation {
-  readonly title?: LocalizedText;
-  readonly context?: LocalizedText;
-  readonly continuityGroup?: string;
-  readonly urgency?: 'normal' | 'required' | 'reaction';
-}
-
-type InputOffer =
-  | ChoiceInputOffer
-  | ConstraintInputOffer
-  | BindingInputOffer;
-
-interface ChoiceInputOffer {
-  readonly field: string;
-  readonly kind: 'player' | 'enum' | 'component' | 'space' | 'custom';
-  readonly mode: 'choices';
-  readonly choices: readonly Choice[];
-}
-
-interface Choice {
-  readonly id: string;
-  readonly label: LocalizedText;
-  readonly binding: Readonly<Record<string, unknown>>;
+interface LocalizedMessage {
+  readonly key: string;
+  readonly args?: Readonly<Record<string, string | number | boolean>>;
 }
 ```
 
-`binding` is expressed in the generated creator-input representation, not raw
-form strings. A choice may eventually bind several fields, although version one
-should keep one field per choice. Privacy-sensitive or computationally complex
-choices may later use opaque, state-version-bound binding tokens; tokens are
-deferred until there is a demonstrated need because they complicate typed move
-proposal and debugging.
+Version one supports a static prompt key and title key. Arbitrary context
+callbacks, pluralization helpers, urgency, and continuity metadata are deferred
+until their localization and disclosure behavior is proven.
 
-The offer does not need a durable interaction or offer ID. `moveName`, the
-binding, and `basedOnStateVersion` are sufficient for proposal. If future
-transport requires an ephemeral correlation ID, it must not acquire game
-semantics.
+Candidate labels are framework-owned in version one. `Players()` uses the
+viewer-safe player display-name projection, falling back to a localized
+“Player {number}” key. `EnumValues()` uses the generated enum metadata and its
+localization-key convention, falling back to the enum's declared display name.
+The server sends only semantic keys/values; the client selects the locale.
+Custom label resolvers are deferred because they introduce another disclosure
+surface.
+
+## Disclosure model
+
+### Exact legality is itself information
+
+The server evaluates candidates against authoritative state. Offer existence,
+candidate identity, count, ordering, enabled state, and rejection reason can all
+reveal hidden facts. Applying sanitization after exact filtering is too late.
+
+Every candidate source therefore declares how its results may be disclosed. The
+long-term policy vocabulary is:
+
+```text
+PublicExact
+    Candidate identity and exact legal status are public to this viewer.
+
+PublicSuperset
+    Candidate identity is public, but hidden-dependent legal status is not.
+    Show a safe superset and validate only on submission with a safe response.
+
+Opaque
+    Raw creator values are not viewer-visible. Use authenticated, viewer- and
+    version-bound tokens or a privacy-reviewed specialized adapter.
+
+Hidden
+    Do not emit the offer to this viewer.
+```
+
+Version one implements only `PublicExact`. It is an explicit, trusted
+declassification by the game author for the offer actor. It authorizes candidate
+identity, candidate membership, and enabled/disabled status as public to that
+audience. It does not authorize detailed rejection reasons; reason disclosure
+is a separate opt-in and defaults to a generic disabled result.
+
+Declared legal read sets can warn about obviously hidden dependencies but do not
+prove safety. In particular, opaque `LegalCustom` code is not mechanically
+inspectable. The author assertion, review, and hidden-equivalent-state tests are
+all required. `PublicSuperset`, `Opaque`, and hidden-dependent preview require a
+later privacy design.
+
+### Offer noninterference
+
+The critical privacy invariant is:
+
+> Two authoritative states that are identical under a viewer's allowed
+> disclosure must produce byte-equivalent offer snapshots, except for facts
+> explicitly authorized by the offer's disclosure policy.
+
+Tests must compare hidden-equivalent state pairs, not only different viewer
+roles on one state.
+
+Exact-preview errors are also disclosure-sensitive. The current batch-preview
+path returns the complete `move.Legal()` error text. Version one may expose a
+candidate reason only when all facts behind that reason are public under
+`PublicExact`. Server diagnostics remain detailed; unsafe client responses use
+stable generic codes.
+
+### Private moves and issue #693
+
+The private simultaneous-choice journey is aspirational. Full support is
+blocked on the relevant move-disclosure work in issue #693.
+
+The design distinguishes:
+
+- move payload secrecy;
+- proposer secrecy;
+- move-name secrecy;
+- version, timing, and occurrence secrecy.
+
+Viewer-specific offers can help with the first three once move disclosure is
+implemented. The current transport still broadcasts global version activity
+and cannot conceal that some event occurred. This design makes no
+traffic-analysis-secrecy promise.
+
+## Runtime offer projection
+
+### Extend existing move forms and actions
+
+`ActionOffer` is the conceptual read model. Its implementation should extend or
+associate with the existing viewer-specific move-form bundle and hydrate the
+existing typed action system. It must not introduce independent preview,
+submission, caching, animation, or stale-state machinery.
+
+The client-facing snapshot is an outer envelope:
+
+```ts
+interface ActionOfferSnapshot {
+  readonly stateVersion: number;
+  readonly moveInputSchemaFingerprint: string;
+  readonly offerSchemaVersion: number;
+  readonly offers: readonly GameActionOffer[];
+}
+```
+
+The shared version and fingerprint are not repeated on every offer.
+
+### Preserve exact generated types
+
+Generated offers form a game-specific discriminated union rather than falling
+back to `string` and `Record<string, unknown>`:
+
+```ts
+type GameActionOffer =
+  | ActionOfferFor<
+      typeof MoveNames.SelectPlayer,
+      {
+        OtherPlayerIndex: ChoiceInputOffer<number>;
+      }
+    >
+  | ActionOfferFor<
+      typeof MoveNames.GuessCard,
+      {
+        GuessedCard: ChoiceInputOffer<Card>;
+      }
+    >;
+```
+
+The exact generated facade exposes:
+
+```ts
+offers.get(MoveNames.SelectPlayer)
+offers.get(MoveNames.GuessCard)
+```
+
+A field lookup is also exact:
+
+```ts
+offer.choices("OtherPlayerIndex")
+```
+
+Misspelled move names, invalid fields, and incorrectly shaped values remain
+compile-time errors.
+
+### Candidate result model
+
+For a safely disclosed universe, a candidate is:
+
+```ts
+interface OfferedChoice<Key, MoveName extends string, Input extends object> {
+  readonly key: Key;
+  readonly label: LocalizedMessage;
+  readonly action: BoundMoveAction<MoveName, Input>;
+}
+```
+
+Every disclosed candidate retains its existing bound action. Exact projection
+hydrates that action's existing preview as legal or illegal, so `TargetAction`,
+generic controls, and board-native controls share one disabled/reason path.
+Absence means outside the disclosed universe. Detailed disabled reasons are
+optional and must independently satisfy reason-disclosure policy.
+
+Version one emits an offer only when at least one candidate passes complete
+`move.Legal()`. Safely disclosed disabled sibling actions may accompany it.
+Zero legal candidates suppress the offer; required-protocol deadlock diagnostics
+remain a separate server health invariant and cannot silently depend on UI.
+
+### Deterministic ephemeral identity
+
+Version one emits at most one offer per configured move name for a viewer and
+snapshot. Each offer still has a deterministic ephemeral `offerKey` for keyed
+rendering and local reconciliation. It has no game semantics and is not
+submitted as authority.
+
+If two same-type obligations differ semantically, their discriminator must be a
+durable state fact and appear as a context-owned or creator-owned move field. If
+that cannot produce an unambiguous offer, the game must use a different move
+type or defer until multiple-instance offers are designed.
 
 ### Projection algorithm
 
-For one authenticated viewer at one sanitized game version:
+For one authenticated seated player at the current settled version:
 
-1. Determine move types structurally admitted by existing progression.
-2. Apply actor/context rules and declared availability rules for the viewer.
-3. Read the canonical creator-input schema.
-4. Ask each input domain for a viewer-safe description or candidates.
-5. For bounded candidates, optionally bind complete candidates and evaluate
-   exact legality in a server batch, filtering failures.
-6. Apply offer and candidate disclosure policies.
-7. Emit zero or more offers tied to the source state version and schema
-   fingerprint.
+1. Enumerate only move types explicitly configured for offers.
+2. Use the move's existing hypothetical-next-move `inProgression` legality
+   behavior. Do not traverse or interpret the progression tree.
+3. Resolve the candidate source against an immutable, version-pinned offer
+   context.
+4. Bind each candidate through the canonical creator-input schema and codec.
+5. Call the complete existing `move.Legal(state, proposer)` chain.
+6. Apply the pre-authorized disclosure policy to candidate identity, status,
+   and safe reason.
+7. If at least one candidate is legal, emit one typed offer associated with
+   existing move-form/action data and optionally include safely disabled peers.
+   Otherwise suppress the offer and retain separate deadlock diagnostics.
 
-The exact proposal endpoint always reconstructs the move, applies context and
-server defaults, checks the fingerprint and state version policy, and runs the
-complete authoritative legal chain. The offer is advisory and can become stale.
+Observers and admin receive no offers by default. `AdminPlayerIndex` is an
+evaluation sentinel, not an offer actor. Any exception requires explicit policy.
 
-The projection should be server-owned initially. Client-side evaluation can
-later optimize latency for predicates proven safe on sanitized state, but it
-must produce the same model and cannot become the sole authority.
+### Settled snapshots only
 
-### Candidate cardinality and cost
+Every source and legality evaluation receives only an immutable context pinned
+to `stateVersion`. History access, if later supported, is capped at that
+version. Providers cannot access the live game, `CurrentState()`, wall clock,
+randomness, network, mutation, or process globals.
 
-Domains declare their cost and cardinality behavior:
+Actionable offers are emitted only after automatic fix-up closure for the
+current proposal-accepting frontier. Historical snapshots and transient
+animation versions carry no actionable offers. Every preview and proposal
+includes `ExpectedVersion`.
 
-- small bounded domains can be enumerated and exact-previewed eagerly;
-- large bounded domains can be paginated or board-bound;
-- combinatorial and unbounded domains expose constraints or specialized
-  bindings instead of enumerating every complete move;
-- expensive candidate providers may require game-authored board binding.
+This requires a proven server primitive, not a before/after version check. Stage
+0 must either identify an existing lock/serialization guarantee or introduce an
+atomic “proposal-accepting frontier” snapshot API. Offer implementation cannot
+begin until intermediate fix-up versions are unobservable as actionable offer
+sources by construction.
 
-The server enforces candidate and payload limits. A domain may not accidentally
-materialize every path, card subset, or word in a large search space.
+### Determinism, cost, and failure
 
-## Client behavior
+Projection is deterministic for:
 
-### Headless controller
+```text
+(game, version, viewer identity/disclosure class)
+```
 
-The framework client should expose a headless action controller rather than
-owning DOM or focus. It maintains:
+Candidate order and ephemeral keys are canonical. A timer affects offers only
+through a durable state/version transition, never by silently changing the same
+version.
 
-- current plural offers;
-- a local partial binding for the selected offer;
-- exact-preview state for a complete candidate;
-- stale/rejected/resolving status;
-- actions to bind, clear, submit, and minimize.
+The server enforces mechanical limits rather than trusting provider cost hints:
 
-Specialized renderers and the generic fallback use the same controller.
+- total candidates across all offers;
+- full legality evaluations per projection;
+- response bytes;
+- deadline and cancellation;
+- panic recovery around projection code;
+- authenticated rate limits;
+- viewer- and version-scoped caching only.
+
+Cache keys include every projection input. Localization happens on the client,
+so locale is not a server projection input. Completed offers are never cached
+globally across viewers.
+
+A projection failure is a server diagnostic, not “no legal action.” Development
+and tests fail loudly. Production returns a stable generic projection error and
+does not emit an unvalidated candidate set. A zero-result required protocol is
+diagnosed independently of the UI so an engine deadlock cannot masquerade as an
+empty prompt.
+
+## Existing client integration
+
+### Offers decorate `BoundMoveAction`
+
+An available offer choice contains the existing exact action:
+
+```ts
+const offer = this.offers.get(MoveNames.SelectPlayer);
+const choice = offer?.choices("OtherPlayerIndex").get(player.index);
+const action = choice?.action ?? null;
+```
+
+Current buttons, stacks, target lists, preview state, submission gates,
+snapshot identity, transport errors, animation gates, and telemetry continue to
+work unchanged.
+
+Offer-derived complete bindings use their hydrated exact preview instead of the
+incomplete default move form's baseline legality. Concretely, the action layer
+must mark an offer-hydrated binding as `baselineLegalityApplies: false` (or an
+equivalent explicit mode) for both `LegalForAnyone` and `LegalForPlayer` gates.
+The existing schema, snapshot, animation, submission, and transport gates still
+apply. A hydrated legal preview enables the candidate; a hydrated illegal
+preview disables it. This is a required semantic change, not an optimization.
+
+Offers should eliminate this existing renderer responsibility:
+
+```ts
+this.move(MoveNames.SelectPlayer).targets(players, player => ({
+  OtherPlayerIndex: player.index,
+}))
+```
+
+They should produce the same `TargetAction`-compatible result rather than
+replace the machinery behind it.
 
 ### Generic accessible surface
 
-The default UI is a non-modal prompt region or side sheet with a semantic list
-of choices. A focus-trapped modal is valid only when all possible choices are
-inside it. If valid targets are board elements outside the prompt, keyboard and
-screen-reader users must still be able to reach an equivalent semantic target
-list.
-
-Before a move is committed, Escape may cancel or clear a local draft. After a
-step in a committed sequence, Escape means minimize; it cannot imply that the
-committed move was undone.
-
-### Board-native binding
-
-A renderer can bind an offer field to players, components, or spaces already on
-the board. The offer remains the semantic source for highlighting and proposal:
+A generic component consumes the same typed offer:
 
 ```ts
-const offer = actions.firstForMove('Select Player');
-
-renderPlayer(player, {
-  selectable: offer?.accepts('OtherPlayerIndex', player.index),
-  onSelect: () => offer?.bind('OtherPlayerIndex', player.index),
-});
+html`
+  <boardgame-action-offer .offer=${offer}></boardgame-action-offer>
+`
 ```
 
-The generic surface remains available as a fallback and accessibility path.
+It renders a semantic candidate list, disabled states, safe reasons, pending
+state, and errors by using existing action components. A board-native renderer
+can bind the same candidate action to player panels, cards, or spaces.
 
-### Continuity and animation
+A visual-only “binding” with a generic message saying “use the board” is not an
+accessible fallback. Every offerable v1 input has a semantic list representation.
 
-When a committed proposal is accepted, the client may keep the action surface
-in a resolving state while the accepted move and fix-ups animate. On the next
-snapshot it replaces the old offer with newly derived offers. A matching
-`continuityGroup` permits visual reuse but conveys no rules relationship.
+### Commit and cancellation behavior
 
-Animation state is client-local. It is not part of a server workflow cursor.
+Version-one offers are single-field committed moves, so activating an available
+choice proposes the move immediately through its existing `BoundMoveAction`.
+There is no new confirmation or cancellation protocol.
+
+Existing local drafts retain their own clear, undo, and confirmation behavior.
+Once an offer choice commits a move, Escape may minimize subsequent UI but
+cannot imply rollback.
+
+### Existing draft controllers remain specialized
+
+Source/destination, selection, and placement controllers encode interaction
+behavior beyond data dependency: toggle policy, undo, capacity, drag/drop,
+rotation, pruning, and snapshot reconciliation. Offers may eventually supply
+their candidate actions, but no universal dependency-DAG wizard replaces them.
 
 ## Valentine walkthrough
 
@@ -550,295 +663,273 @@ The authoritative sequence remains:
 
 ```text
 MovePlayCard
-→ MoveSelectPlayer, when the active card requires a target
-→ MoveGuessCard, when the active card is Guard and the target is not self
+→ MoveSelectPlayer, when required
+→ MoveGuessCard, for Guard when required
 → MoveActivateGuard or another activation fix-up
 ```
 
-1. The player locally chooses a card index and commits `MovePlayCard`.
-2. The resulting state and existing progression admit `MoveSelectPlayer`.
-3. Its availability rules pass for the current actor.
-4. `ValidTargets` produces unprotected, non-eliminated candidates and applies
-   Valentine's self-only-when-no-alternative policy.
-5. The viewer receives a `SelectPlayer` offer and the client displays or
-   highlights those candidates.
-6. Selecting one binds and commits a real `MoveSelectPlayer`.
-7. The next version admits `MoveGuessCard`; its enum domain excludes Unknown
-   and Guard.
-8. The client may retain the same card-resolution surface.
-9. Refresh at either point regenerates the current offer from authoritative
-   state. No interaction cursor is reconstructed.
+1. The player chooses and commits `MovePlayCard` using the existing action API.
+2. The resulting settled snapshot evaluates configured `MoveSelectPlayer`
+   candidates against existing progression and complete legality.
+3. The `Players()` source supplies the public player universe.
+4. Exact legality marks protected, eliminated, and disallowed self-targets as
+   disabled or omits them according to `PublicExact` presentation policy.
+5. The client displays the offer generically and/or binds available
+   `BoundMoveAction`s to player panels.
+6. Activating one commits a real `MoveSelectPlayer`.
+7. The next settled snapshot evaluates `MoveGuessCard` candidates.
+8. The enum source supplies card values; existing legal predicates reject
+   Unknown and Guard.
+9. Refresh at either point regenerates the offer from authoritative state.
 
-Valentine should move card targeting policy toward named data or helpers, for
-example `NoTarget`, `TargetOther`, and `TargetOtherOrSelfWhenNoAlternative`, so
-`NeedToSelectPlayer`, selection legality, activation legality, and renderer
-behavior no longer contain independent card-type switches.
+A successful migration removes:
 
-## Hard journey: simultaneous secret choices
+- renderer-authored player candidate construction;
+- renderer-authored guess-card candidate construction;
+- `NeedToSelectPlayer`;
+- `NeedToGuessCard`;
+- duplicated targetability conditions in renderer code.
 
-Suppose every player secretly selects a card and all choices are revealed once
-everyone has submitted.
+It preserves:
 
-The game records the durable obligation and private choice in sanitized player
-or game state. Each submission is a real, private move:
+- `MoveSelectPlayer` and `MoveGuessCard` as committed moves;
+- ordinary progression and activation fix-ups;
+- proposal-time complete legality;
+- current typed actions and target lists;
+- current snapshot, submission, and animation behavior;
+- board-native player panels and card UI;
+- an accessible semantic fallback.
 
-```go
-type MoveSubmitChoice struct {
-    moves.CurrentPlayer
-    CardIndex int
-}
-```
-
-For a player who still owes a choice, the server projects one private
-`SubmitChoice` offer whose component domain contains only choices safe for that
-viewer. After submission, that player's offer disappears. Other players receive
-neither the offer nor candidate metadata unless the rules intentionally expose
-waiting status.
-
-When all obligations are satisfied, a fix-up commits a public resolution move.
-The original submission moves may remain permanently secret, including their
-proposer and occurrence, subject to the move-disclosure design tracked in issue
-#693. The offer system does not require retrospective mutation of move history.
-
-This journey needs durable “has submitted” state because reconnect and
-completion depend on it. It does not need a generic persisted interaction
-cursor; offers are projections of the durable domain state.
+Valentine should also move card targeting policy toward named game data or
+reusable legal predicates such as `NoTarget`, `TargetOther`, and
+`TargetOtherOrSelfWhenNoAlternative`. That removes repeated card-type switches
+without making the offer layer authoritative.
 
 ## Design-space validation
 
-| Journey | Durable semantics | Offer/input treatment |
+| Journey | Authoritative semantics | Offer treatment |
 | --- | --- | --- |
-| Valentine Guard | Several committed moves | Player then enum offers with cosmetic continuity |
-| Valentine Priest/Baron | Committed choice plus private information | Viewer-specific player/confirm offers and disclosure |
-| Checkers source/destination | One atomic move | Local draft with dependent component/space domains |
-| Darwin card/species | One atomic move | Local draft with dependent component choices |
-| Memory repeated reveals | Repeated committed move | New offer derived after each reveal; no occurrence cursor |
-| Werewolf voting | Durable per-player obligation | Private plural offers projected from player state |
-| Scrabble placement | One combinatorial atomic move | Specialized board binding plus final exact validation |
-| Ticket to Ride two draws | State changes after first committed draw | Newly derived second-draw offers |
-| Catan robber | Durable discards, then serial committed choices | Per-player offers followed by space/player offers |
-| Coup reaction window | Durable timed/priority protocol | Domain state owns window; offers project legal responses |
-| Secret choose/reveal | Durable private submissions | Per-viewer private offers, then public fix-up |
+| Valentine Guard | Several committed moves | Player then enum offers |
+| Valentine Priest/Baron | Committed choice plus private information | Public parts in v1; private projection waits for disclosure design |
+| Checkers source/destination | One atomic move | Existing local draft; future offer-supplied candidates |
+| Darwin card/species | One atomic move | Existing local draft; future offer-supplied candidates |
+| Memory repeated reveals | Repeated committed move | New offer after each settled reveal; no occurrence cursor |
+| Werewolf voting | Durable per-player obligation | Domain state plus later private offers |
+| Scrabble placement | One combinatorial atomic move | Specialized draft; not a v1 offer domain |
+| Ticket to Ride two draws | State changes after first committed draw | Newly derived offer after first draw |
+| Catan robber | Durable discards, then serial decisions | Per-player protocol state plus later offers |
+| Coup reaction window | Durable timed/priority protocol | Domain state owns window; privacy-reviewed offers project responses |
+| Secret choose/reveal | Durable private submissions | Aspirational; blocked on move disclosure and transport limits |
 
-No one abstraction owns all of these journeys. The common UI boundary is the
-viewer-specific action offer; the authoritative representation remains
-appropriate to each journey.
-
-## Privacy and disclosure
-
-Action offers are generated after authenticating the viewer and must be treated
-as potentially secret. Sensitive data includes:
-
-- whether an offer exists;
-- the actor who received it;
-- title and contextual text;
-- candidate identities and counts;
-- exclusion or failure reasons;
-- continuity metadata;
-- waiting and completion status.
-
-An offer must never be generated globally and merely hidden in the DOM. Server
-projection and serialization are viewer-specific. Candidate providers operate
-on authoritative state but return only viewer-safe descriptions.
-
-Move disclosure and offer disclosure should share policy vocabulary where
-possible, but they are not identical. A player may see an offer before a move
-exists; a committed move may have a different audience from the offer that
-created it. Issue #693 remains the prerequisite for fully private move history.
-
-Even perfect payload sanitization does not hide websocket activity or global
-version advancement. Games requiring traffic-analysis resistance need a
-separate transport design.
+No one workflow abstraction owns these journeys. Offers are the replaceable UI
+boundary; each game retains the correct authoritative representation.
 
 ## Why not the alternatives?
 
 ### Universal persisted `Interaction`
 
-Wrapping progression in an interaction cursor duplicates ordering and legality.
-The current progression API recognizes move-name histories; optional, repeated,
-and parallel groups do not yield a canonical current node, actor, or instance.
-Auctions and reaction windows should use explicit domain state, but ordinary
-follow-up prompts should not create another state machine.
+The current progression system recognizes move-name histories. Optional,
+repeated, parallel, and custom groups do not expose a canonical node, actor, or
+instance. A generic cursor would duplicate progression and legality. Real
+auctions or reactions should use explicit domain state.
 
 ### Sub-phases for every prompt
 
 Phases are appropriate for low-cardinality, rule-significant modes. Encoding
-every card target and guess as a phase creates a phase taxonomy of screen
-choreography, duplicates progression, and still does not explain which move
-field represents a player or which players are legal candidates.
+every card target or guess as a phase creates a taxonomy of screen choreography,
+duplicates progression, and still does not describe move-field presentation.
 
 ### One atomic move for every interaction
 
-Atomic local drafts are correct when nothing may observe or react between
-fields. They are incorrect when intermediate decisions must be durable,
-visible, interruptible, animated separately, or disclosed to different
-audiences.
+Atomic drafts are correct when no observer or rule can act between fields. They
+are incorrect when intermediate decisions must be durable, visible,
+interruptible, animated independently, or disclosed differently.
 
-### Game-authored `OffersFor`
+### Executable input-domain validators
 
-A manual `OffersFor(viewer, state)` API is flexible but invites each game to
-duplicate progression and legality. Games may author domains and presentation
-context; the framework must derive the offer itself from those executable
-descriptions and the authoritative legal chain.
+Giving input domains an independent `Validate` method creates another ordered
+rules system and cannot mechanically guarantee agreement with candidate
+description. Candidate sources provide presentation universes; existing legal
+predicates remain authoritative.
+
+### Manual game-authored `OffersFor`
+
+A manual projection is maximally flexible but asks each game to duplicate
+progression, exact legality, type binding, staleness, and disclosure. Games
+select sealed candidate sources and author presentation; the framework derives
+offers.
 
 ### Static prompt tags alone
 
-A tag can say that a field represents a player. It cannot safely determine
-current candidates, exact legality, viewer disclosure, stale-state behavior, or
-multiple simultaneous actions. Static metadata is the authoring source;
-`ActionOffer[]` is the necessary runtime projection.
+A tag can say a field represents a player. It cannot provide current candidates,
+exact status, disclosure, type-safe actions, or stale-state behavior. Static
+configuration is the authoring source; the runtime offer is the needed
+viewer-specific projection.
 
 ## Invariants
 
-1. Deleting all action offers cannot change game correctness.
-2. An offer never makes an illegal move legal.
-3. Every offered binding is validated again at proposal time.
-4. Every availability rule and domain validator participates in full legality.
-5. No candidate-generation rule has an independent authoritative membership
-   implementation.
-6. Offers are tied to a state version and move-input schema fingerprint.
-7. Offers are generated and sanitized per viewer.
-8. Continuity metadata has no game semantics.
-9. Committed decisions remain moves; partial bindings are not moves.
-10. Durable protocols remain domain state or phases, not inferred UI state.
-
-## Failure behavior
-
-- Configuration fails for invalid field ownership, incompatible domain types,
-  duplicate domains, cyclic dependencies, or field-dependent availability.
-- Offer projection fails closed for stale schema fingerprints and unsafe domain
-  output.
-- A candidate provider error suppresses the affected offer and produces a
-  diagnosable server error; it must not emit an unvalidated candidate set.
-- A zero-candidate bounded domain normally suppresses the offer. Required
-  protocols that reach zero candidates must encode their game-specific fallback
-  or resolution in rules/state rather than trapping the client in an empty UI.
-- Proposal against a changed state receives the normal stale or illegal result
-  and refreshes offers from the newest version.
-- A generic client encountering a binding-only domain renders an explanatory
-  fallback and lets the renderer supply the specialized binding.
+1. Deleting every offer cannot change game correctness.
+2. `move.Legal()` remains the only authority for concrete proposal legality.
+3. Candidate sources never make a candidate legal.
+4. Every available candidate has passed complete legality at the offer version.
+5. Proposal reruns complete legality against the accepted current version.
+6. Offers hydrate existing typed actions rather than introducing another action
+   runtime.
+7. Move and field names remain exact generated types on the client.
+8. Offers are deterministic and tied to one immutable settled version.
+9. Offer projection is viewer-specific and disclosure-reviewed before exact
+   status is exposed.
+10. Hidden-equivalent states produce equivalent offers except for authorized
+    disclosures.
+11. Progression is queried through existing hypothetical-move legality, never
+    independently traversed.
+12. Committed decisions remain moves; local partial drafts are not moves.
+13. Durable protocols remain explicit game state or phases.
+14. Admin and observers receive no player offers by default.
+15. Provider failure is distinguishable from an empty legal choice set.
 
 ## Testing strategy
 
 ### Configuration tests
 
+- explicit opt-in and legacy byte-for-byte fallback;
 - creator-input ownership and codec compatibility;
-- missing, duplicate, and unknown input domains;
-- dependency DAG validation;
-- rejection of field-dependent availability predicates;
-- presentation template registration and safe bindings.
+- exactly one required creator field in v1;
+- player-index and enum source compatibility;
+- required disclosure mode;
+- prompt/title localization keys.
 
-### Rule equivalence tests
+### Projection and legality tests
 
-- every domain candidate passes that domain's validator;
-- representative rejected values fail both offer membership and proposal;
-- availability rules contribute identically to offer projection and full legal
-  evaluation;
-- `LegalCustom` can reject an exact-previewed candidate without being bypassed.
+- every available candidate equals a complete successful `move.Legal()` result;
+- disabled candidates preserve safe reasons only when authorized;
+- `LegalCustom` filters complete candidates during migration;
+- existing in-progression behavior controls offer presence without tree
+  traversal;
+- default sentinel illegality cannot block a legal bound candidate;
+- proposal reruns full legality and rejects stale offers.
 
-### Per-viewer matrices
+### Privacy tests
 
-- current actor, other player, observer, and admin receive only allowed offers;
-- hidden offer existence and candidate counts do not leak;
-- sanitized context never references hidden component values;
-- simultaneous secret choices expose only each viewer's own obligation.
+- current player, other player, observer, and admin recipient matrices;
+- hidden-equivalent authoritative states produce byte-equivalent offers;
+- candidate identities, counts, ordering, statuses, and reasons are each tested;
+- trusted `PublicExact` covers identity/membership/status for the named audience
+  but does not implicitly expose reasons;
+- raw detailed projection and legality errors remain server-only when unsafe;
+- private-choice journeys remain disabled until their disclosure prerequisites
+  land.
+
+### Determinism and resource tests
+
+- canonical ordering and stable ephemeral keys;
+- no map-order, wall-clock, randomness, live-state, or I/O dependence;
+- per-projection total candidate/evaluation/byte limits;
+- deadline, cancellation, panic recovery, and rate limiting;
+- cache isolation across viewer and version;
+- no actionable offers for historical or transient fix-up snapshots.
 
 ### Client tests
 
-- plural offers and alternatives;
-- local partial binding, clearing, and dependent-domain recomputation;
-- exact candidate preview and stale rejection;
+- generated exact offer union and typed move/field lookup;
+- available and disabled choices map to existing action behavior;
+- exact preview, stale rejection, and submission gates remain unchanged;
+- generic semantic list and board-native controls share the same action;
+- keyboard and screen-reader access;
 - refresh reconstruction;
-- continuity across committed snapshots;
-- Escape cancels a local draft but only minimizes after commit;
-- keyboard and screen-reader access to board-bound choices;
-- animation/fix-up snapshots do not flash transient prompts.
+- committed actions cannot be locally “cancelled” after acceptance.
 
 ### Golden game journeys
 
-Valentine Guard is the first migration target. Checkers or Darwin validates a
-multi-field local draft. A simultaneous secret-choice example validates
-viewer-specific projection and disclosure. A reaction-window example remains a
-later proof that durable domain protocols compose with offers without becoming
-generic interactions.
+- Valentine Guard is the first migration target.
+- Valentine Priest/Baron tests the boundary where v1 public projection stops.
+- Checkers or Darwin confirms existing local drafts remain independent.
+- A hidden-equivalent fixture proves noninterference.
+- Simultaneous secret choice is retained as a blocked future journey.
 
 ## Incremental delivery
 
-### Stage 0: prerequisite audit
+### Stage 0: prerequisites
 
-- Verify that exact bound-move preview bypasses no legal checks and that a
-  default illegal field value cannot permanently disable a legal non-default
-  candidate.
-- Confirm how current-player and in-progression atoms can be classified for
-  availability without changing the frozen legal chain.
-- Coordinate offer disclosure with the move-sanitization work in issue #693.
+- Fix `BoundMoveAction` so default-instance `LegalForAnyone` cannot block a
+  legal complete binding with creator input. Offer-hydrated actions explicitly
+  defer both baseline legality gates to hydrated exact preview.
+- Specify how offer projection associates with existing move forms and typed
+  actions; do not create a second controller.
+- Audit exact batch preview as a hidden-state oracle. Add disclosure-safe error
+  behavior and noninterference tests before reusing it for offers.
+- Confirm projection occurs only on settled proposal-accepting snapshots.
+- Prove or add the atomic proposal-frontier primitive; this blocks Stage 1.
+- Use existing hypothetical-next-move progression semantics without adding a
+  structural-frontier API.
 
-### Stage 1: bounded single-input offers
+### Stage 1: public bounded offers
 
-- Add availability classification whose rules also contribute to legality.
-- Add executable player-index and enum domains.
-- Add boot validation against `BuildMoveInputSchema`.
-- Project server-owned, viewer-specific `ActionOffer[]` for bounded inputs.
-- Exact-preview complete candidates before emitting them.
+- Add explicit `WithInputPresentation` opt-in.
+- Add only sealed framework-owned player-index and enum candidate sources.
+- Validate configuration through `BuildMoveInputSchema`.
+- Add structured prompt/title keys, framework candidate-label conventions, and
+  trusted `PublicExact` disclosure assertion with separate reason disclosure.
+- Derive typed viewer-specific offers through complete legality evaluation.
+- Generate the exact TypeScript offer union and outer snapshot envelope.
 
-### Stage 2: headless client and generic surface
+### Stage 2: existing client integration
 
-- Generate exact TypeScript offer and binding types.
-- Add the headless action controller.
-- Add a non-modal generic prompt surface and semantic candidate lists.
-- Add board-native binding hooks.
-- Migrate Valentine Guard, Priest/Baron, and return-card choices.
+- Hydrate offer choices with existing `BoundMoveAction`/`TargetAction` objects.
+- Add typed offer lookup to the generated renderer facade.
+- Add a generic accessible offer surface using existing action components.
+- Add board-native binding examples.
+- Migrate Valentine Guard and public portions of Priest/Baron.
 
-### Stage 3: atomic multi-input drafts
+### Stage 3: evidence-driven extensions
 
-- Add ordered/dependent input domains.
-- Support range/schema input descriptions.
-- Validate with Checkers, Darwin, or a placement-heavy game.
+Only after concrete games and privacy tests should later designs consider:
 
-### Stage 4: advanced domains and protocols
+- public-superset projection;
+- opaque viewer/version-bound bindings;
+- multiple same-type offer instances;
+- dependent multi-input candidate refinement;
+- component and board-space sources;
+- large-domain pagination;
+- carefully scoped presentation continuity.
 
-- Add component/space domains, pagination, and specialized binding contracts.
-- Consider opaque state-version-bound binding tokens if privacy or computation
-  demonstrates the need.
-- Validate simultaneous secret choices and a durable reaction window.
+Each extension must preserve the one-legality-system and one-client-action-stack
+invariants.
 
-## Open questions for critique
+## Remaining open questions
 
-1. Should availability be a new explicit `WithAvailability` category, or a
-   flagged subset of the existing `WithLegalPreconditions` plan?
-2. Can existing behavior atoms such as current-player and in-progression be
-   classified as availability-capable without creating a second evaluation
-   order?
-3. Should v1 enumerate candidates on the server, or emit domains and use the
-   existing exact batch-preview endpoint from the client for safe cases?
-4. What is the smallest domain interface that guarantees candidate/validation
-   single-sourcing without forcing every domain to enumerate?
-5. Does a choice bind exactly one field in v1, or should multi-field opaque
-   bindings be part of the initial contract?
-6. Should `continuityGroup` ship in v1, be inferred by the client, or wait for a
-   demonstrated UX discontinuity?
-7. How should offer context use history when the relevant committed move is
-   private, sanitized, or no longer in the immediately available client bundle?
-8. How should required-versus-optional urgency be derived without inventing a
-   singular progression cursor?
-9. What server cost and payload budgets should domains declare and enforce?
-10. Which parts of issue #693 must land before a private offer API is safe to
-    expose beyond games whose moves are already public?
+1. Should offers be additional fields on the existing move-form bundle or a
+   separately versioned sibling inside the same state response?
+2. What exact API spelling records the trusted `PublicExact` declassification,
+   its audience, and the independent reason-disclosure choice? What read-set
+   evidence should warn reviewers without pretending to prove opaque code safe?
+3. Should safely illegal public candidates default to disabled or omitted?
+4. What stable generic error replaces raw `move.Legal()` text when a reason is
+   not disclosure-safe?
+5. What are the total candidate, evaluation, payload, and deadline limits for
+   one projection?
+6. How does the server prove or identify the settled fix-up frontier in the
+   existing version-delivery pipeline?
+7. Is an offer schema fingerprint distinct from the creator-input fingerprint,
+   or is a small offer schema version sufficient?
+8. Which public Valentine choices can migrate in v1 without depending on issue
+   #693?
+9. What is the narrowest future contract for `PublicSuperset` that does not turn
+   proposal failures into another hidden-state oracle?
 
-## Decision
+## Final rationale
 
-Adopt `ActionOffer[]` as the generic client boundary and executable move-input
-domains as its authoring foundation. Do not introduce a universal persisted
-`Interaction`, derive a workflow cursor from progression, or encode ordinary
-prompts as sub-phases.
+The framework does not need another workflow engine, legality language, or
+client action controller. It needs a typed discovery layer over the systems it
+already has.
 
-Use:
+The resulting formulation is deliberately narrow:
 
-- local drafts for uncommitted composition of one move;
-- ordinary committed moves plus offers for sequences of player decisions;
-- explicit game state and phases for genuine rule-level protocols;
-- per-viewer offers as the replaceable presentation projection across all
-  three.
+> An action offer is a viewer-specific projection that decorates an existing
+> typed move action with a safely presentable candidate universe and localized
+> UI intent. Existing progression determines order, existing `move.Legal()`
+> determines legality, existing disclosure determines what may be revealed,
+> and existing client actions perform preview and submission.
 
-This is the smallest design that improves authoring and UI together without
-duplicating the engine's existing sources of truth.
+That is enough to make Valentine-style committed choice sequences generic and
+coherent without duplicating rules or elevating presentation into game state.
