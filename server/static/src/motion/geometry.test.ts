@@ -4,6 +4,7 @@ import {
   captureOffsetGeometry,
   captureViewportGeometry,
   centeredInversionDelta,
+  composeFlipTransform,
   geometryCenter,
   solveFlipGeometry,
 } from './geometry.ts';
@@ -62,13 +63,17 @@ describe('motion geometry', () => {
   it('solves translation, scaling, rotation-aware scaling, and visible change', () => {
     const before = { space: 'offset' as const, top: 10, left: 20, width: 40, height: 80 };
     const after = { space: 'offset' as const, top: 30, left: 50, width: 20, height: 40 };
-    assert.deepEqual(solveFlipGeometry(before, after, { beforeTransform: 'rotate(3deg)' }), {
+    const solution = solveFlipGeometry(before, after);
+    assert.deepEqual(solution, {
       translateX: -20,
       translateY: 0,
       scale: 2,
       changed: true,
-      invertedTransform: 'translateY(0px) translateX(-20px) rotate(3deg) scale(2)',
     });
+    assert.equal(
+      composeFlipTransform(solution, 'rotate(3deg)'),
+      'translateY(0px) translateX(-20px) rotate(3deg) scale(2)',
+    );
     assert.equal(solveFlipGeometry(before, after, { rotates: true }).scale, 4);
     assert.equal(solveFlipGeometry(after, after).changed, false);
   });
@@ -79,8 +84,9 @@ describe('motion geometry', () => {
     const solution = solveFlipGeometry(before, after);
     assert.equal(solution.scale, 1);
     assert.equal(solution.changed, false);
-    assert.equal(solution.invertedTransform.includes('NaN'), false);
-    assert.equal(solution.invertedTransform.includes('Infinity'), false);
+    const transform = composeFlipTransform(solution);
+    assert.equal(transform.includes('NaN'), false);
+    assert.equal(transform.includes('Infinity'), false);
   });
 
   it('never emits non-finite translations from malformed snapshots', () => {
@@ -101,7 +107,8 @@ describe('motion geometry', () => {
     const solution = solveFlipGeometry(before, after);
     assert.equal(solution.translateX, 0);
     assert.equal(solution.translateY, 0);
-    assert.equal(solution.invertedTransform.includes('NaN'), false);
-    assert.equal(solution.invertedTransform.includes('Infinity'), false);
+    const transform = composeFlipTransform(solution);
+    assert.equal(transform.includes('NaN'), false);
+    assert.equal(transform.includes('Infinity'), false);
   });
 });

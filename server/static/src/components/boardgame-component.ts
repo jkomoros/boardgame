@@ -171,13 +171,15 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   // (card flip, die spin) are handled by subclasses via
   // playPropertyAnimation, so the databinding dance (setting before-props
   // then after-props) is gone entirely.
-  playAnimation(rec: FlipRecord): void {
+  playAnimation(rec: FlipRecord): readonly Animation[] {
     const delayMs = rec.delayMs ?? 0;
+    const animations: Animation[] = [];
     if (rec.needsHostTransition) {
-      this.play(this, [
+      const animation = this.play(this, [
         { transform: rec.invertedTransform },
         { transform: rec.finalTransform || 'none' },
       ], { delay: delayMs });
+      if (animation) animations.push(animation);
       // The element's resting inline transform must be the final one; the
       // animation is an overlay (fill: 'none').
       this.style.transform = rec.finalTransform;
@@ -185,18 +187,29 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     const beforeO = parseFloat(rec.beforeOpacity || '1');
     const afterO = parseFloat(rec.finalOpacity || '1');
     if (Math.abs(beforeO - afterO) > 0.01) {
-      this.play(this, [{ opacity: String(beforeO) }, { opacity: String(afterO) }], { delay: delayMs });
+      const animation = this.play(
+        this,
+        [{ opacity: String(beforeO) }, { opacity: String(afterO) }],
+        { delay: delayMs },
+      );
+      if (animation) animations.push(animation);
     }
     this.style.opacity = rec.finalOpacity;
-    this.playPropertyAnimation(rec.before, rec.after, delayMs);
+    animations.push(...this.playPropertyAnimation(rec.before, rec.after, delayMs));
+    return animations;
   }
 
   // playPropertyAnimation animates the visual consequences of
   // animatingProperties changing (e.g. a card's faceUp flip). Base: no-op.
   // delayMs (from a stack's stagger attribute, #728) should be threaded
   // into any play() call subclasses make here.
-  playPropertyAnimation(before: Record<string, any>, after: Record<string, any>, delayMs: number = 0): void {
+  playPropertyAnimation(
+    before: Record<string, any>,
+    after: Record<string, any>,
+    delayMs: number = 0,
+  ): readonly Animation[] {
     // Subclasses override.
+    return [];
   }
 
   // prepareForBeingAnimatingComponent is called if the component is going

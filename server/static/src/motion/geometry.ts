@@ -25,7 +25,6 @@ export interface FlipGeometry {
   readonly translateY: number;
   readonly scale: number;
   readonly changed: boolean;
-  readonly invertedTransform: string;
 }
 
 /** Capture an element in viewport coordinates for overlays and cross-root travel. */
@@ -105,7 +104,6 @@ export function solveFlipGeometry(
   after: OffsetGeometry,
   options: Readonly<{
     rotates?: boolean;
-    beforeTransform?: string;
   }> = {},
 ): FlipGeometry {
   const scale = finiteScale(options.rotates ? before.height : before.width, after.width);
@@ -118,13 +116,19 @@ export function solveFlipGeometry(
   const changed = Math.abs(translateY) > 0.5
     || Math.abs(translateX) > 0.5
     || Math.abs(scale - 1) > 0.01;
-  const translate = `translateY(${translateY}px) translateX(${translateX}px)`;
-  const scaleTransform = `scale(${scale})`;
   return Object.freeze({
     translateX,
     translateY,
     scale,
     changed,
-    invertedTransform: `${translate} ${options.beforeTransform ?? ''} ${scaleTransform}`,
   });
+}
+
+/** Compose numeric FLIP inversion with component-owned authored transform. */
+export function composeFlipTransform(
+  geometry: FlipGeometry,
+  authoredTransform = '',
+): string {
+  const translate = `translateY(${geometry.translateY}px) translateX(${geometry.translateX}px)`;
+  return `${translate} ${authoredTransform} scale(${geometry.scale})`;
 }

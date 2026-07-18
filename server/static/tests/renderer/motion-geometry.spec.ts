@@ -5,11 +5,22 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
-    const keyframes = await page.evaluate(async () => {
+    const result = await page.evaluate(async () => {
       await import('/src/components/boardgame-component-animator.ts');
 
       const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
         updateComplete: Promise<unknown>;
+        _lastExplicitMotionPlan: null | {
+          source: string;
+          phase: string;
+          segments: Array<{
+            execution: { status: string };
+            spatial?: {
+              viewportFrom: { space: string; left: number; top: number };
+              viewportTo: { space: string; left: number; top: number };
+            };
+          }>;
+        };
         animateBetween(
           real: HTMLElement,
           stub: HTMLElement,
@@ -37,12 +48,38 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
       const result = animation.effect.getKeyframes().map(frame => frame.transform);
       animation.finish();
       await finished;
-      return result;
+      await Promise.resolve();
+      const plan = animator._lastExplicitMotionPlan;
+      await animator.animateBetween(real, 'missing-explicit-source', 500, { timing: 'immediate' });
+      return {
+        keyframes: result,
+        plan,
+        unresolved: animator._lastExplicitMotionPlan,
+      };
     });
 
     // real center = (210, 105), stub center = (40, 45).
-    expect(keyframes[0]).toBe('translate(-170px, -60px)');
-    expect(keyframes[1]).toBe('none');
+    expect(result.keyframes[0]).toBe('translate(-170px, -60px)');
+    expect(result.keyframes[1]).toBe('none');
+    expect(result.plan).toMatchObject({
+      source: 'explicit',
+      phase: 'settled',
+      segments: [{
+        execution: { status: 'finished' },
+        spatial: {
+          viewportFrom: { space: 'viewport', left: 20, top: 30 },
+          viewportTo: { space: 'viewport', left: 200, top: 100 },
+        },
+      }],
+    });
+    expect(result.unresolved).toMatchObject({
+      source: 'explicit',
+      phase: 'settled',
+      segments: [{
+        provenance: { kind: 'unresolved', endpoint: 'source' },
+        execution: { status: 'skipped', reason: 'missing-endpoint' },
+      }],
+    });
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();
@@ -165,6 +202,11 @@ test('structural plans publish before playback and invalidate on interruption', 
         updateComplete: Promise<unknown>;
         prepare(): void;
         animateFlip(): Promise<void>;
+        observeStructuralMotion(observer: (plan: {
+          generation: number;
+          phase: string;
+          segments: Array<{ execution: { status: string } }>;
+        }) => void): () => void;
         _solvedMotionPlan: null | {
           generation: number;
           phase: string;
@@ -173,7 +215,15 @@ test('structural plans publish before playback and invalidate on interruption', 
             presence: string;
             provenance: { kind: string };
             transform?: { before: string; after: string };
+            spatial?: {
+              viewportFrom: { space: string; left: number; top: number };
+              viewportTo: { space: string; left: number; top: number };
+            };
             timingRequest: { policy: string; delayMs: number; durationMs: number };
+            execution: {
+              status: string;
+              animations?: Array<{ durationMs: number; fill: string }>;
+            };
           }>;
         };
       };
@@ -205,6 +255,14 @@ test('structural plans publish before playback and invalidate on interruption', 
       const card = stack.querySelector<HTMLElement>('#card-plan');
       if (!card) throw new Error('fixture card was not materialized');
       await (card as HTMLElement & { updateComplete: Promise<unknown> }).updateComplete;
+      const observed: Array<{ generation: number; phase: string; status?: string }> = [];
+      const unobserve = animator.observeStructuralMotion(plan => {
+        observed.push({
+          generation: plan.generation,
+          phase: plan.phase,
+          status: plan.segments[0]?.execution.status,
+        });
+      });
 
       const waitForPlan = async () => {
         for (let frame = 0; frame < 20; frame += 1) {
@@ -229,6 +287,7 @@ test('structural plans publish before playback and invalidate on interruption', 
       await animator.animateFlip();
       const second = animator._solvedMotionPlan;
       if (!second) throw new Error('second structural motion plan was not published');
+      unobserve();
 
       return {
         nullDuringMeasurement,
@@ -242,8 +301,10 @@ test('structural plans publish before playback and invalidate on interruption', 
         },
         second: {
           generation: second.generation,
+          phase: second.phase,
           segment: second.segments[0],
         },
+        observed,
       };
     });
 
@@ -251,19 +312,33 @@ test('structural plans publish before playback and invalidate on interruption', 
     expect(result.playingAfterPublish).toBe(true);
     expect(result.invalidatedImmediately).toBe(true);
     expect(result.first.frozen).toBe(true);
-    expect(result.first.phase).toBe('ready-to-play');
+    expect(result.first.phase).toBe('executing');
     expect(result.first.segment).toMatchObject({
       subjectId: 'card-plan',
       presence: 'retained',
       provenance: { kind: 'identity' },
       transform: { before: '', after: 'translateX(40px)' },
       timingRequest: { policy: 'version', delayMs: 0, durationMs: 80 },
+      execution: {
+        status: 'started',
+        animations: [expect.objectContaining({ durationMs: 80 })],
+      },
     });
     expect(result.second.generation).toBe(result.first.generation + 1);
+    expect(result.second.phase).toBe('settled');
+    expect(result.second.segment.execution.status).toBe('finished');
     expect(result.second.segment.transform).toEqual({
       before: 'translateX(40px)',
       after: 'translateX(80px)',
     });
+    expect(result.observed).toEqual([
+      { generation: 1, phase: 'planned', status: 'planned' },
+      { generation: 1, phase: 'executing', status: 'started' },
+      { generation: 1, phase: 'settled', status: 'cancelled' },
+      { generation: 2, phase: 'planned', status: 'planned' },
+      { generation: 2, phase: 'executing', status: 'started' },
+      { generation: 2, phase: 'settled', status: 'finished' },
+    ]);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();
@@ -289,6 +364,11 @@ test('structural plans preserve uncertainty for inferred appearance and departur
             stackId?: string;
             evidence?: string;
           };
+          spatial?: {
+            viewportFrom: { space: string };
+            viewportTo: { space: string };
+          };
+          execution: { status: string };
         }>;
       };
       const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
@@ -355,7 +435,7 @@ test('structural plans preserve uncertainty for inferred appearance and departur
       // only an inferred destination for the faux departing component.
       animator.prepare();
       source.stack = stackData([], [], { 'inferred-card': 4 });
-      destination.stack = stackData([], [], { 'inferred-card': 3 });
+      destination.stack = stackData([], [], { 'inferred-card': 4 });
       await Promise.all([source.updateComplete, destination.updateComplete]);
       await animator.animateFlip();
       const departing = animator._solvedMotionPlan?.segments[0];
@@ -377,6 +457,11 @@ test('structural plans preserve uncertainty for inferred appearance and departur
         stackId: result.sourceId,
         evidence: 'runner-up',
       },
+      spatial: {
+        viewportFrom: { space: 'viewport' },
+        viewportTo: { space: 'viewport' },
+      },
+      execution: { status: 'finished' },
     });
     expect(result.departing).toMatchObject({
       subjectId: 'inferred-card',
@@ -385,8 +470,103 @@ test('structural plans preserve uncertainty for inferred appearance and departur
         kind: 'stack-history',
         endpoint: 'destination',
         stackId: result.sourceId,
-        evidence: 'latest-seen',
+        evidence: 'ambiguous',
       },
+      spatial: {
+        viewportFrom: { space: 'viewport' },
+        viewportTo: { space: 'viewport' },
+      },
+      execution: { status: 'finished' },
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('structural outcomes report compiled version timing and exhausted stagger skips', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { cardView } = await import('/src/client.ts');
+
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        animationContext: object;
+        prepare(): void;
+        animateFlip(): Promise<void>;
+        _solvedMotionPlan: {
+          phase: string;
+          segments: Array<{
+            subjectId: string;
+            timingRequest: { delayMs: number; durationMs: number };
+            execution: {
+              status: string;
+              reason?: string;
+              animations?: Array<{ delayMs: number; durationMs: number; fill: string }>;
+            };
+          }>;
+        } | null;
+      };
+      const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        stack: unknown;
+        componentView: unknown;
+        stagger: number;
+        updateComplete: Promise<unknown>;
+      };
+      stack.style.setProperty('--animation-length', '80ms');
+      stack.stagger = 1;
+      stack.componentView = cardView({});
+      const cards = ['timed-a', 'timed-b'].map((id, index) => ({
+        Index: index,
+        Values: { rank: String(index) },
+        Deck: 'cards',
+        GameName: 'motion-timing-test',
+        ID: id,
+      }));
+      stack.stack = {
+        Deck: 'cards', Indexes: [0, 1], IDs: ['timed-a', 'timed-b'],
+        IDsLastSeen: {}, ShuffleCount: 0, Size: 2,
+        GameName: 'motion-timing-test', Components: cards,
+      };
+      document.body.append(animator, stack);
+      await Promise.all([animator.updateComplete, stack.updateComplete]);
+      const elements = [...stack.querySelectorAll<HTMLElement>('boardgame-card')];
+      await Promise.all(elements.map(element => (
+        element as HTMLElement & { updateComplete: Promise<unknown> }
+      ).updateComplete));
+      animator.animationContext = {
+        version: 21,
+        startAtMs: Date.now() + 100,
+        slotDurationMs: 200,
+        maxAnimationDurationMs: 80,
+      };
+
+      animator.prepare();
+      elements.forEach((element, index) => {
+        element.style.transform = `translateX(${20 + index * 10}px)`;
+      });
+      await animator.animateFlip();
+      return animator._solvedMotionPlan;
+    });
+
+    expect(result?.phase).toBe('settled');
+    const first = result?.segments.find(segment => segment.subjectId === 'timed-a');
+    const second = result?.segments.find(segment => segment.subjectId === 'timed-b');
+    expect(first).toMatchObject({
+      timingRequest: { delayMs: 0, durationMs: 80 },
+      execution: {
+        status: 'finished',
+        animations: [expect.objectContaining({ durationMs: 80, fill: 'backwards' })],
+      },
+    });
+    expect(first?.execution.animations?.[0].delayMs).toBeGreaterThan(0);
+    expect(second).toMatchObject({
+      timingRequest: { delayMs: 80, durationMs: 80 },
+      execution: { status: 'skipped', reason: 'not-started' },
     });
     diagnostics.assertEmpty();
   } finally {

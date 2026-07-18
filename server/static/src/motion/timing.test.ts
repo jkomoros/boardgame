@@ -62,6 +62,20 @@ describe('motion timing', () => {
     });
   });
 
+  it('preserves forward fill and clips repeated active duration to the slot', () => {
+    const result = resolveMotionTiming(
+      { delay: 100, duration: 400, iterations: 3, fill: 'forwards' },
+      { context, nowMs: 1_000 },
+    );
+    assert.equal(result.kind, 'play');
+    if (result.kind !== 'play') return;
+    assert.equal(result.timing.delay, 300);
+    assert.equal(result.timing.duration, 700 / 3);
+    assert.equal(result.timing.iterations, 3);
+    assert.equal(result.timing.fill, 'both');
+    assert.equal(result.expectedSettleMs, 1_000);
+  });
+
   it('joins a late version only for its remaining visible budget', () => {
     const result = resolveMotionTiming(
       { duration: 900 },
@@ -123,5 +137,19 @@ describe('motion timing', () => {
       { ...context, startAtMs: Number.NaN },
       1_000,
     ), null);
+  });
+
+  it('reports the nonnegative WAAPI end time for repeats and negative delays', () => {
+    const repeated = resolveMotionTiming(
+      { delay: -50, duration: 100, iterations: 3, endDelay: -25 },
+      { policy: 'immediate' },
+    );
+    assert.equal(repeated.kind === 'play' && repeated.expectedSettleMs, 225);
+
+    const alreadyElapsed = resolveMotionTiming(
+      { delay: -500, duration: 100, endDelay: -20 },
+      { policy: 'immediate' },
+    );
+    assert.equal(alreadyElapsed.kind === 'play' && alreadyElapsed.expectedSettleMs, 0);
   });
 });

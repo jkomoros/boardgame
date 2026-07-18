@@ -26,6 +26,17 @@ export function finiteTimingMs(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
+function effectiveIterations(value: unknown): number {
+  if (value === undefined) return 1;
+  return Math.max(0, finiteTimingMs(value));
+}
+
+function fillWhileWaiting(fill: FillMode | undefined): FillMode {
+  if (fill === 'both' || fill === 'backwards') return fill;
+  if (fill === 'forwards') return 'both';
+  return 'backwards';
+}
+
 export function usableAnimationContext(
   context: VersionAnimationContext,
   localNow = Date.now(),
@@ -90,24 +101,33 @@ export function resolveMotionTiming(
       }
       const untilStart = Math.max(0, context.startAtMs - now);
       const requestedDuration = Math.max(0, finiteTimingMs(timing.duration));
+      const iterations = effectiveIterations(timing.iterations);
       const requestedEndDelay = Math.max(0, finiteTimingMs(timing.endDelay));
       const afterStagger = context.maxAnimationDurationMs - localDelay;
       const boundedEndDelay = Math.min(requestedEndDelay, afterStagger);
-      const availableDuration = Math.max(0, afterStagger - boundedEndDelay);
+      const availableActiveDuration = Math.max(0, afterStagger - boundedEndDelay);
+      const requestedActiveDuration = requestedDuration * iterations;
+      const boundedActiveDuration = Math.min(requestedActiveDuration, availableActiveDuration);
       timing.delay = untilStart + localDelay;
-      timing.duration = Math.min(requestedDuration, availableDuration);
+      timing.duration = iterations > 0 ? boundedActiveDuration / iterations : 0;
       timing.endDelay = boundedEndDelay;
-      if (finiteTimingMs(timing.delay) > 0) timing.fill = 'backwards';
+      if (finiteTimingMs(timing.delay) > 0) timing.fill = fillWhileWaiting(timing.fill);
     }
   } else if (policy !== 'immediate') {
     const localDelay = Math.max(0, finiteTimingMs(timing.delay));
     timing.delay = Math.max(0, finiteTimingMs(policy.localStartAtMs) - now) + localDelay;
-    if (finiteTimingMs(timing.delay) > 0) timing.fill = 'backwards';
+    if (finiteTimingMs(timing.delay) > 0) timing.fill = fillWhileWaiting(timing.fill);
   }
 
-  const expectedSettleMs = finiteTimingMs(timing.delay)
-    + finiteTimingMs(timing.duration)
-    + finiteTimingMs(timing.endDelay);
+  const activeDuration = Math.max(0, finiteTimingMs(timing.duration))
+    * effectiveIterations(timing.iterations);
+  // WAAPI permits negative delays and end-delays. The watchdog needs the
+  // remaining nonnegative wall-clock occupancy, not a sum that can be shorter
+  // than the effect's repeated active duration or negative altogether.
+  const expectedSettleMs = Math.max(
+    0,
+    finiteTimingMs(timing.delay) + activeDuration + finiteTimingMs(timing.endDelay),
+  );
   return Object.freeze({
     kind: 'play',
     timing,

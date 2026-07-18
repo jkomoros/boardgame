@@ -111,13 +111,27 @@ an effect overlay will eventually require an explicit viewport projection.
   solved plan.
 - Measurement builds private mutable drafts. Drafts are not observable.
 - After the second microtask, layout measurement, component `updateComplete`,
-  and a final generation check, the animator creates one immutable plan.
-- The plan is published immediately before any `playAnimation()` call for that
-  generation, so every segment has its actual stagger and requested duration.
+  and a final generation check, the animator creates an immutable `planned`
+  intention with each segment's stagger and requested duration.
+- The intention is installed immediately before any `playAnimation()` call.
+  Playback returns the real WAAPI animations, replacing it with an immutable
+  `executing` plan containing compiled timing or an explicit skipped outcome.
+- Animation settlement replaces the segment outcome with `finished` or
+  `cancelled`; when every segment is terminal the plan becomes `settled`.
 - A new `prepare()` invalidates the plan even if the previous generation was
   interrupted. Stale async work may neither publish nor play.
 - The plan remains diagnostic/internal after settlement until the next
   generation. It does not imply that an effect may consume it yet.
+
+Spatial records carry both root-relative offsets for legacy FLIP playback and
+historical viewport endpoints captured during the same measurement transaction.
+No later projection attempts to reconstruct an endpoint after layout changed.
+
+The animator exposes an internal subscription boundary for these immutable
+plan revisions. Observation is read-only and non-gating: observers cannot
+replace playback, and an observer failure is isolated from structural motion.
+An interrupted generation emits a terminal cancelled revision before the next
+generation invalidates the animator's current-plan slot.
 
 Provenance is explicit. Retained subjects have exact identity continuity;
 appearing and departing endpoints inferred from `IDsLastSeen` carry their stack

@@ -15,15 +15,20 @@ import {
   captureOffsetGeometry,
   captureViewportGeometry,
   centeredInversionDelta,
+  composeFlipTransform,
   solveFlipGeometry,
 } from '../motion/geometry.js';
-import type { OffsetGeometry } from '../motion/geometry.js';
+import type { OffsetGeometry, ViewportGeometry } from '../motion/geometry.js';
 import {
   createStructuralMotionDraft,
   publishStructuralMotionPlan,
+  updateStructuralMotionExecutions,
 } from '../motion/structural-plan.js';
 import type {
+  StructuralExecutedTiming,
+  StructuralExecution,
   StructuralMotionDraft,
+  StructuralMotionObserver,
   StructuralMotionPlan,
   StructuralProvenance,
 } from '../motion/structural-plan.js';
@@ -42,11 +47,15 @@ export interface ComponentAnimatorAPI {
     durationMs?: number,
     opts?: AnimateBetweenOptions,
   ): Promise<void>;
+  /** Internal observation surface; does not confer animation ownership. */
+  observeStructuralMotion(observer: StructuralMotionObserver): () => void;
 }
 
 interface ComponentRecord {
   offsets?: OffsetGeometry;
   newOffsets?: OffsetGeometry;
+  viewportOffsets?: ViewportGeometry;
+  newViewportOffsets?: ViewportGeometry;
   before?: Record<string, any>;
   after?: Record<string, any>;
   beforeTransform?: string;
@@ -63,8 +72,10 @@ interface ComponentRecord {
 interface CollectionRecord {
   stack: any;
   version: number;
+  winnerAmbiguous?: boolean;
   runnerUpStack?: any;
   runnerUpVersion?: number;
+  runnerUpAmbiguous?: boolean;
 }
 
 interface AnimatingComponentRecord {
@@ -96,12 +107,57 @@ export class BoardgameComponentAnimator extends LitElement {
   private _beforeSeenIds = new Set<string>();
   private _animatingComponents: AnimatingComponentRecord[] = [];
   private _beforeCollectionOffsets = new Map<string, OffsetGeometry>();
+  private _beforeCollectionViewportOffsets = new Map<string, ViewportGeometry>();
   private _generation = 0;
+  private _explicitMotionSequence = 0;
   // Published only after the generation's final updateComplete check and
   // immediately before playback. A new prepare() invalidates it synchronously.
   private _solvedMotionPlan: StructuralMotionPlan | null = null;
+  private _explicitMotionPlans = new Map<number, StructuralMotionPlan>();
+  private _lastExplicitMotionPlan: StructuralMotionPlan | null = null;
+  private _motionObservers = new Set<StructuralMotionObserver>();
 
   ancestorOffsetParent: HTMLElement | null = null;
+
+  observeStructuralMotion(observer: StructuralMotionObserver): () => void {
+    this._motionObservers.add(observer);
+    return () => this._motionObservers.delete(observer);
+  }
+
+  private _notifyStructuralMotion(plan: StructuralMotionPlan): void {
+    for (const observer of this._motionObservers) {
+      try {
+        observer(plan);
+      } catch (error) {
+        console.error('[animator] structural motion observer failed:', error);
+      }
+    }
+  }
+
+  private _setSolvedMotionPlan(plan: StructuralMotionPlan): void {
+    this._solvedMotionPlan = plan;
+    this._notifyStructuralMotion(plan);
+  }
+
+  private _invalidateSolvedMotionPlan(): void {
+    const plan = this._solvedMotionPlan;
+    if (!plan || plan.phase === 'settled') return;
+    const updates = new Map<string, StructuralExecution>();
+    for (const segment of plan.segments) {
+      if (segment.execution.status === 'started') {
+        updates.set(segment.subjectId, {
+          status: 'cancelled',
+          animations: segment.execution.animations,
+        });
+      } else if (segment.execution.status === 'planned') {
+        updates.set(segment.subjectId, {
+          status: 'skipped',
+          reason: 'not-started',
+        });
+      }
+    }
+    this._notifyStructuralMotion(updateStructuralMotionExecutions(plan, updates));
+  }
 
   override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
     super.firstUpdated(_changedProperties);
@@ -116,11 +172,13 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   prepare() {
+    this._invalidateSolvedMotionPlan();
     this._generation++;
     this._solvedMotionPlan = null;
     const collections = this.stackElement._sharedStackList;
 
     this._beforeCollectionOffsets = new Map();
+    this._beforeCollectionViewportOffsets = new Map();
 
     const result: { [id: string]: ComponentRecord } = {};
 
@@ -147,6 +205,10 @@ export class BoardgameComponentAnimator extends LitElement {
         collection.id,
         captureOffsetGeometry(offsetComponent, this.ancestorOffsetParent),
       );
+      this._beforeCollectionViewportOffsets.set(
+        collection.id,
+        captureViewportGeometry(offsetComponent),
+      );
 
       const components = collection.Components;
       for (let j = 0; j < components.length; j++) {
@@ -160,6 +222,7 @@ export class BoardgameComponentAnimator extends LitElement {
         this._beforeSeenIds.add(component.id);
 
         record.offsets = captureOffsetGeometry(component, this.ancestorOffsetParent);
+        record.viewportOffsets = captureViewportGeometry(component);
 
         // We use getComputedStyle instead of just card.style.transform,
         // because if the card is in the middle of transforming, we want
@@ -251,6 +314,75 @@ export class BoardgameComponentAnimator extends LitElement {
     requestAnimationFrame(observe);
   }
 
+  private _executedTiming(animation: Animation): StructuralExecutedTiming {
+    const timing = animation.effect instanceof KeyframeEffect
+      ? animation.effect.getTiming()
+      : {};
+    const iterations = timing.iterations === undefined
+      ? 1
+      : Math.max(0, finiteTimingMs(timing.iterations));
+    return Object.freeze({
+      delayMs: finiteTimingMs(timing.delay),
+      durationMs: finiteTimingMs(timing.duration),
+      endDelayMs: finiteTimingMs(timing.endDelay),
+      iterations,
+      easing: timing.easing ?? 'linear',
+      fill: timing.fill ?? 'none',
+    });
+  }
+
+  private _installExplicitMotion(plan: StructuralMotionPlan): void {
+    this._explicitMotionPlans.set(plan.generation, plan);
+    this._lastExplicitMotionPlan = plan;
+    this._notifyStructuralMotion(plan);
+    while (this._explicitMotionPlans.size > 32) {
+      const oldest = this._explicitMotionPlans.keys().next().value as number | undefined;
+      if (oldest === undefined) break;
+      this._explicitMotionPlans.delete(oldest);
+    }
+  }
+
+  private _updateExplicitMotion(
+    generation: number,
+    subjectId: string,
+    execution: StructuralExecution,
+  ): void {
+    const current = this._explicitMotionPlans.get(generation);
+    if (!current) return;
+    const updated = updateStructuralMotionExecutions(
+      current,
+      new Map([[subjectId, execution]]),
+    );
+    this._explicitMotionPlans.set(generation, updated);
+    if (this._lastExplicitMotionPlan?.generation === generation) {
+      this._lastExplicitMotionPlan = updated;
+    }
+    this._notifyStructuralMotion(updated);
+  }
+
+  private _trackExplicitAnimation(
+    generation: number,
+    subjectId: string,
+    animation: Animation | null,
+  ): void {
+    if (!animation) {
+      this._updateExplicitMotion(generation, subjectId, {
+        status: 'skipped',
+        reason: 'not-started',
+      });
+      return;
+    }
+    const animations = Object.freeze([this._executedTiming(animation)]);
+    this._updateExplicitMotion(generation, subjectId, {
+      status: 'started',
+      animations,
+    });
+    void animation.finished.then(
+      () => this._updateExplicitMotion(generation, subjectId, { status: 'finished', animations }),
+      () => this._updateExplicitMotion(generation, subjectId, { status: 'cancelled', animations }),
+    );
+  }
+
   /**
    * animateBetween runs a one-off FLIP animation moving the element with id
    * `realId` from the on-screen position of `stubId` (or vice versa). Used
@@ -292,9 +424,30 @@ export class BoardgameComponentAnimator extends LitElement {
     durationMs: number = 500,
     opts?: AnimateBetweenOptions,
   ): Promise<void> {
+    const explicitGeneration = ++this._explicitMotionSequence;
+    const subjectId = typeof realId === 'string'
+      ? realId
+      : realId.id || `explicit-motion-${explicitGeneration}`;
+    const timing = opts?.timing ?? 'version';
     const real = this._resolveAnimationTarget(realId);
     const stub = this._resolveAnimationTarget(stubId);
     if (!real || !stub) {
+      const draft = createStructuralMotionDraft({
+        subjectId,
+        presence: 'retained',
+        provenance: {
+          kind: 'unresolved',
+          endpoint: !stub ? 'source' : 'destination',
+        },
+      });
+      this._installExplicitMotion(publishStructuralMotionPlan(explicitGeneration, [{
+        draft,
+        timingRequest: { policy: timing, delayMs: 0, durationMs },
+      }], 'explicit'));
+      this._updateExplicitMotion(explicitGeneration, subjectId, {
+        status: 'skipped',
+        reason: 'missing-endpoint',
+      });
       // Loud on purpose: an unresolvable endpoint silently killed the
       // entire cross-screen animation feature once already (the id
       // property wasn't reflected to the DOM, so no card ever matched).
@@ -310,10 +463,30 @@ export class BoardgameComponentAnimator extends LitElement {
     const realRect = captureViewportGeometry(real);
     const stubRect = captureViewportGeometry(stub);
     const { x: dx, y: dy } = centeredInversionDelta(realRect, stubRect);
+    const draft = createStructuralMotionDraft({
+      subjectId,
+      presence: 'retained',
+      provenance: { kind: 'identity' },
+      viewportFrom: stubRect,
+      viewportTo: realRect,
+      inversion: Object.freeze({
+        translateX: dx,
+        translateY: dy,
+        scale: 1,
+        changed: dx !== 0 || dy !== 0,
+      }),
+    });
+    this._installExplicitMotion(publishStructuralMotionPlan(explicitGeneration, [{
+      draft,
+      timingRequest: { policy: timing, delayMs: 0, durationMs },
+    }], 'explicit'));
     if (dx === 0 && dy === 0) {
+      this._updateExplicitMotion(explicitGeneration, subjectId, {
+        status: 'skipped',
+        reason: 'no-spatial-change',
+      });
       return;
     }
-    const timing = opts?.timing ?? 'version';
     const resolution = resolveMotionTiming(
       { duration: durationMs, easing: 'ease-out', fill: 'none' },
       {
@@ -321,7 +494,13 @@ export class BoardgameComponentAnimator extends LitElement {
         context: timing === 'version' ? this.animationContext : null,
       },
     );
-    if (resolution.kind === 'skip') return;
+    if (resolution.kind === 'skip') {
+      this._updateExplicitMotion(explicitGeneration, subjectId, {
+        status: 'skipped',
+        reason: 'timing',
+      });
+      return;
+    }
     if (resolution.activeContext
       && finiteTimingMs(resolution.timing.duration) < durationMs) {
       console.warn(
@@ -355,6 +534,7 @@ export class BoardgameComponentAnimator extends LitElement {
       const anim = (real as any).play(real, keyframes,
         resolution.timing,
         { timing: 'immediate' }, { recordActive: false });
+      this._trackExplicitAnimation(explicitGeneration, subjectId, anim);
       // play() returns null under noAnimate; nothing is in flight then.
       if (anim) {
         this._recordAnimationActive(
@@ -375,6 +555,7 @@ export class BoardgameComponentAnimator extends LitElement {
     }
 
     const anim = real.animate(keyframes, resolution.timing);
+    this._trackExplicitAnimation(explicitGeneration, subjectId, anim);
     this._recordAnimationActive(
       anim,
       delay,
@@ -432,6 +613,7 @@ export class BoardgameComponentAnimator extends LitElement {
     const idToPossibleCollection = new Map<string, CollectionRecord>();
 
     const collectionOffsets = new Map<string, OffsetGeometry>();
+    const collectionViewportOffsets = new Map<string, ViewportGeometry>();
 
     // CRITICAL: noAnimate barrier during measurement phase
     // Turning off animations and setting card flip all require recalcing
@@ -459,6 +641,10 @@ export class BoardgameComponentAnimator extends LitElement {
         collection.id,
         captureOffsetGeometry(offsetComponent, this.ancestorOffsetParent),
       );
+      collectionViewportOffsets.set(
+        collection.id,
+        captureViewportGeometry(offsetComponent),
+      );
 
       // Note which Ids were last seen here
       this._ingestStack(idToPossibleCollection, collection);
@@ -473,6 +659,7 @@ export class BoardgameComponentAnimator extends LitElement {
           this._infoById[component.id] = record;
         }
         record.newOffsets = captureOffsetGeometry(component, this.ancestorOffsetParent);
+        record.newViewportOffsets = captureViewportGeometry(component);
       }
     }
 
@@ -517,10 +704,13 @@ export class BoardgameComponentAnimator extends LitElement {
             kind: 'stack-history',
             endpoint: 'source',
             stackId: theStack.id,
-            evidence: collectionRecord.runnerUpStack ? 'runner-up' : 'only-candidate',
+            evidence: collectionRecord.runnerUpStack
+              ? collectionRecord.runnerUpAmbiguous ? 'ambiguous' : 'runner-up'
+              : collectionRecord.winnerAmbiguous ? 'ambiguous' : 'only-candidate',
           };
 
           record.offsets = this._beforeCollectionOffsets.get(theStack.id);
+          record.viewportOffsets = this._beforeCollectionViewportOffsets.get(theStack.id);
 
           record.before = component.animatingPropDefaults(theStack);
 
@@ -544,7 +734,6 @@ export class BoardgameComponentAnimator extends LitElement {
         // CRITICAL: Transform composition order - invert + external + scale.
         const geometry = solveFlipGeometry(record.offsets!, record.newOffsets!, {
           rotates: component.animationRotates(record.before, record.after),
-          beforeTransform: record.beforeTransform,
         });
 
         // Determine whether the host element's CSS transform will actually
@@ -589,13 +778,15 @@ export class BoardgameComponentAnimator extends LitElement {
         // transform and before-opacity are stashed on the record; the WAAPI
         // PLAY phase in _startAnimations turns them into keyframes.
         if (record.needsAnimation) {
-          record.invertedTransform = geometry.invertedTransform;
+          record.invertedTransform = composeFlipTransform(geometry, record.beforeTransform);
           record.motionDraft = createStructuralMotionDraft({
             subjectId: component.id,
             presence: hadExactBefore ? 'retained' : presence,
             provenance,
             from: record.offsets!,
             to: record.newOffsets!,
+            viewportFrom: record.viewportOffsets!,
+            viewportTo: record.newViewportOffsets!,
             inversion: geometry,
             beforeTransform: hadExactBefore
               ? record.beforeInlineTransform
@@ -663,13 +854,14 @@ export class BoardgameComponentAnimator extends LitElement {
       this._animatingComponents.push(animatingRecord);
 
       const stackLocation = collectionOffsets.get(anonRecord.stack.id);
+      const stackViewportLocation = collectionViewportOffsets.get(anonRecord.stack.id);
       const oldLocation = record.offsets;
+      const oldViewportLocation = record.viewportOffsets;
 
-      if (!stackLocation || !oldLocation) continue;
+      if (!stackLocation || !stackViewportLocation || !oldLocation || !oldViewportLocation) continue;
 
       const geometry = solveFlipGeometry(oldLocation, stackLocation, {
         rotates: component.animationRotates(record.before, record.after),
-        beforeTransform: record.beforeTransform,
       });
 
       // We used to only bother setting transforms for items that had
@@ -683,7 +875,7 @@ export class BoardgameComponentAnimator extends LitElement {
       // phase. We deliberately do NOT write component.style.transform/opacity
       // here: the resting inline transform stays put, and playAnimation()
       // supplies the inverted state as the animation's opening keyframe.
-      animatingRecord.invertedTransform = geometry.invertedTransform;
+      animatingRecord.invertedTransform = composeFlipTransform(geometry, record.beforeTransform);
       animatingRecord.motionDraft = createStructuralMotionDraft({
         subjectId: id,
         presence: 'departing',
@@ -691,10 +883,12 @@ export class BoardgameComponentAnimator extends LitElement {
           kind: 'stack-history',
           endpoint: 'destination',
           stackId: anonRecord.stack.id,
-          evidence: 'latest-seen',
+          evidence: anonRecord.winnerAmbiguous ? 'ambiguous' : 'latest-seen',
         },
         from: oldLocation,
         to: stackLocation,
+        viewportFrom: oldViewportLocation,
+        viewportTo: stackViewportLocation,
         inversion: geometry,
         beforeTransform: record.beforeInlineTransform ?? record.beforeTransform,
         afterTransform: animatingRecord.afterTransform,
@@ -823,7 +1017,7 @@ export class BoardgameComponentAnimator extends LitElement {
     // Only a still-current generation may publish, and publication happens
     // before the first component begins playback.
     if (this._generation !== generation) { resolve(Promise.resolve()); return; }
-    this._solvedMotionPlan = publishStructuralMotionPlan(
+    this._setSolvedMotionPlan(publishStructuralMotionPlan(
       generation,
       playback.flatMap(item => item.motionDraft ? [{
         draft: item.motionDraft,
@@ -833,12 +1027,61 @@ export class BoardgameComponentAnimator extends LitElement {
           durationMs: item.durationMs,
         },
       }] : []),
-    );
+    ));
 
     const settledPromises: Promise<void>[] = [];
+    const executionUpdates = new Map<string, StructuralExecution>();
+    const terminalUpdates: Array<{
+      subjectId: string;
+      settled: Promise<boolean[]>;
+    }> = [];
     for (const item of playback) {
-      item.component.playAnimation(item.config);
+      const animations = item.component.playAnimation(item.config) as readonly Animation[];
+      if (item.motionDraft) {
+        if (animations.length === 0) {
+          executionUpdates.set(item.motionDraft.subjectId, {
+            status: 'skipped',
+            reason: 'not-started',
+          });
+        } else {
+          executionUpdates.set(item.motionDraft.subjectId, {
+            status: 'started',
+            animations: Object.freeze(animations.map(animation => this._executedTiming(animation))),
+          });
+          terminalUpdates.push({
+            subjectId: item.motionDraft.subjectId,
+            settled: Promise.all(animations.map(animation => animation.finished.then(
+              () => false,
+              () => true,
+            ))),
+          });
+        }
+      }
       settledPromises.push(item.component.settled());
+    }
+    const plannedPlan = this._solvedMotionPlan;
+    if (!plannedPlan) { resolve(Promise.resolve()); return; }
+    this._setSolvedMotionPlan(updateStructuralMotionExecutions(
+      plannedPlan,
+      executionUpdates,
+    ));
+    for (const terminal of terminalUpdates) {
+      void terminal.settled.then(cancelled => {
+        if (this._generation !== generation || !this._solvedMotionPlan) return;
+        const current = this._solvedMotionPlan.segments.find(
+          segment => segment.subjectId === terminal.subjectId,
+        );
+        const animations = current?.execution.status === 'started'
+          ? current.execution.animations
+          : Object.freeze([]);
+        this._setSolvedMotionPlan(updateStructuralMotionExecutions(
+          this._solvedMotionPlan,
+          new Map([[terminal.subjectId, {
+            status: cancelled.some(Boolean) ? 'cancelled' as const : 'finished' as const,
+            animations,
+          }]]),
+        ));
+      });
     }
 
     // The promise animateFlip() hands out now means "everything SETTLED",
@@ -854,24 +1097,38 @@ export class BoardgameComponentAnimator extends LitElement {
 
       if (possibleLocations.has(key)) {
         const record = possibleLocations.get(key)!;
+        const seenVersion = idsLastSeen[key];
 
-        if (idsLastSeen[key] > record.version) {
+        if (seenVersion > record.version) {
           // new winner
           const newRecord: CollectionRecord = {
-            version: idsLastSeen[key],
+            version: seenVersion,
             stack: stack,
             runnerUpVersion: record.version,
-            runnerUpStack: record.stack
+            runnerUpStack: record.stack,
+            runnerUpAmbiguous: record.winnerAmbiguous,
           };
           possibleLocations.set(key, newRecord);
-        } else if (!record.runnerUpStack || idsLastSeen[key] > (record.runnerUpVersion || 0)) {
+        } else if (seenVersion === record.version) {
+          possibleLocations.set(key, {
+            ...record,
+            winnerAmbiguous: true,
+            runnerUpVersion: seenVersion,
+            runnerUpStack: stack,
+            runnerUpAmbiguous: true,
+          });
+        } else if (!record.runnerUpStack || seenVersion > (record.runnerUpVersion || 0)) {
           // Found a new second!
           possibleLocations.set(key, {
+            ...record,
             version: record.version,
             stack: record.stack,
-            runnerUpVersion: idsLastSeen[key],
-            runnerUpStack: stack
+            runnerUpVersion: seenVersion,
+            runnerUpStack: stack,
+            runnerUpAmbiguous: false,
           });
+        } else if (seenVersion === record.runnerUpVersion) {
+          possibleLocations.set(key, { ...record, runnerUpAmbiguous: true });
         }
       } else {
         // We're the first one that's been seen; add it.
