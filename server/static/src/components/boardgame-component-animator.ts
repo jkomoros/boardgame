@@ -32,6 +32,8 @@ import type {
   StructuralMotionPlan,
   StructuralProvenance,
 } from '../motion/structural-plan.js';
+import { compileStructuralMotionEvents } from '../motion/structural-events.js';
+import type { StructuralMotionEvent } from '../motion/structural-events.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -49,6 +51,8 @@ export interface ComponentAnimatorAPI {
   ): Promise<void>;
   /** Internal observation surface; does not confer animation ownership. */
   observeStructuralMotion(observer: StructuralMotionObserver): () => void;
+  /** Internal exact-transition surface; does not confer animation ownership. */
+  observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
 }
 
 interface ComponentRecord {
@@ -116,6 +120,8 @@ export class BoardgameComponentAnimator extends LitElement {
   private _explicitMotionPlans = new Map<number, StructuralMotionPlan>();
   private _lastExplicitMotionPlan: StructuralMotionPlan | null = null;
   private _motionObservers = new Set<StructuralMotionObserver>();
+  private _motionEventObservers = new Set<(event: StructuralMotionEvent) => void>();
+  private _motionEventRevisions = new Map<string, StructuralMotionPlan>();
 
   ancestorOffsetParent: HTMLElement | null = null;
 
@@ -124,12 +130,31 @@ export class BoardgameComponentAnimator extends LitElement {
     return () => this._motionObservers.delete(observer);
   }
 
+  observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void {
+    this._motionEventObservers.add(observer);
+    return () => this._motionEventObservers.delete(observer);
+  }
+
   private _notifyStructuralMotion(plan: StructuralMotionPlan): void {
     for (const observer of this._motionObservers) {
       try {
         observer(plan);
       } catch (error) {
         console.error('[animator] structural motion observer failed:', error);
+      }
+    }
+    const key = `${plan.source}:${plan.generation}`;
+    const previous = this._motionEventRevisions.get(key) ?? null;
+    const events = compileStructuralMotionEvents(previous, plan);
+    if (plan.phase === 'settled') this._motionEventRevisions.delete(key);
+    else this._motionEventRevisions.set(key, plan);
+    for (const event of events) {
+      for (const observer of this._motionEventObservers) {
+        try {
+          observer(event);
+        } catch (error) {
+          console.error('[animator] structural motion event observer failed:', error);
+        }
       }
     }
   }

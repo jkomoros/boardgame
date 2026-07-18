@@ -13,9 +13,10 @@ the same card moved, resized, rotated, appeared, disappeared, or changed face.
 Effects continue to explain meaning: the transition was rewarding, dangerous,
 magical, or worthy of attention.
 
-The first implementation tranche extracts behavior-preserving geometry
-primitives already duplicated by FLIP, `animateBetween()`, and effect anchors.
-It does not replace the card animator or introduce a universal motion graph.
+The implemented tranches extract behavior-preserving geometry and timing
+primitives already duplicated by FLIP, `animateBetween()`, and effect anchors,
+then publish structural playback as immutable intentions and outcomes. They do
+not replace the card animator or introduce a universal motion graph.
 
 ## Invariants
 
@@ -84,26 +85,44 @@ The effect layer retains descriptor compilation, themes, budgets, named anchor
 scope, deterministic particles, cancellation, and reduced-motion substitutes.
 It consumes shared viewport geometry but does not control structural motion.
 
-## Structural-motion manifest
+## Structural-motion plans
 
-After timing and coordinate-space primitives are proven, the next useful bridge
-is a private, read-only solved plan emitted by the component animator:
+The component animator emits a private, read-only solved plan. This is the
+implemented shape, abbreviated only by omitting field comments:
 
 ```ts
-interface StructuralMotion {
+interface StructuralMotionPlan {
+  readonly source: 'flip' | 'explicit';
+  readonly generation: number;
+  readonly phase: 'planned' | 'executing' | 'settled';
+  readonly segments: readonly StructuralMotionSegment[];
+}
+
+interface StructuralMotionSegment {
   readonly subjectId: string;
-  readonly kind: 'move' | 'appear' | 'depart' | 'morph';
-  readonly from: GeometryRect;
-  readonly to: GeometryRect;
-  readonly delayMs: number;
-  readonly durationMs: number;
+  readonly presence: 'retained' | 'appearing' | 'departing';
+  readonly provenance: StructuralProvenance;
+  readonly spatial?: {
+    readonly offsetFrom?: OffsetGeometry;
+    readonly offsetTo?: OffsetGeometry;
+    readonly viewportFrom: ViewportGeometry;
+    readonly viewportTo: ViewportGeometry;
+    readonly inversion: FlipGeometry;
+  };
+  readonly transform?: { readonly before: string; readonly after: string };
+  readonly properties: readonly StructuralPropertyChange[];
+  readonly opacity?: { readonly before: number; readonly after: number };
+  readonly timingRequest: StructuralTimingRequest;
+  readonly execution: StructuralExecution;
 }
 ```
 
-The first internal representation is deliberately more precise than that API
-sketch. Spatial, property, transform, and opacity changes are orthogonal rather
-than collapsed into one exclusive `kind`. Geometry is explicitly offset-space;
-an effect overlay will eventually require an explicit viewport projection.
+Spatial, property, transform, and opacity changes are orthogonal rather than
+collapsed into one exclusive `kind`. The spatial record carries both the
+legacy FLIP offset coordinates and viewport coordinates captured during the
+same measurement transaction. Property values that cannot be safely and
+immutably represented are marked `opaque`; plans never retain arbitrary game
+objects.
 
 ### Publication lifecycle
 
@@ -132,6 +151,13 @@ plan revisions. Observation is read-only and non-gating: observers cannot
 replace playback, and an observer failure is isolated from structural motion.
 An interrupted generation emits a terminal cancelled revision before the next
 generation invalidates the animator's current-plan slot.
+
+A pure event compiler compares two revisions and emits only newly observed
+segment statuses (`planned`, `started`, `skipped`, `finished`, or `cancelled`).
+Event identity includes source, generation, segment index, and status. It never
+fabricates an intermediate state if a consumer missed a revision. This is the
+smallest durable seam for diagnostics and future decoration adapters; it is not
+yet a game-author API.
 
 Provenance is explicit. Retained subjects have exact identity continuity;
 appearing and departing endpoints inferred from `IDsLastSeen` carry their stack
@@ -164,21 +190,34 @@ ownership:
 - renderer/effect overlay: emphasis, particles, trails, and arrival cues;
 - document overlay: screen treatments.
 
-## Staged implementation
+## Implementation ledger
 
-1. Extract and test geometry capture and pure solvers.
-2. Migrate structural FLIP, `animateBetween()`, and effect anchors to them.
-3. Extract the duplicated version/local timing calculation into a pure compiler.
-4. Route component playback, explicit flights, and effects through that compiler
-   while preserving their existing ownership and gating policies.
-5. Brand geometry snapshots by coordinate space and reject mixed-space solving.
-6. Specify the component animator's solved-motion publication barrier and
-   manifest lifetime.
-7. Expose a private solved-motion record and test classification/lifetime.
-8. Add effect-only observation/decorating without subject materialization.
-9. Design a privacy-safe component subject snapshot protocol.
-10. Reassess whether a larger internal motion representation is justified by
-   concrete duplication; do not introduce one speculatively.
+1. **Done:** extract and test geometry capture and pure solvers.
+2. **Done:** migrate structural FLIP, `animateBetween()`, and effect anchors.
+3. **Done:** extract version/local timing calculation into a pure compiler.
+4. **Done:** route component playback, explicit flights, and effects through
+   that compiler without merging their ownership or gating policies.
+5. **Done:** brand geometry snapshots by coordinate space.
+6. **Done:** specify and implement the solved-plan publication barrier.
+7. **Done:** publish immutable intentions, actual executions, skips, and terminal
+   outcomes for FLIP and explicit flights.
+8. **Done:** expose read-only plan observation and pure lifecycle-event
+   compilation. **Not done:** connect those events to effect recipes.
+9. **Next:** add point-only structural decoration (arrival/departure cues) that
+   requires no component materialization and cannot gate playback.
+10. **Deferred:** design a privacy-safe subject snapshot protocol before trails
+    or travelers may visually reproduce a card/component.
+11. Reassess a larger representation only when concrete duplication justifies
+    it.
+
+## Supported surface today
+
+Game authors should use `effectsForTransition()`, `this.effects.play()`, named
+anchors, and `animateBetween()` as documented in `docs/animation-effects.md` and
+`docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
+events are framework-internal while their contracts settle. Shipping the
+internal seam first prevents an attractive experimental API from becoming a
+permanent compatibility burden.
 
 ## Non-goals
 

@@ -4,6 +4,22 @@ Boardgame effects are immutable descriptions of presentation. Game truth stays
 in state; renderers describe a visual cue, and the framework owns measurement,
 timing, accessibility, budgeting, cancellation, and cleanup.
 
+## What this system owns
+
+There are two related but deliberately separate systems:
+
+- **Structural motion** preserves continuity when authoritative state moves,
+  resizes, reveals, or removes a component. The framework's component animator
+  owns it automatically, and it holds the state queue until its real WAAPI
+  animations settle.
+- **Semantic effects** explain meaning—reward, warning, confirmation, magic.
+  Games opt into these through the API below. They are disposable decoration
+  and never hold the state queue.
+
+They share finite geometry and timing compilers, but not ownership. An effect
+cannot replace or delay a card's structural transform. This division is why a
+particle-budget failure can never strand a game transition.
+
 ## The three axes
 
 Effects keep three independent choices separate:
@@ -218,3 +234,37 @@ recipes—trails, screen treatments, or visual text echoes—can join the same
 contract without adding unrelated methods to the renderer service. Semantic
 text remains normal accessible UI; any floating text effect is only its
 `aria-hidden` visual echo.
+
+## Configuration reference
+
+| Choice | Values | Default | Scope |
+| --- | --- | --- | --- |
+| Recipe | `burst`, `pulse`, `travel`, `sequence`, `parallel` | none | Descriptor |
+| Tone | `neutral`, `reward`, `confirm`, `attention`, `warning`, `magic` | `neutral` | Inherited through composition |
+| Intensity | `subtle`, `small`, `medium`, `large` | `medium` | Inherited through composition |
+| Timing | `immediate`, `version`, or `{ localStartAtMs }` | `immediate` | Inherited through composition |
+| Identity | `key`, `seedKey` | descriptor path | Descriptor and deterministic seed identity |
+| Theme | semantic tone palettes | Material-aware defaults | Renderer via `effectTheme()` |
+| Escape hatch | recipe-specific `advanced` values | semantic policy | Validated and clamped |
+
+Use `timing: 'version'` for effects returned from `effectsForTransition()` when
+table and hand surfaces should independently align to the same version slot.
+Use the default immediate timing for local input feedback. A local absolute
+start is infrastructure-level scheduling, not a synchronization protocol.
+
+## Working examples
+
+- `examples/memory` pulses the card field on every reveal and adds a reward
+  burst for a match.
+- `examples/debuganimations` demonstrates authoritative travel followed by an
+  arrival burst, plus an imperative click celebration and theme/intensity
+  controls.
+- Companion table/hand renderers use `animateBetween()` for real card flights;
+  that structural API shares timing and geometry foundations with effects but
+  remains queue-critical.
+
+What is not configurable yet is equally important: games cannot subscribe to
+the private structural-motion plan, replace automatic FLIP, or request a trail
+that clones an arbitrary card. Point-only arrival/departure decoration is the
+next intended layer. Reproducing a subject will wait for an explicit,
+privacy-safe component snapshot protocol.
