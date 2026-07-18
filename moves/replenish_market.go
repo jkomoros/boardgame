@@ -3,7 +3,6 @@ package moves
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/behaviors"
@@ -25,7 +24,7 @@ func WithMarketField(fieldName string) CustomConfigurationOption {
 // ReplenishMarket is a FixUp move that automatically draws components from a
 // source deck to fill a face-up display area. It works with gameStates that
 // embed [behaviors.FaceUpMarket], which satisfies the
-// [interfaces.MarketProvider] interface.
+// [behaviors.HasFaceUpMarket] interface.
 //
 // For a single anonymous FaceUpMarket, usage is zero-config:
 //
@@ -37,31 +36,21 @@ func WithMarketField(fieldName string) CustomConfigurationOption {
 //
 //boardgame:codegen
 type ReplenishMarket struct {
-	FixUp
+	FixUpMulti
 }
 
 func (r *ReplenishMarket) market(state boardgame.ImmutableState) (*behaviors.FaceUpMarket, error) {
 	config := r.CustomConfiguration()
-	fieldName, hasFieldConfig := config[configPropMarketField]
-
+	fieldName, hasFieldConfig, err := configuredString(config, configPropMarketField, "WithMarketField")
+	if err != nil {
+		return nil, err
+	}
 	if hasFieldConfig {
-		strFieldName, ok := fieldName.(string)
-		if !ok {
-			return nil, errors.New("MarketField config is not a string")
+		value, err := namedBehaviorField(state, fieldName, new(behaviors.FaceUpMarket))
+		if err != nil {
+			return nil, err
 		}
-		// Look up the named field on the gameState via reflection.
-		v := reflect.ValueOf(state.ImmutableGameState()).Elem()
-		t := v.Type()
-		structField, ok := t.FieldByName(strFieldName)
-		if !ok {
-			return nil, fmt.Errorf("gameState has no field %q", strFieldName)
-		}
-		fieldVal := v.FieldByIndex(structField.Index)
-		market, ok := fieldVal.Addr().Interface().(*behaviors.FaceUpMarket)
-		if !ok {
-			return nil, fmt.Errorf("field %q is not a *behaviors.FaceUpMarket", strFieldName)
-		}
-		return market, nil
+		return value.(*behaviors.FaceUpMarket), nil
 	}
 
 	// Auto-discover via HasFaceUpMarket
@@ -75,7 +64,7 @@ func (r *ReplenishMarket) market(state boardgame.ImmutableState) (*behaviors.Fac
 // Legal returns nil when the market's display has fewer components than its
 // target size and the source has components available.
 func (r *ReplenishMarket) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := r.FixUp.Legal(state, proposer); err != nil {
+	if err := r.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -87,7 +76,21 @@ func (r *ReplenishMarket) Legal(state boardgame.ImmutableState, proposer boardga
 	if !market.NeedsReplenish() {
 		return errors.New("market display is full or source is empty")
 	}
-
+	first := market.SourceStack().First()
+	if first == nil {
+		return errors.New("market source stack has no components")
+	}
+	display := market.DisplayStack()
+	slot := display.Len()
+	if sized := display.SizedStack(); sized != nil {
+		slot = sized.NextSlot()
+	}
+	if slot < 0 {
+		return errors.New("market display has no available slot")
+	}
+	if err := first.MayMoveToSlot(display, slot); err != nil {
+		return fmt.Errorf("market cannot replenish its next slot: %w", err)
+	}
 	return nil
 }
 
@@ -104,20 +107,29 @@ func (r *ReplenishMarket) Apply(state boardgame.State) error {
 		return errors.New("source stack has no components")
 	}
 
-	return first.MoveToLastSlot(market.DisplayStack())
+	return first.MoveToNextSlot(market.DisplayStack())
 }
 
 // ValidConfiguration verifies that the market can be found.
 func (r *ReplenishMarket) ValidConfiguration(exampleState boardgame.State) error {
-	_, err := r.market(exampleState)
+	market, err := r.market(exampleState)
 	if err != nil {
 		return fmt.Errorf("ReplenishMarket: %w", err)
 	}
-	return r.FixUp.ValidConfiguration(exampleState)
+	if market == nil {
+		return errors.New("ReplenishMarket: face-up market provider returned nil")
+	}
+	if err := market.ValidConfiguration(exampleState); err != nil {
+		return fmt.Errorf("ReplenishMarket: %w", err)
+	}
+	return r.FixUpMulti.ValidConfiguration(exampleState)
 }
 
 // FallbackName returns a descriptive name for the move.
 func (r *ReplenishMarket) FallbackName(m *boardgame.GameManager) string {
+	if field, configured, err := configuredString(r.CustomConfiguration(), configPropMarketField, "WithMarketField"); configured && err == nil {
+		return "Replenish " + titleCaseToWords(field)
+	}
 	return "Replenish Market"
 }
 

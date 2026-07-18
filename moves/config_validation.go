@@ -18,6 +18,8 @@ type consumesAmountConfiguration interface{ consumesAmountConfiguration() }
 type consumesExplicitStartConfiguration interface{ consumesExplicitStartConfiguration() }
 type consumesUniquenessConfiguration interface{ consumesUniquenessConfiguration() }
 type consumesRequireAdminConfiguration interface{ consumesRequireAdminConfiguration() }
+type consumesMarketFieldConfiguration interface{ consumesMarketFieldConfiguration() }
+type consumesDrawDiscardPairFieldConfiguration interface{ consumesDrawDiscardPairFieldConfiguration() }
 
 func (*StartPhase) consumesStartPhaseConfiguration() {}
 
@@ -38,10 +40,12 @@ func (*SelectTeam) consumesUniquenessConfiguration()  {}
 func (*SelectRole) consumesUniquenessConfiguration()  {}
 func (*SelectColor) consumesUniquenessConfiguration() {}
 
-func (*SelectTeam) consumesRequireAdminConfiguration()    {}
-func (*SelectRole) consumesRequireAdminConfiguration()    {}
-func (*SelectColor) consumesRequireAdminConfiguration()   {}
-func (*CloseAllSeats) consumesRequireAdminConfiguration() {}
+func (*SelectTeam) consumesRequireAdminConfiguration()                     {}
+func (*SelectRole) consumesRequireAdminConfiguration()                     {}
+func (*SelectColor) consumesRequireAdminConfiguration()                    {}
+func (*CloseAllSeats) consumesRequireAdminConfiguration()                  {}
+func (*ReplenishMarket) consumesMarketFieldConfiguration()                 {}
+func (*ShuffleDiscardIntoDraw) consumesDrawDiscardPairFieldConfiguration() {}
 
 type configurationCompatibilityCheck struct {
 	key      string
@@ -89,6 +93,12 @@ func validateCustomConfiguration(move boardgame.Move, config boardgame.PropertyC
 		}},
 		{configPropRequireAdmin, "WithRequireAdmin", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
 			return implementsConfigurationConsumer[consumesRequireAdminConfiguration](move)
+		}},
+		{configPropMarketField, "WithMarketField", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
+			return implementsConfigurationConsumer[consumesMarketFieldConfiguration](move)
+		}},
+		{configPropDrawDiscardPairField, "WithDrawDiscardPairField", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
+			return implementsConfigurationConsumer[consumesDrawDiscardPairFieldConfiguration](move)
 		}},
 	}
 

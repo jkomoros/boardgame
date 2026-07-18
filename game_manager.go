@@ -473,7 +473,7 @@ func verifyValidConfigurationOnStruct(state State, strct interface{}) error {
 			continue
 		}
 		if err := validator.ValidConfiguration(state); err != nil {
-			return errors.New("Struct field " + fieldType.Name() + " had a valid configuration that wasn't valid: " + err.Error())
+			return errors.New("Struct field " + field.Name + " had a valid configuration that wasn't valid: " + err.Error())
 		}
 	}
 

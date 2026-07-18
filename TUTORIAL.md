@@ -158,6 +158,53 @@ The `constraints` sub-package provides pre-built constraints: `MaxNumComponents`
 
 Constraints are **not** checked during initial game setup (when components are distributed via `DistributeComponentToStarterStack`), only during normal gameplay moves.
 
+#### Reusable Draw/Discard Pairs and Face-Up Markets
+
+Two common card-game patterns need no custom move structs. Embed a stack-backed behavior, point it at ordinary stack fields, and install its companion FixUp:
+
+```go
+type gameState struct {
+    base.SubState
+    behaviors.DrawDiscardPair `draw:"Draw" discard:"Discard"`
+    behaviors.FaceUpMarket     `source:"MarketDeck" display:"Market"`
+
+    Draw       boardgame.Stack `stack:"cards" sanitize:"len"`
+    Discard    boardgame.Stack `stack:"cards"`
+    MarketDeck boardgame.Stack `stack:"goods" sanitize:"len"`
+    Market     boardgame.Stack `stack:"goods,4"`
+}
+
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+    auto := moves.NewAutoConfigurer(g)
+    return moves.Add(
+        auto.MustConfig(new(moves.ShuffleDiscardIntoDraw)),
+        auto.MustConfig(new(moves.ReplenishMarket)),
+    )
+}
+```
+
+The market target is inferred from `Market.MaxSize()`, so `4` is declared once. An explicit `size:"3"` is only needed when the display is unbounded or intentionally fills below capacity. Configuration fails during manager boot if either pair uses the same stack twice, mixes decks, references detached stacks, or requests an impossible target.
+
+Games with several markets use named behavior fields. The companion option selects the field and automatically derives a unique move name:
+
+```go
+type gameState struct {
+    base.SubState
+    MerchantMarket behaviors.FaceUpMarket `source:"MerchantDeck" display:"Merchants"`
+    PointMarket    behaviors.FaceUpMarket `source:"PointDeck" display:"Points"`
+    // stack fields omitted
+}
+
+auto.MustConfig(new(moves.ReplenishMarket), moves.WithMarketField("MerchantMarket"))
+auto.MustConfig(new(moves.ReplenishMarket), moves.WithMarketField("PointMarket"))
+```
+
+The installed names are `Replenish Merchant Market` and `Replenish Point Market`; no extra `WithMoveName` is required. Multiple draw/discard pairs use the symmetric `moves.WithDrawDiscardPairField` option.
+
+Each `ReplenishMarket` application moves one component into the display's next slot. It embeds `FixUpMulti`, so the normal FixUp loop and ordered progressions can repeat it until the market is full; wrap it in `moves.Optional(...)` when an ordered progression may already encounter a full market. Special rules—such as discarding and rebuilding a market when it shows too many wild cards—remain separate ordered FixUps beside the generic replenisher rather than callbacks hidden inside the behavior.
+
+The framework also enforces physical stack ownership: every component in an unsanitized state must occur exactly once in a declared stack property or board space. Setup, save, and load fail loudly for missing or duplicated components, and moves reject detached, replaced, or foreign-state stacks before mutation.
+
 #### Pre-Validating Moves with MayMoveTo
 
 When writing custom `Legal()` methods, you often need to check whether a component can be moved to a destination stack *before* actually doing it in `Apply()`. The framework provides `MayMoveTo` and friends for this purpose:

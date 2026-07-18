@@ -29,6 +29,19 @@ empties:
 
 	auto.MustConfig(new(moves.ShuffleDiscardIntoDraw))
 
+For multiple pairs, use direct named behavior fields and select each one from
+its companion move. The field option also derives a distinct move name:
+
+	type gameState struct {
+	    base.SubState
+	    TrainCards behaviors.DrawDiscardPair `draw:"TrainDraw" discard:"TrainDiscard"`
+	    TicketCards behaviors.DrawDiscardPair `draw:"TicketDraw" discard:"TicketDiscard"`
+	    // stack fields omitted
+	}
+
+	auto.MustConfig(new(moves.ShuffleDiscardIntoDraw), moves.WithDrawDiscardPairField("TrainCards"))
+	auto.MustConfig(new(moves.ShuffleDiscardIntoDraw), moves.WithDrawDiscardPairField("TicketCards"))
+
 You can also skip the tags and wire everything in FinishStateSetUp:
 
 	func (g *gameState) FinishStateSetUp() {
@@ -93,7 +106,7 @@ func (d *DrawDiscardPair) ValidConfiguration(example boardgame.State) error {
 	if d.discardStack == nil {
 		return errors.New("DrawDiscardPair: discard stack not connected. Use the `discard` struct tag or call ConnectDiscardStack in FinishStateSetUp")
 	}
-	return nil
+	return validateAttachedStackPair(example, d.container, "DrawDiscardPair", "draw", d.drawStack, "discard", d.discardStack)
 }
 
 // DrawStack returns the connected draw stack.
