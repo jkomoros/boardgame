@@ -194,7 +194,7 @@ func TestMergedValidStack(t *testing.T) {
 
 	otherSized := testDeck.NewSizedStack(4).(*sizedStack)
 
-	otherSized.setState(st)
+	attachStackForPrimitiveTest(st, otherSized)
 
 	merged := NewConcatenatedStack(sized, nil)
 

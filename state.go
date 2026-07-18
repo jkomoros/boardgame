@@ -769,18 +769,24 @@ func (s *state) buildComponentIndex() {
 	s.componentIndex = make(map[Component]componentIndexItem)
 
 	if s.stackOwners != nil {
-		owners := make([]stackOwner, 0, len(s.stackOwners))
-		for _, owner := range s.stackOwners {
-			owners = append(owners, owner)
+		owners := make([]struct {
+			stack Stack
+			owner stackOwner
+		}, 0, len(s.stackOwners))
+		for stack, owner := range s.stackOwners {
+			owners = append(owners, struct {
+				stack Stack
+				owner stackOwner
+			}{stack, owner})
 		}
-		sort.Slice(owners, func(i, j int) bool { return owners[i].path < owners[j].path })
-		for _, owner := range owners {
-			stack, err := owner.current()
-			if err != nil || stack == nil {
+		sort.Slice(owners, func(i, j int) bool { return owners[i].owner.path < owners[j].owner.path })
+		for _, item := range owners {
+			current, err := item.owner.current()
+			if err != nil || current != item.stack {
 				continue
 			}
-			for i, c := range stack.Components() {
-				s.componentAddedImpl(c, stack, i)
+			for i, c := range item.stack.Components() {
+				s.componentAddedImpl(c, item.stack, i)
 			}
 		}
 		return

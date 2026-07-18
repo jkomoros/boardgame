@@ -107,7 +107,7 @@ func (b *board) ImmutableSpaces() []ImmutableStack {
 }
 
 func (b *board) ImmutableSpaceAt(index int) ImmutableStack {
-	if index < 0 || index > b.Len() {
+	if index < 0 || index >= b.Len() {
 		return nil
 	}
 	return b.spaces[index]
@@ -124,7 +124,7 @@ func (b *board) Spaces() []Stack {
 }
 
 func (b *board) SpaceAt(index int) Stack {
-	if index < 0 || index > b.Len() {
+	if index < 0 || index >= b.Len() {
 		return nil
 	}
 	return b.spaces[index]
@@ -161,6 +161,9 @@ func (b *board) UnmarshalJSON(blob []byte) error {
 
 	if err := json.Unmarshal(blob, obj); err != nil {
 		return err
+	}
+	if len(obj.Spaces) != len(b.spaces) {
+		return errors.New("board has " + strconv.Itoa(len(obj.Spaces)) + " persisted spaces, want " + strconv.Itoa(len(b.spaces)))
 	}
 
 	for i, blob := range obj.Spaces {

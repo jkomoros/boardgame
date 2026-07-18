@@ -157,6 +157,10 @@ func (s *state) initializeStackOwners() error {
 
 	s.stackOwners = owners
 	for _, location := range merged {
+		if err := location.stack.Valid(); err != nil {
+			s.stackOwners = nil
+			return fmt.Errorf("%s is an invalid merged stack: %w", location.path, err)
+		}
 		if err := s.validateMergedOwnerLeaves(location.path, location.stack, make(map[MergedStack]bool), make(map[Stack]string)); err != nil {
 			s.stackOwners = nil
 			return err
@@ -174,6 +178,9 @@ func (s *state) validateMergedOwnerLeaves(path string, view MergedStack, visitin
 
 	for i, child := range view.ImmutableStacks() {
 		childPath := fmt.Sprintf("%s[%d]", path, i)
+		if child == nil {
+			return fmt.Errorf("%s is nil", childPath)
+		}
 		if nested := child.MergedStack(); nested != nil {
 			if err := s.validateMergedOwnerLeaves(childPath, nested, visiting, leaves); err != nil {
 				return err
@@ -197,12 +204,9 @@ func (s *state) validateMergedOwnerLeaves(path string, view MergedStack, visitin
 }
 
 func (s *state) validateStackAttachment(stack ImmutableStack) error {
-	if stack == nil {
-		return fmt.Errorf("stack is nil")
-	}
-	physical, ok := stack.(Stack)
-	if !ok || stack.MergedStack() != nil {
-		return fmt.Errorf("stack is a view, not a physical attached owner")
+	physical, err := requirePhysicalStack(stack, "stack")
+	if err != nil {
+		return err
 	}
 	if physical.state() != s {
 		return fmt.Errorf("stack belongs to a different state")

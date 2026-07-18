@@ -91,6 +91,47 @@ func TestMoveRejectsStackFromDifferentState(t *testing.T) {
 	}
 }
 
+func TestMoveAllRejectsInvalidOwnersEvenWhenEmpty(t *testing.T) {
+	manager := newTestGameManger(t)
+	first, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("first game: %v", err)
+	}
+	second, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("second game: %v", err)
+	}
+	firstState, _ := concreteStates(first.CurrentState())
+	secondState, _ := concreteStates(second.CurrentState())
+	emptyFirst := firstState.MyBoard.SpaceAt(2)
+	emptySecond := secondState.MyBoard.SpaceAt(2)
+
+	if err := emptyFirst.MayMoveAllTo(emptySecond); err == nil || !strings.Contains(err.Error(), "different states") {
+		t.Fatalf("cross-state empty MayMoveAllTo error = %v", err)
+	}
+	if err := emptyFirst.MoveAllTo(emptySecond); err == nil || !strings.Contains(err.Error(), "different states") {
+		t.Fatalf("cross-state empty MoveAllTo error = %v", err)
+	}
+	if err := firstState.DrawDeck.MoveAllTo(nil); err == nil {
+		t.Fatal("MoveAllTo(nil) unexpectedly succeeded")
+	}
+	detached := manager.Chest().Deck("test").NewStack(0)
+	if err := detached.MoveAllTo(firstState.DrawDeck); err == nil || !strings.Contains(err.Error(), "state") {
+		t.Fatalf("detached empty MoveAllTo error = %v", err)
+	}
+}
+
+func TestMayMoveAllToSupportsBoardSpaces(t *testing.T) {
+	game := testDefaultGame(t, false)
+	gameState, players := concreteStates(game.CurrentState())
+	if err := gameState.MyBoard.SpaceAt(1).MayMoveAllTo(players[0].Hand); err != nil {
+		t.Fatalf("board-space source preflight: %v", err)
+	}
+	if err := gameState.DrawDeck.MayMoveAllTo(gameState.MyBoard.SpaceAt(2)); err != nil {
+		t.Fatalf("board-space destination preflight: %v", err)
+	}
+}
+
 func TestMoveRejectsReplacedStaleStack(t *testing.T) {
 	game := testDefaultGame(t, false)
 	gameState, players := concreteStates(game.CurrentState())
@@ -111,6 +152,72 @@ func TestMoveRejectsReplacedStaleStack(t *testing.T) {
 	}
 	if got := players[0].Hand.NumComponents(); got != beforeDestination {
 		t.Fatalf("destination changed after rejected move: got %d, want %d", got, beforeDestination)
+	}
+}
+
+func TestStaleAndSanitizedStacksRejectNonMoveMutators(t *testing.T) {
+	game := testDefaultGame(t, false)
+	gameState, _ := concreteStates(game.CurrentState())
+	stale := gameState.OtherStack
+	gameState.OtherStack = game.Manager().Chest().Deck("test").NewSizedStack(stale.Len())
+
+	checks := []struct {
+		name string
+		run  func() error
+	}{
+		{"resize", func() error { return stale.ExpandSize(1) }},
+		{"constraint", func() error {
+			return stale.AddConstraint(func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil })
+		}},
+		{"swap preflight", func() error { return stale.MaySwapComponents(0, 1) }},
+	}
+	for _, check := range checks {
+		if err := check.run(); err == nil || (!strings.Contains(err.Error(), "stale") && !strings.Contains(err.Error(), "attached")) {
+			t.Errorf("%s error = %v, want ownership failure", check.name, err)
+		}
+	}
+
+	sanitized, err := game.CurrentState().SanitizedForPlayer(0)
+	if err != nil {
+		t.Fatalf("sanitize: %v", err)
+	}
+	sanitizedGame, _ := concreteStates(sanitized)
+	if err := sanitizedGame.OtherStack.ExpandSize(1); err == nil || !strings.Contains(err.Error(), "sanitized") {
+		t.Fatalf("sanitized resize error = %v", err)
+	}
+}
+
+func TestMergedSetStateNeverReassignsBackingOwners(t *testing.T) {
+	manager := newTestGameManger(t)
+	first, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("first game: %v", err)
+	}
+	second, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatalf("second game: %v", err)
+	}
+	firstGameState, _ := concreteStates(first.CurrentState())
+	fresh := manager.Chest().Deck("test").NewStack(0)
+	view := NewConcatenatedStack(fresh, firstGameState.DrawDeck)
+	view.setState(second.CurrentState().(*state))
+	if got := firstGameState.DrawDeck.state(); got != first.CurrentState() {
+		t.Fatalf("merged view reassigned owned leaf to %p, want %p", got, first.CurrentState())
+	}
+	if got := fresh.state(); got != nil {
+		t.Fatalf("merged view assigned state to detached leaf: %p", got)
+	}
+}
+
+func TestMergedValidationRejectsNilLeafWithoutPanic(t *testing.T) {
+	game := testDefaultGame(t, false)
+	st := game.CurrentState().(*state)
+	view := NewConcatenatedStack(nil)
+	if err := view.Valid(); err == nil {
+		t.Fatal("merged view with nil leaf unexpectedly valid")
+	}
+	if err := st.validateMergedOwnerLeaves("Game.BadView", view, make(map[MergedStack]bool), make(map[Stack]string)); err == nil || !strings.Contains(err.Error(), "nil") {
+		t.Fatalf("merged owner validation error = %v", err)
 	}
 }
 
@@ -186,5 +293,23 @@ func TestStateFromRecordRejectsCorruptComponents(t *testing.T) {
 	_, err := game.Manager().stateFromRecord(game.CurrentState().StorageRecord(), game.Version())
 	if err == nil || !strings.Contains(err.Error(), "appears at both") {
 		t.Fatalf("corrupt load error = %v", err)
+	}
+}
+
+func BenchmarkComponentConservation(b *testing.B) {
+	manager, err := NewGameManager(defaultTestGameDelegate(0), newTestStorageManager())
+	if err != nil {
+		b.Fatalf("NewGameManager: %v", err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		b.Fatalf("NewDefaultGame: %v", err)
+	}
+	st := game.CurrentState().(*state)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := st.validateComponentConservation(); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
