@@ -649,8 +649,12 @@ func (g *growableStack) importFrom(other Stack) error {
 	}
 
 	myState := g.statePtr
+	myBoard := g.board
+	myBoardIndex := g.boardIndex
 	g.copyFrom(otherGrowable)
 	g.statePtr = myState
+	g.board = myBoard
+	g.boardIndex = myBoardIndex
 	return nil
 
 }
@@ -1711,6 +1715,9 @@ func (g *growableStack) modificationsAllowed() error {
 	if g.state().Sanitized() {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
 	}
+	if err := g.state().validateStackAttachment(g); err != nil {
+		return errors.New("Modifications not allowed: " + err.Error())
+	}
 	return nil
 }
 
@@ -1720,6 +1727,9 @@ func (s *sizedStack) modificationsAllowed() error {
 	}
 	if s.state().Sanitized() {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
+	}
+	if err := s.state().validateStackAttachment(s); err != nil {
+		return errors.New("Modifications not allowed: " + err.Error())
 	}
 	return nil
 }
@@ -1902,6 +1912,12 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	if source == nil {
 		return errors.New("Source is a nil stack")
 	}
+	if destination == nil {
+		return errors.New("Destination is a nil stack")
+	}
+	if source.state() != destination.state() {
+		return errors.New("Source and destination belong to different states")
+	}
 
 	if err := source.modificationsAllowed(); err != nil {
 		return errors.New("Source doesn't allow modifications: " + err.Error())
@@ -1955,14 +1971,16 @@ func (s *sizedStack) moveComponentToStart(componentIndex int) error {
 }
 
 func moveComponentToExtremeImpl(stack Stack, componentIndex int, isStart bool) error {
-
-	scratchStack := stack.Deck().NewStack(0).(*growableStack)
-
-	scratchStack.setState(stack.state())
-
-	if err := stack.moveComponent(componentIndex, scratchStack, scratchStack.firstSlot()); err != nil {
-		return errors.New("Couldn't move to scratch stack: " + err.Error())
+	if stack == nil {
+		return errors.New("stack is nil")
 	}
+	if err := stack.modificationsAllowed(); err != nil {
+		return err
+	}
+	if stack.ComponentAt(componentIndex) == nil {
+		return errors.New("component index does not point to a component")
+	}
+	moved := stack.removeComponentAt(componentIndex)
 
 	targetSlot := stack.lastSlot()
 
@@ -1970,9 +1988,7 @@ func moveComponentToExtremeImpl(stack Stack, componentIndex int, isStart bool) e
 		targetSlot = stack.firstSlot()
 	}
 
-	if err := scratchStack.moveComponent(0, stack, targetSlot); err != nil {
-		return errors.New("Couldn't move back from scratch stack: " + err.Error())
-	}
+	stack.insertComponentAt(targetSlot, moved)
 
 	return nil
 

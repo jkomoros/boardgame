@@ -180,7 +180,7 @@ func TestMergedValidStack(t *testing.T) {
 
 	st := game.CurrentState().(*state)
 
-	sized.setState(st)
+	attachStackForPrimitiveTest(st, sized)
 
 	sized.insertComponentAt(0, testDeck.ComponentAt(0).ImmutableInstance(st))
 	sized.insertComponentAt(2, testDeck.ComponentAt(1).ImmutableInstance(st))
@@ -230,7 +230,7 @@ func TestConcatenatedStack(t *testing.T) {
 
 	growable := testDeck.NewStack(2).(*growableStack)
 
-	growable.setState(st)
+	attachStackForPrimitiveTest(st, growable)
 
 	growable.insertNext(testDeck.ComponentAt(2).ImmutableInstance(st))
 	growable.insertNext(testDeck.ComponentAt(3).ImmutableInstance(st))
@@ -315,7 +315,7 @@ func TestMoveExtreme(t *testing.T) {
 
 	st := game.CurrentState().(*state)
 
-	sized.setState(st)
+	attachStackForPrimitiveTest(st, sized)
 
 	sized.insertComponentAt(0, testDeck.ComponentAt(0).ImmutableInstance(st))
 	sized.insertComponentAt(1, testDeck.ComponentAt(1).ImmutableInstance(st))
@@ -337,7 +337,7 @@ func TestMoveExtreme(t *testing.T) {
 
 	growable := testDeck.NewStack(0).(*growableStack)
 
-	growable.setState(st)
+	attachStackForPrimitiveTest(st, growable)
 
 	growable.insertNext(testDeck.ComponentAt(0).ImmutableInstance(st))
 	growable.insertNext(testDeck.ComponentAt(1).ImmutableInstance(st))
@@ -424,8 +424,13 @@ func TestChangedSizeStackRoundTrip(t *testing.T) {
 
 	g, _ := concreteStates(cState)
 
-	g.DownSizeStack.insertComponentAt(0, testDeck.ComponentAt(0).ImmutableInstance(cState))
-	g.DownSizeStack.insertComponentAt(2, testDeck.ComponentAt(1).ImmutableInstance(cState))
+	mutableState := cState.(State)
+	if err := testDeck.ComponentAt(0).Instance(mutableState).MoveTo(g.DownSizeStack, 0); err != nil {
+		t.Fatalf("move component 0: %v", err)
+	}
+	if err := testDeck.ComponentAt(1).Instance(mutableState).MoveTo(g.DownSizeStack, 2); err != nil {
+		t.Fatalf("move component 1: %v", err)
+	}
 
 	assert.For(t).ThatActual(g.DownSizeStack.NumComponents()).Equals(2)
 	assert.For(t).ThatActual(g.DownSizeStack.Len()).Equals(4)
@@ -529,7 +534,7 @@ func TestSort(t *testing.T) {
 
 	st := game.CurrentState().(*state)
 
-	gStack.setState(st)
+	attachStackForPrimitiveTest(st, gStack)
 
 	gStack.insertNext(testDeck.Components()[0].ImmutableInstance(st))
 	gStack.insertNext(testDeck.Components()[1].ImmutableInstance(st))
@@ -562,7 +567,7 @@ func TestSort(t *testing.T) {
 
 	sStack := testDeck.NewSizedStack(5)
 
-	sStack.setState(st)
+	attachStackForPrimitiveTest(st, sStack)
 
 	sStack.insertComponentAt(0, testDeck.Components()[0].ImmutableInstance(st))
 	sStack.insertComponentAt(1, testDeck.Components()[1].ImmutableInstance(st))

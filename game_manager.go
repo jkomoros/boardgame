@@ -1103,6 +1103,9 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*
 			}
 		}
 	}
+	if err := result.validateComponentConservation(); err != nil {
+		return nil, errors.New("Loaded state violated component conservation: " + err.Error())
+	}
 
 	return result, nil
 

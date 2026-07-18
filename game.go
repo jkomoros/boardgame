@@ -558,6 +558,12 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 			if !ok {
 				return baseErr.WithError("Couldn't get a mutable version of stack")
 			}
+			if err := stateCopy.(*state).validateStackAttachment(mutableStack); err != nil {
+				return baseErr.WithError("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": returned stack is not attached: " + err.Error())
+			}
+			if mutableStack.Deck() != component.Deck() {
+				return baseErr.WithError("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": returned stack belongs to a different deck")
+			}
 
 			mutableStack.insertComponentAt(mutableStack.nextSlot(), component.ImmutableInstance(stateCopy))
 		}
@@ -565,6 +571,9 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 
 	if err := g.manager.delegate.FinishSetUp(stateCopy); err != nil {
 		return errors.New("FinishSetUp errored: " + err.Error())
+	}
+	if err := stateCopy.(*state).validateComponentConservation(); err != nil {
+		return baseErr.WithError("Initial state violated component conservation: " + err.Error())
 	}
 
 	g.created = time.Now()
