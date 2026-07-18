@@ -945,12 +945,37 @@ func (m *mergedStack) NumComponents() int {
 }
 
 func (m *mergedStack) Valid() error {
+	return validateMergedStackStructure(m, make(map[*mergedStack]bool))
+}
+
+func validateMergedStackStructure(m *mergedStack, visiting map[*mergedStack]bool) error {
+	if m == nil {
+		return errors.New("merged stack is nil")
+	}
+	if visiting[m] {
+		return errors.New("merged stack contains a cycle")
+	}
+	visiting[m] = true
+	defer delete(visiting, m)
+
 	if len(m.stacks) == 0 {
 		return errors.New("no sub-stacks provided")
 	}
 	for i, stack := range m.stacks {
 		if stack == nil {
 			return errors.New("stack " + strconv.Itoa(i) + " is nil")
+		}
+		if nested := stack.MergedStack(); nested != nil {
+			concrete, ok := nested.(*mergedStack)
+			if !ok {
+				if err := nested.Valid(); err != nil {
+					return errors.New("stack " + strconv.Itoa(i) + " is an invalid merged stack: " + err.Error())
+				}
+				continue
+			}
+			if err := validateMergedStackStructure(concrete, visiting); err != nil {
+				return errors.New("stack " + strconv.Itoa(i) + " is an invalid merged stack: " + err.Error())
+			}
 		}
 	}
 	deck := m.stacks[0].Deck()
@@ -1593,7 +1618,7 @@ func (s *sizedStack) state() *state {
 }
 
 func (m *mergedStack) state() *state {
-	if len(m.stacks) == 0 {
+	if len(m.stacks) == 0 || m.stacks[0] == nil {
 		return nil
 	}
 	return m.stacks[0].state()
@@ -1632,7 +1657,7 @@ func (s *sizedStack) Deck() *Deck {
 }
 
 func (m *mergedStack) Deck() *Deck {
-	if len(m.stacks) == 0 {
+	if len(m.stacks) == 0 || m.stacks[0] == nil {
 		return nil
 	}
 	return m.stacks[0].Deck()

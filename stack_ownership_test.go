@@ -32,6 +32,18 @@ type detachedDistributionDelegate struct {
 	*testGameDelegate
 }
 
+type wrongDeckDistributionDelegate struct {
+	*testGameDelegate
+}
+
+func (d *wrongDeckDistributionDelegate) ConfigureDecks() map[string]*Deck {
+	decks := d.testGameDelegate.ConfigureDecks()
+	other := NewDeck()
+	other.AddComponent(&testingComponent{String: "wrong deck"})
+	decks["other"] = other
+	return decks
+}
+
 func (d *detachedDistributionDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error) {
 	return c.Deck().NewStack(0), nil
 }
@@ -57,6 +69,21 @@ func TestSetupRejectsDetachedDistributionStack(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "attached") {
 		t.Fatalf("setUp error %q does not explain attachment", err)
+	}
+}
+
+func TestSetupRejectsWrongDeckBeforeStorageWrite(t *testing.T) {
+	storage := newTestStorageManager()
+	delegate := &wrongDeckDistributionDelegate{testGameDelegate: defaultTestGameDelegate(0)}
+	manager, err := NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatalf("NewGameManager: %v", err)
+	}
+	if _, err := manager.NewDefaultGame(); err == nil || !strings.Contains(err.Error(), "deck") {
+		t.Fatalf("NewDefaultGame error = %v, want deck mismatch", err)
+	}
+	if len(storage.games) != 0 || len(storage.states) != 0 || len(storage.moves) != 0 {
+		t.Fatalf("failed setup wrote storage: games=%d states=%d moves=%d", len(storage.games), len(storage.states), len(storage.moves))
 	}
 }
 
@@ -221,6 +248,139 @@ func TestMergedValidationRejectsNilLeafWithoutPanic(t *testing.T) {
 	}
 }
 
+func TestOwnerRegistryRejectsAliasesAndSwaps(t *testing.T) {
+	t.Run("property aliases board space", func(t *testing.T) {
+		game := testDefaultGame(t, false)
+		st := game.CurrentState().(*state)
+		gameState, _ := concreteStates(st)
+		gameState.DrawDeck = gameState.MyBoard.SpaceAt(0)
+		if err := st.initializeStackOwners(); err == nil || !strings.Contains(err.Error(), "both") {
+			t.Fatalf("alias error = %v", err)
+		}
+	})
+
+	t.Run("swapped properties become stale", func(t *testing.T) {
+		game := testDefaultGame(t, false)
+		st := game.CurrentState().(*state)
+		gameState, _ := concreteStates(st)
+		gameState.DownSizeStack, gameState.OtherStack = gameState.OtherStack, gameState.DownSizeStack
+		if err := st.validateComponentConservation(); err == nil || !strings.Contains(err.Error(), "stale") {
+			t.Fatalf("swapped-owner error = %v", err)
+		}
+	})
+}
+
+func TestOwnerRegistryValidatesNestedMergedTopology(t *testing.T) {
+	t.Run("nested empty view", func(t *testing.T) {
+		view := NewConcatenatedStack(NewConcatenatedStack())
+		if err := view.Valid(); err == nil || !strings.Contains(err.Error(), "no sub-stacks") {
+			t.Fatalf("nested empty error = %v", err)
+		}
+	})
+
+	t.Run("nested nil leaf does not panic", func(t *testing.T) {
+		view := NewConcatenatedStack(NewConcatenatedStack(nil))
+		if err := view.Valid(); err == nil || !strings.Contains(err.Error(), "nil") {
+			t.Fatalf("nested nil error = %v", err)
+		}
+	})
+
+	t.Run("nested mixed decks", func(t *testing.T) {
+		game := testDefaultGame(t, false)
+		gameState, _ := concreteStates(game.CurrentState())
+		otherDeck := NewDeck()
+		otherDeck.AddComponent(&testingComponent{String: "other"})
+		view := NewConcatenatedStack(NewConcatenatedStack(gameState.DownSizeStack, otherDeck.NewSizedStack(1)), gameState.OtherStack)
+		if err := view.Valid(); err == nil || !strings.Contains(err.Error(), "different deck") {
+			t.Fatalf("nested mixed-deck error = %v", err)
+		}
+	})
+
+	t.Run("nested invalid overlap", func(t *testing.T) {
+		game := testDefaultGame(t, false)
+		gameState, _ := concreteStates(game.CurrentState())
+		view := NewConcatenatedStack(NewOverlappedStack(gameState.DownSizeStack, gameState.DrawDeck), gameState.OtherStack)
+		if err := view.Valid(); err == nil || !strings.Contains(err.Error(), "fixed size") {
+			t.Fatalf("nested overlap error = %v", err)
+		}
+	})
+
+	t.Run("valid nested view", func(t *testing.T) {
+		game := testDefaultGame(t, false)
+		st := game.CurrentState().(*state)
+		gameState, _ := concreteStates(st)
+		gameState.MyMergedStack = NewConcatenatedStack(NewConcatenatedStack(gameState.DownSizeStack), gameState.OtherStack)
+		if err := st.initializeStackOwners(); err != nil {
+			t.Fatalf("valid nested view: %v", err)
+		}
+	})
+
+	t.Run("repeated leaf", func(t *testing.T) {
+		game := testDefaultGame(t, false)
+		st := game.CurrentState().(*state)
+		gameState, _ := concreteStates(st)
+		gameState.MyMergedStack = NewConcatenatedStack(NewConcatenatedStack(gameState.DownSizeStack), gameState.DownSizeStack)
+		if err := st.initializeStackOwners(); err == nil || !strings.Contains(err.Error(), "repeats") {
+			t.Fatalf("repeated leaf error = %v", err)
+		}
+	})
+
+	t.Run("hidden detached leaf", func(t *testing.T) {
+		game := testDefaultGame(t, false)
+		st := game.CurrentState().(*state)
+		gameState, _ := concreteStates(st)
+		detached := game.Manager().Chest().Deck("test").NewStack(0)
+		gameState.MyMergedStack = NewConcatenatedStack(detached, gameState.DownSizeStack)
+		if err := st.initializeStackOwners(); err == nil || !strings.Contains(err.Error(), "not a declared") {
+			t.Fatalf("hidden leaf error = %v", err)
+		}
+	})
+
+	t.Run("foreign leaf remains foreign", func(t *testing.T) {
+		manager := newTestGameManger(t)
+		first, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("first game: %v", err)
+		}
+		second, err := manager.NewDefaultGame()
+		if err != nil {
+			t.Fatalf("second game: %v", err)
+		}
+		firstGameState, _ := concreteStates(first.CurrentState())
+		secondState := second.CurrentState().(*state)
+		secondGameState, _ := concreteStates(secondState)
+		secondGameState.MyMergedStack = NewConcatenatedStack(secondGameState.DownSizeStack, firstGameState.DrawDeck)
+		if err := secondState.initializeStackOwners(); err == nil {
+			t.Fatal("foreign merged leaf unexpectedly accepted")
+		}
+		if firstGameState.DrawDeck.state() != first.CurrentState() {
+			t.Fatal("foreign merged leaf was reassigned")
+		}
+	})
+}
+
+func TestOwnerRegistryIncludesPlayerAndDynamicStacks(t *testing.T) {
+	game := testDefaultGame(t, false)
+	st := game.CurrentState().(*state)
+	var playerOwner, dynamicOwner bool
+	for _, owner := range st.stackOwners {
+		playerOwner = playerOwner || strings.HasPrefix(owner.path, "Players[")
+		dynamicOwner = dynamicOwner || strings.HasPrefix(owner.path, "DynamicComponentValues[")
+	}
+	if !playerOwner || !dynamicOwner {
+		t.Fatalf("owner registry coverage: player=%v dynamic=%v", playerOwner, dynamicOwner)
+	}
+}
+
+func TestComponentConservationRejectsForgedDeckName(t *testing.T) {
+	game := testDefaultGame(t, false)
+	gameState, _ := concreteStates(game.CurrentState())
+	gameState.DrawDeck.(*growableStack).deckName = "forged"
+	if err := game.CurrentState().(*state).validateComponentConservation(); err == nil || !strings.Contains(err.Error(), "unknown deck") {
+		t.Fatalf("forged-deck error = %v", err)
+	}
+}
+
 func TestStateCopyPreservesBoardSpaceIdentity(t *testing.T) {
 	game := testDefaultGame(t, false)
 	copyState, err := game.CurrentState().(*state).copy(false)
@@ -306,10 +466,23 @@ func BenchmarkComponentConservation(b *testing.B) {
 		b.Fatalf("NewDefaultGame: %v", err)
 	}
 	st := game.CurrentState().(*state)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		if err := st.validateComponentConservation(); err != nil {
-			b.Fatal(err)
-		}
+	gameState, _ := concreteStates(st)
+	if err := gameState.OtherStack.ExpandSize(10_000); err != nil {
+		b.Fatalf("expand sparse sized stack: %v", err)
 	}
+
+	b.Run("10000SparseSlots", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			if err := st.validateComponentConservation(); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("StorageRecordComparison", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			if record := st.StorageRecord(); len(record) == 0 {
+				b.Fatal("empty storage record")
+			}
+		}
+	})
 }

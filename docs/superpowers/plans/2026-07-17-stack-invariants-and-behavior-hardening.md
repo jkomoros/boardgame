@@ -211,6 +211,8 @@ Lifecycle audits guarantee component uniqueness before lazy component-index cons
 
 Add a focused benchmark with a large sparse sized stack/board, where slot count dominates component count. Record the result in the implementation commit and compare audit cost with full apply+marshal/save cost. Prefer clarity until measurement demonstrates the O(components + slots) audit is material.
 
+Implementation measurement on an Apple M1 (`-benchtime=100x`) with 10,000 added sparse sized-stack slots: conservation validation took about 1.27 ms/op versus 2.61 ms/op for `StorageRecord` serialization. The audit is measurable but remains below the serialization work already performed at the persistence boundary.
+
 ## Deferred adjacent stack robustness
 
 `MoveAllTo` can partially mutate its in-memory state before a later constraint rejects. The game pipeline discards a failed Apply copy, so conservation is preserved at persistence, but the direct method is not transaction-safe for a caller that retains the failed state.
@@ -219,7 +221,7 @@ Do not claim stack-level rollback in this tranche. Creator constraint closures c
 
 For #793, `Legal` preflights the operation on a copy and leaves the authoritative state untouched; if an unforeseen Apply failure occurs, the normal game pipeline discards the Apply copy. Real `MoveAllTo` does not call `MayMoveAllTo` internally or promise rollback.
 
-The `Board.SpaceAt(Len())` bounds bug is real but unrelated to #751/#793 and is deferred to its own focused fix.
+Implementation review found that malformed persisted boards could reach the same ownership/conservation path and panic before producing a diagnostic. This tranche therefore also validates exact persisted board length and fixes `Board.SpaceAt(Len())`/`ImmutableSpaceAt(Len())` to return nil.
 
 ## Phase 5: Harden the stack-backed behaviors
 
@@ -240,11 +242,11 @@ Boot validation order is pinned by integration test: `emptyState` completes owne
 
 ### FaceUpMarket target semantics
 
-- When explicit `size`/`SetDisplaySize` is positive, use it.
+- When explicit `size`/`SetDisplaySize` is positive, use it. An explicitly written `size:"0"` is rejected as ambiguous; omitting the tag selects inference, while `SetDisplaySize(0)` can deliberately reset a programmatically configured behavior to inference.
 - Otherwise, if the display is bounded, infer `DisplaySize()` dynamically from the current `display.MaxSize()` on every query. Omitted size means “fill to current capacity,” including later capacity expansion or contraction.
 - If the display is unbounded and has no explicit size, fail configuration with exact guidance.
 - Reject explicit targets larger than bounded capacity.
-- Treat zero as unspecified/infer and reject negative explicit sizes.
+- Treat the internal zero value as unspecified/infer and reject non-positive explicit size tags or negative programmatic values.
 - Keep existing API names to avoid gratuitous source churn.
 - Use `MoveToNextSlot` so a sized market fills its first empty slot and a growable market appends.
 - In `Legal`, obtain the source's first component and compute the same slot used by `MoveToNextSlot`: `display.Len()` for a growable stack, or `display.SizedStack().NextSlot()` for a sized stack. Call `MayMoveToSlot(display, slot)`. `Apply` executes `MoveToNextSlot`; occupied-gap and constraint tests pin parity without adding `NextSlot` to the common `Stack` interface.

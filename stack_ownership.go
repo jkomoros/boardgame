@@ -170,6 +170,12 @@ func (s *state) initializeStackOwners() error {
 }
 
 func (s *state) validateMergedOwnerLeaves(path string, view MergedStack, visiting map[MergedStack]bool, leaves map[Stack]string) error {
+	if view == nil {
+		return fmt.Errorf("%s is nil", path)
+	}
+	if err := view.Valid(); err != nil {
+		return fmt.Errorf("%s is an invalid merged stack: %w", path, err)
+	}
 	if visiting[view] {
 		return fmt.Errorf("%s contains a cycle of merged stacks", path)
 	}
