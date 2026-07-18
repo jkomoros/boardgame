@@ -210,7 +210,8 @@ instead of using this behavior.
 [Connectable], [boardgame.TagConfigurable] behavior. Use the "draw" and "discard"
 struct tags to reference existing Stack fields. The companion move
 [moves.ShuffleDiscardIntoDraw] automatically reshuffles the discard pile into the
-draw pile when it empties.
+draw pile when it empties. A single anonymous pair is zero-config; named pairs
+use [moves.WithDrawDiscardPairField] and receive distinct derived move names.
 
 # PlayerTeam
 
@@ -253,11 +254,13 @@ configured with [moves.WithRequireAdmin].
 # FaceUpMarket
 
 [FaceUpMarket] tracks a source deck and a face-up display area on a gameState. It
-is a [Connectable], [boardgame.TagConfigurable] behavior. Use the "source",
-"display", and "size" struct tags to configure it. The companion move
+is a [Connectable], [boardgame.TagConfigurable] behavior. Use the "source" and
+"display" struct tags to configure it. A bounded display's live MaxSize is the
+default target; use "size" only for an unbounded or intentionally partial
+display. The companion move
 [moves.ReplenishMarket] automatically fills empty display slots from the source
-deck. Multiple markets are supported via named fields -- the framework's
-autoConnectBehaviors processes all struct fields, not just anonymous ones.
+deck, one component per FixUp. Multiple markets are supported via named fields
+and [moves.WithMarketField], with stable distinct derived move names.
 
 # PlayerElimination
 

@@ -245,7 +245,7 @@ func TestConfigureFromTagsSizeValidation(t *testing.T) {
 	err = m.ConfigureFromTags(reflect.StructTag(`size:"-1"`), nil)
 	assert.For(t, "negative size").ThatActual(err).IsNotNil()
 
-	// Zero size tag should error
+	// Explicit zero is ambiguous with an omitted tag and should fail loudly.
 	err = m.ConfigureFromTags(reflect.StructTag(`size:"0"`), nil)
 	assert.For(t, "zero size").ThatActual(err).IsNotNil()
 

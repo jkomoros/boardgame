@@ -65,3 +65,28 @@ func lookupSizedStackField(containingSubState boardgame.SubState, fieldName stri
 
 	return sizedStack, nil
 }
+
+func validateAttachedStackPair(example boardgame.State, container boardgame.SubState, behaviorName, sourceRole string, source boardgame.Stack, destinationRole string, destination boardgame.Stack) error {
+	if example == nil {
+		return fmt.Errorf("%s: example state is nil", behaviorName)
+	}
+	if container == nil || container.State() != example {
+		return fmt.Errorf("%s must be connected to the example state", behaviorName)
+	}
+	if source == destination {
+		return fmt.Errorf("%s: %s and %s must be different stacks", behaviorName, sourceRole, destinationRole)
+	}
+	if err := boardgame.ValidateStackAttachment(example, source); err != nil {
+		return fmt.Errorf("%s: %s stack is not attached to the game state: %w", behaviorName, sourceRole, err)
+	}
+	if err := boardgame.ValidateStackAttachment(example, destination); err != nil {
+		return fmt.Errorf("%s: %s stack is not attached to the game state: %w", behaviorName, destinationRole, err)
+	}
+	if source.Deck() == nil || destination.Deck() == nil {
+		return fmt.Errorf("%s: %s and %s must both have decks", behaviorName, sourceRole, destinationRole)
+	}
+	if source.Deck() != destination.Deck() {
+		return fmt.Errorf("%s: %s deck %q does not match %s deck %q", behaviorName, sourceRole, source.Deck().Name(), destinationRole, destination.Deck().Name())
+	}
+	return nil
+}

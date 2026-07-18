@@ -635,8 +635,7 @@ func TestGameState(t *testing.T) {
 	//just touch state0, too. ¯\_(ツ)_/¯
 	_, _ = json.Marshal(state0)
 
-	//Can't do ThenDiffOnFail because components and sub-states now have references back to state (loops)
-	assert.For(t).ThatActual(state).Equals(state0)
+	assertPersistedStatesEqual(t, state, state0)
 
 	move := game.MoveByName("Test")
 
@@ -663,10 +662,7 @@ func TestGameState(t *testing.T) {
 	currentState := game.CurrentState()
 	state = game.State(game.Version())
 
-	if !reflect.DeepEqual(currentState, state) {
-		t.Error("State(game.Version()) and CurrentState() weren't equivalent", currentState, state)
-
-	}
+	assertPersistedStatesEqual(t, currentState, state)
 
 }
 

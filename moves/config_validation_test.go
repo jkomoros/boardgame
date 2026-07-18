@@ -51,6 +51,25 @@ func TestValidateCustomConfigurationRejectsHelperOnlyOption(t *testing.T) {
 	}
 }
 
+func TestValidateCustomConfigurationRejectsBehaviorFieldOptionsOnUnrelatedMoves(t *testing.T) {
+	tests := []struct {
+		name   string
+		config boardgame.PropertyCollection
+		want   string
+	}{
+		{"market", boardgame.PropertyCollection{configPropMarketField: "Market"}, "WithMarketField"},
+		{"draw discard", boardgame.PropertyCollection{configPropDrawDiscardPairField: "Cards"}, "WithDrawDiscardPairField"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateCustomConfiguration(new(configuredDefaultForValidation), test.config)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want mention of %s", err, test.want)
+			}
+		})
+	}
+}
+
 func TestAutoConfigurerRejectsUnusedOption(t *testing.T) {
 	var configErr error
 	_, _ = newGameManager(func(manager *boardgame.GameManager) []boardgame.MoveConfig {

@@ -509,6 +509,15 @@ func (c componentInstance) MayMoveTo(dest ImmutableStack) error {
 	if dest == nil {
 		return errors.New("destination stack is nil")
 	}
+	if c.statePtr == nil {
+		return errors.New("component has no state")
+	}
+	if dest.state() != c.statePtr {
+		return errors.New("source and destination belong to different states")
+	}
+	if err := c.statePtr.validateStackAttachment(dest); err != nil {
+		return errors.New("destination stack is not attached: " + err.Error())
+	}
 
 	sourceStack, _, err := c.ContainingImmutableStack()
 	if err != nil {
@@ -517,6 +526,9 @@ func (c componentInstance) MayMoveTo(dest ImmutableStack) error {
 
 	if sourceStack == dest {
 		return errors.New("source and destination are the same stack")
+	}
+	if err := c.statePtr.validateStackAttachment(sourceStack); err != nil {
+		return errors.New("source stack is not attached: " + err.Error())
 	}
 
 	if sourceStack.Deck() != dest.Deck() {

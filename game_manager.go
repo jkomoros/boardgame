@@ -473,7 +473,7 @@ func verifyValidConfigurationOnStruct(state State, strct interface{}) error {
 			continue
 		}
 		if err := validator.ValidConfiguration(state); err != nil {
-			return errors.New("Struct field " + fieldType.Name() + " had a valid configuration that wasn't valid: " + err.Error())
+			return errors.New("Struct field " + field.Name + " had a valid configuration that wasn't valid: " + err.Error())
 		}
 	}
 
@@ -1102,6 +1102,9 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord, version int) (*
 				return nil, errors.New("Error unmarshaling component state for deck " + deckName + " index " + strconv.Itoa(i) + ": " + err.Error())
 			}
 		}
+	}
+	if err := result.validateComponentConservation(); err != nil {
+		return nil, errors.New("Loaded state violated component conservation: " + err.Error())
 	}
 
 	return result, nil

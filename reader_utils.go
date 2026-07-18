@@ -47,6 +47,9 @@ func setReaderStatePtr(reader PropertyReader, st ImmutableState) error {
 			if err != nil {
 				return errors.New("Stack prop " + propName + " had unexpected error: " + err.Error())
 			}
+			if existing := val.state(); existing != nil && existing != statePtr {
+				return errors.New("Stack prop " + propName + " was already connected to a different state")
+			}
 			val.setState(statePtr)
 		case TypeBoard:
 			val, err := reader.ImmutableBoardProp(propName)
@@ -55,6 +58,9 @@ func setReaderStatePtr(reader PropertyReader, st ImmutableState) error {
 			}
 			if err != nil {
 				return errors.New("Board prop " + propName + " had unexpected error: " + err.Error())
+			}
+			if existing := val.state(); existing != nil && existing != statePtr {
+				return errors.New("Board prop " + propName + " was already connected to a different state")
 			}
 			val.setState(statePtr)
 		case TypeTimer:

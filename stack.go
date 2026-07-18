@@ -649,8 +649,12 @@ func (g *growableStack) importFrom(other Stack) error {
 	}
 
 	myState := g.statePtr
+	myBoard := g.board
+	myBoardIndex := g.boardIndex
 	g.copyFrom(otherGrowable)
 	g.statePtr = myState
+	g.board = myBoard
+	g.boardIndex = myBoardIndex
 	return nil
 
 }
@@ -941,12 +945,37 @@ func (m *mergedStack) NumComponents() int {
 }
 
 func (m *mergedStack) Valid() error {
+	return validateMergedStackStructure(m, make(map[*mergedStack]bool))
+}
+
+func validateMergedStackStructure(m *mergedStack, visiting map[*mergedStack]bool) error {
+	if m == nil {
+		return errors.New("merged stack is nil")
+	}
+	if visiting[m] {
+		return errors.New("merged stack contains a cycle")
+	}
+	visiting[m] = true
+	defer delete(visiting, m)
+
 	if len(m.stacks) == 0 {
 		return errors.New("no sub-stacks provided")
 	}
 	for i, stack := range m.stacks {
 		if stack == nil {
 			return errors.New("stack " + strconv.Itoa(i) + " is nil")
+		}
+		if nested := stack.MergedStack(); nested != nil {
+			concrete, ok := nested.(*mergedStack)
+			if !ok {
+				if err := nested.Valid(); err != nil {
+					return errors.New("stack " + strconv.Itoa(i) + " is an invalid merged stack: " + err.Error())
+				}
+				continue
+			}
+			if err := validateMergedStackStructure(concrete, visiting); err != nil {
+				return errors.New("stack " + strconv.Itoa(i) + " is an invalid merged stack: " + err.Error())
+			}
 		}
 	}
 	deck := m.stacks[0].Deck()
@@ -1365,6 +1394,9 @@ func maySwapComponentsImpl(s ImmutableStack, i, j int) error {
 }
 
 func (g *growableStack) MaySwapComponents(i, j int) error {
+	if err := g.modificationsAllowed(); err != nil {
+		return err
+	}
 	return maySwapComponentsImpl(g, i, j)
 }
 
@@ -1373,6 +1405,9 @@ func (g *growableStack) MaySwapComponentsByKey(i, j enum.EnumKey) error {
 }
 
 func (s *sizedStack) MaySwapComponents(i, j int) error {
+	if err := s.modificationsAllowed(); err != nil {
+		return err
+	}
 	return maySwapComponentsImpl(s, i, j)
 }
 
@@ -1388,83 +1423,93 @@ func (m *mergedStack) MaySwapComponentsByKey(i, j enum.EnumKey) error {
 	return errors.New("MaySwapComponentsByKey is not supported on MergedStacks")
 }
 
-// findCorrespondingStack locates the mutable Stack in copiedState that
-// corresponds to target in originalState. It iterates all stack properties in
-// all sub-state readers of both states in lockstep, comparing each original
-// stack pointer to target. When found, it returns the corresponding stack from
-// the copied state.
+// findCorrespondingStack locates the physical stack at the same canonical
+// owner path in copiedState. Owner paths include direct stack properties and
+// board spaces, so simulation uses exactly the same persisted location.
 func findCorrespondingStack(target ImmutableStack, originalState, copiedState *state) (Stack, error) {
-	// Check gameState readers
-	if stack := findStackInReaderPair(target, originalState.gameState.ReadSetter(), copiedState.gameState.ReadSetter()); stack != nil {
-		return stack, nil
+	physical, err := requirePhysicalStack(target, "target")
+	if err != nil {
+		return nil, err
 	}
-
-	// Check playerState readers
-	for i := 0; i < len(originalState.playerStates); i++ {
-		if stack := findStackInReaderPair(target, originalState.playerStates[i].ReadSetter(), copiedState.playerStates[i].ReadSetter()); stack != nil {
-			return stack, nil
-		}
+	owner, ok := originalState.stackOwners[physical]
+	if !ok {
+		return nil, errors.New("target is not registered in the original state")
 	}
-
-	// Check dynamicComponentValues readers
-	for deckName, origValues := range originalState.dynamicComponentValues {
-		copyValues := copiedState.dynamicComponentValues[deckName]
-		for i := 0; i < len(origValues); i++ {
-			if stack := findStackInReaderPair(target, origValues[i].ReadSetter(), copyValues[i].ReadSetter()); stack != nil {
-				return stack, nil
-			}
-		}
-	}
-
-	return nil, errors.New("could not find corresponding stack in copied state")
-}
-
-// findStackInReaderPair iterates stack properties in two readers in lockstep.
-// If targetStack matches an original stack, returns the corresponding copied
-// stack.
-func findStackInReaderPair(targetStack ImmutableStack, origReader, copyReader PropertyReadSetter) Stack {
-	for propName, propType := range origReader.Props() {
-		if propType != TypeStack {
+	for stack, candidate := range copiedState.stackOwners {
+		if candidate.path != owner.path {
 			continue
 		}
-		if origReader.PropMutable(propName) {
-			origStack, err := origReader.StackProp(propName)
-			if err != nil {
-				continue
-			}
-			if ImmutableStack(origStack) == targetStack {
-				copyStack, err := copyReader.StackProp(propName)
-				if err != nil {
-					continue
-				}
-				return copyStack
-			}
-		} else {
-			origStack, err := origReader.ImmutableStackProp(propName)
-			if err != nil {
-				continue
-			}
-			if origStack == targetStack {
-				// Immutable stacks (MergedStacks) can't be returned as
-				// mutable; this case shouldn't arise in normal usage.
-				continue
-			}
+		current, err := candidate.current()
+		if err != nil {
+			return nil, errors.New("copied owner " + owner.path + " could not be read: " + err.Error())
+		}
+		if current != stack {
+			return nil, errors.New("copied owner " + owner.path + " is stale")
+		}
+		return stack, nil
+	}
+	return nil, errors.New("could not find owner path " + owner.path + " in copied state")
+}
+
+func requirePhysicalStack(value ImmutableStack, role string) (Stack, error) {
+	if value == nil {
+		return nil, errors.New(role + " stack is nil")
+	}
+	stack, ok := value.(Stack)
+	if !ok {
+		return nil, errors.New(role + " is not a physical stack")
+	}
+	switch concrete := stack.(type) {
+	case *growableStack:
+		if concrete == nil {
+			return nil, errors.New(role + " stack is nil")
+		}
+	case *sizedStack:
+		if concrete == nil {
+			return nil, errors.New(role + " stack is nil")
 		}
 	}
-	return nil
+	if value.MergedStack() != nil {
+		return nil, errors.New(role + " is a view, not a physical stack")
+	}
+	return stack, nil
+}
+
+func validateMoveAllEndpoints(from Stack, dest ImmutableStack) (Stack, error) {
+	physicalFrom, err := requirePhysicalStack(from, "source")
+	if err != nil {
+		return nil, err
+	}
+	to, err := requirePhysicalStack(dest, "destination")
+	if err != nil {
+		return nil, err
+	}
+	if physicalFrom == to {
+		return nil, errors.New("source and destination are the same stack")
+	}
+	if physicalFrom.state() != to.state() {
+		return nil, errors.New("source and destination belong to different states")
+	}
+	if err := physicalFrom.modificationsAllowed(); err != nil {
+		return nil, errors.New("source doesn't allow modifications: " + err.Error())
+	}
+	if err := to.modificationsAllowed(); err != nil {
+		return nil, errors.New("destination doesn't allow modifications: " + err.Error())
+	}
+	if physicalFrom.Deck() != to.Deck() {
+		return nil, errors.New("source and destination use different decks")
+	}
+	return to, nil
 }
 
 func mayMoveAllToImpl(from ImmutableStack, dest ImmutableStack) error {
-	if dest == nil {
-		return errors.New("destination stack is nil")
+	physicalFrom, err := requirePhysicalStack(from, "source")
+	if err != nil {
+		return err
 	}
-
-	if from == dest {
-		return errors.New("source and destination are the same stack")
-	}
-
-	if from.Deck() != dest.Deck() {
-		return errors.New("source and destination use different decks")
+	physicalDest, err := validateMoveAllEndpoints(physicalFrom, dest)
+	if err != nil {
+		return err
 	}
 
 	if from.NumComponents() == 0 {
@@ -1476,22 +1521,19 @@ func mayMoveAllToImpl(from ImmutableStack, dest ImmutableStack) error {
 	}
 
 	// Clone state and simulate actual moves.
-	origState := from.state()
-	if origState == nil {
-		return errors.New("source stack has no associated state")
-	}
+	origState := physicalFrom.state()
 
 	copiedState, err := origState.copy(false)
 	if err != nil {
 		return errors.New("failed to copy state for simulation: " + err.Error())
 	}
 
-	copiedFrom, err := findCorrespondingStack(from, origState, copiedState)
+	copiedFrom, err := findCorrespondingStack(physicalFrom, origState, copiedState)
 	if err != nil {
 		return errors.New("failed to find corresponding source stack: " + err.Error())
 	}
 
-	copiedDest, err := findCorrespondingStack(dest, origState, copiedState)
+	copiedDest, err := findCorrespondingStack(physicalDest, origState, copiedState)
 	if err != nil {
 		return errors.New("failed to find corresponding destination stack: " + err.Error())
 	}
@@ -1550,13 +1592,16 @@ func (g *growableStack) MoveAllTo(other Stack) error {
 }
 
 func moveAllToImpl(from Stack, to Stack) error {
-
-	if to.SlotsRemaining() < from.NumComponents() {
+	physicalDest, err := validateMoveAllEndpoints(from, to)
+	if err != nil {
+		return err
+	}
+	if physicalDest.SlotsRemaining() < from.NumComponents() {
 		return errors.New("Not enough space in the target stack")
 	}
 
 	for from.NumComponents() > 0 {
-		if err := from.moveComponent(from.firstComponentIndex(), to, to.nextSlot()); err != nil {
+		if err := from.moveComponent(from.firstComponentIndex(), physicalDest, physicalDest.nextSlot()); err != nil {
 			return err
 		}
 	}
@@ -1573,7 +1618,7 @@ func (s *sizedStack) state() *state {
 }
 
 func (m *mergedStack) state() *state {
-	if len(m.stacks) == 0 {
+	if len(m.stacks) == 0 || m.stacks[0] == nil {
 		return nil
 	}
 	return m.stacks[0].state()
@@ -1588,9 +1633,9 @@ func (s *sizedStack) setState(state *state) {
 }
 
 func (m *mergedStack) setState(state *state) {
-	for i := range m.stacks {
-		m.stacks[i].setState(state)
-	}
+	// Merged stacks are views. Physical owner properties and board spaces are
+	// connected independently; a view must never confer ownership or overwrite
+	// a backing stack's existing state pointer.
 }
 
 func (g *growableStack) Deck() *Deck {
@@ -1612,7 +1657,7 @@ func (s *sizedStack) Deck() *Deck {
 }
 
 func (m *mergedStack) Deck() *Deck {
-	if len(m.stacks) == 0 {
+	if len(m.stacks) == 0 || m.stacks[0] == nil {
 		return nil
 	}
 	return m.stacks[0].Deck()
@@ -1622,6 +1667,9 @@ func (g *growableStack) constraintModificationAllowed() error {
 	st := g.state()
 	if st == nil {
 		return nil
+	}
+	if err := g.modificationsAllowed(); err != nil {
+		return err
 	}
 	if st.game != nil && st.game.initalized && !st.game.allowMutableConstraints {
 		return errors.New("constraints cannot be modified after game setup is complete")
@@ -1665,6 +1713,9 @@ func (s *sizedStack) constraintModificationAllowed() error {
 	st := s.state()
 	if st == nil {
 		return nil
+	}
+	if err := s.modificationsAllowed(); err != nil {
+		return err
 	}
 	if st.game != nil && st.game.initalized && !st.game.allowMutableConstraints {
 		return errors.New("constraints cannot be modified after game setup is complete")
@@ -1711,6 +1762,9 @@ func (g *growableStack) modificationsAllowed() error {
 	if g.state().Sanitized() {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
 	}
+	if err := g.state().validateStackAttachment(g); err != nil {
+		return errors.New("Modifications not allowed: " + err.Error())
+	}
 	return nil
 }
 
@@ -1720,6 +1774,9 @@ func (s *sizedStack) modificationsAllowed() error {
 	}
 	if s.state().Sanitized() {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
+	}
+	if err := s.state().validateStackAttachment(s); err != nil {
+		return errors.New("Modifications not allowed: " + err.Error())
 	}
 	return nil
 }
@@ -1902,6 +1959,12 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	if source == nil {
 		return errors.New("Source is a nil stack")
 	}
+	if destination == nil {
+		return errors.New("Destination is a nil stack")
+	}
+	if source.state() != destination.state() {
+		return errors.New("Source and destination belong to different states")
+	}
 
 	if err := source.modificationsAllowed(); err != nil {
 		return errors.New("Source doesn't allow modifications: " + err.Error())
@@ -1955,14 +2018,16 @@ func (s *sizedStack) moveComponentToStart(componentIndex int) error {
 }
 
 func moveComponentToExtremeImpl(stack Stack, componentIndex int, isStart bool) error {
-
-	scratchStack := stack.Deck().NewStack(0).(*growableStack)
-
-	scratchStack.setState(stack.state())
-
-	if err := stack.moveComponent(componentIndex, scratchStack, scratchStack.firstSlot()); err != nil {
-		return errors.New("Couldn't move to scratch stack: " + err.Error())
+	if stack == nil {
+		return errors.New("stack is nil")
 	}
+	if err := stack.modificationsAllowed(); err != nil {
+		return err
+	}
+	if stack.ComponentAt(componentIndex) == nil {
+		return errors.New("component index does not point to a component")
+	}
+	moved := stack.removeComponentAt(componentIndex)
 
 	targetSlot := stack.lastSlot()
 
@@ -1970,9 +2035,7 @@ func moveComponentToExtremeImpl(stack Stack, componentIndex int, isStart bool) e
 		targetSlot = stack.firstSlot()
 	}
 
-	if err := scratchStack.moveComponent(0, stack, targetSlot); err != nil {
-		return errors.New("Couldn't move back from scratch stack: " + err.Error())
-	}
+	stack.insertComponentAt(targetSlot, moved)
 
 	return nil
 
@@ -2120,6 +2183,11 @@ func (g *growableStack) MaxSize() int {
 }
 
 func (g *growableStack) ExpandSize(newSlots int) error {
+	if g.state() != nil {
+		if err := g.modificationsAllowed(); err != nil {
+			return err
+		}
+	}
 
 	if !g.Resizable() {
 		return errors.New("stack is not resizable")
@@ -2139,6 +2207,11 @@ func (g *growableStack) ExpandSize(newSlots int) error {
 }
 
 func (g *growableStack) ContractSize(newSize int) error {
+	if g.state() != nil {
+		if err := g.modificationsAllowed(); err != nil {
+			return err
+		}
+	}
 	if !g.Resizable() {
 		return errors.New("stack is not resizable")
 	}
@@ -2164,6 +2237,11 @@ func (g *growableStack) ContractSize(newSize int) error {
 }
 
 func (g *growableStack) SetSize(newSize int) error {
+	if g.state() != nil {
+		if err := g.modificationsAllowed(); err != nil {
+			return err
+		}
+	}
 	if g.MaxSize() == newSize {
 		//No op!
 		return nil
@@ -2234,6 +2312,11 @@ func (s *sizedStack) MaxSize() int {
 }
 
 func (s *sizedStack) ExpandSize(newSlots int) error {
+	if s.state() != nil {
+		if err := s.modificationsAllowed(); err != nil {
+			return err
+		}
+	}
 	if !s.Resizable() {
 		return errors.New("stack is not resizable")
 	}
@@ -2256,6 +2339,11 @@ func (s *sizedStack) ExpandSize(newSlots int) error {
 }
 
 func (s *sizedStack) ContractSize(newSize int) error {
+	if s.state() != nil {
+		if err := s.modificationsAllowed(); err != nil {
+			return err
+		}
+	}
 	if !s.Resizable() {
 		return errors.New("stack is not resizable")
 	}
@@ -2303,6 +2391,11 @@ func (s *sizedStack) ContractSize(newSize int) error {
 }
 
 func (s *sizedStack) SetSize(newSize int) error {
+	if s.state() != nil {
+		if err := s.modificationsAllowed(); err != nil {
+			return err
+		}
+	}
 
 	if s.Len() == newSize {
 		//No op!

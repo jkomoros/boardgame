@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"reflect"
+	"sort"
 	"strconv"
 
 	"github.com/jkomoros/boardgame/errors"
@@ -670,6 +671,10 @@ type state struct {
 	//move around.
 	componentIndex map[Component]componentIndexItem
 
+	// stackOwners is the authoritative mapping from every physical persisted
+	// stack to its canonical live property or board-space location.
+	stackOwners map[Stack]stackOwner
+
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
 	calculatingComputed bool
@@ -735,10 +740,7 @@ func (s *state) containingStack(c Component) (stack Stack, slotIndex int, err er
 		if s.Sanitized() {
 			return nil, 0, errors.New("that component's location is not public information")
 		}
-		//If this happened and the state isn't expected, then something bad happened.
-		//TODO: remove this once debugging that it doesn't happen
-		log.Println("WARNING: Component didn't exist in index")
-		return nil, 0, errors.New("Unexpectedly that component was not found in the index")
+		return nil, 0, errors.New("component was not found in any attached stack; a captured stack may be stale or replaced")
 	}
 
 	//Sanity check that we're allowed to see that component in that location.
@@ -766,6 +768,31 @@ func (s *state) containingStack(c Component) (stack Stack, slotIndex int, err er
 func (s *state) buildComponentIndex() {
 	s.componentIndex = make(map[Component]componentIndexItem)
 
+	if s.stackOwners != nil {
+		owners := make([]struct {
+			stack Stack
+			owner stackOwner
+		}, 0, len(s.stackOwners))
+		for stack, owner := range s.stackOwners {
+			owners = append(owners, struct {
+				stack Stack
+				owner stackOwner
+			}{stack, owner})
+		}
+		sort.Slice(owners, func(i, j int) bool { return owners[i].owner.path < owners[j].owner.path })
+		for _, item := range owners {
+			current, err := item.owner.current()
+			if err != nil || current != item.stack {
+				continue
+			}
+			for i, c := range item.stack.Components() {
+				s.componentAddedImpl(c, item.stack, i)
+			}
+		}
+		return
+	}
+
+	// Internal primitive tests may construct a state without a registry.
 	if s.gameState != nil {
 		s.reportComponentLocationsForReader(s.gameState.ReadSetter())
 	}
@@ -1056,12 +1083,15 @@ func (s *state) setStateForSubStates() error {
 
 	s.mutableDynamicComponentValues = dynamicComponentValues
 
-	return nil
+	return s.initializeStackOwners()
 }
 
 // validateBeforeSave insures that for all readers, the playerIndexes are
 // valid, and the stacks are too.
 func (s *state) validateBeforeSave() error {
+	if err := s.validateComponentConservation(); err != nil {
+		return errors.New("component conservation failed: " + err.Error())
+	}
 
 	if err := validateReaderBeforeSave(s.GameState().Reader(), "Game", s); err != nil {
 		return err

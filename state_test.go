@@ -2,8 +2,8 @@ package boardgame
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	stderrors "errors"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -33,60 +33,60 @@ func (b *TagTestBehavior) ConfigureFromTags(tags reflect.StructTag, containingSu
 
 // tagConfigTestState is a minimal SubState embedding TagTestBehavior with a tag.
 type tagConfigTestState struct {
-	state            State
-	ref              StatePropertyRef
+	state           State
+	ref             StatePropertyRef
 	TagTestBehavior `testcfg:"hello"`
-	Score            int
+	Score           int
 }
 
-func (t *tagConfigTestState) Reader() PropertyReader           { return getDefaultReader(t) }
-func (t *tagConfigTestState) ReadSetter() PropertyReadSetter   { return getDefaultReadSetter(t) }
+func (t *tagConfigTestState) Reader() PropertyReader         { return getDefaultReader(t) }
+func (t *tagConfigTestState) ReadSetter() PropertyReadSetter { return getDefaultReadSetter(t) }
 func (t *tagConfigTestState) ConnectContainingState(state State, ref StatePropertyRef) {
 	t.state = state
 	t.ref = ref
 }
-func (t *tagConfigTestState) FinishStateSetUp()                    {}
-func (t *tagConfigTestState) State() State                         { return t.state }
-func (t *tagConfigTestState) ImmutableState() ImmutableState       { return t.state }
-func (t *tagConfigTestState) StatePropertyRef() StatePropertyRef   { return t.ref }
+func (t *tagConfigTestState) FinishStateSetUp()                  {}
+func (t *tagConfigTestState) State() State                       { return t.state }
+func (t *tagConfigTestState) ImmutableState() ImmutableState     { return t.state }
+func (t *tagConfigTestState) StatePropertyRef() StatePropertyRef { return t.ref }
 
 // tagConfigTestStateNoTag embeds TagTestBehavior without a struct tag.
 type tagConfigTestStateNoTag struct {
-	state            State
-	ref              StatePropertyRef
+	state           State
+	ref             StatePropertyRef
 	TagTestBehavior // no struct tag
-	Score            int
+	Score           int
 }
 
-func (t *tagConfigTestStateNoTag) Reader() PropertyReader           { return getDefaultReader(t) }
-func (t *tagConfigTestStateNoTag) ReadSetter() PropertyReadSetter   { return getDefaultReadSetter(t) }
+func (t *tagConfigTestStateNoTag) Reader() PropertyReader         { return getDefaultReader(t) }
+func (t *tagConfigTestStateNoTag) ReadSetter() PropertyReadSetter { return getDefaultReadSetter(t) }
 func (t *tagConfigTestStateNoTag) ConnectContainingState(state State, ref StatePropertyRef) {
 	t.state = state
 	t.ref = ref
 }
-func (t *tagConfigTestStateNoTag) FinishStateSetUp()                    {}
-func (t *tagConfigTestStateNoTag) State() State                         { return t.state }
-func (t *tagConfigTestStateNoTag) ImmutableState() ImmutableState       { return t.state }
-func (t *tagConfigTestStateNoTag) StatePropertyRef() StatePropertyRef   { return t.ref }
+func (t *tagConfigTestStateNoTag) FinishStateSetUp()                  {}
+func (t *tagConfigTestStateNoTag) State() State                       { return t.state }
+func (t *tagConfigTestStateNoTag) ImmutableState() ImmutableState     { return t.state }
+func (t *tagConfigTestStateNoTag) StatePropertyRef() StatePropertyRef { return t.ref }
 
 // tagConfigTestStateError embeds TagTestBehavior with a tag that triggers an error.
 type tagConfigTestStateError struct {
-	state            State
-	ref              StatePropertyRef
+	state           State
+	ref             StatePropertyRef
 	TagTestBehavior `testcfg:"error"`
-	Score            int
+	Score           int
 }
 
-func (t *tagConfigTestStateError) Reader() PropertyReader           { return getDefaultReader(t) }
-func (t *tagConfigTestStateError) ReadSetter() PropertyReadSetter   { return getDefaultReadSetter(t) }
+func (t *tagConfigTestStateError) Reader() PropertyReader         { return getDefaultReader(t) }
+func (t *tagConfigTestStateError) ReadSetter() PropertyReadSetter { return getDefaultReadSetter(t) }
 func (t *tagConfigTestStateError) ConnectContainingState(state State, ref StatePropertyRef) {
 	t.state = state
 	t.ref = ref
 }
-func (t *tagConfigTestStateError) FinishStateSetUp()                    {}
-func (t *tagConfigTestStateError) State() State                         { return t.state }
-func (t *tagConfigTestStateError) ImmutableState() ImmutableState       { return t.state }
-func (t *tagConfigTestStateError) StatePropertyRef() StatePropertyRef   { return t.ref }
+func (t *tagConfigTestStateError) FinishStateSetUp()                  {}
+func (t *tagConfigTestStateError) State() State                       { return t.state }
+func (t *tagConfigTestStateError) ImmutableState() ImmutableState     { return t.state }
+func (t *tagConfigTestStateError) StatePropertyRef() StatePropertyRef { return t.ref }
 
 func TestAutoConnectBehaviorsTagConfigurable(t *testing.T) {
 	// Happy path: tag present and ConfigureFromTags receives it
@@ -836,8 +836,7 @@ func TestStateSerialization(t *testing.T) {
 
 	_, _ = json.Marshal(reconstitutedState)
 
-	//Can't do ThenDiffOnFail because components and sub-states now have references back to state (loops)
-	assert.For(t).ThatActual(reconstitutedState).Equals(game.CurrentState())
+	assertPersistedStatesEqual(t, reconstitutedState, game.CurrentState())
 
 }
 
