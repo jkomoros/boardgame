@@ -78,7 +78,7 @@ func TestRecordCurrentPlayerChoiceUsesTopLevelMoveConvention(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	game, err := manager.NewGame(2, nil, nil)
+	game, err := manager.NewGame(4, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestRecordedChoiceComposesWithOuterApply(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	game, err := manager.NewGame(2, nil, nil)
+	game, err := manager.NewGame(4, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
