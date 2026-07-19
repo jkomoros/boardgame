@@ -229,6 +229,9 @@ only an explicit shape capability—`rectangle`, `rounded-rectangle`, or
 Cards publish a rounded rectangle; circular token types publish a circle; other
 framework components have a conservative rectangle default. No DOM, text,
 artwork, card face, computed style, or game property can cross this boundary.
+Echo size is installed once and endpoint size changes are expressed as transform
+scale, so active trails animate only compositor-friendly transform and opacity
+rather than width or height.
 
 Framework component implementations can make that capability explicit:
 

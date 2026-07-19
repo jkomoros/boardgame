@@ -238,6 +238,9 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
         left: pulse?.style.left,
         top: pulse?.style.top,
         trailRadius: trailEcho?.style.borderRadius,
+        trailWidth: trailEcho?.style.width,
+        trailHeight: trailEcho?.style.height,
+        animatesLayout: trailFrames.some(frame => 'width' in frame || 'height' in frame),
         trailFrom: trailFrames[0]?.transform,
         trailTo: trailFrames.at(-1)?.transform,
       };
@@ -346,8 +349,11 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
       left: '40px',
       top: '40px',
       trailRadius: '12%',
-      trailFrom: 'translate(40px, 40px) translate(-50%, -50%)',
-      trailTo: 'translate(230px, 120px) translate(-50%, -50%)',
+      trailWidth: '40px',
+      trailHeight: '20px',
+      animatesLayout: false,
+      trailFrom: 'translate(40px, 40px) translate(-50%, -50%) scale(1, 1)',
+      trailTo: 'translate(230px, 120px) translate(-50%, -50%) scale(1.5, 2)',
     });
     expect(result.atArrival).toEqual({ particles: 3, left: '230px', top: '120px' });
     expect(result.departureResult).toEqual({ status: 'finished' });

@@ -889,27 +889,27 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       element.className = 'trail-echo';
       element.style.setProperty('--effect-color', palette[index % palette.length]);
       element.style.borderRadius = borderRadius;
+      const baseWidth = Math.max(1, Math.abs(from.width));
+      const baseHeight = Math.max(1, Math.abs(from.height));
+      const scaleX = Math.max(0.01, Math.abs(to.width) / baseWidth);
+      const scaleY = Math.max(0.01, Math.abs(to.height) / baseHeight);
+      element.style.width = `${baseWidth}px`;
+      element.style.height = `${baseHeight}px`;
       container.appendChild(element);
       elements.push(element);
       const echoOpacity = opacity * (1 - index / (reservation.particles + 1));
       animations.push(element.animate([
         {
-          width: `${from.width}px`,
-          height: `${from.height}px`,
-          transform: `translate(${fromCenter.x}px, ${fromCenter.y}px) translate(-50%, -50%)`,
+          transform: `translate(${fromCenter.x}px, ${fromCenter.y}px) translate(-50%, -50%) scale(1, 1)`,
           opacity: 0,
         },
         {
-          width: `${from.width}px`,
-          height: `${from.height}px`,
-          transform: `translate(${fromCenter.x}px, ${fromCenter.y}px) translate(-50%, -50%)`,
+          transform: `translate(${fromCenter.x}px, ${fromCenter.y}px) translate(-50%, -50%) scale(1, 1)`,
           opacity: echoOpacity,
           offset: 0.08,
         },
         {
-          width: `${to.width}px`,
-          height: `${to.height}px`,
-          transform: `translate(${toCenter.x}px, ${toCenter.y}px) translate(-50%, -50%)`,
+          transform: `translate(${toCenter.x}px, ${toCenter.y}px) translate(-50%, -50%) scale(${scaleX}, ${scaleY})`,
           opacity: 0,
         },
       ], {
