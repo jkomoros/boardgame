@@ -379,7 +379,7 @@ func (g *GameManager) LegalRenderVerdict(v LegalVerdict) string {
 // attached to a declarative plan because the move does not embed a supported
 // moves-package base. LegalCustom automatically opts supported moves in.
 func legalCustomUnsupportedBaseError(moveName string) error {
-	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom), which automatically opts into declarative legality, but its base type does not support declarative legality (only moves.Default, moves.CurrentPlayer, moves.FixUp, moves.FixUpMulti, and moves.StartPhase do); switch to one of those base types or move the LegalCustom logic into a Legal() override", moveName)
+	return fmt.Errorf("move %q implements CustomLegaler (LegalCustom), which automatically opts into declarative legality, but its base type does not support declarative legality (only moves.Default, moves.CurrentPlayer, moves.RecordCurrentPlayerChoice, moves.FixUp, moves.FixUpMulti, and moves.StartPhase do); switch to one of those base types or move the LegalCustom logic into a Legal() override", moveName)
 }
 
 // assembleLegalPlans is called once at the end of NewGameManager (after moves
@@ -387,8 +387,9 @@ func legalCustomUnsupportedBaseError(moveName string) error {
 // that has opted in to declarative legality (declares WithLegalPreconditions or
 // explicitly enables a zero-authored-spec plan), it
 // verifies the move is on a supported base (design spec §5's seam:
-// legalSupportedMovesBaseTypes — Default, CurrentPlayer, FixUp, FixUpMulti,
-// StartPhase), assembles and validates its plan, stores it, and probes that
+// legalSupportedMovesBaseTypes — Default, CurrentPlayer,
+// RecordCurrentPlayerChoice, FixUp, FixUpMulti, StartPhase), assembles and
+// validates its plan, stores it, and probes that
 // the declarations are actually reachable. Any failure is a boot error naming
 // the offending move (and, for the seam check, the unsupported base type). A
 // move with neither form of opt-in is left entirely alone: no plan, no probe
@@ -433,7 +434,7 @@ func (g *GameManager) assembleLegalPlans(exampleState ImmutableState) error {
 		// type outside legalSupportedMovesBaseTypes cannot opt in — its
 		// imperative Legal() would interleave wrongly with plan evaluation.
 		if base := legalUnsupportedMovesBaseType(move); base != "" {
-			return fmt.Errorf("move %q declares preconditions but embeds unsupported framework move type %q: only moves.Default, moves.CurrentPlayer, moves.FixUp, moves.FixUpMulti, and moves.StartPhase support declarative legality (the seam allowlist is legalSupportedMovesBaseTypes in legal_plan.go, enforced structurally by moves/seam_source_test.go — widening it requires that type to declare no Legal() override of its own)", mType.Name(), base)
+			return fmt.Errorf("move %q declares preconditions but embeds unsupported framework move type %q: only moves.Default, moves.CurrentPlayer, moves.RecordCurrentPlayerChoice, moves.FixUp, moves.FixUpMulti, and moves.StartPhase support declarative legality (the seam allowlist is legalSupportedMovesBaseTypes in legal_plan.go, enforced structurally by moves/seam_source_test.go — widening it requires that type to declare no Legal() override of its own)", mType.Name(), base)
 		}
 
 		var contributed []LegalSpec
@@ -703,7 +704,7 @@ func (g *GameManager) probeLegalReachable(mType *moveType, exampleState Immutabl
 	g.legalProbeReached = false
 
 	if !reached {
-		return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it; only moves embedding a base type from the seam allowlist (legalSupportedMovesBaseTypes in legal_plan.go: Default, CurrentPlayer, FixUp, FixUpMulti, StartPhase) can opt in at all, and each of those declares no Legal() override of its own, so this probe should only ever fire on a move's OWN override, never on the embedded base", mType.Name())
+		return fmt.Errorf("move %q declares preconditions but its Legal() override never reaches moves.Default.Legal — declarations would be dead (use LegalCustom for imperative residue, or super-call the embedded chain); put the super-call FIRST in your override — one that conditionally returns before super-calling can trip this same probe even against the always-valid example state used to run it; only moves embedding a base type from the seam allowlist (legalSupportedMovesBaseTypes in legal_plan.go: Default, CurrentPlayer, RecordCurrentPlayerChoice, FixUp, FixUpMulti, StartPhase) can opt in at all; the bases beyond the original Default/CurrentPlayer seam declare no Legal() override, so this probe should only ever fire on a move's OWN override, never on those embedded bases", mType.Name())
 	}
 	return nil
 }
@@ -899,7 +900,9 @@ const legalMovesPackagePathSuffix = "boardgame/moves"
 // original v1 seam (design spec §2) — they declare their own Legal()
 // overrides, verified equivalent to plan evaluation by
 // TestLegalChainStringFreeze and the CurrentPlayer opt-in tests
-// (moves/legal_plan_test.go). FixUp, FixUpMulti, and StartPhase were added by
+// (moves/legal_plan_test.go). RecordCurrentPlayerChoice inherits that exact
+// CurrentPlayer legality and declares no Legal method of its own. FixUp,
+// FixUpMulti, and StartPhase were added by
 // Task 6 (design spec §5): none of the three declares its own Legal()
 // override — their legality IS Default.Legal, verbatim, so plan evaluation
 // composes exactly as it does for a bare Default-embedding move. This is
@@ -918,11 +921,12 @@ const legalMovesPackagePathSuffix = "boardgame/moves"
 // occurrence, including repeats, because they call the exact same
 // moves.Default.legalMoveInProgression method.
 var legalSupportedMovesBaseTypes = map[string]bool{
-	"Default":       true,
-	"CurrentPlayer": true,
-	"FixUp":         true,
-	"FixUpMulti":    true,
-	"StartPhase":    true,
+	"Default":                   true,
+	"CurrentPlayer":             true,
+	"RecordCurrentPlayerChoice": true,
+	"FixUp":                     true,
+	"FixUpMulti":                true,
+	"StartPhase":                true,
 }
 
 // LegalSupportedMovesBaseTypeNames is engine-internal plumbing exposing the

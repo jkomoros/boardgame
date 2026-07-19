@@ -266,7 +266,12 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 			continue
 		}
 		//Found it!
-		foundTypes = structFields(location, theStruct, allStructs)
+		// Recurse with the imported package's own directory and struct catalog.
+		// Passing the outer package's catalog here flattened one imported level
+		// but silently lost fields inherited through a second imported base (for
+		// example a game move -> moves.RecordCurrentPlayerChoice ->
+		// moves.CurrentPlayer -> TargetPlayerIndex).
+		foundTypes = structFields(importPath, theStruct, sources.Structs)
 
 		memoizedEmbeddedStructs[key] = foundTypes
 

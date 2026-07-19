@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/choice"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/sirupsen/logrus"
@@ -51,8 +50,7 @@ func (d *projectedChoicesDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		options := []moves.CustomConfigurationOption{
 			moves.WithMoveName(name),
 			moves.WithMoveInputFieldOverride("TargetPlayerIndex", boardgame.MoveInputRequired),
-			moves.WithChoiceProjection(choice.PlayerIndexes("TargetPlayerIndex").
-				DiscloseExactAvailabilityToActor("player identities and target legality are intentionally visible to the acting player")),
+			moves.WithChoices("TargetPlayerIndex"),
 		}
 		if d.namePolicy != "" {
 			options = append(options, moves.WithMoveNameSanitization(d.namePolicy))

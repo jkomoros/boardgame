@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 )
 
 const moveChoiceProjectionConfigKey = "github.com/jkomoros/boardgame.MoveChoiceProjection"
@@ -40,22 +39,21 @@ const (
 	MoveChoiceSourceEnumValues MoveChoiceSource = "enum-values"
 )
 
-// MoveChoiceDisclosure records the security-sensitive author assertion made
-// by a projection. Version one only supports exact candidate membership and
-// availability disclosed to the player who would propose the move.
+// MoveChoiceDisclosure records the actor-visible semantics of a projection.
+// Version one only supports exact candidate membership and availability
+// disclosed to the player who would propose the move.
 type MoveChoiceDisclosure string
 
 const MoveChoiceDisclosureActorExact MoveChoiceDisclosure = "actor-exact"
 
 // MoveChoiceProjection is the immutable declaration stored on a configured
-// move. AuditRationale is required and retained for code/security review, but
-// is intentionally excluded from generated and wire contracts.
+// move. Public authoring goes through moves.WithChoices; Source may be empty and
+// is then inferred from the resolved creator-input codec.
 type MoveChoiceProjection struct {
 	FieldName      string
 	Source         MoveChoiceSource
 	ExcludedValues []string
 	Disclosure     MoveChoiceDisclosure
-	AuditRationale string
 }
 
 // MoveChoiceProjectionSchema is the frozen generated/runtime contract for one
@@ -67,11 +65,10 @@ type MoveChoiceProjectionSchema struct {
 	Source          MoveChoiceSource     `json:"source"`
 	CandidateValues []string             `json:"candidateValues,omitempty"`
 	Disclosure      MoveChoiceDisclosure `json:"disclosure"`
-	AuditRationale  string               `json:"-"`
 }
 
 // SetMoveChoiceProjection stores one choice-projection declaration in a move
-// configuration. It is primarily used by the sealed moves/choice descriptors.
+// configuration. Game authors normally use moves.WithChoices.
 func SetMoveChoiceProjection(config PropertyCollection, projection MoveChoiceProjection) error {
 	if config == nil {
 		return fmt.Errorf("move choice projection configuration is nil")
@@ -192,9 +189,6 @@ func validateMoveChoiceProjectionSchemaLimits(schema []MoveChoiceProjectionSchem
 }
 
 func resolveMoveChoiceProjection(move MoveInputSchemaMove, projection MoveChoiceProjection) (MoveChoiceProjectionSchema, error) {
-	if strings.TrimSpace(projection.AuditRationale) == "" {
-		return MoveChoiceProjectionSchema{}, fmt.Errorf("actor-exact disclosure requires a non-empty audit rationale")
-	}
 	if projection.Disclosure != MoveChoiceDisclosureActorExact {
 		return MoveChoiceProjectionSchema{}, fmt.Errorf("unsupported disclosure %q", projection.Disclosure)
 	}
@@ -216,14 +210,25 @@ func resolveMoveChoiceProjection(move MoveInputSchemaMove, projection MoveChoice
 		return MoveChoiceProjectionSchema{}, fmt.Errorf("version one requires exactly one required creator field and it must be %q; got %d required fields", projection.FieldName, required)
 	}
 
-	item := MoveChoiceProjectionSchema{
-		MoveName:       move.Name,
-		FieldName:      field.Name,
-		Source:         projection.Source,
-		Disclosure:     projection.Disclosure,
-		AuditRationale: projection.AuditRationale,
+	source := projection.Source
+	if source == "" {
+		switch field.Codec {
+		case string(MoveInputCodecPlayerIndex):
+			source = MoveChoiceSourcePlayers
+		case string(MoveInputCodecEnum):
+			source = MoveChoiceSourceEnumValues
+		default:
+			return MoveChoiceProjectionSchema{}, fmt.Errorf("field %q uses unsupported choice codec %q; choices require player-index or ordinary enum input", field.Name, field.Codec)
+		}
 	}
-	switch projection.Source {
+
+	item := MoveChoiceProjectionSchema{
+		MoveName:   move.Name,
+		FieldName:  field.Name,
+		Source:     source,
+		Disclosure: projection.Disclosure,
+	}
+	switch source {
 	case MoveChoiceSourcePlayers:
 		if field.Codec != string(MoveInputCodecPlayerIndex) {
 			return MoveChoiceProjectionSchema{}, fmt.Errorf("player source requires codec %q, got %q", MoveInputCodecPlayerIndex, field.Codec)
@@ -277,8 +282,6 @@ func MoveChoiceProjectionSchemaFingerprint(manager *GameManager) (string, error)
 }
 
 // FingerprintMoveChoiceProjectionSchema fingerprints semantic projection data.
-// Audit rationale is deliberately absent: editing review prose must not stale a
-// generated client or alter a wire protocol.
 func FingerprintMoveChoiceProjectionSchema(schema []MoveChoiceProjectionSchema) string {
 	canonical := cloneMoveChoiceProjectionSchema(schema)
 	for i := range canonical {

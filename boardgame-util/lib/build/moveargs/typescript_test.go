@@ -77,7 +77,6 @@ func TestGenerateTypeScriptEmitsExactNarrowedChoiceProjectionMap(t *testing.T) {
 	choices := []ChoiceProjectionInfo{{
 		MoveName: "Guess Card", FieldName: "GuessedCard", Source: boardgame.MoveChoiceSourceEnumValues,
 		CandidateValues: []string{"Guard", "Priest"}, Disclosure: boardgame.MoveChoiceDisclosureActorExact,
-		AuditRationale: "not generated",
 	}, {
 		MoveName: "Select Player", FieldName: "OtherPlayerIndex", Source: boardgame.MoveChoiceSourcePlayers,
 		Disclosure: boardgame.MoveChoiceDisclosureActorExact,

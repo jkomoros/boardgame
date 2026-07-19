@@ -20,6 +20,7 @@ type consumesUniquenessConfiguration interface{ consumesUniquenessConfiguration(
 type consumesRequireAdminConfiguration interface{ consumesRequireAdminConfiguration() }
 type consumesMarketFieldConfiguration interface{ consumesMarketFieldConfiguration() }
 type consumesDrawDiscardPairFieldConfiguration interface{ consumesDrawDiscardPairFieldConfiguration() }
+type consumesRecordedChoiceConfiguration interface{ consumesRecordedChoiceConfiguration() }
 
 func (*StartPhase) consumesStartPhaseConfiguration() {}
 
@@ -99,6 +100,9 @@ func validateCustomConfiguration(move boardgame.Move, config boardgame.PropertyC
 		}},
 		{configPropDrawDiscardPairField, "WithDrawDiscardPairField", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
 			return implementsConfigurationConsumer[consumesDrawDiscardPairFieldConfiguration](move)
+		}},
+		{configPropRecordedChoices, "WithRecordedChoice", func(move boardgame.Move, _ boardgame.PropertyCollection) bool {
+			return implementsConfigurationConsumer[consumesRecordedChoiceConfiguration](move)
 		}},
 	}
 

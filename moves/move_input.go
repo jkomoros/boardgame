@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/choice"
 )
 
 const configPropMoveInputDeclarations = fullyQualifiedPackageName + "MoveInputDeclarations"
@@ -69,18 +68,6 @@ func WithMoveInputFieldOverride(name string, disposition boardgame.MoveInputDisp
 // WithMoveInputDefault marks a field as server-defaulted and overrideable.
 func WithMoveInputDefault(name string, codec ...boardgame.MoveInputCodec) CustomConfigurationOption {
 	return WithMoveInputField(name, boardgame.MoveInputServerDefaulted, codec...)
-}
-
-// WithChoiceProjection opts a finite creator input into actor-specific exact
-// candidate projection. The sealed descriptor contains security semantics only;
-// UI copy and presentation belong to the client renderer.
-func WithChoiceProjection(projection choice.Projection) CustomConfigurationOption {
-	return func(config boardgame.PropertyCollection) {
-		declarations, _ := config[configPropMoveChoiceProjections].([]moveChoiceProjectionDeclaration)
-		config[configPropMoveChoiceProjections] = append(declarations, moveChoiceProjectionDeclaration{
-			projection: projection.Declaration(),
-		})
-	}
 }
 
 func collectMoveInputFields(move AutoConfigurableMove, config boardgame.PropertyCollection) error {

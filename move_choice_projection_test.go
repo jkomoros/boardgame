@@ -21,9 +21,8 @@ func choiceProjectionMoveSchema() MoveInputSchemaMove {
 
 func TestResolveMoveChoiceProjectionNarrowsEnumUniverse(t *testing.T) {
 	projection := MoveChoiceProjection{
-		FieldName: "GuessedCard", Source: MoveChoiceSourceEnumValues,
+		FieldName:      "GuessedCard",
 		ExcludedValues: []string{"Unknown"}, Disclosure: MoveChoiceDisclosureActorExact,
-		AuditRationale: "the card catalogue and protection state are public",
 	}
 	got, err := resolveMoveChoiceProjection(choiceProjectionMoveSchema(), projection)
 	if err != nil {
@@ -32,21 +31,22 @@ func TestResolveMoveChoiceProjectionNarrowsEnumUniverse(t *testing.T) {
 	if len(got.CandidateValues) != 2 || got.CandidateValues[0] != "Guard" || got.CandidateValues[1] != "Priest" {
 		t.Fatalf("candidate values = %v", got.CandidateValues)
 	}
-	if got.AuditRationale != projection.AuditRationale {
-		t.Fatalf("audit rationale was not retained: %#v", got)
+	if got.Source != MoveChoiceSourceEnumValues {
+		t.Fatalf("source = %q, want inferred enum source", got.Source)
 	}
 }
 
-func TestResolveMoveChoiceProjectionRequiresExplicitAuditedActorDisclosure(t *testing.T) {
-	base := MoveChoiceProjection{FieldName: "GuessedCard", Source: MoveChoiceSourceEnumValues}
+func TestResolveMoveChoiceProjectionValidatesDisclosureAndExclusions(t *testing.T) {
+	base := MoveChoiceProjection{FieldName: "GuessedCard"}
 	tests := []struct {
 		name       string
 		projection MoveChoiceProjection
 		want       string
 	}{
-		{"missing rationale", MoveChoiceProjection{FieldName: base.FieldName, Source: base.Source, Disclosure: MoveChoiceDisclosureActorExact}, "audit rationale"},
-		{"missing disclosure", MoveChoiceProjection{FieldName: base.FieldName, Source: base.Source, AuditRationale: "reviewed"}, "unsupported disclosure"},
-		{"unknown exclusion", MoveChoiceProjection{FieldName: base.FieldName, Source: base.Source, Disclosure: MoveChoiceDisclosureActorExact, AuditRationale: "reviewed", ExcludedValues: []string{"Baron"}}, "not canonical"},
+		{"missing disclosure", MoveChoiceProjection{FieldName: base.FieldName}, "unsupported disclosure"},
+		{"unknown exclusion", MoveChoiceProjection{FieldName: base.FieldName, Disclosure: MoveChoiceDisclosureActorExact, ExcludedValues: []string{"Baron"}}, "not canonical"},
+		{"duplicate exclusion", MoveChoiceProjection{FieldName: base.FieldName, Disclosure: MoveChoiceDisclosureActorExact, ExcludedValues: []string{"Unknown", "Unknown"}}, "duplicated"},
+		{"exhaustive exclusions", MoveChoiceProjection{FieldName: base.FieldName, Disclosure: MoveChoiceDisclosureActorExact, ExcludedValues: []string{"Guard", "Priest", "Unknown"}}, "entire candidate universe"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -58,17 +58,52 @@ func TestResolveMoveChoiceProjectionRequiresExplicitAuditedActorDisclosure(t *te
 	}
 }
 
-func TestMoveChoiceProjectionFingerprintExcludesAuditProse(t *testing.T) {
+func TestResolveMoveChoiceProjectionInfersPlayerSourceAndRejectsUnsupportedCodecs(t *testing.T) {
+	playerMove := MoveInputSchemaMove{Name: "Choose Player", Fields: []MoveInputSchemaField{{
+		Name: "Target", Disposition: string(MoveInputRequired), Codec: string(MoveInputCodecPlayerIndex),
+	}}}
+	got, err := resolveMoveChoiceProjection(playerMove, MoveChoiceProjection{
+		FieldName: "Target", Disclosure: MoveChoiceDisclosureActorExact,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != MoveChoiceSourcePlayers {
+		t.Fatalf("source = %q, want players", got.Source)
+	}
+
+	tests := []struct {
+		name       string
+		codec      MoveInputCodec
+		exclusions []string
+		want       string
+	}{
+		{"integer", MoveInputCodecInteger, nil, "unsupported choice codec"},
+		{"boolean", MoveInputCodecBoolean, nil, "unsupported choice codec"},
+		{"string", MoveInputCodecString, nil, "unsupported choice codec"},
+		{"player exclusions", MoveInputCodecPlayerIndex, []string{"0"}, "does not support excluded values"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			move := MoveInputSchemaMove{Name: "Choose", Fields: []MoveInputSchemaField{{
+				Name: "Value", Disposition: string(MoveInputRequired), Codec: string(test.codec),
+			}}}
+			_, err := resolveMoveChoiceProjection(move, MoveChoiceProjection{
+				FieldName: "Value", ExcludedValues: test.exclusions, Disclosure: MoveChoiceDisclosureActorExact,
+			})
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestMoveChoiceProjectionFingerprintTracksCandidateUniverse(t *testing.T) {
 	first := []MoveChoiceProjectionSchema{{
 		MoveName: "Guess Card", FieldName: "GuessedCard", Source: MoveChoiceSourceEnumValues,
 		CandidateValues: []string{"Guard", "Priest"}, Disclosure: MoveChoiceDisclosureActorExact,
-		AuditRationale: "first review",
 	}}
 	second := cloneMoveChoiceProjectionSchema(first)
-	second[0].AuditRationale = "rewritten review prose"
-	if FingerprintMoveChoiceProjectionSchema(first) != FingerprintMoveChoiceProjectionSchema(second) {
-		t.Fatal("audit-only edit changed choice-projection protocol fingerprint")
-	}
 	second[0].CandidateValues = []string{"Priest"}
 	if FingerprintMoveChoiceProjectionSchema(first) == FingerprintMoveChoiceProjectionSchema(second) {
 		t.Fatal("candidate-universe edit did not change choice-projection fingerprint")

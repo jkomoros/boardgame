@@ -38,6 +38,22 @@ func TestOutputTest(t *testing.T) {
 
 }
 
+func TestReaderRecursivelyFlattensImportedMoveBases(t *testing.T) {
+	readerOutput, _, err := ProcessReaders("testdata/nestedimport")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`"TargetPlayerIndex": boardgame.TypePlayerIndex`,
+		`"Choice":`,
+		`boardgame.TypeInt`,
+	} {
+		if !strings.Contains(readerOutput, want) {
+			t.Fatalf("generated nested imported reader omitted %s:\n%s", want, readerOutput)
+		}
+	}
+}
+
 func TestEnumOutput(t *testing.T) {
 
 	enumOutput, err := ProcessEnums("examplepkg/")

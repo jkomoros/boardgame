@@ -13,8 +13,8 @@ generic way for a client to discover a small finite set of concrete moves that
 are worth presenting now.
 
 Projected move choices fill that gap. A game may opt one required move field
-into an audited, actor-only projection over a sealed finite source (players or
-enum values). At a durable proposal frontier, the server constructs one fresh
+into an actor-only projection over an inferred finite source (players or enum
+values). At a durable proposal frontier, the server constructs one fresh
 move per candidate, binds the candidate through the canonical input codec, and
 calls the ordinary `Legal` method exactly once. The client validates the result
 against its generated schema and hydrates ordinary `BoundMoveAction` objects.
@@ -51,17 +51,18 @@ question.
 Move sanitization remains the authority for disclosing committed history. A
 secret move may be visible only to its proposer, have a hidden name or fields,
 or remain hidden forever. Projected choices are separate, prospective
-disclosure and require an explicit actor-exact authorization.
+disclosure. Calling `moves.WithChoices` is the explicit actor-exact
+authorization.
 
 That authorization is a declassification decision. It reveals that a choice
 set exists, the identity, count, and order of every candidate, and the exact
 `Available` bit for each one. Move-name visibility alone does not authorize any
-of those facts. The required audit rationale is a human-review assertion, not
-an executable information-flow proof: opaque `Legal` code may inspect hidden
-state or external process data. Games must test hidden-equivalent states to
-show that projected output does not vary with facts the actor may not learn.
-V1 does not hide the timing, occurrence, size, or traffic pattern of a
-projection response.
+of those facts. The framework cannot prove this authorization safe: opaque
+`Legal` code may inspect hidden state or external process data. Games must test
+hidden-equivalent states to show that projected output does not vary with facts
+the actor may not learn. A test is meaningful evidence; a prose attestation in
+configuration is not. V1 does not hide the timing, occurrence, size, or traffic
+pattern of a projection response.
 
 ## Why subphases are not the primitive
 
@@ -77,38 +78,80 @@ existing semantics already imply.
 
 ## Authoring contract
 
-The Go declaration contains security and shape, never presentation:
+The Go declaration states author intent, never presentation:
 
 ```go
-moves.WithChoiceProjection(
-    choice.PlayerIndexes("OtherPlayerIndex").
-        DiscloseExactAvailabilityToActor(
-            "Player identities and target eligibility are public to the actor.",
-        ),
-)
+moves.WithChoices("OtherPlayerIndex")
 
-moves.WithChoiceProjection(
-    choice.EnumValues("GuessedCard").
-        Excluding("Unknown", "Guard").
-        DiscloseExactAvailabilityToActor(
-            "The card catalogue is public and legality does not inspect the hidden hand.",
-        ),
+moves.WithChoices(
+    "GuessedCard",
+    moves.ExcludeChoices("Unknown", "Guard"),
 )
 ```
+
+The resolved creator-input codec infers the sealed source: player-index fields
+enumerate the roster, while ordinary enum fields enumerate canonical enum
+values. `ExcludeChoices` removes implementation sentinels and also contributes
+canonical legality, so forged submissions cannot use a value omitted from the
+choice surface.
 
 V1 validates at manager construction that:
 
 - a move has at most one projection;
 - the projected field is the move's only required creator input;
-- a player source uses the player-index codec;
-- an enum source uses the enum codec and only excludes canonical values;
-- the disclosure is actor-exact and has a non-empty audit rationale;
+- the field uses the player-index or ordinary enum codec;
+- enum exclusions are canonical, unique, and do not exhaust the universe;
+- player choices have no exclusions;
+- the disclosure is actor-exact;
 - fix-up moves cannot publish player choices;
 - static candidate universes fit the protocol limits.
 
-The audit rationale stays on the server for review. It is excluded from the
-wire contract, generated TypeScript, and schema fingerprint. Editing prose
-therefore cannot stale a client.
+The concise opt-in is intentionally the disclosure decision. Security review
+belongs in code review and hidden-equivalent-state tests rather than a required
+string the runtime cannot verify.
+
+### Recording a choice
+
+A common committed interaction only records one answer for a later move or
+fix-up. `RecordCurrentPlayerChoice` removes that mechanical `Apply` without
+manufacturing a wrapper move or a runtime flow:
+
+```go
+//boardgame:codegen
+type MoveSelectPlayer struct {
+    moves.RecordCurrentPlayerChoice
+    OtherPlayerIndex boardgame.PlayerIndex
+}
+
+auto.MustConfig(
+    new(MoveSelectPlayer),
+    moves.WithRecordedChoice(
+        "OtherPlayerIndex",
+        moves.InPlayer("SelectedPlayer"),
+    ),
+    moves.WithLegalPreconditions(...),
+)
+```
+
+`WithRecordedChoice` expands to the ordinary `WithChoices` declaration plus a
+validated destination. `InPlayer` writes to the proposing/current player's
+state; `InGame` writes to game state. The embedded base follows the existing
+moves-library convention: the engine supplies `TopLevelStruct`, so `Apply`
+reads the semantically named field from the outer move and preserves that
+outer move's identity, history, code-generated input, legality, and
+sanitization.
+
+V1 records only player indexes and ordinary enum values. Source and destination
+must exist, have the same property type, and—for enums—belong to the same enum.
+Enum destinations are mutated in place rather than assigned, preventing the
+move's enum container from aliasing state. Manager construction rejects a
+missing, repeated, incompatible, or wrongly scoped declaration.
+
+An outer move may conventionally override the promoted `Apply`, just like
+other reusable moves-package bases. To augment rather than replace recording,
+it calls `m.RecordCurrentPlayerChoice.Apply(state)` explicitly. Anything more
+expressive than recording one scalar remains ordinary game-authored `Apply`
+code; there is no mutation or flow DSL.
 
 `MoveChoiceProjectionSchema` and its fingerprint are intentionally separate
 from `MoveInputSchema`. Choice disclosure can evolve without changing the

@@ -14,8 +14,8 @@ import (
 /*
 TestSeamAllowlistTypesDeclareNoLegalMethod is the design spec §5 structural
 enforcement for Task 6's widened seam allowlist (legal_plan.go's
-legalSupportedMovesBaseTypes): FixUp, FixUpMulti, and StartPhase are safe to
-allowlist ONLY because none of them declares its own Legal() method — their
+legalSupportedMovesBaseTypes): RecordCurrentPlayerChoice, FixUp, FixUpMulti,
+and StartPhase are safe to allowlist ONLY because none of them declares its own Legal() method — their
 legality IS moves.Default.Legal, verbatim, so plan evaluation composes
 exactly as it does for a bare Default-embedding move (see legal_plan.go's
 doc comment on legalSupportedMovesBaseTypes). Default and CurrentPlayer

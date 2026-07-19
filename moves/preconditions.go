@@ -5,7 +5,8 @@ import (
 )
 
 /*
-This file wires Default, CurrentPlayer, FixUp, FixUpMulti, and StartPhase into
+This file wires Default, CurrentPlayer, RecordCurrentPlayerChoice, FixUp,
+FixUpMulti, and StartPhase into
 the declarative legality composition seam: PreconditionsProvider is the
 optional interface core consults (a later task) to derive a move type's
 plan, base-first contributed specs (ContributedPreconditions) plus authored
