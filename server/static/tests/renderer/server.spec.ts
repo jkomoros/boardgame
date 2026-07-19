@@ -55,6 +55,66 @@ test('offline authentication preserves encoded identity fields through the real 
   await expect(page.locator('boardgame-user')).toContainText(displayName);
 });
 
+test('Werewolf projected vote crosses real info, generated renderer, and move submission boundaries', async ({ page }) => {
+  test.setTimeout(120_000);
+  const email = 'projected-werewolf@example.com';
+  const auth = await page.request.post('/api/auth', {
+    form: { uid: email, token: 'offline-test-token', email, displayname: 'Voting Wolf' },
+  });
+  expect(auth.ok()).toBe(true);
+  const created = await page.request.post('/api/new/game', {
+    form: { manager: 'werewolf', numplayers: '4' },
+  });
+  expect(created.ok()).toBe(true);
+  const creation = await created.json() as { GameID: string; GameName: string; Status: string };
+  expect(creation).toMatchObject({ Status: 'Success', GameName: 'werewolf' });
+
+  // The first info request seats the creator and the offline-dev players,
+  // allowing Werewolf's gathering fix-ups to enter the first day vote.
+  const infoResponse = await page.request.get(
+    `/api/game/werewolf/${encodeURIComponent(creation.GameID)}/info`,
+  );
+  expect(infoResponse.ok()).toBe(true);
+  const info = await infoResponse.json() as {
+    Status: string;
+    ProjectedMoveChoices?: {
+      Status: string;
+      Sets?: Array<{ MoveName: string; Candidates: Array<{ Value: number; Available: boolean }> }>;
+    };
+  };
+  expect(info.Status).toBe('Success');
+  const vote = info.ProjectedMoveChoices?.Sets?.find(set => set.MoveName === 'Cast Vote');
+  expect(info.ProjectedMoveChoices?.Status).toBe('ready');
+  expect(vote?.Candidates).toHaveLength(4);
+  expect(vote?.Candidates.filter(candidate => candidate.Available)).toHaveLength(3);
+
+  await page.goto(`/game/werewolf/${encodeURIComponent(creation.GameID)}`);
+  const tray = page.locator('boardgame-projected-choices');
+  await expect(tray).toBeVisible({ timeout: 20_000 });
+  const enabled = tray.locator('button:not([disabled])');
+  await expect(enabled).toHaveCount(3);
+
+  const submitted = page.waitForRequest(request => (
+    request.method() === 'POST'
+      && request.url().includes(`/api/game/werewolf/${creation.GameID}/move`)
+  ));
+  await enabled.first().click();
+  const request = await submitted;
+  const form = new URLSearchParams(request.postData() ?? '');
+  expect(form.get('MoveType')).toBe('Cast Vote');
+  expect(Number(form.get('VoteTarget'))).toBeGreaterThanOrEqual(1);
+
+  await expect.poll(async () => {
+    const response = await page.request.get(
+      `/api/game/werewolf/${encodeURIComponent(creation.GameID)}/info`,
+    );
+    const refreshed = await response.json() as {
+      ProjectedMoveChoices?: { Sets?: Array<{ MoveName: string }> };
+    };
+    return refreshed.ProjectedMoveChoices?.Sets?.some(set => set.MoveName === 'Cast Vote') ?? false;
+  }, { timeout: 20_000 }).toBe(false);
+});
+
 test('companion guest join validates room, seat options, and seat result through the real server', async ({ page, context }) => {
   test.setTimeout(120_000);
   const email = 'typed-join-host@example.com';

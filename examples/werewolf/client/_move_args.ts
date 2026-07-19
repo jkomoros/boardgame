@@ -47,7 +47,19 @@ export type MoveWireInputs = {
   "Cast Vote": CastVoteWire;
 };
 
-export type MoveChoiceProjections = Record<never, never>;
+/** Exact finite choice projections keyed by move name. */
+export type MoveChoiceProjections = {
+  "Cast Night Vote": {
+    readonly field: "VoteTarget";
+    readonly value: number;
+    readonly input: CastNightVoteInput;
+  };
+  "Cast Vote": {
+    readonly field: "VoteTarget";
+    readonly value: number;
+    readonly input: CastVoteInput;
+  };
+};
 
 export const moveInputSchema = [
   {
@@ -88,6 +100,19 @@ export const moveInputSchema = [
 
 export const moveInputSchemaFingerprint = "sha256:fe90abd22e1ff339ef23f29e7f4a60f0bda0c110187c89206ef1fc6ae375e583";
 
-export const moveChoiceProjectionSchema = [] as const;
+export const moveChoiceProjectionSchema = [
+  {
+    "moveName": "Cast Night Vote",
+    "fieldName": "VoteTarget",
+    "source": "players",
+    "disclosure": "actor-exact"
+  },
+  {
+    "moveName": "Cast Vote",
+    "fieldName": "VoteTarget",
+    "source": "players",
+    "disclosure": "actor-exact"
+  }
+] as const;
 
-export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";
+export const moveChoiceProjectionSchemaFingerprint = "sha256:fc0ee4f063b7e5261234307dd41d85800b751439f7e48b0719e4439c2f156a4a";

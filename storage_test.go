@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"testing"
 )
 
 //This file is actually used to just implement a shim StorageManager so our
@@ -166,6 +167,33 @@ func (t *testStorageManager) SaveProposalFrontier(gameID string, stateVersion, f
 	game.ProposalFrontierKnown = frontierVersion >= 0
 	game.ProposalFrontierVersion = frontierVersion
 	return nil
+}
+
+type conditionalFrontierStorage struct {
+	StorageManager
+	available bool
+}
+
+func (*conditionalFrontierStorage) SaveProposalFrontier(string, int, int) error { return nil }
+func (c *conditionalFrontierStorage) ProposalFrontierStorageAvailable() bool    { return c.available }
+
+type availabilityOnlyStorage struct{ StorageManager }
+
+func (*availabilityOnlyStorage) ProposalFrontierStorageAvailable() bool { return true }
+
+func TestSupportsProposalFrontierStorageHonorsWrappers(t *testing.T) {
+	if !SupportsProposalFrontierStorage(newTestStorageManager()) {
+		t.Fatal("direct frontier storage was not detected")
+	}
+	if SupportsProposalFrontierStorage(&conditionalFrontierStorage{}) {
+		t.Fatal("wrapper falsely advertised unavailable frontier storage")
+	}
+	if SupportsProposalFrontierStorage(&availabilityOnlyStorage{}) {
+		t.Fatal("availability marker without frontier storage was accepted")
+	}
+	if !SupportsProposalFrontierStorage(&conditionalFrontierStorage{available: true}) {
+		t.Fatal("wrapper hid available frontier storage")
+	}
 }
 
 func (t *testStorageManager) PlayerMoveApplied(game *GameStorageRecord) error {

@@ -379,7 +379,7 @@ func (g *Game) invalidateProposalFrontier(persist bool) error {
 	if !persist {
 		return nil
 	}
-	if storage, ok := g.manager.Storage().(ProposalFrontierStorage); ok {
+	if storage, ok := g.manager.Storage().(ProposalFrontierStorage); ok && SupportsProposalFrontierStorage(g.manager.Storage()) {
 		return storage.SaveProposalFrontier(g.ID(), head, -1)
 	}
 	return nil
@@ -387,7 +387,7 @@ func (g *Game) invalidateProposalFrontier(persist bool) error {
 
 func (g *Game) markProposalFrontier() error {
 	head := int(g.publishedHeadVersion.Load())
-	if storage, ok := g.manager.Storage().(ProposalFrontierStorage); ok {
+	if storage, ok := g.manager.Storage().(ProposalFrontierStorage); ok && SupportsProposalFrontierStorage(g.manager.Storage()) {
 		if err := storage.SaveProposalFrontier(g.ID(), head, head); err != nil {
 			g.proposalFrontierVersion.Store(-1)
 			return err

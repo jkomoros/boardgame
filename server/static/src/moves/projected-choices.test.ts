@@ -127,6 +127,41 @@ test('accepts a ready subset but rejects spoofed candidate universes', () => {
   }), /do not match the generated universe/);
 });
 
+test('accepts sparse canonical player candidates when inactive seats are omitted', () => {
+  const base = readyWire();
+  const sparse = {
+    ...base,
+    Sets: [{
+      ...base.Sets[0],
+      Candidates: [{ Value: 0, Available: false }, { Value: 2, Available: true }],
+    }],
+  };
+  const common = {
+    wire: sparse, stateVersion: 7, schema: projectionSchema,
+    schemaFingerprint: 'projection-fingerprint',
+    playerPresentations: [
+      { playerIndex: 0, label: 'Ada' },
+      { playerIndex: 1, label: 'Inactive' },
+      { playerIndex: 2, label: 'Grace' },
+    ],
+    action: actions(),
+  };
+  const choices = buildProjectedMoveChoices<Projections>(common);
+  assert.deepEqual(choices.get('Choose Player')?.candidates.map(candidate => [
+    candidate.value, candidate.message.defaultMessage,
+  ]), [[0, 'Ada'], [2, 'Grace']]);
+
+  for (const Candidates of [
+    [{ Value: 0, Available: true }, { Value: 3, Available: true }],
+    [{ Value: 2, Available: true }, { Value: 0, Available: true }],
+  ]) {
+    assert.throws(() => buildProjectedMoveChoices<Projections>({
+      ...common,
+      wire: { ...sparse, Sets: [{ ...sparse.Sets[0], Candidates }] },
+    }), /canonical roster index/);
+  }
+});
+
 test('preserves an explicit projection failure as renderable state', () => {
   const choices = buildProjectedMoveChoices<Projections>({
     wire: {

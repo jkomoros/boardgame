@@ -355,6 +355,9 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		if err := testMove.ValidConfiguration(exampleState); err != nil {
 			return nil, errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
 		}
+		if err := validateMoveChoiceRecordingConfiguration(testMove, exampleState); err != nil {
+			return nil, errors.New(moveType.Name() + " move has invalid recorded-choice configuration: " + err.Error())
+		}
 
 	}
 	moveInputSchema, err := BuildMoveInputSchema(result)

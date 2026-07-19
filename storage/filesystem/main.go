@@ -54,6 +54,10 @@ type StorageManager struct {
 	//run for long periods of time, so it's better for it to not keep more
 	//things in memory than necessary.
 	records map[string]*record.Record
+	// writeMu serializes complete read-modify-write operations. In particular,
+	// the proposal-frontier version check and replacement must be atomic with
+	// respect to SaveGameAndCurrentState.
+	writeMu sync.Mutex
 }
 
 // Store seen ids and remember where the path was
@@ -250,6 +254,9 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 // SaveGameAndCurrentState saves the game and current state.
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
 	rec, err := s.RecordForID(game.ID)
 
 	if err != nil {
@@ -270,9 +277,12 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 }
 
 // SaveProposalFrontier persists proposal-boundary evidence for the current
-// durable head. Filesystem storage is primarily a single-process golden store;
-// saveRecordForID provides its ordinary replacement semantics.
+// durable head. writeMu makes the version comparison and record replacement
+// atomic with respect to every durable game-head write in this manager.
 func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
 	rec, err := s.RecordForID(gameID)
 	if err != nil {
 		return err

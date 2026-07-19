@@ -1552,9 +1552,11 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 	// fix-up chains through the engine's serialized loop before selecting the
 	// /info state. Games without projections pay no mutation cost.
 	var reconciliationErr error
-	game, reconciliationErr = reconcileProjectedMoveChoiceFrontier(game)
-	if reconciliationErr != nil && s.logger != nil {
-		s.logger.WithError(reconciliationErr).WithField("gameID", game.ID()).Error("Projected-choice frontier reconciliation failed")
+	if projectedChoicesEligible {
+		game, reconciliationErr = reconcileProjectedMoveChoiceFrontier(game)
+		if reconciliationErr != nil && s.logger != nil {
+			s.logger.WithError(reconciliationErr).WithField("gameID", game.ID()).Error("Projected-choice frontier reconciliation failed")
+		}
 	}
 
 	isOwner := false

@@ -90,6 +90,21 @@ func candidateAvailability(set *projectedMoveChoiceSet) []bool {
 	return result
 }
 
+func candidatePlayerIndexes(set *projectedMoveChoiceSet) []int {
+	if set == nil {
+		return nil
+	}
+	result := make([]int, len(set.Candidates))
+	for i, candidate := range set.Candidates {
+		value, ok := candidate.Value.(boardgame.PlayerIndex)
+		if !ok {
+			panic("player candidate had unexpected type")
+		}
+		result[i] = int(value)
+	}
+	return result
+}
+
 func TestWerewolfVoteChoicesUseCanonicalAnyPlayerLegality(t *testing.T) {
 	dayGame, dayState := werewolfProjectionFixture(t, "Day", 0)
 	daySchema := werewolfChoiceSchema(t, dayGame, "Cast Vote")
@@ -119,6 +134,9 @@ func TestWerewolfVoteChoicesUseCanonicalAnyPlayerLegality(t *testing.T) {
 	wantNight := []bool{false, true, true, false}
 	if got := candidateAvailability(night); !reflect.DeepEqual(got, wantNight) {
 		t.Fatalf("night wolf vote availability = %v, want %v", got, wantNight)
+	}
+	if got, want := candidatePlayerIndexes(night), []int{0, 1, 2, 3}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("night wolf vote candidates = %v, want sparse roster %v", got, want)
 	}
 
 	villager, err := projectMoveChoiceSet(nightGame, nightState, 1, nightSchema, new(projectedMoveChoiceBudget))

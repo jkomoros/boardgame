@@ -55,6 +55,84 @@ func ConfiguredMoveChoiceRecording(move Move) (*MoveChoiceRecording, error) {
 	return &recording, nil
 }
 
+// validateMoveChoiceRecordingConfiguration validates the engine-owned state
+// effect independently of a move's ValidConfiguration method. That separation
+// is intentional: an outer game move can override a promoted validation
+// method, but it cannot bypass an effect the engine itself will apply.
+func validateMoveChoiceRecordingConfiguration(move Move, state State) error {
+	recording, err := ConfiguredMoveChoiceRecording(move)
+	if err != nil || recording == nil {
+		return err
+	}
+	if state == nil || state.GameState() == nil || move.ReadSetter() == nil {
+		return fmt.Errorf("recorded choice requires initialized move and state properties")
+	}
+
+	source := move.ReadSetter()
+	sourceType, ok := source.Props()[recording.FieldName]
+	if !ok {
+		return fmt.Errorf("recorded choice source %q does not exist", recording.FieldName)
+	}
+	if sourceType != TypePlayerIndex && sourceType != TypeEnum {
+		return fmt.Errorf("recorded choice source %q has unsupported type %v", recording.FieldName, sourceType)
+	}
+	fields, err := ResolveMoveInputFields(move)
+	if err != nil {
+		return fmt.Errorf("resolve recorded choice input: %w", err)
+	}
+	required := false
+	for _, field := range fields {
+		if field.Name == recording.FieldName {
+			required = field.Disposition == MoveInputRequired
+			break
+		}
+	}
+	if !required {
+		return fmt.Errorf("recorded choice source %q must be a required creator input", recording.FieldName)
+	}
+
+	var destination PropertyReadSetter
+	switch recording.DestinationScope {
+	case MoveChoiceRecordingGame:
+		destination = state.GameState().ReadSetter()
+	case MoveChoiceRecordingPlayer:
+		if keyType, ok := source.Props()[recording.DestinationPlayerKey]; !ok || keyType != TypePlayerIndex {
+			return fmt.Errorf("recorded choice destination player key %q must be a player-index property", recording.DestinationPlayerKey)
+		}
+		players := state.PlayerStates()
+		if len(players) == 0 {
+			return fmt.Errorf("recorded choice requires at least one player state")
+		}
+		destination = players[0].ReadSetter()
+	default:
+		return fmt.Errorf("recorded choice has unsupported destination scope %q", recording.DestinationScope)
+	}
+	if destination == nil {
+		return fmt.Errorf("recorded choice destination has no property reader")
+	}
+	destinationType, ok := destination.Props()[recording.DestinationProperty]
+	if !ok {
+		return fmt.Errorf("recorded choice destination %q does not exist", recording.DestinationProperty)
+	}
+	if destinationType != sourceType {
+		return fmt.Errorf("recorded choice source %q type %v does not match destination %q type %v", recording.FieldName, sourceType, recording.DestinationProperty, destinationType)
+	}
+	if sourceType == TypeEnum {
+		sourceEnum, err := source.ImmutableEnumProp(recording.FieldName)
+		if err != nil {
+			return fmt.Errorf("read recorded choice source enum: %w", err)
+		}
+		destinationEnum, err := destination.ImmutableEnumProp(recording.DestinationProperty)
+		if err != nil {
+			return fmt.Errorf("read recorded choice destination enum: %w", err)
+		}
+		if sourceEnum == nil || destinationEnum == nil || sourceEnum.Enum() != destinationEnum.Enum() {
+			return fmt.Errorf("recorded choice source and destination use different enums")
+		}
+	}
+	return nil
+}
+
 func applyMoveChoiceRecording(move Move, state State) error {
 	recording, err := ConfiguredMoveChoiceRecording(move)
 	if err != nil || recording == nil {

@@ -74,6 +74,9 @@ func reconcileProjectedMoveChoiceFrontier(game *boardgame.Game) (*boardgame.Game
 	if len(schema) == 0 {
 		return game, nil
 	}
+	if !boardgame.SupportsProposalFrontierStorage(game.Manager().Storage()) {
+		return game, fmt.Errorf("projected choices require durable proposal-frontier storage after reload")
+	}
 	// The normal path is already certified. Consult the manager so an active
 	// in-memory marker also counts, but require it to match this exact snapshot
 	// before avoiding the storage reload.

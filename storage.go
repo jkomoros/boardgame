@@ -100,13 +100,40 @@ type GameStorageRecord struct {
 
 // ProposalFrontierStorage is an optional storage capability for persisting a
 // proposal-boundary marker after the terminal fix-up check. Implementations
-// must compare stateVersion to the currently stored game version atomically and
-// reject stale writes. frontierVersion < 0 invalidates the marker.
+// must compare stateVersion to the currently stored game version atomically
+// with respect to every concurrent writer the backend supports, and reject
+// stale writes. A backend documented as single-process may provide that
+// boundary with in-process serialization. frontierVersion < 0 invalidates the
+// marker.
 //
-// Storage managers that do not implement this capability continue to work, but
-// reloaded games conservatively have no recoverable proposal frontier.
+// Storage managers that do not implement this capability continue to work for
+// ordinary games and active-process frontiers, but projected choices cannot be
+// recovered after reload until the backend adds durable frontier support.
 type ProposalFrontierStorage interface {
 	SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error
+}
+
+// ProposalFrontierStorageAvailability lets a storage wrapper accurately
+// preserve the optional capability of the backend it wraps. A wrapper that
+// implements SaveProposalFrontier unconditionally must also implement this
+// interface when its underlying support is conditional.
+type ProposalFrontierStorageAvailability interface {
+	ProposalFrontierStorageAvailable() bool
+}
+
+// SupportsProposalFrontierStorage reports whether storage can durably persist
+// proposal-frontier evidence. It understands capability-preserving wrappers.
+func SupportsProposalFrontierStorage(storage StorageManager) bool {
+	if storage == nil {
+		return false
+	}
+	if _, ok := storage.(ProposalFrontierStorage); !ok {
+		return false
+	}
+	if availability, ok := storage.(ProposalFrontierStorageAvailability); ok {
+		return availability.ProposalFrontierStorageAvailable()
+	}
+	return true
 }
 
 // StorageManager is the interface that storage layers implement. The core

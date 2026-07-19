@@ -127,6 +127,12 @@ func (s *ServerStorageManager) SaveProposalFrontier(gameID string, stateVersion,
 	return nil
 }
 
+// ProposalFrontierStorageAvailable prevents this wrapper's fixed method set
+// from falsely advertising a capability absent from its backend.
+func (s *ServerStorageManager) ProposalFrontierStorageAvailable() bool {
+	return boardgame.SupportsProposalFrontierStorage(s.StorageManager)
+}
+
 // SaveChatMessage delegates to the underlying storage if it implements
 // ChatStorageManager. This allows EmitSystemMessage to work through the
 // ServerStorageManager wrapper.

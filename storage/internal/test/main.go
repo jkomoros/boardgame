@@ -57,7 +57,49 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 	AgentsTest(factory, testName, connectConfig, t)
 	ListingTest(factory, testName, connectConfig, t)
 	TableLeaseTest(factory, connectConfig, t)
+	ProposalFrontierTest(factory, connectConfig, t)
 
+}
+
+// ProposalFrontierTest verifies the durable marker contract shared by every
+// first-party backend, including rejection of a stale head version.
+func ProposalFrontierTest(factory StorageManagerFactory, connectConfig string, t *testing.T) {
+	storage := factory()
+	defer storage.Close()
+	defer storage.CleanUp()
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err)
+	}
+	frontiers, ok := any(storage).(boardgame.ProposalFrontierStorage)
+	if !ok {
+		t.Fatal("first-party storage does not persist proposal frontiers")
+	}
+	manager, err := boardgame.NewGameManager(tictactoe.NewDelegate(), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	version := game.Version()
+	if err := frontiers.SaveProposalFrontier(game.ID(), version, version); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := storage.Game(game.ID())
+	if err != nil || stored == nil || !stored.ProposalFrontierKnown || stored.ProposalFrontierVersion != version {
+		t.Fatalf("stored frontier = %#v, err = %v", stored, err)
+	}
+	if err := frontiers.SaveProposalFrontier(game.ID(), version+1, version+1); err == nil {
+		t.Fatal("stale proposal-frontier write succeeded")
+	}
+	if err := frontiers.SaveProposalFrontier(game.ID(), version, -1); err != nil {
+		t.Fatal(err)
+	}
+	stored, err = storage.Game(game.ID())
+	if err != nil || stored == nil || stored.ProposalFrontierKnown {
+		t.Fatalf("invalidated frontier = %#v, err = %v", stored, err)
+	}
 }
 
 // TableLeaseTest verifies that a storage manager provides a true atomic CAS

@@ -225,14 +225,16 @@ function validateCandidateValues(
     }
     return rawValues;
   }
-  if (rawValues.length !== players.length) {
-    throw new Error(`Projected player candidates for ${JSON.stringify(wireSet.MoveName)} do not match the player roster`);
-  }
-  return rawValues.map((value, index) => {
-    if (!Number.isSafeInteger(value) || value !== index) {
-      throw new Error(`Projected player candidate ${JSON.stringify(value)} is not canonical roster index ${index}`);
+  let previous = -1;
+  return rawValues.map(value => {
+    if (!Number.isSafeInteger(value)
+      || (value as number) < 0
+      || (value as number) >= players.length
+      || (value as number) <= previous) {
+      throw new Error(`Projected player candidate ${JSON.stringify(value)} is not a canonical roster index in ascending order`);
     }
-    return index;
+    previous = value as number;
+    return value as number;
   });
 }
 

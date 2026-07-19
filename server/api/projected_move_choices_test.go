@@ -739,6 +739,30 @@ func (*projectedChoicesNoopFrontierStorage) SaveProposalFrontier(string, int, in
 	return nil
 }
 
+type projectedChoicesLegacyStorage struct {
+	boardgame.StorageManager
+}
+
+func TestReconcileProjectedMoveChoicesFailsFastWithoutDurableFrontierStorage(t *testing.T) {
+	delegate := newProjectedChoicesDelegate()
+	storage := &projectedChoicesLegacyStorage{StorageManager: newLegalLedgerStorage()}
+	manager, err := boardgame.NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	frozen := manager.Game(game.ID())
+	if frozen.AtProposalFrontier() {
+		t.Fatal("reloaded legacy storage unexpectedly had a durable frontier")
+	}
+	if _, err := reconcileProjectedMoveChoiceFrontier(frozen); err == nil || !strings.Contains(err.Error(), "require durable") {
+		t.Fatalf("unsupported-storage reconciliation error = %v", err)
+	}
+}
+
 func TestReconcileProjectedMoveChoiceFrontierAcceptsActiveMarkerWhenStorageCannotPersistIt(t *testing.T) {
 	delegate := newProjectedChoicesDelegate()
 	underlying := newLegalLedgerStorage()

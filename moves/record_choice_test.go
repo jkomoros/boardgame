@@ -21,6 +21,14 @@ func (*moveRecordWithCustomApply) Apply(state boardgame.State) error {
 	return nil
 }
 
+type moveRecordShadowedValidation struct {
+	RecordCurrentPlayerChoice
+}
+
+// ValidConfiguration deliberately shadows the embedded helper's method. The
+// engine must still validate the state effect it owns.
+func (*moveRecordShadowedValidation) ValidConfiguration(boardgame.State) error { return nil }
+
 func TestWithRecordedChoiceExpandsToChoiceAndDestination(t *testing.T) {
 	config := boardgame.PropertyCollection{}
 	WithRecordedChoice(
@@ -65,7 +73,7 @@ func TestRecordedChoiceDestinationsAreSealedValues(t *testing.T) {
 	}
 }
 
-func TestRecordCurrentPlayerChoiceUsesTopLevelMoveConvention(t *testing.T) {
+func TestRecordCurrentPlayerChoiceUsesConcreteMoveAffiliation(t *testing.T) {
 	manager, err := newGameManager(func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 		auto := NewAutoConfigurer(manager.Delegate())
 		return []boardgame.MoveConfig{auto.MustConfig(
@@ -154,6 +162,21 @@ func TestRecordCurrentPlayerChoiceRejectsInvalidUsageAtBoot(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "does not match") {
 		t.Fatalf("type-mismatch error = %v", err)
+	}
+}
+
+func TestRecordedChoiceValidationCannotBeShadowed(t *testing.T) {
+	_, err := newGameManager(func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return []boardgame.MoveConfig{auto.MustConfig(
+			new(moveRecordShadowedValidation),
+			WithMoveName("Shadowed Invalid Recording"),
+			WithMoveInputFieldOverride("TargetPlayerIndex", boardgame.MoveInputRequired),
+			WithRecordedChoice("TargetPlayerIndex", InGame("Counter")),
+		)}
+	})
+	if err == nil || !strings.Contains(err.Error(), "does not match") {
+		t.Fatalf("shadowed validation error = %v", err)
 	}
 }
 

@@ -79,8 +79,8 @@ func WithRecordedChoice(field string, destination ChoiceDestination, options ...
 // RecordCurrentPlayerChoice is a complete current-player move for the common
 // semantic operation "commit one finite scalar answer for later rules to
 // consume." Embed it in a named game move and configure WithRecordedChoice.
-// The framework-provided TopLevelStruct back-reference lets Apply read the
-// choice field from the outer move without replacing its move identity.
+// MoveInfo's concrete affiliation lets the helper read the choice field from
+// the outer move without replacing its move identity.
 type RecordCurrentPlayerChoice struct {
 	CurrentPlayer
 }
@@ -96,7 +96,7 @@ type recordedChoiceBinding struct {
 }
 
 func (r *RecordCurrentPlayerChoice) binding(state boardgame.State, validating bool) (*recordedChoiceBinding, error) {
-	top := r.TopLevelStruct()
+	top := r.Info().ConcreteMove()
 	if top == nil || top.ReadSetter() == nil {
 		return nil, errors.New("RecordCurrentPlayerChoice: top-level move is unavailable")
 	}
