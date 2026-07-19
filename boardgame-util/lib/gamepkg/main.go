@@ -8,9 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
@@ -226,15 +228,39 @@ func (p *Pkg) AbsolutePath() string {
 // ReadOnly returns true if the package appears to be in a read-only location
 // (e.g. a cached module checkout)
 func (p *Pkg) ReadOnly() bool {
-
 	absPath := p.AbsolutePath()
+	if info, err := os.Stat(absPath); err == nil && info.Mode().Perm()&0o222 == 0 {
+		return true
+	}
+	moduleCache := goModuleCache()
+	return moduleCache != "" && pathWithinDirectory(moduleCache, absPath)
+}
 
-	modulePath := filepath.Join(os.Getenv("GOPATH"), "pkg", "mod")
+var (
+	goModuleCacheOnce sync.Once
+	goModuleCachePath string
+)
 
-	//TODO: check the file permissions on package files to check
+func goModuleCache() string {
+	goModuleCacheOnce.Do(func() {
+		if configured := os.Getenv("GOMODCACHE"); configured != "" {
+			goModuleCachePath = configured
+			return
+		}
+		output, err := exec.Command("go", "env", "GOMODCACHE").Output()
+		if err == nil {
+			goModuleCachePath = strings.TrimSpace(string(output))
+		}
+	})
+	return goModuleCachePath
+}
 
-	return strings.Contains(absPath, modulePath)
-
+func pathWithinDirectory(dir, path string) bool {
+	rel, err := filepath.Rel(dir, path)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // EnsureDir ensures the given directory, relative to package root, exists.

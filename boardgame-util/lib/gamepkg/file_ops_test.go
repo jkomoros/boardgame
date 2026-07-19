@@ -101,3 +101,29 @@ func TestPackageWriteFileOverwriteModesAreSafe(t *testing.T) {
 		t.Fatalf("permissions after overwrite = %o, want 640", got)
 	}
 }
+
+func TestPathWithinDirectoryUsesPathBoundaries(t *testing.T) {
+	root := filepath.Join(string(filepath.Separator), "cache", "pkg", "mod")
+	tests := map[string]bool{
+		root: true,
+		filepath.Join(root, "example.com", "game"): true,
+		root + "-backup": false,
+		filepath.Join(filepath.Dir(root), "model"): false,
+	}
+	for path, want := range tests {
+		if got := pathWithinDirectory(root, path); got != want {
+			t.Errorf("pathWithinDirectory(%q, %q) = %v, want %v", root, path, got, want)
+		}
+	}
+}
+
+func TestPackageReadOnlyDetectsFilesystemPermissions(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Chmod(root, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(root, 0o755) })
+	if !(&Pkg{absolutePath: root}).ReadOnly() {
+		t.Fatal("ReadOnly returned false for a directory with no write bits")
+	}
+}
