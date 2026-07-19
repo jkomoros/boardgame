@@ -18,9 +18,10 @@ const subFolder = "moveargs"
 
 // MoveArgsResult is the result of extracting move arguments for a single game package.
 type MoveArgsResult struct {
-	PackageName string     `json:"packageName"`
-	ImportPath  string     `json:"importPath"`
-	Moves       []MoveInfo `json:"moves"`
+	PackageName       string                 `json:"packageName"`
+	ImportPath        string                 `json:"importPath"`
+	Moves             []MoveInfo             `json:"moves"`
+	ChoiceProjections []ChoiceProjectionInfo `json:"choiceProjections"`
 }
 
 // Build generates a temporary Go binary that imports all game packages,
@@ -154,9 +155,10 @@ type delegateEntry struct {
 }
 
 type moveArgsResult struct {
-	PackageName string                          ` + "`" + `json:"packageName"` + "`" + `
-	ImportPath  string                          ` + "`" + `json:"importPath"` + "`" + `
-	Moves       []boardgame.MoveInputSchemaMove ` + "`" + `json:"moves"` + "`" + `
+	PackageName       string                                      ` + "`" + `json:"packageName"` + "`" + `
+	ImportPath        string                                      ` + "`" + `json:"importPath"` + "`" + `
+	Moves             []boardgame.MoveInputSchemaMove             ` + "`" + `json:"moves"` + "`" + `
+	ChoiceProjections []boardgame.MoveChoiceProjectionSchema      ` + "`" + `json:"choiceProjections"` + "`" + `
 }
 
 func main() {
@@ -181,11 +183,17 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Couldn't resolve creator inputs for %s: %v\n", entry.delegate.Name(), err)
 			os.Exit(1)
 		}
+		choiceProjections, err := boardgame.BuildMoveChoiceProjectionSchema(manager)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Couldn't resolve move choices for %s: %v\n", entry.delegate.Name(), err)
+			os.Exit(1)
+		}
 
 		results = append(results, moveArgsResult{
-			PackageName: entry.delegate.Name(),
-			ImportPath:  entry.importPath,
-			Moves:       moves,
+			PackageName:       entry.delegate.Name(),
+			ImportPath:        entry.importPath,
+			Moves:             moves,
+			ChoiceProjections: choiceProjections,
 		})
 	}
 

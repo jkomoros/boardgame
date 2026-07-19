@@ -3,6 +3,8 @@ package moveargs
 import (
 	"strings"
 	"testing"
+
+	"github.com/jkomoros/boardgame"
 )
 
 func TestGenerateTypeScriptSeparatesInputResolvedAndWire(t *testing.T) {
@@ -56,6 +58,50 @@ func TestGenerateTypeScriptRangeEnumUsesNumericAuthorCodec(t *testing.T) {
 	}
 	if !strings.Contains(got, "SpaceIndex: string;") {
 		t.Fatalf("range enum wire field was not string encoded:\n%s", got)
+	}
+}
+
+func TestGenerateTypeScriptEmitsExactNarrowedChoiceProjectionMap(t *testing.T) {
+	moves := []MoveInfo{{
+		Name: "Guess Card",
+		Fields: []MoveFieldInfo{{
+			Name: "GuessedCard", WireType: "enum", Disposition: "required", Codec: "enum",
+			EnumName: "card", EnumValues: []string{"Guard", "Priest", "Unknown"},
+		}},
+	}, {
+		Name: "Select Player",
+		Fields: []MoveFieldInfo{{
+			Name: "OtherPlayerIndex", WireType: "playerIndex", Disposition: "required", Codec: "player-index",
+		}},
+	}}
+	choices := []ChoiceProjectionInfo{{
+		MoveName: "Guess Card", FieldName: "GuessedCard", Source: boardgame.MoveChoiceSourceEnumValues,
+		CandidateValues: []string{"Guard", "Priest"}, Disclosure: boardgame.MoveChoiceDisclosureActorExact,
+		AuditRationale: "not generated",
+	}, {
+		MoveName: "Select Player", FieldName: "OtherPlayerIndex", Source: boardgame.MoveChoiceSourcePlayers,
+		Disclosure: boardgame.MoveChoiceDisclosureActorExact,
+	}}
+
+	got := GenerateTypeScript(moves, choices)
+	for _, want := range []string{
+		"export type MoveChoiceProjections = {",
+		`readonly field: "GuessedCard";`,
+		`readonly value: "Guard" | "Priest";`,
+		"readonly input: GuessCardInput;",
+		`readonly field: "OtherPlayerIndex";`,
+		"readonly value: number;",
+		"moveChoiceProjectionSchemaFingerprint",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("output did not contain %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got[strings.Index(got, "export type MoveChoiceProjections"):strings.Index(got, "export const moveInputSchema")], `"Unknown"`) {
+		t.Fatalf("excluded enum sentinel leaked into projection value union:\n%s", got)
+	}
+	if strings.Contains(got[strings.Index(got, "export const moveChoiceProjectionSchema"):], "not generated") {
+		t.Fatalf("audit rationale leaked into generated schema:\n%s", got)
 	}
 }
 

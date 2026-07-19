@@ -66,7 +66,12 @@ type GameManager struct {
 	// manager construction, then shared by generation and server /info.
 	moveInputSchema            []MoveInputSchemaMove
 	moveInputSchemaFingerprint string
-	computedProperties         []ComputedProperty
+	// moveChoiceProjectionSchema is a separate, security-sensitive finite
+	// choice contract. It never contributes UI copy to the creator-input
+	// protocol fingerprint.
+	moveChoiceProjectionSchema            []MoveChoiceProjectionSchema
+	moveChoiceProjectionSchemaFingerprint string
+	computedProperties                    []ComputedProperty
 }
 
 // Internals returns a ManagerInternals for this manager. All of the methods on
@@ -358,6 +363,12 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	}
 	result.moveInputSchema = moveInputSchema
 	result.moveInputSchemaFingerprint = FingerprintMoveInputSchema(moveInputSchema)
+	moveChoiceProjectionSchema, err := BuildMoveChoiceProjectionSchema(result)
+	if err != nil {
+		return nil, errors.New("Failed to build move choice-projection schema: " + err.Error())
+	}
+	result.moveChoiceProjectionSchema = moveChoiceProjectionSchema
+	result.moveChoiceProjectionSchemaFingerprint = FingerprintMoveChoiceProjectionSchema(moveChoiceProjectionSchema)
 
 	// Assemble declarative-legality plans for any move type that opted in
 	// via WithLegalPreconditions, and probe that its declarations are reachable

@@ -5,14 +5,20 @@ import (
 	"reflect"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/choice"
 )
 
 const configPropMoveInputDeclarations = fullyQualifiedPackageName + "MoveInputDeclarations"
+const configPropMoveChoiceProjections = fullyQualifiedPackageName + "MoveChoiceProjections"
 
 type moveInputDeclaration struct {
 	field    boardgame.MoveInputField
 	override bool
 	err      string
+}
+
+type moveChoiceProjectionDeclaration struct {
+	projection boardgame.MoveChoiceProjection
 }
 
 type currentPlayerMoveInputBehavior interface{ moveInputCurrentPlayerBehavior() }
@@ -65,6 +71,18 @@ func WithMoveInputDefault(name string, codec ...boardgame.MoveInputCodec) Custom
 	return WithMoveInputField(name, boardgame.MoveInputServerDefaulted, codec...)
 }
 
+// WithChoiceProjection opts a finite creator input into actor-specific exact
+// candidate projection. The sealed descriptor contains security semantics only;
+// UI copy and presentation belong to the client renderer.
+func WithChoiceProjection(projection choice.Projection) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		declarations, _ := config[configPropMoveChoiceProjections].([]moveChoiceProjectionDeclaration)
+		config[configPropMoveChoiceProjections] = append(declarations, moveChoiceProjectionDeclaration{
+			projection: projection.Declaration(),
+		})
+	}
+}
+
 func collectMoveInputFields(move AutoConfigurableMove, config boardgame.PropertyCollection) error {
 	var contributions []sourcedMoveInputField
 	if _, ok := move.(currentPlayerMoveInputBehavior); ok {
@@ -114,6 +132,16 @@ func collectMoveInputFields(move AutoConfigurableMove, config boardgame.Property
 		}
 		seen[field.Name] = "WithMoveInputField"
 		collected = append(collected, field)
+	}
+
+	choiceProjections, _ := config[configPropMoveChoiceProjections].([]moveChoiceProjectionDeclaration)
+	if len(choiceProjections) > 1 {
+		return fmt.Errorf("move has more than one choice projection; version one permits one")
+	}
+	if len(choiceProjections) == 1 {
+		if err := boardgame.SetMoveChoiceProjection(config, choiceProjections[0].projection); err != nil {
+			return err
+		}
 	}
 
 	boardgame.SetMoveInputFields(config, collected)

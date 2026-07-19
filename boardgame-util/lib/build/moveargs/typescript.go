@@ -17,11 +17,15 @@ type MoveFieldInfo = boardgame.MoveInputSchemaField
 // MoveInfo describes a single move's name and fields.
 type MoveInfo = boardgame.MoveInputSchemaMove
 
+// ChoiceProjectionInfo describes one separately fingerprinted finite choice
+// projection. It contains security semantics, never UI copy.
+type ChoiceProjectionInfo = boardgame.MoveChoiceProjectionSchema
+
 // ValidateTypeScriptSchema rejects move names that cannot produce one unique,
 // legal TypeScript declaration name. Without this preflight, punctuation-only
 // names or punctuation-equivalent names could create malformed declarations or
 // silently merge interfaces.
-func ValidateTypeScriptSchema(moves []MoveInfo) error {
+func ValidateTypeScriptSchema(moves []MoveInfo, choiceProjectionSets ...[]ChoiceProjectionInfo) error {
 	seenMoves := make(map[string]bool, len(moves))
 	seenSymbols := make(map[string]string, len(moves))
 	for _, move := range moves {
@@ -53,6 +57,48 @@ func ValidateTypeScriptSchema(moves []MoveInfo) error {
 			}
 		}
 	}
+	var choiceProjections []ChoiceProjectionInfo
+	if len(choiceProjectionSets) > 0 {
+		choiceProjections = choiceProjectionSets[0]
+	}
+	moveByName := make(map[string]MoveInfo, len(moves))
+	for _, move := range moves {
+		moveByName[move.Name] = move
+	}
+	seenChoices := make(map[string]bool, len(choiceProjections))
+	for _, projection := range choiceProjections {
+		if seenChoices[projection.MoveName] {
+			return fmt.Errorf("move %q has more than one generated choice projection", projection.MoveName)
+		}
+		seenChoices[projection.MoveName] = true
+		move, ok := moveByName[projection.MoveName]
+		if !ok {
+			return fmt.Errorf("choice projection references unknown move %q", projection.MoveName)
+		}
+		var field *MoveFieldInfo
+		for i := range move.Fields {
+			if move.Fields[i].Name == projection.FieldName {
+				candidate := move.Fields[i]
+				field = &candidate
+				break
+			}
+		}
+		if field == nil {
+			return fmt.Errorf("move %q choice projection references unknown field %q", projection.MoveName, projection.FieldName)
+		}
+		switch projection.Source {
+		case boardgame.MoveChoiceSourcePlayers:
+			if field.Codec != string(boardgame.MoveInputCodecPlayerIndex) || len(projection.CandidateValues) != 0 {
+				return fmt.Errorf("move %q has malformed player choice projection", projection.MoveName)
+			}
+		case boardgame.MoveChoiceSourceEnumValues:
+			if field.Codec != string(boardgame.MoveInputCodecEnum) || len(projection.CandidateValues) == 0 {
+				return fmt.Errorf("move %q has malformed enum choice projection", projection.MoveName)
+			}
+		default:
+			return fmt.Errorf("move %q has unsupported choice source %q", projection.MoveName, projection.Source)
+		}
+	}
 	return nil
 }
 
@@ -72,12 +118,16 @@ func validTypeScriptIdentifier(value string) bool {
 // GenerateTypeScript produces the contents of a _move_args.ts file given a
 // list of moves with their fields. This provides typed argument interfaces for
 // each move and a mapped type that connects move names to their args.
-func GenerateTypeScript(moves []MoveInfo) string {
-	if err := ValidateTypeScriptSchema(moves); err != nil {
+func GenerateTypeScript(moves []MoveInfo, choiceProjectionSets ...[]ChoiceProjectionInfo) string {
+	var choiceProjections []ChoiceProjectionInfo
+	if len(choiceProjectionSets) > 0 {
+		choiceProjections = choiceProjectionSets[0]
+	}
+	if err := ValidateTypeScriptSchema(moves, choiceProjections); err != nil {
 		panic(err)
 	}
 	if len(moves) == 0 {
-		return typeScriptHeader + typeScriptEmptyBody
+		return typeScriptHeader + emptyTypeScriptBody()
 	}
 
 	var b strings.Builder
@@ -120,14 +170,62 @@ func GenerateTypeScript(moves []MoveInfo) string {
 	}
 	b.WriteString("};\n\n")
 
+	if len(choiceProjections) == 0 {
+		b.WriteString("export type MoveChoiceProjections = Record<never, never>;\n\n")
+	} else {
+		choices := append([]ChoiceProjectionInfo(nil), choiceProjections...)
+		sort.Slice(choices, func(i, j int) bool { return choices[i].MoveName < choices[j].MoveName })
+		b.WriteString("/** Exact finite choice projections keyed by move name. */\n")
+		b.WriteString("export type MoveChoiceProjections = {\n")
+		for _, projection := range choices {
+			b.WriteString("  " + tsString(projection.MoveName) + ": {\n")
+			b.WriteString("    readonly field: " + tsString(projection.FieldName) + ";\n")
+			b.WriteString("    readonly value: " + choiceProjectionValueType(projection) + ";\n")
+			b.WriteString("    readonly input: " + toPascalCase(projection.MoveName) + "Input;\n")
+			b.WriteString("  };\n")
+		}
+		b.WriteString("};\n\n")
+	}
+
 	b.WriteString("export const moveInputSchema = ")
 	b.WriteString(schemaJSON(moves))
 	b.WriteString(" as const;\n\n")
 	b.WriteString("export const moveInputSchemaFingerprint = ")
 	b.WriteString(tsString(schemaFingerprint(moves)))
+	b.WriteString(";\n\n")
+	b.WriteString("export const moveChoiceProjectionSchema = ")
+	b.WriteString(choiceProjectionSchemaJSON(choiceProjections))
+	b.WriteString(" as const;\n\n")
+	b.WriteString("export const moveChoiceProjectionSchemaFingerprint = ")
+	b.WriteString(tsString(boardgame.FingerprintMoveChoiceProjectionSchema(choiceProjections)))
 	b.WriteString(";\n")
 
 	return b.String()
+}
+
+func choiceProjectionValueType(projection ChoiceProjectionInfo) string {
+	if projection.Source == boardgame.MoveChoiceSourcePlayers {
+		return "number"
+	}
+	values := make([]string, len(projection.CandidateValues))
+	for i, value := range projection.CandidateValues {
+		values[i] = tsString(value)
+	}
+	return strings.Join(values, " | ")
+}
+
+func choiceProjectionSchemaJSON(projections []ChoiceProjectionInfo) string {
+	canonical := append([]ChoiceProjectionInfo(nil), projections...)
+	for i := range canonical {
+		canonical[i].CandidateValues = append([]string(nil), projections[i].CandidateValues...)
+		sort.Strings(canonical[i].CandidateValues)
+	}
+	sort.Slice(canonical, func(i, j int) bool { return canonical[i].MoveName < canonical[j].MoveName })
+	encoded, err := json.MarshalIndent(canonical, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(encoded)
 }
 
 func fieldsFor(fields []MoveFieldInfo, includeContext bool) []MoveFieldInfo {
@@ -227,11 +325,16 @@ const typeScriptHeader = `/*
 
 `
 
-const typeScriptEmptyBody = `export type MoveInputs = Record<string, Record<string, never>>;
+func emptyTypeScriptBody() string {
+	return `export type MoveInputs = Record<string, Record<string, never>>;
 /** @deprecated Use MoveInputs. */
 export type MoveArgs = MoveInputs;
 export type ResolvedMoveInputs = MoveInputs;
 export type MoveWireInputs = MoveInputs;
+export type MoveChoiceProjections = Record<never, never>;
 export const moveInputSchema = [] as const;
 export const moveInputSchemaFingerprint = "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945";
+export const moveChoiceProjectionSchema = [] as const;
+export const moveChoiceProjectionSchemaFingerprint = ` + tsString(boardgame.FingerprintMoveChoiceProjectionSchema(nil)) + `;
 `
+}

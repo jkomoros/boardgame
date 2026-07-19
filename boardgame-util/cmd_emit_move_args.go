@@ -135,13 +135,13 @@ func generateMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, inclu
 		if pkg.ReadOnly() && !includeReadOnly {
 			continue
 		}
-		if err := moveargs.ValidateTypeScriptSchema(result.Moves); err != nil {
+		if err := moveargs.ValidateTypeScriptSchema(result.Moves, result.ChoiceProjections); err != nil {
 			return nil, fmt.Errorf("invalid generated TypeScript contract for %s: %w", result.PackageName, err)
 		}
 
 		generated = append(generated, generatedMoveArgsFile{
 			path:     filepath.Join(pkg.ClientFolder(), "_move_args.ts"),
-			contents: []byte(moveargs.GenerateTypeScript(result.Moves)),
+			contents: []byte(moveargs.GenerateTypeScript(result.Moves, result.ChoiceProjections)),
 			gameName: result.PackageName,
 			moves:    len(result.Moves),
 		})
