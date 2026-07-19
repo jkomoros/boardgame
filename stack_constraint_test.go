@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/jkomoros/boardgame/errors"
@@ -12,6 +13,13 @@ func testGameWithMutableConstraints(t *testing.T) *Game {
 	game := testDefaultGame(t, false)
 	game.Manager().Internals().AllowMutableConstraints(game)
 	return game
+}
+
+func mustAddStackConstraint(t testing.TB, stack Stack, constraint StackConstraint) {
+	t.Helper()
+	if err := stack.AddConstraint(constraint); err != nil {
+		t.Fatal("add stack constraint:", err)
+	}
 }
 
 func TestConstraintBlocksMoveTo(t *testing.T) {
@@ -121,6 +129,290 @@ func TestMoveAllToRespectsConstraints(t *testing.T) {
 	assert.For(t, "hand count unchanged").ThatActual(hand.NumComponents()).Equals(afterFirstMoveHandCount)
 }
 
+func TestMoveAllToLateConstraintRejectionIsAtomic(t *testing.T) {
+	game := testGameWithMutableConstraints(t)
+	gameState, playerStates := concreteStates(game.CurrentState())
+
+	source := gameState.OtherStack
+	destination := playerStates[0].Hand
+	for slot := 0; slot < 2; slot++ {
+		if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+			t.Fatalf("populate source slot %d: %v", slot, err)
+		}
+	}
+
+	moved := source.ImmutableComponents()
+	for slot, component := range moved {
+		stack, gotSlot, err := component.ContainingImmutableStack()
+		if err != nil {
+			t.Fatalf("build component index for source slot %d: %v", slot, err)
+		}
+		if stack != source || gotSlot != slot {
+			t.Fatalf("component in source slot %d reported at %v slot %d", slot, stack, gotSlot)
+		}
+	}
+
+	mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+		if dest.NumComponents()+len(proposed) > 1 {
+			return errors.New("only one component accepted")
+		}
+		return nil
+	})
+
+	before, err := json.Marshal(game.CurrentState())
+	if err != nil {
+		t.Fatalf("marshal state before MoveAllTo: %v", err)
+	}
+
+	err = source.MoveAllTo(destination)
+	if err == nil || err.Error() != "only one component accepted" {
+		t.Fatalf("MoveAllTo error = %v, want late constraint rejection", err)
+	}
+
+	after, err := json.Marshal(game.CurrentState())
+	if err != nil {
+		t.Fatalf("marshal state after MoveAllTo: %v", err)
+	}
+	if string(after) != string(before) {
+		t.Fatalf("state changed after rejected MoveAllTo\nbefore: %s\n after: %s", before, after)
+	}
+
+	for slot, component := range moved {
+		stack, gotSlot, err := component.ContainingImmutableStack()
+		if err != nil {
+			t.Fatalf("locate component from source slot %d after rejection: %v", slot, err)
+		}
+		if stack != source || gotSlot != slot {
+			t.Fatalf("component from source slot %d moved after rejection: stack %v slot %d", slot, stack, gotSlot)
+		}
+	}
+}
+
+func TestMoveAllToValidatesOnceOnCopiedState(t *testing.T) {
+	game := testGameWithMutableConstraints(t)
+	gameState, playerStates := concreteStates(game.CurrentState())
+
+	source := gameState.OtherStack
+	destination := playerStates[0].Hand
+	for slot := 0; slot < 2; slot++ {
+		if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+			t.Fatalf("populate source slot %d: %v", slot, err)
+		}
+	}
+
+	liveState := game.CurrentState()
+	var destinationCounts []int
+	mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+		if st == liveState || dest.state() == liveState {
+			return errors.New("constraint received live state")
+		}
+		if dest.state() != st {
+			return errors.New("constraint destination and state do not match")
+		}
+		destinationCounts = append(destinationCounts, dest.NumComponents())
+		return nil
+	})
+
+	if err := source.MoveAllTo(destination); err != nil {
+		t.Fatalf("MoveAllTo: %v", err)
+	}
+	if len(destinationCounts) != 2 || destinationCounts[0] != 0 || destinationCounts[1] != 1 {
+		t.Fatalf("constraint destination counts = %v, want [0 1]", destinationCounts)
+	}
+	if source.NumComponents() != 0 || destination.NumComponents() != 2 {
+		t.Fatalf("counts after MoveAllTo = source %d, destination %d; want 0, 2", source.NumComponents(), destination.NumComponents())
+	}
+}
+
+func TestMoveAllToLateRejectionAtomicAcrossStackKinds(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(t *testing.T, gameState *testGameState, playerStates []*testPlayerState) (Stack, Stack)
+	}{
+		{
+			name: "growable to growable",
+			setup: func(t *testing.T, gameState *testGameState, _ []*testPlayerState) (Stack, Stack) {
+				source := gameState.MyBoard.SpaceAt(0)
+				for i := 0; i < 2; i++ {
+					if err := gameState.DrawDeck.First().MoveToNextSlot(source); err != nil {
+						t.Fatalf("populate growable source: %v", err)
+					}
+				}
+				return source, gameState.MyBoard.SpaceAt(2)
+			},
+		},
+		{
+			name: "growable to sized",
+			setup: func(t *testing.T, gameState *testGameState, playerStates []*testPlayerState) (Stack, Stack) {
+				source := gameState.MyBoard.SpaceAt(0)
+				for i := 0; i < 2; i++ {
+					if err := gameState.DrawDeck.First().MoveToNextSlot(source); err != nil {
+						t.Fatalf("populate growable source: %v", err)
+					}
+				}
+				return source, playerStates[0].Hand
+			},
+		},
+		{
+			name: "sparse sized to growable",
+			setup: func(t *testing.T, gameState *testGameState, _ []*testPlayerState) (Stack, Stack) {
+				for _, slot := range []int{0, 2} {
+					if err := gameState.DrawDeck.First().MoveTo(gameState.DownSizeStack, slot); err != nil {
+						t.Fatalf("populate sized source slot %d: %v", slot, err)
+					}
+				}
+				return gameState.DownSizeStack, gameState.MyBoard.SpaceAt(0)
+			},
+		},
+		{
+			name: "sparse sized to sized",
+			setup: func(t *testing.T, gameState *testGameState, playerStates []*testPlayerState) (Stack, Stack) {
+				for _, slot := range []int{0, 2} {
+					if err := gameState.DrawDeck.First().MoveTo(gameState.DownSizeStack, slot); err != nil {
+						t.Fatalf("populate sized source slot %d: %v", slot, err)
+					}
+				}
+				return gameState.DownSizeStack, playerStates[0].Hand
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			game := testGameWithMutableConstraints(t)
+			gameState, playerStates := concreteStates(game.CurrentState())
+			source, destination := test.setup(t, gameState, playerStates)
+
+			mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+				if dest.NumComponents()+len(proposed) > 1 {
+					return errors.New("only one component accepted")
+				}
+				return nil
+			})
+
+			before, err := json.Marshal(game.CurrentState())
+			if err != nil {
+				t.Fatalf("marshal state before MoveAllTo: %v", err)
+			}
+			if err := source.MoveAllTo(destination); err == nil || err.Error() != "only one component accepted" {
+				t.Fatalf("MoveAllTo error = %v, want late constraint rejection", err)
+			}
+			after, err := json.Marshal(game.CurrentState())
+			if err != nil {
+				t.Fatalf("marshal state after MoveAllTo: %v", err)
+			}
+			if string(after) != string(before) {
+				t.Fatal("state changed after rejected MoveAllTo")
+			}
+		})
+	}
+}
+
+func TestMoveAllToDiscardsConstraintMutationOfSuppliedState(t *testing.T) {
+	game := testGameWithMutableConstraints(t)
+	gameState, playerStates := concreteStates(game.CurrentState())
+	source := gameState.OtherStack
+	destination := playerStates[0].Hand
+	for slot := 0; slot < 2; slot++ {
+		if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+			t.Fatalf("populate source slot %d: %v", slot, err)
+		}
+	}
+
+	originalPlayer := gameState.CurrentPlayer
+	mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+		copiedGameState, _ := concreteStates(st)
+		copiedGameState.CurrentPlayer = 2 // Deliberate contract violation on the supplied copy.
+		if dest.NumComponents()+len(proposed) > 1 {
+			return errors.New("late rejection")
+		}
+		return nil
+	})
+
+	if err := source.MoveAllTo(destination); err == nil || err.Error() != "late rejection" {
+		t.Fatalf("MoveAllTo error = %v, want late rejection", err)
+	}
+	if gameState.CurrentPlayer != originalPlayer {
+		t.Fatalf("live CurrentPlayer = %d, want unchanged %d", gameState.CurrentPlayer, originalPlayer)
+	}
+}
+
+func TestMoveAllToLateConstraintPanicLeavesLiveStateUnchanged(t *testing.T) {
+	game := testGameWithMutableConstraints(t)
+	gameState, playerStates := concreteStates(game.CurrentState())
+	source := gameState.OtherStack
+	destination := playerStates[0].Hand
+	for slot := 0; slot < 2; slot++ {
+		if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+			t.Fatalf("populate source slot %d: %v", slot, err)
+		}
+	}
+	mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+		if dest.NumComponents() > 0 {
+			panic("constraint panic")
+		}
+		return nil
+	})
+
+	before, err := json.Marshal(game.CurrentState())
+	if err != nil {
+		t.Fatal(err)
+	}
+	func() {
+		defer func() {
+			if recovered := recover(); recovered != "constraint panic" {
+				t.Fatalf("recovered %v, want constraint panic", recovered)
+			}
+		}()
+		_ = source.MoveAllTo(destination)
+		t.Fatal("MoveAllTo did not propagate the constraint panic")
+	}()
+	after, err := json.Marshal(game.CurrentState())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(before) {
+		t.Fatal("live state changed before constraint panic propagated")
+	}
+}
+
+func BenchmarkMoveAllToTransactional(b *testing.B) {
+	manager, err := NewGameManager(defaultTestGameDelegate(0), newTestStorageManager())
+	if err != nil {
+		b.Fatal(err)
+	}
+	game, err := manager.newGameImpl("", "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	if err := game.setUp(0, nil, nil); err != nil {
+		b.Fatal(err)
+	}
+	manager.Internals().AllowMutableConstraints(game)
+	gameState, playerStates := concreteStates(game.CurrentState())
+	left := gameState.OtherStack
+	right := playerStates[0].Hand
+	for slot := 0; slot < 2; slot++ {
+		if err := gameState.DrawDeck.First().MoveTo(left, slot); err != nil {
+			b.Fatalf("populate source slot %d: %v", slot, err)
+		}
+	}
+	accept := func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil }
+	mustAddStackConstraint(b, left, accept)
+	mustAddStackConstraint(b, right, accept)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := left.MoveAllTo(right); err != nil {
+			b.Fatal(err)
+		}
+		if err := right.MoveAllTo(left); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func TestClearConstraints(t *testing.T) {
 	game := testGameWithMutableConstraints(t)
 
@@ -189,7 +481,7 @@ func TestConstraintNotCheckedDuringSetup(t *testing.T) {
 
 	gameState, _ := concreteStates(game.CurrentState())
 	// components should have been distributed to stacks during setup.
-	assert.For(t).ThatActual(gameState.OtherStack.NumComponents() + gameState.DrawDeck.NumComponents() + gameState.DownSizeStack.NumComponents() > 0).Equals(true)
+	assert.For(t).ThatActual(gameState.OtherStack.NumComponents()+gameState.DrawDeck.NumComponents()+gameState.DownSizeStack.NumComponents() > 0).Equals(true)
 }
 
 func TestConstraintOnGrowableStack(t *testing.T) {

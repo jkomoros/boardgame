@@ -1402,26 +1402,17 @@ func TestShuffle(t *testing.T) {
 
 func TestMoveAllTo(t *testing.T) {
 	game := testDefaultGame(t, false)
+	gameState, playerStates := concreteStates(game.CurrentState())
+	from := gameState.OtherStack
+	to := playerStates[0].Hand
 
-	deck := game.Manager().Chest().Deck("test")
-
-	fakeState := &state{
-		game: game,
+	if err := gameState.DrawDeck.First().MoveToNextSlot(from); err != nil {
+		t.Fatal("could not populate source:", err)
 	}
 
-	to := deck.NewStack(1)
-	to.setState(fakeState)
-
-	from := deck.NewSizedStack(2)
-	from.setState(fakeState)
-
-	zero := deck.Components()[0]
-	one := deck.Components()[1]
-
-	from.insertNext(zero.ImmutableInstance(fakeState))
-
-	//This should succeed because although to only has one slot, there's only
-	//actually one item in from.
+	// This should succeed because the destination has room for the one item in
+	// the source. The capacity failure below leaves that item in place and then
+	// attempts to move two more.
 	if err := from.MoveAllTo(to); err != nil {
 		t.Error("Unexpected error moving from sized stack to other stack", err)
 	}
@@ -1434,14 +1425,11 @@ func TestMoveAllTo(t *testing.T) {
 		t.Error("MoveAllTo did not move the components to other")
 	}
 
-	to = deck.NewStack(1)
-	to.setState(fakeState)
-
-	from = deck.NewSizedStack(2)
-	from.setState(fakeState)
-
-	from.insertNext(zero.ImmutableInstance(fakeState))
-	from.insertNext(one.ImmutableInstance(fakeState))
+	for slot := 0; slot < 2; slot++ {
+		if err := gameState.DrawDeck.First().MoveTo(from, slot); err != nil {
+			t.Fatalf("could not populate source slot %d: %v", slot, err)
+		}
+	}
 
 	if err := from.MoveAllTo(to); err == nil {
 		t.Error("Got no error moving from a stack that was too big.")

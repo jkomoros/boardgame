@@ -18,8 +18,13 @@ package boardgame
 // components are not yet in the destination stack. For example, to check a
 // maximum count, use dest.NumComponents() + len(proposed).
 //
-// Constraints must be pure functions: they must not modify any state or
-// produce side effects.
+// Constraints must be deterministic, copy-stable predicates. They may base
+// their result only on logical values reachable through destination, proposed,
+// and state. They must not modify supplied or captured state, consume
+// randomness, schedule callbacks, perform I/O, modify captured values, inspect
+// pointer identity, consult clocks, depend on invocation count, or retain the
+// supplied objects after returning. The engine may evaluate a constraint on a
+// copied state, and may evaluate it independently during Legal and Apply.
 //
 // Constraints must not panic.
 //

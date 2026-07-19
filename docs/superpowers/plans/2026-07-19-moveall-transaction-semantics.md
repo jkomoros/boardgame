@@ -297,6 +297,13 @@ behavior as a guarantee. In particular:
   the copy cost, but prefer correctness until measured evidence supports an
   internal optimization.
 
+Initial implementation measurement on an Apple M1 (`-benchtime=100x`, three
+runs) is 0.23–0.43 ms and roughly 47 KB / 678 allocations per benchmark
+iteration. Each iteration performs two successful two-component transactional
+transfers, including two whole-state validations. This is visible overhead but
+not evidence for a more fragile fast path; profile a real large game before
+special-casing constraint-free destinations.
+
 ## Adjacent APIs
 
 This tranche inventories but does not broaden into every compound mutator:
