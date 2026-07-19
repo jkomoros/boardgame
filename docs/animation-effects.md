@@ -200,7 +200,8 @@ fx.pulse({
 })
 ```
 
-`departure` resolves only when the card's real WAAPI playback starts;
+`departure` resolves only when the animator observes the card's primary WAAPI
+channel entering its active interval;
 `arrival` resolves only after it finishes successfully. A skipped, cancelled,
 or missing structural animation produces an explicit skipped effect result.
 Stationary face/property morphs still have endpoints, so an arrival burst can
@@ -238,7 +239,7 @@ fx.decorateMotion({
 })
 ```
 
-The trail begins from the structural motion's real `started` event. It uses the
+The trail is prearmed with the structural motion's real `armed` event. It uses the
 same captured viewport endpoints and derives its timing envelope (earliest
 delay, latest visible end, and primary easing) from the actual compiled
 animations. It is cancelled when that exact motion generation is interrupted.
@@ -274,6 +275,35 @@ override motionSubjectSnapshot(): MotionSubjectSnapshot | null {
 
 Under reduced motion, a trail becomes a stationary arrival pulse. Echoes share
 the document-wide visual-node budget and degrade to available capacity.
+
+### Running an effect after several motions
+
+`fx.afterMotion()` is a success-only barrier over explicit automatic-FLIP
+subjects:
+
+```ts
+fx.afterMotion({
+  subjects: dealtCardIds,
+  effect: fx.burst({
+    at: fx.anchor('hand'),
+    tone: 'reward',
+    timing: 'immediate',
+  }),
+})
+```
+
+The barrier is recursively prepared before structural playback, including when
+nested in a sequence. It binds each requested subject to exactly one segment in
+that FLIP generation and runs its ordinary child effect only after every bound
+segment finishes successfully. Missing, skipped, or ambiguous subjects skip the
+barrier; cancellation or a replacement generation cancels it. The child cannot
+itself contain a trail, motion decoration, or another motion barrier.
+
+This is not a general cohort identity or a queue gate. It neither schedules nor
+selects structural motion, does not observe explicit `animateBetween()` flights,
+and never changes structural settlement. Combine it with `motion.stagger()`
+when the same typed local profile needs both an ordered start cadence and a
+success flourish.
 
 ## Composition
 
@@ -419,7 +449,7 @@ text remains normal accessible UI; any floating text effect is only its
 
 | Choice | Values | Default | Scope |
 | --- | --- | --- | --- |
-| Recipe | `burst`, `pulse`, `travel`, `trail`, `decorateMotion`, `sequence`, `parallel` | none | Descriptor |
+| Recipe | `burst`, `pulse`, `travel`, `trail`, `decorateMotion`, `afterMotion`, `sequence`, `parallel` | none | Descriptor |
 | Tone | `neutral`, `reward`, `confirm`, `attention`, `warning`, `magic` | `neutral` | Inherited through composition |
 | Intensity | `subtle`, `small`, `medium`, `large` | `medium` | Inherited through composition |
 | Timing | `immediate`, `version`, or `{ localStartAtMs }` | `immediate` | Inherited through composition |

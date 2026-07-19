@@ -105,6 +105,15 @@ export interface DecorateMotionEffectSpec extends Omit<EffectBase, 'timing' | 'a
   readonly advanced?: never;
 }
 
+/** Run one ordinary effect after exact FLIP subjects all finish successfully. */
+export interface AfterMotionEffectSpec extends Omit<EffectBase, 'timing' | 'advanced'> {
+  readonly kind: 'after-motion';
+  readonly subjects: readonly string[];
+  readonly effect: EffectSpec;
+  readonly timing?: never;
+  readonly advanced?: never;
+}
+
 export interface SequenceEffectSpec extends EffectBase {
   readonly kind: 'sequence';
   readonly effects: readonly EffectSpec[];
@@ -122,6 +131,7 @@ export type EffectSpec =
   | TravelEffectSpec
   | TrailEffectSpec
   | DecorateMotionEffectSpec
+  | AfterMotionEffectSpec
   | SequenceEffectSpec
   | ParallelEffectSpec;
 
@@ -177,6 +187,7 @@ type DecorateMotionOptions = Omit<DecorateMotionEffectSpec, 'kind' | 'effects'> 
   departure?: EffectSpec;
   arrival?: EffectSpec;
 }>;
+type AfterMotionOptions = Omit<AfterMotionEffectSpec, 'kind'>;
 
 function nonEmpty(value: string, label: string): string {
   const normalized = value.trim();
@@ -199,6 +210,15 @@ function common<T extends CommonOptions>(options: T): T {
     ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
     ...(options.advanced === undefined ? {} : { advanced: freezeAdvanced(options.advanced) }),
   };
+}
+
+function containsMotionSubscription(effect: EffectSpec): boolean {
+  if (effect.kind === 'trail' || effect.kind === 'decorate-motion'
+    || effect.kind === 'after-motion') return true;
+  if (effect.kind === 'sequence' || effect.kind === 'parallel') {
+    return effect.effects.some(containsMotionSubscription);
+  }
+  return false;
 }
 
 export const fx = Object.freeze({
@@ -279,6 +299,28 @@ export const fx = Object.freeze({
       ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
       ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
       effects: Object.freeze(effects),
+    });
+  },
+
+  afterMotion(options: AfterMotionOptions): AfterMotionEffectSpec {
+    if (options.subjects.length === 0) {
+      throw new Error('afterMotion subjects must not be empty');
+    }
+    const subjects = options.subjects.map(subject => nonEmpty(subject, 'afterMotion subject ID'));
+    if (new Set(subjects).size !== subjects.length) {
+      throw new Error('afterMotion subjects must be unique');
+    }
+    if (containsMotionSubscription(options.effect)) {
+      throw new Error('afterMotion effect cannot contain a motion lifecycle subscription');
+    }
+    return Object.freeze({
+      kind: 'after-motion',
+      subjects: Object.freeze(subjects),
+      effect: options.effect,
+      ...(options.tone === undefined ? {} : { tone: options.tone }),
+      ...(options.intensity === undefined ? {} : { intensity: options.intensity }),
+      ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
+      ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
     });
   },
 

@@ -317,6 +317,7 @@ test('explicit motion cannot override reduced-motion scheduling', async ({ page 
         updateComplete: Promise<unknown>;
         animationContext: object | null;
         animateBetween(real: HTMLElement, stub: HTMLElement, duration: number): Promise<void>;
+        observeStructuralMotionEvents(observer: (event: { source: string; kind: string }) => void): () => void;
         _lastExplicitMotionPlan: null | {
           segments: Array<{
             execution: {
@@ -338,11 +339,17 @@ test('explicit motion cannot override reduced-motion scheduling', async ({ page 
         slotDurationMs: 1200,
         maxAnimationDurationMs: 1000,
       };
+      const lifecycle: string[] = [];
+      const unobserve = animator.observeStructuralMotionEvents(event => {
+        if (event.source === 'explicit') lifecycle.push(event.kind);
+      });
       const startedAt = performance.now();
       await animator.animateBetween(real, stub, 900);
+      unobserve();
       return {
         elapsedMs: performance.now() - startedAt,
         execution: animator._lastExplicitMotionPlan?.segments[0]?.execution,
+        lifecycle,
       };
     });
 
@@ -351,6 +358,9 @@ test('explicit motion cannot override reduced-motion scheduling', async ({ page 
       status: 'finished',
       animations: [expect.objectContaining({ delayMs: 0, durationMs: 0 })],
     });
+    expect(result.lifecycle).toEqual([
+      'planned', 'armed', 'active-observed', 'finished', 'generation-settled',
+    ]);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();
@@ -608,7 +618,7 @@ test('structural plans publish before playback and invalidate on interruption', 
       channels: ['host:transform'],
       timingRequest: { policy: 'version', delayMs: 0, durationMs: 80 },
       execution: {
-        status: 'started',
+        status: 'active-observed',
         animations: [expect.objectContaining({ durationMs: 80 })],
       },
     });
@@ -618,16 +628,18 @@ test('structural plans publish before playback and invalidate on interruption', 
     expect(result.second.segment.path.kind).toBe('stationary');
     expect(result.observedEvents).toEqual([
       { id: 'flip:1:0:planned', generation: 1, kind: 'planned', subjectId: 'card-plan' },
-      { id: 'flip:1:0:started', generation: 1, kind: 'started', subjectId: 'card-plan' },
+      { id: 'flip:1:0:armed', generation: 1, kind: 'armed', subjectId: 'card-plan' },
+      { id: 'flip:1:0:active-observed', generation: 1, kind: 'active-observed', subjectId: 'card-plan' },
       { id: 'flip:1:0:cancelled', generation: 1, kind: 'cancelled', subjectId: 'card-plan' },
       { id: 'flip:1:generation-settled', generation: 1, kind: 'generation-settled', subjectId: '' },
       { id: 'flip:2:0:planned', generation: 2, kind: 'planned', subjectId: 'card-plan' },
-      { id: 'flip:2:0:started', generation: 2, kind: 'started', subjectId: 'card-plan' },
+      { id: 'flip:2:0:armed', generation: 2, kind: 'armed', subjectId: 'card-plan' },
+      { id: 'flip:2:0:active-observed', generation: 2, kind: 'active-observed', subjectId: 'card-plan' },
       { id: 'flip:2:0:finished', generation: 2, kind: 'finished', subjectId: 'card-plan' },
       { id: 'flip:2:generation-settled', generation: 2, kind: 'generation-settled', subjectId: '' },
     ]);
     expect(result.replayedKinds).toEqual([
-      'planned', 'started', 'finished', 'generation-settled',
+      'planned', 'armed', 'active-observed', 'finished', 'generation-settled',
     ]);
     diagnostics.assertEmpty();
   } finally {
@@ -880,8 +892,16 @@ test('explicit motion cohorts schedule a deterministic order across stacks', asy
         prepare(): void;
         installMotionCohorts(specs: unknown[]): void;
         animateFlip(): Promise<void>;
+        observeStructuralMotionEvents(observer: (event: {
+          generation: number; subjectId?: string; kind: string;
+        }) => void): () => void;
         _solvedMotionPlan: {
-          segments: Array<{ subjectId: string; timingRequest: { delayMs: number } }>;
+          segments: Array<{
+            subjectId: string;
+            timingRequest: { delayMs: number };
+            execution: { status: string };
+            ref: { generation: number };
+          }>;
         } | null;
       };
       const makeStack = (name: string, ids: string[]) => {
@@ -918,6 +938,12 @@ test('explicit motion cohorts schedule a deterministic order across stacks', asy
       await Promise.all(elements.map(element => (
         element as HTMLElement & { updateComplete: Promise<unknown> }
       ).updateComplete));
+      const lifecycle: Array<{ generation: number; subjectId: string; kind: string }> = [];
+      const unobserve = animator.observeStructuralMotionEvents(event => lifecycle.push({
+        generation: event.generation,
+        subjectId: event.subjectId ?? '',
+        kind: event.kind,
+      }));
 
       animator.prepare();
       animator.installMotionCohorts([
@@ -950,7 +976,30 @@ test('explicit motion cohorts schedule a deterministic order across stacks', asy
         subjectId: segment.subjectId,
         delayMs: segment.timingRequest.delayMs,
       }));
-      return { scheduled, afterInterruption };
+
+      animator.prepare();
+      animator.installMotionCohorts([
+        motion.stagger({ subjects: ['cohort-a', 'cohort-b'], intervalMs: 300 }),
+      ]);
+      elements.forEach((element, index) => {
+        element.style.transform = `translateX(${120 + index * 5}px)`;
+      });
+      const interrupted = animator.animateFlip();
+      for (let frame = 0; frame < 20; frame++) {
+        const segment = animator._solvedMotionPlan?.segments.find(
+          candidate => candidate.subjectId === 'cohort-b',
+        );
+        if (segment?.execution.status === 'armed') break;
+        await new Promise(requestAnimationFrame);
+      }
+      const interruptedGeneration = animator._solvedMotionPlan?.segments[0]?.ref.generation;
+      animator.prepare();
+      await interrupted;
+      unobserve();
+      const delayedCancellation = lifecycle.filter(event => (
+        event.generation === interruptedGeneration && event.subjectId === 'cohort-b'
+      )).map(event => event.kind);
+      return { scheduled, afterInterruption, delayedCancellation };
     });
 
     expect(Object.fromEntries(result.scheduled?.map(entry => [entry.subjectId, entry.delayMs]) ?? [])).toEqual({
@@ -959,6 +1008,7 @@ test('explicit motion cohorts schedule a deterministic order across stacks', asy
       'cohort-c': 0,
     });
     expect(result.afterInterruption?.every(entry => entry.delayMs === 0)).toBe(true);
+    expect(result.delayedCancellation).toEqual(['planned', 'armed', 'cancelled']);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

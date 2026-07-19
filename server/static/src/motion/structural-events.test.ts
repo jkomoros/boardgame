@@ -44,12 +44,13 @@ describe('structural motion event compilation', () => {
     const [plannedEvent] = compileStructuralMotionEvents(null, intention);
     assert.equal(plannedEvent.kind, 'planned');
     assert.equal(plannedEvent.id, 'flip:7:0:planned');
+    assert.equal(plannedEvent.kind !== 'generation-settled' && plannedEvent.segmentId, 'flip:7:0');
     assert.equal(plannedEvent.segment, intention.segments[0]);
     assert.deepEqual(compileStructuralMotionEvents(intention, intention), []);
 
     const executing = updateStructuralMotionExecutions(intention, new Map([[
-      'card-1', {
-        status: 'started' as const,
+      0, {
+        status: 'armed' as const,
         animations: [{
           channel: 'host:transform' as const,
           delayMs: 10,
@@ -63,20 +64,28 @@ describe('structural motion event compilation', () => {
     ]]));
     assert.deepEqual(
       compileStructuralMotionEvents(intention, executing).map(event => event.kind),
-      ['started'],
+      ['armed'],
     );
     assert.deepEqual(compileStructuralMotionEvents(executing, executing), []);
 
-    const finished = updateStructuralMotionExecutions(executing, new Map([[
-      'card-1', {
-        status: 'finished' as const,
-        animations: executing.segments[0].execution.status === 'started'
+    const active = updateStructuralMotionExecutions(executing, new Map([[
+      0, {
+        status: 'active-observed' as const,
+        animations: executing.segments[0].execution.status === 'armed'
           ? executing.segments[0].execution.animations
           : [],
       },
     ]]));
+    const finished = updateStructuralMotionExecutions(active, new Map([[
+      0, {
+        status: 'finished' as const,
+        animations: active.segments[0].execution.status === 'active-observed'
+          ? active.segments[0].execution.animations
+          : [],
+      },
+    ]]));
     assert.deepEqual(
-      compileStructuralMotionEvents(executing, finished).map(event => event.kind),
+      compileStructuralMotionEvents(active, finished).map(event => event.kind),
       ['finished', 'generation-settled'],
     );
   });
@@ -84,7 +93,7 @@ describe('structural motion event compilation', () => {
   it('does not fabricate intermediate states after a missed revision', () => {
     const intention = planned();
     const skipped = updateStructuralMotionExecutions(intention, new Map([[
-      'card-1', { status: 'skipped' as const, reason: 'timing' as const },
+      0, { status: 'skipped' as const, reason: 'timing' as const },
     ]]));
     const events = compileStructuralMotionEvents(null, skipped);
     assert.deepEqual(events.map(event => event.kind), ['skipped', 'generation-settled']);

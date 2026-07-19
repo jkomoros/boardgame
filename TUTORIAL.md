@@ -3809,6 +3809,12 @@ stack configuration if declarations conflict. It coordinates motion within one
 state installation; `animationOverlap()` below still coordinates successive
 state bundles. Effects remain observers and cannot retime the pieces.
 
+To add one flourish only after an exact set of automatic component motions
+finishes successfully, return `fx.afterMotion({ subjects, effect })` from
+`effectsForTransition()`. It is prepared before playback, skips if a listed
+piece did not participate, and cancels with the structural generation. It does
+not hold the state queue or include explicit `animateBetween()` flights.
+
 The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
 
 Sometimes you want animations to overlap rather than playing fully sequentially. For example, when dealing cards to players, you might want the next card to start moving before the previous one has finished. If your game renderer defines `animationOverlap(fromMove, toMove)`, it will be consulted before each state bundle is installed. The return value is a fraction between 0 and 1 representing how much of the current animation should play before the next state is installed. A return value of 0 (the default) means the current animation must complete entirely before the next state is applied. A value of 0.5 means the next state will be installed when the current animation is 50% complete. Values outside the 0-1 range are clamped. This is useful for cascade effects where multiple animations should overlap smoothly instead of playing one after another.

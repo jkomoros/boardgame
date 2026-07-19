@@ -29,6 +29,7 @@ import type {
   StructuralExecution,
   StructuralMotionDraft,
   StructuralMotionPlan,
+  StructuralMotionSegmentRef,
   StructuralProvenance,
 } from '../motion/structural-plan.js';
 import { compileStructuralMotionEvents } from '../motion/structural-events.js';
@@ -42,6 +43,10 @@ import type {
 } from '../motion/component-track.js';
 import { compileMotionCohortSchedule } from '../motion/cohort.js';
 import type { MotionStaggerCohortSpec } from '../motion/cohort.js';
+import {
+  MotionActivationMonitor,
+  primaryStructuralAnimationIndex,
+} from '../motion/activation.js';
 import {
   compileComponentMotionTracks,
   componentMotionChannel,
@@ -140,8 +145,14 @@ export class BoardgameComponentAnimator extends LitElement {
     generation: number;
     specs: readonly MotionStaggerCohortSpec[];
   }> | null = null;
+  private readonly _activationMonitor = new MotionActivationMonitor();
 
   ancestorOffsetParent: HTMLElement | null = null;
+
+  override disconnectedCallback(): void {
+    this._activationMonitor.clear();
+    super.disconnectedCallback();
+  }
 
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void {
     this._motionEventObservers.add(observer);
@@ -182,18 +193,36 @@ export class BoardgameComponentAnimator extends LitElement {
     this._notifyStructuralMotion(plan);
   }
 
+  private _segmentId(ref: StructuralMotionSegmentRef): string {
+    return `${ref.source}:${ref.generation}:${ref.segmentIndex}`;
+  }
+
+  private _updateFlipMotion(
+    generation: number,
+    segmentIndex: number,
+    execution: StructuralExecution,
+  ): void {
+    if (this._generation !== generation || !this._solvedMotionPlan
+      || this._solvedMotionPlan.generation !== generation) return;
+    this._setSolvedMotionPlan(updateStructuralMotionExecutions(
+      this._solvedMotionPlan,
+      new Map([[segmentIndex, execution]]),
+    ));
+  }
+
   private _invalidateSolvedMotionPlan(): void {
     const plan = this._solvedMotionPlan;
     if (!plan || plan.phase === 'settled') return;
-    const updates = new Map<string, StructuralExecution>();
-    for (const segment of plan.segments) {
-      if (segment.execution.status === 'started') {
-        updates.set(segment.subjectId, {
+    const updates = new Map<number, StructuralExecution>();
+    for (const [segmentIndex, segment] of plan.segments.entries()) {
+      if (segment.execution.status === 'armed'
+        || segment.execution.status === 'active-observed') {
+        updates.set(segmentIndex, {
           status: 'cancelled',
           animations: segment.execution.animations,
         });
       } else if (segment.execution.status === 'planned') {
-        updates.set(segment.subjectId, {
+        updates.set(segmentIndex, {
           status: 'skipped',
           reason: 'not-started',
         });
@@ -224,6 +253,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
   prepare() {
     this._invalidateSolvedMotionPlan();
+    this._activationMonitor.clear();
     this._generation++;
     this._solvedMotionPlan = null;
     this._motionCohorts = null;
@@ -475,14 +505,14 @@ export class BoardgameComponentAnimator extends LitElement {
 
   private _updateExplicitMotion(
     generation: number,
-    subjectId: string,
+    _subjectId: string,
     execution: StructuralExecution,
   ): void {
     const current = this._explicitMotionPlans.get(generation);
     if (!current) return;
     const updated = updateStructuralMotionExecutions(
       current,
-      new Map([[subjectId, execution]]),
+      new Map([[0, execution]]),
     );
     this._explicitMotionPlans.set(generation, updated);
     if (this._lastExplicitMotionPlan?.generation === generation) {
@@ -507,12 +537,29 @@ export class BoardgameComponentAnimator extends LitElement {
       this._executedTiming(animation, 'host:transform'),
     ]);
     this._updateExplicitMotion(generation, subjectId, {
-      status: 'started',
+      status: 'armed',
       animations,
     });
+    this._activationMonitor.observe(
+      `explicit:${generation}:0`,
+      animation,
+      animations[0].delayMs,
+      () => this._updateExplicitMotion(generation, subjectId, {
+        status: 'active-observed', animations,
+      }),
+    );
     void animation.finished.then(
-      () => this._updateExplicitMotion(generation, subjectId, { status: 'finished', animations }),
-      () => this._updateExplicitMotion(generation, subjectId, { status: 'cancelled', animations }),
+      () => {
+        this._activationMonitor.cancel(`explicit:${generation}:0`);
+        this._updateExplicitMotion(generation, subjectId, {
+          status: 'active-observed', animations,
+        });
+        this._updateExplicitMotion(generation, subjectId, { status: 'finished', animations });
+      },
+      () => {
+        this._activationMonitor.cancel(`explicit:${generation}:0`);
+        this._updateExplicitMotion(generation, subjectId, { status: 'cancelled', animations });
+      },
     );
   }
 
@@ -1092,6 +1139,7 @@ export class BoardgameComponentAnimator extends LitElement {
         tracks?: readonly ComponentMotionTrack[];
       };
       motionDraft?: StructuralMotionDraft;
+      motionSegmentIndex?: number;
       durationMs: number;
       delayMs: number;
     }> = [];
@@ -1173,34 +1221,46 @@ export class BoardgameComponentAnimator extends LitElement {
     // Only a still-current generation may publish, and publication happens
     // before the first component begins playback.
     if (this._generation !== generation) { resolve(Promise.resolve()); return; }
-    this._setSolvedMotionPlan(publishStructuralMotionPlan(
-      generation,
-      playback.flatMap(item => item.motionDraft ? [{
+    const planEntries: Array<{
+      draft: StructuralMotionDraft;
+      timingRequest: { policy: 'version'; delayMs: number; durationMs: number };
+    }> = [];
+    for (const item of playback) {
+      if (!item.motionDraft) continue;
+      item.motionSegmentIndex = planEntries.length;
+      planEntries.push({
         draft: item.motionDraft,
         timingRequest: {
           policy: 'version' as const,
           delayMs: item.delayMs,
           durationMs: item.durationMs,
         },
-      }] : []),
+      });
+    }
+    this._setSolvedMotionPlan(publishStructuralMotionPlan(
+      generation,
+      planEntries,
     ));
 
     const settledPromises: Promise<void>[] = [];
-    const executionUpdates = new Map<string, StructuralExecution>();
+    const executionUpdates = new Map<number, StructuralExecution>();
     const terminalUpdates: Array<{
-      subjectId: string;
+      segmentIndex: number;
+      primaryAnimation: Animation | null;
+      primaryDelayMs: number;
       settled: Promise<boolean[]>;
     }> = [];
     for (const item of playback) {
       const animations = item.component.playAnimation(item.config) as readonly Animation[];
       const tracks = item.config.tracks ?? [];
       if (item.motionDraft) {
+        const segmentIndex = item.motionSegmentIndex!;
         if (animations.length === 0 || animations.length !== tracks.length) {
           for (const animation of animations) {
             void animation.finished.catch(() => undefined);
             animation.cancel();
           }
-          executionUpdates.set(item.motionDraft.subjectId, {
+          executionUpdates.set(segmentIndex, {
             status: 'skipped',
             reason: animations.length === 0 ? 'not-started' : 'playback-error',
           });
@@ -1208,12 +1268,18 @@ export class BoardgameComponentAnimator extends LitElement {
           const executedTimings = Object.freeze(animations.map((animation, index) => (
             this._executedTiming(animation, componentMotionChannel(tracks[index]))
           )));
-          executionUpdates.set(item.motionDraft.subjectId, {
-            status: 'started',
+          executionUpdates.set(segmentIndex, {
+            status: 'armed',
             animations: executedTimings,
           });
+          const primary = primaryStructuralAnimationIndex(
+            item.motionDraft.path?.kind,
+            executedTimings,
+          );
           terminalUpdates.push({
-            subjectId: item.motionDraft.subjectId,
+            segmentIndex,
+            primaryAnimation: primary === null ? null : animations[primary],
+            primaryDelayMs: primary === null ? 0 : executedTimings[primary].delayMs,
             settled: Promise.all(animations.map(animation => animation.finished.then(
               () => false,
               () => true,
@@ -1230,18 +1296,44 @@ export class BoardgameComponentAnimator extends LitElement {
       executionUpdates,
     ));
     for (const terminal of terminalUpdates) {
+      if (!terminal.primaryAnimation) continue;
+      const ref = this._solvedMotionPlan?.segments[terminal.segmentIndex]?.ref;
+      if (!ref) continue;
+      const current = this._solvedMotionPlan?.segments[terminal.segmentIndex];
+      if (current?.execution.status !== 'armed') continue;
+      const animations = current.execution.animations;
+      this._activationMonitor.observe(
+        this._segmentId(ref),
+        terminal.primaryAnimation,
+        terminal.primaryDelayMs,
+        () => this._updateFlipMotion(generation, terminal.segmentIndex, {
+          status: 'active-observed', animations,
+        }),
+      );
+    }
+    for (const terminal of terminalUpdates) {
       void terminal.settled.then(cancelled => {
         if (this._generation !== generation || !this._solvedMotionPlan) return;
-        const current = this._solvedMotionPlan.segments.find(
-          segment => segment.subjectId === terminal.subjectId,
-        );
-        const animations = current?.execution.status === 'started'
+        const current = this._solvedMotionPlan.segments[terminal.segmentIndex];
+        const animations = current?.execution.status === 'armed'
+          || current?.execution.status === 'active-observed'
           ? current.execution.animations
           : Object.freeze([]);
+        if (current) this._activationMonitor.cancel(this._segmentId(current.ref));
+        const wasCancelled = cancelled.some(Boolean);
+        if (!wasCancelled && current?.execution.status === 'armed') {
+          this._setSolvedMotionPlan(updateStructuralMotionExecutions(
+            this._solvedMotionPlan,
+            new Map([[terminal.segmentIndex, {
+              status: 'active-observed' as const,
+              animations,
+            }]]),
+          ));
+        }
         this._setSolvedMotionPlan(updateStructuralMotionExecutions(
           this._solvedMotionPlan,
-          new Map([[terminal.subjectId, {
-            status: cancelled.some(Boolean) ? 'cancelled' as const : 'finished' as const,
+          new Map([[terminal.segmentIndex, {
+            status: wasCancelled ? 'cancelled' as const : 'finished' as const,
             animations,
           }]]),
         ));

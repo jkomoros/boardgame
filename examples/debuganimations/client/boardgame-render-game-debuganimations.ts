@@ -209,7 +209,26 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
   override effectsForTransition(
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
-    if (context.kind === 'initial' || context.move?.Name !== MoveNames.MoveToken) return [];
+    if (context.kind === 'initial') return [];
+    if (context.move?.Name === MoveNames.VisibleShuffle) {
+      const priorIndex = new Map(
+        context.before.Game.FanStack.IDs.map((id, index) => [id, index]),
+      );
+      const moved = context.after.Game.FanStack.IDs.filter(
+        (id, index) => priorIndex.get(id) !== index,
+      );
+      return moved.length === 0 ? [] : [fx.afterMotion({
+        key: 'visible-shuffle-complete',
+        subjects: moved,
+        effect: fx.burst({
+          at: fx.anchor('visible-shuffle'),
+          tone: 'magic',
+          intensity: 'small',
+          timing: 'immediate',
+        }),
+      })];
+    }
+    if (context.move?.Name !== MoveNames.MoveToken) return [];
     const beforeFrom = new Set(context.before.Game.TokensFrom.IDs);
     const movedTokenId = context.after.Game.TokensFrom.IDs.find(id => !beforeFrom.has(id))
       ?? context.before.Game.TokensFrom.IDs.find(
@@ -374,7 +393,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
           <boardgame-action-button .action=${this.move(MoveNames.FlipCardBetweenHiddenAndRevealed)}>Flip</boardgame-action-button>
         </div>
 
-        <div id="fan">
+        <div id="fan" data-effect-anchor="visible-shuffle">
           <boardgame-component-stack
             layout="${this.fromStackLayout}"
             ?messy="${this.messy}"

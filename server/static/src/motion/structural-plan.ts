@@ -55,10 +55,17 @@ export interface StructuralExecutedTiming {
   readonly fill: FillMode;
 }
 
+/** Stable identity for one segment throughout its immutable lifecycle. */
+export interface StructuralMotionSegmentRef {
+  readonly source: 'flip' | 'explicit';
+  readonly generation: number;
+  readonly segmentIndex: number;
+}
+
 export type StructuralExecution =
   | Readonly<{ status: 'planned' }>
   | Readonly<{
-    status: 'started';
+    status: 'armed' | 'active-observed';
     animations: readonly StructuralExecutedTiming[];
   }>
   | Readonly<{
@@ -75,6 +82,7 @@ export type StructuralExecution =
   }>;
 
 export interface StructuralMotionSegment extends StructuralMotionDraft {
+  readonly ref: StructuralMotionSegmentRef;
   readonly timingRequest: StructuralTimingRequest;
   readonly execution: StructuralExecution;
 }
@@ -137,8 +145,9 @@ export function publishStructuralMotionPlan(
   }>[],
   source: StructuralMotionPlan['source'] = 'flip',
 ): StructuralMotionPlan {
-  const segments = entries.map(({ draft, timingRequest }) => Object.freeze({
+  const segments = entries.map(({ draft, timingRequest }, segmentIndex) => Object.freeze({
     ...draft,
+    ref: Object.freeze({ source, generation, segmentIndex }),
     timingRequest: Object.freeze({ ...timingRequest }),
     execution: Object.freeze({ status: 'planned' as const }),
   }));
@@ -152,19 +161,28 @@ export function publishStructuralMotionPlan(
 
 export function updateStructuralMotionExecutions(
   plan: StructuralMotionPlan,
-  updates: ReadonlyMap<string, StructuralExecution>,
+  updates: ReadonlyMap<number, StructuralExecution>,
 ): StructuralMotionPlan {
-  const segments = plan.segments.map(segment => {
-    const execution = updates.get(segment.subjectId);
+  const transitions: Readonly<Record<StructuralExecution['status'], readonly StructuralExecution['status'][]>> = {
+    planned: ['armed', 'skipped'],
+    armed: ['active-observed', 'cancelled'],
+    'active-observed': ['finished', 'cancelled'],
+    skipped: [],
+    finished: [],
+    cancelled: [],
+  };
+  const segments = plan.segments.map((segment, segmentIndex) => {
+    const execution = updates.get(segmentIndex);
+    if (!execution || !transitions[segment.execution.status].includes(execution.status)) {
+      return segment;
+    }
     const frozenExecution = execution && 'animations' in execution
       ? Object.freeze({
         ...execution,
         animations: Object.freeze(execution.animations.map(timing => Object.freeze({ ...timing }))),
       })
       : execution ? Object.freeze({ ...execution }) : null;
-    return execution
-      ? Object.freeze({ ...segment, execution: frozenExecution! })
-      : segment;
+    return Object.freeze({ ...segment, execution: frozenExecution! });
   });
   const terminal = segments.every(segment => (
     segment.execution.status === 'finished'

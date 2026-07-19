@@ -210,8 +210,8 @@ that same measurement transaction; no consumer later reconstructs an endpoint
 after layout changed.
 
 The animator exposes one ordered, replayable lifecycle stream. A pure compiler
-emits newly observed segment statuses (`planned`, `started`, `skipped`,
-`finished`, or `cancelled`) followed by exactly one `generation-settled` marker
+emits newly observed segment statuses (`planned`, `armed`, `active-observed`,
+`skipped`, `finished`, or `cancelled`) followed by exactly one `generation-settled` marker
 after every segment is terminal. Event identity includes source, generation,
 segment index, and status. A late observer replays the current generation in
 the same order. It never fabricates an unobserved intermediate state, and an
@@ -229,7 +229,10 @@ cancelled old animation of the same component from satisfying the new
 transition's anchor.
 
 `fx.motion(subjectId, 'departure')` resolves from the segment's captured
-viewport `from` center on the real `started` event. The default
+viewport `from` center on `active-observed`. The animator samples the actual
+primary Animation timeline with one shared frame monitor; successful completion
+synthesizes the observation immediately before `finished` if sampling missed a
+short or backgrounded interval, while cancellation never fabricates it. The default
 `fx.motion(subjectId, 'arrival')` resolves from its `to` center only on
 `finished`. Skipped/cancelled motion and an absent subject settle the decorative
 handle explicitly instead of leaving a pending promise. A settled plan closes
@@ -273,7 +276,7 @@ and hidden game state cannot accidentally become observable.
 
 `fx.decorateMotion({ subject, trail, departure, arrival })` is recursively
 prepared before structural playback, even inside ordinary composition. Its
-trail waits for the matching FLIP `started` event. The overlay
+trail waits for the matching FLIP `armed` event. The overlay
 then derives its endpoints from the segment's viewport geometry and its timing
 envelope from actual compiled execution records. It owns only disposable echo
 elements, consumes the shared visual-node budget, and is cancelled by the
@@ -305,11 +308,11 @@ declarations reject the whole explicit set and preserve legacy timing. This is
 the narrow primitive shared by current stack cascades and future deal/gather
 vocabularies.
 
-Group decoration and completion remain deferred. The current lifecycle resolves
-by subject for effect anchors while its durable execution identity is
-source/generation/segment. A public cohort lifecycle must first define that
-identity and an honest visible-activation event; it must not reproduce WAAPI
-delays with effect-layer timers.
+The lifecycle now binds observations to source/generation/segment identity and
+distinguishes armed playback from sampled activation. That supports one narrow
+success barrier, `fx.afterMotion({ subjects, effect })`, over exact automatic
+FLIP segments. True cohort identity, progress, and cohort-wide cancellation
+remain deferred; the barrier is composition and never a structural owner.
 
 ## Physical animation ownership
 
@@ -353,8 +356,10 @@ ownership:
 14. **Done:** extract immutable cohort cadence scheduling, route compatibility
     stack stagger through it, add a generation-bound ordered-ID author hook,
     and prove ordering across independently rendered stacks.
-15. **Deferred:** define cohort lifecycle identity and visible activation before
-    adding group decoration or completion effects.
+15. **Done:** replace subject-keyed outcomes with stable segment refs and
+    monotonic index-keyed updates; distinguish armed playback from sampled
+    `active-observed`, bind decorators to exact refs, and add the success-only
+    FLIP `fx.afterMotion()` barrier.
 16. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
 17. Reassess a larger representation only when concrete duplication justifies
@@ -365,7 +370,8 @@ ownership:
 Game authors should use `effectsForTransition()`,
 `motionCohortsForTransition()`, `motion.stagger()`, `this.effects.play()`,
 named anchors, `fx.motion()`, `fx.decorateMotion()`, `fx.trail()`, and
-`animateBetween()` as documented in `docs/animation-effects.md` and
+`fx.afterMotion()`, plus `animateBetween()` as documented in
+`docs/animation-effects.md` and
 `docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
 events are framework-internal while their contracts settle. Shipping the
 internal seam first prevents an attractive experimental API from becoming a

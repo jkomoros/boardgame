@@ -93,9 +93,9 @@ describe('structural motion plans', () => {
       timingRequest: { policy: 'version', delayMs: 0, durationMs: 250 },
     }]);
     const executing = updateStructuralMotionExecutions(planned, new Map([[
-      'card-9',
+      0,
       {
-        status: 'started' as const,
+        status: 'armed' as const,
         animations: Object.freeze([Object.freeze({
           channel: 'host:transform' as const,
           delayMs: 50,
@@ -110,18 +110,62 @@ describe('structural motion plans', () => {
     assert.equal(planned.phase, 'planned');
     assert.equal(planned.segments[0].execution.status, 'planned');
     assert.equal(executing.phase, 'executing');
-    assert.equal(executing.segments[0].execution.status, 'started');
+    assert.equal(executing.segments[0].execution.status, 'armed');
+    assert.deepEqual(executing.segments[0].ref, {
+      source: 'flip', generation: 13, segmentIndex: 0,
+    });
 
     const settled = updateStructuralMotionExecutions(executing, new Map([[
-      'card-9', {
+      0, {
         status: 'cancelled' as const,
-        animations: executing.segments[0].execution.status === 'started'
+        animations: executing.segments[0].execution.status === 'armed'
           ? executing.segments[0].execution.animations
           : [],
       },
     ]]));
     assert.equal(settled.phase, 'settled');
     assert.equal(settled.segments[0].execution.status, 'cancelled');
+  });
+
+  it('updates exact indexes and ignores racing lifecycle regressions', () => {
+    const duplicate = createStructuralMotionDraft({
+      subjectId: 'duplicate',
+      presence: 'retained',
+      provenance: { kind: 'identity' },
+      viewportFrom,
+      viewportTo,
+      inversion: solveFlipGeometry(from, to),
+    });
+    const plan = publishStructuralMotionPlan(20, [0, 1].map(() => ({
+      draft: duplicate,
+      timingRequest: { policy: 'version' as const, delayMs: 0, durationMs: 100 },
+    })));
+    const animations = Object.freeze([Object.freeze({
+      channel: 'host:transform' as const,
+      delayMs: 0,
+      durationMs: 100,
+      endDelayMs: 0,
+      iterations: 1,
+      easing: 'linear',
+      fill: 'both' as const,
+    })]);
+    const armed = updateStructuralMotionExecutions(plan, new Map([[
+      1, { status: 'armed' as const, animations },
+    ]]));
+    assert.equal(armed.segments[0].execution.status, 'planned');
+    assert.equal(armed.segments[1].execution.status, 'armed');
+
+    const invalidJump = updateStructuralMotionExecutions(armed, new Map([[
+      1, { status: 'finished' as const, animations },
+    ]]));
+    assert.equal(invalidJump.segments[1].execution.status, 'armed');
+    const active = updateStructuralMotionExecutions(armed, new Map([[
+      1, { status: 'active-observed' as const, animations },
+    ]]));
+    const stale = updateStructuralMotionExecutions(active, new Map([[
+      1, { status: 'armed' as const, animations },
+    ]]));
+    assert.equal(stale.segments[1].execution.status, 'active-observed');
   });
 
   it('does not retain primitive or object-valued component history', () => {

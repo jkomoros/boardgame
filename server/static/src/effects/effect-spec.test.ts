@@ -96,6 +96,37 @@ describe('effect descriptors', () => {
     );
   });
 
+  it('describes an exact successful-FLIP completion barrier', () => {
+    const subjects = ['card-1', 'card-2'];
+    const descriptor = fx.afterMotion({
+      subjects,
+      effect: fx.burst({ at: fx.anchor('hand'), tone: 'reward' }),
+      key: 'deal-complete',
+    });
+    subjects.push('card-3');
+    assert.equal(descriptor.kind, 'after-motion');
+    assert.deepEqual(descriptor.subjects, ['card-1', 'card-2']);
+    assert.equal(Object.isFrozen(descriptor), true);
+    assert.equal(Object.isFrozen(descriptor.subjects), true);
+    assert.throws(
+      () => fx.afterMotion({ subjects: [], effect: fx.pulse({ at: fx.point(0, 0) }) }),
+      /must not be empty/,
+    );
+    assert.throws(
+      () => fx.afterMotion({
+        subjects: ['card-1', 'card-1'], effect: fx.pulse({ at: fx.point(0, 0) }),
+      }),
+      /unique/,
+    );
+    assert.throws(
+      () => fx.afterMotion({
+        subjects: ['card-1'],
+        effect: fx.trail({ subject: 'card-1' }),
+      }),
+      /lifecycle subscription/,
+    );
+  });
+
   it('copies and freezes game-local themes', () => {
     const reward = ['#ffd700'];
     const theme = defineEffectTheme({ tones: { reward } });

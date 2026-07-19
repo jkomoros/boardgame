@@ -201,6 +201,20 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
         particles: layer.shadowRoot.querySelectorAll('.particle').length,
         trails: layer.shadowRoot.querySelectorAll('.trail-echo').length,
       };
+      const emitSegment = (
+        generation: number,
+        kind: string,
+        subjectId: string,
+        segment: any,
+      ) => {
+        const segmentId = `flip:${generation}:0`;
+        for (const observer of eventObservers) observer({
+          id: `${segmentId}:${kind}`,
+          segmentId,
+          ref: { source: 'flip', generation, segmentIndex: 0 },
+          source: 'flip', generation, segmentIndex: 0, kind, subjectId, segment,
+        });
+      };
       const segment = {
         subjectId: 'card-17',
         visualSubject: { kind: 'silhouette', shape: 'rounded-rectangle' },
@@ -210,7 +224,7 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
           to: { space: 'viewport', left: 200, top: 100, width: 60, height: 40 },
         },
         execution: {
-          status: 'started',
+          status: 'armed',
           animations: [{
             channel: 'host:transform',
             delayMs: 0,
@@ -222,8 +236,12 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
           }],
         },
       };
-      for (const observer of eventObservers) observer({
-        source: 'flip', generation: 2, kind: 'started', subjectId: 'card-17', segment,
+      emitSegment(2, 'planned', 'card-17', {
+        ...segment, execution: { status: 'planned' },
+      });
+      emitSegment(2, 'armed', 'card-17', segment);
+      emitSegment(2, 'active-observed', 'card-17', {
+        ...segment, execution: { ...segment.execution, status: 'active-observed' },
       });
       const pulse = layer.shadowRoot.querySelector<HTMLElement>('.pulse');
       const trailEcho = layer.shadowRoot.querySelector<HTMLElement>('.trail-echo');
@@ -245,8 +263,8 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
         trailTo: trailFrames.at(-1)?.transform,
       };
       const departureResult = await departure.finished;
-      for (const observer of eventObservers) observer({
-        source: 'flip', generation: 2, kind: 'finished', subjectId: 'card-17', segment,
+      emitSegment(2, 'finished', 'card-17', {
+        ...segment, execution: { ...segment.execution, status: 'finished' },
       });
       const particle = layer.shadowRoot.querySelector<HTMLElement>('.particle');
       const atArrival = {
@@ -269,36 +287,38 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
           animations: [{ ...segment.execution.animations[0], durationMs: 1000 }],
         },
       };
-      for (const observer of eventObservers) observer({
-        source: 'flip', generation: 3, kind: 'started',
-        subjectId: 'card-interrupted', segment: interruptedSegment,
+      emitSegment(3, 'planned', 'card-interrupted', {
+        ...interruptedSegment, execution: { status: 'planned' },
       });
+      emitSegment(3, 'armed', 'card-interrupted', interruptedSegment);
       const interruptedBeforeCancel = layer.shadowRoot.querySelectorAll('.trail-echo').length;
-      for (const observer of eventObservers) observer({
-        source: 'flip', generation: 3, kind: 'cancelled',
-        subjectId: 'card-interrupted', segment: interruptedSegment,
+      emitSegment(3, 'cancelled', 'card-interrupted', {
+        ...interruptedSegment,
+        execution: { ...interruptedSegment.execution, status: 'cancelled' },
       });
       const interruptedResult = await interruptedTrail.finished;
       const interruptedAfterCancel = layer.shadowRoot.querySelectorAll('.trail-echo').length;
 
       layer.beginMotionTransition(true);
       const unsafeSubject = layer.playTransition(fx.trail({ subject: 'unsafe-card' }));
-      for (const observer of eventObservers) observer({
-        source: 'flip', generation: 4, kind: 'started', subjectId: 'unsafe-card',
-        segment: { ...segment, subjectId: 'unsafe-card', visualSubject: undefined },
+      const unsafeSegment = { ...segment, subjectId: 'unsafe-card', visualSubject: undefined };
+      emitSegment(4, 'planned', 'unsafe-card', {
+        ...unsafeSegment, execution: { status: 'planned' },
       });
+      emitSegment(4, 'armed', 'unsafe-card', unsafeSegment);
       const unsafeSubjectResult = await unsafeSubject.finished;
 
       layer.beginMotionTransition(true);
       const stationary = layer.playTransition(fx.trail({ subject: 'stationary-card' }));
-      for (const observer of eventObservers) observer({
-        source: 'flip', generation: 5, kind: 'started', subjectId: 'stationary-card',
-        segment: {
-          ...segment,
-          subjectId: 'stationary-card',
-          path: { ...segment.path, kind: 'stationary' },
-        },
+      const stationarySegment = {
+        ...segment,
+        subjectId: 'stationary-card',
+        path: { ...segment.path, kind: 'stationary' },
+      };
+      emitSegment(5, 'planned', 'stationary-card', {
+        ...stationarySegment, execution: { status: 'planned' },
       });
+      emitSegment(5, 'armed', 'stationary-card', stationarySegment);
       const stationaryResult = await stationary.finished;
 
       layer.beginMotionTransition(true);
@@ -316,12 +336,11 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
         at: fx.motion('skipped-card'),
         advanced: { durationMs: 120 },
       }));
-      for (const observer of eventObservers) observer({
-        source: 'flip',
-        generation: 4,
-        kind: 'skipped',
-        subjectId: 'skipped-card',
-        segment: { subjectId: 'skipped-card' },
+      emitSegment(4, 'planned', 'skipped-card', {
+        subjectId: 'skipped-card', execution: { status: 'planned' },
+      });
+      emitSegment(4, 'skipped', 'skipped-card', {
+        subjectId: 'skipped-card', execution: { status: 'skipped', reason: 'timing' },
       });
       const skippedResult = await skipped.finished;
       return {
@@ -366,6 +385,123 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
     expect(result.stationaryResult).toEqual({ status: 'skipped', reason: 'no-motion-path' });
     expect(result.missingResult).toEqual({ status: 'skipped', reason: 'missing-anchor' });
     expect(result.skippedResult).toEqual({ status: 'skipped', reason: 'motion-skipped' });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('afterMotion is an exact success-only FLIP completion barrier', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-effect-layer.ts');
+      const { fx } = await import('/src/effects/effect-spec.ts');
+      const eventObservers = new Set<(event: any) => void>();
+      const motionSource = {
+        observeStructuralMotionEvents(observer: (event: any) => void) {
+          eventObservers.add(observer);
+          return () => eventObservers.delete(observer);
+        },
+      };
+      const layer = document.createElement('boardgame-effect-layer') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        shadowRoot: ShadowRoot;
+        configure(config: object): void;
+        beginMotionTransition(expected: boolean): void;
+        playTransition(effect: object): {
+          finished: Promise<{ status: string; reason?: string }>;
+        };
+      };
+      document.body.append(layer);
+      await layer.updateComplete;
+      layer.configure({
+        anchorRoot: document,
+        seedScope: 'after-motion',
+        theme: {},
+        animationContext: null,
+        motionSource,
+      });
+      const emit = (generation: number, segmentIndex: number, subjectId: string, kind: string) => {
+        const segmentId = `flip:${generation}:${segmentIndex}`;
+        for (const observer of eventObservers) observer({
+          id: `${segmentId}:${kind}`,
+          segmentId,
+          ref: { source: 'flip', generation, segmentIndex },
+          source: 'flip', generation, segmentIndex, subjectId, kind,
+          segment: { subjectId, execution: { status: kind } },
+        });
+      };
+      const settleGeneration = (generation: number) => {
+        for (const observer of eventObservers) observer({
+          id: `flip:${generation}:generation-settled`,
+          source: 'flip', generation, kind: 'generation-settled',
+          plan: { source: 'flip', generation, phase: 'settled', segments: [] },
+        });
+      };
+
+      layer.beginMotionTransition(true);
+      const successful = layer.playTransition(fx.afterMotion({
+        subjects: ['card-a', 'card-b'],
+        effect: fx.pulse({ at: fx.point(80, 90), advanced: { durationMs: 120 } }),
+      }));
+      emit(7, 0, 'card-a', 'planned');
+      emit(7, 1, 'card-b', 'planned');
+      emit(7, 1, 'card-b', 'finished');
+      emit(7, 0, 'card-a', 'finished');
+      const beforeSettled = layer.shadowRoot.querySelectorAll('.pulse').length;
+      settleGeneration(7);
+      const afterSettled = layer.shadowRoot.querySelectorAll('.pulse').length;
+      const successfulResult = await successful.finished;
+
+      layer.beginMotionTransition(true);
+      const missing = layer.playTransition(fx.afterMotion({
+        subjects: ['card-a', 'missing'],
+        effect: fx.pulse({ at: fx.point(0, 0) }),
+      }));
+      emit(8, 0, 'card-a', 'planned');
+      emit(8, 0, 'card-a', 'finished');
+      settleGeneration(8);
+      const missingResult = await missing.finished;
+
+      layer.beginMotionTransition(true);
+      const cancelled = layer.playTransition(fx.afterMotion({
+        subjects: ['card-a'],
+        effect: fx.pulse({ at: fx.point(0, 0) }),
+      }));
+      emit(9, 0, 'card-a', 'planned');
+      emit(9, 0, 'card-a', 'cancelled');
+      settleGeneration(9);
+      const cancelledResult = await cancelled.finished;
+
+      layer.beginMotionTransition(true);
+      const ambiguous = layer.playTransition(fx.afterMotion({
+        subjects: ['card-a'],
+        effect: fx.pulse({ at: fx.point(0, 0) }),
+      }));
+      emit(10, 0, 'card-a', 'planned');
+      emit(10, 1, 'card-a', 'planned');
+      emit(10, 0, 'card-a', 'finished');
+      emit(10, 1, 'card-a', 'finished');
+      settleGeneration(10);
+      const ambiguousResult = await ambiguous.finished;
+      return {
+        beforeSettled,
+        afterSettled,
+        successfulResult,
+        missingResult,
+        cancelledResult,
+        ambiguousResult,
+      };
+    });
+
+    expect(result.beforeSettled).toBe(0);
+    expect(result.afterSettled).toBe(1);
+    expect(result.successfulResult).toEqual({ status: 'finished' });
+    expect(result.missingResult).toEqual({ status: 'skipped', reason: 'motion-skipped' });
+    expect(result.cancelledResult).toEqual({ status: 'cancelled' });
+    expect(result.ambiguousResult).toEqual({ status: 'skipped', reason: 'motion-skipped' });
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

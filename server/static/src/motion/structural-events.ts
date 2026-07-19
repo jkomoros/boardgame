@@ -1,6 +1,7 @@
 import type {
   StructuralExecution,
   StructuralMotionPlan,
+  StructuralMotionSegmentRef,
   StructuralMotionSegment,
 } from './structural-plan.js';
 
@@ -16,6 +17,9 @@ export type StructuralMotionEventKind = StructuralExecution['status'] | 'generat
 export interface StructuralMotionSegmentEvent {
   /** Stable for this segment/status transition within one plan generation. */
   readonly id: string;
+  /** Stable across every lifecycle event for this segment. */
+  readonly segmentId: string;
+  readonly ref: StructuralMotionSegmentRef;
   readonly source: StructuralMotionPlan['source'];
   readonly generation: number;
   readonly segmentIndex: number;
@@ -46,7 +50,7 @@ function samePlan(
  * Compile plan revisions into the execution transitions newly visible in
  * `next`. The function is pure and reconstructs nothing: if an observer misses
  * an intermediate revision, it reports the status it actually received rather
- * than inventing a `started` event.
+ * than inventing an `armed` event.
  *
  * Passing null (or a different generation) treats every segment in `next` as
  * newly observed. Segment index is part of identity so malformed plans with
@@ -62,8 +66,11 @@ export function compileStructuralMotionEvents(
     if (before?.subjectId === segment.subjectId
       && before.execution.status === segment.execution.status) return [];
     const kind = segment.execution.status;
+    const segmentId = `${next.source}:${next.generation}:${segmentIndex}`;
     return [Object.freeze({
-      id: `${next.source}:${next.generation}:${segmentIndex}:${kind}`,
+      id: `${segmentId}:${kind}`,
+      segmentId,
+      ref: segment.ref,
       source: next.source,
       generation: next.generation,
       segmentIndex,

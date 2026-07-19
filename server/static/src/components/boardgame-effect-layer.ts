@@ -72,6 +72,12 @@ interface TrailWaiter {
   settle(resolution: TrailResolution): void;
 }
 
+interface MotionBarrierWaiter {
+  readonly epoch: number;
+  event(event: StructuralMotionEvent): void;
+  cancel(): void;
+}
+
 const FINISHED: EffectResult = Object.freeze({ status: 'finished' });
 const CANCELLED: EffectResult = Object.freeze({ status: 'cancelled' });
 
@@ -217,6 +223,8 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   private _motionWaiters = new Set<MotionWaiter>();
   private _trailResolutions = new Map<string, TrailResolution>();
   private _trailWaiters = new Set<TrailWaiter>();
+  private _motionSegmentBindings = new Map<string, string | null>();
+  private _motionBarrierWaiters = new Set<MotionBarrierWaiter>();
   private _activeTrailCancels = new Map<string, Set<() => void>>();
 
   override render() {
@@ -270,11 +278,13 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     const abandonedTrail = Object.freeze({ kind: 'result', result: CANCELLED }) as TrailResolution;
     for (const waiter of [...this._motionWaiters]) waiter.settle(abandoned);
     for (const waiter of [...this._trailWaiters]) waiter.settle(abandonedTrail);
+    for (const waiter of [...this._motionBarrierWaiters]) waiter.cancel();
     this._motionEpoch++;
     this._expectsMotionPlan = expectsStructuralMotion;
     this._motionPlanSettled = !expectsStructuralMotion;
     this._motionResolutions.clear();
     this._trailResolutions.clear();
+    this._motionSegmentBindings.clear();
   }
 
   play(effect: EffectSpec): EffectHandle {
@@ -342,6 +352,12 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       }
       return;
     }
+    if (effect.kind === 'after-motion') {
+      if (!context.preparedMotion.has(path)) {
+        context.preparedMotion.set(path, this._afterMotion(effect, path, policy, context));
+      }
+      return;
+    }
     if (effect.kind === 'sequence' || effect.kind === 'parallel') {
       effect.effects.forEach((child, index) => {
         this._prepareMotionDecorations(child, `${path}.${index}`, policy, context);
@@ -373,6 +389,9 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       case 'decorate-motion':
         return context.preparedMotion.get(path)
           ?? this._parallel(effect.effects, path, { ...policy, timing: 'immediate' }, context);
+      case 'after-motion':
+        return context.preparedMotion.get(path)
+          ?? this._afterMotion(effect, path, policy, context);
       case 'sequence':
         return this._sequence(effect.effects, effect.gapMs, path, policy, context);
       case 'parallel':
@@ -548,6 +567,89 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     return this._deferTrail(effect, path, structuralPolicy);
   }
 
+  private _afterMotion(
+    effect: Extract<EffectSpec, { kind: 'after-motion' }>,
+    path: string,
+    policy: ResolvedPolicy,
+    context: EffectExecutionContext,
+  ): InternalHandle {
+    if (!this._expectsMotionPlan || this._motionPlanSettled) return skipped('missing-subject');
+    const epoch = this._motionEpoch;
+    const subjects = new Set(effect.subjects);
+    const bindings = new Map<string, string | null>();
+    const outcomes = new Map<string, StructuralMotionSegmentEvent['kind']>();
+    let generation: number | null = null;
+    let child: InternalHandle | null = null;
+    let settled = false;
+    let resolveFinished!: (result: EffectResult) => void;
+    const finished = new Promise<EffectResult>(resolve => { resolveFinished = resolve; });
+    const finish = (result: EffectResult) => {
+      if (settled) return;
+      settled = true;
+      this._motionBarrierWaiters.delete(waiter);
+      resolveFinished(result);
+    };
+    const waiter: MotionBarrierWaiter = {
+      epoch,
+      event: event => {
+        if (settled || waiter.epoch !== this._motionEpoch || event.source !== 'flip') return;
+        if (generation === null) generation = event.generation;
+        if (event.generation !== generation) {
+          finish(CANCELLED);
+          return;
+        }
+        if (event.kind !== 'generation-settled') {
+          if (!subjects.has(event.subjectId)) return;
+          if (event.kind === 'planned') {
+            bindings.set(
+              event.subjectId,
+              bindings.has(event.subjectId) ? null : event.segmentId,
+            );
+            return;
+          }
+          if (bindings.get(event.subjectId) === event.segmentId
+            && (event.kind === 'finished' || event.kind === 'cancelled'
+              || event.kind === 'skipped')) {
+            outcomes.set(event.segmentId, event.kind);
+          }
+          return;
+        }
+
+        for (const subject of subjects) {
+          const segmentId = bindings.get(subject);
+          if (!segmentId) {
+            finish(Object.freeze({ status: 'skipped', reason: 'motion-skipped' }));
+            return;
+          }
+          const outcome = outcomes.get(segmentId);
+          if (outcome === 'cancelled') {
+            finish(CANCELLED);
+            return;
+          }
+          if (outcome !== 'finished') {
+            finish(Object.freeze({ status: 'skipped', reason: 'motion-skipped' }));
+            return;
+          }
+        }
+        this._motionBarrierWaiters.delete(waiter);
+        child = this._execute(
+          effect.effect,
+          `${path}.effect`,
+          { ...policy, timing: 'immediate' },
+          context,
+        );
+        void child.finished.then(finish);
+      },
+      cancel: () => {
+        if (settled) return;
+        child?.cancel();
+        finish(CANCELLED);
+      },
+    };
+    this._motionBarrierWaiters.add(waiter);
+    return { finished, cancel: waiter.cancel };
+  }
+
   private _sequence(
     effects: readonly EffectSpec[],
     gapMs: number,
@@ -689,6 +791,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
 
   private _motionEvent(event: StructuralMotionEvent): void {
     if (event.source !== 'flip') return;
+    for (const waiter of [...this._motionBarrierWaiters]) waiter.event(event);
     if (event.kind === 'generation-settled') {
       this._motionPlanSettled = true;
       const missing = Object.freeze({
@@ -707,15 +810,27 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       }
       return;
     }
+    if (event.kind === 'planned') {
+      const existing = this._motionSegmentBindings.get(event.subjectId);
+      this._motionSegmentBindings.set(
+        event.subjectId,
+        existing === undefined ? event.segmentId : null,
+      );
+      return;
+    }
+    if (this._motionSegmentBindings.get(event.subjectId) !== event.segmentId) return;
     const endpoints = event.segment.path;
-    if ((event.kind === 'started' || event.kind === 'finished') && !endpoints) {
+    if ((event.kind === 'armed' || event.kind === 'active-observed'
+      || event.kind === 'finished') && !endpoints) {
       const missing = Object.freeze({
         kind: 'result',
         result: Object.freeze({ status: 'skipped', reason: 'missing-anchor' }),
       }) as MotionResolution;
-      this._resolveMotion(event.subjectId, 'departure', missing);
-      this._resolveMotion(event.subjectId, 'arrival', missing);
-      if (event.kind === 'started') {
+      if (event.kind === 'active-observed') {
+        this._resolveMotion(event.subjectId, 'departure', missing);
+      } else if (event.kind === 'finished') {
+        this._resolveMotion(event.subjectId, 'arrival', missing);
+      } else {
         this._resolveTrail(event.subjectId, {
           kind: 'result',
           result: Object.freeze({ status: 'skipped', reason: 'no-motion-path' }),
@@ -723,11 +838,12 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       }
       return;
     }
-    if (event.kind === 'started' && endpoints) {
+    if (event.kind === 'armed' && endpoints) {
+      this._resolveTrail(event.subjectId, { kind: 'event', event });
+    } else if (event.kind === 'active-observed' && endpoints) {
       this._resolveMotion(event.subjectId, 'departure', {
         kind: 'point', point: geometryCenter(endpoints.from),
       });
-      this._resolveTrail(event.subjectId, { kind: 'event', event });
     } else if (event.kind === 'finished' && endpoints) {
       this._resolveMotion(event.subjectId, 'arrival', {
         kind: 'point', point: geometryCenter(endpoints.to),
@@ -844,7 +960,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     const { segment } = event;
     if (!segment.visualSubject) return skipped('missing-subject');
     if (!segment.path || segment.path.kind !== 'travel') return skipped('no-motion-path');
-    if (segment.execution.status !== 'started') return skipped('motion-skipped');
+    if (segment.execution.status !== 'armed') return skipped('motion-skipped');
 
     const spatialTiming = segment.execution.animations.find(
       timing => timing.channel === 'host:transform',
