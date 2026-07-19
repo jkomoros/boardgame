@@ -119,7 +119,9 @@ creator proposal protocol.
 The server projects choices only when all of these conditions hold:
 
 1. The requested state is the durable, recoverable proposal frontier.
-2. The viewer is the same valid player who would propose the move.
+2. The authenticated viewer is the same valid seated player who would propose
+   the move; observer views, admin impersonation, and auto-current display do
+   not inherit that player's disclosure authority.
 3. The canonical move name is visible to that actor under move sanitization.
 4. The declaration and candidate universe pass their bounds.
 
@@ -187,6 +189,11 @@ then advertises choices. It never treats unknown as settled. Custom storage
 without frontier persistence can serve active-process choices but remains
 conservatively unknown after reload.
 
+A marker-write failure after the move/state commit is logged and leaves the
+frontier unknown; it never reports the already committed move as failed.
+Failure to reconcile does not take down ordinary game info: the eligible actor
+receives the sanitized game plus a generic versioned `failed` choice snapshot.
+
 This matters beyond projected choices. It provides a recoverable answer to
 "may the next proposal be advertised?" for initial loads, reconnects, partial
 failures, and externally triggered fix-ups. External `ForceFixUp` invalidates
@@ -251,10 +258,12 @@ stable semantic IDs and required default messages. Framework defaults use
 sanitized player presentations and humanized enum values. No locale-dependent
 copy affects projection caching or crosses the server boundary.
 
-The framework always renders a sticky, bounded, safe-area-aware semantic
-fallback. It uses fieldsets, distinct accessible action names, polite live
-announcements, and a visible alert for projection failure. It does not steal
-focus.
+The framework always renders a fixed, viewport-visible, bounded,
+safe-area-aware semantic fallback. It reserves its measured height above
+ordinary-flow boards, scrolls internally at constrained mobile/zoom sizes, and
+does not block board interaction outside its visible surface. It uses
+fieldsets, distinct accessible action names, polite live announcements, and a
+visible alert for projection failure. It does not steal focus.
 
 ## Valentine
 
