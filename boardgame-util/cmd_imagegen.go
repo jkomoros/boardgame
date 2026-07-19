@@ -166,11 +166,11 @@ func (i *imagegenCmd) Run(p writ.Path, positional []string) {
 	}
 	prompt := i.Prompt
 	if i.PromptFile != "" {
-		data, err := os.ReadFile(i.PromptFile)
+		loaded, err := imagegen.ReadPromptFile(i.PromptFile)
 		if err != nil {
 			i.Base().errAndQuit("Couldn't read prompt file: " + err.Error())
 		}
-		prompt = string(data)
+		prompt = loaded
 	}
 	if i.StyleLock != "" {
 		lock, err := imagegen.ReadStyleLock(i.StyleLock)

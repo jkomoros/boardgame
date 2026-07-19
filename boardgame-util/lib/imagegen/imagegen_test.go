@@ -112,6 +112,24 @@ func TestNormalizeImageRejectsExcessiveDimensionsBeforeDecode(t *testing.T) {
 	}
 }
 
+func TestReadPromptFileRejectsOversizedInput(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "prompt.txt")
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Truncate(maxPromptBytes + 1); err != nil {
+		file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadPromptFile(path); err == nil || !strings.Contains(err.Error(), "byte limit") {
+		t.Fatalf("error = %v, want prompt size limit", err)
+	}
+}
+
 func TestStyleSheetPromptHasSafetyBoundary(t *testing.T) {
 	prompt := StyleSheetPrompt("Graphite naturalist sketches")
 	for _, required := range []string{"original tabletop game", "no logos", "Graphite naturalist sketches"} {

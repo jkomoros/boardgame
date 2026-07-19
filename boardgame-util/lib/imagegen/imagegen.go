@@ -185,6 +185,16 @@ func StyleSheetPrompt(brief string) string {
 		`production reference, not a game component. Follow this original art direction:\n\n` + brief
 }
 
+// ReadPromptFile loads a prompt using the same size limit enforced for inline
+// prompts, so file-based input cannot consume unbounded memory before Validate.
+func ReadPromptFile(path string) (string, error) {
+	data, err := readLimitedFile(path, maxPromptBytes)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
 func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 	if err := Validate(&r); err != nil {
 		return nil, err
