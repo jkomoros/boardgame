@@ -445,13 +445,18 @@ ownership:
     observes executed active intervals; opaque install-cycle IDs make progress
     release and settlement idempotent and stale-safe. The contract is named as
     destructive buffered-queue cutover, not concurrent generations.
-24. **Deferred:** replace local, lossy Table/Hand inference with a
+24. **Done:** migrate the remaining Table deal default from `updated()` state
+    baselines and imperative flight to the same pure transition-local transfer
+    declarations as Hand. Sanitized count growth remains an explicitly lossy
+    default policy; ordinary transfer ownership, endpoint resolution, timing,
+    lifecycle, and settlement explain its execution.
+25. **Deferred:** replace local, lossy Table/Hand inference with a
     privacy-reviewed server transfer envelope when games need zero-author
     defaults or true cross-surface correlation. A source-carried departure also
     requires a detached carrier; `fly()` deliberately does not claim it.
-25. **Deferred:** design any artwork-bearing subject representation as a new,
+26. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-26. Reassess a larger representation only when concrete duplication justifies
+27. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

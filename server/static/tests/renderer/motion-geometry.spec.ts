@@ -1465,3 +1465,56 @@ test('buffered queue release follows every real staggered primary, not nominal w
     diagnostics.stop();
   }
 });
+
+test('Table deal defaults are pure transition-local transfer declarations', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { BoardgameTableViewBase } = await import('/src/components/boardgame-table-view-base.ts');
+      class TestTableDefaults extends BoardgameTableViewBase<any, any, any, any> {}
+      customElements.define('test-table-motion-defaults', TestTableDefaults);
+      const table = document.createElement('test-table-motion-defaults') as TestTableDefaults;
+      const stack = (indexes: number[]) => ({ Indexes: indexes });
+      const state = (players: unknown[]) => ({ Players: players });
+      const before = state([
+        { A: stack([-1]), B: stack([-2]), ignored: { IDs: ['private'] } },
+        { A: stack([0, 1]) },
+        { A: stack([]) },
+      ]);
+      const after = state([
+        { A: stack([-1, -1]), B: stack([-2]), ignored: { Indexes: 'not-an-array' } },
+        { A: stack([0]), B: stack([1]) },
+        { A: stack([-1, -1]) },
+      ]);
+      const transition = { kind: 'transition', before, after } as any;
+      const declared = table.motionTransfersForTransition(transition);
+      table.autoFlyDeals = false;
+      const disabled = table.motionTransfersForTransition(transition);
+      table.autoFlyDeals = true;
+      const initial = table.motionTransfersForTransition({ kind: 'initial', after } as any);
+      return { declared, disabled, initial };
+    });
+
+    expect(result.declared).toEqual([
+      {
+        key: 'auto-table:p0:hand-growth',
+        subjectId: 'player-0-hand-growth',
+        source: 'deal-source',
+        carrier: 'stub:p0:hand',
+        durationMs: 600,
+      },
+      {
+        key: 'auto-table:p2:hand-growth',
+        subjectId: 'player-2-hand-growth',
+        source: 'deal-source',
+        carrier: 'stub:p2:hand',
+        durationMs: 600,
+      },
+    ]);
+    expect(result.disabled).toEqual([]);
+    expect(result.initial).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});

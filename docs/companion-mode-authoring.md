@@ -145,8 +145,11 @@ Works out of the box for card games:
   appearing in your player's own stacks flies in from the top edge.
 - **Table side** (`autoFlyDeals`, default on): mark your draw pile with
   `id="deal-source"`; when a player's hand grows, their name-stub flies
-  from the deck toward the bottom edge. No element = no animation — the
-  id's presence is the entire opt-in.
+  from the deck toward the bottom edge. The base derives this from the pure
+  before/after transition snapshots and emits the same `motion.transfer()`
+  declaration used by bespoke motion. Missing source or stub is recorded as a
+  terminal skipped segment; it cannot hang the cycle or start partial
+  lifecycle work.
 - Bespoke needs: set the flags false and call
   `this.animator?.fly({ subjectId, source, carrier, durationMs })`.
   `carrier` is the retained element that animates from `source` geometry back
@@ -154,6 +157,14 @@ Works out of the box for card games:
   an arbitrary from/to path or a source-carried departure. The framework
   automatically schedules this against the current version's cross-screen
   timeline; there is no timing property to pass through your renderer.
+
+The Table default knows only that a sanitized aggregate count grew, not which
+private card crossed screens. Its synthetic subject and `auto-table:*` key are
+transition-local presentation identity. Subclasses that override
+`motionTransfersForTransition()` must spread `super` and must not also claim
+the reserved `stub:pN:hand` carriers. Games that need exact cross-device card
+correlation require a privacy-reviewed server transfer envelope; the client
+does not infer it from hidden IDs.
 - For an intentionally local effect (for example, a tap flourish that has no
   matching event on another screen), opt out explicitly:
   `this.animator?.fly({ subjectId: card.id, source, carrier: card,

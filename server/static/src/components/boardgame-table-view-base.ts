@@ -8,6 +8,8 @@ import { apiHttpPost, buildGameUrl, type ApiResponse } from '../api.js';
 import { decodeHostActionResponse } from '../types/host-action-response.js';
 import { apiPath } from '../util.js';
 import './boardgame-game-outcome.js';
+import type { EffectTransitionContext } from '../effects/effect-spec.js';
+import type { MotionTransferDeclaration } from '../motion/transfer.js';
 
 /**
  * SeatPresentation mirrors the server's seatpresentation.StorageRecord
@@ -83,11 +85,11 @@ export class BoardgameTableViewBase<
   isHost = false;
 
   /**
-   * When true (the default), the base watches each player's hand size and,
-   * when it grows, flies that player's fake-deck-row stub in from the
-   * element the author marked id="deal-source" (typically the draw pile) —
-   * the projector half of the cross-screen deal animation. Rendering a
-   * #deal-source element is the entire opt-in; no element, no animation.
+   * When true (the default), the base purely compares adjacent authoritative
+   * snapshots and declares one retained-stub transfer for each player whose
+   * aggregate sanitized hand count grows. The element marked id="deal-source"
+   * supplies geometry for the projector half of the cross-screen deal.
+   * Missing source or stub becomes an ordinary terminal skipped segment.
    * Hand size = total length of all Stack-shaped playerState properties
    * (sanitized stacks still carry placeholder indexes, so counts survive
    * hiding). Set false for bespoke animation wiring.
@@ -95,40 +97,29 @@ export class BoardgameTableViewBase<
   @property({ type: Boolean })
   autoFlyDeals = true;
 
-  // null = no baseline yet; record without animating (reload mid-game).
-  private _prevHandSizes: number[] | null = null;
-
-  protected override updated(changedProperties: Map<PropertyKey, unknown>) {
-    super.updated?.(changedProperties);
-    if (!changedProperties.has('state')) return;
-    // Keep the baseline current even when auto-fly is off, so toggling
-    // the flag back on doesn't diff against a stale snapshot and play a
-    // burst of spurious animations.
-    const sizes = this._handSizes();
-    const prev = this._prevHandSizes;
-    this._prevHandSizes = sizes;
-    if (!this.autoFlyDeals) return;
-    if (prev === null) return;
-    if (!this.shadowRoot?.getElementById('deal-source')) return;
-    const grew = sizes
-      .map((n, i) => (n > (prev[i] ?? 0) ? i : -1))
-      .filter((i) => i >= 0);
-    if (grew.length === 0) return;
-    for (const playerIndex of grew) {
-      // The visible stub is the retained carrier. It arrives from the deal
-      // source; this is not yet a source-carried departure or a claim of
-      // cross-device card identity.
-      void this.animator?.fly({
-        subjectId: `player-${playerIndex}-hand-growth`,
-        source: 'deal-source',
-        carrier: `stub:p${playerIndex}:hand`,
-        durationMs: 600,
-      });
-    }
+  override motionTransfersForTransition(
+    context: EffectTransitionContext<S, MN>,
+  ): readonly MotionTransferDeclaration[] {
+    const inherited = super.motionTransfersForTransition(context);
+    if (context.kind === 'initial' || !this.autoFlyDeals) return inherited;
+    const before = this._handSizes(context.before);
+    const after = this._handSizes(context.after);
+    const arrivals = after.flatMap((size, playerIndex) => (
+      size > (before[playerIndex] ?? 0)
+        ? [Object.freeze({
+          key: `auto-table:p${playerIndex}:hand-growth`,
+          subjectId: `player-${playerIndex}-hand-growth`,
+          source: 'deal-source',
+          carrier: `stub:p${playerIndex}:hand`,
+          durationMs: 600,
+        })]
+        : []
+    ));
+    return Object.freeze([...inherited, ...arrivals]);
   }
 
-  private _handSizes(): number[] {
-    const players = this.state?.Players ?? [];
+  private _handSizes(state: S): number[] {
+    const players = state.Players ?? [];
     return players.map((p) => {
       let total = 0;
       for (const value of Object.values(p as Record<string, unknown>)) {
