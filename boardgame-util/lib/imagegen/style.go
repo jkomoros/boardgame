@@ -1,6 +1,7 @@
 package imagegen
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,15 +61,14 @@ func WriteGallery(dir, title string, candidates []StyleCandidate) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(filepath.Join(dir, "gallery.html"))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	return tmpl.Execute(file, struct {
+	var output bytes.Buffer
+	if err := tmpl.Execute(&output, struct {
 		Title      string
 		Candidates []StyleCandidate
-	}{title, candidates})
+	}{title, candidates}); err != nil {
+		return err
+	}
+	return fileutil.WriteFileAtomic(filepath.Join(dir, "gallery.html"), output.Bytes(), 0o644)
 }
 
 func CreateStyleLock(selected, output string, force bool, now func() time.Time) (*StyleLock, error) {

@@ -169,6 +169,35 @@ func TestWriteFilesAtomicReportsFailedRestoreAndPreservesBackup(t *testing.T) {
 	}
 }
 
+func TestWriteFilesAtomicReportsPostCommitCleanupFailure(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "output")
+	if err := os.WriteFile(path, []byte("old"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	originalRemove := removeSetArtifact
+	removeSetArtifact = func(path string) error {
+		if strings.HasSuffix(path, ".backup") {
+			return errors.New("injected cleanup failure")
+		}
+		return originalRemove(path)
+	}
+	t.Cleanup(func() { removeSetArtifact = originalRemove })
+
+	err := WriteFilesAtomic(root, map[string][]byte{"output": []byte("new")}, true, 0o644)
+	if err == nil || !strings.Contains(err.Error(), "outputs committed") || !strings.Contains(err.Error(), "injected cleanup failure") {
+		t.Fatalf("error = %v, want explicit post-commit cleanup failure", err)
+	}
+	contents, readErr := os.ReadFile(path)
+	if readErr != nil || string(contents) != "new" {
+		t.Fatalf("committed output = %q, %v; want new", contents, readErr)
+	}
+	backups, globErr := filepath.Glob(filepath.Join(root, ".boardgame-set-*.backup"))
+	if globErr != nil || len(backups) != 1 {
+		t.Fatalf("preserved backups = %v, err = %v; want one", backups, globErr)
+	}
+}
+
 func TestWriteFilesAtomicExclusiveInstallDoesNotClobberRaceWinner(t *testing.T) {
 	root := t.TempDir()
 	originalLink := link

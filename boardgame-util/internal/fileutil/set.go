@@ -22,6 +22,8 @@ type fileMutation struct {
 	delete     bool
 }
 
+var removeSetArtifact = os.Remove
+
 // FileSpec describes one file in an atomic output set.
 type FileSpec struct {
 	Contents []byte
@@ -155,15 +157,15 @@ func WriteFileSetAtomic(root string, files map[string]FileSpec, overwrite bool) 
 	}
 
 	if err := stageMutations(root, mutations); err != nil {
-		cleanupMutationArtifacts(mutations, false)
-		return err
+		return errors.Join(err, cleanupMutationArtifacts(mutations, false))
 	}
 	if err := installMutations(mutations); err != nil {
-		cleanupMutationArtifacts(mutations, true)
-		return err
+		return errors.Join(err, cleanupMutationArtifacts(mutations, true))
 	}
-	cleanupMutationArtifacts(mutations, false)
 	committed = true
+	if err := cleanupMutationArtifacts(mutations, false); err != nil {
+		return fmt.Errorf("outputs committed but transaction artifact cleanup failed: %w", err)
+	}
 	return nil
 }
 
@@ -384,15 +386,21 @@ func rollbackMutations(mutations []fileMutation, last int) error {
 	return errors.Join(errs...)
 }
 
-func cleanupMutationArtifacts(mutations []fileMutation, preserveBackups bool) {
+func cleanupMutationArtifacts(mutations []fileMutation, preserveBackups bool) error {
+	var errs []error
 	for _, mutation := range mutations {
 		if mutation.tempPath != "" {
-			_ = os.Remove(mutation.tempPath)
+			if err := removeSetArtifact(mutation.tempPath); err != nil && !os.IsNotExist(err) {
+				errs = append(errs, fmt.Errorf("remove staged transaction file %s: %w", mutation.tempPath, err))
+			}
 		}
 		if mutation.backupPath != "" && (!preserveBackups || !mutation.hadFile) {
-			_ = os.Remove(mutation.backupPath)
+			if err := removeSetArtifact(mutation.backupPath); err != nil && !os.IsNotExist(err) {
+				errs = append(errs, fmt.Errorf("remove transaction backup %s: %w", mutation.backupPath, err))
+			}
 		}
 	}
+	return errors.Join(errs...)
 }
 
 func removeEmptyDirectories(dirs []string) {
