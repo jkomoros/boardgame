@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/examples/memory"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
@@ -153,6 +154,61 @@ func TestProjectMoveChoicesBindsEachCandidateAndUsesFullLegalityOnce(t *testing.
 	}
 }
 
+func TestStackSlotSourceEnumeratesOnlyOccupiedIndexesInOrder(t *testing.T) {
+	manager, err := boardgame.NewGameManager(memory.NewDelegate(), newLegalLedgerStorage())
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	copied, err := game.CurrentState().Copy(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := copied.(boardgame.State)
+	gameReader := state.GameState().ReadSetter()
+	hidden, err := gameReader.StackProp("HiddenCards")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unused, err := gameReader.StackProp("UnusedCards")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hidden.ComponentAt(1) == nil {
+		t.Fatal("memory fixture did not populate slot 1")
+	}
+	if err := hidden.ComponentAt(1).MoveToLastSlot(unused); err != nil {
+		t.Fatal(err)
+	}
+
+	schema := boardgame.MoveChoiceProjectionSchema{
+		MoveName: "Reveal Card", FieldName: "CardIndex", Source: boardgame.MoveChoiceSourceStackSlots,
+		StackSource: &boardgame.MoveChoiceStackSource{Scope: boardgame.MoveChoiceStackScopeGame, Property: "HiddenCards"},
+		Disclosure:  boardgame.MoveChoiceDisclosureActorExact,
+	}
+	values, err := projectedMoveChoiceSourceValues(state, 0, schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(values) == 0 {
+		t.Fatal("stack source returned no occupied slots")
+	}
+	previous := -1
+	for _, value := range values {
+		index, ok := value.value.(int)
+		if !ok || index <= previous || value.wire != fmt.Sprint(index) {
+			t.Fatalf("non-canonical stack candidate after %d: %#v", previous, value)
+		}
+		if index == 1 || hidden.ComponentAt(index) == nil {
+			t.Fatalf("stack candidate did not name an occupied slot: %#v", value)
+		}
+		previous = index
+	}
+}
+
 func TestProjectMoveChoicesIsActorOnlyAndRespectsMoveNameVisibility(t *testing.T) {
 	delegate := newProjectedChoicesDelegate()
 	game := newProjectedChoicesGame(t, delegate)
@@ -250,7 +306,7 @@ func TestProjectedMoveChoicesByteBudget(t *testing.T) {
 	snapshot := &projectedMoveChoicesSnapshot{
 		StateVersion:                          1,
 		MoveChoiceProjectionSchemaFingerprint: "sha256:test",
-		ProjectionSchemaVersion:               1,
+		ProjectionSchemaVersion:               boardgame.MoveChoiceProjectionSchemaVersion,
 		Status:                                projectedMoveChoicesStatusReady,
 		Sets: []projectedMoveChoiceSet{{
 			MoveName:  "Huge",

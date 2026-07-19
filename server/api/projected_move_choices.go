@@ -167,7 +167,7 @@ func prepareMoveChoiceSet(
 		return nil, nil
 	}
 
-	values, err := projectedMoveChoiceSourceValues(state, schema)
+	values, err := projectedMoveChoiceSourceValues(state, actor, schema)
 	if err != nil {
 		return nil, fmt.Errorf("move %q field %q: %w", schema.MoveName, schema.FieldName, err)
 	}
@@ -430,7 +430,7 @@ func (s *Server) projectedMoveChoicesForBundle(
 	return snapshot
 }
 
-func projectedMoveChoiceSourceValues(state boardgame.ImmutableState, schema boardgame.MoveChoiceProjectionSchema) ([]projectedMoveChoiceSourceValue, error) {
+func projectedMoveChoiceSourceValues(state boardgame.ImmutableState, actor boardgame.PlayerIndex, schema boardgame.MoveChoiceProjectionSchema) ([]projectedMoveChoiceSourceValue, error) {
 	switch schema.Source {
 	case boardgame.MoveChoiceSourcePlayers:
 		result := make([]projectedMoveChoiceSourceValue, 0, len(state.ImmutablePlayerStates()))
@@ -445,6 +445,19 @@ func projectedMoveChoiceSourceValues(state boardgame.ImmutableState, schema boar
 		result := make([]projectedMoveChoiceSourceValue, 0, len(schema.CandidateValues))
 		for _, value := range schema.CandidateValues {
 			result = append(result, projectedMoveChoiceSourceValue{value: value, wire: value})
+		}
+		return result, nil
+	case boardgame.MoveChoiceSourceStackSlots:
+		stack, err := boardgame.ResolveMoveChoiceStack(state, actor, schema.StackSource)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]projectedMoveChoiceSourceValue, 0, stack.NumComponents())
+		for index := 0; index < stack.Len(); index++ {
+			if stack.ImmutableComponentAt(index) == nil {
+				continue
+			}
+			result = append(result, projectedMoveChoiceSourceValue{value: index, wire: strconv.Itoa(index)})
 		}
 		return result, nil
 	default:

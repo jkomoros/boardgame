@@ -17,7 +17,7 @@ const MoveChoiceProjectionSchemaVersion = 1
 
 // Move-choice projection limits are part of the protocol's resource-safety
 // contract. Static enum universes are rejected during manager boot; dynamic
-// player universes are checked again by the server projector.
+// player and stack-slot universes are checked again by the server projector.
 const (
 	MoveChoiceProjectionMaxSets             = 8
 	MoveChoiceProjectionMaxCandidatesPerSet = 64
@@ -37,7 +37,27 @@ type MoveChoiceSource string
 const (
 	MoveChoiceSourcePlayers    MoveChoiceSource = "players"
 	MoveChoiceSourceEnumValues MoveChoiceSource = "enum-values"
+	MoveChoiceSourceStackSlots MoveChoiceSource = "stack-slots"
 )
+
+// MoveChoiceStackScope identifies the framework-owned state container from
+// which occupied stack slots are enumerated. ActorPlayer always means the
+// authenticated proposing player, including during AnyPlayer phases.
+type MoveChoiceStackScope string
+
+const (
+	MoveChoiceStackScopeActorPlayer MoveChoiceStackScope = "actor-player"
+	MoveChoiceStackScopeGame        MoveChoiceStackScope = "game"
+)
+
+// MoveChoiceStackSource is a sealed, inspectable locator for a stack-backed
+// integer choice domain. It deliberately names a state property rather than
+// accepting game-authored enumeration code; Legal remains the only rules
+// authority applied to each occupied slot.
+type MoveChoiceStackSource struct {
+	Scope    MoveChoiceStackScope `json:"scope"`
+	Property string               `json:"property"`
+}
 
 // MoveChoiceDisclosure records the actor-visible semantics of a projection.
 // Version one only supports exact candidate membership and availability
@@ -52,19 +72,22 @@ const MoveChoiceDisclosureActorExact MoveChoiceDisclosure = "actor-exact"
 type MoveChoiceProjection struct {
 	FieldName      string
 	Source         MoveChoiceSource
+	StackSource    *MoveChoiceStackSource
 	ExcludedValues []string
 	Disclosure     MoveChoiceDisclosure
 }
 
 // MoveChoiceProjectionSchema is the frozen generated/runtime contract for one
 // projected move. CandidateValues is populated for enum sources and already
-// excludes implementation sentinels. Player candidates are state-dependent.
+// excludes implementation sentinels. Player and stack-slot candidates are
+// state-dependent; stack schemas retain their sealed locator.
 type MoveChoiceProjectionSchema struct {
-	MoveName        string               `json:"moveName"`
-	FieldName       string               `json:"fieldName"`
-	Source          MoveChoiceSource     `json:"source"`
-	CandidateValues []string             `json:"candidateValues,omitempty"`
-	Disclosure      MoveChoiceDisclosure `json:"disclosure"`
+	MoveName        string                 `json:"moveName"`
+	FieldName       string                 `json:"fieldName"`
+	Source          MoveChoiceSource       `json:"source"`
+	StackSource     *MoveChoiceStackSource `json:"stackSource,omitempty"`
+	CandidateValues []string               `json:"candidateValues,omitempty"`
+	Disclosure      MoveChoiceDisclosure   `json:"disclosure"`
 }
 
 // SetMoveChoiceProjection stores one choice-projection declaration in a move
@@ -100,18 +123,47 @@ func ConfiguredMoveChoiceProjection(move Move) (*MoveChoiceProjection, error) {
 
 func cloneMoveChoiceProjection(projection MoveChoiceProjection) MoveChoiceProjection {
 	projection.ExcludedValues = append([]string(nil), projection.ExcludedValues...)
+	if projection.StackSource != nil {
+		stackSource := *projection.StackSource
+		projection.StackSource = &stackSource
+	}
 	return projection
 }
 
-// validateMoveChoiceInputDomain rejects values excluded from a configured
-// finite creator-input domain. This is proposal-shape validation, not a game
-// rule: it deliberately runs independently of both the move's Legal method and
-// the optional declarative-legality plan. Legal remains the sole authority for
+// validateMoveChoiceInputDomain rejects values outside a configured finite
+// creator-input domain. This is proposal-shape validation, not a game rule: it
+// deliberately runs independently of both the move's Legal method and the
+// optional declarative-legality plan. Legal remains the sole authority for
 // availability among values inside the declared domain.
-func validateMoveChoiceInputDomain(move Move) error {
+func validateMoveChoiceInputDomain(move Move, state ImmutableState, proposer PlayerIndex) error {
 	projection, err := ConfiguredMoveChoiceProjection(move)
-	if err != nil || projection == nil || len(projection.ExcludedValues) == 0 {
+	if err != nil || projection == nil {
 		return err
+	}
+	if projection.Source == MoveChoiceSourceStackSlots || projection.StackSource != nil {
+		value, err := move.ReadSetter().IntProp(projection.FieldName)
+		if err != nil {
+			return fmt.Errorf("read stack-slot choice field %q: %w", projection.FieldName, err)
+		}
+		stackActor := proposer
+		if proposer == AdminPlayerIndex && projection.StackSource != nil && projection.StackSource.Scope == MoveChoiceStackScopeActorPlayer {
+			target, targetErr := move.ReadSetter().PlayerIndexProp("TargetPlayerIndex")
+			if targetErr != nil || target < 0 || int(target) >= len(state.ImmutablePlayerStates()) {
+				return fmt.Errorf("resolve stack-slot choice field %q for admin: move has no concrete acting player", projection.FieldName)
+			}
+			stackActor = target
+		}
+		stack, err := ResolveMoveChoiceStack(state, stackActor, projection.StackSource)
+		if err != nil {
+			return fmt.Errorf("resolve stack-slot choice field %q: %w", projection.FieldName, err)
+		}
+		if value < 0 || value >= stack.Len() || stack.ImmutableComponentAt(value) == nil {
+			return fmt.Errorf("%d is not an occupied slot in %s stack %q", value, projection.StackSource.Scope, projection.StackSource.Property)
+		}
+		return nil
+	}
+	if len(projection.ExcludedValues) == 0 {
+		return nil
 	}
 	value, err := move.ReadSetter().ImmutableEnumProp(projection.FieldName)
 	if err != nil {
@@ -129,7 +181,7 @@ func validateMoveChoiceInputDomain(move Move) error {
 	return nil
 }
 
-// BuildMoveChoiceProjectionSchema validates and freezes every opted-in player
+// BuildMoveChoiceProjectionSchema validates and freezes every opted-in
 // move projection. It is separate from BuildMoveInputSchema so presentation or
 // safe-choice evolution cannot invalidate the creator proposal protocol.
 func BuildMoveChoiceProjectionSchema(manager *GameManager) ([]MoveChoiceProjectionSchema, error) {
@@ -162,7 +214,7 @@ func BuildMoveChoiceProjectionSchema(manager *GameManager) ([]MoveChoiceProjecti
 			continue
 		}
 		if fixUp, ok := move.(interface{ IsFixUp() bool }); ok && fixUp.IsFixUp() {
-			return nil, fmt.Errorf("fix-up move %q cannot publish player choices", moveType.Name())
+			return nil, fmt.Errorf("fix-up move %q cannot publish projected choices", moveType.Name())
 		}
 		moveSchema, ok := inputByMove[move.Info().Name()]
 		if !ok {
@@ -171,6 +223,11 @@ func BuildMoveChoiceProjectionSchema(manager *GameManager) ([]MoveChoiceProjecti
 		item, err := resolveMoveChoiceProjection(moveSchema, *projection)
 		if err != nil {
 			return nil, fmt.Errorf("move %q choice projection: %w", move.Info().Name(), err)
+		}
+		if item.Source == MoveChoiceSourceStackSlots {
+			if err := validateMoveChoiceStackSource(manager.ExampleState(), 0, item.StackSource); err != nil {
+				return nil, fmt.Errorf("move %q choice projection: %w", move.Info().Name(), err)
+			}
 		}
 		result = append(result, item)
 	}
@@ -238,24 +295,32 @@ func resolveMoveChoiceProjection(move MoveInputSchemaMove, projection MoveChoice
 
 	source := projection.Source
 	if source == "" {
-		switch field.Codec {
-		case string(MoveInputCodecPlayerIndex):
-			source = MoveChoiceSourcePlayers
-		case string(MoveInputCodecEnum):
-			source = MoveChoiceSourceEnumValues
-		default:
-			return MoveChoiceProjectionSchema{}, fmt.Errorf("field %q uses unsupported choice codec %q; choices require player-index or ordinary enum input", field.Name, field.Codec)
+		if projection.StackSource != nil {
+			source = MoveChoiceSourceStackSlots
+		} else {
+			switch field.Codec {
+			case string(MoveInputCodecPlayerIndex):
+				source = MoveChoiceSourcePlayers
+			case string(MoveInputCodecEnum):
+				source = MoveChoiceSourceEnumValues
+			default:
+				return MoveChoiceProjectionSchema{}, fmt.Errorf("field %q uses unsupported choice codec %q; choices require player-index or ordinary enum input", field.Name, field.Codec)
+			}
 		}
 	}
 
 	item := MoveChoiceProjectionSchema{
-		MoveName:   move.Name,
-		FieldName:  field.Name,
-		Source:     source,
-		Disclosure: projection.Disclosure,
+		MoveName:    move.Name,
+		FieldName:   field.Name,
+		Source:      source,
+		StackSource: projection.StackSource,
+		Disclosure:  projection.Disclosure,
 	}
 	switch source {
 	case MoveChoiceSourcePlayers:
+		if projection.StackSource != nil {
+			return MoveChoiceProjectionSchema{}, fmt.Errorf("player source cannot configure a stack source")
+		}
 		if field.Codec != string(MoveInputCodecPlayerIndex) {
 			return MoveChoiceProjectionSchema{}, fmt.Errorf("player source requires codec %q, got %q", MoveInputCodecPlayerIndex, field.Codec)
 		}
@@ -263,6 +328,9 @@ func resolveMoveChoiceProjection(move MoveInputSchemaMove, projection MoveChoice
 			return MoveChoiceProjectionSchema{}, fmt.Errorf("player source does not support excluded values")
 		}
 	case MoveChoiceSourceEnumValues:
+		if projection.StackSource != nil {
+			return MoveChoiceProjectionSchema{}, fmt.Errorf("enum source cannot configure a stack source")
+		}
 		if field.Codec != string(MoveInputCodecEnum) {
 			return MoveChoiceProjectionSchema{}, fmt.Errorf("enum source requires codec %q, got %q", MoveInputCodecEnum, field.Codec)
 		}
@@ -287,6 +355,16 @@ func resolveMoveChoiceProjection(move MoveInputSchemaMove, projection MoveChoice
 		}
 		if len(item.CandidateValues) == 0 {
 			return MoveChoiceProjectionSchema{}, fmt.Errorf("excluded enum values remove the entire candidate universe")
+		}
+	case MoveChoiceSourceStackSlots:
+		if field.Codec != string(MoveInputCodecInteger) {
+			return MoveChoiceProjectionSchema{}, fmt.Errorf("stack-slot source requires codec %q, got %q", MoveInputCodecInteger, field.Codec)
+		}
+		if projection.StackSource == nil {
+			return MoveChoiceProjectionSchema{}, fmt.Errorf("stack-slot source requires a stack locator")
+		}
+		if len(projection.ExcludedValues) != 0 {
+			return MoveChoiceProjectionSchema{}, fmt.Errorf("stack-slot source does not support excluded values")
 		}
 	default:
 		return MoveChoiceProjectionSchema{}, fmt.Errorf("unsupported source %q", projection.Source)
@@ -329,6 +407,62 @@ func cloneMoveChoiceProjectionSchema(schema []MoveChoiceProjectionSchema) []Move
 	result := append([]MoveChoiceProjectionSchema(nil), schema...)
 	for i := range result {
 		result[i].CandidateValues = append([]string(nil), schema[i].CandidateValues...)
+		if schema[i].StackSource != nil {
+			stackSource := *schema[i].StackSource
+			result[i].StackSource = &stackSource
+		}
 	}
 	return result
+}
+
+// ResolveMoveChoiceStack resolves one validated stack locator against the
+// exact state snapshot and proposing actor used for projection.
+func ResolveMoveChoiceStack(state ImmutableState, actor PlayerIndex, source *MoveChoiceStackSource) (ImmutableStack, error) {
+	if err := validateMoveChoiceStackSource(state, actor, source); err != nil {
+		return nil, err
+	}
+	var reader PropertyReader
+	switch source.Scope {
+	case MoveChoiceStackScopeActorPlayer:
+		reader = state.ImmutablePlayerStates()[actor].Reader()
+	case MoveChoiceStackScopeGame:
+		reader = state.ImmutableGameState().Reader()
+	}
+	stack, err := reader.ImmutableStackProp(source.Property)
+	if err != nil {
+		return nil, fmt.Errorf("resolve %s stack property %q: %w", source.Scope, source.Property, err)
+	}
+	if stack == nil {
+		return nil, fmt.Errorf("resolve %s stack property %q: stack is nil", source.Scope, source.Property)
+	}
+	return stack, nil
+}
+
+func validateMoveChoiceStackSource(state ImmutableState, actor PlayerIndex, source *MoveChoiceStackSource) error {
+	if state == nil {
+		return fmt.Errorf("stack-slot source requires a state")
+	}
+	if source == nil {
+		return fmt.Errorf("stack-slot source requires a stack locator")
+	}
+	if source.Property == "" {
+		return fmt.Errorf("stack-slot source property is empty")
+	}
+	var reader PropertyReader
+	switch source.Scope {
+	case MoveChoiceStackScopeActorPlayer:
+		players := state.ImmutablePlayerStates()
+		if actor < 0 || int(actor) >= len(players) {
+			return fmt.Errorf("stack-slot actor %d is invalid", actor)
+		}
+		reader = players[actor].Reader()
+	case MoveChoiceStackScopeGame:
+		reader = state.ImmutableGameState().Reader()
+	default:
+		return fmt.Errorf("unsupported stack-slot scope %q", source.Scope)
+	}
+	if reader.Props()[source.Property] != TypeStack {
+		return fmt.Errorf("%s property %q is not a stack", source.Scope, source.Property)
+	}
+	return nil
 }

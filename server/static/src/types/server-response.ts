@@ -181,10 +181,10 @@ function decodeProjectedMoveChoices(value: unknown, path: string): ProjectedMove
     const setPath = `${path}.Sets[${setIndex}]`;
     const set = record(rawSet, setPath);
     const rawSource = string(set['Source'], `${setPath}.Source`);
-    if (rawSource !== 'players' && rawSource !== 'enum-values') {
-      throw new Error(`${setPath}.Source must be "players" or "enum-values"`);
+    if (rawSource !== 'players' && rawSource !== 'enum-values' && rawSource !== 'stack-slots') {
+      throw new Error(`${setPath}.Source must be "players", "enum-values", or "stack-slots"`);
     }
-    const Source: 'players' | 'enum-values' = rawSource;
+    const Source: 'players' | 'enum-values' | 'stack-slots' = rawSource;
     const Candidates = array(
       set['Candidates'], `${setPath}.Candidates`, MAX_PROJECTED_CHOICE_CANDIDATES,
     ).map((rawCandidate, candidateIndex) => {

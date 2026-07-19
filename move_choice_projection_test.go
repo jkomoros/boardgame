@@ -98,6 +98,73 @@ func TestResolveMoveChoiceProjectionInfersPlayerSourceAndRejectsUnsupportedCodec
 	}
 }
 
+func TestResolveMoveChoiceProjectionAcceptsOnlyLocatedIntegerStackSlots(t *testing.T) {
+	integerMove := MoveInputSchemaMove{Name: "Choose Card", Fields: []MoveInputSchemaField{{
+		Name: "TargetCard", Disposition: string(MoveInputRequired), Codec: string(MoveInputCodecInteger),
+	}}}
+	source := &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Hand"}
+	got, err := resolveMoveChoiceProjection(integerMove, MoveChoiceProjection{
+		FieldName: "TargetCard", StackSource: source, Disclosure: MoveChoiceDisclosureActorExact,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Source != MoveChoiceSourceStackSlots || got.StackSource == nil || *got.StackSource != *source {
+		t.Fatalf("stack projection = %#v", got)
+	}
+
+	tests := []struct {
+		name       string
+		projection MoveChoiceProjection
+		codec      MoveInputCodec
+		want       string
+	}{
+		{"missing locator", MoveChoiceProjection{FieldName: "TargetCard", Source: MoveChoiceSourceStackSlots, Disclosure: MoveChoiceDisclosureActorExact}, MoveInputCodecInteger, "requires a stack locator"},
+		{"wrong codec", MoveChoiceProjection{FieldName: "TargetCard", StackSource: source, Disclosure: MoveChoiceDisclosureActorExact}, MoveInputCodecString, "requires codec"},
+		{"exclusions", MoveChoiceProjection{FieldName: "TargetCard", StackSource: source, ExcludedValues: []string{"0"}, Disclosure: MoveChoiceDisclosureActorExact}, MoveInputCodecInteger, "does not support excluded"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			move := integerMove
+			move.Fields[0].Codec = string(test.codec)
+			_, err := resolveMoveChoiceProjection(move, test.projection)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestResolveMoveChoiceStackValidatesScopeAndProperty(t *testing.T) {
+	state := newTestGameManger(t).ExampleState()
+	tests := []struct {
+		name   string
+		source *MoveChoiceStackSource
+		want   string
+	}{
+		{"game stack", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeGame, Property: "OtherStack"}, ""},
+		{"player stack", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Hand"}, ""},
+		{"non-stack", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeGame, Property: "CurrentPlayer"}, "not a stack"},
+		{"missing", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Missing"}, "not a stack"},
+		{"empty property", &MoveChoiceStackSource{Scope: MoveChoiceStackScopeGame}, "property is empty"},
+		{"unknown scope", &MoveChoiceStackSource{Scope: "unknown", Property: "Hand"}, "unsupported"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			stack, err := ResolveMoveChoiceStack(state, 0, test.source)
+			if test.want == "" {
+				if err != nil || stack == nil {
+					t.Fatalf("stack = %v, error = %v", stack, err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
 func TestMoveChoiceProjectionFingerprintTracksCandidateUniverse(t *testing.T) {
 	first := []MoveChoiceProjectionSchema{{
 		MoveName: "Guess Card", FieldName: "GuessedCard", Source: MoveChoiceSourceEnumValues,
@@ -107,6 +174,22 @@ func TestMoveChoiceProjectionFingerprintTracksCandidateUniverse(t *testing.T) {
 	second[0].CandidateValues = []string{"Priest"}
 	if FingerprintMoveChoiceProjectionSchema(first) == FingerprintMoveChoiceProjectionSchema(second) {
 		t.Fatal("candidate-universe edit did not change choice-projection fingerprint")
+	}
+}
+
+func TestMoveChoiceProjectionFingerprintTracksStackLocator(t *testing.T) {
+	first := []MoveChoiceProjectionSchema{{
+		MoveName: "Choose Card", FieldName: "TargetCard", Source: MoveChoiceSourceStackSlots,
+		StackSource: &MoveChoiceStackSource{Scope: MoveChoiceStackScopeActorPlayer, Property: "Hand"},
+		Disclosure:  MoveChoiceDisclosureActorExact,
+	}}
+	second := cloneMoveChoiceProjectionSchema(first)
+	second[0].StackSource.Property = "OtherHand"
+	if FingerprintMoveChoiceProjectionSchema(first) == FingerprintMoveChoiceProjectionSchema(second) {
+		t.Fatal("stack-locator edit did not change choice-projection fingerprint")
+	}
+	if first[0].StackSource.Property != "Hand" {
+		t.Fatal("schema clone aliased stack locator")
 	}
 }
 

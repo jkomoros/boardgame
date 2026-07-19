@@ -83,6 +83,10 @@ test('game-info decoder preserves optional typed projected choices', () => {
         MoveName: 'Guess Card', FieldName: 'GuessedCard', Source: 'enum-values',
         Candidates: [{ Value: 'Guard', Available: true }],
       },
+      {
+        MoveName: 'Choose Card', FieldName: 'TargetCard', Source: 'stack-slots',
+        Candidates: [{ Value: 0, Available: true }, { Value: 3, Available: false }],
+      },
     ],
   };
   const decoded = decodeGameInfoResponse(source);

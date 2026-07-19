@@ -1089,7 +1089,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	move.Info().timestamp = time.Now()
 	move.Info().version = versionToSet
 
-	if err := validateMoveChoiceInputDomain(move); err != nil {
+	if err := validateMoveChoiceInputDomain(move, currentState, proposer); err != nil {
 		return errors.NewFriendly(err.Error())
 	}
 

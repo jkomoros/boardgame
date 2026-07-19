@@ -7,6 +7,11 @@ import type { PlayerPresentation } from '../status/player-presentation.js';
 
 export const MOVE_CHOICE_PROJECTION_SCHEMA_VERSION = 1;
 
+export interface MoveChoiceStackSourceSchema {
+  readonly scope: 'actor-player' | 'game';
+  readonly property: string;
+}
+
 export interface MessageDescriptor {
   readonly id: string;
   readonly defaultMessage: string;
@@ -19,7 +24,8 @@ export const defaultMessageResolver: MessageResolver = message => message.defaul
 export interface MoveChoiceProjectionSchemaEntry {
   readonly moveName: string;
   readonly fieldName: string;
-  readonly source: 'players' | 'enum-values';
+  readonly source: 'players' | 'enum-values' | 'stack-slots';
+  readonly stackSource?: MoveChoiceStackSourceSchema;
   readonly candidateValues?: readonly string[];
   readonly disclosure: 'actor-exact';
 }
@@ -225,6 +231,16 @@ function validateCandidateValues(
     }
     return rawValues;
   }
+  if (schema.source === 'stack-slots') {
+    let previous = -1;
+    return rawValues.map(value => {
+      if (!Number.isSafeInteger(value) || (value as number) < 0 || (value as number) <= previous) {
+        throw new Error(`Projected stack-slot candidate ${JSON.stringify(value)} is not a canonical occupied index in ascending order`);
+      }
+      previous = value as number;
+      return value as number;
+    });
+  }
   let previous = -1;
   return rawValues.map(value => {
     if (!Number.isSafeInteger(value)
@@ -250,7 +266,9 @@ function candidateMessage(
 ): MessageDescriptor {
   const defaultMessage = schema.source === 'players'
     ? players[value as number]?.label ?? `Player ${Number(value) + 1}`
-    : humanize(String(value));
+    : schema.source === 'stack-slots'
+      ? `Slot ${Number(value) + 1}`
+      : humanize(String(value));
   return Object.freeze({
     id: `boardgame.projected-choices.${semanticToken(move)}.${semanticToken(schema.fieldName)}.candidate.${semanticToken(String(value))}`,
     defaultMessage,

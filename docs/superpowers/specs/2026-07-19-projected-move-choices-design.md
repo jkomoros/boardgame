@@ -13,8 +13,8 @@ generic way for a client to discover a small finite set of concrete moves that
 are worth presenting now.
 
 Projected move choices fill that gap. A game may opt one required move field
-into an actor-only projection over an inferred finite source (players or enum
-values). At a durable proposal frontier, the server constructs one fresh
+into an actor-only projection over a sealed finite source (players, enum
+values, or occupied stack slots). At a durable proposal frontier, the server constructs one fresh
 move per candidate, binds the candidate through the canonical input codec, and
 calls the ordinary `Legal` method exactly once. The client validates the result
 against its generated schema and hydrates ordinary `BoundMoveAction` objects.
@@ -87,25 +87,40 @@ moves.WithChoices(
     "GuessedCard",
     moves.ExcludeChoices("Unknown", "Guard"),
 )
+
+moves.WithChoices(
+    "TargetCard",
+    moves.FromCurrentPlayerStack("Hand"),
+)
 ```
 
 The resolved creator-input codec infers the sealed source: player-index fields
 enumerate the roster, while ordinary enum fields enumerate canonical enum
-values. `ExcludeChoices` removes implementation sentinels and also constrains
-the canonical proposal domain, so forged submissions cannot use a value
-omitted from the choice surface. Domain validation is deliberately independent
-of declarative legality; `Legal` remains the sole authority for availability
-among values inside that domain.
+values. Integer fields require an explicit framework-owned stack locator;
+`FromCurrentPlayerStack` and `FromGameStack` enumerate only occupied indexes in
+the named stack on the pinned state. Stack locators are property names, not
+game-authored enumerator callbacks.
+
+`ExcludeChoices` removes implementation sentinels and also constrains the
+canonical proposal domain, so forged submissions cannot use a value omitted
+from the choice surface. Occupied stack membership likewise constrains the
+proposal domain, so a forged integer cannot name an empty or out-of-range slot
+even if game-authored legality forgets that shape check. Domain validation is
+deliberately independent of declarative legality; `Legal` remains the sole
+authority for availability among values inside the declared domain.
 
 V1 validates at manager construction that:
 
 - a move has at most one projection;
 - the projected field is the move's only required creator input;
-- the field uses the player-index or ordinary enum codec;
+- the field uses the player-index or ordinary enum codec, or uses the integer
+  codec with exactly one explicit stack locator;
 - enum exclusions are canonical, unique, and do not exhaust the universe;
-- player choices have no exclusions;
+- player and stack-slot choices have no exclusions;
+- stack locators name a stack-typed property on game state or the proposing
+  player's state;
 - the disclosure is actor-exact;
-- fix-up moves cannot publish player choices;
+- fix-up moves cannot publish projected choices;
 - static candidate universes fit the protocol limits.
 
 The concise opt-in is intentionally the disclosure decision. Security review
@@ -198,7 +213,7 @@ ProjectedMoveChoices
   Sets[]
     MoveName
     FieldName
-    Source: players | enum-values
+    Source: players | enum-values | stack-slots
     Candidates[]
       Value
       Available
@@ -279,7 +294,8 @@ type MoveChoiceProjections = {
 It also emits the canonical projection schema and fingerprint, and generated
 renderer bases install both. The client treats server JSON as untrusted until
 it validates state version, protocol version, fingerprint, move/field/source,
-candidate type, exact enum or player universe, uniqueness, bounds, and the
+candidate type, exact enum universe or canonical dynamic indexes, uniqueness,
+bounds, and the
 presence of at least one available candidate in every included set.
 
 After validation, game code receives an exact API:
@@ -301,8 +317,9 @@ still rechecks `Legal` on proposal.
 
 Prompts and candidate labels are client-owned `MessageDescriptor` values with
 stable semantic IDs and required default messages. Framework defaults use
-sanitized player presentations and humanized enum values. No locale-dependent
-copy affects projection caching or crosses the server boundary.
+sanitized player presentations, humanized enum values, and neutral one-based
+slot labels. No component identity or locale-dependent copy affects projection
+caching or crosses the server boundary.
 
 The framework always renders a fixed, viewport-visible, bounded,
 safe-area-aware semantic fallback. It reserves its measured height above
@@ -341,6 +358,7 @@ browser gates; it is not implied merely by landing the framework primitive.
 | Valentine: select Guard target, then guess | Separate committed moves | Project each one-field move in sequence |
 | Choose another player for a public effect | One committed move | Project player indexes and exact target legality |
 | Choose one public enum option | One committed move | Project enum values with explicit sentinel exclusions |
+| Choose one card or species from a stack | One committed move | Project occupied indexes from a sealed state locator |
 | Checkers: select a piece and destination atomically | Client draft of one move | None until the draft has a complete binding |
 | Select several cards to discard together | Selection draft of one move | Not a V1 scalar projection |
 | Place a piece with position and orientation | Placement draft of one move | Not a V1 scalar projection |
@@ -388,6 +406,13 @@ moves continue to use existing drafts. A future partial-binding extension must
 be version-pinned, bounded in depth and total evaluation, validate every prefix
 against a generated schema, and submit only one final true move. It must not
 silently turn draft steps into history.
+
+Stack-backed V1 sources deliberately enumerate occupied slots only. Empty-slot
+placement, boards, component IDs, indirect player stacks, and arbitrary state
+queries are not silently generalized into this source. A future source kind
+must be sealed, boot-validated, actor-disclosure explicit, bounded on the
+pinned snapshot, and must continue to bind candidates through the canonical
+input codec before calling `Legal`.
 
 V1 also ships only the guaranteed generic fallback. A rich board-native region
 would currently duplicate it. A future consumption mechanism must be

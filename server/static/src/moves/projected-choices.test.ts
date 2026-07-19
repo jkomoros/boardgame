@@ -10,24 +10,28 @@ import {
 import { serializeCreatorMoveInput, validateCreatorMoveInput } from './input.ts';
 import { buildProjectedMoveChoices } from './projected-choices.ts';
 
-type Names = 'Choose Player' | 'Guess Card';
+type Names = 'Choose Player' | 'Guess Card' | 'Choose Card';
 type Inputs = {
   'Choose Player': { TargetPlayer: number };
   'Guess Card': { GuessedCard: 'Guard' | 'Priest' };
+  'Choose Card': { TargetCard: number };
 };
 type Projections = {
   'Choose Player': { readonly field: 'TargetPlayer'; readonly value: number; readonly input: Inputs['Choose Player'] };
   'Guess Card': { readonly field: 'GuessedCard'; readonly value: 'Guard' | 'Priest'; readonly input: Inputs['Guess Card'] };
+  'Choose Card': { readonly field: 'TargetCard'; readonly value: number; readonly input: Inputs['Choose Card'] };
 };
 
 const inputSchema = [
   { name: 'Choose Player', fields: [{ name: 'TargetPlayer', wireType: 'int', disposition: 'required', codec: 'player-index' }] },
   { name: 'Guess Card', fields: [{ name: 'GuessedCard', wireType: 'string', disposition: 'required', codec: 'enum', enumName: 'Card', enumValues: ['Guard', 'Priest'] }] },
+  { name: 'Choose Card', fields: [{ name: 'TargetCard', wireType: 'int', disposition: 'required', codec: 'integer' }] },
 ] as const;
 
 const projectionSchema = [
   { moveName: 'Choose Player', fieldName: 'TargetPlayer', source: 'players', disclosure: 'actor-exact' },
   { moveName: 'Guess Card', fieldName: 'GuessedCard', source: 'enum-values', candidateValues: ['Guard', 'Priest'], disclosure: 'actor-exact' },
+  { moveName: 'Choose Card', fieldName: 'TargetCard', source: 'stack-slots', stackSource: { scope: 'actor-player', property: 'Hand' }, disclosure: 'actor-exact' },
 ] as const;
 
 function actions(): <K extends keyof Projections & string>(
@@ -74,6 +78,10 @@ function readyWire() {
         MoveName: 'Guess Card', FieldName: 'GuessedCard', Source: 'enum-values' as const,
         Candidates: [{ Value: 'Guard', Available: true }, { Value: 'Priest', Available: false }],
       },
+      {
+        MoveName: 'Choose Card', FieldName: 'TargetCard', Source: 'stack-slots' as const,
+        Candidates: [{ Value: 0, Available: true }, { Value: 3, Available: false }],
+      },
     ],
   };
 }
@@ -105,6 +113,30 @@ test('validates projections before creating exact typed ordinary actions', () =>
   // Complete bound legality supersedes the default move form's false baseline.
   assert.equal(cards?.candidates[0].action.canPropose, true);
   assert.equal(cards?.candidates[1].action.reason?.code, 'preview-illegal');
+});
+
+test('accepts sparse occupied stack slots and rejects malformed dynamic domains', () => {
+  const base = readyWire();
+  const stackOnly = { ...base, Sets: [base.Sets[2]] };
+  const common = {
+    wire: stackOnly, stateVersion: 7, schema: projectionSchema,
+    schemaFingerprint: 'projection-fingerprint', playerPresentations: [], action: actions(),
+  };
+  const choices = buildProjectedMoveChoices<Projections>(common);
+  assert.deepEqual(choices.get('Choose Card')?.candidates.map(candidate => [
+    candidate.value, candidate.message.defaultMessage,
+  ]), [[0, 'Slot 1'], [3, 'Slot 4']]);
+
+  for (const Candidates of [
+    [{ Value: 2, Available: true }, { Value: 1, Available: true }],
+    [{ Value: -1, Available: true }],
+    [{ Value: '1', Available: true }],
+  ]) {
+    assert.throws(() => buildProjectedMoveChoices<Projections>({
+      ...common,
+      wire: { ...stackOnly, Sets: [{ ...base.Sets[2], Candidates }] },
+    }), /canonical occupied index/);
+  }
 });
 
 test('accepts a ready subset but rejects spoofed candidate universes', () => {

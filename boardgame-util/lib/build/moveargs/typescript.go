@@ -98,6 +98,10 @@ func ValidateTypeScriptSchema(moves []MoveInfo, choiceProjectionSets ...[]Choice
 			if field.Codec != string(boardgame.MoveInputCodecEnum) || len(projection.CandidateValues) == 0 {
 				return fmt.Errorf("move %q has malformed enum choice projection", projection.MoveName)
 			}
+		case boardgame.MoveChoiceSourceStackSlots:
+			if field.Codec != string(boardgame.MoveInputCodecInteger) || projection.StackSource == nil || len(projection.CandidateValues) != 0 {
+				return fmt.Errorf("move %q has malformed stack-slot choice projection", projection.MoveName)
+			}
 		default:
 			return fmt.Errorf("move %q has unsupported choice source %q", projection.MoveName, projection.Source)
 		}
@@ -207,7 +211,7 @@ func GenerateTypeScript(moves []MoveInfo, choiceProjectionSets ...[]ChoiceProjec
 }
 
 func choiceProjectionValueType(projection ChoiceProjectionInfo) string {
-	if projection.Source == boardgame.MoveChoiceSourcePlayers {
+	if projection.Source == boardgame.MoveChoiceSourcePlayers || projection.Source == boardgame.MoveChoiceSourceStackSlots {
 		return "number"
 	}
 	values := make([]string, len(projection.CandidateValues))

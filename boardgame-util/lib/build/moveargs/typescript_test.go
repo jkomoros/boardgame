@@ -73,6 +73,11 @@ func TestGenerateTypeScriptEmitsExactNarrowedChoiceProjectionMap(t *testing.T) {
 		Fields: []MoveFieldInfo{{
 			Name: "OtherPlayerIndex", WireType: "playerIndex", Disposition: "required", Codec: "player-index",
 		}},
+	}, {
+		Name: "Choose Card",
+		Fields: []MoveFieldInfo{{
+			Name: "TargetCard", WireType: "int", Disposition: "required", Codec: "integer",
+		}},
 	}}
 	choices := []ChoiceProjectionInfo{{
 		MoveName: "Guess Card", FieldName: "GuessedCard", Source: boardgame.MoveChoiceSourceEnumValues,
@@ -80,6 +85,10 @@ func TestGenerateTypeScriptEmitsExactNarrowedChoiceProjectionMap(t *testing.T) {
 	}, {
 		MoveName: "Select Player", FieldName: "OtherPlayerIndex", Source: boardgame.MoveChoiceSourcePlayers,
 		Disclosure: boardgame.MoveChoiceDisclosureActorExact,
+	}, {
+		MoveName: "Choose Card", FieldName: "TargetCard", Source: boardgame.MoveChoiceSourceStackSlots,
+		StackSource: &boardgame.MoveChoiceStackSource{Scope: boardgame.MoveChoiceStackScopeActorPlayer, Property: "Hand"},
+		Disclosure:  boardgame.MoveChoiceDisclosureActorExact,
 	}}
 
 	got := GenerateTypeScript(moves, choices)
@@ -90,6 +99,10 @@ func TestGenerateTypeScriptEmitsExactNarrowedChoiceProjectionMap(t *testing.T) {
 		"readonly input: GuessCardInput;",
 		`readonly field: "OtherPlayerIndex";`,
 		"readonly value: number;",
+		`readonly field: "TargetCard";`,
+		`"source": "stack-slots"`,
+		`"scope": "actor-player"`,
+		`"property": "Hand"`,
 		"moveChoiceProjectionSchemaFingerprint",
 	} {
 		if !strings.Contains(got, want) {

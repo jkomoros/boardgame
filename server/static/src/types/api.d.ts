@@ -83,7 +83,7 @@ export interface ServerStateBundle {
   ProjectedMoveChoices?: ProjectedMoveChoicesWire;
 }
 
-export type ProjectedMoveChoiceSource = 'players' | 'enum-values';
+export type ProjectedMoveChoiceSource = 'players' | 'enum-values' | 'stack-slots';
 
 export interface ProjectedMoveChoiceCandidateWire {
   readonly Value: string | number;

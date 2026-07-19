@@ -18,6 +18,7 @@ type moveInputDeclaration struct {
 
 type moveChoiceProjectionDeclaration struct {
 	projection boardgame.MoveChoiceProjection
+	err        string
 }
 
 type currentPlayerMoveInputBehavior interface{ moveInputCurrentPlayerBehavior() }
@@ -126,6 +127,9 @@ func collectMoveInputFields(move AutoConfigurableMove, config boardgame.Property
 		return fmt.Errorf("move has more than one choice projection; version one permits one")
 	}
 	if len(choiceProjections) == 1 {
+		if choiceProjections[0].err != "" {
+			return fmt.Errorf("move choice projection: %s", choiceProjections[0].err)
+		}
 		if err := boardgame.SetMoveChoiceProjection(config, choiceProjections[0].projection); err != nil {
 			return err
 		}
