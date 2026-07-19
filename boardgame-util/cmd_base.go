@@ -187,15 +187,30 @@ func (b *boardgameUtil) msgAndQuit(message string) {
 // program exits. Keeping generated workspaces outside the caller's working
 // directory prevents them from polluting (or accidentally entering) a repo.
 func (b *boardgameUtil) NewTempDir(prefix string) string {
-	dir, err := newSystemTempDir(prefix)
+	dir, err := b.newTrackedTempDir(prefix)
 
 	if err != nil {
 		b.errAndQuit("Couldn't create temporary directory: " + err.Error())
 	}
 
-	b.tempDirs = append(b.tempDirs, dir)
-
 	return dir
+}
+
+func (b *boardgameUtil) newTrackedTempDir(prefix string) (string, error) {
+	dir, err := newSystemTempDir(prefix)
+	if err != nil {
+		return "", err
+	}
+	b.cleanupMutex.Lock()
+	defer b.cleanupMutex.Unlock()
+	if b.cleaning {
+		if removeErr := os.RemoveAll(dir); removeErr != nil {
+			return "", fmt.Errorf("cleanup already started; remove untracked temp directory: %w", removeErr)
+		}
+		return "", errors.New("cleanup already started")
+	}
+	b.tempDirs = append(b.tempDirs, dir)
+	return dir, nil
 }
 
 func newSystemTempDir(prefix string) (string, error) {
