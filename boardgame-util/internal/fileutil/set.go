@@ -29,6 +29,9 @@ type FileSpec struct {
 	// Delete removes the named file as part of the transaction. Missing files
 	// are a no-op; directories and other non-regular paths are rejected.
 	Delete bool
+	// Exclusive requires the destination to be absent even when the surrounding
+	// transaction otherwise permits overwrites.
+	Exclusive bool
 	// ForceMode applies Mode even when replacing an existing file. By default,
 	// existing permissions are preserved.
 	ForceMode bool
@@ -121,13 +124,13 @@ func prepareMutations(root string, files map[string]FileSpec, overwrite bool) ([
 		seen[clean] = name
 
 		spec := files[name]
-		mutation := fileMutation{path: path, contents: spec.Contents, mode: spec.Mode.Perm(), exclusive: !overwrite, delete: spec.Delete}
+		mutation := fileMutation{path: path, contents: spec.Contents, mode: spec.Mode.Perm(), exclusive: !overwrite || spec.Exclusive, delete: spec.Delete}
 		info, err := os.Lstat(path)
 		if err == nil {
 			if !info.Mode().IsRegular() {
 				return nil, fmt.Errorf("refusing to replace non-regular output %s", path)
 			}
-			if !overwrite && !spec.Delete {
+			if mutation.exclusive && !spec.Delete {
 				return nil, fmt.Errorf("%s already exists; save aborted", name)
 			}
 			mutation.hadFile = true

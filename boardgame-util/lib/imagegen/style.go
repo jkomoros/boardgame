@@ -72,19 +72,37 @@ func WriteGallery(dir, title string, candidates []StyleCandidate) error {
 }
 
 func CreateStyleLock(selected, output string, force bool, now func() time.Time) (*StyleLock, error) {
+	lock, files, hasSourceManifest, err := buildStyleLockFiles(selected, output, now)
+	if err != nil {
+		return nil, err
+	}
+	specs := make(map[string]fileutil.FileSpec, len(files)+1)
+	for name, contents := range files {
+		specs[name] = fileutil.FileSpec{Contents: contents, Mode: 0o644, Exclusive: !force}
+	}
+	if force && !hasSourceManifest {
+		specs[filepath.Base(output)+".imagegen.json"] = fileutil.FileSpec{Delete: true}
+	}
+	if err := fileutil.WriteFileSetAtomic(filepath.Dir(output), specs, true); err != nil {
+		return nil, err
+	}
+	return lock, nil
+}
+
+func buildStyleLockFiles(selected, output string, now func() time.Time) (*StyleLock, map[string][]byte, bool, error) {
 	if selected == "" || output == "" {
-		return nil, errors.New("selected reference and output are required")
+		return nil, nil, false, errors.New("selected reference and output are required")
 	}
 	data, err := os.ReadFile(selected)
 	if err != nil {
-		return nil, err
+		return nil, nil, false, err
 	}
 	sourceManifest := selected + ".imagegen.json"
 	manifestData, manifestErr := os.ReadFile(sourceManifest)
 	if os.IsNotExist(manifestErr) {
 		sourceManifest = ""
 	} else if manifestErr != nil {
-		return nil, fmt.Errorf("read source image manifest: %w", manifestErr)
+		return nil, nil, false, fmt.Errorf("read source image manifest: %w", manifestErr)
 	}
 	if now == nil {
 		now = time.Now
@@ -94,10 +112,9 @@ func CreateStyleLock(selected, output string, force bool, now func() time.Time) 
 	lock := &StyleLock{SchemaVersion: 1, LockedAt: now().UTC().Format(time.RFC3339), Image: filepath.Base(output), ImageSHA256: digest(data), SelectedFrom: selected, SourceManifest: sourceManifest}
 	encoded, err := json.MarshalIndent(lock, "", "  ")
 	if err != nil {
-		return nil, err
+		return nil, nil, false, err
 	}
 	encoded = append(encoded, '\n')
-	root := filepath.Dir(output)
 	outputName := filepath.Base(output)
 	files := map[string][]byte{
 		outputName:                      data,
@@ -106,10 +123,7 @@ func CreateStyleLock(selected, output string, force bool, now func() time.Time) 
 	if sourceManifest != "" {
 		files[outputName+".imagegen.json"] = manifestData
 	}
-	if err := fileutil.WriteFilesAtomic(root, files, force, 0o644); err != nil {
-		return nil, err
-	}
-	return lock, nil
+	return lock, files, sourceManifest != "", nil
 }
 
 func ReadStyleLock(path string) (*StyleLock, error) {
