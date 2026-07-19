@@ -738,7 +738,7 @@ Precision properties, both load-bearing:
 Known blind spots, accepted deliberately (see legal/doc.go's game-registered
 predicates section): a predicate whose move read is conditional on state the
 example state doesn't exhibit; a predicate that reaches the move via
-ctx.Move.TopLevelStruct() or a concrete type assertion rather than
+ctx.Move.Info().ConcreteMove() or a concrete type assertion rather than
 ctx.Move.Reader()/ctx.ResolvePath; and a delegate overriding a UNIVERSAL
 catalog name (probing is scoped to names outside the default registry — see
 buildLegalRegistryAndTemplates). Catalog predicates are skipped: their Reads

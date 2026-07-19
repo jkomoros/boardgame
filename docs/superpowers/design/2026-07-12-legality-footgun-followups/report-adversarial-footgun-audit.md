@@ -49,7 +49,7 @@ Three latent flavors, all boot-clean:
 
 ## F3 — HIGH severity / lower likelihood: `Reads` is pure honor system, and under-declaring a `move.*` read poisons the server-side memo (wrong verdicts, not just wrong UI)
 
-[BATCH: docs FIXED + boot smoke probe SHIPPED in 3f11d57c/5f1ab043 — sentinel-panic detection for field-independent game-registered predicates. Documented blind spots remain: delegate overriding a universal name; conditional reads the example state doesn't trigger; access via TopLevelStruct()/concrete assertions. Optional debug-mode read-tracking proxies remain FUTURE work.]
+[BATCH: docs FIXED + boot smoke probe SHIPPED in 3f11d57c/5f1ab043 — sentinel-panic detection for field-independent game-registered predicates. Documented blind spots remain: delegate overriding a universal name; conditional reads the example state doesn't trigger; access via Info().ConcreteMove()/concrete assertions. Optional debug-mode read-tracking proxies remain FUTURE work.]
 
 Verified: there is no runtime read-tracking. The only guard is in `evalLegalPredicate` (`legal_predicate.go:397-419`): a **panic** while `ctx.Move == nil` and no declared move path becomes `Unknown`. But every production path passes a **non-nil** Move, so the guard is effectively dormant.
 

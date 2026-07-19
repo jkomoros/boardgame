@@ -35,6 +35,11 @@ It provides minimal stubs for all of the expected methods Moves should have,
 other than Legal() and Apply(), which generally have logic specific to the
 move.
 
+Embedding is zero-boilerplate: the engine affiliates each constructed move
+with its final concrete value through MoveInfo. Framework methods can therefore
+honor methods overridden by the outer move without any registration or binding
+by game authors.
+
 See also moves.Default, which embeds this but adds logic about overriding
 configuration via auto.Config(), as well as robust base logic for phases and
 phase progressions. Typically your moves will use that (or something that
@@ -43,8 +48,7 @@ embeds that).
 boardgame:codegen
 */
 type Move struct {
-	info           *boardgame.MoveInfo
-	topLevelStruct boardgame.Move
+	info *boardgame.MoveInfo
 }
 
 // SetInfo sets the return value of Info.
@@ -52,19 +56,10 @@ func (m *Move) SetInfo(info *boardgame.MoveInfo) {
 	m.info = info
 }
 
-// Info simply returns the info set via SetInfo.
+// Info simply returns the info set via SetInfo. The engine-owned MoveInfo also
+// identifies the final concrete move for embedded framework implementations.
 func (m *Move) Info() *boardgame.MoveInfo {
 	return m.info
-}
-
-// SetTopLevelStruct sets the return value of TopLevelStruct.
-func (m *Move) SetTopLevelStruct(t boardgame.Move) {
-	m.topLevelStruct = t
-}
-
-// TopLevelStruct returns the object that was set via SetTopLevelStruct.
-func (m *Move) TopLevelStruct() boardgame.Move {
-	return m.topLevelStruct
 }
 
 // DefaultsForState doesn't do anything

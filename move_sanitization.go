@@ -53,10 +53,10 @@ type MovePropertySanitizer interface {
 // MoveNamePublic reports whether the move uses the compatibility default where
 // its canonical name is visible to every viewer.
 func (m *MoveInfo) MoveNamePublic() bool {
-	if m == nil || m.moveType == nil {
+	if m == nil || m.runtime.moveType == nil {
 		return false
 	}
-	return ResolveSanitizationPolicy(m.moveType.nameSanitization, map[string]bool{SanitizationDefaultGroup: true}, PolicyHidden) == PolicyVisible
+	return ResolveSanitizationPolicy(m.runtime.moveType.nameSanitization, map[string]bool{SanitizationDefaultGroup: true}, PolicyHidden) == PolicyVisible
 }
 
 // MoveNameVisibleToPlayer evaluates canonical-name visibility for a proposed
@@ -65,14 +65,14 @@ func (g *Game) MoveNameVisibleToPlayer(move Move, proposer, viewer PlayerIndex, 
 	if viewer == AdminPlayerIndex {
 		return true, nil
 	}
-	if move == nil || move.Info() == nil || move.Info().moveType == nil {
+	if move == nil || move.Info() == nil || move.Info().runtime.moveType == nil {
 		return false, errors.New("move was not initialized")
 	}
 	groups, err := g.moveSanitizationGroupsFor(state, proposer, viewer, move)
 	if err != nil {
 		return false, err
 	}
-	return ResolveSanitizationPolicy(move.Info().moveType.nameSanitization, groups, PolicyHidden) == PolicyVisible, nil
+	return ResolveSanitizationPolicy(move.Info().runtime.moveType.nameSanitization, groups, PolicyHidden) == PolicyVisible, nil
 }
 
 // MoveJSONForPlayer returns viewer-specific move metadata suitable for the
@@ -100,7 +100,7 @@ func (g *Game) MoveJSONForPlayer(player PlayerIndex, record *MoveStorageRecord) 
 		return nil, err
 	}
 
-	moveType := move.Info().moveType
+	moveType := move.Info().runtime.moveType
 	namePolicy := ResolveSanitizationPolicy(moveType.nameSanitization, groups, PolicyHidden)
 	animationKey := record.Name
 	if player != AdminPlayerIndex && namePolicy != PolicyVisible {
@@ -170,7 +170,7 @@ func (g *Game) moveSanitizationGroupsFor(state ImmutableState, proposer, viewer 
 	proposerMembership, groups := groupMembershipForPlayerState(proposerState)
 	viewerMembership, _ := groupMembershipForPlayerState(viewerState)
 
-	moveType := move.Info().moveType
+	moveType := move.Info().runtime.moveType
 	groupEnum := g.Manager().Delegate().GroupEnum()
 	groupNames := moveType.validator.sanitizationPolicyGroupNames(groupEnum)
 	for groupName := range moveType.nameSanitization {

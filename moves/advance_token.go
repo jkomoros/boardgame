@@ -40,11 +40,11 @@ func (a *AdvanceToken) Legal(state boardgame.ImmutableState, proposer boardgame.
 		return err
 	}
 
-	if _, ok := a.TopLevelStruct().(TokenAdvancer); !ok {
+	if _, ok := a.Info().ConcreteMove().(TokenAdvancer); !ok {
 		return errors.New("AdvanceToken: embedding move must implement TokenAdvancer")
 	}
 
-	if condition, ok := a.TopLevelStruct().(interfaces.AdvanceCondition); ok {
+	if condition, ok := a.Info().ConcreteMove().(interfaces.AdvanceCondition); ok {
 		if err := condition.ShouldAdvance(state); err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func (a *AdvanceToken) Legal(state boardgame.ImmutableState, proposer boardgame.
 // if implemented.
 func (a *AdvanceToken) Apply(state boardgame.State) error {
 
-	advancer, ok := a.TopLevelStruct().(TokenAdvancer)
+	advancer, ok := a.Info().ConcreteMove().(TokenAdvancer)
 	if !ok {
 		return errors.New("AdvanceToken: embedding move must implement TokenAdvancer")
 	}
@@ -81,7 +81,7 @@ func (a *AdvanceToken) Apply(state boardgame.State) error {
 		return err
 	}
 
-	if handler, ok := a.TopLevelStruct().(interfaces.PostAdvanceHandler); ok {
+	if handler, ok := a.Info().ConcreteMove().(interfaces.PostAdvanceHandler); ok {
 		var newVal enum.ImmutableVal
 		if locationEnum != nil {
 			var err error

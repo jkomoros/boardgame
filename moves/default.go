@@ -180,7 +180,7 @@ func titleCaseToWords(in string) string {
 // DeriveName is used by auto.Config to generate the name for the move. This
 // implementation is where the majority of MoveName magic logic comes from.
 // First, it will use the configuration passed to auto.Config via WithMoveName,
-// if provided. Next, it checks the name of the topLevelStruct via reflection.
+// if provided. Next, it checks the name of the concreteMove via reflection.
 // If the struct does not come from the moves package, it will create a name
 // like `MoveMyMove` --> `My Move`. Finally, if it's a struct from this
 // package, it will fall back on whatever the FallbackName() method returns.
@@ -226,7 +226,7 @@ func (d *Default) baseDeriveName(m *boardgame.GameManager) string {
 		}
 	}
 
-	move := d.TopLevelStruct()
+	move := d.Info().ConcreteMove()
 
 	val := reflect.ValueOf(move)
 
@@ -238,7 +238,7 @@ func (d *Default) baseDeriveName(m *boardgame.GameManager) string {
 	typ := val.Type()
 
 	if !strings.HasSuffix(typ.PkgPath(), "boardgame/moves") {
-		//For any move struct where the top level isn't in this package, just
+		//For any concrete move whose type isn't in this package, just
 		//title case its name and be done with it!
 		name := typ.Name()
 		name = strings.TrimPrefix(name, "Move")
@@ -279,7 +279,7 @@ func (d *Default) HelpText() string {
 		return strOverrideHelpText
 	}
 
-	move := d.TopLevelStruct()
+	move := d.Info().ConcreteMove()
 
 	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
@@ -355,7 +355,7 @@ func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.Playe
 		if manager.LegalProbeActive() {
 			return nil
 		}
-		if handled, err := manager.LegalEvaluatePlan(d.Name(), state, d.TopLevelStruct(), proposer); handled {
+		if handled, err := manager.LegalEvaluatePlan(d.Name(), state, d.Info().ConcreteMove(), proposer); handled {
 			return err
 		}
 	}

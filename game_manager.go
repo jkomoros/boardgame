@@ -343,6 +343,9 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 
 	for _, moveType := range result.moves {
 		testMove := moveType.NewMove(exampleState)
+		if testMove == nil {
+			return nil, errors.New(moveType.Name() + " move could not be constructed with valid runtime affiliation")
+		}
 
 		if err := testMove.ValidConfiguration(exampleState); err != nil {
 			return nil, errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())

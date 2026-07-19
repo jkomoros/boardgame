@@ -96,11 +96,11 @@ func (r *RoundRobin) RoundRobinStarterPlayer(state boardgame.ImmutableState) boa
 // players who have already had their player condition met), if you override
 // CondtionMet you should also call this implementation.
 func (r *RoundRobin) ConditionMet(state boardgame.ImmutableState) error {
-	conditionsMet, ok := r.TopLevelStruct().(playerConditionMet)
+	conditionsMet, ok := r.Info().ConcreteMove().(playerConditionMet)
 
 	if !ok {
 		//This should be extremely rare since we ourselves have the right method.
-		return errors.New("RoundRobin top level struct unexpectedly did not have PlayerConditionMet method")
+		return errors.New("RoundRobin concrete move unexpectedly did not have PlayerConditionMet method")
 	}
 
 	for i, player := range state.ImmutablePlayerStates() {
@@ -143,12 +143,12 @@ func (r *RoundRobin) startRoundRobin(state boardgame.State) error {
 		return errors.New("GameState unexpectedly did not implement RoundRobiner interface")
 	}
 
-	starter, ok := r.TopLevelStruct().(roundRobinStarterPlayer)
+	starter, ok := r.Info().ConcreteMove().(roundRobinStarterPlayer)
 
 	if !ok {
 		//This should be extremely rare, because if we're embedded in it then
 		//the struct should have it.
-		return errors.New("The top level struct unexpectedly didn't have RoundRobinStarterPlayer")
+		return errors.New("The concrete move unexpectedly didn't have RoundRobinStarterPlayer")
 	}
 
 	starterPlayer := starter.RoundRobinStarterPlayer(state)
@@ -193,7 +193,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boa
 		currentPlayer = roundRobiner.RoundRobinLastPlayer().EnsureValid(state)
 	} else {
 
-		starterPlayer, ok := r.TopLevelStruct().(roundRobinStarterPlayer)
+		starterPlayer, ok := r.Info().ConcreteMove().(roundRobinStarterPlayer)
 
 		if !ok {
 			return boardgame.ObserverPlayerIndex, true
@@ -211,7 +211,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boa
 	//PlayerConditionMet will still work fine, because their
 	//PlayerConditionMet will always return false.
 
-	conditionsMet, ok := r.TopLevelStruct().(playerConditionMet)
+	conditionsMet, ok := r.Info().ConcreteMove().(playerConditionMet)
 
 	if !ok {
 		//This should be extremely rare since we ourselves have the right method.
@@ -259,15 +259,15 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.State) error {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
 
-	if _, ok := r.TopLevelStruct().(roundRobinStarterPlayer); !ok {
+	if _, ok := r.Info().ConcreteMove().(roundRobinStarterPlayer); !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinStarterPlayer")
 	}
 
-	if _, ok := r.TopLevelStruct().(playerConditionMet); !ok {
+	if _, ok := r.Info().ConcreteMove().(playerConditionMet); !ok {
 		return errors.New("Embedding move doesn't implement PlayerConditionMet")
 	}
 
-	embeddingMove := r.TopLevelStruct()
+	embeddingMove := r.Info().ConcreteMove()
 
 	if _, ok := embeddingMove.(interfaces.RoundRobinActioner); !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
@@ -304,7 +304,7 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		//the last move applied was not us (otherwise we'd just infinite loop
 		//in them).
 
-		if r.TopLevelStruct().Info().Name() == r.lastMoveName(state) {
+		if r.Info().ConcreteMove().Info().Name() == r.lastMoveName(state) {
 			return errors.New("can't start this round robin move because the last move was also part of this round robin")
 		}
 
@@ -334,10 +334,10 @@ func (r *RoundRobin) Apply(state boardgame.State) error {
 		}
 	}
 
-	conditionMetter, ok := r.TopLevelStruct().(interfaces.ConditionMetter)
+	conditionMetter, ok := r.Info().ConcreteMove().(interfaces.ConditionMetter)
 
 	if !ok {
-		return errors.New("Top level struct unexpectedly did not implement condition met")
+		return errors.New("Concrete move unexpectedly did not implement condition met")
 	}
 
 	if conditionMetter.ConditionMet(state) == nil {
@@ -361,7 +361,7 @@ func (r *RoundRobin) Apply(state boardgame.State) error {
 
 	nextPlayer, _ := r.nextPlayerIndex(state)
 
-	actioner, ok := r.TopLevelStruct().(interfaces.RoundRobinActioner)
+	actioner, ok := r.Info().ConcreteMove().(interfaces.RoundRobinActioner)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
@@ -429,7 +429,7 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) e
 		return err
 	}
 
-	numRounds, ok := r.TopLevelStruct().(numRoundser)
+	numRounds, ok := r.Info().ConcreteMove().(numRoundser)
 
 	if !ok {
 		return errors.New("embeddingMove unexpectedly did not implement NumRounds")
@@ -470,7 +470,7 @@ func (r *RoundRobinNumRounds) NumRounds(state boardgame.ImmutableState) int {
 // will return nil immediately. Otherwise it will fall back on RoundRobin's
 // base ConditionMet, returning nil if no players are left to act upon.
 func (r *RoundRobinNumRounds) ConditionMet(state boardgame.ImmutableState) error {
-	numRounds, ok := r.TopLevelStruct().(numRoundser)
+	numRounds, ok := r.Info().ConcreteMove().(numRoundser)
 
 	if !ok {
 		//Unexpected!
@@ -495,7 +495,7 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.ImmutableState) error
 // NumRounds().
 func (r *RoundRobinNumRounds) FallbackName(m *boardgame.GameManager) string {
 
-	numRounds, ok := r.TopLevelStruct().(numRoundser)
+	numRounds, ok := r.Info().ConcreteMove().(numRoundser)
 
 	if !ok {
 		return "Round Robin Round Count"
@@ -507,7 +507,7 @@ func (r *RoundRobinNumRounds) FallbackName(m *boardgame.GameManager) string {
 // FallbackHelpText returns "A round robin move that makes INT
 // circuits.", where INT is NumRounds().
 func (r *RoundRobinNumRounds) FallbackHelpText() string {
-	numRounds, ok := r.TopLevelStruct().(numRoundser)
+	numRounds, ok := r.Info().ConcreteMove().(numRoundser)
 
 	if !ok {
 		return "A round robin move that makes some number of circuits."

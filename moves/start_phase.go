@@ -38,7 +38,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 		return err
 	}
 
-	embeddingMove := s.TopLevelStruct()
+	embeddingMove := s.Info().ConcreteMove()
 
 	phaseStarter, ok := embeddingMove.(phaseToStarter)
 
@@ -99,7 +99,7 @@ func (s *StartPhase) PhaseToStart(currentPhase enum.EnumKey) (enum.EnumKey, erro
 // from this move type.
 func (s *StartPhase) Apply(state boardgame.State) error {
 
-	phaseEnterer, ok := s.TopLevelStruct().(phaseToStarter)
+	phaseEnterer, ok := s.Info().ConcreteMove().(phaseToStarter)
 
 	if !ok {
 		return errors.New("The embedding move does not have PhaseToStart()")

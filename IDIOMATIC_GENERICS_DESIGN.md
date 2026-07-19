@@ -121,8 +121,6 @@ type Move[G any, P any] interface {
 
     // Infrastructure
     SetInfo(m *MoveInfo)
-    TopLevelStruct() Move[G, P]
-    SetTopLevelStruct(m Move[G, P])
     ValidConfiguration(exampleState State[G, P]) error
     ReadSetConfigurer
 }

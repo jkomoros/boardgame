@@ -58,7 +58,7 @@ func (s *ShuffleStack) SourceStack(state boardgame.State) boardgame.Stack {
 // Apply shuffles the stack that the embedding move selects by the return value
 // from SourceStack().
 func (s *ShuffleStack) Apply(state boardgame.State) error {
-	embeddingMove := s.TopLevelStruct()
+	embeddingMove := s.Info().ConcreteMove()
 
 	stacker, ok := embeddingMove.(interfaces.SourceStacker)
 
@@ -75,10 +75,10 @@ func (s *ShuffleStack) Apply(state boardgame.State) error {
 	return stack.Shuffle()
 }
 
-// ValidConfiguration verifies that the top level move implements
+// ValidConfiguration verifies that the concrete move implements
 // interfaces.SourceStacker and returns non-nil stacks.
 func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
-	testMove := s.TopLevelStruct()
+	testMove := s.Info().ConcreteMove()
 
 	sourceStacker, ok := testMove.(interfaces.SourceStacker)
 
@@ -102,7 +102,7 @@ func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 
 	var stack boardgame.ImmutableStack
 
-	stacker, ok := s.TopLevelStruct().(interfaces.SourceStacker)
+	stacker, ok := s.Info().ConcreteMove().(interfaces.SourceStacker)
 
 	if ok {
 		stack = stacker.SourceStack(exampleState)

@@ -630,6 +630,10 @@ There is a fair bit of boilerplate to implement a move, and you'll define a larg
 
 That's why there's a `moves` package that defines three common move types. You embed these moves anonymously in your move struct and then only override the methods you need to change. In some cases you don't even need to implement your own `Legal` or `Apply` because the base ones are sufficent.
 
+This composition has no registration or binding boilerplate. The engine automatically associates every constructed move with its final concrete value, allowing embedded framework moves to honor methods and optional interfaces implemented by your outer move. Most game code should simply embed and override. If you are building a reusable move framework, `m.Info().ConcreteMove()` exposes that final value for intentional override or capability dispatch; it is not intended as a general-purpose engine context.
+
+Framework tests and tooling that need a standalone, correctly affiliated move can use `boardgame.NewOrphanMove(config)`. It intentionally skips manager-backed inflation, configuration validation, and state-dependent defaults; ordinary game code should continue obtaining moves from the engine.
+
 ##### base.Move and moves.Default
 
 base.Move is the simplest possible base move. It implements stubs for every required method, with the exception of `Apply` and `Legal` which you must implement yourself. This allows you to minimize the boilerplate you have to implement for simple moves. Almost every move you make will embed this move type either directly or indirectly.
@@ -2737,6 +2741,8 @@ Once wired up, `LocationBehavior` provides:
 `moves.MoveOnGraph` is a player-facing move (embeds `CurrentPlayer`) for moving a token to a destination on the board. The player specifies a `TargetLocation` (an integer index); the framework computes the shortest path, validates it, and stores the path on the player's `LocationBehavior` for animated execution.
 
 Your move struct embeds `MoveOnGraph` and implements the `LocationProvider` interface to tell the framework which `LocationBehavior` to use:
+
+`MoveOnGraph` discovers that implementation on the final outer move automatically; no constructor hook or explicit binding is required.
 
 ```go
 //boardgame:codegen

@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"reflect"
 	"time"
 
 	"github.com/jkomoros/boardgame/enum"
@@ -37,9 +38,11 @@ type MoveConfig interface {
 	//other types of Move-structs will return that name in this game. Required.
 	Name() string
 
-	//Constructor should return a zero-valued Move of the given type. Normally
-	//very simple: just a new(MyMoveType). Required. The moves you create may
-	//not have an fields of Stack, Board, or Timer type, but may have enum.Val
+	//Constructor should return a non-nil pointer to a zero-valued Move of the
+	//given type. Normally this is simply new(MyMoveType). Required. Once the
+	//engine initializes a Move it is an identity object and must not be copied
+	//by value. The moves you create may not have fields of Stack, Board, or Timer
+	//type, but may have enum.Val
 	//type. Those fields must be non-nil; like delegate.GameStateConstructor
 	//and others, a StructInflater will be created for each move type, which
 	//allows you to provide inflation configuration via struct tags. See
@@ -119,6 +122,21 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 	if exampleMove == nil {
 		return nil, errors.New("Constructor returned nil")
 	}
+	exampleValue := reflect.ValueOf(exampleMove)
+	if exampleValue.Kind() != reflect.Ptr || exampleValue.IsNil() {
+		return nil, errors.New("Constructor must return a non-nil pointer to a Move")
+	}
+
+	// MoveInfo is the single runtime-affiliation channel for a Move. Validate
+	// the constructor's SetInfo implementation while setup can still return a
+	// useful configuration error rather than allowing broken dispatch later.
+	// SetInfo may retain the pointer or copy the value; behavior, not pointer
+	// identity, is the contract.
+	probeInfo := &MoveInfo{runtime: moveRuntime{concreteMove: exampleMove}}
+	exampleMove.SetInfo(probeInfo)
+	if exampleMove.Info() == nil || exampleMove.Info().ConcreteMove() != exampleMove {
+		return nil, errors.New("Move.SetInfo must preserve the MoveInfo affiliation provided by the engine")
+	}
 
 	readSetter := exampleMove.ReadSetter()
 
@@ -188,26 +206,51 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 
 }
 
-// OrphanExampleMove returns a move from the config that will be similar to a
-// real move, in terms of struct-based auto-inflation, etc. This is exposed
-// primarily for moves.AutoConfigrer, and generally shouldn't be used by
-// others.
-func (m *ManagerInternals) OrphanExampleMove(config MoveConfig) (Move, error) {
+// NewOrphanMove constructs a Move with its engine-owned MoveInfo affiliation,
+// but without attaching it to a GameManager or state. It is the supported
+// advanced seam for reusable-framework tests and tools that need a standalone
+// move whose embedded behavior can dispatch to the final concrete move.
+//
+// Manager-backed inflation, configuration validation, and state-dependent
+// defaults are deliberately not run. Normal game code should obtain moves from
+// a Game or GameManager instead.
+func NewOrphanMove(config MoveConfig) (Move, error) {
 	throwAwayMoveType, err := newMoveType(config, nil)
 
 	if err != nil {
-		//Look for exatly the single kind of error we're OK with. Yes, this is a hack.
+		// A managerless move type is exactly what this constructor needs. All
+		// other errors describe an invalid MoveConfig or Move implementation.
 		if err.Error() != newMoveTypeErrNoManagerPassed {
-			return nil, errors.New("Couldn't create intermediate move type: " + err.Error())
+			return nil, errors.New("couldn't create orphan move type: " + err.Error())
 		}
 	}
-	return throwAwayMoveType.NewMove(nil), nil
+	move := throwAwayMoveType.NewMove(nil)
+	if move == nil {
+		return nil, errors.New("couldn't construct orphan move with valid runtime affiliation")
+	}
+	return move, nil
 }
 
-// MoveInfo is an object that contains meta-information about a move. It is
-// fetched via move.Info().
+// OrphanExampleMove is retained for callers using the ManagerInternals seam.
+// New code that does not otherwise need a manager should use NewOrphanMove.
+func (m *ManagerInternals) OrphanExampleMove(config MoveConfig) (Move, error) {
+	return NewOrphanMove(config)
+}
+
+// moveRuntime contains the engine-assigned runtime affiliation for one
+// constructed move. Consumers must treat it as immutable. It is deliberately
+// separate from the descriptive fields on MoveInfo: runtime affiliation must
+// not grow into a general-purpose execution context or service locator.
+type moveRuntime struct {
+	concreteMove Move
+	moveType     *moveType
+}
+
+// MoveInfo contains descriptive information and engine-assigned affiliation
+// for one constructed move. It is fetched via move.Info(). A MoveInfo belongs
+// to exactly one Move instance and must not be reused between moves.
 type MoveInfo struct {
-	moveType  *moveType
+	runtime   moveRuntime
 	version   int
 	initiator int
 	name      string
@@ -283,22 +326,12 @@ type Move interface {
 	//name of the move, and other information.
 	Info() *MoveInfo
 
-	//SetInfo will be called after the constructor is called to set the
-	//information, including what type the move is.
+	//SetInfo will be called after the constructor is called to affiliate the
+	//MoveInfo for this exact move instance. Implementations may retain the
+	//pointer or a value copy, but Info must preserve all information provided.
+	//Initialized moves are engine-owned identity objects and must not themselves
+	//be copied by value.
 	SetInfo(m *MoveInfo)
-
-	//TopLevelStruct should return the value that was set via
-	//SetTopLevelStruct. It returns the Move that is at the top of the
-	//embedding chain (because structs that are embedded anonymously can only
-	//access themselves and not their embedders). This is useful because in a
-	//number of cases embedded moves (for example moves in the moves package)
-	//need to consult a method on their embedder to see if any of their
-	//behavior should be overridden.
-	TopLevelStruct() Move
-
-	//SetTopLevelStruct is called right after the move is constructed, with
-	//the top-level struct. This should be returned from TopLevelStruct.
-	SetTopLevelStruct(m Move)
 
 	//Moves alos have a ValidConfiguration, because moves, especially
 	//sub-classes of the moves package, require set-up that can only be verified
@@ -362,6 +395,21 @@ func (m *MoveInfo) Name() string {
 	return m.name
 }
 
+// ConcreteMove returns the exact Move instance produced by the constructor
+// and affiliated with this MoveInfo by the engine. Embedded framework moves
+// use it to dispatch to methods and capabilities implemented by the final
+// composed move. Ordinary game moves normally do not need to call it.
+//
+// ConcreteMove returns nil when called on a nil MoveInfo. It is available on
+// every engine-created move before inflation, configuration validation, and
+// defaults are run.
+func (m *MoveInfo) ConcreteMove() Move {
+	if m == nil {
+		return nil
+	}
+	return m.runtime.concreteMove
+}
+
 // Version returns the version of this move--or the version that it will be
 // when successfully committed.
 func (m *MoveInfo) Version() int {
@@ -376,19 +424,19 @@ func (m *MoveInfo) Timestamp() time.Time {
 // CustomConfiguration returns the configuration object associated with this
 // move when it was installed from its MoveConfig.CustomConfiguration().
 func (m *MoveInfo) CustomConfiguration() PropertyCollection {
-	if m.moveType == nil {
+	if m.runtime.moveType == nil {
 		return nil
 	}
-	return m.moveType.customConfiguration
+	return m.runtime.moveType.customConfiguration
 }
 
 // SanitizationPolicy resolves the move property's sanitize tag for the given
 // memberships. Move properties are hidden unless explicitly configured.
 func (m *MoveInfo) SanitizationPolicy(propName string, groupMembership map[string]bool) Policy {
-	if m == nil || m.moveType == nil || m.moveType.validator == nil {
+	if m == nil || m.runtime.moveType == nil || m.runtime.moveType.validator == nil {
 		return PolicyInvalid
 	}
-	return ResolveSanitizationPolicy(m.moveType.validator.PropertySanitizationPolicy(propName), groupMembership, PolicyHidden)
+	return ResolveSanitizationPolicy(m.runtime.moveType.validator.PropertySanitizationPolicy(propName), groupMembership, PolicyHidden)
 }
 
 // Initiator returns the move version that initiated this causal chain: the
@@ -419,10 +467,17 @@ func (m *moveType) NewMove(state ImmutableState) Move {
 	if move == nil {
 		return nil
 	}
+	moveValue := reflect.ValueOf(move)
+	if moveValue.Kind() != reflect.Ptr || moveValue.IsNil() {
+		return nil
+	}
 
 	info := &MoveInfo{
-		moveType: m,
-		name:     m.Name(),
+		runtime: moveRuntime{
+			concreteMove: move,
+			moveType:     m,
+		},
+		name: m.Name(),
 	}
 
 	if state != nil {
@@ -430,7 +485,13 @@ func (m *moveType) NewMove(state ImmutableState) Move {
 	}
 
 	move.SetInfo(info)
-	move.SetTopLevelStruct(move)
+	installedInfo := move.Info()
+	if installedInfo == nil || installedInfo.ConcreteMove() != move || installedInfo.runtime.moveType != m {
+		if m.manager != nil {
+			m.manager.Logger().Error("Move.SetInfo did not preserve the MoveInfo affiliation provided by the engine")
+		}
+		return nil
+	}
 
 	//validator might be nil if we have a half-functioning MoveType. (Like
 	//what will be returned, along with an error, when NewMoveType is called
@@ -456,8 +517,7 @@ func (m *moveType) NewMove(state ImmutableState) Move {
 // We implement a private stub of base.Move in this package just for the
 // convience of our own test structs.
 type baseMove struct {
-	info           MoveInfo
-	topLevelStruct Move
+	info *MoveInfo
 }
 
 // baseFixUpMove is same as baseMove but returns true for IsFixUp.
@@ -470,19 +530,11 @@ func (d *baseMove) HelpText() string {
 }
 
 func (d *baseMove) SetInfo(m *MoveInfo) {
-	d.info = *m
+	d.info = m
 }
 
 func (d *baseMove) Info() *MoveInfo {
-	return &d.info
-}
-
-func (d *baseMove) SetTopLevelStruct(m Move) {
-	d.topLevelStruct = m
-}
-
-func (d *baseMove) TopLevelStruct() Move {
-	return d.topLevelStruct
+	return d.info
 }
 
 func (d *baseMove) IsFixUp() bool {
@@ -500,7 +552,7 @@ func (d *baseMove) DefaultsForState(state ImmutableState) {
 
 // Description defaults to returning the Type's HelpText()
 func (d *baseMove) Description() string {
-	return d.TopLevelStruct().HelpText()
+	return d.Info().ConcreteMove().HelpText()
 }
 
 func (d *baseMove) ValidConfiguration(exampleState State) error {
