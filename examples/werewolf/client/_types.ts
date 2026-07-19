@@ -4,11 +4,14 @@
 
 import type { FullGameState } from '../../src/types/boardgame-types.js';
 
+export type GroupValue = "Villager" | "Werewolf";
+
 export type PhaseValue = "Gathering" | "Day" | "Night";
 
 export type RoleValue = "Villager" | "Werewolf";
 
 export interface GameEnums {
+  readonly "group": { readonly Values?: Readonly<Record<string, GroupValue>> };
   readonly "phase": { readonly Values?: Readonly<Record<string, PhaseValue>> };
   readonly "role": { readonly Values?: Readonly<Record<string, RoleValue>> };
 }

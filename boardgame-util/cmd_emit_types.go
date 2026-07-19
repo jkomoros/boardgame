@@ -95,7 +95,7 @@ func emitTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg) error {
 
 func generateGameTypesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly ...bool) ([]generatedGameTypeFile, error) {
 
-	dir, err := os.MkdirTemp(".", "temp_gametypes_")
+	dir, err := newSystemTempDir("temp_gametypes_")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create temp directory: %w", err)
 	}

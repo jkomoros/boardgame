@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -186,9 +185,11 @@ func (b *boardgameUtil) msgAndQuit(message string) {
 	os.Exit(0)
 }
 
-// NewTempDir will vend a new temporary dir that will be remove when program exits.
+// NewTempDir vends an OS-managed temporary directory that is removed when the
+// program exits. Keeping generated workspaces outside the caller's working
+// directory prevents them from polluting (or accidentally entering) a repo.
 func (b *boardgameUtil) NewTempDir(prefix string) string {
-	dir, err := ioutil.TempDir(".", prefix)
+	dir, err := newSystemTempDir(prefix)
 
 	if err != nil {
 		b.errAndQuit("Couldn't create temporary directory: " + err.Error())
@@ -197,6 +198,10 @@ func (b *boardgameUtil) NewTempDir(prefix string) string {
 	b.tempDirs = append(b.tempDirs, dir)
 
 	return dir
+}
+
+func newSystemTempDir(prefix string) (string, error) {
+	return os.MkdirTemp("", prefix)
 }
 
 func (b *boardgameUtil) starterConfigForType(typ string) (*config.Config, error) {

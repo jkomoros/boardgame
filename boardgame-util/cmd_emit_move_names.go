@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -87,7 +86,7 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 
 func generateMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly bool) ([]generatedMoveNamesFile, error) {
 
-	dir, err := ioutil.TempDir(".", "temp_movenames_")
+	dir, err := newSystemTempDir("temp_movenames_")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create temp directory: %w", err)
 	}

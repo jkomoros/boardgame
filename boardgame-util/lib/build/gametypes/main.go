@@ -86,8 +86,10 @@ func Build(directory string, pkgs []*gamepkg.Pkg) ([]TypeResult, error) {
 		return nil, fmt.Errorf("couldn't save code: %w", err)
 	}
 
-	cmd := exec.Command("go", "build")
-	cmd.Dir = dir
+	// Resolve imports from the caller's module or workspace, not from the
+	// generated source directory. The latter may live in the OS temp directory.
+	binaryName := filepath.Join(dir, subFolder)
+	cmd := exec.Command("go", "build", "-o", binaryName, codePath)
 
 	errBuf := new(bytes.Buffer)
 	cmd.Stderr = errBuf
@@ -97,8 +99,6 @@ func Build(directory string, pkgs []*gamepkg.Pkg) ([]TypeResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("couldn't build gametypes binary: %w: %s", err, errBuf.String())
 	}
-
-	binaryName := filepath.Join(dir, subFolder)
 
 	if _, err := os.Stat(binaryName); os.IsNotExist(err) {
 		return nil, fmt.Errorf("sanity check failed: binary does not appear to have been created")

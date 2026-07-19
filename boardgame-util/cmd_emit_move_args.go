@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,7 +91,7 @@ func emitMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check boo
 
 func generateMoveArgsForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly bool) ([]generatedMoveArgsFile, error) {
 
-	dir, err := ioutil.TempDir(".", "temp_moveargs_")
+	dir, err := newSystemTempDir("temp_moveargs_")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create temp directory: %w", err)
 	}
