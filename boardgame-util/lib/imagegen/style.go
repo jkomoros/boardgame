@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 type StyleCandidate struct {
@@ -73,28 +75,16 @@ func CreateStyleLock(selected, output string, force bool, now func() time.Time) 
 	if selected == "" || output == "" {
 		return nil, errors.New("selected reference and output are required")
 	}
-	if !force {
-		if _, err := os.Stat(output); err == nil {
-			return nil, fmt.Errorf("%s already exists; use --force to replace the lock", output)
-		}
-	}
 	data, err := os.ReadFile(selected)
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(output, data, 0o644); err != nil {
-		return nil, err
-	}
 	sourceManifest := selected + ".imagegen.json"
-	if manifestData, err := os.ReadFile(sourceManifest); err == nil {
-		if err := os.WriteFile(output+".imagegen.json", manifestData, 0o644); err != nil {
-			return nil, err
-		}
-	} else {
+	manifestData, manifestErr := os.ReadFile(sourceManifest)
+	if os.IsNotExist(manifestErr) {
 		sourceManifest = ""
+	} else if manifestErr != nil {
+		return nil, fmt.Errorf("read source image manifest: %w", manifestErr)
 	}
 	if now == nil {
 		now = time.Now
@@ -107,7 +97,16 @@ func CreateStyleLock(selected, output string, force bool, now func() time.Time) 
 		return nil, err
 	}
 	encoded = append(encoded, '\n')
-	if err := os.WriteFile(output+".style-lock.json", encoded, 0o644); err != nil {
+	root := filepath.Dir(output)
+	outputName := filepath.Base(output)
+	files := map[string][]byte{
+		outputName:                      data,
+		outputName + ".style-lock.json": encoded,
+	}
+	if sourceManifest != "" {
+		files[outputName+".imagegen.json"] = manifestData
+	}
+	if err := fileutil.WriteFilesAtomic(root, files, force, 0o644); err != nil {
 		return nil, err
 	}
 	return lock, nil

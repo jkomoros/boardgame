@@ -53,6 +53,32 @@ func TestCreateAndReadStyleLock(t *testing.T) {
 	}
 }
 
+func TestCreateStyleLockPreflightFailurePublishesNothing(t *testing.T) {
+	dir := t.TempDir()
+	selected := filepath.Join(dir, "candidate.png")
+	output := filepath.Join(dir, "locked.png")
+	sidecar := output + ".style-lock.json"
+	if err := os.WriteFile(selected, []byte("image"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(sidecar, []byte("creator-owned"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CreateStyleLock(selected, output, false, nil); err == nil {
+		t.Fatal("CreateStyleLock succeeded despite an existing sidecar")
+	}
+	if _, err := os.Stat(output); !os.IsNotExist(err) {
+		t.Fatal("style image was published despite sidecar preflight failure")
+	}
+	contents, err := os.ReadFile(sidecar)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != "creator-owned" {
+		t.Fatalf("existing sidecar changed: %q", contents)
+	}
+}
+
 func TestGalleryListsEveryCandidate(t *testing.T) {
 	dir := t.TempDir()
 	candidates := ExploreStyles("brief")

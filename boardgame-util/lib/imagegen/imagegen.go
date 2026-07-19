@@ -23,6 +23,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 const (
@@ -238,13 +240,6 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(r.Output), 0o755); err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(r.Output, imageBytes, 0o644); err != nil {
-		return nil, err
-	}
-
 	now := time.Now
 	if c.Now != nil {
 		now = c.Now
@@ -261,7 +256,12 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 		return nil, err
 	}
 	manifestBytes = append(manifestBytes, '\n')
-	if err := os.WriteFile(r.Output+".imagegen.json", manifestBytes, 0o644); err != nil {
+	root := filepath.Dir(r.Output)
+	outputName := filepath.Base(r.Output)
+	if err := fileutil.WriteFilesAtomic(root, map[string][]byte{
+		outputName:                    imageBytes,
+		outputName + ".imagegen.json": manifestBytes,
+	}, true, 0o644); err != nil {
 		return nil, err
 	}
 	return manifest, nil
