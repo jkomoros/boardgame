@@ -26,6 +26,7 @@ describe('structural motion plans', () => {
       subjectId: 'card-7',
       presence: 'retained',
       provenance: { kind: 'identity' },
+      visualSubject: { kind: 'silhouette', shape: 'rounded-rectangle' },
       from,
       to,
       viewportFrom,
@@ -40,6 +41,9 @@ describe('structural motion plans', () => {
       afterOpacity: '1',
     });
     assert.equal(draft.spatial?.offsetFrom, from);
+    assert.deepEqual(draft.visualSubject, {
+      kind: 'silhouette', shape: 'rounded-rectangle',
+    });
     assert.equal(draft.viewport?.from, viewportFrom);
     assert.equal(draft.viewport?.to, viewportTo);
     assert.deepEqual(draft.transform, { before: 'rotate(1deg)', after: 'rotate(2deg)' });
@@ -161,5 +165,17 @@ describe('structural motion plans', () => {
     assert.equal(draft.spatial, undefined);
     assert.deepEqual(draft.viewport, { from: viewportFrom, to: viewportFrom });
     assert.deepEqual(draft.properties, [{ name: 'faceUp', before: false, after: true }]);
+  });
+
+  it('drops malformed or content-bearing visual subject snapshots', () => {
+    const draft = createStructuralMotionDraft({
+      subjectId: 'private-card',
+      presence: 'retained',
+      provenance: { kind: 'identity' },
+      visualSubject: {
+        kind: 'silhouette', shape: 'rounded-rectangle', face: 'Ace of Spades',
+      },
+    });
+    assert.equal(draft.visualSubject, undefined);
   });
 });

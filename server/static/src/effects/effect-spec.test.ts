@@ -59,6 +59,26 @@ describe('effect descriptors', () => {
     assert.equal(Object.isFrozen(arrival), true);
   });
 
+  it('describes a structural trail without independent timing', () => {
+    const descriptor = fx.trail({
+      subject: 'card-22',
+      tone: 'magic',
+      intensity: 'subtle',
+      advanced: { echoes: 3, lagMs: 18, opacity: 0.4, palette: ['violet'] },
+    });
+    assert.deepEqual(descriptor, {
+      kind: 'trail',
+      subject: 'card-22',
+      tone: 'magic',
+      intensity: 'subtle',
+      advanced: { echoes: 3, lagMs: 18, opacity: 0.4, palette: ['violet'] },
+    });
+    assert.equal(Object.isFrozen(descriptor), true);
+    assert.equal(Object.isFrozen(descriptor.advanced), true);
+    assert.equal(Object.isFrozen(descriptor.advanced?.palette), true);
+    assert.throws(() => fx.trail({ subject: ' ' }), /trail subject ID/);
+  });
+
   it('copies and freezes game-local themes', () => {
     const reward = ['#ffd700'];
     const theme = defineEffectTheme({ tones: { reward } });

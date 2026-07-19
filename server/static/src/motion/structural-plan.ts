@@ -4,6 +4,8 @@ import type {
   ViewportGeometry,
 } from './geometry.js';
 import type { AnimationTimingPolicy } from './timing.js';
+import { sanitizeMotionSubjectSnapshot } from './subject.ts';
+import type { MotionSubjectSnapshot } from './subject.js';
 
 export type StructuralPresence = 'retained' | 'appearing' | 'departing';
 
@@ -50,6 +52,7 @@ export interface StructuralMotionDraft {
   readonly subjectId: string;
   readonly presence: StructuralPresence;
   readonly provenance: StructuralProvenance;
+  readonly visualSubject?: MotionSubjectSnapshot;
   /** Subject location exists independently of whether it spatially moved. */
   readonly viewport?: StructuralViewportEndpoints;
   readonly spatial?: StructuralSpatialChange;
@@ -124,6 +127,7 @@ export function createStructuralMotionDraft(input: Readonly<{
   subjectId: string;
   presence: StructuralPresence;
   provenance: StructuralProvenance;
+  visualSubject?: unknown;
   from?: OffsetGeometry;
   to?: OffsetGeometry;
   viewportFrom?: ViewportGeometry;
@@ -152,10 +156,12 @@ export function createStructuralMotionDraft(input: Readonly<{
   const afterTransform = input.afterTransform ?? '';
   const beforeOpacity = finiteOpacity(input.beforeOpacity);
   const afterOpacity = finiteOpacity(input.afterOpacity);
+  const visualSubject = sanitizeMotionSubjectSnapshot(input.visualSubject);
   return Object.freeze({
     subjectId: input.subjectId,
     presence: input.presence,
     provenance: Object.freeze({ ...input.provenance }),
+    ...(visualSubject ? { visualSubject } : {}),
     ...(input.viewportFrom && input.viewportTo ? {
       viewport: Object.freeze({
         from: input.viewportFrom,

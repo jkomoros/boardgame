@@ -2,6 +2,8 @@ import { BoardgameAnimatableItem } from './boardgame-animatable-item.js';
 import { html, css, CSSResult, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { motionSilhouette } from '../motion/subject.js';
+import type { MotionSubjectSnapshot } from '../motion/subject.js';
 
 // FlipRecord is the bundle the animator computes for each animating
 // component and hands to playAnimation(). before/after are the
@@ -141,6 +143,14 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   // animatingPropDefaults() will use this.
   get animatingProperties(): string[] {
     return [];
+  }
+
+  /**
+   * Privacy-safe capability for overlay decoration that follows this component.
+   * Override with null to opt out; never return DOM or hidden game content.
+   */
+  motionSubjectSnapshot(): MotionSubjectSnapshot | null {
+    return motionSilhouette('rectangle');
   }
 
   // Returns the bundle of properties, as configured by

@@ -206,22 +206,26 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
     if (context.kind === 'initial' || context.move?.Name !== MoveNames.MoveToken) return [];
-    return [fx.sequence([
-      fx.travel({
-        from: fx.anchor('token-source'),
-        to: fx.anchor('token-destination'),
+    const beforeFrom = new Set(context.before.Game.TokensFrom.IDs);
+    const movedTokenId = context.after.Game.TokensFrom.IDs.find(id => !beforeFrom.has(id))
+      ?? context.before.Game.TokensFrom.IDs.find(
+        id => !context.after.Game.TokensFrom.IDs.includes(id),
+      );
+    if (!movedTokenId) return [];
+    return [fx.parallel([
+      fx.trail({
+        subject: movedTokenId,
         tone: 'magic',
         intensity: 'small',
       }),
       fx.burst({
-        at: fx.anchor('token-destination'),
+        at: fx.motion(movedTokenId),
         tone: 'reward',
         intensity: 'small',
+        timing: 'immediate',
       }),
     ], {
       key: 'token-transfer',
-      timing: 'version',
-      gapMs: 20,
     })];
   }
 

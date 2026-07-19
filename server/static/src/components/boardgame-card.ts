@@ -2,6 +2,8 @@ import { BoardgameComponent } from './boardgame-component.js';
 import { html, css, TemplateResult } from 'lit';
 import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { motionSilhouette } from '../motion/subject.js';
+import type { MotionSubjectSnapshot } from '../motion/subject.js';
 
 export class BoardgameCard extends BoardgameComponent {
   static override styles = [
@@ -227,6 +229,11 @@ export class BoardgameCard extends BoardgameComponent {
 
   @query('#front-slot')
   private frontSlot!: HTMLSlotElement;
+
+  override motionSubjectSnapshot(): MotionSubjectSnapshot {
+    // Shape only: card face/back/content never crosses this boundary.
+    return motionSilhouette('rounded-rectangle');
+  }
 
   private _boundFrontChanged?: () => void;
 

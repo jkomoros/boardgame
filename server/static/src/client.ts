@@ -12,6 +12,12 @@ export { BoardgameTableViewBase } from './components/boardgame-table-view-base.j
 export { BoardgameHandViewBase } from './components/boardgame-hand-view-base.js';
 export type { SeatPresentation } from './components/boardgame-table-view-base.js';
 export { defineEffectTheme, fx } from './effects/effect-spec.js';
+export { motionSilhouette } from './motion/subject.js';
+export type {
+  MotionSilhouetteShape,
+  MotionSilhouetteSnapshot,
+  MotionSubjectSnapshot,
+} from './motion/subject.js';
 export type {
   BurstEffectSpec,
   EffectAnchor,
@@ -31,6 +37,7 @@ export type {
   PointEffectAnchor,
   PulseEffectSpec,
   SequenceEffectSpec,
+  TrailEffectSpec,
   TravelEffectSpec,
 } from './effects/effect-spec.js';
 export { glyphForSlug } from './components/companion-avatar-catalog.js';

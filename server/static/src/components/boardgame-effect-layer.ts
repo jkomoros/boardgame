@@ -15,6 +15,7 @@ import type {
   EffectTone,
   MotionEffectAnchor,
   PulseEffectSpec,
+  TrailEffectSpec,
 } from '../effects/effect-spec.js';
 import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
 import { captureViewportGeometry, geometryCenter } from '../motion/geometry.js';
@@ -59,6 +60,16 @@ interface MotionWaiter {
   settle(resolution: MotionResolution): void;
 }
 
+type TrailResolution =
+  | Readonly<{ kind: 'event'; event: StructuralMotionEvent }>
+  | Readonly<{ kind: 'result'; result: EffectResult }>;
+
+interface TrailWaiter {
+  readonly epoch: number;
+  readonly subjectId: string;
+  settle(resolution: TrailResolution): void;
+}
+
 const FINISHED: EffectResult = Object.freeze({ status: 'finished' });
 const CANCELLED: EffectResult = Object.freeze({ status: 'cancelled' });
 
@@ -74,6 +85,17 @@ const INTENSITY = Object.freeze({
   pulseScale: number;
   travelSize: number;
   arc: number;
+}>>;
+
+const TRAIL_POLICY = Object.freeze({
+  subtle: Object.freeze({ echoes: 2, lagMs: 18, opacity: 0.22 }),
+  small: Object.freeze({ echoes: 3, lagMs: 20, opacity: 0.3 }),
+  medium: Object.freeze({ echoes: 5, lagMs: 22, opacity: 0.38 }),
+  large: Object.freeze({ echoes: 7, lagMs: 24, opacity: 0.48 }),
+}) satisfies Record<EffectIntensity, Readonly<{
+  echoes: number;
+  lagMs: number;
+  opacity: number;
 }>>;
 
 const TONE_PALETTES = Object.freeze({
@@ -137,7 +159,8 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
 
     .particle,
     .traveler,
-    .pulse {
+    .pulse,
+    .trail-echo {
       position: absolute;
       left: 0;
       top: 0;
@@ -153,6 +176,12 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       border-radius: 999px;
       background: var(--effect-color);
       box-shadow: 0 0 calc(var(--effect-size) * 1.4) var(--effect-color);
+    }
+
+    .trail-echo {
+      background: var(--effect-color);
+      box-shadow: 0 0 16px color-mix(in srgb, var(--effect-color) 55%, transparent);
+      filter: blur(1px);
     }
 
     .particle:nth-child(3n) {
@@ -185,6 +214,9 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   private _motionPlanSettled = false;
   private _motionResolutions = new Map<string, MotionResolution>();
   private _motionWaiters = new Set<MotionWaiter>();
+  private _trailResolutions = new Map<string, TrailResolution>();
+  private _trailWaiters = new Set<TrailWaiter>();
+  private _activeTrailCancels = new Map<string, Set<() => void>>();
 
   override render() {
     return html`
@@ -234,11 +266,14 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   /** Start a renderer transition scope before its descriptors are installed. */
   beginMotionTransition(expectsStructuralMotion: boolean): void {
     const abandoned = Object.freeze({ kind: 'result', result: CANCELLED }) as MotionResolution;
+    const abandonedTrail = Object.freeze({ kind: 'result', result: CANCELLED }) as TrailResolution;
     for (const waiter of [...this._motionWaiters]) waiter.settle(abandoned);
+    for (const waiter of [...this._trailWaiters]) waiter.settle(abandonedTrail);
     this._motionEpoch++;
     this._expectsMotionPlan = expectsStructuralMotion;
     this._motionPlanSettled = !expectsStructuralMotion;
     this._motionResolutions.clear();
+    this._trailResolutions.clear();
   }
 
   play(effect: EffectSpec): EffectHandle {
@@ -289,6 +324,8 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
         return this._pulse(effect, path, policy, false);
       case 'travel':
         return this._travel(effect, path, policy);
+      case 'trail':
+        return this._trail(effect, path, policy);
       case 'sequence':
         return this._sequence(effect.effects, effect.gapMs, path, policy);
       case 'parallel':
@@ -332,7 +369,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     }
 
     layout.forEach((particle, index) => {
-      const element = document.createElement('i');
+      const element = this.ownerDocument.createElement('i');
       element.className = 'particle';
       element.style.left = `${point.x}px`;
       element.style.top = `${point.y}px`;
@@ -448,6 +485,20 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       return skipped('timing');
     }
     return this._settlingHandle([animation], [element], reservation.release);
+  }
+
+  private _trail(effect: TrailEffectSpec, path: string, policy: ResolvedPolicy): InternalHandle {
+    // Structural execution is the trail's clock, even when a composition has
+    // an inherited timing policy. Reduced motion likewise decorates arrival
+    // immediately instead of scheduling a second version slot.
+    const structuralPolicy = { ...policy, timing: 'immediate' as const };
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return this._pulse({
+        kind: 'pulse',
+        at: { kind: 'motion', subjectId: effect.subject, moment: 'arrival' },
+      }, path, structuralPolicy, true);
+    }
+    return this._deferTrail(effect, path, structuralPolicy);
   }
 
   private _sequence(
@@ -602,6 +653,13 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       for (const waiter of [...this._motionWaiters]) {
         if (waiter.epoch === epoch) waiter.settle(missing);
       }
+      const missingSubject = Object.freeze({
+        kind: 'result',
+        result: Object.freeze({ status: 'skipped', reason: 'missing-subject' }),
+      }) as TrailResolution;
+      for (const waiter of [...this._trailWaiters]) {
+        if (waiter.epoch === epoch) waiter.settle(missingSubject);
+      }
     });
   }
 
@@ -615,23 +673,40 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       }) as MotionResolution;
       this._resolveMotion(event.subjectId, 'departure', missing);
       this._resolveMotion(event.subjectId, 'arrival', missing);
+      if (event.kind === 'started') {
+        this._resolveTrail(event.subjectId, {
+          kind: 'result',
+          result: Object.freeze({ status: 'skipped', reason: 'no-motion-path' }),
+        });
+      }
       return;
     }
     if (event.kind === 'started' && endpoints) {
       this._resolveMotion(event.subjectId, 'departure', {
         kind: 'point', point: geometryCenter(endpoints.from),
       });
+      this._resolveTrail(event.subjectId, { kind: 'event', event });
     } else if (event.kind === 'finished' && endpoints) {
       this._resolveMotion(event.subjectId, 'arrival', {
         kind: 'point', point: geometryCenter(endpoints.to),
       });
     } else if (event.kind === 'skipped' || event.kind === 'cancelled') {
+      const unavailableResult = Object.freeze({
+        status: 'skipped', reason: 'motion-skipped',
+      }) as EffectResult;
       const unavailable = Object.freeze({
         kind: 'result',
-        result: Object.freeze({ status: 'skipped', reason: 'motion-skipped' }),
+        result: unavailableResult,
       }) as MotionResolution;
       this._resolveMotion(event.subjectId, 'departure', unavailable);
       this._resolveMotion(event.subjectId, 'arrival', unavailable);
+      this._resolveTrail(event.subjectId, {
+        kind: 'result', result: unavailableResult,
+      });
+      if (event.kind === 'cancelled') {
+        const key = this._activeTrailKey(event);
+        for (const cancel of [...(this._activeTrailCancels.get(key) ?? [])]) cancel();
+      }
     }
   }
 
@@ -655,6 +730,173 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
 
   private _motionKey(subjectId: string, moment: MotionEffectAnchor['moment']): string {
     return `${moment}\u0000${subjectId}`;
+  }
+
+  private _resolveTrail(subjectId: string, resolution: TrailResolution): void {
+    const frozen: TrailResolution = resolution.kind === 'event'
+      ? Object.freeze({ kind: 'event', event: resolution.event })
+      : Object.freeze({ kind: 'result', result: resolution.result });
+    this._trailResolutions.set(subjectId, frozen);
+    for (const waiter of [...this._trailWaiters]) {
+      if (waiter.epoch === this._motionEpoch && waiter.subjectId === subjectId) {
+        waiter.settle(frozen);
+      }
+    }
+  }
+
+  private _deferTrail(
+    effect: TrailEffectSpec,
+    path: string,
+    policy: ResolvedPolicy,
+  ): InternalHandle {
+    const existing = this._trailResolutions.get(effect.subject);
+    if (existing?.kind === 'event') return this._startTrail(effect, path, policy, existing.event);
+    if (existing?.kind === 'result') return {
+      finished: Promise.resolve(existing.result),
+      cancel: () => {},
+    };
+    if (!this._expectsMotionPlan || this._motionPlanSettled) return skipped('missing-subject');
+
+    const epoch = this._motionEpoch;
+    let child: InternalHandle | null = null;
+    let settled = false;
+    let resolveFinished!: (result: EffectResult) => void;
+    const finished = new Promise<EffectResult>(resolve => { resolveFinished = resolve; });
+    const finish = (result: EffectResult) => {
+      if (settled) return;
+      settled = true;
+      this._trailWaiters.delete(waiter);
+      resolveFinished(result);
+    };
+    const waiter: TrailWaiter = {
+      epoch,
+      subjectId: effect.subject,
+      settle: resolution => {
+        if (settled) return;
+        this._trailWaiters.delete(waiter);
+        if (resolution.kind === 'result') {
+          finish(resolution.result);
+          return;
+        }
+        child = this._startTrail(effect, path, policy, resolution.event);
+        void child.finished.then(finish);
+      },
+    };
+    this._trailWaiters.add(waiter);
+    return {
+      finished,
+      cancel: () => {
+        if (settled) return;
+        child?.cancel();
+        finish(CANCELLED);
+      },
+    };
+  }
+
+  private _startTrail(
+    effect: TrailEffectSpec,
+    _path: string,
+    policy: ResolvedPolicy,
+    event: StructuralMotionEvent,
+  ): InternalHandle {
+    const { segment } = event;
+    if (!segment.visualSubject) return skipped('missing-subject');
+    if (!segment.viewport || !segment.spatial?.inversion.changed) return skipped('no-motion-path');
+    if (segment.execution.status !== 'started') return skipped('motion-skipped');
+
+    const animationsTiming = segment.execution.animations;
+    if (animationsTiming.length === 0) return skipped('motion-skipped');
+    const startDelay = Math.min(...animationsTiming.map(timing => timing.delayMs));
+    const visualEnd = Math.max(...animationsTiming.map(timing => (
+      timing.delayMs + timing.durationMs * timing.iterations
+    )));
+    if (!Number.isFinite(startDelay) || !Number.isFinite(visualEnd) || visualEnd <= startDelay) {
+      return skipped('no-motion-path');
+    }
+
+    const defaults = TRAIL_POLICY[policy.intensity];
+    const requestedEchoes = Math.round(finite(effect.advanced?.echoes, defaults.echoes, 1, 10));
+    const reservation = reserveEffectBudget(this.ownerDocument, requestedEchoes);
+    if (!reservation) return skipped('budget');
+    const container = this._container();
+    if (!container) {
+      reservation.release();
+      return skipped('not-connected');
+    }
+
+    const lagMs = finite(effect.advanced?.lagMs, defaults.lagMs, 4, 80);
+    const opacity = finite(effect.advanced?.opacity, defaults.opacity, 0.05, 0.7);
+    const palette = this._palette(policy.tone, effect.advanced?.palette);
+    const from = segment.viewport.from;
+    const to = segment.viewport.to;
+    const fromCenter = geometryCenter(from);
+    const toCenter = geometryCenter(to);
+    const shape = segment.visualSubject.shape;
+    const borderRadius = shape === 'circle' ? '999px'
+      : shape === 'rounded-rectangle' ? '12%' : '0';
+    const primaryEasing = animationsTiming[0]?.easing || 'ease-in-out';
+    const elements: HTMLElement[] = [];
+    const animations: Animation[] = [];
+
+    for (let index = 0; index < reservation.particles; index++) {
+      const echoDelay = startDelay + (index + 1) * lagMs;
+      const duration = visualEnd - echoDelay;
+      if (duration <= 1) continue;
+      const element = this.ownerDocument.createElement('i');
+      element.className = 'trail-echo';
+      element.style.setProperty('--effect-color', palette[index % palette.length]);
+      element.style.borderRadius = borderRadius;
+      container.appendChild(element);
+      elements.push(element);
+      const echoOpacity = opacity * (1 - index / (reservation.particles + 1));
+      animations.push(element.animate([
+        {
+          width: `${from.width}px`,
+          height: `${from.height}px`,
+          transform: `translate(${fromCenter.x}px, ${fromCenter.y}px) translate(-50%, -50%)`,
+          opacity: 0,
+        },
+        {
+          width: `${from.width}px`,
+          height: `${from.height}px`,
+          transform: `translate(${fromCenter.x}px, ${fromCenter.y}px) translate(-50%, -50%)`,
+          opacity: echoOpacity,
+          offset: 0.08,
+        },
+        {
+          width: `${to.width}px`,
+          height: `${to.height}px`,
+          transform: `translate(${toCenter.x}px, ${toCenter.y}px) translate(-50%, -50%)`,
+          opacity: 0,
+        },
+      ], {
+        delay: echoDelay,
+        duration,
+        easing: primaryEasing,
+        fill: 'none',
+      }));
+    }
+    if (animations.length === 0) {
+      for (const element of elements) element.remove();
+      reservation.release();
+      return skipped('no-motion-path');
+    }
+
+    const running = this._settlingHandle(animations, elements, reservation.release);
+    const key = this._activeTrailKey(event);
+    const cancels = this._activeTrailCancels.get(key) ?? new Set<() => void>();
+    const cancel = () => running.cancel();
+    cancels.add(cancel);
+    this._activeTrailCancels.set(key, cancels);
+    void running.finished.finally(() => {
+      cancels.delete(cancel);
+      if (cancels.size === 0) this._activeTrailCancels.delete(key);
+    });
+    return running;
+  }
+
+  private _activeTrailKey(event: StructuralMotionEvent): string {
+    return `${event.source}:${event.generation}:${event.subjectId}`;
   }
 
   private _atPoint(

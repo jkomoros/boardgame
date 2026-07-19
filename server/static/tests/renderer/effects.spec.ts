@@ -138,7 +138,7 @@ test('named anchors stay renderer-scoped', async ({ page }) => {
   }
 });
 
-test('motion anchors decorate actual departure and arrival without owning the subject', async ({ page }) => {
+test('motion anchors and sanitized trails decorate real structural lifecycle', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
@@ -186,26 +186,55 @@ test('motion anchors decorate actual departure and arrival without owning the su
         tone: 'reward',
         advanced: { durationMs: 120, count: 3 },
       }));
+      const trail = layer.playTransition(fx.trail({
+        subject: 'card-17',
+        tone: 'magic',
+        intensity: 'small',
+        advanced: { echoes: 3, lagMs: 4, opacity: 0.3 },
+      }));
       const before = {
         pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
         particles: layer.shadowRoot.querySelectorAll('.particle').length,
+        trails: layer.shadowRoot.querySelectorAll('.trail-echo').length,
       };
       const segment = {
         subjectId: 'card-17',
+        visualSubject: { kind: 'silhouette', shape: 'rounded-rectangle' },
         viewport: {
           from: { space: 'viewport', left: 20, top: 30, width: 40, height: 20 },
           to: { space: 'viewport', left: 200, top: 100, width: 60, height: 40 },
+        },
+        spatial: { inversion: { changed: true } },
+        execution: {
+          status: 'started',
+          animations: [{
+            delayMs: 0,
+            durationMs: 240,
+            endDelayMs: 0,
+            iterations: 1,
+            easing: 'ease-in-out',
+            fill: 'none',
+          }],
         },
       };
       for (const observer of eventObservers) observer({
         source: 'flip', generation: 2, kind: 'started', subjectId: 'card-17', segment,
       });
       const pulse = layer.shadowRoot.querySelector<HTMLElement>('.pulse');
+      const trailEcho = layer.shadowRoot.querySelector<HTMLElement>('.trail-echo');
+      const trailAnimation = trailEcho?.getAnimations()[0];
+      const trailFrames = trailAnimation?.effect instanceof KeyframeEffect
+        ? trailAnimation.effect.getKeyframes()
+        : [];
       const atDeparture = {
         pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
         particles: layer.shadowRoot.querySelectorAll('.particle').length,
+        trails: layer.shadowRoot.querySelectorAll('.trail-echo').length,
         left: pulse?.style.left,
         top: pulse?.style.top,
+        trailRadius: trailEcho?.style.borderRadius,
+        trailFrom: trailFrames[0]?.transform,
+        trailTo: trailFrames.at(-1)?.transform,
       };
       const departureResult = await departure.finished;
       for (const observer of eventObservers) observer({
@@ -218,6 +247,47 @@ test('motion anchors decorate actual departure and arrival without owning the su
         top: particle?.style.top,
       };
       const arrivalResult = await arrival.finished;
+      const trailResult = await trail.finished;
+
+      layer.beginMotionTransition(true);
+      const interruptedTrail = layer.playTransition(fx.trail({
+        subject: 'card-interrupted', advanced: { echoes: 2, lagMs: 4 },
+      }));
+      const interruptedSegment = {
+        ...segment,
+        subjectId: 'card-interrupted',
+        execution: {
+          ...segment.execution,
+          animations: [{ ...segment.execution.animations[0], durationMs: 1000 }],
+        },
+      };
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 3, kind: 'started',
+        subjectId: 'card-interrupted', segment: interruptedSegment,
+      });
+      const interruptedBeforeCancel = layer.shadowRoot.querySelectorAll('.trail-echo').length;
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 3, kind: 'cancelled',
+        subjectId: 'card-interrupted', segment: interruptedSegment,
+      });
+      const interruptedResult = await interruptedTrail.finished;
+      const interruptedAfterCancel = layer.shadowRoot.querySelectorAll('.trail-echo').length;
+
+      layer.beginMotionTransition(true);
+      const unsafeSubject = layer.playTransition(fx.trail({ subject: 'unsafe-card' }));
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 4, kind: 'started', subjectId: 'unsafe-card',
+        segment: { ...segment, subjectId: 'unsafe-card', visualSubject: undefined },
+      });
+      const unsafeSubjectResult = await unsafeSubject.finished;
+
+      layer.beginMotionTransition(true);
+      const stationary = layer.playTransition(fx.trail({ subject: 'stationary-card' }));
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 5, kind: 'started', subjectId: 'stationary-card',
+        segment: { ...segment, subjectId: 'stationary-card', spatial: undefined },
+      });
+      const stationaryResult = await stationary.finished;
 
       layer.beginMotionTransition(true);
       const missing = layer.playTransition(fx.pulse({
@@ -246,18 +316,37 @@ test('motion anchors decorate actual departure and arrival without owning the su
         atArrival,
         departureResult,
         arrivalResult,
+        trailResult,
+        interruptedBeforeCancel,
+        interruptedAfterCancel,
+        interruptedResult,
+        unsafeSubjectResult,
+        stationaryResult,
         missingResult,
         skippedResult,
       };
     });
 
-    expect(result.before).toEqual({ pulses: 0, particles: 0 });
+    expect(result.before).toEqual({ pulses: 0, particles: 0, trails: 0 });
     expect(result.atDeparture).toEqual({
-      pulses: 1, particles: 0, left: '40px', top: '40px',
+      pulses: 1,
+      particles: 0,
+      trails: 3,
+      left: '40px',
+      top: '40px',
+      trailRadius: '12%',
+      trailFrom: 'translate(40px, 40px) translate(-50%, -50%)',
+      trailTo: 'translate(230px, 120px) translate(-50%, -50%)',
     });
     expect(result.atArrival).toEqual({ particles: 3, left: '230px', top: '120px' });
     expect(result.departureResult).toEqual({ status: 'finished' });
     expect(result.arrivalResult).toEqual({ status: 'finished' });
+    expect(result.trailResult).toEqual({ status: 'finished' });
+    expect(result.interruptedBeforeCancel).toBe(2);
+    expect(result.interruptedAfterCancel).toBe(0);
+    expect(result.interruptedResult).toEqual({ status: 'cancelled' });
+    expect(result.unsafeSubjectResult).toEqual({ status: 'skipped', reason: 'missing-subject' });
+    expect(result.stationaryResult).toEqual({ status: 'skipped', reason: 'no-motion-path' });
     expect(result.missingResult).toEqual({ status: 'skipped', reason: 'missing-anchor' });
     expect(result.skippedResult).toEqual({ status: 'skipped', reason: 'motion-skipped' });
     diagnostics.assertEmpty();
@@ -273,6 +362,14 @@ test('reduced motion substitutes a stationary emphasis', async ({ page }) => {
     const result = await page.evaluate(async () => {
       await import('/src/components/boardgame-effect-layer.ts');
       const { fx } = await import('/src/effects/effect-spec.ts');
+      const eventObservers = new Set<(event: any) => void>();
+      const motionSource = {
+        observeStructuralMotion() { return () => {}; },
+        observeStructuralMotionEvents(observer: (event: any) => void) {
+          eventObservers.add(observer);
+          return () => eventObservers.delete(observer);
+        },
+      };
       const anchor = document.createElement('div');
       document.body.append(anchor);
       const layer = document.createElement('boardgame-effect-layer') as HTMLElement & {
@@ -280,24 +377,55 @@ test('reduced motion substitutes a stationary emphasis', async ({ page }) => {
         shadowRoot: ShadowRoot;
         configure(config: object): void;
         play(effect: object): { finished: Promise<{ status: string }> };
+        beginMotionTransition(expected: boolean): void;
+        playTransition(effect: object): { finished: Promise<{ status: string }> };
       };
       document.body.append(layer);
       await layer.updateComplete;
-      layer.configure({ anchorRoot: document, seedScope: 'reduced:1', theme: {}, animationContext: null });
+      layer.configure({
+        anchorRoot: document,
+        seedScope: 'reduced:1',
+        theme: {},
+        animationContext: null,
+        motionSource,
+      });
       const handle = layer.play(fx.burst({ at: anchor, tone: 'confirm', intensity: 'large' }));
       const during = {
         particles: layer.shadowRoot.querySelectorAll('.particle').length,
         pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
       };
       const settled = await handle.finished;
+      layer.beginMotionTransition(true);
+      const trail = layer.playTransition(fx.parallel([
+        fx.trail({ subject: 'reduced-card', tone: 'magic' }),
+      ], { timing: 'version' }));
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 1, kind: 'finished', subjectId: 'reduced-card',
+        segment: {
+          subjectId: 'reduced-card',
+          viewport: {
+            from: { space: 'viewport', left: 10, top: 20, width: 40, height: 20 },
+            to: { space: 'viewport', left: 100, top: 80, width: 40, height: 20 },
+          },
+        },
+      });
+      const reducedTrailDuring = {
+        trails: layer.shadowRoot.querySelectorAll('.trail-echo').length,
+        pulses: layer.shadowRoot.querySelectorAll('.pulse').length,
+      };
+      const trailSettled = await trail.finished;
       return {
         during,
         settled,
+        reducedTrailDuring,
+        trailSettled,
         final: layer.shadowRoot.querySelectorAll('.particle, .pulse').length,
       };
     });
     expect(result.during).toEqual({ particles: 0, pulses: 1 });
     expect(result.settled).toEqual({ status: 'finished' });
+    expect(result.reducedTrailDuring).toEqual({ trails: 0, pulses: 1 });
+    expect(result.trailSettled).toEqual({ status: 'finished' });
     expect(result.final).toBe(0);
     diagnostics.assertEmpty();
   } finally {

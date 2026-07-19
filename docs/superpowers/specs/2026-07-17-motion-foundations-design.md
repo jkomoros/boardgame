@@ -100,6 +100,7 @@ interface StructuralMotionPlan {
 
 interface StructuralMotionSegment {
   readonly subjectId: string;
+  readonly visualSubject?: MotionSubjectSnapshot;
   readonly presence: 'retained' | 'appearing' | 'departing';
   readonly provenance: StructuralProvenance;
   readonly viewport?: {
@@ -178,9 +179,9 @@ all unmatched anchors. The adapter consumes only automatic FLIP events;
 explicit `animateBetween()` flights do not silently become author effects.
 
 Motion anchors are accepted by point recipes (`pulse` and `burst`) but not by
-`travel`. This is an intentional capability boundary: coordinates are safe to
-publish, while materializing or following the moving subject requires a future
-privacy-aware snapshot protocol.
+`travel`. This is an intentional capability boundary: point decoration needs
+only coordinates, while a trail requires the separate sanitized silhouette
+capability described below.
 
 Provenance is explicit. Retained subjects have exact identity continuity;
 appearing and departing endpoints inferred from `IDsLastSeen` carry their stack
@@ -199,9 +200,31 @@ fx.decorateMotion({
 })
 ```
 
-Independent subject travel remains a distinct recipe. Subject materialization
-will require an opt-in component protocol so arbitrary DOM cloning cannot leak
-hidden card content or depend on uncloneable shadow DOM.
+Independent subject travel remains a distinct recipe. Arbitrary materialization
+is still excluded so DOM cloning cannot leak hidden card content or depend on
+uncloneable shadow DOM.
+
+### Privacy-safe subject trails
+
+`motionSubjectSnapshot()` is the narrow capability boundary for visual
+subject-following decoration. Its first representation is intentionally only a
+silhouette shape: rectangle, rounded rectangle, or circle. The animator copies
+that value through an exact sanitizer before publishing it on a segment. Any
+extra property rejects the whole snapshot, so content, artwork, DOM, styles,
+and hidden game state cannot accidentally become observable.
+
+`fx.trail({ subject })` waits for the matching FLIP `started` event. The overlay
+then derives its endpoints from the segment's viewport geometry and its timing
+envelope from actual compiled execution records. It owns only disposable echo
+elements, consumes the shared visual-node budget, and is cancelled by the
+matching source/generation/subject cancellation. It never owns the component
+transform or gates structural settlement. Reduced motion substitutes a
+stationary arrival pulse.
+
+The trail deliberately has no independent timing policy: a follower that can
+drift into a different version slot is not a follower. Artwork-bearing subjects
+remain a future, separately reviewed protocol rather than a compatible field
+added to the safe silhouette value.
 
 ## Physical animation ownership
 
@@ -229,15 +252,18 @@ ownership:
 9. **Done:** add `fx.motion()` point-only structural decoration for pulse/burst
    departure and arrival cues. It requires no component materialization, starts
    only from actual execution events, and cannot gate playback.
-10. **Next/deferred:** design a privacy-safe subject snapshot protocol before trails
-    or travelers may visually reproduce a card/component.
-11. Reassess a larger representation only when concrete duplication justifies
+10. **Done:** add an exact, privacy-safe silhouette snapshot protocol and
+    `fx.trail()` follower that derives geometry and timing from real FLIP
+    execution, degrades under budgets/reduced motion, and cancels by generation.
+11. **Deferred:** design any artwork-bearing subject representation as a new,
+    explicitly reviewed capability; do not widen the silhouette snapshot.
+12. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today
 
 Game authors should use `effectsForTransition()`, `this.effects.play()`, named
-anchors, `fx.motion()`, and `animateBetween()` as documented in `docs/animation-effects.md` and
+anchors, `fx.motion()`, `fx.trail()`, and `animateBetween()` as documented in `docs/animation-effects.md` and
 `docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
 events are framework-internal while their contracts settle. Shipping the
 internal seam first prevents an attractive experimental API from becoming a

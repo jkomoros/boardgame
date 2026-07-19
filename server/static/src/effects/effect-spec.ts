@@ -83,6 +83,19 @@ export interface TravelEffectSpec extends EffectBase {
   }>;
 }
 
+export interface TrailEffectSpec extends Omit<EffectBase, 'timing' | 'advanced'> {
+  readonly kind: 'trail';
+  readonly subject: string;
+  /** A trail follows structural timing and cannot schedule an independent slot. */
+  readonly timing?: never;
+  readonly advanced?: Readonly<{
+    palette?: readonly string[];
+    echoes?: number;
+    lagMs?: number;
+    opacity?: number;
+  }>;
+}
+
 export interface SequenceEffectSpec extends EffectBase {
   readonly kind: 'sequence';
   readonly effects: readonly EffectSpec[];
@@ -98,6 +111,7 @@ export type EffectSpec =
   | BurstEffectSpec
   | PulseEffectSpec
   | TravelEffectSpec
+  | TrailEffectSpec
   | SequenceEffectSpec
   | ParallelEffectSpec;
 
@@ -110,7 +124,8 @@ export type EffectResult =
   | Readonly<{ status: 'cancelled' }>
   | Readonly<{
     status: 'skipped';
-    reason: 'budget' | 'missing-anchor' | 'motion-skipped' | 'not-connected' | 'timing';
+    reason: 'budget' | 'missing-anchor' | 'missing-subject' | 'motion-skipped'
+      | 'no-motion-path' | 'not-connected' | 'timing';
   }>;
 
 export interface EffectHandle {
@@ -146,6 +161,7 @@ type CommonOptions = Omit<EffectBase, 'kind'>;
 type BurstOptions = CommonOptions & Pick<BurstEffectSpec, 'at'>;
 type PulseOptions = CommonOptions & Pick<PulseEffectSpec, 'at'>;
 type TravelOptions = CommonOptions & Pick<TravelEffectSpec, 'from' | 'to'>;
+type TrailOptions = Omit<TrailEffectSpec, 'kind'>;
 
 function nonEmpty(value: string, label: string): string {
   const normalized = value.trim();
@@ -204,6 +220,26 @@ export const fx = Object.freeze({
 
   travel(options: TravelOptions): TravelEffectSpec {
     return Object.freeze({ kind: 'travel', ...common(options) });
+  },
+
+  trail(options: TrailOptions): TrailEffectSpec {
+    const advanced = options.advanced
+      ? Object.freeze({
+        ...options.advanced,
+        ...(options.advanced.palette
+          ? { palette: Object.freeze([...options.advanced.palette]) }
+          : {}),
+      })
+      : undefined;
+    return Object.freeze({
+      kind: 'trail',
+      subject: nonEmpty(options.subject, 'trail subject ID'),
+      ...(options.tone === undefined ? {} : { tone: options.tone }),
+      ...(options.intensity === undefined ? {} : { intensity: options.intensity }),
+      ...(options.key === undefined ? {} : { key: nonEmpty(options.key, 'effect key') }),
+      ...(options.seedKey === undefined ? {} : { seedKey: nonEmpty(options.seedKey, 'seedKey') }),
+      ...(advanced ? { advanced } : {}),
+    });
   },
 
   sequence(effects: readonly EffectSpec[], options: CommonOptions & { gapMs?: number } = {}): SequenceEffectSpec {

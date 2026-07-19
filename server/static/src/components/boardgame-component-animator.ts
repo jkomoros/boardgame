@@ -34,6 +34,8 @@ import type {
 } from '../motion/structural-plan.js';
 import { compileStructuralMotionEvents } from '../motion/structural-events.js';
 import type { StructuralMotionEvent } from '../motion/structural-events.js';
+import { sanitizeMotionSubjectSnapshot } from '../motion/subject.js';
+import type { MotionSubjectSnapshot } from '../motion/subject.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -71,6 +73,7 @@ interface ComponentRecord {
   needsHostTransition?: boolean;
   needsAnimation?: boolean;
   motionDraft?: StructuralMotionDraft;
+  visualSubject?: MotionSubjectSnapshot;
 }
 
 interface CollectionRecord {
@@ -248,6 +251,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
         record.offsets = captureOffsetGeometry(component, this.ancestorOffsetParent);
         record.viewportOffsets = captureViewportGeometry(component);
+        record.visualSubject = this._captureMotionSubject(component);
 
         // We use getComputedStyle instead of just card.style.transform,
         // because if the card is in the middle of transforming, we want
@@ -354,6 +358,18 @@ export class BoardgameComponentAnimator extends LitElement {
       easing: timing.easing ?? 'linear',
       fill: timing.fill ?? 'none',
     });
+  }
+
+  private _captureMotionSubject(component: unknown): MotionSubjectSnapshot | undefined {
+    try {
+      const provider = component as { motionSubjectSnapshot?: () => unknown };
+      if (typeof provider.motionSubjectSnapshot !== 'function') return undefined;
+      return sanitizeMotionSubjectSnapshot(provider.motionSubjectSnapshot()) ?? undefined;
+    } catch (error) {
+      // Decoration capability failures are isolated from queue-critical motion.
+      console.error('[animator] motion subject snapshot failed:', error);
+      return undefined;
+    }
   }
 
   private _installExplicitMotion(plan: StructuralMotionPlan): void {
@@ -685,6 +701,7 @@ export class BoardgameComponentAnimator extends LitElement {
         }
         record.newOffsets = captureOffsetGeometry(component, this.ancestorOffsetParent);
         record.newViewportOffsets = captureViewportGeometry(component);
+        record.visualSubject ??= this._captureMotionSubject(component);
       }
     }
 
@@ -808,6 +825,7 @@ export class BoardgameComponentAnimator extends LitElement {
             subjectId: component.id,
             presence: hadExactBefore ? 'retained' : presence,
             provenance,
+            visualSubject: record.visualSubject,
             from: record.offsets!,
             to: record.newOffsets!,
             viewportFrom: record.viewportOffsets!,
@@ -910,6 +928,7 @@ export class BoardgameComponentAnimator extends LitElement {
           stackId: anonRecord.stack.id,
           evidence: anonRecord.winnerAmbiguous ? 'ambiguous' : 'latest-seen',
         },
+        visualSubject: record.visualSubject,
         from: oldLocation,
         to: stackLocation,
         viewportFrom: oldViewportLocation,

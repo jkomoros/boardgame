@@ -24,7 +24,7 @@ particle-budget failure can never strand a game transition.
 
 Effects keep three independent choices separate:
 
-1. **Recipe** — what motion happens: `burst`, `pulse`, or `travel`.
+1. **Recipe** — what motion happens: `burst`, `pulse`, `travel`, or `trail`.
 2. **Tone** — what it means: `neutral`, `reward`, `confirm`, `attention`,
    `warning`, or `magic`.
 3. **Intensity** — how strongly it speaks: `subtle`, `small`, `medium`, or
@@ -176,6 +176,53 @@ departure/arrival decoration with `timing: 'immediate'`. Reusing
 `timing: 'version'` after arrival may correctly skip because the version slot
 has already been consumed by the card animation.
 
+### Following the moving subject
+
+Use `fx.trail()` when the decoration should follow a component's real automatic
+movement rather than synthesize a second trip between named anchors:
+
+```ts
+fx.parallel([
+  fx.trail({
+    subject: movedTokenId,
+    tone: 'magic',
+    intensity: 'small',
+  }),
+  fx.burst({
+    at: fx.motion(movedTokenId),
+    tone: 'reward',
+    intensity: 'small',
+    timing: 'immediate',
+  }),
+])
+```
+
+The trail begins from the structural motion's real `started` event. It uses the
+same captured viewport endpoints and derives its timing envelope (earliest
+delay, latest visible end, and primary easing) from the actual compiled
+animations. It is cancelled when that exact motion generation is interrupted.
+It therefore has no independent `timing` option and never delays the state
+queue. A component that did not move returns `no-motion-path`; a missing or
+opted-out visual subject returns `missing-subject`.
+
+The trail is a colored silhouette, not a component clone. The animator captures
+only an explicit shape capability—`rectangle`, `rounded-rectangle`, or
+`circle`—and obtains size and position from the separate geometry snapshot.
+Cards publish a rounded rectangle; circular token types publish a circle; other
+framework components have a conservative rectangle default. No DOM, text,
+artwork, card face, computed style, or game property can cross this boundary.
+
+Framework component implementations can make that capability explicit:
+
+```ts
+override motionSubjectSnapshot(): MotionSubjectSnapshot | null {
+  return motionSilhouette('circle'); // return null to opt out
+}
+```
+
+Under reduced motion, a trail becomes a stationary arrival pulse. Echoes share
+the document-wide visual-node budget and degrade to available capacity.
+
 ## Composition
 
 Every recipe is an `EffectSpec`, so composition is ordinary immutable data:
@@ -243,6 +290,8 @@ remain available only under `advanced.palette`.
   travel instead of moving particles across the screen.
 - Effects return `finished`, `cancelled`, or `skipped` with a reason. Motion
   anchors use `motion-skipped` when their structural segment did not complete.
+- Trails use `missing-subject` when no safe silhouette was published and
+  `no-motion-path` when the subject changed without spatial motion.
 - Renderer removal cancels all effects. A newer transition cancels stale
   transition-owned effects.
 - One document-wide manager admits at most eight concurrent effects and 60
@@ -268,6 +317,22 @@ fx.burst({
 })
 ```
 
+Trail tuning is deliberately limited to the overlay echo treatment:
+
+```ts
+fx.trail({
+  subject: tokenId,
+  tone: 'magic',
+  intensity: 'medium',
+  advanced: {
+    echoes: 6,       // clamped to 1–10 and then to remaining budget
+    lagMs: 18,       // clamped to 4–80
+    opacity: 0.4,    // clamped to 0.05–0.7
+    palette: ['#7c4dff', '#80d8ff'],
+  },
+})
+```
+
 The descriptor/executor boundary is the durable extension point. Future
 recipes—trails, screen treatments, or visual text echoes—can join the same
 contract without adding unrelated methods to the renderer service. Semantic
@@ -278,12 +343,13 @@ text remains normal accessible UI; any floating text effect is only its
 
 | Choice | Values | Default | Scope |
 | --- | --- | --- | --- |
-| Recipe | `burst`, `pulse`, `travel`, `sequence`, `parallel` | none | Descriptor |
+| Recipe | `burst`, `pulse`, `travel`, `trail`, `sequence`, `parallel` | none | Descriptor |
 | Tone | `neutral`, `reward`, `confirm`, `attention`, `warning`, `magic` | `neutral` | Inherited through composition |
 | Intensity | `subtle`, `small`, `medium`, `large` | `medium` | Inherited through composition |
 | Timing | `immediate`, `version`, or `{ localStartAtMs }` | `immediate` | Inherited through composition |
 | Identity | `key`, `seedKey` | descriptor path | Descriptor and deterministic seed identity |
 | Structural point | `fx.motion(id, 'departure' \| 'arrival')` | `arrival` | `pulse` and `burst` in authoritative transitions |
+| Structural trail | `fx.trail({ subject: id })` | none | Real automatic movement only; inherits its structural timing |
 | Theme | semantic tone palettes | Material-aware defaults | Renderer via `effectTheme()` |
 | Escape hatch | recipe-specific `advanced` values | semantic policy | Validated and clamped |
 
@@ -297,14 +363,14 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 - `examples/memory` follows the real revealed card's structural arrival, then
   pulses it and adds a reward burst for a match. The reveal is a stationary
   face morph, demonstrating that endpoint decoration does not imply travel.
-- `examples/debuganimations` demonstrates authoritative travel followed by an
-  arrival burst, plus an imperative click celebration and theme/intensity
-  controls.
+- `examples/debuganimations` follows a real moved token with a silhouette trail
+  and decorates its arrival, plus demonstrating imperative click celebration
+  and theme/intensity controls.
 - Companion table/hand renderers use `animateBetween()` for real card flights;
   that structural API shares timing and geometry foundations with effects but
   remains queue-critical.
 
 What is not configurable yet is equally important: games cannot subscribe to
-the private structural-motion plan, replace automatic FLIP, or request a trail
-that clones an arbitrary card. Reproducing a subject will wait for an explicit,
-privacy-safe component snapshot protocol.
+the private structural-motion plan, replace automatic FLIP, or request artwork
+or arbitrary card content in a trail. Subject artwork is a separate future
+capability, not an extension smuggled through the silhouette protocol.
