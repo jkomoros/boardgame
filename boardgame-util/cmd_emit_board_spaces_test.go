@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -97,6 +98,23 @@ func TestOrphanBoardSpaceContractsOnlyClaimsGeneratedFiles(t *testing.T) {
 	}
 	if len(found) != 1 || found[0] != orphan {
 		t.Fatalf("unexpected orphan set: %v", found)
+	}
+}
+
+func TestOrphanBoardSpaceContractsRejectsSymlinkCandidate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation generally requires elevated privileges on Windows")
+	}
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.ts")
+	if err := os.WriteFile(target, []byte(generatedBoardSpaceHeader+"old.svg. DO NOT EDIT. */\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(dir, "_old_spaces.ts")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := orphanBoardSpaceContracts(dir, map[string]bool{}); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("error = %v, want non-regular candidate error", err)
 	}
 }
 

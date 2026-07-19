@@ -191,6 +191,13 @@ func orphanBoardSpaceContracts(client string, desired map[string]bool) ([]string
 		if entry.IsDir() || desired[path] || !strings.HasPrefix(entry.Name(), "_") || !strings.HasSuffix(entry.Name(), "_spaces.ts") {
 			return nil
 		}
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("inspect possible generated board-space contract %s: %w", path, err)
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("possible generated board-space contract %s is not a regular file", path)
+		}
 		contents, err := os.ReadFile(path)
 		if err != nil {
 			return err
