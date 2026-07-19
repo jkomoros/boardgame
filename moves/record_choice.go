@@ -60,6 +60,11 @@ func WithRecordedChoice(field string, destination ChoiceDestination, options ...
 	return func(config boardgame.PropertyCollection) {
 		declarations, _ := config[configPropRecordedChoices].([]recordedChoiceDeclaration)
 		config[configPropRecordedChoices] = append(declarations, recordedChoiceDeclaration{field: field, target: target})
+		_ = boardgame.SetMoveChoiceRecording(config, boardgame.MoveChoiceRecording{
+			FieldName: field, DestinationProperty: target.property,
+			DestinationScope:     boardgame.MoveChoiceRecordingScope(target.scope),
+			DestinationPlayerKey: "TargetPlayerIndex",
+		})
 		WithChoices(field, options...)(config)
 	}
 }
@@ -185,43 +190,6 @@ func (r *RecordCurrentPlayerChoice) ValidConfiguration(exampleState boardgame.St
 	return err
 }
 
-// ApplyConfiguredMoveState copies the outer move's choice into the configured
-// state property. Game.applyMove invokes this promoted hook before the outer
-// move's Apply, so adding custom application logic cannot silently disable the
-// recording contract. Enum destinations are mutated in place so state
-// containers are never aliased to the move's enum value.
-func (r *RecordCurrentPlayerChoice) ApplyConfiguredMoveState(state boardgame.State) error {
-	binding, err := r.binding(state, false)
-	if err != nil {
-		return err
-	}
-	switch binding.propType {
-	case boardgame.TypePlayerIndex:
-		value, err := binding.source.PlayerIndexProp(binding.field)
-		if err != nil {
-			return fmt.Errorf("RecordCurrentPlayerChoice: read player choice: %w", err)
-		}
-		if err := binding.dest.SetPlayerIndexProp(binding.target.property, value); err != nil {
-			return fmt.Errorf("RecordCurrentPlayerChoice: store player choice: %w", err)
-		}
-	case boardgame.TypeEnum:
-		source, err := binding.source.ImmutableEnumProp(binding.field)
-		if err != nil {
-			return fmt.Errorf("RecordCurrentPlayerChoice: read enum choice: %w", err)
-		}
-		destination, err := binding.dest.EnumProp(binding.target.property)
-		if err != nil {
-			return fmt.Errorf("RecordCurrentPlayerChoice: fetch enum destination: %w", err)
-		}
-		if err := destination.SetValue(source.Value()); err != nil {
-			return fmt.Errorf("RecordCurrentPlayerChoice: store enum choice: %w", err)
-		}
-	default:
-		return fmt.Errorf("RecordCurrentPlayerChoice: unsupported source type %v", binding.propType)
-	}
-	return nil
-}
-
 // Apply completes the Move interface for the common recording-only case. The
-// actual configured recording is performed by ApplyConfiguredMoveState.
+// actual configured recording is performed by the engine-owned descriptor.
 func (*RecordCurrentPlayerChoice) Apply(boardgame.State) error { return nil }

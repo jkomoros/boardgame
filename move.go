@@ -348,14 +348,6 @@ type Move interface {
 	ReadSetConfigurer
 }
 
-// configuredMoveStateApplier is implemented by complete framework move
-// behaviors that contribute a configured state effect in addition to the
-// concrete move's Apply method. Its exported method can be promoted across the
-// moves package boundary while the hook itself remains an engine detail.
-type configuredMoveStateApplier interface {
-	ApplyConfiguredMoveState(State) error
-}
-
 // ConfigurationValidator is an interface that certain types must implement.
 // These will be called typically during NewGameManager set up, and are an
 // opportunity for the structs to report configuration errors that can only be

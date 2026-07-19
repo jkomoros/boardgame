@@ -82,7 +82,8 @@ func TestRecordCurrentPlayerChoiceUsesTopLevelMoveConvention(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	actor := game.CurrentState().CurrentPlayerIndex()
+	game.CurrentState().ImmutableGameState().(*gameState).CurrentPlayer = boardgame.AnyPlayerIndex
+	actor := boardgame.PlayerIndex(0)
 	move := game.MoveByName("Record Current Target").(*moveRecordInheritedTarget)
 	move.TargetPlayerIndex = actor
 	if err := <-game.ProposeMove(move, actor); err != nil {
@@ -110,7 +111,8 @@ func TestRecordedChoiceComposesWithOuterApply(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	actor := game.CurrentState().CurrentPlayerIndex()
+	game.CurrentState().ImmutableGameState().(*gameState).CurrentPlayer = boardgame.AnyPlayerIndex
+	actor := boardgame.PlayerIndex(0)
 	move := game.MoveByName("Record With Custom Apply").(*moveRecordWithCustomApply)
 	move.TargetPlayerIndex = actor
 	if err := <-game.ProposeMove(move, actor); err != nil {

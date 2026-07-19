@@ -150,11 +150,11 @@ move's enum container from aliasing state. Manager construction rejects a
 missing, repeated, incompatible, or wrongly scoped declaration.
 
 An outer move may define its own `Apply`, just like other reusable
-moves-package bases. Recording is a framework-configured state effect invoked
-before that method, so the override cannot silently disable it and does not
-need a fragile explicit super-call. Anything more expressive than recording
-one scalar remains ordinary game-authored `Apply` code; there is no mutation
-or flow DSL.
+moves-package bases. Recording is an engine-owned data descriptor invoked
+before that method—not a promoted lifecycle method—so an outer method cannot
+silently shadow it and no fragile explicit super-call is needed. Anything more
+expressive than recording one scalar remains ordinary game-authored `Apply`
+code; there is no mutation or flow DSL.
 
 `MoveChoiceProjectionSchema` and its fingerprint are intentionally separate
 from `MoveInputSchema`. Choice disclosure can evolve without changing the
