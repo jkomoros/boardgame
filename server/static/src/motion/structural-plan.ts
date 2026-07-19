@@ -11,6 +11,7 @@ export type StructuralPresence = 'retained' | 'appearing' | 'departing';
 
 export type StructuralProvenance =
   | Readonly<{ kind: 'identity' }>
+  | Readonly<{ kind: 'declaration'; declarationKey: string; pose: 'history-defaults' | 'destination-defaults' }>
   | Readonly<{
     kind: 'unresolved';
     endpoint: 'source' | 'destination';
@@ -33,6 +34,7 @@ export interface StructuralMotionDraft {
   readonly subjectId: string;
   /** Transition-local presentation declaration key; never segment identity. */
   readonly declarationKey?: string;
+  readonly pathOrigin?: 'measured-identity' | 'inferred-collection' | 'declared-anchor';
   readonly presence: StructuralPresence;
   readonly provenance: StructuralProvenance;
   readonly visualSubject?: MotionSubjectSnapshot;
@@ -115,6 +117,7 @@ function snapshotChannels(
 export function createStructuralMotionDraft(input: Readonly<{
   subjectId: string;
   declarationKey?: string;
+  pathOrigin?: 'measured-identity' | 'inferred-collection' | 'declared-anchor';
   presence: StructuralPresence;
   provenance: StructuralProvenance;
   visualSubject?: unknown;
@@ -127,6 +130,7 @@ export function createStructuralMotionDraft(input: Readonly<{
   return Object.freeze({
     subjectId: input.subjectId,
     ...(input.declarationKey ? { declarationKey: input.declarationKey } : {}),
+    ...(input.pathOrigin ? { pathOrigin: input.pathOrigin } : {}),
     presence: input.presence,
     provenance: Object.freeze({ ...input.provenance }),
     ...(visualSubject ? { visualSubject } : {}),

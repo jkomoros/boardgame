@@ -186,8 +186,9 @@ For authoritative game-authored presentation, prefer
 `motionTransfersForTransition(context)` and return `motion.transfer(...)`
 declarations derived from `context.move.AnimationKey` and explicitly disclosed
 move properties. The framework validates and publishes the ordered declarations
-as one batch. Today this supports retained non-stack carriers such as Table
-stubs; stack cards remain owned by automatic FLIP. Declaration keys are local
+as one batch. Non-stack carriers such as Table stubs execute explicitly;
+after-only Hand cards consume the declaration inside automatic FLIP, preserving
+one owner for travel, presence, and card visual tracks. Declaration keys are local
 to one transition. Identical Table/Hand event correlation requires a shared,
 privacy-reviewed server token and is not inferred from local state deltas.
 

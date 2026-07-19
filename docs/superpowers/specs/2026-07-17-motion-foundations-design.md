@@ -429,17 +429,23 @@ ownership:
     carrier's computed resting transform, and make explicit-flight interruption
     and concurrent event histories terminal and generation-specific.
 21. **Done:** add atomically validated, generation-bound, transition-local
-    transfer declarations for retained non-stack carriers; scope endpoint
+    transfer declarations for retained carriers; scope endpoint
     lookup to one renderer, settle the batch with FLIP, reject channel-owner
     conflicts, and correct transition hooks to the real viewer-sanitized
     `AnimationKey` wire contract.
-22. **Deferred:** replace local, lossy Table/Hand inference with a
+22. **Done:** partition transfer ownership from exact identity facts; consume
+    after-only stack declarations into automatic FLIP, separate declared
+    spatial origin from safe stack-default semantic pose, flow declared timing
+    through every host/visual track, and migrate Hand arrivals off imperative
+    lifecycle/frame inference. Viewport deltas fail closed under transformed
+    ancestors pending a reviewed affine projection primitive.
+23. **Deferred:** replace local, lossy Table/Hand inference with a
     privacy-reviewed server transfer envelope when games need zero-author
     defaults or true cross-surface correlation. A source-carried departure also
     requires a detached carrier; `fly()` deliberately does not claim it.
-23. **Deferred:** design any artwork-bearing subject representation as a new,
+24. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-24. Reassess a larger representation only when concrete duplication justifies
+25. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

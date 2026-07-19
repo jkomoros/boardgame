@@ -3832,14 +3832,19 @@ The framework validates the complete ordered batch before DOM work, resolves
 endpoints only within roots registered to this renderer, publishes one explicit
 motion generation, and waits for its real settlement alongside automatic FLIP.
 Keys, subjects, and carriers must be unique in a batch; several cards need
-distinct ordinal declarations and carriers. A declared stack-card carrier
-currently fails closed because automatic FLIP already owns that host transform.
+distinct ordinal declarations and carriers. An after-only stack card consumes
+its declaration inside automatic FLIP, so travel, presence, face/orientation
+tracks, gating, effects, and settlement share one segment and one owner.
 
 `AnimationKey`, `Version`, and disclosed `Properties` are authoritative,
 viewer-sanitized server facts. The transfer remains game-authored presentation
 intent. Its `key` is local to this transition, not cross-device card identity;
 a true shared Table/Hand transfer token requires a separately privacy-reviewed
 server wire contract.
+
+Declared anchor geometry is currently limited to carriers without transformed
+ancestors. Such a case skips explicitly until the framework has a reviewed
+viewport-to-local affine projection primitive; it never silently mixes spaces.
 
 To add one flourish only after an exact set of automatic component motions
 finishes successfully, return `fx.afterMotion({ subjects, effect })` from

@@ -5,6 +5,8 @@ import type { FullGameState } from '../types/boardgame-types.js';
 import type { MoveChoiceProjectionTypes } from '../moves/projected-choices.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
+import type { EffectTransitionContext } from '../effects/effect-spec.js';
+import type { MotionTransferDeclaration } from '../motion/transfer.js';
 
 /**
  * BoardgameHandViewBase is the base class for the Hand view renderer that
@@ -78,10 +80,6 @@ export class BoardgameHandViewBase<
   @property({ type: Boolean })
   autoFlyIncoming = true;
 
-  // null = no baseline yet (first render / reload mid-game): we record
-  // what's already there without animating it.
-  private _prevOwnCardIds: Set<string> | null = null;
-
   // Buzz the phone when it becomes this player's turn — the player's eyes
   // are usually on the projector, so a local haptic is the natural cue.
   // navigator.vibrate is a no-op-safe progressive enhancement (undefined on
@@ -90,15 +88,6 @@ export class BoardgameHandViewBase<
 
   protected override updated(changedProperties: Map<PropertyKey, unknown>) {
     super.updated?.(changedProperties);
-    if (changedProperties.has('viewingAsPlayer')) {
-      // The first state can install while we're still resolving as an
-      // observer — playerState is undefined then, and a baseline recorded
-      // at that moment is empty-but-non-null. When the seat identity
-      // resolves a beat later, every long-held card would diff as
-      // "incoming" and the whole hand would replay from the top edge.
-      // Identity changed ⇒ start the baseline over.
-      this._prevOwnCardIds = null;
-    }
     const myTurn = this.isCurrentPlayer && !this.gameFinished;
     if (myTurn && !this._wasMyTurn) {
       // Browsers block vibration before the first user gesture (and log a
@@ -108,30 +97,31 @@ export class BoardgameHandViewBase<
       }
     }
     this._wasMyTurn = myTurn;
-    if (!changedProperties.has('state')) return;
-    // Keep the baseline current even when auto-fly is off, so toggling
-    // the flag back on doesn't diff against a stale snapshot and fly in
-    // every card at once.
-    const ids = this._collectOwnCardIds();
-    const prev = this._prevOwnCardIds;
-    this._prevOwnCardIds = ids;
-    if (!this.autoFlyIncoming) return;
-    if (prev === null) return;
-    const incoming = [...ids].filter((id) => !prev.has(id));
-    if (incoming.length === 0) return;
-    for (const id of incoming) {
-      void this.animator?.fly({
+  }
+
+  override motionTransfersForTransition(
+    context: EffectTransitionContext<S, MN>,
+  ): readonly MotionTransferDeclaration[] {
+    const inherited = super.motionTransfersForTransition(context);
+    if (context.kind === 'initial' || !this.autoFlyIncoming) return inherited;
+    const before = this._collectCardIds(context.before.Players[this.viewingAs]);
+    const after = this._collectCardIds(context.after.Players[this.viewingAs]);
+    const incoming = [...after].filter(id => !before.has(id)).sort();
+    return Object.freeze([
+      ...inherited,
+      ...incoming.map((id, index) => Object.freeze({
+        key: `auto-hand:${index}`,
         subjectId: id,
         source: 'hand-top-edge',
         carrier: id,
         durationMs: 600,
-      });
-    }
+      })),
+    ]);
   }
 
-  private _collectOwnCardIds(): Set<string> {
+  private _collectCardIds(player: S['Players'][number] | undefined): Set<string> {
     const out = new Set<string>();
-    const ps = this.playerState as Record<string, unknown> | undefined;
+    const ps = player as Record<string, unknown> | undefined;
     if (!ps) return out;
     for (const value of Object.values(ps)) {
       const ids = (value as { IDs?: unknown })?.IDs;

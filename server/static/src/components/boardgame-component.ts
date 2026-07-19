@@ -12,6 +12,7 @@ import type {
 } from '../motion/component-track.js';
 import type { HistoricalPresentationPolicy } from '../motion/historical-presentation.js';
 import type { MotionEndpointOrientation } from '../motion/endpoint-pose.js';
+import type { AnimationTimingPolicy } from '../motion/timing.js';
 
 // FlipRecord is the bundle the animator computes for each animating
 // component and hands to playAnimation(). before/after are the
@@ -26,6 +27,8 @@ export interface FlipRecord {
   finalOpacity: string;
   needsHostTransition: boolean;      // host transform keyframes worth playing
   delayMs?: number;                  // per-component start delay, from a stack's stagger attribute (#728)
+  durationMs?: number;
+  timingPolicy?: AnimationTimingPolicy;
   tracks?: readonly ComponentMotionTrack[]; // planned once; executor consumes exactly these channels
 }
 
@@ -215,7 +218,8 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     const delayMs = rec.delayMs ?? 0;
     const result = this.playMotionTracks(
       rec.tracks ?? this.planMotionTracks(rec),
-      { delay: delayMs },
+      { delay: delayMs, ...(rec.durationMs === undefined ? {} : { duration: rec.durationMs }) },
+      { timing: rec.timingPolicy ?? 'version' },
     );
     // Host tracks are overlays (fill:'none'); authored resting styles remain
     // the final source of truth after WAAPI settles.

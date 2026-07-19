@@ -66,6 +66,7 @@ import {
 import type { HistoricalPresentation } from '../motion/historical-presentation.js';
 import { motionPresenceHostStyle } from '../motion/presence.js';
 import type { CompiledMotionTransferDeclaration } from '../motion/transfer.js';
+import { partitionMotionTransferOwnership } from '../motion/transfer-arbitration.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -118,6 +119,8 @@ interface ComponentRecord {
   needsAnimation?: boolean;
   motionTracks?: readonly ComponentMotionTrack[];
   motionDraft?: StructuralMotionDraft;
+  motionTiming?: Readonly<{ durationMs: number; policy: AnimationTimingPolicy }>;
+  motionSkipReason?: 'missing-endpoint' | 'ownership-conflict';
   visualSubject?: MotionSubjectSnapshot;
 }
 
@@ -169,6 +172,7 @@ export class BoardgameComponentAnimator extends LitElement {
     generation: number;
     declarations: readonly CompiledMotionTransferDeclaration[];
   }> | null = null;
+  private _consumedTransferKeys = new Set<string>();
   private readonly _activationMonitor = new MotionActivationMonitor();
   private readonly _explicitAnimations = new Map<Animation, HTMLElement>();
   private readonly _carrierFlights = new WeakMap<HTMLElement, Animation>();
@@ -324,6 +328,7 @@ export class BoardgameComponentAnimator extends LitElement {
     this._solvedMotionPlan = null;
     this._motionCohorts = null;
     this._motionTransfers = null;
+    this._consumedTransferKeys = new Set();
     const collections = this.stackElement._sharedStackList;
 
     this._beforeCollectionOffsets = new Map();
@@ -450,6 +455,21 @@ export class BoardgameComponentAnimator extends LitElement {
       }
     }
     return matches.length === 1 ? matches[0] : null;
+  }
+
+  private _hasTransformedAncestor(element: HTMLElement): boolean {
+    let node: Node | null = element.parentNode;
+    while (node) {
+      if (node instanceof ShadowRoot) {
+        node = node.host;
+        continue;
+      }
+      if (node instanceof HTMLElement && getComputedStyle(node).transform !== 'none') {
+        return true;
+      }
+      node = node.parentNode;
+    }
+    return false;
   }
 
   private _recordAnimationActive(
@@ -851,13 +871,17 @@ export class BoardgameComponentAnimator extends LitElement {
     const installed = this._motionTransfers;
     if (!installed || installed.generation !== generation
       || installed.declarations.length === 0) return Promise.resolve();
+    const declarations = installed.declarations.filter(
+      declaration => !this._consumedTransferKeys.has(declaration.key),
+    );
+    if (declarations.length === 0) return Promise.resolve();
     const explicitGeneration = ++this._explicitMotionSequence;
     const collections = this.stackElement._sharedStackList;
     const structuralCarriers = new Set<HTMLElement>();
     for (const collection of collections) {
       for (const component of collection.Components) structuralCarriers.add(component);
     }
-    const compiled = installed.declarations.map(declaration => {
+    const compiled = declarations.map(declaration => {
       const source = this._resolveScopedTransferTarget(declaration.source);
       const carrier = this._resolveScopedTransferTarget(declaration.carrier);
       const ownershipConflict = !!carrier && structuralCarriers.has(carrier);
@@ -1081,6 +1105,31 @@ export class BoardgameComponentAnimator extends LitElement {
         histories,
       ));
     }
+    const installedTransfers = this._motionTransfers?.generation === generation
+      ? this._motionTransfers.declarations
+      : [];
+    const stackComponents = new Set<HTMLElement>();
+    for (const collection of collections) {
+      for (const component of collection.Components) stackComponents.add(component);
+    }
+    const transferDecisions = partitionMotionTransferOwnership(installedTransfers.map(declaration => {
+      const resolved = this._resolveScopedTransferTarget(declaration.carrier);
+      return {
+        key: declaration.key,
+        carrierKind: resolved && stackComponents.has(resolved) ? 'stack' as const : 'external' as const,
+        subjectMatchesCarrier: !!resolved && declaration.subjectId === resolved.id,
+        carrierResolvesExactly: !!resolved,
+        beforeSightings: beforeExact.filter(item => item.subjectId === declaration.subjectId).length,
+        afterSightings: afterExact.filter(item => item.subjectId === declaration.subjectId).length,
+      };
+    }));
+    const automaticTransferByCarrier = new Map<string, CompiledMotionTransferDeclaration>();
+    for (const [index, decision] of transferDecisions.entries()) {
+      if (decision.disposition !== 'automatic') continue;
+      const declaration = installedTransfers[index];
+      automaticTransferByCarrier.set(declaration.carrier, declaration);
+      this._consumedTransferKeys.add(declaration.key);
+    }
 
     // This is the meat of the method, where we set all layout-affecting
     // properties, append fake dom, etc.
@@ -1095,19 +1144,51 @@ export class BoardgameComponentAnimator extends LitElement {
 
         const record = this._infoById[component.id];
         const continuity = continuityBySubject.get(component.id);
-        if (!continuity || continuity.status !== 'resolved'
-          || continuity.presence === 'departing') continue;
-        const hadExactBefore = continuity.presence === 'retained';
+        const resolvedContinuity = continuity?.status === 'resolved' ? continuity : null;
+        const declaredTransfer = automaticTransferByCarrier.get(component.id);
+        if (!declaredTransfer && (!resolvedContinuity
+          || resolvedContinuity.presence === 'departing')) continue;
+        const hadExactBefore = resolvedContinuity?.presence === 'retained';
         let presence: 'retained' | 'appearing' = 'retained';
         let provenance: StructuralProvenance = { kind: 'identity' };
 
-        if (continuity.presence === 'appearing') {
+        if (declaredTransfer) {
+          presence = 'appearing';
+          const historyStack = resolvedContinuity?.presence === 'appearing'
+            && resolvedContinuity.from.kind === 'collection'
+            ? stackById.get(resolvedContinuity.from.collectionId)
+            : undefined;
+          const poseStack = historyStack ?? collection;
+          provenance = {
+            kind: 'declaration',
+            declarationKey: declaredTransfer.key,
+            pose: historyStack ? 'history-defaults' : 'destination-defaults',
+          };
+          const source = this._resolveScopedTransferTarget(declaredTransfer.source);
+          record.before = component.animatingPropDefaults(poseStack);
+          record.afterOpacity = component.style.opacity;
+          record.afterTransform = component.style.transform;
+          const presenceStyle = motionPresenceHostStyle(poseStack.motionPresenceFacts());
+          record.beforeTransform = presenceStyle.transform;
+          record.beforeOpacity = presenceStyle.opacity;
+          record.motionTiming = {
+            durationMs: declaredTransfer.durationMs,
+            policy: declaredTransfer.timing,
+          };
+          if (!source) record.motionSkipReason = 'missing-endpoint';
+          else if (this._hasTransformedAncestor(component)) {
+            // Viewport deltas are valid CSS translations only in an untransformed
+            // ancestor basis. Affine projection is an explicit future primitive.
+            record.motionSkipReason = 'ownership-conflict';
+          } else record.viewportOffsets = captureViewportGeometry(source);
+        } else if (resolvedContinuity!.presence === 'appearing') {
+          const appearingContinuity = resolvedContinuity!;
           // Hmm, a record who didn't have its offsets set in prepare(),
           // presumably because it didn't exist. This MAY be an element who
           // came from a PolicyNonEmpty stack.
 
-          if (continuity.from.kind !== 'collection') continue;
-          const theStack = stackById.get(continuity.from.collectionId);
+          if (appearingContinuity.from.kind !== 'collection') continue;
+          const theStack = stackById.get(appearingContinuity.from.collectionId);
           if (!theStack) continue;
 
           presence = 'appearing';
@@ -1140,10 +1221,18 @@ export class BoardgameComponentAnimator extends LitElement {
         record.after = component.animatingPropValues();
 
         // CRITICAL: Transform composition order - invert + external + scale.
-        const geometry = solveFlipGeometry(record.offsets!, record.newOffsets!, {
-          beforeOrientation: component.motionEndpointOrientation(record.before),
-          afterOrientation: component.motionEndpointOrientation(record.after),
-        });
+        const geometry = declaredTransfer && record.viewportOffsets
+          ? compileViewportFlight(
+            record.viewportOffsets,
+            record.newViewportOffsets!,
+            record.beforeTransform,
+          ).inversion
+          : record.motionSkipReason
+            ? Object.freeze({ translateX: 0, translateY: 0, scale: 1, changed: false })
+            : solveFlipGeometry(record.offsets!, record.newOffsets!, {
+              beforeOrientation: component.motionEndpointOrientation(record.before),
+              afterOrientation: component.motionEndpointOrientation(record.after),
+            });
 
         // Determine whether the host element's CSS transform will actually
         // change during the FLIP animation. The browser only fires
@@ -1169,7 +1258,7 @@ export class BoardgameComponentAnimator extends LitElement {
           needsHostTransition: record.needsHostTransition,
         });
         record.motionTracks = motionTracks;
-        record.needsAnimation = motionTracks.length > 0;
+        record.needsAnimation = motionTracks.length > 0 || !!record.motionSkipReason;
 
         // We used to only bother setting transforms for items that had
         // physically moved. However, the browser is smart enough to ignore
@@ -1186,6 +1275,10 @@ export class BoardgameComponentAnimator extends LitElement {
         if (record.needsAnimation) {
           record.motionDraft = createStructuralMotionDraft({
             subjectId: component.id,
+            ...(declaredTransfer ? {
+              declarationKey: declaredTransfer.key,
+              pathOrigin: 'declared-anchor' as const,
+            } : {}),
             presence: hadExactBefore ? 'retained' : presence,
             provenance,
             visualSubject: record.visualSubject,
@@ -1345,12 +1438,16 @@ export class BoardgameComponentAnimator extends LitElement {
         finalOpacity: string;
         needsHostTransition: boolean;
         delayMs?: number;
+        durationMs?: number;
+        timingPolicy?: AnimationTimingPolicy;
         tracks?: readonly ComponentMotionTrack[];
       };
       motionDraft?: StructuralMotionDraft;
       motionSegmentIndex?: number;
       durationMs: number;
+      timingPolicy: AnimationTimingPolicy;
       delayMs: number;
+      skipReason?: 'missing-endpoint' | 'ownership-conflict';
     }> = [];
 
     for (let i = 0; i < collections.length; i++) {
@@ -1363,8 +1460,9 @@ export class BoardgameComponentAnimator extends LitElement {
         if (component.id === '') continue;
         const record = this._infoById[component.id];
         if (!record || !record.needsAnimation) continue;
+        const durationMs = record.motionTiming?.durationMs ?? component.animationLengthMs();
         const delayMs = staggerFraction > 0
-          ? animIndex * staggerFraction * component.animationLengthMs()
+          ? animIndex * staggerFraction * durationMs
           : 0;
         animIndex++;
         playback.push({
@@ -1378,11 +1476,15 @@ export class BoardgameComponentAnimator extends LitElement {
             finalOpacity: record.afterOpacity || '',
             needsHostTransition: record.needsHostTransition ?? true,
             delayMs,
+            durationMs: record.motionTiming?.durationMs,
+            timingPolicy: record.motionTiming?.policy,
             tracks: record.motionTracks,
           },
           motionDraft: record.motionDraft,
-          durationMs: component.animationLengthMs(),
+          durationMs,
+          timingPolicy: record.motionTiming?.policy ?? 'version',
           delayMs,
+          skipReason: record.motionSkipReason,
         });
       }
     }
@@ -1402,6 +1504,7 @@ export class BoardgameComponentAnimator extends LitElement {
         },
         motionDraft: ac.motionDraft,
         durationMs: ac.component.animationLengthMs(),
+        timingPolicy: 'version',
         delayMs: 0,
       });
     }
@@ -1432,7 +1535,7 @@ export class BoardgameComponentAnimator extends LitElement {
     if (this._generation !== generation) { resolve(Promise.resolve()); return; }
     const planEntries: Array<{
       draft: StructuralMotionDraft;
-      timingRequest: { policy: 'version'; delayMs: number; durationMs: number };
+      timingRequest: { policy: AnimationTimingPolicy; delayMs: number; durationMs: number };
     }> = [];
     for (const item of playback) {
       if (!item.motionDraft) continue;
@@ -1440,7 +1543,7 @@ export class BoardgameComponentAnimator extends LitElement {
       planEntries.push({
         draft: item.motionDraft,
         timingRequest: {
-          policy: 'version' as const,
+          policy: item.timingPolicy,
           delayMs: item.delayMs,
           durationMs: item.durationMs,
         },
@@ -1464,7 +1567,9 @@ export class BoardgameComponentAnimator extends LitElement {
       settled: Promise<boolean[]>;
     }> = [];
     for (const item of playback) {
-      const animations = item.component.playAnimation(item.config) as readonly Animation[];
+      const animations = item.skipReason
+        ? Object.freeze([])
+        : item.component.playAnimation(item.config) as readonly Animation[];
       const tracks = item.config.tracks ?? [];
       if (item.motionDraft) {
         const segmentIndex = item.motionSegmentIndex!;
@@ -1475,7 +1580,8 @@ export class BoardgameComponentAnimator extends LitElement {
           }
           executionUpdates.set(segmentIndex, {
             status: 'skipped',
-            reason: animations.length === 0 ? 'not-started' : 'playback-error',
+            reason: item.skipReason
+              ?? (animations.length === 0 ? 'not-started' : 'playback-error'),
           });
         } else {
           const executedTimings = Object.freeze(animations.map((animation, index) => (

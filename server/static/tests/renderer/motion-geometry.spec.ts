@@ -730,6 +730,7 @@ test('structural plans publish before playback and invalidate on interruption', 
       const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
         updateComplete: Promise<unknown>;
         prepare(): void;
+        installMotionTransfers(declarations: readonly unknown[]): void;
         animateFlip(): Promise<void>;
         observeStructuralMotionEvents(observer: (event: {
           id: string;
@@ -952,6 +953,11 @@ test('structural continuity resolves unique history and skips ambiguous history'
         GameName: 'motion-provenance-test',
         ID: 'inferred-card',
       };
+      const anchor = document.createElement('div');
+      anchor.id = 'declared-hand-edge';
+      Object.assign(anchor.style, {
+        position: 'fixed', left: '50px', top: '0px', width: '1px', height: '1px',
+      });
       const stackData = (
         components: readonly unknown[],
         ids: readonly string[],
@@ -969,7 +975,7 @@ test('structural continuity resolves unique history and skips ambiguous history'
       source.stack = stackData([], [], {});
       destination.stack = stackData([], [], {});
       ambiguousDestination.stack = stackData([], [], {});
-      document.body.append(animator, source, destination, ambiguousDestination);
+      document.body.append(animator, source, destination, ambiguousDestination, anchor);
       await Promise.all([
         animator.updateComplete, source.updateComplete, destination.updateComplete,
         ambiguousDestination.updateComplete,
@@ -1000,10 +1006,33 @@ test('structural continuity resolves unique history and skips ambiguous history'
       const departing = animator._solvedMotionPlan?.segments[0];
       animator.clearAnimatingComponents();
 
+      // A Hand-only surface has no rendered source stack or history. The
+      // declaration establishes after-only presence and supplies geometry;
+      // destination defaults supply the safe presentation pose.
+      const declared = { ...visible, ID: 'declared-card' };
+      animator.prepare();
+      animator.installMotionTransfers([{
+        key: 'auto-hand:0',
+        subjectId: 'declared-card',
+        source: anchor.id,
+        carrier: 'declared-card',
+        durationMs: 80,
+        timing: 'immediate',
+      }]);
+      source.stack = stackData([], [], {});
+      destination.stack = stackData([declared], ['declared-card'], {});
+      ambiguousDestination.stack = stackData([], [], {});
+      await Promise.all([
+        source.updateComplete, destination.updateComplete, ambiguousDestination.updateComplete,
+      ]);
+      await animator.animateFlip();
+      const declaredAppearing = animator._solvedMotionPlan?.segments[0];
+
       return {
         sourceId: source.id,
         appearing,
         departing,
+        declaredAppearing,
       };
     });
 
@@ -1021,6 +1050,19 @@ test('structural continuity resolves unique history and skips ambiguous history'
         from: { space: 'viewport' },
         to: { space: 'viewport' },
       },
+      execution: { status: 'finished' },
+    });
+    expect(result.declaredAppearing).toMatchObject({
+      subjectId: 'declared-card',
+      presence: 'appearing',
+      declarationKey: 'auto-hand:0',
+      pathOrigin: 'declared-anchor',
+      provenance: {
+        kind: 'declaration',
+        declarationKey: 'auto-hand:0',
+        pose: 'destination-defaults',
+      },
+      path: { kind: 'travel', from: { space: 'viewport' }, to: { space: 'viewport' } },
       execution: { status: 'finished' },
     });
     expect(result.departing).toBeUndefined();

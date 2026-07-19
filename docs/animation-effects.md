@@ -315,7 +315,7 @@ ordinary deterministic outcome, not as an error.
 
 `motionTransfersForTransition()` is the pure, queue-critical companion to
 decorative effects. Return `motion.transfer({ key, subjectId, source, carrier,
-durationMs })` for each retained non-stack carrier that should arrive from
+durationMs })` for each carrier that should arrive from
 source geometry. The full batch is validated before playback, scoped to this
 renderer's registered roots, published as one explicit generation, and settled
 alongside automatic FLIP. Missing endpoints skip individual segments;
@@ -325,8 +325,12 @@ The hook consumes the real wire contract: `context.move.AnimationKey`, not
 `Name`, plus only viewer-sanitized `Properties`. A declaration key is unique
 within one transition. It is not cross-device identity: version timing aligns
 surfaces, while a shared semantic transfer token requires an explicit,
-privacy-reviewed server field. Stack-component carriers currently skip with an
-ownership conflict because automatic FLIP already owns their host channels.
+privacy-reviewed server field. An exact after-only stack carrier is consumed by
+automatic FLIP rather than animated twice: the declared anchor supplies only
+spatial origin; source/destination stack defaults supply semantic pose; all host
+and visual tracks retain one FLIP lifecycle. Retained, mismatched, or ambiguous
+stack carriers fail closed. Viewport anchor translation also fails closed under
+transformed ancestors until affine projection is a distinct primitive.
 
 ## Composition
 
