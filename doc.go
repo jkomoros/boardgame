@@ -28,11 +28,12 @@ declaratively via struct tags. The default base.GameDelegate includes
 constructors for all pre-built constraints; override
 ConfigureStackConstraintConstructors only to add custom types.
 
-Constraints are validation predicates, not event callbacks. They must be
-deterministic, free of side effects, and produce the same result for a logical
-state and its copy. This lets MayMoveAllTo and transactional MoveAllTo validate
-an ordered multi-component transfer on a disposable state before committing
-it.
+Constraints are validation predicates, not event callbacks. They may capture
+immutable configuration, but must resolve runtime game objects through their
+supplied arguments. They must be deterministic, free of side effects, and
+produce the same result for a logical state and its copy. This lets
+MayMoveAllTo and transactional MoveAllTo validate an ordered multi-component
+transfer on a disposable state before committing it.
 
 ImmutableComponentInstance provides "May" methods for pre-validating
 component moves in Legal() before actually performing them in Apply():

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/workfit/tester/assert"
@@ -1435,4 +1436,67 @@ func TestMoveAllTo(t *testing.T) {
 		t.Error("Got no error moving from a stack that was too big.")
 	}
 
+}
+
+func TestMoveAllToMinimallyAttachedStacks(t *testing.T) {
+	game := testDefaultGame(t, false)
+	deck := game.Manager().Chest().Deck("test")
+	fakeState := &state{game: game}
+
+	destination := deck.NewStack(1)
+	destination.setState(fakeState)
+	source := deck.NewSizedStack(2)
+	source.setState(fakeState)
+	source.insertNext(deck.Components()[0].ImmutableInstance(fakeState))
+
+	if err := source.MoveAllTo(destination); err != nil {
+		t.Fatalf("MoveAllTo on minimally attached stacks: %v", err)
+	}
+	if source.NumComponents() != 0 || destination.NumComponents() != 1 {
+		t.Fatalf("counts after MoveAllTo = source %d, destination %d; want 0, 1", source.NumComponents(), destination.NumComponents())
+	}
+}
+
+func TestMoveAllToUnconstrainedPreflightRejectsInvalidLaterComponentAtomically(t *testing.T) {
+	game := testDefaultGame(t, false)
+	deck := game.Manager().Chest().Deck("test")
+	localState := &state{game: game}
+
+	destination := deck.NewStack(2)
+	destination.setState(localState)
+	source := deck.NewSizedStack(2)
+	source.setState(localState)
+	source.insertNext(deck.Components()[0].ImmutableInstance(localState))
+	source.(*sizedStack).indexes[1] = len(deck.Components()) + 100
+
+	beforeSource := append([]int(nil), source.(*sizedStack).indexes...)
+	beforeDestination := append([]int(nil), destination.(*growableStack).indexes...)
+	if err := source.MoveAllTo(destination); err == nil {
+		t.Fatal("MoveAllTo accepted an invalid later component index")
+	}
+	if !slices.Equal(source.(*sizedStack).indexes, beforeSource) {
+		t.Fatalf("source changed after preflight failure: got %v, want %v", source.(*sizedStack).indexes, beforeSource)
+	}
+	if !slices.Equal(destination.(*growableStack).indexes, beforeDestination) {
+		t.Fatalf("destination changed after preflight failure: got %v, want %v", destination.(*growableStack).indexes, beforeDestination)
+	}
+}
+
+func TestMoveAllToWithoutConstraintsDoesNotReconstructState(t *testing.T) {
+	game := testDefaultGame(t, false)
+	delegate := game.Manager().Delegate().(*testGameDelegate)
+	gameState, _ := concreteStates(game.CurrentState())
+	source := gameState.OtherStack
+	destination := gameState.MyBoard.SpaceAt(0)
+	if err := gameState.DrawDeck.First().MoveToNextSlot(source); err != nil {
+		t.Fatal("populate source:", err)
+	}
+
+	before := delegate.gameStateConstructions
+	if err := source.MoveAllTo(destination); err != nil {
+		t.Fatal("MoveAllTo:", err)
+	}
+	if delegate.gameStateConstructions != before {
+		t.Fatalf("MoveAllTo reconstructed game state %d times; want 0", delegate.gameStateConstructions-before)
+	}
 }

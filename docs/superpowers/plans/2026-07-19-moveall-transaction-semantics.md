@@ -61,15 +61,18 @@ For a valid state and valid `StackConstraint` implementations:
 2. If it succeeds, the only changes made by `MoveAllTo` are the transfer's
    source and destination membership, ordering, ID bookkeeping, and component
    location indexes.
-3. Validation observes a coherent whole-state simulation. Constraints on the
-   second and later insertion see the effects of earlier simulated insertions,
-   both through the destination and through the supplied state.
+3. Constrained validation observes a coherent whole-state simulation.
+   Constraints on the second and later insertion see the effects of earlier
+   simulated insertions, both through the destination and through the supplied
+   state. An unconstrained transfer instead preflights every component without
+   reconstructing unrelated state.
 4. Within one `MayMoveAllTo` or `MoveAllTo` call, validation happens once per
    proposed insertion. Commit does not invoke constraints a second time. A
    normal proposal may still evaluate constraints once during `Legal` and once
    during `Apply`; constraints must never depend on total invocation count.
-5. `MayMoveAllTo` and `MoveAllTo` use the same validation path, error semantics,
-   ordering, and slot selection.
+5. `MayMoveAllTo` and `MoveAllTo` use the same validation path, error
+   categories, ordering, and slot selection. Their historical capacity strings
+   retain different capitalization for compatibility.
 
 “Framework-owned state” is deliberately broader than the two endpoint stacks.
 A local snapshot-and-rollback cannot honestly satisfy this contract because a
@@ -80,7 +83,9 @@ constraint receives the whole state and may inspect relationships elsewhere.
 The existing requirement that `StackConstraint` be pure and not panic becomes
 more explicit. A valid constraint is a deterministic, copy-stable predicate:
 
-- it bases its result only on persisted logical game, player,
+- it may use immutable constructor/configuration constants and immutable
+  component definitions;
+- it otherwise bases its result only on persisted logical game, player,
   dynamic-component, and stack values reachable through the supplied
   destination, proposed components, and immutable state;
 - it does not depend on `State.Version`, object identity, or live `Game`
@@ -93,9 +98,12 @@ more explicit. A valid constraint is a deterministic, copy-stable predicate:
 - it does not retain supplied objects after returning; and
 - it does not panic.
 
-This is not a new practical restriction: `MayMoveAllTo`, `Legal`, state replay,
-and the engine's copied-Apply boundary already require deterministic validation.
-It is a clarification of the semantic contract that those APIs depend on.
+`MayMoveAllTo`, `Legal`, state replay, and the engine's copied-Apply boundary
+already require deterministic validation. Transactional direct `MoveAllTo`
+now exposes the same requirement. A custom constraint that previously captured
+its live containing substate may therefore require migration; the canonical
+pattern is to capture immutable configuration only and resolve runtime objects
+from the supplied state.
 
 Go cannot enforce this contract for a function closure. An `ImmutableState`
 can be cast back to creator-owned concrete values, a closure can capture live
@@ -115,7 +123,7 @@ safe. Transactional means atomic with respect to returned errors, not safe for
 concurrent goroutine mutation. Concurrent mutation remains unsupported and is
 covered by the existing race test expectation.
 
-## Selected design: validate a copy, commit an infallible plan
+## Selected design: preflight or simulate, then commit an infallible plan
 
 The operation has two phases.
 
@@ -125,15 +133,20 @@ The operation has two phases.
 2. Validate distinct endpoints, exact state identity, mutation permission,
    matching decks, and aggregate capacity.
 3. Return immediately for an empty source.
-4. Deep-copy the complete unsanitized state.
-5. Locate copied endpoints through the canonical stack-owner paths.
-6. Run the existing sequential checked transfer on the copied endpoints.
-7. If any step fails, return that error and discard the copy.
+4. If the destination has no constraints, validate every source component
+   against the live endpoints without mutation. Endpoint validation and
+   aggregate capacity make every successive next slot structurally available.
+5. If the destination has constraints, deep-copy the complete unsanitized
+   state, locate copied endpoints through canonical stack-owner paths, and run
+   the sequential checked transfer on the copy.
+6. If any step fails, return that error without changing the live endpoints.
 
-The checked simulation is a private helper. It performs the current loop of
-“first component to destination next slot” and therefore preserves the exact
+The constrained simulation is a private helper. It performs the current loop
+of “first component to destination next slot” and therefore preserves the exact
 order-dependent behavior of all four growable/sized source-destination
-combinations.
+combinations. The unconstrained path still checks each component's state,
+attachment, containing stack, and deck before commit; it does not merely trust
+the aggregate count.
 
 ### 2. Commit
 
@@ -171,8 +184,8 @@ call one another:
 - `validateMoveAllEndpoints`: structural endpoint validation;
 - `prepareMoveAll`: endpoint/capacity validation and construction of the
   private plan;
-- `validateMoveAllPlan`: whole-state copy, copied-stack lookup, and sequential
-  checked transfer on the disposable state;
+- `validateMoveAllPlan`: constraint-free component preflight or whole-state
+  constrained simulation;
 - `commitMoveAllPlan`: exactly the planned number of non-failing structural
   moves on the original state.
 
@@ -181,11 +194,12 @@ and validates a plan, then commits it. This gives the two public methods one
 source of truth without recursion, duplicate endpoint validation, or double
 constraint evaluation inside one call.
 
-No fast path will initially bypass copying when a destination has no
-constraints. The optimization would couple transaction correctness to private
-constraint storage and make future per-component validation easy to omit. Add
-it only if a benchmark shows state copying is material in realistic Apply
-workloads.
+The constraint-free path is part of the correctness design, not an unchecked
+shortcut. It preserves the fundamental stack API for minimally attached
+internal stacks, avoids rerunning unrelated creator construction hooks, and
+makes common transfers scale with the transferred components rather than the
+entire game. Unknown future physical stack implementations conservatively use
+whole-state simulation until their constraint storage is understood.
 
 ## Rejected alternatives
 
@@ -233,14 +247,18 @@ without changing the creator API.
 
 - Preserve existing validation categories and the first failing constraint's
   error.
-- Normalize the duplicate capacity messages to lower-case
-  `not enough space in the target stack`; callers must not depend on error text.
+- Preserve the historical capacity strings, including their capitalization
+  difference, until stack mutations expose typed errors. Existing errors are
+  untyped, so string comparison is an unfortunate but plausible caller
+  dependency.
 - Do not recover constraint panics. The documented programming error should
   retain its stack trace, and recovery could not undo external effects anyway.
 - Do not add backward-compatibility switches. The old partial mutation was an
   implementation defect, not useful API behavior.
-- Existing games require no migration. Examples which ignore `MoveAllTo`
-  errors should still be corrected so they demonstrate the intended style.
+- The canonical GAMES repository has no custom programmatic constraints and
+  requires no migration. Other games with custom closures must audit for live
+  state captures. Examples which ignore `MoveAllTo` errors should still be
+  corrected so they demonstrate the intended style.
 
 ## Adversarial test matrix
 
@@ -291,7 +309,7 @@ behavior as a guarantee. In particular:
 
 ### Regression and performance
 
-- Keep `MayMoveAllTo` non-mutating and error-equivalent.
+- Keep `MayMoveAllTo` non-mutating and constraint-error-equivalent.
 - Run focused stack, ownership, constraint, and move tests under `-race`.
 - Run the complete BOARDGAME suite.
 - Run all canonical `../games` tests independently against the worktree module
@@ -301,12 +319,19 @@ behavior as a guarantee. In particular:
   the copy cost, but prefer correctness until measured evidence supports an
   internal optimization.
 
-Initial implementation measurement on an Apple M1 (`-benchtime=100x`, three
-runs) is 0.23–0.43 ms and roughly 47 KB / 678 allocations per benchmark
-iteration. Each iteration performs two successful two-component transactional
-transfers, including two whole-state validations. This is visible overhead but
-not evidence for a more fragile fast path; profile a real large game before
-special-casing constraint-free destinations.
+Final implementation measurement on an Apple M1 (`-benchtime=100x`, three
+runs) compares iterations containing two successful two-component transfers:
+
+- unconstrained, normal state: 3.9–4.6 µs and 1.5 KB / 52 allocations;
+- constrained, normal state: 138–165 µs and 47 KB / 678 allocations;
+- unconstrained with an unrelated 10,000-slot stack: 4.2–4.4 µs and 1.5 KB /
+  52 allocations; and
+- constrained with that large unrelated stack: 342–483 µs and roughly 538 KB /
+  678 allocations.
+
+The common constraint-free path is independent of unrelated state size.
+Constrained transfers pay the honest whole-state transaction cost; profile a
+real game before introducing a more complex general transaction substrate.
 
 ## Adjacent APIs
 
@@ -347,9 +372,8 @@ would have weakened the implementation. This revision resolves them:
 
 Remaining risks are intentionally visible rather than papered over:
 
-- whole-state copying may be expensive for unusually large games, so the
-  implementation includes measurement before considering a constraint-free
-  fast path;
+- constrained transfers copy the whole state and can be expensive in unusually
+  large games or when repeated many times in one Apply;
 - Go interfaces cannot prevent malicious mutation through type assertions or
   captured references; and
 - an internal panic during the supposedly infallible commit would still be a

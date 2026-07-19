@@ -125,9 +125,10 @@ type ImmutableStack interface {
 
 	//MayMoveAllTo checks whether all components in this stack could be
 	//moved to the destination stack, without actually performing any moves.
-	//It copies the underlying state, finds the corresponding stacks in the
-	//copy, and performs actual moves on the copy to check for errors
-	//(including order-dependent constraint violations). Returns nil if all
+	//For an unconstrained destination it preflights every component directly.
+	//For a constrained destination it copies the underlying state, finds the
+	//corresponding stacks, and performs actual moves on the copy so
+	//order-dependent constraint violations are observed. Returns nil if all
 	//moves would succeed, or a descriptive error if any would fail. If the
 	//source stack is empty, returns nil (nothing to move).
 	//
@@ -314,10 +315,11 @@ type Stack interface {
 
 	//MoveAllTo moves all components in this stack, from first to last, into
 	//the destination's successive next slots. It first validates the complete
-	//ordered transfer on a copy of the state. If it returns an error, it has
-	//not changed framework-owned state; on success it commits the validated
-	//transfer without evaluating constraints a second time. See
-	//StackConstraint for the contract required of constraint functions.
+	//ordered transfer without mutation, using a whole-state simulation when
+	//the destination has constraints. If it returns an error, it has not changed
+	//framework-owned state; on success it commits the validated transfer without
+	//evaluating constraints a second time. See StackConstraint for the contract
+	//required of constraint functions.
 	//
 	//This will fail if other has fewer SlotsRemaining than this stack has
 	//components. All components are moved as one notional game Move, so clients
@@ -1516,7 +1518,7 @@ type moveAllPlan struct {
 // prepareMoveAll captures everything commit needs after validating conditions
 // that do not change during a synchronous transfer. Per-component constraints
 // are intentionally left to validateMoveAllPlan's ordered simulation.
-func prepareMoveAll(from ImmutableStack, dest ImmutableStack) (*moveAllPlan, error) {
+func prepareMoveAll(from ImmutableStack, dest ImmutableStack, capacityError string) (*moveAllPlan, error) {
 	physicalFrom, err := requirePhysicalStack(from, "source")
 	if err != nil {
 		return nil, err
@@ -1528,7 +1530,7 @@ func prepareMoveAll(from ImmutableStack, dest ImmutableStack) (*moveAllPlan, err
 
 	count := physicalFrom.NumComponents()
 	if physicalDest.SlotsRemaining() < count {
-		return nil, errors.New("not enough space in the target stack")
+		return nil, errors.New(capacityError)
 	}
 
 	return &moveAllPlan{
@@ -1544,6 +1546,9 @@ func prepareMoveAll(from ImmutableStack, dest ImmutableStack) (*moveAllPlan, err
 func validateMoveAllPlan(plan *moveAllPlan) error {
 	if plan.count == 0 {
 		return nil
+	}
+	if !stackHasConstraints(plan.destination) {
+		return validateUnconstrainedMoveAllPlan(plan)
 	}
 
 	origState := plan.source.state()
@@ -1564,6 +1569,42 @@ func validateMoveAllPlan(plan *moveAllPlan) error {
 	}
 
 	return moveAllToChecked(copiedFrom, copiedDest, plan.count)
+}
+
+func stackHasConstraints(stack Stack) bool {
+	switch concrete := stack.(type) {
+	case *growableStack:
+		return len(concrete.constraints) > 0
+	case *sizedStack:
+		return len(concrete.constraints) > 0
+	default:
+		// All physical stack implementations are currently covered above. Be
+		// conservative if another internal implementation is added.
+		return true
+	}
+}
+
+// validateUnconstrainedMoveAllPlan checks every source component against the
+// live endpoints without modifying either stack. With no destination
+// constraints, all remaining checks are structural and aggregate capacity
+// guarantees that each successive next slot exists. This preserves the
+// lightweight behavior of fundamental stack operations while keeping commit
+// infallible.
+func validateUnconstrainedMoveAllPlan(plan *moveAllPlan) error {
+	validated := 0
+	for _, component := range plan.source.Components() {
+		if component == nil {
+			continue
+		}
+		if err := component.MayMoveTo(plan.destination); err != nil {
+			return err
+		}
+		validated++
+	}
+	if validated != plan.count {
+		return errors.New("source component count changed while validating MoveAllTo")
+	}
+	return nil
 }
 
 // moveAllToChecked is only used with disposable copied state.
@@ -1587,7 +1628,7 @@ func commitMoveAllPlan(plan *moveAllPlan) {
 }
 
 func mayMoveAllToImpl(from ImmutableStack, dest ImmutableStack) error {
-	plan, err := prepareMoveAll(from, dest)
+	plan, err := prepareMoveAll(from, dest, "not enough space in the target stack")
 	if err != nil {
 		return err
 	}
@@ -1644,7 +1685,9 @@ func (g *growableStack) MoveAllTo(other Stack) error {
 }
 
 func moveAllToImpl(from Stack, to Stack) error {
-	plan, err := prepareMoveAll(from, to)
+	// Preserve MoveAllTo's historical capitalization. These errors predate
+	// typed mutation errors, so callers may unfortunately compare the string.
+	plan, err := prepareMoveAll(from, to, "Not enough space in the target stack")
 	if err != nil {
 		return err
 	}

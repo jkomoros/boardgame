@@ -209,6 +209,11 @@ func TestMoveAllToValidatesOnceOnCopiedState(t *testing.T) {
 		if dest.state() != st {
 			return errors.New("constraint destination and state do not match")
 		}
+		for _, component := range proposed {
+			if component.ImmutableState() != st {
+				return errors.New("proposed component and state do not match")
+			}
+		}
 		destinationCounts = append(destinationCounts, dest.NumComponents())
 		return nil
 	})
@@ -304,6 +309,199 @@ func TestMoveAllToLateRejectionAtomicAcrossStackKinds(t *testing.T) {
 			if string(after) != string(before) {
 				t.Fatal("state changed after rejected MoveAllTo")
 			}
+			if err := destination.ClearConstraints(); err != nil {
+				t.Fatal("clear rejecting constraint:", err)
+			}
+			component := source.First()
+			if err := component.MoveToNextSlot(destination); err != nil {
+				t.Fatal("valid move after rejected transaction:", err)
+			}
+			stack, _, err := component.ContainingImmutableStack()
+			if err != nil {
+				t.Fatal("locate component after valid follow-up move:", err)
+			}
+			if stack != destination {
+				t.Fatal("component index did not point at destination after valid follow-up move")
+			}
+		})
+	}
+}
+
+func TestMayMoveAllToAndMoveAllToReturnSameConstraintError(t *testing.T) {
+	game := testGameWithMutableConstraints(t)
+	gameState, playerStates := concreteStates(game.CurrentState())
+	source := gameState.OtherStack
+	destination := playerStates[0].Hand
+	for slot := 0; slot < 2; slot++ {
+		if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+		if dest.NumComponents()+len(proposed) > 1 {
+			return errors.New("bulk limit reached")
+		}
+		return nil
+	})
+
+	mayErr := source.MayMoveAllTo(destination)
+	moveErr := source.MoveAllTo(destination)
+	if mayErr == nil || moveErr == nil {
+		t.Fatalf("errors = MayMoveAllTo %v, MoveAllTo %v; want both non-nil", mayErr, moveErr)
+	}
+	if mayErr.Error() != moveErr.Error() {
+		t.Fatalf("errors differ: MayMoveAllTo %q, MoveAllTo %q", mayErr, moveErr)
+	}
+	if source.NumComponents() != 2 || destination.NumComponents() != 0 {
+		t.Fatalf("failed checks changed stacks: source %d, destination %d", source.NumComponents(), destination.NumComponents())
+	}
+}
+
+func TestMoveAllToSuccessMatchesCheckedSequenceAcrossStackKinds(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(t *testing.T, gameState *testGameState, playerStates []*testPlayerState) (Stack, Stack)
+	}{
+		{
+			name: "growable to growable with existing destination",
+			setup: func(t *testing.T, gameState *testGameState, _ []*testPlayerState) (Stack, Stack) {
+				source := gameState.MyBoard.SpaceAt(0)
+				destination := gameState.MyBoard.SpaceAt(2)
+				if err := gameState.DrawDeck.First().MoveToNextSlot(destination); err != nil {
+					t.Fatal(err)
+				}
+				for i := 0; i < 2; i++ {
+					if err := gameState.DrawDeck.First().MoveToNextSlot(source); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+		{
+			name: "growable to sparse sized",
+			setup: func(t *testing.T, gameState *testGameState, _ []*testPlayerState) (Stack, Stack) {
+				source := gameState.MyBoard.SpaceAt(0)
+				destination := gameState.DownSizeStack
+				if err := gameState.DrawDeck.First().MoveTo(destination, 1); err != nil {
+					t.Fatal(err)
+				}
+				for i := 0; i < 2; i++ {
+					if err := gameState.DrawDeck.First().MoveToNextSlot(source); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+		{
+			name: "sparse sized to growable with existing destination",
+			setup: func(t *testing.T, gameState *testGameState, _ []*testPlayerState) (Stack, Stack) {
+				source := gameState.DownSizeStack
+				destination := gameState.MyBoard.SpaceAt(0)
+				if err := gameState.DrawDeck.First().MoveToNextSlot(destination); err != nil {
+					t.Fatal(err)
+				}
+				for _, slot := range []int{0, 2} {
+					if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+		{
+			name: "sparse sized to sparse sized",
+			setup: func(t *testing.T, gameState *testGameState, _ []*testPlayerState) (Stack, Stack) {
+				source := gameState.DownSizeStack
+				destination := gameState.OtherStack
+				if err := destination.ExpandSize(2); err != nil {
+					t.Fatal(err)
+				}
+				if err := gameState.DrawDeck.First().MoveTo(destination, 1); err != nil {
+					t.Fatal(err)
+				}
+				for _, slot := range []int{0, 2} {
+					if err := gameState.DrawDeck.First().MoveTo(source, slot); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return source, destination
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			game := testGameWithMutableConstraints(t)
+			gameState, playerStates := concreteStates(game.CurrentState())
+			source, destination := test.setup(t, gameState, playerStates)
+			moved := make([]ComponentInstance, 0, source.NumComponents())
+			for _, component := range source.Components() {
+				if component != nil {
+					moved = append(moved, component)
+				}
+			}
+
+			mustAddStackConstraint(t, destination, func(dest ImmutableStack, proposed []ImmutableComponentInstance, st ImmutableState) error {
+				if dest.state() != st {
+					return errors.New("destination is not owned by supplied state")
+				}
+				for _, component := range proposed {
+					if component.ImmutableState() != st {
+						return errors.New("proposed component is not owned by supplied state")
+					}
+				}
+				return nil
+			})
+
+			originalState := game.CurrentState().(*state)
+			expectedState, err := originalState.copy(false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedSource, err := findCorrespondingStack(source, originalState, expectedState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedDestination, err := findCorrespondingStack(destination, originalState, expectedState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := moveAllToChecked(expectedSource, expectedDestination, source.NumComponents()); err != nil {
+				t.Fatal("checked sequence:", err)
+			}
+
+			if err := source.MoveAllTo(destination); err != nil {
+				t.Fatal("transactional MoveAllTo:", err)
+			}
+			gotJSON, err := json.Marshal(originalState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantJSON, err := json.Marshal(expectedState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(gotJSON) != string(wantJSON) {
+				t.Fatalf("transactional state differs from checked sequence\n got: %s\nwant: %s", gotJSON, wantJSON)
+			}
+
+			expectedSlots := make(map[int]int)
+			for slot, component := range expectedDestination.Components() {
+				if component != nil {
+					expectedSlots[component.DeckIndex()] = slot
+				}
+			}
+			for _, component := range moved {
+				stack, slot, err := component.ContainingImmutableStack()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if stack != destination || slot != expectedSlots[component.DeckIndex()] {
+					t.Fatalf("component %d location = %v[%d], want destination[%d]", component.DeckIndex(), stack, slot, expectedSlots[component.DeckIndex()])
+				}
+			}
 		})
 	}
 }
@@ -376,7 +574,7 @@ func TestMoveAllToLateConstraintPanicLeavesLiveStateUnchanged(t *testing.T) {
 	}
 }
 
-func BenchmarkMoveAllToTransactional(b *testing.B) {
+func benchmarkMoveAllTo(b *testing.B, constrained bool, unrelatedSlots int) {
 	manager, err := NewGameManager(defaultTestGameDelegate(0), newTestStorageManager())
 	if err != nil {
 		b.Fatal(err)
@@ -390,6 +588,11 @@ func BenchmarkMoveAllToTransactional(b *testing.B) {
 	}
 	manager.Internals().AllowMutableConstraints(game)
 	gameState, playerStates := concreteStates(game.CurrentState())
+	if unrelatedSlots > 0 {
+		if err := gameState.DownSizeStack.ExpandSize(unrelatedSlots); err != nil {
+			b.Fatal(err)
+		}
+	}
 	left := gameState.OtherStack
 	right := playerStates[0].Hand
 	for slot := 0; slot < 2; slot++ {
@@ -397,9 +600,11 @@ func BenchmarkMoveAllToTransactional(b *testing.B) {
 			b.Fatalf("populate source slot %d: %v", slot, err)
 		}
 	}
-	accept := func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil }
-	mustAddStackConstraint(b, left, accept)
-	mustAddStackConstraint(b, right, accept)
+	if constrained {
+		accept := func(ImmutableStack, []ImmutableComponentInstance, ImmutableState) error { return nil }
+		mustAddStackConstraint(b, left, accept)
+		mustAddStackConstraint(b, right, accept)
+	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -411,6 +616,22 @@ func BenchmarkMoveAllToTransactional(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func BenchmarkMoveAllToUnconstrained(b *testing.B) {
+	benchmarkMoveAllTo(b, false, 0)
+}
+
+func BenchmarkMoveAllToConstrained(b *testing.B) {
+	benchmarkMoveAllTo(b, true, 0)
+}
+
+func BenchmarkMoveAllToUnconstrainedLargeState(b *testing.B) {
+	benchmarkMoveAllTo(b, false, 10_000)
+}
+
+func BenchmarkMoveAllToConstrainedLargeState(b *testing.B) {
+	benchmarkMoveAllTo(b, true, 10_000)
 }
 
 func TestClearConstraints(t *testing.T) {

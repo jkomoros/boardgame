@@ -18,16 +18,17 @@ package boardgame
 // components are not yet in the destination stack. For example, to check a
 // maximum count, use dest.NumComponents() + len(proposed).
 //
-// Constraints must be deterministic, copy-stable predicates. They may base
-// their result only on persisted logical game, player, dynamic-component, and
-// stack values reachable through destination, proposed, and state. In
-// particular, they must not depend on State.Version, object identity, or live
-// Game metadata: Legal observes the current version while Apply operates on
-// the next version. They must not modify supplied or captured state, consume
-// randomness, schedule callbacks, perform I/O, modify captured values, consult
-// clocks, depend on invocation count, or retain the supplied objects after
-// returning. The engine may evaluate a constraint on a copied state, and may
-// evaluate it independently during Legal and Apply.
+// Constraints must be deterministic, copy-stable predicates. They may use
+// immutable constructor/configuration values, immutable component definitions,
+// and persisted logical game, player, dynamic-component, and stack values
+// reached through destination, proposed, and state. In particular, they must
+// not capture mutable runtime state or depend on State.Version, object
+// identity, or live Game metadata: Legal observes the current version while
+// Apply operates on the next version. They must not modify supplied or captured
+// state, consume randomness, schedule callbacks, perform I/O, modify captured
+// values, consult clocks, depend on invocation count, or retain the supplied
+// objects after returning. The engine may evaluate a constraint on a copied
+// state, and may evaluate it independently during Legal and Apply.
 //
 // Constraints must not panic.
 //
@@ -36,8 +37,10 @@ package boardgame
 // directly rather than moveComponentImpl.
 //
 // Constraints are set at setup time (via struct tags or in FinishSetUp) and
-// don't need individual removal. Use ClearConstraints to reset all
-// constraints on a stack.
+// don't need individual removal. A constraint installed from a state setup
+// hook must resolve state-specific objects from its supplied state argument;
+// it must not capture the particular substate or stack being configured. Use
+// ClearConstraints to reset all constraints on a stack.
 type StackConstraint func(destination ImmutableStack, proposed []ImmutableComponentInstance, state ImmutableState) error
 
 // StackConstraintConstructor is used for struct-tag-based constraint
