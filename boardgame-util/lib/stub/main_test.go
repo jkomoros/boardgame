@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -181,7 +180,7 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 		//as a tripline to have tests fail when the underlying libraries have
 		//changed and the stub outputs need updating.
 
-		tempDir, err := ioutil.TempDir("", "TEMP_test_pkg_")
+		tempDir, err := os.MkdirTemp("", "TEMP_test_pkg_")
 
 		if err != nil {
 			t.Fatal("Couldn't create temp dir")
@@ -257,7 +256,7 @@ func fileContentsFromDir(path string) (FileContents, error) {
 // dir contenst to put in contents.
 func recursiveListFilesForFileContents(basePath, prefix string, contents FileContents) error {
 
-	infos, err := ioutil.ReadDir(basePath)
+	infos, err := os.ReadDir(basePath)
 
 	if err != nil {
 		return errors.New("Couldn't list path: " + err.Error())
@@ -277,7 +276,7 @@ func recursiveListFilesForFileContents(basePath, prefix string, contents FileCon
 			continue
 		}
 
-		content, err := ioutil.ReadFile(filepath.Join(basePath, info.Name()))
+		content, err := os.ReadFile(filepath.Join(basePath, info.Name()))
 
 		if err != nil {
 			return errors.New("couldn't read " + filepath.Join(basePath, info.Name()) + ": " + err.Error())

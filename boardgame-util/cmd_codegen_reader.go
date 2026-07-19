@@ -1,10 +1,10 @@
 package main
 
 import (
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	codegenPkg "github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 )
 
@@ -27,14 +27,14 @@ func (c *codegenReader) Run(p writ.Path, positional []string) {
 	}
 
 	if readerOutput != "" {
-		if err := ioutil.WriteFile(filepath.Join(pkgDirectory, parent.OutputFile), []byte(readerOutput), 0644); err != nil {
+		if err := fileutil.WriteFileAtomic(filepath.Join(pkgDirectory, parent.OutputFile), []byte(readerOutput), 0o644); err != nil {
 			c.Base().errAndQuit("Couldn't output reader file: " + err.Error())
 		}
 	}
 
 	if !c.DontOutputReaderTest {
 		if testReaderOutput != "" {
-			if err := ioutil.WriteFile(filepath.Join(pkgDirectory, parent.OutputFileTest), []byte(testReaderOutput), 0644); err != nil {
+			if err := fileutil.WriteFileAtomic(filepath.Join(pkgDirectory, parent.OutputFileTest), []byte(testReaderOutput), 0o644); err != nil {
 				c.Base().errAndQuit("Couldn't output test reader file: " + err.Error())
 			}
 		}

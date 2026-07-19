@@ -1,10 +1,10 @@
 package main
 
 import (
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	codegenPkg "github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 )
 
@@ -25,7 +25,7 @@ func (c *codegenEnum) Run(p writ.Path, positional []string) {
 	}
 
 	if enumOutput != "" {
-		if err := ioutil.WriteFile(filepath.Join(packageDir, parent.EnumOutputFile), []byte(enumOutput), 0644); err != nil {
+		if err := fileutil.WriteFileAtomic(filepath.Join(packageDir, parent.EnumOutputFile), []byte(enumOutput), 0o644); err != nil {
 			c.Base().errAndQuit("Couldn't output file: " + err.Error())
 		}
 	}

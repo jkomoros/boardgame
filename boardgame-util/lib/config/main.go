@@ -11,7 +11,6 @@ package config
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -135,7 +134,7 @@ func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
 		privateConfig = possiblePrivateConfig
 	}
 
-	infos, err := ioutil.ReadDir(dir)
+	infos, err := os.ReadDir(dir)
 
 	if err != nil {
 		return "", ""

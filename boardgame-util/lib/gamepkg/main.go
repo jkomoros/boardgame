@@ -7,7 +7,6 @@ package gamepkg
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -313,7 +312,7 @@ func (p *Pkg) RemoveDirIfEmpty(relPath string) error {
 		return fmt.Errorf("couldn't inspect %s: %w", relPath, err)
 	}
 
-	infos, err := ioutil.ReadDir(dir)
+	infos, err := os.ReadDir(dir)
 
 	if err != nil {
 		return errors.New("Couldn't read dir: " + err.Error())

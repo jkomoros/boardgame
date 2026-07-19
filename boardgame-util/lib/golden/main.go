@@ -84,7 +84,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -145,7 +145,7 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string, updateOnDi
 
 	storage.manager = manager
 
-	infos, err := ioutil.ReadDir(recFolder)
+	infos, err := os.ReadDir(recFolder)
 
 	if err != nil {
 		return errors.New("Couldn't read folder: " + err.Error())

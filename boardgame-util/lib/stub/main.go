@@ -6,7 +6,6 @@ package stub
 import (
 	"errors"
 	"go/format"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -263,7 +262,7 @@ func (f FileContents) Save(dir string, overwrite bool) error {
 	for name, contents := range f {
 		path := filepath.Join(dir, name)
 
-		if err := ioutil.WriteFile(path, contents, 0644); err != nil {
+		if err := os.WriteFile(path, contents, 0o644); err != nil {
 			return errors.New("Couldn't save " + path + ": " + err.Error())
 		}
 	}
