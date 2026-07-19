@@ -64,8 +64,10 @@ For a valid state and valid `StackConstraint` implementations:
 3. Validation observes a coherent whole-state simulation. Constraints on the
    second and later insertion see the effects of earlier simulated insertions,
    both through the destination and through the supplied state.
-4. Validation happens once per proposed insertion. Commit does not invoke
-   constraints a second time.
+4. Within one `MayMoveAllTo` or `MoveAllTo` call, validation happens once per
+   proposed insertion. Commit does not invoke constraints a second time. A
+   normal proposal may still evaluate constraints once during `Legal` and once
+   during `Apply`; constraints must never depend on total invocation count.
 5. `MayMoveAllTo` and `MoveAllTo` use the same validation path, error semantics,
    ordering, and slot selection.
 
@@ -135,7 +137,7 @@ After simulation succeeds, repeat the same deterministic sequence on the live
 endpoints using a private structural primitive:
 
 ```go
-for source.NumComponents() > 0 {
+for remaining := plan.count; remaining > 0; remaining-- {
 	component := source.removeComponentAt(source.firstComponentIndex())
 	destination.insertComponentAt(destination.nextSlot(), component)
 }
@@ -154,20 +156,26 @@ ownership metadata, IDs, or references.
 
 ### Shared internal shape
 
+Represent the prepared operation with a small private plan containing the
+physical source, physical destination, and fixed transfer count. The count is
+captured after endpoint and capacity validation, so commit does not use a
+changing loop condition as its authority.
+
 Use three narrowly named helpers rather than having public methods recursively
 call one another:
 
 - `validateMoveAllEndpoints`: structural endpoint validation;
-- `moveAllToChecked`: sequential, potentially failing transfer used only on a
-  disposable state;
-- `moveAllToUnchecked`: non-failing structural commit after successful
-  validation.
+- `prepareMoveAll`: endpoint/capacity validation and construction of the
+  private plan;
+- `validateMoveAllPlan`: whole-state copy, copied-stack lookup, and sequential
+  checked transfer on the disposable state;
+- `commitMoveAllPlan`: exactly the planned number of non-failing structural
+  moves on the original state.
 
-`simulateMoveAllTo` owns copying and copied-stack lookup and is shared by
-`MayMoveAllTo` and `MoveAllTo`. `MoveAllTo` calls it and then commits;
-`MayMoveAllTo` stops after it succeeds. This gives the two public methods one
-source of truth without recursion or double constraint evaluation inside one
-call.
+`MayMoveAllTo` prepares and validates a plan, then stops. `MoveAllTo` prepares
+and validates a plan, then commits it. This gives the two public methods one
+source of truth without recursion, duplicate endpoint validation, or double
+constraint evaluation inside one call.
 
 No fast path will initially bypass copying when a destination has no
 constraints. The optimization would couple transaction correctness to private
@@ -308,6 +316,31 @@ This tranche inventories but does not broaden into every compound mutator:
 If tests expose a reachable partial-error path in another compound mutator,
 file it separately rather than quietly expanding this contract.
 
+## Design self-critique
+
+The first draft selected whole-state simulation but left three ambiguities that
+would have weakened the implementation. This revision resolves them:
+
+1. “Once” now means once within one API call. It does not imply that the engine
+   skips the independent `Legal` and `Apply` checks.
+2. Preparation returns an immutable private plan. Validation and commit cannot
+   silently rediscover different endpoints or transfer a count chosen after
+   validation.
+3. The contract explicitly requires copy stability as well as absence of side
+   effects. A pure predicate based on pointer identity or external mutable data
+   could otherwise disagree between the copied validation graph and the live
+   commit graph.
+
+Remaining risks are intentionally visible rather than papered over:
+
+- whole-state copying may be expensive for unusually large games, so the
+  implementation includes measurement before considering a constraint-free
+  fast path;
+- Go interfaces cannot prevent malicious mutation through type assertions or
+  captured references; and
+- an internal panic during the supposedly infallible commit would still be a
+  framework invariant failure, not a recoverable transaction error.
+
 ## Implementation sequence
 
 1. Add late-rejection tests that fail against the current implementation.
@@ -318,4 +351,3 @@ file it separately rather than quietly expanding this contract.
 5. Fix example error handling and audit all canonical game callers.
 6. Run adversarial, race, benchmark, full BOARDGAME, and independent GAMES
    validation.
-
