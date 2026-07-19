@@ -109,23 +109,22 @@ export class BoardgameTableViewBase<
     this._prevHandSizes = sizes;
     if (!this.autoFlyDeals) return;
     if (prev === null) return;
-    const source = this.shadowRoot?.getElementById('deal-source');
-    if (!source) return;
+    if (!this.shadowRoot?.getElementById('deal-source')) return;
     const grew = sizes
       .map((n, i) => (n > (prev[i] ?? 0) ? i : -1))
       .filter((i) => i >= 0);
     if (grew.length === 0) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      for (const playerIndex of grew) {
-        const stub = this.shadowRoot?.getElementById(`stub:p${playerIndex}:hand`);
-        if (!stub) continue;
-        // The stub starts at the deal source and flies to its spot at the
-        // bottom edge — visually, a card leaving the deck toward that
-        // player. The matching arrival plays on their phone (see
-        // BoardgameHandViewBase.autoFlyIncoming).
-        this.animator?.animateBetween(stub, source, 600);
-      }
-    }));
+    for (const playerIndex of grew) {
+      // The visible stub is the retained carrier. It arrives from the deal
+      // source; this is not yet a source-carried departure or a claim of
+      // cross-device card identity.
+      void this.animator?.fly({
+        subjectId: `player-${playerIndex}-hand-growth`,
+        source: 'deal-source',
+        carrier: `stub:p${playerIndex}:hand`,
+        durationMs: 600,
+      });
+    }
   }
 
   private _handSizes(): number[] {
@@ -414,13 +413,13 @@ export class BoardgameTableViewBase<
    * Table view (spec §8). One stub stack per seated player, left-to-right
    * in seat order. Each stub element has id "stub:p<N>:hand" — a
    * synthetic ID distinct from any real component.id, so the FLIP
-   * animator's flat _infoById map can be addressed against it via
-   * animateBetween(realId, stubId) without colliding with real cards.
+   * animator's flat _infoById map cannot collide with real cards. The id is
+   * a private DOM anchor detail, not motion subject identity.
    *
    * V1: stubs are rendered with low opacity at the bottom of the screen,
    * one per seated player, with the seat's display-name visible. The
    * actual card-flying animation is triggered by the game's renderer
-   * calling this.animator.animateBetween(...) when it detects a deal —
+   * calling this.animator.fly(...) when it detects a deal —
    * the base doesn't auto-wire deal detection because that's game-
    * specific (which moves are "deals" varies). The stub PRESENCE is the
    * V1 deliverable; the animation TRIGGERING is left to the game author

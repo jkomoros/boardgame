@@ -14,7 +14,6 @@ import type {
 import {
   captureOffsetGeometry,
   captureViewportGeometry,
-  centeredInversionDelta,
   composeFlipTransform,
   solveFlipGeometry,
 } from '../motion/geometry.js';
@@ -50,8 +49,10 @@ import {
 import {
   compileComponentMotionTracks,
   componentMotionChannel,
+  componentMotionKeyframes,
   componentMotionTracks,
 } from '../motion/component-track.js';
+import { compileViewportFlight } from '../motion/flight.js';
 import { resolveStructuralContinuity } from '../motion/continuity.js';
 import type {
   MotionExactSighting,
@@ -72,7 +73,19 @@ export interface AnimateBetweenOptions {
   timing?: AnimationTimingPolicy;
 }
 
+export interface MotionFlightRequest {
+  /** Semantic presentation subject; never inferred from a DOM id. */
+  subjectId: string;
+  /** Geometry-only visual origin. */
+  source: string | HTMLElement;
+  /** Animated host, already rendered at its natural destination. */
+  carrier: string | HTMLElement;
+  durationMs?: number;
+  timing?: AnimationTimingPolicy;
+}
+
 export interface ComponentAnimatorAPI {
+  fly(request: MotionFlightRequest): Promise<void>;
   animateBetween(
     realId: string | HTMLElement,
     stubId: string | HTMLElement,
@@ -124,7 +137,7 @@ interface AnimatingComponentRecord {
 export class BoardgameComponentAnimator extends LitElement {
   // Supplied by boardgame-render-game for the currently installing version.
   // Public so the wrapper can set it, but game renderers normally need no
-  // timing plumbing: animateBetween consumes it by default.
+  // timing plumbing: fly consumes it by default.
   animationContext: VersionAnimationContext | null = null;
   // Note: Can't use @query decorator because 'animate' method conflicts with Element.animate()
   private get stackElement(): BoardgameComponentStack {
@@ -144,17 +157,20 @@ export class BoardgameComponentAnimator extends LitElement {
   private _explicitMotionPlans = new Map<number, StructuralMotionPlan>();
   private _lastExplicitMotionPlan: StructuralMotionPlan | null = null;
   private _motionEventObservers = new Set<(event: StructuralMotionEvent) => void>();
-  private _motionEventRevisions = new Map<StructuralMotionPlan['source'], StructuralMotionPlan>();
-  private _motionEventHistory = new Map<StructuralMotionPlan['source'], readonly StructuralMotionEvent[]>();
+  private _motionEventRevisions = new Map<string, StructuralMotionPlan>();
+  private _motionEventHistory = new Map<string, readonly StructuralMotionEvent[]>();
   private _motionCohorts: Readonly<{
     generation: number;
     specs: readonly MotionStaggerCohortSpec[];
   }> | null = null;
   private readonly _activationMonitor = new MotionActivationMonitor();
+  private readonly _explicitAnimations = new Map<Animation, HTMLElement>();
+  private readonly _carrierFlights = new WeakMap<HTMLElement, Animation>();
 
   ancestorOffsetParent: HTMLElement | null = null;
 
   override disconnectedCallback(): void {
+    this._interruptExplicitMotion();
     this._activationMonitor.clear();
     super.disconnectedCallback();
   }
@@ -174,14 +190,21 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   private _notifyStructuralMotion(plan: StructuralMotionPlan): void {
-    const previous = this._motionEventRevisions.get(plan.source) ?? null;
+    const historyKey = `${plan.source}:${plan.generation}`;
+    const previous = this._motionEventRevisions.get(historyKey) ?? null;
     const events = compileStructuralMotionEvents(previous, plan);
-    this._motionEventRevisions.set(plan.source, plan);
+    this._motionEventRevisions.set(historyKey, plan);
     const continuing = previous?.generation === plan.generation;
     const history = continuing
-      ? [...(this._motionEventHistory.get(plan.source) ?? []), ...events]
+      ? [...(this._motionEventHistory.get(historyKey) ?? []), ...events]
       : [...events];
-    this._motionEventHistory.set(plan.source, Object.freeze(history));
+    this._motionEventHistory.set(historyKey, Object.freeze(history));
+    while (this._motionEventHistory.size > 64) {
+      const oldest = this._motionEventHistory.keys().next().value as string | undefined;
+      if (oldest === undefined) break;
+      this._motionEventHistory.delete(oldest);
+      this._motionEventRevisions.delete(oldest);
+    }
     for (const event of events) {
       for (const observer of this._motionEventObservers) {
         try {
@@ -236,6 +259,34 @@ export class BoardgameComponentAnimator extends LitElement {
     this._notifyStructuralMotion(updateStructuralMotionExecutions(plan, updates));
   }
 
+  private _interruptExplicitMotion(): void {
+    for (const animation of this._explicitAnimations.keys()) {
+      try { animation.cancel(); } catch { /* already terminal */ }
+    }
+    this._explicitAnimations.clear();
+    for (const [generation, plan] of this._explicitMotionPlans) {
+      if (plan.phase === 'settled') continue;
+      const updates = new Map<number, StructuralExecution>();
+      for (const [segmentIndex, segment] of plan.segments.entries()) {
+        if (segment.execution.status === 'armed'
+          || segment.execution.status === 'active-observed') {
+          updates.set(segmentIndex, {
+            status: 'cancelled',
+            animations: segment.execution.animations,
+          });
+        } else if (segment.execution.status === 'planned') {
+          updates.set(segmentIndex, { status: 'skipped', reason: 'superseded' });
+        }
+      }
+      const updated = updateStructuralMotionExecutions(plan, updates);
+      this._explicitMotionPlans.set(generation, updated);
+      if (this._lastExplicitMotionPlan?.generation === generation) {
+        this._lastExplicitMotionPlan = updated;
+      }
+      this._notifyStructuralMotion(updated);
+    }
+  }
+
   /** Clear interrupted faux components without exposing the stack registry. */
   clearAnimatingComponents(): void {
     for (const stack of this.stackElement._sharedStackList) {
@@ -253,6 +304,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
   prepare() {
     this._invalidateSolvedMotionPlan();
+    this._interruptExplicitMotion();
     this._activationMonitor.clear();
     this._generation++;
     this._solvedMotionPlan = null;
@@ -342,7 +394,7 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   /**
-   * _resolveAnimationTarget turns an animateBetween argument into a live
+   * _resolveAnimationTarget turns a flight endpoint into a live
    * element. Elements pass through. String ids are resolved against the
    * document first, then against the root node (usually a renderer's
    * shadow root) of every registered component stack — renderers are Lit
@@ -517,6 +569,7 @@ export class BoardgameComponentAnimator extends LitElement {
     generation: number,
     subjectId: string,
     animation: Animation | null,
+    carrier?: HTMLElement,
   ): void {
     if (!animation) {
       this._updateExplicitMotion(generation, subjectId, {
@@ -528,6 +581,20 @@ export class BoardgameComponentAnimator extends LitElement {
     const animations = Object.freeze([
       this._executedTiming(animation, 'host:transform'),
     ]);
+    if (carrier) {
+      const previous = this._carrierFlights.get(carrier);
+      if (previous && previous !== animation) {
+        try { previous.cancel(); } catch { /* already terminal */ }
+      }
+      this._carrierFlights.set(carrier, animation);
+      this._explicitAnimations.set(animation, carrier);
+      void animation.finished.catch(() => {}).finally(() => {
+        this._explicitAnimations.delete(animation);
+        if (this._carrierFlights.get(carrier) === animation) {
+          this._carrierFlights.delete(carrier);
+        }
+      });
+    }
     this._updateExplicitMotion(generation, subjectId, {
       status: 'armed',
       animations,
@@ -555,61 +622,53 @@ export class BoardgameComponentAnimator extends LitElement {
     );
   }
 
-  /**
-   * animateBetween runs a one-off FLIP animation moving the element with id
-   * `realId` from the on-screen position of `stubId` (or vice versa). Used
-   * by the Table view's fake-deck row to fly cards between the visible
-   * board and the off-screen per-player stub stacks (spec §8.1).
-   *
-   * This is intentionally simpler than the prepare/animateFlip pipeline:
-   * it doesn't walk _sharedStackList and doesn't depend on the diff
-   * machinery — caller supplies both element IDs explicitly. The
-   * synthetic-stub-ID approach (e.g. "stub:p3:c17" for player 3's mirror
-   * of real card "c17") avoids the flat-map collision that would happen
-   * if both elements shared the same component.id.
-   *
-   * Direction: the `realId` element starts at `stubId`'s on-screen
-   * position and flies to its own natural rendered position (i.e. it
-   * visually ARRIVES FROM the stub). To make an element visually depart
-   * toward a location instead, swap the argument order — the departing
-   * element then plays the arrival animation at the other end.
-   *
-   * Returns a Promise that resolves when the animation completes (or
-   * immediately if either element is missing from the DOM).
-   *
-   * Implementation: WAAPI overlay animation. We measure both elements
-   * with getBoundingClientRect, compute the delta, and run a two-keyframe
-   * element.animate() from the inverted (stub-aligned) transform back to
-   * the element's own resting transform. fill:'none' means the animation
-   * never writes a persistent style — no inline transform/transition
-   * juggling, no forced reflow, no transitionend/setTimeout race.
-   * Settlement (anim.finished, or the cancel rejection) is ground truth
-   * for "done".
-   *
-   * The current version's companion slot is used automatically. A caller may
-   * choose immediate timing for a deliberately local animation, or supply an
-   * explicit local start through the discriminated timing policy.
-   */
-  async animateBetween(
-    realId: string | HTMLElement,
-    stubId: string | HTMLElement,
-    durationMs: number = 500,
-    opts?: AnimateBetweenOptions,
-  ): Promise<void> {
+  private async _awaitRegisteredTargets(generation: number): Promise<boolean> {
+    await this.updateComplete;
+    if (this._generation !== generation) return false;
+    const stacks = [...(this.stackElement?._sharedStackList ?? [])];
+    await Promise.all(stacks.map(stack => stack.updateComplete));
+    await Promise.resolve();
+    return this._generation === generation;
+  }
+
+  /** Fly one retained carrier from source geometry to its natural position. */
+  async fly(request: MotionFlightRequest): Promise<void> {
+    const subjectId = request.subjectId.trim();
+    if (!subjectId) throw new Error('motion flight subjectId must be nonempty');
+    const durationMs = request.durationMs ?? 500;
+    if (!Number.isFinite(durationMs) || durationMs < 0) {
+      throw new Error('motion flight durationMs must be finite and nonnegative');
+    }
     const explicitGeneration = ++this._explicitMotionSequence;
-    const subjectId = typeof realId === 'string'
-      ? realId
-      : realId.id || `explicit-motion-${explicitGeneration}`;
-    const timing = opts?.timing ?? 'version';
-    const real = this._resolveAnimationTarget(realId);
-    const stub = this._resolveAnimationTarget(stubId);
-    if (!real || !stub) {
+    const structuralGeneration = this._generation;
+    const timing = request.timing ?? 'version';
+    if (typeof request.source === 'string' || typeof request.carrier === 'string') {
+      if (!await this._awaitRegisteredTargets(structuralGeneration)) {
+        const draft = createStructuralMotionDraft({
+          subjectId,
+          presence: 'retained',
+          provenance: { kind: 'unresolved', endpoint: 'destination' },
+        });
+        this._installExplicitMotion(publishStructuralMotionPlan(explicitGeneration, [{
+          draft,
+          timingRequest: { policy: timing, delayMs: 0, durationMs },
+        }], 'explicit'));
+        this._updateExplicitMotion(explicitGeneration, subjectId, {
+          status: 'skipped',
+          reason: 'superseded',
+        });
+        return;
+      }
+    }
+    const carrier = this._resolveAnimationTarget(request.carrier);
+    const source = this._resolveAnimationTarget(request.source);
+    if (!carrier || !source || !carrier.isConnected || !source.isConnected) {
       const draft = createStructuralMotionDraft({
         subjectId,
         presence: 'retained',
         provenance: {
           kind: 'unresolved',
-          endpoint: !stub ? 'source' : 'destination',
+          endpoint: !source || !source.isConnected ? 'source' : 'destination',
         },
       });
       this._installExplicitMotion(publishStructuralMotionPlan(explicitGeneration, [{
@@ -623,8 +682,9 @@ export class BoardgameComponentAnimator extends LitElement {
       // Loud on purpose: an unresolvable endpoint silently killed the
       // entire cross-screen animation feature once already (the id
       // property wasn't reflected to the DOM, so no card ever matched).
-      console.warn('[animator] animateBetween: could not resolve',
-        !real ? realId : stubId, '— animation skipped');
+      console.warn('[animator] fly: could not resolve',
+        !source || !source.isConnected ? request.source : request.carrier,
+        '— animation skipped');
       return;
     }
     // Measure both endpoints in the SAME coordinate space (viewport rects)
@@ -632,28 +692,25 @@ export class BoardgameComponentAnimator extends LitElement {
     // coordinate spaces when the two elements had different fixed/absolute
     // ancestors, and corner-alignment launched flights from the top-left
     // of full-width containers instead of from the visual source.
-    const realRect = captureViewportGeometry(real);
-    const stubRect = captureViewportGeometry(stub);
-    const { x: dx, y: dy } = centeredInversionDelta(realRect, stubRect);
+    const carrierRect = captureViewportGeometry(carrier);
+    const sourceRect = captureViewportGeometry(source);
+    const restingTransform = getComputedStyle(carrier).transform || 'none';
+    const compiled = compileViewportFlight(sourceRect, carrierRect, restingTransform);
+    const { translateX: dx, translateY: dy } = compiled.inversion;
     const draft = createStructuralMotionDraft({
       subjectId,
       presence: 'retained',
       provenance: { kind: 'identity' },
-      viewportFrom: stubRect,
-      viewportTo: realRect,
-      inversion: Object.freeze({
-        translateX: dx,
-        translateY: dy,
-        scale: 1,
-        changed: dx !== 0 || dy !== 0,
-      }),
+      viewportFrom: sourceRect,
+      viewportTo: carrierRect,
+      inversion: compiled.inversion,
       channels: [{ target: 'host', property: 'transform' }],
     });
     this._installExplicitMotion(publishStructuralMotionPlan(explicitGeneration, [{
       draft,
       timingRequest: { policy: timing, delayMs: 0, durationMs },
     }], 'explicit'));
-    if (dx === 0 && dy === 0) {
+    if (!compiled.inversion.changed) {
       this._updateExplicitMotion(explicitGeneration, subjectId, {
         status: 'skipped',
         reason: 'no-spatial-change',
@@ -685,11 +742,8 @@ export class BoardgameComponentAnimator extends LitElement {
       );
     }
     const delay = finiteTimingMs(resolution.timing.delay);
-    const keyframes: Keyframe[] = [
-      { transform: `translate(${dx}px, ${dy}px) ${real.style.transform || ''}`.trim() },
-      { transform: real.style.transform || 'none' },
-    ];
-    const realTag = real.tagName.toLowerCase() + (real.id ? `#${real.id}` : '');
+    const keyframes = [...componentMotionKeyframes(compiled.tracks[0])] as Keyframe[];
+    const carrierTag = carrier.tagName.toLowerCase() + (carrier.id ? `#${carrier.id}` : '');
 
     // When the flight target is a real animatable item (a boardgame-card /
     // -component), route through its play() so the flight is GATED: it
@@ -702,43 +756,62 @@ export class BoardgameComponentAnimator extends LitElement {
     // before measuring a new cycle. play() supplies its own default timing
     // (duration = --animation-length), so we override with the caller's
     // durationMs + the sync delay and match the raw path's ease-out/none.
-    // Plain elements (e.g. the divs the waapi-play.spec.ts animateBetween
+    // Plain elements (e.g. the divs in explicit-flight browser tests
     // test uses) have no play() and keep the raw-element fallback below.
-    if (typeof (real as any).play === 'function') {
-      const anim = (real as any).play(real, keyframes,
+    if (typeof (carrier as any).play === 'function') {
+      const anim = (carrier as any).play(carrier, keyframes,
         resolution.timing,
         { timing: 'immediate' }, { recordActive: false });
-      this._trackExplicitAnimation(explicitGeneration, subjectId, anim);
+      this._trackExplicitAnimation(explicitGeneration, subjectId, anim, carrier);
       // play() returns null under noAnimate; nothing is in flight then.
       if (anim) {
         this._recordAnimationActive(
           anim,
           delay,
-          'fly:' + realTag,
+          'fly:' + carrierTag,
           resolution.activeContext,
         );
         await anim.finished.catch(() => {});
         // The Animation promise and play()'s settlement bookkeeping are
-        // separate promise reactions. Do not resolve animateBetween until
+        // separate promise reactions. Do not resolve fly until
         // the latter has closed the render-game completion gate too.
-        if (typeof (real as any).settled === 'function') {
-          await (real as any).settled();
+        if (typeof (carrier as any).settled === 'function') {
+          await (carrier as any).settled();
         }
       }
       return;
     }
 
-    const anim = real.animate(keyframes, resolution.timing);
-    this._trackExplicitAnimation(explicitGeneration, subjectId, anim);
+    const anim = carrier.animate(keyframes, resolution.timing);
+    this._trackExplicitAnimation(explicitGeneration, subjectId, anim, carrier);
     this._recordAnimationActive(
       anim,
       delay,
-      'fly:' + realTag,
+      'fly:' + carrierTag,
       resolution.activeContext,
     );
     // Settlement is ground truth: finished resolves on completion, rejects
     // on cancel (element removed mid-flight) — both mean "done" here.
     await anim.finished.catch(() => {});
+  }
+
+  /** @deprecated Prefer fly(), whose source/carrier direction is explicit. */
+  animateBetween(
+    realId: string | HTMLElement,
+    stubId: string | HTMLElement,
+    durationMs: number = 500,
+    opts?: AnimateBetweenOptions,
+  ): Promise<void> {
+    const subjectId = typeof realId === 'string'
+      ? realId
+      : realId.id || `explicit-motion-${this._explicitMotionSequence + 1}`;
+    return this.fly({
+      subjectId,
+      source: stubId,
+      carrier: realId,
+      durationMs,
+      timing: opts?.timing,
+    });
   }
 
   // CRITICAL: Double microtask delay for Polymer databinding completion

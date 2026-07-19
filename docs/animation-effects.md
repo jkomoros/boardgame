@@ -300,7 +300,7 @@ barrier; cancellation or a replacement generation cancels it. The child cannot
 itself contain a trail, motion decoration, or another motion barrier.
 
 This is not a general cohort identity or a queue gate. It neither schedules nor
-selects structural motion, does not observe explicit `animateBetween()` flights,
+selects structural motion, does not observe explicit `fly()` flights,
 and never changes structural settlement. Combine it with `motion.stagger()`
 when the same typed local profile needs both an ordered start cadence and a
 success flourish.
@@ -483,9 +483,11 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 - `examples/pig` exercises the standalone die's shared `visual:transform`
   track executor. Its roll stays version-timed and queue-gated without being
   misrepresented as structural travel.
-- Companion table/hand renderers use `animateBetween()` for real card flights;
-  that structural API shares timing and geometry foundations with effects but
-  remains queue-critical.
+- Companion table/hand renderers use the retained-carrier `fly()` primitive.
+  It names source and carrier direction, waits for registered stack updates,
+  and shares timing, tracks, lifecycle, and geometry foundations with effects
+  while remaining queue-critical. Automatic hand-size/card-presence detection
+  is not yet an authoritative or cross-device-correlated transfer declaration.
 
 What is not configurable yet is equally important: games cannot subscribe to
 the private structural-motion plan, replace automatic FLIP, or request artwork

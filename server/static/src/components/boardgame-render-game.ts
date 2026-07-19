@@ -138,7 +138,7 @@ class BoardgameRenderGame extends LitElement {
   state: HostedState | null = null;
 
   // Scoped timing policy associated with the exact installed game version.
-  // The shared animator consumes it as animateBetween's default.
+  // The shared animator consumes it as fly()'s default.
   @property({ type: Object })
   animationContext: import('./companion-sync.js').VersionAnimationContext | null = null;
 

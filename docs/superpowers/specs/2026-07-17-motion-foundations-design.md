@@ -423,9 +423,18 @@ ownership:
     host tracks.
 19. **Done:** replace the card-only rotation boolean with explicit endpoint
     axis-orientation facts consumed by the pure geometry solver.
-20. **Deferred:** design any artwork-bearing subject representation as a new,
+20. **Done:** extract a pure retained-carrier viewport-flight compiler; replace
+    argument-order direction with `fly({ subjectId, source, carrier })`, wait on
+    registered render ownership rather than a fixed frame count, preserve the
+    carrier's computed resting transform, and make explicit-flight interruption
+    and concurrent event histories terminal and generation-specific.
+21. **Deferred:** replace local, lossy Table/Hand inference with authoritative
+    transition transfer declarations, multiplicity, and honest cross-surface
+    correlation. A true source-carried departure also requires a detached
+    carrier; `fly()` deliberately does not claim that capability.
+22. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-21. Reassess a larger representation only when concrete duplication justifies
+23. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today
@@ -433,7 +442,7 @@ ownership:
 Game authors should use `effectsForTransition()`,
 `motionCohortsForTransition()`, `motion.stagger()`, `this.effects.play()`,
 named anchors, `fx.motion()`, `fx.decorateMotion()`, `fx.trail()`, and
-`fx.afterMotion()`, plus `animateBetween()` as documented in
+`fx.afterMotion()`, plus retained-carrier `fly()` as documented in
 `docs/animation-effects.md` and
 `docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
 events are framework-internal while their contracts settle. Shipping the

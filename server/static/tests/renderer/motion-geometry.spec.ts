@@ -356,6 +356,129 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
   }
 });
 
+test('fly names carrier direction and preserves its computed resting transform', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        fly(request: {
+          subjectId: string;
+          source: string;
+          carrier: string;
+          durationMs: number;
+          timing: 'immediate';
+        }): Promise<void>;
+      };
+      const style = document.createElement('style');
+      style.textContent = '#flight-carrier { transform: scale(0.8); }';
+      const source = document.createElement('div');
+      source.id = 'flight-source';
+      const carrier = document.createElement('div');
+      carrier.id = 'flight-carrier';
+      Object.assign(source.style, {
+        position: 'fixed', left: '10px', top: '20px', width: '20px', height: '20px',
+      });
+      Object.assign(carrier.style, {
+        position: 'fixed', left: '110px', top: '220px', width: '20px', height: '20px',
+      });
+      document.head.append(style);
+      document.body.append(animator, source, carrier);
+      let passedFrames: Keyframe[] = [];
+      const nativeAnimate = carrier.animate.bind(carrier);
+      carrier.animate = ((frames: Keyframe[] | PropertyIndexedKeyframes, timing?: number | KeyframeAnimationOptions) => {
+        passedFrames = frames as Keyframe[];
+        const animation = nativeAnimate(frames, timing);
+        queueMicrotask(() => animation.finish());
+        return animation;
+      }) as typeof carrier.animate;
+      // String endpoints deliberately exercise the registered-update barrier;
+      // callers do not count animation frames before requesting the flight.
+      await animator.fly({
+        subjectId: 'semantic-card',
+        source: source.id,
+        carrier: carrier.id,
+        durationMs: 10_000,
+        timing: 'immediate',
+      });
+      return {
+        from: passedFrames[0]?.transform,
+        to: passedFrames[1]?.transform,
+        resting: getComputedStyle(carrier).transform,
+      };
+    });
+
+    expect(result).toEqual({
+      from: 'translate(-100px, -200px) matrix(0.8, 0, 0, 0.8, 0, 0)',
+      to: 'matrix(0.8, 0, 0, 0.8, 0, 0)',
+      resting: 'matrix(0.8, 0, 0, 0.8, 0, 0)',
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('a newer flight owns one carrier without replaying older generation events', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        fly(request: {
+          subjectId: string;
+          source: HTMLElement;
+          carrier: HTMLElement;
+          durationMs: number;
+          timing: 'immediate';
+        }): Promise<void>;
+        observeStructuralMotionEvents(observer: (event: {
+          id: string;
+          source: string;
+          generation: number;
+          kind: string;
+        }) => void): () => void;
+      };
+      const sourceA = document.createElement('div');
+      const sourceB = document.createElement('div');
+      const carrier = document.createElement('div');
+      Object.assign(sourceA.style, { position: 'fixed', left: '0px', top: '0px', width: '10px', height: '10px' });
+      Object.assign(sourceB.style, { position: 'fixed', left: '40px', top: '0px', width: '10px', height: '10px' });
+      Object.assign(carrier.style, { position: 'fixed', left: '100px', top: '100px', width: '10px', height: '10px' });
+      document.body.append(animator, sourceA, sourceB, carrier);
+      const first = animator.fly({
+        subjectId: 'first', source: sourceA, carrier, durationMs: 10_000, timing: 'immediate',
+      });
+      const second = animator.fly({
+        subjectId: 'second', source: sourceB, carrier, durationMs: 10_000, timing: 'immediate',
+      });
+      const active = carrier.getAnimations().at(-1);
+      active?.finish();
+      await Promise.all([first, second]);
+      await Promise.resolve();
+      const events: Array<{ id: string; generation: number; kind: string }> = [];
+      const stop = animator.observeStructuralMotionEvents(event => {
+        if (event.source === 'explicit') events.push(event);
+      });
+      stop();
+      return events;
+    });
+
+    expect(new Set(result.map(event => event.id)).size).toBe(result.length);
+    const firstKinds = result.filter(event => event.generation === 1).map(event => event.kind);
+    expect(firstKinds.slice(0, 2)).toEqual(['planned', 'armed']);
+    expect(firstKinds.slice(-2)).toEqual(['cancelled', 'generation-settled']);
+    expect(result.filter(event => event.generation === 2).map(event => event.kind)).toEqual([
+      'planned', 'armed', 'active-observed', 'finished', 'generation-settled',
+    ]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('explicit motion cannot override reduced-motion scheduling', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const diagnostics = await prepareRendererFixturePage(page);

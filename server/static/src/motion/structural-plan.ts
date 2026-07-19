@@ -70,7 +70,7 @@ export type StructuralExecution =
   }>
   | Readonly<{
     status: 'skipped';
-    reason: 'not-started' | 'playback-error' | 'missing-endpoint' | 'no-spatial-change' | 'timing';
+    reason: 'not-started' | 'playback-error' | 'missing-endpoint' | 'no-spatial-change' | 'timing' | 'superseded';
   }>
   | Readonly<{
     status: 'finished';

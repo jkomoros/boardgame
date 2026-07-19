@@ -241,7 +241,8 @@ export class BoardgameBaseGameRenderer<
    * The FLIP animator that wraps this renderer. Renderers live inside
    * boardgame-render-game's #container, a sibling of the #animator element
    * in the same shadow root. Use for one-off cross-screen animations:
-   * `this.animator?.animateBetween(cardId, 'hand-top-edge')`. Null before
+   * `this.animator?.fly({ subjectId: cardId, source: 'hand-top-edge',
+   * carrier: cardId })`. Null before
    * the renderer is attached (or in tests outside boardgame-render-game).
    */
   protected get animator(): ComponentAnimatorAPI | null {

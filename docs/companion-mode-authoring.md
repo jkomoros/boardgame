@@ -148,13 +148,16 @@ Works out of the box for card games:
   from the deck toward the bottom edge. No element = no animation — the
   id's presence is the entire opt-in.
 - Bespoke needs: set the flags false and call
-  `this.animator?.animateBetween(cardIdOrElement, targetIdOrElement, ms)`.
-  The first argument visually ARRIVES FROM the second's position. The framework
+  `this.animator?.fly({ subjectId, source, carrier, durationMs })`.
+  `carrier` is the retained element that animates from `source` geometry back
+  to its own natural position. This is intentionally an arrival primitive, not
+  an arbitrary from/to path or a source-carried departure. The framework
   automatically schedules this against the current version's cross-screen
   timeline; there is no timing property to pass through your renderer.
 - For an intentionally local effect (for example, a tap flourish that has no
   matching event on another screen), opt out explicitly:
-  `this.animator?.animateBetween(card, source, 300, { timing: 'immediate' })`.
+  `this.animator?.fly({ subjectId: card.id, source, carrier: card,
+  durationMs: 300, timing: 'immediate' })`.
   Advanced code may instead use
   `{ timing: { localStartAtMs: someTimestamp } }`.
 
@@ -163,7 +166,7 @@ spaced on the server's per-game lane, and queued HTTP state bundles retain their
 matching slot. The protocol currently reserves 800ms per synchronized version:
 up to 600ms of visible motion and 200ms to prepare the next queued state. The
 framework applies the slot to its whole animation pipeline: ordinary FLIP
-movement, card/die property effects, automatic deals, and `animateBetween`
+movement, card/die property effects, automatic deals, and `fly()`
 calls. Visible motion is capped at 600ms and `animationOverlap` is disabled for
 those cycles; use immediate timing for a longer effect that has no cross-screen
 counterpart. State installs during the 200ms preparation window before the
@@ -171,6 +174,13 @@ target, and WAAPI holds each opening frame until launch. A client joining a
 cycle late receives only its remaining visible-motion budget, so it cannot
 spill into the next slot. If timing is unavailable or no visible budget remains,
 the context is discarded completely and state installs immediately.
+
+The automatic Table and Hand detections are deliberately local and lossy. The
+Table knows only that a player's visible hand count grew; the Hand can know its
+new private card ids. They share a version slot, but the framework does not yet
+claim that those observations are a correlated cross-device transfer event.
+`animateBetween()` remains as a deprecated source-compatible wrapper while
+games migrate; its argument order should not be used in new code.
 
 Custom components that call the framework's `play()` inherit this policy too.
 Use `{ timing: 'immediate' }` as the fourth argument for a tap flourish or

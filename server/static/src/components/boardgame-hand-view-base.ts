@@ -73,7 +73,7 @@ export class BoardgameHandViewBase<
    * of them on the previous state (so cards shuffling between the
    * player's own stacks don't retrigger). Games whose incoming-card
    * semantics don't fit (or that wire bespoke animations) set this false
-   * and call this.animator.animateBetween themselves.
+   * and call this.animator.fly themselves.
    */
   @property({ type: Boolean })
   autoFlyIncoming = true;
@@ -119,15 +119,14 @@ export class BoardgameHandViewBase<
     if (prev === null) return;
     const incoming = [...ids].filter((id) => !prev.has(id));
     if (incoming.length === 0) return;
-    const anchor = this.shadowRoot?.getElementById('hand-top-edge') ?? 'hand-top-edge';
-    // The card elements are rendered by child <boardgame-component-stack>
-    // elements that re-render asynchronously after receiving the new
-    // state; wait two frames so the new cards exist before we measure.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      for (const id of incoming) {
-        this.animator?.animateBetween(id, anchor, 600);
-      }
-    }));
+    for (const id of incoming) {
+      void this.animator?.fly({
+        subjectId: id,
+        source: 'hand-top-edge',
+        carrier: id,
+        durationMs: 600,
+      });
+    }
   }
 
   private _collectOwnCardIds(): Set<string> {
@@ -215,8 +214,8 @@ export class BoardgameHandViewBase<
    * edge of the Hand view, representing "from/to the Table". Cards dealt
    * to this player should be animated from this anchor; cards played
    * should exit through it. The element has a stable id ("hand-top-edge")
-   * so authors can call this.animator.animateBetween(realCardId,
-   * "hand-top-edge", durationMs) to wire deal/play animations.
+   * so authors can call this.animator.fly({ subjectId: realCardId,
+   * source: "hand-top-edge", carrier: realCardId }) to wire arrivals.
    *
    * V1 ships the anchor element only — game authors wire the actual
    * animation calls from their own renderer's state-change reactions.

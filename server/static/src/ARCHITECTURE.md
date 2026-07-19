@@ -315,7 +315,8 @@ though each screen receives its own WebSocket push and renders independently.
 - The common `play()` primitive resolves the installed context through the
   composed render tree, so stack FLIP, property effects, standalone dice, and
   game-authored animatable items share the same target automatically.
-  `animateBetween()` uses that policy too. Both APIs accept
+  `fly()` uses that policy too. It explicitly names a geometry-only source and
+  the retained carrier at its natural destination. Both APIs accept
   `{ timing: 'immediate' }` for a local effect or
   `{ timing: { localStartAtMs } }` for an explicit local timeline.
   Stagger, visible duration, and post-animation hold share one remaining-slot
@@ -325,7 +326,7 @@ though each screen receives its own WebSocket push and renders independently.
   outcome text) is gated on the mirrored `animating` flag described above,
   so the outcome banner can't race ahead of a still-in-flight companion
   flight. For that guarantee to hold, the flight itself must keep the gate
-  open: when `animateBetween`'s resolved `real` endpoint is an animatable
+  open: when `fly()`'s resolved carrier is an animatable
   item, it routes the flight through that item's `play()` (gated) rather
   than a raw `real.animate()`, so the departing/arriving card registers a
   will-animate/animation-done pair and the gate stays open — and the
