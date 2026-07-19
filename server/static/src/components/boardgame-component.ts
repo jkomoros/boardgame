@@ -10,6 +10,7 @@ import type {
   ComponentMotionTarget,
   VisualMotionTrackInput,
 } from '../motion/component-track.js';
+import type { HistoricalPresentationPolicy } from '../motion/historical-presentation.js';
 
 // FlipRecord is the bundle the animator computes for each animating
 // component and hands to playAnimation(). before/after are the
@@ -224,18 +225,14 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
       : Object.freeze([]);
   }
 
-  // prepareForBeingAnimatingComponent is called if the component is going
-  // to be an animating component; that is it was created within
-  // stack.newAnimatingComponent().
-  prepareForBeingAnimatingComponent(stack: any) {
+  /** Prepare a fresh, inert component host to carry departing motion. */
+  prepareMotionCarrier(_defaults: Readonly<Record<string, unknown>>): void {
     // Do nothing; subclasses might do something.
   }
 
-  // cloneContent returns whether we should clone the content of this
-  // element during animating. Defaults to false; subclasses might
-  // override.
-  get cloneContent(): boolean {
-    return false;
+  /** Opt in only to cloning already-rendered default-slot presentation. */
+  get historicalPresentationPolicy(): HistoricalPresentationPolicy {
+    return 'none';
   }
 
   // animationRotates should return true if the before and after have a

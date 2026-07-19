@@ -286,9 +286,9 @@ export class BoardgameCard extends BoardgameComponent {
     return `--component-aspect-ratio: ${aspectRatio};`;
   }
 
-  override prepareForBeingAnimatingComponent(stack: any) {
+  override prepareMotionCarrier(defaults: Readonly<Record<string, unknown>>): void {
     this.noContent = true;
-    this.rotated = stack.stackDefault('rotated');
+    this.rotated = !!defaults.rotated;
   }
 
   override get animatingProperties(): string[] {
@@ -319,8 +319,8 @@ export class BoardgameCard extends BoardgameComponent {
     }];
   }
 
-  override get cloneContent(): boolean {
-    return !this.noContent;
+  override get historicalPresentationPolicy(): 'none' | 'clone-default-slot' {
+    return this.noContent ? 'none' : 'clone-default-slot';
   }
 
   override animationRotates(beforeProps: Record<string, any>, afterProps: Record<string, any>): boolean {
@@ -399,7 +399,7 @@ export class BoardgameCard extends BoardgameComponent {
               </slot>
             </div>
             <div class="fallback">
-              <slot name="fallback"></slot>
+              <slot name="motion-history"><slot name="fallback"></slot></slot>
             </div>
           </div>
           <div id="back">

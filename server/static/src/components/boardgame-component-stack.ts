@@ -571,7 +571,7 @@ export class BoardgameComponentStack extends LitElement {
     card.style.opacity = '0.0';
   }
 
-  newAnimatingComponent(): any {
+  newMotionCarrier(): { component: any; defaults: Readonly<Record<string, unknown>> } {
     // Animating orphans must be fresh hosts; borrowing a live/pool host would
     // corrupt stable identity and ownership in the source or destination stack.
 
@@ -583,14 +583,18 @@ export class BoardgameComponentStack extends LitElement {
     const typedComponent = component as unknown as BoardgameComponentElement;
     typedComponent.noAnimate = true;
 
-    // Defensive check: Only call if method exists (safety net)
-    if (typeof typedComponent.prepareForBeingAnimatingComponent === 'function') {
-      typedComponent.prepareForBeingAnimatingComponent(this);
+    const defaults = Object.freeze({ ...typedComponent.animatingPropDefaults(this) });
+    if (typeof typedComponent.prepareMotionCarrier === 'function') {
+      typedComponent.prepareMotionCarrier(defaults);
     }
 
     this.setUnknownAnimationState(component);
+    component.id = '';
+    component.inert = true;
+    component.setAttribute('aria-hidden', 'true');
+    component.style.pointerEvents = 'none';
     this.animatingComponentsContainer.appendChild(component);
-    return component;
+    return Object.freeze({ component, defaults });
   }
 
   clearAnimatingComponents() {

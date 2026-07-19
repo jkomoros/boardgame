@@ -58,6 +58,11 @@ import type {
   MotionCollectionHistory,
   MotionContinuityResolution,
 } from '../motion/continuity.js';
+import {
+  captureHistoricalPresentation,
+  installHistoricalPresentation,
+} from '../motion/historical-presentation.js';
+import type { HistoricalPresentation } from '../motion/historical-presentation.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -79,6 +84,8 @@ export interface ComponentAnimatorAPI {
 
 interface ComponentRecord {
   beforeCollectionIds?: string[];
+  sourceTagName?: string;
+  historicalPresentation?: HistoricalPresentation;
   offsets?: OffsetGeometry;
   newOffsets?: OffsetGeometry;
   viewportOffsets?: ViewportGeometry;
@@ -124,7 +131,6 @@ export class BoardgameComponentAnimator extends LitElement {
   }
 
   private _infoById: { [id: string]: ComponentRecord } = {};
-  private _lastSeenNodesById = new Map<string, Node[]>();
   private _beforeSeenIds = new Set<string>();
   private _animatingComponents: AnimatingComponentRecord[] = [];
   private _beforeCollectionOffsets = new Map<string, OffsetGeometry>();
@@ -229,11 +235,6 @@ export class BoardgameComponentAnimator extends LitElement {
     this._notifyStructuralMotion(updateStructuralMotionExecutions(plan, updates));
   }
 
-  override firstUpdated(_changedProperties: Map<PropertyKey, unknown>) {
-    super.firstUpdated(_changedProperties);
-    this._lastSeenNodesById = new Map();
-  }
-
   /** Clear interrupted faux components without exposing the stack registry. */
   clearAnimatingComponents(): void {
     for (const stack of this.stackElement._sharedStackList) {
@@ -301,6 +302,7 @@ export class BoardgameComponentAnimator extends LitElement {
 
         record.beforeCollectionIds ??= [];
         record.beforeCollectionIds.push(collection.id);
+        record.sourceTagName = component.localName;
 
         this._beforeSeenIds.add(component.id);
 
@@ -325,23 +327,11 @@ export class BoardgameComponentAnimator extends LitElement {
         record.beforeInlineTransform = component.style.transform;
         record.beforeOpacity = component.style.opacity || '1';
 
-        if (component.cloneContent) {
-          const newNodes: Node[] = [];
-          const children = component.children;
-          for (let k = 0; k < children.length; k++) {
-            const child = children[k];
-            if ((child as HTMLElement).slot) {
-              // Skip content that doesn't go in default slot
-              continue;
-            }
-            if ((child as Element).localName === 'dom-bind') {
-              continue;
-            }
-            newNodes.push(child.cloneNode(true));
-          }
-          if (newNodes.length > 0) {
-            this._lastSeenNodesById.set(component.id, newNodes);
-          }
+        try {
+          record.historicalPresentation = captureHistoricalPresentation(component) ?? undefined;
+        } catch (error) {
+          console.error('[animator] historical presentation capture failed:', error);
+          record.historicalPresentation = undefined;
         }
         result[component.id] = record;
       }
@@ -986,21 +976,8 @@ export class BoardgameComponentAnimator extends LitElement {
             channels: record.motionTracks,
           });
 
-          const clonedNodes = this._lastSeenNodesById.get(component.id);
-
-          if (clonedNodes && clonedNodes.length > 0) {
-            // Clear out old nodes.
-            for (let k = 0; k < component.children.length; k++) {
-              const child = component.children[k];
-              if ((child as HTMLElement).slot === 'fallback') {
-                component.removeChild(child);
-              }
-            }
-            for (let k = 0; k < clonedNodes.length; k++) {
-              const node = clonedNodes[k];
-              (node as HTMLElement).slot = 'fallback';
-              component.appendChild(node);
-            }
+          if (record.historicalPresentation) {
+            installHistoricalPresentation(component, record.historicalPresentation);
           }
         }
       }
@@ -1019,11 +996,18 @@ export class BoardgameComponentAnimator extends LitElement {
       const destinationStack = stackById.get(continuity.to.collectionId);
       if (!destinationStack) continue;
 
-      const component = destinationStack.newAnimatingComponent();
-
       const record = this._infoById[id];
+      const carrier = destinationStack.newMotionCarrier();
+      const component = carrier.component;
+      if (record.sourceTagName !== component.localName
+        || (record.historicalPresentation
+          && !installHistoricalPresentation(component, record.historicalPresentation))) {
+        if (typeof component.beforeOrphaned === 'function') component.beforeOrphaned();
+        component.remove();
+        continue;
+      }
 
-      record.after = component.animatingPropDefaults(destinationStack);
+      record.after = carrier.defaults;
 
       const animatingRecord: AnimatingComponentRecord = {
         subjectId: id,
@@ -1087,14 +1071,6 @@ export class BoardgameComponentAnimator extends LitElement {
         channels: animatingRecord.motionTracks,
       });
 
-      const clonedNodes = this._lastSeenNodesById.get(id);
-      if (clonedNodes) {
-        for (let k = 0; k < clonedNodes.length; k++) {
-          const node = clonedNodes[k];
-          (node as HTMLElement).slot = 'fallback';
-          component.appendChild(node);
-        }
-      }
     }
 
     // CRITICAL: Wait for styles to be set, then schedule PLAY phase in RAF

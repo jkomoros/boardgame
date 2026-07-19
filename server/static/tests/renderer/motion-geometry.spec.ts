@@ -118,6 +118,55 @@ test('motion track playback preflights every owned target before starting any ch
   }
 });
 
+test('historical presentation is opaque, compatible, cloned, and identity-free', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-card.ts');
+      await import('/src/components/boardgame-token.ts');
+      const {
+        captureHistoricalPresentation,
+        installHistoricalPresentation,
+      } = await import('/src/motion/historical-presentation.ts');
+      const source = document.createElement('boardgame-card');
+      source.noContent = false;
+      const visible = document.createElement('span');
+      visible.id = 'must-not-duplicate';
+      visible.tabIndex = 0;
+      visible.textContent = 'visible historical art';
+      const named = document.createElement('span');
+      named.slot = 'back';
+      named.textContent = 'named private content';
+      source.append(visible, named);
+      const presentation = captureHistoricalPresentation(source)!;
+      const target = document.createElement('boardgame-card');
+      const mismatch = document.createElement('boardgame-token');
+      const installed = installHistoricalPresentation(target, presentation);
+      return {
+        installed,
+        mismatch: installHistoricalPresentation(mismatch, presentation),
+        forged: installHistoricalPresentation(target, { kind: 'cloned-default-slot' }),
+        serialized: JSON.stringify(presentation),
+        text: target.textContent,
+        historyCount: target.querySelectorAll('[slot="motion-history"]').length,
+        identityCount: target.querySelectorAll('[id], [tabindex], [autofocus]').length,
+      };
+    });
+    expect(result).toEqual({
+      installed: true,
+      mismatch: false,
+      forged: false,
+      serialized: '{"kind":"cloned-default-slot"}',
+      text: 'visible historical art',
+      historyCount: 1,
+      identityCount: 0,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('a throwing component planner degrades to framework-owned structural channels', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
@@ -776,6 +825,80 @@ test('structural continuity resolves unique history and skips ambiguous history'
       execution: { status: 'finished' },
     });
     expect(result.departing).toBeUndefined();
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('departing motion uses a fresh inert carrier without publishing presentation', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { cardView } = await import('/src/client.ts');
+      const animator = document.createElement('boardgame-component-animator') as any;
+      const makeStack = () => {
+        const stack = document.createElement('boardgame-component-stack') as any;
+        stack.style.setProperty('--animation-length', '40ms');
+        stack.componentView = cardView({});
+        return stack;
+      };
+      const source = makeStack();
+      const destination = makeStack();
+      const visible = {
+        Index: 0, Values: { rank: 'A' }, Deck: 'cards', GameName: 'carrier-test', ID: 'carrier-card',
+      };
+      const data = (components: readonly unknown[], ids: readonly string[], lastSeen: Record<string, number>) => ({
+        Deck: 'cards', Indexes: components.map((_item, index) => index), IDs: ids,
+        IDsLastSeen: lastSeen, ShuffleCount: 0, Size: components.length,
+        GameName: 'carrier-test', Components: components,
+      });
+      source.stack = data([visible], ['carrier-card'], { 'carrier-card': 1 });
+      destination.stack = data([], [], {});
+      document.body.append(animator, source, destination);
+      await Promise.all([animator.updateComplete, source.updateComplete, destination.updateComplete]);
+      const live = source.Components[0] as HTMLElement;
+      const art = document.createElement('span');
+      art.id = 'visible-art-id';
+      art.textContent = 'VISIBLE SOURCE ART';
+      live.append(art);
+
+      animator.prepare();
+      source.stack = data([], [], { 'carrier-card': 1 });
+      destination.stack = data([], [], { 'carrier-card': 2 });
+      await Promise.all([source.updateComplete, destination.updateComplete]);
+      await animator.animateFlip();
+      const carrier = animator._animatingComponents[0]?.component as HTMLElement | undefined;
+      const planJSON = JSON.stringify(animator._solvedMotionPlan);
+      const observed = {
+        segmentStatus: animator._solvedMotionPlan?.segments[0]?.execution.status,
+        carrierTag: carrier?.localName,
+        carrierId: carrier?.id,
+        inert: carrier?.inert,
+        ariaHidden: carrier?.getAttribute('aria-hidden'),
+        pointerEvents: carrier?.style.pointerEvents,
+        text: carrier?.textContent,
+        duplicateIds: carrier?.querySelectorAll('[id]').length,
+        presentationPublished: planJSON.includes('VISIBLE SOURCE ART') || planJSON.includes('motion-history'),
+      };
+      animator.clearAnimatingComponents();
+      return { ...observed, carriersAfterClear: destination.shadowRoot?.querySelectorAll('#animating-components > *').length };
+    });
+    expect(result).toEqual({
+      segmentStatus: 'finished',
+      carrierTag: 'boardgame-card',
+      carrierId: '',
+      inert: true,
+      ariaHidden: 'true',
+      pointerEvents: 'none',
+      text: 'VISIBLE SOURCE ART',
+      duplicateIds: 0,
+      presentationPublished: false,
+      carriersAfterClear: 0,
+    });
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

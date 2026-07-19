@@ -327,6 +327,24 @@ fabricated travel. Full history versions and candidate sets remain private;
 public structural provenance contains only the selected collection and coarse
 evidence.
 
+Historical presentation and temporary embodiment are separate private
+capabilities. A component may opt into capturing clones of its already
+rendered, visible default-slot light DOM. The resulting runtime-branded token
+contains no public state and is installed only into a compatible host's
+reserved `motion-history` slot; document IDs and focus hooks are stripped and
+fresh clones are used for every installation. It supports both a retained host
+whose current rendering has become opaque and a departing subject that no
+longer has a live host.
+
+Only the latter requires a motion carrier. The destination collection creates
+a fresh host from its ordinary component recipe, prepares it from closed
+default property data, and places it in the generation-owned animation
+container. That carrier has no subject DOM ID and is inert, pointer-free, and
+`aria-hidden`; ordinary retained hosts are never made inert. Presentation stays
+inside the animator/component boundary and is never added to structural plans,
+events, silhouettes, or effects. Capture is transition-local, so a component
+that is already hidden cannot resurrect stale artwork from an older cycle.
+
 ## Physical animation ownership
 
 Avoid a general runtime channel arbiter. Conflicts are prevented by DOM
@@ -376,9 +394,13 @@ ownership:
 16. **Done:** extract a pure structural continuity solver, make inferred
     endpoints permutation-invariant, and fail closed instead of animating an
     arbitrary collection when history is ambiguous.
-17. **Deferred:** design any artwork-bearing subject representation as a new,
+17. **Done:** replace animator-owned card cloning and faux-card preparation
+    conventions with private historical-presentation capture plus fresh inert
+    motion carriers; preserve retained and departing artwork without widening
+    public motion snapshots.
+18. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-18. Reassess a larger representation only when concrete duplication justifies
+19. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

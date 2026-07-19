@@ -29,6 +29,7 @@ export interface BoardgameAnimatableItemElement extends HTMLElement {
    * Called during FIRST phase of FLIP to capture state before change.
    */
   animatingPropValues(): AnimatingProps;
+  animatingPropDefaults(stack: any): AnimatingProps;
 }
 
 /**
@@ -60,14 +61,11 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
   /** If true, use alternate shadow (for rotated cards) */
   altShadow: boolean;
 
-  /** Whether to clone content during animation */
-  cloneContent: boolean;
+  /** Private historical-presentation capture policy. */
+  historicalPresentationPolicy: 'none' | 'clone-default-slot';
 
-  /**
-   * Prepare this component for use as an animating (faux) component.
-   * Called after creation in newAnimatingComponent.
-   */
-  prepareForBeingAnimatingComponent(stack: any): void;
+  /** Prepare a fresh inert host for temporary departing motion. */
+  prepareMotionCarrier(defaults: Readonly<Record<string, unknown>>): void;
 
   /**
    * Compute properties that should animate between states.
