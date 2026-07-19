@@ -1,6 +1,68 @@
 import { expect, test } from '@playwright/test';
 import { prepareRendererFixturePage } from './renderer-fixture-helpers.js';
 
+test('card face motion is a planned component-owned visual track', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-card.ts');
+      const card = document.createElement('boardgame-card') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        planMotionTracks(record: object): readonly object[];
+        playAnimation(record: object): readonly Animation[];
+      };
+      card.style.setProperty('--animation-length', '80ms');
+      document.body.append(card);
+      await card.updateComplete;
+      const record = {
+        before: { faceUp: false, rotated: false },
+        after: { faceUp: true, rotated: false },
+        invertedTransform: 'none',
+        finalTransform: '',
+        beforeOpacity: '1',
+        finalOpacity: '',
+        needsHostTransition: false,
+      };
+      const tracks = card.planMotionTracks(record) as Array<{
+        target: string; property: string; from: string; to: string;
+      }>;
+      const animations = card.playAnimation({ ...record, tracks });
+      const inner = card.shadowRoot?.querySelector<HTMLElement>('#inner');
+      const animation = animations[0];
+      const frames = animation?.effect instanceof KeyframeEffect
+        ? animation.effect.getKeyframes()
+        : [];
+      const during = {
+        tracks,
+        count: animations.length,
+        targetIsVisual: animation?.effect instanceof KeyframeEffect
+          && animation.effect.target === inner,
+        from: frames[0]?.transform,
+        to: frames.at(-1)?.transform,
+      };
+      await Promise.all(animations.map(item => item.finished));
+      return during;
+    });
+
+    expect(result).toEqual({
+      tracks: [{
+        target: 'visual',
+        property: 'transform',
+        from: 'scale(var(--component-effective-scale)) rotateY(0deg) rotate(0deg)',
+        to: 'scale(var(--component-effective-scale)) rotateY(180deg) rotate(0deg)',
+      }],
+      count: 1,
+      targetIsVisual: true,
+      from: 'scale(var(--component-effective-scale)) rotateY(0deg) rotate(0deg)',
+      to: 'scale(var(--component-effective-scale)) rotateY(180deg) rotate(0deg)',
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('animateBetween aligns differently-sized endpoints by viewport center', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
@@ -221,6 +283,7 @@ test('structural plans publish before playback and invalidate on interruption', 
             presence: string;
             provenance: { kind: string };
             transform?: { before: string; after: string };
+            channels: Array<{ target: string; property: string }>;
             viewport?: {
               from: { space: string; left: number; top: number };
               to: { space: string; left: number; top: number };
@@ -340,6 +403,7 @@ test('structural plans publish before playback and invalidate on interruption', 
       presence: 'retained',
       provenance: { kind: 'identity' },
       transform: { before: '', after: 'translateX(40px)' },
+      channels: [{ target: 'host', property: 'transform' }],
       timingRequest: { policy: 'version', delayMs: 0, durationMs: 80 },
       execution: {
         status: 'started',

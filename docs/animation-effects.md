@@ -20,6 +20,14 @@ They share finite geometry and timing compilers, but not ownership. An effect
 cannot replace or delay a card's structural transform. This division is why a
 particle-budget failure can never strand a game transition.
 
+Internally, automatic component motion is planned as immutable, single-channel
+tracks. Structural FLIP owns the component host's transform, fades own host
+opacity, and card face/rotation changes own the card's inner visual transform.
+The same frozen list decides whether work exists and drives WAAPI playback, so
+a card flip is no longer a second imperative animation system. Structural plans
+publish only the owned channel names for observation; effects still receive no
+write access. This framework contract is intentionally not a game-author API.
+
 ## The three axes
 
 Effects keep three independent choices separate:

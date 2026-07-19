@@ -4,6 +4,12 @@ import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
+import { compileComponentMotionTracks } from '../motion/component-track.js';
+import type {
+  ComponentMotionTrack,
+  ComponentMotionTrackInput,
+  ComponentMotionTarget,
+} from '../motion/component-track.js';
 
 // FlipRecord is the bundle the animator computes for each animating
 // component and hands to playAnimation(). before/after are the
@@ -18,6 +24,7 @@ export interface FlipRecord {
   finalOpacity: string;
   needsHostTransition: boolean;      // host transform keyframes worth playing
   delayMs?: number;                  // per-component start delay, from a stack's stagger attribute (#728)
+  tracks?: readonly ComponentMotionTrack[]; // planned once; executor consumes exactly these channels
 }
 
 export class BoardgameComponent extends BoardgameAnimatableItem {
@@ -175,51 +182,50 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return result;
   }
 
-  // playAnimation is the WAAPI replacement for the old
-  // prepareAnimation/startAnimation pair. The animator computed the FLIP
-  // delta; we translate it into keyframes. Property-driven inner effects
-  // (card flip, die spin) are handled by subclasses via
-  // playPropertyAnimation, so the databinding dance (setting before-props
-  // then after-props) is gone entirely.
+  /** Purely describe every host and component-owned channel that will play. */
+  planMotionTracks(rec: FlipRecord): readonly ComponentMotionTrack[] {
+    return compileComponentMotionTracks({
+      needsHostTransition: rec.needsHostTransition,
+      invertedTransform: rec.invertedTransform,
+      finalTransform: rec.finalTransform,
+      beforeOpacity: rec.beforeOpacity,
+      finalOpacity: rec.finalOpacity,
+      visualTracks: this.propertyMotionTracks(rec.before, rec.after),
+    });
+  }
+
+  /** Subclasses describe visual consequences without starting WAAPI. */
+  protected propertyMotionTracks(
+    _before: Record<string, any>,
+    _after: Record<string, any>,
+  ): readonly ComponentMotionTrackInput[] {
+    return [];
+  }
+
+  protected motionTrackTarget(target: ComponentMotionTarget): HTMLElement | null {
+    return target === 'host' ? this : this.innerElement ?? null;
+  }
+
+  // Execute the already-planned track descriptions through the one shared
+  // timing/gating kernel. Planning and playback no longer independently guess
+  // which component property transitions exist.
   playAnimation(rec: FlipRecord): readonly Animation[] {
     const delayMs = rec.delayMs ?? 0;
     const animations: Animation[] = [];
-    if (rec.needsHostTransition) {
-      const animation = this.play(this, [
-        { transform: rec.invertedTransform },
-        { transform: rec.finalTransform || 'none' },
-      ], { delay: delayMs });
-      if (animation) animations.push(animation);
-      // The element's resting inline transform must be the final one; the
-      // animation is an overlay (fill: 'none').
-      this.style.transform = rec.finalTransform;
-    }
-    const beforeO = parseFloat(rec.beforeOpacity || '1');
-    const afterO = parseFloat(rec.finalOpacity || '1');
-    if (Math.abs(beforeO - afterO) > 0.01) {
-      const animation = this.play(
-        this,
-        [{ opacity: String(beforeO) }, { opacity: String(afterO) }],
-        { delay: delayMs },
-      );
+    for (const track of rec.tracks ?? this.planMotionTracks(rec)) {
+      const target = this.motionTrackTarget(track.target);
+      if (!target) continue;
+      const keyframes: Keyframe[] = track.property === 'transform'
+        ? [{ transform: track.from }, { transform: track.to }]
+        : [{ opacity: track.from }, { opacity: track.to }];
+      const animation = this.play(target, keyframes, { delay: delayMs });
       if (animation) animations.push(animation);
     }
+    // Host tracks are overlays (fill:'none'); authored resting styles remain
+    // the final source of truth after WAAPI settles.
+    if (rec.needsHostTransition) this.style.transform = rec.finalTransform;
     this.style.opacity = rec.finalOpacity;
-    animations.push(...this.playPropertyAnimation(rec.before, rec.after, delayMs));
     return animations;
-  }
-
-  // playPropertyAnimation animates the visual consequences of
-  // animatingProperties changing (e.g. a card's faceUp flip). Base: no-op.
-  // delayMs (from a stack's stagger attribute, #728) should be threaded
-  // into any play() call subclasses make here.
-  playPropertyAnimation(
-    before: Record<string, any>,
-    after: Record<string, any>,
-    delayMs: number = 0,
-  ): readonly Animation[] {
-    // Subclasses override.
-    return [];
   }
 
   // prepareForBeingAnimatingComponent is called if the component is going

@@ -28,6 +28,12 @@ export interface StructuralPropertyChange {
   readonly after: StructuralValueSnapshot;
 }
 
+/** Exact DOM ownership channels planned for this segment. */
+export interface StructuralMotionChannel {
+  readonly target: 'host' | 'visual';
+  readonly property: 'transform' | 'opacity';
+}
+
 export type StructuralValueSnapshot =
   | string
   | number
@@ -59,6 +65,7 @@ export interface StructuralMotionDraft {
   readonly transform?: Readonly<{ before: string; after: string }>;
   readonly properties: readonly StructuralPropertyChange[];
   readonly opacity?: Readonly<{ before: number; after: number }>;
+  readonly channels: readonly StructuralMotionChannel[];
 }
 
 export interface StructuralTimingRequest {
@@ -123,6 +130,25 @@ function snapshotValue(value: unknown): StructuralValueSnapshot {
   return Object.freeze({ kind: 'opaque' });
 }
 
+function snapshotChannels(
+  channels: readonly Readonly<{ target: string; property: string }>[] | undefined,
+): readonly StructuralMotionChannel[] {
+  const seen = new Set<string>();
+  const result: StructuralMotionChannel[] = [];
+  for (const channel of channels ?? []) {
+    if ((channel.target !== 'host' && channel.target !== 'visual')
+      || (channel.property !== 'transform' && channel.property !== 'opacity')) continue;
+    const key = `${channel.target}:${channel.property}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(Object.freeze({
+      target: channel.target,
+      property: channel.property,
+    }));
+  }
+  return Object.freeze(result);
+}
+
 export function createStructuralMotionDraft(input: Readonly<{
   subjectId: string;
   presence: StructuralPresence;
@@ -140,6 +166,7 @@ export function createStructuralMotionDraft(input: Readonly<{
   animatingProperties?: readonly string[];
   beforeOpacity?: string;
   afterOpacity?: string;
+  channels?: readonly Readonly<{ target: string; property: string }>[];
 }>): StructuralMotionDraft {
   const properties = (input.animatingProperties ?? []).flatMap(name => {
     const before = input.beforeProperties?.[name];
@@ -182,6 +209,7 @@ export function createStructuralMotionDraft(input: Readonly<{
     ...(Math.abs(beforeOpacity - afterOpacity) > 0.01 ? {
       opacity: Object.freeze({ before: beforeOpacity, after: afterOpacity }),
     } : {}),
+    channels: snapshotChannels(input.channels),
   });
 }
 

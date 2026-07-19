@@ -36,6 +36,7 @@ import { compileStructuralMotionEvents } from '../motion/structural-events.js';
 import type { StructuralMotionEvent } from '../motion/structural-events.js';
 import { sanitizeMotionSubjectSnapshot } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
+import type { ComponentMotionTrack } from '../motion/component-track.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -72,6 +73,7 @@ interface ComponentRecord {
   beforeOpacity?: string;
   needsHostTransition?: boolean;
   needsAnimation?: boolean;
+  motionTracks?: readonly ComponentMotionTrack[];
   motionDraft?: StructuralMotionDraft;
   visualSubject?: MotionSubjectSnapshot;
 }
@@ -96,6 +98,7 @@ interface AnimatingComponentRecord {
   invertedTransform: string;
   beforeOpacity: string;
   needsHostTransition: boolean;
+  motionTracks?: readonly ComponentMotionTrack[];
   motionDraft?: StructuralMotionDraft;
 }
 
@@ -516,6 +519,7 @@ export class BoardgameComponentAnimator extends LitElement {
         scale: 1,
         changed: dx !== 0 || dy !== 0,
       }),
+      channels: [{ target: 'host', property: 'transform' }],
     });
     this._installExplicitMotion(publishStructuralMotionPlan(explicitGeneration, [{
       draft,
@@ -789,23 +793,20 @@ export class BoardgameComponentAnimator extends LitElement {
           (record.beforeInlineTransform || '') !== (record.afterTransform || '');
         record.needsHostTransition = geometry.changed || hasInlineTransformChange;
 
-        // Check if any animating properties changed (e.g. faceUp, rotated)
-        const beforeProps = record.before || {};
-        const afterProps = record.after!;
-        let propsChanged = false;
-        for (const propName of component.animatingProperties) {
-          if (beforeProps[propName] !== afterProps[propName]) {
-            propsChanged = true;
-            break;
-          }
-        }
-
-        // Check opacity change
-        const beforeOpacity = parseFloat(record.beforeOpacity || '1');
-        const afterOpacity = parseFloat(record.afterOpacity || '1');
-        const opacityChanged = Math.abs(beforeOpacity - afterOpacity) > 0.01;
-
-        record.needsAnimation = record.needsHostTransition || propsChanged || opacityChanged;
+        // Plan every owned animation channel once. The same immutable tracks
+        // decide whether work exists and later drive WAAPI playback.
+        record.invertedTransform = composeFlipTransform(geometry, record.beforeTransform);
+        const motionTracks = component.planMotionTracks({
+          before: record.before || {},
+          after: record.after!,
+          invertedTransform: record.invertedTransform,
+          finalTransform: record.afterTransform || '',
+          beforeOpacity: record.beforeOpacity || '1',
+          finalOpacity: record.afterOpacity || '',
+          needsHostTransition: record.needsHostTransition,
+        });
+        record.motionTracks = motionTracks;
+        record.needsAnimation = motionTracks.length > 0;
 
         // We used to only bother setting transforms for items that had
         // physically moved. However, the browser is smart enough to ignore
@@ -820,7 +821,6 @@ export class BoardgameComponentAnimator extends LitElement {
         // transform and before-opacity are stashed on the record; the WAAPI
         // PLAY phase in _startAnimations turns them into keyframes.
         if (record.needsAnimation) {
-          record.invertedTransform = composeFlipTransform(geometry, record.beforeTransform);
           record.motionDraft = createStructuralMotionDraft({
             subjectId: component.id,
             presence: hadExactBefore ? 'retained' : presence,
@@ -840,6 +840,7 @@ export class BoardgameComponentAnimator extends LitElement {
             animatingProperties: component.animatingProperties,
             beforeOpacity: record.beforeOpacity,
             afterOpacity: record.afterOpacity,
+            channels: record.motionTracks,
           });
 
           const clonedNodes = this._lastSeenNodesById.get(component.id);
@@ -919,6 +920,15 @@ export class BoardgameComponentAnimator extends LitElement {
       // here: the resting inline transform stays put, and playAnimation()
       // supplies the inverted state as the animation's opening keyframe.
       animatingRecord.invertedTransform = composeFlipTransform(geometry, record.beforeTransform);
+      animatingRecord.motionTracks = component.planMotionTracks({
+        before: animatingRecord.before,
+        after: animatingRecord.after,
+        invertedTransform: animatingRecord.invertedTransform,
+        finalTransform: animatingRecord.afterTransform,
+        beforeOpacity: animatingRecord.beforeOpacity,
+        finalOpacity: animatingRecord.afterOpacity,
+        needsHostTransition: true,
+      });
       animatingRecord.motionDraft = createStructuralMotionDraft({
         subjectId: id,
         presence: 'departing',
@@ -941,6 +951,7 @@ export class BoardgameComponentAnimator extends LitElement {
         animatingProperties: component.animatingProperties,
         beforeOpacity: animatingRecord.beforeOpacity,
         afterOpacity: animatingRecord.afterOpacity,
+        channels: animatingRecord.motionTracks,
       });
 
       const clonedNodes = this._lastSeenNodesById.get(id);
@@ -1000,6 +1011,7 @@ export class BoardgameComponentAnimator extends LitElement {
         finalOpacity: string;
         needsHostTransition: boolean;
         delayMs?: number;
+        tracks?: readonly ComponentMotionTrack[];
       };
       motionDraft?: StructuralMotionDraft;
       durationMs: number;
@@ -1031,6 +1043,7 @@ export class BoardgameComponentAnimator extends LitElement {
             finalOpacity: record.afterOpacity || '',
             needsHostTransition: record.needsHostTransition ?? true,
             delayMs,
+            tracks: record.motionTracks,
           },
           motionDraft: record.motionDraft,
           durationMs: component.animationLengthMs(),
@@ -1050,6 +1063,7 @@ export class BoardgameComponentAnimator extends LitElement {
           beforeOpacity: ac.beforeOpacity || '1',
           finalOpacity: ac.afterOpacity,
           needsHostTransition: true,
+          tracks: ac.motionTracks,
         },
         motionDraft: ac.motionDraft,
         durationMs: ac.component.animationLengthMs(),

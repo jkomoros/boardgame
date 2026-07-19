@@ -4,6 +4,7 @@ import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
+import type { ComponentMotionTrackInput } from '../motion/component-track.js';
 
 export class BoardgameCard extends BoardgameComponent {
   static override styles = [
@@ -305,18 +306,17 @@ export class BoardgameCard extends BoardgameComponent {
     ].join(' ');
   }
 
-  override playPropertyAnimation(
+  protected override propertyMotionTracks(
     before: Record<string, any>,
     after: Record<string, any>,
-    delayMs: number = 0,
-  ): readonly Animation[] {
+  ): readonly ComponentMotionTrackInput[] {
     if (before.faceUp === after.faceUp && before.rotated === after.rotated) return [];
-    if (!this.innerElement) return [];
-    const animation = this.play(this.innerElement, [
-      { transform: this._innerTransformFor(!!before.faceUp, !!before.rotated) },
-      { transform: this._innerTransformFor(!!after.faceUp, !!after.rotated) },
-    ], { delay: delayMs });
-    return animation ? [animation] : [];
+    return [{
+      target: 'visual',
+      property: 'transform',
+      from: this._innerTransformFor(!!before.faceUp, !!before.rotated),
+      to: this._innerTransformFor(!!after.faceUp, !!after.rotated),
+    }];
   }
 
   override get cloneContent(): boolean {

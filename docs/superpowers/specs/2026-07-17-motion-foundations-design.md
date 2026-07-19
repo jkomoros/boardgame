@@ -115,6 +115,7 @@ interface StructuralMotionSegment {
   readonly transform?: { readonly before: string; readonly after: string };
   readonly properties: readonly StructuralPropertyChange[];
   readonly opacity?: { readonly before: number; readonly after: number };
+  readonly channels: readonly StructuralMotionChannel[];
   readonly timingRequest: StructuralTimingRequest;
   readonly execution: StructuralExecution;
 }
@@ -126,6 +127,38 @@ subject was and is even for a stationary morph; `spatial` exists only when it
 actually traveled or resized and retains the legacy FLIP offset coordinates.
 Property values that cannot be safely and immutably represented are marked
 `opaque`; plans never retain arbitrary game objects.
+
+### Component motion tracks
+
+The smallest executable unit below a card flip is an immutable single-channel
+track:
+
+```ts
+interface ComponentMotionTrack {
+  readonly target: 'host' | 'visual';
+  readonly property: 'transform' | 'opacity';
+  readonly from: string;
+  readonly to: string;
+}
+```
+
+`host` belongs to structural position and visibility. `visual` belongs to the
+component's inner presentation surface. A compiler combines framework-owned
+host tracks with component-produced visual tracks, removes no-ops, copies and
+freezes every endpoint, and rejects two writers for the same target/property
+channel. It deliberately does not model arbitrary CSS or DOM selectors.
+
+The animator now asks a component to plan this list once. The list determines
+whether the component participates, is recorded as channel intent in the
+structural plan, and is consumed unchanged by the shared WAAPI execution and
+gating kernel. This replaces the former split where the animator guessed that
+`faceUp` needed work and `boardgame-card` later imperatively started a separate
+animation. Card face/rotation changes are now pure `visual:transform` track
+production; FLIP remains `host:transform`, and fades remain `host:opacity`.
+
+Track endpoints are execution descriptions, not game-author effect APIs.
+Semantic effects still observe lifecycle/geometry and never acquire a write
+channel on either component surface.
 
 ### Publication lifecycle
 
@@ -255,9 +288,12 @@ ownership:
 10. **Done:** add an exact, privacy-safe silhouette snapshot protocol and
     `fx.trail()` follower that derives geometry and timing from real FLIP
     execution, degrades under budgets/reduced motion, and cancels by generation.
-11. **Deferred:** design any artwork-bearing subject representation as a new,
+11. **Done:** extract immutable component motion tracks, make channel ownership
+    explicit, plan once for participation and playback, and migrate card
+    face/rotation animation off its imperative WAAPI hook.
+12. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-12. Reassess a larger representation only when concrete duplication justifies
+13. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

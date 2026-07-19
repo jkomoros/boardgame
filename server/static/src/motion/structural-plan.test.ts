@@ -39,6 +39,11 @@ describe('structural motion plans', () => {
       animatingProperties: ['faceUp', 'rotated'],
       beforeOpacity: '0.4',
       afterOpacity: '1',
+      channels: [
+        { target: 'host', property: 'transform' },
+        { target: 'host', property: 'opacity' },
+        { target: 'visual', property: 'transform' },
+      ],
     });
     assert.equal(draft.spatial?.offsetFrom, from);
     assert.deepEqual(draft.visualSubject, {
@@ -49,6 +54,11 @@ describe('structural motion plans', () => {
     assert.deepEqual(draft.transform, { before: 'rotate(1deg)', after: 'rotate(2deg)' });
     assert.deepEqual(draft.properties, [{ name: 'faceUp', before: false, after: true }]);
     assert.deepEqual(draft.opacity, { before: 0.4, after: 1 });
+    assert.deepEqual(draft.channels, [
+      { target: 'host', property: 'transform' },
+      { target: 'host', property: 'opacity' },
+      { target: 'visual', property: 'transform' },
+    ]);
     assert.equal(Object.isFrozen(draft), true);
     assert.equal(Object.isFrozen(draft.properties), true);
   });
