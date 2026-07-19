@@ -50,3 +50,70 @@ func TestRawConfigSaveAtomicallyReplacesExistingFile(t *testing.T) {
 		t.Fatalf("saved permissions = %o, want 640", got)
 	}
 }
+
+func TestConfigSaveWritesPublicAndSecretWithSafeModes(t *testing.T) {
+	dir := t.TempDir()
+	publicPath := filepath.Join(dir, publicConfigFileName)
+	secretPath := filepath.Join(dir, privateConfigFileName)
+	config := &Config{
+		rawPublicConfig: &RawConfig{Base: &RawConfigMode{}, path: publicPath},
+		rawSecretConfig: &RawConfig{Base: &RawConfigMode{}, path: secretPath},
+	}
+	if err := config.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	for path, want := range map[string]os.FileMode{publicPath: 0o644, secretPath: 0o600} {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := info.Mode().Perm(); got != want {
+			t.Errorf("%s mode = %o, want %o", path, got, want)
+		}
+	}
+}
+
+func TestConfigSaveTightensExistingSecretPermissions(t *testing.T) {
+	dir := t.TempDir()
+	secretPath := filepath.Join(dir, privateConfigFileName)
+	if err := os.WriteFile(secretPath, []byte("old-secret"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	config := &Config{rawSecretConfig: &RawConfig{Base: &RawConfigMode{}, path: secretPath}}
+	if err := config.Save(); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	info, err := os.Stat(secretPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("secret mode = %o, want 600", got)
+	}
+}
+
+func TestConfigSavePreflightFailureLeavesPublicConfigUntouched(t *testing.T) {
+	dir := t.TempDir()
+	publicPath := filepath.Join(dir, publicConfigFileName)
+	secretPath := filepath.Join(dir, privateConfigFileName)
+	if err := os.WriteFile(publicPath, []byte("old-public"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(secretPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	config := &Config{
+		rawPublicConfig: &RawConfig{Base: &RawConfigMode{}, path: publicPath},
+		rawSecretConfig: &RawConfig{Base: &RawConfigMode{}, path: secretPath},
+	}
+	if err := config.Save(); err == nil {
+		t.Fatal("Save succeeded with a directory at the private config path")
+	}
+	contents, err := os.ReadFile(publicPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != "old-public" {
+		t.Fatalf("public config changed despite pair preflight failure: %q", contents)
+	}
+}

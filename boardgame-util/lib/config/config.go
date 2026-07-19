@@ -2,8 +2,13 @@ package config
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 // ModeType defines which sub-mode (Base, Dev, or Prod) we're referring to.
@@ -202,25 +207,88 @@ func (c *Config) derive() {
 
 }
 
-// Save saves the two underlying RawConfigs back to disk. Convenience wrapper
-// around RawConfig().Save(), RawSecretConfig.Save()
+type pendingConfigSave struct {
+	label, path string
+	config      *RawConfig
+	mode        os.FileMode
+	contents    []byte
+}
+
+// Save transactionally saves the public and secret configs as one file set.
 func (c *Config) Save() error {
-	config := c.RawConfig()
-	if config != nil {
-		if err := config.Save(); err != nil {
-			return errors.New("Couldn't save public config: " + err.Error())
-		}
+	pending := []pendingConfigSave{
+		{label: "public", config: c.RawConfig(), mode: 0o644},
+		{label: "private", config: c.RawSecretConfig(), mode: 0o600},
 	}
-
-	config = c.RawSecretConfig()
-
-	if config != nil {
-		if err := config.Save(); err != nil {
-			return errors.New("Couldn't save private config: " + err.Error())
+	writes := pending[:0]
+	for _, item := range pending {
+		if item.config == nil {
+			continue
 		}
+		contents, write, err := item.config.serializedForSave()
+		if err != nil {
+			return fmt.Errorf("couldn't prepare %s config: %w", item.label, err)
+		}
+		if !write {
+			continue
+		}
+		path, err := filepath.Abs(item.config.Path())
+		if err != nil {
+			return fmt.Errorf("couldn't resolve %s config path: %w", item.label, err)
+		}
+		item.contents, item.path = contents, path
+		writes = append(writes, item)
 	}
-
+	if len(writes) == 0 {
+		return nil
+	}
+	paths := make([]string, 0, len(writes))
+	for _, item := range writes {
+		paths = append(paths, item.path)
+	}
+	root, err := commonConfigDirectory(paths)
+	if err != nil {
+		return err
+	}
+	files := make(map[string]fileutil.FileSpec, len(writes))
+	for _, item := range writes {
+		rel, err := filepath.Rel(root, item.path)
+		if err != nil {
+			return fmt.Errorf("couldn't relativize %s config path: %w", item.label, err)
+		}
+		if _, exists := files[rel]; exists {
+			return fmt.Errorf("public and private config resolve to the same path %s", item.path)
+		}
+		files[rel] = fileutil.FileSpec{Contents: item.contents, Mode: item.mode, ForceMode: item.label == "private"}
+	}
+	if err := fileutil.WriteFileSetAtomic(root, files, true); err != nil {
+		return fmt.Errorf("couldn't save config files transactionally: %w", err)
+	}
 	return nil
+}
+
+func commonConfigDirectory(paths []string) (string, error) {
+	if len(paths) == 0 {
+		return "", errors.New("no config paths provided")
+	}
+	root := filepath.Dir(paths[0])
+	for _, path := range paths[1:] {
+		for {
+			rel, err := filepath.Rel(root, path)
+			if err != nil {
+				return "", fmt.Errorf("config paths do not share a filesystem root: %w", err)
+			}
+			if rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				break
+			}
+			parent := filepath.Dir(root)
+			if parent == root {
+				return "", errors.New("config paths do not share a directory root")
+			}
+			root = parent
+		}
+	}
+	return root, nil
 }
 
 // RawConfig returns the underlying, non-secret config that this derived config

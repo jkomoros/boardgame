@@ -23,10 +23,28 @@ type fileMutation struct {
 
 var link = os.Link
 
+// FileSpec describes one file in an atomic output set.
+type FileSpec struct {
+	Contents []byte
+	Mode     fs.FileMode
+	// ForceMode applies Mode even when replacing an existing file. By default,
+	// existing permissions are preserved.
+	ForceMode bool
+}
+
 // WriteFilesAtomic validates and stages a complete set of relative files
 // before replacing any destination. Installation is deterministic and rolls
 // earlier replacements back if a later rename fails.
 func WriteFilesAtomic(root string, files map[string][]byte, overwrite bool, defaultMode fs.FileMode) error {
+	specs := make(map[string]FileSpec, len(files))
+	for name, contents := range files {
+		specs[name] = FileSpec{Contents: contents, Mode: defaultMode}
+	}
+	return WriteFileSetAtomic(root, specs, overwrite)
+}
+
+// WriteFileSetAtomic is WriteFilesAtomic with per-file creation modes.
+func WriteFileSetAtomic(root string, files map[string]FileSpec, overwrite bool) error {
 	if len(files) == 0 {
 		return nil
 	}
@@ -60,7 +78,7 @@ func WriteFilesAtomic(root string, files map[string][]byte, overwrite bool, defa
 		}
 	}()
 
-	mutations, err := prepareMutations(root, files, overwrite, defaultMode)
+	mutations, err := prepareMutations(root, files, overwrite)
 	if err != nil {
 		return err
 	}
@@ -82,7 +100,7 @@ func WriteFilesAtomic(root string, files map[string][]byte, overwrite bool, defa
 	return nil
 }
 
-func prepareMutations(root string, files map[string][]byte, overwrite bool, defaultMode fs.FileMode) ([]fileMutation, error) {
+func prepareMutations(root string, files map[string]FileSpec, overwrite bool) ([]fileMutation, error) {
 	names := make([]string, 0, len(files))
 	for name := range files {
 		names = append(names, name)
@@ -100,7 +118,8 @@ func prepareMutations(root string, files map[string][]byte, overwrite bool, defa
 		}
 		seen[clean] = name
 
-		mutation := fileMutation{path: path, contents: files[name], mode: defaultMode.Perm(), exclusive: !overwrite}
+		spec := files[name]
+		mutation := fileMutation{path: path, contents: spec.Contents, mode: spec.Mode.Perm(), exclusive: !overwrite}
 		info, err := os.Lstat(path)
 		if err == nil {
 			if !info.Mode().IsRegular() {
@@ -110,7 +129,9 @@ func prepareMutations(root string, files map[string][]byte, overwrite bool, defa
 				return nil, fmt.Errorf("%s already exists; save aborted", name)
 			}
 			mutation.hadFile = true
-			mutation.mode = info.Mode().Perm()
+			if !spec.ForceMode {
+				mutation.mode = info.Mode().Perm()
+			}
 		} else if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("inspect output %s: %w", path, err)
 		}
