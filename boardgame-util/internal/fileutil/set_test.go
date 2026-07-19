@@ -86,6 +86,30 @@ func TestWriteFilesAtomicRejectsSymlinkEscape(t *testing.T) {
 	}
 }
 
+func TestWriteFilesAtomicRejectsOutputsAliasedBySymlink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation generally requires elevated privileges on Windows")
+	}
+	root := t.TempDir()
+	realDir := filepath.Join(root, "real")
+	if err := os.Mkdir(realDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(realDir, filepath.Join(root, "alias")); err != nil {
+		t.Fatal(err)
+	}
+	err := WriteFilesAtomic(root, map[string][]byte{
+		"real/output":  []byte("first"),
+		"alias/output": []byte("second"),
+	}, true, 0o644)
+	if err == nil || !strings.Contains(err.Error(), "resolve to the same file") {
+		t.Fatalf("error = %v, want symlink-alias collision", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(realDir, "output")); !os.IsNotExist(statErr) {
+		t.Fatalf("collision preflight wrote output: %v", statErr)
+	}
+}
+
 func TestWriteFilesAtomicPreflightLeavesSetUntouched(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "b"), []byte("existing"), 0o644); err != nil {

@@ -176,6 +176,7 @@ func prepareMutations(root string, files map[string]FileSpec, overwrite bool) ([
 	}
 	sort.Strings(names)
 	seen := make(map[string]string, len(names))
+	seenResolved := make(map[string]string, len(names))
 	mutations := make([]fileMutation, 0, len(names))
 	for _, name := range names {
 		path, clean, err := resolveRelativeFile(root, name)
@@ -186,6 +187,14 @@ func prepareMutations(root string, files map[string]FileSpec, overwrite bool) ([
 			return nil, fmt.Errorf("output paths %q and %q resolve to the same file", prior, name)
 		}
 		seen[clean] = name
+		resolved, err := resolveThroughExistingAncestor(path)
+		if err != nil {
+			return nil, fmt.Errorf("resolve output %s: %w", path, err)
+		}
+		if prior, ok := seenResolved[resolved]; ok {
+			return nil, fmt.Errorf("output paths %q and %q resolve to the same file %s", prior, name, resolved)
+		}
+		seenResolved[resolved] = name
 
 		spec := files[name]
 		mutation := fileMutation{path: path, contents: spec.Contents, mode: spec.Mode.Perm(), exclusive: !overwrite || spec.Exclusive, delete: spec.Delete}
@@ -234,26 +243,39 @@ func ensureWithinRoot(root, path string) error {
 	if err != nil {
 		return err
 	}
-	ancestor := path
+	resolved, err := resolveThroughExistingAncestor(path)
+	if err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(resolvedRoot, resolved)
+	if err != nil {
+		return err
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("resolved path %s is outside %s", resolved, resolvedRoot)
+	}
+	return nil
+}
+
+func resolveThroughExistingAncestor(path string) (string, error) {
+	ancestor := filepath.Clean(path)
+	var suffix []string
 	for {
 		resolved, err := filepath.EvalSymlinks(ancestor)
 		if err == nil {
-			rel, err := filepath.Rel(resolvedRoot, resolved)
-			if err != nil {
-				return err
+			for i := len(suffix) - 1; i >= 0; i-- {
+				resolved = filepath.Join(resolved, suffix[i])
 			}
-			if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-				return fmt.Errorf("resolved path %s is outside %s", resolved, resolvedRoot)
-			}
-			return nil
+			return filepath.Clean(resolved), nil
 		}
 		if !os.IsNotExist(err) {
-			return err
+			return "", err
 		}
 		parent := filepath.Dir(ancestor)
 		if parent == ancestor {
-			return fmt.Errorf("no existing ancestor for %s", path)
+			return "", fmt.Errorf("no existing ancestor for %s", path)
 		}
+		suffix = append(suffix, filepath.Base(ancestor))
 		ancestor = parent
 	}
 }
