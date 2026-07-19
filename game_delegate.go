@@ -171,7 +171,10 @@ type GameDelegate interface {
 	//moves are useful for things like shuffling a discard deck back into a
 	//draw deck, or other moves that are necessary to get the GameState back
 	//into reasonable shape. base.GameDelegate's defintion is almost always
-	//suficient.
+	//suficient. This is a query over the supplied immutable state: it must be
+	//deterministic for that state and must not mutate game or external state.
+	//The engine may call it more than once, including after loading a durable
+	//head to determine whether an interrupted fix-up chain is still pending.
 	ProposeFixUpMove(state ImmutableState) Move
 
 	//DefaultNumPlayers returns the number of users that new games of this

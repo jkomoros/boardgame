@@ -62,6 +62,192 @@ func TestMoveByNameForStateUsesPinnedDefaultsInsteadOfCurrentState(t *testing.T)
 	}
 }
 
+type proposalFrontierBlockingStorage struct {
+	*testStorageManager
+	blockVersion int
+	saved        chan struct{}
+	release      chan struct{}
+}
+
+func (s *proposalFrontierBlockingStorage) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error {
+	if err := s.testStorageManager.SaveGameAndCurrentState(game, state, move); err != nil {
+		return err
+	}
+	if move != nil && move.Version == s.blockVersion {
+		s.saved <- struct{}{}
+		<-s.release
+	}
+	return nil
+}
+
+func TestProposalFrontierDoesNotAdvanceWithIntermediateDurableState(t *testing.T) {
+	storage := &proposalFrontierBlockingStorage{
+		testStorageManager: newTestStorageManager(),
+		saved:              make(chan struct{}, 1),
+		release:            make(chan struct{}),
+	}
+	manager, err := NewGameManager(defaultTestGameDelegate(0), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.newGameImpl("FRONTIERTEST", "FRONTIERSALT")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := game.setUp(0, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	settled := game.Version()
+	if !game.AtProposalFrontier() {
+		t.Fatalf("setup version %d was not marked as a proposal frontier", settled)
+	}
+
+	storage.blockVersion = settled + 1
+	delayed := game.ProposeMove(game.MoveByName("Test"), game.CurrentState().CurrentPlayerIndex())
+	<-storage.saved
+
+	// Save completed before the hook blocks, so a fresh read can observe the
+	// newer durable version. The active serialized loop has not completed the
+	// proposal/fix-up chain and remains the manager's frontier authority.
+	stored := manager.Game(game.ID())
+	if stored == nil || stored.Version() != settled+1 {
+		t.Fatalf("stored intermediate version = %v, want %d", stored, settled+1)
+	}
+	frontier, ok := manager.ProposalFrontierVersion(game.ID())
+	if ok {
+		t.Fatalf("manager advertised stale frontier %d during active version %d", frontier, stored.Version())
+	}
+
+	close(storage.release)
+	if err := <-delayed; err != nil {
+		t.Fatal(err)
+	}
+	frontier, ok = manager.ProposalFrontierVersion(game.ID())
+	if !ok || frontier != game.Version() || !game.AtProposalFrontier() {
+		t.Fatalf("completed frontier = %d, %v; game version %d", frontier, ok, game.Version())
+	}
+}
+
+type proposalFrontierFailingMove struct {
+	baseMove
+}
+
+var proposalFrontierFailingMoveConfig = NewMoveConfig(
+	"Proposal Frontier Failing Move",
+	func() Move { return new(proposalFrontierFailingMove) },
+	nil,
+)
+
+func (m *proposalFrontierFailingMove) Reader() PropertyReader { return getDefaultReader(m) }
+func (m *proposalFrontierFailingMove) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(m)
+}
+func (m *proposalFrontierFailingMove) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(m)
+}
+func (m *proposalFrontierFailingMove) Legal(ImmutableState, PlayerIndex) error { return nil }
+func (m *proposalFrontierFailingMove) Apply(State) error {
+	return stderrors.New("deliberate later fix-up failure")
+}
+
+// proposalFrontierScriptDelegate makes recovery deterministic: each durable
+// version either names the next pending fix-up, or is a settled head.
+type proposalFrontierScriptDelegate struct {
+	testGameDelegate
+	fixupAtVersion map[int]string
+}
+
+func newProposalFrontierScriptDelegate(fixups map[int]string) *proposalFrontierScriptDelegate {
+	d := &proposalFrontierScriptDelegate{fixupAtVersion: fixups}
+	d.moveInstaller = func(*GameManager) []MoveConfig {
+		return []MoveConfig{legalMemoTestMoveConfig, proposalFrontierFailingMoveConfig}
+	}
+	return d
+}
+
+func (d *proposalFrontierScriptDelegate) ProposeFixUpMove(state ImmutableState) Move {
+	name := d.fixupAtVersion[state.Version()]
+	if name == "" {
+		return nil
+	}
+	return state.Game().MoveByNameForState(name, state)
+}
+
+func TestProposalFrontierSetupIncludesAllFixUps(t *testing.T) {
+	storage := newTestStorageManager()
+	fixups := map[int]string{
+		0: "Legal Memo Test Move",
+		1: "Legal Memo Test Move",
+	}
+	delegate := newProposalFrontierScriptDelegate(fixups)
+	manager, err := NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.newGameImpl("SETUPFRONTIER", "SETUPFRONTIERSALT")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := game.setUp(0, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if game.Version() != 2 || !game.AtProposalFrontier() {
+		t.Fatalf("setup frontier = version %d, frontier %d; want 2, 2", game.Version(), game.ProposalFrontierVersion())
+	}
+	restarted, err := NewGameManager(newProposalFrontierScriptDelegate(fixups), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if frontier, ok := restarted.ProposalFrontierVersion(game.ID()); !ok || frontier != 2 {
+		t.Fatalf("recovered completed setup frontier = %d, %v; want 2, true", frontier, ok)
+	}
+}
+
+func TestProposalFrontierFailedLaterFixUpRemainsUnsettledAcrossManager(t *testing.T) {
+	storage := newTestStorageManager()
+	fixups := map[int]string{
+		1: "Legal Memo Test Move",
+		2: "Proposal Frontier Failing Move",
+	}
+	manager, err := NewGameManager(newProposalFrontierScriptDelegate(fixups), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.newGameImpl("FAILEDCHAIN", "FAILEDCHAINSALT")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := game.setUp(0, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-game.ProposeMove(game.MoveByName("Legal Memo Test Move"), AdminPlayerIndex); err == nil || !strings.Contains(err.Error(), "deliberate later fix-up failure") {
+		t.Fatalf("proposal error = %v; want deliberate later fix-up failure", err)
+	}
+	if game.Version() != 2 {
+		t.Fatalf("durable partial chain ended at version %d; want 2", game.Version())
+	}
+	if _, ok := manager.ProposalFrontierVersion(game.ID()); ok {
+		t.Fatal("active failed partial chain was certified settled")
+	}
+
+	// A second manager has no process-local knowledge of the first manager's
+	// chain. It must rediscover the pending failed fix-up from durable state.
+	restarted, err := NewGameManager(newProposalFrontierScriptDelegate(fixups), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reloaded := restarted.Game(game.ID())
+	if reloaded == nil || reloaded.Version() != 2 {
+		t.Fatalf("reloaded partial game = %#v", reloaded)
+	}
+	if reloaded.AtProposalFrontier() {
+		t.Fatal("reloaded partial chain was certified settled")
+	}
+	if _, ok := restarted.ProposalFrontierVersion(game.ID()); ok {
+		t.Fatal("second manager advertised actions for a pending durable fix-up")
+	}
+}
+
 type testInfiniteLoopGameDelegate struct {
 	testGameDelegate
 }

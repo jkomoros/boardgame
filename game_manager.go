@@ -756,7 +756,7 @@ func (g *GameManager) newGame(id, secretSalt string) *Game {
 		secretSalt = randomString(gameIDLength, nil)
 	}
 
-	return &Game{
+	result := &Game{
 		manager: g,
 		//TODO: set the size of chan based on something more reasonable.
 		//Note: this is also set similarly in manager.ModifiableGame
@@ -767,6 +767,10 @@ func (g *GameManager) newGame(id, secretSalt string) *Game {
 		secretSalt:     secretSalt,
 		modifiable:     true,
 	}
+	// Zero is a real state version. Keep a new game explicitly uncertified
+	// until setup and all setup fix-ups complete.
+	result.proposalFrontierVersion.Store(-1)
+	return result
 }
 
 func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
@@ -776,7 +780,7 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 		return nil
 	}
 
-	return &Game{
+	result := &Game{
 		manager:    g,
 		version:    record.Version,
 		id:         record.ID,
@@ -790,6 +794,42 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 		modifiable: false,
 		initalized: true,
 	}
+	// A durable head is not automatically a proposal boundary: the process may
+	// have died after committing one fix-up but before completing the chain.
+	// Re-run the delegate's canonical fix-up selection against the immutable
+	// head. No pending fix-up is the recoverable definition of "settled".
+	result.proposalFrontierVersion.Store(-1)
+	if result.Finished() {
+		result.markProposalFrontier()
+	} else if state := result.CurrentState(); state != nil && g.delegate.ProposeFixUpMove(state) == nil {
+		result.markProposalFrontier()
+	}
+	return result
+}
+
+// ProposalFrontierVersion returns the proposal-accepting durable head known to
+// this manager. While an active serialized loop is between boundaries there
+// is deliberately no frontier: returning an older version would advertise
+// stale actions during a newer in-flight chain.
+func (g *GameManager) ProposalFrontierVersion(id string) (int, bool) {
+	if g == nil {
+		return 0, false
+	}
+	id = strings.ToUpper(id)
+	g.modifiableGamesLock.RLock()
+	active := g.modifiableGames[id]
+	g.modifiableGamesLock.RUnlock()
+	if active != nil && !active.Frozen() {
+		if !active.AtProposalFrontier() {
+			return 0, false
+		}
+		return active.ProposalFrontierVersion(), true
+	}
+	game := g.Game(id)
+	if game == nil || !game.AtProposalFrontier() {
+		return 0, false
+	}
+	return game.ProposalFrontierVersion(), true
 }
 
 // modifiableGameCreated lets Manager know that a modifiable game was created

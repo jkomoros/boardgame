@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jkomoros/boardgame/enum"
@@ -48,6 +49,11 @@ type Game struct {
 
 	//The current version of State.
 	version int
+
+	// proposalFrontierVersion is the last version at which the serialized
+	// main loop completed a proposal and its recursive fix-up chain. It is
+	// read concurrently by server projection code.
+	proposalFrontierVersion atomic.Int64
 
 	numPlayers int
 
@@ -337,6 +343,24 @@ func (g *Game) Agents() []string {
 // this game. This number will increase by one every time a move is applied.
 func (g *Game) Version() int {
 	return g.version
+}
+
+// ProposalFrontierVersion returns the last state version at which the game had
+// completed a serialized proposal and its full recursive fix-up chain. A
+// newer durable state is intermediate history, not yet a safe source of
+// actions for the next player proposal.
+func (g *Game) ProposalFrontierVersion() int {
+	return int(g.proposalFrontierVersion.Load())
+}
+
+// AtProposalFrontier reports whether the current state is ready to advertise
+// and accept the next player proposal.
+func (g *Game) AtProposalFrontier() bool {
+	return g.Version() == g.ProposalFrontierVersion()
+}
+
+func (g *Game) markProposalFrontier() {
+	g.proposalFrontierVersion.Store(int64(g.Version()))
 }
 
 // CurrentState returns the state object for the current state. Equivalent,
@@ -633,6 +657,10 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 		}
 	}
 
+	// Setup is one serialized proposal boundary too: only advertise the
+	// resulting state after every setup fix-up has completed successfully.
+	g.markProposalFrontier()
+
 	//TODO: start up agents.
 
 	if g.Modifiable() {
@@ -824,6 +852,7 @@ func (g *Game) Refresh() {
 	g.cachedCurrentState = nil
 	g.cachedHistoricalMoves = nil
 	g.version = freshGame.Version()
+	g.proposalFrontierVersion.Store(int64(freshGame.ProposalFrontierVersion()))
 	g.finished = freshGame.Finished()
 	g.winners = freshGame.Winners()
 
@@ -1075,6 +1104,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	if g.finished {
 
 		if !isFixUp {
+			g.markProposalFrontier()
 			g.manager.Storage().PlayerMoveApplied(g.StorageRecord())
 		}
 
@@ -1112,6 +1142,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	//We only want to alert that the run is done if it was a player move that
 	//was applied.
 	if !isFixUp {
+		g.markProposalFrontier()
 		g.manager.Storage().PlayerMoveApplied(g.StorageRecord())
 	}
 
