@@ -72,3 +72,18 @@ func TestGeneratedWorkspacePath(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildSourcePackageIsNotIgnored(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git executable is unavailable")
+	}
+	path := "boardgame-util/lib/build/static/future_source_test.go"
+	err := exec.Command("git", "check-ignore", "--quiet", "--no-index", path).Run()
+	if err == nil {
+		t.Fatalf("%s is ignored; new build-library source files could be silently lost", path)
+	}
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 1 {
+		t.Fatalf("check ignore policy for %s: %v", path, err)
+	}
+}

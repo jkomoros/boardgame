@@ -21,6 +21,10 @@ _testmain.go
 
 bower_components/
 build/
+# This is a Go source package, not a generated build directory. Keep the broad
+# artifact rule above while ensuring new source and tests here remain visible.
+!boardgame-util/lib/build/
+!boardgame-util/lib/build/**
 node_modules/
 dist/
 

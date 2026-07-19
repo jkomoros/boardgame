@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
@@ -204,7 +205,7 @@ func CreateClientConfigJs(dir string, c *config.ClientConfig) error {
 
 	fileContents := "var CONFIG = " + string(clientBlob)
 
-	if err := os.WriteFile(path, []byte(fileContents), 0644); err != nil {
+	if err := fileutil.WriteFileAtomic(path, []byte(fileContents), 0o644); err != nil {
 		return errors.New("Couldn't create file: " + err.Error())
 	}
 
