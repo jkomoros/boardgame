@@ -4,15 +4,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/choice"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/users"
+	"github.com/sirupsen/logrus"
 )
 
 type projectedChoicesDelegate struct {
@@ -331,7 +336,7 @@ func TestProjectedMoveChoicesDeliveryOnlyAtRecoverableFrontier(t *testing.T) {
 	}
 	s := &Server{}
 
-	initial, err := s.moveBundles(game, nil, 0, false)
+	initial, err := s.moveBundles(game, nil, 0, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,8 +352,8 @@ func TestProjectedMoveChoicesDeliveryOnlyAtRecoverableFrontier(t *testing.T) {
 	delayed := game.ProposeMove(move, 0)
 	<-storage.saved
 	intermediate := game.State(game.Version())
-	if snapshot := s.projectedMoveChoicesForBundle(game, intermediate, 0); snapshot != nil {
-		t.Fatalf("intermediate durable state advertised choices: %#v", snapshot)
+	if snapshot := s.projectedMoveChoicesForBundle(game, intermediate, 0); snapshot == nil || snapshot.Status != projectedMoveChoicesStatusFailed {
+		t.Fatalf("current unsettled durable state choices = %#v; want explicit failure", snapshot)
 	}
 
 	close(storage.release)
@@ -377,7 +382,7 @@ func TestProjectedMoveChoicesDeliveryOnlyAtRecoverableFrontier(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bundles, err := s.moveBundles(game, movesSinceStart, 0, false)
+	bundles, err := s.moveBundles(game, movesSinceStart, 0, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +402,7 @@ func TestProjectedMoveChoicesAutoCurrentDisplayDoesNotGrantActorAudience(t *test
 	// The fixture's current player is 0. Player 1 asking for the auto-current
 	// display may see player 0's sanitized board, but must not receive player
 	// 0's actor-exact choices.
-	bundles, err := s.moveBundles(game, nil, 1, true)
+	bundles, err := s.moveBundles(game, nil, 1, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,6 +411,155 @@ func TestProjectedMoveChoicesAutoCurrentDisplayDoesNotGrantActorAudience(t *test
 	}
 	if _, exists := bundles[0]["ProjectedMoveChoices"]; exists {
 		t.Fatalf("auto-current display granted another actor's choices: %#v", bundles[0]["ProjectedMoveChoices"])
+	}
+}
+
+func TestProjectedChoicesEligibleUsesAuthenticatedAudienceNotDisplayPerspective(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := &Server{}
+	context := func(viewer boardgame.PlayerIndex, adminAllowed, requestAdmin bool) *gin.Context {
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		url := "/"
+		if requestAdmin {
+			url += "?admin=1"
+		}
+		c.Request = httptest.NewRequest("GET", url, nil)
+		s.setViewingAsPlayer(c, viewer)
+		s.setAdminAllowed(c, adminAllowed)
+		return c
+	}
+	if !s.projectedChoicesEligible(context(0, false, false), 0) {
+		t.Fatal("normal seated player was denied actor-exact choices")
+	}
+	if s.projectedChoicesEligible(context(boardgame.ObserverPlayerIndex, false, false), 0) {
+		t.Fatal("observer received displayed player's actor-exact choices")
+	}
+	if s.projectedChoicesEligible(context(0, true, true), 1) {
+		t.Fatal("admin impersonation received displayed player's actor-exact choices")
+	}
+	if s.projectedChoicesEligible(context(0, false, false), 1) {
+		t.Fatal("mismatched authenticated player and display actor was eligible")
+	}
+}
+
+func TestProjectedMoveChoicesBundlesRespectAudienceAndUnknownCurrentHead(t *testing.T) {
+	delegate := newProjectedChoicesDelegate()
+	storage := &projectedChoicesReconcileStorage{legalLedgerStorage: newLegalLedgerStorage()}
+	manager, game := newProjectedChoicesReconcileGame(t, delegate, storage)
+	for i := 0; i < 2; i++ {
+		move := game.MoveByName("Choose Player")
+		if err := move.ReadSetter().SetPlayerIndexProp("TargetPlayerIndex", 1); err != nil {
+			t.Fatal(err)
+		}
+		if err := <-game.ProposeMove(move, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	setProjectedChoicesFrontierUnknown(t, storage.legalLedgerStorage, game.ID())
+	restarted := restartProjectedChoicesManager(t, newProjectedChoicesDelegate(), storage)
+	frozen := restarted.Game(game.ID())
+	movesSinceStart, err := restarted.Storage().Moves(game.ID(), 0, frozen.Version())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{}
+
+	bundles, err := s.moveBundles(frozen, movesSinceStart, 0, false, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := bundles[0]["ProjectedMoveChoices"]; exists {
+		t.Fatalf("historical unknown-frontier bundle carried choices: %#v", bundles[0]["ProjectedMoveChoices"])
+	}
+	current, ok := bundles[len(bundles)-1]["ProjectedMoveChoices"].(*projectedMoveChoicesSnapshot)
+	if !ok || current.Status != projectedMoveChoicesStatusFailed || current.StateVersion != frozen.Version() {
+		t.Fatalf("current unknown-frontier bundle = %#v", bundles[len(bundles)-1]["ProjectedMoveChoices"])
+	}
+
+	adminBundles, err := s.moveBundles(frozen, movesSinceStart, 0, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := adminBundles[len(adminBundles)-1]["ProjectedMoveChoices"]; exists {
+		t.Fatal("ineligible display audience received failed projected-choice status")
+	}
+	_ = manager
+}
+
+func TestFailedProjectedMoveChoicesForInfoIsVersionedAndActorOnly(t *testing.T) {
+	game := newProjectedChoicesGame(t, newProjectedChoicesDelegate())
+	state := game.CurrentState()
+	s := &Server{}
+	snapshot := s.projectedMoveChoicesForInfo(game, state, 0, true, errors.New("private reconciliation detail"))
+	if snapshot == nil || snapshot.Status != projectedMoveChoicesStatusFailed || snapshot.StateVersion != state.Version() || snapshot.MoveChoiceProjectionSchemaFingerprint == "" {
+		t.Fatalf("failed /info choices = %#v", snapshot)
+	}
+	if s.projectedMoveChoicesForInfo(game, state, boardgame.ObserverPlayerIndex, true, errors.New("failed")) != nil {
+		t.Fatal("observer received failed projected-choice snapshot")
+	}
+	if s.projectedMoveChoicesForInfo(game, state, 0, false, errors.New("failed")) != nil {
+		t.Fatal("ineligible /info audience received failed projected-choice snapshot")
+	}
+}
+
+type projectedChoicesInfoStorage struct {
+	StorageManager
+	extended *extendedgame.StorageRecord
+	userIDs  []string
+}
+
+func (s *projectedChoicesInfoStorage) ExtendedGame(string) (*extendedgame.StorageRecord, error) {
+	return s.extended, nil
+}
+
+func (s *projectedChoicesInfoStorage) UserIDsForGame(string) []string {
+	return append([]string(nil), s.userIDs...)
+}
+
+func (*projectedChoicesInfoStorage) GetUserByID(string) *users.StorageRecord {
+	return nil
+}
+
+func TestGameInfoHandlerSeparatesAdminDisplayFromProjectedChoiceAudience(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	game := newProjectedChoicesGame(t, newProjectedChoicesDelegate())
+	storage := &projectedChoicesInfoStorage{
+		extended: &extendedgame.StorageRecord{},
+		userIDs:  make([]string, game.NumPlayers()),
+	}
+	s := &Server{
+		storage:  NewServerStorageManager(storage),
+		notifier: &versionNotifier{absent: make(map[string]map[boardgame.PlayerIndex]bool)},
+		logger:   logrus.New(),
+	}
+
+	fetch := func(url string, actualViewer boardgame.PlayerIndex, adminAllowed bool) map[string]interface{} {
+		t.Helper()
+		recorder := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(recorder)
+		c.Request = httptest.NewRequest("GET", url, nil)
+		s.setGame(c, game)
+		s.setViewingAsPlayer(c, actualViewer)
+		s.setHasEmptySlots(c, false)
+		s.setAdminAllowed(c, adminAllowed)
+		s.gameInfoHandler(c)
+		var response map[string]interface{}
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Fatal(err)
+		}
+		if response["Status"] != "Success" {
+			t.Fatalf("/info response = %s", recorder.Body.String())
+		}
+		return response
+	}
+
+	normal := fetch("/api/game/api/id/info?player=0", 0, false)
+	if _, ok := normal["ProjectedMoveChoices"]; !ok {
+		t.Fatalf("normal seated /info omitted projected choices: %#v", normal)
+	}
+	impersonated := fetch("/api/game/api/id/info?player=1&admin=1", 0, true)
+	if _, ok := impersonated["ProjectedMoveChoices"]; ok {
+		t.Fatalf("admin impersonation /info leaked projected choices: %#v", impersonated["ProjectedMoveChoices"])
 	}
 }
 
@@ -570,9 +724,12 @@ func TestReconcileProjectedMoveChoiceFrontierFailsAfterBoundedAttempts(t *testin
 	storage.frontierFailures.Store(maxProjectedMoveReconcileAttempts + 1)
 	manager := restartProjectedChoicesManager(t, newProjectedChoicesDelegate(), storage)
 
-	_, err := reconcileProjectedMoveChoiceFrontier(manager.Game(game.ID()))
+	got, err := reconcileProjectedMoveChoiceFrontier(manager.Game(game.ID()))
 	if err == nil || !strings.Contains(err.Error(), "after 3 attempts") {
 		t.Fatalf("reconciliation error = %v", err)
+	}
+	if got == nil {
+		t.Fatal("failed reconciliation discarded otherwise servable game state")
 	}
 }
 

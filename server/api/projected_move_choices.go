@@ -83,7 +83,7 @@ func reconcileProjectedMoveChoiceFrontier(game *boardgame.Game) (*boardgame.Game
 
 	current := game.Manager().Game(game.ID())
 	if current == nil {
-		return nil, fmt.Errorf("reload game before projected-choice reconciliation")
+		return game, fmt.Errorf("reload game before projected-choice reconciliation")
 	}
 	var lastErr error
 	for attempt := 0; attempt < maxProjectedMoveReconcileAttempts; attempt++ {
@@ -97,7 +97,7 @@ func reconcileProjectedMoveChoiceFrontier(game *boardgame.Game) (*boardgame.Game
 		// observed a stale marker write.
 		refreshed := current.Manager().Game(current.ID())
 		if refreshed == nil {
-			return nil, fmt.Errorf("reload game after projected-choice reconciliation")
+			return current, fmt.Errorf("reload game after projected-choice reconciliation")
 		}
 		current = refreshed
 		if projectedMoveChoiceFrontierKnown(current) {
@@ -107,7 +107,7 @@ func reconcileProjectedMoveChoiceFrontier(game *boardgame.Game) (*boardgame.Game
 			lastErr = fmt.Errorf("terminal fix-up check did not persist a proposal frontier")
 		}
 	}
-	return nil, fmt.Errorf("projected-choice frontier reconciliation failed after %d attempts: %w", maxProjectedMoveReconcileAttempts, lastErr)
+	return current, fmt.Errorf("projected-choice frontier reconciliation failed after %d attempts: %w", maxProjectedMoveReconcileAttempts, lastErr)
 }
 
 func projectedMoveChoiceFrontierKnown(game *boardgame.Game) bool {
@@ -277,10 +277,6 @@ func projectMoveChoicesSnapshot(
 	if state.Sanitized() {
 		return nil, fmt.Errorf("projected choices require authoritative unsanitized state")
 	}
-	frontier, known := game.Manager().ProposalFrontierVersion(game.ID())
-	if !known || state.Version() != frontier {
-		return nil, nil
-	}
 	// Version one authorizes exact membership/status only to the proposing
 	// actor. Observers, admins, and other players receive no snapshot.
 	if actor < 0 || viewer != actor || !actor.Valid(state) {
@@ -296,16 +292,24 @@ func projectMoveChoicesSnapshot(
 	if len(schema) == 0 {
 		return nil, nil
 	}
-	fingerprint, err := boardgame.MoveChoiceProjectionSchemaFingerprint(game.Manager())
+	snapshot, err := newProjectedMoveChoicesSnapshot(game, state, projectedMoveChoicesStatusReady)
 	if err != nil {
 		return nil, err
 	}
-	snapshot := &projectedMoveChoicesSnapshot{
-		StateVersion:                          state.Version(),
-		MoveChoiceProjectionSchemaFingerprint: fingerprint,
-		ProjectionSchemaVersion:               boardgame.MoveChoiceProjectionSchemaVersion,
-		Status:                                projectedMoveChoicesStatusReady,
-		Sets:                                  make([]projectedMoveChoiceSet, 0),
+	frontier, known := game.Manager().ProposalFrontierVersion(game.ID())
+	if !known {
+		// Unknown is a failure only for the current durable head. A historical
+		// animation bundle remains intentionally absent.
+		fresh := game.Manager().Game(game.ID())
+		if fresh == nil || fresh.Version() != state.Version() {
+			return nil, nil
+		}
+		snapshot.Status = projectedMoveChoicesStatusFailed
+		snapshot.Sets = nil
+		return snapshot, nil
+	}
+	if state.Version() != frontier {
+		return nil, nil
 	}
 	if len(schema) > maxProjectedMoveChoiceSets {
 		return snapshot, fmt.Errorf("game configures %d projected choice sets; limit is %d", len(schema), maxProjectedMoveChoiceSets)
@@ -336,6 +340,52 @@ func projectMoveChoicesSnapshot(
 		}
 	}
 	return snapshot, nil
+}
+
+func newProjectedMoveChoicesSnapshot(game *boardgame.Game, state boardgame.ImmutableState, status string) (*projectedMoveChoicesSnapshot, error) {
+	fingerprint, err := boardgame.MoveChoiceProjectionSchemaFingerprint(game.Manager())
+	if err != nil {
+		return nil, err
+	}
+	return &projectedMoveChoicesSnapshot{
+		StateVersion:                          state.Version(),
+		MoveChoiceProjectionSchemaFingerprint: fingerprint,
+		ProjectionSchemaVersion:               boardgame.MoveChoiceProjectionSchemaVersion,
+		Status:                                status,
+		Sets:                                  make([]projectedMoveChoiceSet, 0),
+	}, nil
+}
+
+func failedProjectedMoveChoicesForInfo(game *boardgame.Game, state boardgame.ImmutableState, actor boardgame.PlayerIndex) *projectedMoveChoicesSnapshot {
+	if game == nil || state == nil || actor < 0 || !actor.Valid(state) {
+		return nil
+	}
+	schema, err := boardgame.BuildMoveChoiceProjectionSchema(game.Manager())
+	if err != nil || len(schema) == 0 {
+		return nil
+	}
+	snapshot, err := newProjectedMoveChoicesSnapshot(game, state, projectedMoveChoicesStatusFailed)
+	if err != nil {
+		return nil
+	}
+	snapshot.Sets = nil
+	return snapshot
+}
+
+func (s *Server) projectedMoveChoicesForInfo(
+	game *boardgame.Game,
+	state boardgame.ImmutableState,
+	actor boardgame.PlayerIndex,
+	audienceEligible bool,
+	reconciliationErr error,
+) *projectedMoveChoicesSnapshot {
+	if !audienceEligible {
+		return nil
+	}
+	if reconciliationErr != nil {
+		return failedProjectedMoveChoicesForInfo(game, state, actor)
+	}
+	return s.projectedMoveChoicesForBundle(game, state, actor)
 }
 
 func validateProjectedMoveChoicesSize(snapshot *projectedMoveChoicesSnapshot) error {

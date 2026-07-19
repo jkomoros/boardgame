@@ -52,7 +52,7 @@ func TestMoveJSONForPlayerSanitizesNameAndProperties(t *testing.T) {
 
 	assertWire := func(viewer boardgame.PlayerIndex, want string) {
 		t.Helper()
-		bundles, err := server.moveBundles(game, []*boardgame.MoveStorageRecord{record}, viewer, false)
+		bundles, err := server.moveBundles(game, []*boardgame.MoveStorageRecord{record}, viewer, false, false)
 		if err != nil {
 			t.Fatal(err)
 		}

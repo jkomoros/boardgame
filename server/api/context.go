@@ -358,6 +358,21 @@ func (s *Server) effectiveAutoCurrentPlayer(c *gin.Context) bool {
 	return s.getRequestAutoCurrentPlayer(c)
 }
 
+// projectedChoicesEligible keeps authenticated audience identity separate
+// from the effective display perspective. Admin impersonation and observers
+// may render another player's sanitized board but never receive that player's
+// actor-exact choice membership or status.
+func (s *Server) projectedChoicesEligible(c *gin.Context, effectiveActor boardgame.PlayerIndex) bool {
+	if c == nil || effectiveActor < 0 {
+		return false
+	}
+	isAdmin := s.calcIsAdmin(s.getAdminAllowed(c), s.getRequestAdmin(c))
+	if isAdmin {
+		return false
+	}
+	return s.getViewingAsPlayer(c) == effectiveActor
+}
+
 func (s *Server) calcEffectivePlayerIndex(isAdmin bool, requestPlayerIndex boardgame.PlayerIndex, viewingAsPlayer boardgame.PlayerIndex) boardgame.PlayerIndex {
 
 	result := requestPlayerIndex

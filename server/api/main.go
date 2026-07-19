@@ -1170,14 +1170,15 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 	fromVersion := s.getRequestFromVersion(c)
 
 	autoCurrentPlayer := s.effectiveAutoCurrentPlayer(c)
+	projectedChoicesEligible := s.projectedChoicesEligible(c, playerIndex)
 
 	r := s.newRenderer(c)
 
-	s.doGameVersion(r, game, version, fromVersion, playerIndex, autoCurrentPlayer)
+	s.doGameVersion(r, game, version, fromVersion, playerIndex, autoCurrentPlayer, projectedChoicesEligible)
 
 }
 
-func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) ([]gin.H, error) {
+func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool, projectedChoicesEligible bool) ([]gin.H, error) {
 	var bundles []gin.H
 	// Keep the authenticated/request audience distinct from auto-current-player,
 	// which is only a display perspective. A spectator or a different seated
@@ -1243,7 +1244,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           forms,
 		}
-		if i == len(moves)-1 && playerIndex == requestPlayerIndex {
+		if projectedChoicesEligible && i == len(moves)-1 && playerIndex == requestPlayerIndex {
 			if choices := s.projectedMoveChoicesForBundle(game, state, playerIndex); choices != nil {
 				bundle["ProjectedMoveChoices"] = choices
 			}
@@ -1256,7 +1257,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 	return bundles, nil
 }
 
-func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromVersion int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
+func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromVersion int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool, projectedChoicesEligible bool) {
 	if game == nil {
 		r.Error(errors.NewFriendly("Couldn't find game"))
 		return
@@ -1283,7 +1284,7 @@ func (s *Server) doGameVersion(r *renderer, game *boardgame.Game, version, fromV
 		}
 	}
 
-	bundles, err := s.moveBundles(game, moves, playerIndex, autoCurrentPlayer)
+	bundles, err := s.moveBundles(game, moves, playerIndex, autoCurrentPlayer, projectedChoicesEligible)
 
 	if err != nil {
 		r.Error(errors.New("Couldn't generate move bundles: " + err.Error()))
@@ -1419,6 +1420,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 	game := s.getGame(c)
 
 	playerIndex := s.effectivePlayerIndex(c)
+	projectedChoicesEligible := s.projectedChoicesEligible(c, playerIndex)
 
 	hasEmptySlots := s.getHasEmptySlots(c)
 
@@ -1437,7 +1439,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	r := s.newRenderer(c)
 
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion)
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion, projectedChoicesEligible)
 
 }
 
@@ -1529,7 +1531,7 @@ func (s *Server) collectSeatPresentations(gameID string, numPlayers int) []gin.H
 	return out
 }
 
-func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
+func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int, projectedChoicesEligible bool) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
 		return
@@ -1549,11 +1551,10 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 	// terminal proposal boundary. Repair legacy/unknown markers and interrupted
 	// fix-up chains through the engine's serialized loop before selecting the
 	// /info state. Games without projections pay no mutation cost.
-	var err error
-	game, err = reconcileProjectedMoveChoiceFrontier(game)
-	if err != nil {
-		r.Error(errors.New("Could not reconcile projected choices: " + err.Error()))
-		return
+	var reconciliationErr error
+	game, reconciliationErr = reconcileProjectedMoveChoiceFrontier(game)
+	if reconciliationErr != nil && s.logger != nil {
+		s.logger.WithError(reconciliationErr).WithField("gameID", game.ID()).Error("Projected-choice frontier reconciliation failed")
 	}
 
 	isOwner := false
@@ -1704,7 +1705,8 @@ func (s *Server) doGameInfo(r *renderer, game *boardgame.Game, playerIndex board
 		//state version but now we have to ship it down to the client speically.
 		"StateVersion": state.Version(),
 	}
-	if choices := s.projectedMoveChoicesForBundle(game, state, playerIndex); choices != nil {
+	choices := s.projectedMoveChoicesForInfo(game, state, playerIndex, projectedChoicesEligible, reconciliationErr)
+	if choices != nil {
 		args["ProjectedMoveChoices"] = choices
 	}
 
