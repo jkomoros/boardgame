@@ -25,7 +25,7 @@ func (s *stubCmd) Run(p writ.Path, positional []string) {
 	b := s.Base()
 
 	if len(positional) != 1 {
-		p.Last().ExitHelp(errors.New("No gamename provided"))
+		exitHelp(p.Last(), errors.New("No gamename provided"))
 	}
 
 	gameName := positional[0]

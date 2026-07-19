@@ -52,7 +52,7 @@ type trackedProcess struct {
 }
 
 func (b *boardgameUtil) Run(p writ.Path, positional []string) {
-	p.Last().ExitHelp(errors.New("COMMAND is required"))
+	exitHelp(p.Last(), errors.New("COMMAND is required"))
 }
 
 func (b *boardgameUtil) Name() string {
@@ -174,15 +174,13 @@ func (b *boardgameUtil) startTrackedProcess(cmd *exec.Cmd) (func(), error) {
 }
 
 func (b *boardgameUtil) errAndQuit(message string) {
-	fmt.Println(message)
-	b.Cleanup()
-	os.Exit(1)
+	fmt.Fprintln(commandStderr, message)
+	quit(1)
 }
 
 func (b *boardgameUtil) msgAndQuit(message string) {
-	fmt.Println(message)
-	b.Cleanup()
-	os.Exit(0)
+	fmt.Fprintln(commandStdout, message)
+	quit(0)
 }
 
 // NewTempDir vends an OS-managed temporary directory that is removed when the

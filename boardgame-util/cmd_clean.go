@@ -15,7 +15,7 @@ type clean struct {
 }
 
 func (c *clean) Run(p writ.Path, positional []string) {
-	p.Last().ExitHelp(errors.New(c.Name() + " cannot be run by itself"))
+	exitHelp(p.Last(), errors.New(c.Name()+" cannot be run by itself"))
 }
 
 func (c *clean) Name() string {

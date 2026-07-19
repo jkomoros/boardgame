@@ -115,7 +115,7 @@ func (i *imagegenCmd) WritOptions() []*writ.Option {
 
 func (i *imagegenCmd) Run(p writ.Path, positional []string) {
 	if len(positional) == 0 {
-		p.Last().ExitHelp(errors.New("ACTION is required"))
+		exitHelp(p.Last(), errors.New("ACTION is required"))
 	}
 	action := positional[0]
 	if action == "lfs-init" {
@@ -159,7 +159,7 @@ func (i *imagegenCmd) Run(p writ.Path, positional []string) {
 		return
 	}
 	if len(positional) != 1 {
-		p.Last().ExitHelp(errors.New("generation actions do not accept positional arguments"))
+		exitHelp(p.Last(), errors.New("generation actions do not accept positional arguments"))
 	}
 	if i.Prompt != "" && i.PromptFile != "" {
 		i.Base().errAndQuit("Use either --prompt or --prompt-file, not both")
