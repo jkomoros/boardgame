@@ -5,11 +5,20 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/legal"
 )
 
 type moveRecordInheritedTarget struct {
 	RecordCurrentPlayerChoice
+}
+
+type moveRecordWithCustomApply struct {
+	RecordCurrentPlayerChoice
+}
+
+func (*moveRecordWithCustomApply) Apply(state boardgame.State) error {
+	game := state.GameState().(*gameState)
+	game.Counter++
+	return nil
 }
 
 func TestWithRecordedChoiceExpandsToChoiceAndDestination(t *testing.T) {
@@ -31,8 +40,8 @@ func TestWithRecordedChoiceExpandsToChoiceAndDestination(t *testing.T) {
 	if !ok || len(choices) != 1 || choices[0].projection.FieldName != "ChosenCard" {
 		t.Fatalf("choice projection declarations = %#v", config[configPropMoveChoiceProjections])
 	}
-	if specs, _ := config[configPropPreconditions].([]legal.Spec); len(specs) != 2 {
-		t.Fatalf("exclusion preconditions = %#v", config[configPropPreconditions])
+	if config[configPropPreconditions] != nil {
+		t.Fatalf("recorded-choice exclusions unexpectedly enabled declarative legality: %#v", config[configPropPreconditions])
 	}
 }
 
@@ -78,6 +87,38 @@ func TestRecordCurrentPlayerChoiceUsesTopLevelMoveConvention(t *testing.T) {
 	move.TargetPlayerIndex = actor
 	if err := <-game.ProposeMove(move, actor); err != nil {
 		t.Fatal(err)
+	}
+	if got := game.CurrentState().ImmutableGameState().(*gameState).CurrentPlayer; got != actor {
+		t.Fatalf("recorded current player = %d, want %d", got, actor)
+	}
+}
+
+func TestRecordedChoiceComposesWithOuterApply(t *testing.T) {
+	manager, err := newGameManager(func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+		auto := NewAutoConfigurer(manager.Delegate())
+		return []boardgame.MoveConfig{auto.MustConfig(
+			new(moveRecordWithCustomApply),
+			WithMoveName("Record With Custom Apply"),
+			WithMoveInputFieldOverride("TargetPlayerIndex", boardgame.MoveInputRequired),
+			WithRecordedChoice("TargetPlayerIndex", InGame("CurrentPlayer")),
+		)}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewGame(2, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor := game.CurrentState().CurrentPlayerIndex()
+	move := game.MoveByName("Record With Custom Apply").(*moveRecordWithCustomApply)
+	move.TargetPlayerIndex = actor
+	if err := <-game.ProposeMove(move, actor); err != nil {
+		t.Fatal(err)
+	}
+	state := game.CurrentState().ImmutableGameState().(*gameState)
+	if state.CurrentPlayer != actor || state.Counter != 1 {
+		t.Fatalf("state after composed record/apply = current %d counter %d, want %d/1", state.CurrentPlayer, state.Counter, actor)
 	}
 }
 

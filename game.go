@@ -1089,6 +1089,10 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	move.Info().timestamp = time.Now()
 	move.Info().version = versionToSet
 
+	if err := validateMoveChoiceInputDomain(move); err != nil {
+		return errors.NewFriendly(err.Error())
+	}
+
 	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.
 		if isFixUp {
@@ -1112,6 +1116,16 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	newState.version = versionToSet
+
+	// Some complete framework move behaviors contribute a configured state
+	// effect in addition to the concrete move's Apply method. The method is
+	// promoted through embedding, so a game may add its own Apply without
+	// silently disabling the configured behavior.
+	if applier, ok := move.(configuredMoveStateApplier); ok {
+		if err := applier.ApplyConfiguredMoveState(newState); err != nil {
+			return baseErr.WithError("The move's configured state effect returned an error:" + err.Error())
+		}
+	}
 
 	if err := move.Apply(newState); err != nil {
 		return baseErr.WithError("The move's apply function returned an error:" + err.Error())

@@ -2,7 +2,6 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/legal"
 )
 
 // ChoiceOption configures the finite choice surface installed by WithChoices.
@@ -21,8 +20,8 @@ type choiceOptions struct {
 }
 
 // ExcludeChoices removes enum sentinels or other values that are never legal
-// creator inputs. Exclusions also become canonical legal preconditions, so a
-// forged proposal cannot submit a value merely because the UI omitted it.
+// creator inputs. Exclusions also constrain the canonical proposal domain, so
+// a forged proposal cannot submit a value merely because the UI omitted it.
 // Player-index choices do not support exclusions.
 func ExcludeChoices(values ...string) ChoiceOption {
 	copied := append([]string(nil), values...)
@@ -56,13 +55,5 @@ func WithChoices(fieldName string, options ...ChoiceOption) CustomConfigurationO
 				Disclosure:     boardgame.MoveChoiceDisclosureActorExact,
 			},
 		})
-		if len(excluded) == 0 {
-			return
-		}
-		specs := make([]legal.Spec, 0, len(excluded))
-		for _, value := range excluded {
-			specs = append(specs, legal.PropNotEquals("move."+fieldName, value))
-		}
-		WithLegalPreconditions(specs...)(config)
 	}
 }

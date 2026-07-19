@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/legal"
 )
 
 func TestWithChoicesInstallsActorExactProjection(t *testing.T) {
@@ -21,7 +20,7 @@ func TestWithChoicesInstallsActorExactProjection(t *testing.T) {
 	}
 }
 
-func TestExcludeChoicesIsImmutableAndAddsCanonicalLegality(t *testing.T) {
+func TestExcludeChoicesIsImmutableAndDoesNotEnableDeclarativeLegality(t *testing.T) {
 	values := []string{"Unknown", "Guard"}
 	option := ExcludeChoices(values...)
 	values[0] = "changed"
@@ -33,10 +32,7 @@ func TestExcludeChoicesIsImmutableAndAddsCanonicalLegality(t *testing.T) {
 	if got := projection.ExcludedValues; len(got) != 2 || got[0] != "Unknown" || got[1] != "Guard" {
 		t.Fatalf("excluded values = %v", got)
 	}
-	if enabled, _ := config[configPropLegalPlanEnabled].(bool); !enabled {
-		t.Fatal("excluded choices did not enable canonical legality")
-	}
-	if specs, _ := config[configPropPreconditions].([]legal.Spec); len(specs) != 2 {
-		t.Fatalf("legal preconditions = %#v, want one per exclusion", config[configPropPreconditions])
+	if config[configPropLegalPlanEnabled] != nil || config[configPropPreconditions] != nil {
+		t.Fatalf("choice-domain exclusions unexpectedly enabled declarative legality: %#v", config)
 	}
 }

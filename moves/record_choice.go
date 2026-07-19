@@ -185,10 +185,12 @@ func (r *RecordCurrentPlayerChoice) ValidConfiguration(exampleState boardgame.St
 	return err
 }
 
-// Apply copies the outer move's choice into the configured state property.
-// Enum destinations are mutated in place so state containers are never aliased
-// to the move's enum value.
-func (r *RecordCurrentPlayerChoice) Apply(state boardgame.State) error {
+// ApplyConfiguredMoveState copies the outer move's choice into the configured
+// state property. Game.applyMove invokes this promoted hook before the outer
+// move's Apply, so adding custom application logic cannot silently disable the
+// recording contract. Enum destinations are mutated in place so state
+// containers are never aliased to the move's enum value.
+func (r *RecordCurrentPlayerChoice) ApplyConfiguredMoveState(state boardgame.State) error {
 	binding, err := r.binding(state, false)
 	if err != nil {
 		return err
@@ -219,3 +221,7 @@ func (r *RecordCurrentPlayerChoice) Apply(state boardgame.State) error {
 	}
 	return nil
 }
+
+// Apply completes the Move interface for the common recording-only case. The
+// actual configured recording is performed by ApplyConfiguredMoveState.
+func (*RecordCurrentPlayerChoice) Apply(boardgame.State) error { return nil }

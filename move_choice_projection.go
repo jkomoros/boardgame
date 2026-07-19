@@ -103,6 +103,32 @@ func cloneMoveChoiceProjection(projection MoveChoiceProjection) MoveChoiceProjec
 	return projection
 }
 
+// validateMoveChoiceInputDomain rejects values excluded from a configured
+// finite creator-input domain. This is proposal-shape validation, not a game
+// rule: it deliberately runs independently of both the move's Legal method and
+// the optional declarative-legality plan. Legal remains the sole authority for
+// availability among values inside the declared domain.
+func validateMoveChoiceInputDomain(move Move) error {
+	projection, err := ConfiguredMoveChoiceProjection(move)
+	if err != nil || projection == nil || len(projection.ExcludedValues) == 0 {
+		return err
+	}
+	value, err := move.ReadSetter().ImmutableEnumProp(projection.FieldName)
+	if err != nil {
+		return fmt.Errorf("read choice field %q: %w", projection.FieldName, err)
+	}
+	if value == nil || value.Enum() == nil {
+		return fmt.Errorf("choice field %q is not an enum", projection.FieldName)
+	}
+	canonical := value.Enum().String(value.Value())
+	for _, excluded := range projection.ExcludedValues {
+		if canonical == excluded {
+			return fmt.Errorf("%s is not an allowed value for %s", canonical, projection.FieldName)
+		}
+	}
+	return nil
+}
+
 // BuildMoveChoiceProjectionSchema validates and freezes every opted-in player
 // move projection. It is separate from BuildMoveInputSchema so presentation or
 // safe-choice evolution cannot invalidate the creator proposal protocol.
