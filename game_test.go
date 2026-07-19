@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"bytes"
 	"encoding/json"
 	stderrors "errors"
 	"io/ioutil"
@@ -31,6 +32,25 @@ func TestProposeMoveAtVersionRejectsInsideSerializedLoop(t *testing.T) {
 	}
 	if stale.Expected != expected || stale.Actual != game.Version() {
 		t.Fatalf("stale error = %+v; current version = %d", stale, game.Version())
+	}
+	if !game.AtProposalFrontier() {
+		t.Fatal("stale proposal cleared the settled proposal frontier")
+	}
+}
+
+func TestIllegalProposalPreservesProposalFrontier(t *testing.T) {
+	game := testDefaultGame(t, true)
+	version := game.Version()
+	move := game.MoveByName("Test").(*testMove)
+	move.TargetPlayerIndex = (game.CurrentState().CurrentPlayerIndex() + 1) % PlayerIndex(game.NumPlayers())
+	if err := <-game.ProposeMove(move, move.TargetPlayerIndex); err == nil {
+		t.Fatal("illegal proposal unexpectedly succeeded")
+	}
+	if game.Version() != version {
+		t.Fatalf("illegal proposal advanced version to %d, want %d", game.Version(), version)
+	}
+	if !game.AtProposalFrontier() {
+		t.Fatal("illegal proposal cleared the settled proposal frontier")
 	}
 }
 
@@ -84,6 +104,123 @@ type proposalFrontierBlockingStorage struct {
 type proposalFrontierAgentFailureStorage struct {
 	*testStorageManager
 	failAgentState atomic.Bool
+}
+
+type proposalFrontierInjectedFailureStorage struct {
+	*testStorageManager
+	failGameSave atomic.Bool
+	failFrontier atomic.Bool
+}
+
+func (s *proposalFrontierInjectedFailureStorage) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error {
+	if s.failGameSave.Load() {
+		return stderrors.New("deliberate game save failure")
+	}
+	return s.testStorageManager.SaveGameAndCurrentState(game, state, move)
+}
+
+func (s *proposalFrontierInjectedFailureStorage) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	if s.failFrontier.Load() {
+		return stderrors.New("deliberate frontier marker failure")
+	}
+	return s.testStorageManager.SaveProposalFrontier(gameID, stateVersion, frontierVersion)
+}
+
+func TestProposalFrontierRestoredWhenStateSaveRejects(t *testing.T) {
+	storage := &proposalFrontierInjectedFailureStorage{testStorageManager: newTestStorageManager()}
+	manager, err := NewGameManager(defaultTestGameDelegate(0), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	version := game.Version()
+	storage.failGameSave.Store(true)
+	move := game.MoveByName("Test")
+	if err := <-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex()); err == nil || !strings.Contains(err.Error(), "game save failure") {
+		t.Fatalf("proposal error = %v; want deliberate game save failure", err)
+	}
+	if game.Version() != version {
+		t.Fatalf("failed save left in-memory version %d, want %d", game.Version(), version)
+	}
+	if !game.AtProposalFrontier() {
+		t.Fatal("failed save did not restore the settled in-memory frontier")
+	}
+	stored, err := storage.Game(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Version != version || !stored.ProposalFrontierKnown || stored.ProposalFrontierVersion != version {
+		t.Fatalf("failed save changed durable frontier: %+v", stored)
+	}
+
+	storage.failGameSave.Store(false)
+	if err := <-game.ProposeMove(game.MoveByName("Test"), game.CurrentState().CurrentPlayerIndex()); err != nil {
+		t.Fatalf("proposal after restored save failure: %v", err)
+	}
+}
+
+func TestProposalFrontierMarkerFailureDoesNotFailCommittedMove(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		finished bool
+	}{
+		{name: "normal"},
+		{name: "finished", finished: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			storage := &proposalFrontierInjectedFailureStorage{testStorageManager: newTestStorageManager()}
+			manager, err := NewGameManager(defaultTestGameDelegate(0), storage)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var logs bytes.Buffer
+			manager.Logger().SetOutput(&logs)
+			game, err := manager.NewDefaultGame()
+			if err != nil {
+				t.Fatal(err)
+			}
+			version := game.Version()
+			move := game.MoveByName("Test").(*testMove)
+			if tc.finished {
+				move.ScoreIncrement = 6
+			}
+			storage.failFrontier.Store(true)
+			if err := <-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex()); err != nil {
+				t.Fatalf("committed proposal reported marker failure: %v", err)
+			}
+			committedVersion := game.Version()
+			if committedVersion <= version {
+				t.Fatalf("committed version = %d, want greater than %d", committedVersion, version)
+			}
+			if game.Finished() != tc.finished {
+				t.Fatalf("finished = %v, want %v", game.Finished(), tc.finished)
+			}
+			if game.AtProposalFrontier() {
+				t.Fatal("failed marker write was incorrectly certified in memory")
+			}
+			stored, err := storage.Game(game.ID())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if stored.Version != committedVersion || stored.ProposalFrontierKnown {
+				t.Fatalf("durable committed head/frontier = %+v", stored)
+			}
+			if !strings.Contains(logs.String(), "Could not persist proposal frontier after committed move") || !strings.Contains(logs.String(), "deliberate frontier marker failure") {
+				t.Fatalf("marker failure was not logged: %q", logs.String())
+			}
+
+			storage.failFrontier.Store(false)
+			if err := <-manager.Internals().ForceFixUp(game); err != nil {
+				t.Fatalf("recover marker after transient failure: %v", err)
+			}
+			if !game.AtProposalFrontier() {
+				t.Fatal("recovery did not certify the committed head")
+			}
+		})
+	}
 }
 
 func (s *proposalFrontierAgentFailureStorage) AgentState(gameID string, player PlayerIndex) ([]byte, error) {

@@ -768,11 +768,17 @@ func (g *Game) mainLoop() {
 				return
 			}
 			resetTimer()
-			_ = g.invalidateProposalFrontier(false)
 			item.ch <- g.applyProposedMove(item)
 			close(item.ch)
 		case delayed := <-g.fixUpTriggered:
 			resetTimer()
+			// applyMove deliberately ends a proposal as soon as the game becomes
+			// finished, without asking the delegate for another fix-up. Recovery of
+			// an unknown marker on that terminal head must follow the same rule.
+			if g.Finished() {
+				delayed <- g.markProposalFrontier()
+				continue
+			}
 			move := g.manager.delegate.ProposeFixUpMove(g.CurrentState())
 			if move == nil {
 				delayed <- g.markProposalFrontier()
@@ -792,7 +798,6 @@ func (g *Game) mainLoop() {
 					return
 				}
 				idleTimer.Reset(gameIdleTimeout)
-				_ = g.invalidateProposalFrontier(false)
 				item.ch <- g.applyProposedMove(item)
 				close(item.ch)
 			default:
@@ -1120,17 +1125,24 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	finished, winners := g.manager.Delegate().CheckGameFinished(newState)
 
+	// Everything above this point is a non-durable rejection path. Keep the
+	// settled frontier advertised while a queued proposal is merely being
+	// checked, and invalidate it only once the candidate is ready to commit.
+	// SaveGameAndCurrentState records the unknown marker atomically with the new
+	// head; if that save rejects, restore the unchanged in-memory head exactly.
+	previousVersion := g.version
+	previousFrontier := g.ProposalFrontierVersion()
+	previousFinished := g.finished
+	previousWinners := append([]PlayerIndex(nil), g.winners...)
+	previousModified := g.modified
+	_ = g.invalidateProposalFrontier(false)
 	if finished {
 		g.finished = true
 		g.winners = winners
 		//TODO: persist to database here.
 	}
-
 	g.version = versionToSet
 	g.publishHeadVersion(versionToSet)
-
-	//Expire the currentState cache; it's no longer valid.
-	g.cachedCurrentState = nil
 
 	//Note that we want the phase that we were in BEFORE this move was applied.
 	moveStorageRecord := StorageRecordForMove(move, currentPhase, proposer)
@@ -1140,12 +1152,19 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	//TODO: test that if we fail to save state to storage everything's fine.
 	if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), newState.StorageRecord(), moveStorageRecord); err != nil {
-		//TODO: we need to undo the temporary changes we made directly to ourselves (vesrion, finished, winners)
+		g.version = previousVersion
+		g.publishHeadVersion(previousVersion)
+		g.proposalFrontierVersion.Store(int64(previousFrontier))
+		g.finished = previousFinished
+		g.winners = previousWinners
+		g.modified = previousModified
 		return baseErr.WithError("Storage returned an error:" + err.Error())
 	}
 
 	//Ok, the state stuck and is now canonical--trigger the actions it was
 	//supposed to do.
+	//Expire the currentState cache only after the durable head advances.
+	g.cachedCurrentState = nil
 	newState.committed()
 
 	if recurseCount > maxRecurseCount {
@@ -1155,9 +1174,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	if g.finished {
 
 		if !isFixUp {
-			if err := g.markProposalFrontier(); err != nil {
-				return baseErr.WithError("Couldn't persist the proposal frontier: " + err.Error())
-			}
+			g.markProposalFrontierAfterCommit()
 			g.manager.Storage().PlayerMoveApplied(g.StorageRecord())
 		}
 
@@ -1192,9 +1209,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	// durable boundary write, agent pass, and notification after the entire chain
 	// has reached a terminal fix-up check.
 	if !isFixUp {
-		if err := g.markProposalFrontier(); err != nil {
-			return baseErr.WithError("Couldn't persist the proposal frontier: " + err.Error())
-		}
+		g.markProposalFrontierAfterCommit()
 
 		// Agent scheduling is downstream of the durable proposal boundary. Failure
 		// here must not erase evidence that the initiating move and fix-ups settled.
@@ -1207,4 +1222,16 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	return nil
 
+}
+
+// markProposalFrontierAfterCommit records proposal-boundary metadata without
+// changing the result of an already durable move. A marker failure leaves the
+// frontier unknown so an explicit recovery pass can safely certify it later.
+func (g *Game) markProposalFrontierAfterCommit() {
+	if err := g.markProposalFrontier(); err != nil {
+		g.manager.Logger().WithError(err).WithFields(map[string]interface{}{
+			"gameID":  g.ID(),
+			"version": g.Version(),
+		}).Error("Could not persist proposal frontier after committed move")
+	}
 }
