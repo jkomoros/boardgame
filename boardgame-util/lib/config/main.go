@@ -11,8 +11,10 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -34,8 +36,12 @@ func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err
 	if strings.HasSuffix(dirOrFile, ".json") {
 		dir := filepath.Dir(dirOrFile)
 
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			return "", "", errors.New("Dir " + dir + " does not exist.")
+		info, err := os.Stat(dir)
+		if err != nil {
+			return "", "", fmt.Errorf("couldn't inspect config directory %s: %w", dir, err)
+		}
+		if !info.IsDir() {
+			return "", "", fmt.Errorf("config parent %s is not a directory", dir)
 		}
 
 		return dirOrFile, filepath.Join(dir, privateConfigFileName), nil
@@ -43,8 +49,12 @@ func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err
 
 	//OK, we'll interpret as Dir.
 
-	if _, err := os.Stat(dirOrFile); os.IsNotExist(err) {
-		return "", "", errors.New(dirOrFile + " is interpreted as a directory but does not exist")
+	info, err := os.Stat(dirOrFile)
+	if err != nil {
+		return "", "", fmt.Errorf("couldn't inspect config directory %s: %w", dirOrFile, err)
+	}
+	if !info.IsDir() {
+		return "", "", fmt.Errorf("%s is interpreted as a directory but is not one", dirOrFile)
 	}
 	return filepath.Join(dirOrFile, publicConfigFileName), filepath.Join(dirOrFile, privateConfigFileName), nil
 }
@@ -77,7 +87,10 @@ func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig s
 		return "", "", errors.New("Couldn't resolve config search path: " + err.Error())
 	}
 	for {
-		public, private := fileNamesToUseInDir(searchDir)
+		public, private, searchErr := fileNamesToUseInDir(searchDir)
+		if searchErr != nil {
+			return "", "", searchErr
+		}
 
 		if public != "" || private != "" {
 			return public, private, nil
@@ -116,9 +129,10 @@ func fileNamesToUseWithFile(filename string) (publicConfig, privateConfig string
 
 	privatePath := filepath.Join(dir, privateConfigFileName)
 
-	if _, err := os.Stat(privatePath); err != nil {
-		// No private path I guess
+	if _, statErr := os.Stat(privatePath); os.IsNotExist(statErr) {
 		return filename, "", nil
+	} else if statErr != nil {
+		return "", "", fmt.Errorf("couldn't inspect private config %s: %w", privatePath, statErr)
 	}
 
 	return filename, privatePath, nil
@@ -126,18 +140,20 @@ func fileNamesToUseWithFile(filename string) (publicConfig, privateConfig string
 }
 
 // fileNamesToUseInDir looks for public/private values precisely in the given folder.
-func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
+func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string, err error) {
 
 	possiblePrivateConfig := filepath.Join(dir, privateConfigFileName)
 
-	if _, err := os.Stat(possiblePrivateConfig); err == nil {
+	if _, statErr := os.Stat(possiblePrivateConfig); statErr == nil {
 		privateConfig = possiblePrivateConfig
+	} else if !os.IsNotExist(statErr) {
+		return "", "", fmt.Errorf("couldn't inspect private config %s: %w", possiblePrivateConfig, statErr)
 	}
 
 	infos, err := os.ReadDir(dir)
 
 	if err != nil {
-		return "", ""
+		return "", "", fmt.Errorf("couldn't read config directory %s: %w", dir, err)
 	}
 
 	foundNames := make(map[string]bool)
@@ -158,19 +174,26 @@ func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
 
 	for _, name := range prioritizedNames {
 		if foundNames[name] {
-			return filepath.Join(dir, name), privateConfig
+			return filepath.Join(dir, name), privateConfig, nil
 		}
 	}
 
-	//Whatever, return the first one
+	var candidates []string
 	for name := range foundNames {
-		return filepath.Join(dir, name), privateConfig
+		candidates = append(candidates, name)
+	}
+	sort.Strings(candidates)
+	if len(candidates) > 1 {
+		return "", "", fmt.Errorf("ambiguous config files in %s: %s", dir, strings.Join(candidates, ", "))
+	}
+	if len(candidates) == 1 {
+		return filepath.Join(dir, candidates[0]), privateConfig, nil
 	}
 
 	//None of the preferred names were found, just return whatever is in
 	//publicConfig, privateConfig. publicConfig is "", privateConfig already
 	//has the dir in it
-	return
+	return "", privateConfig, nil
 
 }
 
