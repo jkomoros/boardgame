@@ -26,6 +26,9 @@ type ChoiceProjectionInfo = boardgame.MoveChoiceProjectionSchema
 // names or punctuation-equivalent names could create malformed declarations or
 // silently merge interfaces.
 func ValidateTypeScriptSchema(moves []MoveInfo, choiceProjectionSets ...[]ChoiceProjectionInfo) error {
+	if len(choiceProjectionSets) > 1 {
+		return fmt.Errorf("received %d choice-projection schemas; provide exactly one", len(choiceProjectionSets))
+	}
 	seenMoves := make(map[string]bool, len(moves))
 	seenSymbols := make(map[string]string, len(moves))
 	for _, move := range moves {
@@ -119,12 +122,12 @@ func validTypeScriptIdentifier(value string) bool {
 // list of moves with their fields. This provides typed argument interfaces for
 // each move and a mapped type that connects move names to their args.
 func GenerateTypeScript(moves []MoveInfo, choiceProjectionSets ...[]ChoiceProjectionInfo) string {
+	if err := ValidateTypeScriptSchema(moves, choiceProjectionSets...); err != nil {
+		panic(err)
+	}
 	var choiceProjections []ChoiceProjectionInfo
 	if len(choiceProjectionSets) > 0 {
 		choiceProjections = choiceProjectionSets[0]
-	}
-	if err := ValidateTypeScriptSchema(moves, choiceProjections); err != nil {
-		panic(err)
 	}
 	if len(moves) == 0 {
 		return typeScriptHeader + emptyTypeScriptBody()
@@ -215,6 +218,9 @@ func choiceProjectionValueType(projection ChoiceProjectionInfo) string {
 }
 
 func choiceProjectionSchemaJSON(projections []ChoiceProjectionInfo) string {
+	if len(projections) == 0 {
+		return "[]"
+	}
 	canonical := append([]ChoiceProjectionInfo(nil), projections...)
 	for i := range canonical {
 		canonical[i].CandidateValues = append([]string(nil), projections[i].CandidateValues...)

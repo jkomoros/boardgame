@@ -115,6 +115,19 @@ func TestGenerateTypeScriptZeroInputRejectsValues(t *testing.T) {
 	if !strings.Contains(got, "export type RollDiceInput = Record<string, never>;") {
 		t.Fatalf("zero-input move did not get exact empty record:\n%s", got)
 	}
+	if !strings.Contains(got, "export const moveChoiceProjectionSchema = [] as const;") {
+		t.Fatalf("empty choice schema was not an array literal:\n%s", got)
+	}
+	if strings.Contains(got, "moveChoiceProjectionSchema = null as const") {
+		t.Fatalf("empty choice schema emitted invalid null const assertion:\n%s", got)
+	}
+}
+
+func TestValidateTypeScriptSchemaRejectsMultipleProjectionSlices(t *testing.T) {
+	err := ValidateTypeScriptSchema(nil, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "provide exactly one") {
+		t.Fatalf("error = %v, want multiple-schema diagnostic", err)
+	}
 }
 
 func TestGenerateTypeScriptIsDeterministic(t *testing.T) {
