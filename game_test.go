@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -62,11 +63,157 @@ func TestMoveByNameForStateUsesPinnedDefaultsInsteadOfCurrentState(t *testing.T)
 	}
 }
 
+func TestMoveByNameForStateRejectsStateFromAnotherGame(t *testing.T) {
+	game := testDefaultGame(t, true)
+	other, err := game.Manager().NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if move := game.MoveByNameForState("Test", other.CurrentState()); move != nil {
+		t.Fatalf("MoveByNameForState accepted another game's state: %T", move)
+	}
+}
+
 type proposalFrontierBlockingStorage struct {
 	*testStorageManager
 	blockVersion int
 	saved        chan struct{}
 	release      chan struct{}
+}
+
+type proposalFrontierAgentFailureStorage struct {
+	*testStorageManager
+	failAgentState atomic.Bool
+}
+
+func (s *proposalFrontierAgentFailureStorage) AgentState(gameID string, player PlayerIndex) ([]byte, error) {
+	if s.failAgentState.Load() {
+		return nil, stderrors.New("deliberate agent-state failure")
+	}
+	return s.testStorageManager.AgentState(gameID, player)
+}
+
+func TestProposalFrontierSurvivesAgentFailureAfterTerminalFixUp(t *testing.T) {
+	storage := &proposalFrontierAgentFailureStorage{testStorageManager: newTestStorageManager()}
+	fixups := make(map[int]string)
+	delegate := newProposalFrontierScriptDelegate(fixups)
+	manager, err := NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewGame(3, nil, []string{"Test", "", ""})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The initiating player move commits version 1; require one recursive fix-up
+	// before the terminal check so this pins the deepest-frame regression.
+	fixups[1] = "Legal Memo Test Move"
+	storage.failAgentState.Store(true)
+	err = <-game.ProposeMove(game.MoveByName("Legal Memo Test Move"), 0)
+	if err == nil || !strings.Contains(err.Error(), "agent") {
+		t.Fatalf("proposal error = %v; want agent failure", err)
+	}
+	if !game.AtProposalFrontier() {
+		t.Fatal("agent failure erased completed recursive fix-up frontier")
+	}
+	restarted, err := NewGameManager(newProposalFrontierScriptDelegate(fixups), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if frontier, ok := restarted.ProposalFrontierVersion(game.ID()); !ok || frontier != game.Version() {
+		t.Fatalf("reloaded frontier after agent failure = %d, %v; want %d, true", frontier, ok, game.Version())
+	}
+}
+
+// frontierUnsupportedStorage deliberately hides the optional durable marker
+// capability exposed by its underlying test storage.
+type frontierUnsupportedStorage struct{ StorageManager }
+
+func TestProposalFrontierLegacyStorageReloadFailsClosed(t *testing.T) {
+	underlying := newTestStorageManager()
+	storage := &frontierUnsupportedStorage{StorageManager: underlying}
+	manager, err := NewGameManager(defaultTestGameDelegate(0), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !game.AtProposalFrontier() {
+		t.Fatal("active game should retain an in-memory frontier")
+	}
+	restarted, err := NewGameManager(defaultTestGameDelegate(0), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := restarted.ProposalFrontierVersion(game.ID()); ok {
+		t.Fatal("legacy storage record without durable evidence was certified")
+	}
+}
+
+type proposalFrontierExternalDelegate struct {
+	testGameDelegate
+	block   atomic.Bool
+	entered chan struct{}
+	release chan struct{}
+}
+
+func newProposalFrontierExternalDelegate() *proposalFrontierExternalDelegate {
+	d := &proposalFrontierExternalDelegate{
+		entered: make(chan struct{}, 1),
+		release: make(chan struct{}),
+	}
+	d.moveInstaller = defaultTestGameDelegate(0).moveInstaller
+	return d
+}
+
+func (d *proposalFrontierExternalDelegate) ProposeFixUpMove(ImmutableState) Move {
+	if d.block.Load() {
+		d.entered <- struct{}{}
+		<-d.release
+	}
+	return nil
+}
+
+func TestForceFixUpInvalidatesDurableFrontierUntilTerminalCheck(t *testing.T) {
+	storage := newTestStorageManager()
+	delegate := newProposalFrontierExternalDelegate()
+	manager, err := NewGameManager(delegate, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	game, err := manager.NewDefaultGame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	delegate.block.Store(true)
+	delayed := manager.Internals().ForceFixUp(game)
+	<-delegate.entered
+	if game.AtProposalFrontier() {
+		t.Fatal("active game retained frontier while external fix-up check was queued")
+	}
+	record, err := storage.Game(game.ID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.ProposalFrontierKnown {
+		t.Fatal("durable frontier remained known during external fix-up check")
+	}
+	close(delegate.release)
+	if err := <-delayed; err != nil {
+		t.Fatal(err)
+	}
+	if !game.AtProposalFrontier() {
+		t.Fatal("terminal external fix-up check did not restore frontier")
+	}
+	restarted, err := NewGameManager(newProposalFrontierExternalDelegate(), storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if frontier, ok := restarted.ProposalFrontierVersion(game.ID()); !ok || frontier != game.Version() {
+		t.Fatalf("reloaded external frontier = %d, %v; want %d, true", frontier, ok, game.Version())
+	}
 }
 
 func (s *proposalFrontierBlockingStorage) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error {

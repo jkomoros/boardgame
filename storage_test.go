@@ -158,6 +158,16 @@ func (t *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, st
 	return nil
 }
 
+func (t *testStorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	game := t.games[gameID]
+	if game == nil || game.Version != stateVersion {
+		return errors.New("proposal frontier used a stale or missing game version")
+	}
+	game.ProposalFrontierKnown = frontierVersion >= 0
+	game.ProposalFrontierVersion = frontierVersion
+	return nil
+}
+
 func (t *testStorageManager) PlayerMoveApplied(game *GameStorageRecord) error {
 	//Pass
 	return nil

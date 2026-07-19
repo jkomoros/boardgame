@@ -50,9 +50,10 @@ type Game struct {
 	//The current version of State.
 	version int
 
-	// proposalFrontierVersion is the last version at which the serialized
-	// main loop completed a proposal and its recursive fix-up chain. It is
-	// read concurrently by server projection code.
+	// publishedHeadVersion and proposalFrontierVersion are updated in an order
+	// that can transiently produce only false negatives. Server projection reads
+	// them atomically instead of racing with the main loop's legacy version field.
+	publishedHeadVersion    atomic.Int64
 	proposalFrontierVersion atomic.Int64
 
 	numPlayers int
@@ -308,17 +309,19 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 func (g *Game) StorageRecord() *GameStorageRecord {
 
 	return &GameStorageRecord{
-		Name:       g.Manager().Delegate().Name(),
-		Version:    g.Version(),
-		Winners:    g.Winners(),
-		Finished:   g.Finished(),
-		Created:    g.Created(),
-		Modified:   g.Modified(),
-		ID:         g.ID(),
-		SecretSalt: g.secretSalt,
-		NumPlayers: g.NumPlayers(),
-		Agents:     g.Agents(),
-		Variant:    g.Variant(),
+		Name:                    g.Manager().Delegate().Name(),
+		Version:                 g.Version(),
+		ProposalFrontierVersion: g.ProposalFrontierVersion(),
+		ProposalFrontierKnown:   g.AtProposalFrontier(),
+		Winners:                 g.Winners(),
+		Finished:                g.Finished(),
+		Created:                 g.Created(),
+		Modified:                g.Modified(),
+		ID:                      g.ID(),
+		SecretSalt:              g.secretSalt,
+		NumPlayers:              g.NumPlayers(),
+		Agents:                  g.Agents(),
+		Variant:                 g.Variant(),
 	}
 }
 
@@ -356,11 +359,42 @@ func (g *Game) ProposalFrontierVersion() int {
 // AtProposalFrontier reports whether the current state is ready to advertise
 // and accept the next player proposal.
 func (g *Game) AtProposalFrontier() bool {
-	return g.Version() == g.ProposalFrontierVersion()
+	_, ok := g.proposalFrontierSnapshot()
+	return ok
 }
 
-func (g *Game) markProposalFrontier() {
-	g.proposalFrontierVersion.Store(int64(g.Version()))
+func (g *Game) proposalFrontierSnapshot() (int, bool) {
+	head := int(g.publishedHeadVersion.Load())
+	frontier := g.ProposalFrontierVersion()
+	return frontier, head >= 0 && head == frontier
+}
+
+func (g *Game) publishHeadVersion(version int) {
+	g.publishedHeadVersion.Store(int64(version))
+}
+
+func (g *Game) invalidateProposalFrontier(persist bool) error {
+	head := int(g.publishedHeadVersion.Load())
+	g.proposalFrontierVersion.Store(-1)
+	if !persist {
+		return nil
+	}
+	if storage, ok := g.manager.Storage().(ProposalFrontierStorage); ok {
+		return storage.SaveProposalFrontier(g.ID(), head, -1)
+	}
+	return nil
+}
+
+func (g *Game) markProposalFrontier() error {
+	head := int(g.publishedHeadVersion.Load())
+	if storage, ok := g.manager.Storage().(ProposalFrontierStorage); ok {
+		if err := storage.SaveProposalFrontier(g.ID(), head, head); err != nil {
+			g.proposalFrontierVersion.Store(-1)
+			return err
+		}
+	}
+	g.proposalFrontierVersion.Store(int64(head))
+	return nil
 }
 
 // CurrentState returns the state object for the current state. Equivalent,
@@ -659,7 +693,9 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 
 	// Setup is one serialized proposal boundary too: only advertise the
 	// resulting state after every setup fix-up has completed successfully.
-	g.markProposalFrontier()
+	if err := g.markProposalFrontier(); err != nil {
+		return baseErr.WithError("Couldn't persist the setup proposal frontier: " + err.Error())
+	}
 
 	//TODO: start up agents.
 
@@ -686,12 +722,20 @@ func (g *Game) triggerFixUp() DelayedError {
 			delayed <- errors.New("could not find modifiable game")
 			return delayed
 		}
+		if err := game.invalidateProposalFrontier(true); err != nil {
+			go func() { delayed <- err }()
+			return delayed
+		}
 		select {
 		case game.fixUpTriggered <- delayed:
 		case <-game.done:
 			delayed <- errors.New("game has been frozen")
 		}
 	} else {
+		if err := g.invalidateProposalFrontier(true); err != nil {
+			go func() { delayed <- err }()
+			return delayed
+		}
 		select {
 		case g.fixUpTriggered <- delayed:
 		case <-g.done:
@@ -724,13 +768,14 @@ func (g *Game) mainLoop() {
 				return
 			}
 			resetTimer()
+			_ = g.invalidateProposalFrontier(false)
 			item.ch <- g.applyProposedMove(item)
 			close(item.ch)
 		case delayed := <-g.fixUpTriggered:
 			resetTimer()
 			move := g.manager.delegate.ProposeFixUpMove(g.CurrentState())
 			if move == nil {
-				delayed <- nil
+				delayed <- g.markProposalFrontier()
 			} else {
 				proposedDelayed := g.ProposeMove(move, AdminPlayerIndex)
 				//We can't wait for the error here, because the mainLoop needs
@@ -747,6 +792,7 @@ func (g *Game) mainLoop() {
 					return
 				}
 				idleTimer.Reset(gameIdleTimeout)
+				_ = g.invalidateProposalFrontier(false)
 				item.ch <- g.applyProposedMove(item)
 				close(item.ch)
 			default:
@@ -824,6 +870,9 @@ func (g *Game) MoveByNameForState(name string, state ImmutableState) Move {
 	if !g.initalized {
 		return nil
 	}
+	if state == nil || state.Game() != g {
+		return nil
+	}
 
 	moveType := g.manager.moveTypeByName(name)
 
@@ -852,6 +901,7 @@ func (g *Game) Refresh() {
 	g.cachedCurrentState = nil
 	g.cachedHistoricalMoves = nil
 	g.version = freshGame.Version()
+	g.publishHeadVersion(freshGame.Version())
 	g.proposalFrontierVersion.Store(int64(freshGame.ProposalFrontierVersion()))
 	g.finished = freshGame.Finished()
 	g.winners = freshGame.Winners()
@@ -1077,6 +1127,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	g.version = versionToSet
+	g.publishHeadVersion(versionToSet)
 
 	//Expire the currentState cache; it's no longer valid.
 	g.cachedCurrentState = nil
@@ -1104,7 +1155,9 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	if g.finished {
 
 		if !isFixUp {
-			g.markProposalFrontier()
+			if err := g.markProposalFrontier(); err != nil {
+				return baseErr.WithError("Couldn't persist the proposal frontier: " + err.Error())
+			}
 			g.manager.Storage().PlayerMoveApplied(g.StorageRecord())
 		}
 
@@ -1135,14 +1188,20 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		}
 	}
 
-	if err := g.triggerAgents(); err != nil {
-		return baseErr.WithError("Failed to trigger agent: " + err.Error())
-	}
-
-	//We only want to alert that the run is done if it was a player move that
-	//was applied.
+	// Recursive fix-up frames only unwind. The initiating frame owns the single
+	// durable boundary write, agent pass, and notification after the entire chain
+	// has reached a terminal fix-up check.
 	if !isFixUp {
-		g.markProposalFrontier()
+		if err := g.markProposalFrontier(); err != nil {
+			return baseErr.WithError("Couldn't persist the proposal frontier: " + err.Error())
+		}
+
+		// Agent scheduling is downstream of the durable proposal boundary. Failure
+		// here must not erase evidence that the initiating move and fix-ups settled.
+		if err := g.triggerAgents(); err != nil {
+			return baseErr.WithError("Failed to trigger agent: " + err.Error())
+		}
+
 		g.manager.Storage().PlayerMoveApplied(g.StorageRecord())
 	}
 

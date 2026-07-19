@@ -269,6 +269,26 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 }
 
+// SaveProposalFrontier persists proposal-boundary evidence for the current
+// durable head. Filesystem storage is primarily a single-process golden store;
+// saveRecordForID provides its ordinary replacement semantics.
+func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	rec, err := s.RecordForID(gameID)
+	if err != nil {
+		return err
+	}
+	game := rec.Game()
+	if game == nil {
+		return errors.New("Game record was nil")
+	}
+	if game.Version != stateVersion {
+		return errors.New("proposal frontier used a stale game version")
+	}
+	game.ProposalFrontierKnown = frontierVersion >= 0
+	game.ProposalFrontierVersion = frontierVersion
+	return s.saveRecordForID(gameID, rec)
+}
+
 // CombinedGame returns the combined game
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 	rec, err := s.RecordForID(id)

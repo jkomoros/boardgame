@@ -36,7 +36,7 @@ const (
 	tableTableLeases       = "companiontableleases"
 )
 
-const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
+const baseCombinedSelectQuery = "select g.Name, g.ID, g.SecretSalt, g.Version, g.ProposalFrontierVersion, g.ProposalFrontierKnown, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
 	"g.Created, g.Modified, e.Open, e.Visible, e.Owner, e.CompanionRoomCode, e.CompanionLocked, e.RematchGameID, e.RematchReady"
 
 const baseCombinedFromQuery = "from " + tableGames + " g, " + tableExtendedGames + " e"
@@ -545,6 +545,27 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		}
 	}
 
+	return nil
+}
+
+// SaveProposalFrontier updates proposal-boundary evidence only if stateVersion
+// is still the durable game head.
+func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
+	known := frontierVersion >= 0
+	result, err := s.db.Exec("update "+tableGames+" set ProposalFrontierVersion=?, ProposalFrontierKnown=? where ID=? and Version=?", frontierVersion, known, gameID, stateVersion)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return errors.New("proposal frontier used a stale or missing game version")
+	}
 	return nil
 }
 

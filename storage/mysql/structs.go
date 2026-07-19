@@ -34,14 +34,16 @@ type cookieStorageRecord struct {
 }
 
 type gameStorageRecord struct {
-	Name       string `db:",size:64"`
-	ID         string `db:",size:16"`
-	SecretSalt string `db:",size:16"`
-	Version    int64
-	Winners    string `db:",size:128"`
-	Finished   bool
-	Created    int64
-	Modified   int64
+	Name                    string `db:",size:64"`
+	ID                      string `db:",size:16"`
+	SecretSalt              string `db:",size:16"`
+	Version                 int64
+	ProposalFrontierVersion int64
+	ProposalFrontierKnown   bool
+	Winners                 string `db:",size:128"`
+	Finished                bool
+	Created                 int64
+	Modified                int64
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.
@@ -65,23 +67,25 @@ type extendedGameStorageRecord struct {
 
 // Used for pulling out of a db with a join
 type combinedGameStorageRecord struct {
-	Name              string
-	ID                string
-	SecretSalt        string
-	Version           int64
-	Winners           string
-	Finished          bool
-	NumPlayers        int64
-	Agents            string
-	Created           int64
-	Modified          int64
-	Open              bool
-	Visible           bool
-	Owner             string
-	CompanionRoomCode string
-	CompanionLocked   bool
-	RematchGameID     string
-	RematchReady      bool
+	Name                    string
+	ID                      string
+	SecretSalt              string
+	Version                 int64
+	ProposalFrontierVersion int64
+	ProposalFrontierKnown   bool
+	Winners                 string
+	Finished                bool
+	NumPlayers              int64
+	Agents                  string
+	Created                 int64
+	Modified                int64
+	Open                    bool
+	Visible                 bool
+	Owner                   string
+	CompanionRoomCode       string
+	CompanionLocked         bool
+	RematchGameID           string
+	RematchReady            bool
 }
 
 type stateStorageRecord struct {
@@ -298,17 +302,19 @@ func (g *gameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 	}
 
 	return &boardgame.GameStorageRecord{
-		Name:       g.Name,
-		ID:         g.ID,
-		SecretSalt: g.SecretSalt,
-		Version:    int(g.Version),
-		Winners:    winners,
-		Created:    time.Unix(0, g.Created),
-		Modified:   time.Unix(0, g.Modified),
-		Finished:   g.Finished,
-		NumPlayers: int(g.NumPlayers),
-		Agents:     stringToAgents(g.Agents),
-		Variant:    variant,
+		Name:                    g.Name,
+		ID:                      g.ID,
+		SecretSalt:              g.SecretSalt,
+		Version:                 int(g.Version),
+		ProposalFrontierVersion: int(g.ProposalFrontierVersion),
+		ProposalFrontierKnown:   g.ProposalFrontierKnown,
+		Winners:                 winners,
+		Created:                 time.Unix(0, g.Created),
+		Modified:                time.Unix(0, g.Modified),
+		Finished:                g.Finished,
+		NumPlayers:              int(g.NumPlayers),
+		Agents:                  stringToAgents(g.Agents),
+		Variant:                 variant,
 	}
 }
 
@@ -326,18 +332,20 @@ func newGameStorageRecord(game *boardgame.GameStorageRecord) *gameStorageRecord 
 	}
 
 	return &gameStorageRecord{
-		Name:       game.Name,
-		ID:         game.ID,
-		SecretSalt: game.SecretSalt,
-		Version:    int64(game.Version),
-		Winners:    winnersToString(game.Winners),
-		NumPlayers: int64(game.NumPlayers),
-		Finished:   game.Finished,
-		Created:    game.Created.UnixNano(),
-		Modified:   game.Modified.UnixNano(),
-		Agents:     agentsToString(game.Agents),
-		NumAgents:  int64(numAgents),
-		Variant:    configToString(game.Variant),
+		Name:                    game.Name,
+		ID:                      game.ID,
+		SecretSalt:              game.SecretSalt,
+		Version:                 int64(game.Version),
+		ProposalFrontierVersion: int64(game.ProposalFrontierVersion),
+		ProposalFrontierKnown:   game.ProposalFrontierKnown,
+		Winners:                 winnersToString(game.Winners),
+		NumPlayers:              int64(game.NumPlayers),
+		Finished:                game.Finished,
+		Created:                 game.Created.UnixNano(),
+		Modified:                game.Modified.UnixNano(),
+		Agents:                  agentsToString(game.Agents),
+		NumAgents:               int64(numAgents),
+		Variant:                 configToString(game.Variant),
 	}
 }
 
@@ -354,16 +362,18 @@ func (c *combinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 
 	return &extendedgame.CombinedStorageRecord{
 		GameStorageRecord: boardgame.GameStorageRecord{
-			Name:       c.Name,
-			ID:         c.ID,
-			SecretSalt: c.SecretSalt,
-			Version:    int(c.Version),
-			Winners:    winners,
-			Finished:   c.Finished,
-			NumPlayers: int(c.NumPlayers),
-			Agents:     stringToAgents(c.Agents),
-			Created:    time.Unix(0, c.Created),
-			Modified:   time.Unix(0, c.Modified),
+			Name:                    c.Name,
+			ID:                      c.ID,
+			SecretSalt:              c.SecretSalt,
+			Version:                 int(c.Version),
+			ProposalFrontierVersion: int(c.ProposalFrontierVersion),
+			ProposalFrontierKnown:   c.ProposalFrontierKnown,
+			Winners:                 winners,
+			Finished:                c.Finished,
+			NumPlayers:              int(c.NumPlayers),
+			Agents:                  stringToAgents(c.Agents),
+			Created:                 time.Unix(0, c.Created),
+			Modified:                time.Unix(0, c.Modified),
 		},
 		StorageRecord: extendedgame.StorageRecord{
 			Open:              c.Open,
@@ -385,23 +395,25 @@ func newCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 	}
 
 	return &combinedGameStorageRecord{
-		Name:              combined.Name,
-		ID:                combined.ID,
-		SecretSalt:        combined.SecretSalt,
-		Version:           int64(combined.Version),
-		Winners:           winnersToString(combined.Winners),
-		NumPlayers:        int64(combined.NumPlayers),
-		Finished:          combined.Finished,
-		Agents:            agentsToString(combined.Agents),
-		Created:           combined.Created.UnixNano(),
-		Modified:          combined.Modified.UnixNano(),
-		Open:              combined.Open,
-		Visible:           combined.Visible,
-		Owner:             combined.Owner,
-		CompanionRoomCode: combined.CompanionRoomCode,
-		CompanionLocked:   combined.CompanionLocked,
-		RematchGameID:     combined.RematchGameID,
-		RematchReady:      combined.RematchReady,
+		Name:                    combined.Name,
+		ID:                      combined.ID,
+		SecretSalt:              combined.SecretSalt,
+		Version:                 int64(combined.Version),
+		ProposalFrontierVersion: int64(combined.ProposalFrontierVersion),
+		ProposalFrontierKnown:   combined.ProposalFrontierKnown,
+		Winners:                 winnersToString(combined.Winners),
+		NumPlayers:              int64(combined.NumPlayers),
+		Finished:                combined.Finished,
+		Agents:                  agentsToString(combined.Agents),
+		Created:                 combined.Created.UnixNano(),
+		Modified:                combined.Modified.UnixNano(),
+		Open:                    combined.Open,
+		Visible:                 combined.Visible,
+		Owner:                   combined.Owner,
+		CompanionRoomCode:       combined.CompanionRoomCode,
+		CompanionLocked:         combined.CompanionLocked,
+		RematchGameID:           combined.RematchGameID,
+		RematchReady:            combined.RematchReady,
 	}
 
 }

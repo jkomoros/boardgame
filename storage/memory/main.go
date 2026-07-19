@@ -27,7 +27,7 @@ type StorageManager struct {
 
 	// Chat side-channel storage
 	chatMessages map[string][]*boardgame.ChatMessage // keyed by gameID
-	chatCounter  map[string]int                       // per-game message counter for IDs
+	chatCounter  map[string]int                      // per-game message counter for IDs
 
 	statesLock sync.RWMutex
 	movesLock  sync.RWMutex
@@ -136,6 +136,23 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	}
 
 	return record, nil
+}
+
+// SaveProposalFrontier atomically updates proposal-boundary evidence only when
+// the caller's state version is still the durable head.
+func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	s.gamesLock.Lock()
+	defer s.gamesLock.Unlock()
+	record := s.games[gameID]
+	if record == nil {
+		return errors.New("No such game")
+	}
+	if record.Version != stateVersion {
+		return errors.New("proposal frontier used a stale game version")
+	}
+	record.ProposalFrontierKnown = frontierVersion >= 0
+	record.ProposalFrontierVersion = frontierVersion
+	return nil
 }
 
 // SaveGameAndCurrentState implements that part of the core storage interface

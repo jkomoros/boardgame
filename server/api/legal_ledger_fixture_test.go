@@ -551,6 +551,18 @@ func (s *legalLedgerStorage) SaveGameAndCurrentState(game *boardgame.GameStorage
 	return nil
 }
 
+func (s *legalLedgerStorage) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	game := s.games[gameID]
+	if game == nil || game.Version != stateVersion {
+		return errors.New("proposal frontier used a stale or missing game version")
+	}
+	game.ProposalFrontierKnown = frontierVersion >= 0
+	game.ProposalFrontierVersion = frontierVersion
+	return nil
+}
+
 func (s *legalLedgerStorage) SaveAgentState(gameID string, player boardgame.PlayerIndex, state []byte) error {
 	return nil
 }

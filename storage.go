@@ -79,9 +79,15 @@ type GameStorageRecord struct {
 	//able to be persisted to and read from storage.
 	SecretSalt string `json:",omitempty"`
 	Version    int
-	Winners    []PlayerIndex
-	Finished   bool
-	Created    time.Time
+	// ProposalFrontierVersion is meaningful only when ProposalFrontierKnown is
+	// true. It is durable evidence that the complete proposal/fix-up chain for
+	// exactly this version reached a terminal boundary. Older records decode with
+	// ProposalFrontierKnown false and therefore fail closed.
+	ProposalFrontierVersion int
+	ProposalFrontierKnown   bool
+	Winners                 []PlayerIndex
+	Finished                bool
+	Created                 time.Time
 	//Modified is updated every time a new move is applied.
 	Modified time.Time
 	//NumPlayers is the reported number of players when it was created.
@@ -90,6 +96,17 @@ type GameStorageRecord struct {
 	NumPlayers int
 	Agents     []string
 	Variant    Variant
+}
+
+// ProposalFrontierStorage is an optional storage capability for persisting a
+// proposal-boundary marker after the terminal fix-up check. Implementations
+// must compare stateVersion to the currently stored game version atomically and
+// reject stale writes. frontierVersion < 0 invalidates the marker.
+//
+// Storage managers that do not implement this capability continue to work, but
+// reloaded games conservatively have no recoverable proposal frontier.
+type ProposalFrontierStorage interface {
+	SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error
 }
 
 // StorageManager is the interface that storage layers implement. The core

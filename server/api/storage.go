@@ -118,6 +118,15 @@ type ServerStorageManager struct {
 	server *Server
 }
 
+// SaveProposalFrontier preserves the optional core storage capability through
+// this wrapper. Unsupported backends intentionally leave reloads fail-closed.
+func (s *ServerStorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	if storage, ok := s.StorageManager.(boardgame.ProposalFrontierStorage); ok {
+		return storage.SaveProposalFrontier(gameID, stateVersion, frontierVersion)
+	}
+	return nil
+}
+
 // SaveChatMessage delegates to the underlying storage if it implements
 // ChatStorageManager. This allows EmitSystemMessage to work through the
 // ServerStorageManager wrapper.

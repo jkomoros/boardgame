@@ -333,6 +333,35 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 }
 
+// SaveProposalFrontier persists proposal-boundary evidence with a durable-head
+// compare inside the same Bolt write transaction.
+func (s *StorageManager) SaveProposalFrontier(gameID string, stateVersion, frontierVersion int) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(gamesBucket)
+		if bucket == nil {
+			return errors.New("Couldn't open games bucket")
+		}
+		raw := bucket.Get(keyForGame(gameID))
+		if raw == nil {
+			return errors.New("No such game found")
+		}
+		var record boardgame.GameStorageRecord
+		if err := json.Unmarshal(raw, &record); err != nil {
+			return errors.New("Unmarshal error " + err.Error())
+		}
+		if record.Version != stateVersion {
+			return errors.New("proposal frontier used a stale game version")
+		}
+		record.ProposalFrontierKnown = frontierVersion >= 0
+		record.ProposalFrontierVersion = frontierVersion
+		encoded, err := json.Marshal(&record)
+		if err != nil {
+			return err
+		}
+		return bucket.Put(keyForGame(gameID), encoded)
+	})
+}
+
 // SaveGameAndCurrentState implements that method from the main storagemanager interface
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 

@@ -780,6 +780,7 @@ func (g *GameManager) newGame(id, secretSalt string) *Game {
 	}
 	// Zero is a real state version. Keep a new game explicitly uncertified
 	// until setup and all setup fix-ups complete.
+	result.publishedHeadVersion.Store(0)
 	result.proposalFrontierVersion.Store(-1)
 	return result
 }
@@ -805,15 +806,13 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 		modifiable: false,
 		initalized: true,
 	}
-	// A durable head is not automatically a proposal boundary: the process may
-	// have died after committing one fix-up but before completing the chain.
-	// Re-run the delegate's canonical fix-up selection against the immutable
-	// head. No pending fix-up is the recoverable definition of "settled".
+	// Only a marker persisted after the terminal fix-up check can certify a
+	// reloaded boundary. Legacy records and intermediate durable heads fail
+	// closed; loading a game never executes arbitrary delegate legality code.
+	result.publishHeadVersion(record.Version)
 	result.proposalFrontierVersion.Store(-1)
-	if result.Finished() {
-		result.markProposalFrontier()
-	} else if state := result.CurrentState(); state != nil && g.delegate.ProposeFixUpMove(state) == nil {
-		result.markProposalFrontier()
+	if record.ProposalFrontierKnown && record.ProposalFrontierVersion == record.Version {
+		result.proposalFrontierVersion.Store(int64(record.ProposalFrontierVersion))
 	}
 	return result
 }
@@ -831,16 +830,13 @@ func (g *GameManager) ProposalFrontierVersion(id string) (int, bool) {
 	active := g.modifiableGames[id]
 	g.modifiableGamesLock.RUnlock()
 	if active != nil && !active.Frozen() {
-		if !active.AtProposalFrontier() {
-			return 0, false
-		}
-		return active.ProposalFrontierVersion(), true
+		return active.proposalFrontierSnapshot()
 	}
 	game := g.Game(id)
-	if game == nil || !game.AtProposalFrontier() {
+	if game == nil {
 		return 0, false
 	}
-	return game.ProposalFrontierVersion(), true
+	return game.proposalFrontierSnapshot()
 }
 
 // modifiableGameCreated lets Manager know that a modifiable game was created
