@@ -55,6 +55,30 @@ Constraint implementations must account for this — for example,
 MaxNumComponents uses dest.NumComponents() + len(proposed) to predict the
 post-move count.
 
+Constraints are deterministic validation predicates, not event callbacks. The
+engine may invoke them with a copied destination, proposed components, and
+state. Custom constraints may capture immutable configuration such as a limit
+or property name, but must resolve all runtime state through the arguments they
+receive. Do not capture the game state, player state, destination stack, a
+counter, or any other mutable runtime object.
+
+A safe custom factory looks like this:
+
+	func maxCombinedTokens(max int) boardgame.StackConstraint {
+		return func(dest boardgame.ImmutableStack, proposed []boardgame.ImmutableComponentInstance, state boardgame.ImmutableState) error {
+			game := state.ImmutableGameState().(*gameState)
+			if dest.NumComponents()+game.Reserve.NumComponents()+len(proposed) > max {
+				return errors.New("too many combined tokens")
+			}
+			return nil
+		}
+	}
+
+Here max is immutable configuration and game is resolved from the supplied
+state on every invocation. Capturing a gameState or Reserve value outside the
+returned function is unsafe because a copied validation would still consult
+the original object graph.
+
 Constraints are checked automatically in two places:
   - During Legal(), for moves that declare source/destination via
     WithSourceProperty/WithDestinationProperty (no move code needed).
@@ -65,6 +89,13 @@ For custom moves, use MayMoveTo or MayMoveToSlot in Legal() to check
 constraints along with all other slot-independent or slot-specific
 validation in a single call. See the ImmutableComponentInstance
 documentation for details.
+
+Automatic source/destination checking proposes the source's first component.
+That is sufficient for a one-component Apply, but not for an Apply that calls
+MoveAllTo: a later component can violate an order-dependent constraint. Such a
+move should call source.MayMoveAllTo(destination) in Legal(). MoveAllTo repeats
+the full validation transactionally in Apply, so an ignored or handled error
+still cannot expose a partial transfer.
 
 # Future Work
 

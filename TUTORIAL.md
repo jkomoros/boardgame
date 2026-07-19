@@ -156,6 +156,8 @@ type gameState struct {
 
 The `constraints` sub-package provides pre-built constraints: `MaxNumComponents`, `Unique`, `Same`, and `MaxDistinctValues`. See the `constraints` package documentation for details on property path syntax and available constraints.
 
+Constraints are validation predicates, not callbacks. The engine may evaluate a constraint against a copied state. A custom constraint may capture immutable configuration such as a maximum count, but it must resolve runtime stacks and substates from the `destination`, `proposed`, and `state` arguments on every call. Do not capture `gs`, `gs.Hand`, a player state, or another mutable runtime object in the constraint closure; that captured value would still point at the original graph while the supplied arguments describe the copy.
+
 Constraints are **not** checked during initial game setup (when components are distributed via `DistributeComponentToStarterStack`), only during normal gameplay moves.
 
 #### Reusable Draw/Discard Pairs and Face-Up Markets
@@ -236,9 +238,9 @@ This single `MayMoveToSlot` call replaces what would otherwise be several manual
 - **`stack.MayMoveAllTo(dest)`** — validates that *all* components in the source stack could be moved to the destination.
 - **`stack.MaySwapComponents(i, j)`** — validates that a swap would succeed.
 
-If `MayMoveTo` or `MayMoveToSlot` returns nil in `Legal()`, the corresponding `MoveTo` or `MoveToNextSlot` call in `Apply()` is guaranteed to succeed.
+If `MayMoveTo` or `MayMoveToSlot` returns nil in `Legal()`, the corresponding `MoveTo` or `MoveToNextSlot` call in `Apply()` is guaranteed to succeed. Likewise, pair `MayMoveAllTo` in `Legal()` with `MoveAllTo` in `Apply()`.
 
-The `moves` package (DealCountComponents, MoveCountComponents, etc.) uses `MayMoveTo` internally, so if you use those moves, constraint checking happens automatically. You only need to call `MayMoveTo` explicitly in custom moves.
+The `moves` package (DealCountComponents, MoveCountComponents, etc.) uses `MayMoveTo` internally, so if you use those moves, constraint checking happens automatically. In a custom one-component move, the ordinary source/destination legality contribution checks the first proposed component. A custom move whose `Apply()` calls `MoveAllTo` must explicitly call `MayMoveAllTo` in `Legal()`, because a second or later component may be the first one rejected by an order-dependent constraint. `MoveAllTo` also validates transactionally during `Apply()`: on any returned error, it leaves framework-owned state unchanged.
 
 #### boardgame-util codegen
 

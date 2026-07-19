@@ -433,6 +433,7 @@ type testGameDelegate struct {
 	customPlayerOrder       []PlayerIndex
 	inactivePlayers         map[PlayerIndex]bool
 	computedProperties      []ComputedProperty
+	gameStateConstructions  int
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -646,6 +647,7 @@ func (t *testGameDelegate) CurrentPlayerIndex(state ImmutableState) PlayerIndex 
 }
 
 func (t *testGameDelegate) GameStateConstructor() ConfigurableSubState {
+	t.gameStateConstructions++
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")

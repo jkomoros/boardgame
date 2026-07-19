@@ -125,11 +125,15 @@ type ImmutableStack interface {
 
 	//MayMoveAllTo checks whether all components in this stack could be
 	//moved to the destination stack, without actually performing any moves.
-	//It copies the underlying state, finds the corresponding stacks in the
-	//copy, and performs actual moves on the copy to check for errors
-	//(including order-dependent constraint violations). Returns nil if all
+	//For an unconstrained destination it preflights every component directly.
+	//For a constrained destination it copies the underlying state, finds the
+	//corresponding stacks, and performs actual moves on the copy so
+	//order-dependent constraint violations are observed. Returns nil if all
 	//moves would succeed, or a descriptive error if any would fail. If the
 	//source stack is empty, returns nil (nothing to move).
+	//
+	//Constraints are evaluated on copied stacks and state. See StackConstraint
+	//for the deterministic, copy-stable predicate contract this requires.
 	//
 	//MayMoveAllTo is designed for use in Legal() to pre-validate that
 	//MoveAllTo would succeed in Apply().
@@ -309,15 +313,18 @@ type Stack interface {
 	//returns the component at LastComponentIndex(). See also ImmutableLast.
 	Last() ComponentInstance
 
-	//MoveAllTo is a convenience method that moves all of the components in
-	//this stack to the other stack, by repeatedly calling
-	//stack.First().MoveToNextSlot(other). All other Move* methods can be
-	//found on ComponentInstance. This will fail if the SlotsRemaining in
-	//other Stack are less than the NumComponents of this stack. In pracitce
-	//this is rarely moved, because it chunks all of the component moves up
-	//into one notional Move, meaning that animations will show all of the
-	//components moving at once. Instead, often moves.MoveAllComponents is
-	//used to chunk up the move into a series of distinct Moves.
+	//MoveAllTo moves all components in this stack, from first to last, into
+	//the destination's successive next slots. It first validates the complete
+	//ordered transfer without mutation, using a whole-state simulation when
+	//the destination has constraints. If it returns an error, it has not changed
+	//framework-owned state; on success it commits the validated transfer without
+	//evaluating constraints a second time. See StackConstraint for the contract
+	//required of constraint functions.
+	//
+	//This will fail if other has fewer SlotsRemaining than this stack has
+	//components. All components are moved as one notional game Move, so clients
+	//animate them at once. Use moves.MoveAllComponents when each component
+	//should instead have a distinct Move and animation boundary.
 	MoveAllTo(other Stack) error
 
 	//Shuffle shuffles the order of the stack, so that it has the same items,
@@ -1502,44 +1509,130 @@ func validateMoveAllEndpoints(from Stack, dest ImmutableStack) (Stack, error) {
 	return to, nil
 }
 
-func mayMoveAllToImpl(from ImmutableStack, dest ImmutableStack) error {
+type moveAllPlan struct {
+	source      Stack
+	destination Stack
+	count       int
+}
+
+// prepareMoveAll captures everything commit needs after validating conditions
+// that do not change during a synchronous transfer. Per-component constraints
+// are intentionally left to validateMoveAllPlan's ordered simulation.
+func prepareMoveAll(from ImmutableStack, dest ImmutableStack, capacityError string) (*moveAllPlan, error) {
 	physicalFrom, err := requirePhysicalStack(from, "source")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	physicalDest, err := validateMoveAllEndpoints(physicalFrom, dest)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if from.NumComponents() == 0 {
+	count := physicalFrom.NumComponents()
+	if physicalDest.SlotsRemaining() < count {
+		return nil, errors.New(capacityError)
+	}
+
+	return &moveAllPlan{
+		source:      physicalFrom,
+		destination: physicalDest,
+		count:       count,
+	}, nil
+}
+
+// validateMoveAllPlan performs every potentially failing component move on a
+// whole-state copy. Besides protecting the endpoint stacks, this gives
+// constraints a coherent view of earlier insertions in the planned transfer.
+func validateMoveAllPlan(plan *moveAllPlan) error {
+	if plan.count == 0 {
 		return nil
 	}
-
-	if dest.SlotsRemaining() < from.NumComponents() {
-		return errors.New("not enough space in the target stack")
+	if !stackHasConstraints(plan.destination) {
+		return validateUnconstrainedMoveAllPlan(plan)
 	}
 
-	// Clone state and simulate actual moves.
-	origState := physicalFrom.state()
+	origState := plan.source.state()
 
 	copiedState, err := origState.copy(false)
 	if err != nil {
 		return errors.New("failed to copy state for simulation: " + err.Error())
 	}
 
-	copiedFrom, err := findCorrespondingStack(physicalFrom, origState, copiedState)
+	copiedFrom, err := findCorrespondingStack(plan.source, origState, copiedState)
 	if err != nil {
 		return errors.New("failed to find corresponding source stack: " + err.Error())
 	}
 
-	copiedDest, err := findCorrespondingStack(physicalDest, origState, copiedState)
+	copiedDest, err := findCorrespondingStack(plan.destination, origState, copiedState)
 	if err != nil {
 		return errors.New("failed to find corresponding destination stack: " + err.Error())
 	}
 
-	// Perform actual moves on the clone using the existing moveAllToImpl.
-	return moveAllToImpl(copiedFrom, copiedDest)
+	return moveAllToChecked(copiedFrom, copiedDest, plan.count)
+}
+
+func stackHasConstraints(stack Stack) bool {
+	switch concrete := stack.(type) {
+	case *growableStack:
+		return len(concrete.constraints) > 0
+	case *sizedStack:
+		return len(concrete.constraints) > 0
+	default:
+		// All physical stack implementations are currently covered above. Be
+		// conservative if another internal implementation is added.
+		return true
+	}
+}
+
+// validateUnconstrainedMoveAllPlan checks every source component against the
+// live endpoints without modifying either stack. With no destination
+// constraints, all remaining checks are structural and aggregate capacity
+// guarantees that each successive next slot exists. This preserves the
+// lightweight behavior of fundamental stack operations while keeping commit
+// infallible.
+func validateUnconstrainedMoveAllPlan(plan *moveAllPlan) error {
+	validated := 0
+	for _, component := range plan.source.Components() {
+		if component == nil {
+			continue
+		}
+		if err := component.MayMoveTo(plan.destination); err != nil {
+			return err
+		}
+		validated++
+	}
+	if validated != plan.count {
+		return errors.New("source component count changed while validating MoveAllTo")
+	}
+	return nil
+}
+
+// moveAllToChecked is only used with disposable copied state.
+func moveAllToChecked(from Stack, destination Stack, count int) error {
+	for remaining := count; remaining > 0; remaining-- {
+		if err := from.moveComponent(from.firstComponentIndex(), destination, destination.nextSlot()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// commitMoveAllPlan repeats a successfully simulated structural sequence. It
+// must contain no validation, callbacks, or other operation that can return an
+// error; otherwise a late failure could expose a partial live transfer.
+func commitMoveAllPlan(plan *moveAllPlan) {
+	for remaining := plan.count; remaining > 0; remaining-- {
+		component := plan.source.removeComponentAt(plan.source.firstComponentIndex())
+		plan.destination.insertComponentAt(plan.destination.nextSlot(), component)
+	}
+}
+
+func mayMoveAllToImpl(from ImmutableStack, dest ImmutableStack) error {
+	plan, err := prepareMoveAll(from, dest, "not enough space in the target stack")
+	if err != nil {
+		return err
+	}
+	return validateMoveAllPlan(plan)
 }
 
 func (g *growableStack) MayMoveAllTo(dest ImmutableStack) error {
@@ -1592,20 +1685,16 @@ func (g *growableStack) MoveAllTo(other Stack) error {
 }
 
 func moveAllToImpl(from Stack, to Stack) error {
-	physicalDest, err := validateMoveAllEndpoints(from, to)
+	// Preserve MoveAllTo's historical capitalization. These errors predate
+	// typed mutation errors, so callers may unfortunately compare the string.
+	plan, err := prepareMoveAll(from, to, "Not enough space in the target stack")
 	if err != nil {
 		return err
 	}
-	if physicalDest.SlotsRemaining() < from.NumComponents() {
-		return errors.New("Not enough space in the target stack")
+	if err := validateMoveAllPlan(plan); err != nil {
+		return err
 	}
-
-	for from.NumComponents() > 0 {
-		if err := from.moveComponent(from.firstComponentIndex(), physicalDest, physicalDest.nextSlot()); err != nil {
-			return err
-		}
-	}
-
+	commitMoveAllPlan(plan)
 	return nil
 }
 

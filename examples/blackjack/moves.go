@@ -134,8 +134,12 @@ func (m *moveCollectCards) Legal(state boardgame.ImmutableState, proposer boardg
 func (m *moveCollectCards) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 	for _, p := range players {
-		p.HiddenHand.MoveAllTo(game.DiscardStack)
-		p.VisibleHand.MoveAllTo(game.DiscardStack)
+		if err := p.HiddenHand.MoveAllTo(game.DiscardStack); err != nil {
+			return err
+		}
+		if err := p.VisibleHand.MoveAllTo(game.DiscardStack); err != nil {
+			return err
+		}
 	}
 	return nil
 }
