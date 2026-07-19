@@ -77,11 +77,7 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 			return errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
 		}
 
-		if existing, err := os.Lstat(localPath); err == nil {
-			if !copyFiles || info.IsDir() {
-				// It already has the requested link/directory shape.
-				continue
-			}
+		if existing, err := os.Lstat(localPath); err == nil && copyFiles && !info.IsDir() {
 			// A dev assembly may have left a file symlink here. Production
 			// copying must replace the link itself; writing through it would
 			// mutate the framework source and would still leave Vite resolving
@@ -99,9 +95,12 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 				return errors.New("Couldn't copy " + name + ": " + err.Error())
 			}
 		} else {
-			fmt.Println("Linking " + localPath + " to " + relRemotePath)
-			if err := os.Symlink(relRemotePath, localPath); err != nil {
-				return errors.New("Couldn't link " + name + ": " + err.Error())
+			changed, err := ensureSymlink(localPath, relRemotePath, absRemotePath, !info.IsDir())
+			if err != nil {
+				return fmt.Errorf("couldn't link %s: %w", name, err)
+			}
+			if changed {
+				fmt.Println("Linking " + localPath + " to " + relRemotePath)
 			}
 		}
 	}
@@ -169,14 +168,12 @@ func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 			return errors.New("Unexpected error: relPath of " + relPath + " doesn't exist " + absLocalPath + " : " + absClientPath + "(" + rejoinedPath + ")")
 		}
 
-		if _, err := os.Stat(relLocalPath); err == nil {
-			//Must already exist, so can skip
-			continue
+		changed, err := ensureSymlink(relLocalPath, relPath, absClientPath, false)
+		if err != nil {
+			return fmt.Errorf("couldn't link client directory for %s: %w", pkg.Name(), err)
 		}
-
-		fmt.Println("Linking " + relLocalPath + " to " + relPath)
-		if err := os.Symlink(relPath, relLocalPath); err != nil {
-			return errors.New("Couldn't create sym lnk for " + pkg.Name() + ": " + relPath + ":: " + relLocalPath)
+		if changed {
+			fmt.Println("Linking " + relLocalPath + " to " + relPath)
 		}
 
 	}

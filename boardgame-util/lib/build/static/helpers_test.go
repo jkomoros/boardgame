@@ -54,3 +54,43 @@ func TestClientConfigForBuildDoesNotMutateCaller(t *testing.T) {
 		t.Fatalf("build config capabilities = %v, want empty", result.TableHandSupportedGames)
 	}
 }
+
+func TestEnsureSymlinkReconcilesStaleDestinations(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation generally requires elevated privileges on Windows")
+	}
+	dir := t.TempDir()
+	first := filepath.Join(dir, "first")
+	second := filepath.Join(dir, "second")
+	local := filepath.Join(dir, "local")
+	for _, path := range []string{first, second} {
+		if err := os.WriteFile(path, []byte(filepath.Base(path)), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink(first, local); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := ensureSymlink(local, second, second, true)
+	if err != nil || !changed {
+		t.Fatalf("reconcile stale link: changed=%v err=%v", changed, err)
+	}
+	contents, readErr := os.ReadFile(local)
+	if readErr != nil || string(contents) != "second" {
+		t.Fatalf("reconciled link contents = %q, %v; want second", contents, readErr)
+	}
+	changed, err = ensureSymlink(local, second, second, true)
+	if err != nil || changed {
+		t.Fatalf("retain current link: changed=%v err=%v", changed, err)
+	}
+	if err := os.Remove(local); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(local, []byte("owned output"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err = ensureSymlink(local, first, first, true)
+	if err != nil || !changed {
+		t.Fatalf("replace owned regular file: changed=%v err=%v", changed, err)
+	}
+}

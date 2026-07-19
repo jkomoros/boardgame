@@ -87,6 +87,37 @@ func copyFile(remote, local string) error {
 
 }
 
+func ensureSymlink(local, target, resolvedTarget string, replaceRegular bool) (bool, error) {
+	existing, err := os.Lstat(local)
+	if err == nil {
+		if existing.Mode()&os.ModeSymlink != 0 {
+			currentTarget, readErr := os.Readlink(local)
+			if readErr != nil {
+				return false, fmt.Errorf("read existing link %s: %w", local, readErr)
+			}
+			if !filepath.IsAbs(currentTarget) {
+				currentTarget = filepath.Join(filepath.Dir(local), currentTarget)
+			}
+			currentInfo, currentErr := os.Stat(currentTarget)
+			desiredInfo, desiredErr := os.Stat(resolvedTarget)
+			if currentErr == nil && desiredErr == nil && os.SameFile(currentInfo, desiredInfo) {
+				return false, nil
+			}
+		} else if !replaceRegular || !existing.Mode().IsRegular() {
+			return false, fmt.Errorf("refusing to replace unexpected non-link path %s", local)
+		}
+		if err := os.Remove(local); err != nil {
+			return false, fmt.Errorf("remove stale static link destination %s: %w", local, err)
+		}
+	} else if !os.IsNotExist(err) {
+		return false, fmt.Errorf("inspect static link destination %s: %w", local, err)
+	}
+	if err := os.Symlink(target, local); err != nil {
+		return false, fmt.Errorf("link %s to %s: %w", local, target, err)
+	}
+	return true, nil
+}
+
 // buildCachePath returns where we store our build cache (or where we WOULD if
 // it existed).
 func buildCachePath() (string, error) {

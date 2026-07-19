@@ -55,3 +55,20 @@ func TestCopyStaticResourcesReplacesDevFileLinksForProduction(t *testing.T) {
 		t.Fatalf("production index mode = %v, want regular copied file", copied.Mode())
 	}
 }
+
+func TestCopyStaticResourcesReplacesProductionCopiesForDevelopment(t *testing.T) {
+	root := t.TempDir()
+	if err := CopyStaticResources(root, true); err != nil {
+		t.Fatal(err)
+	}
+	index := filepath.Join(root, staticSubFolder, "index.html")
+	if info, err := os.Lstat(index); err != nil || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("production index shape = %v, %v; want regular file", info, err)
+	}
+	if err := CopyStaticResources(root, false); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Lstat(index); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("development index shape = %v, %v; want symlink", info, err)
+	}
+}
