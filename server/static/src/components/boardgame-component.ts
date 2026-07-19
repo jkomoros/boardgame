@@ -7,8 +7,8 @@ import type { MotionSubjectSnapshot } from '../motion/subject.js';
 import { compileComponentMotionTracks } from '../motion/component-track.js';
 import type {
   ComponentMotionTrack,
-  ComponentMotionTrackInput,
   ComponentMotionTarget,
+  VisualMotionTrackInput,
 } from '../motion/component-track.js';
 
 // FlipRecord is the bundle the animator computes for each animating
@@ -198,7 +198,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   protected propertyMotionTracks(
     _before: Record<string, any>,
     _after: Record<string, any>,
-  ): readonly ComponentMotionTrackInput[] {
+  ): readonly VisualMotionTrackInput[] {
     return [];
   }
 
@@ -211,7 +211,7 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   // which component property transitions exist.
   playAnimation(rec: FlipRecord): readonly Animation[] {
     const delayMs = rec.delayMs ?? 0;
-    const animations = this.playMotionTracks(
+    const result = this.playMotionTracks(
       rec.tracks ?? this.planMotionTracks(rec),
       { delay: delayMs },
     );
@@ -219,7 +219,9 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     // the final source of truth after WAAPI settles.
     if (rec.needsHostTransition) this.style.transform = rec.finalTransform;
     this.style.opacity = rec.finalOpacity;
-    return animations;
+    return result.status === 'started'
+      ? Object.freeze(result.playbacks.map(playback => playback.animation))
+      : Object.freeze([]);
   }
 
   // prepareForBeingAnimatingComponent is called if the component is going

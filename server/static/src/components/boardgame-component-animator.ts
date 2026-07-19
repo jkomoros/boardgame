@@ -36,7 +36,16 @@ import { compileStructuralMotionEvents } from '../motion/structural-events.js';
 import type { StructuralMotionEvent } from '../motion/structural-events.js';
 import { sanitizeMotionSubjectSnapshot } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
-import type { ComponentMotionTrack } from '../motion/component-track.js';
+import type {
+  ComponentMotionChannel,
+  ComponentMotionTrack,
+  BaseComponentMotionInput,
+} from '../motion/component-track.js';
+import {
+  compileComponentMotionTracks,
+  componentMotionChannel,
+  componentMotionTracks,
+} from '../motion/component-track.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -346,7 +355,10 @@ export class BoardgameComponentAnimator extends LitElement {
     requestAnimationFrame(observe);
   }
 
-  private _executedTiming(animation: Animation): StructuralExecutedTiming {
+  private _executedTiming(
+    animation: Animation,
+    channel: ComponentMotionChannel,
+  ): StructuralExecutedTiming {
     const timing = animation.effect instanceof KeyframeEffect
       ? animation.effect.getTiming()
       : {};
@@ -354,6 +366,7 @@ export class BoardgameComponentAnimator extends LitElement {
       ? 1
       : Math.max(0, finiteTimingMs(timing.iterations));
     return Object.freeze({
+      channel,
       delayMs: finiteTimingMs(timing.delay),
       durationMs: finiteTimingMs(timing.duration),
       endDelayMs: finiteTimingMs(timing.endDelay),
@@ -372,6 +385,68 @@ export class BoardgameComponentAnimator extends LitElement {
       // Decoration capability failures are isolated from queue-critical motion.
       console.error('[animator] motion subject snapshot failed:', error);
       return undefined;
+    }
+  }
+
+  private _planMotionTracks(
+    component: { planMotionTracks?: (input: BaseComponentMotionInput & {
+      before: Record<string, unknown>;
+      after: Record<string, unknown>;
+    }) => readonly ComponentMotionTrack[] },
+    input: BaseComponentMotionInput & {
+      before: Record<string, unknown>;
+      after: Record<string, unknown>;
+    },
+  ): readonly ComponentMotionTrack[] {
+    try {
+      if (typeof component.planMotionTracks !== 'function') {
+        return compileComponentMotionTracks(input);
+      }
+      return componentMotionTracks(component.planMotionTracks(input));
+    } catch (error) {
+      // A component-owned visual hook must never strand queue-critical host
+      // continuity. Preserve safe structural transform/opacity tracks only.
+      console.error('[animator] component motion planning failed:', error);
+      return compileComponentMotionTracks({
+        needsHostTransition: input.needsHostTransition,
+        invertedTransform: input.invertedTransform,
+        finalTransform: input.finalTransform,
+        beforeOpacity: input.beforeOpacity,
+        finalOpacity: input.finalOpacity,
+      });
+    }
+  }
+
+  private _restoreNoAnimateBarrier(): void {
+    for (const collection of this.stackElement._sharedStackList) {
+      collection.noAnimate = false;
+      for (const component of collection.Components) component.noAnimate = false;
+    }
+    for (const record of this._animatingComponents) record.component.noAnimate = false;
+  }
+
+  private _abortAnimationCycle(
+    error: unknown,
+    resolve: (settled: Promise<void>) => void,
+  ): void {
+    console.error('[animator] structural motion cycle failed:', error);
+    try {
+      this._restoreNoAnimateBarrier();
+    } catch (cleanupError) {
+      console.error('[animator] failed to restore animation barrier:', cleanupError);
+    }
+    try {
+      this._invalidateSolvedMotionPlan();
+      this._solvedMotionPlan = null;
+    } catch (cleanupError) {
+      console.error('[animator] failed to invalidate motion plan:', cleanupError);
+    }
+    try {
+      this.clearAnimatingComponents();
+    } catch (cleanupError) {
+      console.error('[animator] failed to clear animation clones:', cleanupError);
+    } finally {
+      resolve(Promise.resolve());
     }
   }
 
@@ -416,7 +491,9 @@ export class BoardgameComponentAnimator extends LitElement {
       });
       return;
     }
-    const animations = Object.freeze([this._executedTiming(animation)]);
+    const animations = Object.freeze([
+      this._executedTiming(animation, 'host:transform'),
+    ]);
     this._updateExplicitMotion(generation, subjectId, {
       status: 'started',
       animations,
@@ -647,7 +724,11 @@ export class BoardgameComponentAnimator extends LitElement {
     // one more time wait until the end of the microtask. See #722 for more.
     Promise.resolve().then(() => {
       if (this._generation !== generation) { resolve(Promise.resolve()); return; }
-      this._doAnimate(resolve, generation);
+      try {
+        this._doAnimate(resolve, generation);
+      } catch (error) {
+        this._abortAnimationCycle(error, resolve);
+      }
     });
   }
 
@@ -796,7 +877,7 @@ export class BoardgameComponentAnimator extends LitElement {
         // Plan every owned animation channel once. The same immutable tracks
         // decide whether work exists and later drive WAAPI playback.
         record.invertedTransform = composeFlipTransform(geometry, record.beforeTransform);
-        const motionTracks = component.planMotionTracks({
+        const motionTracks = this._planMotionTracks(component, {
           before: record.before || {},
           after: record.after!,
           invertedTransform: record.invertedTransform,
@@ -920,7 +1001,7 @@ export class BoardgameComponentAnimator extends LitElement {
       // here: the resting inline transform stays put, and playAnimation()
       // supplies the inverted state as the animation's opening keyframe.
       animatingRecord.invertedTransform = composeFlipTransform(geometry, record.beforeTransform);
-      animatingRecord.motionTracks = component.planMotionTracks({
+      animatingRecord.motionTracks = this._planMotionTracks(component, {
         before: animatingRecord.before,
         after: animatingRecord.after,
         invertedTransform: animatingRecord.invertedTransform,
@@ -969,7 +1050,11 @@ export class BoardgameComponentAnimator extends LitElement {
     const raf = window.requestAnimationFrame ||
                 (window as any).webkitRequestAnimationFrame ||
                 ((cb: FrameRequestCallback) => window.setTimeout(cb, 16));
-    raf(() => this._startAnimations(resolve, generation));
+    raf(() => {
+      void this._startAnimations(resolve, generation).catch(error => {
+        this._abortAnimationCycle(error, resolve);
+      });
+    });
   }
 
   private async _startAnimations(resolve: (p: Promise<void>) => void, generation: number) {
@@ -1095,16 +1180,24 @@ export class BoardgameComponentAnimator extends LitElement {
     }> = [];
     for (const item of playback) {
       const animations = item.component.playAnimation(item.config) as readonly Animation[];
+      const tracks = item.config.tracks ?? [];
       if (item.motionDraft) {
-        if (animations.length === 0) {
+        if (animations.length === 0 || animations.length !== tracks.length) {
+          for (const animation of animations) {
+            void animation.finished.catch(() => undefined);
+            animation.cancel();
+          }
           executionUpdates.set(item.motionDraft.subjectId, {
             status: 'skipped',
-            reason: 'not-started',
+            reason: animations.length === 0 ? 'not-started' : 'playback-error',
           });
         } else {
+          const executedTimings = Object.freeze(animations.map((animation, index) => (
+            this._executedTiming(animation, componentMotionChannel(tracks[index]))
+          )));
           executionUpdates.set(item.motionDraft.subjectId, {
             status: 'started',
-            animations: Object.freeze(animations.map(animation => this._executedTiming(animation))),
+            animations: executedTimings,
           });
           terminalUpdates.push({
             subjectId: item.motionDraft.subjectId,

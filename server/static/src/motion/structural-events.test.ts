@@ -51,6 +51,7 @@ describe('structural motion event compilation', () => {
       'card-1', {
         status: 'started' as const,
         animations: [{
+          channel: 'host:transform' as const,
           delayMs: 10,
           durationMs: 200,
           endDelayMs: 0,

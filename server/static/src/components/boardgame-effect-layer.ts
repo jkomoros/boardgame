@@ -804,12 +804,13 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     if (!segment.viewport || !segment.spatial?.inversion.changed) return skipped('no-motion-path');
     if (segment.execution.status !== 'started') return skipped('motion-skipped');
 
-    const animationsTiming = segment.execution.animations;
-    if (animationsTiming.length === 0) return skipped('motion-skipped');
-    const startDelay = Math.min(...animationsTiming.map(timing => timing.delayMs));
-    const visualEnd = Math.max(...animationsTiming.map(timing => (
-      timing.delayMs + timing.durationMs * timing.iterations
-    )));
+    const spatialTiming = segment.execution.animations.find(
+      timing => timing.channel === 'host:transform',
+    );
+    if (!spatialTiming) return skipped('motion-skipped');
+    const startDelay = spatialTiming.delayMs;
+    const visualEnd = spatialTiming.delayMs
+      + spatialTiming.durationMs * spatialTiming.iterations;
     if (!Number.isFinite(startDelay) || !Number.isFinite(visualEnd) || visualEnd <= startDelay) {
       return skipped('no-motion-path');
     }
@@ -834,7 +835,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     const shape = segment.visualSubject.shape;
     const borderRadius = shape === 'circle' ? '999px'
       : shape === 'rounded-rectangle' ? '12%' : '0';
-    const primaryEasing = animationsTiming[0]?.easing || 'ease-in-out';
+    const primaryEasing = spatialTiming.easing || 'ease-in-out';
     const elements: HTMLElement[] = [];
     const animations: Animation[] = [];
 

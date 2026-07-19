@@ -167,6 +167,17 @@ compiler, reduced-motion policy, completion gate, and settlement bookkeeping.
 The Pig die's selected-face spin is a `visual:transform` track rather than a
 direct `play()` call.
 
+Execution resolves every target before it starts any channel. A missing visual
+surface therefore skips the complete component plan instead of allowing a host
+transform to start alone. If a later WAAPI start fails, the executor cancels
+the channels already started in that plan. Component planning is similarly
+isolated: a throwing component visual hook is reported, then the animator
+falls back to compiler-owned host transform/opacity tracks so its measurement
+barrier and completion promise cannot be stranded. The established
+`playAnimation()` array return remains compatible; its ordering is exactly the
+immutable track ordering, which lets the animator attach execution timing to
+the correct named channel rather than relying on anonymous array position.
+
 Lifecycle scope remains honest. Card tracks are planned inside the animator's
 measurement transaction and appear in structural plans. A die is a standalone
 state-driven animatable item, so its local track is gated by the ambient version

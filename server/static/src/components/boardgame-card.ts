@@ -4,7 +4,7 @@ import { property, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { motionSilhouette } from '../motion/subject.js';
 import type { MotionSubjectSnapshot } from '../motion/subject.js';
-import type { ComponentMotionTrackInput } from '../motion/component-track.js';
+import type { VisualMotionTrackInput } from '../motion/component-track.js';
 
 export class BoardgameCard extends BoardgameComponent {
   static override styles = [
@@ -309,7 +309,7 @@ export class BoardgameCard extends BoardgameComponent {
   protected override propertyMotionTracks(
     before: Record<string, any>,
     after: Record<string, any>,
-  ): readonly ComponentMotionTrackInput[] {
+  ): readonly VisualMotionTrackInput[] {
     if (before.faceUp === after.faceUp && before.rotated === after.rotated) return [];
     return [{
       target: 'visual',

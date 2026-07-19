@@ -6,6 +6,7 @@ import type {
 import type { AnimationTimingPolicy } from './timing.js';
 import { sanitizeMotionSubjectSnapshot } from './subject.ts';
 import type { MotionSubjectSnapshot } from './subject.js';
+import type { ComponentMotionChannel } from './component-track.js';
 
 export type StructuralPresence = 'retained' | 'appearing' | 'departing';
 
@@ -75,6 +76,7 @@ export interface StructuralTimingRequest {
 }
 
 export interface StructuralExecutedTiming {
+  readonly channel: ComponentMotionChannel;
   readonly delayMs: number;
   readonly durationMs: number;
   readonly endDelayMs: number;
@@ -91,7 +93,7 @@ export type StructuralExecution =
   }>
   | Readonly<{
     status: 'skipped';
-    reason: 'not-started' | 'missing-endpoint' | 'no-spatial-change' | 'timing';
+    reason: 'not-started' | 'playback-error' | 'missing-endpoint' | 'no-spatial-change' | 'timing';
   }>
   | Readonly<{
     status: 'finished';

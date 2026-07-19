@@ -208,6 +208,7 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
         execution: {
           status: 'started',
           animations: [{
+            channel: 'host:transform',
             delayMs: 0,
             durationMs: 240,
             endDelayMs: 0,

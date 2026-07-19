@@ -112,6 +112,7 @@ describe('structural motion plans', () => {
       {
         status: 'started' as const,
         animations: Object.freeze([Object.freeze({
+          channel: 'host:transform' as const,
           delayMs: 50,
           durationMs: 200,
           endDelayMs: 0,

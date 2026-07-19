@@ -63,6 +63,121 @@ test('card face motion is a planned component-owned visual track', async ({ page
   }
 });
 
+test('motion track playback preflights every owned target before starting any channel', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      const { BoardgameComponent } = await import('/src/components/boardgame-component.ts');
+
+      class MissingVisualTarget extends BoardgameComponent {
+        protected override propertyMotionTracks() {
+          return [{
+            target: 'visual' as const,
+            property: 'transform' as const,
+            from: 'rotate(0deg)',
+            to: 'rotate(90deg)',
+          }];
+        }
+
+        protected override motionTrackTarget(target: 'host' | 'visual'): HTMLElement | null {
+          return target === 'host' ? this : null;
+        }
+      }
+      customElements.define('missing-visual-target', MissingVisualTarget);
+      const component = document.createElement('missing-visual-target') as MissingVisualTarget;
+      component.style.setProperty('--animation-length', '80ms');
+      document.body.append(component);
+      await component.updateComplete;
+      const record = {
+        before: {},
+        after: {},
+        invertedTransform: 'translateX(-40px)',
+        finalTransform: '',
+        beforeOpacity: '1',
+        finalOpacity: '',
+        needsHostTransition: true,
+      };
+      const tracks = component.planMotionTracks(record);
+      const animations = component.playAnimation({ ...record, tracks });
+      return {
+        channels: tracks.map(track => `${track.target}:${track.property}`),
+        returnedAnimations: animations.length,
+        hostAnimations: component.getAnimations().length,
+      };
+    });
+
+    expect(result).toEqual({
+      channels: ['host:transform', 'visual:transform'],
+      returnedAnimations: 0,
+      hostAnimations: 0,
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('a throwing component planner degrades to framework-owned structural channels', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        _planMotionTracks(component: object, input: object): ReadonlyArray<{
+          target: string;
+          property: string;
+          from: string;
+          to: string;
+        }>;
+      };
+      document.body.append(animator);
+      await animator.updateComplete;
+
+      const reported: string[] = [];
+      const originalError = console.error;
+      console.error = (...values: unknown[]) => { reported.push(values.map(String).join(' ')); };
+      try {
+        const tracks = animator._planMotionTracks({
+          planMotionTracks() {
+            throw new Error('fixture visual planner failed');
+          },
+        }, {
+          before: {},
+          after: {},
+          needsHostTransition: true,
+          invertedTransform: 'translateX(-20px)',
+          finalTransform: 'none',
+          beforeOpacity: '0.5',
+          finalOpacity: '1',
+          visualTracks: [{
+            target: 'visual',
+            property: 'transform',
+            from: 'rotate(0deg)',
+            to: 'rotate(90deg)',
+          }],
+        });
+        return {
+          reported: reported.some(message => message.includes('fixture visual planner failed')),
+          channels: tracks.map(track => `${track.target}:${track.property}`),
+        };
+      } finally {
+        console.error = originalError;
+      }
+    });
+
+    expect(result).toEqual({
+      reported: true,
+      channels: ['host:transform', 'host:opacity'],
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('standalone die spin uses the shared visual-track executor', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);

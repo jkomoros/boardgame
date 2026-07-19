@@ -9,8 +9,12 @@ import type {
   AnimationTimingPolicy,
   VersionAnimationContext,
 } from '../motion/timing.js';
-import { componentMotionKeyframes } from '../motion/component-track.js';
+import {
+  componentMotionChannel,
+  componentMotionKeyframes,
+} from '../motion/component-track.js';
 import type {
+  ComponentMotionChannel,
   ComponentMotionTarget,
   ComponentMotionTrack,
 } from '../motion/component-track.js';
@@ -22,6 +26,23 @@ export interface PlayOptions {
   /** Defaults to the installed version slot; use immediate for a local effect. */
   timing?: AnimationTimingPolicy;
 }
+
+export interface MotionTrackPlayback {
+  readonly channel: ComponentMotionChannel;
+  readonly track: ComponentMotionTrack;
+  readonly animation: Animation;
+}
+
+export type MotionTrackPlayResult =
+  | Readonly<{
+    status: 'started';
+    playbacks: readonly MotionTrackPlayback[];
+  }>
+  | Readonly<{
+    status: 'skipped';
+    reason: 'missing-target' | 'not-started' | 'playback-error';
+    channel?: ComponentMotionChannel;
+  }>;
 
 interface PlayInstrumentation {
   recordActive?: boolean;
@@ -94,20 +115,56 @@ export class BoardgameAnimatableItem extends LitElement {
     tracks: readonly ComponentMotionTrack[],
     timing?: OptionalEffectTiming,
     opts?: PlayOptions,
-  ): readonly Animation[] {
-    const animations: Animation[] = [];
-    for (const track of tracks) {
-      const target = this.motionTrackTarget(track.target);
-      if (!target) continue;
-      const animation = this.play(
-        target,
-        [...componentMotionKeyframes(track)],
-        timing,
-        opts,
-      );
-      if (animation) animations.push(animation);
+  ): MotionTrackPlayResult {
+    if (tracks.length === 0) {
+      return Object.freeze({ status: 'skipped', reason: 'not-started' });
     }
-    return animations;
+    const bindings = tracks.map(track => Object.freeze({
+      track,
+      channel: componentMotionChannel(track),
+      target: this.motionTrackTarget(track.target),
+    }));
+    const missing = bindings.find(binding => !binding.target);
+    if (missing) {
+      return Object.freeze({
+        status: 'skipped',
+        reason: 'missing-target',
+        channel: missing.channel,
+      });
+    }
+
+    const playbacks: MotionTrackPlayback[] = [];
+    try {
+      for (const binding of bindings) {
+        const animation = this.play(
+          binding.target!,
+          [...componentMotionKeyframes(binding.track)],
+          timing,
+          opts,
+        );
+        if (!animation) {
+          for (const playback of playbacks) playback.animation.cancel();
+          return Object.freeze({
+            status: 'skipped',
+            reason: 'not-started',
+            channel: binding.channel,
+          });
+        }
+        playbacks.push(Object.freeze({
+          channel: binding.channel,
+          track: binding.track,
+          animation,
+        }));
+      }
+    } catch (error) {
+      for (const playback of playbacks) playback.animation.cancel();
+      console.error('[animation] motion track playback failed:', error);
+      return Object.freeze({ status: 'skipped', reason: 'playback-error' });
+    }
+    return Object.freeze({
+      status: 'started',
+      playbacks: Object.freeze(playbacks),
+    });
   }
 
   private _ambientAnimationContext(): VersionAnimationContext | null {

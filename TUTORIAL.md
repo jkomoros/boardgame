@@ -3724,19 +3724,30 @@ override effectsForTransition(
   }
   const revealed = context.after.Game.VisibleCards.Components
     .filter(isVisibleComponent);
+  const previouslyRevealed = new Set(
+    context.before.Game.VisibleCards.Components
+      .filter(isVisibleComponent)
+      .map(card => card.ID),
+  );
+  const newlyRevealed = revealed.find(card => !previouslyRevealed.has(card.ID));
   const isMatch = revealed.length === 2
     && revealed[0]!.Values.Type === revealed[1]!.Values.Type;
+  const revealPoint = newlyRevealed
+    ? fx.motion(newlyRevealed.ID)
+    : fx.anchor('memory-cards');
 
   return [fx.parallel([
     fx.pulse({
-      at: fx.anchor('memory-cards'),
+      at: revealPoint,
       tone: isMatch ? 'reward' : 'attention',
       intensity: isMatch ? 'medium' : 'small',
+      timing: newlyRevealed ? 'immediate' : 'version',
     }),
     ...(isMatch ? [fx.burst({
-      at: fx.anchor('memory-cards'),
+      at: revealPoint,
       tone: 'reward',
       intensity: 'medium',
+      timing: newlyRevealed ? 'immediate' : 'version',
     })] : []),
   ], {
     key: 'reveal-card',
@@ -3745,7 +3756,11 @@ override effectsForTransition(
 }
 ```
 
-The renderer marks the corresponding element with a scoped, stable anchor:
+`fx.motion(id)` follows the framework's measured structural lifecycle for that
+component ID, including a stationary card-face morph. It reads immutable
+geometry and timing; it does not clone the card or compete for its transform.
+The stable DOM anchor is an honest fallback when there is no newly revealed
+subject. The renderer marks that fallback with a scoped name:
 
 ```ts
 html`<boardgame-component-stack
@@ -3765,7 +3780,8 @@ For feedback that is genuinely local—such as acknowledging a selection before
 it proposes a move—use `this.effects?.play(fx.pulse({ at: element, ... }))`.
 Do not use that imperative path for authoritative outcomes. See
 [`docs/animation-effects.md`](docs/animation-effects.md) for composition,
-themes, disappearing anchors, lifecycle results, and advanced customization.
+themes, disappearing anchors, lifecycle results, `fx.trail()` effects that
+follow real structural travel, and advanced customization.
 
 The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
 

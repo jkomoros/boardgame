@@ -1,5 +1,6 @@
 export type ComponentMotionTarget = 'host' | 'visual';
 export type ComponentMotionProperty = 'transform' | 'opacity';
+export type ComponentMotionChannel = `${ComponentMotionTarget}:${ComponentMotionProperty}`;
 
 /**
  * One immutable, single-owner visual channel transition.
@@ -19,6 +20,17 @@ export interface ComponentMotionTrackInput {
   readonly property: ComponentMotionProperty;
   readonly from: string;
   readonly to: string;
+}
+
+/** Component subclasses may describe only their component-owned visual surface. */
+export type VisualMotionTrackInput = ComponentMotionTrackInput & Readonly<{
+  target: 'visual';
+}>;
+
+export function componentMotionChannel(
+  track: Pick<ComponentMotionTrack, 'target' | 'property'>,
+): ComponentMotionChannel {
+  return `${track.target}:${track.property}`;
 }
 
 function exactTrack(input: ComponentMotionTrackInput): ComponentMotionTrack {
@@ -56,7 +68,7 @@ export function componentMotionTracks(
   for (const input of inputs) {
     const track = exactTrack(input);
     if (track.from === track.to) continue;
-    const channel = `${track.target}:${track.property}`;
+    const channel = componentMotionChannel(track);
     if (channels.has(channel)) {
       throw new Error(`component motion channel ${channel} has multiple owners`);
     }
@@ -82,7 +94,7 @@ export interface BaseComponentMotionInput {
   readonly finalTransform: string;
   readonly beforeOpacity: string;
   readonly finalOpacity: string;
-  readonly visualTracks?: readonly ComponentMotionTrackInput[];
+  readonly visualTracks?: readonly VisualMotionTrackInput[];
 }
 
 /** Compile structural host channels and component-owned visual channels once. */
