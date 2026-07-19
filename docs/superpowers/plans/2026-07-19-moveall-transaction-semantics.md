@@ -80,8 +80,12 @@ constraint receives the whole state and may inspect relationships elsewhere.
 The existing requirement that `StackConstraint` be pure and not panic becomes
 more explicit. A valid constraint is a deterministic, copy-stable predicate:
 
-- it bases its result only on logical values reachable through the supplied
+- it bases its result only on persisted logical game, player,
+  dynamic-component, and stack values reachable through the supplied
   destination, proposed components, and immutable state;
+- it does not depend on `State.Version`, object identity, or live `Game`
+  metadata (`Legal` sees the current version while `Apply` operates on the next
+  version);
 - it does not mutate supplied or captured state;
 - it does not consume randomness, schedule callbacks, perform I/O, modify a
   captured variable, inspect pointer identity, consult clocks, or depend on
@@ -337,6 +341,9 @@ would have weakened the implementation. This revision resolves them:
    effects. A pure predicate based on pointer identity or external mutable data
    could otherwise disagree between the copied validation graph and the live
    commit graph.
+4. The permitted inputs exclude state version and live game metadata. Those
+   values can differ between the independent `Legal` and `Apply` evaluations
+   even when persisted game values have not changed.
 
 Remaining risks are intentionally visible rather than papered over:
 

@@ -19,12 +19,15 @@ package boardgame
 // maximum count, use dest.NumComponents() + len(proposed).
 //
 // Constraints must be deterministic, copy-stable predicates. They may base
-// their result only on logical values reachable through destination, proposed,
-// and state. They must not modify supplied or captured state, consume
-// randomness, schedule callbacks, perform I/O, modify captured values, inspect
-// pointer identity, consult clocks, depend on invocation count, or retain the
-// supplied objects after returning. The engine may evaluate a constraint on a
-// copied state, and may evaluate it independently during Legal and Apply.
+// their result only on persisted logical game, player, dynamic-component, and
+// stack values reachable through destination, proposed, and state. In
+// particular, they must not depend on State.Version, object identity, or live
+// Game metadata: Legal observes the current version while Apply operates on
+// the next version. They must not modify supplied or captured state, consume
+// randomness, schedule callbacks, perform I/O, modify captured values, consult
+// clocks, depend on invocation count, or retain the supplied objects after
+// returning. The engine may evaluate a constraint on a copied state, and may
+// evaluate it independently during Legal and Apply.
 //
 // Constraints must not panic.
 //
