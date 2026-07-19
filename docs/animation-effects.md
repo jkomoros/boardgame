@@ -26,7 +26,9 @@ opacity, and card face/rotation changes own the card's inner visual transform.
 The same frozen list decides whether work exists and drives WAAPI playback, so
 a card flip is no longer a second imperative animation system. Structural plans
 publish only the owned channel names for observation; effects still receive no
-write access. This framework contract is intentionally not a game-author API.
+write access. Standalone die spins use the same track-to-keyframe executor and
+ambient version timing, but do not claim FLIP provenance or satisfy motion
+anchors. This framework contract is intentionally not a game-author API.
 
 ## The three axes
 
@@ -374,6 +376,9 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 - `examples/debuganimations` follows a real moved token with a silhouette trail
   and decorates its arrival, plus demonstrating imperative click celebration
   and theme/intensity controls.
+- `examples/pig` exercises the standalone die's shared `visual:transform`
+  track executor. Its roll stays version-timed and queue-gated without being
+  misrepresented as structural travel.
 - Companion table/hand renderers use `animateBetween()` for real card flights;
   that structural API shares timing and geometry foundations with effects but
   remains queue-critical.

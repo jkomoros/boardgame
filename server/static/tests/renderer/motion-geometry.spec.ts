@@ -63,6 +63,49 @@ test('card face motion is a planned component-owned visual track', async ({ page
   }
 });
 
+test('standalone die spin uses the shared visual-track executor', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-die.ts');
+      const die = document.createElement('boardgame-die') as HTMLElement & {
+        faces: number[];
+        selectedFace: number;
+        updateComplete: Promise<unknown>;
+      };
+      die.faces = [1, 2, 3, 4, 5, 6];
+      die.style.setProperty('--animation-length', '80ms');
+      document.body.append(die);
+      await die.updateComplete;
+      die.selectedFace = 4;
+      await die.updateComplete;
+      const inner = die.shadowRoot?.querySelector<HTMLElement>('#inner');
+      const animations = inner?.getAnimations() ?? [];
+      const animation = animations[0];
+      const frames = animation?.effect instanceof KeyframeEffect
+        ? animation.effect.getKeyframes()
+        : [];
+      const during = {
+        count: animations.length,
+        from: frames[0]?.transform,
+        to: frames.at(-1)?.transform,
+      };
+      await Promise.all(animations.map(item => item.finished));
+      return during;
+    });
+
+    expect(result).toEqual({
+      count: 1,
+      from: 'translateY(calc(-1 * var(--effective-die-size) * 0))',
+      to: 'translateY(calc(-1 * var(--effective-die-size) * 4))',
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('animateBetween aligns differently-sized endpoints by viewport center', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);

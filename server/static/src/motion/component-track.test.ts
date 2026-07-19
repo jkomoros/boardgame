@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   compileComponentMotionTracks,
+  componentMotionKeyframes,
   componentMotionTracks,
 } from './component-track.ts';
 
@@ -70,5 +71,15 @@ describe('component motion tracks', () => {
     assert.throws(() => componentMotionTracks([
       { target: 'visual', property: 'opacity', from: 'hidden', to: '1' },
     ]), /must be finite/);
+  });
+
+  it('compiles a frozen two-keyframe WAAPI boundary', () => {
+    const [track] = componentMotionTracks([
+      { target: 'visual', property: 'opacity', from: '0.2', to: '0.8' },
+    ]);
+    const frames = componentMotionKeyframes(track);
+    assert.deepEqual(frames, [{ opacity: '0.2' }, { opacity: '0.8' }]);
+    assert.equal(Object.isFrozen(frames), true);
+    assert.equal(Object.isFrozen(frames[0]), true);
   });
 });

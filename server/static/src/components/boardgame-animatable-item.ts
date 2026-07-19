@@ -9,6 +9,11 @@ import type {
   AnimationTimingPolicy,
   VersionAnimationContext,
 } from '../motion/timing.js';
+import { componentMotionKeyframes } from '../motion/component-track.js';
+import type {
+  ComponentMotionTarget,
+  ComponentMotionTrack,
+} from '../motion/component-track.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -77,6 +82,32 @@ export class BoardgameAnimatableItem extends LitElement {
 
   get isAnimating(): boolean {
     return this._liveGatedCount > 0;
+  }
+
+  /** Resolve the two deliberately finite DOM ownership surfaces. */
+  protected motionTrackTarget(target: ComponentMotionTarget): HTMLElement | null {
+    return target === 'host' ? this : null;
+  }
+
+  /** Execute immutable owned tracks through the shared timing/gating kernel. */
+  protected playMotionTracks(
+    tracks: readonly ComponentMotionTrack[],
+    timing?: OptionalEffectTiming,
+    opts?: PlayOptions,
+  ): readonly Animation[] {
+    const animations: Animation[] = [];
+    for (const track of tracks) {
+      const target = this.motionTrackTarget(track.target);
+      if (!target) continue;
+      const animation = this.play(
+        target,
+        [...componentMotionKeyframes(track)],
+        timing,
+        opts,
+      );
+      if (animation) animations.push(animation);
+    }
+    return animations;
   }
 
   private _ambientAnimationContext(): VersionAnimationContext | null {

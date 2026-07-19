@@ -66,6 +66,16 @@ export function componentMotionTracks(
   return Object.freeze(result);
 }
 
+/** Compile the exact WAAPI keyframes for one already-validated track. */
+export function componentMotionKeyframes(
+  track: ComponentMotionTrack,
+): readonly Readonly<Keyframe>[] {
+  const frames = track.property === 'transform'
+    ? [{ transform: track.from }, { transform: track.to }]
+    : [{ opacity: track.from }, { opacity: track.to }];
+  return Object.freeze(frames.map(frame => Object.freeze(frame)));
+}
+
 export interface BaseComponentMotionInput {
   readonly needsHostTransition: boolean;
   readonly invertedTransform: string;

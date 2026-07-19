@@ -160,6 +160,20 @@ Track endpoints are execution descriptions, not game-author effect APIs.
 Semantic effects still observe lifecycle/geometry and never acquire a write
 channel on either component surface.
 
+The track-to-keyframe compiler and executor live one layer lower, on the common
+animatable-item kernel. Both stack-managed cards and standalone dice therefore
+use the same frozen endpoint representation, finite target resolution, timing
+compiler, reduced-motion policy, completion gate, and settlement bookkeeping.
+The Pig die's selected-face spin is a `visual:transform` track rather than a
+direct `play()` call.
+
+Lifecycle scope remains honest. Card tracks are planned inside the animator's
+measurement transaction and appear in structural plans. A die is a standalone
+state-driven animatable item, so its local track is gated by the ambient version
+context but is not fabricated into a FLIP plan and cannot satisfy `fx.motion()`
+or `fx.trail()`. Unifying execution does not pretend the two have identical
+provenance.
+
 ### Publication lifecycle
 
 - `prepare()` begins a generation and immediately invalidates the previous
@@ -291,9 +305,12 @@ ownership:
 11. **Done:** extract immutable component motion tracks, make channel ownership
     explicit, plan once for participation and playback, and migrate card
     face/rotation animation off its imperative WAAPI hook.
-12. **Deferred:** design any artwork-bearing subject representation as a new,
+12. **Done:** move track-to-keyframe execution into the common animatable-item
+    kernel and migrate the standalone Pig die spin, eliminating the last direct
+    state-driven component `play()` bypass while preserving lifecycle scope.
+13. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-13. Reassess a larger representation only when concrete duplication justifies
+14. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

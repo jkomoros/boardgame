@@ -211,16 +211,10 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
   // which component property transitions exist.
   playAnimation(rec: FlipRecord): readonly Animation[] {
     const delayMs = rec.delayMs ?? 0;
-    const animations: Animation[] = [];
-    for (const track of rec.tracks ?? this.planMotionTracks(rec)) {
-      const target = this.motionTrackTarget(track.target);
-      if (!target) continue;
-      const keyframes: Keyframe[] = track.property === 'transform'
-        ? [{ transform: track.from }, { transform: track.to }]
-        : [{ opacity: track.from }, { opacity: track.to }];
-      const animation = this.play(target, keyframes, { delay: delayMs });
-      if (animation) animations.push(animation);
-    }
+    const animations = this.playMotionTracks(
+      rec.tracks ?? this.planMotionTracks(rec),
+      { delay: delayMs },
+    );
     // Host tracks are overlays (fill:'none'); authored resting styles remain
     // the final source of truth after WAAPI settles.
     if (rec.needsHostTransition) this.style.transform = rec.finalTransform;
