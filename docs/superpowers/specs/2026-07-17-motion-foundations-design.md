@@ -345,6 +345,15 @@ inside the animator/component boundary and is never added to structural plans,
 events, silhouettes, or effects. Capture is transition-local, so a component
 that is already hidden cannot resurrect stale artwork from an older cycle.
 
+An inferred collection endpoint has a finite, collection-owned presence
+policy: `scale-fade` or `travel-only`. The pure compiler turns that semantic
+choice into frozen numeric scale/opacity facts. CSS serialization happens only
+at the existing host-track composition seam. Neither an appearing live host nor
+a departing carrier is mutated during measurement; the facts become ordinary
+track endpoints and playback remains the first writer. This replaces the old
+imperative `setUnknownAnimationState()` convention without inventing a general
+CSS transform language.
+
 ## Physical animation ownership
 
 Avoid a general runtime channel arbiter. Conflicts are prevented by DOM
@@ -398,9 +407,12 @@ ownership:
     conventions with private historical-presentation capture plus fresh inert
     motion carriers; preserve retained and departing artwork without widening
     public motion snapshots.
-18. **Deferred:** design any artwork-bearing subject representation as a new,
+18. **Done:** replace hard-coded unknown-host mutation with a semantic
+    collection presence policy compiled to numeric endpoint facts and ordinary
+    host tracks.
+19. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-19. Reassess a larger representation only when concrete duplication justifies
+20. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

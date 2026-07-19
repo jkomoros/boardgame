@@ -6,6 +6,8 @@ import { isBoundMoveAction, type BoundMoveAction } from '../moves/action.js';
 import type { BoardgameComponent } from './boardgame-component.js';
 import type { ComponentView } from './component-view.js';
 import { createComponentForView, sameComponentViewRecipe, updateComponentFromView } from './component-view.js';
+import { compileMotionPresence } from '../motion/presence.js';
+import type { MotionPresenceFacts, MotionPresencePolicy } from '../motion/presence.js';
 
 // These are the random values we use. We need them to be the same for each key.
 const pseudoRandomValues = [
@@ -332,6 +334,10 @@ export class BoardgameComponentStack extends LitElement {
   @property({ type: Number })
   stagger = 0;
 
+  /** Visual policy for an inferred collection endpoint with no exact host. */
+  @property({ attribute: false })
+  motionPresence: MotionPresencePolicy = 'scale-fade';
+
   @query('#container')
   private container!: HTMLElement;
 
@@ -566,12 +572,15 @@ export class BoardgameComponentStack extends LitElement {
     return maxVal;
   }
 
-  setUnknownAnimationState(card: any) {
-    card.style.transform = 'scale(0.6)';
-    card.style.opacity = '0.0';
+  motionPresenceFacts(): MotionPresenceFacts {
+    return compileMotionPresence(this.motionPresence);
   }
 
-  newMotionCarrier(): { component: any; defaults: Readonly<Record<string, unknown>> } {
+  newMotionCarrier(): {
+    component: any;
+    defaults: Readonly<Record<string, unknown>>;
+    presence: MotionPresenceFacts;
+  } {
     // Animating orphans must be fresh hosts; borrowing a live/pool host would
     // corrupt stable identity and ownership in the source or destination stack.
 
@@ -588,13 +597,13 @@ export class BoardgameComponentStack extends LitElement {
       typedComponent.prepareMotionCarrier(defaults);
     }
 
-    this.setUnknownAnimationState(component);
+    const presence = this.motionPresenceFacts();
     component.id = '';
     component.inert = true;
     component.setAttribute('aria-hidden', 'true');
     component.style.pointerEvents = 'none';
     this.animatingComponentsContainer.appendChild(component);
-    return Object.freeze({ component, defaults });
+    return Object.freeze({ component, defaults, presence });
   }
 
   clearAnimatingComponents() {

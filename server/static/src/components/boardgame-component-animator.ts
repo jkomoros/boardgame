@@ -63,6 +63,7 @@ import {
   installHistoricalPresentation,
 } from '../motion/historical-presentation.js';
 import type { HistoricalPresentation } from '../motion/historical-presentation.js';
+import { motionPresenceHostStyle } from '../motion/presence.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -907,10 +908,9 @@ export class BoardgameComponentAnimator extends LitElement {
           record.afterOpacity = component.style.opacity;
           record.afterTransform = component.style.transform;
 
-          theStack.setUnknownAnimationState(component);
-
-          record.beforeTransform = component.style.transform;
-          record.beforeOpacity = component.style.opacity || '1';
+          const presenceStyle = motionPresenceHostStyle(theStack.motionPresenceFacts());
+          record.beforeTransform = presenceStyle.transform;
+          record.beforeOpacity = presenceStyle.opacity;
         } else {
           record.afterOpacity = component.style.opacity;
           record.afterTransform = component.style.transform;
@@ -1006,6 +1006,7 @@ export class BoardgameComponentAnimator extends LitElement {
         component.remove();
         continue;
       }
+      const carrierPresenceStyle = motionPresenceHostStyle(carrier.presence);
 
       record.after = carrier.defaults;
 
@@ -1015,8 +1016,8 @@ export class BoardgameComponentAnimator extends LitElement {
         component: component,
         before: record.before || {},
         after: record.after || {},
-        afterTransform: component.style.transform,
-        afterOpacity: component.style.opacity,
+        afterTransform: carrierPresenceStyle.transform,
+        afterOpacity: carrierPresenceStyle.opacity,
         invertedTransform: '',
         beforeOpacity: record.beforeOpacity || '1.0',
         needsHostTransition: true

@@ -848,6 +848,20 @@ test('departing motion uses a fresh inert carrier without publishing presentatio
       };
       const source = makeStack();
       const destination = makeStack();
+      const cardPrototype = customElements.get('boardgame-card')!.prototype as any;
+      const originalPlayAnimation = cardPrototype.playAnimation;
+      let carrierAtPlayback: unknown = null;
+      cardPrototype.playAnimation = function(record: any) {
+        if (this.inert) {
+          carrierAtPlayback = {
+            inlineTransform: this.style.transform,
+            inlineOpacity: this.style.opacity,
+            finalTransform: record.finalTransform,
+            finalOpacity: record.finalOpacity,
+          };
+        }
+        return originalPlayAnimation.call(this, record);
+      };
       const visible = {
         Index: 0, Values: { rank: 'A' }, Deck: 'cards', GameName: 'carrier-test', ID: 'carrier-card',
       };
@@ -883,8 +897,10 @@ test('departing motion uses a fresh inert carrier without publishing presentatio
         text: carrier?.textContent,
         duplicateIds: carrier?.querySelectorAll('[id]').length,
         presentationPublished: planJSON.includes('VISIBLE SOURCE ART') || planJSON.includes('motion-history'),
+        carrierAtPlayback,
       };
       animator.clearAnimatingComponents();
+      cardPrototype.playAnimation = originalPlayAnimation;
       return { ...observed, carriersAfterClear: destination.shadowRoot?.querySelectorAll('#animating-components > *').length };
     });
     expect(result).toEqual({
@@ -897,6 +913,12 @@ test('departing motion uses a fresh inert carrier without publishing presentatio
       text: 'VISIBLE SOURCE ART',
       duplicateIds: 0,
       presentationPublished: false,
+      carrierAtPlayback: {
+        inlineTransform: '',
+        inlineOpacity: '',
+        finalTransform: 'scale(0.6)',
+        finalOpacity: '0',
+      },
       carriersAfterClear: 0,
     });
     diagnostics.assertEmpty();
