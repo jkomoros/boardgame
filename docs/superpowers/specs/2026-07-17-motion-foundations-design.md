@@ -314,6 +314,19 @@ success barrier, `fx.afterMotion({ subjects, effect })`, over exact automatic
 FLIP segments. True cohort identity, progress, and cohort-wide cancellation
 remain deferred; the barrier is composition and never a structural owner.
 
+Structural continuity is resolved before geometry or carrier creation:
+
+`DOM sightings -> continuity intent -> geometry -> tracks -> cadence -> timing/execution -> lifecycle`
+
+The continuity solver treats exact before/after identity as authoritative and
+uses collection `IDsLastSeen` only as fallible endpoint evidence. Inferred
+appearance or departure requires one uniquely newest collection other than the
+known exact endpoint. Ties, duplicate exact sightings, malformed versions, and
+same-collection-only history are unresolved and deliberately produce no
+fabricated travel. Full history versions and candidate sets remain private;
+public structural provenance contains only the selected collection and coarse
+evidence.
+
 ## Physical animation ownership
 
 Avoid a general runtime channel arbiter. Conflicts are prevented by DOM
@@ -360,9 +373,12 @@ ownership:
     monotonic index-keyed updates; distinguish armed playback from sampled
     `active-observed`, bind decorators to exact refs, and add the success-only
     FLIP `fx.afterMotion()` barrier.
-16. **Deferred:** design any artwork-bearing subject representation as a new,
+16. **Done:** extract a pure structural continuity solver, make inferred
+    endpoints permutation-invariant, and fail closed instead of animating an
+    arbitrary collection when history is ambiguous.
+17. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-17. Reassess a larger representation only when concrete duplication justifies
+18. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

@@ -305,6 +305,12 @@ and never changes structural settlement. Combine it with `motion.stagger()`
 when the same typed local profile needs both an ordered start cadence and a
 success flourish.
 
+Hidden or sanitized components sometimes lack an exact visible endpoint. The
+framework uses collection history only when it identifies one unambiguous
+external collection; tied, malformed, or same-collection-only evidence skips
+that inferred motion. Motion-bound effects must treat `motion-skipped` as an
+ordinary deterministic outcome, not as an error.
+
 ## Composition
 
 Every recipe is an `EffectSpec`, so composition is ordinary immutable data:

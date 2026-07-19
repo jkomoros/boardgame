@@ -647,7 +647,7 @@ test('structural plans publish before playback and invalidate on interruption', 
   }
 });
 
-test('structural plans preserve uncertainty for inferred appearance and departure', async ({ page }) => {
+test('structural continuity resolves unique history and skips ambiguous history', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);
   try {
@@ -696,6 +696,7 @@ test('structural plans preserve uncertainty for inferred appearance and departur
       };
       const source = makeStackElement(20);
       const destination = makeStackElement(260);
+      const ambiguousDestination = makeStackElement(500);
       const visible = {
         Index: 0,
         Values: { rank: 'Q' },
@@ -719,9 +720,11 @@ test('structural plans preserve uncertainty for inferred appearance and departur
       });
       source.stack = stackData([], [], {});
       destination.stack = stackData([], [], {});
-      document.body.append(animator, source, destination);
+      ambiguousDestination.stack = stackData([], [], {});
+      document.body.append(animator, source, destination, ambiguousDestination);
       await Promise.all([
         animator.updateComplete, source.updateComplete, destination.updateComplete,
+        ambiguousDestination.updateComplete,
       ]);
 
       // The card materializes without an exact prior host. Stack history says
@@ -729,16 +732,22 @@ test('structural plans preserve uncertainty for inferred appearance and departur
       animator.prepare();
       source.stack = stackData([], [], { 'inferred-card': 1 });
       destination.stack = stackData([visible], ['inferred-card'], { 'inferred-card': 2 });
-      await Promise.all([source.updateComplete, destination.updateComplete]);
+      ambiguousDestination.stack = stackData([], [], {});
+      await Promise.all([
+        source.updateComplete, destination.updateComplete, ambiguousDestination.updateComplete,
+      ]);
       await animator.animateFlip();
       const appearing = animator._solvedMotionPlan?.segments[0];
 
-      // The real host disappears. The latest stack-history sighting supplies
-      // only an inferred destination for the faux departing component.
+      // The real host disappears, but two external stacks offer equally recent
+      // destinations. Continuity must not select one by registration order.
       animator.prepare();
       source.stack = stackData([], [], { 'inferred-card': 4 });
       destination.stack = stackData([], [], { 'inferred-card': 4 });
-      await Promise.all([source.updateComplete, destination.updateComplete]);
+      ambiguousDestination.stack = stackData([], [], { 'inferred-card': 4 });
+      await Promise.all([
+        source.updateComplete, destination.updateComplete, ambiguousDestination.updateComplete,
+      ]);
       await animator.animateFlip();
       const departing = animator._solvedMotionPlan?.segments[0];
       animator.clearAnimatingComponents();
@@ -766,22 +775,7 @@ test('structural plans preserve uncertainty for inferred appearance and departur
       },
       execution: { status: 'finished' },
     });
-    expect(result.departing).toMatchObject({
-      subjectId: 'inferred-card',
-      presence: 'departing',
-      provenance: {
-        kind: 'stack-history',
-        endpoint: 'destination',
-        stackId: result.sourceId,
-        evidence: 'ambiguous',
-      },
-      path: {
-        kind: 'travel',
-        from: { space: 'viewport' },
-        to: { space: 'viewport' },
-      },
-      execution: { status: 'finished' },
-    });
+    expect(result.departing).toBeUndefined();
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

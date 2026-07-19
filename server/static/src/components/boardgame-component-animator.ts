@@ -52,6 +52,12 @@ import {
   componentMotionChannel,
   componentMotionTracks,
 } from '../motion/component-track.js';
+import { resolveStructuralContinuity } from '../motion/continuity.js';
+import type {
+  MotionExactSighting,
+  MotionCollectionHistory,
+  MotionContinuityResolution,
+} from '../motion/continuity.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -72,6 +78,7 @@ export interface ComponentAnimatorAPI {
 }
 
 interface ComponentRecord {
+  beforeCollectionIds?: string[];
   offsets?: OffsetGeometry;
   newOffsets?: OffsetGeometry;
   viewportOffsets?: ViewportGeometry;
@@ -89,15 +96,6 @@ interface ComponentRecord {
   motionTracks?: readonly ComponentMotionTrack[];
   motionDraft?: StructuralMotionDraft;
   visualSubject?: MotionSubjectSnapshot;
-}
-
-interface CollectionRecord {
-  stack: any;
-  version: number;
-  winnerAmbiguous?: boolean;
-  runnerUpStack?: any;
-  runnerUpVersion?: number;
-  runnerUpAmbiguous?: boolean;
 }
 
 interface AnimatingComponentRecord {
@@ -300,6 +298,9 @@ export class BoardgameComponentAnimator extends LitElement {
         if (component.id === '') continue;
 
         const record = result[component.id] || {};
+
+        record.beforeCollectionIds ??= [];
+        record.beforeCollectionIds.push(collection.id);
 
         this._beforeSeenIds.add(component.id);
 
@@ -795,8 +796,18 @@ export class BoardgameComponentAnimator extends LitElement {
   private _doAnimate(resolve: (p: Promise<void>) => void, generation: number) {
     const collections = this.stackElement._sharedStackList;
 
-    // The last seen location of a given card ID
-    const idToPossibleCollection = new Map<string, CollectionRecord>();
+    const beforeExact: MotionExactSighting[] = [];
+    for (const [subjectId, record] of Object.entries(this._infoById)) {
+      for (const collectionId of record.beforeCollectionIds ?? []) {
+        beforeExact.push({ subjectId, collectionId });
+      }
+    }
+    const afterExact: MotionExactSighting[] = [];
+    const histories: MotionCollectionHistory[] = collections.map(collection => ({
+      collectionId: collection.id,
+      lastSeen: Object.freeze({ ...(collection.idsLastSeen ?? {}) }),
+    }));
+    const stackById = new Map(collections.map(collection => [collection.id, collection]));
 
     const collectionOffsets = new Map<string, OffsetGeometry>();
     const collectionViewportOffsets = new Map<string, ViewportGeometry>();
@@ -832,13 +843,11 @@ export class BoardgameComponentAnimator extends LitElement {
         captureViewportGeometry(offsetComponent),
       );
 
-      // Note which Ids were last seen here
-      this._ingestStack(idToPossibleCollection, collection);
-
       const components = collection.Components;
       for (let j = 0; j < components.length; j++) {
         const component = components[j];
         if (component.id === '') continue;
+        afterExact.push({ subjectId: component.id, collectionId: collection.id });
         let record = this._infoById[component.id];
         if (!record) {
           record = {};
@@ -848,6 +857,20 @@ export class BoardgameComponentAnimator extends LitElement {
         record.newViewportOffsets = captureViewportGeometry(component);
         record.visualSubject ??= this._captureMotionSubject(component);
       }
+    }
+
+    const continuityBySubject = new Map<string, MotionContinuityResolution>();
+    const subjectIds = new Set([
+      ...beforeExact.map(sighting => sighting.subjectId),
+      ...afterExact.map(sighting => sighting.subjectId),
+    ]);
+    for (const subjectId of subjectIds) {
+      continuityBySubject.set(subjectId, resolveStructuralContinuity(
+        subjectId,
+        beforeExact,
+        afterExact,
+        histories,
+      ));
     }
 
     // This is the meat of the method, where we set all layout-affecting
@@ -862,38 +885,28 @@ export class BoardgameComponentAnimator extends LitElement {
         if (component.id === '') continue;
 
         const record = this._infoById[component.id];
-        const hadExactBefore = record.offsets !== undefined;
+        const continuity = continuityBySubject.get(component.id);
+        if (!continuity || continuity.status !== 'resolved'
+          || continuity.presence === 'departing') continue;
+        const hadExactBefore = continuity.presence === 'retained';
         let presence: 'retained' | 'appearing' = 'retained';
         let provenance: StructuralProvenance = { kind: 'identity' };
 
-        if (!record.offsets) {
+        if (continuity.presence === 'appearing') {
           // Hmm, a record who didn't have its offsets set in prepare(),
           // presumably because it didn't exist. This MAY be an element who
           // came from a PolicyNonEmpty stack.
 
-          const collectionRecord = idToPossibleCollection.get(component.id);
-
-          if (!collectionRecord) {
-            // Nah, we don't know where it came from. Just skip animating it.
-            continue;
-          }
-
-          let theStack = collectionRecord.stack;
-          // We actually want the runner up, if it exists. the winner is
-          // the stack it's now in, and the runner up should be where it
-          // just came from.
-          if (collectionRecord.runnerUpStack) {
-            theStack = collectionRecord.runnerUpStack;
-          }
+          if (continuity.from.kind !== 'collection') continue;
+          const theStack = stackById.get(continuity.from.collectionId);
+          if (!theStack) continue;
 
           presence = 'appearing';
           provenance = {
             kind: 'stack-history',
             endpoint: 'source',
             stackId: theStack.id,
-            evidence: collectionRecord.runnerUpStack
-              ? collectionRecord.runnerUpAmbiguous ? 'ambiguous' : 'runner-up'
-              : collectionRecord.winnerAmbiguous ? 'ambiguous' : 'only-candidate',
+            evidence: 'runner-up',
           };
 
           record.offsets = this._beforeCollectionOffsets.get(theStack.id);
@@ -999,23 +1012,22 @@ export class BoardgameComponentAnimator extends LitElement {
     // animate to. Let's see if we can figure out which collection they
     // went to.
     for (const id of this._beforeSeenIds) {
-      // Which stack do we think this is in now?
-      const anonRecord = idToPossibleCollection.get(id);
+      const continuity = continuityBySubject.get(id);
+      if (!continuity || continuity.status !== 'resolved'
+        || continuity.presence !== 'departing'
+        || continuity.to.kind !== 'collection') continue;
+      const destinationStack = stackById.get(continuity.to.collectionId);
+      if (!destinationStack) continue;
 
-      if (!anonRecord) {
-        // Guess it's a mystery. :-(
-        continue;
-      }
-
-      const component = anonRecord.stack.newAnimatingComponent();
+      const component = destinationStack.newAnimatingComponent();
 
       const record = this._infoById[id];
 
-      record.after = component.animatingPropDefaults(anonRecord.stack);
+      record.after = component.animatingPropDefaults(destinationStack);
 
       const animatingRecord: AnimatingComponentRecord = {
         subjectId: id,
-        stack: anonRecord.stack,
+        stack: destinationStack,
         component: component,
         before: record.before || {},
         after: record.after || {},
@@ -1027,8 +1039,8 @@ export class BoardgameComponentAnimator extends LitElement {
       };
       this._animatingComponents.push(animatingRecord);
 
-      const stackLocation = collectionOffsets.get(anonRecord.stack.id);
-      const stackViewportLocation = collectionViewportOffsets.get(anonRecord.stack.id);
+      const stackLocation = collectionOffsets.get(destinationStack.id);
+      const stackViewportLocation = collectionViewportOffsets.get(destinationStack.id);
       const oldLocation = record.offsets;
       const oldViewportLocation = record.viewportOffsets;
 
@@ -1065,8 +1077,8 @@ export class BoardgameComponentAnimator extends LitElement {
         provenance: {
           kind: 'stack-history',
           endpoint: 'destination',
-          stackId: anonRecord.stack.id,
-          evidence: anonRecord.winnerAmbiguous ? 'ambiguous' : 'latest-seen',
+          stackId: destinationStack.id,
+          evidence: 'latest-seen',
         },
         visualSubject: record.visualSubject,
         viewportFrom: oldViewportLocation,
@@ -1343,57 +1355,6 @@ export class BoardgameComponentAnimator extends LitElement {
     // The promise animateFlip() hands out now means "everything SETTLED",
     // not "everything started" — the gate awaits real completion.
     resolve(Promise.all(settledPromises).then(() => {}));
-  }
-
-  private _ingestStack(possibleLocations: Map<string, CollectionRecord>, stack: any) {
-    const idsLastSeen = stack.idsLastSeen;
-
-    for (const key in idsLastSeen) {
-      if (!idsLastSeen.hasOwnProperty(key)) continue;
-
-      if (possibleLocations.has(key)) {
-        const record = possibleLocations.get(key)!;
-        const seenVersion = idsLastSeen[key];
-
-        if (seenVersion > record.version) {
-          // new winner
-          const newRecord: CollectionRecord = {
-            version: seenVersion,
-            stack: stack,
-            runnerUpVersion: record.version,
-            runnerUpStack: record.stack,
-            runnerUpAmbiguous: record.winnerAmbiguous,
-          };
-          possibleLocations.set(key, newRecord);
-        } else if (seenVersion === record.version) {
-          possibleLocations.set(key, {
-            ...record,
-            winnerAmbiguous: true,
-            runnerUpVersion: seenVersion,
-            runnerUpStack: stack,
-            runnerUpAmbiguous: true,
-          });
-        } else if (!record.runnerUpStack || seenVersion > (record.runnerUpVersion || 0)) {
-          // Found a new second!
-          possibleLocations.set(key, {
-            ...record,
-            version: record.version,
-            stack: record.stack,
-            runnerUpVersion: seenVersion,
-            runnerUpStack: stack,
-            runnerUpAmbiguous: false,
-          });
-        } else if (seenVersion === record.runnerUpVersion) {
-          possibleLocations.set(key, { ...record, runnerUpAmbiguous: true });
-        }
-      } else {
-        // We're the first one that's been seen; add it.
-        possibleLocations.set(key, {
-          version: idsLastSeen[key],
-          stack: stack
-        });
-      }
-    }
   }
 
   override render(): TemplateResult {
