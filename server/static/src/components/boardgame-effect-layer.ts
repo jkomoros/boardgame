@@ -19,14 +19,12 @@ import type {
 } from '../effects/effect-spec.js';
 import type { AnimationTimingPolicy } from './boardgame-animatable-item.js';
 import { captureViewportGeometry, geometryCenter } from '../motion/geometry.js';
-import type { StructuralMotionEvent } from '../motion/structural-events.js';
 import type {
-  StructuralMotionObserver,
-  StructuralMotionPlan,
-} from '../motion/structural-plan.js';
+  StructuralMotionEvent,
+  StructuralMotionSegmentEvent,
+} from '../motion/structural-events.js';
 
 interface StructuralMotionSource {
-  observeStructuralMotion(observer: StructuralMotionObserver): () => void;
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
 }
 
@@ -61,7 +59,7 @@ interface MotionWaiter {
 }
 
 type TrailResolution =
-  | Readonly<{ kind: 'event'; event: StructuralMotionEvent }>
+  | Readonly<{ kind: 'event'; event: StructuralMotionSegmentEvent }>
   | Readonly<{ kind: 'result'; result: EffectResult }>;
 
 interface TrailWaiter {
@@ -207,7 +205,6 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
   private readonly _transitionCancels = new Set<() => void>();
   private _beforeAnchors: EffectAnchorSnapshot = new Map();
   private _motionSource: StructuralMotionSource | null = null;
-  private _unobserveMotionPlan: (() => void) | null = null;
   private _unobserveMotionEvents: (() => void) | null = null;
   private _motionEpoch = 0;
   private _expectsMotionPlan = false;
@@ -623,48 +620,35 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
 
   private _setMotionSource(source: StructuralMotionSource | null): void {
     if (source === this._motionSource) return;
-    this._unobserveMotionPlan?.();
     this._unobserveMotionEvents?.();
-    this._unobserveMotionPlan = null;
     this._unobserveMotionEvents = null;
     this._motionSource = source;
     if (!source) return;
-    this._unobserveMotionPlan = source.observeStructuralMotion(
-      plan => this._motionPlanChanged(plan),
-    );
     this._unobserveMotionEvents = source.observeStructuralMotionEvents(
       event => this._motionEvent(event),
     );
   }
 
-  private _motionPlanChanged(plan: StructuralMotionPlan): void {
-    if (plan.source !== 'flip' || plan.phase !== 'settled') return;
-    // The animator publishes the plan revision before its exact lifecycle
-    // events. Deferring the missing-subject sweep lets a final arrival event
-    // resolve first without coupling either observer API to registration order.
-    const epoch = this._motionEpoch;
-    queueMicrotask(() => {
-      if (epoch !== this._motionEpoch) return;
+  private _motionEvent(event: StructuralMotionEvent): void {
+    if (event.source !== 'flip') return;
+    if (event.kind === 'generation-settled') {
       this._motionPlanSettled = true;
       const missing = Object.freeze({
         kind: 'result',
         result: Object.freeze({ status: 'skipped', reason: 'missing-anchor' }),
       }) as MotionResolution;
       for (const waiter of [...this._motionWaiters]) {
-        if (waiter.epoch === epoch) waiter.settle(missing);
+        if (waiter.epoch === this._motionEpoch) waiter.settle(missing);
       }
       const missingSubject = Object.freeze({
         kind: 'result',
         result: Object.freeze({ status: 'skipped', reason: 'missing-subject' }),
       }) as TrailResolution;
       for (const waiter of [...this._trailWaiters]) {
-        if (waiter.epoch === epoch) waiter.settle(missingSubject);
+        if (waiter.epoch === this._motionEpoch) waiter.settle(missingSubject);
       }
-    });
-  }
-
-  private _motionEvent(event: StructuralMotionEvent): void {
-    if (event.source !== 'flip') return;
+      return;
+    }
     const endpoints = event.segment.path;
     if ((event.kind === 'started' || event.kind === 'finished') && !endpoints) {
       const missing = Object.freeze({
@@ -797,7 +781,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     effect: TrailEffectSpec,
     _path: string,
     policy: ResolvedPolicy,
-    event: StructuralMotionEvent,
+    event: StructuralMotionSegmentEvent,
   ): InternalHandle {
     const { segment } = event;
     if (!segment.visualSubject) return skipped('missing-subject');
@@ -896,7 +880,7 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
     return running;
   }
 
-  private _activeTrailKey(event: StructuralMotionEvent): string {
+  private _activeTrailKey(event: StructuralMotionSegmentEvent): string {
     return `${event.source}:${event.generation}:${event.subjectId}`;
   }
 

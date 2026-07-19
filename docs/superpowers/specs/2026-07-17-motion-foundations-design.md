@@ -197,22 +197,21 @@ provenance.
 - The plan remains diagnostic/internal after settlement until the next
   generation. It does not imply that an effect may consume it yet.
 
-Spatial records carry both root-relative offsets for legacy FLIP playback and
-historical viewport endpoints captured during the same measurement transaction.
-No later projection attempts to reconstruct an endpoint after layout changed.
+Private playback records retain the offset-space data required by FLIP. The
+published capability retains only historical viewport endpoints captured in
+that same measurement transaction; no consumer later reconstructs an endpoint
+after layout changed.
 
-The animator exposes an internal subscription boundary for these immutable
-plan revisions. Observation is read-only and non-gating: observers cannot
-replace playback, and an observer failure is isolated from structural motion.
-An interrupted generation emits a terminal cancelled revision before the next
-generation invalidates the animator's current-plan slot.
-
-A pure event compiler compares two revisions and emits only newly observed
-segment statuses (`planned`, `started`, `skipped`, `finished`, or `cancelled`).
-Event identity includes source, generation, segment index, and status. It never
-fabricates an intermediate state if a consumer missed a revision. This is the
-smallest durable seam for diagnostics and future decoration adapters; it is not
-yet a game-author API.
+The animator exposes one ordered, replayable lifecycle stream. A pure compiler
+emits newly observed segment statuses (`planned`, `started`, `skipped`,
+`finished`, or `cancelled`) followed by exactly one `generation-settled` marker
+after every segment is terminal. Event identity includes source, generation,
+segment index, and status. A late observer replays the current generation in
+the same order. It never fabricates an unobserved intermediate state, and an
+observer failure is isolated from structural motion. This lets decorators close
+unmatched anchors directly on the settled marker; there is no second plan
+observer or microtask ordering convention. The stream is read-only and
+non-gating and is not yet a game-author command API.
 
 ### Point-only decoration adapter
 

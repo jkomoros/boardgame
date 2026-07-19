@@ -423,16 +423,11 @@ test('structural plans publish before playback and invalidate on interruption', 
         updateComplete: Promise<unknown>;
         prepare(): void;
         animateFlip(): Promise<void>;
-        observeStructuralMotion(observer: (plan: {
-          generation: number;
-          phase: string;
-          segments: Array<{ execution: { status: string } }>;
-        }) => void): () => void;
         observeStructuralMotionEvents(observer: (event: {
           id: string;
           generation: number;
           kind: string;
-          subjectId: string;
+          subjectId?: string;
         }) => void): () => void;
         _solvedMotionPlan: null | {
           generation: number;
@@ -483,26 +478,18 @@ test('structural plans publish before playback and invalidate on interruption', 
       const card = stack.querySelector<HTMLElement>('#card-plan');
       if (!card) throw new Error('fixture card was not materialized');
       await (card as HTMLElement & { updateComplete: Promise<unknown> }).updateComplete;
-      const observed: Array<{ generation: number; phase: string; status?: string }> = [];
       const observedEvents: Array<{
         id: string;
         generation: number;
         kind: string;
         subjectId: string;
       }> = [];
-      const unobserve = animator.observeStructuralMotion(plan => {
-        observed.push({
-          generation: plan.generation,
-          phase: plan.phase,
-          status: plan.segments[0]?.execution.status,
-        });
-      });
       const unobserveEvents = animator.observeStructuralMotionEvents(event => {
         observedEvents.push({
           id: event.id,
           generation: event.generation,
           kind: event.kind,
-          subjectId: event.subjectId,
+          subjectId: event.subjectId ?? '',
         });
       });
 
@@ -529,7 +516,13 @@ test('structural plans publish before playback and invalidate on interruption', 
       await animator.animateFlip();
       const second = animator._solvedMotionPlan;
       if (!second) throw new Error('second structural motion plan was not published');
-      unobserve();
+      const replayedKinds: string[] = [];
+      const unobserveReplay = animator.observeStructuralMotionEvents(event => {
+        if (event.generation === second.generation && event.id.startsWith('flip:')) {
+          replayedKinds.push(event.kind);
+        }
+      });
+      unobserveReplay();
       unobserveEvents();
 
       return {
@@ -547,8 +540,8 @@ test('structural plans publish before playback and invalidate on interruption', 
           phase: second.phase,
           segment: second.segments[0],
         },
-        observed,
         observedEvents,
+        replayedKinds,
       };
     });
 
@@ -573,21 +566,18 @@ test('structural plans publish before playback and invalidate on interruption', 
     expect(result.second.phase).toBe('settled');
     expect(result.second.segment.execution.status).toBe('finished');
     expect(result.second.segment.path.kind).toBe('stationary');
-    expect(result.observed).toEqual([
-      { generation: 1, phase: 'planned', status: 'planned' },
-      { generation: 1, phase: 'executing', status: 'started' },
-      { generation: 1, phase: 'settled', status: 'cancelled' },
-      { generation: 2, phase: 'planned', status: 'planned' },
-      { generation: 2, phase: 'executing', status: 'started' },
-      { generation: 2, phase: 'settled', status: 'finished' },
-    ]);
     expect(result.observedEvents).toEqual([
       { id: 'flip:1:0:planned', generation: 1, kind: 'planned', subjectId: 'card-plan' },
       { id: 'flip:1:0:started', generation: 1, kind: 'started', subjectId: 'card-plan' },
       { id: 'flip:1:0:cancelled', generation: 1, kind: 'cancelled', subjectId: 'card-plan' },
+      { id: 'flip:1:generation-settled', generation: 1, kind: 'generation-settled', subjectId: '' },
       { id: 'flip:2:0:planned', generation: 2, kind: 'planned', subjectId: 'card-plan' },
       { id: 'flip:2:0:started', generation: 2, kind: 'started', subjectId: 'card-plan' },
       { id: 'flip:2:0:finished', generation: 2, kind: 'finished', subjectId: 'card-plan' },
+      { id: 'flip:2:generation-settled', generation: 2, kind: 'generation-settled', subjectId: '' },
+    ]);
+    expect(result.replayedKinds).toEqual([
+      'planned', 'started', 'finished', 'generation-settled',
     ]);
     diagnostics.assertEmpty();
   } finally {

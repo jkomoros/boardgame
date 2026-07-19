@@ -77,7 +77,7 @@ describe('structural motion event compilation', () => {
     ]]));
     assert.deepEqual(
       compileStructuralMotionEvents(executing, finished).map(event => event.kind),
-      ['finished'],
+      ['finished', 'generation-settled'],
     );
   });
 
@@ -87,8 +87,8 @@ describe('structural motion event compilation', () => {
       'card-1', { status: 'skipped' as const, reason: 'timing' as const },
     ]]));
     const events = compileStructuralMotionEvents(null, skipped);
-    assert.deepEqual(events.map(event => event.kind), ['skipped']);
-    assert.equal(events[0].segment.execution.status, 'skipped');
+    assert.deepEqual(events.map(event => event.kind), ['skipped', 'generation-settled']);
+    assert.equal(events[0].kind === 'skipped' && events[0].segment.execution.status, 'skipped');
   });
 
   it('treats a new source or generation as a new event identity', () => {

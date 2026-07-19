@@ -145,13 +145,8 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
     const result = await page.evaluate(async () => {
       await import('/src/components/boardgame-effect-layer.ts');
       const { fx } = await import('/src/effects/effect-spec.ts');
-      const planObservers = new Set<(plan: any) => void>();
       const eventObservers = new Set<(event: any) => void>();
       const motionSource = {
-        observeStructuralMotion(observer: (plan: any) => void) {
-          planObservers.add(observer);
-          return () => planObservers.delete(observer);
-        },
         observeStructuralMotionEvents(observer: (event: any) => void) {
           eventObservers.add(observer);
           return () => eventObservers.delete(observer);
@@ -299,7 +294,9 @@ test('motion anchors and sanitized trails decorate real structural lifecycle', a
         at: fx.motion('missing-card'),
         advanced: { durationMs: 120 },
       }));
-      for (const observer of planObservers) observer({ source: 'flip', phase: 'settled' });
+      for (const observer of eventObservers) observer({
+        source: 'flip', generation: 5, kind: 'generation-settled',
+      });
       const missingResult = await missing.finished;
 
       layer.beginMotionTransition(true);
@@ -369,7 +366,6 @@ test('reduced motion substitutes a stationary emphasis', async ({ page }) => {
       const { fx } = await import('/src/effects/effect-spec.ts');
       const eventObservers = new Set<(event: any) => void>();
       const motionSource = {
-        observeStructuralMotion() { return () => {}; },
         observeStructuralMotionEvents(observer: (event: any) => void) {
           eventObservers.add(observer);
           return () => eventObservers.delete(observer);

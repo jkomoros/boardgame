@@ -4,7 +4,7 @@ import type {
   StructuralMotionSegment,
 } from './structural-plan.js';
 
-export type StructuralMotionEventKind = StructuralExecution['status'];
+export type StructuralMotionEventKind = StructuralExecution['status'] | 'generation-settled';
 
 /**
  * One observed execution-state transition for a structural motion segment.
@@ -13,7 +13,7 @@ export type StructuralMotionEventKind = StructuralExecution['status'];
  * may decorate it, log it, or ignore it; they cannot influence structural
  * playback through this value.
  */
-export interface StructuralMotionEvent {
+export interface StructuralMotionSegmentEvent {
   /** Stable for this segment/status transition within one plan generation. */
   readonly id: string;
   readonly source: StructuralMotionPlan['source'];
@@ -23,6 +23,16 @@ export interface StructuralMotionEvent {
   readonly kind: StructuralMotionEventKind;
   readonly segment: StructuralMotionSegment;
 }
+
+export interface StructuralMotionSettledEvent {
+  readonly id: string;
+  readonly source: StructuralMotionPlan['source'];
+  readonly generation: number;
+  readonly kind: 'generation-settled';
+  readonly plan: StructuralMotionPlan;
+}
+
+export type StructuralMotionEvent = StructuralMotionSegmentEvent | StructuralMotionSettledEvent;
 
 function samePlan(
   previous: StructuralMotionPlan | null,
@@ -47,7 +57,7 @@ export function compileStructuralMotionEvents(
   next: StructuralMotionPlan,
 ): readonly StructuralMotionEvent[] {
   const continuing = samePlan(previous, next);
-  const events = next.segments.flatMap((segment, segmentIndex) => {
+  const events: StructuralMotionEvent[] = next.segments.flatMap((segment, segmentIndex) => {
     const before = continuing ? previous.segments[segmentIndex] : undefined;
     if (before?.subjectId === segment.subjectId
       && before.execution.status === segment.execution.status) return [];
@@ -62,5 +72,15 @@ export function compileStructuralMotionEvents(
       segment,
     })];
   });
+  if (next.phase === 'settled'
+    && (!continuing || previous.phase !== 'settled')) {
+    events.push(Object.freeze({
+      id: `${next.source}:${next.generation}:generation-settled`,
+      source: next.source,
+      generation: next.generation,
+      kind: 'generation-settled' as const,
+      plan: next,
+    }));
+  }
   return Object.freeze(events);
 }

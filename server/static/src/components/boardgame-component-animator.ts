@@ -28,7 +28,6 @@ import type {
   StructuralExecutedTiming,
   StructuralExecution,
   StructuralMotionDraft,
-  StructuralMotionObserver,
   StructuralMotionPlan,
   StructuralProvenance,
 } from '../motion/structural-plan.js';
@@ -61,9 +60,7 @@ export interface ComponentAnimatorAPI {
     durationMs?: number,
     opts?: AnimateBetweenOptions,
   ): Promise<void>;
-  /** Internal observation surface; does not confer animation ownership. */
-  observeStructuralMotion(observer: StructuralMotionObserver): () => void;
-  /** Internal exact-transition surface; does not confer animation ownership. */
+  /** Ordered, replayable observation surface; does not confer animation ownership. */
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void;
 }
 
@@ -134,35 +131,35 @@ export class BoardgameComponentAnimator extends LitElement {
   private _solvedMotionPlan: StructuralMotionPlan | null = null;
   private _explicitMotionPlans = new Map<number, StructuralMotionPlan>();
   private _lastExplicitMotionPlan: StructuralMotionPlan | null = null;
-  private _motionObservers = new Set<StructuralMotionObserver>();
   private _motionEventObservers = new Set<(event: StructuralMotionEvent) => void>();
-  private _motionEventRevisions = new Map<string, StructuralMotionPlan>();
+  private _motionEventRevisions = new Map<StructuralMotionPlan['source'], StructuralMotionPlan>();
+  private _motionEventHistory = new Map<StructuralMotionPlan['source'], readonly StructuralMotionEvent[]>();
 
   ancestorOffsetParent: HTMLElement | null = null;
 
-  observeStructuralMotion(observer: StructuralMotionObserver): () => void {
-    this._motionObservers.add(observer);
-    return () => this._motionObservers.delete(observer);
-  }
-
   observeStructuralMotionEvents(observer: (event: StructuralMotionEvent) => void): () => void {
     this._motionEventObservers.add(observer);
+    for (const history of this._motionEventHistory.values()) {
+      for (const event of history) {
+        try {
+          observer(event);
+        } catch (error) {
+          console.error('[animator] structural motion event observer failed:', error);
+        }
+      }
+    }
     return () => this._motionEventObservers.delete(observer);
   }
 
   private _notifyStructuralMotion(plan: StructuralMotionPlan): void {
-    for (const observer of this._motionObservers) {
-      try {
-        observer(plan);
-      } catch (error) {
-        console.error('[animator] structural motion observer failed:', error);
-      }
-    }
-    const key = `${plan.source}:${plan.generation}`;
-    const previous = this._motionEventRevisions.get(key) ?? null;
+    const previous = this._motionEventRevisions.get(plan.source) ?? null;
     const events = compileStructuralMotionEvents(previous, plan);
-    if (plan.phase === 'settled') this._motionEventRevisions.delete(key);
-    else this._motionEventRevisions.set(key, plan);
+    this._motionEventRevisions.set(plan.source, plan);
+    const continuing = previous?.generation === plan.generation;
+    const history = continuing
+      ? [...(this._motionEventHistory.get(plan.source) ?? []), ...events]
+      : [...events];
+    this._motionEventHistory.set(plan.source, Object.freeze(history));
     for (const event of events) {
       for (const observer of this._motionEventObservers) {
         try {

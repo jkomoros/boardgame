@@ -86,8 +86,6 @@ export interface StructuralMotionPlan {
   readonly segments: readonly StructuralMotionSegment[];
 }
 
-export type StructuralMotionObserver = (plan: StructuralMotionPlan) => void;
-
 function snapshotChannels(
   channels: readonly Readonly<{ target: string; property: string }>[] | undefined,
 ): readonly ComponentMotionChannel[] {
