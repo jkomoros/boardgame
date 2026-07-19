@@ -1,14 +1,16 @@
 package imagegen
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 type StyleCandidate struct {
@@ -58,43 +60,51 @@ func WriteGallery(dir, title string, candidates []StyleCandidate) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(filepath.Join(dir, "gallery.html"))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	return tmpl.Execute(file, struct {
+	var output bytes.Buffer
+	if err := tmpl.Execute(&output, struct {
 		Title      string
 		Candidates []StyleCandidate
-	}{title, candidates})
+	}{title, candidates}); err != nil {
+		return err
+	}
+	return fileutil.WriteFileAtomic(filepath.Join(dir, "gallery.html"), output.Bytes(), 0o644)
 }
 
 func CreateStyleLock(selected, output string, force bool, now func() time.Time) (*StyleLock, error) {
-	if selected == "" || output == "" {
-		return nil, errors.New("selected reference and output are required")
-	}
-	if !force {
-		if _, err := os.Stat(output); err == nil {
-			return nil, fmt.Errorf("%s already exists; use --force to replace the lock", output)
-		}
-	}
-	data, err := os.ReadFile(selected)
+	lock, files, hasSourceManifest, err := buildStyleLockFiles(selected, output, now)
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+	specs := make(map[string]fileutil.FileSpec, len(files)+1)
+	for name, contents := range files {
+		specs[name] = fileutil.FileSpec{Contents: contents, Mode: 0o644, Exclusive: !force}
+	}
+	if force && !hasSourceManifest {
+		specs[filepath.Base(output)+".imagegen.json"] = fileutil.FileSpec{Delete: true}
+	}
+	if err := fileutil.WriteFileSetAtomic(filepath.Dir(output), specs, true); err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(output, data, 0o644); err != nil {
-		return nil, err
+	return lock, nil
+}
+
+func buildStyleLockFiles(selected, output string, now func() time.Time) (*StyleLock, map[string][]byte, bool, error) {
+	if selected == "" || output == "" {
+		return nil, nil, false, errors.New("selected reference and output are required")
+	}
+	data, err := readLimitedFile(selected, maxImageAssetBytes)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	if err := validateImageDimensions(data); err != nil {
+		return nil, nil, false, fmt.Errorf("validate selected style image: %w", err)
 	}
 	sourceManifest := selected + ".imagegen.json"
-	if manifestData, err := os.ReadFile(sourceManifest); err == nil {
-		if err := os.WriteFile(output+".imagegen.json", manifestData, 0o644); err != nil {
-			return nil, err
-		}
-	} else {
+	manifestData, manifestErr := readLimitedFile(sourceManifest, maxMetadataBytes)
+	if os.IsNotExist(manifestErr) {
 		sourceManifest = ""
+	} else if manifestErr != nil {
+		return nil, nil, false, fmt.Errorf("read source image manifest: %w", manifestErr)
 	}
 	if now == nil {
 		now = time.Now
@@ -104,22 +114,22 @@ func CreateStyleLock(selected, output string, force bool, now func() time.Time) 
 	lock := &StyleLock{SchemaVersion: 1, LockedAt: now().UTC().Format(time.RFC3339), Image: filepath.Base(output), ImageSHA256: digest(data), SelectedFrom: selected, SourceManifest: sourceManifest}
 	encoded, err := json.MarshalIndent(lock, "", "  ")
 	if err != nil {
-		return nil, err
+		return nil, nil, false, err
 	}
 	encoded = append(encoded, '\n')
-	if err := os.WriteFile(output+".style-lock.json", encoded, 0o644); err != nil {
-		return nil, err
+	outputName := filepath.Base(output)
+	files := map[string][]byte{
+		outputName:                      data,
+		outputName + ".style-lock.json": encoded,
 	}
-	return lock, nil
+	if sourceManifest != "" {
+		files[outputName+".imagegen.json"] = manifestData
+	}
+	return lock, files, sourceManifest != "", nil
 }
 
 func ReadStyleLock(path string) (*StyleLock, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, 1<<20))
+	data, err := readLimitedFile(path, maxMetadataBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -131,9 +141,12 @@ func ReadStyleLock(path string) (*StyleLock, error) {
 	if !filepath.IsAbs(imagePath) {
 		imagePath = filepath.Join(filepath.Dir(path), imagePath)
 	}
-	image, err := os.ReadFile(imagePath)
+	image, err := readLimitedFile(imagePath, maxImageAssetBytes)
 	if err != nil {
 		return nil, fmt.Errorf("read locked style image: %w", err)
+	}
+	if err := validateImageDimensions(image); err != nil {
+		return nil, fmt.Errorf("validate locked style image: %w", err)
 	}
 	if digest(image) != lock.ImageSHA256 {
 		return nil, errors.New("locked style image hash does not match the lock manifest")

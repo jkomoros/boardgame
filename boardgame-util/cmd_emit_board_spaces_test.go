@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -100,6 +101,23 @@ func TestOrphanBoardSpaceContractsOnlyClaimsGeneratedFiles(t *testing.T) {
 	}
 }
 
+func TestOrphanBoardSpaceContractsRejectsSymlinkCandidate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation generally requires elevated privileges on Windows")
+	}
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.ts")
+	if err := os.WriteFile(target, []byte(generatedBoardSpaceHeader+"old.svg. DO NOT EDIT. */\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(dir, "_old_spaces.ts")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := orphanBoardSpaceContracts(dir, map[string]bool{}); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("error = %v, want non-regular candidate error", err)
+	}
+}
+
 func TestCollectGeneratedBoardSpacesRejectsOutputCollisions(t *testing.T) {
 	dir := t.TempDir()
 	svg := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect data-board-space="a" data-board-label="A"/></svg>`
@@ -121,5 +139,50 @@ func TestAuthoredBoardSpaceSizeLimitIsEnforced(t *testing.T) {
 	}
 	if _, err := parseAuthoredBoardSpaces(path); err == nil || !strings.Contains(err.Error(), "byte limit") {
 		t.Fatalf("expected size-limit failure, got %v", err)
+	}
+}
+
+func TestInstallGeneratedBoardSpacesIsOneTransaction(t *testing.T) {
+	dir := t.TempDir()
+	existing := filepath.Join(dir, "a_spaces.ts")
+	orphan := filepath.Join(dir, "b_spaces.ts")
+	invalidParent := filepath.Join(dir, "z-not-a-directory")
+	for path, contents := range map[string]string{
+		existing: "old", orphan: "orphan", invalidParent: "sentinel",
+	} {
+		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := installGeneratedBoardSpaces([]generatedBoardSpacesFile{
+		{path: existing, contents: []byte("new")},
+		{path: filepath.Join(invalidParent, "later_spaces.ts"), contents: []byte("later")},
+	}, []string{orphan}, false)
+	if err == nil {
+		t.Fatal("install succeeded despite invalid destination")
+	}
+	for path, want := range map[string]string{existing: "old", orphan: "orphan"} {
+		got, readErr := os.ReadFile(path)
+		if readErr != nil || string(got) != want {
+			t.Fatalf("%s after failed transaction = %q, %v; want %q", path, got, readErr, want)
+		}
+	}
+}
+
+func TestCheckGeneratedBoardSpacesReportsAllStalePaths(t *testing.T) {
+	dir := t.TempDir()
+	stale := filepath.Join(dir, "a_spaces.ts")
+	orphan := filepath.Join(dir, "b_spaces.ts")
+	for _, path := range []string{stale, orphan} {
+		if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := installGeneratedBoardSpaces(
+		[]generatedBoardSpacesFile{{path: stale, contents: []byte("new")}},
+		[]string{orphan}, true,
+	)
+	if err == nil || !strings.Contains(err.Error(), stale+", "+orphan) {
+		t.Fatalf("error = %v, want complete sorted stale set", err)
 	}
 }

@@ -149,8 +149,7 @@ func (c *checkClient) finish(report staticbuild.ClientCheckReport, infrastructur
 		fmt.Printf("Client checks failed with %d diagnostic(s)\n", len(report.Diagnostics))
 	}
 	if failed {
-		c.Base().Cleanup()
-		os.Exit(1)
+		quit(1)
 	}
 }
 

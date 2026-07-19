@@ -223,7 +223,7 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 	// explicitly request --copy-files. Directories may remain linked while Vite
 	// consumes them; dist contains the final self-contained output.
 	if err := CopyStaticResources(directory, copyFiles || prodBuild); err != nil {
-		return "", errors.New("Couldn't copy static resources")
+		return "", fmt.Errorf("couldn't copy static resources: %w", err)
 	}
 
 	fmt.Println("Updating " + nodeModulesFolder + " and linking in")
@@ -236,12 +236,10 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 	// games. We don't mutate the caller's pointer if it's nil; otherwise we
 	// set the field non-destructively (overwriting any prior value, which
 	// shouldn't exist — this is a build-time-only computation).
-	if c != nil {
-		c.TableHandSupportedGames = CompanionCapableGames(pkgs)
-	}
+	buildConfig := clientConfigForBuild(c, pkgs)
 
 	fmt.Println("Creating " + clientConfigJsFileName)
-	if err := CreateClientConfigJs(directory, c); err != nil {
+	if err := CreateClientConfigJs(directory, buildConfig); err != nil {
 		return "", errors.New("Couldn't create " + clientConfigJsFileName + ": " + err.Error())
 	}
 
@@ -276,6 +274,15 @@ func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBu
 
 	return staticDir, nil
 
+}
+
+func clientConfigForBuild(source *config.ClientConfig, pkgs []*gamepkg.Pkg) *config.ClientConfig {
+	if source == nil {
+		return nil
+	}
+	result := *source
+	result.TableHandSupportedGames = CompanionCapableGames(pkgs)
+	return &result
 }
 
 // BuildVite runs `vite build` to create the production bundle in a given

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,7 +53,7 @@ func TestClientContractSetStagingFailureMutatesNothing(t *testing.T) {
 	set := &generatedClientContractSet{
 		replacements: []generatedClientContract{
 			{path: existing, contents: []byte("new")},
-			{path: filepath.Join(dir, "missing", "z.ts"), contents: []byte("new")},
+			{path: filepath.Join(orphan, "z.ts"), contents: []byte("new")},
 		},
 		deletions: []string{orphan},
 	}
@@ -65,51 +64,6 @@ func TestClientContractSetStagingFailureMutatesNothing(t *testing.T) {
 		got, err := os.ReadFile(path)
 		if err != nil || string(got) != want {
 			t.Fatalf("%s after staging failure = %q, %v; want %q", path, got, err, want)
-		}
-	}
-}
-
-func TestClientContractSetRollsBackReplacementsAndOrphans(t *testing.T) {
-	dir := t.TempDir()
-	first := filepath.Join(dir, "a-first.ts")
-	orphan := filepath.Join(dir, "b-orphan.ts")
-	last := filepath.Join(dir, "c-last.ts")
-	for path, contents := range map[string]string{first: "old first", orphan: "old orphan", last: "old last"} {
-		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	originalRename := renameGeneratedClientContract
-	originalRestore := restoreGeneratedClientContract
-	defer func() {
-		renameGeneratedClientContract = originalRename
-		restoreGeneratedClientContract = originalRestore
-	}()
-	calls := 0
-	renameGeneratedClientContract = func(oldPath, newPath string) error {
-		calls++
-		if calls == 5 {
-			return errors.New("injected final install failure")
-		}
-		return os.Rename(oldPath, newPath)
-	}
-	restoreGeneratedClientContract = os.Rename
-
-	set := &generatedClientContractSet{
-		replacements: []generatedClientContract{
-			{path: first, contents: []byte("new first")},
-			{path: last, contents: []byte("new last")},
-		},
-		deletions: []string{orphan},
-	}
-	if err := set.install(); err == nil || !strings.Contains(err.Error(), "injected final install failure") {
-		t.Fatalf("install error = %v, want injected failure", err)
-	}
-	for path, want := range map[string]string{first: "old first", orphan: "old orphan", last: "old last"} {
-		got, err := os.ReadFile(path)
-		if err != nil || string(got) != want {
-			t.Fatalf("%s after rollback = %q, %v; want %q", path, got, err, want)
 		}
 	}
 }

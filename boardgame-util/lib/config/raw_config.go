@@ -3,8 +3,11 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"fmt"
 	"os"
+	"path/filepath"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 // RawConfig corresponds to the raw input/output from disk without any
@@ -29,12 +32,14 @@ func NewRawConfig(filename string, create bool) (*RawConfig, error) {
 
 	var config RawConfig
 
-	contents, err := ioutil.ReadFile(filename)
+	contents, err := os.ReadFile(filename)
 
 	if err != nil {
-		//If we weren't told to create a config then if it doesn't exist it's an error.
-		if !create {
-			return nil, errors.New("Couldn't read config file: " + err.Error())
+		// Creating tolerates only an absent file. Permission errors, directories,
+		// and other I/O failures must remain loud so they cannot masquerade as an
+		// empty configuration that a later Save might overwrite.
+		if !create || !os.IsNotExist(err) {
+			return nil, fmt.Errorf("couldn't read config file: %w", err)
 		}
 	} else {
 		//If there are file contents, unmarshal
@@ -83,30 +88,46 @@ func (r *RawConfig) Path() string {
 // Save saves RawConfig back to disk at Path(). If HasContent() returns false
 // and Path() doesn't exist yet, no file is saved and a nil error is returned.
 func (r *RawConfig) Save() error {
-
-	if r.Path() == "" {
-		return errors.New("No path provided")
-	}
-
-	if !r.HasContent() {
-		//No content to save. If nothing exists at that path, no need to write
-		//anything.
-		if _, err := os.Stat(r.Path()); os.IsNotExist(err) {
-			//Good, nothing exists there
-			return nil
-		}
-
-		//Something does exist at that path. We should write the empty blob,
-		//because we could have had stuff in the file and need to write that
-		//it's empty now.
-	}
-
-	blob, err := json.MarshalIndent(r, "", "\t")
-
+	blob, write, err := r.serializedForSave()
 	if err != nil {
-		return errors.New("Couldn't marshal: " + err.Error())
+		return err
+	}
+	if !write {
+		return nil
 	}
 
-	return ioutil.WriteFile(r.Path(), blob, 0644)
+	mode := os.FileMode(0o644)
+	if filepath.Base(r.Path()) == privateConfigFileName {
+		mode = 0o600
+	}
+	if filepath.Base(r.Path()) == privateConfigFileName {
+		if err := fileutil.WriteFileSetAtomic(filepath.Dir(r.Path()), map[string]fileutil.FileSpec{
+			filepath.Base(r.Path()): {Contents: blob, Mode: mode, ForceMode: true},
+		}, true); err != nil {
+			return fmt.Errorf("couldn't save config file: %w", err)
+		}
+		return nil
+	}
+	if err := fileutil.WriteFileAtomic(r.Path(), blob, mode); err != nil {
+		return fmt.Errorf("couldn't save config file: %w", err)
+	}
+	return nil
+}
 
+func (r *RawConfig) serializedForSave() ([]byte, bool, error) {
+	if r.Path() == "" {
+		return nil, false, errors.New("no path provided")
+	}
+	if !r.HasContent() {
+		if _, err := os.Stat(r.Path()); os.IsNotExist(err) {
+			return nil, false, nil
+		} else if err != nil {
+			return nil, false, fmt.Errorf("couldn't inspect config file: %w", err)
+		}
+	}
+	blob, err := json.MarshalIndent(r, "", "\t")
+	if err != nil {
+		return nil, false, fmt.Errorf("couldn't marshal config: %w", err)
+	}
+	return blob, true, nil
 }

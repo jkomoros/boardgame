@@ -87,7 +87,6 @@ func (l *lintCmd) Run(_ writ.Path, positional []string) {
 		fmt.Printf("Game author preflight failed with %d diagnostic(s) across %d package(s)\n", len(report.Diagnostics), len(report.Packages))
 	}
 	if !report.OK {
-		l.Base().Cleanup()
-		os.Exit(1)
+		quit(1)
 	}
 }

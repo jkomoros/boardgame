@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -18,7 +17,7 @@ func ResolveAPIKey(explicit, secretFile, field string) (string, error) {
 	if secretFile == "" {
 		return "", errors.New("set GEMINI_API_KEY or configure a dev-secrets file")
 	}
-	data, err := os.ReadFile(secretFile)
+	data, err := readLimitedFile(secretFile, maxMetadataBytes)
 	if err != nil {
 		return "", fmt.Errorf("read imagegen secret file: %w", err)
 	}

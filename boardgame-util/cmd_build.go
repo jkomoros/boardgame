@@ -14,7 +14,7 @@ type build struct {
 }
 
 func (b *build) Run(p writ.Path, positional []string) {
-	p.Last().ExitHelp(errors.New(b.Name() + " cannot be run by itself"))
+	exitHelp(p.Last(), errors.New(b.Name()+" cannot be run by itself"))
 }
 
 func (b *build) Name() string {

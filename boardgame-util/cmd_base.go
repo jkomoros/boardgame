@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -53,7 +52,7 @@ type trackedProcess struct {
 }
 
 func (b *boardgameUtil) Run(p writ.Path, positional []string) {
-	p.Last().ExitHelp(errors.New("COMMAND is required"))
+	exitHelp(p.Last(), errors.New("COMMAND is required"))
 }
 
 func (b *boardgameUtil) Name() string {
@@ -175,28 +174,47 @@ func (b *boardgameUtil) startTrackedProcess(cmd *exec.Cmd) (func(), error) {
 }
 
 func (b *boardgameUtil) errAndQuit(message string) {
-	fmt.Println(message)
-	b.Cleanup()
-	os.Exit(1)
+	fmt.Fprintln(commandStderr, message)
+	quit(1)
 }
 
 func (b *boardgameUtil) msgAndQuit(message string) {
-	fmt.Println(message)
-	b.Cleanup()
-	os.Exit(0)
+	fmt.Fprintln(commandStdout, message)
+	quit(0)
 }
 
-// NewTempDir will vend a new temporary dir that will be remove when program exits.
+// NewTempDir vends an OS-managed temporary directory that is removed when the
+// program exits. Keeping generated workspaces outside the caller's working
+// directory prevents them from polluting (or accidentally entering) a repo.
 func (b *boardgameUtil) NewTempDir(prefix string) string {
-	dir, err := ioutil.TempDir(".", prefix)
+	dir, err := b.newTrackedTempDir(prefix)
 
 	if err != nil {
 		b.errAndQuit("Couldn't create temporary directory: " + err.Error())
 	}
 
-	b.tempDirs = append(b.tempDirs, dir)
-
 	return dir
+}
+
+func (b *boardgameUtil) newTrackedTempDir(prefix string) (string, error) {
+	dir, err := newSystemTempDir(prefix)
+	if err != nil {
+		return "", err
+	}
+	b.cleanupMutex.Lock()
+	defer b.cleanupMutex.Unlock()
+	if b.cleaning {
+		if removeErr := os.RemoveAll(dir); removeErr != nil {
+			return "", fmt.Errorf("cleanup already started; remove untracked temp directory: %w", removeErr)
+		}
+		return "", errors.New("cleanup already started")
+	}
+	b.tempDirs = append(b.tempDirs, dir)
+	return dir, nil
+}
+
+func newSystemTempDir(prefix string) (string, error) {
+	return os.MkdirTemp("", prefix)
 }
 
 func (b *boardgameUtil) starterConfigForType(typ string) (*config.Config, error) {

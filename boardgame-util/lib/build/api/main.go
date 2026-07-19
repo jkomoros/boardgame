@@ -68,8 +68,10 @@ func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType, options *
 		return "", errors.New("Couldn't save code: " + err.Error())
 	}
 
-	cmd := exec.Command("go", "build")
-	cmd.Dir = filepath.Join(directory, apiSubFolder)
+	// Resolve imports from the caller's module or workspace, not from the
+	// generated source directory. The latter may live in the OS temp directory.
+	binaryName := filepath.Join(directory, apiSubFolder, apiSubFolder)
+	cmd := exec.Command("go", "build", "-o", binaryName, codePath)
 
 	errBuf := new(bytes.Buffer)
 	cmd.Stderr = errBuf
@@ -79,9 +81,6 @@ func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType, options *
 	if err != nil {
 		return "", errors.New("Couldn't build binary: " + err.Error() + ": " + errBuf.String())
 	}
-
-	//The binary will have the name of the subfolder it was created in.
-	binaryName := filepath.Join(directory, apiSubFolder, apiSubFolder)
 
 	if _, err := os.Stat(binaryName); os.IsNotExist(err) {
 		return "", errors.New("sanity check failed: binary does not appear to have been created")

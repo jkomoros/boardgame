@@ -1,10 +1,11 @@
 package static
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 )
 
@@ -21,7 +22,7 @@ func absoluteStaticServerPath() (string, error) {
 	pth, err := path.AbsoluteGoPkgPath(mainPackage)
 
 	if err != nil {
-		return "", errors.New("Couldn't load main boardgame package location: " + err.Error())
+		return "", fmt.Errorf("couldn't load main boardgame package location: %w", err)
 	}
 
 	return filepath.Join(pth, staticServerPath), nil
@@ -31,16 +32,27 @@ func absoluteStaticServerPath() (string, error) {
 // staticBuildDir returns the static build directory within dir, creating it
 // if it doesn't exist. For example, for dir="temp", returns "temp/static".
 func staticBuildDir(dir string) (string, error) {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return "", errors.New(dir + " did not already exist.")
+	if dir == "" {
+		dir = "."
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		return "", fmt.Errorf("inspect build directory %s: %w", dir, err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("build path %s is not a directory", dir)
 	}
 
 	staticDir := filepath.Join(dir, staticSubFolder)
-
-	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
+	info, err = os.Lstat(staticDir)
+	if os.IsNotExist(err) {
 		if err := os.Mkdir(staticDir, 0700); err != nil {
-			return "", errors.New("Couldn't create static directory: " + err.Error())
+			return "", fmt.Errorf("create static directory: %w", err)
 		}
+	} else if err != nil {
+		return "", fmt.Errorf("inspect static directory: %w", err)
+	} else if !info.IsDir() {
+		return "", fmt.Errorf("static build path %s is not a directory", staticDir)
 	}
 
 	return staticDir, nil
@@ -53,21 +65,57 @@ func copyFile(remote, local string) error {
 	info, err := os.Stat(remote)
 
 	if err != nil {
-		return errors.New("Couldn't get info for remote: " + err.Error())
+		return fmt.Errorf("inspect source file %s: %w", remote, err)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("source path %s is not a regular file", remote)
 	}
 
 	contents, err := os.ReadFile(remote)
 
 	if err != nil {
-		return errors.New("Couldn't read file " + remote + ": " + err.Error())
+		return fmt.Errorf("read source file %s: %w", remote, err)
 	}
 
-	if err := os.WriteFile(local, contents, info.Mode()); err != nil {
-		return errors.New("Couldn't write file: " + err.Error())
+	if err := fileutil.WriteFileSetAtomic(filepath.Dir(local), map[string]fileutil.FileSpec{
+		filepath.Base(local): {Contents: contents, Mode: info.Mode().Perm(), ForceMode: true},
+	}, true); err != nil {
+		return fmt.Errorf("copy file to %s: %w", local, err)
 	}
 
 	return nil
 
+}
+
+func ensureSymlink(local, target, resolvedTarget string, replaceRegular bool) (bool, error) {
+	existing, err := os.Lstat(local)
+	if err == nil {
+		if existing.Mode()&os.ModeSymlink != 0 {
+			currentTarget, readErr := os.Readlink(local)
+			if readErr != nil {
+				return false, fmt.Errorf("read existing link %s: %w", local, readErr)
+			}
+			if !filepath.IsAbs(currentTarget) {
+				currentTarget = filepath.Join(filepath.Dir(local), currentTarget)
+			}
+			currentInfo, currentErr := os.Stat(currentTarget)
+			desiredInfo, desiredErr := os.Stat(resolvedTarget)
+			if currentErr == nil && desiredErr == nil && os.SameFile(currentInfo, desiredInfo) {
+				return false, nil
+			}
+		} else if !replaceRegular || !existing.Mode().IsRegular() {
+			return false, fmt.Errorf("refusing to replace unexpected non-link path %s", local)
+		}
+		if err := os.Remove(local); err != nil {
+			return false, fmt.Errorf("remove stale static link destination %s: %w", local, err)
+		}
+	} else if !os.IsNotExist(err) {
+		return false, fmt.Errorf("inspect static link destination %s: %w", local, err)
+	}
+	if err := os.Symlink(target, local); err != nil {
+		return false, fmt.Errorf("link %s to %s: %w", local, target, err)
+	}
+	return true, nil
 }
 
 // buildCachePath returns where we store our build cache (or where we WOULD if
@@ -76,7 +124,7 @@ func buildCachePath() (string, error) {
 	userCacheDir, err := os.UserCacheDir()
 
 	if err != nil {
-		return "", errors.New("Couldn't get usercachedir: " + err.Error())
+		return "", fmt.Errorf("get user cache directory: %w", err)
 	}
 
 	return filepath.Join(userCacheDir, nodeModulesCacheDir), nil

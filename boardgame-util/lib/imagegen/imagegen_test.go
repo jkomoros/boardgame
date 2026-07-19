@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"net/http"
 	"os"
@@ -68,6 +69,64 @@ func TestValidateEditRequiresReference(t *testing.T) {
 	r := Request{Mode: "edit", Prompt: "change it", Output: "out.png", APIKey: "x"}
 	if err := Validate(&r); err == nil || !strings.Contains(err.Error(), "reference") {
 		t.Fatalf("expected reference error, got %v", err)
+	}
+}
+
+func TestValidateRejectsExcessivePromptAndReferenceCount(t *testing.T) {
+	request := Request{Prompt: strings.Repeat("x", maxPromptBytes+1), Output: "out.png", APIKey: "x"}
+	if err := Validate(&request); err == nil || !strings.Contains(err.Error(), "prompt exceeds") {
+		t.Fatalf("prompt error = %v, want size limit", err)
+	}
+	request = Request{Prompt: "valid", Output: "out.png", APIKey: "x", References: make([]string, maxReferenceCount+1)}
+	if err := Validate(&request); err == nil || !strings.Contains(err.Error(), "too many reference") {
+		t.Fatalf("reference-count error = %v, want count limit", err)
+	}
+}
+
+func TestLoadReferencesRejectsOversizedFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "huge.png")
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Truncate(maxReferenceBytes + 1); err != nil {
+		file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := loadReferences([]string{path}); err == nil || !strings.Contains(err.Error(), "byte limit") {
+		t.Fatalf("error = %v, want reference size limit", err)
+	}
+}
+
+func TestNormalizeImageRejectsExcessiveDimensionsBeforeDecode(t *testing.T) {
+	oversized := image.NewNRGBA(image.Rect(0, 0, maxImageDimension+1, 3))
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, oversized); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := normalizeImage(encoded.Bytes(), "image/png", "out.png"); err == nil || !strings.Contains(err.Error(), "dimensions") {
+		t.Fatalf("error = %v, want dimension limit", err)
+	}
+}
+
+func TestReadPromptFileRejectsOversizedInput(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "prompt.txt")
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Truncate(maxPromptBytes + 1); err != nil {
+		file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadPromptFile(path); err == nil || !strings.Contains(err.Error(), "byte limit") {
+		t.Fatalf("error = %v, want prompt size limit", err)
 	}
 }
 

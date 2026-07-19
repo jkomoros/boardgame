@@ -52,8 +52,10 @@ func Build(directory string, pkgs []*gamepkg.Pkg) ([]MoveArgsResult, error) {
 		return nil, errors.New("couldn't save code: " + err.Error())
 	}
 
-	cmd := exec.Command("go", "build")
-	cmd.Dir = dir
+	// Resolve imports from the caller's module or workspace, not from the
+	// generated source directory. The latter may live in the OS temp directory.
+	binaryName := filepath.Join(dir, subFolder)
+	cmd := exec.Command("go", "build", "-o", binaryName, codePath)
 
 	errBuf := new(bytes.Buffer)
 	cmd.Stderr = errBuf
@@ -63,8 +65,6 @@ func Build(directory string, pkgs []*gamepkg.Pkg) ([]MoveArgsResult, error) {
 	if err != nil {
 		return nil, errors.New("couldn't build moveargs binary: " + err.Error() + ": " + errBuf.String())
 	}
-
-	binaryName := filepath.Join(dir, subFolder)
 
 	if _, err := os.Stat(binaryName); os.IsNotExist(err) {
 		return nil, errors.New("sanity check failed: binary does not appear to have been created")

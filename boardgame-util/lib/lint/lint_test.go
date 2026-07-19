@@ -63,6 +63,54 @@ func TestCheckGeneratedFileRemovesOwnedOrphan(t *testing.T) {
 	}
 }
 
+func TestFixGeneratedFilesPreflightsOwnershipBeforeChangingSet(t *testing.T) {
+	dir := t.TempDir()
+	owned := filepath.Join(dir, "auto_reader.go")
+	creator := filepath.Join(dir, "auto_enum.go")
+	staleOwned := generatedFixture + "// stale\n"
+	if err := os.WriteFile(owned, []byte(staleOwned), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(creator, []byte("package sample\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	diagnostics := fixGeneratedFiles("example/sample", dir, []generatedFile{
+		{name: "auto_reader.go", contents: generatedFixture},
+		{name: "auto_enum.go", contents: generatedFixture},
+	})
+	if len(diagnostics) != 1 || !strings.Contains(diagnostics[0].Message, "refusing") {
+		t.Fatalf("diagnostics = %+v, want creator-ownership refusal", diagnostics)
+	}
+	contents, err := os.ReadFile(owned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != staleOwned {
+		t.Fatalf("owned peer changed despite set preflight failure: %q", contents)
+	}
+}
+
+func TestFixGeneratedFilesWritesAndDeletesTogether(t *testing.T) {
+	dir := t.TempDir()
+	orphan := filepath.Join(dir, "auto_enum.go")
+	if err := os.WriteFile(orphan, []byte(generatedFixture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	diagnostics := fixGeneratedFiles("example/sample", dir, []generatedFile{
+		{name: "auto_reader.go", contents: generatedFixture},
+		{name: "auto_enum.go"},
+	})
+	if len(diagnostics) != 0 {
+		t.Fatalf("diagnostics = %+v, want success", diagnostics)
+	}
+	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
+		t.Fatalf("orphan remains: %v", err)
+	}
+	if contents, err := os.ReadFile(filepath.Join(dir, "auto_reader.go")); err != nil || string(contents) != generatedFixture {
+		t.Fatalf("generated reader = (%q, %v)", contents, err)
+	}
+}
+
 func TestCheckBundledGame(t *testing.T) {
 	report := Check([]string{"../../../examples/pig"}, Options{})
 	if !report.OK {

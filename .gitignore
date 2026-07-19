@@ -21,6 +21,10 @@ _testmain.go
 
 bower_components/
 build/
+# This is a Go source package, not a generated build directory. Keep the broad
+# artifact rule above while ensuring new source and tests here remain visible.
+!boardgame-util/lib/build/
+!boardgame-util/lib/build/**
 node_modules/
 dist/
 
@@ -48,9 +52,12 @@ server/static/screenshots/
 /*.log
 /*.txt
 *.pid
-# Ephemeral boardgame-util serve trees; never commit generated servers/assets.
-/temp_serve_*
-boardgame-util/temp_gametypes_*/
+# Ephemeral boardgame-util workspaces. These belong in the OS temp directory,
+# but ignore them at every depth as a second line of defense.
+temp_serve_*
+temp_gametypes_*
+temp_moveargs_*
+temp_movenames_*
 server/static/game-src/*
 research/
 /screenshots/

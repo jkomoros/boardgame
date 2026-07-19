@@ -19,7 +19,7 @@ type db struct {
 }
 
 func (d *db) Run(p writ.Path, positional []string) {
-	p.Last().ExitHelp(errors.New("SUBCOMMAND is required"))
+	exitHelp(p.Last(), errors.New("SUBCOMMAND is required"))
 }
 
 func (d *db) Name() string {

@@ -1,8 +1,8 @@
 package codegen
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -16,7 +16,7 @@ func TestOutput(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	expectedBytes, err := ioutil.ReadFile("test/expected_auto_reader.txt")
+	expectedBytes, err := os.ReadFile("test/expected_auto_reader.txt")
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -30,7 +30,7 @@ func TestOutputTest(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	expectedBytes, err := ioutil.ReadFile("test/expected_auto_reader_test.txt")
+	expectedBytes, err := os.ReadFile("test/expected_auto_reader_test.txt")
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -43,7 +43,7 @@ func TestEnumOutput(t *testing.T) {
 	enumOutput, err := ProcessEnums("examplepkg/")
 	assert.For(t).ThatActual(err).IsNil()
 
-	expectedBytes, err := ioutil.ReadFile("test/expected_auto_enum.txt")
+	expectedBytes, err := os.ReadFile("test/expected_auto_enum.txt")
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -68,13 +68,13 @@ func TestBuild(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	err = ioutil.WriteFile("examplepkg/auto_reader.go", []byte(output), 0644)
+	err = os.WriteFile("examplepkg/auto_reader.go", []byte(output), 0o644)
 	assert.For(t).ThatActual(err).IsNil()
 
-	err = ioutil.WriteFile("examplepkg/auto_reader_test.go", []byte(testOutput), 0644)
+	err = os.WriteFile("examplepkg/auto_reader_test.go", []byte(testOutput), 0o644)
 	assert.For(t).ThatActual(err).IsNil()
 
-	err = ioutil.WriteFile("examplepkg/auto_enum.go", []byte(enumOutput), 0644)
+	err = os.WriteFile("examplepkg/auto_enum.go", []byte(enumOutput), 0o644)
 	assert.For(t).ThatActual(err).IsNil()
 
 	cmd := exec.Command("go", "test")

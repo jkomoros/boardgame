@@ -1,15 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/movenames"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
@@ -87,7 +86,7 @@ func emitMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, check ..
 
 func generateMoveNamesForPackages(base *boardgameUtil, pkgs []*gamepkg.Pkg, includeReadOnly bool) ([]generatedMoveNamesFile, error) {
 
-	dir, err := ioutil.TempDir(".", "temp_movenames_")
+	dir, err := newSystemTempDir("temp_movenames_")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create temp directory: %w", err)
 	}
@@ -146,8 +145,11 @@ func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) e
 	if check {
 		var stale []string
 		for _, file := range generated {
-			current, err := os.ReadFile(file.path)
-			if err != nil || !bytes.Equal(current, file.contents) {
+			current, err := generatedFileCurrent(file.path, file.contents)
+			if err != nil {
+				return err
+			}
+			if !current {
 				stale = append(stale, file.path)
 			}
 		}
@@ -156,10 +158,17 @@ func installGeneratedMoveNames(generated []generatedMoveNamesFile, check bool) e
 		}
 		return nil
 	}
+	files := make(map[string]fileutil.FileSpec, len(generated))
 	for _, file := range generated {
-		if err := atomicWriteBoardSpaceContract(file.path, file.contents); err != nil {
-			return fmt.Errorf("couldn't write _move_names.ts for %s: %w", file.gameName, err)
+		if _, exists := files[file.path]; exists {
+			return fmt.Errorf("duplicate generated destination %s", file.path)
 		}
+		files[file.path] = fileutil.FileSpec{Contents: file.contents, Mode: 0o644, ForceMode: true}
+	}
+	if err := fileutil.WriteFileSetAtomicAbsolute(files, true); err != nil {
+		return fmt.Errorf("install generated move-name contracts: %w", err)
+	}
+	for _, file := range generated {
 		fmt.Fprintf(os.Stderr, "  Generated %s/client/_move_names.ts (%d moves)\n", file.gameName, file.moves)
 	}
 	return nil

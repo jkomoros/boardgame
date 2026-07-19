@@ -23,7 +23,7 @@ type configCmd struct {
 func (c *configCmd) Run(p writ.Path, positional []string) {
 
 	if len(positional) > 0 {
-		p.Last().ExitHelp(errors.New(c.Name() + " doesn't take any positional parameters"))
+		exitHelp(p.Last(), errors.New(c.Name()+" doesn't take any positional parameters"))
 	}
 
 	config := c.Base().GetConfig(false)

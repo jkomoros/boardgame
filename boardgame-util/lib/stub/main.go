@@ -6,12 +6,12 @@ package stub
 import (
 	"errors"
 	"go/format"
-	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 // Options is the default options struct. Name is the only required field; the
@@ -242,31 +242,5 @@ func (f FileContents) Format() error {
 // fine. Will error if overwite is not true and any of the files to create
 // already exist.
 func (f FileContents) Save(dir string, overwrite bool) error {
-
-	if !overwrite {
-		for name := range f {
-			path := filepath.Join(dir, name)
-			if _, err := os.Stat(path); err == nil {
-				return errors.New(name + " already existed; save aborted")
-			}
-		}
-	}
-
-	for name := range f {
-		path := filepath.Join(dir, name)
-		dirsToCreate := filepath.Dir(path)
-		if err := os.MkdirAll(dirsToCreate, os.ModePerm); err != nil {
-			return errors.New("Couldn't create directories for " + path + ": " + err.Error())
-		}
-	}
-
-	for name, contents := range f {
-		path := filepath.Join(dir, name)
-
-		if err := ioutil.WriteFile(path, contents, 0644); err != nil {
-			return errors.New("Couldn't save " + path + ": " + err.Error())
-		}
-	}
-
-	return nil
+	return fileutil.WriteFilesAtomic(dir, f, overwrite, 0o644)
 }

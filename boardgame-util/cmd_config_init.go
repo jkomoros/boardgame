@@ -14,7 +14,7 @@ type configInit struct {
 func (c *configInit) Run(p writ.Path, positional []string) {
 
 	if len(positional) > 1 {
-		p.Last().ExitHelp(errors.New("Only one positional argument may be provided"))
+		exitHelp(p.Last(), errors.New("Only one positional argument may be provided"))
 	}
 
 	typ := ""
@@ -26,7 +26,7 @@ func (c *configInit) Run(p writ.Path, positional []string) {
 	cfg, err := c.Base().starterConfigForType(typ)
 
 	if err != nil {
-		p.Last().ExitHelp(err)
+		exitHelp(p.Last(), err)
 	}
 
 	if err := cfg.Save(); err != nil {

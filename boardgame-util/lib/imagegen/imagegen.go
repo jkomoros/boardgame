@@ -23,11 +23,22 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 const (
-	DefaultEndpoint = "https://generativelanguage.googleapis.com/v1beta"
-	DefaultModel    = "gemini-3-pro-image-preview"
+	DefaultEndpoint        = "https://generativelanguage.googleapis.com/v1beta"
+	DefaultModel           = "gemini-3-pro-image-preview"
+	maxPromptBytes         = 1 << 20
+	maxReferenceCount      = 16
+	maxReferenceBytes      = 32 << 20
+	maxTotalReferenceBytes = 64 << 20
+	maxAPIResponseBytes    = 64 << 20
+	maxImageAssetBytes     = 64 << 20
+	maxMetadataBytes       = 1 << 20
+	maxImageDimension      = 8192
+	maxImagePixels         = 20_000_000
 )
 
 var validRatios = map[string]bool{
@@ -130,11 +141,17 @@ func Validate(r *Request) error {
 	if strings.TrimSpace(r.Prompt) == "" {
 		return errors.New("prompt is required")
 	}
+	if len(r.Prompt) > maxPromptBytes {
+		return fmt.Errorf("prompt exceeds the %d-byte limit", maxPromptBytes)
+	}
 	if r.Output == "" {
 		return errors.New("output path is required")
 	}
 	if r.Mode == "edit" && len(r.References) == 0 {
 		return errors.New("edit mode requires at least one reference image")
+	}
+	if len(r.References) > maxReferenceCount {
+		return fmt.Errorf("too many reference images: got %d, maximum is %d", len(r.References), maxReferenceCount)
 	}
 	if r.Model == "" {
 		r.Model = DefaultModel
@@ -166,6 +183,16 @@ func StyleSheetPrompt(brief string) string {
 		`materials, environments, characters or creatures, and UI ornament. Include no logos, ` +
 		`brand names, copyrighted characters, card layouts, or readable prose. This sheet is a ` +
 		`production reference, not a game component. Follow this original art direction:\n\n` + brief
+}
+
+// ReadPromptFile loads a prompt using the same size limit enforced for inline
+// prompts, so file-based input cannot consume unbounded memory before Validate.
+func ReadPromptFile(path string) (string, error) {
+	data, err := readLimitedFile(path, maxPromptBytes)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
@@ -215,9 +242,12 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 		return nil, fmt.Errorf("Gemini request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, maxAPIResponseBytes+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(responseBody) > maxAPIResponseBytes {
+		return nil, fmt.Errorf("Gemini response exceeds the %d-byte limit", maxAPIResponseBytes)
 	}
 	var decoded apiResponse
 	if err := json.Unmarshal(responseBody, &decoded); err != nil {
@@ -238,13 +268,6 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(r.Output), 0o755); err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(r.Output, imageBytes, 0o644); err != nil {
-		return nil, err
-	}
-
 	now := time.Now
 	if c.Now != nil {
 		now = c.Now
@@ -261,7 +284,12 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 		return nil, err
 	}
 	manifestBytes = append(manifestBytes, '\n')
-	if err := os.WriteFile(r.Output+".imagegen.json", manifestBytes, 0o644); err != nil {
+	root := filepath.Dir(r.Output)
+	outputName := filepath.Base(r.Output)
+	if err := fileutil.WriteFilesAtomic(root, map[string][]byte{
+		outputName:                    imageBytes,
+		outputName + ".imagegen.json": manifestBytes,
+	}, true, 0o644); err != nil {
 		return nil, err
 	}
 	return manifest, nil
@@ -270,11 +298,32 @@ func (c Client) Generate(ctx context.Context, r Request) (*Manifest, error) {
 func loadReferences(paths []string) ([]Reference, []part, error) {
 	refs := make([]Reference, 0, len(paths))
 	parts := make([]part, 0, len(paths))
+	var totalBytes int64
 	for _, path := range paths {
-		data, err := os.ReadFile(path)
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("inspect reference %s: %w", path, err)
+		}
+		if !info.Mode().IsRegular() {
+			return nil, nil, fmt.Errorf("reference %s is not a regular file", path)
+		}
+		if info.Size() > maxReferenceBytes {
+			return nil, nil, fmt.Errorf("reference %s exceeds the %d-byte limit", path, maxReferenceBytes)
+		}
+		if totalBytes+info.Size() > maxTotalReferenceBytes {
+			return nil, nil, fmt.Errorf("reference images exceed the %d-byte aggregate limit", maxTotalReferenceBytes)
+		}
+		data, err := readLimitedFile(path, maxReferenceBytes)
 		if err != nil {
 			return nil, nil, fmt.Errorf("read reference %s: %w", path, err)
 		}
+		if totalBytes+int64(len(data)) > maxTotalReferenceBytes {
+			return nil, nil, fmt.Errorf("reference images exceed the %d-byte aggregate limit", maxTotalReferenceBytes)
+		}
+		if err := validateImageDimensions(data); err != nil {
+			return nil, nil, fmt.Errorf("validate reference %s: %w", path, err)
+		}
+		totalBytes += int64(len(data))
 		mimeType := http.DetectContentType(data)
 		if !strings.HasPrefix(mimeType, "image/") {
 			mimeType = mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
@@ -286,6 +335,32 @@ func loadReferences(paths []string) ([]Reference, []part, error) {
 		parts = append(parts, part{InlineData: &inlineData{MIMEType: mimeType, Data: base64.StdEncoding.EncodeToString(data)}})
 	}
 	return refs, parts, nil
+}
+
+func readLimitedFile(path string, limit int) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("not a regular file")
+	}
+	if info.Size() > int64(limit) {
+		return nil, fmt.Errorf("file exceeds the %d-byte limit", limit)
+	}
+	data, err := io.ReadAll(io.LimitReader(file, int64(limit)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > limit {
+		return nil, fmt.Errorf("file exceeds the %d-byte limit", limit)
+	}
+	return data, nil
 }
 
 func firstImage(response apiResponse) ([]byte, string, error) {
@@ -311,6 +386,9 @@ func normalizeImage(data []byte, reportedMIME, output string) ([]byte, string, e
 		targetMIME = targetMIME[:separator]
 	}
 	detectedMIME := http.DetectContentType(data)
+	if err := validateImageDimensions(data); err != nil {
+		return nil, "", fmt.Errorf("validate generated image: %w", err)
+	}
 	if targetMIME == "" {
 		if strings.HasPrefix(detectedMIME, "image/") {
 			return data, detectedMIME, nil
@@ -320,7 +398,7 @@ func normalizeImage(data []byte, reportedMIME, output string) ([]byte, string, e
 	if detectedMIME == targetMIME {
 		return data, targetMIME, nil
 	}
-	decoded, _, err := image.Decode(bytes.NewReader(data))
+	decoded, err := decodeImageWithinLimits(data)
 	if err != nil {
 		return nil, "", fmt.Errorf("decode Gemini image for %s output: %w", targetMIME, err)
 	}
@@ -337,6 +415,25 @@ func normalizeImage(data []byte, reportedMIME, output string) ([]byte, string, e
 		return nil, "", fmt.Errorf("encode generated %s: %w", targetMIME, err)
 	}
 	return encoded.Bytes(), targetMIME, nil
+}
+
+func decodeImageWithinLimits(data []byte) (image.Image, error) {
+	if err := validateImageDimensions(data); err != nil {
+		return nil, err
+	}
+	decoded, _, err := image.Decode(bytes.NewReader(data))
+	return decoded, err
+}
+
+func validateImageDimensions(data []byte) error {
+	config, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	if config.Width <= 0 || config.Height <= 0 || config.Width > maxImageDimension || config.Height > maxImageDimension || int64(config.Width)*int64(config.Height) > maxImagePixels {
+		return fmt.Errorf("image dimensions %dx%d exceed production limits", config.Width, config.Height)
+	}
+	return nil
 }
 
 func digest(data []byte) string {

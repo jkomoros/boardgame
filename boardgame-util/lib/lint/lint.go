@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
@@ -85,10 +86,14 @@ func Check(inputs []string, options Options) Report {
 				Remediation: "Fix the reported code-generation error, then rerun boardgame-util lint.",
 			})
 		} else {
-			for _, file := range files {
-				diagnostic, stale := checkGeneratedFile(pkg.Import(), pkg.AbsolutePath(), file, options.Fix)
-				if stale {
-					diagnostics = append(diagnostics, diagnostic)
+			if options.Fix {
+				diagnostics = append(diagnostics, fixGeneratedFiles(pkg.Import(), pkg.AbsolutePath(), files)...)
+			} else {
+				for _, file := range files {
+					diagnostic, stale := checkGeneratedFile(pkg.Import(), pkg.AbsolutePath(), file, false)
+					if stale {
+						diagnostics = append(diagnostics, diagnostic)
+					}
 				}
 			}
 		}
@@ -286,6 +291,13 @@ func expectedGeneratedFiles(dir string) ([]generatedFile, error) {
 }
 
 func checkGeneratedFile(packageName, packageDir string, expected generatedFile, fix bool) (Diagnostic, bool) {
+	if fix {
+		diagnostics := fixGeneratedFiles(packageName, packageDir, []generatedFile{expected})
+		if len(diagnostics) == 0 {
+			return Diagnostic{}, false
+		}
+		return diagnostics[0], true
+	}
 	path := filepath.Join(packageDir, expected.name)
 	actual, err := os.ReadFile(path)
 	missing := os.IsNotExist(err)
@@ -296,24 +308,6 @@ func checkGeneratedFile(packageName, packageDir string, expected generatedFile, 
 		return Diagnostic{}, false
 	}
 
-	if fix {
-		if !missing && !generatedFileOwned(actual) {
-			return generatedDiagnostic(packageName, packageDir, expected.name, "refusing to replace a file that is not marked as boardgame-generated"), true
-		}
-		if expected.contents == "" {
-			if err := os.Remove(path); err == nil || os.IsNotExist(err) {
-				return Diagnostic{}, false
-			} else {
-				return generatedDiagnostic(packageName, packageDir, expected.name, "could not remove orphaned generated file: "+err.Error()), true
-			}
-		}
-		if err := atomicWrite(path, []byte(expected.contents)); err == nil {
-			return Diagnostic{}, false
-		} else {
-			return generatedDiagnostic(packageName, packageDir, expected.name, "could not refresh generated file: "+err.Error()), true
-		}
-	}
-
 	message := "generated file is stale"
 	if missing {
 		message = "generated file is missing"
@@ -321,6 +315,39 @@ func checkGeneratedFile(packageName, packageDir string, expected generatedFile, 
 		message = "generated file is orphaned"
 	}
 	return generatedDiagnostic(packageName, packageDir, expected.name, message), true
+}
+
+func fixGeneratedFiles(packageName, packageDir string, expected []generatedFile) []Diagnostic {
+	specs := make(map[string]fileutil.FileSpec)
+	var diagnostics []Diagnostic
+	for _, file := range expected {
+		path := filepath.Join(packageDir, file.name)
+		actual, err := os.ReadFile(path)
+		missing := os.IsNotExist(err)
+		if err != nil && !missing {
+			diagnostics = append(diagnostics, generatedDiagnostic(packageName, packageDir, file.name, "could not read generated file: "+err.Error()))
+			continue
+		}
+		if (missing && file.contents == "") || (!missing && bytes.Equal(actual, []byte(file.contents))) {
+			continue
+		}
+		if !missing && !generatedFileOwned(actual) {
+			diagnostics = append(diagnostics, generatedDiagnostic(packageName, packageDir, file.name, "refusing to replace a file that is not marked as boardgame-generated"))
+			continue
+		}
+		if file.contents == "" {
+			specs[file.name] = fileutil.FileSpec{Delete: true}
+		} else {
+			specs[file.name] = fileutil.FileSpec{Contents: []byte(file.contents), Mode: 0o644}
+		}
+	}
+	if len(diagnostics) > 0 || len(specs) == 0 {
+		return diagnostics
+	}
+	if err := fileutil.WriteFileSetAtomic(packageDir, specs, true); err != nil {
+		return []Diagnostic{generatedDiagnostic(packageName, packageDir, "", "could not transactionally refresh generated files: "+err.Error())}
+	}
+	return nil
 }
 
 func generatedFileOwned(contents []byte) bool {
@@ -334,27 +361,6 @@ func generatedDiagnostic(packageName, packageDir, name, message string) Diagnost
 		Message:     message,
 		Remediation: "Run boardgame-util lint --fix " + strconv.Quote(packageDir) + " and commit the generated result.",
 	}
-}
-
-func atomicWrite(path string, contents []byte) error {
-	temp, err := os.CreateTemp(filepath.Dir(path), ".boardgame-lint-*")
-	if err != nil {
-		return err
-	}
-	tempPath := temp.Name()
-	defer os.Remove(tempPath)
-	if err := temp.Chmod(0644); err != nil {
-		temp.Close()
-		return err
-	}
-	if _, err := temp.Write(contents); err != nil {
-		temp.Close()
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tempPath, path)
 }
 
 func validateRuntime(pkg *gamepkg.Pkg) error {
