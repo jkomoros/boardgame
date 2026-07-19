@@ -930,17 +930,35 @@ test('explicit motion cohorts schedule a deterministic order across stacks', asy
         element.style.transform = `translateX(${25 + index * 5}px)`;
       });
       await animator.animateFlip();
-      return animator._solvedMotionPlan?.segments.map(segment => ({
+      const scheduled = animator._solvedMotionPlan?.segments.map(segment => ({
         subjectId: segment.subjectId,
         delayMs: segment.timingRequest.delayMs,
       }));
+
+      // A declaration belongs only to the generation opened by prepare(). A
+      // later prepare must discard it before the next playback plan exists.
+      animator.prepare();
+      animator.installMotionCohorts([
+        motion.stagger({ subjects: ['cohort-a', 'cohort-b'], intervalMs: 70 }),
+      ]);
+      animator.prepare();
+      elements.forEach((element, index) => {
+        element.style.transform = `translateX(${70 + index * 5}px)`;
+      });
+      await animator.animateFlip();
+      const afterInterruption = animator._solvedMotionPlan?.segments.map(segment => ({
+        subjectId: segment.subjectId,
+        delayMs: segment.timingRequest.delayMs,
+      }));
+      return { scheduled, afterInterruption };
     });
 
-    expect(Object.fromEntries(result?.map(entry => [entry.subjectId, entry.delayMs]) ?? [])).toEqual({
+    expect(Object.fromEntries(result.scheduled?.map(entry => [entry.subjectId, entry.delayMs]) ?? [])).toEqual({
       'cohort-a': 25,
       'cohort-b': 50,
       'cohort-c': 0,
     });
+    expect(result.afterInterruption?.every(entry => entry.delayMs === 0)).toBe(true);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

@@ -148,6 +148,37 @@ Current geometry is preferred; the prior measurement is retained as a fallback
 for an element that disappeared. Names never search another mounted renderer or
 companion surface.
 
+## Scheduling a structural motion cohort
+
+When several components move during one authoritative transition, a renderer
+can give their automatic structural animations an explicit start order:
+
+```ts
+override motionCohortsForTransition(context: EffectTransitionContext<State, MoveName>) {
+  if (context.kind === 'initial' || context.move?.Name !== MoveNames.Deal) return [];
+  return [motion.stagger({
+    key: 'deal-cards',
+    subjects: context.after.Game.Hand.IDs,
+    intervalMs: 45,
+  })];
+}
+```
+
+Array order is the deterministic cadence: the first participating component
+starts at zero, the second at `intervalMs`, and so on. IDs that did not animate
+in this installation are ignored. For cohort members this timing replaces a
+stack's legacy `stagger`; nonmembers retain their stack timing. Duplicate IDs,
+overlapping cohorts, malformed declarations, or an exception in the hook reject
+the complete explicit schedule and fall back atomically to stack timing.
+
+This API schedules structural starts only. It does not select components from
+private motion plans, retime effects, expose geometry, or create a group
+completion event. Version-slot clipping, reduced motion, cancellation, and the
+animation gate continue through the existing structural timing and settlement
+primitives. `animationOverlap()` remains a separate policy for overlap between
+successive authoritative versions; `motion.stagger()` coordinates components
+inside one version.
+
 ## Decorating automatic component motion
 
 Use a motion anchor when a pulse or burst should occur at the actual endpoint
@@ -395,6 +426,7 @@ text remains normal accessible UI; any floating text effect is only its
 | Identity | `key`, `seedKey` | descriptor path | Descriptor and deterministic seed identity |
 | Structural point | `fx.motion(id, 'departure' \| 'arrival')` | `arrival` | `pulse` and `burst` in authoritative transitions |
 | Structural trail | `fx.trail({ subject: id })` | none | Real automatic movement only; inherits its structural timing |
+| Structural cohort | `motion.stagger({ subjects, intervalMs })` | none | Ordered starts within one authoritative transition |
 | Theme | semantic tone palettes | Material-aware defaults | Renderer via `effectTheme()` |
 | Escape hatch | recipe-specific `advanced` values | semantic policy | Validated and clamped |
 
@@ -408,9 +440,10 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 - `examples/memory` follows the real revealed card's structural arrival, then
   pulses it and adds a reward burst for a match. The reveal is a stationary
   face morph, demonstrating that endpoint decoration does not imply travel.
-- `examples/debuganimations` follows a real moved token with a silhouette trail
-  and decorates its arrival, plus demonstrating imperative click celebration
-  and theme/intensity controls.
+- `examples/debuganimations` follows a real moved token with a silhouette trail,
+  decorates its arrival, and uses an explicit cohort cadence for its visible
+  shuffle, plus demonstrating imperative click celebration and theme/intensity
+  controls.
 - `examples/pig` exercises the standalone die's shared `visual:transform`
   track executor. Its roll stays version-timed and queue-gated without being
   misrepresented as structural travel.

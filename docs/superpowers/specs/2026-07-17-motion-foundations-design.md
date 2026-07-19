@@ -297,6 +297,20 @@ composition—already contain the durable policy. A framework-wide named preset
 registry is intentionally deferred until multiple games prove an identical
 semantic contract; sharing a keyframe shape alone is insufficient.
 
+Structural cohorts begin one layer lower than group effects: a pure cadence
+compiler overlays explicit ordered subject IDs onto compatibility stack delays.
+The declaration owns no geometry and effects cannot influence it. Explicit
+timing replaces legacy stagger for members; malformed or overlapping
+declarations reject the whole explicit set and preserve legacy timing. This is
+the narrow primitive shared by current stack cascades and future deal/gather
+vocabularies.
+
+Group decoration and completion remain deferred. The current lifecycle resolves
+by subject for effect anchors while its durable execution identity is
+source/generation/segment. A public cohort lifecycle must first define that
+identity and an honest visible-activation event; it must not reproduce WAAPI
+delays with effect-layer timers.
+
 ## Physical animation ownership
 
 Avoid a general runtime channel arbiter. Conflicts are prevented by DOM
@@ -336,15 +350,21 @@ ownership:
 13. **Done:** make target startup atomic, isolate planner/playback failures,
     redact structural plans to capabilities, label execution channels, enforce
     reduced motion for explicit timing, and keep trails on compositor channels.
-14. **Deferred:** design any artwork-bearing subject representation as a new,
+14. **Done:** extract immutable cohort cadence scheduling, route compatibility
+    stack stagger through it, add a generation-bound ordered-ID author hook,
+    and prove ordering across independently rendered stacks.
+15. **Deferred:** define cohort lifecycle identity and visible activation before
+    adding group decoration or completion effects.
+16. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-15. Reassess a larger representation only when concrete duplication justifies
+17. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today
 
-Game authors should use `effectsForTransition()`, `this.effects.play()`, named
-anchors, `fx.motion()`, `fx.decorateMotion()`, `fx.trail()`, and
+Game authors should use `effectsForTransition()`,
+`motionCohortsForTransition()`, `motion.stagger()`, `this.effects.play()`,
+named anchors, `fx.motion()`, `fx.decorateMotion()`, `fx.trail()`, and
 `animateBetween()` as documented in `docs/animation-effects.md` and
 `docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
 events are framework-internal while their contracts settle. Shipping the
