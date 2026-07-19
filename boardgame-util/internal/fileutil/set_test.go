@@ -1,0 +1,150 @@
+package fileutil
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+)
+
+func TestWriteFilesAtomicCreatesNestedSetAndOutputRoot(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "new-root")
+	files := map[string][]byte{
+		"game/main.go":        []byte("main"),
+		"game/client/view.ts": []byte("view"),
+	}
+	if err := WriteFilesAtomic(root, files, false, 0o644); err != nil {
+		t.Fatalf("WriteFilesAtomic: %v", err)
+	}
+	for name, want := range files {
+		got, err := os.ReadFile(filepath.Join(root, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("%s = %q, want %q", name, got, want)
+		}
+	}
+}
+
+func TestWriteFilesAtomicRejectsUnsafeAndAliasedPaths(t *testing.T) {
+	root := t.TempDir()
+	tests := []map[string][]byte{
+		{"../escape": []byte("bad")},
+		{filepath.Join(t.TempDir(), "absolute"): []byte("bad")},
+		{"same": []byte("one"), "dir/../same": []byte("two")},
+	}
+	for _, files := range tests {
+		if err := WriteFilesAtomic(root, files, false, 0o644); err == nil {
+			t.Fatalf("WriteFilesAtomic(%v) succeeded", files)
+		}
+	}
+}
+
+func TestWriteFilesAtomicRejectsSymlinkEscape(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation generally requires elevated privileges on Windows")
+	}
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(root, "linked")); err != nil {
+		t.Fatal(err)
+	}
+	err := WriteFilesAtomic(root, map[string][]byte{"linked/escape": []byte("bad")}, false, 0o644)
+	if err == nil || !strings.Contains(err.Error(), "escapes the output root") {
+		t.Fatalf("error = %v, want symlink escape error", err)
+	}
+}
+
+func TestWriteFilesAtomicPreflightLeavesSetUntouched(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "b"), []byte("existing"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := WriteFilesAtomic(root, map[string][]byte{"a": []byte("new"), "b": []byte("replace")}, false, 0o644)
+	if err == nil {
+		t.Fatal("WriteFilesAtomic succeeded despite existing output")
+	}
+	if _, err := os.Stat(filepath.Join(root, "a")); !os.IsNotExist(err) {
+		t.Fatal("preflight failure installed an earlier file")
+	}
+}
+
+func TestWriteFilesAtomicRollsBackLateRenameFailure(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{"a", "b"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("old-"+name), 0o640); err != nil {
+			t.Fatal(err)
+		}
+	}
+	originalRename := rename
+	calls := 0
+	rename = func(oldPath, newPath string) error {
+		calls++
+		if calls == 4 {
+			return errors.New("injected late rename failure")
+		}
+		return originalRename(oldPath, newPath)
+	}
+	t.Cleanup(func() { rename = originalRename })
+
+	err := WriteFilesAtomic(root, map[string][]byte{"a": []byte("new-a"), "b": []byte("new-b")}, true, 0o644)
+	if err == nil {
+		t.Fatal("WriteFilesAtomic succeeded, want injected failure")
+	}
+	for _, name := range []string{"a", "b"} {
+		contents, readErr := os.ReadFile(filepath.Join(root, name))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if got, want := string(contents), "old-"+name; got != want {
+			t.Errorf("%s after rollback = %q, want %q", name, got, want)
+		}
+	}
+	assertNoSetArtifacts(t, root)
+}
+
+func TestWriteFilesAtomicExclusiveInstallDoesNotClobberRaceWinner(t *testing.T) {
+	root := t.TempDir()
+	originalLink := link
+	calls := 0
+	link = func(oldPath, newPath string) error {
+		calls++
+		if calls == 2 {
+			if err := os.WriteFile(newPath, []byte("race-winner"), 0o644); err != nil {
+				return err
+			}
+		}
+		return originalLink(oldPath, newPath)
+	}
+	t.Cleanup(func() { link = originalLink })
+
+	err := WriteFilesAtomic(root, map[string][]byte{"a": []byte("new-a"), "b": []byte("new-b")}, false, 0o644)
+	if err == nil {
+		t.Fatal("WriteFilesAtomic succeeded, want exclusive-install race failure")
+	}
+	if _, err := os.Stat(filepath.Join(root, "a")); !os.IsNotExist(err) {
+		t.Fatal("earlier output was not rolled back")
+	}
+	contents, readErr := os.ReadFile(filepath.Join(root, "b"))
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(contents) != "race-winner" {
+		t.Fatalf("race winner was clobbered: %q", contents)
+	}
+	assertNoSetArtifacts(t, root)
+}
+
+func assertNoSetArtifacts(t *testing.T, root string) {
+	t.Helper()
+	matches, err := filepath.Glob(filepath.Join(root, ".boardgame-set-*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("transaction artifacts remain: %v", matches)
+	}
+}
