@@ -27,6 +27,7 @@ build/
 !boardgame-util/lib/build/**
 node_modules/
 dist/
+.cache/
 
 .DS_Store
 

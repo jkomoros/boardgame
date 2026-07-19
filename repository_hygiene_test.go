@@ -87,3 +87,32 @@ func TestBuildSourcePackageIsNotIgnored(t *testing.T) {
 		t.Fatalf("check ignore policy for %s: %v", path, err)
 	}
 }
+
+func TestLocalBuildCacheIsIgnored(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git executable is unavailable")
+	}
+	path := ".cache/go-build/README"
+	if err := exec.Command("git", "check-ignore", "--quiet", "--no-index", path).Run(); err != nil {
+		t.Fatalf("%s must stay ignored: %v", path, err)
+	}
+}
+
+func TestGoLocalUsesRequestedCache(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skip("go executable is unavailable")
+	}
+	cacheDir := filepath.Join(t.TempDir(), "go-build")
+	cmd := exec.Command("./scripts/go-local", "env", "GOCACHE")
+	cmd.Env = append(os.Environ(), "BOARDGAME_GO_CACHE_DIR="+cacheDir)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("run scripts/go-local: %v", err)
+	}
+	if got := strings.TrimSpace(string(out)); got != cacheDir {
+		t.Fatalf("GOCACHE = %q, want %q", got, cacheDir)
+	}
+	if info, err := os.Stat(cacheDir); err != nil || !info.IsDir() {
+		t.Fatalf("cache directory was not created: %v", err)
+	}
+}

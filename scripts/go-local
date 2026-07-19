@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+cache_parent=$repo_root
+
+# Paired worktrees keep go.work beside boardgame/ and games/. Sharing the bundle
+# cache avoids duplicate compiles while making teardown remove it naturally.
+if [ -f "$repo_root/../go.work" ]; then
+	cache_parent=$(CDPATH= cd -- "$repo_root/.." && pwd)
+fi
+
+cache_dir=${BOARDGAME_GO_CACHE_DIR:-"$cache_parent/.cache/go-build"}
+mkdir -p "$cache_dir"
+
+GOCACHE=$cache_dir
+export GOCACHE
+exec go "$@"
