@@ -240,6 +240,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		moves.AddForPhase(phaseDay,
 			auto.MustConfig(
 				new(moveCastVote),
+				moves.WithChoices("VoteTarget"),
 				moves.WithHelpText("Vote for a player to eliminate."),
 			),
 			auto.MustConfig(
@@ -252,6 +253,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moveCastVote),
 				moves.WithMoveName("Cast Night Vote"),
 				moves.WithMoveNameSanitization("self:visible,same-role:visible", "Hidden Action"),
+				moves.WithChoices("VoteTarget"),
 				moves.WithHelpText("Werewolves choose a target to eliminate."),
 			),
 			auto.MustConfig(
