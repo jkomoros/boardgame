@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { property, query } from 'lit/decorators.js';
+import { property, query, state } from 'lit/decorators.js';
 import './boardgame-component-animator.js';
 import type { BoardgameComponentAnimator } from './boardgame-component-animator.js';
 import './boardgame-effect-layer.js';
@@ -48,6 +48,13 @@ class BoardgameRenderGame extends LitElement {
   static override styles = css`
     #container {
       position: relative;
+    }
+
+    #container.with-projected-choice-tray {
+      /* Keep ordinary-flow board content scrollable above the fixed action
+         tray. Full-viewport game renderers still treat the tray as a modal-ish
+         overlay, but can never place the only controls below the fold. */
+      padding-bottom: var(--projected-choice-tray-height, 0px);
     }
 
     #connection-status {
@@ -216,6 +223,9 @@ class BoardgameRenderGame extends LitElement {
 
   @property({ type: String, attribute: false })
   rendererError = '';
+
+  @state()
+  private projectedChoiceTrayHeight = 0;
 
   // Imports cannot be aborted, so invalidate their completion whenever
   // navigation selects a different renderer identity or removes this host.
@@ -1133,6 +1143,10 @@ class BoardgameRenderGame extends LitElement {
   }
 
   override render() {
+    const projectedChoices = (this.renderer?.choices ?? null) as
+      ProjectedMoveChoices<MoveChoiceProjectionTypes> | null;
+    const showProjectedChoiceTray = projectedChoices !== null
+      && (projectedChoices.status === 'failed' || projectedChoices.all().length > 0);
     return html`
       <boardgame-component-animator
         id="animator"
@@ -1154,13 +1168,19 @@ class BoardgameRenderGame extends LitElement {
         </div>
       `}
 
-      <div id="container">
+      <div
+        id="container"
+        class=${showProjectedChoiceTray ? 'with-projected-choice-tray' : ''}
+        style=${showProjectedChoiceTray
+          ? `--projected-choice-tray-height: ${this.projectedChoiceTrayHeight}px`
+          : ''}>
         <!-- Dynamic renderer will be inserted here -->
       </div>
 
       <boardgame-projected-choices
-        .choices=${(this.renderer?.choices ?? null) as ProjectedMoveChoices<MoveChoiceProjectionTypes> | null}
-        .messageResolver=${this.messageResolver}>
+        .choices=${projectedChoices}
+        .messageResolver=${this.messageResolver}
+        @projected-choice-tray-resize=${this.projectedChoiceTrayResized}>
       </boardgame-projected-choices>
 
       <!-- Suppress the connection-lost dim once the game is finished: the
@@ -1184,6 +1204,15 @@ class BoardgameRenderGame extends LitElement {
 
   private readonly _projectedChoicesChanged = (): void => {
     this.requestUpdate();
+  };
+
+  private readonly projectedChoiceTrayResized = (event: CustomEvent<{ height: number }>): void => {
+    const height = event.detail?.height;
+    if (!Number.isFinite(height) || height < 0) return;
+    const normalized = Math.ceil(height);
+    if (normalized !== this.projectedChoiceTrayHeight) {
+      this.projectedChoiceTrayHeight = normalized;
+    }
   };
 }
 

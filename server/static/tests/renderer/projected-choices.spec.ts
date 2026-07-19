@@ -36,7 +36,12 @@ test('generic projected choices are localized, accessible ordinary bound actions
         currentLegality: () => ({ legalForPlayer: false, legalForAnyone: true }),
         currentAnimating: () => false, baselineLegalityApplies: true,
       };
-      const action = (move: 'Guess Card', input: { GuessedCard: 'Guard' | 'Princess' }) => {
+      const extraCards = [
+        'Priest', 'Baron', 'Handmaid', 'Prince', 'King', 'Countess',
+        'Cardinal', 'Sycophant', 'Dowager Queen', 'Constable',
+      ];
+      const cardValues = ['Guard', 'Princess', ...extraCards];
+      const action = (move: 'Guess Card', input: { GuessedCard: string }) => {
         const builder = createMoveAction(move, service, snapshot) as ReturnType<typeof createMoveAction> & {
           with(value: typeof input): unknown;
         };
@@ -53,6 +58,7 @@ test('generic projected choices are localized, accessible ordinary bound actions
             Candidates: [
               { Value: 'Guard', Available: true },
               { Value: 'Princess', Available: false },
+              ...extraCards.map(Value => ({ Value, Available: true })),
             ],
           }],
         },
@@ -60,12 +66,21 @@ test('generic projected choices are localized, accessible ordinary bound actions
         schemaFingerprint: 'choices',
         schema: [{
           moveName: 'Guess Card', fieldName: 'GuessedCard', source: 'enum-values',
-          candidateValues: ['Guard', 'Princess'], disclosure: 'actor-exact',
+          candidateValues: cardValues, disclosure: 'actor-exact',
         }],
         playerPresentations: [],
         action,
         messages: { 'Guess Card': { id: 'valentine.guess', defaultMessage: 'Guess their card' } },
       });
+      const tallBoard = document.createElement('div');
+      tallBoard.style.height = '200vh';
+      tallBoard.setAttribute('aria-hidden', 'true');
+      document.body.append(tallBoard);
+      const underlay = document.createElement('button');
+      underlay.textContent = 'Board action outside tray';
+      underlay.style.cssText = 'position:fixed;left:0;bottom:0;z-index:1';
+      underlay.addEventListener('click', () => { underlay.dataset.clicked = 'true'; });
+      document.body.append(underlay);
       const element = document.createElement('boardgame-projected-choices');
       element.choices = choices as never;
       element.messageResolver = message => message.id === 'valentine.guess'
@@ -83,7 +98,52 @@ test('generic projected choices are localized, accessible ordinary bound actions
     const princess = surface.getByRole('button', { name: 'Which card do they hold?: Princess' });
     await expect(guard).toBeEnabled();
     await expect(princess).toBeDisabled();
-    await guard.click();
+    const bounds = await surface.evaluate(element => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return {
+        position: style.position,
+        maxHeight: style.maxHeight,
+        overflow: style.overflowY,
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportHeight: window.innerHeight,
+      };
+    });
+    expect(bounds.position).toBe('fixed');
+    expect(bounds.maxHeight).not.toBe('none');
+    expect(bounds.overflow).toBe('auto');
+    expect(bounds.top).toBeGreaterThanOrEqual(0);
+    expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewportHeight);
+    const boardAction = page.getByRole('button', { name: 'Board action outside tray' });
+    await boardAction.click();
+    await expect(boardAction).toHaveAttribute('data-clicked', 'true');
+
+    await page.setViewportSize({ width: 390, height: 600 });
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    const lastChoice = surface.getByRole('button', { name: 'Which card do they hold?: Constable' });
+    await lastChoice.focus();
+    const mobileBounds = await surface.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportHeight: window.innerHeight,
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+        scrollTop: element.scrollTop,
+        paddingBottom: getComputedStyle(element).paddingBottom,
+      };
+    });
+    expect(mobileBounds.top).toBeGreaterThanOrEqual(0);
+    expect(mobileBounds.bottom).toBeLessThanOrEqual(mobileBounds.viewportHeight);
+    expect(mobileBounds.scrollHeight).toBeGreaterThan(mobileBounds.clientHeight);
+    expect(mobileBounds.scrollTop).toBeGreaterThan(0);
+    expect(mobileBounds.paddingBottom).not.toBe('');
+    await expect(lastChoice).toBeVisible();
+
+    await guard.focus();
+    await guard.press('Enter');
     await expect.poll(() => page.evaluate(() => (
       globalThis as unknown as { __projectedProposals: unknown[] }
     ).__projectedProposals)).toEqual([expect.objectContaining({
@@ -92,19 +152,57 @@ test('generic projected choices are localized, accessible ordinary bound actions
       arguments: { GuessedCard: 'Guard' },
     })]);
 
-    const bounds = await surface.evaluate(element => {
-      const style = getComputedStyle(element);
-      return { position: style.position, maxHeight: style.maxHeight, overflow: style.overflowY };
-    });
-    expect(bounds.position).toBe('sticky');
-    expect(bounds.maxHeight).not.toBe('none');
-    expect(bounds.overflow).toBe('auto');
-
     const axe = await new AxeBuilder({ page })
       .include('boardgame-projected-choices')
       .withRules(['button-name', 'aria-allowed-attr'])
       .analyze();
     expect(axe.violations).toEqual([]);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
+test('renderer host reserves the measured fixed tray height', async ({ page }) => {
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const measured = await page.evaluate(async () => {
+      await import('/src/components/boardgame-render-game.ts');
+      const { ProjectedMoveChoices } = await import('/src/moves/projected-choices.ts');
+      const host = document.createElement('boardgame-render-game') as HTMLElement & {
+        rendererLoaded: boolean;
+        gameFinished: boolean;
+        renderer: unknown;
+        updateComplete: Promise<unknown>;
+        renderRoot: ShadowRoot;
+      };
+      host.gameFinished = true;
+      document.body.append(host);
+      await host.updateComplete;
+      const fakeRenderer = document.createElement('div') as HTMLDivElement & {
+        choices: unknown;
+        effectTheme(): object;
+      };
+      fakeRenderer.choices = ProjectedMoveChoices.failed();
+      fakeRenderer.effectTheme = () => ({});
+      host.rendererLoaded = true;
+      host.renderer = fakeRenderer;
+      await host.updateComplete;
+      const tray = host.renderRoot.querySelector('boardgame-projected-choices') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+      };
+      await tray.updateComplete;
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await host.updateComplete;
+      const container = host.renderRoot.querySelector('#container');
+      if (!(container instanceof HTMLElement)) throw new Error('renderer container missing');
+      return {
+        trayHeight: Math.ceil(tray.getBoundingClientRect().height),
+        reserved: Number.parseFloat(getComputedStyle(container).paddingBottom),
+      };
+    });
+    expect(measured.trayHeight).toBeGreaterThan(0);
+    expect(measured.reserved).toBe(measured.trayHeight);
     diagnostics.assertEmpty();
   } finally {
     diagnostics.stop();

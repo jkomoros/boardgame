@@ -13,23 +13,28 @@ export class BoardgameProjectedChoices extends LitElement {
   static override styles = css`
     :host {
       display: block;
-      position: sticky;
+      position: fixed;
+      left: 50%;
       bottom: 0;
       z-index: 20;
-      max-height: min(50vh, 28rem);
+      box-sizing: border-box;
+      width: min(calc(100% - 2rem), 48rem);
+      max-height: min(50dvh, 28rem);
       padding-bottom: env(safe-area-inset-bottom, 0);
       overflow: auto;
       overscroll-behavior: contain;
+      transform: translateX(-50%);
     }
     #failure, fieldset {
       box-sizing: border-box;
-      width: min(100% - 2rem, 48rem);
-      margin: 0.75rem auto;
+      width: 100%;
+      margin: 0.75rem 0;
       padding: 1rem;
       border: 1px solid var(--md-sys-color-outline-variant, #ccc4b8);
       border-radius: 0.75rem;
       background: var(--md-sys-color-surface-container, #f3edf7);
       color: var(--md-sys-color-on-surface, #1d1b20);
+      box-shadow: 0 -0.25rem 1rem rgb(0 0 0 / 18%);
     }
     #failure {
       border-width: 2px;
@@ -47,6 +52,35 @@ export class BoardgameProjectedChoices extends LitElement {
 
   @property({ attribute: false })
   messageResolver: MessageResolver = defaultMessageResolver;
+
+  private resizeObserver: ResizeObserver | null = null;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    if (typeof ResizeObserver === 'function') {
+      this.resizeObserver = new ResizeObserver(() => this.reportHeight());
+      this.resizeObserver.observe(this);
+    }
+  }
+
+  override disconnectedCallback(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    super.disconnectedCallback();
+  }
+
+  protected override updated(): void {
+    this.reportHeight();
+  }
+
+  private reportHeight(): void {
+    const height = Math.ceil(this.getBoundingClientRect().height);
+    this.dispatchEvent(new CustomEvent('projected-choice-tray-resize', {
+      bubbles: true,
+      composed: true,
+      detail: { height },
+    }));
+  }
 
   private resolve(message: { readonly id: string; readonly defaultMessage: string }): string {
     try {
