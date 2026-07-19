@@ -1,8 +1,6 @@
 package main
 
 import (
-	"path/filepath"
-
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	codegenPkg "github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
@@ -26,18 +24,15 @@ func (c *codegenReader) Run(p writ.Path, positional []string) {
 		c.Base().errAndQuit("Couldn't process readers: " + err.Error())
 	}
 
+	outputs := make(map[string][]byte, 2)
 	if readerOutput != "" {
-		if err := fileutil.WriteFileAtomic(filepath.Join(pkgDirectory, parent.OutputFile), []byte(readerOutput), 0o644); err != nil {
-			c.Base().errAndQuit("Couldn't output reader file: " + err.Error())
-		}
+		outputs[parent.OutputFile] = []byte(readerOutput)
 	}
-
-	if !c.DontOutputReaderTest {
-		if testReaderOutput != "" {
-			if err := fileutil.WriteFileAtomic(filepath.Join(pkgDirectory, parent.OutputFileTest), []byte(testReaderOutput), 0o644); err != nil {
-				c.Base().errAndQuit("Couldn't output test reader file: " + err.Error())
-			}
-		}
+	if !c.DontOutputReaderTest && testReaderOutput != "" {
+		outputs[parent.OutputFileTest] = []byte(testReaderOutput)
+	}
+	if err := fileutil.WriteFilesAtomic(pkgDirectory, outputs, true, 0o644); err != nil {
+		c.Base().errAndQuit("Couldn't publish generated reader files: " + err.Error())
 	}
 
 }
