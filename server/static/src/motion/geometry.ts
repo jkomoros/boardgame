@@ -103,10 +103,14 @@ export function solveFlipGeometry(
   before: OffsetGeometry,
   after: OffsetGeometry,
   options: Readonly<{
-    rotates?: boolean;
-  }> = {},
+    beforeOrientation: MotionEndpointOrientation;
+    afterOrientation: MotionEndpointOrientation;
+  }>,
 ): FlipGeometry {
-  const scale = finiteScale(options.rotates ? before.height : before.width, after.width);
+  const scale = finiteScale(motionAxesDiffer(
+    options.beforeOrientation,
+    options.afterOrientation,
+  ) ? before.height : before.width, after.width);
   const translateY = finiteDelta(
     before.top - after.top - (after.height - before.height) / 2,
   );
@@ -132,3 +136,5 @@ export function composeFlipTransform(
   const translate = `translateY(${geometry.translateY}px) translateX(${geometry.translateX}px)`;
   return `${translate} ${authoredTransform} scale(${geometry.scale})`;
 }
+import { motionAxesDiffer } from './endpoint-pose.ts';
+import type { MotionEndpointOrientation } from './endpoint-pose.ts';

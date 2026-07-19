@@ -29,7 +29,7 @@ describe('structural motion plans', () => {
       visualSubject: { kind: 'silhouette', shape: 'rounded-rectangle' },
       viewportFrom,
       viewportTo,
-      inversion: solveFlipGeometry(from, to),
+      inversion: solveFlipGeometry(from, to, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
       channels: [
         { target: 'host', property: 'transform' },
         { target: 'host', property: 'opacity' },
@@ -61,7 +61,7 @@ describe('structural motion plans', () => {
       },
       viewportFrom,
       viewportTo,
-      inversion: solveFlipGeometry(from, to),
+      inversion: solveFlipGeometry(from, to, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
     });
     const plan = publishStructuralMotionPlan(12, [{
       draft,
@@ -86,7 +86,7 @@ describe('structural motion plans', () => {
       provenance: { kind: 'identity' },
       viewportFrom,
       viewportTo,
-      inversion: solveFlipGeometry(from, to),
+      inversion: solveFlipGeometry(from, to, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
     });
     const planned = publishStructuralMotionPlan(13, [{
       draft,
@@ -134,7 +134,7 @@ describe('structural motion plans', () => {
       provenance: { kind: 'identity' },
       viewportFrom,
       viewportTo,
-      inversion: solveFlipGeometry(from, to),
+      inversion: solveFlipGeometry(from, to, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
     });
     const plan = publishStructuralMotionPlan(20, [0, 1].map(() => ({
       draft: duplicate,
@@ -175,7 +175,7 @@ describe('structural motion plans', () => {
       provenance: { kind: 'identity' },
       viewportFrom,
       viewportTo,
-      inversion: solveFlipGeometry(from, to),
+      inversion: solveFlipGeometry(from, to, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
       beforeProperties: { custom: { secret: 'before' } },
       afterProperties: { custom: { secret: 'after' } },
       animatingProperties: ['custom'],
@@ -196,7 +196,7 @@ describe('structural motion plans', () => {
       provenance: { kind: 'identity' },
       viewportFrom,
       viewportTo: viewportFrom,
-      inversion: solveFlipGeometry(from, from),
+      inversion: solveFlipGeometry(from, from, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
     });
     assert.deepEqual(draft.path, {
       kind: 'stationary', from: viewportFrom, to: viewportFrom,

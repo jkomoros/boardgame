@@ -30,7 +30,7 @@ function planned(generation = 7) {
     to,
     viewportFrom,
     viewportTo,
-    inversion: solveFlipGeometry(from, to),
+    inversion: solveFlipGeometry(from, to, { beforeOrientation: 'natural', afterOrientation: 'natural' }),
   });
   return publishStructuralMotionPlan(generation, [{
     draft,

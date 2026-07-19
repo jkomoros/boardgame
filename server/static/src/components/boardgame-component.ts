@@ -11,6 +11,7 @@ import type {
   VisualMotionTrackInput,
 } from '../motion/component-track.js';
 import type { HistoricalPresentationPolicy } from '../motion/historical-presentation.js';
+import type { MotionEndpointOrientation } from '../motion/endpoint-pose.js';
 
 // FlipRecord is the bundle the animator computes for each animating
 // component and hands to playAnimation(). before/after are the
@@ -235,10 +236,9 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return 'none';
   }
 
-  // animationRotates should return true if the before and after have a
-  // different rotated property.
-  animationRotates(beforeProps: Record<string, any>, afterProps: Record<string, any>): boolean {
-    return false;
+  /** Finite box-axis fact consumed by structural geometry. */
+  motionEndpointOrientation(_state: Readonly<Record<string, unknown>>): MotionEndpointOrientation {
+    return 'natural';
   }
 
   handleTap(e: Event) {

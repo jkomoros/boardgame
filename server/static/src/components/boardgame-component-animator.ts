@@ -923,7 +923,8 @@ export class BoardgameComponentAnimator extends LitElement {
 
         // CRITICAL: Transform composition order - invert + external + scale.
         const geometry = solveFlipGeometry(record.offsets!, record.newOffsets!, {
-          rotates: component.animationRotates(record.before, record.after),
+          beforeOrientation: component.motionEndpointOrientation(record.before),
+          afterOrientation: component.motionEndpointOrientation(record.after),
         });
 
         // Determine whether the host element's CSS transform will actually
@@ -1032,7 +1033,8 @@ export class BoardgameComponentAnimator extends LitElement {
       if (!stackLocation || !stackViewportLocation || !oldLocation || !oldViewportLocation) continue;
 
       const geometry = solveFlipGeometry(oldLocation, stackLocation, {
-        rotates: component.animationRotates(record.before, record.after),
+        beforeOrientation: component.motionEndpointOrientation(record.before),
+        afterOrientation: component.motionEndpointOrientation(record.after),
       });
 
       // We used to only bother setting transforms for items that had

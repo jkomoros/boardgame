@@ -354,6 +354,17 @@ track endpoints and playback remains the first writer. This replaces the old
 imperative `setUnknownAnimationState()` convention without inventing a general
 CSS transform language.
 
+Endpoint orientation is likewise a finite component fact: `natural` or
+`quarter-turned`. The component type interprets its logical state, while the
+result belongs to the captured before/after endpoint. Geometry exchanges the
+source width/height axis only when those facts differ. This replaces the
+card-shaped `animationRotates()` question with axis parity; it does not encode
+rotation angle or parse authored transforms. Host FLIP correction and the
+card's inner face/orientation track remain separate owners. The current scalar
+solver deliberately assumes uniform scaling and stable intrinsic aspect ratio;
+arbitrary aspect morphing would require an explicit future `scaleX/scaleY`
+design.
+
 ## Physical animation ownership
 
 Avoid a general runtime channel arbiter. Conflicts are prevented by DOM
@@ -410,9 +421,11 @@ ownership:
 18. **Done:** replace hard-coded unknown-host mutation with a semantic
     collection presence policy compiled to numeric endpoint facts and ordinary
     host tracks.
-19. **Deferred:** design any artwork-bearing subject representation as a new,
+19. **Done:** replace the card-only rotation boolean with explicit endpoint
+    axis-orientation facts consumed by the pure geometry solver.
+20. **Deferred:** design any artwork-bearing subject representation as a new,
     explicitly reviewed capability; do not widen the silhouette snapshot.
-20. Reassess a larger representation only when concrete duplication justifies
+21. Reassess a larger representation only when concrete duplication justifies
     it.
 
 ## Supported surface today

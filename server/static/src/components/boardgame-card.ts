@@ -323,8 +323,10 @@ export class BoardgameCard extends BoardgameComponent {
     return this.noContent ? 'none' : 'clone-default-slot';
   }
 
-  override animationRotates(beforeProps: Record<string, any>, afterProps: Record<string, any>): boolean {
-    return beforeProps.rotated !== afterProps.rotated;
+  override motionEndpointOrientation(
+    state: Readonly<Record<string, unknown>>,
+  ): 'natural' | 'quarter-turned' {
+    return state.rotated ? 'quarter-turned' : 'natural';
   }
 
   private _frontChanged() {

@@ -63,7 +63,9 @@ describe('motion geometry', () => {
   it('solves translation, scaling, rotation-aware scaling, and visible change', () => {
     const before = { space: 'offset' as const, top: 10, left: 20, width: 40, height: 80 };
     const after = { space: 'offset' as const, top: 30, left: 50, width: 20, height: 40 };
-    const solution = solveFlipGeometry(before, after);
+    const solution = solveFlipGeometry(before, after, {
+      beforeOrientation: 'natural', afterOrientation: 'natural',
+    });
     assert.deepEqual(solution, {
       translateX: -20,
       translateY: 0,
@@ -74,14 +76,29 @@ describe('motion geometry', () => {
       composeFlipTransform(solution, 'rotate(3deg)'),
       'translateY(0px) translateX(-20px) rotate(3deg) scale(2)',
     );
-    assert.equal(solveFlipGeometry(before, after, { rotates: true }).scale, 4);
-    assert.equal(solveFlipGeometry(after, after).changed, false);
+    assert.equal(solveFlipGeometry(before, after, {
+      beforeOrientation: 'natural',
+      afterOrientation: 'quarter-turned',
+    }).scale, 4);
+    assert.equal(solveFlipGeometry(before, after, {
+      beforeOrientation: 'quarter-turned',
+      afterOrientation: 'natural',
+    }).scale, 4);
+    assert.equal(solveFlipGeometry(before, after, {
+      beforeOrientation: 'quarter-turned',
+      afterOrientation: 'quarter-turned',
+    }).scale, 2);
+    assert.equal(solveFlipGeometry(after, after, {
+      beforeOrientation: 'natural', afterOrientation: 'natural',
+    }).changed, false);
   });
 
   it('falls back to a finite identity scale for zero-sized geometry', () => {
     const before = { space: 'offset' as const, top: 0, left: 0, width: 0, height: 0 };
     const after = { space: 'offset' as const, top: 0, left: 0, width: 0, height: 0 };
-    const solution = solveFlipGeometry(before, after);
+    const solution = solveFlipGeometry(before, after, {
+      beforeOrientation: 'natural', afterOrientation: 'natural',
+    });
     assert.equal(solution.scale, 1);
     assert.equal(solution.changed, false);
     const transform = composeFlipTransform(solution);
@@ -104,7 +121,9 @@ describe('motion geometry', () => {
       width: 10,
       height: 10,
     };
-    const solution = solveFlipGeometry(before, after);
+    const solution = solveFlipGeometry(before, after, {
+      beforeOrientation: 'natural', afterOrientation: 'natural',
+    });
     assert.equal(solution.translateX, 0);
     assert.equal(solution.translateY, 0);
     const transform = composeFlipTransform(solution);

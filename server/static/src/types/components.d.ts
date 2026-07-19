@@ -73,11 +73,7 @@ export interface BoardgameComponentElement extends BoardgameAnimatableItemElemen
    */
   computeAnimatingProps(): AnimatingProps;
 
-  /**
-   * Returns true if component rotates between before/after states.
-   * Used to optimize transform calculations during FLIP.
-   */
-  animationRotates(before: AnimatingProps, after: AnimatingProps): boolean;
+  motionEndpointOrientation(state: AnimatingProps): 'natural' | 'quarter-turned';
 }
 
 /**

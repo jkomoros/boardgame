@@ -44,8 +44,6 @@ export interface ComponentAnimationRecord {
   beforeOpacity: string;
   /** Opacity after the state change */
   afterOpacity: string;
-  /** Whether this component rotates during animation */
-  rotates: boolean;
 }
 
 /**
@@ -73,9 +71,5 @@ export interface AnimatingComponent extends HTMLElement {
   animatingPropValues(): AnimatingProps;
   /** Private historical-presentation capture policy. */
   historicalPresentationPolicy?: 'none' | 'clone-default-slot';
-  /**
-   * Returns true if this component rotates between before and after states.
-   * Used to optimize transform calculations.
-   */
-  animationRotates?(before: AnimatingProps, after: AnimatingProps): boolean;
+  motionEndpointOrientation?(state: AnimatingProps): 'natural' | 'quarter-turned';
 }
