@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
@@ -103,26 +104,40 @@ func generateBoardSpacesForPackages(packages []*gamepkg.Pkg, includeReadOnly boo
 }
 
 func installGeneratedBoardSpaces(generated []generatedBoardSpacesFile, orphans []string, check bool) error {
-	if check && len(orphans) > 0 {
-		return staleGeneratedClientContracts("orphan generated board-space contracts: " + strings.Join(orphans, ", "))
+	if check {
+		stale := append([]string(nil), orphans...)
+		for _, file := range generated {
+			current, err := os.ReadFile(file.path)
+			if err != nil || !bytes.Equal(current, file.contents) {
+				stale = append(stale, file.path)
+			}
+		}
+		sort.Strings(stale)
+		if len(stale) > 0 {
+			return staleGeneratedClientContracts("generated board-space contracts are stale: " + strings.Join(stale, ", "))
+		}
+		return nil
+	}
+	files := make(map[string]fileutil.FileSpec, len(generated)+len(orphans))
+	for _, file := range generated {
+		if _, exists := files[file.path]; exists {
+			return fmt.Errorf("duplicate generated board-space destination %s", file.path)
+		}
+		files[file.path] = fileutil.FileSpec{Contents: file.contents, Mode: 0o644, ForceMode: true}
+	}
+	for _, path := range orphans {
+		if _, exists := files[path]; exists {
+			return fmt.Errorf("generated board-space destination %s is also marked as an orphan", path)
+		}
+		files[path] = fileutil.FileSpec{Delete: true, RequireExisting: true}
+	}
+	if err := fileutil.WriteFileSetAtomicAbsolute(files, true); err != nil {
+		return fmt.Errorf("install generated board-space contracts: %w", err)
 	}
 	for _, file := range generated {
-		current, err := os.ReadFile(file.path)
-		if check {
-			if err != nil || !bytes.Equal(current, file.contents) {
-				return staleGeneratedClientContracts("generated board-space contract is stale: " + file.path)
-			}
-			continue
-		}
-		if err := atomicWriteBoardSpaceContract(file.path, file.contents); err != nil {
-			return err
-		}
 		fmt.Printf("  Generated %s (%d bytes)\n", file.path, len(file.contents))
 	}
 	for _, path := range orphans {
-		if err := os.Remove(path); err != nil {
-			return fmt.Errorf("remove orphan generated board-space contract %s: %w", path, err)
-		}
 		fmt.Printf("  Removed orphan %s\n", path)
 	}
 	return nil
@@ -186,34 +201,6 @@ func orphanBoardSpaceContracts(client string, desired map[string]bool) ([]string
 	})
 	sort.Strings(result)
 	return result, err
-}
-
-func atomicWriteBoardSpaceContract(path string, contents []byte) error {
-	temp, err := os.CreateTemp(filepath.Dir(path), ".board-spaces-*")
-	if err != nil {
-		return fmt.Errorf("prepare %s: %w", path, err)
-	}
-	tempPath := temp.Name()
-	defer os.Remove(tempPath)
-	if err := temp.Chmod(0o644); err != nil {
-		temp.Close()
-		return err
-	}
-	if _, err := temp.Write(contents); err != nil {
-		temp.Close()
-		return err
-	}
-	if err := temp.Sync(); err != nil {
-		temp.Close()
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	if err := os.Rename(tempPath, path); err != nil {
-		return fmt.Errorf("atomically replace %s: %w", path, err)
-	}
-	return nil
 }
 
 func parseAuthoredBoardSpaces(path string) ([]authoredBoardSpace, error) {

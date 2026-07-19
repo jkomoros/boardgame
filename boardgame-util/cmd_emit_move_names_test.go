@@ -28,3 +28,29 @@ func TestInstallGeneratedMoveNamesCheckIsNonMutating(t *testing.T) {
 		t.Fatalf("current file failed check: %v", err)
 	}
 }
+
+func TestInstallGeneratedMoveNamesIsOneTransaction(t *testing.T) {
+	dir := t.TempDir()
+	first := filepath.Join(dir, "a", "_move_names.ts")
+	if err := os.Mkdir(filepath.Dir(first), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(first, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	invalidParent := filepath.Join(dir, "z-not-a-directory")
+	if err := os.WriteFile(invalidParent, []byte("sentinel"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := installGeneratedMoveNames([]generatedMoveNamesFile{
+		{path: first, contents: []byte("new"), gameName: "a"},
+		{path: filepath.Join(invalidParent, "_move_names.ts"), contents: []byte("later"), gameName: "z"},
+	}, false)
+	if err == nil {
+		t.Fatal("install succeeded despite invalid destination")
+	}
+	contents, readErr := os.ReadFile(first)
+	if readErr != nil || string(contents) != "old" {
+		t.Fatalf("first output after failed transaction = %q, %v; want old", contents, readErr)
+	}
+}

@@ -123,3 +123,48 @@ func TestAuthoredBoardSpaceSizeLimitIsEnforced(t *testing.T) {
 		t.Fatalf("expected size-limit failure, got %v", err)
 	}
 }
+
+func TestInstallGeneratedBoardSpacesIsOneTransaction(t *testing.T) {
+	dir := t.TempDir()
+	existing := filepath.Join(dir, "a_spaces.ts")
+	orphan := filepath.Join(dir, "b_spaces.ts")
+	invalidParent := filepath.Join(dir, "z-not-a-directory")
+	for path, contents := range map[string]string{
+		existing: "old", orphan: "orphan", invalidParent: "sentinel",
+	} {
+		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := installGeneratedBoardSpaces([]generatedBoardSpacesFile{
+		{path: existing, contents: []byte("new")},
+		{path: filepath.Join(invalidParent, "later_spaces.ts"), contents: []byte("later")},
+	}, []string{orphan}, false)
+	if err == nil {
+		t.Fatal("install succeeded despite invalid destination")
+	}
+	for path, want := range map[string]string{existing: "old", orphan: "orphan"} {
+		got, readErr := os.ReadFile(path)
+		if readErr != nil || string(got) != want {
+			t.Fatalf("%s after failed transaction = %q, %v; want %q", path, got, readErr, want)
+		}
+	}
+}
+
+func TestCheckGeneratedBoardSpacesReportsAllStalePaths(t *testing.T) {
+	dir := t.TempDir()
+	stale := filepath.Join(dir, "a_spaces.ts")
+	orphan := filepath.Join(dir, "b_spaces.ts")
+	for _, path := range []string{stale, orphan} {
+		if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := installGeneratedBoardSpaces(
+		[]generatedBoardSpacesFile{{path: stale, contents: []byte("new")}},
+		[]string{orphan}, true,
+	)
+	if err == nil || !strings.Contains(err.Error(), stale+", "+orphan) {
+		t.Fatalf("error = %v, want complete sorted stale set", err)
+	}
+}
