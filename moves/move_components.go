@@ -38,7 +38,7 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) e
 		return err
 	}
 
-	theSourceDestinationStacker, ok := m.TopLevelStruct().(sourceDestinationStacker)
+	theSourceDestinationStacker, ok := m.Info().ConcreteMove().(sourceDestinationStacker)
 
 	if !ok {
 		return errors.New("embeddingMove doesn't have Source/Destination stacker")
@@ -115,7 +115,7 @@ func (m *MoveCountComponents) stacks(state boardgame.ImmutableState) (source, de
 	//TODO: this is a total hack
 	mState := state.(boardgame.State)
 
-	stacker, ok := m.TopLevelStruct().(sourceDestinationStacker)
+	stacker, ok := m.Info().ConcreteMove().(sourceDestinationStacker)
 
 	if !ok {
 		return nil, nil
@@ -193,7 +193,7 @@ func (m *MoveCountComponents) FallbackName(g *boardgame.GameManager) string {
 
 	source, destination := m.stackNames(g.ExampleState())
 
-	return "Move " + targetCountString(m.TopLevelStruct()) + " Components From " + source + " To " + destination
+	return "Move " + targetCountString(m.Info().ConcreteMove()) + " Components From " + source + " To " + destination
 }
 
 // FallbackHelpText returns a string based on the names of the player
@@ -201,7 +201,7 @@ func (m *MoveCountComponents) FallbackName(g *boardgame.GameManager) string {
 func (m *MoveCountComponents) FallbackHelpText() string {
 	source, destination := m.stackNames(nil)
 
-	return "Moves " + targetCountString(m.TopLevelStruct()) + " components from " + source + " to " + destination
+	return "Moves " + targetCountString(m.Info().ConcreteMove()) + " components from " + source + " to " + destination
 }
 
 // MoveComponentsUntilCountReached is a move that will move components, one at
@@ -232,7 +232,7 @@ func (m *MoveComponentsUntilCountReached) FallbackName(g *boardgame.GameManager)
 
 	source, destination := m.stackNames(g.ExampleState())
 
-	return "Move Components From " + source + " Until " + destination + " Has " + targetCountString(m.TopLevelStruct())
+	return "Move Components From " + source + " Until " + destination + " Has " + targetCountString(m.Info().ConcreteMove())
 }
 
 // FallbackHelpText returns a string based on the names of the player
@@ -240,7 +240,7 @@ func (m *MoveComponentsUntilCountReached) FallbackName(g *boardgame.GameManager)
 func (m *MoveComponentsUntilCountReached) FallbackHelpText() string {
 	source, destination := m.stackNames(nil)
 
-	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + targetCountString(m.TopLevelStruct())
+	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + targetCountString(m.Info().ConcreteMove())
 }
 
 // MoveComponentsUntilCountLeft is a move that will move components, one at a
@@ -271,7 +271,7 @@ func (m *MoveComponentsUntilCountLeft) FallbackName(g *boardgame.GameManager) st
 
 	source, destination := m.stackNames(g.ExampleState())
 
-	return "Move Components To " + destination + " Until " + source + " Has " + targetCountString(m.TopLevelStruct())
+	return "Move Components To " + destination + " Until " + source + " Has " + targetCountString(m.Info().ConcreteMove())
 }
 
 // FallbackHelpText returns a string based on the names of the player
@@ -279,7 +279,7 @@ func (m *MoveComponentsUntilCountLeft) FallbackName(g *boardgame.GameManager) st
 func (m *MoveComponentsUntilCountLeft) FallbackHelpText() string {
 	source, destination := m.stackNames(nil)
 
-	return "Moves components from " + source + " to " + destination + " until " + source + " has " + targetCountString(m.TopLevelStruct()) + " left"
+	return "Moves components from " + source + " to " + destination + " until " + source + " has " + targetCountString(m.Info().ConcreteMove()) + " left"
 }
 
 // MoveAllComponents is simply a MoveComponentsUntilCountLeft that overrides

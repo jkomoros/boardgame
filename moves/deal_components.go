@@ -7,8 +7,8 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.SubState) (playerStack boardgame.Stack, gameStack boardgame.Stack, err error) {
-	playerStacker, ok := topLevelStruct.(interfaces.PlayerStacker)
+func dealActionHelper(concreteMove boardgame.Move, playerState boardgame.SubState) (playerStack boardgame.Stack, gameStack boardgame.Stack, err error) {
+	playerStacker, ok := concreteMove.(interfaces.PlayerStacker)
 
 	if !ok {
 		return nil, nil, errors.New("Embedding move unexpectedly doesn't implement PlayerStacker")
@@ -20,7 +20,7 @@ func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.SubSt
 		return nil, nil, errors.New("PlayerStacker didn't return a valid stack")
 	}
 
-	gameStacker, ok := topLevelStruct.(interfaces.GameStacker)
+	gameStacker, ok := concreteMove.(interfaces.GameStacker)
 
 	if !ok {
 		return nil, nil, errors.New("Embedding move unexpectedly doesn't implement GameStacker")
@@ -35,8 +35,8 @@ func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.SubSt
 	return targetStack, sourceStack, nil
 }
 
-func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playerState boardgame.ImmutableSubState) (playerCount, targetCount int, err error) {
-	playerStacker, ok := topLevelStruct.(interfaces.PlayerStacker)
+func dealComponentsPlayerConditionMetHelper(concreteMove boardgame.Move, playerState boardgame.ImmutableSubState) (playerCount, targetCount int, err error) {
+	playerStacker, ok := concreteMove.(interfaces.PlayerStacker)
 
 	if !ok {
 		return 0, 0, errors.New("Didn't implement playerStacker")
@@ -47,7 +47,7 @@ func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playe
 
 	playerStack := playerStacker.PlayerStack(mutablePState)
 
-	targetCounter, ok := topLevelStruct.(interfaces.TargetCounter)
+	targetCounter, ok := concreteMove.(interfaces.TargetCounter)
 
 	if !ok {
 		return 0, 0, errors.New("Didn't implement target counter")
@@ -56,8 +56,8 @@ func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playe
 	return playerStack.NumComponents(), targetCounter.TargetCount(playerState.ImmutableState()), nil
 }
 
-func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state boardgame.ImmutableState) (gameCount, targetCount int, err error) {
-	gameStacker, ok := topLevelStruct.(interfaces.GameStacker)
+func dealComponentsConditionMetHelper(concreteMove boardgame.Move, state boardgame.ImmutableState) (gameCount, targetCount int, err error) {
+	gameStacker, ok := concreteMove.(interfaces.GameStacker)
 
 	if !ok {
 		return 0, 0, errors.New("Unexpectedly didn't implement gameStacker")
@@ -72,7 +72,7 @@ func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state board
 		return 0, 0, errors.New("GameStack gave a nil stack")
 	}
 
-	targetCounter, ok := topLevelStruct.(interfaces.TargetCounter)
+	targetCounter, ok := concreteMove.(interfaces.TargetCounter)
 
 	if !ok {
 		return 0, 0, errors.New("Unexpectedly did not implement TargetCount")
@@ -125,7 +125,7 @@ func (d *DealCountComponents) TargetCount(state boardgame.ImmutableState) int {
 // expects, but TargetCount() is the terminology used for all of the similar
 // Deal/Collect/MoveComponents methods.
 func (d *DealCountComponents) NumRounds(state boardgame.ImmutableState) int {
-	targetCounter, ok := d.TopLevelStruct().(interfaces.TargetCounter)
+	targetCounter, ok := d.Info().ConcreteMove().(interfaces.TargetCounter)
 
 	if !ok {
 		return 1
@@ -188,13 +188,13 @@ func (d *DealCountComponents) GameStack(gameState boardgame.SubState) boardgame.
 	return stack
 }
 
-// ValidConfiguration checks that the top level move implements
+// ValidConfiguration checks that the concrete move implements
 // interfaces.PlayerStacker and interfaces.GameStacker, and that both return a
-// non-nil stack. It also verifies the top level move implements
+// non-nil stack. It also verifies the concrete move implements
 // interfacdes.TargetCounter.
 func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.State) error {
 
-	playerStacker, ok := d.TopLevelStruct().(interfaces.PlayerStacker)
+	playerStacker, ok := d.Info().ConcreteMove().(interfaces.PlayerStacker)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement PlayerStacker")
@@ -204,7 +204,7 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.State) e
 		return errors.New("PlayerStack returned a nil stack")
 	}
 
-	gameStacker, ok := d.TopLevelStruct().(interfaces.GameStacker)
+	gameStacker, ok := d.Info().ConcreteMove().(interfaces.GameStacker)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement GameStacker")
@@ -214,7 +214,7 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.State) e
 		return errors.New("GameStack returned a nil stack")
 	}
 
-	targetCounter, ok := d.TopLevelStruct().(interfaces.TargetCounter)
+	targetCounter, ok := d.Info().ConcreteMove().(interfaces.TargetCounter)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement TargetCounter")
@@ -254,9 +254,9 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 		return errors.New("ImmutablePlayerState couldn't be casted to PlayerState")
 	}
 
-	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+	playerStack, gameStack, err := dealActionHelper(d.Info().ConcreteMove(), playerState)
 
-	sAndD, ok := d.TopLevelStruct().(sourceAndDestinationer)
+	sAndD, ok := d.Info().ConcreteMove().(sourceAndDestinationer)
 
 	if !ok {
 		return errors.New("Source and Destination overridden")
@@ -288,7 +288,7 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 // configured by the PlayerStacker and GameStacker interfaces.
 func (d *DealCountComponents) RoundRobinAction(playerState boardgame.SubState) error {
 
-	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+	playerStack, gameStack, err := dealActionHelper(d.Info().ConcreteMove(), playerState)
 
 	if err != nil {
 		return err
@@ -314,11 +314,11 @@ func (d *DealCountComponents) moveTypeInfo(exampleState boardgame.ImmutableState
 		//Ugly hack to cast these to mutable state :-/
 		playerState := exampleState.ImmutablePlayerStates()[0].(boardgame.SubState)
 
-		playerStack, gameStack, _ = dealActionHelper(d.TopLevelStruct(), playerState)
+		playerStack, gameStack, _ = dealActionHelper(d.Info().ConcreteMove(), playerState)
 
 	}
 
-	return stackName(d, configPropPlayerProperty, playerStack, exampleState), stackName(d, configPropGameProperty, gameStack, exampleState), targetCountString(d.TopLevelStruct())
+	return stackName(d, configPropPlayerProperty, playerStack, exampleState), stackName(d, configPropGameProperty, gameStack, exampleState), targetCountString(d.Info().ConcreteMove())
 }
 
 // FallbackName returns a string based on the names of the player
@@ -350,7 +350,7 @@ type DealComponentsUntilPlayerCountReached struct {
 // PlayerConditionMet is true if the NumComponents in the given player's
 // PlayerStack() is TargetCount or greater.
 func (d *DealComponentsUntilPlayerCountReached) PlayerConditionMet(pState boardgame.ImmutableSubState) bool {
-	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.TopLevelStruct(), pState)
+	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.Info().ConcreteMove(), pState)
 
 	if err != nil {
 		return false
@@ -395,7 +395,7 @@ type DealComponentsUntilGameCountLeft struct {
 // less, and otherwise defaults to RoundRobin's ConditionMet.
 func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.ImmutableState) error {
 
-	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.TopLevelStruct(), state)
+	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.Info().ConcreteMove(), state)
 
 	if err != nil {
 		return nil

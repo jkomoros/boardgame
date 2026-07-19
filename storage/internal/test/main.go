@@ -318,13 +318,18 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(refriedMove.Info().Version()).Equals(1)
 
-	assert.For(t).ThatActual(refriedMove.TopLevelStruct()).Equals(refriedMove.TopLevelStruct())
+	if got := refriedMove.Info().ConcreteMove(); got != refriedMove {
+		t.Fatal(testName, "Refried move's ConcreteMove was not itself")
+	}
+	if got := move.Info().ConcreteMove(); got != move {
+		t.Fatal(testName, "Original move's ConcreteMove was not itself")
+	}
+	if refriedMove.Info().ConcreteMove() == move {
+		t.Fatal(testName, "Refried move retained the original move's runtime identity")
+	}
 
-	//RefriedMove and Move will have a different TopLevelStruct which is fine,
-	//so set them both to nil before comparing.
-
-	refriedMove.SetTopLevelStruct(nil)
-	move.SetTopLevelStruct(nil)
+	// MoveInfo is engine-owned runtime affiliation rather than persisted move
+	// data, so remove it before comparing the concrete persisted properties.
 
 	move.SetInfo(nil)
 	refriedMove.SetInfo(nil)

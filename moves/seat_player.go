@@ -599,9 +599,9 @@ func (c *CloseAllSeats) Legal(state boardgame.ImmutableState, proposer boardgame
 		return errors.New("No unfilled, unclosed seats to close")
 	}
 
-	targetCounter, ok := c.TopLevelStruct().(interfaces.TargetCounter)
+	targetCounter, ok := c.Info().ConcreteMove().(interfaces.TargetCounter)
 	if !ok {
-		return errors.New("Top level move unexpectedly didn't implement TargetCounter")
+		return errors.New("Concrete move unexpectedly didn't implement TargetCounter")
 	}
 
 	activePlayerser, ok := state.Manager().Delegate().(numSeatedActivePlayerser)
@@ -679,9 +679,9 @@ func (c *CloseAllSeats) ValidConfiguration(exampleState boardgame.State) error {
 	if !ok {
 		return errors.New("Player state didn't implement interfaces.Seater. behaviors.Seat implements it for free")
 	}
-	_, ok = c.TopLevelStruct().(interfaces.TargetCounter)
+	_, ok = c.Info().ConcreteMove().(interfaces.TargetCounter)
 	if !ok {
-		return errors.New("Top level move unexpectedly didn't implement TargetCounter")
+		return errors.New("Concrete move unexpectedly didn't implement TargetCounter")
 	}
 	_, ok = exampleState.Manager().Delegate().(numSeatedActivePlayerser)
 	if !ok {
@@ -742,9 +742,9 @@ func (w *WaitForEnoughPlayers) Legal(state boardgame.ImmutableState, proposer bo
 		return nil
 	}
 
-	targetCounter, ok := w.TopLevelStruct().(interfaces.TargetCounter)
+	targetCounter, ok := w.Info().ConcreteMove().(interfaces.TargetCounter)
 	if !ok {
-		return errors.New("Top level move unexpectedly didn't implement targetCounter")
+		return errors.New("Concrete move unexpectedly didn't implement targetCounter")
 	}
 
 	activePlayerser, ok := state.Manager().Delegate().(numSeatedActivePlayerser)
@@ -823,9 +823,9 @@ func (w *WaitForEnoughPlayers) Apply(state boardgame.State) error {
 // ValidConfiguration checks that player states implement interfaces.Seater and
 // interfaces.PlayerInactiver.
 func (w *WaitForEnoughPlayers) ValidConfiguration(exampleState boardgame.State) error {
-	_, ok := w.TopLevelStruct().(interfaces.TargetCounter)
+	_, ok := w.Info().ConcreteMove().(interfaces.TargetCounter)
 	if !ok {
-		return errors.New("Top level doesn't implement targetCounter")
+		return errors.New("Concrete move doesn't implement targetCounter")
 	}
 
 	_, ok = exampleState.Manager().Delegate().(numSeatedActivePlayerser)

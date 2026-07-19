@@ -9,8 +9,8 @@ import (
 )
 
 // targetCountString is a simple helper that returns the string of the target count.
-func targetCountString(topLevelStruct boardgame.Move) string {
-	moveCounter, ok := topLevelStruct.(interfaces.TargetCounter)
+func targetCountString(concreteMove boardgame.Move) string {
+	moveCounter, ok := concreteMove.(interfaces.TargetCounter)
 
 	if !ok {
 		return "unknown"
@@ -37,7 +37,7 @@ type ApplyUntil struct {
 // interfaces.ConditionMetter.
 func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
 
-	if _, ok := a.TopLevelStruct().(interfaces.ConditionMetter); !ok {
+	if _, ok := a.Info().ConcreteMove().(interfaces.ConditionMetter); !ok {
 		return errors.New("Embedding Move doesn't have ConditionMet")
 	}
 
@@ -50,11 +50,11 @@ func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		return err
 	}
 
-	conditionMet, ok := a.TopLevelStruct().(interfaces.ConditionMetter)
+	conditionMet, ok := a.Info().ConcreteMove().(interfaces.ConditionMetter)
 
 	if !ok {
 		//This should be extremely rare since we ourselves have the right method.
-		return errors.New("ApplyUntil top level struct unexpectedly did not have ConditionMet method")
+		return errors.New("ApplyUntil concrete move unexpectedly did not have ConditionMet method")
 	}
 
 	if err := conditionMet.ConditionMet(state); err != nil {
@@ -92,14 +92,14 @@ type ApplyUntilCount struct {
 	ApplyUntil
 }
 
-// ValidConfiguration verifes the top level move implements Count() and
+// ValidConfiguration verifies the concrete move implements Count() and
 // interfaces.TargetCounter, and that TargetCount doesn't return below 0.
 func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.State) error {
 	if err := a.ApplyUntil.ValidConfiguration(exampleState); err != nil {
 		return err
 	}
 
-	theCounter, ok := a.TopLevelStruct().(counter)
+	theCounter, ok := a.Info().ConcreteMove().(counter)
 
 	if !ok {
 		return errors.New("EmeddingMove doesn't have Count/TargetCount")
@@ -154,7 +154,7 @@ func (a *ApplyUntilCount) TargetCount(state boardgame.ImmutableState) int {
 // behavior instead of overriding this.
 func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 
-	embeddingMove := a.TopLevelStruct()
+	embeddingMove := a.Info().ConcreteMove()
 
 	moveCounter, ok := embeddingMove.(counter)
 
@@ -178,20 +178,20 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 // target count.
 func (a *ApplyUntilCount) FallbackName(m *boardgame.GameManager) string {
 
-	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
+	return "Apply Until Count of " + targetCountString(a.Info().ConcreteMove())
 }
 
 // FallbackHelpText returns "Applies the move until a target count of
 // INT is met.", where INT is the target count.
 func (a *ApplyUntilCount) FallbackHelpText() string {
-	return "Applies the move until a target count of " + targetCountString(a.TopLevelStruct()) + " is met."
+	return "Applies the move until a target count of " + targetCountString(a.Info().ConcreteMove()) + " is met."
 }
 
 // countMovesApplied is where the majority of logic for the count method of
 // ApplyUntilCount goes. It makes it easy to plug in the logic in multiple
 // types of moves that have the same type of behavior for Count() but can't
 // directly subclass one another.
-func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableState) int {
+func countMovesApplied(concreteMove boardgame.Move, state boardgame.ImmutableState) int {
 
 	records := state.Game().MoveRecords(state.Version())
 
@@ -199,7 +199,7 @@ func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableS
 		return 0
 	}
 
-	targetName := topLevelStruct.Info().Name()
+	targetName := concreteMove.Info().Name()
 	_, targetPhase := currentPhaseInfo(state)
 
 	count := 0
@@ -234,18 +234,18 @@ type ApplyCountTimes struct {
 // Count returns the number of times this move has been applied in a row in the
 // immediate past in the current phase.
 func (a *ApplyCountTimes) Count(state boardgame.ImmutableState) int {
-	return countMovesApplied(a.TopLevelStruct(), state)
+	return countMovesApplied(a.Info().ConcreteMove(), state)
 }
 
 // FallbackName returns "Apply INT Times", where INT is the target
 // count.
 func (a *ApplyCountTimes) FallbackName(m *boardgame.GameManager) string {
 
-	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
+	return "Apply " + targetCountString(a.Info().ConcreteMove()) + " Times"
 }
 
 // FallbackHelpText returns "Applies the move INT times in a row.",
 // where INT is the target count.
 func (a *ApplyCountTimes) FallbackHelpText() string {
-	return "Applies the move " + targetCountString(a.TopLevelStruct()) + " times in a row."
+	return "Applies the move " + targetCountString(a.Info().ConcreteMove()) + " times in a row."
 }

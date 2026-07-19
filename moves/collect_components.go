@@ -27,7 +27,7 @@ func (d *CollectCountComponents) sourceAndDestination(playerStack boardgame.Stac
 // configured by the PlayerStacker and GameStacker interfaces.
 func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.SubState) error {
 
-	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+	playerStack, gameStack, err := dealActionHelper(d.Info().ConcreteMove(), playerState)
 
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) sourceAndDestination(playerStack
 // configured by the PlayerStacker and GameStacker interfaces.
 func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.SubState) error {
 
-	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+	playerStack, gameStack, err := dealActionHelper(d.Info().ConcreteMove(), playerState)
 
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boa
 // PlayerConditionMet is true if the NumComponents in the given player's
 // PlayerStack() is TargetCount or less.
 func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardgame.ImmutableSubState) bool {
-	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.TopLevelStruct(), pState)
+	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.Info().ConcreteMove(), pState)
 
 	if err != nil {
 		return false
@@ -141,7 +141,7 @@ func (d *CollectComponentsUntilGameCountReached) sourceAndDestination(playerStac
 // configured by the PlayerStacker and GameStacker interfaces.
 func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.SubState) error {
 
-	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+	playerStack, gameStack, err := dealActionHelper(d.Info().ConcreteMove(), playerState)
 
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState bo
 // greater, and otherwise defaults to RoundRobin's ConditionMet.
 func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.ImmutableState) error {
 
-	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.TopLevelStruct(), state)
+	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.Info().ConcreteMove(), state)
 
 	if err != nil {
 		return nil

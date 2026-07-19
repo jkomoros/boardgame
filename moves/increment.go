@@ -43,12 +43,12 @@ type gamePlayerProperty interface {
 // whether that's a valid int prop and assumes it is.
 func (i *Increment) intProp(state boardgame.ImmutableState) (isPlayer bool, propName string, amount int, err error) {
 
-	m := i.TopLevelStruct()
+	m := i.Info().ConcreteMove()
 
 	proper, ok := m.(gamePlayerProperty)
 
 	if !ok {
-		return false, "", 0, errors.New("Top level struct did not implement GameProperty and PlayerProperty and Amount")
+		return false, "", 0, errors.New("Concrete move did not implement GameProperty and PlayerProperty and Amount")
 	}
 
 	amount = proper.Amount()

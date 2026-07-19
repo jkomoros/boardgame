@@ -47,7 +47,7 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 		return err
 	}
 
-	locProvider, ok := m.TopLevelStruct().(LocationProvider)
+	locProvider, ok := m.Info().ConcreteMove().(LocationProvider)
 	if !ok {
 		return errors.New("MoveOnGraph: embedding move must implement LocationProvider")
 	}
@@ -76,7 +76,7 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	}
 
 	// Check for free move (teleport)
-	if freePred, ok := m.TopLevelStruct().(interfaces.FreeMovePredicate); ok {
+	if freePred, ok := m.Info().ConcreteMove().(interfaces.FreeMovePredicate); ok {
 		if freePred.IsFreeMove(playerState, targetVal) {
 			return nil
 		}
@@ -89,7 +89,7 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	}
 
 	// Validate each space in the path (skip start)
-	if validator, ok := m.TopLevelStruct().(interfaces.SpaceValidator); ok {
+	if validator, ok := m.Info().ConcreteMove().(interfaces.SpaceValidator); ok {
 		for _, spaceVal := range path[1:] {
 			if err := validator.SpaceIsLegal(playerState, spaceVal); err != nil {
 				return err
@@ -98,7 +98,7 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 	}
 
 	// Check movement budget
-	if budgeter, ok := m.TopLevelStruct().(interfaces.MovementBudgeter); ok {
+	if budgeter, ok := m.Info().ConcreteMove().(interfaces.MovementBudgeter); ok {
 		hops := len(path) - 1
 		remaining := budgeter.MovesRemaining(playerState)
 		if hops > remaining {
@@ -113,7 +113,7 @@ func (m *MoveOnGraph) Legal(state boardgame.ImmutableState, proposer boardgame.P
 // and consumes the movement budget.
 func (m *MoveOnGraph) Apply(state boardgame.State) error {
 
-	locProvider, ok := m.TopLevelStruct().(LocationProvider)
+	locProvider, ok := m.Info().ConcreteMove().(LocationProvider)
 	if !ok {
 		return errors.New("MoveOnGraph: embedding move must implement LocationProvider")
 	}
@@ -138,14 +138,14 @@ func (m *MoveOnGraph) Apply(state boardgame.State) error {
 	}
 
 	// Check for free move
-	if freePred, ok := m.TopLevelStruct().(interfaces.FreeMovePredicate); ok {
+	if freePred, ok := m.Info().ConcreteMove().(interfaces.FreeMovePredicate); ok {
 		if freePred.IsFreeMove(playerState.(boardgame.ImmutableSubState), targetVal) {
 			// Move directly
 			if err := behavior.MoveTo(m.TargetLocation); err != nil {
 				return err
 			}
 			// Handle game-specific free move cleanup
-			if applier, ok := m.TopLevelStruct().(interfaces.FreeMoveApplier); ok {
+			if applier, ok := m.Info().ConcreteMove().(interfaces.FreeMoveApplier); ok {
 				return applier.ApplyFreeMove(playerState, targetVal)
 			}
 			return nil
@@ -166,7 +166,7 @@ func (m *MoveOnGraph) Apply(state boardgame.State) error {
 	behavior.LocRemainingPath = intPath
 
 	// Consume movement budget
-	if budgeter, ok := m.TopLevelStruct().(interfaces.MovementBudgeter); ok {
+	if budgeter, ok := m.Info().ConcreteMove().(interfaces.MovementBudgeter); ok {
 		hops := len(path) - 1
 		if err := budgeter.ConsumeMovement(playerState, hops); err != nil {
 			return err

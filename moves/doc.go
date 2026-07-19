@@ -140,12 +140,21 @@ If you do create a bespoke struct, name it like this: "MoveNameOfMyMove", so
 that [Default.DeriveName] will give it a reasonable name
 automatically (in this example, "Name Of My Move").
 
-In many cases if you subclass powerful moves like [DealCountComponents] the
+Anonymous embedding requires no binding boilerplate. The engine records the
+final constructed move in its [boardgame.MoveInfo], so framework methods on an
+embedded move can discover capabilities and invoke overrides implemented by
+the outer move. This is automatic for game authors. Authors of reusable move
+frameworks may use move.Info().ConcreteMove() when they deliberately need this
+final-dispatch behavior; it should not be used as a general service locator.
+Framework tests and tools may use [boardgame.NewOrphanMove] when they need this
+affiliation without a game or manager.
+
+In many cases if you extend powerful moves like [DealCountComponents] the
 default HelpText() value is sufficient (especially if it's a [FixUp] move that
 won't ever be seen by players). In other cases, [WithHelpText] is often the only
 config option you will pass to [AutoConfigurer].
 
-If your move will be a FixUp move that doesn't sublcass one of the more advanced
+If your move will be a FixUp move that doesn't embed one of the more advanced
 fix up moves (like [RoundRobin] or [DealCountComponents]), embed [FixUp] into
 your struct. That will cause IsFixUp to return the right value even without
 using [WithIsFixUp]--because [WithIsFixUp] is easy to forget given that it's often
@@ -278,7 +287,7 @@ each has on the one above it. See the documentation for each struct for more.
 	          │   │ ├ DealAllComponents
 	          │   │ └ CollectComponentsUntilGameCountLeft
 	          │   └ CollectCountComponents
-	          └ (your custom ApplyUntilCount subclasses)
+	          └ (your custom ApplyUntilCount extensions)
 
 # Gathering Phase Moves
 

@@ -31,18 +31,18 @@ type DefaultComponent struct {
 }
 
 func (d *DefaultComponent) sourceStackImpl(state boardgame.State) (boardgame.Stack, error) {
-	sourceStacker, ok := d.TopLevelStruct().(interfaces.SourceStacker)
+	sourceStacker, ok := d.Info().ConcreteMove().(interfaces.SourceStacker)
 	if !ok {
-		return nil, errors.New("The top level struct doesn't implement SourceStacker")
+		return nil, errors.New("The concrete move doesn't implement SourceStacker")
 	}
 	return sourceStacker.SourceStack(state), nil
 }
 
 func (d *DefaultComponent) legalTypeImpl() (enum.EnumKey, error) {
-	typer, ok := d.TopLevelStruct().(legalTyper)
+	typer, ok := d.Info().ConcreteMove().(legalTyper)
 
 	if !ok {
-		return 0, errors.New("The top level struct doesn't implement LegalType")
+		return 0, errors.New("The concrete move doesn't implement LegalType")
 	}
 	return typer.LegalType(), nil
 }
