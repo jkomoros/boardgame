@@ -15,6 +15,7 @@ import type {
 } from '../effects/effect-spec.js';
 import type { MotionStaggerCohortSpec } from '../motion/cohort.js';
 import type { MotionTransferDeclaration } from '../motion/transfer.js';
+import type { MotionReleaseDeclaration } from '../motion/release.js';
 import {
   serializeCreatorMoveInputForServer,
   validateCreatorMoveInput,
@@ -300,6 +301,17 @@ export class BoardgameBaseGameRenderer<
   }
 
   /**
+   * Pure policy for admitting an already-buffered successor before this
+   * structural cycle settles. This is a destructive cutover: the next install
+   * terminalizes this generation; it is not concurrent multi-generation motion.
+   */
+  motionReleaseForTransition(
+    _context: EffectTransitionContext<S, MN>,
+  ): MotionReleaseDeclaration | null {
+    return null;
+  }
+
+  /**
    * Returns true if the named move is legal for the viewing player right now.
    * Use this to disable buttons when a move can't be made (e.g. not your turn).
    */
@@ -487,16 +499,12 @@ export class BoardgameBaseGameRenderer<
   // animation length (in milliseconds) by setting `--animation-length` on the
   // renderer. Zero will specify default animation length (that is, unset an
   // override style). A negative return value will skip the animation entirely.
-  // The default one returns 0 for all combinations. See also animationOverlap.
+  // The default one returns 0 for all combinations.
   animationLength(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }
 
-  // animationOverlap returns a fraction (0-1) of the animation length after
-  // which the next state can be installed, even if the current animation is
-  // still running. 0 (default) = wait for animation to complete (no overlap).
-  // 0.5 = start next animation when this one is halfway done. Values outside
-  // 0-1 are clamped. See also animationLength.
+  /** @deprecated Use motionReleaseForTransition(); this guessed-duration hook is no longer consulted. */
   animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
     return 0;
   }

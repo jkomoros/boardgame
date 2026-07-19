@@ -167,7 +167,7 @@ matching slot. The protocol currently reserves 800ms per synchronized version:
 up to 600ms of visible motion and 200ms to prepare the next queued state. The
 framework applies the slot to its whole animation pipeline: ordinary FLIP
 movement, card/die property effects, automatic deals, and `fly()`
-calls. Visible motion is capped at 600ms and `animationOverlap` is disabled for
+calls. Visible motion is capped at 600ms and early structural queue release is disabled for
 those cycles; use immediate timing for a longer effect that has no cross-screen
 counterpart. State installs during the 200ms preparation window before the
 target, and WAAPI holds each opening frame until launch. A client joining a

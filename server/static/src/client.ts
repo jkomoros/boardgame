@@ -15,6 +15,7 @@ export { defineEffectTheme, fx } from './effects/effect-spec.js';
 export { motion } from './motion/cohort.js';
 export type { MotionStaggerCohortSpec } from './motion/cohort.js';
 export type { MotionTransferDeclaration } from './motion/transfer.js';
+export type { MotionReleaseDeclaration } from './motion/release.js';
 export { motionSilhouette } from './motion/subject.js';
 export type {
   MotionSilhouetteShape,

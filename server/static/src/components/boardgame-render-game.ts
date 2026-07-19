@@ -32,6 +32,7 @@ import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
 import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 import { retryDelayMs } from '../utils/retry-policy.js';
 import { compileMotionTransferDeclarations } from '../motion/transfer.js';
+import { compileMotionRelease } from '../motion/release.js';
 
 type HostedState = FullGameState<object, object, object, object, object>;
 export type HostedGameRenderer = BoardgameBaseGameRenderer<
@@ -176,6 +177,10 @@ class BoardgameRenderGame extends LitElement {
   @property({ attribute: false })
   messageResolver: MessageResolver = defaultMessageResolver;
 
+  /** Opaque manager-issued identity for one installed animation cycle. */
+  @property({ type: Number, attribute: false })
+  motionCycleId = 0;
+
   @property({ type: Number, attribute: false })
   proposingAsPlayer = 0;
 
@@ -285,6 +290,7 @@ class BoardgameRenderGame extends LitElement {
 
   @property({ type: Boolean, attribute: false })
   private _allAnimationsDoneFired = true;
+  private _activeMotionCycleId = 0;
 
   // isAnimating reflects whether the animation gate is currently open (an
   // animation cycle is in flight). Reflected to the `is-animating` attribute
@@ -617,6 +623,7 @@ class BoardgameRenderGame extends LitElement {
   }
 
   private _resetAnimating() {
+    this._activeMotionCycleId = this.motionCycleId;
     animHooks.record('gate-open');
     // Clear any existing watchdog timer from a previous animation cycle.
     if (this._animationWatchdogTimer !== null) {
@@ -665,7 +672,7 @@ class BoardgameRenderGame extends LitElement {
         `within their declared budget (${fromNowMs}ms). Force-firing all-animations-done. ` +
         `Pending components (${pendingComponents.length}): ${pendingComponents.join(', ') || 'none'}`
       );
-      this._notifyAnimationsDone();
+      this._notifyAnimationsDone(this._activeMotionCycleId);
     }, fromNowMs);
   }
 
@@ -693,17 +700,19 @@ class BoardgameRenderGame extends LitElement {
     if (this._activeAnimations!.size === 0) return;
     this._activeAnimations!.delete(e.detail.ele);
     if (this._activeAnimations!.size === 0) {
-      this._notifyAnimationsDone();
+      this._notifyAnimationsDone(this._activeMotionCycleId);
     }
   }
 
-  private _nextStateIfNoAnimations() {
+  private _nextStateIfNoAnimations(cycleId = this._activeMotionCycleId) {
+    if (cycleId !== this._activeMotionCycleId) return;
     if (this._activeAnimations && this._activeAnimations.size === 0) {
-      this._notifyAnimationsDone();
+      this._notifyAnimationsDone(cycleId);
     }
   }
 
-  private _notifyAnimationsDone() {
+  private _notifyAnimationsDone(cycleId = this._activeMotionCycleId) {
+    if (cycleId !== this._activeMotionCycleId) return;
     if (this._allAnimationsDoneFired) return;
     // Animations completed normally — cancel the watchdog timer.
     if (this._animationWatchdogTimer !== null) {
@@ -717,7 +726,11 @@ class BoardgameRenderGame extends LitElement {
     this.dispatchEvent(new CustomEvent('animating-changed', {
       bubbles: true, composed: true, detail: { value: this.isAnimating }
     }));
-    this.dispatchEvent(new CustomEvent('all-animations-done', { composed: true, bubbles: true }));
+    this.dispatchEvent(new CustomEvent('all-animations-done', {
+      composed: true,
+      bubbles: true,
+      detail: Object.freeze({ cycleId }),
+    }));
   }
 
   private _defaultAnimationLengthChanged(newValue: number) {
@@ -730,6 +743,7 @@ class BoardgameRenderGame extends LitElement {
 
   private _stateChanged(newState: HostedState | null) {
     if (!this.renderer) return;
+    if (newState) this._activeMotionCycleId = this.motionCycleId;
     if (this._animator) {
       this._animator.animationContext = this.animationContext;
     }
@@ -767,9 +781,11 @@ class BoardgameRenderGame extends LitElement {
       // synchronous planned/started events. Effect planning remains isolated:
       // either fulfillment or rejection releases structural playback.
       const renderer = this.renderer;
+      const cycleId = this.motionCycleId;
       const startStructuralMotion = () => {
-        if (this.renderer !== renderer || renderer.state !== newState) return;
-        this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations());
+        if (this.renderer !== renderer || renderer.state !== newState
+          || this.motionCycleId !== cycleId) return;
+        this._animator?.animateFlip().then(() => this._nextStateIfNoAnimations(cycleId));
       };
       void presentationPlanning.then(startStructuralMotion, startStructuralMotion);
     }
@@ -815,6 +831,19 @@ class BoardgameRenderGame extends LitElement {
       } catch (error) {
         // The compiler is atomic: malformed intent starts no partial batch.
         console.error('[motion] transition transfer planning failed:', error);
+      }
+      if (this.animationContext === null) {
+        try {
+          const release = renderer.motionReleaseForTransition(context);
+          this._animator?.installMotionRelease(
+            release === null ? null : compileMotionRelease(release),
+            this.motionCycleId,
+          );
+        } catch (error) {
+          // Malformed policy fails closed to ordinary cycle settlement.
+          this._animator?.installMotionRelease(null, this.motionCycleId);
+          console.error('[motion] transition release planning failed:', error);
+        }
       }
     }
     if (!this._effects) return;

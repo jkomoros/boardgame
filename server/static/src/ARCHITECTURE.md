@@ -27,7 +27,13 @@ Finally, when `game-state-manager` is told by `game-view` to render another stat
 
 To hold an item on screen for a beat after its animation completes (for example so players can see a matched pair before it's captured), renderers bind the declarative `post-animation-delay` attribute (milliseconds) on the relevant `boardgame-component-stack` or item, computed from current render-time state. This replaced an earlier imperative per-move delay hook on the renderer that the state manager used to consult directly before installing the next bundle.
 
-There's also `animationOverlap`, which returns a fraction between 0 and 1 representing how much of the current animation should play before the next state bundle is installed. A return value of 0 (the default) means the animation must complete entirely before the next state is applied. A value of 0.5 means the next state will be installed when the current animation is 50% done. Values outside 0-1 are clamped. This enables cascade effects like dealing cards, where each card starts moving before the previous one has finished landing.
+For buffered catch-up, `motionReleaseForTransition()` can declare an early
+cutover after selected structural primaries cross an actual active-progress
+fraction. The animator derives this from executed WAAPI timing, not
+`animationLength`. Both progress release and final settlement carry one opaque
+install-cycle ID; stale events cannot advance a newer cycle. Cutover
+terminalizes the old generation, so this is intentionally not described as
+concurrent overlap.
 
 `boardgame-game-view` also listens for `propose-move` events emanating from
 within the rendererd game, and then forwards them to the `boardgame-admin-
@@ -81,7 +87,7 @@ they are based on information set internally.
 
 Note that all animations of all types have a default length set by the CSS var
 `--animation-length`. If you want to change the animation, you can target a
-different CSS var at the item. You can also override renderer.animationLength to set a different animation value temporarily. Additionally, renderer.animationOverlap can be overridden to allow the next state to be installed before the current animation finishes, creating overlapping animations.
+different CSS var at the item. You can also override renderer.animationLength to set a different animation value temporarily. `motionReleaseForTransition()` is the separate, declarative policy for admitting an already-buffered successor from actual structural progress.
 
 Components have three types of transforms that can apply. The first is
 *internal*. These are transformations on the inner element. For cards this

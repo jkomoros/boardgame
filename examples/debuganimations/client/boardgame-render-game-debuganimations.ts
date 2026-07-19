@@ -16,6 +16,7 @@ import type { ClientMove, StackLayout } from '../../src/client.js';
 import type {
   EffectSpec,
   EffectTransitionContext,
+  MotionReleaseDeclaration,
   MotionStaggerCohortSpec,
 } from '../../src/client.js';
 import type { GameState, State } from './_types.js';
@@ -199,11 +200,11 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
     return 0;
   }
 
-  override animationOverlap(_fromMove: ClientMove | null, _toMove: ClientMove | null): number {
-    if (!this.slowAnimations) return 0;
-    // When slow animations are enabled, overlap by 30% so multiple
-    // animations visually cascade instead of playing fully sequentially.
-    return 0.3;
+  override motionReleaseForTransition(
+    context: EffectTransitionContext<State, MoveName>,
+  ): MotionReleaseDeclaration | null {
+    if (!this.slowAnimations || context.kind === 'initial') return null;
+    return motion.release({ key: 'slow-animation-cutover', progress: 0.3 });
   }
 
   override effectsForTransition(

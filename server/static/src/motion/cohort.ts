@@ -1,5 +1,7 @@
 import { motionTransfer } from './transfer.ts';
 import type { MotionTransferDeclaration } from './transfer.ts';
+import { motionRelease } from './release.ts';
+import type { MotionReleaseDeclaration } from './release.ts';
 
 /** An explicit, deterministic start order for automatic structural motion. */
 export interface MotionStaggerCohortSpec {
@@ -108,6 +110,9 @@ type StaggerOptions = Readonly<{
 }>;
 
 export const motion = Object.freeze({
+  release(options: MotionReleaseDeclaration) {
+    return motionRelease(options);
+  },
   transfer(options: MotionTransferDeclaration) {
     return motionTransfer(options);
   },

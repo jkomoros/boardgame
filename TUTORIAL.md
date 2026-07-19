@@ -3806,8 +3806,7 @@ override motionCohortsForTransition(context: EffectTransitionContext<State, Move
 The explicit ID order is stable across layouts and companion surfaces. This
 replaces stack stagger only for listed components and safely falls back to the
 stack configuration if declarations conflict. It coordinates motion within one
-state installation; `animationOverlap()` below still coordinates successive
-state bundles. Effects remain observers and cannot retime the pieces.
+state installation. Effects remain observers and cannot retime the pieces.
 
 For a retained, non-stack presentation carrier—such as a Table-side deal
 stub—declare transition-local flight intent in the same pure phase:
@@ -3854,12 +3853,41 @@ not hold the state queue or include explicit retained-carrier `fly()` flights.
 
 The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
 
-Sometimes you want animations to overlap rather than playing fully sequentially. For example, when dealing cards to players, you might want the next card to start moving before the previous one has finished. If your game renderer defines `animationOverlap(fromMove, toMove)`, it will be consulted before each state bundle is installed. The return value is a fraction between 0 and 1 representing how much of the current animation should play before the next state is installed. A return value of 0 (the default) means the current animation must complete entirely before the next state is applied. A value of 0.5 means the next state will be installed when the current animation is 50% complete. Values outside the 0-1 range are clamped. This is useful for cascade effects where multiple animations should overlap smoothly instead of playing one after another.
+When catch-up has already buffered another state, a solo renderer may admit
+that successor after the current structural motion reaches a real milestone:
 
-These controls compose cleanly: `animationLength` controls motion duration (or
-skips an intermediate bundle with a negative value), `post-animation-delay`
-holds a component's completed state, and `animationOverlap` lets a solo cycle
-install its next state before the current cycle finishes.
+```ts
+override motionReleaseForTransition(context: EffectTransitionContext<State, MoveName>) {
+  if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.Deal) return null;
+  return motion.release({
+    key: 'deal-cutover',       // diagnostics only; not server identity
+    progress: 0.3,
+    // subjects: dealtCardIds, // optional exact selection
+  });
+}
+```
+
+The framework waits until every selected structural segment's actual primary
+WAAPI animation has crossed 30% of its active interval. With no `subjects`,
+all armed automatic FLIP and retained-carrier transfer primaries participate.
+Missing or ambiguous selected subjects fail closed to normal settlement.
+Stagger, clipping, playback rate, repeated duration, and late starts therefore
+cannot be bypassed by a guessed timeout; end delay and `post-animation-delay`
+are intentionally outside this active-progress milestone.
+
+This is queue **cutover**, not true concurrent animation generations. Installing
+the successor terminalizes the current carriers and lifecycle-bound effects.
+The release applies only to a successor that is already buffered; a state that
+arrives later follows the existing live-arrival policy. Opaque cycle IDs make
+both progress release and ordinary settlement exactly-once, so stale completion
+from an interrupted generation cannot skip a later bundle. `animationOverlap()`
+is deprecated and no longer consulted.
+
+These controls are deliberately layered: `animationLength` controls requested
+motion duration (or skips a buffered intermediate bundle with a negative
+value), `post-animation-delay` holds a component's completed state, cohorts
+schedule starts within a cycle, and `motionReleaseForTransition()` declares an
+optional structural-progress cutover for an already-buffered successor.
 
 Companion Table/Hand surfaces add one deliberate constraint: animation cycles
 that must agree across physical screens use the framework's version timeline.
@@ -3870,8 +3898,8 @@ the framework budgets each component's stagger, visible duration, and
 effect whose stagger would begin after that window is omitted; an oversized
 hold shortens visible motion rather than delaying later slots. Ordinary FLIP
 and property effects use the same policy as `fly()`, and
-`animationOverlap` is disabled. Solo games and explicitly local effects retain
-the normal behavior above.
+early motion release is disabled. Solo games and explicitly local effects
+retain the normal behavior above.
 
 Game renderers normally need no timing code. For a card already rendered at
 its natural destination, name the geometry-only source and the retained

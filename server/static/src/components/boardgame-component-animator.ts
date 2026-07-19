@@ -67,6 +67,14 @@ import type { HistoricalPresentation } from '../motion/historical-presentation.j
 import { motionPresenceHostStyle } from '../motion/presence.js';
 import type { CompiledMotionTransferDeclaration } from '../motion/transfer.js';
 import { partitionMotionTransferOwnership } from '../motion/transfer-arbitration.js';
+import {
+  MotionReleaseMonitor,
+  selectMotionReleaseParticipants,
+} from '../motion/release.js';
+import type {
+  CompiledMotionReleaseDeclaration,
+  MotionReleaseParticipant,
+} from '../motion/release.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -88,6 +96,7 @@ export interface MotionFlightRequest {
 
 export interface ComponentAnimatorAPI {
   installMotionTransfers(transfers: readonly CompiledMotionTransferDeclaration[]): void;
+  installMotionRelease(release: CompiledMotionReleaseDeclaration | null, cycleId: number): void;
   fly(request: MotionFlightRequest): Promise<void>;
   animateBetween(
     realId: string | HTMLElement,
@@ -172,8 +181,14 @@ export class BoardgameComponentAnimator extends LitElement {
     generation: number;
     declarations: readonly CompiledMotionTransferDeclaration[];
   }> | null = null;
+  private _motionRelease: Readonly<{
+    generation: number;
+    cycleId: number;
+    declaration: CompiledMotionReleaseDeclaration;
+  }> | null = null;
   private _consumedTransferKeys = new Set<string>();
   private readonly _activationMonitor = new MotionActivationMonitor();
+  private readonly _releaseMonitor = new MotionReleaseMonitor();
   private readonly _explicitAnimations = new Map<Animation, HTMLElement>();
   private readonly _carrierFlights = new WeakMap<HTMLElement, Animation>();
 
@@ -182,6 +197,7 @@ export class BoardgameComponentAnimator extends LitElement {
   override disconnectedCallback(): void {
     this._interruptExplicitMotion();
     this._activationMonitor.clear();
+    this._releaseMonitor.clear();
     super.disconnectedCallback();
   }
 
@@ -320,14 +336,28 @@ export class BoardgameComponentAnimator extends LitElement {
     });
   }
 
+  /** Install one exact-cycle buffered-queue cutover policy. */
+  installMotionRelease(
+    declaration: CompiledMotionReleaseDeclaration | null,
+    cycleId: number,
+  ): void {
+    this._motionRelease = declaration === null ? null : Object.freeze({
+      generation: this._generation,
+      cycleId,
+      declaration,
+    });
+  }
+
   prepare() {
     this._invalidateSolvedMotionPlan();
     this._interruptExplicitMotion();
     this._activationMonitor.clear();
+    this._releaseMonitor.clear();
     this._generation++;
     this._solvedMotionPlan = null;
     this._motionCohorts = null;
     this._motionTransfers = null;
+    this._motionRelease = null;
     this._consumedTransferKeys = new Set();
     const collections = this.stackElement._sharedStackList;
 
@@ -867,14 +897,21 @@ export class BoardgameComponentAnimator extends LitElement {
     });
   }
 
-  private _startInstalledMotionTransfers(generation: number): Promise<void> {
+  private _startInstalledMotionTransfers(generation: number): Readonly<{
+    settled: Promise<void>;
+    participants: readonly MotionReleaseParticipant[];
+  }> {
     const installed = this._motionTransfers;
     if (!installed || installed.generation !== generation
-      || installed.declarations.length === 0) return Promise.resolve();
+      || installed.declarations.length === 0) {
+      return Object.freeze({ settled: Promise.resolve(), participants: Object.freeze([]) });
+    }
     const declarations = installed.declarations.filter(
       declaration => !this._consumedTransferKeys.has(declaration.key),
     );
-    if (declarations.length === 0) return Promise.resolve();
+    if (declarations.length === 0) {
+      return Object.freeze({ settled: Promise.resolve(), participants: Object.freeze([]) });
+    }
     const explicitGeneration = ++this._explicitMotionSequence;
     const collections = this.stackElement._sharedStackList;
     const structuralCarriers = new Set<HTMLElement>();
@@ -927,6 +964,7 @@ export class BoardgameComponentAnimator extends LitElement {
     ));
 
     const settled: Promise<unknown>[] = [];
+    const participants: MotionReleaseParticipant[] = [];
     for (const [segmentIndex, item] of compiled.entries()) {
       const { declaration, carrier, flight, ownershipConflict } = item;
       if (ownershipConflict) {
@@ -978,9 +1016,13 @@ export class BoardgameComponentAnimator extends LitElement {
         `transfer:${declaration.key}`,
         resolution.activeContext,
       );
+      participants.push(Object.freeze({ subjectId: declaration.subjectId, animation }));
       settled.push(animation.finished.catch(() => undefined));
     }
-    return Promise.all(settled).then(() => undefined);
+    return Object.freeze({
+      settled: Promise.all(settled).then(() => undefined),
+      participants: Object.freeze(participants),
+    });
   }
 
   // CRITICAL: Double microtask delay for Polymer databinding completion
@@ -1556,9 +1598,9 @@ export class BoardgameComponentAnimator extends LitElement {
 
     // Declarative transfers are one separately-owned explicit batch. Resolve,
     // publish, and arm the complete batch before automatic FLIP playback.
-    const settledPromises: Promise<void>[] = [
-      this._startInstalledMotionTransfers(generation),
-    ];
+    const transferPlayback = this._startInstalledMotionTransfers(generation);
+    const settledPromises: Promise<void>[] = [transferPlayback.settled];
+    const releaseParticipants: MotionReleaseParticipant[] = [...transferPlayback.participants];
     const executionUpdates = new Map<number, StructuralExecution>();
     const terminalUpdates: Array<{
       segmentIndex: number;
@@ -1604,6 +1646,12 @@ export class BoardgameComponentAnimator extends LitElement {
               () => true,
             ))),
           });
+          if (primary !== null) {
+            releaseParticipants.push(Object.freeze({
+              subjectId: item.motionDraft.subjectId,
+              animation: animations[primary],
+            }));
+          }
         }
       }
       settledPromises.push(item.component.settled());
@@ -1614,6 +1662,27 @@ export class BoardgameComponentAnimator extends LitElement {
       plannedPlan,
       executionUpdates,
     ));
+    const installedRelease = this._motionRelease;
+    if (installedRelease?.generation === generation) {
+      const selected = selectMotionReleaseParticipants(
+        installedRelease.declaration,
+        releaseParticipants,
+      );
+      if (selected) {
+        this._releaseMonitor.observe(selected, installedRelease.declaration.progress, () => {
+          if (this._generation !== generation) return;
+          this.dispatchEvent(new CustomEvent('motion-cycle-release', {
+            bubbles: true,
+            composed: true,
+            detail: Object.freeze({
+              cycleId: installedRelease.cycleId,
+              key: installedRelease.declaration.key,
+              reason: 'progress' as const,
+            }),
+          }));
+        });
+      }
+    }
     for (const terminal of terminalUpdates) {
       if (!terminal.primaryAnimation) continue;
       const ref = this._solvedMotionPlan?.segments[terminal.segmentIndex]?.ref;
@@ -1661,7 +1730,9 @@ export class BoardgameComponentAnimator extends LitElement {
 
     // The promise animateFlip() hands out now means "everything SETTLED",
     // not "everything started" — the gate awaits real completion.
-    resolve(Promise.all(settledPromises).then(() => {}));
+    resolve(Promise.all(settledPromises).then(() => {
+      if (this._generation === generation) this._releaseMonitor.clear();
+    }));
   }
 
   override render(): TemplateResult {

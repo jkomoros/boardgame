@@ -1394,3 +1394,74 @@ test('explicit motion cohorts schedule a deterministic order across stacks', asy
     diagnostics.stop();
   }
 });
+
+test('buffered queue release follows every real staggered primary, not nominal wall time', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { cardView, motion } = await import('/src/client.ts');
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        prepare(): void;
+        installMotionCohorts(specs: unknown[]): void;
+        installMotionRelease(spec: unknown, cycleId: number): void;
+        animateFlip(): Promise<void>;
+      };
+      const stack = document.createElement('boardgame-component-stack') as HTMLElement & {
+        stack: unknown;
+        componentView: unknown;
+        updateComplete: Promise<unknown>;
+      };
+      stack.style.setProperty('--animation-length', '500ms');
+      stack.componentView = cardView({});
+      stack.stack = {
+        Deck: 'cards', Indexes: [0, 1], IDs: ['release-a', 'release-b'],
+        IDsLastSeen: {}, ShuffleCount: 0, Size: 2, GameName: 'release',
+        Components: ['release-a', 'release-b'].map((ID, Index) => ({
+          ID, Index, Deck: 'cards', GameName: 'release', Values: { rank: Index },
+        })),
+      };
+      document.body.append(animator, stack);
+      await Promise.all([animator.updateComplete, stack.updateComplete]);
+      const cards = [...document.querySelectorAll<HTMLElement>('boardgame-card')];
+      await Promise.all(cards.map(card => (
+        card as HTMLElement & { updateComplete: Promise<unknown> }
+      ).updateComplete));
+      animator.prepare();
+      animator.installMotionCohorts([
+        motion.stagger({ subjects: ['release-a', 'release-b'], intervalMs: 250 }),
+      ]);
+      animator.installMotionRelease(
+        motion.release({ key: 'deal-cutover', progress: 0.25 }),
+        77,
+      );
+      cards.forEach((card, index) => { card.style.transform = `translateX(${60 + index * 10}px)`; });
+      let settled = false;
+      const startedAt = performance.now();
+      const released = new Promise<{ cycleId: number; key: string; elapsed: number; settled: boolean }>(resolve => {
+        animator.addEventListener('motion-cycle-release', event => {
+          const detail = (event as CustomEvent).detail;
+          resolve({ ...detail, elapsed: performance.now() - startedAt, settled });
+        }, { once: true });
+      });
+      const settlement = animator.animateFlip().then(() => { settled = true; });
+      const milestone = await released;
+      await settlement;
+      return { milestone, total: performance.now() - startedAt };
+    });
+
+    expect(result.milestone.cycleId).toBe(77);
+    expect(result.milestone.key).toBe('deal-cutover');
+    expect(result.milestone.settled).toBe(false);
+    // The second primary starts 250ms late and must itself cross 25% of 500ms.
+    expect(result.milestone.elapsed).toBeGreaterThanOrEqual(340);
+    expect(result.milestone.elapsed).toBeLessThan(result.total);
+    expect(result.total).toBeGreaterThanOrEqual(680);
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});

@@ -175,9 +175,15 @@ This API schedules structural starts only. It does not select components from
 private motion plans, retime effects, expose geometry, or create a group
 completion event. Version-slot clipping, reduced motion, cancellation, and the
 animation gate continue through the existing structural timing and settlement
-primitives. `animationOverlap()` remains a separate policy for overlap between
-successive authoritative versions; `motion.stagger()` coordinates components
-inside one version.
+primitives. `motion.stagger()` coordinates components inside one version.
+
+For an already-buffered solo successor, `motionReleaseForTransition()` may
+return `motion.release({ progress, subjects? })`. The release barrier observes
+the real primary WAAPI animation of every selected FLIP or retained-transfer
+segment. It admits a destructive generation cutover; it does not make two
+structural generations coexist. Missing/ambiguous selections, cancellation,
+skips, companion timing, or malformed declarations fall back to ordinary
+cycle settlement. Lifecycle-bound decorations are terminalized at cutover.
 
 ## Decorating automatic component motion
 
