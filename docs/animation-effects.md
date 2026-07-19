@@ -490,6 +490,8 @@ text remains normal accessible UI; any floating text effect is only its
 | Structural point | `fx.motion(id, 'departure' \| 'arrival')` | `arrival` | `pulse` and `burst` in authoritative transitions |
 | Structural trail | `fx.trail({ subject: id })` | none | Real automatic movement only; inherits its structural timing |
 | Structural cohort | `motion.stagger({ subjects, intervalMs })` | none | Ordered starts within one authoritative transition |
+| Structural transfer | `motion.transfer({ key, subjectId, source, carrier })` | none | Retained-carrier intent; stack arrivals arbitrate into FLIP |
+| Buffered cutover | `motion.release({ progress, subjects? })` | settlement | Solo, already-buffered successor only |
 | Theme | semantic tone palettes | Material-aware defaults | Renderer via `effectTheme()` |
 | Escape hatch | recipe-specific `advanced` values | semantic policy | Validated and clamped |
 
@@ -510,11 +512,12 @@ start is infrastructure-level scheduling, not a synchronization protocol.
 - `examples/pig` exercises the standalone die's shared `visual:transform`
   track executor. Its roll stays version-timed and queue-gated without being
   misrepresented as structural travel.
-- Companion table/hand renderers use the retained-carrier `fly()` primitive.
-  It names source and carrier direction, waits for registered stack updates,
-  and shares timing, tracks, lifecycle, and geometry foundations with effects
-  while remaining queue-critical. Automatic hand-size/card-presence detection
-  is not yet an authoritative or cross-device-correlated transfer declaration.
+- Companion Table/Hand bases derive pure `motion.transfer()` batches from
+  adjacent sanitized snapshots. Stack arrivals arbitrate into automatic FLIP;
+  retained Table stubs execute as an explicit batch, under the same structural
+  timing and settlement contracts. The two local observations are not a shared
+  cross-device transfer identity. Imperative `fly()` is the retained-carrier
+  escape hatch for genuinely local presentation, not the automatic default.
 
 What is not configurable yet is equally important: games cannot subscribe to
 the private structural-motion plan, replace automatic FLIP, or request artwork

@@ -21,8 +21,8 @@ import type { MotionTransferDeclaration } from '../motion/transfer.js';
  * animation hooks, then adds a `playerState` convenience getter that
  * returns this.state.Players[this.viewingAs]. That's intentionally
  * sparse: the Hand view has no avatar strip or host controls (those are
- * Table-view-only). Phase 4's top-edge off-screen anchor for cross-screen
- * animations is also wired here; V1 ships the prop surface only.
+ * Table-view-only). It also supplies the top-edge anchor and a declarative
+ * incoming-card default for cross-screen presentation.
  */
 export class BoardgameHandViewBase<
   S extends FullGameState<object, object, object, object, object>,
@@ -67,15 +67,11 @@ export class BoardgameHandViewBase<
   }
 
   /**
-   * When true (the default), the base watches this player's own state for
-   * newly-arrived card ids and flies them in from the top-edge anchor
-   * automatically — the phone half of the cross-screen deal animation,
-   * with zero author wiring. "Newly arrived" means an id that appears in
-   * any Stack-shaped property of playerState and was not present in ANY
-   * of them on the previous state (so cards shuffling between the
-   * player's own stacks don't retrigger). Games whose incoming-card
-   * semantics don't fit (or that wire bespoke animations) set this false
-   * and call this.animator.fly themselves.
+   * When true (the default), the base derives transition-local transfer
+   * declarations for card IDs newly appearing in this player's own stacks.
+   * Moving among the player's stacks does not retrigger. Games whose incoming
+   * semantics do not fit set this false and override
+   * motionTransfersForTransition(); imperative fly() is for local feedback.
    */
   @property({ type: Boolean })
   autoFlyIncoming = true;
@@ -204,13 +200,11 @@ export class BoardgameHandViewBase<
    * edge of the Hand view, representing "from/to the Table". Cards dealt
    * to this player should be animated from this anchor; cards played
    * should exit through it. The element has a stable id ("hand-top-edge")
-   * so authors can call this.animator.fly({ subjectId: realCardId,
-   * source: "hand-top-edge", carrier: realCardId }) to wire arrivals.
-   *
-   * V1 ships the anchor element only — game authors wire the actual
-   * animation calls from their own renderer's state-change reactions.
-   * The base doesn't auto-detect deals because deal-ness is game-
-   * specific (which moves count as "incoming card from Table"?).
+   * so transfer declarations can name it as arrival geometry. With
+   * `autoFlyIncoming` enabled, the base derives declarations from adjacent
+   * authoritative snapshots; games with more precise deal semantics override
+   * motionTransfersForTransition(). Imperative fly() remains for genuinely
+   * local interaction feedback, not authoritative state reactions.
    */
   protected renderTopEdgeAnchor(): TemplateResult {
     return html`<div class="hand-top-edge-anchor" id="hand-top-edge"></div>`;

@@ -3889,6 +3889,23 @@ value), `post-animation-delay` holds a component's completed state, cohorts
 schedule starts within a cycle, and `motionReleaseForTransition()` declares an
 optional structural-progress cutover for an already-buffered successor.
 
+The old card-animation special cases now reduce to these layers:
+
+| Former special case | General explanation |
+| --- | --- |
+| Same card before and after | Exact continuity plus ordinary FLIP geometry |
+| Card appears or departs | Presence fact plus provenance-resolved endpoint |
+| Sanitized/virtual stack endpoint | Safe stack-default presentation on a fresh inert carrier |
+| Face flip or quarter-turn | Component-owned visual track beside the host spatial track |
+| Table/Hand deal anchor | Transition-local `motion.transfer()`; one owner chosen by arbitration |
+| Several cards cascading | `motion.stagger()` cohort over compiled structural timing |
+| Wait until everything lands | Exact WAAPI settlement and the animation gate |
+| Admit buffered state early | `motion.release()` over actual primary-animation progress |
+
+Identity, presence, presentation, geometry, tracks, timing, execution, and
+lifecycle are separate facts. A card can therefore travel, resize, turn, flip,
+fade, trail, and settle as one segment without inventing a new animation mode.
+
 Companion Table/Hand surfaces add one deliberate constraint: animation cycles
 that must agree across physical screens use the framework's version timeline.
 The current protocol gives each version an 800ms slot—at most 600ms of motion

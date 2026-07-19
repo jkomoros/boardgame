@@ -157,6 +157,12 @@ Works out of the box for card games:
   an arbitrary from/to path or a source-carried departure. The framework
   automatically schedules this against the current version's cross-screen
   timeline; there is no timing property to pass through your renderer.
+- For an intentionally local effect (for example, a tap flourish that has no
+  matching event on another screen), opt out explicitly:
+  `this.animator?.fly({ subjectId: card.id, source, carrier: card,
+  durationMs: 300, timing: 'immediate' })`.
+  Advanced code may instead use
+  `{ timing: { localStartAtMs: someTimestamp } }`.
 
 The Table default knows only that a sanitized aggregate count grew, not which
 private card crossed screens. Its synthetic subject and `auto-table:*` key are
@@ -165,12 +171,6 @@ transition-local presentation identity. Subclasses that override
 the reserved `stub:pN:hand` carriers. Games that need exact cross-device card
 correlation require a privacy-reviewed server transfer envelope; the client
 does not infer it from hidden IDs.
-- For an intentionally local effect (for example, a tap flourish that has no
-  matching event on another screen), opt out explicitly:
-  `this.animator?.fly({ subjectId: card.id, source, carrier: card,
-  durationMs: 300, timing: 'immediate' })`.
-  Advanced code may instead use
-  `{ timing: { localStartAtMs: someTimestamp } }`.
 
 Each game version owns its own animation slot. Rapid automatic/fix-up moves are
 spaced on the server's per-game lane, and queued HTTP state bundles retain their

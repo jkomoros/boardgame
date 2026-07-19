@@ -462,9 +462,12 @@ ownership:
 ## Supported surface today
 
 Game authors should use `effectsForTransition()`,
-`motionCohortsForTransition()`, `motion.stagger()`, `this.effects.play()`,
+`motionCohortsForTransition()`, `motion.stagger()`,
+`motionTransfersForTransition()`, `motion.transfer()`,
+`motionReleaseForTransition()`, `motion.release()`, `this.effects.play()`,
 named anchors, `fx.motion()`, `fx.decorateMotion()`, `fx.trail()`, and
-`fx.afterMotion()`, plus retained-carrier `fly()` as documented in
+`fx.afterMotion()`, plus retained-carrier `fly()` for local imperative
+presentation as documented in
 `docs/animation-effects.md` and
 `docs/companion-mode-authoring.md`. Structural plans, observers, and lifecycle
 events are framework-internal while their contracts settle. Shipping the

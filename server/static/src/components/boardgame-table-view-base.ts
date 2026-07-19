@@ -44,10 +44,8 @@ export interface SeatPresentation {
  * does NOT auto-inject anything into light DOM — that would conflict with
  * Lit's reactive contract.
  *
- * V1 ships the property surface; the helper-render IMPLEMENTATIONS are
- * stubs returning empty templates. Phase 3 fills in renderAvatarStrip /
- * renderHostControls once seatPresentation + presence wiring lands on the
- * client. Phase 4 fills in renderFakeDeckRow for cross-screen animations.
+ * The opt-in helpers are implemented here, including avatar/host chrome,
+ * outcome UI, the fake-deck row, and declarative Table deal presentation.
  */
 export class BoardgameTableViewBase<
   S extends FullGameState<object, object, object, object, object>,
@@ -407,14 +405,12 @@ export class BoardgameTableViewBase<
    * animator's flat _infoById map cannot collide with real cards. The id is
    * a private DOM anchor detail, not motion subject identity.
    *
-   * V1: stubs are rendered with low opacity at the bottom of the screen,
-   * one per seated player, with the seat's display-name visible. The
-   * actual card-flying animation is triggered by the game's renderer
-   * calling this.animator.fly(...) when it detects a deal —
-   * the base doesn't auto-wire deal detection because that's game-
-   * specific (which moves are "deals" varies). The stub PRESENCE is the
-   * V1 deliverable; the animation TRIGGERING is left to the game author
-   * with a clear hook.
+   * Stubs are rendered with low opacity at the bottom of the screen, one per
+   * seated player, with the seat's display name visible. `autoFlyDeals`
+   * declares an arrival from #deal-source whenever adjacent sanitized
+   * snapshots show that player's aggregate hand count grow. Games with more
+   * precise semantics disable that lossy default and override
+   * motionTransfersForTransition().
    *
    * Future polish: position stubs at the screen edge (off-viewport) so
    * cards visually "fly off" toward the player; for V1 they're visible
