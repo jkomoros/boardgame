@@ -73,7 +73,7 @@ export class BoardgameBaseGameRenderer<
   protected readonly moveInputSchemaFingerprint: string | null = null;
   /** Generated finite projection contract installed by a game renderer base. */
   protected readonly moveChoiceProjectionSchema: readonly MoveChoiceProjectionSchemaEntry[] = [];
-  protected readonly moveChoiceProjectionSchemaFingerprint = '';
+  protected readonly moveChoiceProjectionSchemaFingerprint: string = '';
   /** Client-owned localizable prompts; no presentation copy crosses the wire. */
   protected readonly moveChoiceMessages: Readonly<Partial<Record<keyof MCP & string, MessageDescriptor>>> =
     {} as Readonly<Partial<Record<keyof MCP & string, MessageDescriptor>>>;
