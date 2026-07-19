@@ -101,3 +101,20 @@ func TestWriteFileAtomicRefusesSymlinkDestination(t *testing.T) {
 		t.Fatalf("symlink target contents = %q, want old", contents)
 	}
 }
+
+func TestWriteFileExclusiveDoesNotReplaceExistingFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "existing.go")
+	if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteFileExclusive(path, []byte("new"), 0o644); err == nil {
+		t.Fatal("WriteFileExclusive succeeded for an existing path")
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != "old" {
+		t.Fatalf("existing contents = %q, want old", contents)
+	}
+}

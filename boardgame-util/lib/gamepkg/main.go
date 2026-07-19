@@ -6,11 +6,14 @@ package gamepkg
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 const clientSubFolder = "client"
@@ -237,14 +240,18 @@ func (p *Pkg) ReadOnly() bool {
 
 // EnsureDir ensures the given directory, relative to package root, exists.
 func (p *Pkg) EnsureDir(relPath string) error {
-
-	dir := filepath.Join(p.AbsolutePath(), relPath)
+	dir, err := p.resolveRelativePath(relPath)
+	if err != nil {
+		return err
+	}
 
 	if info, err := os.Stat(dir); err == nil {
 		if info.IsDir() {
 			return nil
 		}
 		return errors.New("relPath " + relPath + " exists but is not a directory")
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("couldn't inspect %s: %w", relPath, err)
 	}
 
 	//Need to create it.
@@ -261,17 +268,18 @@ func (p *Pkg) EnsureDir(relPath string) error {
 // fail.
 func (p *Pkg) WriteFile(relPath string, contents []byte, overwrite bool) error {
 	if p.ReadOnly() {
-		return errors.New("Package is readonly")
+		return errors.New("package is read only")
 	}
 
-	path := filepath.Join(p.AbsolutePath(), relPath)
+	path, err := p.resolveRelativePath(relPath)
+	if err != nil {
+		return err
+	}
 	if !overwrite {
-		if _, err := os.Stat(path); err == nil {
-			return errors.New(relPath + " already existed and overwrite wasn't true")
-		}
+		return fileutil.WriteFileExclusive(path, contents, 0o644)
 	}
 
-	return ioutil.WriteFile(path, contents, 0644)
+	return fileutil.WriteFileAtomic(path, contents, 0o644)
 
 }
 
@@ -281,20 +289,30 @@ func (p *Pkg) RemoveFile(relPath string) error {
 	if p.ReadOnly() {
 		return errors.New("Package is readonly")
 	}
-	if !p.Has(relPath) {
-		return nil
+	path, err := p.resolveRelativePath(relPath)
+	if err != nil {
+		return err
 	}
-	path := filepath.Join(p.AbsolutePath(), relPath)
+	if _, err := os.Lstat(path); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("couldn't inspect %s: %w", relPath, err)
+	}
 	return os.Remove(path)
 }
 
 // RemoveDirIfEmpty removes the given dir if it contains no items.
 func (p *Pkg) RemoveDirIfEmpty(relPath string) error {
-	if !p.Has(relPath) {
+	dir, err := p.resolveRelativePath(relPath)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return nil
+	} else if err != nil {
+		return fmt.Errorf("couldn't inspect %s: %w", relPath, err)
 	}
 
-	dir := filepath.Join(p.AbsolutePath(), relPath)
 	infos, err := ioutil.ReadDir(dir)
 
 	if err != nil {
@@ -326,13 +344,60 @@ func (p *Pkg) ClientFolder() string {
 // Has returns whether the given relPath (directory or file) exists relative to
 // this package.
 func (p *Pkg) Has(relPath string) bool {
-	path := filepath.Join(p.AbsolutePath(), relPath)
+	path, err := p.resolveRelativePath(relPath)
+	if err != nil {
+		return false
+	}
 
 	if _, err := os.Stat(path); err != nil {
 		return false
 	}
 
 	return true
+}
+
+func (p *Pkg) resolveRelativePath(relPath string) (string, error) {
+	if filepath.IsAbs(relPath) || filepath.VolumeName(relPath) != "" {
+		return "", fmt.Errorf("path %q must be relative to package root", relPath)
+	}
+	clean := filepath.Clean(relPath)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path %q escapes package root", relPath)
+	}
+	path := filepath.Join(p.AbsolutePath(), clean)
+	if err := ensureResolvedPathWithinRoot(p.AbsolutePath(), path); err != nil {
+		return "", fmt.Errorf("path %q escapes package root through a symlink: %w", relPath, err)
+	}
+	return path, nil
+}
+
+func ensureResolvedPathWithinRoot(root, path string) error {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return fmt.Errorf("resolve package root: %w", err)
+	}
+	ancestor := path
+	for {
+		resolved, err := filepath.EvalSymlinks(ancestor)
+		if err == nil {
+			rel, err := filepath.Rel(resolvedRoot, resolved)
+			if err != nil {
+				return err
+			}
+			if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return fmt.Errorf("resolved path %s is outside %s", resolved, resolvedRoot)
+			}
+			return nil
+		}
+		if !os.IsNotExist(err) {
+			return err
+		}
+		parent := filepath.Dir(ancestor)
+		if parent == ancestor {
+			return fmt.Errorf("couldn't find an existing ancestor of %s", path)
+		}
+		ancestor = parent
+	}
 }
 
 // Import returns the string that could be used in your source to import this

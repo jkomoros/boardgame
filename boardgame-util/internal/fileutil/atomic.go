@@ -53,3 +53,31 @@ func WriteFileAtomic(path string, contents []byte, defaultMode fs.FileMode) erro
 	}
 	return nil
 }
+
+// WriteFileExclusive creates path only if it does not already exist. O_EXCL
+// makes the existence check and creation one filesystem operation, avoiding a
+// check-then-write race and refusing to follow an existing symlink.
+func WriteFileExclusive(path string, contents []byte, mode fs.FileMode) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode.Perm())
+	if err != nil {
+		return fmt.Errorf("create %s exclusively: %w", path, err)
+	}
+	complete := false
+	defer func() {
+		_ = file.Close()
+		if !complete {
+			_ = os.Remove(path)
+		}
+	}()
+	if _, err := file.Write(contents); err != nil {
+		return fmt.Errorf("write new file %s: %w", path, err)
+	}
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("sync new file %s: %w", path, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close new file %s: %w", path, err)
+	}
+	complete = true
+	return nil
+}
