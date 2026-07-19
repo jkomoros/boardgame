@@ -479,6 +479,82 @@ test('a newer flight owns one carrier without replaying older generation events'
   }
 });
 
+test('declarative transfers publish and settle as one scoped explicit batch', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      await import('/src/components/boardgame-component-stack.ts');
+      const { compileMotionTransferDeclarations } = await import('/src/motion/transfer.ts');
+      const host = document.createElement('div');
+      const root = host.attachShadow({ mode: 'open' });
+      root.innerHTML = `
+        <boardgame-component-stack id="registry"></boardgame-component-stack>
+        <div id="transfer-source"></div>
+        <div id="transfer-carrier-a"></div>
+        <div id="transfer-carrier-b"></div>
+      `;
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        prepare(): void;
+        installMotionTransfers(declarations: readonly unknown[]): void;
+        animateFlip(): Promise<void>;
+        _lastExplicitMotionPlan: null | {
+          generation: number;
+          phase: string;
+          segments: Array<{
+            declarationKey?: string;
+            execution: { status: string; reason?: string };
+          }>;
+        };
+      };
+      root.append(animator);
+      document.body.append(host);
+      const source = root.querySelector<HTMLElement>('#transfer-source')!;
+      const carrierA = root.querySelector<HTMLElement>('#transfer-carrier-a')!;
+      const carrierB = root.querySelector<HTMLElement>('#transfer-carrier-b')!;
+      Object.assign(source.style, { position: 'fixed', left: '0px', top: '0px', width: '10px', height: '10px' });
+      Object.assign(carrierA.style, { position: 'fixed', left: '100px', top: '0px', width: '10px', height: '10px' });
+      Object.assign(carrierB.style, { position: 'fixed', left: '200px', top: '0px', width: '10px', height: '10px' });
+      await Promise.all([
+        animator.updateComplete,
+        (root.querySelector('#registry') as any).updateComplete,
+      ]);
+      for (const carrier of [carrierA, carrierB]) {
+        const nativeAnimate = carrier.animate.bind(carrier);
+        carrier.animate = ((frames: Keyframe[] | PropertyIndexedKeyframes, timing?: number | KeyframeAnimationOptions) => {
+          const animation = nativeAnimate(frames, timing);
+          queueMicrotask(() => animation.finish());
+          return animation;
+        }) as typeof carrier.animate;
+      }
+      animator.prepare();
+      animator.installMotionTransfers(compileMotionTransferDeclarations([
+        { key: 'deal:0', subjectId: 'opaque-0', source: 'transfer-source', carrier: 'transfer-carrier-a', durationMs: 10_000, timing: 'immediate' },
+        { key: 'deal:1', subjectId: 'opaque-1', source: 'transfer-source', carrier: 'transfer-carrier-b', durationMs: 10_000, timing: 'immediate' },
+        { key: 'deal:2', subjectId: 'opaque-2', source: 'transfer-source', carrier: 'missing-carrier', durationMs: 10_000, timing: 'immediate' },
+      ]));
+      await animator.animateFlip();
+      await Promise.resolve();
+      return animator._lastExplicitMotionPlan;
+    });
+
+    expect(result).toMatchObject({
+      generation: 1,
+      phase: 'settled',
+      segments: [
+        { declarationKey: 'deal:0', execution: { status: 'finished' } },
+        { declarationKey: 'deal:1', execution: { status: 'finished' } },
+        { declarationKey: 'deal:2', execution: { status: 'skipped', reason: 'missing-endpoint' } },
+      ],
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('explicit motion cannot override reduced-motion scheduling', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const diagnostics = await prepareRendererFixturePage(page);

@@ -76,7 +76,7 @@ export class BoardgameRenderGameMemory extends GameRenderer {
   override effectsForTransition(
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
-    if (context.kind === 'initial' || context.move?.Name !== MoveNames.RevealCard) return [];
+    if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.RevealCard) return [];
     const revealed = context.after.Game.VisibleCards.Components.filter(isVisibleComponent);
     const previouslyRevealed = new Set(
       context.before.Game.VisibleCards.Components.filter(isVisibleComponent).map(card => card.ID),

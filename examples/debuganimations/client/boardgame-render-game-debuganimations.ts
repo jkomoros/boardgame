@@ -210,7 +210,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
     context: EffectTransitionContext<State, MoveName>,
   ): readonly EffectSpec[] {
     if (context.kind === 'initial') return [];
-    if (context.move?.Name === MoveNames.VisibleShuffle) {
+    if (context.move?.AnimationKey === MoveNames.VisibleShuffle) {
       const priorIndex = new Map(
         context.before.Game.FanStack.IDs.map((id, index) => [id, index]),
       );
@@ -228,7 +228,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
         }),
       })];
     }
-    if (context.move?.Name !== MoveNames.MoveToken) return [];
+    if (context.move?.AnimationKey !== MoveNames.MoveToken) return [];
     const beforeFrom = new Set(context.before.Game.TokensFrom.IDs);
     const movedTokenId = context.after.Game.TokensFrom.IDs.find(id => !beforeFrom.has(id))
       ?? context.before.Game.TokensFrom.IDs.find(
@@ -254,7 +254,7 @@ export class BoardgameRenderGameDebuganimations extends GameRenderer {
   override motionCohortsForTransition(
     context: EffectTransitionContext<State, MoveName>,
   ): readonly MotionStaggerCohortSpec[] {
-    if (context.kind === 'initial' || context.move?.Name !== MoveNames.VisibleShuffle) return [];
+    if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.VisibleShuffle) return [];
     return [motion.stagger({
       key: 'visible-shuffle-cascade',
       subjects: context.after.Game.FanStack.IDs,

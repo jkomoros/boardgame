@@ -182,6 +182,15 @@ claim that those observations are a correlated cross-device transfer event.
 `animateBetween()` remains as a deprecated source-compatible wrapper while
 games migrate; its argument order should not be used in new code.
 
+For authoritative game-authored presentation, prefer
+`motionTransfersForTransition(context)` and return `motion.transfer(...)`
+declarations derived from `context.move.AnimationKey` and explicitly disclosed
+move properties. The framework validates and publishes the ordered declarations
+as one batch. Today this supports retained non-stack carriers such as Table
+stubs; stack cards remain owned by automatic FLIP. Declaration keys are local
+to one transition. Identical Table/Hand event correlation requires a shared,
+privacy-reviewed server token and is not inferred from local state deltas.
+
 Custom components that call the framework's `play()` inherit this policy too.
 Use `{ timing: 'immediate' }` as the fourth argument for a tap flourish or
 other local-only effect. Stack stagger, visible duration, and

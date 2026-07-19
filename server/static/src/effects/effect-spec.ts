@@ -160,7 +160,7 @@ export interface EffectHostAPI {
 interface EffectTransitionContextBase<S, MN extends string> {
   readonly after: S;
   /** Animation-safe metadata only: move name and produced version. */
-  readonly move: (Omit<ClientMove, 'Name'> & Readonly<{ Name: MN }>) | null;
+  readonly move: (Omit<ClientMove, 'AnimationKey'> & Readonly<{ AnimationKey: MN }>) | null;
   readonly version: number;
   readonly snapshotEpoch: number;
   changed<T>(select: (state: S) => T): boolean;

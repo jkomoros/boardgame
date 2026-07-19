@@ -1,3 +1,6 @@
+import { motionTransfer } from './transfer.ts';
+import type { MotionTransferDeclaration } from './transfer.ts';
+
 /** An explicit, deterministic start order for automatic structural motion. */
 export interface MotionStaggerCohortSpec {
   readonly kind: 'stagger';
@@ -105,6 +108,9 @@ type StaggerOptions = Readonly<{
 }>;
 
 export const motion = Object.freeze({
+  transfer(options: MotionTransferDeclaration) {
+    return motionTransfer(options);
+  },
   stagger(options: StaggerOptions): MotionStaggerCohortSpec {
     if (!finiteNonnegative(options.intervalMs)) {
       throw new Error('motion stagger intervalMs must be finite and non-negative');

@@ -14,6 +14,7 @@ import type {
   EffectTransitionContext,
 } from '../effects/effect-spec.js';
 import type { MotionStaggerCohortSpec } from '../motion/cohort.js';
+import type { MotionTransferDeclaration } from '../motion/transfer.js';
 import {
   serializeCreatorMoveInputForServer,
   validateCreatorMoveInput,
@@ -284,6 +285,17 @@ export class BoardgameBaseGameRenderer<
   motionCohortsForTransition(
     _context: EffectTransitionContext<S, MN>,
   ): readonly MotionStaggerCohortSpec[] {
+    return [];
+  }
+
+  /**
+   * Pure, transition-local retained-carrier presentation intent. `key` is
+   * unique only within this installed transition; it is not cross-device
+   * identity unless the server exposes an identical safe token to each view.
+   */
+  motionTransfersForTransition(
+    _context: EffectTransitionContext<S, MN>,
+  ): readonly MotionTransferDeclaration[] {
     return [];
   }
 

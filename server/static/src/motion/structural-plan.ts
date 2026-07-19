@@ -31,6 +31,8 @@ export interface StructuralMotionPath {
 
 export interface StructuralMotionDraft {
   readonly subjectId: string;
+  /** Transition-local presentation declaration key; never segment identity. */
+  readonly declarationKey?: string;
   readonly presence: StructuralPresence;
   readonly provenance: StructuralProvenance;
   readonly visualSubject?: MotionSubjectSnapshot;
@@ -70,7 +72,7 @@ export type StructuralExecution =
   }>
   | Readonly<{
     status: 'skipped';
-    reason: 'not-started' | 'playback-error' | 'missing-endpoint' | 'no-spatial-change' | 'timing' | 'superseded';
+    reason: 'not-started' | 'playback-error' | 'missing-endpoint' | 'no-spatial-change' | 'timing' | 'superseded' | 'ownership-conflict';
   }>
   | Readonly<{
     status: 'finished';
@@ -112,6 +114,7 @@ function snapshotChannels(
 
 export function createStructuralMotionDraft(input: Readonly<{
   subjectId: string;
+  declarationKey?: string;
   presence: StructuralPresence;
   provenance: StructuralProvenance;
   visualSubject?: unknown;
@@ -123,6 +126,7 @@ export function createStructuralMotionDraft(input: Readonly<{
   const visualSubject = sanitizeMotionSubjectSnapshot(input.visualSubject);
   return Object.freeze({
     subjectId: input.subjectId,
+    ...(input.declarationKey ? { declarationKey: input.declarationKey } : {}),
     presence: input.presence,
     provenance: Object.freeze({ ...input.provenance }),
     ...(visualSubject ? { visualSubject } : {}),

@@ -596,12 +596,13 @@ test('render host plans authoritative effects exactly once per installed snapsho
       const { BoardgameRenderGame } = await import('/src/components/boardgame-render-game.ts');
       const { fx } = await import('/src/effects/effect-spec.ts');
       const calls: Array<{ kind: string; move: string | null; before: number | null; after: number }> = [];
+      let transferCalls = 0;
 
       class EffectFixtureRenderer extends BoardgameBaseGameRenderer<any, object, string, Record<string, object>> {
         override effectsForTransition(context: any) {
           calls.push({
             kind: context.kind,
-            move: context.move?.Name ?? null,
+            move: context.move?.AnimationKey ?? null,
             before: context.before?.Game.Score ?? null,
             after: context.after.Game.Score,
           });
@@ -612,6 +613,11 @@ test('render host plans authoritative effects exactly once per installed snapsho
             key: 'score-change',
             advanced: { durationMs: 120 },
           })];
+        }
+
+        override motionTransfersForTransition(_context: any) {
+          transferCalls++;
+          return [];
         }
 
         override render() {
@@ -640,7 +646,7 @@ test('render host plans authoritative effects exactly once per installed snapsho
 
       host.gameVersion = 2;
       host.snapshotEpoch = 2;
-      host.transitionMove = { Name: 'Claim Point', Version: 2 };
+      host.transitionMove = { AnimationKey: 'Claim Point', Version: 2 };
       host.state = { Game: { Score: 1 } } as any;
       await host.updateComplete;
       await renderer.updateComplete;
@@ -653,13 +659,14 @@ test('render host plans authoritative effects exactly once per installed snapsho
       const during = effectLayer?.shadowRoot?.querySelectorAll('.pulse').length ?? 0;
       await new Promise(resolve => setTimeout(resolve, 180));
       const after = effectLayer?.shadowRoot?.querySelectorAll('.pulse').length ?? 0;
-      return { calls, during, after };
+      return { calls, transferCalls, during, after };
     });
 
     expect(result.calls).toEqual([
       { kind: 'initial', move: null, before: null, after: 0 },
       { kind: 'transition', move: 'Claim Point', before: 0, after: 1 },
     ]);
+    expect(result.transferCalls).toBe(1);
     expect(result.during).toBe(1);
     expect(result.after).toBe(0);
     diagnostics.assertEmpty();

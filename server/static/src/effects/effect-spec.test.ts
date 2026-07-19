@@ -151,7 +151,7 @@ describe('effect descriptors', () => {
     const transition = createEffectTransitionContext({
       before: { score: 1, label: 'A' },
       after: { score: 2, label: 'A' },
-      move: { Name: 'Score', Version: 2 },
+      move: { AnimationKey: 'Score', Version: 2 },
       version: 2,
       snapshotEpoch: 5,
     });

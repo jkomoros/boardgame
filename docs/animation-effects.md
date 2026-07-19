@@ -89,7 +89,7 @@ override effectsForTransition(
 ): readonly EffectSpec[] {
   if (
     context.kind === 'initial' ||
-    context.move?.Name !== MoveNames.ClaimPoint
+    context.move?.AnimationKey !== MoveNames.ClaimPoint
   ) {
     return [];
   }
@@ -155,7 +155,7 @@ can give their automatic structural animations an explicit start order:
 
 ```ts
 override motionCohortsForTransition(context: EffectTransitionContext<State, MoveName>) {
-  if (context.kind === 'initial' || context.move?.Name !== MoveNames.Deal) return [];
+  if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.Deal) return [];
   return [motion.stagger({
     key: 'deal-cards',
     subjects: context.after.Game.Hand.IDs,
@@ -310,6 +310,23 @@ framework uses collection history only when it identifies one unambiguous
 external collection; tied, malformed, or same-collection-only evidence skips
 that inferred motion. Motion-bound effects must treat `motion-skipped` as an
 ordinary deterministic outcome, not as an error.
+
+### Declaring retained-carrier transfers
+
+`motionTransfersForTransition()` is the pure, queue-critical companion to
+decorative effects. Return `motion.transfer({ key, subjectId, source, carrier,
+durationMs })` for each retained non-stack carrier that should arrive from
+source geometry. The full batch is validated before playback, scoped to this
+renderer's registered roots, published as one explicit generation, and settled
+alongside automatic FLIP. Missing endpoints skip individual segments;
+malformed or conflicting declarations reject the complete batch.
+
+The hook consumes the real wire contract: `context.move.AnimationKey`, not
+`Name`, plus only viewer-sanitized `Properties`. A declaration key is unique
+within one transition. It is not cross-device identity: version timing aligns
+surfaces, while a shared semantic transfer token requires an explicit,
+privacy-reviewed server field. Stack-component carriers currently skip with an
+ownership conflict because automatic FLIP already owns their host channels.
 
 ## Composition
 

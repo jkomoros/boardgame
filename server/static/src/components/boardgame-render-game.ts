@@ -31,6 +31,7 @@ import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
 import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
 import type { FullGameState, GameChest } from '../types/boardgame-types.js';
 import { retryDelayMs } from '../utils/retry-policy.js';
+import { compileMotionTransferDeclarations } from '../motion/transfer.js';
 
 type HostedState = FullGameState<object, object, object, object, object>;
 export type HostedGameRenderer = BoardgameBaseGameRenderer<
@@ -805,6 +806,15 @@ class BoardgameRenderGame extends LitElement {
         // prepare() already cleared any prior declaration, so doing nothing is
         // an atomic fallback to compatibility stack timing.
         console.error('[motion] transition cohort planning failed:', error);
+      }
+      try {
+        const transfers = compileMotionTransferDeclarations(
+          renderer.motionTransfersForTransition(context),
+        );
+        this._animator?.installMotionTransfers(transfers);
+      } catch (error) {
+        // The compiler is atomic: malformed intent starts no partial batch.
+        console.error('[motion] transition transfer planning failed:', error);
       }
     }
     if (!this._effects) return;

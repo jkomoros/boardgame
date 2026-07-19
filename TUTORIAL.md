@@ -3719,7 +3719,7 @@ burst when the second revealed card matches:
 override effectsForTransition(
   context: EffectTransitionContext<State, MoveName>,
 ): readonly EffectSpec[] {
-  if (context.kind === 'initial' || context.move?.Name !== MoveNames.RevealCard) {
+  if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.RevealCard) {
     return [];
   }
   const revealed = context.after.Game.VisibleCards.Components
@@ -3795,7 +3795,7 @@ start order separately from their effects:
 
 ```ts
 override motionCohortsForTransition(context: EffectTransitionContext<State, MoveName>) {
-  if (context.kind === 'initial' || context.move?.Name !== MoveNames.Deal) return [];
+  if (context.kind === 'initial' || context.move?.AnimationKey !== MoveNames.Deal) return [];
   return [motion.stagger({
     subjects: context.after.Game.Hand.IDs,
     intervalMs: 45,
@@ -3809,11 +3809,43 @@ stack configuration if declarations conflict. It coordinates motion within one
 state installation; `animationOverlap()` below still coordinates successive
 state bundles. Effects remain observers and cannot retime the pieces.
 
+For a retained, non-stack presentation carrier—such as a Table-side deal
+stub—declare transition-local flight intent in the same pure phase:
+
+```ts
+override motionTransfersForTransition(context: EffectTransitionContext<State, MoveName>) {
+  if (context.kind === 'initial'
+    || context.move?.AnimationKey !== MoveNames.Deal) return [];
+  const player = Number(context.move.Properties?.TargetPlayerIndex);
+  if (!Number.isSafeInteger(player)) return [];
+  return [motion.transfer({
+    key: `deal:${player}`,
+    subjectId: `player-${player}-hand-growth`,
+    source: 'deal-source',
+    carrier: `stub:p${player}:hand`,
+    durationMs: 600,
+  })];
+}
+```
+
+The framework validates the complete ordered batch before DOM work, resolves
+endpoints only within roots registered to this renderer, publishes one explicit
+motion generation, and waits for its real settlement alongside automatic FLIP.
+Keys, subjects, and carriers must be unique in a batch; several cards need
+distinct ordinal declarations and carriers. A declared stack-card carrier
+currently fails closed because automatic FLIP already owns that host transform.
+
+`AnimationKey`, `Version`, and disclosed `Properties` are authoritative,
+viewer-sanitized server facts. The transfer remains game-authored presentation
+intent. Its `key` is local to this transition, not cross-device card identity;
+a true shared Table/Hand transfer token requires a separately privacy-reviewed
+server wire contract.
+
 To add one flourish only after an exact set of automatic component motions
 finishes successfully, return `fx.afterMotion({ subjects, effect })` from
 `effectsForTransition()`. It is prepared before playback, skips if a listed
 piece did not participate, and cancels with the structural generation. It does
-not hold the state queue or include explicit `animateBetween()` flights.
+not hold the state queue or include explicit retained-carrier `fly()` flights.
 
 The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `animationLength`, described in the paragraphs above. Instead of returning a positive or 0 length however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
 
@@ -3832,18 +3864,34 @@ the framework budgets each component's stagger, visible duration, and
 `post-animation-delay` together inside the remaining 600ms motion window. An
 effect whose stagger would begin after that window is omitted; an oversized
 hold shortens visible motion rather than delaying later slots. Ordinary FLIP
-and property effects use the same policy as `animateBetween`, and
+and property effects use the same policy as `fly()`, and
 `animationOverlap` is disabled. Solo games and explicitly local effects retain
 the normal behavior above.
 
-Game renderers normally need no timing code. A call such as
-`this.animator?.animateBetween(card, source, 300)` automatically uses the
-installed version's companion slot. For an effect that exists only on this
-screen, say so explicitly:
+Game renderers normally need no timing code. For a card already rendered at
+its natural destination, name the geometry-only source and the retained
+carrier explicitly. The framework waits for registered component stacks to
+finish rendering, then uses the installed version's companion slot:
 
 ```ts
-this.animator?.animateBetween(card, source, 900, { timing: 'immediate' });
+this.animator?.fly({
+  subjectId: card.id,
+  source: 'hand-top-edge',
+  carrier: card,
+  durationMs: 300,
+});
 ```
+
+This is an arrival primitive: `source` supplies geometry and `carrier` is the
+element that moves back to its resting pose. It does not claim an arbitrary
+destination or a source-carried departure. For motion that exists only on this
+screen, set `timing: 'immediate'`. The older argument-order-based
+`animateBetween()` call remains only as a deprecated compatibility wrapper.
+
+Automatic companion deal flights are synchronized by version but their current
+Table and Hand detections are local observations: the Table knows a hand count
+grew, while the Hand may know private card ids. Do not treat those as a shared
+cross-device transfer identity.
 
 Custom animatable components use the identical policy through `play()`:
 

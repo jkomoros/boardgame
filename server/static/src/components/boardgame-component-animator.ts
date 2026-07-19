@@ -65,6 +65,7 @@ import {
 } from '../motion/historical-presentation.js';
 import type { HistoricalPresentation } from '../motion/historical-presentation.js';
 import { motionPresenceHostStyle } from '../motion/presence.js';
+import type { CompiledMotionTransferDeclaration } from '../motion/transfer.js';
 
 export type { AnimationTimingPolicy } from '../motion/timing.js';
 
@@ -85,6 +86,7 @@ export interface MotionFlightRequest {
 }
 
 export interface ComponentAnimatorAPI {
+  installMotionTransfers(transfers: readonly CompiledMotionTransferDeclaration[]): void;
   fly(request: MotionFlightRequest): Promise<void>;
   animateBetween(
     realId: string | HTMLElement,
@@ -162,6 +164,10 @@ export class BoardgameComponentAnimator extends LitElement {
   private _motionCohorts: Readonly<{
     generation: number;
     specs: readonly MotionStaggerCohortSpec[];
+  }> | null = null;
+  private _motionTransfers: Readonly<{
+    generation: number;
+    declarations: readonly CompiledMotionTransferDeclaration[];
   }> | null = null;
   private readonly _activationMonitor = new MotionActivationMonitor();
   private readonly _explicitAnimations = new Map<Animation, HTMLElement>();
@@ -302,6 +308,14 @@ export class BoardgameComponentAnimator extends LitElement {
     });
   }
 
+  /** Install an already atomically validated transfer batch for this cycle. */
+  installMotionTransfers(declarations: readonly CompiledMotionTransferDeclaration[]): void {
+    this._motionTransfers = Object.freeze({
+      generation: this._generation,
+      declarations: Object.freeze([...declarations]),
+    });
+  }
+
   prepare() {
     this._invalidateSolvedMotionPlan();
     this._interruptExplicitMotion();
@@ -309,6 +323,7 @@ export class BoardgameComponentAnimator extends LitElement {
     this._generation++;
     this._solvedMotionPlan = null;
     this._motionCohorts = null;
+    this._motionTransfers = null;
     const collections = this.stackElement._sharedStackList;
 
     this._beforeCollectionOffsets = new Map();
@@ -418,6 +433,23 @@ export class BoardgameComponentAnimator extends LitElement {
       if (found) return found as HTMLElement;
     }
     return null;
+  }
+
+  /** Resolve exactly one endpoint inside roots registered to this animator. */
+  private _resolveScopedTransferTarget(id: string): HTMLElement | null {
+    const roots = new Set<Node>();
+    const matches: HTMLElement[] = [];
+    for (const stack of this.stackElement?._sharedStackList ?? []) {
+      const root = stack.getRootNode();
+      if (roots.has(root)) continue;
+      roots.add(root);
+      for (const match of (root as Document | ShadowRoot).querySelectorAll?.(
+        `#${CSS.escape(id)}`,
+      ) ?? []) {
+        if (match instanceof HTMLElement) matches.push(match);
+      }
+    }
+    return matches.length === 1 ? matches[0] : null;
   }
 
   private _recordAnimationActive(
@@ -549,14 +581,14 @@ export class BoardgameComponentAnimator extends LitElement {
 
   private _updateExplicitMotion(
     generation: number,
-    _subjectId: string,
+    segmentIndex: number,
     execution: StructuralExecution,
   ): void {
     const current = this._explicitMotionPlans.get(generation);
     if (!current) return;
     const updated = updateStructuralMotionExecutions(
       current,
-      new Map([[0, execution]]),
+      new Map([[segmentIndex, execution]]),
     );
     this._explicitMotionPlans.set(generation, updated);
     if (this._lastExplicitMotionPlan?.generation === generation) {
@@ -570,9 +602,10 @@ export class BoardgameComponentAnimator extends LitElement {
     subjectId: string,
     animation: Animation | null,
     carrier?: HTMLElement,
+    segmentIndex = 0,
   ): void {
     if (!animation) {
-      this._updateExplicitMotion(generation, subjectId, {
+      this._updateExplicitMotion(generation, segmentIndex, {
         status: 'skipped',
         reason: 'not-started',
       });
@@ -595,7 +628,7 @@ export class BoardgameComponentAnimator extends LitElement {
         }
       });
     }
-    this._updateExplicitMotion(generation, subjectId, {
+    this._updateExplicitMotion(generation, segmentIndex, {
       status: 'armed',
       animations,
     });
@@ -603,21 +636,21 @@ export class BoardgameComponentAnimator extends LitElement {
       `explicit:${generation}:0`,
       animation,
       animations[0].delayMs,
-      () => this._updateExplicitMotion(generation, subjectId, {
+      () => this._updateExplicitMotion(generation, segmentIndex, {
         status: 'active-observed', animations,
       }),
     );
     void animation.finished.then(
       () => {
         this._activationMonitor.cancel(`explicit:${generation}:0`);
-        this._updateExplicitMotion(generation, subjectId, {
+        this._updateExplicitMotion(generation, segmentIndex, {
           status: 'active-observed', animations,
         });
-        this._updateExplicitMotion(generation, subjectId, { status: 'finished', animations });
+        this._updateExplicitMotion(generation, segmentIndex, { status: 'finished', animations });
       },
       () => {
         this._activationMonitor.cancel(`explicit:${generation}:0`);
-        this._updateExplicitMotion(generation, subjectId, { status: 'cancelled', animations });
+        this._updateExplicitMotion(generation, segmentIndex, { status: 'cancelled', animations });
       },
     );
   }
@@ -653,7 +686,7 @@ export class BoardgameComponentAnimator extends LitElement {
           draft,
           timingRequest: { policy: timing, delayMs: 0, durationMs },
         }], 'explicit'));
-        this._updateExplicitMotion(explicitGeneration, subjectId, {
+        this._updateExplicitMotion(explicitGeneration, 0, {
           status: 'skipped',
           reason: 'superseded',
         });
@@ -675,7 +708,7 @@ export class BoardgameComponentAnimator extends LitElement {
         draft,
         timingRequest: { policy: timing, delayMs: 0, durationMs },
       }], 'explicit'));
-      this._updateExplicitMotion(explicitGeneration, subjectId, {
+      this._updateExplicitMotion(explicitGeneration, 0, {
         status: 'skipped',
         reason: 'missing-endpoint',
       });
@@ -711,7 +744,7 @@ export class BoardgameComponentAnimator extends LitElement {
       timingRequest: { policy: timing, delayMs: 0, durationMs },
     }], 'explicit'));
     if (!compiled.inversion.changed) {
-      this._updateExplicitMotion(explicitGeneration, subjectId, {
+      this._updateExplicitMotion(explicitGeneration, 0, {
         status: 'skipped',
         reason: 'no-spatial-change',
       });
@@ -726,7 +759,7 @@ export class BoardgameComponentAnimator extends LitElement {
       },
     );
     if (resolution.kind === 'skip') {
-      this._updateExplicitMotion(explicitGeneration, subjectId, {
+      this._updateExplicitMotion(explicitGeneration, 0, {
         status: 'skipped',
         reason: 'timing',
       });
@@ -812,6 +845,118 @@ export class BoardgameComponentAnimator extends LitElement {
       durationMs,
       timing: opts?.timing,
     });
+  }
+
+  private _startInstalledMotionTransfers(generation: number): Promise<void> {
+    const installed = this._motionTransfers;
+    if (!installed || installed.generation !== generation
+      || installed.declarations.length === 0) return Promise.resolve();
+    const explicitGeneration = ++this._explicitMotionSequence;
+    const collections = this.stackElement._sharedStackList;
+    const structuralCarriers = new Set<HTMLElement>();
+    for (const collection of collections) {
+      for (const component of collection.Components) structuralCarriers.add(component);
+    }
+    const compiled = installed.declarations.map(declaration => {
+      const source = this._resolveScopedTransferTarget(declaration.source);
+      const carrier = this._resolveScopedTransferTarget(declaration.carrier);
+      const ownershipConflict = !!carrier && structuralCarriers.has(carrier);
+      if (!source || !carrier || !source.isConnected || !carrier.isConnected || ownershipConflict) {
+        return { declaration, source, carrier, ownershipConflict, flight: null };
+      }
+      const sourceRect = captureViewportGeometry(source);
+      const carrierRect = captureViewportGeometry(carrier);
+      const restingTransform = getComputedStyle(carrier).transform || 'none';
+      return {
+        declaration,
+        source,
+        carrier,
+        ownershipConflict,
+        flight: compileViewportFlight(sourceRect, carrierRect, restingTransform),
+      };
+    });
+    const entries = compiled.map(({ declaration, source, carrier, flight }) => ({
+      draft: createStructuralMotionDraft({
+        subjectId: declaration.subjectId,
+        declarationKey: declaration.key,
+        presence: 'retained',
+        provenance: source && carrier
+          ? { kind: 'identity' }
+          : { kind: 'unresolved', endpoint: !source ? 'source' : 'destination' },
+        ...(flight ? {
+          viewportFrom: flight.source,
+          viewportTo: flight.destination,
+          inversion: flight.inversion,
+          channels: flight.tracks,
+        } : {}),
+      }),
+      timingRequest: {
+        policy: declaration.timing,
+        delayMs: 0,
+        durationMs: declaration.durationMs,
+      },
+    }));
+    this._installExplicitMotion(publishStructuralMotionPlan(
+      explicitGeneration,
+      entries,
+      'explicit',
+    ));
+
+    const settled: Promise<unknown>[] = [];
+    for (const [segmentIndex, item] of compiled.entries()) {
+      const { declaration, carrier, flight, ownershipConflict } = item;
+      if (ownershipConflict) {
+        this._updateExplicitMotion(explicitGeneration, segmentIndex, {
+          status: 'skipped', reason: 'ownership-conflict',
+        });
+        continue;
+      }
+      if (!carrier || !flight) {
+        this._updateExplicitMotion(explicitGeneration, segmentIndex, {
+          status: 'skipped', reason: 'missing-endpoint',
+        });
+        continue;
+      }
+      if (!flight.inversion.changed) {
+        this._updateExplicitMotion(explicitGeneration, segmentIndex, {
+          status: 'skipped', reason: 'no-spatial-change',
+        });
+        continue;
+      }
+      const resolution = resolveMotionTiming(
+        { duration: declaration.durationMs, easing: 'ease-out', fill: 'none' },
+        {
+          policy: declaration.timing,
+          context: declaration.timing === 'version' ? this.animationContext : null,
+          reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        },
+      );
+      if (resolution.kind === 'skip') {
+        this._updateExplicitMotion(explicitGeneration, segmentIndex, {
+          status: 'skipped', reason: 'timing',
+        });
+        continue;
+      }
+      const animation = carrier.animate(
+        [...componentMotionKeyframes(flight.tracks[0])] as Keyframe[],
+        resolution.timing,
+      );
+      this._trackExplicitAnimation(
+        explicitGeneration,
+        declaration.subjectId,
+        animation,
+        carrier,
+        segmentIndex,
+      );
+      this._recordAnimationActive(
+        animation,
+        finiteTimingMs(resolution.timing.delay),
+        `transfer:${declaration.key}`,
+        resolution.activeContext,
+      );
+      settled.push(animation.finished.catch(() => undefined));
+    }
+    return Promise.all(settled).then(() => undefined);
   }
 
   // CRITICAL: Double microtask delay for Polymer databinding completion
@@ -1306,7 +1451,11 @@ export class BoardgameComponentAnimator extends LitElement {
       planEntries,
     ));
 
-    const settledPromises: Promise<void>[] = [];
+    // Declarative transfers are one separately-owned explicit batch. Resolve,
+    // publish, and arm the complete batch before automatic FLIP playback.
+    const settledPromises: Promise<void>[] = [
+      this._startInstalledMotionTransfers(generation),
+    ];
     const executionUpdates = new Map<number, StructuralExecution>();
     const terminalUpdates: Array<{
       segmentIndex: number;
