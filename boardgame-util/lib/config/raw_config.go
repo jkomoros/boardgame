@@ -3,8 +3,10 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"fmt"
 	"os"
+
+	"github.com/jkomoros/boardgame/boardgame-util/internal/fileutil"
 )
 
 // RawConfig corresponds to the raw input/output from disk without any
@@ -29,12 +31,14 @@ func NewRawConfig(filename string, create bool) (*RawConfig, error) {
 
 	var config RawConfig
 
-	contents, err := ioutil.ReadFile(filename)
+	contents, err := os.ReadFile(filename)
 
 	if err != nil {
-		//If we weren't told to create a config then if it doesn't exist it's an error.
-		if !create {
-			return nil, errors.New("Couldn't read config file: " + err.Error())
+		// Creating tolerates only an absent file. Permission errors, directories,
+		// and other I/O failures must remain loud so they cannot masquerade as an
+		// empty configuration that a later Save might overwrite.
+		if !create || !os.IsNotExist(err) {
+			return nil, fmt.Errorf("couldn't read config file: %w", err)
 		}
 	} else {
 		//If there are file contents, unmarshal
@@ -107,6 +111,9 @@ func (r *RawConfig) Save() error {
 		return errors.New("Couldn't marshal: " + err.Error())
 	}
 
-	return ioutil.WriteFile(r.Path(), blob, 0644)
+	if err := fileutil.WriteFileAtomic(r.Path(), blob, 0o644); err != nil {
+		return fmt.Errorf("couldn't save config file: %w", err)
+	}
+	return nil
 
 }
