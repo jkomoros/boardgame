@@ -154,6 +154,13 @@ Track endpoints are execution descriptions, not game-author effect APIs.
 Semantic effects still observe lifecycle/geometry and never acquire a write
 channel on either component surface.
 
+Reduced motion is resolved by the shared timing compiler as a complete policy:
+requested delays, explicit durations, synchronized version waits, and
+post-animation delays all collapse to zero. An explicit `animateBetween()`
+duration cannot bypass that policy. Decorative recipes that remain useful
+without travel opt into their own short stationary opacity substitute before
+calling the motion kernel.
+
 The track-to-keyframe compiler and executor live one layer lower, on the common
 animatable-item kernel. Both stack-managed cards and standalone dice therefore
 use the same frozen endpoint representation, finite target resolution, timing

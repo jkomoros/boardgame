@@ -611,6 +611,7 @@ export class BoardgameComponentAnimator extends LitElement {
       {
         policy: timing,
         context: timing === 'version' ? this.animationContext : null,
+        reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
       },
     );
     if (resolution.kind === 'skip') {

@@ -36,18 +36,29 @@ describe('motion timing', () => {
       },
     ), {
       kind: 'play',
-      timing: { duration: 0, easing: 'ease-in-out', fill: 'none', endDelay: 40 },
+      timing: {
+        delay: 0,
+        duration: 0,
+        easing: 'ease-in-out',
+        fill: 'none',
+        endDelay: 0,
+      },
       activeContext: null,
-      expectedSettleMs: 40,
+      expectedSettleMs: 0,
     });
 
-    // Preserve the established contract: an explicit duration wins over the
-    // reduced-motion default supplied by the item.
+    // Explicit timing cannot override the accessibility policy or wait for a
+    // synchronized version slot.
     const explicit = resolveMotionTiming(
-      { duration: 125 },
-      { policy: 'immediate', defaults: { duration: 250 }, reducedMotion: true },
+      { delay: 40, duration: 125, endDelay: 30 },
+      { policy: 'version', context, defaults: { duration: 250 }, reducedMotion: true },
     );
-    assert.equal(explicit.kind === 'play' && explicit.timing.duration, 125);
+    assert.deepEqual(explicit, {
+      kind: 'play',
+      timing: { delay: 0, duration: 0, endDelay: 0 },
+      activeContext: null,
+      expectedSettleMs: 0,
+    });
   });
 
   it('compiles version wait, stagger, clipping, and backwards fill', () => {

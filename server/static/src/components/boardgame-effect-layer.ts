@@ -360,7 +360,12 @@ export class BoardgameEffectLayer extends LitElement implements EffectHostAPI {
       case 'burst':
         return this._burst(effect, path, policy);
       case 'pulse':
-        return this._pulse(effect, path, policy, false);
+        return this._pulse(
+          effect,
+          path,
+          policy,
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        );
       case 'travel':
         return this._travel(effect, path, policy);
       case 'trail':

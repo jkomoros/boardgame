@@ -307,6 +307,56 @@ test('animateBetween aligns differently-sized endpoints by viewport center', asy
   }
 });
 
+test('explicit motion cannot override reduced-motion scheduling', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const diagnostics = await prepareRendererFixturePage(page);
+  try {
+    const result = await page.evaluate(async () => {
+      await import('/src/components/boardgame-component-animator.ts');
+      const animator = document.createElement('boardgame-component-animator') as HTMLElement & {
+        updateComplete: Promise<unknown>;
+        animationContext: object | null;
+        animateBetween(real: HTMLElement, stub: HTMLElement, duration: number): Promise<void>;
+        _lastExplicitMotionPlan: null | {
+          segments: Array<{
+            execution: {
+              status: string;
+              animations?: Array<{ delayMs: number; durationMs: number }>;
+            };
+          }>;
+        };
+      };
+      const real = document.createElement('div');
+      const stub = document.createElement('div');
+      Object.assign(real.style, { position: 'fixed', left: '200px', top: '100px', width: '20px', height: '20px' });
+      Object.assign(stub.style, { position: 'fixed', left: '20px', top: '30px', width: '20px', height: '20px' });
+      document.body.append(animator, real, stub);
+      await animator.updateComplete;
+      animator.animationContext = {
+        version: 4,
+        startAtMs: Date.now() + 1000,
+        slotDurationMs: 1200,
+        maxAnimationDurationMs: 1000,
+      };
+      const startedAt = performance.now();
+      await animator.animateBetween(real, stub, 900);
+      return {
+        elapsedMs: performance.now() - startedAt,
+        execution: animator._lastExplicitMotionPlan?.segments[0]?.execution,
+      };
+    });
+
+    expect(result.elapsedMs).toBeLessThan(250);
+    expect(result.execution).toEqual({
+      status: 'finished',
+      animations: [expect.objectContaining({ delayMs: 0, durationMs: 0 })],
+    });
+    diagnostics.assertEmpty();
+  } finally {
+    diagnostics.stop();
+  }
+});
+
 test('shared timing keeps raw and gated card flights in the same version window', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   const diagnostics = await prepareRendererFixturePage(page);

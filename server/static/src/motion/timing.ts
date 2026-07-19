@@ -74,9 +74,6 @@ export function resolveMotionTiming(
   }> = {},
 ): MotionTimingResolution {
   const defaults = { ...options.defaults };
-  if (options.reducedMotion && defaults.duration !== undefined) {
-    defaults.duration = 0;
-  }
   const timing: OptionalEffectTiming = { ...defaults, ...requested };
   for (const field of ['delay', 'duration', 'endDelay', 'iterations'] as const) {
     const value = timing[field];
@@ -84,6 +81,17 @@ export function resolveMotionTiming(
   }
   if ((options.postAnimationDelayMs ?? 0) > 0 && timing.endDelay === undefined) {
     timing.endDelay = options.postAnimationDelayMs;
+  }
+  if (options.reducedMotion) {
+    // Reduced motion is a complete scheduling policy, not a default that an
+    // explicit duration can accidentally override. Do not wait for a remote
+    // version slot or retain decorative post-delay occupancy.
+    return Object.freeze({
+      kind: 'play',
+      timing: { ...timing, delay: 0, duration: 0, endDelay: 0 },
+      activeContext: null,
+      expectedSettleMs: 0,
+    });
   }
   const policy = options.policy ?? 'version';
   const now = options.nowMs ?? Date.now();
