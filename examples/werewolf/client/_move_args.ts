@@ -47,6 +47,8 @@ export type MoveWireInputs = {
   "Cast Vote": CastVoteWire;
 };
 
+export type MoveChoiceProjections = Record<never, never>;
+
 export const moveInputSchema = [
   {
     "name": "Cast Night Vote",
@@ -85,3 +87,7 @@ export const moveInputSchema = [
 ] as const;
 
 export const moveInputSchemaFingerprint = "sha256:fe90abd22e1ff339ef23f29e7f4a60f0bda0c110187c89206ef1fc6ae375e583";
+
+export const moveChoiceProjectionSchema = [] as const;
+
+export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";

@@ -44,7 +44,7 @@ import type {
   RootState,
 } from '../types/store';
 import type { GameFromServer, RawGameState, StateBundle, TimerInfo } from '../types/game-state';
-import type { MoveForm, ServerStateBundle } from '../types/api';
+import type { MoveForm, ProjectedMoveChoicesWire, ServerStateBundle } from '../types/api';
 import { clientMoveFromWire } from '../types/client-move.js';
 import { decodeSocketFrame } from '../types/socket-frame.js';
 import type { HostedGameRenderer } from './boardgame-render-game.js';
@@ -895,6 +895,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
     moveForms: MoveForm[] | null,
     viewingAsPlayer: number,
     move: unknown,
+    projectedMoveChoices: ProjectedMoveChoicesWire | null,
   ): StateBundle {
     return {
       originalWallClockStartTime: Date.now(),
@@ -902,6 +903,7 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
       move: clientMoveFromWire(move),
       moveForms,
       viewingAsPlayer,
+      projectedMoveChoices,
     };
   }
 
@@ -1115,7 +1117,9 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     this._infoInstalled = true;
     if (installingInitialState) {
-      const bundle = this._prepareStateBundle(data.Game, data.Forms, data.ViewingAsPlayer, null);
+      const bundle = this._prepareStateBundle(
+        data.Game, data.Forms, data.ViewingAsPlayer, null, data.ProjectedMoveChoices ?? null,
+      );
       this._enqueueStateBundle(bundle);
 
       // We don't use data.Game.Version for lastFetched because first load may
@@ -1141,7 +1145,10 @@ class BoardgameGameStateManager extends connect(store)(LitElement) {
 
     for (let i = 0; i < data.Bundles.length; i++) {
       const serverBundle = data.Bundles[i];
-      const bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer, serverBundle.Move);
+      const bundle = this._prepareStateBundle(
+        serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer,
+        serverBundle.Move, serverBundle.ProjectedMoveChoices ?? null,
+      );
       this._enqueueStateBundle(bundle);
       lastServerBundle = serverBundle;
     }

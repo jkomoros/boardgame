@@ -4,7 +4,7 @@
  */
 
 import type { GameChest, PlayerInfo, CompanionInfo } from './store';
-import type { MoveForm, ServerStateBundle } from './api';
+import type { MoveForm, ProjectedMoveChoicesWire, ServerStateBundle } from './api';
 import type { GameFromServer, RawGameState, TimerInfo, StateBundle } from './game-state';
 
 // Import action type constants for typeof usage
@@ -151,6 +151,7 @@ export interface FetchGameInfoSuccessAction {
   viewingAsPlayer: number;
   stateVersion: number;
   moveInputSchemaFingerprint: string;
+  projectedMoveChoices?: ProjectedMoveChoicesWire;
 }
 
 export interface FetchGameInfoFailureAction {

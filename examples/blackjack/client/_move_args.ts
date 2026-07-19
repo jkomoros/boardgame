@@ -46,6 +46,8 @@ export type MoveWireInputs = {
   "Force Finish Turn": ForceFinishTurnWire;
 };
 
+export type MoveChoiceProjections = Record<never, never>;
+
 export const moveInputSchema = [
   {
     "name": "Current Player Hit",
@@ -76,3 +78,7 @@ export const moveInputSchema = [
 ] as const;
 
 export const moveInputSchemaFingerprint = "sha256:6aa9cefd8ef901742ee460abb7f8ab12a8ecb81bad37f072d5b94c06c4b662e9";
+
+export const moveChoiceProjectionSchema = [] as const;
+
+export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";

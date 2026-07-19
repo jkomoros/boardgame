@@ -311,6 +311,19 @@ export function notifyMoveActionLiveStateChanged(action: BoundMoveAction<string,
   internal.notifyLiveStateChanged();
 }
 
+/**
+ * Hydrate an ordinary bound action with an authoritative legality projection.
+ * This is a host/runtime hook: game code receives the resulting action and
+ * uses it exactly like one produced by move(...).with(...).
+ */
+export function hydrateMoveActionPreview(
+  action: BoundMoveAction<string, object>,
+  preview: Extract<MoveActionPreview, { readonly kind: 'legal' | 'illegal' }>,
+): void {
+  const internal = action as MoveActionImplementation<string, object>;
+  internal[HYDRATE_PREVIEW](preview);
+}
+
 export type MoveActionFor<MoveName extends string, Input extends object> =
   [Input[keyof Input]] extends [never]
     ? BoundMoveAction<MoveName, Input>

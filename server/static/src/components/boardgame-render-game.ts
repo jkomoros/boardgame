@@ -18,6 +18,14 @@ import { animHooks } from '../utils/anim-test-hooks.js';
 import type { MovePreviewTransport, MoveSubmissionGate, MoveTransport } from '../moves/action.js';
 import type { TargetPreviewTransport } from '../moves/target-action.js';
 import type { PlayerPresentation } from '../status/player-presentation.js';
+import type { ProjectedMoveChoicesWire } from '../types/api.js';
+import {
+  defaultMessageResolver,
+  type MessageResolver,
+  type MoveChoiceProjectionTypes,
+  type ProjectedMoveChoices,
+} from '../moves/projected-choices.js';
+import './boardgame-projected-choices.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import { BoardgameTableViewBase } from './boardgame-table-view-base.js';
 import { BoardgameHandViewBase } from './boardgame-hand-view-base.js';
@@ -153,6 +161,12 @@ class BoardgameRenderGame extends LitElement {
 
   @property({ type: Number, attribute: false })
   snapshotEpoch = 0;
+
+  @property({ type: Object, attribute: false })
+  projectedMoveChoicesWire: ProjectedMoveChoicesWire | null = null;
+
+  @property({ attribute: false })
+  messageResolver: MessageResolver = defaultMessageResolver;
 
   @property({ type: Number, attribute: false })
   proposingAsPlayer = 0;
@@ -316,6 +330,7 @@ class BoardgameRenderGame extends LitElement {
     // (multi-step moves) fires this to force a debounced re-preview.
     this._boundPreviewRefreshRequested = () => this._scheduleRefreshPreview();
     this.addEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
+    this.addEventListener('projected-choices-changed', this._projectedChoicesChanged);
     this._activeAnimations = null;
     this._ensureActiveAnimations();
     this._allAnimationsDoneFired = false;
@@ -334,6 +349,7 @@ class BoardgameRenderGame extends LitElement {
     if (this._boundPreviewRefreshRequested) {
       this.removeEventListener('preview-refresh-requested', this._boundPreviewRefreshRequested);
     }
+    this.removeEventListener('projected-choices-changed', this._projectedChoicesChanged);
     // Clean up watchdog timer to prevent firing after element is removed.
     if (this._animationWatchdogTimer !== null) {
       clearTimeout(this._animationWatchdogTimer);
@@ -409,6 +425,10 @@ class BoardgameRenderGame extends LitElement {
 
     if (changedProperties.has('state')) {
       this._stateChanged(this.state);
+    }
+
+    if (changedProperties.has('projectedMoveChoicesWire') && this.renderer) {
+      this.renderer.projectedMoveChoicesWire = this.projectedMoveChoicesWire;
     }
 
     // Refresh the board's target-legality preview when anything it depends on
@@ -1063,6 +1083,7 @@ class BoardgameRenderGame extends LitElement {
     ele.gameId = this.gameId;
     ele.gameVersion = this.gameVersion;
     ele.snapshotEpoch = this.snapshotEpoch;
+    ele.projectedMoveChoicesWire = this.projectedMoveChoicesWire;
     ele.proposingAsPlayer = this.proposingAsPlayer;
     ele.proposingAsAdmin = this.proposingAsAdmin;
     ele.moveTransport = this.socketActive ? this.moveTransport : null;
@@ -1137,6 +1158,11 @@ class BoardgameRenderGame extends LitElement {
         <!-- Dynamic renderer will be inserted here -->
       </div>
 
+      <boardgame-projected-choices
+        .choices=${(this.renderer?.choices ?? null) as ProjectedMoveChoices<MoveChoiceProjectionTypes> | null}
+        .messageResolver=${this.messageResolver}>
+      </boardgame-projected-choices>
+
       <!-- Suppress the connection-lost dim once the game is finished: the
            socket closing after game end is expected, not an outage, and
            dimming the final scoreboard reads as a broken page. -->
@@ -1155,6 +1181,10 @@ class BoardgameRenderGame extends LitElement {
       ` : null}
     `;
   }
+
+  private readonly _projectedChoicesChanged = (): void => {
+    this.requestUpdate();
+  };
 }
 
 customElements.define('boardgame-render-game', BoardgameRenderGame);

@@ -37,6 +37,8 @@ export type MoveWireInputs = {
   "Roll Dice": RollDiceWire;
 };
 
+export type MoveChoiceProjections = Record<never, never>;
+
 export const moveInputSchema = [
   {
     "name": "Done Turn",
@@ -63,3 +65,7 @@ export const moveInputSchema = [
 ] as const;
 
 export const moveInputSchemaFingerprint = "sha256:0ec111cedc813b28664fe3b7ce66a7c207221066c629a3b05bded873b1fb13c4";
+
+export const moveChoiceProjectionSchema = [] as const;
+
+export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";

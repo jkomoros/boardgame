@@ -171,6 +171,22 @@ export type {
   MoveInputSchemaMove,
   MoveInputValidationResult,
 } from './moves/input.js';
+export {
+  defaultMessageResolver,
+  defaultProjectedChoiceMessage,
+  MOVE_CHOICE_PROJECTION_SCHEMA_VERSION,
+  PROJECTION_FAILED_MESSAGE,
+} from './moves/projected-choices.js';
+export type {
+  MessageDescriptor,
+  MessageResolver,
+  MoveChoiceProjectionSchemaEntry,
+  MoveChoiceProjectionTypes,
+  ProjectedMoveChoiceCandidate,
+  ProjectedMoveChoiceSet,
+  ProjectedMoveChoices,
+  ProjectedMoveChoicesStatus,
+} from './moves/projected-choices.js';
 
 // Importing the facade registers every curated renderer primitive. Game code
 // must not depend on transitive or deep component-module side effects. Their

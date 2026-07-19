@@ -50,6 +50,8 @@ export interface GameInfoResponse extends BaseApiResponse {
   LegalCatalogVersion: number;
   /** Canonical server move-input contract; generated clients must match it. */
   MoveInputSchemaFingerprint: string;
+  /** Actor-scoped, finite candidate legality for this exact state. */
+  ProjectedMoveChoices?: ProjectedMoveChoicesWire;
   /** Companion-mode metadata, or null for an ordinary solo game. */
   CompanionInfo: CompanionInfo | null;
 }
@@ -77,7 +79,40 @@ export interface ServerStateBundle {
   ViewingAsPlayer: number;
   /** The move that led to this state (null for initial state) */
   Move: unknown;
+  /** Actor-scoped, finite candidate legality for this exact state. */
+  ProjectedMoveChoices?: ProjectedMoveChoicesWire;
 }
+
+export type ProjectedMoveChoiceSource = 'players' | 'enum-values';
+
+export interface ProjectedMoveChoiceCandidateWire {
+  readonly Value: string | number;
+  readonly Available: boolean;
+}
+
+export interface ProjectedMoveChoiceSetWire {
+  readonly MoveName: string;
+  readonly FieldName: string;
+  readonly Source: ProjectedMoveChoiceSource;
+  readonly Candidates: readonly ProjectedMoveChoiceCandidateWire[];
+}
+
+/** Decoded but still untrusted until checked against the generated game schema. */
+export type ProjectedMoveChoicesWire =
+  | {
+    readonly StateVersion: number;
+    readonly MoveChoiceProjectionSchemaFingerprint: string;
+    readonly ProjectionSchemaVersion: number;
+    readonly Status: 'ready';
+    readonly Sets: readonly ProjectedMoveChoiceSetWire[];
+  }
+  | {
+    readonly StateVersion: number;
+    readonly MoveChoiceProjectionSchemaFingerprint: string;
+    readonly ProjectionSchemaVersion: number;
+    readonly Status: 'failed';
+    readonly Sets: readonly [];
+  };
 
 /**
  * A move form describing an available move and its parameters.

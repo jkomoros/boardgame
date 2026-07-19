@@ -42,6 +42,8 @@ export type MoveWireInputs = {
   "Reveal Card": RevealCardWire;
 };
 
+export type MoveChoiceProjections = Record<never, never>;
+
 export const moveInputSchema = [
   {
     "name": "Hide Cards",
@@ -74,3 +76,7 @@ export const moveInputSchema = [
 ] as const;
 
 export const moveInputSchemaFingerprint = "sha256:40b6d67e62dbc348c3dcff8b6a3957fa1a6bb4f7eb02c54b2b65f959cf90886b";
+
+export const moveChoiceProjectionSchema = [] as const;
+
+export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";

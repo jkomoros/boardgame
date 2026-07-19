@@ -29,6 +29,14 @@ import {
   type MovePreviewTransport,
   type MoveTransport,
 } from '../moves/action.js';
+import type { ProjectedMoveChoicesWire } from '../types/api.js';
+import {
+  buildProjectedMoveChoices,
+  ProjectedMoveChoices,
+  type MessageDescriptor,
+  type MoveChoiceProjectionSchemaEntry,
+  type MoveChoiceProjectionTypes,
+} from '../moves/projected-choices.js';
 import {
   cancelTargetActionPreview,
   notifyTargetActionLiveStateChanged,
@@ -58,10 +66,27 @@ export class BoardgameBaseGameRenderer<
   MA extends Record<string, object>,
   K extends object = object,
   E extends object = object,
+  MCP extends MoveChoiceProjectionTypes = Record<never, never>,
 > extends LitElement {
   /** Generated safe-input contract installed by a bound/game renderer. */
   protected readonly moveInputSchema: MoveInputSchema | null = null;
   protected readonly moveInputSchemaFingerprint: string | null = null;
+  /** Generated finite projection contract installed by a game renderer base. */
+  protected readonly moveChoiceProjectionSchema: readonly MoveChoiceProjectionSchemaEntry[] = [];
+  protected readonly moveChoiceProjectionSchemaFingerprint = '';
+  /** Client-owned localizable prompts; no presentation copy crosses the wire. */
+  protected readonly moveChoiceMessages: Readonly<Partial<Record<keyof MCP & string, MessageDescriptor>>> =
+    {} as Readonly<Partial<Record<keyof MCP & string, MessageDescriptor>>>;
+
+  @property({ type: Object, attribute: false })
+  projectedMoveChoicesWire: ProjectedMoveChoicesWire | null = null;
+
+  private _projectedMoveChoices: ProjectedMoveChoices<MCP> | null = null;
+
+  /** Exact typed candidate sets for this snapshot. */
+  get choices(): ProjectedMoveChoices<MCP> | null {
+    return this._projectedMoveChoices;
+  }
 
   /** Canonical fingerprint supplied by the current server /info response. */
   @property({ type: String, attribute: false })
@@ -376,6 +401,48 @@ export class BoardgameBaseGameRenderer<
         notifyTargetActionLiveStateChanged(action);
       }
     }
+    if (changedProperties.has('projectedMoveChoicesWire')
+      || changedProperties.has('gameVersion')
+      || changedProperties.has('playerPresentations')) {
+      this._installProjectedMoveChoices();
+    }
+  }
+
+  private _installProjectedMoveChoices(): void {
+    const wire = this.projectedMoveChoicesWire;
+    if (!wire) {
+      this._projectedMoveChoices = null;
+      this._notifyProjectedMoveChoicesChanged();
+      return;
+    }
+    try {
+      this._projectedMoveChoices = buildProjectedMoveChoices<MCP>({
+        wire,
+        stateVersion: this.gameVersion,
+        schema: this.moveChoiceProjectionSchema,
+        schemaFingerprint: this.moveChoiceProjectionSchemaFingerprint,
+        playerPresentations: this.playerPresentations,
+        action: (move, input) => {
+          const builder = this.move(move as unknown as MN & string) as unknown as import('../moves/action.js').MoveActionBuilder<
+            typeof move,
+            MCP[typeof move]['input']
+          >;
+          return builder.with(input);
+        },
+        messages: this.moveChoiceMessages,
+      });
+    } catch (error) {
+      console.error('[projected-choices] rejected invalid snapshot:', error);
+      this._projectedMoveChoices = ProjectedMoveChoices.failed<MCP>();
+    }
+    this._notifyProjectedMoveChoicesChanged();
+  }
+
+  private _notifyProjectedMoveChoicesChanged(): void {
+    this.dispatchEvent(new CustomEvent('projected-choices-changed', {
+      bubbles: true,
+      composed: true,
+    }));
   }
 
   private _moveSnapshotKey(): string {

@@ -11,6 +11,7 @@ import type {
   MoveForm,
   MoveFormField,
   PreconditionEntry,
+  ProjectedMoveChoicesWire,
   ServerStateBundle,
 } from './api.js';
 import type { GameFromServer, RawGameState, TimerInfo } from './game-state.js';
@@ -18,6 +19,9 @@ import type { GameFromServer, RawGameState, TimerInfo } from './game-state.js';
 const MAX_PLAYERS = 1_000;
 const MAX_FORMS = 10_000;
 const MAX_BUNDLES = 10_000;
+const MAX_PROJECTED_CHOICE_SETS = 8;
+const MAX_PROJECTED_CHOICE_CANDIDATES = 64;
+const MAX_PROJECTED_CHOICE_CANDIDATES_TOTAL = 128;
 
 type RecordValue = Readonly<Record<string, unknown>>;
 type JsonObject = { [key: string]: JsonValue };
@@ -153,6 +157,71 @@ function decodeChest(value: unknown, path: string): GameChest {
     ...(Constants === undefined ? {} : { Constants }),
     ...(LegalTemplates === undefined ? {} : { LegalTemplates }),
   } as unknown as GameChest;
+}
+
+function decodeProjectedMoveChoices(value: unknown, path: string): ProjectedMoveChoicesWire {
+  const item = record(value, path);
+  const StateVersion = integer(item['StateVersion'], `${path}.StateVersion`, true);
+  const MoveChoiceProjectionSchemaFingerprint = string(
+    item['MoveChoiceProjectionSchemaFingerprint'],
+    `${path}.MoveChoiceProjectionSchemaFingerprint`,
+  );
+  const ProjectionSchemaVersion = integer(
+    item['ProjectionSchemaVersion'], `${path}.ProjectionSchemaVersion`, true,
+  );
+  const Status = string(item['Status'], `${path}.Status`);
+  if (Status !== 'ready' && Status !== 'failed') {
+    throw new Error(`${path}.Status must be "ready" or "failed"`);
+  }
+  const rawSets = item['Sets'] === undefined || item['Sets'] === null
+    ? []
+    : array(item['Sets'], `${path}.Sets`, MAX_PROJECTED_CHOICE_SETS);
+  let candidateCount = 0;
+  const Sets = rawSets.map((rawSet, setIndex) => {
+    const setPath = `${path}.Sets[${setIndex}]`;
+    const set = record(rawSet, setPath);
+    const rawSource = string(set['Source'], `${setPath}.Source`);
+    if (rawSource !== 'players' && rawSource !== 'enum-values') {
+      throw new Error(`${setPath}.Source must be "players" or "enum-values"`);
+    }
+    const Source: 'players' | 'enum-values' = rawSource;
+    const Candidates = array(
+      set['Candidates'], `${setPath}.Candidates`, MAX_PROJECTED_CHOICE_CANDIDATES,
+    ).map((rawCandidate, candidateIndex) => {
+      const candidatePath = `${setPath}.Candidates[${candidateIndex}]`;
+      const candidate = record(rawCandidate, candidatePath);
+      const Value = candidate['Value'];
+      if (typeof Value !== 'string'
+        && (typeof Value !== 'number' || !Number.isSafeInteger(Value))) {
+        throw new Error(`${candidatePath}.Value must be a string or safe integer`);
+      }
+      return {
+        Value,
+        Available: boolean(candidate['Available'], `${candidatePath}.Available`),
+      };
+    });
+    candidateCount += Candidates.length;
+    if (candidateCount > MAX_PROJECTED_CHOICE_CANDIDATES_TOTAL) {
+      throw new Error(`${path} exceeds the maximum of ${MAX_PROJECTED_CHOICE_CANDIDATES_TOTAL} total candidates`);
+    }
+    return {
+      MoveName: string(set['MoveName'], `${setPath}.MoveName`),
+      FieldName: string(set['FieldName'], `${setPath}.FieldName`),
+      Source,
+      Candidates,
+    };
+  });
+  if (Status === 'failed') {
+    if (Sets.length !== 0) throw new Error(`${path}.Sets must be empty when Status is "failed"`);
+    return {
+      StateVersion, MoveChoiceProjectionSchemaFingerprint, ProjectionSchemaVersion,
+      Status, Sets: [],
+    };
+  }
+  return {
+    StateVersion, MoveChoiceProjectionSchemaFingerprint, ProjectionSchemaVersion,
+    Status, Sets,
+  };
 }
 
 function decodePlayer(value: unknown, path: string): PlayerInfo {
@@ -435,7 +504,13 @@ function decodeBundle(value: unknown, path: string): ServerStateBundle {
   const Game = decodeGame(item['Game'], `${path}.Game`);
   const Forms = decodeForms(item['Forms'], `${path}.Forms`);
   const ViewingAsPlayer = integer(item['ViewingAsPlayer'], `${path}.ViewingAsPlayer`);
-  return { Game, Forms, ViewingAsPlayer, Move: item['Move'] };
+  const ProjectedMoveChoices = item['ProjectedMoveChoices'] === undefined
+    ? undefined
+    : decodeProjectedMoveChoices(item['ProjectedMoveChoices'], `${path}.ProjectedMoveChoices`);
+  return {
+    Game, Forms, ViewingAsPlayer, Move: item['Move'],
+    ...(ProjectedMoveChoices === undefined ? {} : { ProjectedMoveChoices }),
+  };
 }
 
 export function decodeGameInfoResponse(value: unknown): GameInfoResponse {
@@ -457,11 +532,18 @@ export function decodeGameInfoResponse(value: unknown): GameInfoResponse {
     item['MoveInputSchemaFingerprint'],
     'Game info response.MoveInputSchemaFingerprint',
   );
+  const ProjectedMoveChoices = item['ProjectedMoveChoices'] === undefined
+    ? undefined
+    : decodeProjectedMoveChoices(
+      item['ProjectedMoveChoices'], 'Game info response.ProjectedMoveChoices',
+    );
   const CompanionInfo = decodeCompanion(item['CompanionInfo'], 'Game info response.CompanionInfo');
   return {
     Status: 'Success', Chest, Players, HasEmptySlots, GameOpen, GameVisible,
     IsOwner, Game, Forms, ViewingAsPlayer, StateVersion, LegalCatalogVersion,
-    MoveInputSchemaFingerprint, CompanionInfo,
+    MoveInputSchemaFingerprint,
+    ...(ProjectedMoveChoices === undefined ? {} : { ProjectedMoveChoices }),
+    CompanionInfo,
   };
 }
 

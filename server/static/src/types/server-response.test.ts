@@ -64,6 +64,58 @@ test('game-info decoder validates and normalizes optional collections', () => {
   assert.equal(decoded.Players[0].DisplayName, 'Ada');
 });
 
+test('game-info decoder preserves optional typed projected choices', () => {
+  const absent = decodeGameInfoResponse(info());
+  assert.equal(absent.ProjectedMoveChoices, undefined);
+
+  const source = info() as ReturnType<typeof info> & Record<string, unknown>;
+  source.ProjectedMoveChoices = {
+    StateVersion: 2,
+    MoveChoiceProjectionSchemaFingerprint: 'sha256:choices',
+    ProjectionSchemaVersion: 1,
+    Status: 'ready',
+    Sets: [
+      {
+        MoveName: 'Choose Player', FieldName: 'TargetPlayer', Source: 'players',
+        Candidates: [{ Value: 0, Available: true }, { Value: 1, Available: false }],
+      },
+      {
+        MoveName: 'Guess Card', FieldName: 'GuessedCard', Source: 'enum-values',
+        Candidates: [{ Value: 'Guard', Available: true }],
+      },
+    ],
+  };
+  const decoded = decodeGameInfoResponse(source);
+  assert.deepEqual(decoded.ProjectedMoveChoices, source.ProjectedMoveChoices);
+});
+
+test('projected-choice decoder rejects malformed status, values, and failed payloads', () => {
+  const source = info() as ReturnType<typeof info> & Record<string, unknown>;
+  const envelope = {
+    StateVersion: 2,
+    MoveChoiceProjectionSchemaFingerprint: 'sha256:choices',
+    ProjectionSchemaVersion: 1,
+    Status: 'ready',
+    Sets: [{
+      MoveName: 'Choose', FieldName: 'Target', Source: 'players',
+      Candidates: [{ Value: {}, Available: true }],
+    }],
+  };
+  source.ProjectedMoveChoices = envelope;
+  assert.throws(() => decodeGameInfoResponse(source), /Value must be a string or safe integer/);
+  source.ProjectedMoveChoices = { ...envelope, Status: 'unknown', Sets: [] };
+  assert.throws(() => decodeGameInfoResponse(source), /Status must be "ready" or "failed"/);
+  source.ProjectedMoveChoices = {
+    ...envelope,
+    Status: 'failed',
+    Sets: [{
+      MoveName: 'Choose', FieldName: 'Target', Source: 'players',
+      Candidates: [{ Value: 0, Available: true }],
+    }],
+  };
+  assert.throws(() => decodeGameInfoResponse(source), /Sets must be empty/);
+});
+
 test('game-info decoder isolates opaque creator payloads and drops unknown envelope fields', () => {
   const source = info() as ReturnType<typeof info> & Record<string, unknown>;
   source.Chest = { Enums: { Phase: { Values: { Play: 'Play' } } } };

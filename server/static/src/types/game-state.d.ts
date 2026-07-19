@@ -3,7 +3,7 @@
  * These types represent the core game state data structures used throughout the application.
  */
 
-import type { ClientMove, JsonValue, MoveForm } from './api';
+import type { ClientMove, JsonValue, MoveForm, ProjectedMoveChoicesWire } from './api';
 import type { VersionAnimationContext } from '../components/companion-sync';
 
 /**
@@ -93,6 +93,8 @@ export interface StateBundle {
   moveForms: MoveForm[] | null;
   /** Player index viewing this state */
   viewingAsPlayer: number;
+  /** Candidate legality projected for this bundle's exact state/viewer. */
+  projectedMoveChoices: ProjectedMoveChoicesWire | null;
   /** Scoped animation policy reserved for this exact companion version. */
   animationContext?: VersionAnimationContext | null;
 }

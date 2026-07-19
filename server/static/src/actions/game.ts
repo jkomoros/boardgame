@@ -573,6 +573,7 @@ export const fetchGameInfo = (
     viewingAsPlayer: data.ViewingAsPlayer,
 		stateVersion: data.StateVersion,
 		moveInputSchemaFingerprint: data.MoveInputSchemaFingerprint,
+    projectedMoveChoices: data.ProjectedMoveChoices,
   });
 
   // Install the initial game state so animations can work

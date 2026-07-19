@@ -9,8 +9,11 @@ import {
   BoardgameTableViewBase,
 } from '../../src/client.js';
 import {
+  moveChoiceProjectionSchema,
+  moveChoiceProjectionSchemaFingerprint,
   moveInputSchema,
   moveInputSchemaFingerprint,
+  type MoveChoiceProjections,
   type MoveInputs,
 } from './_move_args.js';
 import type { MoveName } from './_move_names.js';
@@ -39,6 +42,7 @@ export interface GameClientContract {
   readonly Enums: GameEnums;
   readonly MoveName: MoveName;
   readonly MoveInputs: MoveInputs;
+  readonly MoveChoiceProjections: MoveChoiceProjections;
   readonly RendererTag:
     | 'boardgame-render-game-pig'
     | 'boardgame-render-game-pig-table'
@@ -52,10 +56,13 @@ export abstract class GameRenderer extends BoardgameBaseGameRenderer<
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
   GameClientContract['Constants'],
-  GameClientContract['Enums']
+  GameClientContract['Enums'],
+  GameClientContract['MoveChoiceProjections']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
+  protected override readonly moveChoiceProjectionSchema = moveChoiceProjectionSchema;
+  protected override readonly moveChoiceProjectionSchemaFingerprint = moveChoiceProjectionSchemaFingerprint;
 }
 
 /** Extend this class for the shared-screen companion surface. */
@@ -65,10 +72,13 @@ export abstract class TableRenderer extends BoardgameTableViewBase<
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
   GameClientContract['Constants'],
-  GameClientContract['Enums']
+  GameClientContract['Enums'],
+  GameClientContract['MoveChoiceProjections']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
+  protected override readonly moveChoiceProjectionSchema = moveChoiceProjectionSchema;
+  protected override readonly moveChoiceProjectionSchemaFingerprint = moveChoiceProjectionSchemaFingerprint;
 }
 
 /** Extend this class for the private per-player companion surface. */
@@ -78,10 +88,13 @@ export abstract class HandRenderer extends BoardgameHandViewBase<
   GameClientContract['MoveName'],
   GameClientContract['MoveInputs'],
   GameClientContract['Constants'],
-  GameClientContract['Enums']
+  GameClientContract['Enums'],
+  GameClientContract['MoveChoiceProjections']
 > {
   protected override readonly moveInputSchema = moveInputSchema;
   protected override readonly moveInputSchemaFingerprint = moveInputSchemaFingerprint;
+  protected override readonly moveChoiceProjectionSchema = moveChoiceProjectionSchema;
+  protected override readonly moveChoiceProjectionSchemaFingerprint = moveChoiceProjectionSchemaFingerprint;
 }
 
 /** Extend this class for a strictly typed player-info renderer. */

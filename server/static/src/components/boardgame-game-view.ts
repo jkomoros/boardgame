@@ -102,7 +102,7 @@ import {
 } from '../timers/timer-service.js';
 
 import type { GameFromServer, StateBundle } from '../types/game-state';
-import type { ClientMove, MoveForm } from '../types/api';
+import type { ClientMove, MoveForm, ProjectedMoveChoicesWire } from '../types/api';
 
 import game from '../reducers/game.js';
 store.addReducers({
@@ -337,6 +337,9 @@ export class BoardgameGameView extends connect(store)(LitElement) {
 
   @property({ type: Object, attribute: false })
   private _installedMove: ClientMove | null = null;
+
+  @property({ type: Object, attribute: false })
+  private _projectedMoveChoices: ProjectedMoveChoicesWire | null = null;
 
   @query('#manager')
   private _managerEle?: BoardgameGameStateManager;
@@ -685,6 +688,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
           .gameId=${this._gameRoute ? this._gameRoute.id : ''}
           .gameVersion=${this.game ? this.game.Version : 0}
           .snapshotEpoch=${this._moveSnapshotEpoch}
+          .projectedMoveChoicesWire=${this._projectedMoveChoices}
           .proposingAsPlayer=${this._proposingAsPlayer}
           .proposingAsAdmin=${this._admin}
           .moveTransport=${this._moveTransport}
@@ -1466,6 +1470,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     this._moveInputSchemaFingerprint = null;
     this._animationContext = null;
     this._installedMove = null;
+    this._projectedMoveChoices = null;
     this._moveSnapshotEpoch += 1;
     this._firstStateBundle = true;
   }
@@ -1476,6 +1481,7 @@ export class BoardgameGameView extends connect(store)(LitElement) {
     // the new state to the game renderer.
     this._animationContext = bundle.animationContext ?? null;
     this._installedMove = bundle.move;
+    this._projectedMoveChoices = bundle.projectedMoveChoices;
     this._moveSnapshotEpoch += 1;
     store.dispatch(installGameState(bundle.game.CurrentState, bundle.game.ActiveTimers, bundle.originalWallClockStartTime));
 

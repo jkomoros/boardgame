@@ -135,6 +135,8 @@ export type MoveWireInputs = {
   "Visible Shuffle": VisibleShuffleWire;
 };
 
+export type MoveChoiceProjections = Record<never, never>;
+
 export const moveInputSchema = [
   {
     "name": "Flip Card Between Hidden and Revealed",
@@ -201,3 +203,7 @@ export const moveInputSchema = [
 ] as const;
 
 export const moveInputSchemaFingerprint = "sha256:4ebfa940aa3d281e92201205610df27a06973300dab3f1f4c4706e0322adc245";
+
+export const moveChoiceProjectionSchema = [] as const;
+
+export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";

@@ -198,6 +198,7 @@ export interface FetchedGameInfo {
   ViewingAsPlayer: number;
   StateVersion: number;
   MoveInputSchemaFingerprint: string;
+  ProjectedMoveChoices?: import('./api').ProjectedMoveChoicesWire;
 }
 
 /** Version payload retained only until the animation queue consumes it. */

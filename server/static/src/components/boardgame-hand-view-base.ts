@@ -2,6 +2,7 @@ import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { FullGameState } from '../types/boardgame-types.js';
+import type { MoveChoiceProjectionTypes } from '../moves/projected-choices.js';
 import type { SeatPresentation } from './boardgame-table-view-base.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 
@@ -28,7 +29,8 @@ export class BoardgameHandViewBase<
   MA extends Record<string, object>,
   K extends object = object,
   E extends object = object,
-> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E> {
+  MCP extends MoveChoiceProjectionTypes = Record<never, never>,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E, MCP> {
 
   /**
    * The player index this Hand view is bound to. Equals viewingAsPlayer

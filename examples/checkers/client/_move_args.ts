@@ -34,6 +34,8 @@ export type MoveWireInputs = {
   "Move Token": MoveTokenWire;
 };
 
+export type MoveChoiceProjections = Record<never, never>;
+
 export const moveInputSchema = [
   {
     "name": "Move Token",
@@ -63,3 +65,7 @@ export const moveInputSchema = [
 ] as const;
 
 export const moveInputSchemaFingerprint = "sha256:01a7d6c7ed1b2fdb1ecbb5a1cbb234db6f7345aa1dbd396bf5a6340a846f0f3d";
+
+export const moveChoiceProjectionSchema = [] as const;
+
+export const moveChoiceProjectionSchemaFingerprint = "sha256:9b21dcf704aff3206dc8f43f8d608f4eb6c21d41e85aae6b9db83067ef75dd6e";

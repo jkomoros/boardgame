@@ -2,6 +2,7 @@ import { html, css, TemplateResult, type CSSResultGroup } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { BoardgameBaseGameRenderer } from './boardgame-base-game-renderer.js';
 import type { FullGameState } from '../types/boardgame-types.js';
+import type { MoveChoiceProjectionTypes } from '../moves/projected-choices.js';
 import { glyphForSlug } from './companion-avatar-catalog.js';
 import { apiHttpPost, buildGameUrl, type ApiResponse } from '../api.js';
 import { decodeHostActionResponse } from '../types/host-action-response.js';
@@ -53,7 +54,8 @@ export class BoardgameTableViewBase<
   MA extends Record<string, object>,
   K extends object = object,
   E extends object = object,
-> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E> {
+  MCP extends MoveChoiceProjectionTypes = Record<never, never>,
+> extends BoardgameBaseGameRenderer<S, C, MN, MA, K, E, MCP> {
 
   /**
    * Per-seat avatar + name records, indexed by player index. May contain
